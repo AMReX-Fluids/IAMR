@@ -5,19 +5,6 @@
 #include <NavierStokesBase.H>
 #include <LevelBld.H>
 
-#ifdef PARTICLES
-#include <AmrParticles.H>
-//
-// The "BL_SPACEDIM" bytes in m_data[] are to hold temporary positions or velocities
-//      in AdvectWithUmac().
-//
-typedef AmrParticleContainer<BL_SPACEDIM> NSParticleContainer;
-#endif
-
-#ifdef USE_BPM
-#include <BPM.H>
-#endif
-
 class NSBld
     :
     public LevelBld
@@ -105,12 +92,6 @@ public:
     // Modify list of variables to be plotted
     //
     virtual void setPlotVariables() BL_OVERRIDE;
-
-#ifdef PARTICLES
-    static NSParticleContainer* theNSPC ();
-    void ParticleDerive (const std::string& name, Real time, MultiFab& mf, int dcomp);
-#endif
-
     //
     // Returns a MultiFab containing the derived data for this level.
     // The user is responsible for deleting this pointer when done
@@ -142,8 +123,6 @@ public:
                           Real dt,
                           int  iteration,
                           int  ncycle) BL_OVERRIDE;
-
-    static int DoTrac2();
 
 protected:
 

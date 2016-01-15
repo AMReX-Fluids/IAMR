@@ -29,94 +29,23 @@
 #include <PROB_NS_F.H>
 #include <TagBox.H>
 #include <VISCOPERATOR_F.H>
-#include <BLFort.H>
 
 #ifdef BL_USE_VELOCITY
 #include <DataServices.H>
 #include <AmrData.H>
 #endif
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include <buildInfo.H>
-
-#define GEOM_GROW   1
-#define PRESS_GROW  1
-#define DIVU_GROW   1
-#define DSDT_GROW   1
-
-#define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-Real* fabdat = (fab).dataPtr();
-
-#define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-const Real* fabdat = (fab).dataPtr();
 
 namespace
 {
     bool initialized = false;
 }
 
-#ifdef PARTICLES
-
-namespace
-{
-    //
-    // Name of subdirectory in chk???? holding checkpointed particles.
-    //
-    const std::string the_ns_particle_file_name("Particles");
-    //
-    // There's really only one of these.
-    //
-    NSParticleContainer* NSPC = 0;
-
-    std::string      timestamp_dir;
-    std::vector<int> timestamp_indices;
-    std::string      particle_init_file;
-    std::string      particle_restart_file;
-    std::string      particle_output_file;
-    bool             restart_from_nonparticle_chkfile;
-    int              pverbose;
-
-#ifdef USE_BPM
-    BPMMesh* ParticleMesh = 0;
-    std::string particle_mesh_init_file;
-#endif
-
-}
-//
-// In case someone outside of NavierStokes needs a handle on the particles.
-//
-NSParticleContainer* NavierStokes::theNSPC () { return NSPC; }
-
-#endif /*PARTICLES*/
-
-int NavierStokes::DoTrac2() {return do_trac2;}
-
-BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
-{
-  *dotrac2 = NavierStokes::DoTrac2();
-}
-
 void
 NavierStokes::variableCleanUp ()
 {
     NavierStokesBase::variableCleanUp ();
-
-#ifdef PARTICLES
-    delete NSPC;
-    NSPC = 0;
-#endif
-
-#ifdef USE_BPM
-    delete ParticleMesh;
-    ParticleMesh = 0;
-#endif
 }
 
 void
@@ -125,69 +54,6 @@ NavierStokes::Initialize ()
     if (initialized) return;
 
     NavierStokesBase::Initialize();
-
-#ifdef PARTICLES
-    timestamp_dir                    = "Timestamps";
-    restart_from_nonparticle_chkfile = false;
-    pverbose                         = 2;
-#endif /*PARTICLES*/
-
-#ifdef PARTICLES
-    //
-    // Some particle stuff.
-    //
-    ParmParse ppp("particles");
-    //
-    // The directory in which to store timestamp files.
-    //
-    ppp.query("timestamp_dir", timestamp_dir);
-    //
-    // Only the I/O processor makes the directory if it doesn't already exist.
-    //
-    if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(timestamp_dir, 0755))
-            BoxLib::CreateDirectoryFailed(timestamp_dir);
-    //
-    // Force other processors to wait till directory is built.
-    //
-    ParallelDescriptor::Barrier();
-
-    if (int nc = ppp.countval("timestamp_indices"))
-    {
-        timestamp_indices.resize(nc);
-
-        ppp.getarr("timestamp_indices", timestamp_indices, 0, nc);
-    }
-
-    ppp.query("pverbose",pverbose);
-    //
-    // Used in initData() on startup to read in a file of particles.
-    //
-    ppp.query("particle_init_file", particle_init_file);
-    //
-    // Used in post_restart() to read in a file of particles.
-    //
-    ppp.query("particle_restart_file", particle_restart_file);
-    //
-    // This must be true the first time you try to restart from a checkpoint
-    // that was written with USE_PARTICLES=FALSE; i.e. one that doesn't have
-    // the particle checkpoint stuff (even if there are no active particles).
-    // Otherwise the code will fail when trying to read the checkpointed particles.
-    //
-    ppp.query("restart_from_nonparticle_chkfile", restart_from_nonparticle_chkfile);
-    //
-    // Used in post_restart() to write out the file of particles.
-    //
-    ppp.query("particle_output_file", particle_output_file);
-
-#ifdef USE_BPM
-    //
-    // Used in initData() on startup to read in a file of springs (for BPM)
-    //
-    ppp.query("particle_mesh_init_file", particle_mesh_init_file);
-#endif
-
-#endif
 
     BoxLib::ExecOnFinalize(NavierStokes::Finalize);
 
@@ -381,37 +247,8 @@ NavierStokes::initData ()
     old_intersect_new          = grids;
 
 #ifdef PARTICLES
-    if (level == 0)
-    {
-        if (NSPC == 0)
-        {
-            NSPC = new NSParticleContainer(parent);
-        }
-
-        NSPC->SetVerbose(pverbose);
-
-        if (!particle_init_file.empty())
-        {
-            NSPC->InitFromAsciiFile(particle_init_file,0);
-        }
-    }
-#endif /*PARTICLES*/
-
-#ifdef USE_BPM
-    if (level == 0)
-    {
-        if (ParticleMesh == 0)
-        {
-            ParticleMesh = new BPMMesh();
-        }
-
-        if (!particle_mesh_init_file.empty())
-        {
-            ParticleMesh->InitFromAsciiFile(particle_mesh_init_file);
-        }
-    }
-#endif /*USE_BPM*/
-
+    initParticleData ();
+#endif
 }
 
 //
@@ -565,9 +402,9 @@ NavierStokes::advance (Real time,
     }
 
 #ifdef PARTICLES
-    if (NSPC != 0)
+    if (theNSPC() != 0)
     {
-        NSPC->AdvectWithUmac(u_mac, level, dt);
+        theNSPC()->AdvectWithUmac(u_mac, level, dt);
     }
 #endif
     //
@@ -1773,23 +1610,9 @@ NavierStokes::derive (const std::string& name,
                       int                ngrow)
 {
 #ifdef PARTICLES
-  if (name == "particle_count" || name == "total_particle_count") {
-    int ncomp = 1;
-    const DeriveRec* rec = derive_lst.get(name);
-    if (rec)
-    {
-      ncomp = rec->numDerive();
-    }
-    
-    MultiFab* ret = new MultiFab(grids, ncomp, ngrow);
-    ParticleDerive(name,time,*ret,0);
-    return ret;
-  }
-  else {
-    return AmrLevel::derive(name, time, ngrow);
-  }
+    return ParticleDerive(name, time, ngrow);
 #else
-  return AmrLevel::derive(name, time, ngrow);
+    return AmrLevel::derive(name, time, ngrow);
 #endif 
 }
 
@@ -1806,116 +1629,18 @@ NavierStokes::derive (const std::string& name,
 #endif
 }
 
-#ifdef PARTICLES
-void
-NavierStokes::ParticleDerive (const std::string& name,
-                              Real               time,
-                              MultiFab&          mf,
-                              int                dcomp)
-{
-    if (NSPC && name == "particle_count")
-    {
-        MultiFab temp_dat(grids,1,0);
-        temp_dat.setVal(0);
-        NSPC->Increment(temp_dat,level);
-        MultiFab::Copy(mf,temp_dat,0,dcomp,1,0);
-    }
-    else if (NSPC && name == "total_particle_count")
-    {
-        //
-        // We want the total particle count at this level or higher.
-        //
-        ParticleDerive("particle_count",time,mf,dcomp);
-
-        IntVect trr(D_DECL(1,1,1));
-
-        for (int lev = level+1; lev <= parent->finestLevel(); lev++)
-        {
-            BoxArray ba = parent->boxArray(lev);
-
-            MultiFab temp_dat(ba,1,0);
-
-            trr *= parent->refRatio(lev-1);
-
-            ba.coarsen(trr);
-
-            MultiFab ctemp_dat(ba,1,0);
-
-            temp_dat.setVal(0);
-            ctemp_dat.setVal(0);
-
-            NSPC->Increment(temp_dat,lev);
-
-            for (MFIter mfi(temp_dat); mfi.isValid(); ++mfi)
-            {
-                const FArrayBox& ffab =  temp_dat[mfi];
-                FArrayBox&       cfab = ctemp_dat[mfi];
-                const Box&       fbx  = ffab.box();
-
-                BL_ASSERT(cfab.box() == BoxLib::coarsen(fbx,trr));
-
-                for (IntVect p = fbx.smallEnd(); p <= fbx.bigEnd(); fbx.next(p))
-                {
-                    const Real val = ffab(p);
-                    if (val > 0)
-                        cfab(BoxLib::coarsen(p,trr)) += val;
-                }
-            }
-
-            temp_dat.clear();
-
-            MultiFab dat(grids,1,0);
-            dat.setVal(0);
-            dat.copy(ctemp_dat);
-
-            MultiFab::Add(mf,dat,0,dcomp,1,0);
-        }
-    }
-    else
-    {
-        AmrLevel::derive(name,time,mf,dcomp);
-    }
-}
-#endif
-
-
 //
 // Build any additional data structures after restart.
 //
 
 void
-NavierStokes::post_restart()
+NavierStokes::post_restart ()
 {
     make_rho_prev_time();
     make_rho_curr_time();
 
 #ifdef PARTICLES
-    if (level == 0)
-    {
-        BL_ASSERT(NSPC == 0);
-
-        NSPC = new NSParticleContainer(parent);
-
-        NSPC->SetVerbose(pverbose);
-        //
-        // We want to be able to add new particles on a restart.
-        // As well as the ability to write the particles out to an ascii file.
-        //
-        if (!restart_from_nonparticle_chkfile)
-        {
-            NSPC->Restart(parent->theRestartFile(), the_ns_particle_file_name);
-        }
-
-        if (!particle_restart_file.empty())
-        {
-            NSPC->InitFromAsciiFile(particle_restart_file,0);
-        }
-
-        if (!particle_output_file.empty())
-        {
-            NSPC->WriteAsciiFile(particle_output_file);
-        }
-    }
+    post_restart_particle ();
 #endif /*PARTICLES*/
 }
 

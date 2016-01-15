@@ -2,10 +2,15 @@
 #ifndef _NavierStokesBase_H_
 #define _NavierStokesBase_H_
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <AmrLevel.H>
 #include <BL_CXX11.H>
 
 #include <BC_TYPES.H>
+#include <BLFort.H>
 #include <Diffusion.H>
 #include <ErrorList.H>
 #include <FluxRegister.H>
@@ -14,6 +19,19 @@
 #include <Projection.H>
 #include <SyncRegister.H>
 #include <ViscBndry.H>
+
+#ifdef PARTICLES
+#include <AmrParticles.H>
+//
+// The "BL_SPACEDIM" bytes in m_data[] are to hold temporary positions or velocities
+//      in AdvectWithUmac().
+//
+typedef AmrParticleContainer<BL_SPACEDIM> NSParticleContainer;
+#endif
+
+#ifdef USE_BPM
+#include <BPM.H>
+#endif
 
 //
 // "Divu_Type" means S, where divergence U = S
@@ -182,6 +200,7 @@ public:
     //    NavierStokesBase public static functions                            //
     ////////////////////////////////////////////////////////////////////////////
 
+    static int DoTrac2();
     //
     // Returns the value of "gravity" for use in the projection outflow bcs.
     //
@@ -203,11 +222,6 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase protected functions                                //
     ////////////////////////////////////////////////////////////////////////////
-
-    virtual void advance_setup (Real time,
-				Real dt,
-				int  iteration,
-				int  ncycle);
 
     void advance_cleanup (int iteration,int ncycle);
 
@@ -418,6 +432,11 @@ protected:
     //    NavierStokesBase protected virtual functions                        //
     ////////////////////////////////////////////////////////////////////////////
 
+    virtual void advance_setup (Real time,
+				Real dt,
+				int  iteration,
+				int  ncycle);
+
     virtual void avgDown () = 0; // Average down for all the state types.
     //
     virtual void calc_divu (Real      time,
@@ -474,6 +493,21 @@ protected:
     static void Initialize ();   // Read input file
     static void Finalize ();
     static void read_geometry (); // Set metrics
+
+#ifdef PARTICLES
+    static NSParticleContainer* theNSPC ();
+    static void read_particle_params ();
+
+    void initParticleData ();
+    void post_restart_particle ();
+
+    virtual void post_timestep_particle (int                     iteration,
+					 const std::string&      dir,
+					 const std::vector<int>& indices);
+
+    MultiFab* ParticleDerive(const std::string& name, Real time, int ngrow);
+    void ParticleDerive (const std::string& name, Real time, MultiFab& mf, int dcomp);
+#endif
 
 //
 // Data
