@@ -7,7 +7,7 @@
 #include <MacProj.H>
 #include <MacBndry.H>
 #include <MacOpMacDrivers.H>
-#include <NavierStokes.H>
+#include <NavierStokesBase.H>
 #include <MACPROJ_F.H>
 #include <MacOutFlowBC.H>
 
@@ -321,7 +321,7 @@ MacProj::mac_project (int             level,
     const Real*     dx         = geom.CellSize();
     const int       max_level  = parent->maxLevel();
     MultiFab*       mac_phi    = 0;
-    NavierStokes&   ns         = *(NavierStokes*) &(parent->getLevel(level));
+    NavierStokesBase&   ns         = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume     = ns.Volume();
     const MultiFab* area_level = ns.Area();
     IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
@@ -508,7 +508,7 @@ MacProj::mac_sync_solve (int       level,
     const BoxArray& fine_boxes = LevelData[level+1].boxArray();
     IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
                                            : IntVect::TheZeroVector();
-    const NavierStokes& ns_level   = *(NavierStokes*) &(parent->getLevel(level));
+    const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab&     volume     = ns_level.Volume();
     const MultiFab*     area_level = ns_level.Area();
     //
@@ -721,7 +721,7 @@ MacProj::mac_sync_compute (int                   level,
     const Real*     dx                  = geom.CellSize();
     const int       numscal             = NUM_STATE - BL_SPACEDIM;
     MultiFab*       mac_sync_phi        = &mac_phi_crse[level];
-    NavierStokes&   ns_level            = *(NavierStokes*) &(parent->getLevel(level));
+    NavierStokesBase&   ns_level            = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
     Godunov*        godunov             = ns_level.godunov;
@@ -941,7 +941,7 @@ MacProj::mac_sync_compute (int                    level,
     const BoxArray& grids        = LevelData[level].boxArray();
     const Geometry& geom         = parent->Geom(level);
     MultiFab*       mac_sync_phi = &mac_phi_crse[level];
-    const NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
+    const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
 
@@ -1014,7 +1014,7 @@ MacProj::check_div_cond (int      level,
                          MultiFab U_edge[]) const
 {
     const BoxArray& grids = LevelData[level].boxArray();
-    const NavierStokes& ns_level = *(NavierStokes*) &(parent->getLevel(level));
+    const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
 
@@ -1180,7 +1180,7 @@ MacProj::set_outflow_bcs (int             level,
     
         MacOutFlowBC macBC;
 
-        NavierStokes* ns_level = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+        NavierStokesBase* ns_level = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
         Real gravity = ns_level->getGravity();
         const int* lo_bc = phys_bc->lo();
         const int* hi_bc = phys_bc->hi();

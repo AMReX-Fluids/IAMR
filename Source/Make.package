@@ -34,8 +34,8 @@ ifndef ATMOS_MACOP
   FEXE_headers += MACOPERATOR_F.H
 endif
 
-CEXE_sources += NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
-CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokes.H FluxBoxes.H
+CEXE_sources += NavierStokesBase.cpp NavierStokes.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
+CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokesBase.H NavierStokes.H FluxBoxes.H
 
 FEXE_sources += GODUNOV_F.F
 

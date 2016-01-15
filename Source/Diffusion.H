@@ -30,7 +30,7 @@
 //
 enum DiffusionForm { RhoInverse_Laplacian_S, Laplacian_SoverRho, Laplacian_S };
 
-class NavierStokes;
+class NavierStokesBase;
 
 class Diffusion 
 {
@@ -41,7 +41,7 @@ public:
     Diffusion ();
 
     Diffusion (Amr*               Parent,
-               NavierStokes*      Caller,
+               NavierStokesBase*  Caller,
                Diffusion*         coarser,
                int                num_state,
                FluxRegister*      Viscflux_reg,
@@ -287,10 +287,10 @@ protected:
     //
     // Data Required by Derived Classes
     //
-    Amr*            parent;
-    NavierStokes*   navier_stokes;
-    const BoxArray& grids;
-    const int       level;
+    Amr*              parent;
+    NavierStokesBase* navier_stokes;
+    const BoxArray&   grids;
+    const int         level;
     //
     // Static data.
     //

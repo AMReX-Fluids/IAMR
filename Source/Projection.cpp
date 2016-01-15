@@ -3,7 +3,7 @@
 
 #include <Geometry.H>
 #include <ParmParse.H>
-#include <NavierStokes.H>
+#include <NavierStokesBase.H>
 #include <NS_BC.H>
 #include <BLProfiler.H>
 #include <Projection.H>
@@ -259,7 +259,7 @@ Projection::level_project (int             level,
     const BoxArray& grids   = LevelData[level].boxArray();
     const BoxArray& P_grids = P_old.boxArray();
 
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
     BL_ASSERT(!(ns==0));
 
     //
@@ -1094,7 +1094,7 @@ Projection::initialPressureProject (int  c_lev)
     //
     // Set up outflow bcs.
     //
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
+    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&LevelData[c_lev]);
     Real gravity = ns->getGravity();
 
     if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs)
@@ -1216,7 +1216,7 @@ Projection::initialSyncProject (int       c_lev,
             MultiFab* rhslev = rhs[lev];
             rhslev->setVal(0);
 
-            NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(lev));
+            NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(lev));
 
             BL_ASSERT(!(ns == 0));
 
@@ -1367,7 +1367,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 {
     rhs.setVal(0);
 
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
 
     BL_ASSERT(!(ns == 0));
 
@@ -2140,7 +2140,7 @@ Projection::set_outflow_bcs (int        which_call,
       numOutFlowFaces[lev] = icount[lev];
     }
 
-    NavierStokes* ns0 = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
+    NavierStokesBase* ns0 = dynamic_cast<NavierStokesBase*>(&LevelData[c_lev]);
     BL_ASSERT(!(ns0 == 0));
    
     int Divu_Type, Divu;
@@ -2193,7 +2193,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                                       int          have_divu,
                                       Real         gravity)
 {
-    BL_ASSERT(dynamic_cast<NavierStokes*>(&LevelData[lev]) != 0);
+    BL_ASSERT(dynamic_cast<NavierStokesBase*>(&LevelData[lev]) != 0);
 
     Box domain = parent->Geom(lev).Domain();
 

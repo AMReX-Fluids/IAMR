@@ -2,7 +2,7 @@
 #include <ParmParse.H>
 
 #include <Diffusion.H>
-#include <NavierStokes.H>
+#include <NavierStokesBase.H>
 
 #include <MultiGrid.H>
 #include <CGSolver.H>
@@ -82,7 +82,7 @@ Diffusion::Finalize ()
 }
 
 Diffusion::Diffusion (Amr*               Parent,
-                      NavierStokes*      Caller,
+                      NavierStokesBase*  Caller,
                       Diffusion*         Coarser,
                       int                num_state,
                       FluxRegister*      Viscflux_reg,
@@ -2416,7 +2416,7 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
 
         default:
             std::cout << "compDiffusionType = " << compDiffusionType << '\n';
-            BoxLib::Abort("An unknown NavierStokes::DiffusionForm was used in set_rho_flag");
+            BoxLib::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
     }
 
     return rho_flag;
