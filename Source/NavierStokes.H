@@ -109,10 +109,6 @@ public:
                          MultiFab&          mf,
                          int                dcomp) BL_OVERRIDE;
     //
-    // Build any additional data structures after restart.
-    //
-    virtual void post_restart () BL_OVERRIDE;
-    //
     // Insure state, and pressure are consistent.
     //
     virtual void post_init (Real stop_time) BL_OVERRIDE;

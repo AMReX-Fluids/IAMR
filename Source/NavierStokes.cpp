@@ -1630,24 +1630,8 @@ NavierStokes::derive (const std::string& name,
 }
 
 //
-// Build any additional data structures after restart.
-//
-
-void
-NavierStokes::post_restart ()
-{
-    make_rho_prev_time();
-    make_rho_curr_time();
-
-#ifdef PARTICLES
-    post_restart_particle ();
-#endif /*PARTICLES*/
-}
-
-//
 // Ensure state, and pressure are consistent.
 //
-
 void
 NavierStokes::post_init (Real stop_time)
 {

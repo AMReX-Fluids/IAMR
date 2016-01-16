@@ -121,6 +121,10 @@ public:
     //
     virtual void post_regrid (int lbase, int new_finest) BL_OVERRIDE;
     //
+    // Build any additional data structures after restart.
+    //
+    virtual void post_restart () BL_OVERRIDE;
+    //
     // Sync state and pressure at the end of a composite timestep.
     //
     virtual void post_timestep (int iteration) BL_OVERRIDE;
@@ -501,9 +505,10 @@ protected:
     void initParticleData ();
     void post_restart_particle ();
 
-    virtual void post_timestep_particle (int                     iteration,
-					 const std::string&      dir,
-					 const std::vector<int>& indices);
+    void post_timestep_particle (int iteration);
+
+    virtual int timestamp_num_extras () { return 0; }
+    virtual void timestamp_add_extras (int lev, Real time, MultiFab& mf) { }
 
     MultiFab* ParticleDerive(const std::string& name, Real time, int ngrow);
     void ParticleDerive (const std::string& name, Real time, MultiFab& mf, int dcomp);

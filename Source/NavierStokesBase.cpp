@@ -2384,6 +2384,20 @@ NavierStokesBase::post_regrid (int lbase,
 }
 
 //
+// Build any additional data structures after restart.
+//
+void
+NavierStokesBase::post_restart ()
+{
+    make_rho_prev_time();
+    make_rho_curr_time();
+
+#ifdef PARTICLES
+    post_restart_particle ();
+#endif
+}
+
+//
 // Integration cycle on fine level grids is complete .
 // post_timestep() is responsible for syncing levels together.
 //
@@ -2397,7 +2411,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
     const int finest_level = parent->finestLevel();
 
 #ifdef PARTICLES
-    post_timestep_particle (crse_iteration, timestamp_dir, timestamp_indices);
+    post_timestep_particle (crse_iteration);
 #endif
 
     if (level == parent->finestLevel())
@@ -3900,9 +3914,7 @@ NavierStokesBase::post_restart_particle ()
 }
 
 void
-NavierStokesBase::post_timestep_particle (int                     crse_iteration,
-					  const std::string&      dir,
-					  const std::vector<int>& indices)
+NavierStokesBase::post_timestep_particle (int crse_iteration)
 {
     const int ncycle = parent->nCycle(level);
     const int finest_level = parent->finestLevel();
@@ -3917,15 +3929,32 @@ NavierStokesBase::post_timestep_particle (int                     crse_iteration
    
         NSPC->Redistribute(false, true, level, ngrow);
 
-        if (!dir.empty())
+        if (!timestamp_dir.empty())
         {
-            std::string basename = dir;
+            std::string basename = timestamp_dir;
 
             if (basename[basename.length()-1] != '/') basename += '/';
 
             basename += "Timestamp";
 
-	    int imax = *(std::max_element(indices.begin(), indices.end()));
+	    static bool first = true;
+	    static int n, nextras;
+	    static std::vector<int> tindices;
+
+	    if (first)
+	    {
+		first = false;
+
+		n = timestamp_indices.size();
+		nextras = timestamp_num_extras();
+	    
+		int sz = n + nextras;
+		tindices.reserve(sz);
+
+		for (int i = 0; i < sz; ++i) {
+		    tindices.push_back(i);
+		}
+	    }
 
             for (int lev = level; lev <= finest_level; lev++)
             {
@@ -3933,16 +3962,41 @@ NavierStokesBase::post_timestep_particle (int                     crse_iteration
 
 		int ng = (lev == level) ? ngrow+1 : 1;
 
-		MultiFab& S_new = parent->getLevel(lev).get_new_data(State_Type);
+		AmrLevel& amr_level = parent->getLevel(lev);
+		MultiFab& S_new = amr_level.get_new_data(State_Type);
 
-		if (imax >= 0) { // FillPatchIterator will fail otherwise
-		    FillPatchIterator fpi(parent->getLevel(lev), S_new, 
-					  ng, curr_time, State_Type, 0, imax+1);
-		    const MultiFab& S = fpi.get_mf();
-		    NSPC->Timestamp(basename, S    , lev, curr_time, indices);
-		} else {
-		    NSPC->Timestamp(basename, S_new, lev, curr_time, indices);
+		MultiFab tmf;
+		
+		if (tindices.size() > 0)
+		{
+		    tmf.define(S_new.boxArray(), tindices.size(), ng, Fab_allocate);
+
+		    if (n > 0)
+		    {
+			FillPatchIterator fpi(parent->getLevel(lev), S_new, 
+					      ng, curr_time, State_Type, 0, NUM_STATE);
+			const MultiFab& S = fpi.get_mf();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+			for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
+			{
+			    FArrayBox& tfab = tmf[mfi];
+			    const FArrayBox& sfab = S[mfi];
+			    for (int i = 0; i < n; ++i)
+			    {
+				tfab.copy(sfab, timestamp_indices[i], i);
+			    }
+			}
+		    }
+
+		    if (nextras > 0)
+		    {
+			timestamp_add_extras(lev, curr_time, tmf);
+		    }
 		}
+
+		NSPC->Timestamp(basename, tmf, lev, curr_time, tindices);
             }
         }
     }
