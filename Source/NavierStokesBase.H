@@ -8,7 +8,6 @@
 
 #include <AmrLevel.H>
 #include <BL_CXX11.H>
-
 #include <BC_TYPES.H>
 #include <BLFort.H>
 #include <Diffusion.H>
@@ -18,6 +17,7 @@
 #include <MacProj.H> 
 #include <Projection.H>
 #include <SyncRegister.H>
+#include <Utility.H>
 #include <ViscBndry.H>
 
 #ifdef PARTICLES
