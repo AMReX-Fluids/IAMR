@@ -113,6 +113,12 @@ public:
     //
     virtual void init () BL_OVERRIDE;
     //
+    // Called in grid_places after other tagging routines to modify
+    //   the list of tagged points
+    //
+    virtual void manual_tags_placement (TagBoxArray&    tags, 
+					Array<IntVect>& bf_lev) BL_OVERRIDE;
+    //
     // Estimate the end of the simulation for amrLevel.
     //
     virtual int okToContinue () BL_OVERRIDE;
@@ -307,6 +313,8 @@ protected:
     FluxRegister& getViscFluxReg (int lev) {
         return getLevel(lev).getViscFluxReg();
     }
+
+    void getOutFlowFaces (Array<Orientation>& outFaces);
     //
     // Compile p_avg in advance.
     //

@@ -239,12 +239,6 @@ protected:
                                int              sComp,
                                int              dComp,
                                int              nComp);
-    //
-    // Called in grid_places after other tagging routines to modify
-    //   the list of tagged points
-    //
-    void manual_tags_placement (TagBoxArray&    tags, 
-				Array<IntVect>& bf_lev);
 
     NavierStokes& getLevel (int lev) { 
 	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
