@@ -3,31 +3,19 @@
 // "Dsdt_Type" means pd S/pd t, where S is as above
 //
 #include <winstd.H>
-#include <time.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <vector>
 #include <cmath>
-#include <cstdio>
 
 #include <Geometry.H>
-#include <BoxDomain.H>
 #include <ParmParse.H>
-#include <ErrorList.H>
-#include <FArrayBox.H>
-#include <Godunov.H>
-#include <Interpolater.H>
-#include <MultiFabUtil.H>
 #include <NavierStokes.H>
 #include <MultiGrid.H>
-#include <ArrayLim.H>
-#include <Utility.H>
 #include <NAVIERSTOKES_F.H>
 #include <BLProfiler.H>
-#include <PROJECTION_F.H>
 #include <PROB_NS_F.H>
-#include <TagBox.H>
 #include <VISCOPERATOR_F.H>
 
 #ifdef BL_USE_VELOCITY
