@@ -39,47 +39,13 @@ public:
 
     virtual ~NavierStokes ();
 
-    //
-    // Define data descriptors.
-    //
-    static void variableSetUp ();
-    //
-    // Cleanup data descriptors at end of run.
-    //
-    static void variableCleanUp ();
-
-    //
-    // Define error estimators
-    //
-    static void error_setup ();
-
+    ////////////////////////////////////////////////////////////////////////////
+    //    AmrLevel virtual functions                                          //
+    ////////////////////////////////////////////////////////////////////////////
     //
     // Init grid data at problem start-up.
     //
     virtual void initData () BL_OVERRIDE;
-    void initDataOtherTypes () { }
-
-
-    //
-    // Integrate derived quantities over domain.
-    //
-    Real sumDerive (const std::string& name,
-                    Real           time);
-
-    Real MaxVal (const std::string& name,
-                 Real           time);
-
-#if (BL_SPACEDIM == 3)
-#ifdef SUMJET
-    void JetSum   (Real time, 
-		   Real *jetData,
-		   int  levRsize,
-		   int  levKsize,
-		   int  rsize,
-		   int  ksize,
-		   int  jetVars);
-#endif
-#endif
     //
     // Write plot file stuff to specified directory.
     //
@@ -118,19 +84,111 @@ public:
                           int  iteration,
                           int  ncycle) BL_OVERRIDE;
 
+
+    ////////////////////////////////////////////////////////////////////////////
+    //    NavierStokes public static functions                                //
+    ////////////////////////////////////////////////////////////////////////////
+
+    //
+    // Define data descriptors.
+    //
+    static void variableSetUp ();
+    //
+    // Cleanup data descriptors at end of run.
+    //
+    static void variableCleanUp ();
+
 protected:
+
+    ////////////////////////////////////////////////////////////////////////////
+    //    Overriding Virtual Functions in NavierStokesBase                    //
+    ////////////////////////////////////////////////////////////////////////////
+
+    virtual void avgDown () BL_OVERRIDE; // Average down for all the state types.
+    //
+    // Calculate divU, which sets them to zero by default.
+    //
+    virtual void calc_divu (Real      time,
+			    Real      dt,
+			    MultiFab& fab) BL_OVERRIDE;
+    //
+    // Calculate dSdT, which sets them to zero by default.
+    //
+    virtual void calc_dsdt (Real      time,
+			    Real      dt,
+			    MultiFab& fab) BL_OVERRIDE;
+    //
+    // Calculate nonuniform viscosity and diffusivity
+    //
+    virtual void calcViscosity (const Real time,
+				const Real dt,
+				const int  iteration,
+				const int  ncycle) BL_OVERRIDE;
+    //
+    virtual void calcDiffusivity (const Real time) BL_OVERRIDE;
+    //
+    virtual void getViscosity (MultiFab*  viscosity[BL_SPACEDIM],
+			       const Real time) BL_OVERRIDE;
+    //
+    // Compute viscous terms.
+    //
+    virtual void getViscTerms (MultiFab& visc_terms,
+			       int       src_comp, 
+			       int       num_comp,
+			       Real      time) BL_OVERRIDE;
+    //
+    // Compute the mac sync correction.
+    //
+    virtual void mac_sync () BL_OVERRIDE;
+    //
+    // Reflux function.
+    //
+    virtual void reflux () BL_OVERRIDE;
+    //
+    virtual void sum_integrated_quantities () BL_OVERRIDE;
+    //
+    virtual void velocity_diffusion_update (Real dt) BL_OVERRIDE;
+
+    ////////////////////////////////////////////////////////////////////////////
+    //    NavierStokes protected static functions                             //
+    ////////////////////////////////////////////////////////////////////////////
 
     static void Initialize ();   // Read input file
     static void Finalize ();
 
-    virtual void sum_integrated_quantities () BL_OVERRIDE;
+private:
 
-#if (BL_SPACEDIM == 3)
-#ifdef SUMJET
-    void sum_jet_quantities ();
-#endif
-#endif
+    void avgDown (int comp); // Average down for a single StateType scalar
 
+    void center_to_edge_plain (const FArrayBox& ccfab,
+                               FArrayBox&       ecfab,
+                               int              sComp,
+                               int              dComp,
+                               int              nComp);
+    //
+    void diffuse_velocity_setup (Real       dt,
+				 MultiFab*& delta_rhs,
+				 MultiFab**& viscn,
+				 MultiFab**& viscnp1); 
+
+    void getDiffusivity (MultiFab*  diffusivity[BL_SPACEDIM],
+			 const Real time,
+			 const int  state_comp,
+			 const int  dst_comp,
+			 const int  num_comp);
+
+    NavierStokes& getLevel (int lev) { 
+	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
+    }
+
+    Real MaxVal (const std::string& name,
+                 Real               time);
+    //
+    // Initialize the pressure by iterating the initial timestep.
+    //
+    void post_init_press (Real&        dt_init,
+			  Array<int>&  nc_save,
+			  Array<Real>& dt_save);
     //
     // Compute divergent mac velocities, estimate best timestep
     // from t^n data, and compile cfl number.
@@ -148,101 +206,15 @@ protected:
     void scalar_update (Real dt,
                         int  first_scalar,
                         int  last_scalar);
-
+    //
     void scalar_diffusion_update (Real dt,
                                   int  first_scalar,
                                   int  last_scalar);
+    //
+    // Define error estimators
+    //
+    static void error_setup ();
 
-    virtual void velocity_diffusion_update (Real dt) BL_OVERRIDE;
-
-    void diffuse_velocity_setup (Real       dt,
-				 MultiFab*& delta_rhs,
-				 MultiFab**& viscn,
-				 MultiFab**& viscnp1); 
-    //
-    // Initialize the pressure by iterating the initial timestep.
-    //
-    void post_init_press (Real&        dt_init,
-			  Array<int>&  nc_save,
-			  Array<Real>& dt_save);
-    //
-    // Compute the mac sync correction.
-    //
-    virtual void mac_sync () BL_OVERRIDE;
-
-    //
-    // Reflux function.
-    //
-    virtual void reflux () BL_OVERRIDE;
-
-    virtual void avgDown () BL_OVERRIDE; // Average down for all the state types.
-    void avgDown (int comp); // Average down for a single StateType scalar
-    //
-    // get fluxes out of the advection routines.
-    //
-    void pullFluxes (int        gridno,
-		     int        start_ind,
-		     int        ncomp,
-		     FArrayBox& xflux,
-		     FArrayBox& yflux,
-		     FArrayBox& zflux,
-		     Real       dt);
-    //
-    // Compute viscous terms.
-    //
-    virtual void getViscTerms (MultiFab& visc_terms,
-			       int       src_comp, 
-			       int       num_comp,
-			       Real      time) BL_OVERRIDE;
-    //
-    // Calculate divU, which sets them to zero by default.
-    //
-    virtual void calc_divu (Real      time,
-			    Real      dt,
-			    MultiFab& fab) BL_OVERRIDE;
-    //
-    // Calculate dSdT, which sets them to zero by default.
-    //
-    virtual void calc_dsdt (Real      time,
-			    Real      dt,
-			    MultiFab& fab) BL_OVERRIDE;
-    //
-    // Fill ghost cells of state.
-    //
-    void FillStateBndry (Real time,
-                         int  state_indx,
-                         int  src_comp, 
-                         int  num_comp); 
-    //
-    // Calculate nonuniform viscosity and diffusivity
-    //
-    virtual void calcViscosity (const Real time,
-				const Real dt,
-				const int  iteration,
-				const int  ncycle) BL_OVERRIDE;
-
-    virtual void calcDiffusivity (const Real time) BL_OVERRIDE;
-
-    virtual void getViscosity (MultiFab* viscosity[BL_SPACEDIM],
-			       const Real time) BL_OVERRIDE;
-
-    void getDiffusivity (MultiFab*  diffusivity[BL_SPACEDIM],
-			 const Real time,
-			 const int  state_comp,
-			 const int  dst_comp,
-			 const int  num_comp);
-
-    void center_to_edge_plain (const FArrayBox& ccfab,
-                               FArrayBox&       ecfab,
-                               int              sComp,
-                               int              dComp,
-                               int              nComp);
-
-private:
-
-    NavierStokes& getLevel (int lev) { 
-	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
-    }
 };
 
 #endif /*_NavierStokes_H_*/

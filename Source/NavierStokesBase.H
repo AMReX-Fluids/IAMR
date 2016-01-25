@@ -377,6 +377,16 @@ protected:
 #if (BL_SPACEDIM == 3)
     void sum_turbulent_quantities ();
     void TurbSum (Real time, Real *tmp, int  ksize, int turbVars);
+#ifdef SUMJET
+    void sum_jet_quantities ();
+    void JetSum   (Real time, 
+		   Real *jetData,
+		   int  levRsize,
+		   int  levKsize,
+		   int  rsize,
+		   int  ksize,
+		   int  jetVars);
+#endif
 #endif
 
     ////////////////////////////////////////////////////////////////////////////
