@@ -240,6 +240,8 @@ protected:
                                int              dComp,
                                int              nComp);
 
+private:
+
     NavierStokes& getLevel (int lev) { 
 	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
     }

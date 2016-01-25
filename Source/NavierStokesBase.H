@@ -166,61 +166,27 @@ public:
     //
     const MultiFab& get_rho (Real time);
     //
-    // Get rho at time n+1/2
-    //
-    MultiFab& get_rho_half_time ();
-    //
     // Get divU from the state data.
     //
     MultiFab* getDivCond (int ngrow, Real time);
     //
-    // Get dSdt from the state data.
-    //
-    MultiFab* getDsdt (int ngrow, Real time);
-    //
     // Get pressure gradient data via fill-patching.
     //
     void getGradP (MultiFab& gp, Real time);
-    //
-    // Get state data.
-    //
-    MultiFab* getState (int  ngrow,
-                        int  state_indx,
-                        int  strt_comp,
-                        int  num_comp,
-                        Real time);
-
-    void init_additional_state_types ();
-
-    Real initialTimeStep ();
-
-    // Public so MacProj can access it.
-    void SetGodunov () { if (godunov == 0) godunov = new Godunov(); };
-
-    ////////////////////////////////////////////////////////////////////////////
-    //    NavierStokesBase public virtual functions                           //
-    ////////////////////////////////////////////////////////////////////////////
-
-    //
-    // Timestep estimation functions follow.
-    //
-    virtual Real estTimeStep ();
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
     ////////////////////////////////////////////////////////////////////////////
 
-    static int DoTrac2();
     //
     // Returns the value of "gravity" for use in the projection outflow bcs.
     //
     static Real getGravity () { return gravity; }
-    //
-    // Cleanup data descriptors at end of run.
-    //
-    static void variableCleanUp ();
+
+    static int DoTrac2();
 
 protected:
+
     NavierStokesBase ();
 
     NavierStokesBase (Amr&            papa,
@@ -234,16 +200,6 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
 
     void advance_cleanup (int iteration,int ncycle);
-
-    void buildMetrics (); // 1-D metric arrays for RZ
-    //
-    // Compute dpdt
-    //
-    void calcDpdt();
-    //
-    // Grow by nGrow and fillpatch the MAC-projected velocities.
-    //
-    void create_umac_grown (int nGrow);
 
     void diffuse_scalar_setup (int sigma, int& rho_flag);
     //
@@ -282,20 +238,6 @@ protected:
 #endif		 
 #endif		 
     //
-    NavierStokesBase& getLevel (int lev) { 
-	return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
-    }
-    //
-    Diffusion& getDiffusion () {
-        BL_ASSERT(diffusion);
-	return *diffusion;
-    }
-    //
-    SyncRegister& getSyncReg () {
-        BL_ASSERT(sync_reg);
-        return *sync_reg;
-    }
-    //
     FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
         return *advflux_reg;
@@ -313,20 +255,16 @@ protected:
     FluxRegister& getViscFluxReg (int lev) {
         return getLevel(lev).getViscFluxReg();
     }
-
-    void getOutFlowFaces (Array<Orientation>& outFaces);
     //
-    // Compile p_avg in advance.
+    // Get rho at time n+1/2
     //
-    void incrPAvg ();
+    MultiFab& get_rho_half_time ();
+    //
+    // Get dSdt from the state data.
+    //
+    MultiFab* getDsdt (int ngrow, Real time);
     //
     void initOldPress (); // Initialize old pressure with new
-    void zeroNewPress (); // Set new pressure to zero
-    void zeroOldPress (); // Set old pressure to zero
-    //
-    // Compile rho_avg in advance.
-    //
-    void initRhoAvg (Real alpha);
     void incrRhoAvg (Real alpha);
     void incrRhoAvg (const MultiFab& rho_incr,
                      int             sComp,
@@ -470,6 +408,11 @@ protected:
     //
     virtual void create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt);
 
+    //
+    // Timestep estimation functions follow.
+    //
+    virtual Real estTimeStep ();
+
     virtual void getViscosity (MultiFab* viscosity[BL_SPACEDIM],
 			       const Real time) = 0;
     //
@@ -502,6 +445,7 @@ protected:
     //    NavierStokesBase protected static functions                         //
     ////////////////////////////////////////////////////////////////////////////
 
+    static void variableCleanUp (); // Cleanup data descriptors at end of run.
     static void Initialize ();   // Read input file
     static void Finalize ();
     static void read_geometry (); // Set metrics
@@ -521,6 +465,53 @@ protected:
     MultiFab* ParticleDerive(const std::string& name, Real time, int ngrow);
     void ParticleDerive (const std::string& name, Real time, MultiFab& mf, int dcomp);
 #endif
+
+private:
+
+    void buildMetrics (); // 1-D metric arrays for RZ
+    //
+    // Compute dpdt
+    //
+    void calcDpdt();
+    //
+    // Grow by nGrow and fillpatch the MAC-projected velocities.
+    //
+    void create_umac_grown (int nGrow);
+    //
+    NavierStokesBase& getLevel (int lev) { 
+	return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
+    }
+    //
+    SyncRegister& getSyncReg () {
+        BL_ASSERT(sync_reg);
+        return *sync_reg;
+    }
+    //
+    void getOutFlowFaces (Array<Orientation>& outFaces);
+    //
+    // Get state data.
+    //
+    MultiFab* getState (int  ngrow,
+                        int  state_indx,
+                        int  strt_comp,
+                        int  num_comp,
+                        Real time);
+    //
+    // Compile p_avg in advance.
+    //
+    void incrPAvg ();
+    void zeroNewPress (); // Set new pressure to zero
+    void zeroOldPress (); // Set old pressure to zero
+    //
+    // Compile rho_avg in advance.
+    //
+    void initRhoAvg (Real alpha);
+    //
+    void init_additional_state_types ();
+    //
+    Real initialTimeStep ();
+    //
+    void SetGodunov () { if (godunov == 0) godunov = new Godunov(); };
 
 //
 // Data
