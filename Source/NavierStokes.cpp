@@ -67,29 +67,9 @@ NavierStokes::NavierStokes (Amr&            papa,
 
 NavierStokes::~NavierStokes () { }
 
-void
-NavierStokes::allocOldData ()
-{
-    bool init_pres = !(state[Press_Type].hasOldData());
-
-    for (int k = 0; k < num_state_type; k++)
-    {
-        state[k].allocOldData();
-    }
-    if (init_pres)
-        initOldPress();
-}
-
-void
-NavierStokes::removeOldData ()
-{
-    AmrLevel::removeOldData();
-}
-
 //
 // This function initializes the State and Pressure with data.
 //
-
 void
 NavierStokes::initData ()
 {

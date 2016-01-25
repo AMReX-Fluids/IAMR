@@ -73,6 +73,8 @@ public:
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
 
+    virtual void allocOldData () BL_OVERRIDE;
+
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
                              VisMF::How         how = VisMF::OneFilePerCPU,
@@ -264,7 +266,6 @@ protected:
     //
     MultiFab* getDsdt (int ngrow, Real time);
     //
-    void initOldPress (); // Initialize old pressure with new
     void incrRhoAvg (Real alpha);
     void incrRhoAvg (const MultiFab& rho_incr,
                      int             sComp,
@@ -500,6 +501,7 @@ private:
     // Compile p_avg in advance.
     //
     void incrPAvg ();
+    void initOldPress (); // Initialize old pressure with new
     void zeroNewPress (); // Set new pressure to zero
     void zeroOldPress (); // Set old pressure to zero
     //

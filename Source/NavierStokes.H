@@ -59,9 +59,7 @@ public:
     virtual void initData () BL_OVERRIDE;
     void initDataOtherTypes () { }
 
-    virtual void allocOldData () BL_OVERRIDE;
 
-    virtual void removeOldData () BL_OVERRIDE;
     //
     // Integrate derived quantities over domain.
     //
