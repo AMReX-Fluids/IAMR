@@ -440,13 +440,12 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             }
             BL_ASSERT ((outx + outy + outz) > 0);
             BL_ASSERT ((outx + outy + outz) < 3);
+            // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
+            BL_ASSERT (outz == 0);
 #endif
             BL_ASSERT(dx[1] == dx[2]);
 
             // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
-
-            // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
-            BL_ASSERT (outz == 0);
 
             int lenz = domain.length(2);
 
