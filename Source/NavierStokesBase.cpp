@@ -163,7 +163,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 				    const BoxArray& bl,
 				    Real            time)
     :
-    AmrLevel(papa,lev,level_geom,bl,time)
+    AmrLevel(papa,lev,level_geom,bl,time),
+    raii_fbs(PArrayManage),
+    raii_mfs(PArrayManage)
 {
     if(!additional_state_types_initialized)
         init_additional_state_types();
