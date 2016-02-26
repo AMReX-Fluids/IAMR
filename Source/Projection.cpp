@@ -2213,7 +2213,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
         rho[iface].resize(state_strip[iface],1);
 
-        (*Sig_in).copy(rho[iface],0,0,1,ngrow);
+        (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
 
         Box phi_strip = 
             BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
@@ -2239,11 +2239,11 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         Vel_in->FillBoundary();
 
 	for (int iface = 0; iface < numOutFlowFaces; iface++) 
-	    (*Vel_in).copy(dudt[0][iface],0,0,BL_SPACEDIM,1);
+	    (*Vel_in).copyTo(dudt[0][iface],0,0,BL_SPACEDIM,1);
 
 	if (have_divu) {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-                (*Divu_in).copy(dsdt[iface],0,0,1,1);
+                (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
 	} else {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
                 dsdt[iface].setVal(0);

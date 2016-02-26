@@ -1155,8 +1155,8 @@ MacProj::set_outflow_bcs (int             level,
             phidat[iface].resize(phiBoxArray[iface], 1);
 
             phidat[iface].setVal(0.0);
-            divu.copy(divudat[iface]);
-            S.copy(rhodat[iface], Density, 0, 1);
+            divu.copyTo(divudat[iface]);
+            S.copyTo(rhodat[iface], Density, 0, 1);
 	}
 
         // rhodat.copy(S, Density, 0, 1);
@@ -1174,7 +1174,7 @@ MacProj::set_outflow_bcs (int             level,
             for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
 	    {
                 uedat[i][iface].resize(edgeArray[iface], 1);
-                u_mac[i].copy(uedat[i][iface], 0, 0, 1);
+                u_mac[i].copyTo(uedat[i][iface], 0, 0, 1);
 	    }
 	}
     
