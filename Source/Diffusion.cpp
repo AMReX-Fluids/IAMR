@@ -1466,45 +1466,40 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
 
     if (a != 0.0)
     {
-        const int N = alpha.IndexMap().size();
-
-	// TODO: use MFIter here
-
-        for (int j = 0; j < N; j++)
+        for (MFIter mfi(alpha); mfi.isValid(); ++mfi)
         {
-            const int   i         = alpha.IndexMap()[j];
-            const Box&  bx        = alpha.box(i);
+            const Box&  bx        = mfi.validbox();
             Array<Real> rcen(bx.length(0));
 
             navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
             const int*  lo        = bx.loVect();
             const int*  hi        = bx.hiVect();
-            Real*       alpha_dat = alpha[i].dataPtr();
+            Real*       alpha_dat = alpha[mfi].dataPtr();
             Box         abx       = BoxLib::grow(bx,alpha.nGrow());
             const int*  alo       = abx.loVect();
             const int*  ahi       = abx.hiVect();
             const Real* rcendat   = rcen.dataPtr();
-            const Real* voli      = volume[i].dataPtr();
-            const Box&  vbox      = volume[i].box();
+            const Real* voli      = volume[mfi].dataPtr();
+            const Box&  vbox      = volume[mfi].box();
             const int*  vlo       = vbox.loVect();
             const int*  vhi       = vbox.hiVect();
 
-            const FArrayBox& Rh = rho[i];
+            const FArrayBox& Rh = rho[mfi];
             DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
 
-            const FArrayBox&  betax = (*beta[0])[i];
+            const FArrayBox&  betax = (*beta[0])[mfi];
             const Real* betax_dat   = betax.dataPtr(betaComp);
             const int*  betax_lo    = betax.loVect();
             const int*  betax_hi    = betax.hiVect();
 
-            const FArrayBox&  betay = (*beta[1])[i];
+            const FArrayBox&  betay = (*beta[1])[mfi];
             const Real* betay_dat   = betay.dataPtr(betaComp);
             const int*  betay_lo    = betay.loVect();
             const int*  betay_hi    = betay.hiVect();
 
 #if (BL_SPACEDIM == 3)
-            const FArrayBox&  betaz = (*beta[2])[i];
+            const FArrayBox&  betaz = (*beta[2])[mfi];
             const Real* betaz_dat   = betaz.dataPtr(betaComp);
             const int*  betaz_lo    = betaz.loVect();
             const int*  betaz_hi    = betaz.hiVect();
@@ -1701,29 +1696,25 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
     }
     else
     {
-	// TODO: use MFIter
-        const int N = alpha.IndexMap().size();
-
-        for (int j = 0; j < N; j++)
+        for (MFIter mfi(alpha); mfi.isValid(); ++mfi)
         {
-            const int  i  = alpha.IndexMap()[j];
-            const Box& bx = alpha.box(i);
+            const Box& bx = mfi.validbox();
 
             Array<Real> rcen(bx.length(0));
             navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
             const int*       lo      = bx.loVect();
             const int*       hi      = bx.hiVect();
-            Real*            dat     = alpha[i].dataPtr();
+            Real*            dat     = alpha[mfi].dataPtr();
             const Box&       abx     = BoxLib::grow(bx,alpha.nGrow());
             const int*       alo     = abx.loVect();
             const int*       ahi     = abx.hiVect();
             const Real*      rcendat = rcen.dataPtr();
-            const Real*      voli    = volume[i].dataPtr();
-            const Box&       vbox    = volume[i].box();
+            const Real*      voli    = volume[mfi].dataPtr();
+            const Box&       vbox    = volume[mfi].box();
             const int*       vlo     = vbox.loVect();
             const int*       vhi     = vbox.hiVect();
-            const FArrayBox& Rh      = rho[i];
+            const FArrayBox& Rh      = rho[mfi];
 
             DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
 

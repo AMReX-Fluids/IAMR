@@ -1117,24 +1117,21 @@ NavierStokesBase::create_umac_grown (int nGrow)
 	    const MultiFab& u_macLL = getLevel(level-1).u_mac[n];
 	    crse_src.copy(u_macLL,0,0,1,1,0);
 
-            const int Ncrse = crse_src.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-            for (int i = 0; i < Ncrse; i++)
+            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const int  k     = crse_src.IndexMap()[i];
-                const Box& box   = crse_src[k].box();
+                const Box& box   = crse_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
-                                       crse_src[k].dataPtr(),
-                                       ARLIM(crse_src[k].loVect()),
-                                       ARLIM(crse_src[k].hiVect()),
-                                       fine_src[k].dataPtr(),
-                                       ARLIM(fine_src[k].loVect()),
-                                       ARLIM(fine_src[k].hiVect()));
+                                       crse_src[mfi].dataPtr(),
+                                       ARLIM(crse_src[mfi].loVect()),
+                                       ARLIM(crse_src[mfi].hiVect()),
+                                       fine_src[mfi].dataPtr(),
+                                       ARLIM(fine_src[mfi].loVect()),
+                                       ARLIM(fine_src[mfi].hiVect()));
             }
             crse_src.clear();
             //
@@ -1148,21 +1145,18 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // surrounding faces of valid region, and pc-interpd data
             // on fine edges overlaying coarse edges.
             //
-            const int Nfine = fine_src.IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-            for (int i = 0; i < Nfine; i++)
+            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const int  k     = fine_src.IndexMap()[i];
-                const Box& fbox  = fine_src[k].box();
+                const Box& fbox  = fine_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
                 FORT_EDGE_INTERP(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
-                                 fine_src[k].dataPtr(),
-                                 ARLIM(fine_src[k].loVect()),
-                                 ARLIM(fine_src[k].hiVect()));
+                                 fine_src[mfi].dataPtr(),
+                                 ARLIM(fine_src[mfi].loVect()),
+                                 ARLIM(fine_src[mfi].hiVect()));
             }
 
 	    MultiFab u_mac_save(u_mac[n].boxArray(),1,0);
@@ -1189,14 +1183,13 @@ NavierStokesBase::create_umac_grown (int nGrow)
         //
         // HOEXTRAPTOCC isn't threaded.  OMP over calls to it.
         //
-        const int N = u_mac[n].IndexMap().size();
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int i = 0; i < N; i++)
+        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
         {
-            FArrayBox& fab = u_mac[n][u_mac[n].IndexMap()[i]];
+            FArrayBox& fab = u_mac[n][mfi];
             const int* dlo = fab.loVect();
             const int* dhi = fab.hiVect();
             FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
@@ -1228,24 +1221,22 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
     for (int j = 0; j < err_list.size(); j++)
     {
         MultiFab* mf = derive(err_list[j].name(), time, err_list[j].nGrow());
-        const int N  = mf->IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int n = 0; n < N; n++)
+        for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
         {
-            const int   i       = mf->IndexMap()[n];
-            const Box&  vbx     = mf->box(i);
+	    int i = mfi.index();
+            const Box&  vbx     = mfi.validbox();
             RealBox     gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            Array<int>  itags   = tags[i].tags();
+            Array<int>  itags   = tags[mfi].tags();
             int*        tptr    = itags.dataPtr();
-            const int*  tlo     = tags[i].box().loVect();
-            const int*  thi     = tags[i].box().hiVect();
+            const int*  tlo     = tags[mfi].box().loVect();
+            const int*  thi     = tags[mfi].box().hiVect();
             const int*  lo      = vbx.loVect();
             const int*  hi      = vbx.hiVect();
             const Real* xlo     = gridloc.lo();
-            FArrayBox&  fab     = (*mf)[i];
+            FArrayBox&  fab     = (*mf)[mfi];
             Real*       dat     = fab.dataPtr();
             const int*  dlo     = fab.box().loVect();
             const int*  dhi     = fab.box().hiVect();
@@ -1258,7 +1249,7 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
             //
             // Don't forget to set the tags in the TagBox.
             //
-            tags[i].tags(itags);
+            tags[mfi].tags(itags);
         }
 
         delete mf;

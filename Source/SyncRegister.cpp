@@ -746,21 +746,17 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
         //
         // Coarsen edge values.
         //
-        const int N = Sync_resid_fine->IndexMap().size();
-
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-        for (int i = 0; i < N; i++)
+        for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
         {
-            const int k = Sync_resid_fine->IndexMap()[i];
-
-            FArrayBox& finefab = (*Sync_resid_fine)[k];
+            FArrayBox& finefab = (*Sync_resid_fine)[mfi];
 
             const int* resid_lo = finefab.box().loVect();
             const int* resid_hi = finefab.box().hiVect();
 
-            FArrayBox& cfablo = cloMF[k];
+            FArrayBox& cfablo = cloMF[mfi];
             const Box& cboxlo = cfablo.box();
             const int* clo = cboxlo.loVect();
             const int* chi = cboxlo.hiVect();
@@ -770,7 +766,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                            cfablo.dataPtr(),ARLIM(clo),ARLIM(chi),
                            clo,chi,&dir,ratio.getVect());
 
-            FArrayBox& cfabhi = chiMF[k];
+            FArrayBox& cfabhi = chiMF[mfi];
             const Box& cboxhi = cfabhi.box();
             clo = cboxhi.loVect();
             chi = cboxhi.hiVect();
