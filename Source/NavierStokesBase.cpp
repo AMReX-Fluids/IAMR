@@ -2468,14 +2468,37 @@ NavierStokesBase::post_init_state ()
         //
         BL_ASSERT(!(projector == 0));
         
+	if (verbose && ParallelDescriptor::IOProcessor())
+	{
+	  std::cout << "calling initialVorticityProject" << std::endl;
+	}
+
 	projector->initialVorticityProject(0);
+        
+	if (verbose && ParallelDescriptor::IOProcessor())
+	{
+	  std::cout << "done calling initialVorticityProject" << std::endl;
+	}
     }
 
     if (do_init_proj && projector)
-        //
-        // Do sync project to define divergence free velocity field.
-        //
-        projector->initialVelocityProject(0,divu_time,have_divu);
+    {
+      //
+      // Do sync project to define divergence free velocity field.
+      //
+
+      if (verbose && ParallelDescriptor::IOProcessor())
+      {
+	std::cout << "calling initialVelocityProject" << std::endl;
+      }
+
+      projector->initialVelocityProject(0,divu_time,have_divu);
+
+      if (verbose && ParallelDescriptor::IOProcessor())
+      {
+	std::cout << "done calling initialVelocityProject" << std::endl;
+      }
+    }
 
     NavierStokesBase::initial_step = true;
     //
