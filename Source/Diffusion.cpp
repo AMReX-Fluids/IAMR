@@ -313,8 +313,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         //
         MultiFab::Copy(Soln,S_old,sigma,0,1,0);
         if (rho_flag == 2)
-            for (MFIter Smfi(Soln); Smfi.isValid(); ++Smfi)
-                Soln[Smfi].divide(S_old[Smfi],Smfi.validbox(),Density,0,1);
+	    MultiFab::Divide(Soln, S_old, Density, 0, 1, 0);
         visc_op->apply(Rhs,Soln);
         visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp);
         for (int i = 0; i < BL_SPACEDIM; ++i)
@@ -335,10 +334,14 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     if (solve_mode == PREDICTOR)
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
         FArrayBox tmpfab;
-        for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
+        for (MFIter Smfi(S_new, true); Smfi.isValid(); ++Smfi)
         {
-            const Box& box = Smfi.validbox();
+            const Box& box = Smfi.tilebox();
             tmpfab.resize(box,1);
             tmpfab.copy(S_new[Smfi],box,sigma,box,0,1);
             tmpfab.minus(S_old[Smfi],box,sigma,0,1);
@@ -351,21 +354,27 @@ Diffusion::diffuse_scalar (Real                   dt,
             (*delta_rhs)[Smfi].plus(tmpfab,box,0,rhsComp,1);
         }
     }
+    }
     //
     // Add body sources
     //
     if (delta_rhs != 0)
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
         FArrayBox tmpfab;
-        for (MFIter mfi(*delta_rhs); mfi.isValid(); ++mfi)
+        for (MFIter mfi(*delta_rhs,true); mfi.isValid(); ++mfi)
         {
-            const Box& box = mfi.validbox();
+            const Box& box = mfi.tilebox();
             tmpfab.resize(box,1);
             tmpfab.copy((*delta_rhs)[mfi],box,rhsComp,box,0,1);
             tmpfab.mult(dt,box,0,1);
             tmpfab.mult(volume[mfi],box,0,0,1);
             Rhs[mfi].plus(tmpfab,box,0,0,1);
         }
+    }
     }
 
     //
