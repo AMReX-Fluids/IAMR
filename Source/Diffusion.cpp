@@ -30,9 +30,7 @@ const Real BL_SAFE_BOGUS = -666.e200;
 #include <HypreABec.H>
 #endif
 
-#include <MGT_Solver.H>
-#include <stencil_types.H>
-#include <mg_cpp_f.h>
+#include <FMultiGrid.H>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -486,20 +484,16 @@ Diffusion::diffuse_scalar (Real                   dt,
     }
     else if ( use_fboxlib_mg )
     {
-        std::vector<BoxArray> bav(1);
-        bav[0] = S_new.boxArray();
-        std::vector<DistributionMapping> dmv(1);
-        dmv[0] = Rhs.DistributionMap();
-        bool nodal = false;
-	int stencil = CC_CROSS_STENCIL;
-        std::vector<Geometry> geom(1);
-        geom[0] = visc_bndry.getGeom();
+        const Geometry& geom = visc_bndry.getGeom();
+
+        FMultiGrid fmg(geom);
+	fmg.set_verbose(verbose);
+
         const BCRec& scal_bc = navier_stokes->get_desc_lst()[State_Type].getBC(sigma);
- 
         int mg_bc[2*BL_SPACEDIM];
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            if ( geom[0].isPeriodic(i) )
+            if ( geom.isPeriodic(i) )
             {
                 mg_bc[i*2 + 0] = 0;
                 mg_bc[i*2 + 1] = 0;
@@ -510,60 +504,21 @@ Diffusion::diffuse_scalar (Real                   dt,
                 mg_bc[i*2 + 1] = scal_bc.hi(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
             }
         }
+	fmg.set_bc(mg_bc);
 
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil, false, 0, 1, verbose);
+	fmg.set_scalars(a, b);
+	const MultiFab& acoeffs = visc_op->aCoefficients();
+	PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayNoManage);
+	for (int n = 0; n < BL_SPACEDIM; ++n)
+	    bcoeffs.set(n, &(visc_op->bCoefficients(n)));
+	fmg.set_coefficients(acoeffs, bcoeffs);
 
-        // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Array< Array<Real> > xa(1);
-        Array< Array<Real> > xb(1);
- 
-        xa[0].resize(BL_SPACEDIM);
-        xb[0].resize(BL_SPACEDIM);
- 
-        if (level == 0)
-        {
-            for ( int i = 0; i < BL_SPACEDIM; ++i )
-            {
-                xa[0][i] = 0.;
-                xb[0][i] = 0.;
-            }
-        }
-        else
-        {
-            const Real* dx_crse   = parent->Geom(level-1).CellSize();
-            for ( int i = 0; i < BL_SPACEDIM; ++i )
-            {
-                xa[0][i] = 0.5 * dx_crse[i];
-                xb[0][i] = 0.5 * dx_crse[i];
-            }
-        }
-        //
-        // Set alpha and beta as in (alpha - del dot beta grad).
-        //
-        PArray<MultiFab> aa_p(1);
-	aa_p.set(0, &(visc_op->aCoefficients()));
-	Array<PArray<MultiFab> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM, PArrayNoManage);
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            bb_p[0].set(i, &(visc_op->bCoefficients(i)));
-        }
-
-        mgt_solver.set_abeclap_coeffs(aa_p, b, bb_p, xa, xb);
-
-        MultiFab* phi_p[1];
-        MultiFab* Rhs_p[1];
-        phi_p[0] = &Soln;
-        Rhs_p[0] = &Rhs;
-  
 	int always_use_bnorm = 0;
-        Real final_resnorm;
-        mgt_solver.solve(phi_p, Rhs_p, visc_bndry, S_tol, S_tol_abs, always_use_bnorm, final_resnorm);
+	int need_grad_phi = 0;
+	fmg.solve(Soln, Rhs, S_tol, S_tol_abs, always_use_bnorm, need_grad_phi);
 
 	if (verbose >= 1)
-	{
-	  MGT_Solver::FlushFortranOutput();
-	}
+	    MGT_Solver::FlushFortranOutput();
     }
 
 #ifdef MG_USE_HYPRE
