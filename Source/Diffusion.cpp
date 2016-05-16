@@ -551,9 +551,14 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     MultiFab::Copy(S_new,Soln,0,sigma,1,0);
     
-    if (rho_flag == 2)
-        for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
-            S_new[Smfi].mult(S_new[Smfi],Smfi.validbox(),Density,sigma,1);
+    if (rho_flag == 2) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi) {
+            S_new[Smfi].mult(S_new[Smfi],Smfi.tilebox(),Density,sigma,1);
+	}
+    }
 }
 
 void
@@ -624,17 +629,12 @@ Diffusion::diffuse_velocity (Real                   dt,
             {
                 for (int d = 0; d < BL_SPACEDIM; ++d)
                 {
-                    for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
-                    {
-                        const int idx = fmfi.index();
-
-                        (*fluxSCnp1[d])[fmfi].plus((*fluxSCn[d])[fmfi]);
-
-                        if (level < parent->finestLevel())
-                            fluxes[d][fmfi].copy((*fluxSCnp1[d])[fmfi],fluxComp,sigma,1);
-
-                        if (level > 0)
-                            viscflux_reg->FineAdd((*fluxSCnp1[d])[fmfi],d,idx,fluxComp,sigma,1,dt);
+		    MultiFab::Add(*fluxSCnp1[d], *fluxSCn[d], 0, 0, 1, 0);
+		    if (level < parent->finestLevel()) {
+			MultiFab::Copy(fluxes[d], *fluxSCnp1[d], fluxComp, sigma, 1, 0);
+		    }
+		    if (level > 0) {
+			viscflux_reg->FineAdd(*fluxSCnp1[d],d,fluxComp,sigma,1,dt);
                     }
                 }
             }
@@ -726,13 +726,15 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         //
         // Complete Rhs by adding body sources.
         //
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
         {
-            const Box& vbx    = Rhsmfi.validbox();
+            const Box& bx     = Rhsmfi.tilebox();
             FArrayBox& rhsfab = Rhs[Rhsmfi];
             FArrayBox& Ufab   = U_new[Rhsmfi];
 
-            BL_ASSERT(grids[Rhsmfi.index()] == vbx);
             //
             // Scale inviscid part by volume.
             //
@@ -740,26 +742,26 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
             {
                 const int sigma = Xvel + comp;
 
-                Ufab.mult(volume[Rhsmfi],vbx,0,sigma,1);
+                Ufab.mult(volume[Rhsmfi],bx,0,sigma,1);
                 //
                 // Multiply by density at time nph (if rho_flag==1)
                 //                     or time n   (if rho_flag==3).
                 //
                 if (rho_flag == 1)
-                    Ufab.mult(rho_half[Rhsmfi],vbx,0,sigma,1);
+                    Ufab.mult(rho_half[Rhsmfi],bx,0,sigma,1);
                 if (rho_flag == 3)
-                    Ufab.mult((navier_stokes->rho_ptime)[Rhsmfi],vbx,0,sigma,1);
+                    Ufab.mult((navier_stokes->rho_ptime)[Rhsmfi],bx,0,sigma,1);
                 //
                 // Add to Rhs which contained operator applied to U_old.
                 //
-                rhsfab.plus(Ufab,vbx,sigma,comp,1);
+                rhsfab.plus(Ufab,bx,sigma,comp,1);
 
                 if (delta_rhs != 0)
                 {
                     FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
-                    deltafab.mult(dt,comp+rhsComp,1);
-                    deltafab.mult(volume[Rhsmfi],Rhsmfi.validbox(),0,comp+rhsComp,1);
-                    rhsfab.plus(deltafab,Rhsmfi.validbox(),comp+rhsComp,comp,1);
+                    deltafab.mult(dt,bx,comp+rhsComp,1);
+                    deltafab.mult(volume[Rhsmfi],bx,0,comp+rhsComp,1);
+                    rhsfab.plus(deltafab,bx,comp+rhsComp,comp,1);
                 }
             }
         }
@@ -769,6 +771,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         {
             int fort_xvel_comp = Xvel+1;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
             {
                 const Box& bx     = Rhsmfi.validbox();
@@ -990,11 +995,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
 
         if (verbose > 1)
         {
-            Real r_norm = 0.0;
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-                r_norm = std::max(r_norm,Rhs[Rhsmfi].norm(0));
-            ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
-
+            Real r_norm = Rhs.norm0();
             if (ParallelDescriptor::IOProcessor())
                 std::cout << "Original max of Vsync " << r_norm << '\n';
         }
@@ -1002,10 +1003,14 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         // Multiply RHS by volume and density.
         //
         const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
         {
-            Rhs[Rhsmfi].mult(volume[Rhsmfi]); 
-            Rhs[Rhsmfi].mult(rho[Rhsmfi]); 
+	    const Box& bx = Rhsmfi.tilebox();
+            Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0); 
+            Rhs[Rhsmfi].mult(rho[Rhsmfi],bx,0,0); 
         }
         //
         // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
@@ -1068,6 +1073,9 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                 std::cout << "Final max of Vsync " << s_norm << '\n';
         }
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         if (level > 0)
         {
             FArrayBox xflux, yflux, zflux;
