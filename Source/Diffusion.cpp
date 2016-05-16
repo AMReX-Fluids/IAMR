@@ -1177,30 +1177,30 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 
     if (verbose > 1)
     {
-        Real r_norm = 0.0;
-        for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-            r_norm = std::max(r_norm,Rhs[Rhsmfi].norm(0));
-        ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
-
+        Real r_norm = Rhs.norm0();
         if (ParallelDescriptor::IOProcessor())
             std::cout << "Original max of Vsync " << r_norm << '\n';
     }
     //
     // Multiply RHS by volume and density.
     //
-    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
+	const Box&       bx   = Rhsmfi.tilebox();
         FArrayBox&       rhs  = Rhs[Rhsmfi];
         const FArrayBox& rho  = rho_half[Rhsmfi];
         const FArrayBox& prho = (navier_stokes->rho_ptime)[Rhsmfi];
 
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
-            rhs.mult(volume[Rhsmfi],0,comp,1); 
+            rhs.mult(volume[Rhsmfi],bx,0,comp,1); 
             if (rho_flag == 1)
-                rhs.mult(rho,0,comp,1); 
+                rhs.mult(rho,bx,0,comp,1); 
             if (rho_flag == 3)
-                rhs.mult(prho,0,comp,1); 
+                rhs.mult(prho,bx,0,comp,1); 
         }
     }
 
@@ -1265,6 +1265,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
         for (int d =0; d <BL_SPACEDIM; d++)
             tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
         {
             for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
@@ -1325,14 +1328,9 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
         if (rho_flag == 2)
         {
             MultiFab& S_new = navier_stokes->get_new_data(State_Type);
-            for (MFIter jmfi(junk); jmfi.isValid(); ++jmfi)
-                junk[jmfi].divide(S_new[jmfi],jmfi.validbox(),Density,0,1);
+	    MultiFab::Divide(junk, S_new, Density, 0, 1, 0);
         }
-        Real r_norm = 0.0;
-        for (MFIter jmfi(junk); jmfi.isValid(); ++jmfi)
-            r_norm = std::max(r_norm,junk[jmfi].norm(0));
-        ParallelDescriptor::ReduceRealMax(r_norm,IOProc);
-
+        Real r_norm = junk.norm0();
         if (ParallelDescriptor::IOProcessor())
             std::cout << "Original max of Ssync " << r_norm << '\n';
     }
