@@ -386,6 +386,10 @@ Diffusion::diffuse_scalar (Real                   dt,
 #if (BL_SPACEDIM == 2) 
     if (sigma == Xvel && Geometry::IsRZ())
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	{
         Array<Real> rcen;
 
         for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
@@ -413,6 +417,7 @@ Diffusion::diffuse_scalar (Real                   dt,
                          sdat, ARLIM(slo), ARLIM(shi),
                          rcendat, &coeff, voli, ARLIM(vlo),ARLIM(vhi));
         }
+	}
     }
 #endif
     //
@@ -423,9 +428,12 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     MultiFab::Copy(Soln,S_new,sigma,0,1,0);
 
-    for (MFIter mfi(Soln); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
     {
-        const Box& box = mfi.validbox();
+        const Box& box = mfi.tilebox();
         Soln[mfi].mult(volume[mfi],box,0,0,1);
         if (rho_flag == 1)
             Soln[mfi].mult(rho_half[mfi],box,0,0,1);
@@ -440,9 +448,14 @@ Diffusion::diffuse_scalar (Real                   dt,
     // Make a good guess for Soln
     //
     MultiFab::Copy(Soln,S_new,sigma,0,1,0);
-    if (rho_flag == 2)
-        for (MFIter Smfi(Soln); Smfi.isValid(); ++Smfi)
-            Soln[Smfi].divide(S_new[Smfi],Smfi.validbox(),Density,0,1);
+    if (rho_flag == 2) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter Smfi(Soln,true); Smfi.isValid(); ++Smfi) {
+            Soln[Smfi].divide(S_new[Smfi],Smfi.tilebox(),Density,0,1);
+        }
+    }
     //
     // Construct viscous operator with bndry data at time N+1.
     //
