@@ -2310,11 +2310,14 @@ Diffusion::compute_divmusi (Real      time,
 	PArray<MultiFab> raii(PArrayManage);
         MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
 
-        for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter divmusimfi(divmusi,true); divmusimfi.isValid(); ++divmusimfi)
         {
             FArrayBox& fab  = divmusi[divmusimfi];
             FArrayBox& divu = (*divu_fp)[divmusimfi];
-            const Box& box  = divmusimfi.validbox();
+            const Box& box  = divmusimfi.tilebox();
 
             FORT_DIV_MU_SI(box.loVect(), box.hiVect(), dx, &mu,
                            ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
@@ -2345,10 +2348,13 @@ Diffusion::compute_divmusi (Real                   time,
     PArray<MultiFab> raii(PArrayManage);
     MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
 
-    for (MFIter divmusimfi(divmusi); divmusimfi.isValid(); ++divmusimfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter divmusimfi(divmusi,true); divmusimfi.isValid(); ++divmusimfi)
     {
         FArrayBox& divu = (*divu_fp)[divmusimfi];
-        const Box& box  = divmusimfi.validbox();
+        const Box& box  = divmusimfi.tilebox();
 
         DEF_CLIMITS((*beta[0])[divmusimfi],betax,betaxlo,betaxhi);
         DEF_CLIMITS((*beta[1])[divmusimfi],betay,betaylo,betayhi);
@@ -2356,7 +2362,6 @@ Diffusion::compute_divmusi (Real                   time,
 #if (BL_SPACEDIM==3)
         DEF_CLIMITS((*beta[2])[divmusimfi],betaz,betazlo,betazhi);
 #endif
-        BL_ASSERT(grids[divmusimfi.index()] == divmusimfi.validbox());
 
         FORT_DIV_VARMU_SI(box.loVect(),box.hiVect(), dx,
                           ARLIM(divu.loVect()), ARLIM(divu.hiVect()),

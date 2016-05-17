@@ -217,7 +217,6 @@ c
 c ... Note: the following IS correct for r-z. Terms from the hoop stress
 c           cancel with terms from tau_rr to eliminate all r dependence.
 c
-!$omp parallel do private(i,j,k,sleft,sright,stp,sbot,sfront,sback)
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -238,7 +237,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 
@@ -269,7 +267,6 @@ c
       idy = 1.0d0 / dx(2)
       idz = 1.0d0 / dx(3)
 
-!$omp parallel do private(i,j,k,sleft,sright,stp,sbot,sfront,sback)
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -294,7 +291,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 
