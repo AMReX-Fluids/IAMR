@@ -555,7 +555,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi) {
+    for (MFIter Smfi(S_new,true); Smfi.isValid(); ++Smfi) {
             S_new[Smfi].mult(S_new[Smfi],Smfi.tilebox(),Density,sigma,1);
 	}
     }
@@ -1073,50 +1073,47 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                 std::cout << "Final max of Vsync " << s_norm << '\n';
         }
 
+        if (level > 0)
+        {
+	    MultiFab xflux(navier_stokes->getEdgeBoxArray(0), 1, 0);
+	    MultiFab yflux(navier_stokes->getEdgeBoxArray(1), 1, 0);
+#if (BL_SPACEDIM == 3)
+	    MultiFab zflux(navier_stokes->getEdgeBoxArray(2), 1, 0);
+#endif	    
+
+	    //
+	    // The extra factor of dt comes from the fact that Vsync
+	    // looks like dV/dt, not just an increment to V.
+	    //
+	    Real mult = -be_cn_theta*dt*dt*visc_coef[comp];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        if (level > 0)
-        {
-            FArrayBox xflux, yflux, zflux;
-
-            for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+            for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
-                BL_ASSERT(grids[Vsyncmfi.index()] == Vsyncmfi.validbox());
-
-                const Box& grd    = Vsyncmfi.validbox();
-                const int* lo     = grd.loVect();
-                const int* hi     = grd.hiVect();
+                const Box& xbx    = Vsyncmfi.nodaltilebox(0);
+		const Box& ybx    = Vsyncmfi.nodaltilebox(1);
                 FArrayBox& u_sync = Vsync[Vsyncmfi];
                 const int* ulo    = u_sync.loVect();
                 const int* uhi    = u_sync.hiVect();
-
-                Box xflux_bx(grd);
-                Box yflux_bx(grd);
-
-                xflux_bx.surroundingNodes(0);
-                yflux_bx.surroundingNodes(1);
-
-                xflux.resize(xflux_bx,1);
-                yflux.resize(yflux_bx,1);
-
-                DEF_LIMITS(xflux,xflux_dat,xflux_lo,xflux_hi);
-                DEF_LIMITS(yflux,yflux_dat,yflux_lo,yflux_hi);
-
+		
+		FArrayBox& xff = xflux[Vsyncmfi];
+		FArrayBox& yff = yflux[Vsyncmfi];
+		
+                DEF_LIMITS(xff,xflux_dat,xflux_lo,xflux_hi);
+                DEF_LIMITS(yff,yflux_dat,yflux_lo,yflux_hi);
+		
                 const FArrayBox& xarea = area[0][Vsyncmfi];
                 const FArrayBox& yarea = area[1][Vsyncmfi];
-
+		
                 DEF_CLIMITS(xarea,xarea_dat,xarea_lo,xarea_hi);
                 DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
-                //
-                // The extra factor of dt comes from the fact that Vsync
-                // looks like dV/dt, not just an increment to V.
-                //
-                Real mult = -be_cn_theta*dt*dt*visc_coef[comp];
 
 #if (BL_SPACEDIM == 2)
                 FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
-                                   lo,hi,
+                                   xbx.loVect(), xbx.hiVect(),
+                                   ybx.loVect(), ybx.hiVect(),
                                    xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
                                    yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
                                    xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
@@ -1124,16 +1121,18 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                                    dx,&mult);
 #endif
 #if (BL_SPACEDIM == 3)
-                Box zflux_bx(grd);
-                zflux_bx.surroundingNodes(2);
-                zflux.resize(zflux_bx,1);
-                DEF_LIMITS(zflux,zflux_dat,zflux_lo,zflux_hi);
+		const Box& zbx = Vsyncmfi.nodaltilebox(2);
+
+		FArrayBox& zff = zflux[Vsyncmfi];
+                DEF_LIMITS(zff,zflux_dat,zflux_lo,zflux_hi);
 
                 const FArrayBox& zarea = area[2][Vsyncmfi];
                 DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
 
                 FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
-                                   lo,hi,
+                                   xbx.loVect(), xbx.hiVect(),
+                                   ybx.loVect(), ybx.hiVect(),
+                                   zbx.loVect(), zbx.hiVect(),
                                    xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
                                    yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
                                    zflux_dat,ARLIM(zflux_lo),ARLIM(zflux_hi),
@@ -1142,14 +1141,11 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                                    zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
                                    dx,&mult);
 #endif
-                Real one = 1.0;
+	    }
 
-		int i = Vsyncmfi.index();
-
-                D_TERM(viscflux_reg->FineAdd(xflux,0,i,0,comp,1,one);,
-                       viscflux_reg->FineAdd(yflux,1,i,0,comp,1,one);,
-                       viscflux_reg->FineAdd(zflux,2,i,0,comp,1,one););
-            }
+	    D_TERM(viscflux_reg->FineAdd(xflux,0,0,comp,1,1.0);,
+		   viscflux_reg->FineAdd(xflux,1,0,comp,1,1.0);,
+		   viscflux_reg->FineAdd(xflux,2,0,comp,1,1.0););
         }
     }
 }
@@ -1349,14 +1345,17 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     //
     // Compute RHS.
     //
-    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        Rhs[Rhsmfi].mult(volume[Rhsmfi]); 
+	const Box& bx = Rhsmfi.tilebox();
+        Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0); 
         if (rho_flag == 1)
-            Rhs[Rhsmfi].mult(rho_half[Rhsmfi]);
+            Rhs[Rhsmfi].mult(rho_half[Rhsmfi],bx,0,0);
+	Rhs[Rhsmfi].mult(rhsscale,bx);
     }
-
-    Rhs.mult(rhsscale,0,1);
 
     MultiFab Soln(grids,1,1);
 
@@ -1416,9 +1415,12 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     {
         MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
-        for (MFIter Ssyncmfi(Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter Ssyncmfi(Ssync,true); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
-            Ssync[Ssyncmfi].mult(S_new[Ssyncmfi],Ssyncmfi.validbox(),Density,sigma,1);
+            Ssync[Ssyncmfi].mult(S_new[Ssyncmfi],Ssyncmfi.tilebox(),Density,sigma,1);
         }
     }
 }
@@ -1449,9 +1451,12 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
 
     if (a != 0.0)
     {
-        for (MFIter mfi(alpha); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(alpha,true); mfi.isValid(); ++mfi)
         {
-            const Box&  bx        = mfi.validbox();
+            const Box&  bx        = mfi.tilebox();
             Array<Real> rcen(bx.length(0));
 
             navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
@@ -1459,7 +1464,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
             const int*  lo        = bx.loVect();
             const int*  hi        = bx.hiVect();
             Real*       alpha_dat = alpha[mfi].dataPtr();
-            Box         abx       = BoxLib::grow(bx,alpha.nGrow());
+            Box         abx       = alpha[mfi].box();
             const int*  alo       = abx.loVect();
             const int*  ahi       = abx.hiVect();
             const Real* rcendat   = rcen.dataPtr();
@@ -1679,9 +1684,12 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
     }
     else
     {
-        for (MFIter mfi(alpha); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(alpha,true); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.validbox();
+            const Box& bx = mfi.tilebox();
 
             Array<Real> rcen(bx.length(0));
             navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
@@ -1689,7 +1697,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
             const int*       lo      = bx.loVect();
             const int*       hi      = bx.hiVect();
             Real*            dat     = alpha[mfi].dataPtr();
-            const Box&       abx     = BoxLib::grow(bx,alpha.nGrow());
+            const Box&       abx     = alpha[mfi].box();
             const int*       alo     = abx.loVect();
             const int*       ahi     = abx.hiVect();
             const Real*      rcendat = rcen.dataPtr();
