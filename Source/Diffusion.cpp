@@ -2046,32 +2046,21 @@ Diffusion::getBndryData (ViscBndry& bndry,
     const int     nGrow = 1;
     const BCRec&  bc    = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp);
 
-    MultiFab S(grids, num_comp, nGrow);
-
-    S.setVal(BL_SAFE_BOGUS);
-
     bndry.define(grids,num_comp,navier_stokes->Geom());
 
     const MultiFab& rhotime = navier_stokes->get_rho(time);
-    MFIter          Rho_mfi(rhotime);
 
-    for (FillPatchIterator Phi_fpi(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
-         Rho_mfi.isValid() && Phi_fpi.isValid();
-         ++Rho_mfi, ++Phi_fpi)
-    {
-        const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(),Phi_fpi.validbox());
+    MultiFab S(grids, num_comp, nGrow);
 
-        for (BoxList::const_iterator bli = gCells.begin(), end = gCells.end();
-             bli != end;
-             ++bli)
-        {
-            S[Phi_fpi].copy(Phi_fpi(),*bli,0,*bli,0,num_comp);
+    AmrLevel::FillPatch(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
 
-            if (rho_flag == 2)
-                for (int n = 0; n < num_comp; ++n)
-                    S[Phi_fpi].divide(rhotime[Rho_mfi],*bli,0,n,1);
-        }
+    if (rho_flag == 2) {
+        for (int n = 0; n < num_comp; ++n) {
+	    MultiFab::Divide(S,rhotime,0,n,1,nGrow);
+	}
     }
+
+    S.setVal(BL_SAFE_BOGUS, 0, num_comp, 0);
     
     if (level == 0)
     {
@@ -2142,23 +2131,18 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     //
     const int     nGrow = 1;
 
+    const MultiFab& rhotime = navier_stokes->get_rho(time);
+
     MultiFab S(navier_stokes->boxArray(),num_comp,nGrow);
 
-    const MultiFab& rhotime = navier_stokes->get_rho(time);
-    MFIter          Rho_mfi(rhotime);
+    AmrLevel::FillPatch(*navier_stokes,S,nGrow,time,State_Type,state_ind,num_comp);
 
-    for (FillPatchIterator S_fpi(*navier_stokes,S,nGrow,time,State_Type,state_ind,num_comp);
-         Rho_mfi.isValid() && S_fpi.isValid();
-         ++Rho_mfi, ++S_fpi)
-    {
-        S[S_fpi].copy(S_fpi(),0,0,num_comp);
-   
-   	if (rho_flag == 2)
-        {
-            for (int n = 0; n < num_comp; ++n)
-                S[S_fpi].divide(rhotime[Rho_mfi],0,n,1);
-        }
+    if (rho_flag == 2) {
+        for (int n = 0; n < num_comp; ++n) {
+	    MultiFab::Divide(S,rhotime,0,n,1,nGrow);
+	}
     }
+
     //
     // Copy into boundary register.
     //
@@ -2188,19 +2172,9 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
 
     MultiFab S(grids,num_comp,nGrow,Fab_allocate);
 
-    for (FillPatchIterator Phi_fpi(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
-         Phi_fpi.isValid();
-         ++Phi_fpi)
-    {
-        const BoxList gCells = BoxLib::boxDiff(Phi_fpi().box(), Phi_fpi.validbox());
-        
-        for (BoxList::const_iterator bli = gCells.begin(), end = gCells.end();
-             bli != end;
-             ++bli)
-        {
-            S[Phi_fpi].copy(Phi_fpi(),*bli,0,*bli,0,num_comp);
-        }
-    }
+    AmrLevel::FillPatch(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
+
+    S.setVal(BL_SAFE_BOGUS, 0, num_comp, 0);
     
     if (level == 0)
     {
