@@ -431,7 +431,7 @@ NavierStokes::predict_velocity (Real  dt,
 
     getGradP(Gp, prev_pres_time);
     
-    FArrayBox* null_fab = 0;
+    FArrayBox null_fab;
 
     for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),
                                  prev_time,State_Type,Xvel,BL_SPACEDIM)
@@ -482,10 +482,10 @@ NavierStokes::predict_velocity (Real  dt,
                bndry[2] = getBCArray(State_Type,i,2,1);)
 
         godunov->Setup(grids[i], dx, dt, 1,
-                       *null_fab, bndry[0].dataPtr(),
-                       *null_fab, bndry[1].dataPtr(),
+                       null_fab, bndry[0].dataPtr(),
+                       null_fab, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
-                       *null_fab, bndry[2].dataPtr(),
+                       null_fab, bndry[2].dataPtr(),
 #endif
                        U_fpi(), rho_ptime[U_fpi], tforces);
 
