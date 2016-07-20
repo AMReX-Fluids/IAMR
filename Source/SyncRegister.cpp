@@ -227,7 +227,7 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
     BoxLib::The_Arena()->free(the_recv_data);
 
     if (FabArrayBase::do_async_sends && !m_SndTags.empty())
-        FabArrayBase::GrokAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
+        FabArrayBase::WaitForAsyncSends(m_SndTags.size(),send_reqs,send_data,stats);
 
 #endif /*BL_USE_MPI*/
 }
