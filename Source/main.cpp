@@ -4,14 +4,9 @@
 #include <CArena.H>
 #include <REAL.H>
 #include <Utility.H>
-#include <IntVect.H>
-#include <Box.H>
 #include <Amr.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-#include <AmrLevel.H>
-#include <TagBox.H>
-#include <FabSet.H>
 #include <BLProfiler.H>
 
 int
