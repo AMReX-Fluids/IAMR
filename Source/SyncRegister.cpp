@@ -42,7 +42,7 @@ SyncRegister::define (const BoxArray& fine_boxes,
     ratio      = ref_ratio;
     fine_level = fine_lev;
  
-    grids.define(fine_boxes);
+    grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
