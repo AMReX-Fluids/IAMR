@@ -306,16 +306,14 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
     }
 }
 
-void
+void /* note that rhs is on a different BoxArray */
 SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc)
 {
     BL_PROFILE("SyncRegister::InitRHS()");
 
     rhs.setVal(0);
 
-    const Box& domain = BoxLib::surroundingNodes(geom.Domain());
-
-    FabSetCopyDescriptor fscd;
+    const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
 
     Array<IntVect> pshifts(27);
     //
@@ -324,7 +322,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     // If periodic, copy the values from sync registers onto the nodes of the
     // rhs which are not covered by sync registers through periodic shifts.
     //
-    copyPeriodic(geom,domain,rhs);
+    copyPeriodic(geom,node_domain,rhs);
     //
     // Overwrite above-set values on all nodes covered by a sync register.
     //
@@ -335,8 +333,6 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 
     const int* phys_lo = phys_bc.lo();
     const int* phys_hi = phys_bc.hi();
-
-    const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -612,6 +608,8 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 void
 SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Real mult)
 {
+    BL_PROFILE("SyncRegister::CrseInit()");
+
     setVal(0);
 
     Sync_resid_crse.mult(mult);
@@ -628,8 +626,10 @@ SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Re
 
 void
 SyncRegister::CompAdd (MultiFab& Sync_resid_fine, const Geometry& fine_geom, const Geometry& crse_geom, 
-                        const BoxArray& Pgrids, Real mult)
+		       const BoxArray& Pgrids, Real mult)
 {
+    BL_PROFILE("SyncRegister::CompAdd()");
+
     Array<IntVect> pshifts(27);
 
     std::vector< std::pair<int,Box> > isects;
