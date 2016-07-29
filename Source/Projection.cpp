@@ -469,7 +469,7 @@ Projection::level_project (int             level,
           // Init sync registers between level and level+1.
           //
           const Real mult = 1.0;
-          crse_sync_reg->CrseInit(sync_resid_crse,geom,mult);
+          crse_sync_reg->CrseInit(*sync_resid_crse,geom,mult);
        }
        if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
        {
@@ -484,7 +484,7 @@ Projection::level_project (int             level,
 	 //    coarse level.
 	  const Real invrat = 1.0/(double)crse_dt_ratio;
           const Geometry& crse_geom = parent->Geom(level-1);
-          fine_sync_reg->FineAdd(sync_resid_fine,geom,crse_geom,phys_bc,invrat);
+          fine_sync_reg->FineAdd(*sync_resid_fine,crse_geom,invrat);
        }
     }
 
@@ -584,7 +584,7 @@ Projection::syncProject (int             c_lev,
 
     PArray<MultiFab> rhnd(1, PArrayManage);
     rhnd.set(0, new MultiFab(P_grids,1,1));
-    rhs_sync_reg->InitRHS(rhnd[0],geom,phys_bc);
+    rhs_sync_reg->InitRHS(rhnd[0],geom,*phys_bc);
 
     phi.setVal(0);
 
@@ -634,7 +634,7 @@ Projection::syncProject (int             c_lev,
     {
         const Real invrat         = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
-        crsr_sync_reg->CompAdd(sync_resid_fine,geom,crsr_geom,phys_bc,sync_boxes,invrat);
+        crsr_sync_reg->CompAdd(*sync_resid_fine,geom,crsr_geom,sync_boxes,invrat);
     }
     //
     // Reset state + pressure data ...
@@ -727,7 +727,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     PArray<MultiFab> rhnd(1, PArrayManage);
     rhnd.set(0,new MultiFab(Pgrids_crse,1,1));
-    rhs_sync_reg->InitRHS(rhnd[0],crse_geom,phys_bc);
+    rhs_sync_reg->InitRHS(rhnd[0],crse_geom,*phys_bc);
 
     Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
@@ -790,8 +790,7 @@ Projection::MLsyncProject (int             c_lev,
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         BoxArray sync_boxes       = pres_fine.boxArray();
         sync_boxes.coarsen(ratio);
-        crsr_sync_reg->CompAdd(sync_resid_fine,crse_geom,crsr_geom,
-                               phys_bc,sync_boxes,invrat);
+        crsr_sync_reg->CompAdd(*sync_resid_fine,crse_geom,crsr_geom,sync_boxes,invrat);
     }
     //
     // Do necessary un-scaling.

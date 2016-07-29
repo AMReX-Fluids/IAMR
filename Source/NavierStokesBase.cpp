@@ -200,7 +200,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     sync_reg = 0;
     if (level > 0 && do_sync_proj)
     {
-        sync_reg = new SyncRegister(grids,crse_ratio,level);
+        sync_reg = new SyncRegister(grids,crse_ratio);
     }
     advflux_reg  = 0;
     viscflux_reg = 0;
@@ -2738,7 +2738,7 @@ NavierStokesBase::restart (Amr&          papa,
     BL_ASSERT(sync_reg == 0);
     if (level > 0 && do_sync_proj)
     {
-        sync_reg = new SyncRegister(grids,crse_ratio,level);
+        sync_reg = new SyncRegister(grids,crse_ratio);
     }
     BL_ASSERT(advflux_reg == 0);
     if (level > 0 && do_reflux)

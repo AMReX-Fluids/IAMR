@@ -15,48 +15,19 @@ class SyncRegister
     public BndryRegister
 {
 public:
-    SyncRegister ();
 
-    SyncRegister (const BoxArray& fine_boxes,
-                  const IntVect&  ref_ratio,
-                  int             fine_lev);
+    SyncRegister (const BoxArray& fine_boxes, const IntVect& ref_ratio);
 
     ~SyncRegister ();
 
-    void define (const BoxArray& fine_boxes,
-                 const IntVect&  ref_ratio,
-                 int             fine_lev);
-    //
-    // Access functions.
-    //
-    const IntVect& refRatio () const { return ratio; }
+    void CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Real mult);
 
-    int fineLevel () const { return fine_level; }
+    void FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Real mult);
 
-    int crseLevel () const { return fine_level-1; }
+    void CompAdd (MultiFab& Sync_resid_fine, const Geometry& fine_geom, const Geometry& crse_geom,
+		  const BoxArray& Pgrids, Real mult);
 
-    const BoxArray& coarsenedBoxes () const { return grids; }
-
-    void CrseInit (MultiFab*    Sync_resid_crse,
-                   const Geometry&    crse_geom,
-                   Real               mult);
-
-    void FineAdd  (MultiFab*    Sync_resid_crse,
-                   const Geometry&    fine_geom,
-                   const Geometry&    crse_geom,
-                   const BCRec*       phys_bc,
-                   Real               mult);
-
-    void CompAdd  (MultiFab*    Sync_resid_crse,
-                   const Geometry&    fine_geom,
-                   const Geometry&    crse_geom,
-                   const BCRec*       phys_bc,
-                   const BoxArray&    Pgrids,
-                   Real               mult);
-
-    void InitRHS (MultiFab&       rhs,
-                  const Geometry& geom,
-                  const BCRec*    phys_bc);
+    void InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc);
 
 protected:
     //
@@ -93,7 +64,6 @@ protected:
     //
     FabSet  bndry_mask[2*BL_SPACEDIM];
     IntVect ratio;
-    int     fine_level;
 };
 
 #endif /*_SYNCREGISTER_H_*/

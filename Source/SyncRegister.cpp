@@ -1,10 +1,4 @@
 
-#include <winstd.H>
-
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-
 #include <BC_TYPES.H>
 #include <FluxRegister.H>
 #include <SyncRegister.H>
@@ -12,74 +6,31 @@
 #include <SYNCREG_F.H>
 #include <BLProfiler.H>
 
-SyncRegister::SyncRegister ()
-{
-    fine_level = -1;
-    ratio      = IntVect::TheUnitVector();
-    ratio.scale(-1);
-}
-
 SyncRegister::SyncRegister (const BoxArray& fine_boxes,
-                            const IntVect&  ref_ratio,
-                            int             fine_lev)
+                            const IntVect&  ref_ratio)
+    : ratio(ref_ratio)
 {
-    ratio = IntVect::TheUnitVector();
-    ratio.scale(-1);
-    define(fine_boxes,ref_ratio,fine_lev);
-}
-
-void
-SyncRegister::define (const BoxArray& fine_boxes,
-                      const IntVect&  ref_ratio,
-                      int             fine_lev)
-{
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        BL_ASSERT(ratio[dir] == -1);
-
     BL_ASSERT(grids.size() == 0);
     BL_ASSERT(fine_boxes.isDisjoint());
 
-    ratio      = ref_ratio;
-    fine_level = fine_lev;
- 
     grids = fine_boxes;
     grids.coarsen(ratio);
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        //
-        // Construct BoxArrays for the FabSets.
-        //
-        const int N = grids.size();
+	Orientation loface(dir, Orientation::low);
+	Orientation hiface(dir, Orientation::high);
 
-        BoxArray loBA(N), hiBA(N);
+	BndryBATransformer lotrans(loface, IndexType::TheNodeType(), 0, 1, 0);
+	BndryBATransformer hitrans(hiface, IndexType::TheNodeType(), 0, 1, 0);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int k = 0; k < N; k++)
-        {
-            const Box& ndbox = BoxLib::surroundingNodes(grids[k]);
+	BoxArray loBA(grids, lotrans);
+	BoxArray hiBA(grids, hitrans);
 
-            Box nd_lo = ndbox;
-            Box nd_hi = ndbox;
-
-            nd_lo.setRange(dir,ndbox.smallEnd(dir),1);
-            nd_hi.setRange(dir,ndbox.bigEnd(dir),1);
-
-            loBA.set(k,nd_lo);
-            hiBA.set(k,nd_hi);
-        }
-        //
-        // Define the FabSets.
-        //
-        const Orientation lo = Orientation(dir,Orientation::low);
-        const Orientation hi = Orientation(dir,Orientation::high);
-
-        bndry[lo].define(loBA,1);
-        bndry_mask[lo].define(loBA,1);
-        bndry[hi].define(hiBA,1);
-        bndry_mask[hi].define(hiBA,1);
+        bndry[loface].define(loBA,1);
+        bndry_mask[loface].define(loBA,1);
+        bndry[hiface].define(hiBA,1);
+        bndry_mask[hiface].define(hiBA,1);
     }
 }
 
@@ -356,9 +307,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 }
 
 void
-SyncRegister::InitRHS (MultiFab&       rhs,
-                       const Geometry& geom,
-                       const BCRec*    phys_bc)
+SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc)
 {
     BL_PROFILE("SyncRegister::InitRHS()");
 
@@ -384,8 +333,8 @@ SyncRegister::InitRHS (MultiFab&       rhs,
         bndry[face()].copyTo(rhs);
     }
 
-    const int* phys_lo = phys_bc->lo();
-    const int* phys_hi = phys_bc->hi();
+    const int* phys_lo = phys_bc.lo();
+    const int* phys_hi = phys_bc.hi();
 
     const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
 
@@ -533,7 +482,6 @@ SyncRegister::InitRHS (MultiFab&       rhs,
     multByBndryMask(rhs);
 }
 
-static
 void
 BuildMFs (const MultiFab& mf,
           MultiFab&       cloMF,
@@ -662,43 +610,37 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
 }
 
 void
-SyncRegister::CrseInit  (MultiFab*       Sync_resid_crse,
-                         const Geometry& crse_geom, 
-                         Real            mult)
+SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Real mult)
 {
     setVal(0);
 
-    Sync_resid_crse->mult(mult);
+    Sync_resid_crse.mult(mult);
 
     const Box& crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
 
-    incrementPeriodic(crse_geom, crse_node_domain, *Sync_resid_crse);
+    incrementPeriodic(crse_geom, crse_node_domain, Sync_resid_crse);
 
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].plusFrom(*Sync_resid_crse,0,0,0,1);
+        bndry[face()].plusFrom(Sync_resid_crse,0,0,0,1);
     }
 }
 
 void
-SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
-                        const Geometry& fine_geom, 
-                        const Geometry& crse_geom, 
-                        const BCRec*    phys_bc,
-                        const BoxArray& Pgrids,
-                        Real            mult)
+SyncRegister::CompAdd (MultiFab& Sync_resid_fine, const Geometry& fine_geom, const Geometry& crse_geom, 
+                        const BoxArray& Pgrids, Real mult)
 {
     Array<IntVect> pshifts(27);
 
     std::vector< std::pair<int,Box> > isects;
 
-    for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
     {
         const Box& sync_box = mfi.validbox();
 
         Pgrids.intersections(sync_box,isects);
 
-        FArrayBox& syncfab = (*Sync_resid_fine)[mfi];
+        FArrayBox& syncfab = Sync_resid_fine[mfi];
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -722,19 +664,15 @@ SyncRegister::CompAdd  (MultiFab*       Sync_resid_fine,
 
     Pgrids.clear_hash_bin();
 
-    FineAdd(Sync_resid_fine,fine_geom,crse_geom,phys_bc,mult);
+    FineAdd(Sync_resid_fine,crse_geom,mult);
 }
 
 void
-SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
-                        const Geometry& fine_geom, 
-                        const Geometry& crse_geom, 
-                        const BCRec*    phys_bc,
-                        Real            mult)
+SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Real mult)
 {
     BL_PROFILE("SyncRegister::FineAdd()");
 
-    Sync_resid_fine->mult(mult);
+    Sync_resid_fine.mult(mult);
 
     const Box& crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
 
@@ -742,16 +680,16 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
     {
         MultiFab cloMF, chiMF;
 
-        BuildMFs(*Sync_resid_fine,cloMF,chiMF,ratio,dir);
+        BuildMFs(Sync_resid_fine,cloMF,chiMF,ratio,dir);
         //
         // Coarsen edge values.
         //
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
+        for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
         {
-            FArrayBox& finefab = (*Sync_resid_fine)[mfi];
+            FArrayBox& finefab = Sync_resid_fine[mfi];
 
             const int* resid_lo = finefab.box().loVect();
             const int* resid_hi = finefab.box().hiVect();
@@ -790,7 +728,7 @@ SyncRegister::FineAdd  (MultiFab* Sync_resid_fine,
                 domlo.setRange(j,crse_node_domain.smallEnd(j),1);
                 domhi.setRange(j,crse_node_domain.bigEnd(j),1);
 
-                for (MFIter mfi(*Sync_resid_fine); mfi.isValid(); ++mfi)
+                for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
                 {
                     FArrayBox& cfablo = cloMF[mfi];
                     const Box& cboxlo = cfablo.box();
