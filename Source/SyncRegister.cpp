@@ -299,7 +299,7 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 
         fs.setVal(1);
 
-        fs.copyFrom(bndry_mask[face()]);
+        fs.copyFrom(bndry_mask[face()], 0, 0, 1);
 
         for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
             rhs[mfi].mult(fs[mfi], ba[mfi.index()], ba[mfi.index()], 0, 0, 1);
@@ -328,7 +328,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     //
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].copyTo(rhs);
+        bndry[face()].copyTo(rhs,0,0,bndry[face()].nComp());
     }
 
     const int* phys_lo = phys_bc.lo();
