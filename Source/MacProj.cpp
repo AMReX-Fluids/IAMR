@@ -557,7 +557,6 @@ MacProj::mac_sync_solve (int       level,
         }
     }
 
-    baf.clear_hash_bin();
     //
     // Remove constant null space component from the rhs of the solve
     // when appropriate (i.e. when the grids span the whole domain AND
@@ -1293,8 +1292,6 @@ MacProj::test_umac_periodic (int       level,
                     eBox -= pshifts[iiv];
                 }
             }
-
-            u_mac[dim].boxArray().clear_hash_bin();
         }
     }
 

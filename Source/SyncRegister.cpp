@@ -423,7 +423,6 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
         }
     }
 
-    grids.clear_hash_bin();
     //
     // Here double the cell contributions if at a non-periodic physical bdry.
     //
@@ -661,8 +660,6 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine, const Geometry& fine_geom, con
             }
         }
     }
-
-    Pgrids.clear_hash_bin();
 
     FineAdd(Sync_resid_fine,crse_geom,mult);
 }
