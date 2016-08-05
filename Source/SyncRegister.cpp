@@ -281,28 +281,19 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
     BL_ASSERT(rhs.nComp() == 1);
  
+    int ngrow = rhs.nGrow();
+
     for (OrientationIter face; face; ++face)
     {
         BL_ASSERT(bndry_mask[face()].nComp() == 1);
 
-        const int N = rhs.size();
+	MultiFab tmp(rhs.boxArray(), 1, ngrow, rhs.DistributionMap());
+	
+	tmp.setVal(1.0);
 
-        BoxArray ba(N);
+	bndry_mask[face()].copyTo(tmp, ngrow, 0, 0, 1);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (int i = 0; i < N; i++)
-            ba.set(i,rhs.fabbox(i));
-
-        FabSet fs(ba, 1);
-
-        fs.setVal(1);
-
-        fs.copyFrom(bndry_mask[face()], 0, 0, 1);
-
-        for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
-            rhs[mfi].mult(fs[mfi], ba[mfi.index()], ba[mfi.index()], 0, 0, 1);
+	MultiFab::Multiply(rhs, tmp, 0, 0, 1, ngrow);
     }
 }
 
@@ -328,7 +319,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     //
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].copyTo(rhs,0,0,bndry[face()].nComp());
+        bndry[face()].copyTo(rhs,0,0,0,bndry[face()].nComp());
     }
 
     const int* phys_lo = phys_bc.lo();
