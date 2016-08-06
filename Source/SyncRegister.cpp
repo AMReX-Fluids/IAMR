@@ -253,8 +253,8 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         else
                         {
                             tag.dstIndex = i;
-                            tag.dbox     = sbx;
-                            tag.sbox     = sbx;
+                            tag.dbox     = dbx;
+                            tag.sbox     = dbx;
 
                             FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,dbx);
                         }
@@ -264,7 +264,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         tag.dstIndex = j;
                         tag.srcIndex = face;  // Store face in srcIndex!
                         tag.sbox     = sbx;
-                        tag.dbox     = dbx;
+                        tag.dbox     = sbx;
 
                         FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,sbx);
                     }
