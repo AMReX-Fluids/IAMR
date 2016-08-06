@@ -253,7 +253,7 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         else
                         {
                             tag.dstIndex = i;
-                            tag.dbox     = dbx;
+                            tag.dbox     = sbx;
                             tag.sbox     = sbx;
 
                             FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,dbx);
