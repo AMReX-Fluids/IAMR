@@ -100,16 +100,16 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
              it != End;
              ++it)
         {
-            const Box& bx = it->box;
+            const Box& bx = it->dbox;
             fab.resize(bx,ncomp);
 
             if (who == SyncRegister::CopyPeriodic)
             {
-                fab.copy(bndry[it->srcIndex][it->fabIndex],bx,0,bx,0,ncomp);
+                fab.copy(bndry[it->srcIndex][it->dstIndex],bx,0,bx,0,ncomp);
             }
             else
             {
-                fab.copy((*mf)[it->fabIndex],bx,0,bx,0,ncomp);
+                fab.copy((*mf)[it->dstIndex],bx,0,bx,0,ncomp);
             }
 
             const int Cnt = bx.numPts()*ncomp;
@@ -156,18 +156,18 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
                  it != End;
                  ++it)
             {
-                const Box& bx = it->box;
+                const Box& bx = it->sbox;
                 fab.resize(bx,ncomp);
                 const int Cnt = bx.numPts()*ncomp;
                 memcpy(fab.dataPtr(),dptr,Cnt*sizeof(double));
 
                 if (who == SyncRegister::CopyPeriodic)
                 {
-                    (*rhs)[it->fabIndex].copy(fab,bx,0,bx,0,ncomp);
+                    (*rhs)[it->dstIndex].copy(fab,bx,0,bx,0,ncomp);
                 }
                 else
                 {
-                    bndry[it->srcIndex][it->fabIndex].plus(fab,bx,bx,0,0,ncomp);
+                    bndry[it->srcIndex][it->dstIndex].plus(fab,bx,bx,0,0,ncomp);
                 }
 
                 dptr += Cnt;
@@ -252,17 +252,19 @@ SyncRegister::copyPeriodic (const Geometry& geom,
                         }
                         else
                         {
-                            tag.fabIndex = i;
-                            tag.box      = dbx;
+                            tag.dstIndex = i;
+                            tag.dbox     = dbx;
+                            tag.sbox     = sbx;
 
                             FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,dbx);
                         }
                     }
                     else if (src_owner == MyProc)
                     {
-                        tag.fabIndex = j;
+                        tag.dstIndex = j;
                         tag.srcIndex = face;  // Store face in srcIndex!
-                        tag.box      = sbx;
+                        tag.sbox     = sbx;
+                        tag.dbox     = dbx;
 
                         FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,sbx);
                     }
@@ -571,17 +573,19 @@ SyncRegister::incrementPeriodic (const Geometry& geom,
                         }
                         else
                         {
-                            tag.fabIndex = i;
+                            tag.dstIndex = i;
                             tag.srcIndex = face;  // Store face in srcIndex!
-                            tag.box      = dbx;
+                            tag.dbox     = dbx;
+                            tag.sbox     = dbx;
 
                             FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,dbx);
                         }
                     }
                     else if (src_owner == MyProc)
                     {
-                        tag.fabIndex = j;
-                        tag.box      = sbx;
+                        tag.dstIndex = j;
+                        tag.sbox     = sbx;
+                        tag.dbox     = sbx;
 
                         FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,sbx);
                     }
