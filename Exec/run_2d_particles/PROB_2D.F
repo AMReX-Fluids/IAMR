@@ -216,6 +216,8 @@ c
 
             y = xlo(2) + hy*(float(j-lo(2)) + half)
             x = xlo(1) + hx*(float(i-lo(1)) + half)
+            r = sqrt(x**2 + y**2)
+
             vel(i,j,1) = tanh(30.*(.25-abs(y-.5)))
             vel(i,j,2) = .05*sin(two*Pi*x)
 
