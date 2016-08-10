@@ -6,6 +6,10 @@
 #include <SYNCREG_F.H>
 #include <BLProfiler.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 SyncRegister::SyncRegister (const BoxArray& fine_boxes,
                             const IntVect&  ref_ratio)
     : ratio(ref_ratio)
@@ -285,11 +289,11 @@ SyncRegister::multByBndryMask (MultiFab& rhs) const
  
     int ngrow = rhs.nGrow();
 
+    MultiFab tmp(rhs.boxArray(), 1, ngrow, rhs.DistributionMap());
+
     for (OrientationIter face; face; ++face)
     {
         BL_ASSERT(bndry_mask[face()].nComp() == 1);
-
-	MultiFab tmp(rhs.boxArray(), 1, ngrow, rhs.DistributionMap());
 	
 	tmp.setVal(1.0);
 
@@ -336,6 +340,9 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
             domlo.setRange(dir,node_domain.smallEnd(dir),1);
             domhi.setRange(dir,node_domain.bigEnd(dir),1);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
             {
                 const Box& blo = mfi.validbox() & domlo;
@@ -357,62 +364,62 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
         bndry_mask[face()].setVal(0);
     }
 
-    FArrayBox tmpfab;
-
-    std::vector< std::pair<int,Box> > isects;
-
     for (OrientationIter face_it; face_it; ++face_it)
     {
         FabSet& fs = bndry_mask[face_it()];
 
-        for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
-        {
-            FArrayBox& fab = fs[fsi];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	{
+	    FArrayBox tmpfab;
+	    std::vector< std::pair<int,Box> > isects;	    
 
-            Box mask_cells = BoxLib::enclosedCells(BoxLib::grow(fab.box(),1));
-
-            tmpfab.resize(mask_cells,1);
-            tmpfab.setVal(0);
-
-            grids.intersections(mask_cells,isects);
-
-            for (int i = 0, N = isects.size(); i < N; i++)
-            {
-                tmpfab.setVal(1,isects[i].second,0,1);
-            }
- 
-            if (geom.isAnyPeriodic() && !geom.Domain().contains(mask_cells))
-            {
-                geom.periodicShift(geom.Domain(),mask_cells,pshifts);
-
-                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                     it != End;
-                     ++it)
-                {
-                    const IntVect& iv = *it;
-
-                    mask_cells += iv;
-
-                    grids.intersections(mask_cells,isects);
-
-                    for (int i = 0, N = isects.size(); i < N; i++)
-                    {
-                        Box& isect = isects[i].second;
-                        isect     -= iv;
-                        tmpfab.setVal(1,isect,0,1);
-                    }
-
-                    mask_cells -= iv;
-                }
-            }
-            Real* mask_dat = fab.dataPtr();
-            const int* mlo = fab.loVect(); 
-            const int* mhi = fab.hiVect();
-            Real* cell_dat = tmpfab.dataPtr();
-            const int* clo = tmpfab.loVect(); 
-            const int* chi = tmpfab.hiVect();
-        
-            FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
+	    for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
+	    {
+		FArrayBox& fab = fs[fsi];
+		
+		Box mask_cells = BoxLib::enclosedCells(BoxLib::grow(fab.box(),1));
+		
+		tmpfab.resize(mask_cells,1);
+		tmpfab.setVal(0);
+		
+		grids.intersections(mask_cells,isects);
+		
+		for (int i = 0, N = isects.size(); i < N; i++)
+		{
+		    tmpfab.setVal(1,isects[i].second,0,1);
+		}
+		
+		if (geom.isAnyPeriodic() && !geom.Domain().contains(mask_cells))
+		{
+		    geom.periodicShift(geom.Domain(),mask_cells,pshifts);
+		    
+		    for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+			 it != End;
+			 ++it)
+		    {
+			const IntVect& iv = *it;
+			
+			grids.intersections(mask_cells+iv,isects);
+			
+			for (int i = 0, N = isects.size(); i < N; i++)
+			{
+			    Box& isect = isects[i].second;
+			    isect     -= iv;
+			    tmpfab.setVal(1,isect,0,1);
+			}
+		    }
+		}
+		Real* mask_dat = fab.dataPtr();
+		const int* mlo = fab.loVect(); 
+		const int* mhi = fab.hiVect();
+		Real* cell_dat = tmpfab.dataPtr();
+		const int* clo = tmpfab.loVect(); 
+		const int* chi = tmpfab.hiVect();
+		
+		FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
+	    }
         }
     }
 
@@ -432,19 +439,22 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
             {
                 FabSet& fs = bndry_mask[face_it()];
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
                 for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
                 {
                     FArrayBox& fab = fs[fsi];
 
-                    Box isect = fab.box() & domlo;
+                    const Box& blo = fab.box() & domlo;
 
-                    if (isect.ok())
-                        fab.mult(2.0,isect,0,1);
+                    if (blo.ok())
+                        fab.mult(2.0,blo,0,1);
 
-                    isect = fab.box() & domhi;
+                    const Box& bhi = fab.box() & domhi;
 
-                    if (isect.ok())
-                        fab.mult(2.0,isect,0,1);
+                    if (bhi.ok())
+                        fab.mult(2.0,bhi,0,1);
                 }
             }
         }
@@ -456,6 +466,9 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     {
         FabSet& fs = bndry_mask[face_it()];
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
         {
             FArrayBox& fab      = fs[fsi];
