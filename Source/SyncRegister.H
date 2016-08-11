@@ -29,35 +29,8 @@ public:
 
     void InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc);
 
-protected:
-    //
-    // Helpers for various parallel routines.
-    //
-    typedef FabArrayBase::CopyComTag::CopyComTagsContainer CopyComTagsContainer;
+private:
 
-    typedef FabArrayBase::CopyComTag::MapOfCopyComTagContainers MapOfCopyComTagContainers;
-
-    enum Who { CopyPeriodic, IncrementPeriodic };
-
-    void SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
-                       const MapOfCopyComTagContainers& m_RcvTags,
-                       const std::map<int,int>&         m_SndVols,
-                       const std::map<int,int>&         m_RcvVols,
-                       int                              ncomp,
-                       Who                              who,
-                       MultiFab*                        rhs,
-                       const MultiFab*                  mf);
-    //
-    // Helper member functions.
-    //
-    void incrementPeriodic (const Geometry& geom,
-                            const Box&      domain,
-                            const MultiFab& mf);
-
-    void multByBndryMask (MultiFab& rhs) const;
-    //
-    // The data.
-    //
     FabSet  bndry_mask[2*BL_SPACEDIM];
     IntVect ratio;
 };
