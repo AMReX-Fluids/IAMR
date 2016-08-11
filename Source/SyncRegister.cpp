@@ -187,101 +187,6 @@ SyncRegister::SendRecvDoit (const MapOfCopyComTagContainers& m_SndTags,
 #endif /*BL_USE_MPI*/
 }
 
-//
-// If periodic, copy the values from sync registers onto the nodes of the
-// rhs which are not covered by sync registers through periodic shifts.
-//
-
-void
-SyncRegister::copyPeriodic (const Geometry& geom,
-                            const Box&      domain,
-                            MultiFab&       rhs)
-{
-    if (!geom.isAnyPeriodic()) return;
-
-    BL_PROFILE("SyncRegister::copyPeriodic()");
-
-    MapOfCopyComTagContainers  m_SndTags, m_RcvTags;
-    std::map<int,int>          m_SndVols, m_RcvVols;
-    Array<IntVect>             pshifts(27);
-    const int                  MyProc  = ParallelDescriptor::MyProc();
-    const int                  ncomp   = rhs.nComp();
-    const DistributionMapping& dstDMap = rhs.DistributionMap();
-
-    for (OrientationIter face_it; face_it; ++face_it)
-    {
-        const Orientation          face    = face_it();
-        const FabSet&              fabset  = bndry[face];
-        const DistributionMapping& srcDMap = fabset.DistributionMap();
-
-        for (int i = 0; i < rhs.size(); i++)
-        {
-            const int dst_owner = dstDMap[i];
-
-            for (int j = 0, N = grids.size(); j < N; j++)
-            {
-                const int src_owner = srcDMap[j];
-
-                if (dst_owner != MyProc && src_owner != MyProc) continue;
-
-                const Box& rhsbox = rhs.fabbox(i);
-                const Box& fabbox = fabset.fabbox(j);
-
-                if (domain.contains(BoxLib::grow(fabbox,1))) continue;
-
-                geom.periodicShift(domain,fabbox,pshifts);
-
-                for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                     it != End;
-                     ++it)
-                {
-                    const IntVect& iv = *it;
-
-                    Box dbx = fabbox + iv; dbx &= rhsbox;
-
-                    if (!dbx.ok()) continue;
-
-                    const Box& sbx = dbx - iv;
-
-                    FabArrayBase::CopyComTag tag;
-
-                    if (dst_owner == MyProc)
-                    {
-                        if (src_owner == MyProc)
-                        {
-                            //
-                            // Do the local work right here.
-                            //
-                            rhs[i].copy(fabset[j],sbx,0,dbx,0,ncomp);
-                        }
-                        else
-                        {
-                            tag.dstIndex = i;
-                            tag.dbox     = dbx;
-                            tag.sbox     = dbx;
-
-                            FabArrayBase::SetRecvTag(m_RcvTags,src_owner,tag,m_RcvVols,dbx);
-                        }
-                    }
-                    else if (src_owner == MyProc)
-                    {
-                        tag.dstIndex = j;
-                        tag.srcIndex = face;  // Store face in srcIndex!
-                        tag.sbox     = sbx;
-                        tag.dbox     = sbx;
-
-                        FabArrayBase::SetSendTag(m_SndTags,dst_owner,tag,m_SndVols,sbx);
-                    }
-                }
-            }
-        }
-    }
-
-    if (ParallelDescriptor::NProcs() == 1) return;
-
-    SendRecvDoit(m_SndTags,m_RcvTags,m_SndVols,m_RcvVols,ncomp,SyncRegister::CopyPeriodic,&rhs,0);
-}
-
 void
 SyncRegister::multByBndryMask (MultiFab& rhs) const
 {
@@ -310,26 +215,15 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 
     rhs.setVal(0);
 
-    const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
-
-    Array<IntVect> pshifts(27);
-    //
-    // Fill Rhs From Bndry Registers.
-    //
-    // If periodic, copy the values from sync registers onto the nodes of the
-    // rhs which are not covered by sync registers through periodic shifts.
-    //
-    copyPeriodic(geom,node_domain,rhs);
-    //
-    // Overwrite above-set values on all nodes covered by a sync register.
-    //
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].copyTo(rhs,0,0,0,bndry[face()].nComp());
+        bndry[face()].copyTo(rhs,0,0,0,bndry[face()].nComp(),geom.periodicity());
     }
 
     const int* phys_lo = phys_bc.lo();
     const int* phys_hi = phys_bc.hi();
+
+    const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -374,6 +268,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 	{
 	    FArrayBox tmpfab;
 	    std::vector< std::pair<int,Box> > isects;	    
+	    Array<IntVect> pshifts(26);
 
 	    for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
 	    {

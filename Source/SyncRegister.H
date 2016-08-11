@@ -54,10 +54,6 @@ protected:
                             const Box&      domain,
                             const MultiFab& mf);
 
-    void copyPeriodic (const Geometry& geom,
-                       const Box&      domain,
-                       MultiFab&       rhs);
-
     void multByBndryMask (MultiFab& rhs) const;
     //
     // The data.
