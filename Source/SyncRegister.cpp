@@ -379,40 +379,6 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 }
 
 void
-BuildMFs (const MultiFab& mf,
-          MultiFab&       cloMF,
-          MultiFab&       chiMF,
-          const IntVect&  ratio,
-          int             dir)
-{
-    const int N = mf.size();
-
-    BoxArray cloBA(N), chiBA(N);
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < N; i++)
-    {
-        const Box& bx = mf.boxArray()[i];
-
-        Box tboxlo(bx), tboxhi(bx);
-
-        tboxlo.setRange(dir,bx.smallEnd(dir),1);
-        tboxhi.setRange(dir,bx.bigEnd(dir),1);
-
-        cloBA.set(i,BoxLib::coarsen(tboxlo,ratio));
-        chiBA.set(i,BoxLib::coarsen(tboxhi,ratio));
-    }
-
-    cloMF.define(cloBA,1,0,Fab_allocate);
-    chiMF.define(chiBA,1,0,Fab_allocate);
-
-    cloMF.setVal(0);
-    chiMF.setVal(0);
-}
-
-void
 SyncRegister::incrementPeriodic (const Geometry& geom,
                                  const Box&      domain,
                                  const MultiFab& mf)
@@ -574,9 +540,15 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        MultiFab cloMF, chiMF;
+	Orientation loface(dir, Orientation::low);
+	Orientation hiface(dir, Orientation::high);
+	
+        MultiFab cloMF(bndry_mask[loface].boxArray(),1,0,bndry_mask[loface].DistributionMap());
+        MultiFab chiMF(bndry_mask[hiface].boxArray(),1,0,bndry_mask[hiface].DistributionMap());
 
-        BuildMFs(Sync_resid_fine,cloMF,chiMF,ratio,dir);
+	BL_ASSERT(cloMF.DistributionMap() == Sync_resid_fine.DistributionMap());
+	BL_ASSERT(chiMF.DistributionMap() == Sync_resid_fine.DistributionMap());
+
         //
         // Coarsen edge values.
         //
