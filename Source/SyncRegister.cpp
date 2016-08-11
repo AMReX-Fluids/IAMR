@@ -516,13 +516,9 @@ SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Re
 
     Sync_resid_crse.mult(mult);
 
-    const Box& crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
-
-    incrementPeriodic(crse_geom, crse_node_domain, Sync_resid_crse);
-
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].plusFrom(Sync_resid_crse,0,0,0,1);
+        bndry[face()].plusFrom(Sync_resid_crse,0,0,0,1,crse_geom.periodicity());
     }
 }
 
