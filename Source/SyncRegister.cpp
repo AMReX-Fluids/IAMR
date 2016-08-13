@@ -45,11 +45,15 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 {
     BL_PROFILE("SyncRegister::InitRHS()");
 
+    BL_ASSERT(rhs.nComp() == 1);
+ 
+    int ngrow = rhs.nGrow();
+
     rhs.setVal(0);
 
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].copyTo(rhs,0,0,0,bndry[face()].nComp(),geom.periodicity());
+        bndry[face()].copyTo(rhs,ngrow,0,0,bndry[face()].nComp(),geom.periodicity());
     }
 
     const int* phys_lo = phys_bc.lo();
@@ -208,10 +212,6 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     }
 
     // Multiply by Bndry Mask
-
-    BL_ASSERT(rhs.nComp() == 1);
- 
-    int ngrow = rhs.nGrow();
 
     MultiFab tmp(rhs.boxArray(), 1, ngrow, rhs.DistributionMap());
 
