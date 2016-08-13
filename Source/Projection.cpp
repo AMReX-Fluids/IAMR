@@ -583,7 +583,7 @@ Projection::syncProject (int             c_lev,
     MultiFab& sig = rho_half;
 
     PArray<MultiFab> rhnd(1, PArrayManage);
-    rhnd.set(0, new MultiFab(P_grids,1,1));
+    rhnd.set(0, new MultiFab(P_grids,1,0));
     rhs_sync_reg->InitRHS(rhnd[0],geom,*phys_bc);
 
     phi.setVal(0);
@@ -726,7 +726,7 @@ Projection::MLsyncProject (int             c_lev,
     // Set up crse RHS
     //
     PArray<MultiFab> rhnd(1, PArrayManage);
-    rhnd.set(0,new MultiFab(Pgrids_crse,1,1));
+    rhnd.set(0,new MultiFab(Pgrids_crse,1,0));
     rhs_sync_reg->InitRHS(rhnd[0],crse_geom,*phys_bc);
 
     Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
@@ -1876,7 +1876,7 @@ Projection::initialVorticityProject (int c_lev)
         //
         MultiFab& P_new = LevelData[lev].get_new_data(Press_Type);
 
-        rhnd.set(lev, new MultiFab(P_new.boxArray(), 1, 1));
+        rhnd.set(lev, new MultiFab(P_new.boxArray(), 1, 0));
 
         for (MFIter mfi(rhnd[lev]); mfi.isValid(); ++mfi)
         {
