@@ -79,10 +79,10 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
                 const Box& bhi = mfi.validbox() & domhi;
 
                 if (blo.ok() && phys_lo[dir] == Outflow)
-                    rhs[mfi].mult(0.0,blo,0,1);
+                    rhs[mfi].setVal(0.0,blo,0,1);
 
                 if (bhi.ok() && phys_hi[dir] == Outflow) 
-                    rhs[mfi].mult(0.0,bhi,0,1);
+                    rhs[mfi].setVal(0.0,bhi,0,1);
             }
         }
     }
