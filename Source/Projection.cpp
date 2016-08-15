@@ -732,7 +732,7 @@ Projection::MLsyncProject (int             c_lev,
     Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain)
-        rhnd[c_lev].setVal(0);
+        rhnd[0].setVal(0);
     //
     // Do necessary scaling
     //
