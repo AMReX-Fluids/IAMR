@@ -150,13 +150,6 @@ public:
                              Real      strt_time,
                              int       have_divu);
     //
-    // Enforce periodicity on a multifab.
-    //
-    void EnforcePeriodicity (MultiFab&       psi,
-                             int             nvar,
-                             const BoxArray& grids,
-                             const Geometry& geom);
-    //
     // Multiply/divide a MultiFab by radius for r-z coordinates.
     // These should really be protected.
     //

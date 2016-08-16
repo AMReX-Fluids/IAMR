@@ -2097,7 +2097,8 @@ NavierStokesBase::level_sync (int crse_iteration)
         //
         // If periodic, enforce periodicity on Vsync.
         //
-        projector->EnforcePeriodicity(Vsync, BL_SPACEDIM, grids, crse_geom);
+	Vsync.EnforcePeriodicity(0, BL_SPACEDIM, crse_geom.periodicity(), 
+				 crse_geom.Domain());
         //
         // Interpolate Vsync to fine grid correction in Vcorr.
         //

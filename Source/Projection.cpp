@@ -399,8 +399,8 @@ Projection::level_project (int             level,
     // Enforce periodicity of U_new and rho_half (i.e. coefficient of G phi)
     // *after* everything has been done to them.
     //
-    EnforcePeriodicity(U_new,    BL_SPACEDIM, grids, geom);
-    EnforcePeriodicity(rho_half, 1,           grids, geom);
+    U_new.EnforcePeriodicity(0, BL_SPACEDIM, geom.periodicity(), geom.Domain());
+    rho_half.EnforcePeriodicity(0, 1, geom.periodicity(), geom.Domain());
     //
     // Add the contribution from the un-projected V to syncregisters.
     //
@@ -596,7 +596,7 @@ Projection::syncProject (int             c_lev,
     //
     // If periodic, copy into periodic translates of Vsync.
     //
-    EnforcePeriodicity(Vsync, BL_SPACEDIM, grids, geom);
+    Vsync.EnforcePeriodicity(0, BL_SPACEDIM, geom.periodicity(), geom.Domain());
 
     MultiFab *phis[maxlev] = {0};
     MultiFab* vels[maxlev] = {0};
@@ -1087,7 +1087,7 @@ Projection::initialPressureProject (int  c_lev)
                        1,
                        nghost);
 
-        EnforcePeriodicity(*sig[lev],1,grids,geom);
+	sig[lev]->EnforcePeriodicity(0,1,geom.periodicity(), geom.Domain());
     }
 
     //
@@ -1377,17 +1377,6 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
     {
         rhs[mfi].copy((*divu)[mfi]);
     }
-}
-
-void
-Projection::EnforcePeriodicity (MultiFab&       psi,
-                                int             nvar,
-                                const BoxArray& /*grids*/,
-                                const Geometry& geom)
-{
-    BL_ASSERT(nvar <= psi.nComp());
-
-    geom.FillPeriodicBoundary(psi,0,nvar);
 }
 
 //
