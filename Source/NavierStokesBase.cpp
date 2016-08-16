@@ -1169,7 +1169,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
     // Now we set the boundary data
     // FillBoundary fills grow cells that overlap valid regions.
     // HOEXTRAPTOCC fills outside of domain cells.
-    // FillPeriodicBoundary refills grow cells that lie across a periodic boundary.
     //
     const Real* xlo = geom.ProbLo(); //these aren't actually used by the FORT method
     const Real* dx  = geom.CellSize();
@@ -1194,8 +1193,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
             const int* dhi = fab.hiVect();
             FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
         }
-        u_mac[n].FillBoundary();
-        geom.FillPeriodicBoundary(u_mac[n]);
+        u_mac[n].FillBoundary(geom.periodicity());
     }
 }
 
@@ -3908,12 +3906,9 @@ NavierStokesBase::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         }
     }
 
-    turbMF->FillBoundary(0,turbMF->nComp());
-    presMF->FillBoundary(0,presMF->nComp());
+    turbMF->FillBoundary(0,turbMF->nComp(), geom.periodicity());
+    presMF->FillBoundary(0,presMF->nComp(), geom.periodicity());
 
-    geom.FillPeriodicBoundary(*turbMF,0,turbMF->nComp());
-    geom.FillPeriodicBoundary(*presMF,0,presMF->nComp());
-    
     for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 	 turbMfi.isValid() && presMfi.isValid();
 	 ++turbMfi, ++presMfi)
@@ -3979,12 +3974,9 @@ NavierStokesBase::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,
         }
     }
 
-    turbMF->FillBoundary(0,turbMF->nComp());
-    presMF->FillBoundary(0,presMF->nComp());
+    turbMF->FillBoundary(0,turbMF->nComp(), geom.periodicity());
+    presMF->FillBoundary(0,presMF->nComp(), geom.periodicity());
 
-    geom.FillPeriodicBoundary(*turbMF,0,turbMF->nComp());
-    geom.FillPeriodicBoundary(*presMF,0,presMF->nComp());
-    
     for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 	 turbMfi.isValid() && presMfi.isValid();
 	 ++turbMfi, ++presMfi)
