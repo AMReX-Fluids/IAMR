@@ -3134,7 +3134,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
                        &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
         }
     }
-    cgeom.FillPeriodicBoundary(cdataMF, 0, num_comp);
+    cdataMF.EnforcePeriodicity(cgeom.periodicity());
     //
     // Interpolate from cdataMF to fdata and update FineSync.
     // Note that FineSync and cdataMF will have the same distribution
