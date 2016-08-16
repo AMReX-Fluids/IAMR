@@ -399,8 +399,8 @@ Projection::level_project (int             level,
     // Enforce periodicity of U_new and rho_half (i.e. coefficient of G phi)
     // *after* everything has been done to them.
     //
-    U_new.EnforcePeriodicity(0, BL_SPACEDIM, geom.periodicity(), geom.Domain());
-    rho_half.EnforcePeriodicity(0, 1, geom.periodicity(), geom.Domain());
+    U_new.EnforcePeriodicity(0, BL_SPACEDIM, geom.periodicity());
+    rho_half.EnforcePeriodicity(0, 1, geom.periodicity());
     //
     // Add the contribution from the un-projected V to syncregisters.
     //
@@ -596,7 +596,7 @@ Projection::syncProject (int             c_lev,
     //
     // If periodic, copy into periodic translates of Vsync.
     //
-    Vsync.EnforcePeriodicity(0, BL_SPACEDIM, geom.periodicity(), geom.Domain());
+    Vsync.EnforcePeriodicity(0, BL_SPACEDIM, geom.periodicity());
 
     MultiFab *phis[maxlev] = {0};
     MultiFab* vels[maxlev] = {0};
@@ -1087,7 +1087,7 @@ Projection::initialPressureProject (int  c_lev)
                        1,
                        nghost);
 
-	sig[lev]->EnforcePeriodicity(0,1,geom.periodicity(), geom.Domain());
+	sig[lev]->EnforcePeriodicity(0,1,geom.periodicity());
     }
 
     //

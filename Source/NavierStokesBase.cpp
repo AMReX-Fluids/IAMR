@@ -2097,8 +2097,7 @@ NavierStokesBase::level_sync (int crse_iteration)
         //
         // If periodic, enforce periodicity on Vsync.
         //
-	Vsync.EnforcePeriodicity(0, BL_SPACEDIM, crse_geom.periodicity(), 
-				 crse_geom.Domain());
+	Vsync.EnforcePeriodicity(0, BL_SPACEDIM, crse_geom.periodicity());
         //
         // Interpolate Vsync to fine grid correction in Vcorr.
         //
