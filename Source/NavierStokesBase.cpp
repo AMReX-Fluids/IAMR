@@ -2097,7 +2097,7 @@ NavierStokesBase::level_sync (int crse_iteration)
         //
         // If periodic, enforce periodicity on Vsync.
         //
-	if (cres_geom.isAnyPeriodic()) {
+	if (crse_geom.isAnyPeriodic()) {
 	    Vsync.FillBoundary(0, BL_SPACEDIM, crse_geom.periodicity());
 	}
         //
