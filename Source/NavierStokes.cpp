@@ -2010,13 +2010,19 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // Initialize all viscous terms to zero
     //
     const int nGrow = visc_terms.nGrow();
-    visc_terms.setVal(0,0,ncomp,nGrow);
-    //
+
+    bool diffusive = false;
     // 
     // Get Velocity Viscous Terms
     //
-    if (src_comp == Xvel && is_diffusive[Xvel])
+    if (src_comp == Xvel && !is_diffusive[Xvel])
     {
+	visc_terms.setVal(0.0,0,ncomp,nGrow);
+    }
+    else if (src_comp == Xvel && is_diffusive[Xvel])
+    {
+	diffusive = true;
+
 	FluxBoxes fb;
         MultiFab** viscosity = 0;
 
@@ -2071,6 +2077,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         {
             if (is_diffusive[icomp])
             {
+		diffusive = true;
+
                 int rho_flag = Diffusion::set_rho_flag(diffusionType[icomp]);
 
 		FluxBoxes fb;
@@ -2085,12 +2093,16 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,
                                         time,rho_flag,cmp_diffn,0);
             }
+	    else {
+		visc_terms.setVal(0.0,icomp-src_comp,1,nGrow);
+	    }
+		
         }
     }
     //
     // Ensure consistent grow cells
     //    
-    if (nGrow > 0)
+    if (diffusive && nGrow > 0)
     {
 	visc_terms.FillBoundary(0, ncomp, geom.periodicity());
 	Extrapolater::FirstOrderExtrap(visc_terms, geom, 0, ncomp);
