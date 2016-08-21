@@ -2456,8 +2456,9 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
   const int* hi_bc = phys_bc->hi();
   const Box& domainBox = geom.Domain();
 
-  std::vector< std::pair<int,Box> > isects;
-
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int i = mfi.index();
 
@@ -2481,6 +2482,7 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
       }
     }
 
+    std::vector< std::pair<int,Box> > isects;
     localfine.intersections(reg,isects);
 
     for (int ii = 0; ii < isects.size(); ii++) {
@@ -2505,9 +2507,7 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
   }
 
   msk.FillBoundary();
-  if (geom.isAnyPeriodic()) {
-    geom.FillPeriodicBoundary(msk, true); // fill corners too
-  }
+  msk.EnforcePeriodicity(geom.periodicity());
 }
 
 void Projection::mask_grids(MultiFab& msk, const Geometry& geom)
