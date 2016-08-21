@@ -1553,7 +1553,7 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
             }
         }
 
-        geom.FillPeriodicBoundary(gp,true);
+	gp.EnforcePeriodicity(geom.periodicity());
     }
     else
     {
