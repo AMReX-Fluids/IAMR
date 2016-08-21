@@ -2412,7 +2412,7 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
 
     MultiFab msk(levelGrids, 1, 1); 
 
-    mask_grids(msk, levelGrids, levelGeom);
+    mask_grids(msk, levelGeom);
 
     sync_resid_fine->setVal(0.0, sync_resid_fine->nGrow());
 
@@ -2510,55 +2510,49 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
   }
 }
 
-void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom)
+void Projection::mask_grids(MultiFab& msk, const Geometry& geom)
 {
-  BL_PROFILE("Projection::mask_grids(2)");
-
-  msk.setBndry(BogusValue);
-
-  const Box& domainBox = geom.Domain();
-  IntVect is_periodic(D_DECL(geom.isPeriodic(0),
-  			     geom.isPeriodic(1),
-  			     geom.isPeriodic(2)));
-  Box domainBox_p = BoxLib::grow(domainBox, is_periodic);
-
-  const int* lo_bc = phys_bc->lo();
-  const int* hi_bc = phys_bc->hi();
-
-  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
+    BL_PROFILE("Projection::mask_grids(2)");
     
-    FArrayBox& msk_fab = msk[mfi];
-    const Box& fullBox = msk_fab.box(); // including ghost cells
-
-    Box insBox = domainBox_p & fullBox;
-    if (! insBox.isEmpty()) {
-      msk_fab.setVal(0.0, insBox, 0);
-    }
-
-    const Box& regBox  = grids[i]; // interior region    
-    msk_fab.setVal(1.0, regBox, 0);    
-
-    for (int idir=0; idir<BL_SPACEDIM; idir++) {
-      if (lo_bc[idir] == Inflow) {
-	if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	  Box bx = BoxLib::adjCellLo(regBox, idir);
-	  msk_fab.setVal(1.0, bx, 0);
+    Real fineghost = 1.0;
+    Real interior  = 1.0;
+    Real crseghost = 0.0;
+    Real physbnd   = BogusValue;
+    
+    const Box& domainBox = geom.Domain();
+    const Periodicity& period = geom.periodicity();
+    
+    msk.BuildMask(domainBox, period, fineghost, crseghost, physbnd, interior);
+    
+    const int* lo_bc = phys_bc->lo();
+    const int* hi_bc = phys_bc->hi();
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(msk); mfi.isValid(); ++mfi)
+    {
+	FArrayBox& msk_fab = msk[mfi];
+	const Box& fullBox = msk_fab.box(); // including ghost cells
+	const Box& regBox = mfi.validbox();
+	
+	for (int idir=0; idir<BL_SPACEDIM; idir++) {
+	    if (lo_bc[idir] == Inflow) {
+		if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
+		    const Box& bx = BoxLib::adjCellLo(regBox, idir);
+		    msk_fab.setVal(1.0, bx, 0);
+		}
+	    }
+	    if (hi_bc[idir] == Inflow) {
+		if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
+		    const Box& bx = BoxLib::adjCellHi(regBox, idir);
+		    msk_fab.setVal(1.0, bx, 0);
+		}
+	    }
 	}
-      }
-      if (hi_bc[idir] == Inflow) {
-	if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	  Box bx = BoxLib::adjCellHi(regBox, idir);
-	  msk_fab.setVal(1.0, bx, 0);
-	}
-      }
     }
-  }
-
-  msk.FillBoundary();
-  if (geom.isAnyPeriodic()) {
-    geom.FillPeriodicBoundary(msk, true); // fill corners tooo
-  }  
+    
+    msk.EnforcePeriodicity(period);
 }
 
 // set velocity in ghost cells to zero except for inflow
