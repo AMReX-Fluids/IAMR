@@ -8,7 +8,6 @@
 #include <CGSolver.H>
 
 #include <DIFFUSION_F.H>
-#include <VISCOPERATOR_F.H>
 
 #include <algorithm>
 #include <cfloat>

@@ -17,7 +17,6 @@
 #include <NAVIERSTOKES_F.H>
 #include <BLProfiler.H>
 #include <PROB_NS_F.H>
-#include <VISCOPERATOR_F.H>
 
 #ifdef BL_USE_VELOCITY
 #include <DataServices.H>

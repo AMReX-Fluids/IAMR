@@ -24,8 +24,7 @@ CEXE_headers += ViscBndryTensor.H   MacOutFlowBC.H \
 
 CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
 
-FEXE_headers += SYNCREG_F.H VISCOPERATOR_F.H \
-		PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
+FEXE_headers += SYNCREG_F.H PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
 #
 # Disconnect MacOperators for different mass continuity.
 #
