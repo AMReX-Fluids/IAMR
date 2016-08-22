@@ -2510,7 +2510,7 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
   msk.EnforcePeriodicity(geom.periodicity());
 }
 
-void Projection::mask_grids(MultiFab& msk, const Geometry& geom)
+void Projection::mask_grids (MultiFab& msk, const Geometry& geom)
 {
     BL_PROFILE("Projection::mask_grids(2)");
     
@@ -2527,32 +2527,42 @@ void Projection::mask_grids(MultiFab& msk, const Geometry& geom)
     const int* lo_bc = phys_bc->lo();
     const int* hi_bc = phys_bc->hi();
     
+    bool has_inflow = false;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	if (lo_bc[i] == Inflow || hi_bc[i] == Inflow) {
+	    has_inflow = true;
+	    break;
+	}
+    }
+
+    if (has_inflow) {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(msk); mfi.isValid(); ++mfi)
-    {
-	FArrayBox& msk_fab = msk[mfi];
-	const Box& fullBox = msk_fab.box(); // including ghost cells
-	const Box& regBox = mfi.validbox();
-	
-	for (int idir=0; idir<BL_SPACEDIM; idir++) {
-	    if (lo_bc[idir] == Inflow) {
-		if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
-		    const Box& bx = BoxLib::adjCellLo(regBox, idir);
-		    msk_fab.setVal(1.0, bx, 0);
+	for (MFIter mfi(msk); mfi.isValid(); ++mfi)
+	{
+	    FArrayBox& msk_fab = msk[mfi];
+	    const Box& fullBox = msk_fab.box(); // including ghost cells
+	    const Box& regBox = mfi.validbox();
+	    
+	    for (int idir=0; idir<BL_SPACEDIM; idir++) {
+		if (lo_bc[idir] == Inflow) {
+		    if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
+			const Box& bx = BoxLib::adjCellLo(regBox, idir);
+			msk_fab.setVal(1.0, bx, 0);
+		    }
 		}
-	    }
-	    if (hi_bc[idir] == Inflow) {
-		if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
-		    const Box& bx = BoxLib::adjCellHi(regBox, idir);
-		    msk_fab.setVal(1.0, bx, 0);
+		if (hi_bc[idir] == Inflow) {
+		    if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
+			const Box& bx = BoxLib::adjCellHi(regBox, idir);
+			msk_fab.setVal(1.0, bx, 0);
+		    }
 		}
 	    }
 	}
+	
+	msk.EnforcePeriodicity(period);
     }
-    
-    msk.EnforcePeriodicity(period);
 }
 
 // set velocity in ghost cells to zero except for inflow
