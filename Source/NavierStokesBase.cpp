@@ -728,10 +728,7 @@ NavierStokesBase::advance_setup (Real time,
             {
                 const Real tqtime = ptime + 0.75*(ctime-ptime);
                 clevel.rho_tqtime = new MultiFab(cgrids,1,1);
-                FillPatchIterator fpi(clevel,*(clevel.rho_tqtime),
-                                      1,tqtime,State_Type,Density,1);
-                for ( ; fpi.isValid(); ++fpi)
-                    (*clevel.rho_tqtime)[fpi].copy(fpi());
+		FillPatch(clevel, *(clevel.rho_tqtime), 1, tqtime, State_Type, Density, 1, 0);
             }
         }
     }
