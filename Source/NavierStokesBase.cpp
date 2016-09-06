@@ -817,9 +817,12 @@ NavierStokesBase::calcDpdt ()
 
     if (dt_for_dpdt != 0.0) 
     {
-        for (MFIter mfi(dpdt); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(dpdt,true); mfi.isValid(); ++mfi)
         {
-            const Box& vbx     = mfi.validbox();
+            const Box& vbx     = mfi.tilebox();
             FArrayBox& dpdtfab = dpdt[mfi];
             dpdtfab.copy(new_press[mfi],vbx,0,vbx,0,1);
             dpdtfab.minus(old_press[mfi],vbx,0,0,1);
@@ -1021,12 +1024,7 @@ NavierStokesBase::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
 
     if (have_divu)
     {
-        for (FillPatchIterator Divu_fpi(*this,rhs,nGrow,time,Divu_Type,sCompDivU,nCompDivU);
-             Divu_fpi.isValid(); 
-             ++Divu_fpi)
-        {
-            rhs[Divu_fpi].copy(Divu_fpi(),0,sCompDivU,nCompDivU);
-        }
+	FillPatch(*this,rhs,nGrow,time,Divu_Type,sCompDivU,nCompDivU,sCompDivU);
     }
     else
     {
@@ -1035,13 +1033,9 @@ NavierStokesBase::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
 
     if (have_dsdt)
     {
-        for (FillPatchIterator Dsdt_fpi(*this,rhs,nGrow,time,Dsdt_Type,sCompDsdt,nCompDsdt);
-             Dsdt_fpi.isValid(); 
-             ++Dsdt_fpi)
-        {
-            Dsdt_fpi().mult(.5*dt);
-            rhs[Dsdt_fpi].plus(Dsdt_fpi(),0, sCompDsdt,nCompDsdt);
-        }
+	FillPatchIterator fpi(*this,rhs,nGrow,time,Dsdt_Type,sCompDsdt,nCompDsdt);
+	const MultiFab mf = fpi.get_mf();
+	MultiFab::Saxpy(rhs, 0.5*dt, mf, 0, sCompDsdt, nCompDsdt, nGrow);
     }
 }
 
