@@ -743,23 +743,14 @@ NavierStokesBase::advance_setup (Real time,
     if (variable_vel_visc)
     {
         calcViscosity(prev_time,dt,iteration,ncycle);
-
-        for (MFIter np1Mfi(*viscnp1_cc); np1Mfi.isValid(); ++np1Mfi)
-        {
-            (*viscnp1_cc)[np1Mfi].copy((*viscn_cc)[np1Mfi],0,0,1);
-        }
+	MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
     }
 
     if (variable_scal_diff)
     {
         const int num_diff = NUM_STATE-BL_SPACEDIM-1;
-
         calcDiffusivity(prev_time);
-
-        for (MFIter np1Mfi(*diffnp1_cc); np1Mfi.isValid(); ++np1Mfi)
-        {
-            (*diffnp1_cc)[np1Mfi].copy((*diffn_cc)[np1Mfi],0,0,num_diff);
-        }
+	MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
     }
 }
 
