@@ -1080,10 +1080,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 wgts[i] = fine_src_ba[i].numPts();
 
             DistributionMapping dm;
-            //
-            // This call doesn't invoke the MinimizeCommCosts() stuff.
-            // This also guarantees that these DMs won't be put into the cache.
-            //
+            // This DM won't be put into the cache.
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
             MultiFab crse_src, fine_src;
@@ -1175,7 +1172,10 @@ NavierStokesBase::create_umac_grown (int nGrow)
             const int* dhi = fab.hiVect();
             FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
         }
-        u_mac[n].FillBoundary(geom.periodicity());
+        u_mac[n].FillBoundary_nowait(geom.periodicity());
+    }
+    for (int n = 0; n < BL_SPACEDIM; ++n) {
+	u_mac[n].FillBoundary_finish();
     }
 }
 
