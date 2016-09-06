@@ -1034,7 +1034,7 @@ NavierStokesBase::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
     if (have_dsdt)
     {
 	FillPatchIterator fpi(*this,rhs,nGrow,time,Dsdt_Type,sCompDsdt,nCompDsdt);
-	const MultiFab mf = fpi.get_mf();
+	const MultiFab& mf = fpi.get_mf();
 	MultiFab::Saxpy(rhs, 0.5*dt, mf, 0, sCompDsdt, nCompDsdt, nGrow);
     }
 }
