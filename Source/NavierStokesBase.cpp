@@ -112,7 +112,7 @@ namespace
     //
     // There's really only one of these.
     //
-    NSParticleContainer* NSPC = 0;
+    AmrTracerParticleContainer* NSPC = 0;
 
     std::string      timestamp_dir                   ("Timestamps");
     std::vector<int> timestamp_indices;
@@ -129,7 +129,7 @@ namespace
 
 }
 
-NSParticleContainer* NavierStokesBase::theNSPC () { return NSPC; }
+AmrTracerParticleContainer* NavierStokesBase::theNSPC () { return NSPC; }
 #endif
 
 int NavierStokesBase::DoTrac2() {return NavierStokesBase::do_trac2;}
@@ -4163,7 +4163,7 @@ NavierStokesBase::initParticleData ()
     {
         if (NSPC == 0)
         {
-            NSPC = new NSParticleContainer(parent);
+            NSPC = new AmrTracerParticleContainer(parent);
         }
 
         NSPC->SetVerbose(pverbose);
@@ -4197,7 +4197,7 @@ NavierStokesBase::post_restart_particle ()
     {
         BL_ASSERT(NSPC == 0);
 
-        NSPC = new NSParticleContainer(parent);
+        NSPC = new AmrTracerParticleContainer(parent);
 
         NSPC->SetVerbose(pverbose);
         //

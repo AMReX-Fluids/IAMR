@@ -22,11 +22,6 @@
 
 #ifdef PARTICLES
 #include <AmrParticles.H>
-//
-// The "BL_SPACEDIM" bytes in m_data[] are to hold temporary positions or velocities
-//      in AdvectWithUmac().
-//
-typedef AmrParticleContainer<BL_SPACEDIM> NSParticleContainer;
 #endif
 
 #ifdef USE_BPM
@@ -462,7 +457,7 @@ protected:
     static void read_geometry (); // Set metrics
 
 #ifdef PARTICLES
-    static NSParticleContainer* theNSPC ();
+    static AmrTracerParticleContainer* theNSPC ();
     static void read_particle_params ();
 
     void initParticleData ();
