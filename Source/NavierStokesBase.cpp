@@ -6,6 +6,10 @@
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 
+#ifdef MOREGENGETFORCE
+#include <PROB_NS_F.H>
+#endif
+
 Godunov*    NavierStokesBase::godunov       = 0;
 ErrorList   NavierStokesBase::err_list;
 BCRec       NavierStokesBase::phys_bc;
