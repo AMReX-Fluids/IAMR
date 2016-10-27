@@ -43,7 +43,6 @@ OutFlowBC_MG::OutFlowBC_MG (const Box& Domain,
     phi(Phi),
     rhs(Rhs),
     resid(Resid),
-    cgwork(0),
     beta(Beta),
     next(0),
     beta_is_scalar(is_scalar)
@@ -68,7 +67,6 @@ OutFlowBC_MG::~OutFlowBC_MG ()
             delete [] next->beta;
         delete next;
     }
-    delete cgwork;
 }
 
 void 

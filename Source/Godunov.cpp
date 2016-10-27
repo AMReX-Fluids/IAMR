@@ -91,39 +91,10 @@ Godunov::Finalize ()
 //
 // Construct the Godunov Object.
 //
-
-Godunov::Godunov ()
-    :
-    max_1d(0)
-{
-    Initialize();
-    ZeroScratch();
-    SetScratch(512);
-}
-
-//
-// Size the 1D workspace explicitly.
-//
-
 Godunov::Godunov (int max_size)
-    :
-    max_1d(max_size)
 {
     Initialize();
-    ZeroScratch();
     SetScratch(max_size);
-}
-
-//
-// Set 1d scratch space as empty.
-//
-
-void
-Godunov::ZeroScratch ()
-{
-    D_TERM(stxlo=0;,  stylo=0;,  stzlo=0;);
-    D_TERM(stxhi=0;,  styhi=0;,  stzhi=0;);
-    D_TERM(slxscr=0;, slyscr=0;, slzscr=0;);
 }
 
 //
@@ -136,7 +107,7 @@ Godunov::SetBogusScratch ()
 #ifndef NDEBUG
     const Real bogus_value = 1.e200;
 
-    for (int i = 0 ; i < scr_size ; i++)
+    for (int i = 0 ; i < stxlo.size() ; ++i)
     {
         D_TERM(stxlo[i]=bogus_value;,
                stylo[i]=bogus_value;,
@@ -160,53 +131,26 @@ Godunov::SetBogusScratch ()
 void
 Godunov::SetScratch (int max_size)
 {
-    //
-    // Set sizing parameters.
-    //
-    if (max_size <= max_1d)
-        return;
-    else
-        max_1d = std::max(max_1d,max_size);
-    scr_size = (max_size+2*hyp_grow)*4;
-    //
-    // Get rid of the old scratch space.
-    //
-    RemScratch();
+    int scr_size = (max_size+2*hyp_grow)*4;
     //
     // Construct arrays.
     //
-    D_TERM(stxlo  = new Real[scr_size];,
-           stylo  = new Real[scr_size];,
-           stzlo  = new Real[scr_size];);
+    D_TERM(stxlo.resize(scr_size);,
+           stylo.resize(scr_size);,
+           stzlo.resize(scr_size););
 
-    D_TERM(stxhi  = new Real[scr_size];,
-           styhi  = new Real[scr_size];,
-           stzhi  = new Real[scr_size];);
+    D_TERM(stxhi.resize(scr_size);,
+           styhi.resize(scr_size);,
+           stzhi.resize(scr_size););
 
-    D_TERM(slxscr = new Real[scr_size];,
-           slyscr = new Real[scr_size];,
-           slzscr = new Real[scr_size];);
+    D_TERM(slxscr.resize(scr_size);,
+           slyscr.resize(scr_size);,
+           slzscr.resize(scr_size););
 }
-
-//
-// Remove 1D scratch space.
-//
-
-void
-Godunov::RemScratch ()
-{
-    D_TERM(delete [] stxlo;,  delete [] stylo;,  delete [] stzlo;);
-    D_TERM(delete [] stxhi;,  delete [] styhi;,  delete [] stzhi;);
-    D_TERM(delete [] slxscr;, delete [] slyscr;, delete [] slzscr;);
-}
-
-//
-// Destructor destroys work arrays.
-//
 
 Godunov::~Godunov ()
 {
-    RemScratch();
+    ;
 }
 
 //
@@ -348,12 +292,12 @@ Godunov::ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
     //
     // Compute the transverse velocities.
     //
-    FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr, Imx, Ipx,
+    FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr.dataPtr(), Imx, Ipx,
                   sedgex.dataPtr(), ARLIM(sedgex.loVect()),  ARLIM(sedgex.hiVect()),
-                  v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr, Imy, Ipy, 
+                  v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr.dataPtr(), Imy, Ipy, 
                   sedgey.dataPtr(), ARLIM(sedgey.loVect()),  ARLIM(sedgey.hiVect()),
 #if (BL_SPACEDIM == 3)
-                  w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr, Imz, Ipz,
+                  w_dat, wad_dat, zhi_dat, slz_dat, wbc, slzscr.dataPtr(), Imz, Ipz,
                   sedgez.dataPtr(), ARLIM(sedgez.loVect()),  ARLIM(sedgez.hiVect()),
 #endif    
                   ARLIM(u_lo), ARLIM(u_hi),
@@ -581,20 +525,20 @@ Godunov::edge_states_orig( const Box &grd, const Real *dx, Real dt, int velpred,
     FORT_ESTATE(s_dat, tfr_dat, ARLIM(s_lo), ARLIM(s_hi),
 
                 u_dat, xlo_dat, xhi_dat, slx_dat, uad_dat,
-                slxscr, stxlo, stxhi,
+                slxscr.dataPtr(), stxlo.dataPtr(), stxhi.dataPtr(),
                 uedge.dataPtr(mCompX), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
                 stx.dataPtr(eCompX),  ARLIM(  stx.loVect()), ARLIM(  stx.hiVect()), Imx, Ipx,
                 sedgex.dataPtr(), ARLIM(sedgex.loVect()), ARLIM(sedgex.hiVect()),
 
                 v_dat, ylo_dat, yhi_dat, sly_dat, vad_dat,
-                slyscr, stylo, styhi,
+                slyscr.dataPtr(), stylo.dataPtr(), styhi.dataPtr(),
                 vedge.dataPtr(mCompY), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
                 sty.dataPtr(eCompY),  ARLIM(  sty.loVect()), ARLIM(  sty.hiVect()), Imy, Ipy, 
                 sedgey.dataPtr(), ARLIM(sedgey.loVect()), ARLIM(sedgey.hiVect()),
 
 #if (BL_SPACEDIM == 3)
                 w_dat, zlo_dat, zhi_dat, slz_dat, wad_dat,
-                slzscr, stzlo, stzhi,
+                slzscr.dataPtr(), stzlo.dataPtr(), stzhi.dataPtr(),
                 wedge.dataPtr(mCompZ), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
                 stz.dataPtr(eCompZ),  ARLIM(  stz.loVect()), ARLIM(  stz.hiVect()), Imz, Ipz,
                 sedgez.dataPtr(), ARLIM(sedgez.loVect()), ARLIM(sedgez.hiVect()),
@@ -731,20 +675,20 @@ Godunov::edge_states_fpu( const Box &grd, const Real *dx, Real dt,
                     divu_dat, ARLIM(d_lo), ARLIM(d_hi),
                     
                     xlo_dat, xhi_dat, slx_dat,
-                    slxscr, stxlo, stxhi,
+                    slxscr.dataPtr(), stxlo.dataPtr(), stxhi.dataPtr(),
                     uedge.dataPtr(mCompX), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
                     stx.dataPtr(eCompX),   ARLIM(stx.loVect()),   ARLIM(stx.hiVect()), Imx, Ipx,
                     sedgex.dataPtr(), ARLIM(sedgex.loVect()), ARLIM(sedgex.hiVect()),
                     
                     ylo_dat, yhi_dat, sly_dat,
-                    slyscr, stylo, styhi,
+                    slyscr.dataPtr(), stylo.dataPtr(), styhi.dataPtr(),
                     vedge.dataPtr(mCompY), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
                     sty.dataPtr(eCompY),   ARLIM(sty.loVect()),   ARLIM(sty.hiVect()), Imy, Ipy,
                     sedgey.dataPtr(), ARLIM(sedgey.loVect()), ARLIM(sedgey.hiVect()),
 
 #if (BL_SPACEDIM == 3)
                     zlo_dat, zhi_dat, slz_dat,
-                    slzscr, stzlo, stzhi,
+                    slzscr.dataPtr(), stzlo.dataPtr(), stzhi.dataPtr(),
                     wedge.dataPtr(mCompZ), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
                     stz.dataPtr(eCompZ),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()), Imz, Ipz,
                     sedgez.dataPtr(), ARLIM(sedgez.loVect()), ARLIM(sedgez.hiVect()),
@@ -836,17 +780,17 @@ Godunov::edge_states_bds( const Box &grd, const Real *dx, Real dt,
     FORT_ESTATE_BDS(s_dat, tfr_dat, divu_dat, ARLIM(s_lo), ARLIM(s_hi),
                     
                     xlo_dat, xhi_dat, slx_dat,
-                    slxscr, stxlo, stxhi,
+                    slxscr.dataPtr(), stxlo.dataPtr(), stxhi.dataPtr(),
                     uedge.dataPtr(mCompX), ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
                     stx.dataPtr(eCompX),   ARLIM(stx.loVect()),   ARLIM(stx.hiVect()),
                     
                     ylo_dat, yhi_dat, sly_dat,
-                    slyscr, stylo, styhi,
+                    slyscr.dataPtr(), stylo.dataPtr(), styhi.dataPtr(),
                     vedge.dataPtr(mCompY), ARLIM(vedge.loVect()), ARLIM(vedge.hiVect()),
                     sty.dataPtr(eCompY),   ARLIM(sty.loVect()),   ARLIM(sty.hiVect()),
 #if (BL_SPACEDIM == 3)
                     zlo_dat, zhi_dat, slz_dat,
-                    slzscr, stzlo, stzhi,
+                    slzscr.dataPtr(), stzlo.dataPtr(), stzhi.dataPtr(),
                     wedge.dataPtr(mCompZ), ARLIM(wedge.loVect()), ARLIM(wedge.hiVect()),
                     stz.dataPtr(eCompZ),   ARLIM(stz.loVect()),   ARLIM(stz.hiVect()),
 #endif

@@ -232,7 +232,7 @@ mac_vel_update (int              init,
                        FArrayBox& uy,
                        FArrayBox& uz),
                 const FArrayBox& phi,
-                const FArrayBox* rhoptr,
+                const FArrayBox& rho,
                 int              rho_comp,  
                 const Box&       grd,
                 int              level,
@@ -243,8 +243,6 @@ mac_vel_update (int              init,
     const int* lo        = grd.loVect();
     const int* hi        = grd.hiVect();
 
-    const FArrayBox& rho = *rhoptr;
-    
     DEF_LIMITS(ux,ux_dat,uxlo,uxhi);
     DEF_LIMITS(uy,uy_dat,uylo,uyhi);
     DEF_CLIMITS(phi,phi_dat,p_lo,p_hi);
@@ -304,7 +302,7 @@ MacOperator::velUpdate (MultiFab*       Vel,
         mac_vel_update(0, 
                        D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
                        Phi[Phimfi],
-                       &(Rho[Phimfi]), rho_comp,  
+                       Rho[Phimfi], rho_comp,  
                        grd, 0, Phimfi.index(), dx, scale );
     }
 }
@@ -438,14 +436,14 @@ mac_sync_driver (Amr*            parent,
                  const MultiFab* area,
                  const MultiFab& volume,
                  MultiFab&       Rhs,
-                 MultiFab*       rho_half,
+                 MultiFab&       rho_half,
                  MultiFab*       mac_sync_phi,
                  int             verbose)
 {
     MacOperator mac_op(parent,mac_bndry,dx);
 
     mac_op.maxOrder(max_order);
-    mac_op.setCoefficients(area,*rho_half, 0, dx);
+    mac_op.setCoefficients(area,rho_half, 0, dx);
     mac_op.syncRhs(volume,Rhs,rhs_scale,dx);
 
     if (the_solver == 1 && mac_op.maxOrder() != 2)

@@ -114,7 +114,7 @@ protected:
     FArrayBox*    phi;
     FArrayBox*    rhs;
     FArrayBox*    resid;
-    FArrayBox*    cgwork;
+    FArrayBox     cgwork;
     FArrayBox*    beta;
     Real          h[BL_SPACEDIM];
     int           isPeriodic[BL_SPACEDIM];

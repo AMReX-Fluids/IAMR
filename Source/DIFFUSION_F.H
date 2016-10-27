@@ -51,7 +51,8 @@ extern "C"
 {
 #if (BL_SPACEDIM == 2)
     void FORT_VISCSYNCFLUX (const Real* ssync, ARLIM_P(slo), ARLIM_P(shi),
-                            const int*  lo, const int*  hi,
+                            const int*  xlo, const int*  xhi,
+                            const int*  ylo, const int*  yhi,
                             const Real* xflux, ARLIM_P(xflo), ARLIM_P(xfhi),
                             const Real* yflux, ARLIM_P(yflo), ARLIM_P(yfhi),
                             const Real* xarea, ARLIM_P(axlo), ARLIM_P(axhi),
@@ -61,7 +62,9 @@ extern "C"
 #endif
 #if (BL_SPACEDIM == 3)
     void FORT_VISCSYNCFLUX (const Real* ssync, ARLIM_P(slo), ARLIM_P(shi),
-                            const int*  lo, const int*  hi,
+                            const int*  xlo, const int*  xhi,
+                            const int*  ylo, const int*  yhi,
+                            const int*  zlo, const int*  zhi,
                             const Real* xflux, ARLIM_P(xflo), ARLIM_P(xfhi),
                             const Real* yflux, ARLIM_P(yflo), ARLIM_P(yfhi),
                             const Real* zflux, ARLIM_P(zflo), ARLIM_P(zfhi),

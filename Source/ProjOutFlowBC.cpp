@@ -134,8 +134,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
-    Real* rcen[2*BL_SPACEDIM];
-    Real* redge[2*BL_SPACEDIM];
+    Array<Array<Real> > rcen(2*BL_SPACEDIM);
+    Array<Array<Real> > redge(2*BL_SPACEDIM);
 #endif
 
     FArrayBox ccExt[2*BL_SPACEDIM];
@@ -208,8 +208,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         //
         int perpDir = 1 - outDir;
         int r_len = domain.length(perpDir)+1;
-        rcen[iface] = new Real[r_len-1];
-        redge[iface] = new Real[r_len];
+        rcen[iface].resize(r_len-1);
+        redge[iface].resize(r_len);
         //
         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
         //
@@ -244,8 +244,6 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             for (i = 0; i < r_len-1; i++)
                 rcen[iface][i] = 1.;
         }
-#else
-        Array<Real> rcen;
 #endif
 
         DEF_BOX_LIMITS(origBox,origLo,origHi);
@@ -268,7 +266,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                          ARLIM(divulo), ARLIM(divuhi), divuPtr,
                          ARLIM(rholo),  ARLIM(rhohi),rhoPtr,
 #if (BL_SPACEDIM == 2)
-                         &r_len,redge[iface],
+                         &r_len,redge[iface].dataPtr(),
 #endif
                          ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
                          ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
@@ -346,24 +344,24 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                 if (faces[i] == 0)
                 {
                     ccEptr0 = ccExt[i].dataPtr();
-                    r0 = rcen[i];
+                    r0 = rcen[i].dataPtr();
                     length = length + leny;
                 }
                 else if (faces[i] == 1)
                 {
                     ccEptr1 = ccExt[i].dataPtr();
-                    r1 = rcen[i];
+                    r1 = rcen[i].dataPtr();
                     length = length + lenx;
                 }
                 else if (faces[i] == 2)
                 {
                     ccEptr2 = ccExt[i].dataPtr();
-                    r2 = rcen[i];
+                    r2 = rcen[i].dataPtr();
                     length = length + leny;
                 }
                 else if (faces[i] == 3) {
                     ccEptr3 = ccExt[i].dataPtr();
-                    r3 = rcen[i];
+                    r3 = rcen[i].dataPtr();
                     length = length + lenx;
                 }
             }
@@ -442,13 +440,12 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             }
             BL_ASSERT ((outx + outy + outz) > 0);
             BL_ASSERT ((outx + outy + outz) < 3);
+            // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
+            BL_ASSERT (outz == 0);
 #endif
             BL_ASSERT(dx[1] == dx[2]);
 
             // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
-
-            // FOR NOW: ASSERT THAT NO OUTFLOW FACES IN Z-DIR!
-            BL_ASSERT (outz == 0);
 
             int lenz = domain.length(2);
 
@@ -717,7 +714,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
         {
             Box temp1Box = OutFlowBC::SemiGrow(domain,1,BL_SPACEDIM-1);
             Box temp2Box = semiSurroundingNodes(temp1Box,BL_SPACEDIM-1);
-            cgwork = new FArrayBox(temp2Box,4);
+            cgwork.resize(temp2Box,4);
         }
     }
     else
@@ -785,7 +782,7 @@ ProjOutFlowBC_MG::residual ()
 void 
 ProjOutFlowBC_MG::step (int nGSRB)
 {
-    if (cgwork != 0)
+    if (cgwork.isAllocated())
     {
         Real resnorm  = 0.0;
 
@@ -797,16 +794,16 @@ ProjOutFlowBC_MG::step (int nGSRB)
         DEF_LIMITS(dest0,dest0Ptr,dest0_lo,dest0_hi);
         DEF_LIMITS(*rhs,rhsPtr,rhs_lo,rhs_hi);
         DEF_LIMITS(*beta, betaPtr, beta_lo,beta_hi); 
-        DEF_BOX_LIMITS(*cgwork,cg_lo,cg_hi);
+        DEF_BOX_LIMITS(cgwork,cg_lo,cg_hi);
 
         FORT_SOLVEHG(phiPtr,ARLIM(phi_lo),ARLIM(phi_hi),
                      dest0Ptr, ARLIM(dest0_lo),ARLIM(dest0_hi),
                      rhsPtr,ARLIM(rhs_lo),ARLIM(rhs_hi),
                      betaPtr, ARLIM(beta_lo),ARLIM(beta_hi),
-                     cgwork->dataPtr(0),ARLIM(cg_lo),ARLIM(cg_hi),
-                     cgwork->dataPtr(1), ARLIM(cg_lo),ARLIM(cg_hi),
-                     cgwork->dataPtr(2), ARLIM(cg_lo),ARLIM(cg_hi),
-                     cgwork->dataPtr(3),ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(0),ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(1), ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(2), ARLIM(cg_lo),ARLIM(cg_hi),
+                     cgwork.dataPtr(3),ARLIM(cg_lo),ARLIM(cg_hi),
                      residPtr, ARLIM(resid_lo),ARLIM(resid_hi),
                      lo,hi,h,isPeriodic,&cg_maxiter,&cg_tol,
                      &cg_abs_tol,&cg_max_jump,&resnorm);

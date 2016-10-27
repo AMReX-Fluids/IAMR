@@ -12,12 +12,13 @@
 
 #define SDIM 2
 
-      subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),lo,hi,
+      subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),
+     $                              xlo,xhi,ylo,yhi,
      $                              xflux,DIMS(xf),yflux,DIMS(yf),
      $                              xarea,DIMS(ax),yarea,DIMS(ay),dx,mult)
 
       implicit none
-      integer lo(2), hi(2)
+      integer xlo(2), xhi(2), ylo(2), yhi(2)
       integer DIMDEC(ssync)
       integer DIMDEC(xf)
       integer DIMDEC(yf)
@@ -37,8 +38,8 @@
 c
 c     ::::: compute X fluxes
 c
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)+1
+         do    j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
 	       sx = ssync(i,j) - ssync(i-1,j)
                xflux(i,j) = mult*sx*xarea(i,j)/dx(1)
             end do
@@ -46,8 +47,8 @@ c
 c
 c     ::::: compute Y fluxes
 c
-         do j = lo(2), hi(2)+1
-            do i = lo(1), hi(1)
+         do    j = ylo(2), yhi(2)
+            do i = ylo(1), yhi(1)
 	       sy = ssync(i,j) - ssync(i,j-1)
                yflux(i,j) = mult*sy*yarea(i,j)/dx(2)
 	    end do

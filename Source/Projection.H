@@ -54,7 +54,7 @@ public:
                         MultiFab&       U_new,
                         MultiFab&       P_old,
                         MultiFab&       P_new,
-                        MultiFab*       rho_half,
+                        MultiFab&       rho_half,
                         SyncRegister*   crse_sync_reg,
                         SyncRegister*   fine_sync_reg,
                         int             crse_dt_ratio,
@@ -68,7 +68,7 @@ public:
                  MultiFab &P_old,
                  MultiFab &P_new,
                  MultiFab &U_old,
-                 MultiFab * rho_half,
+                 MultiFab &rho_half,
                  int     ** bc,
                  Real            time,
                  Real            dt,
@@ -79,8 +79,8 @@ public:
     void syncProject (int             crse_level,
                       MultiFab&       pres,
                       MultiFab&       vel,
-                      MultiFab*       rho_half,
-                      MultiFab*       Vsync,
+                      MultiFab&       rho_half,
+                      MultiFab&       Vsync,
                       MultiFab&       phi,
                       SyncRegister*   rhs_sync_reg,
                       SyncRegister*   crsr_sync_reg, 
@@ -102,7 +102,7 @@ public:
                         MultiFab&       cc_rhs_fine,
                         MultiFab&       rho_half,
                         MultiFab&       rho_fine,
-                        MultiFab*       Vsync,
+                        MultiFab&       Vsync,
                         MultiFab&       V_corr,
                         MultiFab&       phi,
                         SyncRegister*   rhs_sync_reg,
@@ -149,13 +149,6 @@ public:
                              Real      dt, 
                              Real      strt_time,
                              int       have_divu);
-    //
-    // Enforce periodicity on a multifab.
-    //
-    void EnforcePeriodicity (MultiFab&       psi,
-                             int             nvar,
-                             const BoxArray& grids,
-                             const Geometry& geom);
     //
     // Multiply/divide a MultiFab by radius for r-z coordinates.
     // These should really be protected.
@@ -348,7 +341,7 @@ protected:
   // Mask off fine grids
   // Possible values for msk
   // BogusValue: outside this level
-  //          0: covered by fine level
+  //          0: covered by the fine level
   //          1: valid region not covered fine level
   void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom,
 		  const BoxArray& fineGrids, const IntVect& ref_ratio);
@@ -356,9 +349,9 @@ protected:
   // Mask off coarse grids
   // Possible values for msk
   // BogusValue: outside physical domain, or we don't care
-  //          0: covered by coarse level
+  //          0: covered by the coarse level
   //          1: valid region 
-  void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom);
+  void mask_grids(MultiFab& msk, const Geometry& geom);
 
   // set velocity in ghost cells to zero except for inflow
   void set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], bool inflowCorner);

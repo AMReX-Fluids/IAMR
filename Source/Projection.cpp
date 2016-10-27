@@ -3,7 +3,7 @@
 
 #include <Geometry.H>
 #include <ParmParse.H>
-#include <NavierStokes.H>
+#include <NavierStokesBase.H>
 #include <NS_BC.H>
 #include <BLProfiler.H>
 #include <Projection.H>
@@ -210,7 +210,7 @@ Projection::level_project (int             level,
                            MultiFab&       U_new,
                            MultiFab&       P_old,
                            MultiFab&       P_new,
-                           MultiFab*       rho_half, 
+                           MultiFab&       rho_half, 
                            SyncRegister*   crse_sync_reg, 
                            SyncRegister*   fine_sync_reg,  
                            int             crse_dt_ratio,
@@ -219,7 +219,7 @@ Projection::level_project (int             level,
 {
     BL_PROFILE("Projection::level_project()");
 
-    BL_ASSERT(rho_half->nGrow() >= 1);
+    BL_ASSERT(rho_half.nGrow() >= 1);
     BL_ASSERT(U_new.nGrow() >= 1);
 
     if ( verbose && ParallelDescriptor::IOProcessor() )
@@ -259,7 +259,7 @@ Projection::level_project (int             level,
     const BoxArray& grids   = LevelData[level].boxArray();
     const BoxArray& P_grids = P_old.boxArray();
 
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
     BL_ASSERT(!(ns==0));
 
     //
@@ -352,11 +352,11 @@ Projection::level_project (int             level,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(*rho_half,true); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(rho_half,true); mfi.isValid(); ++mfi) 
 	{
 	    const Box& bx = mfi.growntilebox(1);
 	    FArrayBox& Gpfab = Gp[mfi];
-	    const FArrayBox& rhofab = (*rho_half)[mfi];
+	    const FArrayBox& rhofab = rho_half[mfi];
       
 	    for (int i = 0; i < BL_SPACEDIM; i++) {
 		Gpfab.divide(rhofab,bx,0,i,1);
@@ -385,7 +385,7 @@ Projection::level_project (int             level,
         Divu_ML[level] = divusource;
 
         MultiFab* Rho_ML[maxlev] = {0};
-        Rho_ML[level] = rho_half;
+        Rho_ML[level] = &rho_half;
 
         set_outflow_bcs(LEVEL_PROJ,phi,Vel_ML,Divu_ML,Rho_ML,level,level,have_divu);
     }
@@ -393,14 +393,16 @@ Projection::level_project (int             level,
     //
     // Scale the projection variables.
     //
-    rho_half->setBndry(BogusValue);
-    scaleVar(LEVEL_PROJ,rho_half, 1, &U_new, level);
+    rho_half.setBndry(BogusValue);
+    scaleVar(LEVEL_PROJ,&rho_half, 1, &U_new, level);
     //
     // Enforce periodicity of U_new and rho_half (i.e. coefficient of G phi)
     // *after* everything has been done to them.
     //
-    EnforcePeriodicity(U_new,     BL_SPACEDIM, grids, geom);
-    EnforcePeriodicity(*rho_half, 1,           grids, geom);
+    if (geom.isAnyPeriodic()) {
+	U_new.FillBoundary(0, BL_SPACEDIM, geom.periodicity());
+	rho_half.FillBoundary(0, 1, geom.periodicity());
+    }
     //
     // Add the contribution from the un-projected V to syncregisters.
     //
@@ -413,8 +415,8 @@ Projection::level_project (int             level,
     vel[level] = &U_new;
     phi[level] = &P_new;
 
-    BL_ASSERT( 1 == rho_half->nGrow());
-    sig[level] = rho_half;
+    BL_ASSERT( 1 == rho_half.nGrow());
+    sig[level] = &rho_half;
 
     //
     // Project
@@ -469,7 +471,7 @@ Projection::level_project (int             level,
           // Init sync registers between level and level+1.
           //
           const Real mult = 1.0;
-          crse_sync_reg->CrseInit(sync_resid_crse,geom,mult);
+          crse_sync_reg->CrseInit(*sync_resid_crse,geom,mult);
        }
        if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
        {
@@ -484,7 +486,7 @@ Projection::level_project (int             level,
 	 //    coarse level.
 	  const Real invrat = 1.0/(double)crse_dt_ratio;
           const Geometry& crse_geom = parent->Geom(level-1);
-          fine_sync_reg->FineAdd(sync_resid_fine,geom,crse_geom,phys_bc,invrat);
+          fine_sync_reg->FineAdd(*sync_resid_fine,crse_geom,invrat);
        }
     }
 
@@ -493,7 +495,7 @@ Projection::level_project (int             level,
     //
     // Unscale level projection variables.
     //
-    rescaleVar(LEVEL_PROJ,rho_half, 1, &U_new, level);
+    rescaleVar(LEVEL_PROJ,&rho_half, 1, &U_new, level);
     //
     // Put U_new back to "normal"; subtract U_old*divu...factor/dt from U_new
     //
@@ -547,8 +549,8 @@ void
 Projection::syncProject (int             c_lev,
                          MultiFab&       pres,
                          MultiFab&       vel,
-                         MultiFab*       rho_half,
-                         MultiFab*       Vsync,
+                         MultiFab&       rho_half,
+                         MultiFab&       Vsync,
                          MultiFab&       phi,
                          SyncRegister*   rhs_sync_reg,
                          SyncRegister*   crsr_sync_reg,
@@ -580,11 +582,11 @@ Projection::syncProject (int             c_lev,
     //
     const BoxArray& grids   = LevelData[c_lev].boxArray();
     const BoxArray& P_grids = pres.boxArray();
-    MultiFab& sig = *rho_half;
+    MultiFab& sig = rho_half;
 
     PArray<MultiFab> rhnd(1, PArrayManage);
-    rhnd.set(0, new MultiFab(P_grids,1,1));
-    rhs_sync_reg->InitRHS(rhnd[0],geom,phys_bc);
+    rhnd.set(0, new MultiFab(P_grids,1,0));
+    rhs_sync_reg->InitRHS(rhnd[0],geom,*phys_bc);
 
     phi.setVal(0);
 
@@ -592,18 +594,20 @@ Projection::syncProject (int             c_lev,
     //
     // Scale sync projection variables.
     //
-    scaleVar(SYNC_PROJ,&sig,1,Vsync,c_lev);
+    scaleVar(SYNC_PROJ,&sig,1,&Vsync,c_lev);
     //
     // If periodic, copy into periodic translates of Vsync.
     //
-    EnforcePeriodicity(*Vsync, BL_SPACEDIM, grids, geom);
+    if (geom.isAnyPeriodic()) {
+	Vsync.FillBoundary(0, BL_SPACEDIM, geom.periodicity());
+    }
 
     MultiFab *phis[maxlev] = {0};
     MultiFab* vels[maxlev] = {0};
     MultiFab* sigs[maxlev] = {0};
     MultiFab* rhss[maxlev] = {0};
     phis[c_lev] = &phi;
-    vels[c_lev] = Vsync;
+    vels[c_lev] = &Vsync;
     sigs[c_lev] = &sig;
 
     //
@@ -634,19 +638,19 @@ Projection::syncProject (int             c_lev,
     {
         const Real invrat         = 1.0/(double)crse_dt_ratio;
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
-        crsr_sync_reg->CompAdd(sync_resid_fine,geom,crsr_geom,phys_bc,sync_boxes,invrat);
+        crsr_sync_reg->CompAdd(*sync_resid_fine,geom,crsr_geom,sync_boxes,invrat);
     }
     //
     // Reset state + pressure data ...
     //
     // Unscale the sync projection variables for rz.
     //
-    rescaleVar(SYNC_PROJ,&sig,1,Vsync,c_lev);
+    rescaleVar(SYNC_PROJ,&sig,1,&Vsync,c_lev);
     //
     // Add projected Vsync to new velocity at this level & add phi to pressure.
     //
     AddPhi(pres, phi);
-    UpdateArg1(vel, dt_crse, *Vsync, BL_SPACEDIM, grids, 1);
+    UpdateArg1(vel, dt_crse, Vsync, BL_SPACEDIM, grids, 1);
 
     if (verbose)
     {
@@ -678,7 +682,7 @@ Projection::MLsyncProject (int             c_lev,
                            MultiFab&       cc_rhs_fine,
                            MultiFab&       rho_crse,
                            MultiFab&       rho_fine,
-                           MultiFab*       Vsync,
+                           MultiFab&       Vsync,
                            MultiFab&       V_corr,
                            MultiFab&       phi_fine,
                            SyncRegister*   rhs_sync_reg,
@@ -726,17 +730,17 @@ Projection::MLsyncProject (int             c_lev,
     // Set up crse RHS
     //
     PArray<MultiFab> rhnd(1, PArrayManage);
-    rhnd.set(0,new MultiFab(Pgrids_crse,1,1));
-    rhs_sync_reg->InitRHS(rhnd[0],crse_geom,phys_bc);
+    rhnd.set(0,new MultiFab(Pgrids_crse,1,0));
+    rhs_sync_reg->InitRHS(rhnd[0],crse_geom,*phys_bc);
 
     Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain)
-        rhnd[c_lev].setVal(0);
+        rhnd[0].setVal(0);
     //
     // Do necessary scaling
     //
-    scaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
+    scaleVar(SYNC_PROJ,&rho_crse, 0, &Vsync,   c_lev  );
     scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
     if (Geometry::IsRZ()) {
@@ -748,7 +752,7 @@ Projection::MLsyncProject (int             c_lev,
     MultiFab* sig[maxlev] = {0};
     MultiFab* rhs[maxlev] = {0};
 
-    vel[c_lev  ] = Vsync;
+    vel[c_lev  ] = &Vsync;
     vel[c_lev+1] = &V_corr;
     sig[c_lev  ] = &rho_crse;
     sig[c_lev+1] = &rho_fine;
@@ -790,13 +794,12 @@ Projection::MLsyncProject (int             c_lev,
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         BoxArray sync_boxes       = pres_fine.boxArray();
         sync_boxes.coarsen(ratio);
-        crsr_sync_reg->CompAdd(sync_resid_fine,crse_geom,crsr_geom,
-                               phys_bc,sync_boxes,invrat);
+        crsr_sync_reg->CompAdd(*sync_resid_fine,crse_geom,crsr_geom,sync_boxes,invrat);
     }
     //
     // Do necessary un-scaling.
     //
-    rescaleVar(SYNC_PROJ,&rho_crse, 0, Vsync,   c_lev  );
+    rescaleVar(SYNC_PROJ,&rho_crse, 0, &Vsync,   c_lev  );
     rescaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
     MultiFab::Copy(phi_fine, *phi[c_lev+1], 0, 0, 1, 1);
@@ -840,7 +843,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Add projected vel to new velocity.
     //
-    UpdateArg1(vel_crse, dt_crse, *Vsync, BL_SPACEDIM, grids,      1);
+    UpdateArg1(vel_crse, dt_crse, Vsync, BL_SPACEDIM, grids,      1);
     UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
 
     if (verbose)
@@ -1000,13 +1003,11 @@ Projection::initialVelocityProject (int  c_lev,
     } 
     else 
     {
-        PArray<MultiFab> rhs_real(f_lev+1,PArrayManage);
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             MultiFab* rhslev = rhs_cc[lev];
             if (Geometry::IsRZ()) radMult(lev,*rhslev,0); 
             rhs_cc[lev]->mult(-1.0,0,1,nghost);
-            rhs_real.set(lev, rhs_cc[lev]);
         }
 
 	PArray<MultiFab> rhnd;
@@ -1088,13 +1089,15 @@ Projection::initialPressureProject (int  c_lev)
                        1,
                        nghost);
 
-        EnforcePeriodicity(*sig[lev],1,grids,geom);
+	if (geom.isAnyPeriodic()) {
+	    sig[lev]->FillBoundary(0,1,geom.periodicity());
+	}
     }
 
     //
     // Set up outflow bcs.
     //
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
+    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&LevelData[c_lev]);
     Real gravity = ns->getGravity();
 
     if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs)
@@ -1216,7 +1219,7 @@ Projection::initialSyncProject (int       c_lev,
             MultiFab* rhslev = rhs[lev];
             rhslev->setVal(0);
 
-            NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(lev));
+            NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(lev));
 
             BL_ASSERT(!(ns == 0));
 
@@ -1367,7 +1370,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 {
     rhs.setVal(0);
 
-    NavierStokes* ns = dynamic_cast<NavierStokes*>(&parent->getLevel(level));
+    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
 
     BL_ASSERT(!(ns == 0));
 
@@ -1378,17 +1381,6 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
     {
         rhs[mfi].copy((*divu)[mfi]);
     }
-}
-
-void
-Projection::EnforcePeriodicity (MultiFab&       psi,
-                                int             nvar,
-                                const BoxArray& /*grids*/,
-                                const Geometry& geom)
-{
-    BL_ASSERT(nvar <= psi.nComp());
-
-    geom.FillPeriodicBoundary(psi,0,nvar);
 }
 
 //
@@ -1877,7 +1869,7 @@ Projection::initialVorticityProject (int c_lev)
         //
         MultiFab& P_new = LevelData[lev].get_new_data(Press_Type);
 
-        rhnd.set(lev, new MultiFab(P_new.boxArray(), 1, 1));
+        rhnd.set(lev, new MultiFab(P_new.boxArray(), 1, 0));
 
         for (MFIter mfi(rhnd[lev]); mfi.isValid(); ++mfi)
         {
@@ -2140,7 +2132,7 @@ Projection::set_outflow_bcs (int        which_call,
       numOutFlowFaces[lev] = icount[lev];
     }
 
-    NavierStokes* ns0 = dynamic_cast<NavierStokes*>(&LevelData[c_lev]);
+    NavierStokesBase* ns0 = dynamic_cast<NavierStokesBase*>(&LevelData[c_lev]);
     BL_ASSERT(!(ns0 == 0));
    
     int Divu_Type, Divu;
@@ -2193,7 +2185,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                                       int          have_divu,
                                       Real         gravity)
 {
-    BL_ASSERT(dynamic_cast<NavierStokes*>(&LevelData[lev]) != 0);
+    BL_ASSERT(dynamic_cast<NavierStokesBase*>(&LevelData[lev]) != 0);
 
     Box domain = parent->Geom(lev).Domain();
 
@@ -2213,7 +2205,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
         rho[iface].resize(state_strip[iface],1);
 
-        (*Sig_in).copy(rho[iface],0,0,1,ngrow);
+        (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
 
         Box phi_strip = 
             BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
@@ -2239,11 +2231,11 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         Vel_in->FillBoundary();
 
 	for (int iface = 0; iface < numOutFlowFaces; iface++) 
-	    (*Vel_in).copy(dudt[0][iface],0,0,BL_SPACEDIM,1);
+	    (*Vel_in).copyTo(dudt[0][iface],0,0,BL_SPACEDIM,1);
 
 	if (have_divu) {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-                (*Divu_in).copy(dsdt[iface],0,0,1,1);
+                (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
 	} else {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
                 dsdt[iface].setVal(0);
@@ -2418,7 +2410,7 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
 
     MultiFab msk(levelGrids, 1, 1); 
 
-    mask_grids(msk, levelGrids, levelGeom);
+    mask_grids(msk, levelGeom);
 
     sync_resid_fine->setVal(0.0, sync_resid_fine->nGrow());
 
@@ -2462,8 +2454,9 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
   const int* hi_bc = phys_bc->hi();
   const Box& domainBox = geom.Domain();
 
-  std::vector< std::pair<int,Box> > isects;
-
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
     int i = mfi.index();
 
@@ -2487,6 +2480,7 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
       }
     }
 
+    std::vector< std::pair<int,Box> > isects;
     localfine.intersections(reg,isects);
 
     for (int ii = 0; ii < isects.size(); ii++) {
@@ -2511,60 +2505,62 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
   }
 
   msk.FillBoundary();
-  if (geom.isAnyPeriodic()) {
-    geom.FillPeriodicBoundary(msk, true); // fill corners too
-  }
+  msk.EnforcePeriodicity(geom.periodicity());
 }
 
-void Projection::mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom)
+void Projection::mask_grids (MultiFab& msk, const Geometry& geom)
 {
-  BL_PROFILE("Projection::mask_grids(2)");
-
-  msk.setBndry(BogusValue);
-
-  const Box& domainBox = geom.Domain();
-  IntVect is_periodic(D_DECL(geom.isPeriodic(0),
-  			     geom.isPeriodic(1),
-  			     geom.isPeriodic(2)));
-  Box domainBox_p = BoxLib::grow(domainBox, is_periodic);
-
-  const int* lo_bc = phys_bc->lo();
-  const int* hi_bc = phys_bc->hi();
-
-  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
+    BL_PROFILE("Projection::mask_grids(2)");
     
-    FArrayBox& msk_fab = msk[mfi];
-    const Box& fullBox = msk_fab.box(); // including ghost cells
-
-    Box insBox = domainBox_p & fullBox;
-    if (! insBox.isEmpty()) {
-      msk_fab.setVal(0.0, insBox, 0);
+    Real fineghost = 1.0;
+    Real interior  = 1.0;
+    Real crseghost = 0.0;
+    Real physbnd   = BogusValue;
+    
+    const Box& domainBox = geom.Domain();
+    const Periodicity& period = geom.periodicity();
+    
+    msk.BuildMask(domainBox, period, fineghost, crseghost, physbnd, interior);
+    
+    const int* lo_bc = phys_bc->lo();
+    const int* hi_bc = phys_bc->hi();
+    
+    bool has_inflow = false;
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	if (lo_bc[i] == Inflow || hi_bc[i] == Inflow) {
+	    has_inflow = true;
+	    break;
+	}
     }
 
-    const Box& regBox  = grids[i]; // interior region    
-    msk_fab.setVal(1.0, regBox, 0);    
-
-    for (int idir=0; idir<BL_SPACEDIM; idir++) {
-      if (lo_bc[idir] == Inflow) {
-	if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	  Box bx = BoxLib::adjCellLo(regBox, idir);
-	  msk_fab.setVal(1.0, bx, 0);
+    if (has_inflow) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(msk); mfi.isValid(); ++mfi)
+	{
+	    FArrayBox& msk_fab = msk[mfi];
+	    const Box& fullBox = msk_fab.box(); // including ghost cells
+	    const Box& regBox = mfi.validbox();
+	    
+	    for (int idir=0; idir<BL_SPACEDIM; idir++) {
+		if (lo_bc[idir] == Inflow) {
+		    if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
+			const Box& bx = BoxLib::adjCellLo(regBox, idir);
+			msk_fab.setVal(1.0, bx, 0);
+		    }
+		}
+		if (hi_bc[idir] == Inflow) {
+		    if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
+			const Box& bx = BoxLib::adjCellHi(regBox, idir);
+			msk_fab.setVal(1.0, bx, 0);
+		    }
+		}
+	    }
 	}
-      }
-      if (hi_bc[idir] == Inflow) {
-	if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	  Box bx = BoxLib::adjCellHi(regBox, idir);
-	  msk_fab.setVal(1.0, bx, 0);
-	}
-      }
+	
+	msk.EnforcePeriodicity(period);
     }
-  }
-
-  msk.FillBoundary();
-  if (geom.isAnyPeriodic()) {
-    geom.FillPeriodicBoundary(msk, true); // fill corners tooo
-  }  
 }
 
 // set velocity in ghost cells to zero except for inflow

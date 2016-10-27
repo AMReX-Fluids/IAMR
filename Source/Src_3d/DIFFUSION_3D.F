@@ -12,14 +12,15 @@
 
 #define SDIM 3
 
-      subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),lo,hi,
+      subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),
+     $                              xlo,xhi,ylo,yhi,zlo,zhi,
      $                              xflux,DIMS(xf),yflux,DIMS(yf),
      $                              zflux,DIMS(zf),
      $                              xarea,DIMS(ax),yarea,DIMS(ay),
      $                              zarea,DIMS(az),dx,mult)
 
       implicit none
-      integer lo(3), hi(3)
+      integer xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3)
       integer DIMDEC(ssync)
       integer DIMDEC(xf)
       integer DIMDEC(yf)
@@ -44,48 +45,39 @@
       idy = 1.0d0 / dx(2)
       idz = 1.0d0 / dx(3)
 
-!$omp parallel private(i,j,k,sx,sy,sz)
 c
 c     ::::: compute X fluxes
 c
-!$omp do
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)+1
+      do       k = xlo(3), xhi(3)
+         do    j = xlo(2), xhi(2)
+            do i = xlo(1), xhi(1)
                sx = ssync(i,j,k) - ssync(i-1,j,k)
                xflux(i,j,k) = mult*sx*xarea(i,j,k)*idx
             end do
          end do
       end do
-!$omp end do nowait
 c
 c     ::::: compute Y fluxes
 c
-!$omp do
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)+1
-            do i = lo(1), hi(1)
+      do       k = ylo(3), yhi(3)
+         do    j = ylo(2), yhi(2)
+            do i = ylo(1), yhi(1)
                sy = ssync(i,j,k) - ssync(i,j-1,k)
                yflux(i,j,k) = mult*sy*yarea(i,j,k)*idy
             end do
          end do
       end do
-!$omp end do nowait
 c
 c     ::::: compute Z fluxes
 c
-!$omp do
-      do k = lo(3), hi(3)+1
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
+      do       k = zlo(3), zhi(3)
+         do    j = zlo(2), zhi(2)
+            do i = zlo(1), zhi(1)
                sz = ssync(i,j,k) - ssync(i,j,k-1)
                zflux(i,j,k) = half*mult*sz*zarea(i,j,k)*idz
             end do
          end do
       end do
-!$omp end do nowait
-
-!$omp end parallel
       
       end
 
@@ -136,7 +128,6 @@ c ::
              end do
           end do
        else 
-!$omp parallel do private(i,j,k)
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
@@ -144,7 +135,6 @@ c ::
                 end do
              end do
           end do
-!$omp end parallel do
        end if
 
        end
@@ -193,7 +183,6 @@ c ::
 
        integer i, j, k
 
-!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -201,7 +190,6 @@ c ::
              end do
           end do
        end do
-!$omp end parallel do
 
        end
 
@@ -229,7 +217,6 @@ c
 c ... Note: the following IS correct for r-z. Terms from the hoop stress
 c           cancel with terms from tau_rr to eliminate all r dependence.
 c
-!$omp parallel do private(i,j,k,sleft,sright,stp,sbot,sfront,sback)
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -250,7 +237,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 
@@ -281,7 +267,6 @@ c
       idy = 1.0d0 / dx(2)
       idz = 1.0d0 / dx(3)
 
-!$omp parallel do private(i,j,k,sleft,sright,stp,sbot,sfront,sback)
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -306,7 +291,6 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
       end
 

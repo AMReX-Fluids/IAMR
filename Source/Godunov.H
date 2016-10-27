@@ -22,10 +22,7 @@ public:      // public access functions
     // =============================================================
 
     // construct the advection object
-    Godunov();
-    
-    // size 1d work space explicitly
-    Godunov( int max_size );
+    Godunov( int max_size = 512 );
 
     // destruct the advection object
     ~Godunov();
@@ -333,30 +330,24 @@ public:      // public access functions
     FArrayBox smp, dsvl, I;
     FArrayBox D_DECL(sedgex, sedgey, sedgez);
 
-    // internal parameters
-    int max_1d;    // largest dimension size allowed
-    int scr_size;  // actual length of the scratch space
-    
     // 1D arrays used in computing slopes and edges states
-    Real *stxlo; 
-    Real *stxhi; 
-    Real *slxscr;
-    Real *stylo;
-    Real *styhi;
-    Real *slyscr;
+    Array<Real> stxlo; 
+    Array<Real> stxhi; 
+    Array<Real> slxscr;
+    Array<Real> stylo;
+    Array<Real> styhi;
+    Array<Real> slyscr;
 #if (BL_SPACEDIM == 3 )    
-    Real *stzlo;
-    Real *stzhi;
-    Real *slzscr;
+    Array<Real> stzlo;
+    Array<Real> stzhi;
+    Array<Real> slzscr;
 #endif
     
 protected:   // protected work functions
     
     // manipulate 1d scratch space
-    void ZeroScratch();
     void SetBogusScratch();
     void SetScratch( int max_size );
-    void RemScratch();
 
     static void Initialize ();
     static void Finalize ();

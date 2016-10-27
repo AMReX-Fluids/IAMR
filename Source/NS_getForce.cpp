@@ -1,6 +1,6 @@
 #include <winstd.H>
 
-#include <NavierStokes.H>
+#include <NavierStokesBase.H>
 #include <BLFort.H>
 #include <PROB_NS_F.H>
 
@@ -8,7 +8,7 @@
 // Virtual access function for getting the forcing terms for the
 // velocities and scalars.  The base version computes a buoyancy.
 //
-// As NavierStokes is currently implemented.  Velocities are integrated
+// As NavierStokesBase is currently implemented.  Velocities are integrated
 // according to the equation
 //
 //     ui_t + uj ui_j = S_ui        ===> tforces = rho S_ui
@@ -24,13 +24,13 @@
 
 #ifdef BOUSSINESQ
 void
-NavierStokes::getForce (FArrayBox&       force,
-                        int              gridno,
-                        int              ngrow,
-                        int              scomp,
-                        int              ncomp,
-                        const Real       time,
-                        const FArrayBox& Scal)
+NavierStokesBase::getForce (FArrayBox&       force,
+			    int              gridno,
+			    int              ngrow,
+			    int              scomp,
+			    int              ncomp,
+			    const Real       time,
+			    const FArrayBox& Scal)
 {
     force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
 
@@ -63,14 +63,14 @@ NavierStokes::getForce (FArrayBox&       force,
 #else
 #ifdef GENGETFORCE
 void
-NavierStokes::getForce (FArrayBox&       force,
-                        int              gridno,
-                        int              ngrow,
-                        int              scomp,
-                        int              ncomp,
-                        const Real       time,
-                        const FArrayBox& Rho,
-                        int              RComp)
+NavierStokesBase::getForce (FArrayBox&       force,
+			    int              gridno,
+			    int              ngrow,
+			    int              scomp,
+			    int              ncomp,
+			    const Real       time,
+			    const FArrayBox& Rho,
+			    int              RComp)
 {
     BL_ASSERT(Rho.nComp() == 1);
 
@@ -100,18 +100,18 @@ NavierStokes::getForce (FArrayBox&       force,
 #else
 #ifdef MOREGENGETFORCE
 void
-NavierStokes::getForce (FArrayBox&       force,
-                        int              gridno,
-                        int              ngrow,
-                        int              scomp,
-                        int              ncomp,
-                        const Real       time,
-			const FArrayBox& Vel,
-                        const FArrayBox& Scal,
-			int              scalScomp)
+NavierStokesBase::getForce (FArrayBox&       force,
+			    int              gridno,
+			    int              ngrow,
+			    int              scomp,
+			    int              ncomp,
+			    const Real       time,
+			    const FArrayBox& Vel,
+			    const FArrayBox& Scal,
+			    int              scalScomp)
 {
     if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-	std::cout << "NavierStokes::getForce(): Entered..." << std::endl 
+	std::cout << "NavierStokesBase::getForce(): Entered..." << std::endl 
 		  << "time      = " << time << std::endl
 		  << "scomp     = " << scomp << std::endl
 		  << "ncomp     = " << ncomp << std::endl
@@ -146,23 +146,23 @@ NavierStokes::getForce (FArrayBox&       force,
 
     if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
 #if (BL_SPACEDIM == 3)
-	std::cout << "NavierStokes::getForce(): Force Domain:" << std::endl;
+	std::cout << "NavierStokesBase::getForce(): Force Domain:" << std::endl;
 	std::cout << "(" << f_lo[0] << "," << f_lo[1] << "," << f_lo[2] << ") - "
 		  << "(" << f_hi[0] << "," << f_hi[1] << "," << f_hi[2] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Vel Domain:" << std::endl;
+	std::cout << "NavierStokesBase::getForce(): Vel Domain:" << std::endl;
 	std::cout << "(" << v_lo[0] << "," << v_lo[1] << "," << v_lo[2] << ") - "
 		  << "(" << v_hi[0] << "," << v_hi[1] << "," << v_hi[2] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Scal Domain:" << std::endl;
+	std::cout << "NavierStokesBase::getForce(): Scal Domain:" << std::endl;
 	std::cout << "(" << s_lo[0] << "," << s_lo[1] << "," << s_lo[2] << ") - "
 		  << "(" << s_hi[0] << "," << s_hi[1] << "," << s_hi[2] << ")" << std::endl;
 #else
-	std::cout << "NavierStokes::getForce(): Force Domain:" << std::endl;
+	std::cout << "NavierStokesBase::getForce(): Force Domain:" << std::endl;
 	std::cout << "(" << f_lo[0] << "," << f_lo[1] << ") - "
 		  << "(" << f_hi[0] << "," << f_hi[1] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Vel Domain:" << std::endl;
+	std::cout << "NavierStokesBase::getForce(): Vel Domain:" << std::endl;
 	std::cout << "(" << v_lo[0] << "," << v_lo[1] << ") - "
 		  << "(" << v_hi[0] << "," << v_hi[1] << ")" << std::endl;
-	std::cout << "NavierStokes::getForce(): Scal Domain:" << std::endl;
+	std::cout << "NavierStokesBase::getForce(): Scal Domain:" << std::endl;
 	std::cout << "(" << s_lo[0] << "," << s_lo[1] << ") - "
 		  << "(" << s_hi[0] << "," << s_hi[1] << ")" << std::endl;
 #endif
@@ -278,18 +278,18 @@ NavierStokes::getForce (FArrayBox&       force,
 	for (int n=0; n<ncomp; n++) 
 	    std::cout << "Force " << n+scomp << " min/max " << forcemin[n] << " / " << forcemax[n] << std::endl;
 	
-	std::cout << "NavierStokes::getForce(): Leaving..." << std::endl << "---" << std::endl;
+	std::cout << "NavierStokesBase::getForce(): Leaving..." << std::endl << "---" << std::endl;
     }
 }
 #else
 void
-NavierStokes::getForce (FArrayBox&       force,
-                        int              gridno,
-                        int              ngrow,
-                        int              scomp,
-                        int              ncomp,
-                        const FArrayBox& Rho,
-                        int              RComp)
+NavierStokesBase::getForce (FArrayBox&       force,
+			    int              gridno,
+			    int              ngrow,
+			    int              scomp,
+			    int              ncomp,
+			    const FArrayBox& Rho,
+			    int              RComp)
 {
     BL_ASSERT(Rho.nComp() > RComp);
 
