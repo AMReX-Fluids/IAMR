@@ -1003,13 +1003,11 @@ Projection::initialVelocityProject (int  c_lev,
     } 
     else 
     {
-        PArray<MultiFab> rhs_real(f_lev+1,PArrayManage);
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             MultiFab* rhslev = rhs_cc[lev];
             if (Geometry::IsRZ()) radMult(lev,*rhslev,0); 
             rhs_cc[lev]->mult(-1.0,0,1,nghost);
-            rhs_real.set(lev, rhs_cc[lev]);
         }
 
 	PArray<MultiFab> rhnd;

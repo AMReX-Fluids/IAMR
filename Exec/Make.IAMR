@@ -18,31 +18,22 @@ include $(Bpack)
  
 Pdirs   := C_BaseLib C_AMRLib C_BoundaryLib
 Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_TensorMG
+
+ifeq ($(USE_PARTICLES),TRUE)
+  Pdirs += C_ParticleLib
+endif
+
 Ppack   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
 Plocs   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
 
 include $(Ppack)
-INCLUDE_LOCATIONS += $(Plocs)
-VPATH_LOCATIONS   += $(Plocs)
 
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
-VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG
- 
+include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package 
 include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
-VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/LinearSolvers/F_MG
-
 include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
-INCLUDE_LOCATIONS += $(BOXLIB_HOME)/Src/F_BaseLib
-VPATH_LOCATIONS   += $(BOXLIB_HOME)/Src/F_BaseLib
 
-ifeq ($(USE_PARTICLES),TRUE)
-  DEFINES += -DPARTICLES
-endif
-
-VPATH_LOCATIONS   += . $(Blocs)
-INCLUDE_LOCATIONS += . $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+INCLUDE_LOCATIONS += $(Blocs)
 
 ifeq ($(USE_BGL),TRUE)
   MACHINE=BGL
