@@ -1,8 +1,6 @@
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.defs 
 
-fincludes=$(includes)
-
 #These are the directories in IAMR
 
 Bdirs += Source
@@ -14,6 +12,9 @@ Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
 include $(Bpack)
 
+VPATH_LOCATIONS   += $(Blocs)
+INCLUDE_LOCATIONS += $(Blocs)
+
 #These are the directories in BoxLib
  
 Pdirs   := C_BaseLib C_AMRLib C_BoundaryLib
@@ -24,29 +25,12 @@ ifeq ($(USE_PARTICLES),TRUE)
 endif
 
 Ppack   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
-Plocs   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir))
-
 include $(Ppack)
 
 include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package 
 include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
 include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
 
-VPATH_LOCATIONS   += $(Blocs)
-INCLUDE_LOCATIONS += $(Blocs)
-
-ifeq ($(USE_BGL),TRUE)
-  MACHINE=BGL
-  CXX=mpicxx.ibm
-  FC=blrts_xlf
-  fC=blrts_xlf
-  CPPFLAGS+= -DMPICH_SKIP_MPICXX
-  LDFLAGS+=-L/bgl/BlueLight/ppcfloor/bglsys/lib
-  LDFLAGS+=-L/opt/ibmcmp/xlf/bg/10.1/blrts_lib
-  BL_MPI_LIBS=-lxlf90 -lxlfmath
-  FORTLINK:=LOWERCASE
-endif
- 
 ifeq ($(USE_VELOCITY), TRUE)
   DEFINES += -DBL_NOLINEVALUES -DBL_USE_VELOCITY -DBL_PARALLEL_IO
   CEXE_headers += DataServices.H AmrData.H XYPlotDataList.H AmrvisConstants.H
@@ -76,14 +60,14 @@ ifeq ($(USE_BPM),TRUE)
   f90EXE_sources += bpm.f90
 endif
 
-all: $(executable)
-	$(SILENT) $(RM) buildInfo.cpp
-	@echo SUCCESS
-
 # job_info support
 CEXE_sources += buildInfo.cpp
 CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
 INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
+
+all: $(executable)
+	$(SILENT) $(RM) buildInfo.cpp
+	@echo SUCCESS
 
 buildInfo.cpp:
 	$(BOXLIB_HOME)/Tools/C_scripts/makebuildinfo_C.py \
@@ -91,14 +75,6 @@ buildInfo.cpp:
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \
           --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
           --GIT "$(TOP) $(BOXLIB_HOME)" 
-
-vpath %.c   $(VPATH_LOCATIONS)
-vpath %.cpp $(VPATH_LOCATIONS)
-vpath %.h   $(VPATH_LOCATIONS)
-vpath %.H   $(VPATH_LOCATIONS)
-vpath %.F   $(VPATH_LOCATIONS)
-vpath %.f   $(VPATH_LOCATIONS)
-vpath %.f90 $(VPATH_LOCATIONS)
 
 include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
 
