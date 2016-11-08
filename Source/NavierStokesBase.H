@@ -7,7 +7,6 @@
 #endif
 
 #include <AmrLevel.H>
-#include <BL_CXX11.H>
 #include <BC_TYPES.H>
 #include <BLFort.H>
 #include <Diffusion.H>
@@ -68,19 +67,19 @@ public:
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
 
-    virtual void allocOldData () BL_OVERRIDE;
+    virtual void allocOldData () override;
 
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
                              VisMF::How         how = VisMF::OneFilePerCPU,
-                             bool               dump_old = true) BL_OVERRIDE;
+                             bool               dump_old = true) override;
 
     virtual void computeInitialDt (int                   finest_level,
                                    int                   sub_cycle,
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
                                    Array<Real>&          dt_level,
-                                   Real                  stop_time) BL_OVERRIDE;
+                                   Real                  stop_time) override;
 
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
@@ -89,7 +88,7 @@ public:
                                Array<Real>&          dt_min,
                                Array<Real>&          dt_level,
                                Real                  stop_time,
-                               int                   post_regrid_flag) BL_OVERRIDE;
+                               int                   post_regrid_flag) override;
     //
     // Error estimation for regridding.
     //
@@ -98,56 +97,56 @@ public:
                            int          tagval,
                            Real         time,
                            int          n_error_buf = 0,
-                           int          ngrow = 0) BL_OVERRIDE;
+                           int          ngrow = 0) override;
     //
     // This function fills a new level n with the best
     // level n and coarser data available (usually during regrid).
     //
-    virtual void init (AmrLevel& old) BL_OVERRIDE;
+    virtual void init (AmrLevel& old) override;
     //
     // Init data on this level after regridding if old level
     // did not exist previously.
     //
-    virtual void init () BL_OVERRIDE;
+    virtual void init () override;
     //
     // Called in grid_places after other tagging routines to modify
     //   the list of tagged points
     //
     virtual void manual_tags_placement (TagBoxArray&    tags, 
-					Array<IntVect>& bf_lev) BL_OVERRIDE;
+					Array<IntVect>& bf_lev) override;
     //
     // Estimate the end of the simulation for amrLevel.
     //
-    virtual int okToContinue () BL_OVERRIDE;
+    virtual int okToContinue () override;
     //
     // Build any additional data structures after regrid.
     //
-    virtual void post_regrid (int lbase, int new_finest) BL_OVERRIDE;
+    virtual void post_regrid (int lbase, int new_finest) override;
     //
     // Build any additional data structures after restart.
     //
-    virtual void post_restart () BL_OVERRIDE;
+    virtual void post_restart () override;
     //
     // Sync state and pressure at the end of a composite timestep.
     //
-    virtual void post_timestep (int iteration) BL_OVERRIDE;
+    virtual void post_timestep (int iteration) override;
     //
     virtual void restart (Amr&          papa,
                           std::istream& is,
-                          bool          bReadSpecial = false) BL_OVERRIDE;
+                          bool          bReadSpecial = false) override;
     //
     // Set time levels of state data.
     //
     virtual void setTimeLevel (Real time,
                                Real dt_old,
-                               Real dt_new) BL_OVERRIDE;
+                               Real dt_new) override;
     //
     // A string written as the first item in writePlotFile() at level zero.
     // It is so we can distinguish between different types of plot files.
     //
     // For NavierStokes it has the form: NavierStokes-Vnnn
     //
-    virtual std::string thePlotFileType () const BL_OVERRIDE;
+    virtual std::string thePlotFileType () const override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public functions                                   //

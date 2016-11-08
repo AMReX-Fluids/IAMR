@@ -197,7 +197,7 @@ MacProj::install_anelastic_coefficient (int               level,
         std::cout << "Installing anel_coeff into MacProj level " << level << '\n';
 
     if (level > anel_coeff.size()-1) anel_coeff.resize(level+1);
-    anel_coeff.set(level, _anel_coeff);
+    anel_coeff[level] = _anel_coeff;
 }
 
 void

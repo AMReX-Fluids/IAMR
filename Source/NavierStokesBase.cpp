@@ -1590,14 +1590,14 @@ NavierStokesBase::getOutFlowFaces (Array<Orientation>& outFaces)
         {
             const int len = outFaces.size();
             outFaces.resize(len+1);
-            outFaces.set(len,Orientation(idir,Orientation::low));
+            outFaces[len] = Orientation(idir,Orientation::low);
         }
 
         if (phys_bc.hi(idir) == Outflow)
         {
             const int len = outFaces.size();
             outFaces.resize(len+1);
-            outFaces.set(len,Orientation(idir,Orientation::high));
+            outFaces[len] = Orientation(idir,Orientation::high);
         }
     }
 }

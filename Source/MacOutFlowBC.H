@@ -6,7 +6,6 @@
 #include <Geometry.H>
 #include <Orientation.H>
 #include <OutFlowBC.H>
-#include <BL_CXX11.H>
 
 //
 // This class solves the BL_SPACEDIM-1 dimensional problem for the mac
@@ -33,7 +32,7 @@ public:
 			    int               numOutFlowFaces,
 			    const int*        lo_bc,
 			    const int*        hi_bc,
-			    Real              gravity) BL_OVERRIDE;
+			    Real              gravity) override;
 
     virtual void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
 			    FArrayBox         divuMF[2*BL_SPACEDIM],
@@ -45,7 +44,7 @@ public:
 			    const int*        lo_bc,
 			    const int*        hi_bc,
 			    Real              small_udiff,
-			    Real              gravity) BL_OVERRIDE;
+			    Real              gravity) override;
 
     static void Initialize ();
     static void Finalize ();
@@ -86,7 +85,7 @@ public:
                      Real*      H,
                      int*       IsPeriodic);
 
-    virtual ~MacOutFlowBC_MG ()  BL_OVERRIDE;
+    virtual ~MacOutFlowBC_MG ()  override;
 
     static int Verbose ();
 
@@ -97,11 +96,11 @@ public:
 
 protected:
 
-    virtual void Restrict () BL_OVERRIDE;
-    virtual void interpolate () BL_OVERRIDE;
-    virtual Real residual () BL_OVERRIDE;
-    virtual void step (int nSteps) BL_OVERRIDE;
-    virtual void gsrb (int nSteps) BL_OVERRIDE;
+    virtual void Restrict () override;
+    virtual void interpolate () override;
+    virtual Real residual () override;
+    virtual void step (int nSteps) override;
+    virtual void gsrb (int nSteps) override;
     //
     // Static data.
     //

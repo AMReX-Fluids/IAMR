@@ -9,14 +9,14 @@ class NSBld
     :
     public LevelBld
 {
-    virtual void variableSetUp () BL_OVERRIDE;
-    virtual void variableCleanUp () BL_OVERRIDE;
-    virtual AmrLevel *operator() () BL_OVERRIDE;
+    virtual void variableSetUp () override;
+    virtual void variableCleanUp () override;
+    virtual AmrLevel *operator() () override;
     virtual AmrLevel *operator() (Amr&            papa,
                                   int             lev,
                                   const Geometry& level_geom,
                                   const BoxArray& ba,
-                                  Real            time) BL_OVERRIDE;
+                                  Real            time) override;
 };
 
 class NavierStokes
@@ -45,17 +45,17 @@ public:
     //
     // Init grid data at problem start-up.
     //
-    virtual void initData () BL_OVERRIDE;
+    virtual void initData () override;
     //
     // Write plot file stuff to specified directory.
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&  os,
-                                VisMF::How     how) BL_OVERRIDE;
+                                VisMF::How     how) override;
     //
     // Modify list of variables to be plotted
     //
-    virtual void setPlotVariables() BL_OVERRIDE;
+    virtual void setPlotVariables() override;
     //
     // Returns a MultiFab containing the derived data for this level.
     // The user is responsible for deleting this pointer when done
@@ -64,25 +64,25 @@ public:
     //
     virtual MultiFab* derive (const std::string& name,
                               Real               time,
-                              int                ngrow) BL_OVERRIDE;
+                              int                ngrow) override;
     //
     // This version of derive() fills the dcomp'th component of mf with the derived quantity.
     //
     virtual void derive (const std::string& name,
                          Real               time,
                          MultiFab&          mf,
-                         int                dcomp) BL_OVERRIDE;
+                         int                dcomp) override;
     //
     // Insure state, and pressure are consistent.
     //
-    virtual void post_init (Real stop_time) BL_OVERRIDE;
+    virtual void post_init (Real stop_time) override;
     //
     // Advance grids at this level in time.
     //
     virtual Real advance (Real time,
                           Real dt,
                           int  iteration,
-                          int  ncycle) BL_OVERRIDE;
+                          int  ncycle) override;
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -104,50 +104,50 @@ protected:
     //    Overriding Virtual Functions in NavierStokesBase                    //
     ////////////////////////////////////////////////////////////////////////////
 
-    virtual void avgDown () BL_OVERRIDE; // Average down for all the state types.
+    virtual void avgDown () override; // Average down for all the state types.
     //
     // Calculate divU, which sets them to zero by default.
     //
     virtual void calc_divu (Real      time,
 			    Real      dt,
-			    MultiFab& fab) BL_OVERRIDE;
+			    MultiFab& fab) override;
     //
     // Calculate dSdT, which sets them to zero by default.
     //
     virtual void calc_dsdt (Real      time,
 			    Real      dt,
-			    MultiFab& fab) BL_OVERRIDE;
+			    MultiFab& fab) override;
     //
     // Calculate nonuniform viscosity and diffusivity
     //
     virtual void calcViscosity (const Real time,
 				const Real dt,
 				const int  iteration,
-				const int  ncycle) BL_OVERRIDE;
+				const int  ncycle) override;
     //
-    virtual void calcDiffusivity (const Real time) BL_OVERRIDE;
+    virtual void calcDiffusivity (const Real time) override;
     //
     virtual void getViscosity (MultiFab*  viscosity[BL_SPACEDIM],
-			       const Real time) BL_OVERRIDE;
+			       const Real time) override;
     //
     // Compute viscous terms.
     //
     virtual void getViscTerms (MultiFab& visc_terms,
 			       int       src_comp, 
 			       int       num_comp,
-			       Real      time) BL_OVERRIDE;
+			       Real      time) override;
     //
     // Compute the mac sync correction.
     //
-    virtual void mac_sync () BL_OVERRIDE;
+    virtual void mac_sync () override;
     //
     // Reflux function.
     //
-    virtual void reflux () BL_OVERRIDE;
+    virtual void reflux () override;
     //
-    virtual void sum_integrated_quantities () BL_OVERRIDE;
+    virtual void sum_integrated_quantities () override;
     //
-    virtual void velocity_diffusion_update (Real dt) BL_OVERRIDE;
+    virtual void velocity_diffusion_update (Real dt) override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes protected static functions                             //
