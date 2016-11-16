@@ -491,7 +491,8 @@ void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
                          MultiFab& rho_half,
-                         IntVect&  fine_ratio)
+                         IntVect&  fine_ratio,
+			 MultiFab* Rhs_increment)
 {
     BL_ASSERT(level < finest_level);
 
@@ -554,6 +555,11 @@ MacProj::mac_sync_solve (int       level,
         {
             rhsfab.setVal(0.0,isects[ii].second,0);
         }
+    }
+
+    if (Rhs_increment)
+    {
+      MultiFab::Add(Rhs,*Rhs_increment,0,0,1,0);
     }
 
     //

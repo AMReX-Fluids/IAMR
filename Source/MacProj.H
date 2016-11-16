@@ -48,7 +48,8 @@ public:
     void mac_sync_solve (int       level,
                          Real      dt, 
                          MultiFab& rho_half,
-                         IntVect&  fine_ratio);
+                         IntVect&  fine_ratio,
+			 MultiFab* Rhs_increment = 0);
     //
     // Computing the sync tendency.
     //
