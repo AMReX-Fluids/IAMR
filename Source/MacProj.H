@@ -67,7 +67,8 @@ public:
                            Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
                            int		         do_mom_diff,
-                           const Array<int>&     increment_sync = Array<int>());
+                           const Array<int>&     increment_sync = Array<int>(),
+			   bool                  update_fluxreg = true);
 
     void mac_sync_compute (int                   level,
                            MultiFab&             Sync,
@@ -79,7 +80,8 @@ public:
                            FluxRegister*         adv_flux_reg,
                            Array<AdvectionForm>& advectionType,
                            bool		         modify_reflux_normal_vel,
-                           Real                  dt);
+                           Real                  dt,
+			   bool                  update_fluxreg = true);
 
     void scaleArea (int level, MultiFab* area, Real** anel_coeff);
 

@@ -713,7 +713,8 @@ MacProj::mac_sync_compute (int                   level,
                            Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
                            int                   do_mom_diff,
-                           const Array<int>&     increment_sync)
+                           const Array<int>&     increment_sync,
+			   bool                  update_fluxreg)
 {
     if (modify_reflux_normal_vel)
         BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
@@ -890,7 +891,7 @@ MacProj::mac_sync_compute (int                   level,
                 // NOTE: the signs here are opposite from VELGOD.
                 // NOTE: fluxes expected to be in extensive form.
                 //
-                if (level > 0)
+                if (level > 0 && update_fluxreg)
                 {
                     D_TERM(adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);,
                            adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);,
@@ -902,7 +903,7 @@ MacProj::mac_sync_compute (int                   level,
         // Include grad_phi in the mac registers corresponding
         // to the next coarsest interface.
         //
-        if (level > 0)
+        if (level > 0 && update_fluxreg)
         {
             const Real mlt =  -1.0/( (double) parent->nCycle(level));
             D_TERM(mac_reg[level].FineAdd(grad_phi[0],area[0][i],0,i,0,0,1,mlt);,
@@ -935,7 +936,8 @@ MacProj::mac_sync_compute (int                    level,
                            FluxRegister*          adv_flux_reg,
                            Array<AdvectionForm>&  advectionType, 
 			   bool                   modify_reflux_normal_vel,
-                           Real                   dt)
+                           Real                   dt,
+			   bool                   update_fluxreg)
 {
     if (modify_reflux_normal_vel)
         BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
@@ -1001,7 +1003,7 @@ MacProj::mac_sync_compute (int                    level,
         // NOTE: the signs here are opposite from VELGOD.
         // NOTE: fluxes expected to be in extensive form.
         //
-        if (level > 0)
+        if (level > 0 && update_fluxreg)
         {
             D_TERM(adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);,
                    adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);,
