@@ -921,7 +921,8 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
                           const MultiFab&        rho_half,
                           int                    rho_flag,
                           const MultiFab* const* beta,
-                          int                    betaComp)
+                          int                    betaComp,
+			  bool                   update_fluxreg)
 {
     BL_ASSERT(rho_flag == 1|| rho_flag == 3);
 
@@ -934,9 +935,9 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
 #endif
 
     if (allnull)
-        diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag);
+      diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag,update_fluxreg);
     else
-        diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp);
+      diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp,update_fluxreg);
     //
     // applyBC has put "incorrect" values in the ghost cells
     // outside external Dirichlet boundaries. Reset these to zero
@@ -973,7 +974,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                                       Real            dt,
                                       Real            be_cn_theta,
                                       const MultiFab& rho_half,
-                                      int             rho_flag)
+                                      int             rho_flag,
+				      bool            update_fluxreg)
 {
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "Diffusion::diffuse_Vsync_constant_mu ...\n";
@@ -1138,9 +1140,12 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
 #endif
 	    }
 
-	    D_TERM(viscflux_reg->FineAdd(xflux,0,0,comp,1,1.0);,
-		   viscflux_reg->FineAdd(xflux,1,0,comp,1,1.0);,
-		   viscflux_reg->FineAdd(xflux,2,0,comp,1,1.0););
+	    if (update_fluxreg)
+	    {
+	      D_TERM(viscflux_reg->FineAdd(xflux,0,0,comp,1,1.0);,
+		     viscflux_reg->FineAdd(xflux,1,0,comp,1,1.0);,
+		     viscflux_reg->FineAdd(xflux,2,0,comp,1,1.0););
+	    }
         }
     }
 }
@@ -1152,7 +1157,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
                                  const MultiFab&        rho_half,
                                  int                    rho_flag,
                                  const MultiFab* const* beta,
-                                 int                    betaComp = 0)
+                                 int                    betaComp,
+				 bool                   update_fluxreg)
 {
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);
 
@@ -1255,25 +1261,28 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
-        {
+	if (update_fluxreg)
+	{
+	  for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
+	  {
             for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
             {
-                const int i    = mfi.index();
-                const Box& grd = BoxLib::enclosedCells(mfi.validbox());
+	      const int i    = mfi.index();
+	      const Box& grd = BoxLib::enclosedCells(mfi.validbox());
 
-                BL_ASSERT(grd==grids[mfi.index()]);
-
-                for (int k = 0; k < BL_SPACEDIM; k++)
-                {
-                    Box flux_bx(grd);
-                    flux_bx.surroundingNodes(k);
-                    flux.resize(flux_bx,1);
-                    flux.copy((*(tensorflux[k]))[mfi],sigma,0,1);
-                    viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
-                }
+	      BL_ASSERT(grd==grids[mfi.index()]);
+	      
+	      for (int k = 0; k < BL_SPACEDIM; k++)
+              {
+		Box flux_bx(grd);
+		flux_bx.surroundingNodes(k);
+		flux.resize(flux_bx,1);
+		flux.copy((*(tensorflux[k]))[mfi],sigma,0,1);
+		viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
+	      }
             }
-        }
+	  }
+	}
     }
 }
 

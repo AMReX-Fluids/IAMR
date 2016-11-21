@@ -115,13 +115,15 @@ public:
                         const MultiFab&        rho_half,
                         int                    rho_flag,
                         const MultiFab* const* beta,
-                        int                    betaComp = 0);
+                        int                    betaComp = 0,
+			bool                   update_fluxreg = true);
 
     void diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                                     Real            dt,
                                     Real            be_cn_theta,
                                     const MultiFab& rho_half,
-                                    int             rho_flag);
+                                    int             rho_flag,
+				    bool            update_fluxreg);
 
     void diffuse_tensor_Vsync (MultiFab&              Vsync,
                                Real                   dt,
@@ -129,7 +131,8 @@ public:
                                const MultiFab&        rho_half,
                                int                    rho_flag,
                                const MultiFab* const* beta,
-                               int                    betaComp);
+                               int                    betaComp,
+			       bool                   update_fluxreg);
 
     void diffuse_Ssync (MultiFab&              Ssync,
                         int                    sigma,
