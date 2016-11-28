@@ -976,7 +976,7 @@ Projection::initialVelocityProject (int  c_lev,
             }
 	    
             const BoxArray& grids     = amr_level.boxArray();
-            rhs_cc[lev]  = new MultiFab(grids,1,nghost);
+            rhs_cc[lev]  = raii.push_back(new MultiFab(grids,1,nghost));
             MultiFab* rhslev = rhs_cc[lev];
             put_divu_in_cc_rhs(*rhslev,lev,cur_divu_time);
         }
