@@ -980,8 +980,9 @@ NavierStokes::MaxVal (const std::string& name,
         const Real* dat = fab.dataPtr();
         const int*  dlo = fab.loVect();
         const int*  dhi = fab.hiVect();
-        const int*  lo  = grids[i].loVect();
-        const int*  hi  = grids[i].hiVect();
+	const Box&  bx  = grids[i];
+        const int*  lo  = bx.loVect();
+        const int*  hi  = bx.hiVect();
 
         FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
 

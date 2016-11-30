@@ -3019,8 +3019,9 @@ set_bc_new (int*            bc_new,
         {
             for (int crse = 0, N = cgrids.size(); crse < N; crse++)
             {
-                const int* c_lo = cgrids[crse].loVect();
-                const int* c_hi = cgrids[crse].hiVect();
+		const Box& bx = cgrids[crse];
+                const int* c_lo = bx.loVect();
+                const int* c_hi = bx.hiVect();
 
                 if (clo[dir] < cdomlo[dir] && c_lo[dir] == cdomlo[dir])
                     bc_new[bc_index] = bc_orig_qty[crse][bc_index];
@@ -3738,8 +3739,9 @@ NavierStokesBase::volWgtSum (const std::string& name,
         const Real* dat = fab.dataPtr();
         const int*  dlo = fab.loVect();
         const int*  dhi = fab.hiVect();
-        const int*  lo  = grids[mfi.index()].loVect();
-        const int*  hi  = grids[mfi.index()].hiVect();
+	const Box&  grdbx = grids[mfi.index()];
+        const int*  lo  = grdbx.loVect();
+        const int*  hi  = grdbx.hiVect();
 
 #if (BL_SPACEDIM == 2)
         int   rz_flag = Geometry::IsRZ() ? 1 : 0;
@@ -3910,8 +3912,9 @@ NavierStokesBase::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         const int*  dhi = turbFab.hiVect();
         const int*  plo = presFab.loVect();
         const int*  phi = presFab.hiVect();
-        const int*  lo  = grids[turbMfi.index()].loVect();
-        const int*  hi  = grids[turbMfi.index()].hiVect();
+	const Box& grdbx = grids[turbMfi.index()];
+        const int*  lo  = grdbx.loVect();
+        const int*  hi  = grdbx.hiVect();
 
         FORT_SUMTURB(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
 		     dx,turb,&ksize,&turbVars);

@@ -216,8 +216,9 @@ MacProj::BuildPhiBC (int level)
     for (int i = 0; i < ngrds; i++)
     {
         BCRec&     bc = phi_bcs[level][i];
-        const int* lo = grids[i].loVect();
-        const int* hi = grids[i].hiVect();
+	const Box& grdbx = grids[i];
+        const int* lo = grdbx.loVect();
+        const int* hi = grdbx.hiVect();
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
@@ -1354,8 +1355,9 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
         DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
         DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
 
-        const int* lo = grids[i].loVect();
-        const int* hi = grids[i].hiVect();
+	const Box& grdbx = grids[i];
+        const int* lo = grdbx.loVect();
+        const int* hi = grdbx.hiVect();
 
         int anel_coeff_lo = lo[BL_SPACEDIM-1]-1;
         int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
