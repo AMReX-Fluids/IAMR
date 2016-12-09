@@ -1245,7 +1245,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 
     if (level > 0)
     {
-        FArrayBox flux;
 	FluxBoxes fb(navier_stokes, BL_SPACEDIM);
         MultiFab** tensorflux = fb.get();
         tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
@@ -1263,6 +1262,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 #endif
 	if (update_fluxreg)
 	{
+	  FArrayBox flux;
 	  for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
 	  {
             for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
