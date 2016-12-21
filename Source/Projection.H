@@ -336,7 +336,8 @@ protected:
 			   MultiFab* rhs[], const PArray<MultiFab>& crse_rhs, 
 			   Real rel_tol, Real abs_tol,
 			   MultiFab* sync_resid_crse=0,
-			   MultiFab* sync_resid_fine=0);
+			   MultiFab* sync_resid_fine=0,
+			   bool doing_initial_velproj=false);
 
   // Mask off fine grids
   // Possible values for msk
@@ -354,7 +355,8 @@ protected:
   void mask_grids(MultiFab& msk, const Geometry& geom);
 
   // set velocity in ghost cells to zero except for inflow
-  void set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], bool inflowCorner);
+  void set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], 
+                             bool doing_initial_velproj, bool inflowCorner);
 
 };
 #endif

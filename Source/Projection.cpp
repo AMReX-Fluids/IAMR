@@ -983,13 +983,14 @@ Projection::initialVelocityProject (int  c_lev,
     }
 
     if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
-       set_outflow_bcs(INITIAL_VEL,phi,vel,rhs_cc,sig,c_lev,f_lev,have_divu);
-
+       set_outflow_bcs(INITIAL_VEL,phi,vel,rhs_cc,sig,c_lev,f_lev,have_divu); 
      //
      // Scale the projection variables.
      //
     for (lev = c_lev; lev <= f_lev; lev++) 
        scaleVar(INITIAL_VEL,sig[lev],1,vel[lev],lev);
+
+    bool doing_initial_velproj = true;
 
     //
     // Project
@@ -999,7 +1000,7 @@ Projection::initialVelocityProject (int  c_lev,
         MultiFab* rhs[maxlev] = {0};
 	PArray<MultiFab> rhnd;
 	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs, rhnd, 
-			  proj_tol, proj_abs_tol);
+			  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
     } 
     else 
     {
@@ -1012,7 +1013,7 @@ Projection::initialVelocityProject (int  c_lev,
 
 	PArray<MultiFab> rhnd;
 	doNodalProjection(c_lev, f_lev+1, vel, phi, sig, rhs_cc, rhnd,
-			  proj_tol, proj_abs_tol);
+			  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
 
     }
 
@@ -2284,7 +2285,8 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
 				    MultiFab* rhs_cc[], const PArray<MultiFab>& rhnd, 
 				    Real rel_tol, Real abs_tol,
 				    MultiFab* sync_resid_crse,
-				    MultiFab* sync_resid_fine)
+				    MultiFab* sync_resid_fine,
+                                    bool doing_initial_velproj) 
 {
   BL_PROFILE("Projection:::doNodalProjection()");
 
@@ -2325,11 +2327,10 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
     vold[c_lev] = raii.push_back(new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1));
     MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
 
-    bool inflowCorner = false;
-    set_boundary_velocity(c_lev, 1, vold, inflowCorner);
+    set_boundary_velocity(c_lev, 1, vold, doing_initial_velproj, false);
   }
 
-  set_boundary_velocity(c_lev, nlevel, vel, true);
+  set_boundary_velocity(c_lev, nlevel, vel, doing_initial_velproj, true);
 
   int lo_inflow[3] = {0};
   int hi_inflow[3] = {0};
@@ -2563,15 +2564,30 @@ void Projection::mask_grids (MultiFab& msk, const Geometry& geom)
     }
 }
 
-// set velocity in ghost cells to zero except for inflow
-void Projection::set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], bool inflowCorner)
+// Set velocity in ghost cells to zero except for inflow
+void Projection::set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], 
+                                       bool doing_initial_velproj, bool inflowCorner)
 {
   const int* lo_bc = phys_bc->lo();
   const int* hi_bc = phys_bc->hi();
 
+  // 1) At non-inflow faces, the normal component of velocity will be completely zero'd 
+  // 2) If a face is an inflow face, then
+  //     i) if inflowCorner = false then the normal velocity at corners -- even periodic corners -- 
+  //                                just outside inflow faces will be zero'd
+  //    ii) if inflowCorner =  true then the normal velocity at corners just outside inflow faces 
+  //                                will be zero'd outside of Neumann boundaries 
+  //                                (slipWall, noSlipWall, Symmetry) 
+  //                                but -- IF DOING INITIAL_VELPROJ,  
+  //                                will retain non-zero values at periodic corners
+
+  std::cout << "INFLOW CORNER " << inflowCorner << std::endl;
+
   for (int lev=c_lev; lev < c_lev+nlevel; lev++) {
     const BoxArray& grids = parent->boxArray(lev);
     const Box& domainBox = parent->Geom(lev).Domain();
+
+    const Geometry& geom = parent->Geom(lev);
 
     for (int idir=0; idir<BL_SPACEDIM; idir++) {
 
@@ -2590,31 +2606,45 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], b
 	  BoxList bxlist(reg);
 
 	  if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	    Box bx;
-	    if (inflowCorner) {
+	    Box bx;                // bx is the region we *protect* from zero'ing
+
+	    if (inflowCorner && doing_initial_velproj) {
+	      bx = BoxLib::adjCellLo(reg, idir);
+              for (int odir = 0; odir < BL_SPACEDIM; odir++)
+                 if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
+
+	    } else if (inflowCorner) {
+	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
 	      bx = BoxLib::adjCellLo(bxg1, idir);
 	      bx.shift(idir, +1);
-	    }
-	    else {
+
+	    } else {
 	      bx = BoxLib::adjCellLo(reg, idir);
 	    }
 	    bxlist.push_back(bx);
 	  }
 
 	  if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	    Box bx;
-	    if (inflowCorner) {
+	    Box bx;                // bx is the region we *protect* from zero'ing
+
+	    if (inflowCorner && doing_initial_velproj) {
+	      bx = BoxLib::adjCellHi(reg, idir);
+              for (int odir = 0; odir < BL_SPACEDIM; odir++)
+                 if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
+
+	    } else if (inflowCorner) {
+	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
 	      bx = BoxLib::adjCellHi(bxg1, idir);
 	      bx.shift(idir, -1);
-	    }
-	    else {
+
+	    } else {
 	      bx = BoxLib::adjCellHi(reg, idir);
 	    }
+
 	    bxlist.push_back(bx);
 	  }
 
-	  BoxList bxlist2 = BoxLib::complementIn(bxg1, bxlist);
-
+	  BoxList bxlist2 = BoxLib::complementIn(bxg1, bxlist); 
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
 	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
 	  }
