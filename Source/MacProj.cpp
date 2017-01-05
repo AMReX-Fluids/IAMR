@@ -492,8 +492,203 @@ void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
                          MultiFab& rho_half,
+                         IntVect&  fine_ratio)
+{
+    BL_ASSERT(level < finest_level);
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+        std::cout << "... mac_sync_solve at level " << level << '\n';
+
+    if (verbose && benchmarking) ParallelDescriptor::Barrier();
+
+    const Real      strt_time  = ParallelDescriptor::second();
+    const BoxArray& grids      = LevelData[level].boxArray();
+    const Geometry& geom       = parent->Geom(level);
+    const Real*     dx         = geom.CellSize();
+    const BoxArray& fine_boxes = LevelData[level+1].boxArray();
+    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
+                                           : IntVect::TheZeroVector();
+    const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
+    const MultiFab&     volume     = ns_level.Volume();
+    const MultiFab*     area_level = ns_level.Area();
+    //
+    // Reusing storage here, since there should be no more need for the
+    // values in mac_phi at this level and mac_sync_phi only need to last
+    // into the call to mac_sync_compute.  Hope this works...  (LHH).
+    //
+    MultiFab* mac_sync_phi = &mac_phi_crse[level];
+    //
+    // Alloc and define RHS by doing a reflux-like operation in coarse
+    // grid cells adjacent to fine grids.  The values in these
+    // cells should be SUM{MR/VOL} where the sum is taken over
+    // all edges of a cell that adjoin fine grids, MR = value in
+    // MAC register, VOL = cell volume.  All other cells have a
+    // value of zero (including crse cells under fine grids).
+    //
+    MultiFab Rhs(grids,1,0);
+    Rhs.setVal(0.0);
+    //
+    // Reflux subtracts values at hi edge of coarse cell and
+    // adds values at lo edge.  We want the opposite here so
+    // set scale to -1 & alloc space for Rhs.
+    //
+    FluxRegister& mr = mac_reg[level+1];
+    const Real scale = -1.0;
+
+    mr.Reflux(Rhs,volume,scale,0,0,1,geom);
+
+    BoxArray baf = fine_boxes;
+
+    baf.coarsen(fine_ratio);
+
+    std::vector< std::pair<int,Box> > isects;
+
+    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+        BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
+
+        baf.intersections(Rhsmfi.validbox(),isects);
+
+        FArrayBox& rhsfab = Rhs[Rhsmfi];
+
+        for (int ii = 0, N = isects.size(); ii < N; ii++)
+        {
+            rhsfab.setVal(0.0,isects[ii].second,0);
+        }
+    }
+
+    //
+    // Remove constant null space component from the rhs of the solve
+    // when appropriate (i.e. when the grids span the whole domain AND
+    // the boundary conditions are Neumann for phi on all sides of the domain.)
+    // Note that Rhs does not yet have the radial scaling in it for r-z
+    // problems so we must do explicit volume-weighting here.
+    //
+    if (fix_mac_sync_rhs)
+    {
+        int all_neumann = 1;
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            if (phys_bc->lo()[dir] == Outflow || phys_bc->hi()[dir] == Outflow)
+                all_neumann = 0;
+        }
+
+        if (Rhs.boxArray().contains(geom.Domain()) && all_neumann == 1)
+        {
+            Real sum = 0.0;
+            Real vol = 0.0;
+            FArrayBox vol_wgted_rhs;
+            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+            {
+                const FArrayBox& rhsfab = Rhs[Rhsmfi];
+                vol_wgted_rhs.resize(rhsfab.box());
+                vol_wgted_rhs.copy(rhsfab);
+                vol_wgted_rhs.mult(volume[Rhsmfi]);
+                sum += vol_wgted_rhs.sum(0,1);
+                vol += volume[Rhsmfi].sum(rhsfab.box(),0,1);
+            }
+
+            Real vals[2] = {sum,vol};
+
+            ParallelDescriptor::ReduceRealSum(&vals[0],2);
+
+            sum = vals[0];
+            vol = vals[1];
+
+            const Real fix = sum / vol;
+
+            if (verbose && ParallelDescriptor::IOProcessor())
+                std::cout << "Average correction on mac sync RHS = " << fix << '\n';
+
+            Rhs.plus(-fix, 0);
+        }
+    }
+
+    mac_sync_phi->setVal(0.0);
+    //
+    // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
+    //
+    MacBndry mac_bndry(grids,1,geom);
+    const int src_comp = 0;
+    const int dest_comp = 0;
+    const int num_comp = 1;
+    if (level == 0)
+    {
+        mac_bndry.setBndryValues(*mac_sync_phi,src_comp,dest_comp,num_comp,
+                                 *phys_bc);
+    }
+    else
+    {
+        BoxArray crse_boxes(grids);
+        crse_boxes.coarsen(crse_ratio);
+        const int in_rad     = 0;
+        const int out_rad    = 1;
+        //const int extent_rad = 1;
+        const int extent_rad = 2;
+        BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
+        crse_br.setVal(0);
+        mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
+                                 dest_comp,num_comp,crse_ratio, *phys_bc);
+    }
+    //
+    // Now define edge centered coefficients and adjust RHS for MAC solve.
+    //
+    const Real rhs_scale = 2.0/dt;
+    //
+    // Solve the sync system.
+    //
+    int the_solver = 0;
+    if ( use_cg_solve )
+    {
+	the_solver = 1;
+    }
+#if MG_USE_HYPRE
+    else if ( use_hypre_solve )
+    {
+	the_solver = 2;
+    }
+#endif
+    else if ( use_fboxlib_mg )
+    {
+	the_solver = 3;
+    }
+
+    MultiFab area_tmp[BL_SPACEDIM];
+    if (anel_coeff[level] != 0) {
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    area_tmp[i].define(area_level[i].boxArray(), 1, 1, Fab_allocate);
+	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
+	}
+        scaleArea(level,area_tmp,anel_coeff[level]);
+    } 
+
+    const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
+
+    mac_sync_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
+                    mac_sync_tol, mac_abs_tol, rhs_scale, area,
+                    volume, Rhs, rho_half, mac_sync_phi, verbose);
+
+    if (verbose)
+    {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
+    }
+}
+
+// this version is for the closed chamber LMC algorithm
+void
+MacProj::mac_sync_solve (int       level,
+                         Real      dt,
+                         MultiFab& rho_half,
                          IntVect&  fine_ratio,
-			 MultiFab* Rhs_increment)
+			 MultiFab* Rhs_increment,
+			 bool      subtract_avg,
+			 Real&     offset)
 {
     BL_ASSERT(level < finest_level);
 
@@ -570,7 +765,7 @@ MacProj::mac_sync_solve (int       level,
     // Note that Rhs does not yet have the radial scaling in it for r-z
     // problems so we must do explicit volume-weighting here.
     //
-    if (fix_mac_sync_rhs)
+    if (fix_mac_sync_rhs || subtract_avg)
     {
         int all_neumann = 1;
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -607,6 +802,7 @@ MacProj::mac_sync_solve (int       level,
                 std::cout << "Average correction on mac sync RHS = " << fix << '\n';
 
             Rhs.plus(-fix, 0);
+	    offset = fix;
         }
     }
 

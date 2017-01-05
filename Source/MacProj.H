@@ -48,8 +48,16 @@ public:
     void mac_sync_solve (int       level,
                          Real      dt, 
                          MultiFab& rho_half,
+                         IntVect&  fine_ratio);
+
+    // this version is for the closed chamber LMC algorithm
+    void mac_sync_solve (int       level,
+                         Real      dt, 
+                         MultiFab& rho_half,
                          IntVect&  fine_ratio,
-			 MultiFab* Rhs_increment = 0);
+			 MultiFab* Rhs_increment,
+			 bool      subtract_avg,
+			 Real&     offset);
     //
     // Computing the sync tendency.
     //
