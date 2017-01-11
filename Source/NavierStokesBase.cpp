@@ -462,6 +462,10 @@ NavierStokesBase::Initialize ()
     }
 #endif
 
+    // Don't let init_shrink be greater than 1
+    if (init_shrink > 1.0)
+        BoxLib::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
+
     //
     // Make sure we don't use divu_sync.
     //
