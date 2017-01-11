@@ -2,5 +2,7 @@
 
   probtype = 12
   vorterr  = .4
+  denfact = 1.
+  velfact = 1.
 
  /
