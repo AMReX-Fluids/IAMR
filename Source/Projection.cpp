@@ -2581,8 +2581,6 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[],
   //                                but -- IF DOING INITIAL_VELPROJ,  
   //                                will retain non-zero values at periodic corners
 
-  std::cout << "INFLOW CORNER " << inflowCorner << std::endl;
-
   for (int lev=c_lev; lev < c_lev+nlevel; lev++) {
     const BoxArray& grids = parent->boxArray(lev);
     const Box& domainBox = parent->Geom(lev).Domain();
