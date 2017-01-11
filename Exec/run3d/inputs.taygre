@@ -8,6 +8,7 @@
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
 max_step 		= 10000
+max_step 		= 10
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 6.0
@@ -22,6 +23,7 @@ amr.n_cell 		= 64 64 64
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 2 # maximum number of levels of refinement
+ns.do_vorticity_ref     = 1
 
 #*******************************************************************************
 
@@ -72,6 +74,7 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 
 # Viscosity coefficient 
 ns.vel_visc_coef        = 0.0
+ns.vel_visc_coef        = 1.e-4
 
 #*******************************************************************************
 
