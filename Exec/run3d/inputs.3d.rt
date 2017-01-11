@@ -15,6 +15,9 @@ amr.max_level           = 0
 amr.max_level		= 1
 amr.max_level		= 2
 
+ns.do_vorticity_ref     = 1
+ns.do_density_ref       = 1
+
 amr.regrid_int		= 2 
 
 ns.v                    = 1
@@ -27,7 +30,7 @@ amr.plot_int		= 5
 
 ns.cfl                  = 0.7  # CFL number used to set dt
 
-ns.init_shrink          = 1000.0  # factor which multiplies the very first time step
+ns.init_shrink          = 1.0  # factor which multiplies the very first time step
 ns.init_iter          = 3  # factor which multiplies the very first time step
 
 ns.vel_visc_coef        = 0.0
