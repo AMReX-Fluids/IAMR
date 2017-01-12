@@ -19,7 +19,7 @@ COMP	  = g++
 FCOMP     = gfortran
 
 USE_MPI   = TRUE
-USE_MPI   = FALSE
+USE_OPENMP   = FALSE
 
 USE_FLCTS = TRUE
 USE_FLCTS = FALSE
@@ -27,8 +27,11 @@ USE_FLCTS = FALSE
 USE_HYPRE = FALSE
 USE_METIS = FALSE
 
-USE_VELOCITY = FALSE
 USE_VELOCITY = TRUE
+USE_VELOCITY = FALSE
+
+USE_F90_SOLVERS = FALSE
+USE_F90_SOLVERS = TRUE
 
 USE_XBLAS = TRUE
 USE_XBLAS = FALSE
@@ -53,10 +56,10 @@ endif
 
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
-#DEFINES += -DMOREGENGETFORCE
+DEFINES += -DMOREGENGETFORCE
 
 # This is for the time-dependent turbulence forcing term
-#DEFINES += -DDO_IAMR_FORCE
+DEFINES += -DDO_IAMR_FORCE
 
 Bpack   := ./Make.package
 Blocs   := .
