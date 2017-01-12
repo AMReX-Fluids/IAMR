@@ -1143,8 +1143,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
 	    if (update_fluxreg)
 	    {
 	      D_TERM(viscflux_reg->FineAdd(xflux,0,0,comp,1,1.0);,
-		     viscflux_reg->FineAdd(xflux,1,0,comp,1,1.0);,
-		     viscflux_reg->FineAdd(xflux,2,0,comp,1,1.0););
+		     viscflux_reg->FineAdd(yflux,1,0,comp,1,1.0);,
+		     viscflux_reg->FineAdd(zflux,2,0,comp,1,1.0););
 	    }
         }
     }
