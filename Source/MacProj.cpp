@@ -942,7 +942,7 @@ MacProj::mac_sync_compute (int                   level,
         bool do_get_visc_terms = false;
 
         for (int i=0; i < BL_SPACEDIM; ++i)
-            if (!increment_sync.size() || increment_sync[i]==1)
+            if (increment_sync.empty() || increment_sync[i]==1)
                 do_get_visc_terms = true;
 
         if (do_get_visc_terms || use_forces_in_trans)
@@ -950,7 +950,7 @@ MacProj::mac_sync_compute (int                   level,
 
         do_get_visc_terms = false;
         for (int i=BL_SPACEDIM; i < increment_sync.size(); ++i)
-            if (!increment_sync.size() || increment_sync[i]==1)
+            if (increment_sync.empty() || increment_sync[i]==1)
                 do_get_visc_terms = true;
 
         if (do_get_visc_terms)
@@ -1061,7 +1061,7 @@ MacProj::mac_sync_compute (int                   level,
 
         for (int comp = 0; comp < NUM_STATE; comp++)
         {
-            if (!increment_sync.size() || increment_sync[comp]==1)
+            if (increment_sync.empty() || increment_sync[comp]==1)
             {
                 const int  sync_ind = comp < BL_SPACEDIM ? comp  : comp-BL_SPACEDIM;
                 FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
