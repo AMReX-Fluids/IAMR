@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <iomanip>
+#include <array>
 
 #if defined(BL_OSF1)
 #if defined(BL_USE_DOUBLE)
@@ -301,8 +302,7 @@ Diffusion::diffuse_scalar (Real                   dt,
             b *= visc_coef[sigma];
         ViscBndry visc_bndry_0;
         const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
-	PArray<ABecLaplacian> raii(PArrayManage);
-        ABecLaplacian* visc_op = raii.push_back
+        std::unique_ptr<ABecLaplacian> visc_op
 	    (getViscOp(sigma,a,b,prev_time,visc_bndry_0,rho_half,rho_flag,0,betan,betaComp,0,0));
         visc_op->maxOrder(max_order);
         //
@@ -464,8 +464,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
     Real       rhsscale = 1.0;
 
-    PArray<ABecLaplacian> raii(PArrayManage);
-    ABecLaplacian* visc_op  = raii.push_back
+    std::unique_ptr<ABecLaplacian> visc_op
 	(getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
 		   rho_flag,&rhsscale,betanp1,betaComp,alpha,alphaComp));
     Rhs.mult(rhsscale,0,1);
@@ -507,9 +506,10 @@ Diffusion::diffuse_scalar (Real                   dt,
 
 	fmg.set_scalars(a, b);
 	const MultiFab& acoeffs = visc_op->aCoefficients();
-	PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayNoManage);
-	for (int n = 0; n < BL_SPACEDIM; ++n)
-	    bcoeffs.set(n, &(visc_op->bCoefficients(n)));
+	Array<MultiFab*> bcoeffs(BL_SPACEDIM);
+	for (int n = 0; n < BL_SPACEDIM; ++n) {
+	    bcoeffs[n] = const_cast<MultiFab*>(&(visc_op->bCoefficients(n)));
+        }
 	fmg.set_coefficients(acoeffs, bcoeffs);
 
 	int always_use_bnorm = 0;
@@ -698,8 +698,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ptime;
         
 	{
-	    PArray<DivVis> raii(PArrayManage);
-	    DivVis* tensor_op = raii.push_back
+            std::unique_ptr<DivVis> tensor_op
 		(getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp));
 	    tensor_op->maxOrder(tensor_max_order);
 	    //
@@ -856,8 +855,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
        
     ViscBndryTensor visc_bndry;
     const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-    PArray<DivVis> raii(PArrayManage);
-    DivVis* tensor_op = raii.push_back
+    std::unique_ptr<DivVis> tensor_op
 	(getTensorOp(a,b,cur_time,visc_bndry,rho,betanp1,betaComp));
     tensor_op->maxOrder(tensor_max_order);
     //
@@ -1019,8 +1017,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         const Real     a        = 1.0;
         const Real     b        = be_cn_theta*dt*visc_coef[comp];
         Real           rhsscale = 1.0;
-	PArray<ABecLaplacian> raii(PArrayManage);
-        ABecLaplacian* visc_op = raii.push_back
+        std::unique_ptr<ABecLaplacian> visc_op
 	    (getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0,0));
 
         visc_op->maxOrder(max_order);
@@ -1207,8 +1204,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     const Real      a         = 1.0;
     const Real      b         = be_cn_theta*dt;
     const MultiFab& rho       = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-    PArray<DivVis> raii(PArrayManage);
-    DivVis* tensor_op = raii.push_back( getTensorOp(a,b,rho,beta,betaComp) );
+    std::unique_ptr<DivVis> tensor_op ( getTensorOp(a,b,rho,beta,betaComp) );
     tensor_op->maxOrder(tensor_max_order);
 
     MultiFab Soln(grids,BL_SPACEDIM,1);
@@ -1338,8 +1334,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     if (allnull)
         b *= visc_coef[state_ind];
     Real           rhsscale = 1.0;
-    PArray<ABecLaplacian> raii(PArrayManage);
-    ABecLaplacian* visc_op = raii.push_back 
+    std::unique_ptr<ABecLaplacian> visc_op
 	(getViscOp(state_ind,a,b,rho_half,rho_flag,&rhsscale,beta,betaComp,alpha,alphaComp));
     visc_op->maxOrder(max_order);
     //
@@ -1764,10 +1759,10 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
 
     const MultiFab* area = navier_stokes->Area(); 
 
-    PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayManage);
+    std::array<MultiFab,BL_SPACEDIM> bcoeffs;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-	bcoeffs.set(n, new MultiFab(area[n].boxArray(),1,0));
+	bcoeffs[n].define(area[n].boxArray(),1,0,area[n].DistributionMap(), Fab_allocate);
 	MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
     }
 
@@ -2271,8 +2266,7 @@ Diffusion::compute_divmusi (Real      time,
     {
         const int     nGrowDU  = 1;
         const Real*   dx       = navier_stokes->Geom().CellSize();
-	PArray<MultiFab> raii(PArrayManage);
-        MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
+        std::unique_ptr<MultiFab> divu_fp ( navier_stokes->getDivCond(nGrowDU,time) );
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2309,8 +2303,7 @@ Diffusion::compute_divmusi (Real                   time,
 {
     const int     nGrowDU  = 1;
     const Real*   dx       = navier_stokes->Geom().CellSize();
-    PArray<MultiFab> raii(PArrayManage);
-    MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
+    std::unique_ptr<MultiFab> divu_fp ( navier_stokes->getDivCond(nGrowDU,time) );
 
 #ifdef _OPENMP
 #pragma omp parallel

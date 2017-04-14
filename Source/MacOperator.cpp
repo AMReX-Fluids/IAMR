@@ -508,10 +508,10 @@ fmg_mac_solve ( Amr* parent, const MacBndry &mac_bndry, MacOperator &mac_op,
 
 	fmg.set_bc(mac_bndry);
 
-	PArray<MultiFab> b(BL_SPACEDIM);
+	Array<MultiFab*> b(BL_SPACEDIM);
 	for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            b.set(i, &(mac_op.bCoefficients(i)));
+            b[i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
         }
 	fmg.set_mac_coeffs(b);
 

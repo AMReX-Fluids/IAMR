@@ -37,7 +37,7 @@ public:
     //
     void install_level (int                   level,
                         AmrLevel*             level_data,
-                        Array< Array<Real> >* radius);
+                        Array< Array<Real> >* _radius);
 
     void install_anelastic_coefficient (int                        level,
                                         Real                **anel_coeff);
@@ -126,7 +126,7 @@ public:
     // This computes the stream function, given the velocity field
     //  *AND ASSUMING* no-flow boundaries on all physical boundaries.
     //
-    void getStreamFunction (PArray<MultiFab>&);
+    void getStreamFunction (Array<std::unique_ptr<MultiFab> >&);
     //
     // The initial velocity projection in post_init.
     // This function ensures that the velocities are nondivergent.
@@ -145,7 +145,7 @@ public:
     // pressure used in the timestepping.
     //
     void initialSyncProject (int       crse_level,
-                             MultiFab* sig[],
+                             const Array<MultiFab*> sig,
                              Real      dt, 
                              Real      strt_time,
                              int       have_divu);
@@ -270,10 +270,10 @@ protected:
                      int             level);
 
     void set_outflow_bcs (int        which_call,
-                          MultiFab** phi,
-                          MultiFab** Vel_in,
-                          MultiFab** Divu_in,
-                          MultiFab** Sig_in,
+                          const Array<MultiFab*>& phi,
+                          const Array<MultiFab*>& Vel_in,
+                          const Array<MultiFab*>& Divu_in,
+                          const Array<MultiFab*>& Sig_in,
                           int        c_lev,
                           int        f_lev,
                           int        have_divu);
@@ -284,7 +284,7 @@ protected:
                                    Box*         state_strip,
                                    Orientation* outFacesAtThisLevel,
                                    int          numOutFlowFaces,
-                                   MultiFab**   phi,
+                                   const Array<MultiFab*>& phi,
                                    MultiFab*    Vel_in,
                                    MultiFab*    Divu_in,
                                    MultiFab*    Sig_in,
@@ -293,19 +293,19 @@ protected:
 
 protected:
 
-    void putDown(MultiFab** phi, FArrayBox* phi_fine_strip,
+    void putDown(const Array<MultiFab*>& phi, FArrayBox* phi_fine_strip,
 		 int c_lev, int f_lev, const Orientation* outFaces,
 		 int numOutFlowFaces, int ncStripWidth);
     //
     // Pointers to amrlevel and amr.
     //
     Amr*             parent;
-    PArray<AmrLevel> LevelData;
+    Array<AmrLevel*> LevelData;
     //
     // The array of Radii, and number of radii ghost cells.
     //
-    int                            radius_grow;
-    PArray< Array< Array<Real> > > radius;
+    int                    radius_grow;
+    Array< Array< Array<Real> > * > radius;
     //
     // Anelastic coefficient array.
     //
@@ -332,31 +332,34 @@ protected:
     static int  add_vort_proj;
 
     void doNodalProjection(int c_lev, int nlevel, 
-			   MultiFab* vel[], MultiFab* phi[], MultiFab* sig[],
-			   MultiFab* rhs[], const PArray<MultiFab>& crse_rhs, 
+			   const Array<MultiFab*>& vel, 
+                           const Array<MultiFab*>& phi,
+                           const Array<MultiFab*>& sig,
+			   const Array<MultiFab*>& rhs_cc,
+                           const Array<MultiFab*>& rhnd, 
 			   Real rel_tol, Real abs_tol,
-			   MultiFab* sync_resid_crse=0,
-			   MultiFab* sync_resid_fine=0,
+			   MultiFab* sync_resid_crse=nullptr,
+			   MultiFab* sync_resid_fine=nullptr,
 			   bool doing_initial_velproj=false);
 
-  // Mask off fine grids
-  // Possible values for msk
-  // BogusValue: outside this level
-  //          0: covered by the fine level
-  //          1: valid region not covered fine level
-  void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom,
-		  const BoxArray& fineGrids, const IntVect& ref_ratio);
-
-  // Mask off coarse grids
-  // Possible values for msk
-  // BogusValue: outside physical domain, or we don't care
-  //          0: covered by the coarse level
-  //          1: valid region 
-  void mask_grids(MultiFab& msk, const Geometry& geom);
-
-  // set velocity in ghost cells to zero except for inflow
-  void set_boundary_velocity(int c_lev, int nlevel, MultiFab* vel[], 
-                             bool doing_initial_velproj, bool inflowCorner);
+    // Mask off fine grids
+    // Possible values for msk
+    // BogusValue: outside this level
+    //          0: covered by the fine level
+    //          1: valid region not covered fine level
+    void mask_grids(MultiFab& msk, const BoxArray& grids, const Geometry& geom,
+                    const BoxArray& fineGrids, const IntVect& ref_ratio);
+    
+    // Mask off coarse grids
+    // Possible values for msk
+    // BogusValue: outside physical domain, or we don't care
+    //          0: covered by the coarse level
+    //          1: valid region 
+    void mask_grids(MultiFab& msk, const Geometry& geom);
+    
+    // set velocity in ghost cells to zero except for inflow
+    void set_boundary_velocity(int c_lev, int nlevel, const Array<MultiFab*>& vel, 
+                               bool doing_initial_velproj, bool inflowCorner);
 
 };
 #endif

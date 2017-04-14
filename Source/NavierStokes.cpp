@@ -1441,16 +1441,16 @@ NavierStokes::post_init_press (Real&        dt_init,
         //
         // This constructs a guess at P, also sets p_old == p_new.
         //
-        MultiFab** sig = new MultiFab*[finest_level+1];
+        Array<MultiFab*> sig(finest_level+1, nullptr);
 
         for (int k = 0; k <= finest_level; k++)
         {
             sig[k] = &(getLevel(k).get_rho_half_time());
         }
-        if (projector)
+        if (projector) {
             projector->initialSyncProject(0,sig,parent->dtLevel(0),
                                           strt_time,have_divu);
-        delete [] sig;
+        }
 
         for (int k = finest_level-1; k >= 0; k--)
         {

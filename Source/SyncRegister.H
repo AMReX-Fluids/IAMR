@@ -2,7 +2,6 @@
 #ifndef _SYNCREGISTER_H_
 #define _SYNCREGISTER_H_
 
-#include <PArray.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <MultiFab.H>

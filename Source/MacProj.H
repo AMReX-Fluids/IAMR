@@ -116,7 +116,7 @@ protected:
     // Pointers to amr,amrlevel.
     //
     Amr*             parent;
-    PArray<AmrLevel> LevelData;
+    Array<AmrLevel*> LevelData;
     //
     // Boundary condition objects.
     //
@@ -125,8 +125,8 @@ protected:
     //
     // MAC sync correction and solution.
     //
-    PArray<MultiFab>     mac_phi_crse;
-    PArray<FluxRegister> mac_reg;
+    Array<std::unique_ptr<MultiFab    > > mac_phi_crse;
+    Array<std::unique_ptr<FluxRegister> > mac_reg;
     //
     // Anelastic coefficient array.
     //

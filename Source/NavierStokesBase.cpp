@@ -144,9 +144,6 @@ BL_FORT_PROC_DECL(BL_NS_DOTRAC2,bl_ns_dotrac2)(int* dotrac2)
 }
 
 NavierStokesBase::NavierStokesBase ()
-    :
-    raii_fbs(PArrayManage),
-    raii_mfs(PArrayManage)
 {
     rho_qtime    = 0;
     rho_tqtime   = 0;
@@ -167,12 +164,11 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 				    const BoxArray& bl,
 				    Real            time)
     :
-    AmrLevel(papa,lev,level_geom,bl,time),
-    raii_fbs(PArrayManage),
-    raii_mfs(PArrayManage)
+    AmrLevel(papa,lev,level_geom,bl,time)
 {
-    if(!additional_state_types_initialized)
+    if(!additional_state_types_initialized) {
         init_additional_state_types();
+    }
     
     const BoxArray& P_grids = state[Press_Type].boxArray();
     //
