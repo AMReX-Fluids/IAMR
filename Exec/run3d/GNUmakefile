@@ -1,5 +1,5 @@
-#BOXLIB_HOME defines the directory in which we will find the BoxLib directory
-BOXLIB_HOME ?= ../../../BoxLib
+#AMREX_HOME defines the directory in which we will find the BoxLib directory
+AMREX_HOME ?= ../../../amrex
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..
@@ -51,7 +51,7 @@ endif
 
 ifeq (${USE_VELOCITY}, TRUE)
   #AMRVIS_DIR defines the directory in which we will find pAmrvis (e.g. DataServices, AmrData and FABUTIL)
-  AMRVIS_DIR = $(BOXLIB_HOME)/Src/Extern/amrdata
+  AMRVIS_DIR = $(AMREX_HOME)/Src/Extern/amrdata
 endif
 
 # This allows GetForce to call a Fortran routine

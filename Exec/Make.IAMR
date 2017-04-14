@@ -1,5 +1,5 @@
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs 
+include $(AMREX_HOME)/Tools/C_mk/Make.defs 
 
 #These are the directories in IAMR
 
@@ -24,12 +24,12 @@ ifeq ($(USE_PARTICLES),TRUE)
   Pdirs += C_ParticleLib
 endif
 
-Ppack   += $(foreach dir, $(Pdirs), $(BOXLIB_HOME)/Src/$(dir)/Make.package)
+Ppack   += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
-include $(BOXLIB_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package 
-include $(BOXLIB_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-include $(BOXLIB_HOME)/Src/F_BaseLib/FParallelMG.mak
+include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package 
+include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
+include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
 
 ifeq ($(USE_VELOCITY), TRUE)
   DEFINES += -DBL_NOLINEVALUES -DBL_USE_VELOCITY -DBL_PARALLEL_IO
@@ -62,21 +62,21 @@ endif
 
 # job_info support
 CEXE_sources += buildInfo.cpp
-CEXE_headers += $(BOXLIB_HOME)/Tools/C_scripts/buildInfo.H
-INCLUDE_LOCATIONS +=  $(BOXLIB_HOME)/Tools/C_scripts
+CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/buildInfo.H
+INCLUDE_LOCATIONS +=  $(AMREX_HOME)/Tools/C_scripts
 
 all: $(executable)
 	$(SILENT) $(RM) buildInfo.cpp
 	@echo SUCCESS
 
 buildInfo.cpp:
-	$(BOXLIB_HOME)/Tools/C_scripts/makebuildinfo_C.py \
-          --boxlib_home "$(BOXLIB_HOME)" \
+	$(AMREX_HOME)/Tools/C_scripts/makebuildinfo_C.py \
+          --boxlib_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \
           --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
-          --GIT "$(TOP) $(BOXLIB_HOME)" 
+          --GIT "$(TOP) $(AMREX_HOME)" 
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
 
 clean::
 	$(SILENT) $(RM) buildInfo.cpp

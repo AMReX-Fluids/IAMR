@@ -8,16 +8,16 @@ BUILD_IN_PLACE = TRUE
 EBASE          = turbMerge
 USE_MPI        = FALSE
 
-BOXLIB_HOME ?= ../../../BoxLib
+AMREX_HOME ?= ../../../amrex
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/C_mk/Make.defs
 
 Bpack   := ./Make.package
 Blocs   := .
 
-include $(BOXLIB_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/C_BaseLib/Make.package
 
-MySrcDirs = . $(BOXLIB_HOME)/Src/C_BaseLib
+MySrcDirs = . $(AMREX_HOME)/Src/C_BaseLib
 
 INCLUDE_LOCATIONS += $(MySrcDirs)
 
@@ -31,6 +31,6 @@ vpath %.f   $(MySrcDirs)
 
 all: $(executable)
 
-include $(BOXLIB_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/C_mk/Make.rules
 
 
