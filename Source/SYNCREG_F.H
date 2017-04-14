@@ -21,7 +21,7 @@
 #    define FORT_CONVERTMASK convmask_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" 
 {

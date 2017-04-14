@@ -3,10 +3,10 @@
 #include <unistd.h>
 #endif
 
-#include <MultiFab.H>
-#include <ParmParse.H>
-#include <Utility.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #include <new>
 using std::setprecision;
@@ -15,7 +15,7 @@ using std::setprecision;
 using std::set_new_handler;
 #endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 #include <SlabStatTools.H>
 #include <StatTypes.H>

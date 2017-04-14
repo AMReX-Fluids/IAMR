@@ -2,9 +2,9 @@
 #ifndef _VISCBNDRYTENSOR_H_
 #define _VISCBNDRYTENSOR_H_
 
-#include <MCInterpBndryData.H>
-#include <BC_TYPES.H>
-#include <MCLinOp.H>
+#include <AMReX_MCInterpBndryData.H>
+#include <AMReX_BC_TYPES.H>
+#include <AMReX_MCLinOp.H>
 
 class ViscBndryTensor
     :

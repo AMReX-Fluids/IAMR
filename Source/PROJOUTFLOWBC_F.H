@@ -81,7 +81,7 @@
 #  define FORT_INTERP      interphg_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" {
 #if (BL_SPACEDIM == 2)

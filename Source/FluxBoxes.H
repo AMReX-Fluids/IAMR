@@ -1,7 +1,7 @@
 #ifndef _FLUXBOXES_H_
 #define _FLUXBOXES_H_
 
-#include <AmrLevel.H>
+#include <AMReX_AmrLevel.H>
 
 class FluxBoxes
 {

@@ -2,17 +2,17 @@
 #ifndef _Diffusion_H_
 #define _Diffusion_H_
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
-#include <Box.H>
-#include <BoxArray.H>
-#include <Geometry.H>
-#include <LevelBld.H>
-#include <BC_TYPES.H>
-#include <AmrLevel.H>
-#include <ErrorList.H>
-#include <FluxRegister.H>
-#include <ABecLaplacian.H>
+#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_LevelBld.H>
+#include <AMReX_BC_TYPES.H>
+#include <AMReX_AmrLevel.H>
+#include <AMReX_ErrorList.H>
+#include <AMReX_FluxRegister.H>
+#include <AMReX_ABecLaplacian.H>
 #include <ViscBndry.H>
 #include <FluxBoxes.H>
 
@@ -20,10 +20,10 @@
 // Include files for tensor solve.
 //
 #include <ViscBndryTensor.H>
-#include <DivVis.H>
-#include <LO_BCTYPES.H>
-#include <MCMultiGrid.H>
-#include <MCCGSolver.H>
+#include <AMReX_DivVis.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MCMultiGrid.H>
+#include <AMReX_MCCGSolver.H>
 
 //
 // Useful enumeration of the different forms of the diffusion terms

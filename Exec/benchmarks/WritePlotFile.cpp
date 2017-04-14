@@ -17,11 +17,11 @@
 #include <unistd.h>
 #endif
 
-#include <Utility.H>
-#include <ParallelDescriptor.H>
-#include <VisMF.H>
-#include <RealBox.H>
-#include <Geometry.H>
+#include <AMReX_Utility.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_Geometry.H>
 
 #include <new>
 using std::setprecision;

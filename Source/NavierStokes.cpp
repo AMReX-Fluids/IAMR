@@ -2,25 +2,25 @@
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
 //
-#include <winstd.H>
+#include <AMReX_winstd.H>
 #include <unistd.h>
 
 #include <algorithm>
 #include <vector>
 #include <cmath>
 
-#include <Geometry.H>
-#include <Extrapolater.H>
-#include <ParmParse.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_Extrapolater.H>
+#include <AMReX_ParmParse.H>
 #include <NavierStokes.H>
-#include <MultiGrid.H>
+#include <AMReX_MultiGrid.H>
 #include <NAVIERSTOKES_F.H>
-#include <BLProfiler.H>
+#include <AMReX_BLProfiler.H>
 #include <PROB_NS_F.H>
 
 #ifdef BL_USE_VELOCITY
-#include <DataServices.H>
-#include <AmrData.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_AmrData.H>
 #endif
 
 #include <buildInfo.H>

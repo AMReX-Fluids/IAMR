@@ -7,8 +7,8 @@
 #include <iostream>
 #include <string>
 
-#include <REAL.H>
-#include <Particles.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Particles.H>
 
 //
 // Spring

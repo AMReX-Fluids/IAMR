@@ -1,6 +1,6 @@
 #ifndef _NS_error_F_H_
 #define _NS_error_F_H_
-#include <BLFort.H>
+#include <AMReX_BLFort.H>
 
 BL_FORT_PROC_DECL(FORT_DENERROR, fort_denerror)
      (int* tag, ARLIM_P(tlo), ARLIM_P(thi),

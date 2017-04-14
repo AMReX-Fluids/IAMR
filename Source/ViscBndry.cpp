@@ -1,7 +1,7 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
-#include <LO_BCTYPES.H>
+#include <AMReX_LO_BCTYPES.H>
 #include <ViscBndry.H>
 
 ViscBndry::ViscBndry ()

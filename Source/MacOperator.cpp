@@ -1,19 +1,19 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
-#include <MacBndry.H>
+#include <AMReX_MacBndry.H>
 #include <MacOperator.H>
 #include <MacOpMacDrivers.H>
 #include <MACOPERATOR_F.H>
-#include <CGSolver.H>
-#include <MultiGrid.H>
-#include <ParmParse.H>
+#include <AMReX_CGSolver.H>
+#include <AMReX_MultiGrid.H>
+#include <AMReX_ParmParse.H>
 
 #ifdef MG_USE_HYPRE
 #include <HypreABec.H>
 #endif
 
-#include <FMultiGrid.H>
+#include <AMReX_FMultiGrid.H>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \

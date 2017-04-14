@@ -2,12 +2,12 @@
 #ifndef _SYNCREGISTER_H_
 #define _SYNCREGISTER_H_
 
-#include <BoxArray.H>
-#include <FArrayBox.H>
-#include <MultiFab.H>
-#include <Geometry.H>
-#include <BndryRegister.H>
-#include <BCRec.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_BndryRegister.H>
+#include <AMReX_BCRec.H>
 
 class SyncRegister
     :

@@ -89,7 +89,7 @@
 #    define FORT_SET_PARAMS         setparams_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {

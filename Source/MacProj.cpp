@@ -1,11 +1,11 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
-#include <LO_BCTYPES.H>
-#include <Geometry.H>
-#include <ParmParse.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
 #include <MacProj.H>
-#include <MacBndry.H>
+#include <AMReX_MacBndry.H>
 #include <MacOpMacDrivers.H>
 #include <NavierStokesBase.H>
 #include <MACPROJ_F.H>

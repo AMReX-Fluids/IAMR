@@ -5,8 +5,8 @@
 //
 // Includes required for the interface definition
 //
-#include <Array.H>
-#include <REAL.H>
+#include <AMReX_Array.H>
+#include <AMReX_REAL.H>
 
 
 // ================================================================

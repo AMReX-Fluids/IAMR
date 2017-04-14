@@ -187,7 +187,7 @@
 #    define FORT_DERNULL     dernull_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" {
      void FORT_DERMODGRADRHO    (Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),

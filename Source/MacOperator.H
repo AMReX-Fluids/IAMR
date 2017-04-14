@@ -9,9 +9,9 @@
 // through a few driver functions which scale variables.
 //==========================================================================
 
-#include <AmrLevel.H>
-#include <ABecLaplacian.H>
-#include <BndryData.H>
+#include <AMReX_AmrLevel.H>
+#include <AMReX_ABecLaplacian.H>
+#include <AMReX_BndryData.H>
 
 class MacOperator
     :

@@ -6,21 +6,21 @@
 #include <omp.h>
 #endif
 
-#include <AmrLevel.H>
-#include <BC_TYPES.H>
-#include <BLFort.H>
+#include <AMReX_AmrLevel.H>
+#include <AMReX_BC_TYPES.H>
+#include <AMReX_BLFort.H>
 #include <Diffusion.H>
-#include <ErrorList.H>
-#include <FluxRegister.H>
+#include <AMReX_ErrorList.H>
+#include <AMReX_FluxRegister.H>
 #include <Godunov.H>
 #include <MacProj.H> 
 #include <Projection.H>
 #include <SyncRegister.H>
-#include <Utility.H>
+#include <AMReX_Utility.H>
 #include <ViscBndry.H>
 
 #ifdef PARTICLES
-#include <AmrParticles.H>
+#include <AMReX_AmrParticles.H>
 #endif
 
 #ifdef USE_BPM

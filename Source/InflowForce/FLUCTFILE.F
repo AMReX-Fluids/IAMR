@@ -4,9 +4,9 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
-#include <SPACE.H>
-#include <CONSTANTS.H>
+#include <AMReX_REAL.H>
+#include <AMReX_SPACE.H>
+#include <AMReX_CONSTANTS.H>
 #include <FLUCTFILE.H>
 
       block data Inflow_Force_Data

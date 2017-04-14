@@ -1,11 +1,11 @@
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
 #include <Diffusion.H>
 #include <NavierStokesBase.H>
 
-#include <MultiGrid.H>
-#include <CGSolver.H>
+#include <AMReX_MultiGrid.H>
+#include <AMReX_CGSolver.H>
 
 #include <DIFFUSION_F.H>
 
@@ -30,7 +30,7 @@ const Real BL_SAFE_BOGUS = -666.e200;
 #include <HypreABec.H>
 #endif
 
-#include <FMultiGrid.H>
+#include <AMReX_FMultiGrid.H>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -2030,7 +2030,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     }
 }
 
-#include <Utility.H>
+#include <AMReX_Utility.H>
 
 void
 Diffusion::getBndryData (ViscBndry& bndry,

@@ -5,10 +5,10 @@
 #include <fstream>
 #include <string>
 
-#include <REAL.H>
-#include <Utility.H>
-#include <FArrayBox.H>
-#include <ParallelDescriptor.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Utility.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParallelDescriptor.H>
 
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_GETPLANE    GETPLANE

@@ -2,14 +2,14 @@
 #ifndef _Projection_H_
 #define _Projection_H_
 
-#include <BC_TYPES.H>
-#include <BCRec.H>
-#include <Amr.H>
-#include <AmrLevel.H>
+#include <AMReX_BC_TYPES.H>
+#include <AMReX_BCRec.H>
+#include <AMReX_Amr.H>
+#include <AMReX_AmrLevel.H>
 #include <RegType.H>
 #include <SyncRegister.H>
-#include <FluxRegister.H>
-#include <MultiFabUtil.H>
+#include <AMReX_FluxRegister.H>
+#include <AMReX_MultiFabUtil.H>
 
 class Projection 
 {

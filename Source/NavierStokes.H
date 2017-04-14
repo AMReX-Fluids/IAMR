@@ -3,7 +3,7 @@
 #define _NavierStokes_H_
 
 #include <NavierStokesBase.H>
-#include <LevelBld.H>
+#include <AMReX_LevelBld.H>
 
 class NSBld
     :

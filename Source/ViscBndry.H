@@ -2,8 +2,8 @@
 #ifndef _VISCBNDRYDATA_H_
 #define _VISCBNDRYDATA_H_
 
-#include <InterpBndryData.H>
-#include <BC_TYPES.H>
+#include <AMReX_InterpBndryData.H>
+#include <AMReX_BC_TYPES.H>
 
 class ViscBndry
     :

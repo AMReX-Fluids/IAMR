@@ -1,18 +1,18 @@
 
-#include <winstd.H>
+#include <AMReX_winstd.H>
 
-#include <Geometry.H>
-#include <ParmParse.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
 #include <NavierStokesBase.H>
 #include <NS_BC.H>
-#include <BLProfiler.H>
+#include <AMReX_BLProfiler.H>
 #include <Projection.H>
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>
 #include <ProjOutFlowBC.H>
 
-#include <MGT_Solver.H>
-#include <stencil_types.H>
+#include <AMReX_MGT_Solver.H>
+#include <AMReX_stencil_types.H>
 #include <mg_cpp_f.h>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \

@@ -76,7 +76,7 @@
 #endif
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" {
     void FORT_FILCC (const Real * q, ARLIM_P(q_lo), ARLIM_P(q_hi),

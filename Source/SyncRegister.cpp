@@ -1,10 +1,10 @@
 
-#include <BC_TYPES.H>
-#include <FluxRegister.H>
+#include <AMReX_BC_TYPES.H>
+#include <AMReX_FluxRegister.H>
 #include <SyncRegister.H>
 //#include <NAVIERSTOKES_F.H>
 #include <SYNCREG_F.H>
-#include <BLProfiler.H>
+#include <AMReX_BLProfiler.H>
 
 #ifdef _OPENMP
 #include <omp.h>

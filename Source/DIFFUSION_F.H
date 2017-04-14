@@ -45,7 +45,7 @@
 #    define FORT_DIV_MU_SI        divmuusii_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C"
 {
