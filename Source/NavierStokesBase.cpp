@@ -1208,7 +1208,7 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
 
     for (int j = 0; j < err_list.size(); j++)
     {
-        MultiFab* mf = derive(err_list[j].name(), time, err_list[j].nGrow());
+        auto mf = derive(err_list[j].name(), time, err_list[j].nGrow());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1239,8 +1239,6 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
             //
             tags[mfi].tags(itags);
         }
-
-        delete mf;
     }
 }
 
@@ -3723,7 +3721,7 @@ NavierStokesBase::volWgtSum (const std::string& name,
 {
     Real        sum = 0.0;
     const Real* dx  = geom.CellSize();
-    MultiFab*   mf  = derive(name,time,0);
+    auto        mf  = derive(name,time,0);
     BoxArray    baf;
 
     if (level < parent->finestLevel())
@@ -3794,8 +3792,6 @@ NavierStokesBase::volWgtSum (const std::string& name,
 #endif
         sum += s;
     }
-
-    delete mf;
 
     ParallelDescriptor::ReduceRealSum(sum);
 
@@ -3874,8 +3870,8 @@ NavierStokesBase::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 
     const int turbGrow(0);
     const int presGrow(0);
-    MultiFab* turbMF = derive("TurbVars",time,turbGrow);
-    MultiFab* presMF = derive("PresVars",time,presGrow);
+    auto turbMF = derive("TurbVars",time,turbGrow);
+    auto presMF = derive("PresVars",time,presGrow);
 
     BoxArray baf;
 
@@ -3929,9 +3925,6 @@ NavierStokesBase::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         FORT_SUMTURB(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
 		     dx,turb,&ksize,&turbVars);
    } 
-
-    delete turbMF;
-    delete presMF;
 }
 
 #ifdef SUMJET
@@ -3943,8 +3936,8 @@ NavierStokesBase::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,
     const int turbGrow(0);
     const int presGrow(0);
 
-    MultiFab* turbMF = derive("JetVars",time,turbGrow);
-    MultiFab* presMF = derive("JetPresVars",time,presGrow);
+    auto turbMF = derive("JetVars",time,turbGrow);
+    auto presMF = derive("JetPresVars",time,presGrow);
 
     BoxArray baf;
 
@@ -3999,9 +3992,6 @@ NavierStokesBase::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,
 		    dx,jetData,&levRsize,&levKsize,&rsize,&ksize,&jetVars,&jet_interval_split,
 		    gridloc.lo(),gridloc.hi());
     }
-
-    delete turbMF;
-    delete presMF;
 }
 
 void
@@ -4327,7 +4317,7 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
     }
 }
 
-MultiFab*
+std::unique_ptr<MultiFab>
 NavierStokesBase::ParticleDerive (const std::string& name,
 				  Real               time,
 				  int                ngrow)
@@ -4340,9 +4330,9 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 	    ncomp = rec->numDerive();
 	}
 	
-	MultiFab* ret = new MultiFab(grids, dmap, ncomp, ngrow);
+        MultiFab* ret = new MultiFab(grids, dmap, ncomp, ngrow);
 	ParticleDerive(name,time,*ret,0);
-	return ret;
+	return std::unique_ptr<MultiFab>{ret};
     }
     else {
 	return AmrLevel::derive(name, time, ngrow);

@@ -468,7 +468,7 @@ protected:
     virtual int timestamp_num_extras () { return 0; }
     virtual void timestamp_add_extras (int lev, amrex::Real time, amrex::MultiFab& mf) { }
 
-    amrex::MultiFab* ParticleDerive(const std::string& name, amrex::Real time, int ngrow);
+    std::unique_ptr<amrex::MultiFab> ParticleDerive (const std::string& name, amrex::Real time, int ngrow);
     void ParticleDerive (const std::string& name, amrex::Real time, amrex::MultiFab& mf, int dcomp);
 #endif
 

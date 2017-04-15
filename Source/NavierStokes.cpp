@@ -957,7 +957,7 @@ NavierStokes::MaxVal (const std::string& name,
                       Real           time)
 {
     Real        mxval = 0.0;
-    MultiFab*   mf    = derive(name,time,0);
+    auto        mf = derive(name,time,0);
     BoxArray    baf;
 
     if (level < parent->finestLevel())
@@ -992,8 +992,6 @@ NavierStokes::MaxVal (const std::string& name,
 
         mxval = std::max(mxval, s);
     }
-
-    delete mf;
 
     ParallelDescriptor::ReduceRealMax(mxval);
 
@@ -1332,9 +1330,8 @@ NavierStokes::writePlotFile (const std::string& dir,
             } 
 	    const DeriveRec* rec = derive_lst.get(*it);
 	    ncomp = rec->numDerive();
-	    MultiFab* derive_dat = derive(*it,plot_time,nGrow);
+	    auto derive_dat = derive(*it,plot_time,nGrow);
 	    MultiFab::Copy(plotMF,*derive_dat,0,cnt,ncomp,nGrow);
-	    delete derive_dat;
 	    cnt += ncomp;
 	}
     }
@@ -1346,7 +1343,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     VisMF::Write(plotMF,TheFullPath,how,true);
 }
 
-MultiFab*
+std::unique_ptr<MultiFab>
 NavierStokes::derive (const std::string& name,
                       Real               time,
                       int                ngrow)
