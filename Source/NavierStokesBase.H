@@ -113,7 +113,7 @@ public:
     //   the list of tagged points
     //
     virtual void manual_tags_placement (amrex::TagBoxArray&    tags, 
-					amrex::Array<amrex::IntVect>& bf_lev) override;
+					const amrex::Array<amrex::IntVect>& bf_lev) override;
     //
     // Estimate the end of the simulation for amrLevel.
     //

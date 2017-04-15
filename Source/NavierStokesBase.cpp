@@ -2274,7 +2274,7 @@ NavierStokesBase::mac_project (Real      time,
 
 void
 NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
-					 Array<IntVect>& bf_lev)
+					 const Array<IntVect>& bf_lev)
 {
     Array<Orientation> outFaces;
     getOutFlowFaces(outFaces);
@@ -2520,7 +2520,7 @@ NavierStokesBase::post_regrid (int lbase,
 #ifdef PARTICLES
     if (NSPC && level == lbase)
     {
-        NSPC->Redistribute(false, false, lbase);
+        NSPC->Redistribute(lbase);
     }
 #endif
 }
@@ -4242,7 +4242,7 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
          
 	int ngrow = (level == 0) ? 0 : crse_iteration;
    
-        NSPC->Redistribute(false, true, level, ngrow);
+        NSPC->Redistribute(level, finest_level, ngrow);
 
         if (!timestamp_dir.empty())
         {
