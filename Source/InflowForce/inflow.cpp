@@ -10,6 +10,8 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParallelDescriptor.H>
 
+using namespace amrex;
+
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_GETPLANE    GETPLANE
 #  elif defined(BL_FORT_USE_LOWERCASE)
@@ -49,7 +51,7 @@ FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp, int*
         ifs.open(hdr.c_str(), std::ios::in);
 
         if (!ifs.good())
-            BoxLib::FileOpenFailed(hdr);
+            amrex::FileOpenFailed(hdr);
 
         int  idummy;
         Real rdummy;
@@ -84,7 +86,7 @@ FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp, int*
     ifs.open(dat.c_str(), std::ios::in);
 
     if (!ifs.good())
-        BoxLib::FileOpenFailed(dat);
+        amrex::FileOpenFailed(dat);
     //
     // There are BL_SPACEDIM * kmax planes of FABs.
     // The first component are in the first kmax planes,
@@ -97,7 +99,7 @@ FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp, int*
     ifs.seekg(start, std::ios::beg);
 
     if (!ifs.good())
-        BoxLib::Abort("getplane(): seekg() failed");
+        amrex::Abort("getplane(): seekg() failed");
 
     FArrayBox fab;
 

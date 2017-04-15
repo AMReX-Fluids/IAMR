@@ -10,6 +10,8 @@
 #include <PROB_NS_F.H>
 #endif
 
+using namespace amrex;
+
 Godunov*    NavierStokesBase::godunov       = 0;
 ErrorList   NavierStokesBase::err_list;
 BCRec       NavierStokesBase::phys_bc;
@@ -370,14 +372,14 @@ NavierStokesBase::Initialize ()
                     std::cerr << "NavierStokesBase::variableSetUp:periodic in direction "
                               << dir
                               << " but low BC is not Interior\n";
-                    BoxLib::Abort("NavierStokesBase::Initialize()");
+                    amrex::Abort("NavierStokesBase::Initialize()");
                 }
                 if (hi_bc[dir] != Interior)
                 {
                     std::cerr << "NavierStokesBase::variableSetUp:periodic in direction "
                               << dir
                               << " but high BC is not Interior\n";
-                    BoxLib::Abort("NavierStokesBase::Initialize()");
+                    amrex::Abort("NavierStokesBase::Initialize()");
                 }
             } 
         }
@@ -396,14 +398,14 @@ NavierStokesBase::Initialize ()
                   std::cerr << "NavierStokesBase::variableSetUp:Interior bc in direction "
                             << dir
                             << " but not defined as periodic\n";
-                  BoxLib::Abort("NavierStokesBase::Initialize()");
+                  amrex::Abort("NavierStokesBase::Initialize()");
               }
               if (hi_bc[dir] == Interior)
               {
                   std::cerr << "NavierStokesBase::variableSetUp:Interior bc in direction "
                             << dir
                             << " but not defined as periodic\n";
-                  BoxLib::Abort("NavierStokesBase::Initialize()");
+                  amrex::Abort("NavierStokesBase::Initialize()");
               }
             }
         }
@@ -446,7 +448,7 @@ NavierStokesBase::Initialize ()
     pp.query("do_vorticity_ref",         do_vorticity_ref );
 
     if (modify_reflux_normal_vel)
-        BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
+        amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
 #ifdef MOREGENGETFORCE
     pp.query("getForceVerbose",          getForceVerbose  );
@@ -460,13 +462,13 @@ NavierStokesBase::Initialize ()
 
     // Don't let init_shrink be greater than 1
     if (init_shrink > 1.0)
-        BoxLib::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
+        amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
 
     //
     // Make sure we don't use divu_sync.
     //
     if (do_divu_sync)
-        BoxLib::Error("do_divu_sync == 1 is the wrong setting");
+        amrex::Error("do_divu_sync == 1 is the wrong setting");
     //
     // This test ensures that if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
@@ -476,7 +478,7 @@ NavierStokesBase::Initialize ()
         std::cout << "Mismatched options for NavierStokesBase\n"
                   << "do_MLsync_proj and do_sync_proj are inconsistent\n";
 
-        BoxLib::Abort("NavierStokesBase::Initialize()");
+        amrex::Abort("NavierStokesBase::Initialize()");
     }
     //
     // Read viscous/diffusive parameters and array of viscous/diffusive coeffs.
@@ -493,10 +495,10 @@ NavierStokesBase::Initialize ()
     const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
 
     if (n_vel_visc_coef != 1)
-        BoxLib::Abort("NavierStokesBase::Initialize(): Only one vel_visc_coef allowed");
+        amrex::Abort("NavierStokesBase::Initialize(): Only one vel_visc_coef allowed");
 
     if (do_temp && n_temp_cond_coef != 1)
-        BoxLib::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
+        amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
 
     int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
     if (do_temp)
@@ -541,7 +543,7 @@ NavierStokesBase::Initialize ()
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     pp.query("be_cn_theta",be_cn_theta);
     if (be_cn_theta > 1.0 || be_cn_theta < .5)
-        BoxLib::Abort("NavierStokesBase::Initialize(): Must have be_cn_theta <= 1.0 && >= .5");
+        amrex::Abort("NavierStokesBase::Initialize(): Must have be_cn_theta <= 1.0 && >= .5");
     //
     // Set parameters dealing with how grids are treated at outflow boundaries.
     //
@@ -585,7 +587,7 @@ NavierStokesBase::Initialize ()
     read_particle_params ();
 #endif
 
-    BoxLib::ExecOnFinalize(NavierStokesBase::Finalize);
+    amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
     initialized = true;
 }
@@ -1050,7 +1052,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
 
     if (level > 0)
     {
-        BoxList bl = BoxLib::GetBndryCells(grids,nGrow);
+        BoxList bl = amrex::GetBndryCells(grids,nGrow);
 
         BoxArray f_bnd_ba(bl);
 
@@ -1285,7 +1287,7 @@ NavierStokesBase::estTimeStep ()
         // HACK HACK HACK 
         // THIS CALL IS BROKEN 
         // getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
-        tforces.resize(BoxLib::grow(grids[i],n_grow),BL_SPACEDIM);
+        tforces.resize(amrex::grow(grids[i],n_grow),BL_SPACEDIM);
         tforces.setVal(0.);
 #else
 #ifdef GENGETFORCE
@@ -1363,7 +1365,7 @@ NavierStokesBase::get_rho (Real time)
     }
     else
     {
-        BoxLib::Error("NavierStokesBase::get_rho(): bad time");
+        amrex::Error("NavierStokesBase::get_rho(): bad time");
 
         return rho_ptime; // Got to return something to shut up compiler.
     }
@@ -1547,7 +1549,7 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 
         for ( ; P_fpi.isValid(); ++P_fpi) 
         {
-            BL_ASSERT(BoxLib::grow(grids[P_fpi.index()],NGrow) == gp[P_fpi].box());
+            BL_ASSERT(amrex::grow(grids[P_fpi.index()],NGrow) == gp[P_fpi].box());
 
             FArrayBox& gpfab = gp[P_fpi];
 
@@ -1733,7 +1735,7 @@ NavierStokesBase::init (AmrLevel &old)
         }
     }
 
-    old_intersect_new          = BoxLib::intersect(grids,oldns->boxArray());
+    old_intersect_new          = amrex::intersect(grids,oldns->boxArray());
     is_first_step_after_regrid = true;
 }
 
@@ -1817,7 +1819,7 @@ NavierStokesBase::init_additional_state_types ()
     {
         std::cout << "divu must be 0-th, Divu_Type component in the state\n";
 
-        BoxLib::Abort("NavierStokesBase::init_additional_state_types()");
+        amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
 
     if (have_divu && do_sync_proj && !do_MLsync_proj) 
@@ -1826,7 +1828,7 @@ NavierStokesBase::init_additional_state_types ()
         std::cout << "  because the divu sync is only implemented in the " << '\n';
         std::cout << "  multilevel sync (MLsyncProject), not in the single level " << '\n';
         std::cout << "  (syncProject)." << '\n';
-        BoxLib::Abort("NavierStokesBase::init_additional_state_types()");
+        amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
 
     int _Dsdt = -1;
@@ -1843,13 +1845,13 @@ NavierStokesBase::init_additional_state_types ()
     {
         std::cout << "dsdt must be 0-th, Dsdt_Type component in the state\n";
 
-        BoxLib::Abort("NavierStokesBase::init_additional_state_types()");
+        amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
     if (have_dsdt && !have_divu)
     {
         std::cout << "Must have divu in order to have dsdt\n";
 
-        BoxLib::Abort("NavierStokesBase::init_additional_state_types()");
+        amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
 
     num_state_type = desc_lst.size();
@@ -2052,12 +2054,12 @@ NavierStokesBase::level_sync (int crse_iteration)
 
             const IntVect&  fratio = clev.fine_ratio;
           
-            BoxLib::average_down(flev.get_new_data(Divu_Type),
+            amrex::average_down(flev.get_new_data(Divu_Type),
                                  clev.get_new_data(Divu_Type),
                                  flev.geom, clev.geom,
                                  0, 1, fratio);
 
-            BoxLib::average_down(flev.get_new_data(Dsdt_Type),
+            amrex::average_down(flev.get_new_data(Dsdt_Type),
                                  clev.get_new_data(Dsdt_Type),
                                  flev.geom, clev.geom,
                                  0, 1, fratio);
@@ -2278,7 +2280,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
         {
             const Orientation& outFace = outFaces[i];
             const int oDir = outFace.coordDir();
-            const Box& crse_domain = BoxLib::coarsen(geom.Domain(),bf_lev[level]);
+            const Box& crse_domain = amrex::coarsen(geom.Domain(),bf_lev[level]);
             const int mult = (outFace.isLow() ? +1 : -1);
             if (do_refine_outflow)
             {
@@ -2288,7 +2290,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 //
                 const int grid_tol = 1;
 
-                Box outflowBox = BoxLib::adjCell(crse_domain,outFace,grid_tol);
+                Box outflowBox = amrex::adjCell(crse_domain,outFace,grid_tol);
 
                 outflowBox.shift(oDir,mult*grid_tol);
                 //
@@ -2350,7 +2352,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                     // other than the outflow.  This forces outflow cells in the
                     // ghostcells in directions other that oDir to be cleared.
                     //
-                    Box outflowBox = BoxLib::adjCell(crse_domain, outFace, 1);
+                    Box outflowBox = amrex::adjCell(crse_domain, outFace, 1);
                     for (int dir = 0; dir < BL_SPACEDIM; dir++)
                         if (dir != oDir) outflowBox.grow(dir, 1);
                     //
@@ -2625,7 +2627,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
             std::ofstream ofs;
             ofs.open(name.c_str(),std::ios::out|std::ios::trunc|std::ios::binary);
             if (!ofs.good())
-                BoxLib::FileOpenFailed(name);
+                amrex::FileOpenFailed(name);
 
             mf[0].writeOn(ofs);
         }
@@ -2840,7 +2842,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
             {
 #ifdef BOUSSINESQ
                 const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-		FArrayBox Scal(BoxLib::grow(grids[i],0),1);
+		FArrayBox Scal(amrex::grow(grids[i],0),1);
 		Scal.copy(S_old[Rho_mfi],Tracer,0,1);
 		Scal.plus(S_new[Rho_mfi],Tracer,0,1);
 		Scal.mult(0.5);
@@ -2856,7 +2858,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
 		// Average the mac face velocities to get cell centred velocities
                 const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-		FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
+		FArrayBox Vel(amrex::grow(grids[i],0),BL_SPACEDIM);
 		const int* vel_lo  = Vel.loVect();
 		const int* vel_hi  = Vel.hiVect();
 		const int* umacx_lo = u_mac[0][Rho_mfi].loVect();
@@ -2884,7 +2886,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 		//
 		// Average the new and old time to get Crank-Nicholson half time approximation.
                 //
-		FArrayBox Scal(BoxLib::grow(grids[i],0),NUM_SCALARS);
+		FArrayBox Scal(amrex::grow(grids[i],0),NUM_SCALARS);
 		Scal.copy(S_old[Rho_mfi],Density,0,NUM_SCALARS);
 		Scal.plus(S_new[Rho_mfi],Density,0,NUM_SCALARS);
 		Scal.mult(0.5);
@@ -3069,7 +3071,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     case CellConsLin_T:  interpolater = &lincc_interp;        break;
     case CellConsProt_T: interpolater = &protected_interp;    break;
     default:
-        BoxLib::Abort("NavierStokesBase::SyncInterp(): how did this happen");
+        amrex::Abort("NavierStokesBase::SyncInterp(): how did this happen");
     }
 
     NavierStokesBase& fine_level = getLevel(f_lev);
@@ -3078,7 +3080,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     const BoxArray& cgrids     = getLevel(c_lev).boxArray();
     const Geometry& cgeom      = parent->Geom(c_lev);
     const Real*     dx_crse    = cgeom.CellSize();
-    Box             cdomain    = BoxLib::coarsen(fgeom.Domain(),ratio);
+    Box             cdomain    = amrex::coarsen(fgeom.Domain(),ratio);
     const int*      cdomlo     = cdomain.loVect();
     const int*      cdomhi     = cdomain.hiVect();
     int*            bc_new     = new int[2*BL_SPACEDIM*(src_comp+num_comp)];
@@ -3548,7 +3550,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         //
 	// Average the mac face velocities to get cell centred velocities.
         //
-	FArrayBox Vel(BoxLib::grow(grids[i],0),BL_SPACEDIM);
+	FArrayBox Vel(amrex::grow(grids[i],0),BL_SPACEDIM);
 	const int* vel_lo  = Vel.loVect();
 	const int* vel_hi  = Vel.hiVect();
 	const int* umacx_lo = u_mac[0][Rhohalf_mfi].loVect();
@@ -3575,7 +3577,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         //
 	// Average the new and old time to get Crank-Nicholson half time approximation.
         //
-	FArrayBox Scal(BoxLib::grow(grids[i],0),NUM_SCALARS);
+	FArrayBox Scal(amrex::grow(grids[i],0),NUM_SCALARS);
 	Scal.copy(U_old[Rhohalf_mfi],Density,0,NUM_SCALARS);
 	Scal.plus(U_new[Rhohalf_mfi],Density,0,NUM_SCALARS);
 	Scal.mult(0.5);
@@ -3834,13 +3836,13 @@ NavierStokesBase::sum_turbulent_quantities ()
     if (ParallelDescriptor::IOProcessor())
     {
         std::string DirPath = "TurbData";
-        if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
-            BoxLib::CreateDirectoryFailed(DirPath);
+        if (!amrex::UtilCreateDirectory(DirPath, 0755))
+            amrex::CreateDirectoryFailed(DirPath);
 
         const int steps = parent->levelSteps(0);
         FILE *file;
 
-        std::string filename = BoxLib::Concatenate("TurbData/TurbData_", steps, 4);
+        std::string filename = amrex::Concatenate("TurbData/TurbData_", steps, 4);
         filename += ".dat";
 
         file = fopen(filename.c_str(),"w");
@@ -4031,8 +4033,8 @@ NavierStokesBase::sum_jet_quantities ()
     {
         std::cout << "      Creating JetData..." << '\n';
         std::string DirPath = "JetData";
-        if (!BoxLib::UtilCreateDirectory(DirPath, 0755))
-            BoxLib::CreateDirectoryFailed(DirPath);
+        if (!amrex::UtilCreateDirectory(DirPath, 0755))
+            amrex::CreateDirectoryFailed(DirPath);
 
         const int steps = parent->levelSteps(0);
         FILE *file;
@@ -4046,7 +4048,7 @@ NavierStokesBase::sum_jet_quantities ()
 	    z[k] = dx[2]*(0.5+(double)k);
 
 #if 0
-        filename  = BoxLib::Concatenate("JetData/JetData_", steps, 4);
+        filename  = amrex::Concatenate("JetData/JetData_", steps, 4);
         filename += "_r.dat";
 
 	file = fopen(filename.c_str(),"w");
@@ -4054,7 +4056,7 @@ NavierStokesBase::sum_jet_quantities ()
 	    fprintf(file,"%e ",r[i]);
 	fclose(file);
 
-        filename  = BoxLib::Concatenate("JetData/JetData_", steps, 4);
+        filename  = amrex::Concatenate("JetData/JetData_", steps, 4);
         filename += "_z.dat";
 
 	file = fopen(filename.c_str(),"w");
@@ -4064,8 +4066,8 @@ NavierStokesBase::sum_jet_quantities ()
 
 	for (int v=0; v<jetVars; v++) {
 
-            filename  = BoxLib::Concatenate("JetData/JetData_", steps, 4);
-            filename += BoxLib::Concatenate(filename + "_v", v, 4);
+            filename  = amrex::Concatenate("JetData/JetData_", steps, 4);
+            filename += amrex::Concatenate(filename + "_v", v, 4);
             filename += ".dat";
 
 	    file = fopen(filename.c_str(),"w");
@@ -4079,10 +4081,10 @@ NavierStokesBase::sum_jet_quantities ()
 	    std::cout << "   ...done." << '\n';
 	}
 #else
-	std::string FullPath = BoxLib::Concatenate("JetData/JD", steps, 4);
+	std::string FullPath = amrex::Concatenate("JetData/JD", steps, 4);
 
-	if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-	    BoxLib::CreateDirectoryFailed(FullPath);
+	if (!amrex::UtilCreateDirectory(FullPath, 0755))
+	    amrex::CreateDirectoryFailed(FullPath);
 
         filename = FullPath;
         filename += '/';
@@ -4120,8 +4122,8 @@ NavierStokesBase::read_particle_params ()
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(timestamp_dir, 0755))
-            BoxLib::CreateDirectoryFailed(timestamp_dir);
+        if (!amrex::UtilCreateDirectory(timestamp_dir, 0755))
+            amrex::CreateDirectoryFailed(timestamp_dir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -4389,13 +4391,13 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 		    FArrayBox&       cfab = ctemp_dat[mfi];
 		    const Box&       fbx  = ffab.box();
 		    
-		    BL_ASSERT(cfab.box() == BoxLib::coarsen(fbx,trr));
+		    BL_ASSERT(cfab.box() == amrex::coarsen(fbx,trr));
 		    
 		    for (IntVect p = fbx.smallEnd(); p <= fbx.bigEnd(); fbx.next(p))
 		    {
 			const Real val = ffab(p);
 			if (val > 0)
-			    cfab(BoxLib::coarsen(p,trr)) += val;
+			    cfab(amrex::coarsen(p,trr)) += val;
 		    }
 		}
 		
@@ -4410,7 +4412,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 	}
 	else
 	{
-	    BoxLib::Abort("NavierStokesBase::ParticleDerive: how did this happen?");
+	    amrex::Abort("NavierStokesBase::ParticleDerive: how did this happen?");
 	}
     }
 }

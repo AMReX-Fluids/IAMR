@@ -15,6 +15,8 @@
 #include <AMReX_stencil_types.H>
 #include <mg_cpp_f.h>
 
+using namespace amrex;
+
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
@@ -78,7 +80,7 @@ Projection::Initialize ()
     pp.query("make_sync_solvable",  make_sync_solvable);
 
     if (!proj_2) 
-	BoxLib::Error("With new gravity and outflow stuff, must use proj_2");
+	amrex::Error("With new gravity and outflow stuff, must use proj_2");
 
     std::string stencil;
 
@@ -94,11 +96,11 @@ Projection::Initialize ()
         }
         else
         {
-            BoxLib::Error("Must set proj.stencil to be cross, full or dense");
+            amrex::Error("Must set proj.stencil to be cross, full or dense");
         }
     }
 
-    BoxLib::ExecOnFinalize(Projection::Finalize);
+    amrex::ExecOnFinalize(Projection::Finalize);
 
     initialized = true;
 }
@@ -326,7 +328,7 @@ Projection::level_project (int             level,
 
             if (divu_minus_s_factor>0.0 && divu_minus_s_factor<=1.0)
             {
-                BoxLib::Error("Check this code....not recently tested");
+                amrex::Error("Check this code....not recently tested");
                 //
                 // Compute relaxation terms to account for approximate projection
                 // add divu_old*divu...factor/dt to divusource.
@@ -720,7 +722,7 @@ Projection::MLsyncProject (int             c_lev,
     MultiFab rhnd(Pgrids_crse,1,0);
     rhs_sync_reg->InitRHS(rhnd,crse_geom,*phys_bc);
 
-    Box P_finedomain(BoxLib::surroundingNodes(crse_geom.Domain()));
+    Box P_finedomain(amrex::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain) {
         rhnd.setVal(0);
@@ -750,11 +752,11 @@ Projection::MLsyncProject (int             c_lev,
     const Geometry& fine_geom = parent->Geom(c_lev+1);
 
     // restrict_level(v_crse, v_fine, ratio);
-    BoxLib::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
+    amrex::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
                          0, BL_SPACEDIM, ratio);
 
     // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
-    BoxLib::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
+    amrex::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
                            0, sig[c_lev]->nComp(), ratio);
 
     MultiFab* sync_resid_crse = 0;
@@ -949,7 +951,7 @@ Projection::initialVelocityProject (int  c_lev,
         {
             int Divu_Type, Divu;
             if (!LevelData[lev]->isStateVariable("divu", Divu_Type, Divu)) 
-                BoxLib::Error("Projection::initialVelocityProject(): Divu not found");
+                amrex::Error("Projection::initialVelocityProject(): Divu not found");
             //
             // Make sure ghost cells are properly filled.
             //
@@ -1191,7 +1193,7 @@ Projection::initialSyncProject (int       c_lev,
 
             int Divu_Type, Divu;
             if (!LevelData[c_lev]->isStateVariable("divu", Divu_Type, Divu)) 
-                BoxLib::Error("Projection::initialSyncProject(): Divu not found");
+                amrex::Error("Projection::initialSyncProject(): Divu not found");
             //
             // Make sure ghost cells are properly filled.
             //
@@ -1299,7 +1301,7 @@ Projection::initialSyncProject (int       c_lev,
       MultiFab::Copy(v_fine, *vel[lev  ], 0, 0, BL_SPACEDIM, 1);
 
       // restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
-      BoxLib::average_down(v_fine,v_crse,fine_geom,crse_geom,
+      amrex::average_down(v_fine,v_crse,fine_geom,crse_geom,
                            0, v_crse.nComp(), parent->refRatio(lev-1));
 	
       MultiFab::Copy(*vel[lev-1], v_crse, 0, 0, BL_SPACEDIM, 1);
@@ -1509,7 +1511,7 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     BL_ASSERT(nvar <= Uold.nComp());
     BL_ASSERT(nvar <= Unew.nComp());
 
-    Box        b  = BoxLib::grow(grd,ngrow);
+    Box        b  = amrex::grow(grd,ngrow);
     const Box& bb = Unew.box();
 
     if (bb.ixType() == IndexType::TheNodeType())
@@ -1937,7 +1939,7 @@ Projection::initialVorticityProject (int c_lev)
 
 
 #else
-    BoxLib::Error("Projection::initialVorticityProject(): not implented yet for 3D");
+    amrex::Error("Projection::initialVorticityProject(): not implented yet for 3D");
 #endif
 }
 
@@ -1966,7 +1968,7 @@ Projection::putDown (const Array<MultiFab*>& phi,
         for (int iface = 0; iface < numOutFlowFaces; iface++) 
         {
             Box phiC_strip = 
-                BoxLib::surroundingNodes(BoxLib::bdryNode(domainC, outFaces[iface], ncStripWidth));
+                amrex::surroundingNodes(amrex::bdryNode(domainC, outFaces[iface], ncStripWidth));
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
             MultiFab phi_crse_strip(ba, nCompPhi, 0);
@@ -1974,7 +1976,7 @@ Projection::putDown (const Array<MultiFab*>& phi,
 
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
-                Box ovlp = BoxLib::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
+                Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
 
                 if (ovlp.ok())
                 {
@@ -1993,7 +1995,7 @@ Projection::putDown (const Array<MultiFab*>& phi,
 void
 Projection::getStreamFunction (Array<std::unique_ptr<MultiFab> >& phi)
 {
-  BoxLib::Abort("Projection::getStreamFunction not implemented");
+  amrex::Abort("Projection::getStreamFunction not implemented");
 }
 
 //
@@ -2010,7 +2012,7 @@ Projection::getGradP (FArrayBox& p_fab,
     //
     // Test to see if p_fab contains gpbox_to_fill
     //
-    BL_ASSERT(BoxLib::enclosedCells(p_fab.box()).contains(gpbox_to_fill));
+    BL_ASSERT(amrex::enclosedCells(p_fab.box()).contains(gpbox_to_fill));
 
     const int*  plo    = p_fab.loVect();
     const int*  phi    = p_fab.hiVect();
@@ -2098,12 +2100,12 @@ Projection::set_outflow_bcs (int        which_call,
 
         if (outFaces[iface].faceDir() == Orientation::high)
         {
-            temp_state_strip = BoxLib::adjCellHi(domain,outDir,ccStripWidth);
+            temp_state_strip = amrex::adjCellHi(domain,outDir,ccStripWidth);
             temp_state_strip.shift(outDir,-ccStripWidth);
         }
         else
         {
-            temp_state_strip = BoxLib::adjCellLo(domain,outDir,ccStripWidth);
+            temp_state_strip = amrex::adjCellLo(domain,outDir,ccStripWidth);
             temp_state_strip.shift(outDir,ccStripWidth);
         }
         // Grow the box by one tangentially in order to get velocity bc's.
@@ -2112,10 +2114,10 @@ Projection::set_outflow_bcs (int        which_call,
 
         const BoxArray& Lgrids               = parent->getLevel(lev).boxArray();
         const Box&      valid_state_strip    = temp_state_strip & domain;
-        const BoxArray  uncovered_outflow_ba = BoxLib::complementIn(valid_state_strip,Lgrids);
+        const BoxArray  uncovered_outflow_ba = amrex::complementIn(valid_state_strip,Lgrids);
 
         BL_ASSERT( !(uncovered_outflow_ba.size() &&
-                     BoxLib::intersect(Lgrids,valid_state_strip).size()) );
+                     amrex::intersect(Lgrids,valid_state_strip).size()) );
 
         if ( !(uncovered_outflow_ba.size()) && fine_level[iface] == -1) {
             int ii = icount[lev];
@@ -2141,7 +2143,7 @@ Projection::set_outflow_bcs (int        which_call,
     {
       gravity = 0;
       if (!LevelData[c_lev]->isStateVariable("divu", Divu_Type, Divu))
-        BoxLib::Error("Projection::set_outflow_bcs: No divu.");
+        amrex::Error("Projection::set_outflow_bcs: No divu.");
     }
 
     if (which_call == INITIAL_PRESS || which_call == LEVEL_PROJ)
@@ -2149,7 +2151,7 @@ Projection::set_outflow_bcs (int        which_call,
       gravity = ns0->getGravity();
       if (!LevelData[c_lev]->isStateVariable("divu", Divu_Type, Divu) &&
           (gravity == 0) )
-        BoxLib::Error("Projection::set_outflow_bcs: No divu or gravity.");
+        amrex::Error("Projection::set_outflow_bcs: No divu or gravity.");
     }
 
     for (int lev = c_lev; lev <= f_lev; lev++) 
@@ -2207,7 +2209,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
 
         Box phi_strip = 
-            BoxLib::surroundingNodes(BoxLib::bdryNode(domain,
+            amrex::surroundingNodes(amrex::bdryNode(domain,
                                                       outFacesAtThisLevel[iface],
                                                       ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
@@ -2315,7 +2317,7 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
 
   if (rhs_cc[c_lev]) {
     if (rhs_cc[c_lev]->box(0).type() == IntVect::TheNodeVector()) {
-      BoxLib::Abort("Projection::doNodalProjection: rhs_cc cannot be nodal type");
+      amrex::Abort("Projection::doNodalProjection: rhs_cc cannot be nodal type");
     }
     BL_ASSERT(rhs_cc[c_lev]->nGrow() == 1);
     BL_ASSERT(rhs_cc[f_lev]->nGrow() == 1);
@@ -2467,13 +2469,13 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
     for (int idir=0; idir<BL_SPACEDIM; idir++) {
       if (lo_bc[idir] == Inflow) {
 	if (reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	  Box bx = BoxLib::adjCellLo(reg, idir);
+	  Box bx = amrex::adjCellLo(reg, idir);
 	  msk_fab.setVal(1.0, bx, 0);
 	}
       }
       if (hi_bc[idir] == Inflow) {
 	if (reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	  Box bx = BoxLib::adjCellHi(reg, idir);
+	  Box bx = amrex::adjCellHi(reg, idir);
 	  msk_fab.setVal(1.0, bx, 0);
 	}
       }
@@ -2489,13 +2491,13 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
       for (int idir=0; idir<BL_SPACEDIM; idir++) {
 	if (lo_bc[idir] == Inflow) {
 	  if (fbox.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	    Box bx = BoxLib::adjCellLo(fbox, idir);
+	    Box bx = amrex::adjCellLo(fbox, idir);
 	    msk_fab.setVal(0.0, bx, 0);
 	  }
 	}
 	if (hi_bc[idir] == Inflow) {
 	  if (fbox.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	    Box bx = BoxLib::adjCellHi(fbox, idir);
+	    Box bx = amrex::adjCellHi(fbox, idir);
 	    msk_fab.setVal(0.0, bx, 0);
 	  }
 	}
@@ -2545,13 +2547,13 @@ void Projection::mask_grids (MultiFab& msk, const Geometry& geom)
 	    for (int idir=0; idir<BL_SPACEDIM; idir++) {
 		if (lo_bc[idir] == Inflow) {
 		    if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
-			const Box& bx = BoxLib::adjCellLo(regBox, idir);
+			const Box& bx = amrex::adjCellLo(regBox, idir);
 			msk_fab.setVal(1.0, bx, 0);
 		    }
 		}
 		if (hi_bc[idir] == Inflow) {
 		    if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
-			const Box& bx = BoxLib::adjCellHi(regBox, idir);
+			const Box& bx = amrex::adjCellHi(regBox, idir);
 			msk_fab.setVal(1.0, bx, 0);
 		    }
 		}
@@ -2597,7 +2599,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	  FArrayBox& v_fab = (*vel[lev])[mfi];
 
 	  const Box& reg = grids[i];
-	  const Box& bxg1 = BoxLib::grow(reg, 1);
+	  const Box& bxg1 = amrex::grow(reg, 1);
 
 	  BoxList bxlist(reg);
 
@@ -2605,17 +2607,17 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	    Box bx;                // bx is the region we *protect* from zero'ing
 
 	    if (inflowCorner && doing_initial_velproj) {
-	      bx = BoxLib::adjCellLo(reg, idir);
+	      bx = amrex::adjCellLo(reg, idir);
               for (int odir = 0; odir < BL_SPACEDIM; odir++)
                  if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
-	      bx = BoxLib::adjCellLo(bxg1, idir);
+	      bx = amrex::adjCellLo(bxg1, idir);
 	      bx.shift(idir, +1);
 
 	    } else {
-	      bx = BoxLib::adjCellLo(reg, idir);
+	      bx = amrex::adjCellLo(reg, idir);
 	    }
 	    bxlist.push_back(bx);
 	  }
@@ -2624,23 +2626,23 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	    Box bx;                // bx is the region we *protect* from zero'ing
 
 	    if (inflowCorner && doing_initial_velproj) {
-	      bx = BoxLib::adjCellHi(reg, idir);
+	      bx = amrex::adjCellHi(reg, idir);
               for (int odir = 0; odir < BL_SPACEDIM; odir++)
                  if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
-	      bx = BoxLib::adjCellHi(bxg1, idir);
+	      bx = amrex::adjCellHi(bxg1, idir);
 	      bx.shift(idir, -1);
 
 	    } else {
-	      bx = BoxLib::adjCellHi(reg, idir);
+	      bx = amrex::adjCellHi(reg, idir);
 	    }
 
 	    bxlist.push_back(bx);
 	  }
 
-	  BoxList bxlist2 = BoxLib::complementIn(bxg1, bxlist); 
+	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist); 
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
 	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
 	  }

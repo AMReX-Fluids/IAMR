@@ -10,6 +10,8 @@
 #include <omp.h>
 #endif
 
+using namespace amrex;
+
 SyncRegister::SyncRegister (const BoxArray& fine_boxes,
                             const IntVect&  ref_ratio)
     : ratio(ref_ratio)
@@ -59,7 +61,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     const int* phys_lo = phys_bc.lo();
     const int* phys_hi = phys_bc.hi();
 
-    const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
+    const Box& node_domain = amrex::surroundingNodes(geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -110,7 +112,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 	    {
 		FArrayBox& fab = fs[fsi];
 		
-		Box mask_cells = BoxLib::enclosedCells(BoxLib::grow(fab.box(),1));
+		Box mask_cells = amrex::enclosedCells(amrex::grow(fab.box(),1));
 		
 		tmpfab.resize(mask_cells,1);
 		tmpfab.setVal(0);
@@ -290,7 +292,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 
     Sync_resid_fine.mult(mult);
 
-    const Box& crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = amrex::surroundingNodes(crse_geom.Domain());
 
     BoxArray cba = Sync_resid_fine.boxArray();
     cba.coarsen(ratio);

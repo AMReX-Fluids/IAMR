@@ -81,7 +81,7 @@ main (int   argc,
     aString statType;
     pp.query("statType", statType);
     if (statType.isNull() && ParallelDescriptor::IOProcessor())
-        BoxLib::Abort("You must specify `statType'");
+        amrex::Abort("You must specify `statType'");
 
     int statIndx = ValidType(statType);
 
@@ -89,17 +89,17 @@ main (int   argc,
     int begItime = -1;
     pp.query("begItime", begItime);
     if (begItime == -1 && ParallelDescriptor::IOProcessor())
-        BoxLib::Abort("You must specify `begItime'");
+        amrex::Abort("You must specify `begItime'");
 
     int endItime = -1;
     pp.query("endItime", endItime);
     if (endItime == -1 && ParallelDescriptor::IOProcessor())
-        BoxLib::Abort("You must specify `endItime'");
+        amrex::Abort("You must specify `endItime'");
 
     int axialDir = -1;
     pp.query("axialDir", axialDir);
     if (axialDir == -1 && ParallelDescriptor::IOProcessor())
-        BoxLib::Abort("You must specify `axialDir'");
+        amrex::Abort("You must specify `axialDir'");
 
 
 

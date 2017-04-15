@@ -10,8 +10,10 @@
 #include <NS_error_F.H>
 #include <AMReX_FArrayBox.H>
 
+using namespace amrex;
+
 static Box the_same_box (const Box& b)    { return b;                 }
-static Box grow_box_by_one (const Box& b) { return BoxLib::grow(b,1); }
+static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
 
 // NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc 
 //                      are now all defined in NS_BC.H in iamrlib
@@ -168,10 +170,10 @@ NavierStokes::variableSetUp ()
 	int maxComp=NUM_SCALARS-1;
 	for (int iComp=0; iComp<maxComp; iComp++) {
 	    if ((scalarUpdateOrder[iComp]>maxComp)||(scalarUpdateOrder[iComp]<1))
-		BoxLib::Abort("Scalar Update Order out of bounds");
+		amrex::Abort("Scalar Update Order out of bounds");
 	    for (int jComp=iComp+1; jComp<maxComp; jComp++)
 		if (scalarUpdateOrder[iComp]==scalarUpdateOrder[jComp])
-		    BoxLib::Abort("Scalar Update Order values not unique");
+		    amrex::Abort("Scalar Update Order values not unique");
 	}
     }
 
@@ -254,7 +256,7 @@ NavierStokes::variableSetUp ()
 
     if (is_diffusive[Density])
     {
-        BoxLib::Error("Density cannot diffuse, bad visc_coef");
+        amrex::Error("Density cannot diffuse, bad visc_coef");
     }
     //
     // ---- pressure

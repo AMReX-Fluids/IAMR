@@ -7,26 +7,26 @@
 
 class ViscBndry
     :
-    public InterpBndryData
+    public amrex::InterpBndryData
 {
 public:
     ViscBndry ();
 
-    ViscBndry (const BoxArray& _grids,
+    ViscBndry (const amrex::BoxArray& _grids,
                int             _ncomp,
-               const Geometry& _geom);
+               const amrex::Geometry& _geom);
 
     virtual ~ViscBndry () override;
 
-    virtual void setBndryConds (const BCRec& phys_bc,
+    virtual void setBndryConds (const amrex::BCRec& phys_bc,
                                 int          ratio) override;
 
-    virtual void setBndryConds (const BCRec&   phys_bc,
-                                const IntVect& ratio,
+    virtual void setBndryConds (const amrex::BCRec&   phys_bc,
+                                const amrex::IntVect& ratio,
 				int            comp=0) override;
 
-    void setHomogValues (const BCRec&   bc,
-                         const IntVect& ratio);
+    void setHomogValues (const amrex::BCRec&   bc,
+                         const amrex::IntVect& ratio);
 };
 
 #endif /*_VISCBNDRYDATA_H_*/

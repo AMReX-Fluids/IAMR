@@ -9,11 +9,13 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 
+using namespace amrex;
+
 int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     BL_PROFILE_REGION_START("main()");
     BL_PROFILE_VAR("main()", pmain);
@@ -39,12 +41,12 @@ main (int   argc,
 
     if (strt_time < 0.0)
     {
-        BoxLib::Abort("MUST SPECIFY a non-negative strt_time");
+        amrex::Abort("MUST SPECIFY a non-negative strt_time");
     }
 
     if (max_step < 0 && stop_time < 0)
     {
-        BoxLib::Abort("Exiting because neither max_step nor stop_time is non-negative.");
+        amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
     Amr* amrptr = new Amr;
@@ -117,7 +119,7 @@ main (int   argc,
     BL_PROFILE_FINALIZE();
 
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

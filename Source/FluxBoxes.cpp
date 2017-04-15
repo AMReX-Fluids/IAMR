@@ -1,5 +1,7 @@
 #include <FluxBoxes.H>
 
+using namespace amrex;
+
 MultiFab**
 FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
 {

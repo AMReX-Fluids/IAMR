@@ -4,6 +4,8 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <ViscBndry.H>
 
+using namespace amrex;
+
 ViscBndry::ViscBndry ()
     :
     InterpBndryData()

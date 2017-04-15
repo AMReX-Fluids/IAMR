@@ -5,6 +5,8 @@
 
 using std::string;
 
+using namespace amrex;
+
 void
 NavierStokes::error_setup()
 {

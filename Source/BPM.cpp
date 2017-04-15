@@ -8,6 +8,8 @@
 
 using namespace std;
 
+using namespace amrex;
+
 typedef ParticleContainer<2*BL_SPACEDIM>::PBox PBox;
 typedef ParticleContainer<2*BL_SPACEDIM>::PMap PMap;
 typedef ParticleContainer<2*BL_SPACEDIM>::ParticleType ParticleType;
@@ -124,7 +126,7 @@ void BPM::InitFromAsciiFile(const string& file)
   ifs.open(file.c_str(), ios::in);
 
   if (!ifs.good())
-    BoxLib::FileOpenFailed(file);
+    amrex::FileOpenFailed(file);
 
   int p1, p2;
   Real l, k;

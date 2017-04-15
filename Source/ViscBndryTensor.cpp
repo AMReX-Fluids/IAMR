@@ -4,6 +4,8 @@
 #include <AMReX_LO_BCTYPES.H>
 #include <ViscBndryTensor.H>
 
+using namespace amrex;
+
 void
 ViscBndryTensor::setBndryConds (const BCRec& bc,
                                 int          ratio,

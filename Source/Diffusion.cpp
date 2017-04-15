@@ -14,6 +14,14 @@
 #include <iomanip>
 #include <array>
 
+#ifdef MG_USE_HYPRE
+#include <HypreABec.H>
+#endif
+
+#include <AMReX_FMultiGrid.H>
+
+using namespace amrex;
+
 #if defined(BL_OSF1)
 #if defined(BL_USE_DOUBLE)
 const Real BL_BOGUS      = DBL_QNAN;
@@ -25,12 +33,6 @@ const Real BL_BOGUS      = 1.e200;
 #endif
 
 const Real BL_SAFE_BOGUS = -666.e200;
-
-#ifdef MG_USE_HYPRE
-#include <HypreABec.H>
-#endif
-
-#include <AMReX_FMultiGrid.H>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -132,13 +134,13 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("use_hypre_solve", use_hypre_solve);
         if ( use_cg_solve && use_hypre_solve )
         {
-            BoxLib::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
+            amrex::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
         }
 #endif
         ppdiff.query("use_fboxlib_mg", use_fboxlib_mg);
         if ( use_cg_solve && use_fboxlib_mg )
         {
-            BoxLib::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
+            amrex::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
         }
         use_mg_precond_flag = (use_mg_precond ? true : false);
 
@@ -153,13 +155,13 @@ Diffusion::Diffusion (Amr*               Parent,
         const int n_diff = _is_diffusive.size();
 
         if (n_diff < NUM_STATE)
-            BoxLib::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
+            amrex::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
 
         if (n_visc < NUM_STATE)
-            BoxLib::Abort("Diffusion::Diffusion(): visc_coef array is not long enough");
+            amrex::Abort("Diffusion::Diffusion(): visc_coef array is not long enough");
 
         if (n_visc > NUM_STATE)
-            BoxLib::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
+            amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
 
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
@@ -172,7 +174,7 @@ Diffusion::Diffusion (Amr*               Parent,
 
         echo_settings();
 
-        BoxLib::ExecOnFinalize(Diffusion::Finalize);
+        amrex::ExecOnFinalize(Diffusion::Finalize);
 
         initialized = true;
     }
@@ -523,7 +525,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 #ifdef MG_USE_HYPRE
     else if ( use_hypre_solve )
     {
-	BoxLib::Error("HypreABec not ready");
+	amrex::Error("HypreABec not ready");
 	Real* dx = 0;
 	HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
 	hp.setup_solver(S_tol, S_tol_abs, 50);
@@ -941,7 +943,7 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
     // outside external Dirichlet boundaries. Reset these to zero
     // so that syncproject and conservative interpolation works correctly.
     //
-    Box domain = BoxLib::grow(navier_stokes->Geom().Domain(),1);
+    Box domain = amrex::grow(navier_stokes->Geom().Domain(),1);
 
     for (int n = Xvel; n < Xvel+BL_SPACEDIM; n++)
     {
@@ -1041,7 +1043,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
 #ifdef MG_USE_HYPRE
 	else if ( use_hypre_solve )
 	  {
-	    BoxLib::Error("HypreABec not ready");
+	    amrex::Error("HypreABec not ready");
 	    //	    Real* dx = 0;
 	    //	    HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
 	    //	    hp.setup_solver(S_tol, S_tol_abs, 50);
@@ -1264,7 +1266,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
             for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
             {
 	      const int i    = mfi.index();
-	      const Box& grd = BoxLib::enclosedCells(mfi.validbox());
+	      const Box& grd = amrex::enclosedCells(mfi.validbox());
 
 	      BL_ASSERT(grd==grids[mfi.index()]);
 	      
@@ -1369,7 +1371,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 #ifdef MG_USE_HYPRE
     else if (use_hypre_solve)
     {
-        BoxLib::Error("HypreABec not ready");
+        amrex::Error("HypreABec not ready");
         //	  HypreABec hp(Soln.boxArray(), 00, dx, 0, false);
         //	  hp.setup_solver(S_tol, S_tol_abs, 50);
         //	  hp.solve(Soln, Rhs, true);
@@ -1870,8 +1872,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                 //
                 const int  i   = visc_tmpmfi.index();
                 const Box& bx  = visc_tmpmfi.validbox();
-                Box        vbx = BoxLib::grow(bx,visc_tmp.nGrow());
-                Box        sbx = BoxLib::grow(s_tmp.box(i),s_tmp.nGrow());
+                Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
+                Box        sbx = amrex::grow(s_tmp.box(i),s_tmp.nGrow());
                 Array<Real> rcen(bx.length(0));
                 navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
                 const int*  lo      = bx.loVect();
@@ -1916,7 +1918,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     const int ncomp    = visc_terms.nComp();
 
     if (ncomp < BL_SPACEDIM)
-        BoxLib::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
+        amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
     //
     // Before computing the godunov predicitors we may have to
     // precompute the viscous source terms.  To do this we must
@@ -1986,8 +1988,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             {
                 const int  k   = vmfi.index();
                 const Box& bx  = visc_tmp.box(k);
-                Box        vbx = BoxLib::grow(bx,visc_tmp.nGrow());
-                Box        sbx = BoxLib::grow(s_tmp.box(k),s_tmp.nGrow());
+                Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
+                Box        sbx = amrex::grow(s_tmp.box(k),s_tmp.nGrow());
 
 		Array<Real> rcen;
                 rcen.resize(bx.length(0));
@@ -2209,7 +2211,7 @@ Diffusion::checkBetas (const MultiFab* const* beta1,
     allthere = allthere1 && allthere2;
 
     if (!(allthere || allnull))
-        BoxLib::Abort("Diffusion::checkBetas(): betas must either be all 0 or all non-0");
+        amrex::Abort("Diffusion::checkBetas(): betas must either be all 0 or all non-0");
 }
 
 void
@@ -2230,7 +2232,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     }
 
     if (!(allthere || allnull))
-        BoxLib::Abort("Diffusion::checkBeta(): betas must be all 0 or all non-0");
+        amrex::Abort("Diffusion::checkBeta(): betas must be all 0 or all non-0");
 }
 
 void
@@ -2246,7 +2248,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     }
 
     if (!allthere)
-        BoxLib::Abort("Diffusion::checkBeta(): betas must be all non-0");
+        amrex::Abort("Diffusion::checkBeta(): betas must be all non-0");
 }
 
 //
@@ -2360,7 +2362,7 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
 
         default:
             std::cout << "compDiffusionType = " << compDiffusionType << '\n';
-            BoxLib::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
+            amrex::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
     }
 
     return rho_flag;

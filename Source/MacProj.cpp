@@ -11,6 +11,8 @@
 #include <MACPROJ_F.H>
 #include <MacOutFlowBC.H>
 
+using namespace amrex;
+
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
@@ -102,12 +104,12 @@ MacProj::Initialize ()
 
 #if MG_USE_HYPRE
     if ( use_cg_solve && use_hypre_solve )
-	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
+	amrex::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
 #endif
     if ( use_cg_solve && use_fboxlib_mg )
-	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
+	amrex::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
 
-    BoxLib::ExecOnFinalize(MacProj::Finalize);
+    amrex::ExecOnFinalize(MacProj::Finalize);
 
     initialized = true;
 }
@@ -914,7 +916,7 @@ MacProj::mac_sync_compute (int                   level,
 			   bool                  update_fluxreg)
 {
     if (modify_reflux_normal_vel)
-        BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
+        amrex::Abort("modify_reflux_normal_vel is no longer supported");
     //
     // Get parameters.
     //
@@ -983,11 +985,11 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Create storage for corrective velocities.
         //
-        Rho.resize(BoxLib::grow(grids[i],1),1);
+        Rho.resize(amrex::grow(grids[i],1),1);
 
-        D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[i],0),1);,
-               grad_phi[1].resize(BoxLib::surroundingNodes(grids[i],1),1);,
-               grad_phi[2].resize(BoxLib::surroundingNodes(grids[i],2),1););
+        D_TERM(grad_phi[0].resize(amrex::surroundingNodes(grids[i],0),1);,
+               grad_phi[1].resize(amrex::surroundingNodes(grids[i],1),1);,
+               grad_phi[2].resize(amrex::surroundingNodes(grids[i],2),1););
 
         mac_vel_update(1,D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[S_fpi], rho_half[S_fpi],
@@ -1136,7 +1138,7 @@ MacProj::mac_sync_compute (int                    level,
 			   bool                   update_fluxreg)
 {
     if (modify_reflux_normal_vel)
-        BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
+        amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
     FArrayBox xflux, yflux, zflux, grad_phi[BL_SPACEDIM];
 
@@ -1158,9 +1160,9 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grd,0),1);,
-               grad_phi[1].resize(BoxLib::surroundingNodes(grd,1),1);,
-               grad_phi[2].resize(BoxLib::surroundingNodes(grd,2),1););
+        D_TERM(grad_phi[0].resize(amrex::surroundingNodes(grd,0),1);,
+               grad_phi[1].resize(amrex::surroundingNodes(grd,1),1);,
+               grad_phi[2].resize(amrex::surroundingNodes(grd,2),1););
 
         mac_vel_update(1,
                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
@@ -1171,9 +1173,9 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 2: compute Mac correction by advecting the edge states.
         //
-        D_TERM(xflux.resize(BoxLib::surroundingNodes(grd,0),1);,
-               yflux.resize(BoxLib::surroundingNodes(grd,1),1);,
-               zflux.resize(BoxLib::surroundingNodes(grd,2),1););
+        D_TERM(xflux.resize(amrex::surroundingNodes(grd,0),1);,
+               yflux.resize(amrex::surroundingNodes(grd,1),1);,
+               zflux.resize(amrex::surroundingNodes(grd,2),1););
 
         D_TERM(xflux.copy((*sync_edges[0])[Syncmfi],eComp,0,1);,
                yflux.copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
@@ -1317,25 +1319,25 @@ MacProj::set_outflow_bcs (int             level,
             Box ccBndBox;
             if (outFaces[iface].faceDir() == Orientation::high)
 	    {
-                ccBndBox = BoxLib::adjCellHi(domain,outDir,2);
+                ccBndBox = amrex::adjCellHi(domain,outDir,2);
                 ccBndBox.shift(outDir,-2);
 	    } 
             else 
 	    {
-                ccBndBox = BoxLib::adjCellLo(domain,outDir,2);
+                ccBndBox = amrex::adjCellLo(domain,outDir,2);
                 ccBndBox.shift(outDir,2);
 	    }
             ccBoxList.push_back(ccBndBox);
 
-            Box phiBox  = BoxLib::adjCell(domain,outFaces[iface],1);
+            Box phiBox  = amrex::adjCell(domain,outFaces[iface],1);
             phiBoxList.push_back(phiBox);
 
             const Box&     valid_ccBndBox       = ccBndBox & domain;
-            const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
+            const BoxArray uncovered_outflow_ba = amrex::complementIn(valid_ccBndBox,grids);
 
             if (uncovered_outflow_ba.size() && 
-                BoxLib::intersect(grids,valid_ccBndBox).size())
-                BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
+                amrex::intersect(grids,valid_ccBndBox).size())
+                amrex::Error("MacProj: Cannot yet handle partially refined outflow");
 	}
     }
   
@@ -1459,7 +1461,7 @@ MacProj::test_umac_periodic (int       level,
     {
         if (geom.isPeriodic(dim))
         {
-            Box eDomain = BoxLib::surroundingNodes(geom.Domain(),dim);
+            Box eDomain = amrex::surroundingNodes(geom.Domain(),dim);
 
             mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
 
@@ -1529,7 +1531,7 @@ MacProj::test_umac_periodic (int       level,
             std::cout << "dir = "         << dim
                       << ", diff norm = " << max_norm
                       << " for region: "  << pirm[i].m_dstBox << std::endl;
-            BoxLib::Error("Periodic bust in u_mac");
+            amrex::Error("Periodic bust in u_mac");
         }
     }
 }

@@ -11,27 +11,27 @@
 
 class SyncRegister
     :
-    public BndryRegister
+    public amrex::BndryRegister
 {
 public:
 
-    SyncRegister (const BoxArray& fine_boxes, const IntVect& ref_ratio);
+    SyncRegister (const amrex::BoxArray& fine_boxes, const amrex::IntVect& ref_ratio);
 
     ~SyncRegister ();
 
-    void CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Real mult);
+    void CrseInit (amrex::MultiFab& Sync_resid_crse, const amrex::Geometry& crse_geom, amrex::Real mult);
 
-    void FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Real mult);
+    void FineAdd (amrex::MultiFab& Sync_resid_fine, const amrex::Geometry& crse_geom, amrex::Real mult);
 
-    void CompAdd (MultiFab& Sync_resid_fine, const Geometry& fine_geom, const Geometry& crse_geom,
-		  const BoxArray& Pgrids, Real mult);
+    void CompAdd (amrex::MultiFab& Sync_resid_fine, const amrex::Geometry& fine_geom, const amrex::Geometry& crse_geom,
+		  const amrex::BoxArray& Pgrids, amrex::Real mult);
 
-    void InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc);
+    void InitRHS (amrex::MultiFab& rhs, const amrex::Geometry& geom, const amrex::BCRec& phys_bc);
 
 private:
 
-    FabSet  bndry_mask[2*BL_SPACEDIM];
-    IntVect ratio;
+    amrex::FabSet  bndry_mask[2*BL_SPACEDIM];
+    amrex::IntVect ratio;
 };
 
 #endif /*_SYNCREGISTER_H_*/

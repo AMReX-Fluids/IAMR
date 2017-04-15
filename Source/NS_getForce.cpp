@@ -4,6 +4,8 @@
 #include <AMReX_BLFort.H>
 #include <PROB_NS_F.H>
 
+using namespace amrex;
+
 //
 // Virtual access function for getting the forcing terms for the
 // velocities and scalars.  The base version computes a buoyancy.
@@ -32,7 +34,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 			    const Real       time,
 			    const FArrayBox& Scal)
 {
-    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
+    force.resize(amrex::grow(grids[gridno],ngrow),ncomp);
 
     if (scomp == Xvel && ncomp == BL_SPACEDIM)
     {
@@ -74,7 +76,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 {
     BL_ASSERT(Rho.nComp() == 1);
 
-    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
+    force.resize(amrex::grow(grids[gridno],ngrow),ncomp);
 
     BL_ASSERT(Rho.box().contains(force.box()));
 
@@ -129,7 +131,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
     }
 
-    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
+    force.resize(amrex::grow(grids[gridno],ngrow),ncomp);
 
     const Real* VelDataPtr  = Vel.dataPtr();
     const Real* ScalDataPtr = Scal.dataPtr(scalScomp);
@@ -293,7 +295,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 {
     BL_ASSERT(Rho.nComp() > RComp);
 
-    force.resize(BoxLib::grow(grids[gridno],ngrow),ncomp);
+    force.resize(amrex::grow(grids[gridno],ngrow),ncomp);
 
     BL_ASSERT(Rho.box().contains(force.box()));
 

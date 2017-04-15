@@ -25,6 +25,8 @@
 
 #include <buildInfo.H>
 
+using namespace amrex;
+
 namespace
 {
     bool initialized = false;
@@ -43,7 +45,7 @@ NavierStokes::Initialize ()
 
     NavierStokesBase::Initialize();
 
-    BoxLib::ExecOnFinalize(NavierStokes::Finalize);
+    amrex::ExecOnFinalize(NavierStokes::Finalize);
 
     initialized = true;
 }
@@ -160,7 +162,7 @@ NavierStokes::initData ()
             if (plotnames[i] == velocity_plotfile_xvel_name) idX = i;
 
         if (idX == -1)
-            BoxLib::Abort("Could not find velocity fields in supplied velocity_plotfile");
+            amrex::Abort("Could not find velocity fields in supplied velocity_plotfile");
 	else
 	  std::cout << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
 
@@ -1094,7 +1096,7 @@ NavierStokes::writePlotFile (const std::string& dir,
         os << thePlotFileType() << '\n';
 
         if (n_data_items == 0)
-            BoxLib::Error("Must specify at least one valid data item to plot");
+            amrex::Error("Must specify at least one valid data item to plot");
 
         os << n_data_items << '\n';
 
@@ -1232,7 +1234,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string Level = BoxLib::Concatenate("Level_", level, 1);
+    std::string Level = amrex::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -1244,8 +1246,8 @@ NavierStokes::writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
-            BoxLib::CreateDirectoryFailed(FullPath);
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -1831,7 +1833,7 @@ NavierStokes::avgDown (int comp)
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
-    BoxLib::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
                          comp, 1, fine_ratio);
 
     if (comp == Density) 
@@ -1862,7 +1864,7 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    BoxLib::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
                          0, S_crse.nComp(), fine_ratio);
 
     //   
@@ -1895,7 +1897,7 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        BoxLib::average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
+        amrex::average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
                              0, 1, fine_ratio);
     }
     if (have_dsdt)
@@ -1903,7 +1905,7 @@ NavierStokes::avgDown ()
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        BoxLib::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
+        amrex::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
                              0, 1, fine_ratio);
     }
     //
@@ -2003,7 +2005,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
         std::cout << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
-        BoxLib::Error("must call NavierStokes::getViscTerms with all three velocity components");
+        amrex::Error("must call NavierStokes::getViscTerms with all three velocity components");
     }
 #endif
     // 
@@ -2152,7 +2154,7 @@ NavierStokes::calcViscosity (const Real time,
         }
         else
         {
-            BoxLib::Abort("NavierStokes::calcViscosity() : must have velocity visc_coef >= 0.0");
+            amrex::Abort("NavierStokes::calcViscosity() : must have velocity visc_coef >= 0.0");
         }
     }
 }
@@ -2203,7 +2205,7 @@ NavierStokes::calcDiffusivity (const Real time)
             }
             else
             {
-                BoxLib::Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
+                amrex::Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
             }
         }
     }
@@ -2314,7 +2316,7 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
     // Miscellanious checks
     //
     BL_ASSERT(!(ixt.cellCentered()) && !(ixt.nodeCentered()));
-    BL_ASSERT(BoxLib::grow(ccbox,-BoxLib::BASISV(dir)).contains(BoxLib::enclosedCells(ecbox)));
+    BL_ASSERT(amrex::grow(ccbox,-amrex::BASISV(dir)).contains(amrex::enclosedCells(ecbox)));
     BL_ASSERT(sComp+nComp <= ccfab.nComp() && dComp+nComp <= ecfab.nComp());
     //
     // Shift cell-centered data to edges

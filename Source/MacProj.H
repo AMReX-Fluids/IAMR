@@ -13,19 +13,19 @@ class MacProj
 {
 public:
     
-    MacProj (Amr*   parent,
+    MacProj (amrex::Amr*   parent,
              int    _finest_level,
-             BCRec* _phys_bc, 
+             amrex::BCRec* _phys_bc, 
              int    /*not used*/ );
     
     ~MacProj ();
 
     
     void install_level (int       level, 
-                        AmrLevel* level_data);
+                        amrex::AmrLevel* level_data);
 
     void install_anelastic_coefficient (int                    level, 
-                                        Real**            anel_coeff);
+                                        amrex::Real**            anel_coeff);
     
     void setup (int level);
     void cleanup (int level);
@@ -33,65 +33,65 @@ public:
     // The level advance mac projection.
     //
     void mac_project (int             level,
-                      MultiFab*       u_mac,
-                      MultiFab&       S,
-                      Real            dt,
-                      Real            prev_time,
-                      const MultiFab& divu,
+                      amrex::MultiFab*       u_mac,
+                      amrex::MultiFab&       S,
+                      amrex::Real            dt,
+                      amrex::Real            prev_time,
+                      const amrex::MultiFab& divu,
                       int             have_divu,
                       bool            increment_vel_register = true);
 
-    void test_umac_periodic (int level, MultiFab* u_mac);
+    void test_umac_periodic (int level, amrex::MultiFab* u_mac);
     //
     // The sync solve.
     //
     void mac_sync_solve (int       level,
-                         Real      dt, 
-                         MultiFab& rho_half,
-                         IntVect&  fine_ratio);
+                         amrex::Real      dt, 
+                         amrex::MultiFab& rho_half,
+                         amrex::IntVect&  fine_ratio);
 
     // this version is for the closed chamber LMC algorithm
     void mac_sync_solve (int       level,
-                         Real      dt, 
-                         MultiFab& rho_half,
-                         IntVect&  fine_ratio,
-			 MultiFab* Rhs_increment,
+                         amrex::Real      dt, 
+                         amrex::MultiFab& rho_half,
+                         amrex::IntVect&  fine_ratio,
+			 amrex::MultiFab* Rhs_increment,
 			 bool      subtract_avg,
-			 Real&     offset);
+			 amrex::Real&     offset);
     //
     // Computing the sync tendency.
     //
     void mac_sync_compute (int                   level,
-                           MultiFab*             u_mac, 
-                           MultiFab&             Vsync,
-                           MultiFab&             Ssync,
-                           MultiFab&             rho_half, 
-                           FluxRegister*         adv_flux_reg,
-                           Array<AdvectionForm>& advectionType,
-                           Real                  prev_time,
-                           Real                  prev_pres_time,
-                           Real                  dt,
+                           amrex::MultiFab*             u_mac, 
+                           amrex::MultiFab&             Vsync,
+                           amrex::MultiFab&             Ssync,
+                           amrex::MultiFab&             rho_half, 
+                           amrex::FluxRegister*         adv_flux_reg,
+                           amrex::Array<AdvectionForm>& advectionType,
+                           amrex::Real                  prev_time,
+                           amrex::Real                  prev_pres_time,
+                           amrex::Real                  dt,
                            int                   NUM_STATE,
-                           Real                  be_cn_theta,
+                           amrex::Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
                            int		         do_mom_diff,
-                           const Array<int>&     increment_sync = Array<int>(),
+                           const amrex::Array<int>&     increment_sync = amrex::Array<int>(),
 			   bool                  update_fluxreg = true);
 
     void mac_sync_compute (int                   level,
-                           MultiFab&             Sync,
+                           amrex::MultiFab&             Sync,
                            int                   comp,
                            int                   s_ind,
-                           const MultiFab*       const* sync_edges,
+                           const amrex::MultiFab*       const* sync_edges,
 			   int                   eComp,
-                           MultiFab&             rho_half,
-                           FluxRegister*         adv_flux_reg,
-                           Array<AdvectionForm>& advectionType,
+                           amrex::MultiFab&             rho_half,
+                           amrex::FluxRegister*         adv_flux_reg,
+                           amrex::Array<AdvectionForm>& advectionType,
                            bool		         modify_reflux_normal_vel,
-                           Real                  dt,
+                           amrex::Real                  dt,
 			   bool                  update_fluxreg = true);
 
-    void scaleArea (int level, MultiFab* area, Real** anel_coeff);
+    void scaleArea (int level, amrex::MultiFab* area, amrex::Real** anel_coeff);
 
     static void Initialize ();
     static void Finalize ();
@@ -101,36 +101,36 @@ protected:
     // Test the divergence constraint.
     //
     void check_div_cond (int      level,
-                         MultiFab U_edge[]) const;
+                         amrex::MultiFab U_edge[]) const;
     //
     // Boundary conditions.
     //
     void BuildPhiBC (int level);
 
     void set_outflow_bcs (int level,
-                          MultiFab* mac_phi,
-                          const MultiFab* u_mac, 
-                          const MultiFab& S,
-                          const  MultiFab& divu);
+                          amrex::MultiFab* mac_phi,
+                          const amrex::MultiFab* u_mac, 
+                          const amrex::MultiFab& S,
+                          const  amrex::MultiFab& divu);
     //
     // Pointers to amr,amrlevel.
     //
-    Amr*             parent;
-    Array<AmrLevel*> LevelData;
+    amrex::Amr*             parent;
+    amrex::Array<amrex::AmrLevel*> LevelData;
     //
     // Boundary condition objects.
     //
-    BCRec*                phys_bc;
-    Array< Array<BCRec> > phi_bcs;
+    amrex::BCRec*                phys_bc;
+    amrex::Array< amrex::Array<amrex::BCRec> > phi_bcs;
     //
     // MAC sync correction and solution.
     //
-    Array<std::unique_ptr<MultiFab    > > mac_phi_crse;
-    Array<std::unique_ptr<FluxRegister> > mac_reg;
+    amrex::Array<std::unique_ptr<amrex::MultiFab    > > mac_phi_crse;
+    amrex::Array<std::unique_ptr<amrex::FluxRegister> > mac_reg;
     //
     // Anelastic coefficient array.
     //
-    Array<Real**> anel_coeff;
+    amrex::Array<amrex::Real**> anel_coeff;
     //
     // Parameters.
     //
@@ -140,9 +140,9 @@ protected:
     static int  verbose;
     static bool  use_cg_solve;
     static int  do_outflow_bcs;
-    static Real mac_tol;
-    static Real mac_abs_tol;
-    static Real mac_sync_tol;
+    static amrex::Real mac_tol;
+    static amrex::Real mac_abs_tol;
+    static amrex::Real mac_sync_tol;
     static int  check_umac_periodicity;
     static int fix_mac_sync_rhs;
 };

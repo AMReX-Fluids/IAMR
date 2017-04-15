@@ -8,21 +8,21 @@
 
 class ViscBndryTensor
     :
-    public MCInterpBndryData
+    public amrex::MCInterpBndryData
 {
 public:
     ViscBndryTensor () {}
 
-    ViscBndryTensor (const BoxArray& grids,
-                     const Geometry& geom)
+    ViscBndryTensor (const amrex::BoxArray& grids,
+                     const amrex::Geometry& geom)
         :
-        MCInterpBndryData(grids,MCLinOp::bcComponentsNeeded(),geom) {}
+        amrex::MCInterpBndryData(grids,amrex::MCLinOp::bcComponentsNeeded(),geom) {}
 
-    virtual void setBndryConds (const BCRec& phys_bc,
+    virtual void setBndryConds (const amrex::BCRec& phys_bc,
                                 int          ratio,
                                 int          comp=0) override;
 
-    void setHomogValues (const Array<BCRec>& phys_bc,
+    void setHomogValues (const amrex::Array<amrex::BCRec>& phys_bc,
                          int                 ratio);
 
 };

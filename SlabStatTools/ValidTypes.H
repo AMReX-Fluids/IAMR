@@ -39,7 +39,7 @@ ValidType (aString reqType)
   if (!foundType)
   {
     cerr << "Invalid statistics type:  " << reqType << '\n';
-    BoxLib::Abort();
+    amrex::Abort();
   }
 
   return whichType;
