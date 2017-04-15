@@ -28,7 +28,7 @@ public:      // public access functions
     ~Godunov();
 
     // set up the Godunov amrex::Box
-    void BuildWorkSpace (const amrex::Box& grd, const Real* dx, Real dt);
+    void BuildWorkSpace (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt);
 
     void AllocEdgeBoxes (const amrex::Box& grd, D_DECL(amrex::FArrayBox& xflux,
                                                         amrex::FArrayBox& yflux,
