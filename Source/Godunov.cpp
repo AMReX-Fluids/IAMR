@@ -2,7 +2,6 @@
 //
 // Godunov is the object which calculates advective terms for iamr.
 //
-#include <AMReX_winstd.H>
 
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_Geometry.H>

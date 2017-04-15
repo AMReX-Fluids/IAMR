@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 
 #include <MacOutFlowBC.H>
 #include <MACOUTFLOWBC_F.H>

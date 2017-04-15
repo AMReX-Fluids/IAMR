@@ -2,7 +2,6 @@
 #ifndef _Diffusion_H_
 #define _Diffusion_H_
 
-#include <AMReX_winstd.H>
 
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>

@@ -27,7 +27,7 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_BLassert.H>
-#include <AMReX_BoxLib.H>
+#include <AMReX.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>

@@ -1,4 +1,3 @@
-#include <AMReX_winstd.H>
 
 #include <NavierStokesBase.H>
 #include <AMReX_BLFort.H>

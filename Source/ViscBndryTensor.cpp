@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 
 #include <AMReX_LO_BCTYPES.H>
 #include <ViscBndryTensor.H>

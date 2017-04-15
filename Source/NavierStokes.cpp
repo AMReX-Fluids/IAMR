@@ -2,7 +2,6 @@
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
 //
-#include <AMReX_winstd.H>
 #include <unistd.h>
 
 #include <algorithm>
@@ -23,7 +22,7 @@
 #include <AMReX_AmrData.H>
 #endif
 
-#include <buildInfo.H>
+#include <AMReX_buildInfo.H>
 
 using namespace amrex;
 
@@ -1199,7 +1198,7 @@ NavierStokes::writePlotFile (const std::string& dir,
 	jobInfoFile << "build date:    " << buildInfoGetBuildDate() << '\n';
 	jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << '\n';
 	jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << '\n';
-	jobInfoFile << "BoxLib dir:    " << buildInfoGetBoxlibDir() << '\n';
+	jobInfoFile << "BoxLib dir:    " << buildInfoGetAMReXDir() << '\n';
 
         jobInfoFile << '\n';
        

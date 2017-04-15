@@ -1,5 +1,4 @@
 
-#include <AMReX_winstd.H>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
