@@ -1,5 +1,5 @@
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs 
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs 
 
 #These are the directories in IAMR
 
@@ -17,11 +17,11 @@ INCLUDE_LOCATIONS += $(Blocs)
 
 #These are the directories in BoxLib
  
-Pdirs   := C_BaseLib C_AmrCoreLib C_AMRLib C_BoundaryLib
+Pdirs   := Base AmrCore Amr Boundary
 Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_TensorMG
 
 ifeq ($(USE_PARTICLES),TRUE)
-  Pdirs += C_ParticleLib
+  Pdirs += Particle
 endif
 
 Ppack   += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
@@ -76,7 +76,7 @@ buildInfo.cpp:
           --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
           --GIT "$(TOP) $(AMREX_HOME)" 
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 clean::
 	$(SILENT) $(RM) buildInfo.cpp

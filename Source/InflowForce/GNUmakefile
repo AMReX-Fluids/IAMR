@@ -2,7 +2,6 @@
 PRECISION      = DOUBLE
 DEBUG	       = TRUE
 COMP           = g++
-FCOMP          = gfortran
 DIM    	       = 3
 BUILD_IN_PLACE = TRUE
 EBASE          = turbMerge
@@ -10,14 +9,14 @@ USE_MPI        = FALSE
 
 AMREX_HOME ?= ../../../amrex
 
-include $(AMREX_HOME)/Tools/C_mk/Make.defs
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 Bpack   := ./Make.package
 Blocs   := .
 
-include $(AMREX_HOME)/Src/C_BaseLib/Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
 
-MySrcDirs = . $(AMREX_HOME)/Src/C_BaseLib
+MySrcDirs = . $(AMREX_HOME)/Src/Base
 
 INCLUDE_LOCATIONS += $(MySrcDirs)
 
@@ -31,6 +30,6 @@ vpath %.f   $(MySrcDirs)
 
 all: $(executable)
 
-include $(AMREX_HOME)/Tools/C_mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 

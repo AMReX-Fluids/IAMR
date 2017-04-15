@@ -15,7 +15,6 @@ DEBUG       = TRUE
 DIM         = 2
 
 COMP        = g++
-FCOMP       = gfortran
 
 USE_MPI     = TRUE
 USE_MPI     = FALSE

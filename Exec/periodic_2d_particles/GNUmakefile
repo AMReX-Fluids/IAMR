@@ -16,7 +16,6 @@ DEBUG	  = FALSE
 DIM       = 2
 
 COMP	  = g++
-FCOMP     = gfortran
 
 USE_PARTICLES   = TRUE
 
