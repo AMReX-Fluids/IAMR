@@ -7,7 +7,6 @@
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
 #include <AMReX_BC_TYPES.H>
-#include <AMReX_PROB_AMR_F.H>
 #include <AMReX_ArrayLim.H>
 #include <EXACT_F.H>
 
