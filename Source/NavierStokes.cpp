@@ -62,9 +62,10 @@ NavierStokes::NavierStokes (Amr&            papa,
                             int             lev,
                             const Geometry& level_geom,
                             const BoxArray& bl,
+                            const DistributionMapping& dm,
                             Real            time)
     :
-    NavierStokesBase(papa,lev,level_geom,bl,time)
+    NavierStokesBase(papa,lev,level_geom,bl,dm,time)
 { }
 
 NavierStokes::~NavierStokes () { }
@@ -166,7 +167,7 @@ NavierStokes::initData ()
 	else
 	  std::cout << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
 
-        MultiFab tmp(S_new.boxArray(), 1, 0);
+        MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
             amrData.FillVar(tmp, level, plotnames[idX+i], 0);
@@ -284,7 +285,7 @@ NavierStokes::advance (Real time,
     //
     if (do_mac_proj) 
     {
-        MultiFab mac_rhs(grids,1,0);
+        MultiFab mac_rhs(grids,dmap,1,0);
         create_mac_rhs(mac_rhs,0,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
         mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
@@ -408,7 +409,7 @@ NavierStokes::predict_velocity (Real  dt,
     // c-f/phys boundary, since we have no interpolator fn, also,
     // preserve extrap for corners at periodic/non-periodic intersections.
     //
-    MultiFab visc_terms(grids,nComp,1);
+    MultiFab visc_terms(grids,dmap,nComp,1);
 
     if (be_cn_theta != 1.0)
     {
@@ -429,7 +430,7 @@ NavierStokes::predict_velocity (Real  dt,
 
     Array<int> bndry[BL_SPACEDIM];
 
-    MultiFab Gp(grids,BL_SPACEDIM,1);
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
     getGradP(Gp, prev_pres_time);
     
@@ -530,12 +531,13 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Get the viscous terms.
     //
-    MultiFab visc_terms(grids,num_scalars,1);
+    MultiFab visc_terms(grids,dmap,num_scalars,1);
 
-    if (be_cn_theta != 1.0)
+    if (be_cn_theta != 1.0) {
         getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-    else
+    } else {
         visc_terms.setVal(0,1);
+    }
     //
     // Set up the grid loop.
     //
@@ -558,7 +560,7 @@ NavierStokes::scalar_advection (Real dt,
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
-            fluxes[i].define(ba, num_scalars, 0, Fab_allocate);
+            fluxes[i].define(ba, dmap, num_scalars, 0);
         }
     }
 
@@ -566,9 +568,9 @@ NavierStokes::scalar_advection (Real dt,
 
     if (use_forces_in_trans)
     {
-        Gp.define(grids,BL_SPACEDIM,1,Fab_allocate);
+        Gp.define(grids,dmap,BL_SPACEDIM,1);
 
-        vel_visc_terms.define(grids,BL_SPACEDIM,1,Fab_allocate);
+        vel_visc_terms.define(grids,dmap,BL_SPACEDIM,1);
 
         getGradP(Gp, prev_pres_time);
 
@@ -812,8 +814,9 @@ NavierStokes::scalar_diffusion_update (Real dt,
                 {
                     MultiFab fluxes;
 
-                    if (level < parent->finestLevel())
-                        fluxes.define(fluxSCn[d]->boxArray(), 1, 0, Fab_allocate);
+                    if (level < parent->finestLevel()) {
+                        fluxes.define(fluxSCn[d]->boxArray(), fluxSCn[d]->DistributionMap(), 1, 0);
+                    }
 
                     for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
                     {
@@ -855,7 +858,7 @@ NavierStokes::velocity_diffusion_update (Real dt)
         MultiFab* delta_rhs = 0;
         if (S_in_vel_diffusion && have_divu)
         {
-            delta_rhs = new MultiFab(grids,BL_SPACEDIM,0);
+            delta_rhs = new MultiFab(grids,dmap,BL_SPACEDIM,0);
             delta_rhs->setVal(0);
         }
 
@@ -925,7 +928,7 @@ NavierStokes::diffuse_velocity_setup (Real       dt,
         //
         const Real time = state[State_Type].prevTime();
 
-        MultiFab divmusi(grids,BL_SPACEDIM,0);
+        MultiFab divmusi(grids,dmap,BL_SPACEDIM,0);
 
         if (!variable_vel_visc)
         {
@@ -1284,7 +1287,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     int       cnt   = 0;
     int       ncomp = 1;
     const int nGrow = 0;
-    MultiFab  plotMF(grids,n_data_items,nGrow);
+    MultiFab  plotMF(grids,dmap,n_data_items,nGrow);
     MultiFab* this_dat = 0;
     //
     // Cull data from state variables -- use no ghost cells.
@@ -1705,7 +1708,7 @@ NavierStokes::mac_sync ()
             ratio                     *= parent->refRatio(lev-1);
             NavierStokes&     fine_lev = getLevel(lev);
             const BoxArray& fine_grids = fine_lev.boxArray();
-            MultiFab sync_incr(fine_grids,numscal,0);
+            MultiFab sync_incr(fine_grids,fine_lev.DistributionMap(),numscal,0);
             sync_incr.setVal(0.0);
 
             SyncInterp(Ssync,level,sync_incr,lev,ratio,0,0,
@@ -1878,7 +1881,7 @@ NavierStokes::avgDown ()
 
     BoxArray crse_P_fine_BA = P_fgrids; crse_P_fine_BA.coarsen(fine_ratio);
 
-    MultiFab crse_P_fine(crse_P_fine_BA,1,0);
+    MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0);
 
     for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
     {
@@ -2051,7 +2054,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         //
         if (have_divu && S_in_vel_diffusion)
         {
-            MultiFab divmusi(grids,BL_SPACEDIM,1);
+            MultiFab divmusi(grids,dmap,BL_SPACEDIM,1);
 
             if (variable_vel_visc)
             {

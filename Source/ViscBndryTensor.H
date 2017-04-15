@@ -14,9 +14,10 @@ public:
     ViscBndryTensor () {}
 
     ViscBndryTensor (const amrex::BoxArray& grids,
+                     const amrex::DistributionMapping& dmap,
                      const amrex::Geometry& geom)
         :
-        amrex::MCInterpBndryData(grids,amrex::MCLinOp::bcComponentsNeeded(),geom) {}
+        amrex::MCInterpBndryData(grids,dmap,amrex::MCLinOp::bcComponentsNeeded(),geom) {}
 
     virtual void setBndryConds (const amrex::BCRec& phys_bc,
                                 int          ratio,

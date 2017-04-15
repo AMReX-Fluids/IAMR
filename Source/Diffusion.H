@@ -293,6 +293,7 @@ protected:
     amrex::Amr*              parent;
     NavierStokesBase* navier_stokes;
     const amrex::BoxArray&   grids;
+    const amrex::DistributionMapping& dmap;
     const int         level;
     //
     // Static data.

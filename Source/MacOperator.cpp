@@ -100,9 +100,10 @@ MacOperator::setCoefficients (const MultiFab* area,
     //
     const int n_grow = 0;
 
-    D_TERM(MultiFab bxcoef(area[0].boxArray(),area[0].nComp(),n_grow);,
-           MultiFab bycoef(area[1].boxArray(),area[1].nComp(),n_grow);,
-           MultiFab bzcoef(area[2].boxArray(),area[2].nComp(),n_grow););
+    const DistributionMapping& dm = rho.DistributionMap();
+    D_TERM(MultiFab bxcoef(area[0].boxArray(),dm,area[0].nComp(),n_grow);,
+           MultiFab bycoef(area[1].boxArray(),dm,area[1].nComp(),n_grow);,
+           MultiFab bzcoef(area[2].boxArray(),dm,area[2].nComp(),n_grow););
     D_TERM(bxcoef.setVal(0);,
            bycoef.setVal(0);,
            bzcoef.setVal(0););

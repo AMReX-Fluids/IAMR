@@ -40,7 +40,7 @@ NSBld::operator()()
 
 AmrLevel*
 NSBld::operator()(Amr &papa, int lev, const Geometry &level_geom,
-                  const BoxArray &ba, Real time)
+                  const BoxArray &ba, const DistributionMapping& dm, Real time)
 {
-    return new NavierStokes(papa, lev, level_geom, ba, time);
+    return new NavierStokes(papa, lev, level_geom, ba, dm, time);
 }

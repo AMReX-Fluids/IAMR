@@ -255,7 +255,9 @@ Projection::level_project (int             level,
     }
 
     const BoxArray& grids   = LevelData[level]->boxArray();
+    const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const BoxArray& P_grids = P_old.boxArray();
+    const DistributionMapping& P_dmap = P_old.DistributionMap();
 
     NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
     BL_ASSERT(!(ns==0));
@@ -345,7 +347,7 @@ Projection::level_project (int             level,
 
     if (proj_2)
     {
-        MultiFab Gp(grids,BL_SPACEDIM,1);
+        MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
         ns->getGradP(Gp, prev_pres_time);
 
 #ifdef _OPENMP
@@ -423,13 +425,13 @@ Projection::level_project (int             level,
     std::unique_ptr<MultiFab> sync_resid_crse, sync_resid_fine;
 
     if (level < parent->finestLevel()) {
-        sync_resid_crse.reset(new MultiFab(P_grids,1,1));
+        sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1));
     }
 
     if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
     {
         const int ngrow = parent->MaxRefRatio(level-1) - 1;
-        sync_resid_fine.reset(new MultiFab(P_grids,1,ngrow));
+        sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow));
     }
 
     if (!have_divu) 
@@ -575,9 +577,10 @@ Projection::syncProject (int             c_lev,
     //
     const BoxArray& grids   = LevelData[c_lev]->boxArray();
     const BoxArray& P_grids = pres.boxArray();
+    const DistributionMapping& P_dmap = pres.DistributionMap();
     MultiFab& sig = rho_half;
 
-    MultiFab rhnd(P_grids,1,0);
+    MultiFab rhnd(P_grids,P_dmap,1,0);
     rhs_sync_reg->InitRHS(rhnd,geom,*phys_bc);
 
     phi.setVal(0);
@@ -614,7 +617,7 @@ Projection::syncProject (int             c_lev,
     if (c_lev > 0 && (!proj_2 || crse_iteration == crse_dt_ratio))
     {
         const int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
-        sync_resid_fine.reset(new MultiFab(P_grids,1,ngrow));
+        sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow));
     }
 
     doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, {&rhnd}, sync_tol, proj_abs_tol,
@@ -709,17 +712,19 @@ Projection::MLsyncProject (int             c_lev,
     const BoxArray& fine_grids = LevelData[c_lev+1]->boxArray();
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
     const BoxArray& Pgrids_fine = pres_fine.boxArray();
+    const DistributionMapping& Pdmap_crse = pres_crse.DistributionMap();
+    const DistributionMapping& Pdmap_fine = pres_fine.DistributionMap();
 
-    phi[c_lev].reset(new MultiFab(Pgrids_crse,1,1));
+    phi[c_lev].reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,1));
     phi[c_lev]->setVal(0);
     
-    phi[c_lev+1].reset(new MultiFab(Pgrids_fine,1,1));
+    phi[c_lev+1].reset(new MultiFab(Pgrids_fine,Pdmap_fine,1,1));
     phi[c_lev+1]->setVal(0);
 
     //
     // Set up crse RHS
     //
-    MultiFab rhnd(Pgrids_crse,1,0);
+    MultiFab rhnd(Pgrids_crse,Pdmap_crse,1,0);
     rhs_sync_reg->InitRHS(rhnd,crse_geom,*phys_bc);
 
     Box P_finedomain(amrex::surroundingNodes(crse_geom.Domain()));
@@ -766,7 +771,7 @@ Projection::MLsyncProject (int             c_lev,
       //    if (c_lev > 0)
     {
         int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
-        sync_resid_fine.reset(new MultiFab(Pgrids_crse,1,ngrow));
+        sync_resid_fine.reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,ngrow));
     }
 
     doNodalProjection(c_lev, 2, vel, 
@@ -897,7 +902,8 @@ Projection::initialVelocityProject (int  c_lev,
 
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev]->boxArray();
-        sig[lev].reset(new MultiFab(grids,1,nghost));
+        const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
+        sig[lev].reset(new MultiFab(grids,dmap,1,nghost));
 
         if (rho_wgt_vel_proj) 
         {
@@ -966,7 +972,8 @@ Projection::initialVelocityProject (int  c_lev,
             }
 	    
             const BoxArray& grids     = amr_level.boxArray();
-            rhs_cc[lev].reset(new MultiFab(grids,1,nghost));
+            const DistributionMapping& dmap = amr_level.DistributionMap();
+            rhs_cc[lev].reset(new MultiFab(grids,dmap,1,nghost));
             put_divu_in_cc_rhs(*rhs_cc[lev],lev,cur_divu_time);
         }
     }
@@ -1058,7 +1065,8 @@ Projection::initialPressureProject (int  c_lev)
 
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev]->boxArray();
-        sig[lev].reset(new MultiFab(grids,1,nghost));
+        const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
+        sig[lev].reset(new MultiFab(grids,dmap,1,nghost));
 
         LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
@@ -1113,11 +1121,12 @@ Projection::initialPressureProject (int  c_lev)
 
     Array<std::unique_ptr<MultiFab> > raii;
     for (lev = c_lev; lev <= f_lev; lev++) {
-      BoxArray grids = vel[lev]->boxArray();
-      raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, BL_SPACEDIM, 1)));
-      vel[lev] = raii.back().get();
-      vel[lev]->setVal(0.0    , 0            , BL_SPACEDIM-1, 1);
-      vel[lev]->setVal(gravity, BL_SPACEDIM-1, 1            , 1);
+        const BoxArray& grids = vel[lev]->boxArray();
+        const DistributionMapping& dmap = vel[lev]->DistributionMap();
+        raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, dmap, BL_SPACEDIM, 1)));
+        vel[lev] = raii.back().get();
+        vel[lev]->setVal(0.0    , 0            , BL_SPACEDIM-1, 1);
+        vel[lev]->setVal(gravity, BL_SPACEDIM-1, 1            , 1);
     }
 
     //
@@ -1212,7 +1221,9 @@ Projection::initialSyncProject (int       c_lev,
             }
 
             const int nghost = 1;
-            rhs[lev].reset(new MultiFab(amr_level.boxArray(),1,nghost));
+            rhs[lev].reset(new MultiFab(amr_level.boxArray(),
+                                        amr_level.DistributionMap(),
+                                        1,nghost));
             MultiFab* rhslev = rhs[lev].get();
             rhslev->setVal(0);
 
@@ -1290,9 +1301,11 @@ Projection::initialSyncProject (int       c_lev,
     for (lev = f_lev; lev >= c_lev+1; lev--) {
       const BoxArray& crse_grids = vel[lev-1]->boxArray();
       const BoxArray& fine_grids = vel[lev  ]->boxArray();
+      const DistributionMapping& crse_dmap = vel[lev-1]->DistributionMap();
+      const DistributionMapping& fine_dmap = vel[lev  ]->DistributionMap();
 
-      MultiFab v_crse(crse_grids, BL_SPACEDIM, 1);
-      MultiFab v_fine(fine_grids, BL_SPACEDIM, 1);
+      MultiFab v_crse(crse_grids, crse_dmap, BL_SPACEDIM, 1);
+      MultiFab v_fine(fine_grids, fine_dmap, BL_SPACEDIM, 1);
 
       const Geometry& fine_geom = parent->Geom(lev  );
       const Geometry& crse_geom = parent->Geom(lev-1);
@@ -1843,9 +1856,13 @@ Projection::initialVorticityProject (int c_lev)
     {
         MultiFab& P_new  = LevelData[lev]->get_new_data(Press_Type);
         const int nghost = 1;
-        s_real[lev].reset(new MultiFab(LevelData[lev]->boxArray(),1,nghost));
+        s_real[lev].reset(new MultiFab(LevelData[lev]->boxArray(),
+                                       LevelData[lev]->DistributionMap(),
+                                       1,nghost));
         s_real[lev]->setVal(1,nghost);
-        p_real[lev].reset(new MultiFab(P_new.boxArray(),1,nghost));
+        p_real[lev].reset(new MultiFab(P_new.boxArray(),
+                                       P_new.DistributionMap(),
+                                       1,nghost));
         p_real[lev]->setVal(0,nghost);
     }
     //
@@ -1856,16 +1873,18 @@ Projection::initialVorticityProject (int c_lev)
 
     for (int lev = c_lev; lev <= f_lev; lev++)
     {
-        const BoxArray& full_mesh = parent->getLevel(lev).boxArray();
-
-        u_real[lev].reset(new MultiFab(full_mesh, BL_SPACEDIM, 1));
+        u_real[lev].reset(new MultiFab(parent->getLevel(lev).boxArray(),
+                                       parent->getLevel(lev).DistributionMap(),
+                                       BL_SPACEDIM, 1));
         u_real[lev]->setVal(0);
         //
         // The vorticity is stored in the new pressure variable for now.
         //
         MultiFab& P_new = LevelData[lev]->get_new_data(Press_Type);
 
-        rhnd[lev].reset(new MultiFab(P_new.boxArray(), 1, 0));
+        rhnd[lev].reset(new MultiFab(P_new.boxArray(), 
+                                     P_new.DistributionMap(),
+                                     1, 0));
 
         for (MFIter mfi(*rhnd[lev]); mfi.isValid(); ++mfi)
         {
@@ -1971,7 +1990,8 @@ Projection::putDown (const Array<MultiFab*>& phi,
                 amrex::surroundingNodes(amrex::bdryNode(domainC, outFaces[iface], ncStripWidth));
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
-            MultiFab phi_crse_strip(ba, nCompPhi, 0);
+            DistributionMapping dm{ba};
+            MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
 
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
@@ -2260,10 +2280,12 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
         BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
-        MultiFab phi_fine_strip_mf(phi_fine_strip_ba,1,0);
+        DistributionMapping dm {phi_fine_strip_ba};
+        MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
-        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi)
+        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
             phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
+        }
 
         phi[lev]->copy(phi_fine_strip_mf);
     }
@@ -2325,7 +2347,9 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
 
   Array<std::unique_ptr<MultiFab> > vold(maxlev);
   if (sync_resid_fine !=0 || sync_resid_crse != 0) {
-    vold[c_lev].reset(new MultiFab(parent->boxArray(c_lev), BL_SPACEDIM, 1));
+    vold[c_lev].reset(new MultiFab(parent->boxArray(c_lev), 
+                                   parent->DistributionMap(c_lev),
+                                   BL_SPACEDIM, 1));
     MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
 
     set_boundary_velocity(c_lev, 1,
@@ -2407,9 +2431,10 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
 
   if (sync_resid_fine != 0) {
     const BoxArray& levelGrids = mg_grids[0];
+    const DistributionMapping& levelDmap = dmap[0];
     const Geometry& levelGeom = mg_geom[0];
 
-    MultiFab msk(levelGrids, 1, 1); 
+    MultiFab msk(levelGrids, levelDmap, 1, 1); 
 
     mask_grids(msk, levelGeom);
 
@@ -2422,10 +2447,11 @@ void Projection::doNodalProjection (int c_lev, int nlevel,
   if (sync_resid_crse != 0) {  // only level solve will come to here
     const BoxArray& fineGrids = parent->boxArray(c_lev+1);
     const BoxArray& levelGrids = mg_grids[0];
+    const DistributionMapping& levelDmap = dmap[0];
     const Geometry& levelGeom = mg_geom[0];
     IntVect ref_ratio = parent->refRatio(c_lev);
 
-    MultiFab msk(levelGrids, 1, 1); 
+    MultiFab msk(levelGrids, levelDmap, 1, 1); 
 
     mask_grids(msk, levelGrids, levelGeom, fineGrids, ref_ratio);
 

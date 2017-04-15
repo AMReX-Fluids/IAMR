@@ -15,7 +15,9 @@ class SyncRegister
 {
 public:
 
-    SyncRegister (const amrex::BoxArray& fine_boxes, const amrex::IntVect& ref_ratio);
+    SyncRegister (const amrex::BoxArray& fine_boxes, 
+                  const amrex::DistributionMapping& dmap,
+                  const amrex::IntVect& ref_ratio);
 
     ~SyncRegister ();
 
@@ -23,7 +25,9 @@ public:
 
     void FineAdd (amrex::MultiFab& Sync_resid_fine, const amrex::Geometry& crse_geom, amrex::Real mult);
 
-    void CompAdd (amrex::MultiFab& Sync_resid_fine, const amrex::Geometry& fine_geom, const amrex::Geometry& crse_geom,
+    void CompAdd (amrex::MultiFab& Sync_resid_fine,
+                  const amrex::Geometry& fine_geom,
+                  const amrex::Geometry& crse_geom,
 		  const amrex::BoxArray& Pgrids, amrex::Real mult);
 
     void InitRHS (amrex::MultiFab& rhs, const amrex::Geometry& geom, const amrex::BCRec& phys_bc);

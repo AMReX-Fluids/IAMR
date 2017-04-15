@@ -13,10 +13,11 @@ class NSBld
     virtual void variableCleanUp () override;
     virtual amrex::AmrLevel *operator() () override;
     virtual amrex::AmrLevel *operator() (amrex::Amr&            papa,
-                                  int             lev,
-                                  const amrex::Geometry& level_geom,
-                                  const amrex::BoxArray& ba,
-                                  amrex::Real            time) override;
+                                         int             lev,
+                                         const amrex::Geometry& level_geom,
+                                         const amrex::BoxArray& ba,
+                                         const amrex::DistributionMapping& dm,
+                                         amrex::Real            time) override;
 };
 
 class NavierStokes
@@ -35,6 +36,7 @@ public:
                   int             lev,
                   const amrex::Geometry& level_geom,
                   const amrex::BoxArray& bl,
+                  const amrex::DistributionMapping& dm,
                   amrex::Real            time);
 
     virtual ~NavierStokes ();

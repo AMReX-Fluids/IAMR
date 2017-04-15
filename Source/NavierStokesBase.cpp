@@ -164,9 +164,10 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 				    int             lev,
 				    const Geometry& level_geom,
 				    const BoxArray& bl,
+                                    const DistributionMapping& dm,
 				    Real            time)
     :
-    AmrLevel(papa,lev,level_geom,bl,time)
+    AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
     if(!additional_state_types_initialized) {
         init_additional_state_types();
@@ -182,13 +183,13 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     if (level > 0)
     {
-        rho_avg.define(grids,1,1,Fab_allocate);
-        p_avg.define(P_grids,1,0,Fab_allocate);
+        rho_avg.define(grids,dmap,1,1);
+        p_avg.define(P_grids,dmap,1,0);
     }
 
-    rho_half.define (grids,1,1,Fab_allocate);
-    rho_ptime.define(grids,1,1,Fab_allocate);
-    rho_ctime.define(grids,1,1,Fab_allocate);
+    rho_half.define (grids,dmap,1,1);
+    rho_ptime.define(grids,dmap,1,1);
+    rho_ctime.define(grids,dmap,1,1);
     rho_qtime  = 0;
     rho_tqtime = 0;
     //
@@ -202,14 +203,14 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     sync_reg = 0;
     if (level > 0 && do_sync_proj)
     {
-        sync_reg = new SyncRegister(grids,crse_ratio);
+        sync_reg = new SyncRegister(grids,dmap,crse_ratio);
     }
     advflux_reg  = 0;
     viscflux_reg = 0;
     if (level > 0 && do_reflux)
     {
-        advflux_reg  = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
-        viscflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
+        advflux_reg  = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+        viscflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
     }
     //
     // Initialize work multifabs.
@@ -242,16 +243,16 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     viscnp1_cc = 0;
     if (variable_vel_visc) 
     {
-        viscn_cc   = new MultiFab(grids, 1, 1);
-        viscnp1_cc = new MultiFab(grids, 1, 1);
+        viscn_cc   = new MultiFab(grids, dmap, 1, 1);
+        viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
     }
 
     diffn_cc   = 0;
     diffnp1_cc = 0;
     if (variable_scal_diff) 
     {
-        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1, 1);
-        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
+        diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+        diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
     }
     //
     // Set up the mac projector.
@@ -642,9 +643,9 @@ NavierStokesBase::advance_setup (Real time,
     if (level < finest_level)
     {
         if (Vsync.empty())
-            Vsync.define(grids,BL_SPACEDIM,1,Fab_allocate);
+            Vsync.define(grids,dmap,BL_SPACEDIM,1);
         if (Ssync.empty())
-            Ssync.define(grids,NUM_STATE-BL_SPACEDIM,1,Fab_allocate);
+            Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1);
         Vsync.setVal(0);
         Ssync.setVal(0);
     }
@@ -668,7 +669,7 @@ NavierStokesBase::advance_setup (Real time,
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
 	    const BoxArray& edge_grids = getEdgeBoxArray(dir);
-            u_mac[dir].define(edge_grids,1,umac_n_grow,Fab_allocate);
+            u_mac[dir].define(edge_grids,dmap,1,umac_n_grow);
             u_mac[dir].setVal(1.e40);
         }
     }
@@ -676,7 +677,7 @@ NavierStokesBase::advance_setup (Real time,
     // Alloc MultiFab to hold advective update terms.
     //
     BL_ASSERT(aofs == 0);
-    aofs = new MultiFab(grids,NUM_STATE,0);
+    aofs = new MultiFab(grids,dmap,NUM_STATE,0);
     //
     // Set rho_avg.
     //
@@ -718,13 +719,14 @@ NavierStokesBase::advance_setup (Real time,
         {
             NavierStokesBase& clevel = getLevel(level-1);
             const BoxArray& cgrids = clevel.boxArray();
+            const DistributionMapping& cdmap = clevel.DistributionMap();
             const Real      ptime  = clevel.state[State_Type].prevTime();
             const Real      ctime  = clevel.state[State_Type].curTime();
 
             if (clevel.rho_qtime == 0)
             {
                 const Real qtime = ptime + 0.25*(ctime-ptime);
-                clevel.rho_qtime = new MultiFab(cgrids,1,1);
+                clevel.rho_qtime = new MultiFab(cgrids,cdmap,1,1);
                 FillPatchIterator fpi(clevel,*(clevel.rho_qtime),
                                       1,qtime,State_Type,Density,1);
                 for ( ; fpi.isValid(); ++fpi)
@@ -733,7 +735,7 @@ NavierStokesBase::advance_setup (Real time,
             if (clevel.rho_tqtime == 0)
             {
                 const Real tqtime = ptime + 0.75*(ctime-ptime);
-                clevel.rho_tqtime = new MultiFab(cgrids,1,1);
+                clevel.rho_tqtime = new MultiFab(cgrids,cdmap,1,1);
 		FillPatch(clevel, *(clevel.rho_tqtime), 1, tqtime, State_Type, Density, 1, 0);
             }
         }
@@ -800,13 +802,13 @@ NavierStokesBase::buildMetrics ()
 #endif
 
     volume.clear();
-    volume.define(grids,1,GEOM_GROW,Fab_allocate);
+    volume.define(grids,dmap,1,GEOM_GROW);
     geom.GetVolume(volume);
 
     for (int dir = 0; dir < BL_SPACEDIM; ++dir)
     {
         area[dir].clear();
-	area[dir].define(getEdgeBoxArray(dir),1,GEOM_GROW,Fab_allocate);
+	area[dir].define(getEdgeBoxArray(dir),dmap,1,GEOM_GROW);
         geom.GetFaceArea(area[dir],dir);
     }
 }
@@ -1091,8 +1093,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
 
             MultiFab crse_src, fine_src;
 
-            crse_src.define(crse_src_ba, 1, 0, dm, Fab_allocate);
-            fine_src.define(fine_src_ba, 1, 0, dm, Fab_allocate);
+            crse_src.define(crse_src_ba, dm, 1, 0);
+            fine_src.define(fine_src_ba, dm, 1, 0);
 
             crse_src.setVal(1.e200);
             fine_src.setVal(1.e200);
@@ -1144,7 +1146,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
                                  ARLIM(fine_src[mfi].hiVect()));
             }
 
-	    MultiFab u_mac_save(u_mac[n].boxArray(),1,0);
+	    MultiFab u_mac_save(u_mac[n].boxArray(),u_mac[n].DistributionMap(), 1,0);
 	    u_mac_save.copy(u_mac[n]);
 	    u_mac[n].copy(fine_src,0,0,1,0,nGrow);
 	    u_mac[n].copy(u_mac_save);
@@ -1273,7 +1275,7 @@ NavierStokesBase::estTimeStep ()
     Real gr_max[BL_SPACEDIM], u_max[BL_SPACEDIM] = {0};
 
     FArrayBox tforces;
-    MultiFab Gp(grids,BL_SPACEDIM,1);
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 
     for (MFIter Rho_mfi(rho_ctime); Rho_mfi.isValid(); ++Rho_mfi)
@@ -1398,7 +1400,7 @@ NavierStokesBase::getDivCond (int ngrow, Real time)
 
     if (!have_divu)
     {
-        divu = new MultiFab(grids,1,ngrow);
+        divu = new MultiFab(grids,dmap,1,ngrow);
 
         divu->setVal(0);
     }
@@ -1420,7 +1422,7 @@ NavierStokesBase::getDsdt (int ngrow, Real time)
 
     if (!(have_dsdt && have_divu))
     {
-        dsdt = new MultiFab(grids,1,ngrow);
+        dsdt = new MultiFab(grids,dmap,1,ngrow);
 
         dsdt->setVal(0);
     }
@@ -1452,7 +1454,7 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 
         {
             const BoxArray& pBA = state[Press_Type].boxArray();
-            MultiFab pMF(pBA,1,NGrow);
+            MultiFab pMF(pBA,dmap,1,NGrow);
 
             if (time == getLevel(level-1).state[Press_Type].prevTime() || 
                 time == getLevel(level-1).state[Press_Type].curTime())
@@ -1474,7 +1476,7 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
   
                 FillCoarsePatch(pMF,0,crse_time,Press_Type,0,1,NGrow);
   
-                MultiFab dpdtMF(pBA,1,NGrow);
+                MultiFab dpdtMF(pBA,dmap,1,NGrow);
 
                 FillCoarsePatch(dpdtMF,0,time,Dpdt_Type,0,1,NGrow);
 
@@ -1493,7 +1495,7 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
         //
         // We've now got good coarse data everywhere in gp.
         //
-        MultiFab gpTmp(gp.boxArray(),1,NGrow);
+        MultiFab gpTmp(gp.boxArray(),gp.DistributionMap(),1,NGrow);
 
         for (FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
              P_fpi.isValid();
@@ -1570,7 +1572,9 @@ NavierStokesBase::getState (int  ngrow,
 {
     BL_PROFILE("NavierStokesBase::getState()");
 
-    MultiFab* mf = new MultiFab(state[state_idx].boxArray(),ncomp,ngrow);
+    MultiFab* mf = new MultiFab(state[state_idx].boxArray(),
+                                state[state_idx].DistributionMap(),
+                                ncomp,ngrow);
 
     FillPatchIterator fpi(*this,*mf,ngrow,time,state_idx,scomp,ncomp);
 
@@ -1982,6 +1986,7 @@ NavierStokesBase::level_sync (int crse_iteration)
     MultiFab&       pres_fine     = fine_level.get_new_data(Press_Type);
     MultiFab&       vel_fine      = fine_level.get_new_data(State_Type);
     const BoxArray& finegrids     = vel_fine.boxArray();
+    const DistributionMapping& finedmap = vel_fine.DistributionMap();
     
     if (level > 0)
         crsr_sync_ptr = &(getLevel(level).getSyncReg());
@@ -2003,8 +2008,8 @@ NavierStokesBase::level_sync (int crse_iteration)
 
     if ((do_sync_proj && have_divu && do_divu_sync == 1) || do_MLsync_proj)
     {
-        cc_rhs_crse.define(grids,1,1,Fab_allocate);
-        cc_rhs_fine.define(finegrids,1,1,Fab_allocate);
+        cc_rhs_crse.define(grids,dmap,1,1);
+        cc_rhs_fine.define(finegrids,finedmap,1,1);
         cc_rhs_crse.setVal(0);
         cc_rhs_fine.setVal(0);
     }
@@ -2024,7 +2029,7 @@ NavierStokesBase::level_sync (int crse_iteration)
         MultiFab& cur_divu_crse = get_new_data(Divu_Type);
         calc_divu(cur_time,dt,cc_rhs_crse);
         {
-            MultiFab new_divu_crse(grids,1,0);
+            MultiFab new_divu_crse(grids,dmap,1,0);
             MultiFab::Copy(new_divu_crse,cc_rhs_crse,0,0,1,0);
             cc_rhs_crse.minus(cur_divu_crse,0,1,0);
             MultiFab::Copy(cur_divu_crse,new_divu_crse,0,0,1,0);
@@ -2035,7 +2040,7 @@ NavierStokesBase::level_sync (int crse_iteration)
         MultiFab& cur_divu_fine = fine_lev.get_new_data(Divu_Type);
         fine_lev.calc_divu(cur_time,dt,cc_rhs_fine);
         {
-            MultiFab new_divu_fine(finegrids,1,0);
+            MultiFab new_divu_fine(finegrids,finedmap,1,0);
             MultiFab::Copy(new_divu_fine,cc_rhs_fine,0,0,1,0);
             cc_rhs_fine.minus(cur_divu_fine,0,1,0);
             MultiFab::Copy(cur_divu_fine,new_divu_fine,0,0,1,0);
@@ -2077,9 +2082,10 @@ NavierStokesBase::level_sync (int crse_iteration)
         MultiFab&       rho_fine    = fine_level.rho_avg;
         const Geometry& crse_geom   = parent->Geom(level);
         const BoxArray& P_finegrids = pres_fine.boxArray();
+        const DistributionMapping& P_finedmap = pres_fine.DistributionMap();
 
-        MultiFab phi(P_finegrids,1,1);
-        MultiFab V_corr(finegrids,BL_SPACEDIM,1);
+        MultiFab phi(P_finegrids,P_finedmap,1,1);
+        MultiFab V_corr(finegrids,finedmap,BL_SPACEDIM,1);
 
         V_corr.setVal(0);
         //
@@ -2159,7 +2165,7 @@ NavierStokesBase::level_sync (int crse_iteration)
     }
     else if (do_sync_proj) 
     {
-        MultiFab phi(pres.boxArray(),1,1);
+        MultiFab phi(pres.boxArray(),pres.DistributionMap(),1,1);
         BoxArray sync_boxes = pres_fine.boxArray();
         sync_boxes.coarsen(ratio);
         //
@@ -2610,8 +2616,9 @@ NavierStokesBase::post_timestep (int crse_iteration)
         bx.setBig  (BL_SPACEDIM-1, dump_plane);
 
         BoxArray ba(bx);
+        DistributionMapping dm{ba};
 
-        MultiFab mf(ba, BL_SPACEDIM, 0);
+        MultiFab mf(ba, dm, BL_SPACEDIM, 0);
 
         mf.copy(get_new_data(State_Type), Xvel, 0, BL_SPACEDIM);
 
@@ -2714,35 +2721,35 @@ NavierStokesBase::restart (Amr&          papa,
     //
     if (level > 0)
     {
-        rho_avg.define(grids,1,1,Fab_allocate);
-        p_avg.define(P_grids,1,0,Fab_allocate);
+        rho_avg.define(grids,dmap,1,1);
+        p_avg.define(P_grids,dmap,1,0);
     }
-    rho_half.define (grids,1,1,Fab_allocate);
-    rho_ptime.define(grids,1,1,Fab_allocate);
-    rho_ctime.define(grids,1,1,Fab_allocate);
+    rho_half.define (grids,dmap,1,1);
+    rho_ptime.define(grids,dmap,1,1);
+    rho_ctime.define(grids,dmap,1,1);
     rho_qtime  = 0;
     rho_tqtime = 0;
 
     BL_ASSERT(sync_reg == 0);
     if (level > 0 && do_sync_proj)
     {
-        sync_reg = new SyncRegister(grids,crse_ratio);
+        sync_reg = new SyncRegister(grids,dmap,crse_ratio);
     }
     BL_ASSERT(advflux_reg == 0);
     if (level > 0 && do_reflux)
     {
-        advflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
+        advflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
     }
     BL_ASSERT(viscflux_reg == 0);
     if (level > 0 && do_reflux)
     {
-        viscflux_reg = new FluxRegister(grids,crse_ratio,level,NUM_STATE);
+        viscflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
     }
 
     if (level < parent->finestLevel())
     {
-        Vsync.define(grids,BL_SPACEDIM,1,Fab_allocate);
-        Ssync.define(grids,NUM_STATE-BL_SPACEDIM,1,Fab_allocate);
+        Vsync.define(grids,dmap,BL_SPACEDIM,1);
+        Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1);
     }
 
     diffusion = new Diffusion(parent, this,
@@ -2755,16 +2762,16 @@ NavierStokesBase::restart (Amr&          papa,
     viscnp1_cc = 0;
     if (variable_vel_visc)
     {
-        viscn_cc   = new MultiFab(grids, 1, 1);
-        viscnp1_cc = new MultiFab(grids, 1, 1);
+        viscn_cc   = new MultiFab(grids, dmap, 1, 1);
+        viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
     }
 
     diffn_cc   = 0;
     diffnp1_cc = 0;
     if (variable_scal_diff)
     {
-        diffn_cc   = new MultiFab(grids, NUM_STATE-Density-1, 1);
-        diffnp1_cc = new MultiFab(grids, NUM_STATE-Density-1, 1);
+        diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+        diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
     }
 
     is_first_step_after_regrid = false;
@@ -2982,7 +2989,7 @@ NavierStokesBase::sync_setup (MultiFab*& DeltaSsync)
 
     if (nconserved > 0 && level < parent->finestLevel())
     {
-        DeltaSsync = new MultiFab(grids, nconserved, 1, Fab_allocate);
+        DeltaSsync = new MultiFab(grids, dmap, nconserved, 1);
         DeltaSsync->setVal(0,1);
     }
 }
@@ -3076,6 +3083,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
     NavierStokesBase& fine_level = getLevel(f_lev);
     const BoxArray& fgrids     = fine_level.boxArray();
+    const DistributionMapping& fdmap = fine_level.DistributionMap();
     const Geometry& fgeom      = parent->Geom(f_lev);
     const BoxArray& cgrids     = getLevel(c_lev).boxArray();
     const Geometry& cgeom      = parent->Geom(c_lev);
@@ -3096,7 +3104,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     // Note: The boxes in cdataBA may NOT be disjoint !!!
     //
-    MultiFab cdataMF(cdataBA,num_comp,0);
+    MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 
     cdataMF.setVal(0);
 
@@ -3229,7 +3237,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         crse_ba.set(i,node_bilinear_interp.CoarseBox(P_grids[i],ratio));
 
     Array<BCRec> bc(BL_SPACEDIM);
-    MultiFab     crse_phi(crse_ba,1,0);
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0);
 
     crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
@@ -3319,7 +3327,7 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Compute viscosity components.
     //
-    MultiFab visc_terms(grids,BL_SPACEDIM,1);
+    MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1);
 
     if (be_cn_theta != 1.0)
         getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
@@ -3328,11 +3336,11 @@ NavierStokesBase::velocity_advection (Real dt)
 
     Array<int> bndry[BL_SPACEDIM];
 
-    MultiFab divu_fp(grids,1,1);
+    MultiFab divu_fp(grids,dmap,1,1);
 
     create_mac_rhs(divu_fp,1,prev_time,dt);
 
-    MultiFab Gp(grids,BL_SPACEDIM,1), fluxes[BL_SPACEDIM];
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1), fluxes[BL_SPACEDIM];
 
     getGradP(Gp, prev_pres_time);
 
@@ -3343,7 +3351,7 @@ NavierStokesBase::velocity_advection (Real dt)
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
-            fluxes[i].define(ba, BL_SPACEDIM, 0, Fab_allocate);
+            fluxes[i].define(ba, dmap, BL_SPACEDIM, 0);
         }
     }
     //
@@ -3518,7 +3526,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
 
-    MultiFab Gp(grids,BL_SPACEDIM,1);
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
 
     MultiFab& halftime = get_rho_half_time();
@@ -3634,10 +3642,10 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         const Real prev_time      = state[State_Type].prevTime();
         const Real prev_pres_time = state[Press_Type].prevTime();
 
-        MultiFab Gp(grids,BL_SPACEDIM,1);
+        MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
         getGradP(Gp, prev_pres_time);
 
-	MultiFab visc_terms(grids,nComp,1);
+	MultiFab visc_terms(grids,dmap,nComp,1);
 
 	if (be_cn_theta != 1.0)
         {
@@ -4286,7 +4294,7 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 		
 		if (tindices.size() > 0)
 		{
-		    tmf.define(S_new.boxArray(), tindices.size(), ng, Fab_allocate);
+		    tmf.define(S_new.boxArray(), S_new.DistributionMap(), tindices.size(), ng);
 
 		    if (n > 0)
 		    {
@@ -4332,7 +4340,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 	    ncomp = rec->numDerive();
 	}
 	
-	MultiFab* ret = new MultiFab(grids, ncomp, ngrow);
+	MultiFab* ret = new MultiFab(grids, dmap, ncomp, ngrow);
 	ParticleDerive(name,time,*ret,0);
 	return ret;
     }
@@ -4354,7 +4362,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
     else {
 	if (name == "particle_count")
 	{
-	    MultiFab temp_dat(grids,1,0);
+	    MultiFab temp_dat(grids,dmap,1,0);
 	    temp_dat.setVal(0);
 	    NSPC->Increment(temp_dat,level);
 	    MultiFab::Copy(mf,temp_dat,0,dcomp,1,0);
@@ -4372,13 +4380,13 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 	    {
 		BoxArray ba = parent->boxArray(lev);
 
-		MultiFab temp_dat(ba,1,0);
+		MultiFab temp_dat(ba,parent->DistributionMap(lev),1,0);
 		
 		trr *= parent->refRatio(lev-1);
 		
 		ba.coarsen(trr);
 		
-		MultiFab ctemp_dat(ba,1,0);
+		MultiFab ctemp_dat(ba,parent->DistributionMap(lev),1,0);
 		
 		temp_dat.setVal(0);
 		ctemp_dat.setVal(0);
@@ -4403,7 +4411,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 		
 		temp_dat.clear();
 		
-		MultiFab dat(grids,1,0);
+		MultiFab dat(grids,dmap,1,0);
 		dat.setVal(0);
 		dat.copy(ctemp_dat);
 		

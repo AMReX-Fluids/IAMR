@@ -13,6 +13,7 @@ public:
     ViscBndry ();
 
     ViscBndry (const amrex::BoxArray& _grids,
+               const amrex::DistributionMapping& _dmap,
                int             _ncomp,
                const amrex::Geometry& _geom);
 

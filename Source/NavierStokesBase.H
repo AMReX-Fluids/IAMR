@@ -189,6 +189,7 @@ protected:
 		      int             lev,
 		      const amrex::Geometry& level_geom,
 		      const amrex::BoxArray& bl,
+                      const amrex::DistributionMapping& dm,
 		      amrex::Real            time);
 
     ////////////////////////////////////////////////////////////////////////////

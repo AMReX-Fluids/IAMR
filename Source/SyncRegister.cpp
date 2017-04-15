@@ -13,6 +13,7 @@
 using namespace amrex;
 
 SyncRegister::SyncRegister (const BoxArray& fine_boxes,
+                            const DistributionMapping& dmap,
                             const IntVect&  ref_ratio)
     : ratio(ref_ratio)
 {
@@ -33,10 +34,10 @@ SyncRegister::SyncRegister (const BoxArray& fine_boxes,
 	BoxArray loBA(grids, lotrans);
 	BoxArray hiBA(grids, hitrans);
 
-        bndry[loface].define(loBA,1);
-        bndry_mask[loface].define(loBA,1);
-        bndry[hiface].define(hiBA,1);
-        bndry_mask[hiface].define(hiBA,1);
+        bndry[loface].define(loBA,dmap,1);
+        bndry_mask[loface].define(loBA,dmap,1);
+        bndry[hiface].define(hiBA,dmap,1);
+        bndry_mask[hiface].define(hiBA,dmap,1);
     }
 }
 
@@ -215,7 +216,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 
     // Multiply by Bndry Mask
 
-    MultiFab tmp(rhs.boxArray(), 1, ngrow, rhs.DistributionMap());
+    MultiFab tmp(rhs.boxArray(), rhs.DistributionMap(), 1, ngrow);
 
     for (OrientationIter face; face; ++face)
     {
@@ -245,7 +246,8 @@ SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Re
 }
 
 void
-SyncRegister::CompAdd (MultiFab& Sync_resid_fine, const Geometry& fine_geom, const Geometry& crse_geom, 
+SyncRegister::CompAdd (MultiFab& Sync_resid_fine, 
+                       const Geometry& fine_geom, const Geometry& crse_geom, 
 		       const BoxArray& Pgrids, Real mult)
 {
     BL_PROFILE("SyncRegister::CompAdd()");
@@ -297,7 +299,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
     BoxArray cba = Sync_resid_fine.boxArray();
     cba.coarsen(ratio);
 
-    MultiFab Sync_resid_crse(cba, 1, 0, Sync_resid_fine.DistributionMap());
+    MultiFab Sync_resid_crse(cba, Sync_resid_fine.DistributionMap(), 1, 0);
     Sync_resid_crse.setVal(0.0);
 
 #ifdef _OPENMP
