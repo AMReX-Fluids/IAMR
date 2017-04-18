@@ -33,7 +33,6 @@ amr.regrid_int		= 2 2 2 2 2 2 2
 
 # Refinement ratio as a function of level
 amr.ref_ratio		= 2 2 2 2
-amr.n_error_buff        = 2 2 2 2 2 2 2
 
 #*******************************************************************************
 
