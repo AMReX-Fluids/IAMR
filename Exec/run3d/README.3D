@@ -1,5 +1,5 @@
 
-Included in this run3d directory are a sample inputs files,
+Included in this run3d directory are sample inputs files,
 and the accompanying "probin" files, that supplies problem-dependent 
 paramters for the calculations.
 
@@ -8,7 +8,7 @@ the inputs and probin files, as well as significant changes which
 can be made with relatively small changes to the program files,
 especially PROB_3D.F and NS_setup.cpp.  Most of the options which
 can be specified from the inputs files are left to their default
-values in the sample calculation.
+values in the sample calculations.
 
 This code is a research code, and is continually being modified and 
 improved  as our needs evolve.   Because the list of options is so 
