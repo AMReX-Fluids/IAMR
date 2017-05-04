@@ -72,149 +72,149 @@
 #  define FORT_INTERPOLATE  interp_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" {
 #if (BL_SPACEDIM == 2)
-    void FORT_MACPHIBC (const Real* phi, int* length,
-                        const Real* divuEptr, const Real* rhoEptr,
-                        const Real* redge,
-                        const Real* hx,
+    void FORT_MACPHIBC (const amrex::Real* phi, int* length,
+                        const amrex::Real* divuEptr, const amrex::Real* rhoEptr,
+                        const amrex::Real* redge,
+                        const amrex::Real* hx,
                         const int* isPeriodic);
 
     void FORT_MACFILL_ONED(int* lenx, int* leny, int* length,
                            int * faces, int * numOutFlowFaces,
-                           const Real* cc0, const Real* cc1,
-                           const Real* cc2, const Real* cc3,
-                           const Real*  r0, const Real*  r1,
-                           const Real*  r2, const Real*  r3,
-                           Real * cc_conn, Real* redge_conn);
+                           const amrex::Real* cc0, const amrex::Real* cc1,
+                           const amrex::Real* cc2, const amrex::Real* cc3,
+                           const amrex::Real*  r0, const amrex::Real*  r1,
+                           const amrex::Real*  r2, const amrex::Real*  r3,
+                           amrex::Real * cc_conn, amrex::Real* redge_conn);
 
     void FORT_MACALLPHI_FROM_X(int* lenx, int* leny, int* length,
                             int * faces, int * numOutFlowFaces,
-                            const Real* phi0, const Real* phi1,
-                            const Real* phi2, const Real* phi3,
-                            Real * x);
+                            const amrex::Real* phi0, const amrex::Real* phi1,
+                            const amrex::Real* phi2, const amrex::Real* phi3,
+                            amrex::Real * x);
 
 #else
 
-    void  FORT_COMPUTE_MACCOEFF(ARLIM_P(rhslo),ARLIM_P(rhshi),const Real* rhsPtr,
-				ARLIM_P(beta0lo),ARLIM_P(beta0hi),const Real* beta0Ptr,
-				ARLIM_P(beta1lo),ARLIM_P(beta1hi),const Real* beta1Ptr,
+    void  FORT_COMPUTE_MACCOEFF(ARLIM_P(rhslo),ARLIM_P(rhshi),const amrex::Real* rhsPtr,
+				ARLIM_P(beta0lo),ARLIM_P(beta0hi),const amrex::Real* beta0Ptr,
+				ARLIM_P(beta1lo),ARLIM_P(beta1hi),const amrex::Real* beta1Ptr,
 				ARLIM_P(divuElo),ARLIM_P(divuEhi), 
-				const Real* divuEPtr,
-				ARLIM_P(rhoElo),ARLIM_P(rhoEhi),const Real* rhoEPtr,
+				const amrex::Real* divuEPtr,
+				ARLIM_P(rhoElo),ARLIM_P(rhoEhi),const amrex::Real* rhoEPtr,
 				const int* faceLo, const int* faceHi,
-				const Real* dx, const int* isPeriodicPerp);
+				const amrex::Real* dx, const int* isPeriodicPerp);
 
     void FORT_MACFILL_TWOD(int* lenx, int* leny, int* length, int* width,
                            int * faces, int * numOutFlowFaces,
-                           const Real* cc0, const Real* cc1, const Real* cc2,
-                           const Real* cc3, const Real* cc4, const Real* cc5,
-                           Real * cc_conn);
+                           const amrex::Real* cc0, const amrex::Real* cc1, const amrex::Real* cc2,
+                           const amrex::Real* cc3, const amrex::Real* cc4, const amrex::Real* cc5,
+                           amrex::Real * cc_conn);
 
 
     void FORT_MACALLPHI_FROM_X(int* lenx, int* leny, int* lenz, int* length, int* width,
                             int * faces, int * numOutFlowFaces,
-                            const Real* phi0, const Real* phi1, const Real* phi2,
-                            const Real* phi3, const Real* phi4, const Real* phi5,
-                            Real * x, ARLIM_P(x_lo), ARLIM_P(x_hi));
+                            const amrex::Real* phi0, const amrex::Real* phi1, const amrex::Real* phi2,
+                            const amrex::Real* phi3, const amrex::Real* phi4, const amrex::Real* phi5,
+                            amrex::Real * x, ARLIM_P(x_lo), ARLIM_P(x_hi));
 
 #endif
 
-    void FORT_MACPHI_FROM_X(ARLIM_P(phi_lo), ARLIM_P(phi_hi), const Real* phi,
-                         int * length, Real * x);
+    void FORT_MACPHI_FROM_X(ARLIM_P(phi_lo), ARLIM_P(phi_hi), const amrex::Real* phi,
+                         int * length, amrex::Real * x);
 
-    void FORT_EXTRAP_MAC (ARLIM_P(u0_lo), ARLIM_P(u0_hi), const Real* u0,
-			  ARLIM_P(u1_lo), ARLIM_P(u1_hi), const Real* u1,
+    void FORT_EXTRAP_MAC (ARLIM_P(u0_lo), ARLIM_P(u0_hi), const amrex::Real* u0,
+			  ARLIM_P(u1_lo), ARLIM_P(u1_hi), const amrex::Real* u1,
 #if (BL_SPACEDIM == 3)
-			  ARLIM_P(u2_lo), ARLIM_P(u2_hi), const Real* u2,
+			  ARLIM_P(u2_lo), ARLIM_P(u2_hi), const amrex::Real* u2,
 #endif
-			  ARLIM_P(d_lo), ARLIM_P(d_hi), const Real* divcor,
-			  ARLIM_P(rho_lo), ARLIM_P(rho_hi), const Real* rho,
+			  ARLIM_P(d_lo), ARLIM_P(d_hi), const amrex::Real* divcor,
+			  ARLIM_P(rho_lo), ARLIM_P(rho_hi), const amrex::Real* rho,
 #if (BL_SPACEDIM == 2)
-			  int* r_len, const Real* redge,
+			  int* r_len, const amrex::Real* redge,
 #endif
-			  ARLIM_P(dE_lo), ARLIM_P(dE_hi), const Real* dE,
-			  ARLIM_P(rhoE_lo), ARLIM_P(rhoE_hi), const Real* rhoE,
-			  const Real* dx,
+			  ARLIM_P(dE_lo), ARLIM_P(dE_hi), const amrex::Real* dE,
+			  ARLIM_P(rhoE_lo), ARLIM_P(rhoE_hi), const amrex::Real* rhoE,
+			  const amrex::Real* dx,
 			  const int* faceLo, const int* faceHi,
-			  int* face, int* per, int* zeroIt, Real* small_udiff);
+			  int* face, int* per, int* zeroIt, amrex::Real* small_udiff);
 
-    void FORT_MACRELAX (ARLIM_P(rhslo), ARLIM_P(rhshi), const Real* rhs,
-			ARLIM_P(beta0lo), ARLIM_P(beta0hi), const Real* beta0,
+    void FORT_MACRELAX (ARLIM_P(rhslo), ARLIM_P(rhshi), const amrex::Real* rhs,
+			ARLIM_P(beta0lo), ARLIM_P(beta0hi), const amrex::Real* beta0,
 #if (BL_SPACEDIM == 3)
-			ARLIM_P(beta1lo), ARLIM_P(beta1hi), const Real* beta1,
+			ARLIM_P(beta1lo), ARLIM_P(beta1hi), const amrex::Real* beta1,
 #endif
-			ARLIM_P(philo), ARLIM_P(phihi), const Real* phi,
+			ARLIM_P(philo), ARLIM_P(phihi), const amrex::Real* phi,
 			const int* faceLo, const int* faceHi,
-			const Real* h, const int* isPeriodic, 
+			const amrex::Real* h, const int* isPeriodic, 
 			const int* niter);
 
     void FORT_MAC_RESHIFT_PHI(
-                           ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
-			   ARLIM_P(inlo),ARLIM_P(inhi),const Real* inPtr,
+                           ARLIM_P(outlo),ARLIM_P(outhi),const amrex::Real* outPtr,
+			   ARLIM_P(inlo),ARLIM_P(inhi),const amrex::Real* inPtr,
 			   const int* face);
 
    void FORT_MAC_SHIFT_PHI(
-                           ARLIM_P(outlo),ARLIM_P(outhi),const Real* outPtr,
-                           ARLIM_P(inlo),ARLIM_P(inhi),const Real* inPtr,
+                           ARLIM_P(outlo),ARLIM_P(outhi),const amrex::Real* outPtr,
+                           ARLIM_P(inlo),ARLIM_P(inhi),const amrex::Real* inPtr,
                            const int* face);
 
 
-    void FORT_MACRESID(ARLIM_P(rhslo),ARLIM_P(rhshi),const Real* rhsPtr,
-		       ARLIM_P(beta0),ARLIM_P(beta0),const Real* beta0,
+    void FORT_MACRESID(ARLIM_P(rhslo),ARLIM_P(rhshi),const amrex::Real* rhsPtr,
+		       ARLIM_P(beta0),ARLIM_P(beta0),const amrex::Real* beta0,
 #if (BL_SPACEDIM == 3)
-		       ARLIM_P(beta1),ARLIM_P(beta1),const Real* beta1,
+		       ARLIM_P(beta1),ARLIM_P(beta1),const amrex::Real* beta1,
 #endif
-		       ARLIM_P(phi), ARLIM_P(phi),const Real* phi,
-		       ARLIM_P(resid),ARLIM_P(resid), const Real* resid,
-		       const int* lo, const int* hi, const Real* h,
-		       const int* isPeriodic, const Real* maxnorm);
+		       ARLIM_P(phi), ARLIM_P(phi),const amrex::Real* phi,
+		       ARLIM_P(resid),ARLIM_P(resid), const amrex::Real* resid,
+		       const int* lo, const int* hi, const amrex::Real* h,
+		       const int* isPeriodic, const amrex::Real* maxnorm);
 
 
-    void FORT_MACSUBTRACTAVGPHI(ARLIM_P(philo),ARLIM_P(phihi),const Real* phi,
+    void FORT_MACSUBTRACTAVGPHI(ARLIM_P(philo),ARLIM_P(phihi),const amrex::Real* phi,
 #if (BL_SPACEDIM == 2)
-		       int* r_lo, int* r_hi, const Real* r,
+		       int* r_lo, int* r_hi, const amrex::Real* r,
 #endif
 		       const int* faceLo, const int* faceHi,
 				const int* isPeriodic);
 
-  void FORT_SOLVEMAC(Real * dest, ARLIM_P(destlo),ARLIM_P(desthi),
-		     Real * dest0, ARLIM_P(dest0lo),ARLIM_P(dest0hi),
-		     Real *source, ARLIM_P(sourcelo),ARLIM_P(sourcehi),
-                     Real * sigmax,  ARLIM_P(sigmaxlo),ARLIM_P(simgaxhi),
+  void FORT_SOLVEMAC(amrex::Real * dest, ARLIM_P(destlo),ARLIM_P(desthi),
+		     amrex::Real * dest0, ARLIM_P(dest0lo),ARLIM_P(dest0hi),
+		     amrex::Real *source, ARLIM_P(sourcelo),ARLIM_P(sourcehi),
+                     amrex::Real * sigmax,  ARLIM_P(sigmaxlo),ARLIM_P(simgaxhi),
 #if (BL_SPACEDIM == 3)
-		     Real * sigmay, ARLIM_P(sigmaylo),ARLIM_P(sigmayhi),
+		     amrex::Real * sigmay, ARLIM_P(sigmaylo),ARLIM_P(sigmayhi),
 #endif
-		     Real * sum, ARLIM_P(sumlo),ARLIM_P(sumhi), 
-                     Real * r, ARLIM_P(rlo),ARLIM_P(rhi), 
-		     Real * w, ARLIM_P(wlo),ARLIM_P(whi), 
-		     Real * z, ARLIM_P(zlo),ARLIM_P(zhi), 
-		     Real * work,ARLIM_P(worklo),ARLIM_P(workhi), 
+		     amrex::Real * sum, ARLIM_P(sumlo),ARLIM_P(sumhi), 
+                     amrex::Real * r, ARLIM_P(rlo),ARLIM_P(rhi), 
+		     amrex::Real * w, ARLIM_P(wlo),ARLIM_P(whi), 
+		     amrex::Real * z, ARLIM_P(zlo),ARLIM_P(zhi), 
+		     amrex::Real * work,ARLIM_P(worklo),ARLIM_P(workhi), 
                      const int* lo, const int* hi,
-                     Real* dxFiltered, int* isPeriodicFiltered,
-                     int* maxIter, Real* tol, 
-		     Real* cg_abs_tol, Real* max_jump,Real * norm);
+                     amrex::Real* dxFiltered, int* isPeriodicFiltered,
+                     int* maxIter, amrex::Real* tol, 
+		     amrex::Real* cg_abs_tol, amrex::Real* max_jump,amrex::Real * norm);
 
-  void FORT_COARSIGMA(Real * sigmax , ARLIM_P(sigmax_lo),ARLIM_P(sigmax_hi), 
+  void FORT_COARSIGMA(amrex::Real * sigmax , ARLIM_P(sigmax_lo),ARLIM_P(sigmax_hi), 
 #if (BL_SPACEDIM == 3)
-		      Real * sigmay, ARLIM_P(sigmay_lo),ARLIM_P(sigmay_hi), 
+		      amrex::Real * sigmay, ARLIM_P(sigmay_lo),ARLIM_P(sigmay_hi), 
 #endif
-                      Real * sigmaxc, ARLIM_P(sigmaxc_lo),ARLIM_P(sigmaxc_hi), 
+                      amrex::Real * sigmaxc, ARLIM_P(sigmaxc_lo),ARLIM_P(sigmaxc_hi), 
 #if (BL_SPACEDIM == 3)
-		      Real * sigmayc,ARLIM_P(sigmayc_lo),ARLIM_P(sigmayc_hi), 
+		      amrex::Real * sigmayc,ARLIM_P(sigmayc_lo),ARLIM_P(sigmayc_hi), 
 #endif
                       const int* lo, const int* hi,
 		      const int* loc, const int* hic);
 
-  void FORT_RESTRICT(Real * res, ARLIM_P(res_lo),ARLIM_P(res_hi), 
-		     Real * resc, ARLIM_P(resc_lo),ARLIM_P(resc_hi), 
+  void FORT_RESTRICT(amrex::Real * res, ARLIM_P(res_lo),ARLIM_P(res_hi), 
+		     amrex::Real * resc, ARLIM_P(resc_lo),ARLIM_P(resc_hi), 
                      const int* lo, const int* hi,
 		     const int* loc, const int* hic);
 
-  void FORT_INTERPOLATE(Real * phi, ARLIM_P(phi_lo),ARLIM_P(phi_hi), 
-			Real * deltac,ARLIM_P(deltac_lo),ARLIM_P(deltac_hi), 
+  void FORT_INTERPOLATE(amrex::Real * phi, ARLIM_P(phi_lo),ARLIM_P(phi_hi), 
+			amrex::Real * deltac,ARLIM_P(deltac_lo),ARLIM_P(deltac_hi), 
 			const int* lo, const int* hi,
 			const int* loc, const int* hic);
 

@@ -1,5 +1,5 @@
 
-BOXLIB_HOME = /path/to/BoxLib
+AMREX_HOME = /path/to/amrex
 
 TOP = ../..
 
@@ -20,20 +20,20 @@ include ./Make.package
 
 #include $(TOP)/amrlib/Make.package
 include $(TOP)/bndrylib/Make.package
-include $(TOP)/BoxLib/Make.package
+include $(TOP)/amrex/Make.package
 
 INCLUDE_LOCATIONS += .
 #INCLUDE_LOCATIONS += $(TOP)/amrlib
 INCLUDE_LOCATIONS += $(TOP)/bndrylib
-INCLUDE_LOCATIONS += $(TOP)/BoxLib
+INCLUDE_LOCATIONS += $(TOP)/amrex
 INCLUDE_LOCATIONS += $(TOP)/pAmrvis
 
-vpath_cpp := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
-vpath_H   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
-vpath_FH  := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
-vpath_h   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
-vpath_F   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
-vpath_f   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/BoxLib
+vpath_cpp := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
+vpath_H   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
+vpath_FH  := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
+vpath_h   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
+vpath_F   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
+vpath_f   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
 vpath %.cpp $(vpath_cpp)
 vpath %.H   $(vpath_H)
 vpath %.FH  $(vpath_FH)

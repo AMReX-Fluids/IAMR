@@ -1,10 +1,11 @@
 
-#include <winstd.H>
 
 #include <iostream>
 #include <algorithm>
 
 #include <OutFlowBC.H>
+
+using namespace amrex;
 
 OutFlowBC::OutFlowBC () {}
 
@@ -17,7 +18,7 @@ OutFlowBC::SemiGrow (const Box& baseBox,
 {
     IntVect grow_factor(D_DECL(nGrow,nGrow,nGrow));
     grow_factor[direction] = 0;
-    return BoxLib::grow(baseBox,grow_factor);
+    return amrex::grow(baseBox,grow_factor);
 }
 
 Box
@@ -27,7 +28,7 @@ OutFlowBC::SemiCoarsen (const Box& baseBox,
 {
     IntVect ref_ratio(D_DECL(ref_factor,ref_factor,ref_factor));
     ref_ratio[direction] = 1;
-    return BoxLib::coarsen(baseBox,ref_ratio);
+    return amrex::coarsen(baseBox,ref_ratio);
 }
 
 OutFlowBC_MG::OutFlowBC_MG (const Box& Domain,

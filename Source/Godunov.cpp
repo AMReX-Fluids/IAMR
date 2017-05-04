@@ -2,12 +2,11 @@
 //
 // Godunov is the object which calculates advective terms for iamr.
 //
-#include <winstd.H>
 
-#include <LO_BCTYPES.H>
-#include <Geometry.H>
-#include <ParmParse.H>
-#include <FArrayBox.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_FArrayBox.H>
 #include <Godunov.H>
 #include <GODUNOV_F.H>
 
@@ -20,6 +19,8 @@
 
 using std::cout;
 using std::endl;
+
+using namespace amrex;
 
 namespace
 {
@@ -77,7 +78,7 @@ Godunov::Initialize ()
 
     FORT_SET_PARAMS(slope_order, use_unlimited_slopes);
 
-    BoxLib::ExecOnFinalize(Godunov::Finalize);
+    amrex::ExecOnFinalize(Godunov::Finalize);
 
     initialized = true;
 }
@@ -169,9 +170,9 @@ Godunov::BuildWorkSpace (const Box& grd, const Real* dx, Real dt)
     //
     // Ensure 1D scratch space is large enough.
     //
-    SetScratch(BoxLib::grow(grd,hyp_grow).longside());
+    SetScratch(amrex::grow(grd,hyp_grow).longside());
 
-    work_bx = BoxLib::grow(grd,1);
+    work_bx = amrex::grow(grd,1);
     D_TERM(;,
            work.resize(work_bx,5);,
            work.resize(work_bx,19););
@@ -191,9 +192,9 @@ Godunov::BuildWorkSpace (const Box& grd, const Real* dx, Real dt)
     
     if (ppm_type == 2) g1box = Box(grd).grow(2);
 
-    D_TERM(sedgex.resize(BoxLib::surroundingNodes(g1box,0),1);,
-           sedgey.resize(BoxLib::surroundingNodes(g1box,1),1);,
-           sedgez.resize(BoxLib::surroundingNodes(g1box,2),1););
+    D_TERM(sedgex.resize(amrex::surroundingNodes(g1box,0),1);,
+           sedgey.resize(amrex::surroundingNodes(g1box,1),1);,
+           sedgez.resize(amrex::surroundingNodes(g1box,2),1););
 }
 
 void
@@ -203,9 +204,9 @@ Godunov::AllocEdgeBoxes (const Box& grd,
     //
     // Create storage for fluxes to be used by calling routine
     //
-    D_TERM(xflux_bx = BoxLib::surroundingNodes(grd,0);,
-           yflux_bx = BoxLib::surroundingNodes(grd,1);,
-           zflux_bx = BoxLib::surroundingNodes(grd,2););
+    D_TERM(xflux_bx = amrex::surroundingNodes(grd,0);,
+           yflux_bx = amrex::surroundingNodes(grd,1);,
+           zflux_bx = amrex::surroundingNodes(grd,2););
 
     D_TERM(xflux.resize(xflux_bx,1);,
            yflux.resize(yflux_bx,1);,
@@ -223,7 +224,7 @@ Godunov::ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
            BL_ASSERT(V.nComp() > Vcomp);,
            BL_ASSERT(W.nComp() > Wcomp););
 
-    BL_ASSERT(work_bx.contains(BoxLib::grow(grd,1)));
+    BL_ASSERT(work_bx.contains(amrex::grow(grd,1)));
     D_TERM(;,
            BL_ASSERT(work.nComp() >= 5);,
            BL_ASSERT(work.nComp() >= 19););    
@@ -232,17 +233,17 @@ Godunov::ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
            BL_ASSERT(vad.box().contains(work_bx));,
            BL_ASSERT(wad.box().contains(work_bx)););
 
-    BL_ASSERT(smp.box().contains(BoxLib::grow(grd,1)));
-    BL_ASSERT(I.box().contains(BoxLib::grow(grd,1)));
+    BL_ASSERT(smp.box().contains(amrex::grow(grd,1)));
+    BL_ASSERT(I.box().contains(amrex::grow(grd,1)));
     BL_ASSERT(I.nComp() >= 2*BL_SPACEDIM);
 
-    BL_ASSERT(dsvl.box().contains(BoxLib::grow(grd,2)));
+    BL_ASSERT(dsvl.box().contains(amrex::grow(grd,2)));
 
     int nGrow = ppm_type==2 ? 2 : 1;
-    const Box& gbox = BoxLib::grow(grd,nGrow);
-    D_TERM(BL_ASSERT(sedgex.box().contains(BoxLib::surroundingNodes(gbox,0)));,
-           BL_ASSERT(sedgey.box().contains(BoxLib::surroundingNodes(gbox,1)));,
-           BL_ASSERT(sedgez.box().contains(BoxLib::surroundingNodes(gbox,2))););
+    const Box& gbox = amrex::grow(grd,nGrow);
+    D_TERM(BL_ASSERT(sedgex.box().contains(amrex::surroundingNodes(gbox,0)));,
+           BL_ASSERT(sedgey.box().contains(amrex::surroundingNodes(gbox,1)));,
+           BL_ASSERT(sedgez.box().contains(amrex::surroundingNodes(gbox,2))););
 
     //
     // Create the bounds and pointers.

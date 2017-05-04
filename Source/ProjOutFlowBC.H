@@ -2,9 +2,9 @@
 #ifndef _PROJOUTFLOWBC_H_
 #define _PROJOUTFLOWBC_H_
 
-#include <FArrayBox.H>
-#include <Geometry.H>
-#include <Orientation.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_Orientation.H>
 #include <OutFlowBC.H>
 
 //
@@ -23,35 +23,35 @@ public:
 
     ProjOutFlowBC ();
 
-    virtual void computeBC (FArrayBox         velFab[][2*BL_SPACEDIM],
-			    FArrayBox         divuFab[2*BL_SPACEDIM],
-			    FArrayBox         rhoFab[2*BL_SPACEDIM],
-			    FArrayBox         phiFab[2*BL_SPACEDIM],
-			    const Geometry&   geom,
-			    Orientation*      outFaces,
+    virtual void computeBC (amrex::FArrayBox         velFab[][2*BL_SPACEDIM],
+			    amrex::FArrayBox         divuFab[2*BL_SPACEDIM],
+			    amrex::FArrayBox         rhoFab[2*BL_SPACEDIM],
+			    amrex::FArrayBox         phiFab[2*BL_SPACEDIM],
+			    const amrex::Geometry&   geom,
+			    amrex::Orientation*      outFaces,
 			    int               numOutFlowFaces,
 			    const int*        lo_bc,
 			    const int*        hi_bc,
-			    Real              gravity) override;
+			    amrex::Real              gravity) override;
 
-    virtual void computeBC (FArrayBox         velFab[][2*BL_SPACEDIM],
-			    FArrayBox         divuFab[2*BL_SPACEDIM],
-			    FArrayBox         rhoFab[2*BL_SPACEDIM],
-			    FArrayBox         phiFab[2*BL_SPACEDIM],
-			    const Geometry&   geom,
-			    Orientation*      outFaces,
+    virtual void computeBC (amrex::FArrayBox         velFab[][2*BL_SPACEDIM],
+			    amrex::FArrayBox         divuFab[2*BL_SPACEDIM],
+			    amrex::FArrayBox         rhoFab[2*BL_SPACEDIM],
+			    amrex::FArrayBox         phiFab[2*BL_SPACEDIM],
+			    const amrex::Geometry&   geom,
+			    amrex::Orientation*      outFaces,
 			    int               numOutFlowFaces,
 			    const int*        lo_bc,
 			    const int*        hi_bc,
-			    Real              small_udiff,
-			    Real              gravity) override;
+			    amrex::Real              small_udiff,
+			    amrex::Real              gravity) override;
 
-    void computeRhoG (FArrayBox*         rhoFab,
-                      FArrayBox*         phiFab,
-                      const Geometry&    geom,
-                      Orientation*       outFaces,
+    void computeRhoG (amrex::FArrayBox*         rhoFab,
+                      amrex::FArrayBox*         phiFab,
+                      const amrex::Geometry&    geom,
+                      amrex::Orientation*       outFaces,
                       int                numOutFlowFaces,
-                      Real               gravity,
+                      amrex::Real               gravity,
                       const int*         lo_bc,
                       const int*         hi_bc);
 protected:
@@ -60,17 +60,17 @@ protected:
     static void Finalize ();
 
 #if (BL_SPACEDIM == 3)
-    void computeCoefficients (FArrayBox&   rhs,
-                              FArrayBox&   beta,
-                              FArrayBox&   ccExt,
-                              Box&         faceBox,
-                              Real*        dxFiltered,
+    void computeCoefficients (amrex::FArrayBox&   rhs,
+                              amrex::FArrayBox&   beta,
+                              amrex::FArrayBox&   ccExt,
+                              amrex::Box&         faceBox,
+                              amrex::Real*        dxFiltered,
                               int*         isPeriodic);
     //
     // Static data.
     //
-    static Real tol;
-    static Real abs_tol;
+    static amrex::Real tol;
+    static amrex::Real abs_tol;
 #endif
 };
 
@@ -86,12 +86,12 @@ class ProjOutFlowBC_MG
 {
 public:
 
-    ProjOutFlowBC_MG (const Box& Domain,
-                      FArrayBox* Phi,
-                      FArrayBox* Rhs,
-                      FArrayBox* Resid,
-                      FArrayBox* Beta,
-                      Real*      H,
+    ProjOutFlowBC_MG (const amrex::Box& Domain,
+                      amrex::FArrayBox* Phi,
+                      amrex::FArrayBox* Rhs,
+                      amrex::FArrayBox* Resid,
+                      amrex::FArrayBox* Beta,
+                      amrex::Real*      H,
                       int*       isPeriodic);
 
     virtual ~ProjOutFlowBC_MG () override;
@@ -107,7 +107,7 @@ protected:
 
     virtual void Restrict () override;
     virtual void interpolate () override;
-    virtual Real residual () override;
+    virtual amrex::Real residual () override;
     virtual void step (int nSteps) override;
     virtual void gsrb (int nSteps) override;
     //
@@ -115,9 +115,9 @@ protected:
     //
     static int  verbose;
     static bool useCGbottomSolver;
-    static Real cg_tol;
-    static Real cg_abs_tol;
-    static Real cg_max_jump;
+    static amrex::Real cg_tol;
+    static amrex::Real cg_abs_tol;
+    static amrex::Real cg_max_jump;
     static int  cg_maxiter;
     static int  maxIters;
 };

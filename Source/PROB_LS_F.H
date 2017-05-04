@@ -20,28 +20,28 @@
 #    define FORT_LSERROR     lserror_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
   extern "C" {
 
 
-    void FORT_INITPHI(const int* lo,const int* hi,Real * phi,
+    void FORT_INITPHI(const int* lo,const int* hi,amrex::Real * phi,
                       ARLIM_P(lo), ARLIM_P(hi),
-                      const Real * dx,const Real * x_lo,
+                      const amrex::Real * dx,const amrex::Real * x_lo,
                       int* type, ARLIM_P(type_lo), ARLIM_P(type_hi));
 
-     void FORT_PHIFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_PHIFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
 	                          const int* dom_lo, const int* dom_hi,
-	                          const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+	                          const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
      void FORT_LSERROR   (int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,
-                          Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                          amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                           const int* lo, const int* hi, const int* nvar,
                           const int* domain_lo, const int* domain_hi,
-                          const Real* dx, const Real* xlo,
-                          const Real* prob_lo, const Real* time,
+                          const amrex::Real* dx, const amrex::Real* xlo,
+                          const amrex::Real* prob_lo, const amrex::Real* time,
                           const int* level);
   }
 #endif

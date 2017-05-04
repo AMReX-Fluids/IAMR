@@ -1,9 +1,10 @@
-#include <winstd.H>
 
 #include <NavierStokes.H>
 #include <NS_error_F.H>
 
 using std::string;
+
+using namespace amrex;
 
 void
 NavierStokes::error_setup()

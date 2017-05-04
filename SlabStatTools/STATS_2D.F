@@ -1,7 +1,7 @@
 
-#include <REAL.H>
-#include <CONSTANTS.H>
-#include <ArrayLim.H>
+#include <AMReX_REAL.H>
+#include <AMReX_CONSTANTS.H>
+#include <AMReX_ArrayLim.H>
 
 #include <StatTypes.H>
 #define SDIM 2

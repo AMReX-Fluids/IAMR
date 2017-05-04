@@ -1,4 +1,3 @@
-#include <winstd.H>
 
 #include <NavierStokes.H>
 #include <NS_error_F.H>
@@ -21,6 +20,6 @@ NavierStokes::error_setup()
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
-    err_list.add("mag_vort", 0, ErrorRec::Special,
+    err_list.add("mag_vort", 0, amrex::ErrorRec::Special,
                   BL_FORT_PROC_CALL(FORT_MVERROR,fort_mverror));
 }

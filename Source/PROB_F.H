@@ -69,87 +69,87 @@
 #endif
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
   extern "C" {
 
-     void FORT_INITDATA (const int* level, const Real* time,
+     void FORT_INITDATA (const int* level, const amrex::Real* time,
                          const int* lo, const int* hi,
                          const int* nscal,
-                         Real* vel, Real* scal, 
+                         amrex::Real* vel, amrex::Real* scal, 
                          ARLIM_P(s_lo), ARLIM_P(s_hi),
-                         Real* press,
+                         amrex::Real* press,
                          ARLIM_P(p_lo), ARLIM_P(p_hi),
-                         const Real* dx,
-                         const Real* xlo, const Real* xhi);
+                         const amrex::Real* dx,
+                         const amrex::Real* xlo, const amrex::Real* xhi);
 
-     void FORT_DENFILL  (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_DENFILL  (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
-     void FORT_ADVFILL  (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
+     void FORT_ADVFILL  (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
-     void FORT_ADV2FILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
+     void FORT_ADV2FILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
-     void FORT_XVELFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_XVELFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
-     void FORT_YVELFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_YVELFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
 #if (BL_SPACEDIM == 3)
-     void FORT_ZVELFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_ZVELFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 #endif
-     void FORT_PRESFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_PRESFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
-     void FORT_TEMPFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
+     void FORT_TEMPFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
-     void FORT_DIVUFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_DIVUFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
-     void FORT_DSDTFILL (Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+     void FORT_DSDTFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
-                         const Real* dx, const Real* grd_lo,
-                         const Real* time, const int* bc);
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
 
 #ifdef BOUSSINESQ
-     void FORT_MAKEFORCE (Real* force,
-			  const Real* scal,
+     void FORT_MAKEFORCE (amrex::Real* force,
+			  const amrex::Real* scal,
                           ARLIM_P(f_lo), ARLIM_P(f_hi),
                           ARLIM_P(s_lo), ARLIM_P(s_hi),
-                          const Real* dx,
-                          const Real* xlo, const Real* xhi,
+                          const amrex::Real* dx,
+                          const amrex::Real* xlo, const amrex::Real* xhi,
 			  const int* scomp, const int* ncomp, const int* nscal);
 #else
 #ifdef MOREGENGETFORCE
 
-     void FORT_AVERAGE_EDGE_STATES(const Real* Vel,
-				   const Real* umacx,
-				   const Real* umacy,
+     void FORT_AVERAGE_EDGE_STATES(const amrex::Real* Vel,
+				   const amrex::Real* umacx,
+				   const amrex::Real* umacy,
 #if (BL_SPACEDIM==3)
-				   const Real* umacz,
+				   const amrex::Real* umacz,
 #endif
 				   ARLIM_P(vel_lo),  ARLIM_P(vel_hi),
 				   ARLIM_P(umacx_lo), ARLIM_P(umacx_hi),
@@ -159,26 +159,26 @@
 #endif
 				   const int* getForceVerbose);
 
-     void FORT_MAKEFORCE (const Real* time,
-			  Real* force,
-			  const Real* vel,
-			  const Real* scal,
+     void FORT_MAKEFORCE (const amrex::Real* time,
+			  amrex::Real* force,
+			  const amrex::Real* vel,
+			  const amrex::Real* scal,
                           ARLIM_P(f_lo), ARLIM_P(f_hi),
                           ARLIM_P(v_lo), ARLIM_P(v_hi),
                           ARLIM_P(s_lo), ARLIM_P(s_hi),
-                          const Real* dx,
-                          const Real* xlo, const Real* xhi,
-			  const Real* gravity,
+                          const amrex::Real* dx,
+                          const amrex::Real* xlo, const amrex::Real* xhi,
+			  const amrex::Real* gravity,
 			  const int* scomp, const int* ncomp, const int* nscal,
 			  const int* getForceVerbose);
 #endif
 #ifdef GENGETFORCE
-     void FORT_MAKEFORCE (const Real* time, Real* force, const Real* rho,
+     void FORT_MAKEFORCE (const amrex::Real* time, amrex::Real* force, const amrex::Real* rho,
                           ARLIM_P(i_lo), ARLIM_P(i_hi),
                           ARLIM_P(s_lo), ARLIM_P(s_hi),
-                          const Real* dx,
-                          const Real* xlo, const Real* xhi,
-			  const Real* gravity,
+                          const amrex::Real* dx,
+                          const amrex::Real* xlo, const amrex::Real* xhi,
+			  const amrex::Real* gravity,
 			  const int* scomp, const int* ncomp);
 #endif
 #endif

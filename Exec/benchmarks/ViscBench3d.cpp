@@ -10,15 +10,15 @@ using std::ios;
 #include <unistd.h>
 
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
-#include <VisMF.H>
-#include <ArrayLim.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_ArrayLim.H>
 
 #include <EXACT_F.H>
 
@@ -55,7 +55,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -79,7 +79,7 @@ main (int   argc,
     }
     pp.query("infile", iFile);
     if (iFile.empty())
-        BoxLib::Abort("You must specify `infile'");
+        amrex::Abort("You must specify `infile'");
 
     pp.query("exfile", exFile);
     pp.query("errfile", errFile);
@@ -87,12 +87,12 @@ main (int   argc,
     int unifDir = -1;
     pp.query("unifdir", unifDir);
     if (unifDir < 0)
-        BoxLib::Abort("You must specify `unifdir'");
+        amrex::Abort("You must specify `unifdir'");
 
     Real mu = -1.0;
     pp.query("mu", mu);
     if (mu < 0.0) 
-        BoxLib::Abort("You must specify `mu'");
+        amrex::Abort("You must specify `mu'");
 
     int norm = 2;
     pp.query("norm", norm);
@@ -209,7 +209,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 

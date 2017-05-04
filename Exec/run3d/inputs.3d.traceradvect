@@ -31,7 +31,6 @@ amr.regrid_int		= 2 2 2 2 2 2 2
 
 # Refinement ratio as a function of level
 amr.ref_ratio		= 2 2 2 2
-amr.n_error_buff        = 2 2 2 2 2 2 2
 
 #*******************************************************************************
 
@@ -61,6 +60,8 @@ amr.plot_file           = plt
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
 ns.cfl                  = 1.0  # CFL number used to set dt
+
+godunov.corner_couple = 1 # use the 3D corner coupling advection algorithm (Saltzman JCP 1994)
 
 #*******************************************************************************
 

@@ -3,20 +3,21 @@
 #define _NavierStokes_H_
 
 #include <NavierStokesBase.H>
-#include <LevelBld.H>
+#include <AMReX_LevelBld.H>
 
 class NSBld
     :
-    public LevelBld
+    public amrex::LevelBld
 {
     virtual void variableSetUp () override;
     virtual void variableCleanUp () override;
-    virtual AmrLevel *operator() () override;
-    virtual AmrLevel *operator() (Amr&            papa,
-                                  int             lev,
-                                  const Geometry& level_geom,
-                                  const BoxArray& ba,
-                                  Real            time) override;
+    virtual amrex::AmrLevel *operator() () override;
+    virtual amrex::AmrLevel *operator() (amrex::Amr&            papa,
+                                         int             lev,
+                                         const amrex::Geometry& level_geom,
+                                         const amrex::BoxArray& ba,
+                                         const amrex::DistributionMapping& dm,
+                                         amrex::Real            time) override;
 };
 
 class NavierStokes
@@ -31,11 +32,12 @@ public:
 
     NavierStokes ();
 
-    NavierStokes (Amr&            papa,
+    NavierStokes (amrex::Amr&            papa,
                   int             lev,
-                  const Geometry& level_geom,
-                  const BoxArray& bl,
-                  Real            time);
+                  const amrex::Geometry& level_geom,
+                  const amrex::BoxArray& bl,
+                  const amrex::DistributionMapping& dm,
+                  amrex::Real            time);
 
     virtual ~NavierStokes ();
 
@@ -51,36 +53,35 @@ public:
     //
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&  os,
-                                VisMF::How     how) override;
+                                amrex::VisMF::How     how) override;
     //
     // Modify list of variables to be plotted
     //
     virtual void setPlotVariables() override;
     //
-    // Returns a MultiFab containing the derived data for this level.
+    // Returns a amrex::MultiFab containing the derived data for this level.
     // The user is responsible for deleting this pointer when done
-    // with it.  If ngrow>0 the MultiFab is built on the appropriately
+    // with it.  If ngrow>0 the amrex::MultiFab is built on the appropriately
     // grown BoxArray.
     //
-    virtual MultiFab* derive (const std::string& name,
-                              Real               time,
-                              int                ngrow) override;
+    virtual std::unique_ptr<amrex::MultiFab>
+    derive (const std::string& name, amrex::Real time, int ngrow) override;
     //
     // This version of derive() fills the dcomp'th component of mf with the derived quantity.
     //
     virtual void derive (const std::string& name,
-                         Real               time,
-                         MultiFab&          mf,
+                         amrex::Real        time,
+                         amrex::MultiFab&   mf,
                          int                dcomp) override;
     //
     // Insure state, and pressure are consistent.
     //
-    virtual void post_init (Real stop_time) override;
+    virtual void post_init (amrex::Real stop_time) override;
     //
     // Advance grids at this level in time.
     //
-    virtual Real advance (Real time,
-                          Real dt,
+    virtual amrex::Real advance (amrex::Real time,
+                          amrex::Real dt,
                           int  iteration,
                           int  ncycle) override;
 
@@ -108,34 +109,34 @@ protected:
     //
     // Calculate divU, which sets them to zero by default.
     //
-    virtual void calc_divu (Real      time,
-			    Real      dt,
-			    MultiFab& fab) override;
+    virtual void calc_divu (amrex::Real      time,
+			    amrex::Real      dt,
+			    amrex::MultiFab& fab) override;
     //
     // Calculate dSdT, which sets them to zero by default.
     //
-    virtual void calc_dsdt (Real      time,
-			    Real      dt,
-			    MultiFab& fab) override;
+    virtual void calc_dsdt (amrex::Real      time,
+			    amrex::Real      dt,
+			    amrex::MultiFab& fab) override;
     //
     // Calculate nonuniform viscosity and diffusivity
     //
-    virtual void calcViscosity (const Real time,
-				const Real dt,
+    virtual void calcViscosity (const amrex::Real time,
+				const amrex::Real dt,
 				const int  iteration,
 				const int  ncycle) override;
     //
-    virtual void calcDiffusivity (const Real time) override;
+    virtual void calcDiffusivity (const amrex::Real time) override;
     //
-    virtual void getViscosity (MultiFab*  viscosity[BL_SPACEDIM],
-			       const Real time) override;
+    virtual void getViscosity (amrex::MultiFab*  viscosity[BL_SPACEDIM],
+			       const amrex::Real time) override;
     //
     // Compute viscous terms.
     //
-    virtual void getViscTerms (MultiFab& visc_terms,
+    virtual void getViscTerms (amrex::MultiFab& visc_terms,
 			       int       src_comp, 
 			       int       num_comp,
-			       Real      time) override;
+			       amrex::Real      time) override;
     //
     // Compute the mac sync correction.
     //
@@ -147,7 +148,7 @@ protected:
     //
     virtual void sum_integrated_quantities () override;
     //
-    virtual void velocity_diffusion_update (Real dt) override;
+    virtual void velocity_diffusion_update (amrex::Real dt) override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes protected static functions                             //
@@ -160,19 +161,19 @@ private:
 
     void avgDown (int comp); // Average down for a single StateType scalar
 
-    void center_to_edge_plain (const FArrayBox& ccfab,
-                               FArrayBox&       ecfab,
+    void center_to_edge_plain (const amrex::FArrayBox& ccfab,
+                               amrex::FArrayBox&       ecfab,
                                int              sComp,
                                int              dComp,
                                int              nComp);
     //
-    void diffuse_velocity_setup (Real       dt,
-				 MultiFab*& delta_rhs,
-				 MultiFab**& viscn,
-				 MultiFab**& viscnp1); 
+    void diffuse_velocity_setup (amrex::Real       dt,
+				 amrex::MultiFab*& delta_rhs,
+				 amrex::MultiFab**& viscn,
+				 amrex::MultiFab**& viscnp1); 
 
-    void getDiffusivity (MultiFab*  diffusivity[BL_SPACEDIM],
-			 const Real time,
+    void getDiffusivity (amrex::MultiFab*  diffusivity[BL_SPACEDIM],
+			 const amrex::Real time,
 			 const int  state_comp,
 			 const int  dst_comp,
 			 const int  num_comp);
@@ -181,33 +182,33 @@ private:
 	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
     }
 
-    Real MaxVal (const std::string& name,
-                 Real               time);
+    amrex::Real MaxVal (const std::string& name,
+                 amrex::Real               time);
     //
     // Initialize the pressure by iterating the initial timestep.
     //
-    void post_init_press (Real&        dt_init,
-			  Array<int>&  nc_save,
-			  Array<Real>& dt_save);
+    void post_init_press (amrex::Real&        dt_init,
+			  amrex::Array<int>&  nc_save,
+			  amrex::Array<amrex::Real>& dt_save);
     //
     // Compute divergent mac velocities, estimate best timestep
     // from t^n data, and compile cfl number.
     //
-    Real predict_velocity (Real dt, Real& comp_cfl);
+    amrex::Real predict_velocity (amrex::Real dt, amrex::Real& comp_cfl);
     //
     // Advect scalars.
     //
-    void scalar_advection (Real dt,
+    void scalar_advection (amrex::Real dt,
                            int  first_scalar,
                            int  last_scalar);
     //
     // Update scalars, (viscous solve in scalar_update).
     //
-    void scalar_update (Real dt,
+    void scalar_update (amrex::Real dt,
                         int  first_scalar,
                         int  last_scalar);
     //
-    void scalar_diffusion_update (Real dt,
+    void scalar_diffusion_update (amrex::Real dt,
                                   int  first_scalar,
                                   int  last_scalar);
     //

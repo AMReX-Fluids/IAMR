@@ -25,12 +25,14 @@
 #include <iostream>
 #include <fstream>
 
-#include <REAL.H>
-#include <BLassert.H>
-#include <BoxLib.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <Utility.H>
+#include <AMReX_REAL.H>
+#include <AMReX_BLassert.H>
+#include <AMReX.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Utility.H>
+
+using namespace amrex;
 
 struct Line
 {
@@ -121,7 +123,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+    amrex::Initialize(argc,argv);
 
     ParmParse pp;
 
@@ -239,8 +241,8 @@ main (int   argc,
     }
     std::cout << '\n';
 
-    if (!BoxLib::UtilCreateDirectory(ofile, 0755))
-        BoxLib::CreateDirectoryFailed(ofile);
+    if (!amrex::UtilCreateDirectory(ofile, 0755))
+        amrex::CreateDirectoryFailed(ofile);
 
     std::string Hdr = ofile; Hdr += "/HDR";
     std::string Dat = ofile; Dat += "/DAT";
@@ -249,11 +251,11 @@ main (int   argc,
 
     ohdr.open(Hdr.c_str(), std::ios::out|std::ios::trunc);
     if (!ohdr.good())
-        BoxLib::FileOpenFailed(Hdr);
+        amrex::FileOpenFailed(Hdr);
 
     odat.open(Dat.c_str(), std::ios::out|std::ios::trunc);
     if (!odat.good())
-        BoxLib::FileOpenFailed(Dat);
+        amrex::FileOpenFailed(Dat);
     //
     // Gotta open a FAB to get initial NX and NY.
     //
@@ -298,7 +300,7 @@ main (int   argc,
         case 1: len = NY; break;
         case 2: len = 1;  break;
         default:
-            BoxLib::Abort("turbMerge: how did this happen?");
+            amrex::Abort("turbMerge: how did this happen?");
         }
 
         for (std::list<Line>::const_iterator it = LL.begin(); it != LL.end(); ++it)
@@ -321,7 +323,7 @@ main (int   argc,
         }
     }
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 
     return 0;
 }

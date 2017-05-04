@@ -1,9 +1,10 @@
 
-#include <winstd.H>
 
 #include <MacOutFlowBC.H>
 #include <MACOUTFLOWBC_F.H>
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
+
+using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -65,7 +66,7 @@ MacOutFlowBC::Initialize ()
     pp.query("tol",     tol);
     pp.query("abs_tol", abs_tol);
 
-    BoxLib::ExecOnFinalize(MacOutFlowBC::Finalize);
+    amrex::ExecOnFinalize(MacOutFlowBC::Finalize);
 
     outflow_initialized = true;
 #endif
@@ -142,7 +143,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         // Filter out direction we don't care about.
         //
         int ncStripWidth = 1;
-        Box origBox = BoxLib::adjCell(domain,outFaces[iface],ncStripWidth);
+        Box origBox = amrex::adjCell(domain,outFaces[iface],ncStripWidth);
         IntVect lo = origBox.smallEnd();
         IntVect hi = origBox.bigEnd();
 
@@ -569,8 +570,8 @@ MacOutFlowBC::computeCoefficients (FArrayBox&   rhs,
 				   int*         isPeriodicFiltered)
 {
     rhs.resize(faceBox,1);
-    beta[0].resize(BoxLib::surroundingNodes(faceBox,0),1);
-    beta[1].resize(BoxLib::surroundingNodes(faceBox,1),1);
+    beta[0].resize(amrex::surroundingNodes(faceBox,0),1);
+    beta[1].resize(amrex::surroundingNodes(faceBox,1),1);
    
     DEF_BOX_LIMITS(faceBox,faceLo,faceHi);
     const int* ccElo = ccExt.loVect();
@@ -616,7 +617,7 @@ MacOutFlowBC_MG::Initialize ()
     pp.query("cg_max_jump",       cg_max_jump);
     pp.query("useCGbottomSolver", useCGbottomSolver);
 
-    BoxLib::ExecOnFinalize(MacOutFlowBC_MG::Finalize);
+    amrex::ExecOnFinalize(MacOutFlowBC_MG::Finalize);
 
     outflow_mg_initialized = true;
 }
@@ -672,8 +673,8 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
         FArrayBox* newresid  = new FArrayBox(newdomain,1);
         FArrayBox* newrhs    = new FArrayBox(newdomain,1);
         FArrayBox* newbeta = new FArrayBox[BL_SPACEDIM-1];
-        newbeta[0].resize(BoxLib::surroundingNodes(newdomain,0),1);
-        newbeta[1].resize(BoxLib::surroundingNodes(newdomain,1),1);
+        newbeta[0].resize(amrex::surroundingNodes(newdomain,0),1);
+        newbeta[1].resize(amrex::surroundingNodes(newdomain,1),1);
 
         newphi->setVal(0);
         newresid->setVal(0);

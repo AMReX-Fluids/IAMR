@@ -1,16 +1,19 @@
 
-#include <BC_TYPES.H>
-#include <FluxRegister.H>
+#include <AMReX_BC_TYPES.H>
+#include <AMReX_FluxRegister.H>
 #include <SyncRegister.H>
 //#include <NAVIERSTOKES_F.H>
 #include <SYNCREG_F.H>
-#include <BLProfiler.H>
+#include <AMReX_BLProfiler.H>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+using namespace amrex;
+
 SyncRegister::SyncRegister (const BoxArray& fine_boxes,
+                            const DistributionMapping& dmap,
                             const IntVect&  ref_ratio)
     : ratio(ref_ratio)
 {
@@ -31,10 +34,10 @@ SyncRegister::SyncRegister (const BoxArray& fine_boxes,
 	BoxArray loBA(grids, lotrans);
 	BoxArray hiBA(grids, hitrans);
 
-        bndry[loface].define(loBA,1);
-        bndry_mask[loface].define(loBA,1);
-        bndry[hiface].define(hiBA,1);
-        bndry_mask[hiface].define(hiBA,1);
+        bndry[loface].define(loBA,dmap,1);
+        bndry_mask[loface].define(loBA,dmap,1);
+        bndry[hiface].define(hiBA,dmap,1);
+        bndry_mask[hiface].define(hiBA,dmap,1);
     }
 }
 
@@ -59,7 +62,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     const int* phys_lo = phys_bc.lo();
     const int* phys_hi = phys_bc.hi();
 
-    const Box& node_domain = BoxLib::surroundingNodes(geom.Domain());
+    const Box& node_domain = amrex::surroundingNodes(geom.Domain());
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -110,7 +113,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 	    {
 		FArrayBox& fab = fs[fsi];
 		
-		Box mask_cells = BoxLib::enclosedCells(BoxLib::grow(fab.box(),1));
+		Box mask_cells = amrex::enclosedCells(amrex::grow(fab.box(),1));
 		
 		tmpfab.resize(mask_cells,1);
 		tmpfab.setVal(0);
@@ -213,7 +216,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 
     // Multiply by Bndry Mask
 
-    MultiFab tmp(rhs.boxArray(), 1, ngrow, rhs.DistributionMap());
+    MultiFab tmp(rhs.boxArray(), rhs.DistributionMap(), 1, ngrow);
 
     for (OrientationIter face; face; ++face)
     {
@@ -243,7 +246,8 @@ SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Re
 }
 
 void
-SyncRegister::CompAdd (MultiFab& Sync_resid_fine, const Geometry& fine_geom, const Geometry& crse_geom, 
+SyncRegister::CompAdd (MultiFab& Sync_resid_fine, 
+                       const Geometry& fine_geom, const Geometry& crse_geom, 
 		       const BoxArray& Pgrids, Real mult)
 {
     BL_PROFILE("SyncRegister::CompAdd()");
@@ -290,12 +294,12 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 
     Sync_resid_fine.mult(mult);
 
-    const Box& crse_node_domain = BoxLib::surroundingNodes(crse_geom.Domain());
+    const Box& crse_node_domain = amrex::surroundingNodes(crse_geom.Domain());
 
     BoxArray cba = Sync_resid_fine.boxArray();
     cba.coarsen(ratio);
 
-    MultiFab Sync_resid_crse(cba, 1, 0, Sync_resid_fine.DistributionMap());
+    MultiFab Sync_resid_crse(cba, Sync_resid_fine.DistributionMap(), 1, 0);
     Sync_resid_crse.setVal(0.0);
 
 #ifdef _OPENMP

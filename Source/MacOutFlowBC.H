@@ -2,9 +2,9 @@
 #ifndef _MACOUTFLOWBC_H_
 #define _MACOUTFLOWBC_H_
 
-#include <FArrayBox.H>
-#include <Geometry.H>
-#include <Orientation.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_Orientation.H>
 #include <OutFlowBC.H>
 
 //
@@ -23,28 +23,28 @@ public:
 
     MacOutFlowBC ();
 
-    virtual void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
-			    FArrayBox         divuMF[2*BL_SPACEDIM],
-			    FArrayBox         rhoMF[2*BL_SPACEDIM],
-			    FArrayBox         phiMF[2*BL_SPACEDIM],
-			    const Geometry&   geom,
-			    Orientation*      outFaces,
+    virtual void computeBC (amrex::FArrayBox         velMF[][2*BL_SPACEDIM],
+			    amrex::FArrayBox         divuMF[2*BL_SPACEDIM],
+			    amrex::FArrayBox         rhoMF[2*BL_SPACEDIM],
+			    amrex::FArrayBox         phiMF[2*BL_SPACEDIM],
+			    const amrex::Geometry&   geom,
+			    amrex::Orientation*      outFaces,
 			    int               numOutFlowFaces,
 			    const int*        lo_bc,
 			    const int*        hi_bc,
-			    Real              gravity) override;
+			    amrex::Real              gravity) override;
 
-    virtual void computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
-			    FArrayBox         divuMF[2*BL_SPACEDIM],
-			    FArrayBox         rhoMF[2*BL_SPACEDIM],
-			    FArrayBox         phiMF[2*BL_SPACEDIM],
-			    const Geometry&   geom,
-			    Orientation*      outFaces,
+    virtual void computeBC (amrex::FArrayBox         velMF[][2*BL_SPACEDIM],
+			    amrex::FArrayBox         divuMF[2*BL_SPACEDIM],
+			    amrex::FArrayBox         rhoMF[2*BL_SPACEDIM],
+			    amrex::FArrayBox         phiMF[2*BL_SPACEDIM],
+			    const amrex::Geometry&   geom,
+			    amrex::Orientation*      outFaces,
 			    int               numOutFlowFaces,
 			    const int*        lo_bc,
 			    const int*        hi_bc,
-			    Real              small_udiff,
-			    Real              gravity) override;
+			    amrex::Real              small_udiff,
+			    amrex::Real              gravity) override;
 
     static void Initialize ();
     static void Finalize ();
@@ -52,17 +52,17 @@ public:
 protected:
 
 #if (BL_SPACEDIM == 3)
-    void computeCoefficients (FArrayBox&   rhs,
-                              FArrayBox*   beta,
-                              FArrayBox&   ccExt,
-                              Box&         faceBox,
-                              Real*        dxFiltered,
+    void computeCoefficients (amrex::FArrayBox&   rhs,
+                              amrex::FArrayBox*   beta,
+                              amrex::FArrayBox&   ccExt,
+                              amrex::Box&         faceBox,
+                              amrex::Real*        dxFiltered,
                               int*         isPeriodic);
     //
     // Static data.
     //
-    static Real tol;
-    static Real abs_tol;
+    static amrex::Real tol;
+    static amrex::Real abs_tol;
 #endif
 };
 
@@ -77,12 +77,12 @@ class MacOutFlowBC_MG
 {
 public:
 
-    MacOutFlowBC_MG (Box& Domain,
-                     FArrayBox* Phi,
-                     FArrayBox* Rhs,
-                     FArrayBox* Resid,
-                     FArrayBox* Beta,
-                     Real*      H,
+    MacOutFlowBC_MG (amrex::Box& Domain,
+                     amrex::FArrayBox* Phi,
+                     amrex::FArrayBox* Rhs,
+                     amrex::FArrayBox* Resid,
+                     amrex::FArrayBox* Beta,
+                     amrex::Real*      H,
                      int*       IsPeriodic);
 
     virtual ~MacOutFlowBC_MG ()  override;
@@ -98,7 +98,7 @@ protected:
 
     virtual void Restrict () override;
     virtual void interpolate () override;
-    virtual Real residual () override;
+    virtual amrex::Real residual () override;
     virtual void step (int nSteps) override;
     virtual void gsrb (int nSteps) override;
     //
@@ -106,9 +106,9 @@ protected:
     //
     static int  verbose;
     static bool useCGbottomSolver;
-    static Real cg_tol;
-    static Real cg_abs_tol;
-    static Real cg_max_jump;
+    static amrex::Real cg_tol;
+    static amrex::Real cg_abs_tol;
+    static amrex::Real cg_max_jump;
     static int  cg_maxiter;
     static int  maxIters;
 };

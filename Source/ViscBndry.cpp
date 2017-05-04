@@ -1,8 +1,9 @@
 
-#include <winstd.H>
 
-#include <LO_BCTYPES.H>
+#include <AMReX_LO_BCTYPES.H>
 #include <ViscBndry.H>
+
+using namespace amrex;
 
 ViscBndry::ViscBndry ()
     :
@@ -10,10 +11,11 @@ ViscBndry::ViscBndry ()
 {}
 
 ViscBndry::ViscBndry (const BoxArray& _grids,
+                      const DistributionMapping& _dmap,
                       int             _ncomp,
                       const Geometry& _geom)
     :
-    InterpBndryData(_grids,_ncomp,_geom)
+    InterpBndryData(_grids,_dmap,_ncomp,_geom)
 {}
 
 ViscBndry::~ViscBndry () {}

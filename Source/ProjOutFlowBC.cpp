@@ -1,11 +1,12 @@
 
-#include <winstd.H>
 
 #include <iostream>
 
 #include <ProjOutFlowBC.H>
 #include <PROJOUTFLOWBC_F.H>
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
+
+using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -50,7 +51,7 @@ Box
 semiSurroundingNodes (const Box& baseBox,
                       int        direction)
 {
-    Box sBox = BoxLib::surroundingNodes(baseBox);
+    Box sBox = amrex::surroundingNodes(baseBox);
     sBox.growHi(direction,-1);
     return sBox;
 }
@@ -72,7 +73,7 @@ ProjOutFlowBC::Initialize ()
     pp.query("tol",tol);
     pp.query("abs_tol",abs_tol);
 
-    BoxLib::ExecOnFinalize(ProjOutFlowBC::Finalize);
+    amrex::ExecOnFinalize(ProjOutFlowBC::Finalize);
 
     outflowbc_initialized = true;
 #endif
@@ -159,7 +160,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         // Filter out the direction we don't care about.
         //
         int ncStripWidth = 1;
-        Box origBox = BoxLib::adjCell(domain,outFaces[iface],ncStripWidth);
+        Box origBox = amrex::adjCell(domain,outFaces[iface],ncStripWidth);
         IntVect lo = origBox.smallEnd();
         IntVect hi = origBox.bigEnd();
         //
@@ -670,7 +671,7 @@ ProjOutFlowBC_MG::Initialize ()
     pp.query("cg_max_jump",       cg_max_jump);
     pp.query("useCGbottomSolver", useCGbottomSolver);
 
-    BoxLib::ExecOnFinalize(ProjOutFlowBC_MG::Finalize);
+    amrex::ExecOnFinalize(ProjOutFlowBC_MG::Finalize);
 
     outflowbc_mg_initialized = true;
 }

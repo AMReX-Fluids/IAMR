@@ -1,19 +1,20 @@
 
-#include <winstd.H>
 
-#include <MacBndry.H>
+#include <AMReX_MacBndry.H>
 #include <MacOperator.H>
 #include <MacOpMacDrivers.H>
 #include <MACOPERATOR_F.H>
-#include <CGSolver.H>
-#include <MultiGrid.H>
-#include <ParmParse.H>
+#include <AMReX_CGSolver.H>
+#include <AMReX_MultiGrid.H>
+#include <AMReX_ParmParse.H>
 
 #ifdef MG_USE_HYPRE
 #include <HypreABec.H>
 #endif
 
-#include <FMultiGrid.H>
+#include <AMReX_FMultiGrid.H>
+
+using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -51,7 +52,7 @@ MacOperator::Initialize ()
 
     pp.query("max_order", max_order);
 
-    BoxLib::ExecOnFinalize(MacOperator::Finalize);
+    amrex::ExecOnFinalize(MacOperator::Finalize);
 
     initialized = true;
 }
@@ -98,9 +99,10 @@ MacOperator::setCoefficients (const MultiFab* area,
     //
     const int n_grow = 0;
 
-    D_TERM(MultiFab bxcoef(area[0].boxArray(),area[0].nComp(),n_grow);,
-           MultiFab bycoef(area[1].boxArray(),area[1].nComp(),n_grow);,
-           MultiFab bzcoef(area[2].boxArray(),area[2].nComp(),n_grow););
+    const DistributionMapping& dm = rho.DistributionMap();
+    D_TERM(MultiFab bxcoef(area[0].boxArray(),dm,area[0].nComp(),n_grow);,
+           MultiFab bycoef(area[1].boxArray(),dm,area[1].nComp(),n_grow);,
+           MultiFab bzcoef(area[2].boxArray(),dm,area[2].nComp(),n_grow););
     D_TERM(bxcoef.setVal(0);,
            bycoef.setVal(0);,
            bzcoef.setVal(0););
@@ -371,7 +373,7 @@ mac_level_driver (Amr*            parent,
 
     if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-        BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        amrex::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Construct MultiGrid or CGSolver object and solve system.
@@ -396,7 +398,7 @@ mac_level_driver (Amr*            parent,
         hp.solve(*mac_phi, Rhs, true);
         hp.clear_solver();
 #else
-        BoxLib::Error("mac_level_driver::HypreABec not in this build");
+        amrex::Error("mac_level_driver::HypreABec not in this build");
 #endif
     }
     else if (the_solver == 3 ) 
@@ -448,7 +450,7 @@ mac_sync_driver (Amr*            parent,
 
     if (the_solver == 1 && mac_op.maxOrder() != 2)
     {
-        BoxLib::Error("Can't use CGSolver with maxorder > 2");
+        amrex::Error("Can't use CGSolver with maxorder > 2");
     }
     //
     // Now construct MultiGrid or CGSolver object to solve system.
@@ -473,7 +475,7 @@ mac_sync_driver (Amr*            parent,
         hp.solve(*mac_sync_phi, Rhs, true);
         hp.clear_solver();
 #else
-        BoxLib::Error("mac_sync_driver: HypreABec not in this build");
+        amrex::Error("mac_sync_driver: HypreABec not in this build");
 #endif
     }
     else if (the_solver == 3 )
@@ -508,10 +510,10 @@ fmg_mac_solve ( Amr* parent, const MacBndry &mac_bndry, MacOperator &mac_op,
 
 	fmg.set_bc(mac_bndry);
 
-	PArray<MultiFab> b(BL_SPACEDIM);
+	Array<MultiFab*> b(BL_SPACEDIM);
 	for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
-            b.set(i, &(mac_op.bCoefficients(i)));
+            b[i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
         }
 	fmg.set_mac_coeffs(b);
 

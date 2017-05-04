@@ -4,12 +4,12 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
-#include <CONSTANTS.H>
-#include <ArrayLim.H>
+#include <AMReX_REAL.H>
+#include <AMReX_CONSTANTS.H>
+#include <AMReX_ArrayLim.H>
 #include <infl_frc.H>
 #include <FLUCTFILE.H>
-#include <BC_TYPES.H>
+#include <AMReX_BC_TYPES.H>
 
 #define SDIM BL_SPACEDIM
 

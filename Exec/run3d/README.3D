@@ -1,14 +1,14 @@
 
-Included in this run3d directory are a sample inputs file,
-inputs.3d.euler, and the accompanying "probin" file, probin.3d.euler,
-that supplies problem-dependent paramters for the calculation.  
+Included in this run3d directory are sample inputs files,
+and the accompanying "probin" files, that supplies problem-dependent 
+paramters for the calculations.
 
 There are a large number of options which can be specified from
 the inputs and probin files, as well as significant changes which
 can be made with relatively small changes to the program files,
 especially PROB_3D.F and NS_setup.cpp.  Most of the options which
 can be specified from the inputs files are left to their default
-values in the sample calculation.
+values in the sample calculations.
 
 This code is a research code, and is continually being modified and 
 improved  as our needs evolve.   Because the list of options is so 
@@ -20,17 +20,6 @@ extensive but undocumented capability.
 That said, we welcome your comments, suggestions, and other feedback.
 Again, email to ASALmgren@lbl.gov.
 
-The test case is a "vortex tube" in a constant density fluid
-in a triply periodic geometry.  The inputs file is set up for 
-the calculation to run to time 2.0 (which takes 44 coarse grid
-time steps), and to allow one level of refinement
-with factor 2.  The refinement criteria are the presence of a tracer
-and the magnitude of vorticity.  In the PlotFiles directory, 
-you will find four of the plotfiles which are generated if you run 
-the code with this inputs file.  Run amrvis3d on any of these to
-view the results.  (We have included "amrvis.defaults" and "Palette"
-files as well.)
-
 As a starting point for code changes: the initial data are specified 
 in PROB_3D.F.  We have included several different subroutines for defining 
 different intial data.  The variable "probtype," set in the probin file, 
@@ -40,3 +29,67 @@ by modifying PROB_3D.F.
 The criteria used for error estimation are specified in NS_setup.cpp, 
 and can depend on any or all of the state variables or derived quantities.
 The derived quantities are also specified in NS_setup.cpp.
+
+PROBLEM DESCRIPTIONS
+
+**************************
+inputs.3d.euler
+inputs.3d.euler-f-regtesting
+inputs.3d.euler-regtesting
+inputs.3d.euler-restarttest
+
+The test case is a "vortex tube" in a constant density fluid
+in a triply periodic geometry.  The inputs file is set up for 
+the calculation to run to time 2.0 (which takes 93 coarse grid
+time steps), and to allow one level of refinement
+with factor 2.  The refinement criteria are the presence of a tracer
+and the magnitude of vorticity.  In the PlotFiles directory, 
+you will find four of the plotfiles which are generated if you run 
+the code with this inputs file.  Run amrvis3d on any of these to
+view the results.  (We have included "amrvis.defaults" and "Palette"
+files as well.)
+**************************
+
+**************************
+inputs.3d.rt
+
+Rayleigh-Taylor instability; heavy fluid on top of light fluid with gravity.
+**************************
+
+**************************
+inputs.3d.swirl
+
+NOT WORKING YET
+**************************
+
+**************************
+inputs.3d.swirltest
+
+NOT WORKING YET
+**************************
+
+**************************
+inputs.3d.traceradvect
+
+Advecting a blob of tracer material with velocity field (u,v,w) = (1,1,1) with
+CFL=1.0.  The corner coupling advection algorithm is enabled which means the
+blob translates exactly one cell per time step.
+**************************
+
+**************************
+inputs.grid
+
+NOT WORKING YET
+**************************
+
+**************************
+inputs.hit
+
+NOT WORKING YET
+**************************
+
+**************************
+inputs.taygre
+
+3-level Taylor–Green vortex.  Constant density, with a spatially-varying tracer field.
+**************************

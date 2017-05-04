@@ -1,5 +1,5 @@
-#BOXLIB_HOME defines the directory in which we will find the BoxLib directory
-BOXLIB_HOME ?= ../../../BoxLib
+#AMREX_HOME defines the directory in which we will find the BoxLib directory
+AMREX_HOME ?= ../../../amrex
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..
@@ -15,7 +15,6 @@ DEBUG       = TRUE
 DIM         = 2
 
 COMP        = g++
-FCOMP       = gfortran
 
 USE_MPI     = TRUE
 USE_MPI     = FALSE

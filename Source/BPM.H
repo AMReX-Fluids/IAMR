@@ -7,8 +7,8 @@
 #include <iostream>
 #include <string>
 
-#include <REAL.H>
-#include <Particles.H>
+#include <AMReX_REAL.H>
+#include <AMReX_Particles.H>
 
 //
 // Spring
@@ -16,8 +16,8 @@
 struct Spring
 {
   int p1, p2;                   // particle indexes
-  Real l;                       // equilibrium/rest length
-  Real k;                       // spring constant
+  amrex::Real l;                       // equilibrium/rest length
+  amrex::Real k;                       // spring constant
 };
 
 typedef std::deque<Spring> Springs;   // list of springs
@@ -36,13 +36,13 @@ class BPM
 
 public:
 
-  Real diameter;
+  amrex::Real diameter;
 
   BPM(int verbose=0) : verbose(verbose) { }
 
   void InitFromAsciiFile(const std::string& file);
-  void ComputeForces(ParticleContainer<2*BL_SPACEDIM>& particles,
-                     MultiFab& force, MultiFab& divforce, Geometry& geom,
+  void ComputeForces(amrex::ParticleContainer<2*BL_SPACEDIM>& particles,
+                     amrex::MultiFab& force, amrex::MultiFab& divforce, amrex::Geometry& geom,
                      int lev);
 
 };

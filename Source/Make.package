@@ -1,5 +1,5 @@
 
-CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp  MacBndry.cpp 
+CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp
 
 ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
   #
@@ -22,7 +22,7 @@ CEXE_sources += FluxBoxes.cpp
 CEXE_headers += ViscBndryTensor.H   MacOutFlowBC.H \
 			     ProjOutFlowBC.H OutFlowBC.H
 
-CEXE_headers += SyncRegister.H RegType.H ViscBndry.H MacBndry.H
+CEXE_headers += SyncRegister.H RegType.H ViscBndry.H
 
 FEXE_headers += SYNCREG_F.H PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
 #

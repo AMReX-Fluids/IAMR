@@ -4,9 +4,9 @@
 
 #include <iostream>
 
-#include <REAL.H>
+#include <AMReX_REAL.H>
 #include <aString.H>
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 #include <StatTypes.H>
 
@@ -39,7 +39,7 @@ ValidType (aString reqType)
   if (!foundType)
   {
     cerr << "Invalid statistics type:  " << reqType << '\n';
-    BoxLib::Abort();
+    amrex::Abort();
   }
 
   return whichType;

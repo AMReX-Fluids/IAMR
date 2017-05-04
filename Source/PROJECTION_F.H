@@ -49,13 +49,13 @@
 #    define FORT_FILTRHS       filtrhs_
 #  endif
 
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 extern "C" {
     
-    void FORT_FILTERP(Real * pnew, Real * scratch, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                      const int* lo, const int* hi, const Real * dx,
-                      const Real * fac,
+    void FORT_FILTERP(amrex::Real * pnew, amrex::Real * scratch, ARLIM_P(p_lo), ARLIM_P(p_hi),
+                      const int* lo, const int* hi, const amrex::Real * dx,
+                      const amrex::Real * fac,
 #if (BL_SPACEDIM == 2)
                       const int * wrap_around_x, const int * wrap_around_y);
 #elif (BL_SPACEDIM == 3)
@@ -64,60 +64,60 @@ extern "C" {
 #endif
 
     void FORT_VEL_TO_ACCEL (const int* lo, const int* hi,
-                            const Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const Real* dt );
+                            const amrex::Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                            const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                            const amrex::Real* dt );
     
     void FORT_ACCEL_TO_VEL (const int* lo, const int* hi,
-                            const Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const Real* dt,
-                            const Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi) );
+                            const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                            const amrex::Real* dt,
+                            const amrex::Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
     void FORT_PROJ_UPDATE (const int* lo,   const int* hi,
                            const int *nvar, const int *ngrow, 
-                           const Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                           const  Real* dt,
-                           const Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
+                           const amrex::Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
+                           const  amrex::Real* dt,
+                           const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
-    void FORT_RADMPY (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+    void FORT_RADMPY (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                       const int* domlo, const int* domhi,
                       const int* nghost,
-                      const Real* radius, const int* nrad,
-                      const Real* bogus_value);
+                      const amrex::Real* radius, const int* nrad,
+                      const amrex::Real* bogus_value);
     
-    void FORT_RADDIV (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+    void FORT_RADDIV (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                       const int* domlo, const int* domhi,
                       const int* nghost,
-                      const Real* radius, const int* nrad,
-                      const Real* bogus_value);
+                      const amrex::Real* radius, const int* nrad,
+                      const amrex::Real* bogus_value);
 
-    void FORT_ANELCOEFFMPY (Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+    void FORT_ANELCOEFFMPY (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                             const int* domlo, const int* domhi,
                             const int* nghost,
-                            const Real* anelcoeff, const int* nr,
-                            const Real* bogus_value, const int* mult);
+                            const amrex::Real* anelcoeff, const int* nr,
+                            const amrex::Real* bogus_value, const int* mult);
     
     void FORT_HGC2N(const int* nghost, 
                     ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-                    const Real* dat, const Real* rcen,
+                    const amrex::Real* dat, const amrex::Real* rcen,
                     ARLIM_P(rhs_lo), ARLIM_P(rhs_hi),
-                    Real* rhsdat,
+                    amrex::Real* rhsdat,
                     const int* domlo, const int* domhi, 
-                    const Real* hr,
+                    const amrex::Real* hr,
                     const int* is_rz, const int* imax);
     
     void FORT_HGN2C(const int* isrz, const int* rweighted, 
                     ARLIM_P(nodelo),ARLIM_P(nodehi), 
-                    const Real* nodedat,
+                    const amrex::Real* nodedat,
                     ARLIM_P(cclo), ARLIM_P(cchi), const int* lo, const int* hi,
-                    Real* ccdat);
+                    amrex::Real* ccdat);
 
 
-    void FORT_FILTRHS (const Real* phi , ARLIM_P(p_lo), ARLIM_P(p_hi),
-                       const Real* sig , ARLIM_P(s_lo), ARLIM_P(s_hi),
-                       Real* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
+    void FORT_FILTRHS (const amrex::Real* phi , ARLIM_P(p_lo), ARLIM_P(p_hi),
+                       const amrex::Real* sig , ARLIM_P(s_lo), ARLIM_P(s_hi),
+                       amrex::Real* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
                        const int* lo, const int* hi,
-                       const Real* dx, const Real* mult, int* is_rz);
+                       const amrex::Real* dx, const amrex::Real* mult, int* is_rz);
 }
 
 #endif

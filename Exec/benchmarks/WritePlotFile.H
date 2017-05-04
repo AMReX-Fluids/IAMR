@@ -1,9 +1,9 @@
 #ifndef _WritePlotFile_H_
 #define _WritePlotFile_H_
 
-#include <MultiFab.H>
-#include <Geometry.H>
-#include <AmrData.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_AmrData.H>
 
 // Write a MultiFab to a plotfile named "name" using the HyperCLawV1.1 parallel
 // plotfile data format

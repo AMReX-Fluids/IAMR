@@ -4,12 +4,11 @@
 #define BL_LANG_FORT
 #endif
 
-#include <REAL.H>
-#include <CONSTANTS.H>
-#include <BC_TYPES.H>
-#include <PROB_AMR_F.H>
+#include <AMReX_REAL.H>
+#include <AMReX_CONSTANTS.H>
+#include <AMReX_BC_TYPES.H>
 #include <PROB_NS_F.H>
-#include <ArrayLim.H>
+#include <AMReX_ArrayLim.H>
 
 #ifdef BL_DO_FLCT
 #include <infl_frc.H>
@@ -41,7 +40,7 @@ c ::: namlen    => length of name
 c ::: strttime <=  start problem with this time variable
 c ::: 
 c ::: -----------------------------------------------------------
-      subroutine FORT_PROBINIT (init,name,namlen,problo,probhi)
+      subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
       implicit none
       integer init,namlen
       integer name(namlen)

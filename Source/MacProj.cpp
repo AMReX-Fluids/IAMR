@@ -1,15 +1,16 @@
 
-#include <winstd.H>
 
-#include <LO_BCTYPES.H>
-#include <Geometry.H>
-#include <ParmParse.H>
+#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_ParmParse.H>
 #include <MacProj.H>
-#include <MacBndry.H>
+#include <AMReX_MacBndry.H>
 #include <MacOpMacDrivers.H>
 #include <NavierStokesBase.H>
 #include <MACPROJ_F.H>
 #include <MacOutFlowBC.H>
+
+using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -102,12 +103,12 @@ MacProj::Initialize ()
 
 #if MG_USE_HYPRE
     if ( use_cg_solve && use_hypre_solve )
-	BoxLib::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
+	amrex::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
 #endif
     if ( use_cg_solve && use_fboxlib_mg )
-	BoxLib::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
+	amrex::Error("MacProj::read_params: cg_solve && .not. fboxlib_solve");
 
-    BoxLib::ExecOnFinalize(MacProj::Finalize);
+    amrex::ExecOnFinalize(MacProj::Finalize);
 
     initialized = true;
 }
@@ -131,8 +132,8 @@ MacProj::MacProj (Amr*   _parent,
     LevelData(_finest_level+1),
     phys_bc(_phys_bc), 
     phi_bcs(_finest_level+1),
-    mac_phi_crse(_finest_level+1, PArrayManage),
-    mac_reg(_finest_level+1, PArrayManage),
+    mac_phi_crse(_finest_level+1),
+    mac_reg(_finest_level+1),
     anel_coeff(_finest_level+1),
     finest_level(_finest_level)
 {
@@ -159,7 +160,7 @@ MacProj::install_level (int       level,
 
     if (parent->finestLevel() < finest_level)
         for (int lev = parent->finestLevel() + 1; lev <= finest_level; lev++)
-            mac_reg.clear(lev);
+            mac_reg[lev].reset();
 
     finest_level = parent->finestLevel();
 
@@ -172,16 +173,15 @@ MacProj::install_level (int       level,
         mac_reg.resize(finest_level+1);
     }
 
-    LevelData.clear(level);
-    LevelData.set(level, level_data);
+    LevelData[level] = level_data;
 
     BuildPhiBC(level);
 
     if (level > 0)
     {
-        mac_reg.clear(level);
-        mac_reg.set(level,new FluxRegister(LevelData[level].boxArray(),
-                                           parent->refRatio(level-1),level,1));
+        mac_reg[level].reset(new FluxRegister(LevelData[level]->boxArray(),
+                                              LevelData[level]->DistributionMap(),
+                                              parent->refRatio(level-1),level,1));
     }
 
     if (level > anel_coeff.size()-1) {
@@ -203,7 +203,7 @@ MacProj::install_anelastic_coefficient (int               level,
 void
 MacProj::BuildPhiBC (int level)
 {
-    const BoxArray& grids   = LevelData[level].boxArray();
+    const BoxArray& grids   = LevelData[level]->boxArray();
     const Geometry& geom    = parent->Geom(level);
     const int       ngrds   = grids.size();
     phi_bcs[level].resize(ngrds);
@@ -247,11 +247,12 @@ MacProj::setup (int level)
 {
     if (level < parent->maxLevel())
     {
-        if (!mac_phi_crse.defined(level))
+        if (mac_phi_crse[level] == nullptr)
         {
-            const BoxArray& grids = LevelData[level].boxArray();
-            mac_phi_crse.set(level,new MultiFab(grids,1,1));
-            mac_phi_crse[level].setVal(0.0);
+            const BoxArray& grids = LevelData[level]->boxArray();
+            const DistributionMapping& dmap = LevelData[level]->DistributionMap();
+            mac_phi_crse[level].reset(new MultiFab(grids,dmap,1,1));
+            mac_phi_crse[level]->setVal(0.0);
         }
     }
 }
@@ -260,7 +261,7 @@ void
 MacProj::cleanup (int level)
 {
     if (level < parent->maxLevel())
-        mac_phi_crse.clear(level);
+        mac_phi_crse[level].reset();
 }
 
 //
@@ -317,7 +318,8 @@ MacProj::mac_project (int             level,
     if (verbose && ParallelDescriptor::IOProcessor())
         std::cout << "... mac_project at level " << level << '\n';
 
-    const BoxArray& grids      = LevelData[level].boxArray();
+    const BoxArray& grids      = LevelData[level]->boxArray();
+    const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const Geometry& geom       = parent->Geom(level);
     const Real*     dx         = geom.CellSize();
     const int       max_level  = parent->maxLevel();
@@ -330,11 +332,13 @@ MacProj::mac_project (int             level,
     //
     // If finest level possible no need to make permanent mac_phi for bcs.
     //
-    PArray<MultiFab> raii(PArrayManage);
-    if (level == max_level)
-        mac_phi = raii.push_back(new MultiFab(grids,1,1));
-    else
-        mac_phi = &mac_phi_crse[level];
+    std::unique_ptr<MultiFab> raii;
+    if (level == max_level) {
+        raii.reset(new MultiFab(grids,dmap,1,1));
+        mac_phi = raii.get();
+    } else {
+        mac_phi = mac_phi_crse[level].get();
+    }
 
     mac_phi->setVal(0.0);
     //
@@ -353,7 +357,7 @@ MacProj::mac_project (int             level,
     //
     // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
     //
-    MacBndry mac_bndry(grids,1,geom);
+    MacBndry mac_bndry(grids,dmap,1,geom);
     const int src_comp  = 0;
     const int dest_comp = 0;
     const int num_comp  = 1;
@@ -363,7 +367,7 @@ MacProj::mac_project (int             level,
     }
     else
     {
-        MultiFab& CPhi = mac_phi_crse[level-1];
+        MultiFab& CPhi = *mac_phi_crse[level-1];
 	CPhi.FillBoundary(parent->Geom(level-1).periodicity());
 
         BoxArray crse_boxes(grids);
@@ -372,7 +376,7 @@ MacProj::mac_project (int             level,
         const int out_rad    = 1;
         //const int extent_rad = 1;
         const int extent_rad = 2;
-        BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
+        BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
         crse_br.copyFrom(CPhi,CPhi.nGrow(),src_comp,dest_comp,num_comp);
 
         mac_bndry.setBndryValues(crse_br,src_comp,*mac_phi,src_comp,
@@ -385,7 +389,7 @@ MacProj::mac_project (int             level,
     // Initialize the rhs with divu.
     //
     const Real rhs_scale = 2.0/dt;
-    MultiFab Rhs(grids,1,0);
+    MultiFab Rhs(grids,dmap,1,0);
 
     Rhs.copy(divu);
 
@@ -408,7 +412,7 @@ MacProj::mac_project (int             level,
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), 1, 1, Fab_allocate);
+	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1);
 	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
 	}
         scaleArea(level,area_tmp,anel_coeff[level]);
@@ -436,7 +440,7 @@ MacProj::mac_project (int             level,
         //
         if (level < finest_level)
         {
-            FluxRegister& mr = mac_reg[level+1];
+            FluxRegister& mr = *mac_reg[level+1];
 
             mr.setVal(0.0);
 
@@ -464,12 +468,12 @@ MacProj::mac_project (int             level,
 
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
-                mac_reg[level].FineAdd(u_mac[dir],area[dir],dir,0,0,1,mult);
+                mac_reg[level]->FineAdd(u_mac[dir],area[dir],dir,0,0,1,mult);
             }
 
             if (verbose)
             {
-                Real sumreg = mac_reg[level].SumReg(0);
+                Real sumreg = mac_reg[level]->SumReg(0);
 
                 if (ParallelDescriptor::IOProcessor())
                 {
@@ -502,10 +506,11 @@ MacProj::mac_sync_solve (int       level,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real      strt_time  = ParallelDescriptor::second();
-    const BoxArray& grids      = LevelData[level].boxArray();
+    const BoxArray& grids      = LevelData[level]->boxArray();
+    const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const Geometry& geom       = parent->Geom(level);
     const Real*     dx         = geom.CellSize();
-    const BoxArray& fine_boxes = LevelData[level+1].boxArray();
+    const BoxArray& fine_boxes = LevelData[level+1]->boxArray();
     IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
                                            : IntVect::TheZeroVector();
     const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
@@ -516,7 +521,7 @@ MacProj::mac_sync_solve (int       level,
     // values in mac_phi at this level and mac_sync_phi only need to last
     // into the call to mac_sync_compute.  Hope this works...  (LHH).
     //
-    MultiFab* mac_sync_phi = &mac_phi_crse[level];
+    MultiFab* mac_sync_phi = mac_phi_crse[level].get();
     //
     // Alloc and define RHS by doing a reflux-like operation in coarse
     // grid cells adjacent to fine grids.  The values in these
@@ -525,14 +530,14 @@ MacProj::mac_sync_solve (int       level,
     // MAC register, VOL = cell volume.  All other cells have a
     // value of zero (including crse cells under fine grids).
     //
-    MultiFab Rhs(grids,1,0);
+    MultiFab Rhs(grids,dmap,1,0);
     Rhs.setVal(0.0);
     //
     // Reflux subtracts values at hi edge of coarse cell and
     // adds values at lo edge.  We want the opposite here so
     // set scale to -1 & alloc space for Rhs.
     //
-    FluxRegister& mr = mac_reg[level+1];
+    FluxRegister& mr = *mac_reg[level+1];
     const Real scale = -1.0;
 
     mr.Reflux(Rhs,volume,scale,0,0,1,geom);
@@ -608,7 +613,7 @@ MacProj::mac_sync_solve (int       level,
     //
     // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
     //
-    MacBndry mac_bndry(grids,1,geom);
+    MacBndry mac_bndry(grids,dmap,1,geom);
     const int src_comp = 0;
     const int dest_comp = 0;
     const int num_comp = 1;
@@ -625,7 +630,7 @@ MacProj::mac_sync_solve (int       level,
         const int out_rad    = 1;
         //const int extent_rad = 1;
         const int extent_rad = 2;
-        BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
+        BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
         crse_br.setVal(0);
         mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
                                  dest_comp,num_comp,crse_ratio, *phys_bc);
@@ -656,7 +661,7 @@ MacProj::mac_sync_solve (int       level,
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), 1, 1, Fab_allocate);
+	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1);
 	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
 	}
         scaleArea(level,area_tmp,anel_coeff[level]);
@@ -698,10 +703,11 @@ MacProj::mac_sync_solve (int       level,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real      strt_time  = ParallelDescriptor::second();
-    const BoxArray& grids      = LevelData[level].boxArray();
+    const BoxArray& grids      = LevelData[level]->boxArray();
+    const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const Geometry& geom       = parent->Geom(level);
     const Real*     dx         = geom.CellSize();
-    const BoxArray& fine_boxes = LevelData[level+1].boxArray();
+    const BoxArray& fine_boxes = LevelData[level+1]->boxArray();
     IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
                                            : IntVect::TheZeroVector();
     const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
@@ -712,7 +718,7 @@ MacProj::mac_sync_solve (int       level,
     // values in mac_phi at this level and mac_sync_phi only need to last
     // into the call to mac_sync_compute.  Hope this works...  (LHH).
     //
-    MultiFab* mac_sync_phi = &mac_phi_crse[level];
+    MultiFab* mac_sync_phi = mac_phi_crse[level].get();
     //
     // Alloc and define RHS by doing a reflux-like operation in coarse
     // grid cells adjacent to fine grids.  The values in these
@@ -721,14 +727,14 @@ MacProj::mac_sync_solve (int       level,
     // MAC register, VOL = cell volume.  All other cells have a
     // value of zero (including crse cells under fine grids).
     //
-    MultiFab Rhs(grids,1,0);
+    MultiFab Rhs(grids,dmap,1,0);
     Rhs.setVal(0.0);
     //
     // Reflux subtracts values at hi edge of coarse cell and
     // adds values at lo edge.  We want the opposite here so
     // set scale to -1 & alloc space for Rhs.
     //
-    FluxRegister& mr = mac_reg[level+1];
+    FluxRegister& mr = *mac_reg[level+1];
     const Real scale = -1.0;
 
     mr.Reflux(Rhs,volume,scale,0,0,1,geom);
@@ -810,7 +816,7 @@ MacProj::mac_sync_solve (int       level,
     //
     // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
     //
-    MacBndry mac_bndry(grids,1,geom);
+    MacBndry mac_bndry(grids,dmap,1,geom);
     const int src_comp = 0;
     const int dest_comp = 0;
     const int num_comp = 1;
@@ -827,7 +833,7 @@ MacProj::mac_sync_solve (int       level,
         const int out_rad    = 1;
         //const int extent_rad = 1;
         const int extent_rad = 2;
-        BndryRegister crse_br(crse_boxes,in_rad,out_rad,extent_rad,num_comp);
+        BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
         crse_br.setVal(0);
         mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
                                  dest_comp,num_comp,crse_ratio, *phys_bc);
@@ -858,7 +864,7 @@ MacProj::mac_sync_solve (int       level,
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), 1, 1, Fab_allocate);
+	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1);
 	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
 	}
         scaleArea(level,area_tmp,anel_coeff[level]);
@@ -914,23 +920,24 @@ MacProj::mac_sync_compute (int                   level,
 			   bool                  update_fluxreg)
 {
     if (modify_reflux_normal_vel)
-        BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
+        amrex::Abort("modify_reflux_normal_vel is no longer supported");
     //
     // Get parameters.
     //
-    const BoxArray& grids               = LevelData[level].boxArray();
+    const BoxArray& grids               = LevelData[level]->boxArray();
+    const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom                = parent->Geom(level);
     const Real*     dx                  = geom.CellSize();
     const int       numscal             = NUM_STATE - BL_SPACEDIM;
-    MultiFab*       mac_sync_phi        = &mac_phi_crse[level];
-    NavierStokesBase&   ns_level            = *(NavierStokesBase*) &(parent->getLevel(level));
+    MultiFab*       mac_sync_phi        = mac_phi_crse[level].get();
+    NavierStokesBase&   ns_level        = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
     Godunov*        godunov             = ns_level.godunov;
     bool            use_forces_in_trans = godunov->useForcesInTrans() ? true : false;
 
-    MultiFab vel_visc_terms(grids,BL_SPACEDIM,1);
-    MultiFab scal_visc_terms(grids,numscal,1);
+    MultiFab vel_visc_terms(grids,dmap,BL_SPACEDIM,1);
+    MultiFab scal_visc_terms(grids,dmap,numscal,1);
 
     vel_visc_terms.setVal(0,1);  // Initialize to make calls below safe
     scal_visc_terms.setVal(0,1); // Initialize to make calls below safe
@@ -959,12 +966,11 @@ MacProj::mac_sync_compute (int                   level,
 
     Array<int> ns_level_bc, bndry[BL_SPACEDIM];
 
-    MultiFab Gp(grids,BL_SPACEDIM,1);
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
     ns_level.getGradP(Gp, prev_pres_time);
 
-    PArray<MultiFab> raii(PArrayManage);
-    MultiFab* divu_fp = raii.push_back(ns_level.getDivCond(1,prev_time));
+    std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(1,prev_time));
     //
     // Compute the mac sync correction.
     //
@@ -984,11 +990,11 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Create storage for corrective velocities.
         //
-        Rho.resize(BoxLib::grow(grids[i],1),1);
+        Rho.resize(amrex::grow(grids[i],1),1);
 
-        D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grids[i],0),1);,
-               grad_phi[1].resize(BoxLib::surroundingNodes(grids[i],1),1);,
-               grad_phi[2].resize(BoxLib::surroundingNodes(grids[i],2),1););
+        D_TERM(grad_phi[0].resize(amrex::surroundingNodes(grids[i],0),1);,
+               grad_phi[1].resize(amrex::surroundingNodes(grids[i],1),1);,
+               grad_phi[2].resize(amrex::surroundingNodes(grids[i],2),1););
 
         mac_vel_update(1,D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[S_fpi], rho_half[S_fpi],
@@ -1103,9 +1109,9 @@ MacProj::mac_sync_compute (int                   level,
         if (level > 0 && update_fluxreg)
         {
             const Real mlt =  -1.0/( (double) parent->nCycle(level));
-            D_TERM(mac_reg[level].FineAdd(grad_phi[0],area[0][i],0,i,0,0,1,mlt);,
-                   mac_reg[level].FineAdd(grad_phi[1],area[1][i],1,i,0,0,1,mlt);,
-                   mac_reg[level].FineAdd(grad_phi[2],area[2][i],2,i,0,0,1,mlt););
+            D_TERM(mac_reg[level]->FineAdd(grad_phi[0],area[0][i],0,i,0,0,1,mlt);,
+                   mac_reg[level]->FineAdd(grad_phi[1],area[1][i],1,i,0,0,1,mlt);,
+                   mac_reg[level]->FineAdd(grad_phi[2],area[2][i],2,i,0,0,1,mlt););
         }
         //
         // Multiply the sync term by dt -- now done in the calling routine.
@@ -1137,13 +1143,13 @@ MacProj::mac_sync_compute (int                    level,
 			   bool                   update_fluxreg)
 {
     if (modify_reflux_normal_vel)
-        BoxLib::Abort("modify_reflux_normal_vel is no longer supported");
+        amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
     FArrayBox xflux, yflux, zflux, grad_phi[BL_SPACEDIM];
 
-    const BoxArray& grids        = LevelData[level].boxArray();
+    const BoxArray& grids        = LevelData[level]->boxArray();
     const Geometry& geom         = parent->Geom(level);
-    MultiFab*       mac_sync_phi = &mac_phi_crse[level];
+    MultiFab*       mac_sync_phi = mac_phi_crse[level].get();
     const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
@@ -1159,9 +1165,9 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        D_TERM(grad_phi[0].resize(BoxLib::surroundingNodes(grd,0),1);,
-               grad_phi[1].resize(BoxLib::surroundingNodes(grd,1),1);,
-               grad_phi[2].resize(BoxLib::surroundingNodes(grd,2),1););
+        D_TERM(grad_phi[0].resize(amrex::surroundingNodes(grd,0),1);,
+               grad_phi[1].resize(amrex::surroundingNodes(grd,1),1);,
+               grad_phi[2].resize(amrex::surroundingNodes(grd,2),1););
 
         mac_vel_update(1,
                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
@@ -1172,9 +1178,9 @@ MacProj::mac_sync_compute (int                    level,
         //
         // Step 2: compute Mac correction by advecting the edge states.
         //
-        D_TERM(xflux.resize(BoxLib::surroundingNodes(grd,0),1);,
-               yflux.resize(BoxLib::surroundingNodes(grd,1),1);,
-               zflux.resize(BoxLib::surroundingNodes(grd,2),1););
+        D_TERM(xflux.resize(amrex::surroundingNodes(grd,0),1);,
+               yflux.resize(amrex::surroundingNodes(grd,1),1);,
+               zflux.resize(amrex::surroundingNodes(grd,2),1););
 
         D_TERM(xflux.copy((*sync_edges[0])[Syncmfi],eComp,0,1);,
                yflux.copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
@@ -1216,7 +1222,7 @@ void
 MacProj::check_div_cond (int      level,
                          MultiFab U_edge[]) const
 {
-    const BoxArray& grids = LevelData[level].boxArray();
+    const BoxArray& grids = LevelData[level]->boxArray();
     const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
@@ -1300,7 +1306,7 @@ MacProj::set_outflow_bcs (int             level,
 
     OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFaces);
 
-    const BoxArray&   grids  = LevelData[level].boxArray();
+    const BoxArray&   grids  = LevelData[level]->boxArray();
     const Geometry&   geom   = parent->Geom(level);
     const Box&        domain = parent->Geom(level).Domain();
     //
@@ -1318,25 +1324,25 @@ MacProj::set_outflow_bcs (int             level,
             Box ccBndBox;
             if (outFaces[iface].faceDir() == Orientation::high)
 	    {
-                ccBndBox = BoxLib::adjCellHi(domain,outDir,2);
+                ccBndBox = amrex::adjCellHi(domain,outDir,2);
                 ccBndBox.shift(outDir,-2);
 	    } 
             else 
 	    {
-                ccBndBox = BoxLib::adjCellLo(domain,outDir,2);
+                ccBndBox = amrex::adjCellLo(domain,outDir,2);
                 ccBndBox.shift(outDir,2);
 	    }
             ccBoxList.push_back(ccBndBox);
 
-            Box phiBox  = BoxLib::adjCell(domain,outFaces[iface],1);
+            Box phiBox  = amrex::adjCell(domain,outFaces[iface],1);
             phiBoxList.push_back(phiBox);
 
             const Box&     valid_ccBndBox       = ccBndBox & domain;
-            const BoxArray uncovered_outflow_ba = BoxLib::complementIn(valid_ccBndBox,grids);
+            const BoxArray uncovered_outflow_ba = amrex::complementIn(valid_ccBndBox,grids);
 
             if (uncovered_outflow_ba.size() && 
-                BoxLib::intersect(grids,valid_ccBndBox).size())
-                BoxLib::Error("MacProj: Cannot yet handle partially refined outflow");
+                amrex::intersect(grids,valid_ccBndBox).size())
+                amrex::Error("MacProj: Cannot yet handle partially refined outflow");
 	}
     }
   
@@ -1460,7 +1466,7 @@ MacProj::test_umac_periodic (int       level,
     {
         if (geom.isPeriodic(dim))
         {
-            Box eDomain = BoxLib::surroundingNodes(geom.Domain(),dim);
+            Box eDomain = amrex::surroundingNodes(geom.Domain(),dim);
 
             mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
 
@@ -1530,7 +1536,7 @@ MacProj::test_umac_periodic (int       level,
             std::cout << "dir = "         << dim
                       << ", diff norm = " << max_norm
                       << " for region: "  << pirm[i].m_dstBox << std::endl;
-            BoxLib::Error("Periodic bust in u_mac");
+            amrex::Error("Periodic bust in u_mac");
         }
     }
 }
@@ -1538,7 +1544,7 @@ MacProj::test_umac_periodic (int       level,
 void
 MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
 {
-    const BoxArray& grids = LevelData[level].boxArray();
+    const BoxArray& grids = LevelData[level]->boxArray();
 
     int mult = 1;
 

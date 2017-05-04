@@ -1,17 +1,26 @@
 
-#include <ParmParse.H>
+#include <AMReX_ParmParse.H>
 
 #include <Diffusion.H>
 #include <NavierStokesBase.H>
 
-#include <MultiGrid.H>
-#include <CGSolver.H>
+#include <AMReX_MultiGrid.H>
+#include <AMReX_CGSolver.H>
 
 #include <DIFFUSION_F.H>
 
 #include <algorithm>
 #include <cfloat>
 #include <iomanip>
+#include <array>
+
+#ifdef MG_USE_HYPRE
+#include <HypreABec.H>
+#endif
+
+#include <AMReX_FMultiGrid.H>
+
+using namespace amrex;
 
 #if defined(BL_OSF1)
 #if defined(BL_USE_DOUBLE)
@@ -24,12 +33,6 @@ const Real BL_BOGUS      = 1.e200;
 #endif
 
 const Real BL_SAFE_BOGUS = -666.e200;
-
-#ifdef MG_USE_HYPRE
-#include <HypreABec.H>
-#endif
-
-#include <FMultiGrid.H>
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -89,6 +92,7 @@ Diffusion::Diffusion (Amr*               Parent,
     parent(Parent),
     navier_stokes(Caller),
     grids(navier_stokes->boxArray()),
+    dmap(navier_stokes->DistributionMap()),
     level(navier_stokes->Level()),
     coarser(Coarser),
     finer(0),
@@ -131,13 +135,13 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("use_hypre_solve", use_hypre_solve);
         if ( use_cg_solve && use_hypre_solve )
         {
-            BoxLib::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
+            amrex::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
         }
 #endif
         ppdiff.query("use_fboxlib_mg", use_fboxlib_mg);
         if ( use_cg_solve && use_fboxlib_mg )
         {
-            BoxLib::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
+            amrex::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
         }
         use_mg_precond_flag = (use_mg_precond ? true : false);
 
@@ -152,13 +156,13 @@ Diffusion::Diffusion (Amr*               Parent,
         const int n_diff = _is_diffusive.size();
 
         if (n_diff < NUM_STATE)
-            BoxLib::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
+            amrex::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
 
         if (n_visc < NUM_STATE)
-            BoxLib::Abort("Diffusion::Diffusion(): visc_coef array is not long enough");
+            amrex::Abort("Diffusion::Diffusion(): visc_coef array is not long enough");
 
         if (n_visc > NUM_STATE)
-            BoxLib::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
+            amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
 
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
@@ -171,7 +175,7 @@ Diffusion::Diffusion (Amr*               Parent,
 
         echo_settings();
 
-        BoxLib::ExecOnFinalize(Diffusion::Finalize);
+        amrex::ExecOnFinalize(Diffusion::Finalize);
 
         initialized = true;
     }
@@ -291,7 +295,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     // Set up Rhs.
     //
-    MultiFab Rhs(grids,1,0), Soln(grids,1,1);
+    MultiFab Rhs(grids,dmap,1,0),Soln(grids,dmap,1,1);
 
     if (add_old_time_divFlux)
     {
@@ -301,8 +305,7 @@ Diffusion::diffuse_scalar (Real                   dt,
             b *= visc_coef[sigma];
         ViscBndry visc_bndry_0;
         const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
-	PArray<ABecLaplacian> raii(PArrayManage);
-        ABecLaplacian* visc_op = raii.push_back
+        std::unique_ptr<ABecLaplacian> visc_op
 	    (getViscOp(sigma,a,b,prev_time,visc_bndry_0,rho_half,rho_flag,0,betan,betaComp,0,0));
         visc_op->maxOrder(max_order);
         //
@@ -458,14 +461,14 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     Real a = 1.0;
     Real b = be_cn_theta*dt;
-    if (allnull)
+    if (allnull) {
         b *= visc_coef[sigma];
+    }
     ViscBndry  visc_bndry;
     const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
     Real       rhsscale = 1.0;
 
-    PArray<ABecLaplacian> raii(PArrayManage);
-    ABecLaplacian* visc_op  = raii.push_back
+    std::unique_ptr<ABecLaplacian> visc_op
 	(getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
 		   rho_flag,&rhsscale,betanp1,betaComp,alpha,alphaComp));
     Rhs.mult(rhsscale,0,1);
@@ -507,9 +510,10 @@ Diffusion::diffuse_scalar (Real                   dt,
 
 	fmg.set_scalars(a, b);
 	const MultiFab& acoeffs = visc_op->aCoefficients();
-	PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayNoManage);
-	for (int n = 0; n < BL_SPACEDIM; ++n)
-	    bcoeffs.set(n, &(visc_op->bCoefficients(n)));
+	Array<MultiFab*> bcoeffs(BL_SPACEDIM);
+	for (int n = 0; n < BL_SPACEDIM; ++n) {
+	    bcoeffs[n] = const_cast<MultiFab*>(&(visc_op->bCoefficients(n)));
+        }
 	fmg.set_coefficients(acoeffs, bcoeffs);
 
 	int always_use_bnorm = 0;
@@ -523,7 +527,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 #ifdef MG_USE_HYPRE
     else if ( use_hypre_solve )
     {
-	BoxLib::Error("HypreABec not ready");
+	amrex::Error("HypreABec not ready");
 	Real* dx = 0;
 	HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
 	hp.setup_solver(S_tol, S_tol_abs, 50);
@@ -612,7 +616,8 @@ Diffusion::diffuse_velocity (Real                   dt,
             for (int i = 0; i < BL_SPACEDIM; i++)
             {
                 const BoxArray& ba = navier_stokes->getEdgeBoxArray(i);
-                fluxes[i].define(ba, BL_SPACEDIM, 0, Fab_allocate);
+                const DistributionMapping& dm = navier_stokes->DistributionMap();
+                fluxes[i].define(ba, dm, BL_SPACEDIM, 0);
             }
         }
 
@@ -680,7 +685,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     // U_new now contains the inviscid update of U.
     // This is part of the RHS for the viscous solve.
     //
-    MultiFab Rhs(grids,BL_SPACEDIM,0);
+    MultiFab Rhs(grids,dmap,BL_SPACEDIM,0);
 
     MultiFab** tensorflux_old;
     FluxBoxes fb_old;
@@ -689,7 +694,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         // Set up Rhs.
         //
         const int soln_old_grow = 1;
-        MultiFab Soln_old(grids,BL_SPACEDIM,soln_old_grow);
+        MultiFab Soln_old(grids,dmap,BL_SPACEDIM,soln_old_grow);
         const Real a = 0.0;
         Real       b = -(1.0-be_cn_theta)*dt;
         if (allnull)
@@ -698,8 +703,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ptime;
         
 	{
-	    PArray<DivVis> raii(PArrayManage);
-	    DivVis* tensor_op = raii.push_back
+            std::unique_ptr<DivVis> tensor_op
 		(getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp));
 	    tensor_op->maxOrder(tensor_max_order);
 	    //
@@ -813,7 +817,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #endif
     }
     const int soln_grow = 1;
-    MultiFab Soln(grids,BL_SPACEDIM,soln_grow);
+    MultiFab Soln(grids,dmap,BL_SPACEDIM,soln_grow);
     Soln.setVal(0);
     //
     // Compute guess of solution.
@@ -856,8 +860,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
        
     ViscBndryTensor visc_bndry;
     const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-    PArray<DivVis> raii(PArrayManage);
-    DivVis* tensor_op = raii.push_back
+    std::unique_ptr<DivVis> tensor_op
 	(getTensorOp(a,b,cur_time,visc_bndry,rho,betanp1,betaComp));
     tensor_op->maxOrder(tensor_max_order);
     //
@@ -943,7 +946,7 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
     // outside external Dirichlet boundaries. Reset these to zero
     // so that syncproject and conservative interpolation works correctly.
     //
-    Box domain = BoxLib::grow(navier_stokes->Geom().Domain(),1);
+    Box domain = amrex::grow(navier_stokes->Geom().Domain(),1);
 
     for (int n = Xvel; n < Xvel+BL_SPACEDIM; n++)
     {
@@ -988,7 +991,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
     // At this point in time we can only do decoupled scalar
     // so we loop over components.
     //
-    MultiFab Rhs(grids,1,0);
+    MultiFab Rhs(grids,dmap,1,0);
 
     for (int comp = 0; comp < BL_SPACEDIM; comp++)
     {
@@ -1019,8 +1022,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         const Real     a        = 1.0;
         const Real     b        = be_cn_theta*dt*visc_coef[comp];
         Real           rhsscale = 1.0;
-	PArray<ABecLaplacian> raii(PArrayManage);
-        ABecLaplacian* visc_op = raii.push_back
+        std::unique_ptr<ABecLaplacian> visc_op
 	    (getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0,0));
 
         visc_op->maxOrder(max_order);
@@ -1031,7 +1033,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         const Real      S_tol     = visc_tol;
         const Real      S_tol_abs = -1;
 
-        MultiFab Soln(grids,1,1);
+        MultiFab Soln(grids,dmap,1,1);
 
         Soln.setVal(0);
 
@@ -1044,7 +1046,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
 #ifdef MG_USE_HYPRE
 	else if ( use_hypre_solve )
 	  {
-	    BoxLib::Error("HypreABec not ready");
+	    amrex::Error("HypreABec not ready");
 	    //	    Real* dx = 0;
 	    //	    HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
 	    //	    hp.setup_solver(S_tol, S_tol_abs, 50);
@@ -1072,10 +1074,11 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
 
         if (level > 0)
         {
-	    MultiFab xflux(navier_stokes->getEdgeBoxArray(0), 1, 0);
-	    MultiFab yflux(navier_stokes->getEdgeBoxArray(1), 1, 0);
+            const DistributionMapping& dm = navier_stokes->DistributionMap();
+	    MultiFab xflux(navier_stokes->getEdgeBoxArray(0), dm, 1, 0);
+	    MultiFab yflux(navier_stokes->getEdgeBoxArray(1), dm, 1, 0);
 #if (BL_SPACEDIM == 3)
-	    MultiFab zflux(navier_stokes->getEdgeBoxArray(2), 1, 0);
+	    MultiFab zflux(navier_stokes->getEdgeBoxArray(2), dm, 1, 0);
 #endif	    
 
 	    //
@@ -1168,7 +1171,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     const MultiFab& volume = navier_stokes->Volume(); 
     const int   IOProc     = ParallelDescriptor::IOProcessorNumber();
 
-    MultiFab Rhs(grids,BL_SPACEDIM,0);
+    MultiFab Rhs(grids,dmap,BL_SPACEDIM,0);
 
     MultiFab::Copy(Rhs,Vsync,0,0,BL_SPACEDIM,0);
 
@@ -1207,11 +1210,10 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     const Real      a         = 1.0;
     const Real      b         = be_cn_theta*dt;
     const MultiFab& rho       = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-    PArray<DivVis> raii(PArrayManage);
-    DivVis* tensor_op = raii.push_back( getTensorOp(a,b,rho,beta,betaComp) );
+    std::unique_ptr<DivVis> tensor_op ( getTensorOp(a,b,rho,beta,betaComp) );
     tensor_op->maxOrder(tensor_max_order);
 
-    MultiFab Soln(grids,BL_SPACEDIM,1);
+    MultiFab Soln(grids,dmap,BL_SPACEDIM,1);
 
     Soln.setVal(0);
     //
@@ -1268,7 +1270,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
             for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
             {
 	      const int i    = mfi.index();
-	      const Box& grd = BoxLib::enclosedCells(mfi.validbox());
+	      const Box& grd = amrex::enclosedCells(mfi.validbox());
 
 	      BL_ASSERT(grd==grids[mfi.index()]);
 	      
@@ -1311,13 +1313,13 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-    MultiFab  Rhs(grids,1,0);
+    MultiFab  Rhs(grids,dmap,1,0);
 
     MultiFab::Copy(Rhs,Ssync,sigma,0,1,0);
 
     if (verbose > 1)
     {
-        MultiFab junk(grids,1,0);
+        MultiFab junk(grids,dmap,1,0);
 
         MultiFab::Copy(junk,Rhs,0,0,1,0);
 
@@ -1338,8 +1340,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     if (allnull)
         b *= visc_coef[state_ind];
     Real           rhsscale = 1.0;
-    PArray<ABecLaplacian> raii(PArrayManage);
-    ABecLaplacian* visc_op = raii.push_back 
+    std::unique_ptr<ABecLaplacian> visc_op
 	(getViscOp(state_ind,a,b,rho_half,rho_flag,&rhsscale,beta,betaComp,alpha,alphaComp));
     visc_op->maxOrder(max_order);
     //
@@ -1357,7 +1358,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 	Rhs[Rhsmfi].mult(rhsscale,bx);
     }
 
-    MultiFab Soln(grids,1,1);
+    MultiFab Soln(grids,dmap,1,1);
 
     Soln.setVal(0);
     //
@@ -1374,7 +1375,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 #ifdef MG_USE_HYPRE
     else if (use_hypre_solve)
     {
-        BoxLib::Error("HypreABec not ready");
+        amrex::Error("HypreABec not ready");
         //	  HypreABec hp(Soln.boxArray(), 00, dx, 0, false);
         //	  hp.setup_solver(S_tol, S_tol_abs, 50);
         //	  hp.solve(Soln, Rhs, true);
@@ -1441,7 +1442,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
 
     const Real* dx = navier_stokes->Geom().CellSize();
 
-    MultiFab alpha(grids,nCompAlpha,nghost);
+    MultiFab alpha(grids,dmap,nCompAlpha,nghost);
 
     alpha.setVal(0,nghost);
 
@@ -1569,7 +1570,7 @@ Diffusion::getTensorOp (Real                   a,
 
     ViscBndryTensor bndry;
 
-    bndry.define(grids,nDer,navier_stokes->Geom());
+    bndry.define(grids,dmap,nDer,navier_stokes->Geom());
     bndry.setHomogValues(bcarray, ref_ratio[0]);
 
     DivVis* tensor_op = new DivVis(bndry,dx);
@@ -1633,7 +1634,7 @@ Diffusion::getViscOp (int                    comp,
 
     IntVect ref_ratio = level > 0 ? parent->refRatio(level-1) : IntVect::TheUnitVector();
 
-    ViscBndry bndry(grids,1,geom);
+    ViscBndry bndry(grids,dmap,1,geom);
     bndry.setHomogValues(bc, ref_ratio);
 
     ABecLaplacian* visc_op = new ABecLaplacian(bndry,dx);
@@ -1669,7 +1670,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
     //
     // alpha should be the same size as volume.
     //
-    MultiFab alpha(grids,1,1);
+    MultiFab alpha(grids,dmap,1,1);
 
     if (!usehoop)
     {
@@ -1764,10 +1765,10 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
 
     const MultiFab* area = navier_stokes->Area(); 
 
-    PArray<MultiFab> bcoeffs(BL_SPACEDIM, PArrayManage);
+    std::array<MultiFab,BL_SPACEDIM> bcoeffs;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-	bcoeffs.set(n, new MultiFab(area[n].boxArray(),1,0));
+	bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
 	MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
     }
 
@@ -1824,7 +1825,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     //
     if (is_diffusive[comp])
     {
-        MultiFab visc_tmp(grids,1,1), s_tmp(grids,1,1);
+        MultiFab visc_tmp(grids,dmap,1,1), s_tmp(grids,dmap,1,1);
 
         ViscBndry visc_bndry;
         getBndryData(visc_bndry,comp,1,time,rho_flag);
@@ -1875,8 +1876,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                 //
                 const int  i   = visc_tmpmfi.index();
                 const Box& bx  = visc_tmpmfi.validbox();
-                Box        vbx = BoxLib::grow(bx,visc_tmp.nGrow());
-                Box        sbx = BoxLib::grow(s_tmp.box(i),s_tmp.nGrow());
+                Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
+                Box        sbx = amrex::grow(s_tmp.box(i),s_tmp.nGrow());
                 Array<Real> rcen(bx.length(0));
                 navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
                 const int*  lo      = bx.loVect();
@@ -1921,7 +1922,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     const int ncomp    = visc_terms.nComp();
 
     if (ncomp < BL_SPACEDIM)
-        BoxLib::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
+        amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
     //
     // Before computing the godunov predicitors we may have to
     // precompute the viscous source terms.  To do this we must
@@ -1940,7 +1941,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     //
     if (is_diffusive[src_comp])
     {
-        MultiFab visc_tmp(grids,BL_SPACEDIM,1), s_tmp(grids,BL_SPACEDIM,1);
+        MultiFab visc_tmp(grids,dmap,BL_SPACEDIM,1), s_tmp(grids,dmap,BL_SPACEDIM,1);
 
         ViscBndryTensor visc_bndry;
         getTensorBndryData(visc_bndry,time);
@@ -1958,7 +1959,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-	    MultiFab bcoeffs(area[n].boxArray(),1,0);
+	    MultiFab bcoeffs(area[n].boxArray(),area[n].DistributionMap(),1,0);
 	    MultiFab::Copy(bcoeffs, area[n], 0, 0, 1, 0);
             for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
@@ -1991,8 +1992,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             {
                 const int  k   = vmfi.index();
                 const Box& bx  = visc_tmp.box(k);
-                Box        vbx = BoxLib::grow(bx,visc_tmp.nGrow());
-                Box        sbx = BoxLib::grow(s_tmp.box(k),s_tmp.nGrow());
+                Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
+                Box        sbx = amrex::grow(s_tmp.box(k),s_tmp.nGrow());
 
 		Array<Real> rcen;
                 rcen.resize(bx.length(0));
@@ -2035,7 +2036,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     }
 }
 
-#include <Utility.H>
+#include <AMReX_Utility.H>
 
 void
 Diffusion::getBndryData (ViscBndry& bndry,
@@ -2054,11 +2055,11 @@ Diffusion::getBndryData (ViscBndry& bndry,
     const int     nGrow = 1;
     const BCRec&  bc    = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp);
 
-    bndry.define(grids,num_comp,navier_stokes->Geom());
+    bndry.define(grids,dmap,num_comp,navier_stokes->Geom());
 
     const MultiFab& rhotime = navier_stokes->get_rho(time);
 
-    MultiFab S(grids, num_comp, nGrow);
+    MultiFab S(grids, dmap, num_comp, nGrow);
 
     AmrLevel::FillPatch(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
 
@@ -2078,7 +2079,7 @@ Diffusion::getBndryData (ViscBndry& bndry,
     {
         BoxArray cgrids = grids;
         cgrids.coarsen(crse_ratio);
-        BndryRegister crse_br(cgrids,0,1,2,num_comp);
+        BndryRegister crse_br(cgrids,dmap,0,1,2,num_comp);
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //
@@ -2105,7 +2106,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
     //
     const BCRec& bc = navier_stokes->get_desc_lst()[State_Type].getBC(state_ind);
 
-    bndry.define(grids,num_comp,navier_stokes->Geom());
+    bndry.define(grids,dmap,num_comp,navier_stokes->Geom());
 
     if (level == 0)
     {
@@ -2115,7 +2116,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
     {
         BoxArray cgrids = grids;
         cgrids.coarsen(crse_ratio);
-        BndryRegister crse_br(cgrids,0,1,2,num_comp);
+        BndryRegister crse_br(cgrids,dmap,0,1,2,num_comp);
         //
         // interp for solvers over ALL c-f brs, need safe data.
         //
@@ -2141,7 +2142,9 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 
     const MultiFab& rhotime = navier_stokes->get_rho(time);
 
-    MultiFab S(navier_stokes->boxArray(),num_comp,nGrow);
+    MultiFab S(navier_stokes->boxArray(),
+               navier_stokes->DistributionMap(),
+               num_comp,nGrow);
 
     AmrLevel::FillPatch(*navier_stokes,S,nGrow,time,State_Type,state_ind,num_comp);
 
@@ -2174,11 +2177,11 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
         bcarray[idim] = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp+idim);
 
-    bndry.define(grids,nDer,navier_stokes->Geom());
+    bndry.define(grids,dmap,nDer,navier_stokes->Geom());
 
     const int nGrow = 1;
 
-    MultiFab S(grids,num_comp,nGrow,Fab_allocate);
+    MultiFab S(grids,dmap,num_comp,nGrow);
 
     AmrLevel::FillPatch(*navier_stokes,S,nGrow,time,State_Type,src_comp,num_comp);
 
@@ -2192,7 +2195,7 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
     {
         BoxArray cgrids(grids);
         cgrids.coarsen(crse_ratio);
-        BndryRegister crse_br(cgrids,0,1,1,num_comp);
+        BndryRegister crse_br(cgrids,dmap,0,1,1,num_comp);
         crse_br.setVal(BL_BOGUS);
         const int rho_flag = 0;
         coarser->FillBoundary(crse_br,src_comp,0,num_comp,time,rho_flag);
@@ -2214,7 +2217,7 @@ Diffusion::checkBetas (const MultiFab* const* beta1,
     allthere = allthere1 && allthere2;
 
     if (!(allthere || allnull))
-        BoxLib::Abort("Diffusion::checkBetas(): betas must either be all 0 or all non-0");
+        amrex::Abort("Diffusion::checkBetas(): betas must either be all 0 or all non-0");
 }
 
 void
@@ -2235,7 +2238,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     }
 
     if (!(allthere || allnull))
-        BoxLib::Abort("Diffusion::checkBeta(): betas must be all 0 or all non-0");
+        amrex::Abort("Diffusion::checkBeta(): betas must be all 0 or all non-0");
 }
 
 void
@@ -2251,7 +2254,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     }
 
     if (!allthere)
-        BoxLib::Abort("Diffusion::checkBeta(): betas must be all non-0");
+        amrex::Abort("Diffusion::checkBeta(): betas must be all non-0");
 }
 
 //
@@ -2271,8 +2274,7 @@ Diffusion::compute_divmusi (Real      time,
     {
         const int     nGrowDU  = 1;
         const Real*   dx       = navier_stokes->Geom().CellSize();
-	PArray<MultiFab> raii(PArrayManage);
-        MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
+        std::unique_ptr<MultiFab> divu_fp ( navier_stokes->getDivCond(nGrowDU,time) );
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2309,8 +2311,7 @@ Diffusion::compute_divmusi (Real                   time,
 {
     const int     nGrowDU  = 1;
     const Real*   dx       = navier_stokes->Geom().CellSize();
-    PArray<MultiFab> raii(PArrayManage);
-    MultiFab* divu_fp = raii.push_back( navier_stokes->getDivCond(nGrowDU,time) );
+    std::unique_ptr<MultiFab> divu_fp ( navier_stokes->getDivCond(nGrowDU,time) );
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2367,7 +2368,7 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
 
         default:
             std::cout << "compDiffusionType = " << compDiffusionType << '\n';
-            BoxLib::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
+            amrex::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
     }
 
     return rho_flag;

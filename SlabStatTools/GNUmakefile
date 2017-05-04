@@ -1,5 +1,5 @@
 
-BOXLIB_HOME = /path/to/BoxLib
+AMREX_HOME = /path/to/amrex
 
 TOP = ..
 #
