@@ -22,7 +22,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
   extern "C" {
+#endif
 
 
     void FORT_INITPHI(const int* lo,const int* hi,amrex::Real * phi,
@@ -43,6 +45,8 @@
                           const amrex::Real* dx, const amrex::Real* xlo,
                           const amrex::Real* prob_lo, const amrex::Real* time,
                           const int* level);
+#ifdef __cplusplus
   }
+#endif
 #endif
 #endif 

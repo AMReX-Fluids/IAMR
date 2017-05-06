@@ -71,7 +71,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
   extern "C" {
+#endif
 
      void FORT_INITDATA (const int* level, const amrex::Real* time,
                          const int* lo, const int* hi,
@@ -182,6 +184,8 @@
 			  const int* scomp, const int* ncomp);
 #endif
 #endif
+#ifdef __cplusplus
   }
+#endif
 #endif
 #endif /*_PROB_F_H_*/

@@ -91,8 +91,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
    void FORT_TEST_U_RHO(const amrex::Real* u,  ARLIM_P(vlo), ARLIM_P(vhi),
 			const amrex::Real* v,  ARLIM_P(vlo), ARLIM_P(vhi),
 #if (BL_SPACEDIM == 3)                          
@@ -355,7 +357,9 @@ extern "C"
    
    void FORT_SET_PARAMS(const int& slope_order,
 			const int& use_unlimited_slopes);
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_GODUNOV_F_H_*/

@@ -19,7 +19,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #if (BL_SPACEDIM == 2)
     void FORT_MACDIV (amrex::Real* dmac, ARLIM_P(dlo), ARLIM_P(dhi),
                       const int* lo, const int* hi,
@@ -54,7 +56,9 @@ extern "C" {
                          const int* lo, const int* hi, const int* mult);
 #endif
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 #endif /*_MACPROJ_F_H*/

@@ -47,8 +47,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 #if (BL_SPACEDIM == 2)
     void FORT_VISCSYNCFLUX (const amrex::Real* ssync, ARLIM_P(slo), ARLIM_P(shi),
                             const int*  xlo, const int*  xhi,
@@ -136,7 +138,9 @@ extern "C"
 #endif
           ARLIM_P(divmusilo), ARLIM_P(divmusihi), const amrex::Real* divmusi);
     
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 #endif /*_DIFFUSION_F_H*/

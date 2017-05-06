@@ -83,7 +83,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #if (BL_SPACEDIM == 2)
     void FORT_HGPHIBC(const amrex::Real* hx,   const amrex::Real* sigE,
 		      const amrex::Real* s, const amrex::Real* x, 
@@ -224,6 +226,8 @@ extern "C" {
 		   const int* isPeriodic);
 
 
+#ifdef __cplusplus
 }
+#endif
 #endif
 #endif

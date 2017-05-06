@@ -189,7 +189,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
      void FORT_DERMODGRADRHO    (amrex::Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const amrex::Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
@@ -518,6 +520,8 @@ extern "C" {
 		       const amrex::Real* delta, const amrex::Real* xlo,
 		       const amrex::Real* time, const amrex::Real* dt, const int* bcrec, 
                        const int* level, const int* grid_no) ;
+#ifdef __cplusplus
 }
+#endif
 #endif
 #endif

@@ -74,7 +74,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __plusplus
 extern "C" {
+#endif
+
 #if (BL_SPACEDIM == 2)
     void FORT_MACPHIBC (const amrex::Real* phi, int* length,
                         const amrex::Real* divuEptr, const amrex::Real* rhoEptr,
@@ -219,7 +222,9 @@ extern "C" {
 			const int* loc, const int* hic);
 
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 #endif 

@@ -74,7 +74,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
     int FORT_PHIUPD(const amrex::Real * phi,ARLIM_P(phi_lo),ARLIM_P(phi_hi),
                      amrex::Real * phin,ARLIM_P(phin_lo),ARLIM_P(phin_hi),
@@ -136,7 +138,9 @@ extern "C" {
                         const int* lo, const int* hi,const amrex::Real * dx,
                         int *    nband, int *nbandsize, int *nbandnum,
                         int * sgn, int* heaploc);
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 #endif 

@@ -51,7 +51,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
     
     void FORT_FILTERP(amrex::Real * pnew, amrex::Real * scratch, ARLIM_P(p_lo), ARLIM_P(p_hi),
                       const int* lo, const int* hi, const amrex::Real * dx,
@@ -118,7 +120,9 @@ extern "C" {
                        amrex::Real* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
                        const int* lo, const int* hi,
                        const amrex::Real* dx, const amrex::Real* mult, int* is_rz);
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 #endif /*_PROJECTION_F_H_*/

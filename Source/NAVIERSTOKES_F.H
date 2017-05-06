@@ -78,7 +78,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
     void FORT_FILCC (const amrex::Real * q, ARLIM_P(q_lo), ARLIM_P(q_hi),
                      const int * domlo, const int * domhi,
                      const amrex::Real * dx_crse, const amrex::Real * xlo, 
@@ -172,7 +174,9 @@ extern "C" {
                      const int* dom_lo, const int* dom_hi,
                      const amrex::Real* dx ,const amrex::Real* xlo);
 
+#ifdef __cplusplus
 }
+#endif
     
 #endif
 #endif /*_NAVIERSTOKES_F_H_*/

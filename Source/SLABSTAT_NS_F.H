@@ -19,8 +19,12 @@
 #  endif
 #  endif
 
+#include <AMReX_BLFort.H>
+
+#ifdef __cplusplus
 extern "C"
 {
+#endif
      void FORT_NS_BASICSTATS_NCTRAC (const amrex::Real* src, 
                                        ARLIM_P(src_lo), ARLIM_P(src_hi),
                                      const int* nsrc,
@@ -38,7 +42,9 @@ extern "C"
                                     const int* ndst,
                                     const amrex::Real* dt,
                                     const amrex::Real* dx);
+#ifdef __cplusplus
 }
+#endif
 
 #endif
 

@@ -23,8 +23,10 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" 
 {
+#endif
     void FORT_SRCRSEREG (const amrex::Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                          amrex::Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                          const int* lo, const int* hi,
@@ -35,7 +37,9 @@ extern "C"
 
     void FORT_CONVERTMASK (amrex::Real* mask , ARLIM_P(mlo), ARLIM_P(mhi));
 
+#ifdef __cplusplus
 }
+#endif
 #endif
 
 #endif /*_SYNCREG_F_H_*/
