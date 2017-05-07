@@ -74,7 +74,7 @@
 
 #include <AMReX_ArrayLim.H>
 
-#ifdef __plusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
