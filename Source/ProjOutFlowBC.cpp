@@ -262,7 +262,6 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         // Extrapolate the velocities, divu, and rho to the outflow edge in
         // the shifted coordinate system (where the last dimension is 1).
         //
-        Real hx = dx[0];
         FORT_EXTRAP_PROJ(ARLIM(vello),  ARLIM(velhi), velPtr,
                          ARLIM(divulo), ARLIM(divuhi), divuPtr,
                          ARLIM(rholo),  ARLIM(rhohi),rhoPtr,
@@ -272,7 +271,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                          ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
                          ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
                          ARLIM(ccElo),ARLIM(ccEhi),rhoEPtr,
-                         origLo,origHi,&faces[iface],&zeroIt[iface],&hx);
+                         origLo,origHi,&faces[iface],&zeroIt[iface]);
     }
     //
     //  Test for whether multiple faces are touching.

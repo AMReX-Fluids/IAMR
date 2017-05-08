@@ -157,7 +157,7 @@ extern "C" {
 			  ARLIM_P(dE_lo), ARLIM_P(dE_hi), const amrex::Real* divE,
 			  ARLIM_P(rhoE_lo), ARLIM_P(rhoE_hi), const amrex::Real* rhoE,
 			  const int* faceLo, const int* faceHi,
-			  int* face, int* zeroIt, const amrex::Real* hx);
+			  int* face, int* zeroIt);
 
     void FORT_HGRELAX (ARLIM_P(rhslo), ARLIM_P(rhshi), const amrex::Real* rhs,
                        ARLIM_P(betalo), ARLIM_P(betahi), const amrex::Real* beta,

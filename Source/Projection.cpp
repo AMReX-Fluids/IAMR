@@ -1692,6 +1692,7 @@ Projection::radMult (int       level,
                      MultiFab& mf,
                      int       comp)
 {
+#if (BL_SPACEDIM < 3)
     BL_ASSERT(radius_grow >= mf.nGrow());
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
 
@@ -1718,6 +1719,7 @@ Projection::radMult (int       level,
         FORT_RADMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                     rad,&nr,&bogus_value);
     }
+#endif
 }
 
 //
@@ -1729,6 +1731,7 @@ Projection::radDiv (int       level,
                     MultiFab& mf,
                     int       comp)
 {
+#if (BL_SPACEDIM < 3)
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
     BL_ASSERT(radius_grow >= mf.nGrow());
 
@@ -1754,6 +1757,7 @@ Projection::radDiv (int       level,
         FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                     rad,&nr,&bogus_value);
     }
+#endif
 }
 
 //

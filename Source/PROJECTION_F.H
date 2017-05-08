@@ -3,7 +3,6 @@
 #define _PROJECTION_F_H_ 
 
 #ifdef BL_LANG_FORT
-#    define FORT_FILTERP       filterp
 #    define FORT_VEL_TO_ACCEL  veltoaccel
 #    define FORT_ACCEL_TO_VEL  acceltovel
 #    define FORT_PROJ_UPDATE   projupdate
@@ -15,7 +14,6 @@
 #    define FORT_FILTRHS       filtrhs
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
-#    define FORT_FILTERP       FILTERP
 #    define FORT_VEL_TO_ACCEL  VELTOACCEL
 #    define FORT_ACCEL_TO_VEL  ACCELTOVEL
 #    define FORT_PROJ_UPDATE   PROJUPDATE
@@ -26,7 +24,6 @@
 #    define FORT_HGN2C         HGN2C
 #    define FORT_FILTRHS       FILTRHS
 #  elif defined(BL_FORT_USE_LOWERCASE)
-#    define FORT_FILTERP       filterp
 #    define FORT_VEL_TO_ACCEL  veltoaccel
 #    define FORT_ACCEL_TO_VEL  acceltovel
 #    define FORT_PROJ_UPDATE   projupdate
@@ -37,7 +34,6 @@
 #    define FORT_HGN2C         hgn2c
 #    define FORT_FILTRHS       filtrhs
 #  elif defined(BL_FORT_USE_UNDERSCORE)
-#    define FORT_FILTERP       filterp_
 #    define FORT_VEL_TO_ACCEL  veltoaccel_
 #    define FORT_ACCEL_TO_VEL  acceltovel_
 #    define FORT_PROJ_UPDATE   projupdate_
@@ -53,16 +49,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-    
-    void FORT_FILTERP(amrex::Real * pnew, amrex::Real * scratch, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                      const int* lo, const int* hi, const amrex::Real * dx,
-                      const amrex::Real * fac,
-#if (BL_SPACEDIM == 2)
-                      const int * wrap_around_x, const int * wrap_around_y);
-#elif (BL_SPACEDIM == 3)
-                      const int * wrap_around_x, const int * wrap_around_y,
-                      const int * wrap_around_z);
 #endif
 
     void FORT_VEL_TO_ACCEL (const int* lo, const int* hi,
@@ -81,6 +67,7 @@ extern "C" {
                            const  amrex::Real* dt,
                            const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
+#if (BL_SPACEDIM < 3)
     void FORT_RADMPY (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                       const int* domlo, const int* domhi,
                       const int* nghost,
@@ -92,6 +79,7 @@ extern "C" {
                       const int* nghost,
                       const amrex::Real* radius, const int* nrad,
                       const amrex::Real* bogus_value);
+#endif
 
     void FORT_ANELCOEFFMPY (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                             const int* domlo, const int* domhi,

@@ -23,7 +23,7 @@ c *************************************************************************
 
       subroutine FORT_EXTRAP_PROJ(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,
      &     r_len,redge,DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &     DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt,hx)
+     &     DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt)
       implicit none
 
 c subtract divu_ave twice due to precision problems
@@ -44,7 +44,6 @@ c subtract divu_ave twice due to precision problems
       REAL_T   divuExt(DIMV(divuExt))
       REAL_T   r hoExt(DIMV(rhoExt))
       REAL_T   redge(0:r_len-1)
-      REAL_T   hx
       integer  zeroIt
 
 c local variables

@@ -20,8 +20,8 @@
 #endif
 
       subroutine FORT_EXTRAP_PROJ(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,
-     &     DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &     DIMS(rhoExt),rhoExt,lo,hi,face, zeroIt)
+     &                            DIMS(uExt),uExt,DIMS(divuExt),divuExt,
+     &                            DIMS(rhoExt),rhoExt,lo,hi,face, zeroIt,hx)
       implicit none
 
 c    compute divu_ave twice due to precision problems
@@ -40,6 +40,7 @@ c    compute divu_ave twice due to precision problems
       REAL_T   uExt(DIMV(uExt),SDIM-1)
       REAL_T   divuExt(DIMV(divuExt))
       REAL_T   rhoExt(DIMV(rhoExt))
+      REAL_T   hx
       integer  zeroIt
 
 c local variables
