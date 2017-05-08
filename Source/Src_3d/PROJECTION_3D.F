@@ -155,7 +155,7 @@ c
 
       end
 
-      subroutine FORT_RADMPY(a,DIMS(grid),ng,r,nr,n)
+      subroutine FORT_RADMPY(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
 c 
 c     multiply A by a Radius r
 c
@@ -163,16 +163,18 @@ c
       integer    ng,nr
       integer    n(SDIM)
       integer    DIMDEC(grid)
+      integer    domlo(3), domhi(3)
       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng,
      $             ARG_L2(grid)-ng:ARG_H2(grid)+ng,
      $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      REAL_T     bogus_value
 
       call bl_abort('SHOULD NEVER BE IN RADMPY IN 3D')
 
       end
 
-      subroutine FORT_RADDIV(a,DIMS(grid),ng,r,nr,n)
+      subroutine FORT_RADDIV(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
 c 
 c     divide A by a Radius r
 c
@@ -180,10 +182,12 @@ c
       integer    ng,nr
       integer    n(SDIM)
       integer    DIMDEC(grid)
+      integer    domlo(3), domhi(3)
       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng,
      $             ARG_L2(grid)-ng:ARG_H2(grid)+ng,
      $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      REAL_T     bogus_value
 
       call bl_abort('SHOULD NEVER BE IN RADDIV IN 3D')
       end
