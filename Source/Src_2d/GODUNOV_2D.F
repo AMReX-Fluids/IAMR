@@ -1286,7 +1286,7 @@ c
      &     vcor,DIMS(vcor),
      &     areay,DIMS(ay),
      &     vol,DIMS(vol),
-     &     lo,hi,iconserv )
+     &     lo,hi )
 c
 c     This subroutine computes the sync advective tendency
 c     for a state variable
