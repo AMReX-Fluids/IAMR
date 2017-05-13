@@ -1,9 +1,0 @@
-palette               Palette
-initialderived        mag_vort
-initialscale          2
-numberformat          %8.5e
-maxpixmapsize         800000
-reservesystemcolors   24
-showboxes             TRUE
-windowheight          850
-windowwidth           1000
