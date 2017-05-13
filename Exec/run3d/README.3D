@@ -57,12 +57,6 @@ Rayleigh-Taylor instability; heavy fluid on top of light fluid with gravity.
 **************************
 
 **************************
-inputs.3d.swirltest
-
-NOT WORKING YET
-**************************
-
-**************************
 inputs.3d.traceradvect
 
 Advecting a blob of tracer material with velocity field (u,v,w) = (1,1,1) with
