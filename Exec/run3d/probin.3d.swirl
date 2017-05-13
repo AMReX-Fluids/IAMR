@@ -1,7 +1,0 @@
- &fortin
-  probtype = 13
-  den2 = 1.0
-  Rfu = .03
-  Rtran = .01
-  Vco = .35
- /
