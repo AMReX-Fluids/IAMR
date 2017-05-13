@@ -65,18 +65,6 @@ blob translates exactly one cell per time step.
 **************************
 
 **************************
-inputs.grid
-
-NOT WORKING YET
-**************************
-
-**************************
-inputs.hit
-
-NOT WORKING YET
-**************************
-
-**************************
 inputs.taygre
 
 3-level Taylor–Green vortex.  Constant density, with a spatially-varying tracer field.
