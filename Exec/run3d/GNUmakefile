@@ -8,17 +8,13 @@ TOP = ../..
 # Variables for the user to set ...
 #
 
+DIM        = 3
+COMP	   = gnu
+DEBUG	   = FALSE
+USE_MPI    = TRUE
+USE_OPENMP = FALSE
+
 PRECISION = DOUBLE
-
-DEBUG	  = TRUE
-DEBUG	  = FALSE
-
-DIM       = 3
-
-COMP	  = g++
-
-USE_MPI   = TRUE
-USE_OPENMP   = FALSE
 
 USE_FLCTS = TRUE
 USE_FLCTS = FALSE

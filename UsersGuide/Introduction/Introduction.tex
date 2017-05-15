@@ -1,14 +1,15 @@
 \section{History of \iamr}
 
-\iamr\ describes the variable-density incompressible Navier-Stokes equations
-The core libraries for managing the subcycling adaptive mesh refinement (AMR)
+\iamr\ is a parallel, adaptive mesh refinement (AMR) code that 
+solves the variable-density incompressible Navier-Stokes equations
+The core libraries for managing the subcycling AMR
 grids and communication are found in the \amrex\ library
 (see \url{https://github.com/AMReX-Codes/amrex}).
 
 The \iamr\ source code can be found at
 \url{https://github.com/AMReX-Codes/IAMR}.
 
-The core algorithms in \iamr\ are described in a series of papers:
+The algorithm is described in the following paper (and references therein):
 \begin{itemize}
 
 \item {\it A Conservative Adaptive Projection Method for the Variable Density Incompressible Navier-Stokes Equations},
@@ -22,6 +23,9 @@ J.~Comp.~Phys., 142, pp. 1-46, 1998.
 
 \section{Brief Overview of Low Speed Approximations}
 
+The \iamr\ code can also used as a basis for more
+general low Mach number flow algorithms (e.g., low Mach number combustion,
+low Mach number astrophysics, porous media flow)
 There are many low speed formulations of the equations of hydrodynamics
 in use, each with their own applications.  All of these methods share in
 common a constraint equation on the velocity field that augments the
@@ -45,89 +49,11 @@ D\rho/Dt = 0
 constant along particle paths. This means that there are no
 compressibility effects modeled in this approximation.
 
-\subsection{Low-Mach Number Combustion}
-
-In the low Mach number combustion model, the pressure is decomposed
-into a dynamic, $\pi$, and thermodynamic component, $p_0$, the ratio
-of which is $O(M^2)$. The total pressure is replaced everywhere by the
-thermodynamic pressure, except in the momentum equation. This
-decouples the pressure and density and filters out the sound
-waves. Large amplitude density and temperature fluctuations are
-allowed. The only requirement is that the total pressure stay close to
-the background pressure, which is assumed constant. This requirement
-can be expressed as:
-\begin{equation}
-p = p_0
-\end{equation}
-and differentiating this along particle paths leads to a constraint on
-the velocity field: 
-\begin{equation}
-\nabla \cdot \Ub = S 
-\end{equation}
-This looks like the constraint for incompressible hydrodynamics, but
-now we have a source term, $S$, representing the local compressibility
-effects due to the energy generation and thermal diffusion.  Since the
-background pressure is taken to be constant, we cannot model flows
-that cover a large fraction of a pressure scale height. However, this
-method is ideal for exploring the physics of flames.
-
-\subsection{Other Models}
-We defer discussion of anelastic and pseudo-incompressible methods for now,
-as they are more relevant large-gravity or large-scale flows with 
-density and pressure stratification.  For more detailed discussion,
-refer to our \maestro\ code
-(\url{http://amrex-astro.github.io/MAESTRO/index.html}).
-
-%% \subsection{Anelastic Hydrodynamics}
-
-%% In the anelastic approximation small amplitude thermodynamic
-%% perturbations are carried with respect to a static hydrostatic
-%% background (described by density $\rho_0$).  The density perturbation
-%% is ignored in the continuity equation, resulting in a constraint
-%% equation:
-%% \begin{equation}
-%% \nabla \cdot (\rho_0 \Ub) = 0
-%% \end{equation}
-%% This properly captures the compressibility effects due to the
-%% stratification of the background. Because there is no evolution
-%% equation for the perturbational density, approximations are made to
-%% the buoyancy term in the momentum equation.
-
-%% \subsection{Pseudo-Incompressible Methods}
-
-%% The pseudo-incompressible method incorporates both the local changes
-%% to compressibility due to reaction/heat release, and the large-scale
-%% changes due to the background stratification.  This was originally
-%% derived for an ideal gas equation of state for atmospherical flows.
-%% Allowing the background pressure, $p_0$ to vary (e.g.\ in hydrostatic
-%% equilibrium), differentiating pressure along particle paths gives:
-%% \begin{equation}
-%% \nabla \cdot (p_0^{1/\gamma} \Ub) = H
-%% \end{equation}
-%% where $\gamma$ is the ratio of specific heats and $H$ is the source.
-
-%% \maestro\ is based on this method, generalizing this constraint to an
-%% arbitrary equation of state and allowing for the time-variation of the
-%% base state.
-
-%% \subsection{Alternate Energy Formulation}
-
-%% Several authors~\cite{KP:2012,VLBWZ:2013} showed that with a slightly
-%% different momentum equation, the low Mach number system can conserve
-%% an energy (that is, a quantity that looks like the compressible
-%% energy, but formed using the low Mach number quantities).  This change
-%% manifests itself as either a change to the buoyancy term or by
-%% changing $\nabla \pi$ to $\beta_0 \nabla (\pi/\beta_0)$.  Furthermore,
-%% \cite{VLBWZ:2013} showed that the new formulation better captures the
-%% vertical propagation of gravity waves.  As of
-%% Dec.\ 2013, this new formulation is the default in \maestro, a low
-%% Mach number astrophysics code available through the CCSE web site.
-
 \section{Projection Methods 101}
 
-Most combustion hydrodynamics codes
-(e.g.\ S3D~\cite{s3d}) solve the
-compressible Navier-Stokes equations, which can be written in the form:
+We include a brief discussion of projection methodology for
+low Mach number (and incpressible) flow.
+The compressible Navier-Stokes equations can be written in the form:
 \begin{equation}
 \Ub_t + \nabla \cdot F(\Ub) = S
 \end{equation}

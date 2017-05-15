@@ -24,19 +24,8 @@ for example, has the Fortran code read a file called {\tt my\_special\_probin}.
 
 \section{Working with {\tt probin} Files}
 
-There are three different Fortran {\tt namelist}s that can be defined in the
-{\tt probin} file:
-\begin{itemize}
-\item {\tt \&fortin} is the main {\tt namelist} read by the problem's {\tt probinit}
-subroutine in the {\tt Prob\_?d.f90} file.
-
-\item {\tt \&heattransin} is used to set the ambient pressure and various algorithmic options.
-
-\item {\tt \&flctin} is used to read in turbulence files to set the space and
-time-dependent inflow.
-
-\item {\tt \&control} is used dynamically control the inflow velocity.
-\end{itemize}
+The Fortran namelist, {\tt \&fortin}, is defined in the {\tt probin} file
+and read by the {\tt amrex\_probini} subroutine in the {\tt PROB\_?d.f90} file.
 
 \section{Common {\tt inputs} Options}
 
