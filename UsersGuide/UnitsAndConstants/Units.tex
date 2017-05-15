@@ -1,0 +1,40 @@
+\section{Units and Constants}
+
+We currently support only MKS units in \pelelm.
+All inputs and problem initialization should be specified in MKS.
+No internal conversions of units occur within the code, so the output must be interpreted appropriately. \\
+
+\begin{table*}[h]
+\begin{scriptsize}
+\begin{center}
+\begin{tabular}{|l|l|l|} \hline
+          & & \\
+Location & Variable & MKS \\
+          & & \\
+\hline
+          & & \\
+inputs file             & {\bf geometry.prob\_lo} and {\bf geometry.prob\_hi} & {\rm m}  \\ 
+          & & \\ \hline 
+          & & \\
+Hydro Initialization    & density                                   & kg         / m$^3$   \\  
+          & & \\ \hline 
+          & & \\
+Hydro Initialization    & velocities                                & m/s    \\ 
+          & & \\ \hline 
+          & & \\
+Hydro Initialization    & temperature                               & K            \\ 
+          & & \\ \hline 
+          & & \\
+Hydro Initialization    & energies                                  & J = kg (m/s)$^2$   \\       
+          & & \\ \hline 
+          & & \\
+Output            & Pressure                                        &  kg (m/s)$^2$ / m$^3$ \\
+          & & \\ \hline 
+          & & \\
+Output            & Time                                            &  s \\
+          & & \\ \hline 
+\end{tabular}
+\label{Table:Units}
+\end{center}
+\end{scriptsize}
+\end{table*}

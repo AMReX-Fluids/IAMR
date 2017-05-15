@@ -1,0 +1,72 @@
+\section{The low Mach number flow equations}
+
+TODO: This is just a place holder for a more generic description of the model, which will have to 
+discuss the CHEMKIN assumptions, EGLib, etc.
+
+\newcommand{\etal}{{\it et al.}}
+
+\pelelm\ solves the reacting navier-Stokes flow equations in the low Mach number regime.
+The methodology treats the
+fluid as a mixture of perfect gases; the corresponding conservation
+equations for an open domain are
+\begin{eqnarray*}
+\frac{\partial (\rho \boldsymbol{u})}{\partial t} + 
+\nabla \cdot \left(\rho  \boldsymbol{u} \boldsymbol{u} + \tau \right)
+&=& -\nabla \pi + \rho \, \boldsymbol{F}  ,
+\label{eq:mom}
+\\
+\frac{\partial (\rho Y_i)}{\partial t} +
+\nabla \cdot \left( \rho Y_i \boldsymbol{u} + \boldsymbol{\mathcal{F}}_{i} \right)
+&=& \rho \, \dot{\omega}_i,
+\label{eq:species}
+\\
+\frac{ \partial (\rho h)}{ \partial t} +
+\nabla \cdot \left( \rho h \boldsymbol{u} + \boldsymbol{\mathcal{Q}} \right) &=& 0 ,
+\label{eq:enthalpy}
+\end{eqnarray*}
+where $\rho$ is the density, $\boldsymbol{u}$ is the velocity, $h$ is the mass-weighted enthalpy,
+$T$ is temperature.  $Y_i$ is the mass fraction and $\dot{\omega}_i$ is the molar
+production rate for species $i$.
+A mixture-averaged model is assumed for diffusive transport, ignoring
+Dufour and Soret effects; $\tau$ is the stress tensor; 
+$\boldsymbol{\mathcal{Q}}$$\,=\,$$h_{i} \boldsymbol{\mathcal{F}}_{i} - \lambda \nabla T $ 
+is the heat flux and 
+$\boldsymbol{\mathcal{F}}_i$$\,=\,$$- \rho \boldsymbol{\mathcal{D}}_i \nabla X_{i}$ 
+is the species diffusion.
+The momentum source term, $\boldsymbol{F}$, is a long-wavelength
+forcing term designed to establish and maintain turbulence with the desired properties.
+
+The chemical kinetics and transport are modelled 
+using the dodecane mechanism of You~\etal~\cite{YouWang2009}, 
+consisting of 56 species with 289 fundamental reactions.
+These evolution equations are supplemented by
+%an equation of state for a perfect gas mixture, and
+CHEMKIN-compatible databases for thermodynamic quantities.
+%species enthalpy, $h_i(T)$, and
+%transport coefficients, 
+%$\lambda$, and $\mathcal{D}_i$ (specified as part of the kinetics model).
+Transport properties are computed using EGLIB \cite{EGLIB}.
+
+The basic discretisation combines a spectral deferred corrections (SDC) coupling
+of chemistry and transport \cite{LMC_SDC} with a density-weighted approximate
+projection method for low Mach number flow \cite{DayBell:2000}.  The projection method
+implements a constrained evolution on the velocity field via the SDC iterations,
+which ensures that the update simultaneously satisfies the 
+equation of state and discrete conservation of mass and total enthalpy.
+A time-explicit approach is used for advection; faster diffusion
+and chemistry processes are treated time-implicitly, and iteratively
+coupled together within the defferred corrections strategy.
+Since the low Mach system does not support acoustic waves,
+the time step size is governed by a CFL constraint based on advective transport.
+The integration algorithm is second-order accurate in space
+and time.
+
+The performance of the numerical scheme for direct numerical 
+simulation of premixed flame systems in regimes comparable to the present study
+was examined in \cite{Aspden08b}.  An {\em effective} Kolmogorov
+length scale, $\eta_{\mbox{\it eff}}$, was formulated, which measures the actual Kolmogorov length
+scale realised in a simulation at a given resolution.
+Here, the most computationally demanding simulation, having the highest turbulence levels,
+has a computational cell width that is approximately 1.27 times the
+Kolmogorov length scale, $\eta$.  In this case, the numerical scheme produces
+$\eta_{\mbox{\it eff}}/\eta\,$$<\,$1.03.  All other cases were better resolved.

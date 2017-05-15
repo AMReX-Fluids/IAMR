@@ -1,0 +1,251 @@
+\section{History of \pelelm}
+
+\pelelm\ describes the evolution of chemically reacting low Mach number flows.
+The core libraries for managing the subcycling adaptive mesh refinement (AMR)
+grids and communication are found in the \amrex\ library
+(see \url{https://github.com/AMReX-Codes/amrex}).
+
+\pelelm\ also uses source code and base classes for integrating the
+variable-density incompressible Navier-Stokes equations found in \iamr\ 
+(see \url{https://github.com/AMReX-Codes/IAMR}).
+
+The core algorithms in \pelelm\ are described in a series of papers:
+\begin{itemize}
+
+\item {\it A conservative, thermodynamically consistent numerical approach for low Mach number 
+combustion. I. Single-level integration},
+A.~Nonaka, J.~B.~Bell, and M.~S.~Day.  Submitted for publication, 2017.
+\url{https://ccse.lbl.gov/Publications/nonaka/LMC_Pressure.pdf}
+
+\item {\it A Deferred Correction Coupling Strategy for Low Mach Number Flow with Complex Chemistry},
+A.~Nonaka, J.~B.~Bell, M.~S.~Day, C.~Gilet, A.~S.~Almgren, and M.~L.~Minion,
+Combust. Theory and Modelling, 16(6), 1053-1088, 2012. 
+\url{http://www.tandfonline.com/doi/abs/10.1080/13647830.2012.701019} \cite{LMC_SDC}
+
+\item {\it Numerical Simulation of Laminar Reacting Flows with Complex Chemistry},
+M.~S.~Day and J.~B.~Bell,
+Combust. Theory Modelling 4(4) pp.535-556, 2000.
+\url{http://www.tandfonline.com/doi/abs/10.1088/1364-7830/4/4/309} \cite{DayBell:2000}
+
+\item {\it An Adaptive Projection Method for Unsteady, Low-Mach Number Combustion}, 
+R.~B.~Pember, L.~H.~Howell, J.~B.~Bell, P.~Colella, W.~Y.~Crutchfield, W.~A.~Fiveland, and J.~P.~Jessee,
+Comb. Sci. Tech., 140, pp. 123-168, 1998.
+\url{http://www.tandfonline.com/doi/abs/10.1080/00102209808915770} \cite{pember-flame}
+
+\item {\it A Conservative Adaptive Projection Method for the Variable Density Incompressible Navier-Stokes Equations},
+A.~S.~Almgren, J.~B.~Bell, P.~Colella, L.~H.~Howell, and M.~L.~Welcome,
+J.~Comp.~Phys., 142, pp. 1-46, 1998.
+\url{http://www.sciencedirect.com/science/article/pii/S0021999198958909} \cite{IAMR}
+
+\end{itemize}         
+
+\section{Brief Overview of Low Speed Approximations}
+
+There are many low speed formulations of the equations of hydrodynamics
+in use, each with their own applications.  All of these methods share in
+common a constraint equation on the velocity field that augments the
+equations of motion.  
+
+\subsection{Incompressible Hydrodynamics}
+
+The simplest low Mach number approximation is incompressible
+hydrodynamics. This approximation is formally the $M \rightarrow 0$
+limit of the Navier-Stokes equations. In incompressible hydrodynamics,
+the velocity satisfies a constraint equation:
+\begin{equation}
+\nabla \cdot \Ub = 0
+\end{equation}
+which acts to instantaneously equilibrate the flow, thereby filtering
+out soundwaves.  The constraint equation implies that
+\begin{equation}
+D\rho/Dt = 0
+\end{equation}
+(through the continuity equation) which says that the density is
+constant along particle paths. This means that there are no
+compressibility effects modeled in this approximation.
+
+\subsection{Low-Mach Number Combustion}
+
+In the low Mach number combustion model, the pressure is decomposed
+into a dynamic, $\pi$, and thermodynamic component, $p_0$, the ratio
+of which is $O(M^2)$. The total pressure is replaced everywhere by the
+thermodynamic pressure, except in the momentum equation. This
+decouples the pressure and density and filters out the sound
+waves. Large amplitude density and temperature fluctuations are
+allowed. The only requirement is that the total pressure stay close to
+the background pressure, which is assumed constant. This requirement
+can be expressed as:
+\begin{equation}
+p = p_0
+\end{equation}
+and differentiating this along particle paths leads to a constraint on
+the velocity field: 
+\begin{equation}
+\nabla \cdot \Ub = S 
+\end{equation}
+This looks like the constraint for incompressible hydrodynamics, but
+now we have a source term, $S$, representing the local compressibility
+effects due to the energy generation and thermal diffusion.  Since the
+background pressure is taken to be constant, we cannot model flows
+that cover a large fraction of a pressure scale height. However, this
+method is ideal for exploring the physics of flames.
+
+\subsection{Other Models}
+We defer discussion of anelastic and pseudo-incompressible methods for now,
+as they are more relevant large-gravity or large-scale flows with 
+density and pressure stratification.  For more detailed discussion,
+refer to our \maestro\ code
+(\url{http://amrex-astro.github.io/MAESTRO/index.html}).
+
+%% \subsection{Anelastic Hydrodynamics}
+
+%% In the anelastic approximation small amplitude thermodynamic
+%% perturbations are carried with respect to a static hydrostatic
+%% background (described by density $\rho_0$).  The density perturbation
+%% is ignored in the continuity equation, resulting in a constraint
+%% equation:
+%% \begin{equation}
+%% \nabla \cdot (\rho_0 \Ub) = 0
+%% \end{equation}
+%% This properly captures the compressibility effects due to the
+%% stratification of the background. Because there is no evolution
+%% equation for the perturbational density, approximations are made to
+%% the buoyancy term in the momentum equation.
+
+%% \subsection{Pseudo-Incompressible Methods}
+
+%% The pseudo-incompressible method incorporates both the local changes
+%% to compressibility due to reaction/heat release, and the large-scale
+%% changes due to the background stratification.  This was originally
+%% derived for an ideal gas equation of state for atmospherical flows.
+%% Allowing the background pressure, $p_0$ to vary (e.g.\ in hydrostatic
+%% equilibrium), differentiating pressure along particle paths gives:
+%% \begin{equation}
+%% \nabla \cdot (p_0^{1/\gamma} \Ub) = H
+%% \end{equation}
+%% where $\gamma$ is the ratio of specific heats and $H$ is the source.
+
+%% \maestro\ is based on this method, generalizing this constraint to an
+%% arbitrary equation of state and allowing for the time-variation of the
+%% base state.
+
+%% \subsection{Alternate Energy Formulation}
+
+%% Several authors~\cite{KP:2012,VLBWZ:2013} showed that with a slightly
+%% different momentum equation, the low Mach number system can conserve
+%% an energy (that is, a quantity that looks like the compressible
+%% energy, but formed using the low Mach number quantities).  This change
+%% manifests itself as either a change to the buoyancy term or by
+%% changing $\nabla \pi$ to $\beta_0 \nabla (\pi/\beta_0)$.  Furthermore,
+%% \cite{VLBWZ:2013} showed that the new formulation better captures the
+%% vertical propagation of gravity waves.  As of
+%% Dec.\ 2013, this new formulation is the default in \maestro, a low
+%% Mach number astrophysics code available through the CCSE web site.
+
+\section{Projection Methods 101}
+
+Most combustion hydrodynamics codes
+(e.g.\ S3D~\cite{s3d}) solve the
+compressible Navier-Stokes equations, which can be written in the form:
+\begin{equation}
+\Ub_t + \nabla \cdot F(\Ub) = S
+\end{equation}
+where $\Ub$ is a vector of conserved quantities, $\Ub = (\rho, \rho u,
+\rho E)$, with $\rho$ the density, $u$ the velocity, $E$ the total
+energy per unit mass, and $S$ are source terms.  This system
+can be expressed as a coupled set of advection, diffusion, reaction
+equations:
+\begin{equation}
+{\bf q}_t + A({\bf q}) \nabla {\bf q} + D = {\cal S}
+\end{equation}
+where ${\bf q}$ are called the primitive variables, $A$ is the advective
+flux Jacobian, $A \equiv \partial F / \partial U$, $D$ are diffusion terms, 
+and ${\cal S}$ are the transformed sources.  The eigenvalues of the
+matrix $A$ are the characteristic speeds---the real-valued speeds at which
+information propagates in the system, $u$ and $u
+\pm c$, where $c$ is the sound speed.  Solution methods for the
+compressible equations that are strictly conservative make use of this wave-nature to compute advective fluxes
+at the interfaces of grid cells.  Diffusive fluxes can be computed 
+either implicit or explicit in time, and are added to the advective fluxes,
+and used, along with the source terms to update the state in time.  An
+excellent introduction to these methods is provided by LeVeque's book
+\cite{leveque}.  The timestep for these methods is limited by all three processes
+and their numerical implementation.  Typically, advection terms are treated
+time-explicitly, and the time step will be constrained by the time
+it takes for the maximum characteristic speed to traverse one grid cell.
+However, in low speed flow applications, it can be shown the acoustics 
+transport very little energy in the system.  As a result, the time-step 
+restrictions arising from numerical treatement of the advection terms
+can be unnecessarily limited, even if A-stable methods are used to incorporate
+the diffusion and source terms.
+
+In contrast, solving low Mach number systems (including the equations of
+incompressible hydrodynamics) typically involves a stage where one or more
+advection-like equations are solved (representing, e.g.\ conservation of mass and
+momentum), and coupling that advance with a divergence constraint on the velocity field.
+For example, the equations of invicid constant-density incompressible flow
+are:
+\begin{eqnarray}
+\Ub_t &=& -\Ub \cdot \nabla \Ub + \nabla p \label{eq:incompressible_u} \\
+\nabla \cdot \Ub &=& 0
+\end{eqnarray}
+Here, $\Ub$ represents the velocity vector%
+%
+\footnote{Here we see an unfortunate conflict
+of notation between the compressible hydro community and the
+incompressible community.  In papers on compressible hydrodynamics,
+$\Ub$ will usually mean the vector of conserved quantities.  In 
+incompressible / low speed papers, $\Ub$ will mean the velocity vector.}
+%
+and $p$ is the dynamical pressure.  The time-evolution equation for
+the velocity (Eq.~\ref{eq:incompressible_u}) can be solved using
+techniques similar to those developed for compressible hydrodynamics,
+updating the old velocity, $\Ub^n$, to the new time-level, $\Ub^\star$.
+Here the `$^\star$' indicates that the updated velocity does not, in
+general, satisfy the divergence constraint.  A projection method will
+take this updated velocity and force it to obey the constraint
+equation.  The basic idea follows from the fact that any vector
+field can be expressed as the sum of a divergence-free quantity and
+the gradient of a scalar.  For the velocity, we can write:
+\begin{equation}
+\Ub^\star = \Ub^d + \nabla \phi \label{eq:decomposition}
+\end{equation}
+where $\Ub^d$ is the divergence free portion of the velocity vector,
+$\Ub^\star$, and $\phi$ is a scalar.  Taking the divergence of
+Eq.~(\ref{eq:decomposition}), we have
+\begin{equation}
+\nabla^2 \phi = \nabla \cdot \Ub^\star
+\end{equation}
+(where we used $\nabla \cdot \Ub^d = 0$).
+With appropriate boundary conditions, this Poisson equation can be
+solved for $\phi$, and the final, divergence-free velocity can 
+be computed as
+\begin{equation}
+\Ub^{n+1} = \Ub^\star - \nabla \phi
+\end{equation}
+Because soundwaves are filtered, the timestep constraint now depends only
+on $|\Ub|$.
+
+Extensions to variable-density incompressible
+flows~\cite{bellMarcus:1992b} involve a slightly different
+decomposition of the velocity field and, as a result, a slightly
+different Poisson equation.  There is also a variety of different ways
+to express what is being projected~\cite{almgren:bell:crutchfield},
+and different discretizations of the divergence and gradient operators
+lead to slightly different mathematical properties of the methods
+(leading to ``approximate
+projections''~\cite{almgrenBellSzymczak:1996}).  Finally, for
+second-order methods, two projections are typically done per timestep.
+The first (the `MAC' projection~\cite{bellColellaHowell:1991})
+operates on the half-time, edge-centered advective velocities, making
+sure that they satisfy the divergence constraint.  These advective
+velocities are used to construct the fluxes through the interfaces to
+advance the solution to the new time.  The second/final projection
+operates on the cell-centered velocities at the new time, again
+enforcing the divergence constraint.  The \pelelm\ algorithm performs
+both of these projections.
+
+The \pelelm\ algorithm builds upon these ideas, using a different
+velocity constraint equation that captures the compressibility
+due to local sources and large-scale stratification.
+
