@@ -208,7 +208,6 @@
 % codes
 \newcommand{\pele}{{\sf Pele}}
 \newcommand{\pelec}{{\sf PeleC}}
-\newcommand{\pelelm}{{\sf PeleLM}}
 \newcommand{\iamr}{{\sf IAMR}}
 \newcommand{\castro}{{\sf Castro}}
 \newcommand{\maestro}{{\sf Maestro}}
@@ -241,14 +240,14 @@
 \begin{titlepage}
 \begin{center}
 \ \\[3in]
-{\sf \Huge PeleLM}
+{\sf \Huge IAMR}
 
 \begin{minipage}{5.5in}
 \HRule\\[2mm]
 \centering
 {\Large \em An adaptive, parallel, hydrodynamics code for\\
 \vspace*{.3\baselineskip}
- low Mach number chemically reacting flows}
+ the variable-density incompressible Navier-Stokes equations}
 
 \HRule
 \end{minipage}
@@ -288,38 +287,38 @@
 \chaptermark{Preface}
 \addcontentsline{toc}{chapter}{preface}
 
-\input Preface/PeleLMPreface
+\input Preface/Preface
 
 %-----------------------------------------------------------------------------
-\part{Overview of the \pelelm\ Algorithm}
+\part{Overview of the \iamr\ Algorithm}
 
 \chapter{Introduction}
-\input Introduction/PeleLMIntroduction
+\input Introduction/Introduction
 
 \chapter{Equation Set}
-\input Equations/PeleLMEquations
+\input Equations/Equations
 
 %-----------------------------------------------------------------------------
-\part{Using \pelelm}
+\part{Using \iamr}
 
 \chapter{Getting Started}
-\input GettingStarted/PeleLMGettingStarted
+\input GettingStarted/GettingStarted
 
 \chapter{Inputs Files}
-\input Inputs/PeleLMInputs.tex
+\input Inputs/Inputs.tex
 
 \chapter{Units and Constants}
-\input UnitsAndConstants/PeleLMUnits.tex
+\input UnitsAndConstants/Units.tex
 
 \chapter{Software Framework}
-\input Software/PeleLMSoftware.tex
+\input Software/Software.tex
 \input Parallel/Parallel.tex
 
 \chapter{AMR}
 \input AMR/AMR.tex
 
 \chapter{Visualization}
-\input Visualization/PeleLMVisualization.tex
+\input Visualization/Visualization.tex
 
 %------------------------------------------------------------------------------
 \backmatter

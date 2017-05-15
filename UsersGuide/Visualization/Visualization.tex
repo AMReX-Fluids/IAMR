@@ -1,4 +1,4 @@
-There are a large number of tools that can be used to read in \pelelm\
+There are a large number of tools that can be used to read in \iamr\
 or \amrex\ data and make plots.  Here we give a brief overview of some
 of the tools as well as some examples.
 
@@ -89,9 +89,9 @@ and cause errors with \amrex\ data. These problems can usually be
 avoided by taking care to specify the data fields desired in
 visualization. For example, Enzo's density field is called
 ``Density,'' and is the default for many plotting mechanisms when the
-user does not specify the field. However, \pelelm\ does not have a field
+user does not specify the field. However, \iamr\ does not have a field
 called ``Density''; instead, the density field is called ``density.''
-If a user does not specify a field while plotting with \pelelm\ data,
+If a user does not specify a field while plotting with \iamr\ data,
 chances are that \yt\ will try (and fail) to find ``Density'' and return
 an error. As you will see in the examples, however, there is a way to
 create your own fields from existing ones. You can use these derived
@@ -210,7 +210,7 @@ created:
 {\scriptsize$>>>$} pf.h
 
 Upon execution, \yt\ may print out a number of lines saying it's adding
-unknown fields to the list of fields. This is because \pelelm\ has
+unknown fields to the list of fields. This is because \iamr\ has
 different names for fields than what \yt\ expects. We can see what
 fields exist through the commands
 
@@ -218,7 +218,7 @@ fields exist through the commands
 
 {\scriptsize$>>>$} print pf.h.derived\_field\_list
 
-There may not be any derived fields for the \pelelm\ data. We can find out
+There may not be any derived fields for the \iamr\ data. We can find out
 the number of grids and cells at each level, the simulation time, and
 information about the finest resolution cells:
 

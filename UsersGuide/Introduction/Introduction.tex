@@ -1,41 +1,22 @@
-\section{History of \pelelm}
+\section{History of \iamr}
 
-\pelelm\ describes the evolution of chemically reacting low Mach number flows.
+\iamr\ describes the variable-density incompressible Navier-Stokes equations
 The core libraries for managing the subcycling adaptive mesh refinement (AMR)
 grids and communication are found in the \amrex\ library
 (see \url{https://github.com/AMReX-Codes/amrex}).
 
-\pelelm\ also uses source code and base classes for integrating the
-variable-density incompressible Navier-Stokes equations found in \iamr\ 
-(see \url{https://github.com/AMReX-Codes/IAMR}).
+The \iamr\ source code can be found at
+\url{https://github.com/AMReX-Codes/IAMR}.
 
-The core algorithms in \pelelm\ are described in a series of papers:
+The core algorithms in \iamr\ are described in a series of papers:
 \begin{itemize}
-
-\item {\it A conservative, thermodynamically consistent numerical approach for low Mach number 
-combustion. I. Single-level integration},
-A.~Nonaka, J.~B.~Bell, and M.~S.~Day.  Submitted for publication, 2017.
-\url{https://ccse.lbl.gov/Publications/nonaka/LMC_Pressure.pdf}
-
-\item {\it A Deferred Correction Coupling Strategy for Low Mach Number Flow with Complex Chemistry},
-A.~Nonaka, J.~B.~Bell, M.~S.~Day, C.~Gilet, A.~S.~Almgren, and M.~L.~Minion,
-Combust. Theory and Modelling, 16(6), 1053-1088, 2012. 
-\url{http://www.tandfonline.com/doi/abs/10.1080/13647830.2012.701019} \cite{LMC_SDC}
-
-\item {\it Numerical Simulation of Laminar Reacting Flows with Complex Chemistry},
-M.~S.~Day and J.~B.~Bell,
-Combust. Theory Modelling 4(4) pp.535-556, 2000.
-\url{http://www.tandfonline.com/doi/abs/10.1088/1364-7830/4/4/309} \cite{DayBell:2000}
-
-\item {\it An Adaptive Projection Method for Unsteady, Low-Mach Number Combustion}, 
-R.~B.~Pember, L.~H.~Howell, J.~B.~Bell, P.~Colella, W.~Y.~Crutchfield, W.~A.~Fiveland, and J.~P.~Jessee,
-Comb. Sci. Tech., 140, pp. 123-168, 1998.
-\url{http://www.tandfonline.com/doi/abs/10.1080/00102209808915770} \cite{pember-flame}
 
 \item {\it A Conservative Adaptive Projection Method for the Variable Density Incompressible Navier-Stokes Equations},
 A.~S.~Almgren, J.~B.~Bell, P.~Colella, L.~H.~Howell, and M.~L.~Welcome,
 J.~Comp.~Phys., 142, pp. 1-46, 1998.
 \url{http://www.sciencedirect.com/science/article/pii/S0021999198958909} \cite{IAMR}
+
+\item {\it More soon.}
 
 \end{itemize}         
 
@@ -242,10 +223,10 @@ sure that they satisfy the divergence constraint.  These advective
 velocities are used to construct the fluxes through the interfaces to
 advance the solution to the new time.  The second/final projection
 operates on the cell-centered velocities at the new time, again
-enforcing the divergence constraint.  The \pelelm\ algorithm performs
+enforcing the divergence constraint.  The \iamr\ algorithm performs
 both of these projections.
 
-The \pelelm\ algorithm builds upon these ideas, using a different
+The \iamr\ algorithm builds upon these ideas, using a different
 velocity constraint equation that captures the compressibility
 due to local sources and large-scale stratification.
 

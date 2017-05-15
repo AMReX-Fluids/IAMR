@@ -20,19 +20,19 @@ section_sources = Introduction/Introduction.tex \
                   Particles/Particles.tex \
                   refs.bib
 
-UserGuide.dvi: UserGuide.tex $(eps_source) $(section_sources) $(eps_source)
-	latex UserGuide.tex < /dev/null
-	bibtex UserGuide
-	latex UserGuide.tex < /dev/null
-	latex UserGuide.tex < /dev/null
+UsersGuide.dvi: UsersGuide.tex $(eps_source) $(section_sources) $(eps_source)
+	latex UsersGuide.tex < /dev/null
+	bibtex UsersGuide
+	latex UsersGuide.tex < /dev/null
+	latex UsersGuide.tex < /dev/null
 
-UserGuide.pdf: UserGuide.tex $(pdf_source) $(section_sources) $(pdf_source)
-	pdflatex UserGuide.tex < /dev/null
-	bibtex UserGuide
-	pdflatex UserGuide.tex < /dev/null
-	pdflatex UserGuide.tex < /dev/null
+UsersGuide.pdf: UsersGuide.tex $(pdf_source) $(section_sources) $(pdf_source)
+	pdflatex UsersGuide.tex < /dev/null
+	bibtex UsersGuide
+	pdflatex UsersGuide.tex < /dev/null
+	pdflatex UsersGuide.tex < /dev/null
 
-pdf:	UserGuide.pdf 
+pdf:	UsersGuide.pdf 
 
 %.ps: %.dvi
 	dvips -t letter -o $@ $<
@@ -41,10 +41,10 @@ pdf:	UserGuide.pdf
 	$(EPStoPDF) $<
 
 clean:
-	$(RM) $(pdf_source) UserGuide.dvi
-	$(RM) UserGuide.blg UserGuide.log UserGuide.toc
-	$(RM) UserGuide.aux UserGuide.ps UserGuide.bbl UserGuide.pdf
-	$(RM) UserGuide.lot UserGuide.lof UserGuide.out
+	$(RM) $(pdf_source) UsersGuide.dvi
+	$(RM) UsersGuide.blg UsersGuide.log UsersGuide.toc
+	$(RM) UsersGuide.aux UsersGuide.ps UsersGuide.bbl UsersGuide.pdf
+	$(RM) UsersGuide.lot UsersGuide.lof UsersGuide.out
 	$(RM) *~
 
 .PHONY: clean

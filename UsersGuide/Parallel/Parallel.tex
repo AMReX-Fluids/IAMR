@@ -56,7 +56,7 @@ A few comments about this code
    box.loVect} and {\tt box.hiVect}.
 
 \item Instead of getting the data pointer explicitly (via {\tt fab.dataPtr()}),
-   \pelelm\ often uses the preprocessor macro {\tt BL\_TO\_FORTRAN(x)} (defined
+   \iamr\ often uses the preprocessor macro {\tt BL\_TO\_FORTRAN(x)} (defined
    in {\tt ArrayLim.H}) to substitute in the data pointer and the {\tt lo}
    and {\tt hi} indices of the multidimensional Fortran array (including ghost cells).
 \end{itemize}
@@ -170,7 +170,7 @@ many boxes per MPI task).
 We also note that, independent of whether or not tiling is on, OpenMP
 threading can also be started within the function called inside the
 {\tt MFIter} loop, rather than at the {\tt MFIter} loop level.  This
-was the original way that threading was done in \pelelm, but we are in
+was the original way that threading was done in \iamr, but we are in
 the process of removing this approach in favor of tiling.
 
 The tile size for the three spatial dimensions can be set by a
