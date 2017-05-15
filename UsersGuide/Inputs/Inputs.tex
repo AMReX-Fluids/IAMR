@@ -1,7 +1,7 @@
 The \iamr\ executable uses two inputs files at runtime to set and alter the
 behavior of the algorithm and initial conditions.
 
-The main inputs file, typically named {\tt inputs} is used to
+The main inputs file, typically named {\tt inputsXXX} is used to
 set \amrex\ parameters and the control flow in the C++ portions of
 the \iamr\ code.  Each parameter here has a namespace (like {\tt
 amr.{\em optionname}} or {\tt ns.{\em optionname}}).  Parameters
@@ -9,23 +9,17 @@ set here are read using the \amrex\ {\tt ParmParse} class
 infrastructure.
 
 The second inputs file, typically named {\tt probin} is used by the
-Fortran code that initializes the problem setup.  It is read at
-problem initialization (via a Fortran {\tt namelist}) and the
-problem-specific quantities are stored in a Fortran module {\tt
-probdata\_module} defined in the problem's {\tt probdata.f90} file.
+Fortran code that initializes the problem setup.  
+The Fortran namelist, {\tt \&fortin}, is defined in the {\tt probin} file
+and read by the {\tt amrex\_probinit} subroutine in the {\tt PROB\_?d.f90} file.
 
 Only the {\tt inputs} file is specified on the commandline.  The
 associated {\tt probin} file is specified in the {\tt inputs} file
 using the {\tt amr.probin\_file} parameter, e.g.,
 \begin{lstlisting}
-amr.probin_file = my_special_probin
+amr.probin_file = probin.2d.bubble
 \end{lstlisting}
-for example, has the Fortran code read a file called {\tt my\_special\_probin}.
-
-\section{Working with {\tt probin} Files}
-
-The Fortran namelist, {\tt \&fortin}, is defined in the {\tt probin} file
-and read by the {\tt amrex\_probini} subroutine in the {\tt PROB\_?d.f90} file.
+for example, has the Fortran code read a file called {\tt probin.2d.bubble}.
 
 \section{Common {\tt inputs} Options}
 
@@ -37,7 +31,7 @@ Additionally, note that in \iamr, all quantities are in MKS units.
 
 \subsection{Problem Geometry}
 
-The {\tt geometry.} namespace is used by \amrex\ to define the
+The {\tt geometry} namespace is used by \amrex\ to define the
 computational domain.  The main parameters here are:
 \begin{itemize}
 \item {\tt geometry.prob\_lo}: physical location of low corner of the
@@ -70,9 +64,7 @@ geometry.is_periodic = 0 1 0
 defines the domain to run from $(0,0,0)$ at the lower left to
 $(10,10,10)$ at the upper right in physical space, specifies a
 Cartesian geometry, and makes the domain periodic in the $y$-direction
-only. The problem center is set to be halfway in between the lower left and 
-upper right corners.
-
+only.
 
 \subsection{Domain Boundary Conditions}
 

@@ -2,10 +2,10 @@
 
 The code structure in the {\tt IAMR/} directory is as follows:
 \begin{itemize}
-\item {\tt Exec/}: various problem implementations, including:
+\item {\tt Exec/}: various problem run directories, including:
   \begin{itemize}
-  \item {\tt FlameInABox/}: run directory for the flame-in-a-box
-  \item {\tt DiffFlamex/}: run directory for the diffusion flame
+  \item {\tt run2d/}
+  \item {\tt run3d/}
   \end{itemize}
 
 \item {\tt Source/}: source code
@@ -77,14 +77,14 @@ operations.
 
 In {\tt IAMR/Source/NavieStokesBase.H}, the {\tt enum} {\tt StateType} defines the
 different state descriptors for \iamr.  These are setup during the
-run by code in {\tt IAMR\_setup.cpp}, and include (but are not limited to):
+run by code in {\tt NS\_setup.cpp}, and include (but are not limited to):
 \begin{itemize}
-\item {\tt State\_Type}: the cell-centered thermodynamic state variables.
-
+\item {\tt State\_Type}: the cell-centered density, velocity, and other scalars (tracers)
 \item {\tt Press\_Type}: the node-centered dynamic pressure field.
-
-\item {\tt RhoYdot\_Type}: the mass production rates for the chemical species.  
-  
+\item {\tt Divu\_Type}: Stores the right-hand-side of the constraint 
+(only matters for low Mach flows when this is nonzero).
+\item {\tt Dsdt\_Type}: Stores the time-derivative of the right-hand-side of the constraint 
+(only matters for low Mach flows when this is nonzero).
 \end{itemize}
 
 Each {\tt StateData} object has two {\tt MultiFabs}, one each for 
@@ -95,57 +95,146 @@ MultiFab& S_new = get_new_data(State_Type);
 \end{lstlisting}
 gets a pointer to the multifab containing the hydrodynamics state data
 at the new time (here {\tt State\_Type} is the {\tt enum} defined in 
-{\tt NavierStokesBase.H}) (note that the classes {\tt NavierStokes} 
-and {\tt IAMR} are derived classes of {\tt NavierStokesBase}).
+{\tt NavierStokesBase.H}) (note that the class {\tt NavierStokes} 
+is a derived classes of {\tt NavierStokesBase}).
 
 {\tt MultiFab} data is distributed in space at the granularity of 
 each {\tt Box} in its {\tt BoxArray}.  We iterate over {\tt MultiFab}s using a special
 iterator, {\tt MFIter}, which knows about the locality of the data---only the boxes owned by the
 processor will be included in the loop on each processor.  An example loop (for the
-initialization, taken from code in {\tt IAMR.cpp}):
+initialization, taken from code in {\tt NavierStokes.cpp}):
 \begin{lstlisting}
-for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-  {
-     const Box& bx      = mfi.validbox();
-     const int* lo      = bx.loVect();
-     const int* hi      = bx.hiVect();
+//
+// Initialize the state and the pressure.
+//
+int         ns       = NUM_STATE - BL_SPACEDIM;
+const Real* dx       = geom.CellSize();
+MultiFab&   S_new    = get_new_data(State_Type);
+MultiFab&   P_new    = get_new_data(Press_Type);
+const Real  cur_time = state[State_Type].curTime();
 
-     if (! orig_domain.contains(bx)) {
-        BL_FORT_PROC_CALL(CA_INITDATA,ca_initdata)
-          (level, cur_time, lo, hi, ns,
-           BL_TO_FORTRAN(S_new[mfi]), dx,
-           gridloc.lo(), gridloc.hi());
-     }
-  }
-\end{lstlisting}
-Here {\tt BL\_TO\_FORTRAN} is a special \amrex\ macro that converts the
-C++ multifab into a Fortran array, and {\tt BL\_FORT\_PROC\_CALL}
-is a AMReX macro that is used to interface with Fortran routines. 
-{\tt ++mfi} iterates to the next {\tt FArrayBox} owned by the {\tt MultiFab}, 
-and {\tt mfi.isValid()} returns {\tt false} after we've reached 
+for (MFIter snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
+{
+  const Box& vbx = snewmfi.validbox();
+
+  BL_ASSERT(grids[snewmfi.index()] == vbx);
+
+  FArrayBox& Sfab = S_new[snewmfi];
+  FArrayBox& Pfab = P_new[snewmfi];
+
+  Sfab.setVal(0.0);
+  Pfab.setVal(0.0);
+
+  const int  i       = snewmfi.index();
+  RealBox    gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
+  const int* lo      = vbx.loVect();
+  const int* hi      = vbx.hiVect();
+  const int* s_lo    = Sfab.loVect();
+  const int* s_hi    = Sfab.hiVect();
+  const int* p_lo    = Pfab.loVect();
+  const int* p_hi    = Pfab.hiVect();
+
+  FORT_INITDATA (&level,&cur_time,lo,hi,&ns,
+  Sfab.dataPtr(Xvel),
+  Sfab.dataPtr(BL_SPACEDIM),
+  ARLIM(s_lo), ARLIM(s_hi),
+  Pfab.dataPtr(),
+  ARLIM(p_lo), ARLIM(p_hi),
+  dx,gridloc.lo(),gridloc.hi() );
+}
+\end{lstlisting} 
+Here, {\tt ++snewmfi} iterates to the next {\tt FArrayBox} owned by the {\tt MultiFab}, 
+and {\tt snewmfi.isValid()} returns {\tt false} after we've reached 
 the last box contained in the {\tt MultiFab}, terminating the loop.
 
-The corresponding Fortran function will look like:
-{\color{red} Need to write the Fortran version here}
-{\color{red} Need to modernize C/F interface description/usages}
+The corresponding Fortran functions will look like:
+\begin{lstlisting}
+      subroutine FORT_INITDATA(level,time,lo,hi,nscal,
+     &	 	               vel,scal,DIMS(state),press,DIMS(press),
+     &                         dx,xlo,xhi)
+      integer    level, nscal
+      integer    lo(SDIM),hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
 
+#include <probdata.H>
 
-\subsection{Derived Variables}
+       if (probtype .eq. 2) then
+               call initbubble(level,time,lo,hi,nscal,
+           &     	       vel,scal,DIMS(state),press,DIMS(press),
+           &                   dx,xlo,xhi)
+ end if
 
-\subsection{Error Estimators}
+ end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initbubble(level,time,lo,hi,nscal,
+     &	 	            vel,scal,DIMS(state),press,DIMS(press),
+     &                      dx,xlo,xhi)
 
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, n
+      REAL_T  x, y
+      REAL_T  hx, hy
+      REAL_T  dist
+      REAL_T  x_vel, y_vel
 
-\subsection{Fortran Helper Modules}
+#include <probdata.H>
 
+      hx = dx(1)
+      hy = dx(2)
+
+      if (adv_dir .eq. 1) then
+         x_vel = adv_vel
+         y_vel = zero
+      else if (adv_dir .eq. 2) then
+         x_vel = zero
+         y_vel = adv_vel
+      else 
+         write(6,*) "initbubble: adv_dir = ",adv_dir
+         stop
+      end if
+
+      do j = lo(2), hi(2)
+         y = xlo(2) + hy*(float(j-lo(2)) + half)
+         do i = lo(1), hi(1)
+            x = xlo(1) + hx*(float(i-lo(1)) + half)
+             dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+            vel(i,j,1) = x_vel
+            vel(i,j,2) = y_vel
+            scal(i,j,1) = one + half*(denfact-one)*(one-tanh(30.*(dist-radblob)))
+            do n = 2,nscal-1
+               scal(i,j,n) = one
+            end do                  
+            scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
+	 end do
+      end do
+
+      end
+\end{lstlisting}
 
 \section{Setting Up Your Own Problem}
 
-To define a new problem, we create a new directory under {\tt bin/},
-and place in it a {\tt Prob\_2d.f90} file (or {\tt Prob\_3d.f90},
-depending on the dimensionality of the problem), a {\tt probdata.f90}
-file, the {\tt inputs} and {\tt probin} files, and a {\tt
-  Make.package} file that tells the build system what problem-specific
-routines exist.  The
+To define a new problem, we create a new inputs and probin file in 
+the {\tt run2d} or {\tt run3d} directory and modify
+{\tt PROB\_XD.F} accordingly. The
 simplest way to get started is to copy these files from an existing
 problem.  Here we describe how to customize your problem.
 

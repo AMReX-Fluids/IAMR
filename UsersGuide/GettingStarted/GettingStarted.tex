@@ -84,11 +84,12 @@ To build a serial (single-processor) code, set {\tt USE\_MPI = FALSE}.
 This will compile the code without the MPI library.  If you want to do
 a parallel run, set {\tt USE\_MPI = TRUE}.  In this
 case, the build system will need to know about your MPI installation.
-This can be done by editing the makefiles in the \amrex\ tree.
+This can be done by editing the makefiles in the \amrex\ tree
+(see {\tt amrex/Tools/GNUMake.md}).
 
-The resulting executable will look something like {\tt amr2d.gnu.MPI.ex},
+The resulting executable will look something like {\tt amr2d.gnu.DEBUG.MPI.ex},
 suggesting that this is a 2-d version of the code, made with 
-{\tt COMP=gnu} and {\tt USE\_MPI=TRUE}.
+{\tt COMP=gnu}, {\tt DEBUG=TRUE}, and {\tt USE\_MPI=TRUE}.
 
 \end{enumerate}
 
@@ -168,21 +169,28 @@ alias amrvis2d /tmp/Amrvis/amrvis2d...ex
 \item Return to the {\tt IAMR/Exec/run2d} folder.  You should
   have a number of output files, including some in the form {\tt *pltXXXXX},
   where {\tt XXXXX} is a number corresponding to the timestep the file
-  was output.  {\tt amrvis2d <filename>} to see a single plotfile, 
-   or {\tt amrvis2d -a *plt*}, which will animate the sequence of plotfiles.
+  was output.  {\tt amrvis2d <filename>} to see a single plotfile
+  (see Figure\ref{Fig:Amrvis}), 
+   or {\tt amrvis2d -a plt*}, which will animate the sequence of plotfiles.
 
-  Try playing
-  around with this---you can change which variable you are
-  looking at, select a region and click ``Dataset'' (under View)
-  in order to look at the actual numbers, etc. You can also export the
+  Within \amrvis\ you can change which variable you are
+  looking at and/or select a region and click ``Dataset'' (under View)
+  in order to look at the actual numbers. You can also export the
   pictures in several different formats under "File/Export".
 
-We have created a number of routines to convert \amrex\ plotfile data
-other formats (such as MATLAB), but in order to properly interpret 
-the hierarchical AMR data, each tends to have its own idiosyncrasies.
-If you would like to display the data in another format, please let us know
-and we will point you to whatever we have that can help.
+  We have created a number of routines to convert \amrex\ plotfile data
+  other formats (such as MATLAB), but in order to properly interpret 
+  the hierarchical AMR data, each tends to have its own idiosyncrasies.
+  If you would like to display the data in another format, please let us know
+  and we will point you to whatever we have that can help.
 
 \end{enumerate}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=2.5in]{./GettingStarted/IAMR_Plot}
+\caption{\amrvis\ visualization tool}
+\label{Fig:Amrvis}
+\end{figure}
 
 You have now completed a brief introduction to \iamr. 
