@@ -63,12 +63,12 @@ domain (type: {\tt Real}; must be set)
 As an example, the following:
 \begin{lstlisting}
 geometry.prob_lo = 0 0 0
-geometry.prob_hi = 1.e8 2.e8 2.e8 
+geometry.prob_hi = 10.0 10.0 10.0
 geometry.coord_sys = 0 
 geometry.is_periodic = 0 1 0 
 \end{lstlisting}
 defines the domain to run from $(0,0,0)$ at the lower left to
-$(10^8,2\times 10^8,2\times 10^8)$ at the upper right in physical space, specifies a
+$(10,10,10)$ at the upper right in physical space, specifies a
 Cartesian geometry, and makes the domain periodic in the $y$-direction
 only. The problem center is set to be halfway in between the lower left and 
 upper right corners.

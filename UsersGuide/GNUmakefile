@@ -9,7 +9,6 @@ pdf_source = $(eps_source:.eps=.pdf)
 section_sources = Introduction/Introduction.tex \
                   GettingStarted/GettingStarted.tex \
 	          Inputs/Inputs.tex \
-	          Equations/Equations.tex \
                   UnitsAndConstants/Units.tex \
                   AMR/AMR.tex \
                   Visualization/Visualization.tex \

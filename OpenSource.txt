@@ -166,12 +166,11 @@ conditions, do not download, install or use the Software.
     Agreement. If you have any questions concerning this license,
     contact Lawrence Berkeley National Laboratory, Technology Transfer
     Department, One Cyclotron Road, MS 90-1070, Berkeley, CA 94720,
-    Attn: Software Licensing or via e-mail at TTD@lbl.gov.
+    Attn: Software Licensing or via e-mail at ipo@lbl.gov.
 
 If you have any questions or feedback concerning this Software,
 contact the Center for Computational Sciences and Engineering,
 Lawrence Berkeley National Laboratory, One Cyclotron Road, MS
-50A-1148, Berkeley, CA 94720 or via email at webmaster@mothra.lbl.gov.
+50A-3111, Berkeley, CA 94720 or via email at ASAlmgren@lbl.gov
 
 Form rev000928
-

@@ -1,13 +1,12 @@
-\section{History of \iamr}
+\section{Overview}
 
 \iamr\ is a parallel, adaptive mesh refinement (AMR) code that 
-solves the variable-density incompressible Navier-Stokes equations
+solves the variable-density incompressible Navier-Stokes equations.
+The \iamr\ source code can be found at
+\url{https://github.com/AMReX-Codes/IAMR}.
 The core libraries for managing the subcycling AMR
 grids and communication are found in the \amrex\ library
 (see \url{https://github.com/AMReX-Codes/amrex}).
-
-The \iamr\ source code can be found at
-\url{https://github.com/AMReX-Codes/IAMR}.
 
 The algorithm is described in the following paper (and references therein):
 \begin{itemize}
@@ -17,9 +16,36 @@ A.~S.~Almgren, J.~B.~Bell, P.~Colella, L.~H.~Howell, and M.~L.~Welcome,
 J.~Comp.~Phys., 142, pp. 1-46, 1998.
 \url{http://www.sciencedirect.com/science/article/pii/S0021999198958909} \cite{IAMR}
 
-\item {\it More soon.}
+\end{itemize}  
 
-\end{itemize}         
+Key software and algorithmic features of \iamr\ include:
+\begin{itemize}
+\item Written in {\sf cpp} and {\sf Fortran}.
+\item 2- and 3-D support
+\item Optional subcycling in time
+\item Support for particles
+\item Parallelization via flat MPI, hybrid MPI/OpenMP, or MPI/MPI
+\item Parallel I/O
+\item Plotfile format supported by {\tt VisIt}, {\tt yt}, and {\tt AmrVis}
+\item Second-order projection methodology for enforcing the incompressibility constraint
+\item Several higher-order Godunov integration schemes for advection.
+\item Implicit viscosity
+\end{itemize}
+
+\section{The Variable-Density Incompressible Navier-Stokes Equations}
+
+\iamr\ solves the variable-density incompressible Navier-Stokes equations:
+\begin{eqnarray}
+\Ub_t + (\Ub\cdot\nabla)\Ub &=& \frac{1}{\rho}(-\nabla p + \mu\nabla^2 \Ub + {\bf H}_U), \\
+\rho_t + \nabla\cdot(\rho \Ub) &=& 0, \\
+c_t + (\Ub\cdot\nabla)c &=& k\nabla^2 c + H_c, \\
+\nabla\cdot \Ub &=& 0,
+\end{eqnarray}
+where $\Ub = (u, v, w), \rho, c$, and $p$ represent the velocity, density, concentration of an 
+advected scalar, and pressure, respectively, and ${\bf H}_U = (H_x , H_y , H_z )$ represents any external
+forces. Here $\mu$ is the dynamic viscosity coefficient, $k$ is the diffusive coefficient for $c$, and
+$H_c$ is the source term for $c$. In general one could advect an arbitrary number of scalars,
+either passively or conservatively.
 
 \section{Brief Overview of Low Speed Approximations}
 
@@ -52,7 +78,7 @@ compressibility effects modeled in this approximation.
 \section{Projection Methods 101}
 
 We include a brief discussion of projection methodology for
-low Mach number (and incpressible) flow.
+incompressible and low Mach number flow.
 The compressible Navier-Stokes equations can be written in the form:
 \begin{equation}
 \Ub_t + \nabla \cdot F(\Ub) = S
@@ -60,8 +86,7 @@ The compressible Navier-Stokes equations can be written in the form:
 where $\Ub$ is a vector of conserved quantities, $\Ub = (\rho, \rho u,
 \rho E)$, with $\rho$ the density, $u$ the velocity, $E$ the total
 energy per unit mass, and $S$ are source terms.  This system
-can be expressed as a coupled set of advection, diffusion, reaction
-equations:
+can be expressed as a coupled set of advection/diffusion equations:
 \begin{equation}
 {\bf q}_t + A({\bf q}) \nabla {\bf q} + D = {\cal S}
 \end{equation}
@@ -86,14 +111,14 @@ restrictions arising from numerical treatement of the advection terms
 can be unnecessarily limited, even if A-stable methods are used to incorporate
 the diffusion and source terms.
 
-In contrast, solving low Mach number systems (including the equations of
-incompressible hydrodynamics) typically involves a stage where one or more
+In contrast, solving incompressible or low Mach number systems
+typically involves a stage where one or more
 advection-like equations are solved (representing, e.g.\ conservation of mass and
 momentum), and coupling that advance with a divergence constraint on the velocity field.
 For example, the equations of invicid constant-density incompressible flow
 are:
 \begin{eqnarray}
-\Ub_t &=& -\Ub \cdot \nabla \Ub + \nabla p \label{eq:incompressible_u} \\
+\Ub_t &=& -\Ub \cdot \nabla \Ub - \frac{1}{\rho}\nabla p \label{eq:incompressible_u} \\
 \nabla \cdot \Ub &=& 0
 \end{eqnarray}
 Here, $\Ub$ represents the velocity vector%
@@ -108,7 +133,7 @@ and $p$ is the dynamical pressure.  The time-evolution equation for
 the velocity (Eq.~\ref{eq:incompressible_u}) can be solved using
 techniques similar to those developed for compressible hydrodynamics,
 updating the old velocity, $\Ub^n$, to the new time-level, $\Ub^\star$.
-Here the `$^\star$' indicates that the updated velocity does not, in
+Here the ``$^\star$'' indicates that the updated velocity does not, in
 general, satisfy the divergence constraint.  A projection method will
 take this updated velocity and force it to obey the constraint
 equation.  The basic idea follows from the fact that any vector
@@ -136,7 +161,8 @@ on $|\Ub|$.
 Extensions to variable-density incompressible
 flows~\cite{bellMarcus:1992b} involve a slightly different
 decomposition of the velocity field and, as a result, a slightly
-different Poisson equation.  There is also a variety of different ways
+different, variable-coefficient Poisson equation.
+There are also a variety of different ways
 to express what is being projected~\cite{almgren:bell:crutchfield},
 and different discretizations of the divergence and gradient operators
 lead to slightly different mathematical properties of the methods
@@ -151,8 +177,3 @@ advance the solution to the new time.  The second/final projection
 operates on the cell-centered velocities at the new time, again
 enforcing the divergence constraint.  The \iamr\ algorithm performs
 both of these projections.
-
-The \iamr\ algorithm builds upon these ideas, using a different
-velocity constraint equation that captures the compressibility
-due to local sources and large-scale stratification.
-
