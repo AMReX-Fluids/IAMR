@@ -51,7 +51,7 @@ Godunov::Initialize ()
     Godunov::verbose             = 0;
     Godunov::ppm_type            = 0;
     Godunov::slope_order         = 4;
-    Godunov::corner_couple       = 0;
+    Godunov::corner_couple       = 1;
     Godunov::use_forces_in_trans = 0;
 
     int use_unlimited_slopes = use_unlimited_slopes_DEF;
