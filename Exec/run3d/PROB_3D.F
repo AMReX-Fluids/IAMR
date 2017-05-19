@@ -1716,9 +1716,9 @@ c
       REAL_T  eps_input, beta_input, rho_input
       REAL_T  delta_input, kappa_input
 
-      parameter (eps_input=0.05, rho_input=0.15)
-      parameter (beta_input=15., delta_input=0.0333)
-      parameter (kappa_input=500.)
+      parameter (eps_input=0.05d0, rho_input=0.15d0)
+      parameter (beta_input=15.d0, delta_input=0.0333d0)
+      parameter (kappa_input=500.d0)
 
 #include <probdata.H>
       
@@ -1727,13 +1727,13 @@ c
       hz = dx(3)
 
       do k = lo(3), hi(3)
-         z = xlo(3) + hz*(float(k-lo(3)) + half) -half
+         z = xlo(3) + hz*(DBLE(k-lo(3)) + half) -half
          do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half) -half
+            y = xlo(2) + hy*(DBLE(j-lo(2)) + half) -half
             r_yz = sqrt(y*y+z*z)
             do i = lo(1), hi(1)
 
-               x = xlo(1) + hx*(float(i-lo(1)) + half) -half
+               x = xlo(1) + hx*(DBLE(i-lo(1)) + half) -half
                vel(i,j,k,1) = tanh( (rho_input - r_yz) / delta_input)
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = eps_input * exp(-beta_input * (x*x + y*y) )
