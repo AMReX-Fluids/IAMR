@@ -238,8 +238,7 @@ NavierStokes::variableSetUp ()
     diffusionType[Trac] = Laplacian_S; if (do_cons_trac) {
       advectionType[Trac] = Conservative;
       diffusionType[Trac] = Laplacian_SoverRho;
-      if (ParallelDescriptor::IOProcessor())
-	std::cout << "Using conservative advection update for tracer." << std::endl;
+      amrex::Print() << "Using conservative advection update for tracer.\n";
     }
 
     if (do_trac2) {
@@ -248,8 +247,7 @@ NavierStokes::variableSetUp ()
 	if (do_cons_trac2) {
 	  advectionType[Trac2] = Conservative;
 	  diffusionType[Trac2] = Laplacian_SoverRho;
-	  if (ParallelDescriptor::IOProcessor())
-	    std::cout << "Using conservative advection update for tracer2." << std::endl;
+	  amrex::Print() << "Using conservative advection update for tracer2.\n";
 	}
     }
 

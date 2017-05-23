@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
+#include <AMReX_Print.H>
 #include <OutFlowBC.H>
 
 using namespace amrex;
@@ -85,7 +86,7 @@ OutFlowBC_MG::solve (Real tolerance,
 
     if (verbose)
     {
-        std::cout << "OutFlowBC:Initial Residual: " << rlast << std::endl;
+        amrex::Print() << "OutFlowBC:Initial Residual: " << rlast << std::endl;
     }
     if (rlast > goal)
     {
@@ -93,23 +94,25 @@ OutFlowBC_MG::solve (Real tolerance,
         {
             iter++;
             if (verbose)
-                std::cout << "OutFlowBC: Residual: "
-                          << res
-                          << " at iteration "
-                          << iter << std::endl;
+	    {
+	      amrex::Print() << "OutFlowBC: Residual: "
+			     << res
+			     << " at iteration "
+			     << iter << std::endl;
+	    }
         }
     }
   
     if (iter >= maxIters)
     {
-        std::cout << "OutFlowBC: solver reached maxIter\n"
-                  << "goal was: " << goal << " && res = " << res << std::endl;
+        amrex::Print() << "OutFlowBC: solver reached maxIter\n"
+		       << "goal was: " << goal << " && res = " << res << std::endl;
     }
 
     if (verbose)
     {
-        std::cout << "OutFlowBC: Final Residual: " << res << " after " 
-                  << iter << " cycles\n\n";
+        amrex::Print() << "OutFlowBC: Final Residual: " << res << " after " 
+		       << iter << " cycles\n\n";
     }
 }
 
