@@ -473,9 +473,9 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                     ccEptr5 = ccExt[i].dataPtr();
                     length = length + lenx*leny;
                 } else {
-                    std::cout << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! " << i << 
-                        " " << faces[i] << std::endl;
-                    exit(0);
+   		    amrex::Print() << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! "
+				   << i << " " << faces[i] << std::endl;
+		    exit(0);
                 }
             }
 

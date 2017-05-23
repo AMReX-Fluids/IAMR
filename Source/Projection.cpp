@@ -129,8 +129,7 @@ Projection::Projection (Amr*   _parent,
 
     Initialize();
 
-    if (verbose && ParallelDescriptor::IOProcessor()) 
-        std::cout << "Creating projector\n";
+    if (verbose) amrex::Print() << "Creating projector\n";
 
     for (int lev = 0; lev <= parent->finestLevel(); lev++)
        anel_coeff[lev] = 0;
@@ -138,8 +137,7 @@ Projection::Projection (Amr*   _parent,
 
 Projection::~Projection ()
 {
-    if (verbose && ParallelDescriptor::IOProcessor()) 
-        std::cout << "Deleting projector\n";
+  if (verbose) amrex::Print() << "Deleting projector\n";
 }
 
 //
@@ -151,8 +149,7 @@ Projection::install_level (int                   level,
                            AmrLevel*             level_data,
                            Array< Array<Real> >* _radius)
 {
-    if (verbose && ParallelDescriptor::IOProcessor()) 
-        std::cout << "Installing projector level " << level << '\n';
+    if (verbose) amrex::Print() << "Installing projector level " << level << '\n';
 
     int finest_level = parent->finestLevel();
 
@@ -175,11 +172,12 @@ void
 Projection::install_anelastic_coefficient (int                   level,
                                            Real                **_anel_coeff)
 {
-    if (verbose && ParallelDescriptor::IOProcessor()) 
-        std::cout << "Installing anel_coeff into projector level " << level << '\n';
-    if (level > anel_coeff.size()-1) 
-       anel_coeff.resize(level+1);
-    anel_coeff[level] =  _anel_coeff;
+  if (verbose) {
+    amrex::Print() << "Installing anel_coeff into projector level " << level << '\n';
+  }
+  if (level > anel_coeff.size()-1) 
+    anel_coeff.resize(level+1);
+  anel_coeff[level] =  _anel_coeff;
 }
 
 //
@@ -221,8 +219,9 @@ Projection::level_project (int             level,
     BL_ASSERT(rho_half.nGrow() >= 1);
     BL_ASSERT(U_new.nGrow() >= 1);
 
-    if ( verbose && ParallelDescriptor::IOProcessor() )
-	std::cout << "... level projector at level " << level << '\n';
+    if (verbose) {
+      amrex::Print() << "... level projector at level " << level << '\n';
+    }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -528,12 +527,8 @@ Projection::level_project (int             level,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "Projection::level_project(): lev: "
-                      << level
-                      << ", time: " << run_time << '\n';
-        }
+	amrex::Print() << "Projection::level_project(): lev: " << level
+		       << ", time: " << run_time << '\n';
     }
 }
 
@@ -559,12 +554,12 @@ Projection::syncProject (int             c_lev,
 {
     BL_PROFILE("Projection::syncProject()");
 
-    if (verbose && ParallelDescriptor::IOProcessor()) 
+    if (verbose)
     {
-        std::cout << "SyncProject: level = "
-                  << c_lev
-                  << " correction to level "
-                  << parent->finestLevel() << '\n';
+      amrex::Print() << "SyncProject: level = "
+		     << c_lev
+		     << " correction to level "
+		     << parent->finestLevel() << '\n';
     }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
@@ -653,12 +648,8 @@ Projection::syncProject (int             c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "Projection:syncProject(): c_lev: "
-                      << c_lev
-                      << ", time: " << run_time << '\n';
-        }
+	amrex::Print() << "Projection:syncProject(): c_lev: " << c_lev
+		       << ", time: " << run_time << '\n';
     }
 }
 
@@ -695,8 +686,9 @@ Projection::MLsyncProject (int             c_lev,
 {
     BL_PROFILE("Projection::MLsyncProject()");
 
-    if (verbose && ParallelDescriptor::IOProcessor()) 
-        std::cout << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
+    if (verbose) {
+      amrex::Print() << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
+    }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -849,12 +841,9 @@ Projection::MLsyncProject (int             c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "Projection::MLsyncProject(): levels = "
-                      << c_lev << ", " << c_lev+1
-                      << ", time: " << run_time << '\n';
-        }
+	amrex::Print() << "Projection::MLsyncProject(): levels = "
+                       << c_lev << ", " << c_lev+1
+		       << ", time: " << run_time << '\n';
     }
 }
 
@@ -871,14 +860,14 @@ Projection::initialVelocityProject (int  c_lev,
     int lev;
     int f_lev = parent->finestLevel();
 
-    if (verbose && ParallelDescriptor::IOProcessor()) 
+    if (verbose)
     {
-        std::cout << "initialVelocityProject: levels = " << c_lev
-                  << "  " << f_lev << '\n';
-        if (rho_wgt_vel_proj) 
-            std::cout << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
-        else 
-            std::cout << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
+      amrex::Print() << "initialVelocityProject: levels = " << c_lev
+		     << "  " << f_lev << '\n';
+      if (rho_wgt_vel_proj) 
+	amrex::Print() << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
+      else 
+	amrex::Print() << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
     }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
@@ -1037,8 +1026,7 @@ Projection::initialVelocityProject (int  c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if ( ParallelDescriptor::IOProcessor())
-            std::cout << "Projection::initialVelocityProject(): time: " << run_time << '\n';
+	amrex::Print() << "Projection::initialVelocityProject(): time: " << run_time << '\n';
     }
 }
 
@@ -1048,9 +1036,9 @@ Projection::initialPressureProject (int  c_lev)
 {
     int lev;
     int f_lev = parent->finestLevel();
-    if (verbose && ParallelDescriptor::IOProcessor()) {
-        std::cout << "initialPressureProject: levels = " << c_lev
-                  << "  " << f_lev << '\n';
+    if (verbose) {
+      amrex::Print() << "initialPressureProject: levels = " << c_lev
+		     << "  " << f_lev << '\n';
     }
 
     Array<MultiFab*> vel(maxlev, nullptr);
@@ -1168,8 +1156,8 @@ Projection::initialSyncProject (int       c_lev,
     int lev;
     int f_lev = parent->finestLevel();
 
-    if (verbose && ParallelDescriptor::IOProcessor()) 
-        std::cout << "initialSyncProject: levels = " << c_lev << "  " << f_lev << '\n';
+    if (verbose)
+      amrex::Print() << "initialSyncProject: levels = " << c_lev << "  " << f_lev << '\n';
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -1364,8 +1352,7 @@ Projection::initialSyncProject (int       c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Projection::initialSyncProject(): time: " << run_time << '\n';
+	amrex::Print() << "Projection::initialSyncProject(): time: " << run_time << '\n';
     }
 }
 
@@ -1840,13 +1827,11 @@ Projection::initialVorticityProject (int c_lev)
 #if (BL_SPACEDIM == 2)
   int f_lev = parent->finestLevel();
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "initialVorticityProject: levels = "
-                  << c_lev
-                  << "  "
-                  << f_lev << std::endl;
-    }
+  if (verbose)
+  {
+    amrex::Print() << "initialVorticityProject: levels = " << c_lev
+		   << "  " << f_lev << std::endl;
+  }
     //
     // Set up projector bndry just for this projection.
     //
@@ -2073,8 +2058,8 @@ Projection::set_outflow_bcs (int        which_call,
     if (which_call != LEVEL_PROJ)
       BL_ASSERT(c_lev == 0);
 
-    if ( verbose && ParallelDescriptor::IOProcessor() ) 
-	std::cout << "...setting outflow bcs for the nodal projection ... " << '\n';
+    if (verbose)
+      amrex::Print() << "...setting outflow bcs for the nodal projection ... " << '\n';
 
     bool        hasOutFlow;
     Orientation outFaces[2*BL_SPACEDIM];

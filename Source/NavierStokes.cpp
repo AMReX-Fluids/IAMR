@@ -141,8 +141,8 @@ NavierStokes::initData ()
 
     if (!velocity_plotfile.empty())
     {
-        if (ParallelDescriptor::IOProcessor())
-	  std::cout << "initData: reading data from: " << velocity_plotfile << " (" << velocity_plotfile_xvel_name << ")" << '\n';
+        amrex::Print() << "initData: reading data from: " << velocity_plotfile << " (" 
+		       << velocity_plotfile_xvel_name << ")" << '\n';
 
         DataServices::SetBatchMode();
         Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -162,9 +162,9 @@ NavierStokes::initData ()
             if (plotnames[i] == velocity_plotfile_xvel_name) idX = i;
 
         if (idX == -1)
-            amrex::Abort("Could not find velocity fields in supplied velocity_plotfile");
+	  amrex::Abort("Could not find velocity fields in supplied velocity_plotfile");
 	else
-	  std::cout << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
+	  amrex::Print() << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
 
         MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -179,8 +179,7 @@ NavierStokes::initData ()
             amrData.FlushGrids(idX+i);
         }
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "initData: finished init from velocity_plotfile" << '\n';
+	amrex::Print() << "initData: finished init from velocity_plotfile" << '\n';
     }
 #endif /*BL_USE_VELOCITY*/
 
@@ -267,12 +266,12 @@ NavierStokes::advance (Real time,
 {
     BL_PROFILE("NavierStokes::advance()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "Advancing grids at level " << level
-                  << " : starting time = "       << time
-                  << " with dt = "               << dt << '\n';
+    if (verbose) {
+      amrex::Print() << "Advancing grids at level " << level
+		     << " : starting time = "       << time
+		     << " with dt = "               << dt << '\n';
     }
+
     advance_setup(time,dt,iteration,ncycle);
     //
     // Compute traced states for normal comp of velocity at half time level.
@@ -320,8 +319,7 @@ NavierStokes::advance (Real time,
 	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
         {
 	    int iScal = first_scalar+scalarUpdateOrder[iComp];
-	    if (ParallelDescriptor::IOProcessor())
-		std::cout << "... ... updating " << desc_lst[0].name(iScal) << '\n';
+	    amrex::Print << "... ... updating " << desc_lst[0].name(iScal) << '\n';
 	    scalar_update(dt,iScal,iScal);
 	}
     }
@@ -393,8 +391,7 @@ NavierStokes::predict_velocity (Real  dt,
 {
     BL_PROFILE("NavierStokes::predict_velocity()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... predict edge velocities\n";
+    if (verbose) amrex::Print() << "... predict edge velocities\n";
     //
     // Get simulation parameters.
     //
@@ -461,8 +458,11 @@ NavierStokes::predict_velocity (Real  dt,
 #ifdef GENGETFORCE
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
 #elif MOREGENGETFORCE
-	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << '\n' << "A - Predict velocity:" << '\n' << " Calling getForce..." << '\n';
+	if (getForceVerbose) {
+	  amrex::Print() << "---" << '\n' 
+			 << "A - Predict velocity:" << '\n'
+			 << " Calling getForce..." << '\n';
+	}
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
 	getForce(tforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
@@ -518,8 +518,7 @@ NavierStokes::scalar_advection (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_advection()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... advect scalars\n";
+    if (verbose) amrex::Print() << "... advect scalars\n";
     //
     // Get simulation parameters.
     //
@@ -598,8 +597,10 @@ NavierStokes::scalar_advection (Real dt,
 #ifdef GENGETFORCE
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,rho_ptime[U_fpi]);
 #elif MOREGENGETFORCE
-	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << '\n' << "C - scalar advection:" << '\n' << " Calling getForce..." << '\n';
+	if (getForceVerbose) {
+	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+			 << " Calling getForce..." << '\n';
+	}
         getForce(tforces,i,1,fscalar,num_scalars,prev_time,U_fpi(),S_fpi(),0);
 #else
         getForce(tforces,i,1,fscalar,num_scalars,rho_ptime[U_fpi]);
@@ -614,8 +615,11 @@ NavierStokes::scalar_advection (Real dt,
 #ifdef GENGETFORCE
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
 #elif MOREGENGETFORCE
-	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		std::cout << "---" << '\n' << "D - scalar advection (use_forces_in_trans):" << '\n' << " Calling getForce..." << '\n';
+	    if (getForceVerbose) {
+	      amrex::Print() << "---" << '\n' 
+			     << "D - scalar advection (use_forces_in_trans):" << '\n' 
+			     << " Calling getForce..." << '\n';
+	    }
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
             getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
@@ -728,8 +732,7 @@ NavierStokes::scalar_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_update()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... update scalars\n";
+    if (verbose) amrex::Print() << "... update scalars\n";
 
     scalar_advection_update(dt, first_scalar, last_scalar);
 
@@ -745,11 +748,8 @@ NavierStokes::scalar_update (Real dt,
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-	  if (ParallelDescriptor::IOProcessor())
-          {
-             std::cout << "New scalar " << sigma << " contains Nans" << '\n';
-          }
-          exit(0);
+	 amrex::Print() << "New scalar " << sigma << " contains Nans" << '\n';
+	 exit(0);
        }
     }
 }
@@ -891,12 +891,8 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "NavierStokes:velocity_diffusion_update(): lev: "
-                      << level
-                      << ", time: " << run_time << '\n';
-        }
+	amrex::Print() << "NavierStokes:velocity_diffusion_update(): lev: " << level
+		       << ", time: " << run_time << '\n';
     }
 }
 
@@ -1034,8 +1030,6 @@ NavierStokes::sum_integrated_quantities ()
 //        std::cout << "TIME= " << time << " MASS= " << mass << '\n';
 //        std::cout << "TIME= " << time << " TRAC= " << trac << '\n';
         std::cout << "TIME= " << time << " KENG= " << energy << '\n';
-//	if (BL_SPACEDIM==3)
-//	    std::cout << "TIME= " << time << " FORC= " << forcing << '\n';
 	std::cout << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
 	std::cout << "DIAG= " << time << " " << energy << " " << udotlapu << " " << forcing << '\n';
         std::cout.precision(old_prec);
@@ -2003,8 +1997,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 #ifndef NDEBUG
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
-        std::cout << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
-        amrex::Error("must call NavierStokes::getViscTerms with all three velocity components");
+      amrex::Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
+      amrex::Error("must call NavierStokes::getViscTerms with all three velocity components");
     }
 #endif
     // 
