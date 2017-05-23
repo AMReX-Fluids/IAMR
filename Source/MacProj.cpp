@@ -139,8 +139,7 @@ MacProj::MacProj (Amr*   _parent,
 {
     Initialize();
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Creating mac_projector\n";
+    if (verbose) amrex::Print() << "Creating mac_projector\n";
 
     finest_level_allocated = finest_level;
 
@@ -155,9 +154,7 @@ void
 MacProj::install_level (int       level,
                         AmrLevel* level_data)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Installing MacProj level " << level << '\n';
-
+    if (verbose) amrex::Print() << "Installing MacProj level " << level << '\n';
     if (parent->finestLevel() < finest_level)
         for (int lev = parent->finestLevel() + 1; lev <= finest_level; lev++)
             mac_reg[lev].reset();
@@ -193,8 +190,7 @@ void
 MacProj::install_anelastic_coefficient (int               level,
                                         Real**            _anel_coeff)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Installing anel_coeff into MacProj level " << level << '\n';
+  if (verbose) amrex::Print() << "Installing anel_coeff into MacProj level " << level << '\n';
 
     if (level > anel_coeff.size()-1) anel_coeff.resize(level+1);
     anel_coeff[level] = _anel_coeff;
@@ -315,8 +311,7 @@ MacProj::mac_project (int             level,
                       bool            increment_vel_register)
 {
     BL_PROFILE("MacProj::mac_project()");
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... mac_project at level " << level << '\n';
+    if (verbose) amrex::Print() << "... mac_project at level " << level << '\n';
 
     const BoxArray& grids      = LevelData[level]->boxArray();
     const DistributionMapping& dmap = LevelData[level]->DistributionMap();
@@ -453,10 +448,7 @@ MacProj::mac_project (int             level,
             {
                 Real sumreg = mr.SumReg(0);
 
-                if (ParallelDescriptor::IOProcessor())
-                {
-                    std::cout << "LEVEL " << level << " MACREG: CrseInit sum = " << sumreg << std::endl;
-                }
+		amrex::Print() << "LEVEL " << level << " MACREG: CrseInit sum = " << sumreg << std::endl;
             }
         }
         //
@@ -474,12 +466,8 @@ MacProj::mac_project (int             level,
             if (verbose)
             {
                 Real sumreg = mac_reg[level]->SumReg(0);
-
-                if (ParallelDescriptor::IOProcessor())
-                {
-                    std::cout << "LEVEL "                  << level
-                              << " MACREG: FineAdd sum = " << sumreg << std::endl;
-                }
+		amrex::Print() << "LEVEL "                  << level
+			       << " MACREG: FineAdd sum = " << sumreg << std::endl;
             }
         }
     }
@@ -500,8 +488,7 @@ MacProj::mac_sync_solve (int       level,
 {
     BL_ASSERT(level < finest_level);
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... mac_sync_solve at level " << level << '\n';
+    if (verbose) amrex::Print() << "... mac_sync_solve at level " << level << '\n';
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -602,8 +589,7 @@ MacProj::mac_sync_solve (int       level,
 
             const Real fix = sum / vol;
 
-            if (verbose && ParallelDescriptor::IOProcessor())
-                std::cout << "Average correction on mac sync RHS = " << fix << '\n';
+            if (verbose) amrex::Print() << "Average correction on mac sync RHS = " << fix << '\n';
 
             Rhs.plus(-fix, 0);
         }
@@ -680,8 +666,7 @@ MacProj::mac_sync_solve (int       level,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
+	amrex::Print() << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
     }
 }
 
@@ -697,8 +682,7 @@ MacProj::mac_sync_solve (int       level,
 {
     BL_ASSERT(level < finest_level);
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... mac_sync_solve at level " << level << '\n';
+    if (verbose) amrex::Print() << "... mac_sync_solve at level " << level << '\n';
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -804,8 +788,7 @@ MacProj::mac_sync_solve (int       level,
 
             const Real fix = sum / vol;
 
-            if (verbose && ParallelDescriptor::IOProcessor())
-                std::cout << "Average correction on mac sync RHS = " << fix << '\n';
+            if (verbose) amrex::Print() << "Average correction on mac sync RHS = " << fix << '\n';
 
             Rhs.plus(-fix, 0);
 	    offset = fix;
@@ -883,8 +866,7 @@ MacProj::mac_sync_solve (int       level,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
+	amrex::Print() << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
     }
 }
 
@@ -1281,8 +1263,7 @@ MacProj::check_div_cond (int      level,
 
         ParallelDescriptor::ReduceRealSum(sum,IOProc);
         
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "SUM of DIV(U_edge) = " << sum << '\n';
+	amrex::Print() << "SUM of DIV(U_edge) = " << sum << '\n';
     }
 }
 
@@ -1533,10 +1514,10 @@ MacProj::test_umac_periodic (int       level,
 
         if (max_norm > umac_periodic_test_Tol )
         {
-            std::cout << "dir = "         << dim
-                      << ", diff norm = " << max_norm
-                      << " for region: "  << pirm[i].m_dstBox << std::endl;
-            amrex::Error("Periodic bust in u_mac");
+	  amrex::Print() << "dir = "         << dim
+			 << ", diff norm = " << max_norm
+			 << " for region: "  << pirm[i].m_dstBox << std::endl;
+	  amrex::Error("Periodic bust in u_mac");
         }
     }
 }

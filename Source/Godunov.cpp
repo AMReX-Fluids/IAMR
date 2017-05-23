@@ -17,9 +17,6 @@
 #define YVEL 1
 #define ZVEL 2
 
-using std::cout;
-using std::endl;
-
 using namespace amrex;
 
 namespace

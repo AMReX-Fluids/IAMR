@@ -25,21 +25,21 @@ NavierStokes::error_setup()
     if (do_density_ref)   {
         err_list.add("density",  1, ErrorRec::Special, 
                      BL_FORT_PROC_CALL(FORT_DENERROR,fort_denerror));
-        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on DENSITY" << std::endl;
+	amrex::Print() << "Refining on DENSITY" << std::endl;
     }
     if (do_tracer_ref)    {
         err_list.add("tracer",   1, ErrorRec::Special, 
                      BL_FORT_PROC_CALL(FORT_ADVERROR,fort_adverror));
-        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER" << std::endl;
+	amrex::Print() << "Refining on TRACER" << std::endl;
     }
     if (do_tracer2_ref)    {
 	err_list.add("tracer2",   1, ErrorRec::Special, 
                      BL_FORT_PROC_CALL(FORT_ADV2ERROR,fort_adv2error));
-	if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on TRACER2" << std::endl;
+	amrex::Print() << "Refining on TRACER2" << std::endl;
     }
     if (do_vorticity_ref) {
         err_list.add("mag_vort", 0, ErrorRec::Special, 
                      BL_FORT_PROC_CALL(FORT_MVERROR,fort_mverror));
-        if (ParallelDescriptor::IOProcessor()) std::cout << "Refining on MAG_VORT" << std::endl;
+	amrex::Print() << "Refining on MAG_VORT" << std::endl;
     }
 }

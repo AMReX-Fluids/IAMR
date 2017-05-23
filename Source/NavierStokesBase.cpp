@@ -476,8 +476,8 @@ NavierStokesBase::Initialize ()
     //
     if (do_MLsync_proj && !do_sync_proj && initial_do_sync_proj != do_sync_proj)
     {
-        std::cout << "Mismatched options for NavierStokesBase\n"
-                  << "do_MLsync_proj and do_sync_proj are inconsistent\n";
+        amrex::Print() << "Mismatched options for NavierStokesBase\n"
+		       << "do_MLsync_proj and do_sync_proj are inconsistent\n";
 
         amrex::Abort("NavierStokesBase::Initialize()");
     }
@@ -578,7 +578,7 @@ NavierStokesBase::Initialize ()
 
     if (do_mom_diff == 0 && predict_mom_together == 1)
     {
-      std::cout << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1" << '\n';
+      amrex::Print() << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1\n";
       exit(0);
     }
 
@@ -614,9 +614,7 @@ NavierStokesBase::read_geometry ()
     if ((Geometry::CoordType) coord == Geometry::RZ && phys_bc.lo(0) != Symmetry)
     {
         phys_bc.setLo(0,Symmetry);
-
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "\nWarning: Setting phys_bc at xlo to Symmetry\n\n";
+	amrex::Print() << "\nWarning: Setting phys_bc at xlo to Symmetry\n\n";
     }
 #endif
 }
@@ -951,16 +949,16 @@ NavierStokesBase::computeNewDt (int                   finest_level,
           //
           for (i = 0; i <= finest_level; i++)
           {
-             if (verbose && ParallelDescriptor::IOProcessor())
+	    if (verbose)
                  if (dt_min[i] > change_max*dt_level[i])
                  {
-                     std::cout << "NavierStokesBase::compute_new_dt : limiting dt at level "
-                             << i << '\n';
-                     std::cout << " ... new dt computed: " << dt_min[i]
-                             << '\n';
-                     std::cout << " ... but limiting to: "
-                             << change_max * dt_level[i] << " = " << change_max
-                             << " * " << dt_level[i] << '\n';
+                     amrex::Print() << "NavierStokesBase::compute_new_dt : limiting dt at level "
+				    << i << '\n';
+                     amrex::Print() << " ... new dt computed: " << dt_min[i]
+				    << '\n';
+                     amrex::Print() << " ... but limiting to: "
+				    << change_max * dt_level[i] << " = " << change_max
+				    << " * " << dt_level[i] << '\n';
                  }
              dt_min[i] = std::min(dt_min[i],change_max*dt_level[i]);
           }
@@ -1295,8 +1293,10 @@ NavierStokesBase::estTimeStep ()
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,rho_ctime[Rho_mfi]);
 #elif MOREGENGETFORCE
         const Real cur_time = state[State_Type].curTime();
-	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << '\n' << "H - est Time Step:" << '\n' << "Calling getForce..." << '\n';
+	if (getForceVerbose)
+	  amrex::Print() << "---" << '\n' 
+			 << "H - est Time Step:" << '\n' 
+			 << "Calling getForce..." << '\n';
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
 #else
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,rho_ctime[Rho_mfi]);
@@ -1324,13 +1324,10 @@ NavierStokesBase::estTimeStep ()
 
         ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
-            for (int k = 0; k < BL_SPACEDIM; k++)
-                std::cout << u_max[k] << "  ";
-            std::cout << '\n';
-        }
+	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
+	for (int k = 0; k < BL_SPACEDIM; k++)
+	  amrex::Print() << u_max[k] << "  ";
+	amrex::Print() << '\n';
     }
 
     return estdt;
@@ -1812,24 +1809,24 @@ NavierStokesBase::init_additional_state_types ()
     have_divu = 0;
     have_divu = isStateVariable("divu", dummy_Divu_Type, _Divu);
     have_divu = have_divu && dummy_Divu_Type == Divu_Type;
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "NavierStokesBase::init_additional_state_types()::have_divu = "
+        amrex::Print() << "NavierStokesBase::init_additional_state_types()::have_divu = "
                   << have_divu << '\n';
     }
     if (have_divu && _Divu!=Divu)
     {
-        std::cout << "divu must be 0-th, Divu_Type component in the state\n";
+        amrex::Print() << "divu must be 0-th, Divu_Type component in the state\n";
 
         amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
 
     if (have_divu && do_sync_proj && !do_MLsync_proj) 
     {
-        std::cout << "Must run the ML sync project if have_divu is true " << '\n';
-        std::cout << "  because the divu sync is only implemented in the " << '\n';
-        std::cout << "  multilevel sync (MLsyncProject), not in the single level " << '\n';
-        std::cout << "  (syncProject)." << '\n';
+        amrex::Print() << "Must run the ML sync project if have_divu is true " << '\n';
+        amrex::Print() << "  because the divu sync is only implemented in the " << '\n';
+        amrex::Print() << "  multilevel sync (MLsyncProject), not in the single level " << '\n';
+        amrex::Print() << "  (syncProject)." << '\n';
         amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
 
@@ -1838,20 +1835,20 @@ NavierStokesBase::init_additional_state_types ()
     have_dsdt = 0;
     have_dsdt = isStateVariable("dsdt", dummy_Dsdt_Type, _Dsdt);
     have_dsdt = have_dsdt && dummy_Dsdt_Type==Dsdt_Type;
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        std::cout << "NavierStokesBase::init_additional_state_types()::have_dsdt = "
-                  << have_dsdt << '\n';
+        amrex::Print() << "NavierStokesBase::init_additional_state_types()::have_dsdt = "
+		       << have_dsdt << '\n';
     }
     if (have_dsdt && _Dsdt!=Dsdt)
     {
-        std::cout << "dsdt must be 0-th, Dsdt_Type component in the state\n";
+        amrex::Print() << "dsdt must be 0-th, Dsdt_Type component in the state\n";
 
         amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
     if (have_dsdt && !have_divu)
     {
-        std::cout << "Must have divu in order to have dsdt\n";
+        amrex::Print() << "Must have divu in order to have dsdt\n";
 
         amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
@@ -1859,8 +1856,8 @@ NavierStokesBase::init_additional_state_types ()
     num_state_type = desc_lst.size();
     if (verbose && ParallelDescriptor::IOProcessor())
     {
-        std::cout << "NavierStokesBase::init_additional_state_types: num_state_type = "
-                  << num_state_type << '\n';
+        amrex::Print() << "NavierStokesBase::init_additional_state_types: num_state_type = "
+		       << num_state_type << '\n';
     }
 }
 
@@ -1869,11 +1866,8 @@ NavierStokesBase::initialTimeStep ()
 {
   Real returnDt = init_shrink*estTimeStep();
 
-  if (ParallelDescriptor::IOProcessor())
-  {
-      std::cout << "Multiplying dt by init_shrink; dt = " 
-		<< returnDt << '\n';
-  }
+  amrex::Print() << "Multiplying dt by init_shrink; dt = " 
+		 << returnDt << '\n';
 
   return returnDt;
 }
@@ -2244,8 +2238,7 @@ NavierStokesBase::mac_project (Real      time,
     BL_PROFILE_REGION_START("R::NavierStokesBase::mac_project()");
     BL_PROFILE("NavierStokesBase::mac_project()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... mac_projection\n";
+    if (verbose) amrex::Print() << "... mac_projection\n";
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -2262,12 +2255,9 @@ NavierStokesBase::mac_project (Real      time,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "NavierStokesBase:mac_project(): lev: "
-                      << level
-                      << ", time: " << run_time << '\n';
-        }
+	amrex::Print() << "NavierStokesBase:mac_project(): lev: "
+		       << level
+		       << ", time: " << run_time << '\n';
     }
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::mac_project()");
 }
@@ -2460,17 +2450,11 @@ NavierStokesBase::post_init_state ()
         //
         BL_ASSERT(!(projector == 0));
         
-	if (verbose && ParallelDescriptor::IOProcessor())
-	{
-	  std::cout << "calling initialVorticityProject" << std::endl;
-	}
+	if (verbose) amrex::Print() << "calling initialVorticityProject" << std::endl;
 
 	projector->initialVorticityProject(0);
-        
-	if (verbose && ParallelDescriptor::IOProcessor())
-	{
-	  std::cout << "done calling initialVorticityProject" << std::endl;
-	}
+
+	if (verbose) amrex::Print() << "done calling initialVorticityProject" << std::endl;
     }
 
     if (do_init_proj && projector)
@@ -2479,17 +2463,11 @@ NavierStokesBase::post_init_state ()
       // Do sync project to define divergence free velocity field.
       //
 
-      if (verbose && ParallelDescriptor::IOProcessor())
-      {
-	std::cout << "calling initialVelocityProject" << std::endl;
-      }
+      if (verbose) amrex::Print() << "calling initialVelocityProject" << std::endl;
 
       projector->initialVelocityProject(0,divu_time,have_divu);
 
-      if (verbose && ParallelDescriptor::IOProcessor())
-      {
-	std::cout << "done calling initialVelocityProject" << std::endl;
-      }
+      if (verbose) amrex::Print() << "done calling initialVelocityProject" << std::endl;
     }
 
     NavierStokesBase::initial_step = true;
@@ -2858,8 +2836,8 @@ NavierStokesBase::scalar_advection_update (Real dt,
                 getForce(tforces,i,0,sigma,1,halftime,rho_halftime[Rho_mfi]);
 #elif MOREGENGETFORCE
 		// Need to do some funky half-time stuff
-		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		    std::cout << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
+		if (getForceVerbose)
+  		    amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
 
 		// Average the mac face velocities to get cell centred velocities
                 const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
@@ -2896,8 +2874,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 		Scal.plus(S_new[Rho_mfi],Density,0,NUM_SCALARS);
 		Scal.mult(0.5);
 		
-		if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		    std::cout << "Calling getForce..." << '\n';
+		if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
                 getForce(tforces,i,0,sigma,1,halftime,Vel,Scal,0);
 #else
                 getForce(tforces,i,0,sigma,1,rho_halftime[Rho_mfi]);
@@ -3301,20 +3278,20 @@ NavierStokesBase::velocity_advection (Real dt)
 {
     BL_PROFILE("NavierStokesBase::velocity_advection()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
         if (do_mom_diff == 0) 
         {
-            std::cout << "... advect velocities\n";
+            amrex::Print() << "... advect velocities\n";
         }
         else
         {
             if (predict_mom_together == 0)
             {
-                std::cout << "Must set predict_mom_together == 1 in NavierStokesBase." << '\n';
+                amrex::Print() << "Must set predict_mom_together == 1 in NavierStokesBase." << '\n';
                 exit(0);
             }
-            std::cout << "... advect momenta\n";
+            amrex::Print() << "... advect momenta\n";
         }
     }
 
@@ -3386,8 +3363,12 @@ NavierStokesBase::velocity_advection (Real dt)
 #ifdef GENGETFORCE
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
 #elif MOREGENGETFORCE
-	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << '\n' << "B - velocity advection:" << '\n' << "Calling getForce..." << '\n';
+	if (getForceVerbose)
+	{
+	  amrex::Print() << "---" << '\n' 
+			 << "B - velocity advection:" << '\n' 
+			 << "Calling getForce..." << '\n';
+	}
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
 #else
         getForce(tforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
@@ -3480,16 +3461,16 @@ NavierStokesBase::velocity_update (Real dt)
 {
     BL_PROFILE("NavierStokesBase::velocity_update()");
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
-        if (do_mom_diff == 0) 
-        {
-            std::cout << "... update velocities \n";
-        }
-        else
-        {
-            std::cout << "... update momenta \n";
-        }
+      if (do_mom_diff == 0)
+      {
+	amrex::Print() << "... update velocities \n";
+      }
+      else
+      {
+	amrex::Print() << "... update momenta \n";
+      }
     }
 
     velocity_advection_update(dt);
@@ -3504,11 +3485,8 @@ NavierStokesBase::velocity_update (Real dt)
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-	  if (ParallelDescriptor::IOProcessor())
-          {
-             std::cout << "New velocity " << sigma << " contains Nans" << '\n';
-          }
-          exit(0);
+	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+	 exit(0);
        }
     }
 }
@@ -3551,8 +3529,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
         //
 	// Need to do some funky half-time stuff.
         //
-	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
+	if (getForceVerbose)
+  	    amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
 	// Average the mac face velocities to get cell centred velocities.
         //
@@ -3588,8 +3566,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 	Scal.plus(U_new[Rhohalf_mfi],Density,0,NUM_SCALARS);
 	Scal.mult(0.5);
 	
-	if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-	    std::cout << "Calling getForce..." << '\n';
+	if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
 	getForce(tforces,i,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 #else
@@ -3682,8 +3659,12 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 #ifdef GENGETFORCE
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,rho_ptime[P_fpi]);
 #elif MOREGENGETFORCE
-	    if (ParallelDescriptor::IOProcessor() && getForceVerbose)
-		std::cout << "---" << '\n' << "G - initial velocity diffusion update:" << '\n' << "Calling getForce..." << '\n';
+	    if (getForceVerbose)
+	    {
+	      amrex::Print() << "---" << '\n' 
+			     << "G - initial velocity diffusion update:" << '\n' 
+			     << "Calling getForce..." << '\n';
+	    }
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,prev_time,U_old[P_fpi],U_old[P_fpi],Density);
 #else
             getForce(tforces,i,0,Xvel,BL_SPACEDIM,rho_ptime[P_fpi]);
@@ -4005,11 +3986,10 @@ NavierStokesBase::sum_jet_quantities ()
     const int rsize=isize>>1;
     const int jetVars(104);
 
-    if (ParallelDescriptor::IOProcessor())
-	std::cout << "NavierStokesBase::sum_jet_quantities():" << '\n'
-		  << "   jetVars: " << jetVars << '\n'
-		  << "   rsize  : " << rsize << '\n'
-		  << "   ksize  : " << ksize << '\n';
+    amrex::Print() << "NavierStokesBase::sum_jet_quantities():" << '\n'
+		   << "   jetVars: " << jetVars << '\n'
+		   << "   rsize  : " << rsize << '\n'
+		   << "   ksize  : " << ksize << '\n';
     
     Real* jetData = new Real[jetVars*ksize*rsize];
 
@@ -4029,7 +4009,7 @@ NavierStokesBase::sum_jet_quantities ()
 
     if (ParallelDescriptor::IOProcessor())
     {
-        std::cout << "      Creating JetData..." << '\n';
+        amrex::Print() << "      Creating JetData..." << '\n';
         std::string DirPath = "JetData";
         if (!amrex::UtilCreateDirectory(DirPath, 0755))
             amrex::CreateDirectoryFailed(DirPath);
@@ -4076,7 +4056,7 @@ NavierStokesBase::sum_jet_quantities ()
 		fprintf(file,"\n");
 	    }
 	    fclose(file);
-	    std::cout << "   ...done." << '\n';
+	    amrex::Print() << "   ...done." << '\n';
 	}
 #else
 	std::string FullPath = amrex::Concatenate("JetData/JD", steps, 4);

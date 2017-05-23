@@ -64,8 +64,7 @@ main (int   argc,
             max_step = std::min(max_step, num_steps + amrptr->levelSteps(0));
         }
 
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Using effective max_step = " << max_step << '\n';
+	amrex::Print() << "Using effective max_step = " << max_step << '\n';
     }
     //
     // If we set the regrid_on_restart flag and if we are *not* going to take
@@ -110,8 +109,7 @@ main (int   argc,
 
     ParallelDescriptor::ReduceRealMax(run_stop,IOProc);
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "Run time = " << run_stop << std::endl;
+    amrex::Print() << "Run time = " << run_stop << std::endl;
 
     BL_PROFILE_VAR_STOP(pmain);
     BL_PROFILE_REGION_STOP("main()");

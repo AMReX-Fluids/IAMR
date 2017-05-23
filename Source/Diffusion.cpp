@@ -213,30 +213,30 @@ Diffusion::echo_settings () const
     //
     // Print out my settings.
     //
-    if (verbose && ParallelDescriptor::IOProcessor())
+  if (verbose)
     {
-        std::cout << "Diffusion settings...\n";
-        std::cout << "  From diffuse:\n";
-        std::cout << "   use_cg_solve        = " << use_cg_solve        << '\n';
-        std::cout << "   use_tensor_cg_solve = " << use_tensor_cg_solve << '\n';
-        std::cout << "   use_mg_precond_flag = " << use_mg_precond_flag << '\n';
-        std::cout << "   max_order           = " << max_order           << '\n';
-        std::cout << "   tensor_max_order    = " << tensor_max_order    << '\n';
-        std::cout << "   scale_abec          = " << scale_abec          << '\n';
+        amrex::Print() << "Diffusion settings...\n";
+        amrex::Print() << "  From diffuse:\n";
+        amrex::Print() << "   use_cg_solve        = " << use_cg_solve        << '\n';
+        amrex::Print() << "   use_tensor_cg_solve = " << use_tensor_cg_solve << '\n';
+        amrex::Print() << "   use_mg_precond_flag = " << use_mg_precond_flag << '\n';
+        amrex::Print() << "   max_order           = " << max_order           << '\n';
+        amrex::Print() << "   tensor_max_order    = " << tensor_max_order    << '\n';
+        amrex::Print() << "   scale_abec          = " << scale_abec          << '\n';
     
-        std::cout << "\n\n  From ns:\n";
-        std::cout << "   do_reflux           = " << do_reflux << '\n';
-        std::cout << "   visc_tol            = " << visc_tol  << '\n';
+        amrex::Print() << "\n\n  From ns:\n";
+        amrex::Print() << "   do_reflux           = " << do_reflux << '\n';
+        amrex::Print() << "   visc_tol            = " << visc_tol  << '\n';
     
-        std::cout << "   is_diffusive =";
+        amrex::Print() << "   is_diffusive =";
         for (int i =0; i < NUM_STATE; i++)
-            std::cout << "  " << is_diffusive[i];
+            amrex::Print() << "  " << is_diffusive[i];
     
-        std::cout << "\n   visc_coef =";
+        amrex::Print() << "\n   visc_coef =";
         for (int i = 0; i < NUM_STATE; i++)
-            std::cout << "  " << visc_coef[i];
+            amrex::Print() << "  " << visc_coef[i];
 
-        std::cout << '\n';
+        amrex::Print() << '\n';
     }
 }
 
@@ -278,8 +278,8 @@ Diffusion::diffuse_scalar (Real                   dt,
 
     const MultiFab& volume = navier_stokes->Volume();
     
-    if (verbose && ParallelDescriptor::IOProcessor())
-      std::cout << "... diffusing scalar: " << navier_stokes->get_desc_lst()[State_Type].name(sigma) << '\n';
+    if (verbose)
+      amrex::Print() << "... diffusing scalar: " << navier_stokes->get_desc_lst()[State_Type].name(sigma) << '\n';
 
     int allnull, allthere;
     checkBeta(betan, allthere, allnull);
@@ -588,8 +588,7 @@ Diffusion::diffuse_velocity (Real                   dt,
                              const MultiFab* const* betanp1,
                              int                    betaComp)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "... diffuse_velocity\n";
+  if (verbose) amrex::Print() << "... diffuse_velocity\n";
 
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
@@ -980,8 +979,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                                       int             rho_flag,
 				      bool            update_fluxreg)
 {
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Diffusion::diffuse_Vsync_constant_mu ...\n";
+  if (verbose) amrex::Print() << "Diffusion::diffuse_Vsync_constant_mu ...\n";
 
     const MultiFab& volume = navier_stokes->Volume();
     const MultiFab* area   = navier_stokes->Area();
@@ -1000,8 +998,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         if (verbose > 1)
         {
             Real r_norm = Rhs.norm0();
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Original max of Vsync " << r_norm << '\n';
+	    amrex::Print() << "Original max of Vsync " << r_norm << '\n';
         }
         //
         // Multiply RHS by volume and density.
@@ -1068,8 +1065,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         if (verbose > 1)
         {
             Real s_norm = Soln.norm0(0,Soln.nGrow());
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "Final max of Vsync " << s_norm << '\n';
+	    amrex::Print() << "Final max of Vsync " << s_norm << '\n';
         }
 
         if (level > 0)
@@ -1165,8 +1161,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 {
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Diffusion::diffuse_tensor_Vsync ...\n";
+    if (verbose) amrex::Print() << "Diffusion::diffuse_tensor_Vsync ...\n";
 
     const MultiFab& volume = navier_stokes->Volume(); 
     const int   IOProc     = ParallelDescriptor::IOProcessorNumber();
@@ -1178,8 +1173,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     if (verbose > 1)
     {
         Real r_norm = Rhs.norm0();
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Original max of Vsync " << r_norm << '\n';
+	amrex::Print() << "Original max of Vsync " << r_norm << '\n';
     }
     //
     // Multiply RHS by volume and density.
@@ -1241,8 +1235,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     if (verbose > 1)
     {
         Real s_norm = Soln.norm0(0,Soln.nGrow());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Final max of Vsync " << s_norm << '\n';
+	amrex::Print() << "Final max of Vsync " << s_norm << '\n';
     }
 
     if (level > 0)
@@ -1306,9 +1299,11 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     const int state_ind    = sigma + BL_SPACEDIM;
     const int IOProc       = ParallelDescriptor::IOProcessorNumber();
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "Diffusion::diffuse_Ssync: "
-                  << navier_stokes->get_desc_lst()[State_Type].name(state_ind) << '\n';
+    if (verbose)
+    {
+      amrex::Print() << "Diffusion::diffuse_Ssync: "
+		     << navier_stokes->get_desc_lst()[State_Type].name(state_ind) << '\n';
+    }
 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
@@ -1329,8 +1324,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 	    MultiFab::Divide(junk, S_new, Density, 0, 1, 0);
         }
         Real r_norm = junk.norm0();
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Original max of Ssync " << r_norm << '\n';
+	amrex::Print() << "Original max of Ssync " << r_norm << '\n';
     }
     //
     // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
@@ -1404,8 +1398,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     if (verbose > 1)
     {
         Real s_norm = Soln.norm0(0,Soln.nGrow());
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "Final max of Ssync " << s_norm << '\n';
+	amrex::Print() << "Final max of Ssync " << s_norm << '\n';
     }
     
     if (rho_flag == 2)
@@ -2367,7 +2360,7 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
             break;
 
         default:
-            std::cout << "compDiffusionType = " << compDiffusionType << '\n';
+            amrex::Print() << "compDiffusionType = " << compDiffusionType << '\n';
             amrex::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
     }
 
