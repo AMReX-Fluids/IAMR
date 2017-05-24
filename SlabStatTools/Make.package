@@ -1,7 +1,0 @@
-
-CEXE_sources += SlabStatTools.cpp PackArrayArray.cpp
-CEXE_headers += SlabStatTools.H   PackArrayArray.H
-
-FEXE_sources += STATS_$(DIM)D.F ARRAYLIM_$(DIM)D.F
-FEXE_headers += 
-
