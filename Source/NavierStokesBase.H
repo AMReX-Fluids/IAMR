@@ -23,10 +23,6 @@
 #include <AMReX_AmrParticles.H>
 #endif
 
-#ifdef USE_BPM
-#include <BPM.H>
-#endif
-
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above

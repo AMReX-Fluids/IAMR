@@ -127,12 +127,6 @@ namespace
     std::string      particle_output_file;
     bool             restart_from_nonparticle_chkfile = false;
     int              pverbose                         = 2;
-
-#ifdef USE_BPM
-    BPMMesh* ParticleMesh = 0;
-    std::string particle_mesh_init_file;
-#endif
-
 }
 
 AmrTracerParticleContainer* NavierStokesBase::theNSPC () { return NSPC; }
@@ -324,11 +318,6 @@ NavierStokesBase::variableCleanUp ()
 #ifdef PARTICLES
     delete NSPC;
     NSPC = 0;
-#endif
-
-#ifdef USE_BPM
-    delete ParticleMesh;
-    ParticleMesh = 0;
 #endif
 }
 
@@ -4134,13 +4123,6 @@ NavierStokesBase::read_particle_params ()
     // Used in post_restart() to write out the file of particles.
     //
     ppp.query("particle_output_file", particle_output_file);
-
-#ifdef USE_BPM
-    //
-    // Used in initData() on startup to read in a file of springs (for BPM)
-    //
-    ppp.query("particle_mesh_init_file", particle_mesh_init_file);
-#endif
 }
 
 void
@@ -4160,21 +4142,6 @@ NavierStokesBase::initParticleData ()
             NSPC->InitFromAsciiFile(particle_init_file,0);
         }
     }
-
-#ifdef USE_BPM
-    if (level == 0)
-    {
-        if (ParticleMesh == 0)
-        {
-            ParticleMesh = new BPMMesh();
-        }
-
-        if (!particle_mesh_init_file.empty())
-        {
-            ParticleMesh->InitFromAsciiFile(particle_mesh_init_file);
-        }
-    }
-#endif /*USE_BPM*/
 }
 
 void
