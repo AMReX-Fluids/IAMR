@@ -318,7 +318,7 @@ NavierStokes::advance (Real time,
 	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
         {
 	    int iScal = first_scalar+scalarUpdateOrder[iComp];
-	    amrex::Print << "... ... updating " << desc_lst[0].name(iScal) << '\n';
+	    amrex::Print() << "... ... updating " << desc_lst[0].name(iScal) << '\n';
 	    scalar_update(dt,iScal,iScal);
 	}
     }
