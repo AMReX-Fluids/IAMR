@@ -973,29 +973,10 @@ NavierStokesBase::computeNewDt (int                   finest_level,
         if ((cur_time + dt_0) > (stop_time - eps))
             dt_0 = stop_time - cur_time;
     }
-    //
-    // Adjust the time step to be able to output checkpoints at specific times.
-    //
-    const Real check_per = parent->checkPer();
-    if (check_per > 0.0)
-    {
-        int a = int((cur_time + eps ) / check_per);
-        int b = int((cur_time + dt_0) / check_per);
-        if (a != b)
-            dt_0 = b * check_per - cur_time;
-    }
-    //
-    // Adjust the time step to be able to output plot files at specific times.
-    //
-    const Real plot_per = parent->plotPer();
-    if (plot_per > 0.0)
-    {
-        int a = int((cur_time + eps ) / plot_per);
-        int b = int((cur_time + dt_0) / plot_per);
-        if (a != b)
-            dt_0 = b * plot_per - cur_time;
-    }
 
+    //
+    // Set dt at each level of refinement
+    //
     n_factor = 1;
     for (i = 0; i <= finest_level; i++)
     {
