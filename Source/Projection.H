@@ -153,9 +153,11 @@ public:
     // Multiply/divide a MultiFab by radius for r-z coordinates.
     // These should really be protected.
     //
-    void radMult (int       level,
-                  amrex::MultiFab& mf,
-                  int       comp);
+    void radMultScal (int       level,
+                      amrex::MultiFab& mf);
+
+    void radMultVel (int       level,
+                     amrex::MultiFab& mf);
 
     void radDiv (int       level,
                  amrex::MultiFab& mf,

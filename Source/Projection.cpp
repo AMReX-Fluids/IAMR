@@ -441,7 +441,7 @@ Projection::level_project (int             level,
     else 
     {
         if (is_rz == 1) {
-            radMult(level,*divusource,0);
+            radMultScal(level,*divusource);
         }
         const int nghost = 0;
         divusource->mult(-1.0,0,1,nghost);
@@ -730,8 +730,8 @@ Projection::MLsyncProject (int             c_lev,
     scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
     if (Geometry::IsRZ()) {
-       radMult(c_lev  ,cc_rhs_crse,0);
-       radMult(c_lev+1,cc_rhs_fine,0);
+       radMultScal(c_lev  ,cc_rhs_crse);
+       radMultScal(c_lev+1,cc_rhs_fine);
     }
 
     Array<MultiFab*> vel(maxlev, nullptr);
@@ -971,6 +971,7 @@ Projection::initialVelocityProject (int  c_lev,
                        amrex::GetArrOfPtrs(rhs_cc),
                        amrex::GetArrOfPtrs(sig),
                        c_lev,f_lev,have_divu); 
+
      //
      // Scale the projection variables.
      //
@@ -995,7 +996,7 @@ Projection::initialVelocityProject (int  c_lev,
     {
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
-            if (Geometry::IsRZ()) radMult(lev,*rhs_cc[lev],0); 
+            if (Geometry::IsRZ()) radMultScal(lev,*rhs_cc[lev]); 
             rhs_cc[lev]->mult(-1.0,0,1,nghost);
         }
 
@@ -1282,7 +1283,7 @@ Projection::initialSyncProject (int       c_lev,
         scaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
 
         if (have_divu && Geometry::IsRZ()) 
-          radMult(lev,*(rhs[lev]),0);    
+          radMultScal(lev,*(rhs[lev]));
     }
 
     for (lev = f_lev; lev >= c_lev+1; lev--) {
@@ -1602,6 +1603,7 @@ Projection::scaleVar (int             which_call,
       if (which_call  != INITIAL_PRESS &&
           anel_coeff[level] != 0) AnelCoeffMult(level,*sig,0);
     }
+    
 
     //
     // Scale by radius for RZ.
@@ -1609,10 +1611,9 @@ Projection::scaleVar (int             which_call,
     if (Geometry::IsRZ()) 
     {
         if (sig != 0)
-            radMult(level,*sig,0);
+            radMultScal(level,*sig);
         if (vel != 0)
-            for (int n = 0; n < BL_SPACEDIM; n++) 
-                radMult(level,*vel,n);
+            radMultVel(level,*vel);
     }
 
     //
@@ -1655,8 +1656,10 @@ Projection::rescaleVar (int             which_call,
         if (sig != 0)
             radDiv(level,*sig,0);
         if (vel != 0)
+        {
             for (int n = 0; n < BL_SPACEDIM; n++)
                 radDiv(level,*vel,n);
+        }
     }
     if (vel != 0 && anel_coeff[level] != 0) 
       for (int n = 0; n < BL_SPACEDIM; n++)
@@ -1675,13 +1678,11 @@ Projection::rescaleVar (int             which_call,
 //
 
 void
-Projection::radMult (int       level,
-                     MultiFab& mf,
-                     int       comp)
+Projection::radMultScal (int       level,
+                         MultiFab& mf)
 {
 #if (BL_SPACEDIM < 3)
     BL_ASSERT(radius_grow >= mf.nGrow());
-    BL_ASSERT(comp >= 0 && comp < mf.nComp());
 
     int ngrow = mf.nGrow();
 
@@ -1700,11 +1701,47 @@ Projection::radMult (int       level,
         const Box& bx = mfmfi.validbox();
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
-        Real* dat     = mf[mfmfi].dataPtr(comp);
+        Real* dat     = mf[mfmfi].dataPtr(0);
         Real* rad     = &(*radius[level])[mfmfi.index()][0];
 
-        FORT_RADMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
-                    rad,&nr,&bogus_value);
+        FORT_RADMPYSCAL(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+                        rad,&nr,&bogus_value);
+    }
+#endif
+}
+
+void
+Projection::radMultVel (int       level,
+                        MultiFab& mf)
+{
+#if (BL_SPACEDIM < 3)
+    BL_ASSERT(radius_grow >= mf.nGrow());
+
+    int ngrow = mf.nGrow();
+
+    int nr = radius_grow;
+
+    const Box& domain = parent->Geom(level).Domain();
+    const int* domlo  = domain.loVect();
+    const int* domhi  = domain.hiVect();
+
+    Real bogus_value = BogusValue;
+
+    for (int n = 0; n < BL_SPACEDIM; n++) 
+    {
+       for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+       {
+           BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
+   
+           const Box& bx = mfmfi.validbox();
+           const int* lo = bx.loVect();
+           const int* hi = bx.hiVect();
+           Real* dat     = mf[mfmfi].dataPtr(n);
+           Real* rad     = &(*radius[level])[mfmfi.index()][0];
+
+           FORT_RADMPYVEL(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+                          rad,&nr,&n);
+       }
     }
 #endif
 }
@@ -2621,7 +2658,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	    Box bx;                // bx is the region we *protect* from zero'ing
 
 	    if (inflowCorner && doing_initial_velproj) {
-	      bx = amrex::adjCellLo(reg, idir);
+              bx = amrex::adjCellLo(reg, idir);
               for (int odir = 0; odir < BL_SPACEDIM; odir++)
                  if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
 
