@@ -166,7 +166,7 @@ c
       REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
      $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
-      REAL_T     dx
+      REAL_T     dr
 
       integer i, j
 
@@ -190,15 +190,13 @@ c           differentiate between inflow, reflecting and symmetry.
          end do
       end if
 
-      dx = 2.5d-3
-      print *,'A BEFORE ', a(32,126)
+      dr = r(domhi(1)) - r(domhi(1)-1)
 c     Here we only multiply a possibly inflow x-velocity from the hi-r side                
       if (ndim .eq. 0) then
          if (ARG_H1(grid)+ng .gt. domhi(1)) then
             do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
             do i = domhi(1)+1, ARG_H1(grid)+ng
-              a(i,j) = (r(domhi(1)) + (i-domhi(1))*dx - 0.5*dx)*a(i,j)
-              if (j.eq.ARG_H2(grid)-4) print *,'R ', i, (r(domhi(1)) + (i-domhi(1))*dx - 0.5*dx),  a(i,j)
+              a(i,j) = (r(domhi(1)) + (i-domhi(1))*dr - 0.5*dr)*a(i,j)
             end do
             end do
          end if
@@ -211,7 +209,6 @@ c     Here we only multiply a possibly inflow x-velocity from the hi-r side
             end do
          end if
       end if
-      print *,'A AFTER ', a(32,126)
 
       end
 
@@ -237,7 +234,6 @@ c
       do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
            a(i,j) = a(i,j)/r(i)
-           if (j.eq.100) print *,'A(I) ', i, a(i,j)
          end do
       end do
 
