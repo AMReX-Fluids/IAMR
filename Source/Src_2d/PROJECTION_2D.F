@@ -190,7 +190,7 @@ c           differentiate between inflow, reflecting and symmetry.
          end do
       end if
 
-      dr = r(domhi(1)) - r(domhi(1)-1)
+      dr = r(ARG_H1(grid)) - r(ARG_H1(grid)-1)
 c     Here we only multiply a possibly inflow x-velocity from the hi-r side                
       if (ndim .eq. 0) then
          if (ARG_H1(grid)+ng .gt. domhi(1)) then
