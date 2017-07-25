@@ -2706,7 +2706,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
 
             FArrayBox& v_fab = (*vel[lev])[mfi];
-            const Box& reg = mfi.validbox();
+            const Box& reg = v_fab.box();
             for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
                 Box ovlp = reg & *it;
                 if (ovlp.ok()) {
