@@ -2645,15 +2645,10 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
       }
       else {
 
-          BoxList bxlist;
-	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
-
-	  int i = mfi.index();
-
-	  FArrayBox& v_fab = (*vel[lev])[mfi];
-
-	  const Box& reg = grids[i];
-	  const Box& bxg1 = amrex::grow(reg, 1);
+        BoxList bxlist;
+        for (int i=0; i<grids.size(); ++i) {
+          const Box& reg = grids[i];
+          const Box& bxg1 = amrex::grow(reg, 1);
 
           bxlist.push_back(reg);
 
@@ -2663,7 +2658,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	    if (inflowCorner && doing_initial_velproj) {
               bx = amrex::adjCellLo(reg, idir);
               for (int odir = 0; odir < BL_SPACEDIM; odir++)
-                 if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
+                if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
@@ -2682,7 +2677,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	    if (inflowCorner && doing_initial_velproj) {
 	      bx = amrex::adjCellHi(reg, idir);
               for (int odir = 0; odir < BL_SPACEDIM; odir++)
-                 if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
+                if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
@@ -2705,14 +2700,14 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 
 	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
 
-            FArrayBox& v_fab = (*vel[lev])[mfi];
-            const Box& reg = v_fab.box();
-            for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
-                Box ovlp = reg & *it;
-                if (ovlp.ok()) {
-                    v_fab.setVal(0.0, ovlp, Xvel+idir, 1);
-                }
+          FArrayBox& v_fab = (*vel[lev])[mfi];
+          const Box& reg = v_fab.box();
+          for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
+            Box ovlp = reg & *it;
+            if (ovlp.ok()) {
+              v_fab.setVal(0.0, ovlp, Xvel+idir, 1);
             }
+          }
         }
       }
     }
