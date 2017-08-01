@@ -2644,13 +2644,10 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
-
-        BoxList bxlist;
         for (int i=0; i<grids.size(); ++i) {
           const Box& reg = grids[i];
           const Box& bxg1 = amrex::grow(reg, 1);
-
-          bxlist.push_back(reg);
+	  BoxList bxlist(reg);
 
 	  if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
 	    Box bx;                // bx is the region we *protect* from zero'ing
@@ -2690,25 +2687,11 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 
 	    bxlist.push_back(bx);
 	  }
-        }
-
-        BoxList bxlist2;
-        for (int i=0; i<grids.size(); ++i) {
-	  const Box& bxg1 = amrex::grow(grids[i], 1);
-          bxlist2.join(amrex::complementIn(bxg1,bxlist));
-        }
-
-	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
-
-          FArrayBox& v_fab = (*vel[lev])[mfi];
-          const Box& reg = v_fab.box();
-          for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
-            Box ovlp = reg & *it;
-            if (ovlp.ok()) {
-              v_fab.setVal(0.0, ovlp, Xvel+idir, 1);
-            }
-          }
-        }
+	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist); 
+	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
+	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
+	  }
+	}
       }
     }
   }
