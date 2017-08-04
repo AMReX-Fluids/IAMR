@@ -2640,14 +2640,18 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 
     for (int idir=0; idir<BL_SPACEDIM; idir++) {
 
+      std::cout << "DOING DIR " << idir << std::endl;
+
       if (lo_bc[idir] != Inflow && hi_bc[idir] != Inflow) {
 	vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
+
 	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
 	  int i = mfi.index();
 
 	  FArrayBox& v_fab = (*vel[lev])[mfi];
+	  std::cout << "DOING FAB " << v_fab.box() << std::endl;
 
 	  const Box& reg = grids[i];
 	  const Box& bxg1 = amrex::grow(reg, 1);
@@ -2658,9 +2662,16 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	    Box bx;                // bx is the region we *protect* from zero'ing
 
 	    if (inflowCorner && doing_initial_velproj) {
+
               bx = amrex::adjCellLo(reg, idir);
+
               for (int odir = 0; odir < BL_SPACEDIM; odir++)
-                 if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
+                 if (odir != idir)
+                 {
+                    if (geom.isPeriodic(odir)) bx.grow(odir,1);
+                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (idir) ) bx.growHi(odir,1);
+                    if (reg.smallEnd(odir) != domainBox.smallEnd(idir) ) bx.growLo(odir,1);
+                 }
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
@@ -2677,9 +2688,16 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	    Box bx;                // bx is the region we *protect* from zero'ing
 
 	    if (inflowCorner && doing_initial_velproj) {
+
 	      bx = amrex::adjCellHi(reg, idir);
+
               for (int odir = 0; odir < BL_SPACEDIM; odir++)
-                 if (odir != idir && geom.isPeriodic(odir)) bx.grow(odir,1);
+                 if (odir != idir)
+                 {
+                    if (geom.isPeriodic(odir)) bx.grow(odir,1);
+                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (idir) ) bx.growHi(odir,1);
+                    if (reg.smallEnd(odir) != domainBox.smallEnd(idir) ) bx.growLo(odir,1);
+                 }
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
@@ -2690,15 +2708,19 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	      bx = amrex::adjCellHi(reg, idir);
 	    }
 
+            std::cout << "ADDING BX " << bx << std::endl;
 	    bxlist.push_back(bx);
 	  }
 
 	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist); 
+ 
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
+	    std::cout << "SETTING VFAB TO ZERO ON " << *it << std::endl;
 	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
 	  }
 	}
       }
     }
+
   }
 }
