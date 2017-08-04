@@ -2640,8 +2640,6 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 
     for (int idir=0; idir<BL_SPACEDIM; idir++) {
 
-      std::cout << "DOING DIR " << idir << std::endl;
-
       if (lo_bc[idir] != Inflow && hi_bc[idir] != Inflow) {
 	vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
@@ -2651,7 +2649,6 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	  int i = mfi.index();
 
 	  FArrayBox& v_fab = (*vel[lev])[mfi];
-	  std::cout << "DOING FAB " << v_fab.box() << std::endl;
 
 	  const Box& reg = grids[i];
 	  const Box& bxg1 = amrex::grow(reg, 1);
@@ -2708,14 +2705,12 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Array<MultiF
 	      bx = amrex::adjCellHi(reg, idir);
 	    }
 
-            std::cout << "ADDING BX " << bx << std::endl;
 	    bxlist.push_back(bx);
 	  }
 
 	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist); 
  
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
-	    std::cout << "SETTING VFAB TO ZERO ON " << *it << std::endl;
 	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
 	  }
 	}
