@@ -208,12 +208,18 @@ c ::: -----------------------------------------------------------
 
       else if (probtype .eq. 8) then
          call initrt(level,time,lo,hi,nscal,
-     &               vel,scal,DIMS(state),press,DIMS(press),
+     &           vel,scal,DIMS(state),press,DIMS(press),
      &               dx,xlo,xhi)
 
       else if (probtype .eq. 9) then
-         call inittraceradvect(lo,hi,nscal,vel,scal,DIMS(state),dx,
-     &                         xlo,xhi)
+         call inittraceradvect(lo,hi,nscal,
+     &                     vel,scal,DIMS(state),
+     &                         dx,xlo,xhi)
+
+      else if (probtype .eq. 10) then
+         call initfromrest(lo,hi,nscal,
+     &                  vel,scal,DIMS(state),
+     &                      dx,xlo,xhi)
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -629,8 +635,8 @@ c
 c ::: -----------------------------------------------------------
 c
       subroutine initrt(level,time,lo,hi,nscal,
-     &	 	             vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+     &	 	         vel,scal,DIMS(state),press,DIMS(press),
+     &                   dx,xlo,xhi)
 
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -680,8 +686,12 @@ c     ::::: local variables
       
       end
 
-      subroutine inittraceradvect(lo,hi,nscal,vel,scal,DIMS(state),dx, 
-     &                            xlo,xhi)
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine inittraceradvect(lo,hi,nscal,
+     &                        vel,scal,DIMS(state),
+     &                            dx,xlo,xhi)
 
       integer    nscal
       integer    lo(SDIM), hi(SDIM)
@@ -714,6 +724,40 @@ c     ::::: local variables
             vel(i,j,2) = 2.0d0
             scal(i,j,1) = 1.0d0
             scal(i,j,2) = 1.0d0*exp(-(10.0d0*dist)**2)
+
+         end do
+      end do
+      
+      end
+      
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initfromrest(lo,hi,nscal,
+     &                    vel,scal,DIMS(state),
+     &                        dx,xlo,xhi)
+
+      integer    nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      REAL_T     dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+
+
+c     ::::: local variables
+      integer i, j
+
+#include <probdata.H>
+
+      do j=lo(2),hi(2)
+         do i=lo(1),hi(1)
+
+            vel(i,j,1) = 0.0d0
+            vel(i,j,2) = 0.0d0
+            scal(i,j,1) = 1.0d0
+            scal(i,j,2) = 0.0d0
 
          end do
       end do
