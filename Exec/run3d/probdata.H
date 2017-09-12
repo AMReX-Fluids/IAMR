@@ -79,3 +79,6 @@
       REAL_T inlet_ref_height
       common /inflow7r/ inlet_ref_height
       save /inflow7i/, /inflow7r/
+
+	  REAL_T lid_vel
+	  common /probdt29/ lid_vel
