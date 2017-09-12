@@ -281,7 +281,7 @@ c           scal(i,j,1) = merge(denfact,one,dist.lt.radblob)
                scal(i,j,n) = one
             end do                  
             scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
-	 end do
+         end do
       end do
 
       end
@@ -329,26 +329,26 @@ c
 
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    spy = sin(Pi*y)
-	    cpy = cos(Pi*y)
-	    do i = lo(1), hi(1)
+            spy = sin(Pi*y)
+            cpy = cos(Pi*y)
+            do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
- 	       spx = sin(Pi*x)
+               spx = sin(Pi*x)
                cpx = cos(Pi*x)
 
                vel(i,j,1) = x_vel - velfact*two*spy*cpy*spx**2
                vel(i,j,2) = y_vel + velfact*two*spx*cpx*spy**2
 
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+               dist = sqrt((x-xblob)**2 + (y-yblob)**2)
 
                scal(i,j,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
                do n = 2,nscal-1
                   scal(i,j,n) = one
                end do                  
-	       scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
+               scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
 
-	    end do
+            end do
          end do
 
       end
@@ -453,9 +453,9 @@ c
 
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half) - yblob
-	    do i = lo(1), hi(1)
+            do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half) - xblob
-  	       r = sqrt(x**2 + y**2)
+               r = sqrt(x**2 + y**2)
 c              umagin = .5*r - 4*r**3
 c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                umagin = velfact * (one - a*(r - r0)**2)
@@ -470,7 +470,7 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                   scal(i,j,n) = one
                end do                  
                scal(i,j,nscal) = merge(one,zero,r.lt.radblob)
-	    end do
+            end do
          end do
 
       end
@@ -515,8 +515,8 @@ c
             end do                  
 
             x = xlo(1) + hx*(float(i-lo(1)) + half)
-  	    dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-	    scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
+            dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+            scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
 
          end do
       end do
@@ -553,7 +553,7 @@ c
 
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    do i = lo(1), hi(1)
+            do i = lo(1), hi(1)
 
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
@@ -565,9 +565,9 @@ c
                   scal(i,j,n) = one
                end do
                   
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-	       scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
-	    end do
+               dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+               scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
+            end do
          end do
 
       end
@@ -806,7 +806,7 @@ c ::: -----------------------------------------------------------
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             tag(i,j) = merge(set,tag(i,j),rho(i,j,1).lt.denerr)
-	 end do
+         end do
       end do
 
       end
@@ -1575,34 +1575,34 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(rho).lt.domlo(1)) then
          do i = ARG_L1(rho), domlo(1)-1
             do j = ARG_L2(rho), ARG_H2(rho)
-	       rho(i,j) = denfact
-	    end do
-	 end do
+               rho(i,j) = denfact
+            end do
+         end do
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(rho).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(rho)
             do j = ARG_L2(rho), ARG_H2(rho)
-	       rho(i,j) = denfact
-	    end do
-	 end do
+               rho(i,j) = denfact
+            end do
+         end do
       end if            
 
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(rho).lt.domlo(2)) then
            do j = ARG_L2(rho), domlo(2)-1
               do i = ARG_L1(rho), ARG_H1(rho)
-	         rho(i,j) = denfact
-	      end do
-	   end do
+                 rho(i,j) = denfact
+              end do
+           end do
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(rho).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(rho)
             do i = ARG_L1(rho), ARG_H1(rho)
-	       rho(i,j) = denfact
-	    end do
-	 end do
+               rho(i,j) = denfact
+            end do
+         end do
       end if            
 
       end
@@ -1648,35 +1648,35 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(adv).lt.domlo(1)) then
          do i = ARG_L1(adv), domlo(1)-1
             do j = ARG_L2(adv), ARG_H2(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(adv).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(adv)
             do j = ARG_L2(adv), ARG_H2(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
       end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(adv).lt.domlo(2)) then
 
          do j = ARG_L2(adv), domlo(2)-1
             do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
 
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(adv).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
       end if            
 
       end
@@ -1698,35 +1698,35 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(adv).lt.domlo(1)) then
          do i = ARG_L1(adv), domlo(1)-1
             do j = ARG_L2(adv), ARG_H2(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(adv).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(adv)
             do j = ARG_L2(adv), ARG_H2(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
       end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(adv).lt.domlo(2)) then
 
          do j = ARG_L2(adv), domlo(2)-1
             do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
 
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(adv).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(adv)
             do i = ARG_L1(adv), ARG_H1(adv)
-	       adv(i,j) = zero
-	    end do
-	 end do
+               adv(i,j) = zero
+            end do
+         end do
       end if            
 
       end
@@ -1888,17 +1888,17 @@ c
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(u).lt.domlo(1)) then
          do i = ARG_L1(u), domlo(1)-1
             do j = ARG_L2(u), ARG_H2(u)
-	       u(i,j) = x_vel
-	    end do
-	 end do
+               u(i,j) = x_vel
+            end do
+         end do
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(u).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(u)
             do j = ARG_L2(u), ARG_H2(u)
-	       u(i,j) = x_vel
-	    end do
-	 end do
+               u(i,j) = x_vel
+            end do
+         end do
       end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(u).lt.domlo(2)) then
@@ -1913,16 +1913,16 @@ c
 #else
                u(i,j) = zero
 #endif
-	    end do
-	 end do
+            end do
+         end do
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(u).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(u)
             do i = ARG_L1(u), ARG_H1(u)
-	       u(i,j) = zero
-	    end do
-	 end do
+               u(i,j) = zero
+            end do
+         end do
       end if    
 
 #ifdef BL_DO_FLCT        
@@ -2012,17 +2012,17 @@ c ::: -----------------------------------------------------------
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(v).lt.domlo(1)) then
          do i = ARG_L1(v), domlo(1)-1
            do j = ARG_L2(v),ARG_H2(v)
-	     v(i,j) = zero
-	   end do
-	 end do
+             v(i,j) = zero
+           end do
+         end do
       end if            
 
       if (bc(1,2).eq.EXT_DIR.and.ARG_H1(v).gt.domhi(1)) then
          do i = domhi(1)+1, ARG_H1(v)
            do j = ARG_L2(v), ARG_H2(v)
-	     v(i,j) = zero
-	   end do
-	 end do
+             v(i,j) = zero
+           end do
+         end do
       end if            
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(v).lt.domlo(2)) then
@@ -2037,16 +2037,16 @@ c ::: -----------------------------------------------------------
 #else
               v(i,j) = y_vel
 #endif
-	   end do
-	 end do
+           end do
+         end do
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(v).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(v)
            do i = ARG_L1(v), ARG_H1(v)
-	     v(i,j) = y_vel
-	   end do
-	 end do
+             v(i,j) = y_vel
+           end do
+         end do
       end if            
 
 #ifdef BL_DO_FLCT
@@ -2148,76 +2148,82 @@ c
             do j = jlo,jhi
                p(i,j) = p(ihi,j)
             end do
-	 end do
-	 if (fix_ylo) then
-	    do i = domhi(1)+1, ARG_H1(p)
+         end do
+         if (fix_ylo) then
+            do i = domhi(1)+1, ARG_H1(p)
                do j = ARG_L2(p), domlo(2)-1
                   p(i,j) = p(ihi,jlo)
                end do
-	    end do
-	 else if (per_ylo) then
-	    do i = domhi(1)+1, ARG_H1(p)
+            end do
+         else if (per_ylo) then
+            do i = domhi(1)+1, ARG_H1(p)
                do j = ARG_L2(p), domlo(2)-1
                   p(i,j) = p(ihi,j)
                end do
-	    end do
+            end do
          end if
-	 if (fix_yhi) then
-	    do i = domhi(1)+1, ARG_H1(p)
+         if (fix_yhi) then
+            do i = domhi(1)+1, ARG_H1(p)
                do j = domhi(2)+1, ARG_H2(p)
                   p(i,j) = p(ihi,jhi)
                end do
-	    end do
-	 else if (per_yhi) then
-	    do i = domhi(1)+1, ARG_H1(p)
+            end do
+         else if (per_yhi) then
+            do i = domhi(1)+1, ARG_H1(p)
                do j = domhi(2)+1, ARG_H2(p)
                   p(i,j) = p(ihi,j)
                end do
-	    end do
+            end do
          end if
       end if
       
+c
+c     ::::: bottom 
+c
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
             do i = ilo, ihi
                p(i,j) = p(i,jlo)
             end do
-	 end do
-	 if (per_xlo) then
-          do j = ARG_L2(p), domlo(2)-1
+         end do
+         if (per_xlo) then
+            do j = ARG_L2(p), domlo(2)-1
                do i = ARG_L1(p), domlo(1)-1
                   p(i,j) = p(i,jlo)
                end do
-	    end do
+            end do
          end if
-	 if (per_xhi) then
-           do j = ARG_L2(p), domlo(2)-1
+         if (per_xhi) then
+            do j = ARG_L2(p), domlo(2)-1
                do i = domhi(1)+1, ARG_H1(p)
                   p(i,j) = p(i,jlo)
                end do
-	    end do
+            end do
          end if
       end if
 
+c
+c      ::::: top
+c
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
             do i = ilo, ihi
                p(i,j) = p(i,jhi)
             end do
-	 end do
-	 if (per_xlo) then
-	    do j = domhi(2)+1, ARG_H2(p)
+         end do
+         if (per_xlo) then
+            do j = domhi(2)+1, ARG_H2(p)
                do i = ARG_L1(p), domlo(1)-1
                   p(i,j) = p(i,jhi)
                end do
-	    end do
+            end do
          end if
-	 if (per_xhi) then
-	    do j = domhi(2)+1, ARG_H2(p)
+         if (per_xhi) then
+            do j = domhi(2)+1, ARG_H2(p)
                do i = domhi(1)+1, ARG_H1(p)
                   p(i,j) = p(i,jhi)
                end do
-	    end do
+            end do
          end if
       end if
 
