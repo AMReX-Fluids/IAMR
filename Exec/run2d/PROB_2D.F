@@ -733,6 +733,8 @@ c     ::::: local variables
       
 c
 c ::: -----------------------------------------------------------
+c ::: Initialise system from rest. Introduced for the lid-driven cavity
+c ::: test case. 
 c
       subroutine initfromrest(lo,hi,nscal,
      &                    vel,scal,DIMS(state),
@@ -1922,6 +1924,7 @@ c
          do j = domhi(2)+1, ARG_H2(u)
             do i = ARG_L1(u), ARG_H1(u)
                if (probtype .eq. 10) then
+c ::: Lid-driven cavity test case, constant velocity on top of domain
                   u(i,j) = lid_vel
                else 
                   u(i,j) = zero

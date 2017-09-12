@@ -1129,6 +1129,8 @@ c     rad, over a width of trn
       end
 c
 c ::: -----------------------------------------------------------
+c ::: Initialise system from rest. Introduced for the lid-driven cavity
+c ::: test case. 
 c
       subroutine initfromrest(level,time,lo,hi,nscal,
      &                        vel,scal,DIMS(state),press,DIMS(press),
@@ -6103,6 +6105,7 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                enddo
             enddo
          else if (probtype .eq. 29) then
+c ::: Lid-driven cavity test case, constant velocity on top of domain
             do k = domhi(3)+1, ARG_H3(u)
                do j = ARG_L2(u), ARG_H2(u)
                   do i = ARG_L1(u), ARG_H1(u)
