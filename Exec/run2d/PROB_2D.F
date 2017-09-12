@@ -58,7 +58,8 @@ c
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
      &			rhozero, tempzero, c_d, r_d, grav_angle,
-     &                  adv_dir, adv_vel, axis_dir, radvort
+     &                  adv_dir, adv_vel, axis_dir, radvort,
+     &          lid_vel
 #ifdef BL_DO_FLCT
      &                  ,forceInflow, numInflPlanesStore, strmwse_dir,
      $                  forceLo, forceHi, flct_file, turb_scale
@@ -1920,7 +1921,11 @@ c
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(u).gt.domhi(2)) then
          do j = domhi(2)+1, ARG_H2(u)
             do i = ARG_L1(u), ARG_H1(u)
-               u(i,j) = zero
+               if (probtype .eq. 10) then
+                  u(i,j) = lid_vel
+               else 
+                  u(i,j) = zero
+               end if
             end do
          end do
       end if    
