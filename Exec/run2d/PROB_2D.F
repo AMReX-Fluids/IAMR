@@ -1593,11 +1593,11 @@ c ::: -----------------------------------------------------------
 
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(rho).lt.domlo(2)) then
-           do j = ARG_L2(rho), domlo(2)-1
-              do i = ARG_L1(rho), ARG_H1(rho)
-                 rho(i,j) = denfact
-              end do
-           end do
+         do j = ARG_L2(rho), domlo(2)-1
+            do i = ARG_L1(rho), ARG_H1(rho)
+               rho(i,j) = denfact
+            end do
+         end do
       end if            
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(rho).gt.domhi(2)) then
