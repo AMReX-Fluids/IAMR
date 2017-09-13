@@ -69,3 +69,9 @@ inputs.taygre
 
 3-level Taylor–Green vortex.  Constant density, with a spatially-varying tracer field.
 **************************
+
+**************************
+inputs.3d.lid_driven_cavity
+
+3D extension of the lid-driven cavity test case, as described in ../run2d/README.2D
+**************************
