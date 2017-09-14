@@ -217,7 +217,7 @@ c ::: -----------------------------------------------------------
      &                     vel,scal,DIMS(state),
      &                         dx,xlo,xhi)
 
-      else if (probtype .eq. 10) then
+      else if (probtype .eq. 10 .or. probtype .eq. 11) then
          call initfromrest(lo,hi,nscal,
      &                  vel,scal,DIMS(state),
      &                      dx,xlo,xhi)
