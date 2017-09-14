@@ -1102,7 +1102,7 @@ c      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
          call initswirltest(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
-      else if (probtype .eq. 29) then
+      else if (probtype .eq. 29 .or. probtype .eq. 30) then
          call initfromrest(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
