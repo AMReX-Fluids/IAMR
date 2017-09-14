@@ -23,6 +23,7 @@ int  NavierStokesBase::init_iter          = 2;
 Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;    
 Real NavierStokesBase::fixed_dt           = -1.0;      
+Real NavierStokesBase::steady_tol 		  = 1.0e-10;
 int  NavierStokesBase::initial_iter       = false;  
 int  NavierStokesBase::initial_step       = false;  
 Real NavierStokesBase::dt_cutoff          = 0.0;     
@@ -409,6 +410,7 @@ NavierStokesBase::Initialize ()
     pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
+    pp.query("steady_tol",steady_tol);
     pp.query("sum_interval",sum_interval);
     pp.query("turb_interval",turb_interval);
     pp.query("jet_interval",jet_interval);
@@ -2339,6 +2341,20 @@ int
 NavierStokesBase::okToContinue ()
 {
     return (level > 0) ? true : (parent->dtLevel(0) > dt_cutoff);
+}
+
+int 
+NavierStokesBase::steadyState()
+{
+	Real 	  max_change = 0.0;
+	MultiFab& U_old 	 = get_old_data(State_Type);
+	MultiFab& U_new  	 = get_new_data(State_Type);
+
+	// change = U_new - U_old
+
+	max_change = max(max_change, change.norm0());
+
+  	return change < steady_tol;
 }
 
 //
