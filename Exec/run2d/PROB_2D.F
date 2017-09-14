@@ -734,7 +734,7 @@ c     ::::: local variables
 c
 c ::: -----------------------------------------------------------
 c ::: Initialise system from rest. Introduced for the lid-driven cavity
-c ::: test case. 
+c ::: test case, also used for Poiseuille flow in square duct. 
 c
       subroutine initfromrest(lo,hi,nscal,
      &                    vel,scal,DIMS(state),

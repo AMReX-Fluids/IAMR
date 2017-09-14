@@ -87,3 +87,18 @@ where mu is the viscosity coefficient.
 Reference: Ghia et al., "High-Re solutions for incompressible flow using the
 Navier-Stokes equations and a multigrid method", J. Comp. Phys. (1982)
 **************************
+
+**************************
+inputs.2d.poiseuille
+
+Simple Poiseuille flow in a square duct. The constant pressure gradient p0 is
+enforced by setting the gravity parameter. Although there should be an inflow
+BC at the bottom boundary, we are currently using an outflow BC since this
+works OK. However, this can cause troubles for higher resolutions, which can be
+fixed by reducing the CFL number. 
+
+Analytical solution: 
+	u = p0 y (L - y) / (2 mu)
+
+We use p0 = mu = L = 1.
+**************************
