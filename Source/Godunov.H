@@ -210,6 +210,10 @@ public:      // public access functions
     amrex::Real estdt( amrex::FArrayBox &U, amrex::FArrayBox &tforces, amrex::FArrayBox &Rho,
                 const amrex::Box &grd, const amrex::Real *dx, amrex::Real cfl, amrex::Real *u_max );
 
+	// find the largest change in velocity magnitude since last iteration
+    amrex::Real maxchange( amrex::FArrayBox &U_old, amrex::FArrayBox &U_new, 
+                const amrex::Box &grd );
+
     // test the cell centered Courant number 
     amrex::Real test_u_rho( amrex::FArrayBox &U, amrex::FArrayBox &Rho, const amrex::Box &grd,
                      const amrex::Real *dx, const amrex::Real dt,

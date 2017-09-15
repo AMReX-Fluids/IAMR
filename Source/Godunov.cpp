@@ -1205,6 +1205,34 @@ Godunov::estdt (FArrayBox&  U,
 }
 
 //
+// Estimate the maximum velocity change since previous iteration. 
+//
+
+Real
+Godunov::maxchange (FArrayBox&  U_old,
+					FArrayBox&  U_new,
+                	const Box&  grd)
+{
+    BL_ASSERT( U_old.nComp()   >= BL_SPACEDIM );
+    BL_ASSERT( U_new.nComp()   >= BL_SPACEDIM );
+
+    const int *lo     = grd.loVect();
+    const int *hi     = grd.hiVect();
+    const int *uo_lo  = U_old.loVect();
+    const int *uo_hi  = U_old.hiVect();
+    const int *un_lo  = U_new.loVect();
+    const int *un_hi  = U_new.hiVect();
+    const Real *Uodat = U_old.dataPtr();
+    const Real *Undat = U_new.dataPtr();
+
+	Real max_change;
+    FORT_MAXCHANGE(Uodat, ARLIM(uo_lo), ARLIM(uo_hi),
+               	   Undat, ARLIM(un_lo), ARLIM(un_hi),
+               	   lo, hi, &max_change);
+    return max_change;
+}
+
+//
 // Estimate the extrema of cell-centered us and rho.
 //
 
