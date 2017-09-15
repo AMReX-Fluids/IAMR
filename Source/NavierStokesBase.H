@@ -118,7 +118,7 @@ public:
 	// Check whether simulation has reached steady state, i.e. whether the
 	// change from last iteration is below a prescribed threshold steady_tol. 
     //
-    virtual int steadyState () override;
+    virtual int steadyState ();
     //
     // Build any additional data structures after regrid.
     //
@@ -615,6 +615,7 @@ protected:
     static amrex::Real cfl;           // desired maximum cfl
     static amrex::Real change_max;    // maximum change in dt over a timestep
     static amrex::Real fixed_dt;      // set > 0 to specify dt
+	static bool stop_when_steady; 	  // set to true if simulation should stop at steady-state
 	static amrex::Real steady_tol;    // tolerance for assuming steady-state has been reached
     static int  initial_iter;  // flag for initial pressure iterations
     static int  initial_step;  // flag for initial iterations
