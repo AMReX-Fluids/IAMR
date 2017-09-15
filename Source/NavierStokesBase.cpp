@@ -2342,9 +2342,16 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
 int
 NavierStokesBase::okToContinue ()
 {
+	//
+	// Check that dt is OK across AMR levels
+	//
   	int okLevel = (level > 0) ? true : (parent->dtLevel(0) > dt_cutoff);
 
 	if (stop_when_steady)
+		//
+		// If stop_when_steady is enabled, also check that we haven't reached
+		// steady-state. 
+		//
 		return (okLevel && !steadyState());
 	else 
 	  	return okLevel;
@@ -2357,19 +2364,24 @@ NavierStokesBase::steadyState()
     MultiFab&   U_old         = get_old_data(State_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
 
+	//
+	// Estimate the maximum change in velocity magnitude since previous
+	// iteration
+	//
     for (MFIter Rho_mfi(rho_ctime); Rho_mfi.isValid(); ++Rho_mfi)
     {
         const int i = Rho_mfi.index();
-        //
-        // Estimate the maximum change in velocity field since previous iteration
-        //
-        Real change = godunov->maxchange(U_new[Rho_mfi],U_old[Rho_mfi],grids[i]);
+        Real change = godunov->maxchng_velmag(U_new[Rho_mfi],U_old[Rho_mfi],grids[i]);
 
 		max_change = std::max(change, max_change);
     }
 
     ParallelDescriptor::ReduceRealMax(max_change);
 
+	//
+	// System is classified as steady if the maximum change is smaller than
+	// prescribed tolerance
+	//
 	bool steady = max_change < steady_tol;
 
     if (verbose)

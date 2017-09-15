@@ -94,13 +94,15 @@ c
 
       end
 
-      subroutine FORT_MAXCHANGE (
+      subroutine FORT_MAXCHNG_VELMAG (
      &     old_vel,DIMS(old_vel),
      &     new_vel,DIMS(new_vel),
      &     lo,hi,max_change)
 c 
 c     ----------------------------------------------------------
-c     TODO: Documentation
+c     Given the velocity field at the previous and current time steps
+c     (old_vel and new_vel, respectively), find the largest change in
+c     velocity magnitude between the two.
 c     ----------------------------------------------------------
 c
       implicit none

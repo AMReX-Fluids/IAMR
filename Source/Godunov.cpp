@@ -1205,13 +1205,13 @@ Godunov::estdt (FArrayBox&  U,
 }
 
 //
-// Estimate the maximum velocity change since previous iteration. 
+// Estimate the maximum change in velocity magnitude since previous iteration. 
 //
 
 Real
-Godunov::maxchange (FArrayBox&  U_old,
-					FArrayBox&  U_new,
-                	const Box&  grd)
+Godunov::maxchng_velmag (FArrayBox&  U_old,
+						 FArrayBox&  U_new,
+                		 const Box&  grd)
 {
     BL_ASSERT( U_old.nComp()   >= BL_SPACEDIM );
     BL_ASSERT( U_new.nComp()   >= BL_SPACEDIM );
@@ -1225,8 +1225,8 @@ Godunov::maxchange (FArrayBox&  U_old,
     const Real *Uodat = U_old.dataPtr();
     const Real *Undat = U_new.dataPtr();
 
-	Real max_change;
-    FORT_MAXCHANGE(Uodat, ARLIM(uo_lo), ARLIM(uo_hi),
+	Real max_change = 0.0;
+    FORT_MAXCHNG_VELMAG(Uodat, ARLIM(uo_lo), ARLIM(uo_hi),
                	   Undat, ARLIM(un_lo), ARLIM(un_hi),
                	   lo, hi, &max_change);
     return max_change;
