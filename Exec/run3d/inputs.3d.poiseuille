@@ -1,23 +1,26 @@
 #*******************************************************************************
-# INPUTS.3D.LID_DRIVEN_CAVITY
+# INPUTS.3D.POISEUILLE
 #*******************************************************************************
 
-max_step                =  -1
+max_step                =  1000
 
-stop_time 				=  1.0
+stop_time 				=  -1
+
+ns.stop_when_steady 	=  1
+ns.steady_tol 			=  1.0e-4
 
 amr.n_cell              =  32 32 32
 
 amr.max_level           =  0
 
-ns.v                    =  0
+ns.v                    =  1
 amr.v                   =  1
 
-amr.check_int			=  100
+amr.check_int			=  1000
 
-amr.plot_int			=  1
+amr.plot_int			=  10
 
-ns.cfl                  =  0.7  # CFL number used to set dt
+ns.cfl                  =  0.5  # CFL number used to set dt
 
 ns.init_shrink          =  0.3  # factor which multiplies the very first time step
 ns.init_iter          	=  3    # number of initial iterations
