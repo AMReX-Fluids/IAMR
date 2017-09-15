@@ -6,10 +6,14 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 				= -1
+max_step 				= 1000
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 				= 10.0
+stop_time 				= -1
+
+# Tolerance for assuming system has reached steady-state
+ns.stop_when_steady 	= 1
+ns.steady_tol 			= 1.0e-5
 
 #*******************************************************************************
 
@@ -25,7 +29,7 @@ amr.max_level			= 0 # maximum number of levels of refinement
 #*******************************************************************************
 
 # Sets the "NavierStokes" code to not be verbose
-ns.v                    = 0
+ns.v                    = 1
 
 #*******************************************************************************
 
@@ -45,7 +49,7 @@ amr.plot_int			= 10
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
-ns.cfl                  = 0.7  # CFL number used to set dt
+ns.cfl                  = 0.5  # CFL number used to set dt
 
 #*******************************************************************************
 

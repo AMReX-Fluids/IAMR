@@ -83,7 +83,7 @@ main (int   argc,
         }
     }
 
-    while ( amrptr->okToContinue()           &&
+    while ( amrptr->okToContinue()                            &&
            (amrptr->levelSteps(0) < max_step || max_step < 0) &&
            (amrptr->cumTime() < stop_time || stop_time < 0.0) )
     {

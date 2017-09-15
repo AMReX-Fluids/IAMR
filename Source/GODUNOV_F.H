@@ -6,6 +6,7 @@
 #    define FORT_TEST_U_RHO         testurho
 #    define FORT_TEST_UMAC_RHO      testumacrho
 #    define FORT_ESTDT              estmdt
+#    define FORT_MAXCHNG_VELMAG     maxchngvelmag
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
 #    define FORT_ESTATE_FPU         estatefpu
@@ -28,6 +29,7 @@
 #    define FORT_TEST_U_RHO         TESTURHO 
 #    define FORT_TEST_UMAC_RHO      TESTUMACRHO
 #    define FORT_ESTDT              ESTMDT 
+#    define FORT_MAXCHNG_VELMAG     MAXCHNGVELMAG
 #    define FORT_TRANSVEL           TRANSVEL  
 #    define FORT_ESTATE             ESTATE    
 #    define FORT_ESTATE_FPU         ESTATEFPU
@@ -49,6 +51,7 @@
 #    define FORT_TEST_U_RHO         testurho
 #    define FORT_TEST_UMAC_RHO      testumacrho
 #    define FORT_ESTDT              estmdt
+#    define FORT_MAXCHNG_VELMAG     maxchngvelmax
 #    define FORT_TRANSVEL           transvel
 #    define FORT_ESTATE             estate
 #    define FORT_ESTATE_FPU         estatefpu
@@ -70,6 +73,7 @@
 #    define FORT_TEST_U_RHO         testurho_
 #    define FORT_TEST_UMAC_RHO      testumacrho_
 #    define FORT_ESTDT              estmdt_
+#    define FORT_MAXCHNG_VELMAG     maxchngvelmag_
 #    define FORT_TRANSVEL           transvel_
 #    define FORT_ESTATE             estate_
 #    define FORT_ESTATE_FPU         estatefpu_
@@ -119,6 +123,10 @@ extern "C"
 		   const amrex::Real* rdat,  ARLIM_P(rlo), ARLIM_P(rhi),
 		   const int* lo, const int* hi, amrex::Real* dt, 
 		   const amrex::Real* dx, amrex::Real* cfl, amrex::Real* u_max);
+   
+   void FORT_MAXCHNG_VELMAG(const amrex::Real* Uodat,  ARLIM_P(uo_lo), ARLIM_P(uo_hi),
+		   const amrex::Real* Undat,  ARLIM_P(un_lo), ARLIM_P(un_hi),
+		   const int* lo, const int* hi, amrex::Real* max_change);
    
    void FORT_TRANSVEL( const amrex::Real* u_dat, const amrex::Real* uad_dat, 
 		       const amrex::Real* xhi_dat, const amrex::Real* slx_dat, 

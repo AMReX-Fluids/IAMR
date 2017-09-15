@@ -23,6 +23,8 @@ int  NavierStokesBase::init_iter          = 2;
 Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;    
 Real NavierStokesBase::fixed_dt           = -1.0;      
+bool NavierStokesBase::stop_when_steady   = false;
+Real NavierStokesBase::steady_tol 		  = 1.0e-10;
 int  NavierStokesBase::initial_iter       = false;  
 int  NavierStokesBase::initial_step       = false;  
 Real NavierStokesBase::dt_cutoff          = 0.0;     
@@ -409,6 +411,8 @@ NavierStokesBase::Initialize ()
     pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
+    pp.query("stop_when_steady",stop_when_steady);
+    pp.query("steady_tol",steady_tol);
     pp.query("sum_interval",sum_interval);
     pp.query("turb_interval",turb_interval);
     pp.query("jet_interval",jet_interval);
@@ -2338,7 +2342,64 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
 int
 NavierStokesBase::okToContinue ()
 {
-    return (level > 0) ? true : (parent->dtLevel(0) > dt_cutoff);
+	//
+	// Check that dt is OK across AMR levels
+	//
+  	int okLevel = (level > 0) ? true : (parent->dtLevel(0) > dt_cutoff);
+
+	if (stop_when_steady)
+		//
+		// If stop_when_steady is enabled, also check that we haven't reached
+		// steady-state. 
+		//
+		return (okLevel && !steadyState());
+	else 
+	  	return okLevel;
+}
+
+int 
+NavierStokesBase::steadyState()
+{
+	Real 	    max_change    = 0.0;
+    MultiFab&   U_old         = get_old_data(State_Type);
+    MultiFab&   U_new         = get_new_data(State_Type);
+
+	//
+	// Estimate the maximum change in velocity magnitude since previous
+	// iteration
+	//
+    for (MFIter Rho_mfi(rho_ctime); Rho_mfi.isValid(); ++Rho_mfi)
+    {
+        const int i = Rho_mfi.index();
+        Real change = godunov->maxchng_velmag(U_new[Rho_mfi],U_old[Rho_mfi],grids[i]);
+
+		max_change = std::max(change, max_change);
+    }
+
+    ParallelDescriptor::ReduceRealMax(max_change);
+
+	//
+	// System is classified as steady if the maximum change is smaller than
+	// prescribed tolerance
+	//
+	bool steady = max_change < steady_tol;
+
+    if (verbose)
+    {
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+		amrex::Print() << "steadyState :: \n" << "LEV = " << level 
+			<< " MAX_CHANGE = " << max_change << std::endl; 
+
+		if (steady)
+		{
+		    amrex::Print() 
+			  << "System reached steady-state, stopping simulation." 
+			  << std::endl;
+		}
+    }
+
+    return steady;
 }
 
 //
