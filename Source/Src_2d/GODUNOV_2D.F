@@ -93,10 +93,7 @@ c
      &     lo,hi,max_change)
 c 
 c     ----------------------------------------------------------
-c     estimate the timestep for this grid and scale by CFL number
-c     This routine sets dt as dt = dt_est*cfl where
-c     dt_est is estimated from the actual velocities and their 
-c     total forcing
+c     TODO: Documentation
 c     ----------------------------------------------------------
 c
       implicit none
