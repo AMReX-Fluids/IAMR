@@ -6,15 +6,19 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 				= -1
+max_step 				= 100000
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 				= 50.0
+stop_time 				= -1
+
+# Stop simulation when we reach steady-state
+ns.stop_when_steady 	= 1
+ns.steady_tol 			= 1.0e-5
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 				= 64 64
+amr.n_cell 				= 128 128
 amr.max_grid_size		= 16
 
 #*******************************************************************************
@@ -105,7 +109,7 @@ ns.hi_bc             	= 5 5
 #*******************************************************************************
 
 # Continue from checkpoint 
-# amr.restart 			= chk00927
+# amr.restart 			= chk02607
 
 #*******************************************************************************
 
