@@ -94,6 +94,48 @@ c
 
       end
 
+      subroutine FORT_MAXCHANGE (
+     &     old_vel,DIMS(old_vel),
+     &     new_vel,DIMS(new_vel),
+     &     lo,hi,max_change)
+c 
+c     ----------------------------------------------------------
+c     TODO: Documentation
+c     ----------------------------------------------------------
+c
+      implicit none
+      REAL_T   old_velmag, new_velmag
+      integer  i, j, k
+      integer  lo(SDIM), hi(SDIM)
+      REAL_T   max_change
+
+      integer DIMDEC(old_vel)
+      integer DIMDEC(new_vel)
+
+      REAL_T  old_vel(DIMV(old_vel),SDIM)
+      REAL_T  new_vel(DIMV(new_vel),SDIM)
+
+      max_change = zero
+
+!$omp parallel do private(i,j,k,old_velmag,new_velmag)
+!$omp&reduction(max: max_change)
+      do k = lo(3), hi(3)
+          do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+                old_velmag = sqrt(old_vel(i,j,k,1)**2 +
+     &                            old_vel(i,j,k,2)**2 +
+     &                            old_vel(i,j,k,3)**2)
+                new_velmag = sqrt(new_vel(i,j,k,1)**2 +
+     &                            new_vel(i,j,k,2)**2 +
+     &                            new_vel(i,j,k,3)**2)
+                max_change = max(max_change, abs(new_velmag - old_velmag))
+            end do
+          end do
+      end do
+!$omp end parallel do
+
+      end
+
       subroutine FORT_TEST_U_RHO(
      &     u,DIMS(u),
      &     v,DIMS(v),
