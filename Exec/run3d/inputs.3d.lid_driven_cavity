@@ -6,7 +6,10 @@ max_step                =  -1
 
 stop_time 				=  10.0
 
-amr.n_cell              =  32 32 32
+ns.stop_when_steady 	=  1
+ns.steady_tol 			=  1.0e-4
+
+amr.n_cell              =  64 64 64
 
 amr.max_level           =  0
 
