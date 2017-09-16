@@ -13,6 +13,7 @@
 #    define FORT_DERVORTZ    dervortz
 #    define FORT_DERDMAG     derdmag
 #endif
+#    define FORT_DERMGSTRNRT dermgstrnrt
 #    define FORT_DERVORT     dervort
 #    define FORT_DERMVEL     dermvel
 #    define FORT_DERLOGS     derlogs
@@ -59,6 +60,7 @@
 #    define FORT_DERVORTZ    DERVORTZ
 #    define FORT_DERDMAG     DERDMAG
 #endif
+#    define FORT_DERMGSTRNRT DERMGSTRNRT
 #    define FORT_DERVORT     DERVORT
 #    define FORT_DERMVEL     DERMVEL
 #    define FORT_DERLOGS     DERLOGS
@@ -105,6 +107,7 @@
 #    define FORT_DERVORTZ    dervortz
 #    define FORT_DERDMAG     derdmag
 #endif
+#    define FORT_DERMGSTRNRT dermgstrnrt
 #    define FORT_DERVORT     dervort
 #    define FORT_DERMVEL     dermvel
 #    define FORT_DERLOGS     derlogs
@@ -151,6 +154,7 @@
 #    define FORT_DERVORTZ    dervortz_
 #    define FORT_DERDMAG     derdmag_
 #endif
+#    define FORT_DERMGSTRNRT dermgstrnrt_
 #    define FORT_DERVORT     dervort_
 #    define FORT_DERMVEL     dermvel_
 #    define FORT_DERLOGS     derlogs_
@@ -266,6 +270,15 @@ extern "C" {
                            const int* level, const int* grid_no) ;
 
 #endif
+
+     void FORT_DERMGSTRNRT  (amrex::Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+                           const int* nvar, const amrex::Real* compdat,
+			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const amrex::Real* delta, const amrex::Real* xlo,
+			   const amrex::Real* time, const amrex::Real* dt, const int* bcrec, 
+                           const int* level, const int* grid_no) ;
 
      void FORT_DERVORT    (amrex::Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const amrex::Real* compdat,

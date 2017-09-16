@@ -346,6 +346,11 @@ NavierStokes::variableSetUp ()
     derive_lst.addComponent("DMagVort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #endif
     //
+    // magnitude of rate-of-strain tensor
+    //
+    derive_lst.add("mag_strainrate",IndexType::TheCellType(),1,FORT_DERMGSTRNRT,grow_box_by_one);
+    derive_lst.addComponent("mag_strainrate",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
     // divergence of velocity field
     //
     derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,grow_box_by_one);
