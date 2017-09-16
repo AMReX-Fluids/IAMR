@@ -46,5 +46,5 @@ ns.hi_bc             	=  5 5 5
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 
-amr.derive_plot_vars   	=  mag_vort
+amr.derive_plot_vars   	=  mag_vort mag_strainrate
 proj.v 					=  0
