@@ -867,11 +867,11 @@ NavierStokes::velocity_diffusion_update (Real dt)
         if (variable_vel_visc)
         {
             Real viscTime = state[State_Type].prevTime();
-	    loc_viscn = fb_viscn.define(this);
+            loc_viscn = fb_viscn.define(this);
             getViscosity(loc_viscn, viscTime);
 
             viscTime = state[State_Type].curTime();
-	    loc_viscnp1 = fb_viscnp1.define(this);
+            loc_viscnp1 = fb_viscnp1.define(this);
             getViscosity(loc_viscnp1, viscTime);
         }
 
@@ -1585,7 +1585,7 @@ NavierStokes::mac_sync ()
             if (variable_vel_visc)
             {
                 Real viscTime = state[State_Type].prevTime();
-		loc_viscn = fb_viscn.define(this);
+                loc_viscn = fb_viscn.define(this);
                 getViscosity(loc_viscn, viscTime);
             }
 
@@ -2022,9 +2022,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 
         if (variable_vel_visc)
         {
-	    viscosity = fb.define(this);
+            viscosity = fb.define(this);
             getViscosity(viscosity, time);
-
             diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
         }
         else
@@ -2142,7 +2141,24 @@ NavierStokes::calcViscosity (const Real time,
     {
         if (visc_coef[Xvel] >= 0.0)
         {
-            visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
+            if (yield_stress > 0.0)
+            {
+                //
+                // Compute apparent viscosity for regularised Bingham fluid
+                //
+                calcBingham(visc_coef[Xvel],yield_stress,reg_param,visc_cc);
+            }
+            else if (yield_stress == 0.0)
+            {
+                //
+                // Fluid is Newtonian
+                //
+                visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
+            }
+            else
+            {
+                amrex::Abort("NavierStokes::calcViscosity() : must have yield_stress >= 0.0");
+            }
         }
         else
         {

@@ -58,6 +58,11 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 
 #*******************************************************************************
 
+# Enable variable viscosity
+ns.variable_vel_visc    = 1
+ns.yield_stress         = 0.3
+ns.reg_param            = 1.0e-2
+
 # Viscosity coefficient 
 ns.vel_visc_coef        = 1.0
 

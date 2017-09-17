@@ -687,6 +687,202 @@ c
 
       end
 
+      subroutine FORT_DERBINGHAM (visc,DIMS(visc),nv,dat,DIMS(dat),ncomp,
+     &                             lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                             bc,level,grid_no)
+      implicit none
+c
+c ::: This routine will derive magnitude of rate-of-strain tensor from
+c ::: the velocity field
+c
+      integer    lo(2), hi(2)
+      integer    DIMDEC(visc)
+      integer    DIMDEC(dat)
+      integer    domlo(2), domhi(2)
+      integer    nv, ncomp
+      integer    bc(2,2,ncomp)
+      REAL_T     delta(2), xlo(2), time, dt
+      REAL_T     visc(DIMV(visc),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer   i,j
+      REAL_T    ux, vx, uy, vy, dx, dy
+      logical   fixlft, fixrgt, fixbot, fixtop
+      REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
+      REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
+      REAL_T    strnrt, strnrt_fun
+c
+c     ::::: some useful macro definitions
+c
+#     define U(i,j) dat(i,j,1)
+#     define V(i,j) dat(i,j,2)
+#     define VLOX bc(1,1,2)
+#     define VHIX bc(1,2,2)
+#     define ULOY bc(2,1,1)
+#     define UHIY bc(2,2,1)
+c
+c     ::::: statement functions that implement stencil
+c
+      uxcen(i,j) = half*(U(i+1,j)-U(i-1,j))/dx
+      uxlft(i,j) = (U(i+1,j)+three*U(i,j)-four*U(i-1,j))/(three*dx)
+      uxrgt(i,j) = (four*U(i+1,j)-three*U(i,j)-U(i-1,j))/(three*dx)
+      vxcen(i,j) = half*(V(i+1,j)-V(i-1,j))/dx
+      vxlft(i,j) = (V(i+1,j)+three*V(i,j)-four*V(i-1,j))/(three*dx)
+      vxrgt(i,j) = (four*V(i+1,j)-three*V(i,j)-V(i-1,j))/(three*dx)
+      uycen(i,j) = half*(U(i,j+1)-U(i,j-1))/dy
+      uybot(i,j) = (U(i,j+1)+three*U(i,j)-four*U(i,j-1))/(three*dy)
+      uytop(i,j) = (four*U(i,j+1)-three*U(i,j)-U(i,j-1))/(three*dy)
+      vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
+      vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
+      vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
+
+c
+c     ::::: function for computing magnitude of rate of strain tensor
+c
+      strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
+      bngham_fun(mu,t0,strn,eps) = mu+half*t0*(1-exp(-strn/eps))/strn
+
+      dx = delta(1)
+      dy = delta(2)
+
+      do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            ux  = uxcen(i,j)
+            vx  = vxcen(i,j)
+            uy  = uycen(i,j)
+            vy  = vycen(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            visc(i,j,1) =
+     &          bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         end do
+      end do
+
+      fixlft = ( (lo(1) .eq. domlo(1)) .and. 
+     &           (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
+     &           (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixbot = ( (lo(2) .eq. domlo(2)) .and. 
+     &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixtop = ( (hi(2) .eq. domhi(2)) .and. 
+     &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+c
+c     ::::: handle special bndry conditions at the left edge
+c
+      if (fixlft) then
+         i = lo(1)
+         do j = lo(2), hi(2)
+            ux  = uxlft(i,j)
+            vx  = vxlft(i,j)
+            uy  = uycen(i,j)
+            vy  = vycen(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            visc(i,j,1) =
+     &          bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         end do
+      end if
+c
+c     ::::: handle special bndry conditions on the right
+c
+      if (fixrgt) then
+         i = hi(1)
+         do j = lo(2), hi(2)
+            ux  = uxrgt(i,j)
+            vx  = vxrgt(i,j)
+            uy  = uycen(i,j)
+            vy  = vycen(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            visc(i,j,1) =
+     &          bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         end do
+      end if
+c
+c     ::::: handle special bndry conditions on bottom
+c
+      if (fixbot) then
+         j = lo(2)
+         do i = lo(1), hi(1)
+            ux  = uxcen(i,j)
+            vx  = vxcen(i,j)
+            uy  = uybot(i,j)
+            vy  = vybot(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            visc(i,j,1) =
+     &          bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         end do
+      end if
+c
+c     ::::: handle special bndry conditions on top
+c
+      if (fixtop) then
+         j = hi(2)
+         do i = lo(1), hi(1)
+            ux  = uxcen(i,j)
+            vx  = vxcen(i,j)
+            uy  = uytop(i,j)
+            vy  = vytop(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            visc(i,j,1) =
+     &          bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         end do
+      end if
+c
+c     ::::: check corners
+c
+      if (fixlft .and. fixbot) then
+         i = lo(1)
+         j = lo(2)
+         ux = uxlft(i,j)
+         vx = vxlft(i,j)
+         uy = uybot(i,j)
+         vy = vybot(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         visc(i,j,1) =
+     &       bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+      end if
+      if (fixlft .and. fixtop) then
+         i = lo(1)
+         j = hi(2)
+         ux = uxlft(i,j)
+         vx = vxlft(i,j)
+         uy = uytop(i,j)
+         vy = vytop(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         visc(i,j,1) =
+     &       bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+      end if
+      if (fixrgt .and. fixtop) then
+         i = hi(1)
+         j = hi(2)
+         ux = uxrgt(i,j)
+         vx = vxrgt(i,j)
+         uy = uytop(i,j)
+         vy = vytop(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         visc(i,j,1) =
+     &       bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+      end if
+      if (fixrgt .and. fixbot) then
+         i = hi(1)
+         j = lo(2)
+         ux = uxrgt(i,j)
+         vx = vxrgt(i,j)
+         uy = uybot(i,j)
+         vy = vybot(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         visc(i,j,1) =
+     &       bngham_fun(visc_coef,yield_stress,strnrt,reg_param)
+      end if
+
+#     undef U
+#     undef V      
+#     undef VLOX
+#     undef VHIX
+#     undef ULOY
+#     undef UHIY
+
+      end
+
       subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      $                           bc,level,grid_no)

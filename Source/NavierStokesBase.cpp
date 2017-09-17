@@ -49,6 +49,8 @@ Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
 int         NavierStokesBase::variable_vel_visc  = 0;
 int         NavierStokesBase::variable_scal_diff = 0;
+Real        NavierStokesBase::yield_stress       = 0.0;
+Real        NavierStokesBase::reg_param          = 0.01;
 
 int         NavierStokesBase::Tracer                    = -1;
 int         NavierStokesBase::Tracer2                   = -1;
@@ -483,6 +485,11 @@ NavierStokesBase::Initialize ()
     pp.query("visc_abs_tol",visc_abs_tol);
     pp.query("variable_vel_visc",variable_vel_visc);
     pp.query("variable_scal_diff",variable_scal_diff);
+    //
+    // Viscosity parameters for Bingham model
+    //
+    pp.query("yield_stress",yield_stress);
+    pp.query("reg_param",reg_param);
 
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
@@ -742,14 +749,14 @@ NavierStokesBase::advance_setup (Real time,
     if (variable_vel_visc)
     {
         calcViscosity(prev_time,dt,iteration,ncycle);
-	MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
+        MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
     }
 
     if (variable_scal_diff)
     {
         const int num_diff = NUM_STATE-BL_SPACEDIM-1;
         calcDiffusivity(prev_time);
-	MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
+        MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
     }
 }
 
