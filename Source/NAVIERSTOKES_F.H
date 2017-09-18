@@ -13,6 +13,7 @@
 #    define FORT_CEN2EDG     cen2edg
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
+#    define FORT_BINGHAM 	 bingham
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb
 #ifdef SUMJET
@@ -32,6 +33,7 @@
 #    define FORT_EDGE_INTERP EDGE_INTERP
 #    define FORT_PC_CF_EDGE_INTERP PC_EDGE_INTERP
 #    define FORT_HOEXTRAPTOCC HOEXTRAPTOCC
+#    define FORT_BINGHAM 	 BINGHAM
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     SUMTURB
 #ifdef SUMJET
@@ -50,6 +52,7 @@
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
 #    define FORT_HOEXTRAPTOCC hoextraptocc
+#    define FORT_BINGHAM 	 bingham
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb
 #ifdef SUMJET
@@ -68,6 +71,7 @@
 #    define FORT_EDGE_INTERP edge_interp_
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp_
 #    define FORT_HOEXTRAPTOCC hoextraptocc_
+#    define FORT_BINGHAM 	 bingham_
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb_
 #ifdef SUMJET
@@ -173,6 +177,12 @@ extern "C" {
     void FORT_HOEXTRAPTOCC (const amrex::Real* q, ARLIM_P(q_lo), ARLIM_P(q_hi),
                      const int* dom_lo, const int* dom_hi,
                      const amrex::Real* dx ,const amrex::Real* xlo);
+
+	void FORT_BINGHAM(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
+					  const amrex::Real* vel, ARLIM_P(vel_lo), ARLIM_P(vel_hi),
+					  const int* lo, const int* hi, const int* domain_lo, const int* domain_hi,
+					  const amrex::Real* delta, const int* bcrec,
+					  const Real* mu, const Real* tau, const Real* eps);
 
 #ifdef __cplusplus
 }
