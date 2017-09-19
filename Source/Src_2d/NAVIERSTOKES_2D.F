@@ -442,16 +442,21 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun, bingham_fun
+      REAL_T    strnrt, strnrt_fun, bingham_exp, bingham_tlr
+
 c
 c     ::::: some useful macro definitions
 c
-#     define U(i,j) dat(i,j,1)
-#     define V(i,j) dat(i,j,2)
+#     define U(i,j) vel(i,j,1)
+#     define V(i,j) vel(i,j,2)
+#     define ULOX bc(1,1,1)
 #     define VLOX bc(1,1,2)
+#     define UHIX bc(1,2,1)
 #     define VHIX bc(1,2,2)
 #     define ULOY bc(2,1,1)
+#     define VLOY bc(2,1,2)
 #     define UHIY bc(2,2,1)
+#     define VHIY bc(2,2,2)
 c
 c     ::::: statement functions that implement stencil
 c
@@ -472,7 +477,15 @@ c
 c     ::::: function for computing magnitude of rate of strain tensor
 c
       strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
-      bingham_fun(x) = mu+half*tau*(1-exp(-x/eps))/x
+
+c
+c     ::::: Functions for computing the regularised Bingham viscosity.
+c     ::::: When the strain rate is small, Taylor expand the exponential
+c     ::::: to avoid floating point errors.
+c
+      bingham_exp(strnrt) = mu+half*tau*(1-exp(-strnrt/eps))/strnrt
+      bingham_tlr(strnrt) =
+     & mu+half*tau/eps*(one-half*strnrt/eps+half*third*strnrt**2/eps**2)
 
       dx = delta(1)
       dy = delta(2)
@@ -484,19 +497,26 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            visc(i,j,1) =
-     &          bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
          end do
       end do
 
       fixlft = ( (lo(1) .eq. domlo(1)) .and. 
+     &           (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) .or. 
      &           (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
       fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
+     &           (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) .or.
      &           (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
       fixbot = ( (lo(2) .eq. domlo(2)) .and. 
-     &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+     &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) .or.
+     &           (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) )
       fixtop = ( (hi(2) .eq. domhi(2)) .and. 
-     &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+     &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) .or.
+     &           (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) )
 c
 c     ::::: handle special bndry conditions at the left edge
 c
@@ -508,8 +528,11 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            visc(i,j,1) =
-     &          bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
          end do
       end if
 c
@@ -523,8 +546,11 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            visc(i,j,1) =
-     &          bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
          end do
       end if
 c
@@ -538,8 +564,11 @@ c
             uy  = uybot(i,j)
             vy  = vybot(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            visc(i,j,1) =
-     &          bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
          end do
       end if
 c
@@ -553,8 +582,11 @@ c
             uy  = uytop(i,j)
             vy  = vytop(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            visc(i,j,1) =
-     &          bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
          end do
       end if
 c
@@ -568,8 +600,11 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         visc(i,j,1) =
-     &       bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
       end if
       if (fixlft .and. fixtop) then
          i = lo(1)
@@ -579,8 +614,11 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         visc(i,j,1) =
-     &       bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
       end if
       if (fixrgt .and. fixtop) then
          i = hi(1)
@@ -590,8 +628,11 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         visc(i,j,1) =
-     &       bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
       end if
       if (fixrgt .and. fixbot) then
          i = hi(1)
@@ -601,8 +642,11 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         visc(i,j,1) =
-     &       bingham_fun(visc_coef,yield_stress,strnrt,reg_param)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
       end if
 
 #     undef U
