@@ -2171,6 +2171,10 @@ NavierStokes::calcViscosity (const Real time,
         {
             if (yield_stress > 0.0)
             {
+                // 
+                // Ensure visc_cc is initialised
+                //
+                visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
                 //
                 // Compute apparent viscosity for regularised Bingham fluid
                 //
