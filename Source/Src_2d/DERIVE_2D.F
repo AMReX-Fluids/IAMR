@@ -540,10 +540,14 @@ c     ::::: some useful macro definitions
 c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
+#     define ULOX bc(1,1,1)
 #     define VLOX bc(1,1,2)
+#     define UHIX bc(1,2,1)
 #     define VHIX bc(1,2,2)
 #     define ULOY bc(2,1,1)
+#     define VLOY bc(2,1,2)
 #     define UHIY bc(2,2,1)
+#     define VHIY bc(2,2,2)
 c
 c     ::::: statement functions that implement stencil
 c
@@ -579,13 +583,17 @@ c
       end do
 
       fixlft = ( (lo(1) .eq. domlo(1)) .and. 
+     &           (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) .or. 
      &           (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
       fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
+     &           (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) .or.
      &           (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
       fixbot = ( (lo(2) .eq. domlo(2)) .and. 
-     &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+     &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) .or.
+     &           (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) )
       fixtop = ( (hi(2) .eq. domhi(2)) .and. 
-     &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+     &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) .or.
+     &           (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) )
 c
 c     ::::: handle special bndry conditions at the left edge
 c
