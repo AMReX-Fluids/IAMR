@@ -847,11 +847,11 @@ NavierStokes::calcBingham  (FArrayBox& visc,
     BL_PROFILE("NavierStokes::calcBingham()");
     BL_ASSERT( vel.nComp()   >= BL_SPACEDIM );
 
+	const int *domlo   = geom.Domain().loVect();
+	const int *domhi   = geom.Domain().hiVect();
     const Real* dx     = geom.CellSize();
-	// TODO: Some of the arguments are missing from the Fortran function:
-	// domlo
-	// domhi
-	// bc
+	const int *bc 	   = phys_bc.vect();
+
     const int *lo      = grd.loVect();
     const int *hi      = grd.hiVect();
     const int *visc_lo = visc.loVect();
@@ -864,7 +864,7 @@ NavierStokes::calcBingham  (FArrayBox& visc,
     FORT_BINGHAM(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
                	 veldat, ARLIM(vel_lo), ARLIM(vel_hi),
                	 lo, hi, domlo, domhi, dx, bc,
-				 visc_coef, yield_stress, reg_param);
+				 &visc_coef[Xvel], &yield_stress, &reg_param);
 }
 
 void
@@ -2175,9 +2175,9 @@ NavierStokes::calcViscosity (const Real time,
                 // Compute apparent viscosity for regularised Bingham fluid
                 //
 				MultiFab& vel = get_new_data(State_Type);
-				for (MFIter mfi(rho_ctime); mfi.isValid(); ++mfi)
+				for (MFIter mfi(vel); mfi.isValid(); ++mfi)
 				{
-					calcBingham(visc_cc[mfi],vel[mfi],grids[mfi.index()]);
+					calcBingham((*visc_cc)[mfi],vel[mfi],grids[mfi.index()]);
 				}
             }
             else if (yield_stress == 0.0)
