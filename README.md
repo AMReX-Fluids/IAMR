@@ -11,15 +11,25 @@ The algorithm is described in the following paper (and references therein):
 J. Comp. Phys., 142, pp. 1-46, 1998.
 
 Key software and algorithmic features of IAMR include:
+
 -Written in cpp and Fortran.
+
 -2- and 3-D support
+
 -Optional subcycling in time
+
 -Support for particles
+
 -Parallelization via flat MPI, hybrid MPI/OpenMP, or MPI/MPI
+
 -Parallel I/O
+
 -Plotfile format supported by VisIt, yt, and AmrVis
+
 -Second-order projection methodology for enforcing the incompressibility constraint
+
 -Several higher-order Godunov integration schemes for advection.
+
 -Implicit viscosity
 
 Refer to the guide in IAMR/UsersGuide for the most current information.
