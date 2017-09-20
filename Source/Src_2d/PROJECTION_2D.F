@@ -102,7 +102,7 @@ c
 
       end
 
-      subroutine FORT_RADMPY(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
+      subroutine FORT_RADMPYSCAL(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
 c 
 c     multiply A by Radius r
 c
@@ -122,7 +122,7 @@ c
       integer i, j
 
       do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+         do i = ARG_L1(grid)-ng, min(ARG_H1(grid)+ng,domhi(1))
            a(i,j) = r(i)*a(i,j)
          end do
       end do
@@ -136,7 +136,6 @@ c           differentiate between inflow, reflecting and symmetry.
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = ARG_L1(grid)-ng, domlo(1)-1
-c          a(i,j) = bogus_value
            a(i,j) = 0.d0
          end do
          end do
@@ -145,10 +144,70 @@ c          a(i,j) = bogus_value
       if (ARG_H1(grid)+ng .gt. domhi(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
          do i = domhi(1)+1, ARG_H1(grid)+ng
-c          a(i,j) = bogus_value
            a(i,j) = 0.d0
          end do
          end do
+      end if
+
+      end
+
+      subroutine FORT_RADMPYVEL(a,DIMS(grid),domlo,domhi,ng,r,nr,ndim)
+c 
+c     multiply A by Radius r
+c
+c 
+c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+c
+      implicit none
+      integer    ng,nr,ndim
+      integer    DIMDEC(grid)
+      integer    domlo(2), domhi(2)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
+     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      REAL_T     dr
+
+      integer i, j
+
+      do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, min(ARG_H1(grid)+ng,domhi(1))
+           a(i,j) = r(i)*a(i,j)
+         end do
+      end do
+
+c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
+c           But now in the divu routine in the F90 solvers we need to include these
+c           values in the stencil because they might contain inflow values, for example, 
+c           and the only test is on the BC for the pressure solve, which doesn't
+c           differentiate between inflow, reflecting and symmetry.
+
+      if (ARG_L1(grid)-ng .lt. domlo(1)) then
+         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+         do i = ARG_L1(grid)-ng, domlo(1)-1
+           a(i,j) = 0.d0
+         end do
+         end do
+      end if
+
+      dr = r(ARG_H1(grid)) - r(ARG_H1(grid)-1)
+c     Here we only multiply a possibly inflow x-velocity from the hi-r side                
+      if (ndim .eq. 0) then
+         if (ARG_H1(grid)+ng .gt. domhi(1)) then
+            do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+            do i = domhi(1)+1, ARG_H1(grid)+ng
+              a(i,j) = (r(domhi(1)) + (i-domhi(1))*dr - 0.5*dr)*a(i,j)
+            end do
+            end do
+         end if
+      else
+         if (ARG_H1(grid)+ng .gt. domhi(1)) then
+            do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
+            do i = domhi(1)+1, ARG_H1(grid)+ng
+              a(i,j) = 0.d0
+            end do
+            end do
+         end if
       end if
 
       end

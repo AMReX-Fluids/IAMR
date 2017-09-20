@@ -71,3 +71,34 @@ inputs.2d.traceradvect
 Advecting a blob of tracer material with velocity field (u,v) = (1,1) with
 CFL=0.9.
 **************************
+
+
+
+**************************
+inputs.2d.lid_driven_cavity
+
+Lid-driven cavity, popular test case for incompressible, viscous flow. 
+No-slip conditions are enforced on all walls, but the top ("lid") has a 
+prescribed, constant velocity. Velocity and density are normalised so that 
+changing the viscosity coefficient mu alters the Reynolds number according to 
+	Re = 1 / mu, 
+where mu is the viscosity coefficient. 
+
+Reference: Ghia et al., "High-Re solutions for incompressible flow using the
+Navier-Stokes equations and a multigrid method", J. Comp. Phys. (1982)
+**************************
+
+**************************
+inputs.2d.poiseuille
+
+Simple Poiseuille flow in a square duct. The constant pressure gradient p0 is
+enforced by setting the gravity parameter. Although there should be an inflow
+BC at the bottom boundary, we are currently using an outflow BC since this
+works OK. However, this can cause troubles for higher resolutions, which can be
+fixed by reducing the CFL number. 
+
+Analytical solution: 
+	u = p0 y (L - y) / (2 mu)
+
+We use p0 = mu = L = 1.
+**************************

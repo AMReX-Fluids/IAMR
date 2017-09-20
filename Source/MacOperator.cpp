@@ -401,12 +401,6 @@ mac_level_driver (Amr*            parent,
         amrex::Error("mac_level_driver::HypreABec not in this build");
 #endif
     }
-    else if (the_solver == 3 ) 
-    {
-	fmg_mac_solve(parent, mac_bndry, mac_op,
-		      level, mac_tol, mac_abs_tol,
-		      Rhs, *mac_phi, verbose);
-    }
     else
     {
         MultiGrid mac_mg(mac_op);
@@ -478,12 +472,6 @@ mac_sync_driver (Amr*            parent,
         amrex::Error("mac_sync_driver: HypreABec not in this build");
 #endif
     }
-    else if (the_solver == 3 )
-    {
-	fmg_mac_solve(parent, mac_bndry, mac_op,
-		      level, mac_sync_tol, mac_abs_tol,
-		      Rhs, *mac_sync_phi, verbose);
-    }
     else
     {
         MultiGrid mac_mg(mac_op);
@@ -492,34 +480,4 @@ mac_sync_driver (Amr*            parent,
     
     int mac_op_lev = 0;
     mac_op.applyBC(*mac_sync_phi,0,1,mac_op_lev);
-}
-
-void
-fmg_mac_solve ( Amr* parent, const MacBndry &mac_bndry, MacOperator &mac_op,
-		int level, Real tol, Real abs_tol, MultiFab &Rhs, MultiFab &phi,
-		int verbose)
-{
-	IntVect crse_ratio = level > 0 ? parent->refRatio(level-1)
-                                       : IntVect::TheZeroVector();
-	const Geometry& geom = mac_bndry.getGeom();
-
-	FMultiGrid fmg(geom, level, crse_ratio);
-
-	fmg.set_verbose(verbose);
-	fmg.set_maxorder(max_order);
-
-	fmg.set_bc(mac_bndry);
-
-	Array<MultiFab*> b(BL_SPACEDIM);
-	for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            b[i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
-        }
-	fmg.set_mac_coeffs(b);
-
-	int always_use_bnorm = 0;
-	fmg.solve(phi, Rhs, tol, abs_tol, always_use_bnorm);
-
-	if (verbose >= 1)
-	    MGT_Solver::FlushFortranOutput();
 }

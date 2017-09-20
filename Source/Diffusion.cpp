@@ -69,7 +69,6 @@ namespace
 #ifdef MG_USE_HYPRE
     bool use_hypre_solve;
 #endif
-    bool use_fboxlib_mg;
 }
 
 void
@@ -118,7 +117,6 @@ Diffusion::Diffusion (Amr*               Parent,
 #ifdef MG_USE_HYPRE
         use_hypre_solve = false;
 #endif
-        use_fboxlib_mg  = false;
         int use_mg_precond = 0;
 
         ParmParse ppdiff("diffuse");
@@ -138,11 +136,6 @@ Diffusion::Diffusion (Amr*               Parent,
             amrex::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
         }
 #endif
-        ppdiff.query("use_fboxlib_mg", use_fboxlib_mg);
-        if ( use_cg_solve && use_fboxlib_mg )
-        {
-            amrex::Error("Diffusion::read_params: cg_solve && .not. fboxlib_solve");
-        }
         use_mg_precond_flag = (use_mg_precond ? true : false);
 
         ParmParse pp("ns");
@@ -479,69 +472,12 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     const Real S_tol     = visc_tol;
     const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
-    if (use_cg_solve)
-    {
-        CGSolver cg(*visc_op,use_mg_precond_flag);
-        cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
-    else if ( use_fboxlib_mg )
-    {
-        const Geometry& geom = visc_bndry.getGeom();
 
-        FMultiGrid fmg(geom);
-	fmg.set_verbose(verbose);
-
-        const BCRec& scal_bc = navier_stokes->get_desc_lst()[State_Type].getBC(sigma);
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            if ( geom.isPeriodic(i) )
-            {
-                mg_bc[i*2 + 0] = 0;
-                mg_bc[i*2 + 1] = 0;
-            }
-            else
-            {
-                mg_bc[i*2 + 0] = scal_bc.lo(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
-                mg_bc[i*2 + 1] = scal_bc.hi(i)==EXT_DIR? MGT_BC_DIR : MGT_BC_NEU;
-            }
-        }
-	fmg.set_bc(mg_bc);
-
-	fmg.set_scalars(a, b);
-	const MultiFab& acoeffs = visc_op->aCoefficients();
-	Array<MultiFab*> bcoeffs(BL_SPACEDIM);
-	for (int n = 0; n < BL_SPACEDIM; ++n) {
-	    bcoeffs[n] = const_cast<MultiFab*>(&(visc_op->bCoefficients(n)));
-        }
-	fmg.set_coefficients(acoeffs, bcoeffs);
-
-	int always_use_bnorm = 0;
-	int need_grad_phi = 0;
-	fmg.solve(Soln, Rhs, S_tol, S_tol_abs, always_use_bnorm, need_grad_phi);
-
-	if (verbose >= 1)
-	    MGT_Solver::FlushFortranOutput();
-    }
-
-#ifdef MG_USE_HYPRE
-    else if ( use_hypre_solve )
-    {
-	amrex::Error("HypreABec not ready");
-	Real* dx = 0;
-	HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
-	hp.setup_solver(S_tol, S_tol_abs, 50);
-	hp.solve(Soln, Rhs, true);
-	hp.clear_solver();
-    }
-#endif
-    else
-    {
-        MultiGrid mg(*visc_op);
-        mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-    }
+    MultiGrid mg(*visc_op);
+    mg.solve(Soln,Rhs,S_tol,S_tol_abs);
 
     Rhs.clear();
+
     //
     // Get extensivefluxes from new-time op
     //

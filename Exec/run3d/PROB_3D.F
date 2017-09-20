@@ -121,6 +121,7 @@ c ::: -----------------------------------------------------------
 
       namelist /fortin/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
       namelist /fortin/ do_inlet_ref, inlet_ref_height
+      namelist /fortin/ lid_vel
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -1101,6 +1102,10 @@ c      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
          call initswirltest(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
+      else if (probtype .eq. 29 .or. probtype .eq. 30) then
+         call initfromrest(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
@@ -1124,11 +1129,49 @@ c     rad, over a width of trn
       end
 c
 c ::: -----------------------------------------------------------
+c ::: Initialise system from rest. Introduced for the lid-driven cavity
+c ::: test case. 
+c
+      subroutine initfromrest(level,time,lo,hi,nscal,
+     &                        vel,scal,DIMS(state),press,DIMS(press),
+     &                            dx,xlo,xhi)
+      implicit none
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+      REAL_T  zblend1
+      EXTERNAL zblend1
+c
+c     ::::: local variables
+c
+      integer i, j, k, n
 
+#include <probdata.H>
 
+      do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            do k = lo(3), hi(3)
+               scal(i,j,k,1) = one
+               vel(i,j,k,1) = zero
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+               do n = 2,nscal-1
+                  scal(i,j,k,n) = one
+               end do                  
+               scal(i,j,k,nscal) = zero
+            end do
+         end do
+      end do
 
-
-
+      end
+c
+c ::: -----------------------------------------------------------
 c
       subroutine initrt(level,time,lo,hi,nscal,
      &	 	            vel,scal,DIMS(state),press,DIMS(press),
@@ -6061,7 +6104,16 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                   enddo
                enddo
             enddo
-         else 
+         else if (probtype .eq. 29) then
+c ::: Lid-driven cavity test case, constant velocity on top of domain
+            do k = domhi(3)+1, ARG_H3(u)
+               do j = ARG_L2(u), ARG_H2(u)
+                  do i = ARG_L1(u), ARG_H1(u)
+                     u(i,j,k) = lid_vel
+                  end do
+               end do
+            end do
+         else
             do k = domhi(3)+1, ARG_H3(u)
                do j = ARG_L2(u), ARG_H2(u)
                   do i = ARG_L1(u), ARG_H1(u)

@@ -6,7 +6,8 @@
 #    define FORT_VEL_TO_ACCEL  veltoaccel
 #    define FORT_ACCEL_TO_VEL  acceltovel
 #    define FORT_PROJ_UPDATE   projupdate
-#    define FORT_RADMPY        radmpy
+#    define FORT_RADMPYSCAL    radmpyscal
+#    define FORT_RADMPYVEL     radmpyvel
 #    define FORT_RADDIV        raddiv
 #    define FORT_ANELCOEFFMPY  anelcoeffmpy
 #    define FORT_HGC2N         hgc2n
@@ -17,7 +18,8 @@
 #    define FORT_VEL_TO_ACCEL  VELTOACCEL
 #    define FORT_ACCEL_TO_VEL  ACCELTOVEL
 #    define FORT_PROJ_UPDATE   PROJUPDATE
-#    define FORT_RADMPY        RADMPY
+#    define FORT_RADMPYSCAL    RADMPYSCAL
+#    define FORT_RADMPYVEL     RADMPVEL
 #    define FORT_RADDIV        RADDIV
 #    define FORT_ANELCOEFFMPY  ANELCOEFFMPY
 #    define FORT_HGC2N         HGC2N
@@ -27,7 +29,8 @@
 #    define FORT_VEL_TO_ACCEL  veltoaccel
 #    define FORT_ACCEL_TO_VEL  acceltovel
 #    define FORT_PROJ_UPDATE   projupdate
-#    define FORT_RADMPY        radmpy
+#    define FORT_RADMPYSCAL    radmpyscal
+#    define FORT_RADMPYVEL     radmpyvel
 #    define FORT_RADDIV        raddiv
 #    define FORT_ANELCOEFFMPY  anelcoeffmpy
 #    define FORT_HGC2N         hgc2n
@@ -37,7 +40,8 @@
 #    define FORT_VEL_TO_ACCEL  veltoaccel_
 #    define FORT_ACCEL_TO_VEL  acceltovel_
 #    define FORT_PROJ_UPDATE   projupdate_
-#    define FORT_RADMPY        radmpy_
+#    define FORT_RADMPYSCAL    radmpyscal_
+#    define FORT_RADMPYVEL     radmpyvel_
 #    define FORT_RADDIV        raddiv_
 #    define FORT_ANELCOEFFMPY  anelcoeffmpy_
 #    define FORT_HGC2N         hgc2n_
@@ -68,11 +72,17 @@ extern "C" {
                            const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
 #if (BL_SPACEDIM < 3)
-    void FORT_RADMPY (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                      const int* domlo, const int* domhi,
-                      const int* nghost,
-                      const amrex::Real* radius, const int* nrad,
-                      const amrex::Real* bogus_value);
+    void FORT_RADMPYSCAL (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                          const int* domlo, const int* domhi,
+                          const int* nghost,
+                          const amrex::Real* radius, const int* nrad,
+                          const amrex::Real* bogus_value);
+
+    void FORT_RADMPYVEL (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+                         const int* domlo, const int* domhi,
+                         const int* nghost,
+                         const amrex::Real* radius, const int* nrad,
+                         const int* ndim);
     
     void FORT_RADDIV (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                       const int* domlo, const int* domhi,
