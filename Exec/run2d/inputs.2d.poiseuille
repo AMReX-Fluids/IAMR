@@ -18,7 +18,7 @@ ns.steady_tol 			= 1.0e-5
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 				= 32 32  
+amr.n_cell 				= 128 128
 amr.max_grid_size		= 16
 
 #*******************************************************************************
@@ -38,18 +38,26 @@ amr.v                   = 1
 
 #*******************************************************************************
 
+# Set options for linear solvers
+mg.v                   = 1
+cg.v                   = 1
+mg.maxiter             = 1000
+cg.maxiter             = 1000
+
+#*******************************************************************************
+
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
 amr.check_int			= -1
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int			= 10
+amr.plot_int			= 1
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
-ns.cfl                  = 0.5  # CFL number used to set dt
+ns.cfl                  = 0.01  # CFL number used to set dt
 
 #*******************************************************************************
 
