@@ -529,7 +529,7 @@ c
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 
-      integer   i,j
+      integer   i,j,k
       REAL_T    ux, vx, uy, vy, dx, dy
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
@@ -540,26 +540,34 @@ c     ::::: some useful macro definitions
 c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
+
 #     define ULOX bc(1,1,1)
-#     define VLOX bc(1,1,2)
 #     define UHIX bc(1,2,1)
+
+#     define VLOX bc(1,1,2)
 #     define VHIX bc(1,2,2)
+
 #     define ULOY bc(2,1,1)
-#     define VLOY bc(2,1,2)
 #     define UHIY bc(2,2,1)
+
+#     define VLOY bc(2,1,2)
 #     define VHIY bc(2,2,2)
+
 c
 c     ::::: statement functions that implement stencil
 c
       uxcen(i,j) = half*(U(i+1,j)-U(i-1,j))/dx
       uxlft(i,j) = (U(i+1,j)+three*U(i,j)-four*U(i-1,j))/(three*dx)
       uxrgt(i,j) = (four*U(i+1,j)-three*U(i,j)-U(i-1,j))/(three*dx)
+      
       vxcen(i,j) = half*(V(i+1,j)-V(i-1,j))/dx
       vxlft(i,j) = (V(i+1,j)+three*V(i,j)-four*V(i-1,j))/(three*dx)
       vxrgt(i,j) = (four*V(i+1,j)-three*V(i,j)-V(i-1,j))/(three*dx)
+
       uycen(i,j) = half*(U(i,j+1)-U(i,j-1))/dy
       uybot(i,j) = (U(i,j+1)+three*U(i,j)-four*U(i,j-1))/(three*dy)
       uytop(i,j) = (four*U(i,j+1)-three*U(i,j)-U(i,j-1))/(three*dy)
+
       vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
       vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
       vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
@@ -583,17 +591,17 @@ c
       end do
 
       fixlft = ( (lo(1) .eq. domlo(1)) .and. 
-     &           (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) .or. 
-     &           (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+     &           ( (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) .or. 
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) ) )
       fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
-     &           (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) .or.
-     &           (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+     &           ( (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) .or.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) ) )
       fixbot = ( (lo(2) .eq. domlo(2)) .and. 
-     &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) .or.
-     &           (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) )
+     &           ( (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) .or.
+     &           (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) ) )
       fixtop = ( (hi(2) .eq. domhi(2)) .and. 
-     &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) .or.
-     &           (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) )
+     &           ( (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) .or.
+     &           (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) ) )
 c
 c     ::::: handle special bndry conditions at the left edge
 c
