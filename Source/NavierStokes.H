@@ -214,7 +214,7 @@ private:
     //
     // Calculate Bingham viscosity from velocity distribution
     //
-    void calcBingham (amrex::MultiFab& visc); 
+    void calcBingham (amrex::MultiFab& visc, amrex::Real time); 
 
     //
     // Define error estimators

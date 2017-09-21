@@ -178,11 +178,11 @@ extern "C" {
                      const int* dom_lo, const int* dom_hi,
                      const amrex::Real* dx ,const amrex::Real* xlo);
 
-	void FORT_BINGHAM(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
-					  const amrex::Real* vel, ARLIM_P(vel_lo), ARLIM_P(vel_hi),
-					  const int* lo, const int* hi, const int* domain_lo, const int* domain_hi,
-					  const amrex::Real* delta, const int* bc,
-					  amrex::Real* mu, amrex::Real* tau, amrex::Real* eps);
+    void FORT_BINGHAM(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
+		      const amrex::Real* vel, ARLIM_P(vel_lo), ARLIM_P(vel_hi),
+		      const int* lo, const int* hi, const int* domain_lo, const int* domain_hi,
+		      const amrex::Real* delta, const int* vel_bc,
+		      amrex::Real* mu, amrex::Real* tau, amrex::Real* eps);
 
 #ifdef __cplusplus
 }
