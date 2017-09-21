@@ -840,31 +840,43 @@ NavierStokes::scalar_diffusion_update (Real dt,
 }
 
 void 
-NavierStokes::calcBingham  (FArrayBox& visc, 
-							const FArrayBox& vel, 
-							const Box&  grd)
+NavierStokes:: calcBingham  (MultiFab& visc)
 {
     BL_PROFILE("NavierStokes::calcBingham()");
-    BL_ASSERT( vel.nComp()   >= BL_SPACEDIM );
 
-	const int *domlo   = geom.Domain().loVect();
-	const int *domhi   = geom.Domain().hiVect();
+    MultiFab& vel = get_new_data(State_Type);
+
+    const int *domlo   = geom.Domain().loVect();
+    const int *domhi   = geom.Domain().hiVect();
     const Real* dx     = geom.CellSize();
-	const int *bc 	   = phys_bc.vect();
+    const int *bc      = phys_bc.vect();
 
-    const int *lo      = grd.loVect();
-    const int *hi      = grd.hiVect();
-    const int *visc_lo = visc.loVect();
-    const int *visc_hi = visc.hiVect();
-    const int *vel_lo  = vel.loVect();
-    const int *vel_hi  = vel.hiVect();
-    Real *viscdat 	   = visc.dataPtr();
-    const Real *veldat = vel.dataPtr();
+//  for (MFIter mfi(vel); mfi.isValid(); ++mfi)
 
-    FORT_BINGHAM(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
-               	 veldat, ARLIM(vel_lo), ARLIM(vel_hi),
-               	 lo, hi, domlo, domhi, dx, bc,
-				 &visc_coef[Xvel], &yield_stress, &reg_param);
+    const Real cur_time = state[State_Type].curTime();
+    FillPatchIterator fpi(*this,vel,vel.nGrow(),cur_time,State_Type,Xvel,BL_SPACEDIM);
+    for ( ; fpi.isValid(); ++fpi)
+    {
+       const int  i    = fpi.index();
+       const Box&  bx  = grids[i];
+       const int*  lo  = bx.loVect();
+       const int*  hi  = bx.hiVect();
+
+       Real *viscdat      = visc[i].dataPtr();
+       const int *visc_lo = visc[i].loVect();
+       const int *visc_hi = visc[i].hiVect();
+
+       const Real *veldat = vel[i].dataPtr();
+       const int *vel_lo  = vel[i].loVect();
+       const int *vel_hi  = vel[i].hiVect();
+
+       // std::cout << vel[i] << std::endl;
+
+       FORT_BINGHAM(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
+               	    veldat,  ARLIM(vel_lo),  ARLIM(vel_hi),
+               	    lo, hi, domlo, domhi, dx, bc,
+		    &visc_coef[Xvel], &yield_stress, &reg_param);
+    }
 }
 
 void
@@ -2175,14 +2187,11 @@ NavierStokes::calcViscosity (const Real time,
                 // Ensure visc_cc is initialised
                 //
                 visc_cc->setVal(visc_coef[Xvel]+0.5*yield_stress/reg_param, 0, 1, nGrow);
+ 
                 //
                 // Compute apparent viscosity for regularised Bingham fluid
                 //
-				MultiFab& vel = get_new_data(State_Type);
-				for (MFIter mfi(vel); mfi.isValid(); ++mfi)
-				{
-					calcBingham((*visc_cc)[mfi],vel[mfi],grids[mfi.index()]);
-				}
+		calcBingham(*visc_cc);
             }
             else if (yield_stress == 0.0)
             {
