@@ -420,8 +420,8 @@ c     coarse face, leave the in-between faces alone.
       end
 
       subroutine FORT_BINGHAM(visc, DIMS(visc), vel, DIMS(vel), 
-     &     lo, hi, domlo, domhi, delta, bc,
-     &     mu, tau, eps)
+     &                        lo, hi, domlo, domhi, delta, bc,
+     &                        mu, tau, eps)
       implicit none
 c
 c ::: This routine will compute the Papanastasiou regularised Bingham
@@ -443,7 +443,6 @@ c
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
       REAL_T    strnrt, strnrt_fun, bingham_exp, bingham_tlr
-
 c
 c     ::::: some useful macro definitions
 c
@@ -502,8 +501,12 @@ c
             else
                visc(i,j,1) = bingham_tlr(strnrt)
             end if
+            if (i.eq.15 .and. j.eq.3) print *,'VISC ',i,j,visc(i,j,1), ux, vx, uy, vy
+            if (i.eq.14 .and. j.eq.3) print *,'VISC ',i,j,visc(i,j,1), ux, vx, uy, vy
          end do
       end do
+
+      if (0.eq.1) then
 
       fixlft = ( (lo(1) .eq. domlo(1)) .and. 
      &           (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) .or. 
@@ -533,6 +536,7 @@ c
             else
                visc(i,j,1) = bingham_tlr(strnrt)
             end if
+            print *,'ILO VISC ',i,j,visc(i,j,1)
          end do
       end if
 c
@@ -551,6 +555,7 @@ c
             else
                visc(i,j,1) = bingham_tlr(strnrt)
             end if
+            print *,'IHI VISC ',i,j,visc(i,j,1)
          end do
       end if
 c
@@ -569,6 +574,7 @@ c
             else
                visc(i,j,1) = bingham_tlr(strnrt)
             end if
+            print *,'VISC ',i,j,visc(i,j,1)
          end do
       end if
 c
@@ -587,6 +593,7 @@ c
             else
                visc(i,j,1) = bingham_tlr(strnrt)
             end if
+            print *,'VISC ',i,j,visc(i,j,1)
          end do
       end if
 c
@@ -605,6 +612,7 @@ c
          else
              visc(i,j,1) = bingham_tlr(strnrt)
          end if
+            print *,'VISC ',i,j,visc(i,j,1)
       end if
       if (fixlft .and. fixtop) then
          i = lo(1)
@@ -619,6 +627,7 @@ c
          else
              visc(i,j,1) = bingham_tlr(strnrt)
          end if
+            print *,'VISC ',i,j,visc(i,j,1)
       end if
       if (fixrgt .and. fixtop) then
          i = hi(1)
@@ -633,6 +642,7 @@ c
          else
              visc(i,j,1) = bingham_tlr(strnrt)
          end if
+            print *,'VISC ',i,j,visc(i,j,1)
       end if
       if (fixrgt .and. fixbot) then
          i = hi(1)
@@ -647,6 +657,9 @@ c
          else
              visc(i,j,1) = bingham_tlr(strnrt)
          end if
+            print *,'VISC ',i,j,visc(i,j,1)
+      end if
+
       end if
 
 #     undef U

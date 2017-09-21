@@ -211,12 +211,11 @@ private:
     void scalar_diffusion_update (amrex::Real dt,
                                   int  first_scalar,
                                   int  last_scalar);
-	//
-	// Calculate Bingham viscosity from velocity distribution
-	//
-	void calcBingham (amrex::FArrayBox& visc, 
-					  const amrex::FArrayBox& vel,
-					  const amrex::Box& grd);
+    //
+    // Calculate Bingham viscosity from velocity distribution
+    //
+    void calcBingham (amrex::MultiFab& visc); 
+
     //
     // Define error estimators
     //
