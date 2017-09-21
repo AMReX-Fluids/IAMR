@@ -866,11 +866,10 @@ NavierStokes:: calcBingham  (MultiFab& visc)
        const int *visc_lo = visc[i].loVect();
        const int *visc_hi = visc[i].hiVect();
 
-       const Real *veldat = vel[i].dataPtr();
-       const int *vel_lo  = vel[i].loVect();
-       const int *vel_hi  = vel[i].hiVect();
-
-       // std::cout << vel[i] << std::endl;
+       FArrayBox& vfab    = fpi();
+       const Real *veldat = vfab.dataPtr();
+       const int *vel_lo  = vfab.loVect();
+       const int *vel_hi  = vfab.hiVect();
 
        FORT_BINGHAM(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
                	    veldat,  ARLIM(vel_lo),  ARLIM(vel_hi),
