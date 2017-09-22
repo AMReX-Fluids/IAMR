@@ -508,171 +508,174 @@ c
             else
                visc(i,j,1) = bingham_tlr(strnrt)
             end if
-c            if (i.eq.15 .and. j.eq.3) print *,'VISC ',i,j,visc(i,j,1), ux, vx, uy, vy
-c            if (i.eq.14 .and. j.eq.3) print *,'VISC ',i,j,visc(i,j,1), ux, vx, uy, vy
          end do
       end do
 
-cc     ::::: Currently, this subroutine is getting a phys_bc array
-cc     ::::: instead of a bc array, so the enumeratinos don't match. 
-cc     ::::: For now, we can just check if we are on the domain boundary. 
-cc
-cc      fixlft = ( (lo(1) .eq. domlo(1)) .and. 
-cc     &           ( (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) .or. 
-cc     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) ) )
-cc      fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
-cc     &           ( (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) .or.
-cc     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) ) )
-cc      fixbot = ( (lo(2) .eq. domlo(2)) .and. 
-cc     &           ( (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) .or.
-cc     &             (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) ) )
-cc      fixtop = ( (hi(2) .eq. domhi(2)) .and. 
-cc     &           ( (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) .or.
-cc     &             (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) ) )
-cc
-c      fixlft = (lo(1) .eq. domlo(1))
-c      fixrgt = (hi(1) .eq. domhi(1))
-c      fixbot = (lo(2) .eq. domlo(2))
-c      fixtop = (hi(2) .eq. domhi(2))
-cc
-cc     ::::: handle special bndry conditions at the left edge
-cc
-c      if (fixlft) then
-c         i = lo(1)
-c         do j = lo(2), hi(2)
-c            ux  = uxlft(i,j)
-c            vx  = vxlft(i,j)
-c            uy  = uycen(i,j)
-c            vy  = vycen(i,j)
-c            strnrt = strnrt_fun(ux,vx,uy,vy)
-c            if (strnrt > 1.0e-8) then
-c               visc(i,j,1) = bingham_exp(strnrt)
-c            else
-c               visc(i,j,1) = bingham_tlr(strnrt)
-c            end if
-c            print *,'LFT VISC ',i,j,visc(i,j,1)
-c         end do
-c      end if
-cc
-cc     ::::: handle special bndry conditions on the right
-cc
-c      if (fixrgt) then
-c         i = hi(1)
-c         do j = lo(2), hi(2)
-c            ux  = uxrgt(i,j)
-c            vx  = vxrgt(i,j)
-c            uy  = uycen(i,j)
-c            vy  = vycen(i,j)
-c            strnrt = strnrt_fun(ux,vx,uy,vy)
-c            if (strnrt > 1.0e-8) then
-c               visc(i,j,1) = bingham_exp(strnrt)
-c            else
-c               visc(i,j,1) = bingham_tlr(strnrt)
-c            end if
-c            print *,'RGT VISC ',i,j,visc(i,j,1)
-c         end do
-c      end if
-cc
-cc     ::::: handle special bndry conditions on bottom
-cc
-c      if (fixbot) then
-c         j = lo(2)
-c         do i = lo(1), hi(1)
-c            ux  = uxcen(i,j)
-c            vx  = vxcen(i,j)
-c            uy  = uybot(i,j)
-c            vy  = vybot(i,j)
-c            strnrt = strnrt_fun(ux,vx,uy,vy)
-c            if (strnrt > 1.0e-8) then
-c               visc(i,j,1) = bingham_exp(strnrt)
-c            else
-c               visc(i,j,1) = bingham_tlr(strnrt)
-c            end if
-c            print *,'BOT VISC ',i,j,visc(i,j,1)
-c         end do
-c      end if
-cc
-cc     ::::: handle special bndry conditions on top
-cc
-c      if (fixtop) then
-c         j = hi(2)
-c         do i = lo(1), hi(1)
-c            ux  = uxcen(i,j)
-c            vx  = vxcen(i,j)
-c            uy  = uytop(i,j)
-c            vy  = vytop(i,j)
-c            strnrt = strnrt_fun(ux,vx,uy,vy)
-c            if (strnrt > 1.0e-8) then
-c               visc(i,j,1) = bingham_exp(strnrt)
-c            else
-c               visc(i,j,1) = bingham_tlr(strnrt)
-c            end if
-c            print *,'TOP VISC ',i,j,visc(i,j,1)
-c         end do
-c      end if
-cc
-cc     ::::: check corners
-cc
-c      if (fixlft .and. fixbot) then
-c         i = lo(1)
-c         j = lo(2)
-c         ux = uxlft(i,j)
-c         vx = vxlft(i,j)
-c         uy = uybot(i,j)
-c         vy = vybot(i,j)
-c         strnrt = strnrt_fun(ux,vx,uy,vy)
-c         if (strnrt > 1.0e-8) then
-c             visc(i,j,1) = bingham_exp(strnrt)
-c         else
-c             visc(i,j,1) = bingham_tlr(strnrt)
-c         end if
-c            print *,'BOTLFT VISC ',i,j,visc(i,j,1)
-c      end if
-c      if (fixlft .and. fixtop) then
-c         i = lo(1)
-c         j = hi(2)
-c         ux = uxlft(i,j)
-c         vx = vxlft(i,j)
-c         uy = uytop(i,j)
-c         vy = vytop(i,j)
-c         strnrt = strnrt_fun(ux,vx,uy,vy)
-c         if (strnrt > 1.0e-8) then
-c             visc(i,j,1) = bingham_exp(strnrt)
-c         else
-c             visc(i,j,1) = bingham_tlr(strnrt)
-c         end if
-c            print *,'TOPLFT VISC ',i,j,visc(i,j,1)
-c      end if
-c      if (fixrgt .and. fixtop) then
-c         i = hi(1)
-c         j = hi(2)
-c         ux = uxrgt(i,j)
-c         vx = vxrgt(i,j)
-c         uy = uytop(i,j)
-c         vy = vytop(i,j)
-c         strnrt = strnrt_fun(ux,vx,uy,vy)
-c         if (strnrt > 1.0e-8) then
-c             visc(i,j,1) = bingham_exp(strnrt)
-c         else
-c             visc(i,j,1) = bingham_tlr(strnrt)
-c         end if
-c            print *,'TOPRGT VISC ',i,j,visc(i,j,1)
-c      end if
-c      if (fixrgt .and. fixbot) then
-c         i = hi(1)
-c         j = lo(2)
-c         ux = uxrgt(i,j)
-c         vx = vxrgt(i,j)
-c         uy = uybot(i,j)
-c         vy = vybot(i,j)
-c         strnrt = strnrt_fun(ux,vx,uy,vy)
-c         if (strnrt > 1.0e-8) then
-c             visc(i,j,1) = bingham_exp(strnrt)
-c         else
-c             visc(i,j,1) = bingham_tlr(strnrt)
-c         end if
-c            print *,'BOTRGT VISC ',i,j,visc(i,j,1)
-c      end if
+      fixlft = ( (lo(1) .eq. domlo(1)) .and. 
+     &           ( (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP .or. ULOX.eq.FOEXTRAP) .or. 
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP .or. ULOX.eq.FOEXTRAP) ) )
+      fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
+     &           ( (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP .or. UHIX.eq.FOEXTRAP) .or.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP .or. VHIX.eq.FOEXTRAP) ) )
+      fixbot = ( (lo(2) .eq. domlo(2)) .and. 
+     &           ( (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP .or. ULOY.eq.FOEXTRAP) .or.
+     &             (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP .or. VLOY.eq.FOEXTRAP) ) )
+      fixtop = ( (hi(2) .eq. domhi(2)) .and. 
+     &           ( (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP .or. UHIY.eq.FOEXTRAP) .or.
+     &             (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP .or. VHIY.eq.FOEXTRAP) ) )
+
+c
+c     ::::: handle special bndry conditions at the left edge
+c
+      if (fixlft) then
+         i = lo(1)
+         do j = lo(2), hi(2)
+            ux  = uxlft(i,j)
+            vx  = vxlft(i,j)
+            uy  = uycen(i,j) 
+            vy  = vycen(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation
+            visc(i-1,j,1) = visc(i,j,1)
+         end do
+      end if
+c 
+c     ::::: handle special bndry conditions on the right
+c 
+      if (fixrgt) then
+         i = hi(1)
+         do j = lo(2), hi(2)
+            ux  = uxrgt(i,j)
+            vx  = vxrgt(i,j)
+            uy  = uycen(i,j)
+            vy  = vycen(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation
+            visc(i+1,j,1) = visc(i,j,1)
+         end do
+      end if
+c
+c     ::::: handle special bndry conditions on bottom
+c
+      if (fixbot) then
+         j = lo(2)
+         do i = lo(1), hi(1)
+            ux  = uxcen(i,j)
+            vx  = vxcen(i,j)
+            uy  = uybot(i,j)
+            vy  = vybot(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation
+            visc(i,j-1,1) = visc(i,j,1)
+         end do
+      end if
+c
+c     ::::: handle special bndry conditions on top
+c
+      if (fixtop) then
+         j = hi(2)
+         do i = lo(1), hi(1)
+            ux  = uxcen(i,j)
+            vx  = vxcen(i,j)
+            uy  = uytop(i,j)
+            vy  = vytop(i,j)
+            strnrt = strnrt_fun(ux,vx,uy,vy)
+            if (strnrt > 1.0e-8) then
+               visc(i,j,1) = bingham_exp(strnrt)
+            else
+               visc(i,j,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation
+            visc(i,j+1,1) = visc(i,j,1)
+         end do
+      end if
+c
+c     ::::: check corners
+c
+      if (fixlft .and. fixbot) then
+         i = lo(1)
+         j = lo(2)
+         ux = uxlft(i,j)
+         vx = vxlft(i,j)
+         uy = uybot(i,j)
+         vy = vybot(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation
+         visc(i-1,j-1,1) = visc(i,j,1)
+      end if
+
+      if (fixlft .and. fixtop) then
+
+         i = lo(1)
+         j = hi(2)
+         ux = uxlft(i,j)
+         vx = vxlft(i,j)
+         uy = uytop(i,j)
+         vy = vytop(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation
+         visc(i-1,j+1,1) = visc(i,j,1)
+      end if
+
+      if (fixrgt .and. fixtop) then
+         i = hi(1)
+         j = hi(2)
+         ux = uxrgt(i,j)
+         vx = vxrgt(i,j)
+         uy = uytop(i,j)
+         vy = vytop(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation
+         visc(i+1,j+1,1) = visc(i,j,1)
+      end if
+
+      if (fixrgt .and. fixbot) then
+         i = hi(1)
+         j = lo(2)
+         ux = uxrgt(i,j)
+         vx = vxrgt(i,j)
+         uy = uybot(i,j)
+         vy = vybot(i,j)
+         strnrt = strnrt_fun(ux,vx,uy,vy)
+         if (strnrt > 1.0e-8) then
+             visc(i,j,1) = bingham_exp(strnrt)
+         else
+             visc(i,j,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation
+         visc(i+1,j-1,1) = visc(i,j,1)
+
+      end if
 
 #     undef U
 #     undef V      
