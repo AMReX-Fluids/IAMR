@@ -18,7 +18,7 @@ ns.steady_tol 			= 1.0e-5
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 			= 64 64
+amr.n_cell 				= 64 64
 amr.max_grid_size		= 32
 
 #*******************************************************************************
@@ -39,10 +39,8 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Set options for linear solvers
-mg.v                   = 1
-cg.v                   = 0
-mg.maxiter             = 1000
-cg.maxiter             = 1000
+mg.maxiter              = 1000000
+cg.maxiter              = 1000000
 
 #*******************************************************************************
 
@@ -68,13 +66,13 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 
 # Enable variable viscosity
 ns.variable_vel_visc    = 1
-ns.yield_stress         = 0.3
-ns.reg_param            = 1.0e-2
+ns.yield_stress         = 0.424264
+ns.reg_param            = 0.001
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 8.0
+ns.vel_visc_coef        = 1.0
 
-ns.be_cn_theta = 0.5
+ns.be_cn_theta 			= 0.5
 
 #*******************************************************************************
 
