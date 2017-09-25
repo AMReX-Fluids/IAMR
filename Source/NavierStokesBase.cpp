@@ -588,6 +588,8 @@ NavierStokesBase::Initialize ()
     read_particle_params ();
 #endif
 
+    FORT_SET_PARAMS(vel_visc_coef, yield_stress, reg_param);
+
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
     initialized = true;

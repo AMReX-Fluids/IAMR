@@ -20,6 +20,7 @@
 #    define FORT_SUMJET      sumjet
 #endif
 #endif
+#    define FORT_SET_PARAMS  setparams
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILCC       FILCC
@@ -40,6 +41,7 @@
 #    define FORT_SUMJET      SUMJET
 #endif
 #endif
+#    define FORT_SET_PARAMS  SETPARAMS
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
@@ -59,6 +61,7 @@
 #    define FORT_SUMJET      sumjet
 #endif
 #endif
+#    define FORT_SET_PARAMS  setparams
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILCC       filcc_
 #    define FORT_GRADP       gradp_
@@ -78,6 +81,7 @@
 #    define FORT_SUMJET      sumjet_
 #endif
 #endif
+#    define FORT_SET_PARAMS  setparams_
 #  endif
 
 #include <AMReX_ArrayLim.H>
@@ -178,12 +182,15 @@ extern "C" {
                      const int* dom_lo, const int* dom_hi,
                      const amrex::Real* dx ,const amrex::Real* xlo);
 
-	void FORT_BINGHAM(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
-					  const amrex::Real* vel, ARLIM_P(vel_lo), ARLIM_P(vel_hi),
-					  const int* lo, const int* hi, const int* domain_lo, const int* domain_hi,
-					  const amrex::Real* delta, const int* bc,
-					  amrex::Real* mu, amrex::Real* tau, amrex::Real* eps);
+    void FORT_BINGHAM(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
+		              const amrex::Real* vel, ARLIM_P(vel_lo), ARLIM_P(vel_hi),
+                      const int* lo, const int* hi, const int* domain_lo, const int* domain_hi,
+		              const amrex::Real* delta, const int* vel_bc,
+		              amrex::Real* mu, amrex::Real* tau, amrex::Real* eps);
 
+   void FORT_SET_PARAMS(const amrex::Real& vel_visc_coef,
+                        const amrex::Real& yield_stress, 
+                        const amrex::Real& reg_param);
 #ifdef __cplusplus
 }
 #endif
