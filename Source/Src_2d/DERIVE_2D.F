@@ -707,6 +707,9 @@ c
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      $                         bc,level,grid_no)
       implicit none
+
+#include <NSCOMM_F.H>
+
 c
 c ::: This routine will compute the 
 c ::: viscosity based on the velocity field
@@ -728,8 +731,6 @@ c
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
       REAL_T    strnrt, strnrt_fun, bingham_exp, bingham_tlr
-
-      REAL_T    mu, tau, eps
 c
 c     ::::: some useful macro definitions
 c
@@ -781,13 +782,6 @@ c
      & mu+half*tau*(1-exp(-strnrt/eps))/strnrt
       bingham_tlr(strnrt) =
      & mu+half*tau/eps*(one-half*strnrt/eps+half*third*strnrt**2/eps**2)
-
-c
-c     ::::: TODO: use ns.visc_coef, ns.yield_stress, ns.reg_param
-c
-      mu = 1.0
-      tau = 1.41421356
-      eps = 0.0025
 
       dx = delta(1)
       dy = delta(2)
