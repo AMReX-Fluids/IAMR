@@ -351,6 +351,11 @@ NavierStokes::variableSetUp ()
     derive_lst.add("mag_strainrate",IndexType::TheCellType(),1,FORT_DERMGSTRNRT,grow_box_by_one);
     derive_lst.addComponent("mag_strainrate",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
+    // apparent viscosity
+    //
+    derive_lst.add("viscosity",IndexType::TheCellType(),1,FORT_DERVISC,grow_box_by_one);
+    derive_lst.addComponent("viscosity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
     // divergence of velocity field
     //
     derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,grow_box_by_one);
