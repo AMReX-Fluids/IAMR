@@ -11,7 +11,7 @@
 
 c=========================================================
 
-      subroutine FORT_SET_PARAMS(vel_visc_coef,yield_stress,reg_param)
+      subroutine FORT_SET_NS_PARAMS(vel_visc_coef,yield_stress,reg_param)
       implicit none
       REAL_T vel_visc_coef,yield_stress,reg_param
 
@@ -32,7 +32,7 @@ c=========================================================
       end if
 
       if (eps .lt. 0) then
-        write(6,*)'FORT_SET_PARAMS : illegal value of tau = ',tau
+        write(6,*)'FORT_SET_PARAMS : illegal value of eps = ',eps
         call bl_abort(" ")
       end if
 
