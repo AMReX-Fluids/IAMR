@@ -14,13 +14,13 @@
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
 #    define FORT_BINGHAM 	 bingham
+#    define FORT_SET_NS_PARAMS  setnsparams
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb
 #ifdef SUMJET
 #    define FORT_SUMJET      sumjet
 #endif
 #endif
-#    define FORT_SET_PARAMS  setparams
 #else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_FILCC       FILCC
@@ -35,13 +35,13 @@
 #    define FORT_PC_CF_EDGE_INTERP PC_EDGE_INTERP
 #    define FORT_HOEXTRAPTOCC HOEXTRAPTOCC
 #    define FORT_BINGHAM 	 BINGHAM
+#    define FORT_SET_NS_PARAMS  SETNSPARAMS
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     SUMTURB
 #ifdef SUMJET
 #    define FORT_SUMJET      SUMJET
 #endif
 #endif
-#    define FORT_SET_PARAMS  SETPARAMS
 #  elif defined(BL_FORT_USE_LOWERCASE)
 #    define FORT_FILCC       filcc
 #    define FORT_GRADP       gradp
@@ -55,13 +55,13 @@
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
 #    define FORT_HOEXTRAPTOCC hoextraptocc
 #    define FORT_BINGHAM 	 bingham
+#    define FORT_SET_NS_PARAMS  setnsparams
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb
 #ifdef SUMJET
 #    define FORT_SUMJET      sumjet
 #endif
 #endif
-#    define FORT_SET_PARAMS  setparams
 #  elif defined(BL_FORT_USE_UNDERSCORE)
 #    define FORT_FILCC       filcc_
 #    define FORT_GRADP       gradp_
@@ -75,13 +75,13 @@
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp_
 #    define FORT_HOEXTRAPTOCC hoextraptocc_
 #    define FORT_BINGHAM 	 bingham_
+#    define FORT_SET_NS_PARAMS  setnsparams_
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb_
 #ifdef SUMJET
 #    define FORT_SUMJET      sumjet_
 #endif
 #endif
-#    define FORT_SET_PARAMS  setparams_
 #  endif
 
 #include <AMReX_ArrayLim.H>
@@ -188,7 +188,7 @@ extern "C" {
 		              const amrex::Real* delta, const int* vel_bc,
 		              amrex::Real* mu, amrex::Real* tau, amrex::Real* eps);
 
-   void FORT_SET_PARAMS(const amrex::Real& vel_visc_coef,
+   void FORT_SET_NS_PARAMS(const amrex::Real& vel_visc_coef,
                         const amrex::Real& yield_stress, 
                         const amrex::Real& reg_param);
 #ifdef __cplusplus
