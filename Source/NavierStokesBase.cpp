@@ -1248,6 +1248,7 @@ NavierStokesBase::estTimeStep ()
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
 
+    const Real  cur_time = state[State_Type].curTime();
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   U_new         = get_new_data(State_Type);
 
@@ -1257,6 +1258,12 @@ NavierStokesBase::estTimeStep ()
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 
+	//
+	// Viscous forcing - necessary for viscoplastic flow. 
+	//
+	MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1);
+	getViscTerms(visc_terms,Xvel,BL_SPACEDIM,cur_time);
+
     for (MFIter Rho_mfi(rho_ctime); Rho_mfi.isValid(); ++Rho_mfi)
     {
         const int i = Rho_mfi.index();
@@ -1264,7 +1271,6 @@ NavierStokesBase::estTimeStep ()
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
 #ifdef BOUSSINESQ
-        const Real cur_time = state[State_Type].curTime();
         // HACK HACK HACK 
         // THIS CALL IS BROKEN 
         // getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
@@ -1272,10 +1278,8 @@ NavierStokesBase::estTimeStep ()
         tforces.setVal(0.);
 #else
 #ifdef GENGETFORCE
-        const Real cur_time = state[State_Type].curTime();
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,rho_ctime[Rho_mfi]);
 #elif MOREGENGETFORCE
-        const Real cur_time = state[State_Type].curTime();
 	if (getForceVerbose)
 	  amrex::Print() << "---" << '\n' 
 			 << "H - est Time Step:" << '\n' 
@@ -1286,6 +1290,10 @@ NavierStokesBase::estTimeStep ()
 #endif		 
 #endif		 
         tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
+		if (yield_stress > 0.0)
+		{
+		  tforces.minus(visc_terms[Rho_mfi],0,0,BL_SPACEDIM);
+		}
         //
         // Estimate the maximum allowable timestep from the Godunov box.
         //
@@ -1294,9 +1302,9 @@ NavierStokesBase::estTimeStep ()
 
         for (int k = 0; k < BL_SPACEDIM; k++)
         {
-	    u_max[k] = std::max(u_max[k],gr_max[k]);
-	}
-	estdt = std::min(estdt,dt);
+		  u_max[k] = std::max(u_max[k],gr_max[k]);
+		}
+		estdt = std::min(estdt,dt);
     }
 
     ParallelDescriptor::ReduceRealMin(estdt);
