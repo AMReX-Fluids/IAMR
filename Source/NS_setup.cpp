@@ -356,6 +356,11 @@ NavierStokes::variableSetUp ()
     derive_lst.add("viscosity",IndexType::TheCellType(),1,FORT_DERVISC,grow_box_by_one);
     derive_lst.addComponent("viscosity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
+    // magnitude of stress tensor
+    //
+    derive_lst.add("stress",IndexType::TheCellType(),1,FORT_DERSTRESS,grow_box_by_one);
+    derive_lst.addComponent("stress",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    //
     // divergence of velocity field
     //
     derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,grow_box_by_one);
