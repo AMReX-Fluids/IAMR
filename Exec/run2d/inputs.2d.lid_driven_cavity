@@ -6,14 +6,14 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 				= 20000
+max_step 				= 100000
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= -1
 
 # Stop simulation when we reach steady-state
 ns.stop_when_steady 	= 1
-ns.steady_tol 			= 1.0e-5
+ns.steady_tol 			= 1.0e-4
 
 #*******************************************************************************
 
@@ -29,7 +29,7 @@ amr.max_level			= 0 # maximum number of levels of refinement
 #*******************************************************************************
 
 # Sets the "NavierStokes" code to not be verbose
-ns.v                    = 0
+ns.v                    = 1
 
 #*******************************************************************************
 
@@ -39,22 +39,22 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int			= 1000
+amr.check_int			= 10000
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int			= 100
+amr.plot_int			= 1000
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : 
-ns.cfl                  = 0.01  # CFL number used to set dt
+ns.cfl                  = 0.9  # CFL number used to set dt
 
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 0.3  # factor which multiplies the very first time step
+ns.init_shrink          = 0.1  # factor which multiplies the very first time step
 ns.change_max 			= 1.1
 
 #*******************************************************************************
@@ -66,8 +66,8 @@ cg.maxiter              = 1000000
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 0.1
 ns.variable_vel_visc 	= 1
+ns.vel_visc_coef        = 0.1
 ns.yield_stress      	= 1.41421356
 ns.reg_param         	= 0.0025
 
@@ -119,7 +119,7 @@ ns.hi_bc             	= 5 5
 #*******************************************************************************
 
 # Continue from checkpoint 
-# amr.restart 			= chk10000
+# amr.restart 			= chk78424
 
 #*******************************************************************************
 
