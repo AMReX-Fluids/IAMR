@@ -675,6 +675,7 @@ protected:
     static int  do_tracer_ref;
     static int  do_tracer2_ref;
     static int  do_vorticity_ref;
+    static int  do_stress_ref;
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
     static amrex::Array<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin

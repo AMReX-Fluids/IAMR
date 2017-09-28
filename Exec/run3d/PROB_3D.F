@@ -5001,6 +5001,53 @@ c     probtype = VISCOUS BENCHMARK
       end
 
 c ::: -----------------------------------------------------------
+c ::: This routine will tag high error cells based on the 
+c ::: magnitude of the stress tensor
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: tag      <=  integer tag array
+c ::: DIMS(tag) => index extent of tag array
+c ::: set       => integer value to tag cell for refinement
+c ::: clear     => integer value to untag cell
+c ::: stress      => stressicitiy array
+c ::: DIMS(stress)=> index extent of stress array
+c ::: nvar      => number of components in rho array (should be 1)
+c ::: lo,hi     => index extent of grid
+c ::: domlo,hi  => index extent of problem domain
+c ::: dx        => cell spacing
+c ::: xlo       => physical location of lower left hand
+c :::	           corner of tag array
+c ::: problo    => phys loc of lower left corner of prob domain
+c ::: time      => problem evolution time
+c ::: -----------------------------------------------------------
+      subroutine FORT_STRSERROR (tag,DIMS(tag),set,clear,
+     &                           stress,DIMS(stress),lo,hi,nvar,
+     &                           domlo,domhi,dx,xlo,
+     &			                 problo,time,level)
+      implicit none
+
+      integer   DIMDEC(tag)
+      integer   DIMDEC(stress)
+      integer   lo(SDIM), hi(SDIM)
+      integer   nvar, set, clear, level
+      integer   domlo(SDIM), domhi(SDIM)
+      REAL_T    dx(SDIM), xlo(SDIM), problo(SDIM), time
+      integer   tag(DIMV(tag))
+      REAL_T    stress(DIMV(stress),nvar)
+
+      REAL_T    x, y, z, dist
+      integer   i, j, k, ztag
+      REAL_T    radius, maxstress
+
+#include <probdata.H>
+
+      print *,'FORT_STRSERROR NOT IMPLEMENTED IN 3D YET',probtype
+      stop
+
+      end
+
+c ::: -----------------------------------------------------------
 c ::: This routine is called during a filpatch operation when
 c ::: the patch to be filled falls outside the interior
 c ::: of the problem domain.  You are requested to supply the

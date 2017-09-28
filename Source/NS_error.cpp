@@ -42,4 +42,9 @@ NavierStokes::error_setup()
                      BL_FORT_PROC_CALL(FORT_MVERROR,fort_mverror));
 	amrex::Print() << "Refining on MAG_VORT" << std::endl;
     }
+    if (do_stress_ref) {
+        err_list.add("stress", 1, ErrorRec::Special, 
+                     BL_FORT_PROC_CALL(FORT_STRSERROR,fort_strserror));
+	amrex::Print() << "Refining on STRESS" << std::endl;
+    }
 }

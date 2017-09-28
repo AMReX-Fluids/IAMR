@@ -3,5 +3,6 @@
 
   probtype = 10
   lid_vel = 1.0
+  stresserr = 2.0e-2
 
 /
