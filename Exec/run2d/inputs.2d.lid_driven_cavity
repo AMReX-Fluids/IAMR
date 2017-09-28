@@ -6,7 +6,7 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 				= 100000
+max_step 				= 100
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= -1
@@ -20,11 +20,18 @@ ns.steady_tol 			= 1.0e-4
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 				= 256 256
 amr.max_grid_size		= 32
+amr.grid_eff 			= 0.7
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
+ns.do_stress_ref 		= 1
 amr.max_level			= 0 # maximum number of levels of refinement
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 1
 
 #*******************************************************************************
 
@@ -44,12 +51,12 @@ amr.check_int			= 10000
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int			= 1000
+amr.plot_int			= 10
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : 
-ns.cfl                  = 0.9  # CFL number used to set dt
+ns.cfl                  = 0.1  # CFL number used to set dt
 
 #*******************************************************************************
 
@@ -68,7 +75,7 @@ cg.maxiter              = 1000000
 # Viscosity coefficient 
 ns.variable_vel_visc 	= 1
 ns.vel_visc_coef        = 0.1
-ns.yield_stress      	= 1.41421356
+ns.yield_stress      	= 1.4142135623730951
 ns.reg_param         	= 0.0025
 
 #*******************************************************************************
@@ -124,6 +131,6 @@ ns.hi_bc             	= 5 5
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = ALL
+amr.derive_plot_vars    = 	stress 	viscosity
 
 #*******************************************************************************
