@@ -33,7 +33,7 @@ amr.max_level			= 1 # maximum number of levels of refinement
 #*******************************************************************************
 
 # Interval (in number of level l timesteps) between regridding
-amr.regrid_int		= 2
+amr.regrid_int			= 2
 
 amr.blocking_factor     = 16 
 amr.n_error_buf         = 4
@@ -61,7 +61,7 @@ amr.plot_int			= 1
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : 
-ns.cfl                  = 0.1  # CFL number used to set dt
+ns.cfl                  = 0.9  # CFL number used to set dt
 
 #*******************************************************************************
 
@@ -78,10 +78,10 @@ cg.maxiter              = 1000000
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.variable_vel_visc 	= 1
+ns.variable_vel_visc 	= 0
 ns.vel_visc_coef        = 0.1
-ns.yield_stress      	= 1.4142135623730951
-ns.reg_param         	= 0.0025
+#ns.yield_stress      	= 1.4142135623730951
+#ns.reg_param         	= 0.0025
 
 #*******************************************************************************
 
@@ -136,6 +136,6 @@ ns.hi_bc             	= 5 5
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = 	stress 	viscosity
+amr.derive_plot_vars    = 	ALL
 
 #*******************************************************************************
