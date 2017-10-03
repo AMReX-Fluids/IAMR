@@ -778,8 +778,7 @@ c     ::::: Functions for computing the regularised Bingham viscosity.
 c     ::::: When the strain rate is small, Taylor expand the exponential
 c     ::::: to avoid floating point errors.
 c
-      bingham_exp(strnrt) =
-     & mu+half*tau*(1-exp(-strnrt/eps))/strnrt
+      bingham_exp(strnrt) = mu+half*tau*(1-exp(-strnrt/eps))/strnrt
       bingham_tlr(strnrt) =
      & mu+half*tau/eps*(one-half*strnrt/eps+half*third*strnrt**2/eps**2)
 
@@ -805,8 +804,6 @@ c
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (strnrt > 1.0e-8) then
                visc(i,j,1) = bingham_exp(strnrt)
-               if (j.eq.480 .and. (i.ge.20.and.i.le.40))  
-     $             print *,'DER:VISC AT 480: ',i,visc(i,480,1), ux, vx, uy, vy
             else
                visc(i,j,1) = bingham_tlr(strnrt)
             end if
@@ -814,17 +811,18 @@ c
       end do
 
       fixlft = ( (lo(1) .eq. domlo(1)) .and. 
-     &           ( (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) .or. 
-     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) ) )
+     &           ( (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP .or. ULOX.eq.FOEXTRAP) .or. 
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP .or. ULOX.eq.FOEXTRAP) ) )
       fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
-     &           ( (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) .or.
-     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) ) )
+     &           ( (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP .or. UHIX.eq.FOEXTRAP) .or.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP .or. VHIX.eq.FOEXTRAP) ) )
       fixbot = ( (lo(2) .eq. domlo(2)) .and. 
-     &           ( (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) .or.
-     &           (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) ) )
+     &           ( (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP .or. ULOY.eq.FOEXTRAP) .or.
+     &             (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP .or. VLOY.eq.FOEXTRAP) ) )
       fixtop = ( (hi(2) .eq. domhi(2)) .and. 
-     &           ( (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) .or.
-     &           (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) ) )
+     &           ( (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP .or. UHIY.eq.FOEXTRAP) .or.
+     &             (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP .or. VHIY.eq.FOEXTRAP) ) )
+
 c
 c     ::::: handle special bndry conditions at the left edge
 c
@@ -956,6 +954,19 @@ c
              visc(i,j,1) = bingham_tlr(strnrt)
          end if
       end if
+
+      do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            if (j.eq.480 .and. (i.ge.20.and.i.le.40)) then
+               ux  = uxcen(i,j)
+               vx  = vxcen(i,j)
+               uy  = uycen(i,j)
+               vy  = vycen(i,j)
+               strnrt = strnrt_fun(ux,vx,uy,vy)
+               print *,'DER:VISC AT 480:',i,visc(i,j,1),ux,vx,uy,vy,strnrt
+            end if
+         end do
+      end do
 
       end if 
 
