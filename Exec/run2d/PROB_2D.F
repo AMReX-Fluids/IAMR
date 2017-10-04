@@ -1585,11 +1585,10 @@ c     probtype = LID-DRIVEN CAVITY
 c              tag(i,j) =
 c     &          merge(set,tag(i,j),abs(stress(i,j,1)-tau).lt.stresserr)
               tag(i,j) =
-     &          merge(set,tag(i,j),abs(domhi(2)-j).lt.8)
+     &          merge(set,tag(i,j),abs(domhi(2)-j).lt.16)
               tag(i,j) =
      &          merge(set,tag(i,j),
-     &           ( (abs(domhi(2)-j).lt.(domhi(2)+1/4)) .and. 
-     &            ((abs(domhi(1)-i).lt.8) .or. (abs(domlo(1)-i).lt.8)) ) )
+     &            ((abs(domhi(1)-i).lt.8) .or. (abs(domlo(1)-i).lt.8)) )
            end do
         end do
 

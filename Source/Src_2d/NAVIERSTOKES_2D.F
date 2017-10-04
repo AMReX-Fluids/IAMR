@@ -684,8 +684,6 @@ c
                uy  = uycen(i,j)
                vy  = vycen(i,j)
                strnrt = strnrt_fun(ux,vx,uy,vy)
-               print *, 'NS:VISC AT 480:', i, visc(i,j,1), 
-     &                  U(i-1,j), U(i,j), U(i+1,j), strnrt
             end if
          end do
       end do

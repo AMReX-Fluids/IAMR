@@ -963,7 +963,6 @@ c
                uy  = uycen(i,j)
                vy  = vycen(i,j)
                strnrt = strnrt_fun(ux,vx,uy,vy)
-               print *,'DER:VISC AT 480:',i,visc(i,j,1),ux,vx,uy,vy,strnrt
             end if
          end do
       end do

@@ -6,7 +6,7 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 				= 1
+max_step 				= 100
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= -1
@@ -56,7 +56,7 @@ amr.check_int			= 10000
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int			= 1
+amr.plot_int			= 10
 
 #*******************************************************************************
 
@@ -78,10 +78,10 @@ cg.maxiter              = 1000000
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.variable_vel_visc 	= 0
+ns.variable_vel_visc 	= 1
 ns.vel_visc_coef        = 0.1
-#ns.yield_stress      	= 1.4142135623730951
-#ns.reg_param         	= 0.0025
+ns.yield_stress      	= 1.4142135623730951
+ns.reg_param         	= 0.0025
 
 #*******************************************************************************
 
