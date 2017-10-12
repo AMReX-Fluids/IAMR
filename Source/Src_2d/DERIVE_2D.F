@@ -571,7 +571,6 @@ c
       vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
       vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
       vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
-
 c
 c     ::::: function for computing magnitude of rate of strain tensor
 c
@@ -709,7 +708,6 @@ c
       implicit none
 
 #include <NSCOMM_F.H>
-
 c
 c ::: This routine will compute the 
 c ::: viscosity based on the velocity field
@@ -767,12 +765,10 @@ c
       vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
       vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
       vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
-
 c
 c     ::::: function for computing magnitude of rate of strain tensor
 c
       strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
-
 c
 c     ::::: Functions for computing the regularised Bingham viscosity.
 c     ::::: When the strain rate is small, Taylor expand the exponential
@@ -784,16 +780,6 @@ c
 
       dx = delta(1)
       dy = delta(2)
-
-      if (tau .le. 1.0e-8) then
-
-      do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-            visc(i,j,1) = mu
-        end do
-      end do
-
-      else
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
@@ -955,20 +941,6 @@ c
          end if
       end if
 
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            if (j.eq.480 .and. (i.ge.20.and.i.le.40)) then
-               ux  = uxcen(i,j)
-               vx  = vxcen(i,j)
-               uy  = uycen(i,j)
-               vy  = vycen(i,j)
-               strnrt = strnrt_fun(ux,vx,uy,vy)
-            end if
-         end do
-      end do
-
-      end if 
-
 #     undef U
 #     undef V      
 #     undef VLOX
@@ -1049,9 +1021,7 @@ c
       strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
 
 c
-c     ::::: Functions for computing the regularised Bingham stressosity.
-c     ::::: When the strain rate is small, Taylor expand the exponential
-c     ::::: to avoid floating point errors.
+c     ::::: Functions for computing the regularised Bingham stress.
 c
       stress_fun(strnrt) = 2*mu*strnrt+tau*(1-exp(-strnrt/eps))
 
