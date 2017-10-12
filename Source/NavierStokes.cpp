@@ -874,8 +874,7 @@ NavierStokes:: calcBingham  (MultiFab& visc, Real time)
 
        FORT_BINGHAM(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
                	    veldat,  ARLIM(vel_lo),  ARLIM(vel_hi),
-               	    lo, hi, domlo, domhi, dx, vel_bc.dataPtr(), 
-		    &visc_coef[Xvel], &yield_stress, &reg_param);
+               	    lo, hi, domlo, domhi, dx, vel_bc.dataPtr());
     }
 }
 

@@ -185,8 +185,7 @@ extern "C" {
     void FORT_BINGHAM(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
 		              const amrex::Real* vel, ARLIM_P(vel_lo), ARLIM_P(vel_hi),
                       const int* lo, const int* hi, const int* domain_lo, const int* domain_hi,
-		              const amrex::Real* delta, const int* vel_bc,
-		              amrex::Real* mu, amrex::Real* tau, amrex::Real* eps);
+		              const amrex::Real* delta, const int* vel_bc);
 
    void FORT_SET_NS_PARAMS(const amrex::Real& vel_visc_coef,
                         const amrex::Real& yield_stress, 
