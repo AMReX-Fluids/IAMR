@@ -1178,3 +1178,857 @@ c
          enddo
       endif
       end
+
+
+
+      subroutine FORT_BINGHAM(visc, DIMS(visc), vel, DIMS(vel),
+     &                        lo, hi, domlo, domhi, delta, vel_bc)
+      implicit none
+
+#include <NSCOMM_F.H>
+c
+c ::: This routine will compute the Papanastasiou regularised Bingham
+c ::: viscosity based on the velocity field
+c
+      integer  lo(SDIM), hi(SDIM)
+      integer  DIMDEC(visc)
+      integer  DIMDEC(vel)
+      integer  domlo(SDIM), domhi(SDIM)
+      integer  vel_bc(SDIM,2,SDIM)
+      REAL_T   delta(SDIM)
+      REAL_T   visc(DIMV(visc),1)
+      REAL_T   vel(DIMV(vel),SDIM)
+
+      integer i,j,k
+      REAL_T  ux, uy, uz, vx, vy, vz, wx, wy, wz, dx, dy, dz
+      REAL_T  uxcen, uycen, uzcen, uxlo, uylo, uzlo, uxhi, uyhi, uzhi
+      REAL_T  vxcen, vycen, vzcen, vxlo, vylo, vzlo, vxhi, vyhi, vzhi
+      REAL_T  wxcen, wycen, wzcen, wxlo, wylo, wzlo, wxhi, wyhi, wzhi
+      REAL_T  strnrt, strnrt_fun, bingham_exp, bingham_tlr
+
+      logical fixulo_x, fixvlo_x, fixwlo_x, fixuhi_x, fixvhi_x, fixwhi_x
+      logical fixulo_y, fixvlo_y, fixwlo_y, fixuhi_y, fixvhi_y, fixwhi_y
+      logical fixulo_z, fixvlo_z, fixwlo_z, fixuhi_z, fixvhi_z, fixwhi_z
+c
+c     ::::: some useful macro definitions
+c
+#     define U(i,j,k) vel(i,j,k,1)
+#     define V(i,j,k) vel(i,j,k,2)
+#     define W(i,j,k) vel(i,j,k,3)
+
+#     define ULOX vel_bc(1,1,1)
+#     define UHIX vel_bc(1,2,1)
+#     define ULOY vel_bc(2,1,1)
+#     define UHIY vel_bc(2,2,1)
+#     define ULOZ vel_bc(3,1,1)
+#     define UHIZ vel_bc(3,2,1)
+
+#     define VLOX vel_bc(1,1,2)
+#     define VHIX vel_bc(1,2,2)
+#     define VLOY vel_bc(2,1,2)
+#     define VHIY vel_bc(2,2,2)
+#     define VLOZ vel_bc(3,1,2)
+#     define VHIZ vel_bc(3,2,2)
+
+#     define WLOX vel_bc(1,1,3)
+#     define WHIX vel_bc(1,2,3)
+#     define WLOY vel_bc(2,1,3)
+#     define WHIY vel_bc(2,2,3)
+#     define WLOZ vel_bc(3,1,3)
+#     define WHIZ vel_bc(3,2,3)
+c
+c     ::::: statement functions that implement stencil
+c
+      uxcen(i,j,k) = half*(U(i+1,j,k)-U(i-1,j,k))/dx
+      uxlo(i,j,k)  = (U(i+1,j,k)+three*U(i,j,k)-four*U(i-1,j,k))/(three*dx)
+      uxhi(i,j,k)  =-(U(i-1,j,k)+three*U(i,j,k)-four*U(i+1,j,k))/(three*dx)
+
+      uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
+      uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
+      uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
+
+      uzcen(i,j,k) = half*(U(i,j,k+1)-U(i,j,k-1))/dz
+      uzlo(i,j,k)  = (U(i,j,k+1)+three*U(i,j,k)-four*U(i,j,k-1))/(three*dz)
+      uzhi(i,j,k)  =-(U(i,j,k-1)+three*U(i,j,k)-four*U(i,j,k+1))/(three*dz)
+
+      vxcen(i,j,k) = half*(V(i+1,j,k)-V(i-1,j,k))/dx
+      vxlo(i,j,k)  = (V(i+1,j,k)+three*V(i,j,k)-four*V(i-1,j,k))/(three*dx)
+      vxhi(i,j,k)  =-(V(i-1,j,k)+three*V(i,j,k)-four*V(i+1,j,k))/(three*dx)
+
+      vycen(i,j,k) = half*(V(i,j+1,k)-V(i,j-1,k))/dy
+      vylo(i,j,k)  = (V(i,j+1,k)+three*V(i,j,k)-four*V(i,j-1,k))/(three*dy)
+      vyhi(i,j,k)  =-(V(i,j-1,k)+three*V(i,j,k)-four*V(i,j+1,k))/(three*dy)
+
+      vzcen(i,j,k) = half*(V(i,j,k+1)-V(i,j,k-1))/dz
+      vzlo(i,j,k)  = (V(i,j,k+1)+three*V(i,j,k)-four*V(i,j,k-1))/(three*dz)
+      vzhi(i,j,k)  =-(V(i,j,k-1)+three*V(i,j,k)-four*V(i,j,k+1))/(three*dz)
+
+      wxcen(i,j,k) = half*(W(i+1,j,k)-W(i-1,j,k))/dx
+      wxlo(i,j,k)  = (W(i+1,j,k)+three*W(i,j,k)-four*W(i-1,j,k))/(three*dx)
+      wxhi(i,j,k)  =-(W(i-1,j,k)+three*W(i,j,k)-four*W(i+1,j,k))/(three*dx)
+
+      wycen(i,j,k) = half*(W(i,j+1,k)-W(i,j-1,k))/dy
+      wylo(i,j,k)  = (W(i,j+1,k)+three*W(i,j,k)-four*W(i,j-1,k))/(three*dy)
+      wyhi(i,j,k)  =-(W(i,j-1,k)+three*W(i,j,k)-four*W(i,j+1,k))/(three*dy)
+
+      wzcen(i,j,k) = half*(W(i,j,k+1)-W(i,j,k-1))/dz
+      wzlo(i,j,k)  = (W(i,j,k+1)+three*W(i,j,k)-four*W(i,j,k-1))/(three*dz)
+      wzhi(i,j,k)  =-(W(i,j,k-1)+three*W(i,j,k)-four*W(i,j,k+1))/(three*dz)
+c
+c     ::::: function for computing magnitude of rate-of-strain tensor
+c
+      strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+     & = sqrt(ux**2+vy**2+wz**2+half*(uy+vx)**2+half*(uz+wx)**2+half*(vz+wy)**2)
+c
+c     ::::: Functions for computing the regularised Bingham viscosity
+c     ::::: When the strain rate is small, Taylor expand the exponential 
+c     ::::: to avoid floating point errors. 
+c
+      bingham_exp(strnrt) = mu+half*tau*(1-exp(-strnrt/eps))/strnrt
+      bingham_tlr(strnrt) = 
+     & mu+half*tau/eps*(one-half*strnrt/eps+half*third*strnrt**2/eps**2)
+
+      dx = delta(1)
+      dy = delta(2)
+      dz = delta(3)
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               ux = uxcen(i,j,k)
+               uy = uycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vx = vxcen(i,j,k)
+               vy = vycen(i,j,k)
+               vz = vzcen(i,j,k)
+               wx = wxcen(i,j,k)
+               wy = wycen(i,j,k)
+               wz = wzcen(i,j,k)
+               strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+               if (strnrt > 1.0e-8) then
+                 visc(i,j,k,1) = bingham_exp(strnrt)
+               else
+                 visc(i,j,k,1) = bingham_tlr(strnrt)
+               end if
+            end do
+         end do
+      end do
+
+      fixulo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) )
+      fixuhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) )
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
+     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
+     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixvlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) )
+      fixvhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
+     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
+     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+      fixwlo_z = ( (lo(3) .eq. domlo(3)) .and.
+     &             (WLOZ .eq. EXT_DIR .or. WLOZ .eq. HOEXTRAP) )
+      fixwhi_z = ( (hi(3) .eq. domhi(3)) .and.
+     &             (WHIZ .eq. EXT_DIR .or. WHIZ .eq. HOEXTRAP) )
+c
+c     First do all the faces
+c
+      if (fixulo_x .or. fixvlo_x .or. fixwlo_x) then
+         i = lo(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+               vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+               wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = wzcen(i,j,k)
+               strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+               if (strnrt > 1.0e-8) then
+                 visc(i,j,k,1) = bingham_exp(strnrt)
+               else
+                 visc(i,j,k,1) = bingham_tlr(strnrt)
+               end if
+               ! Linear extrapolation 
+               visc(i-1,j,k,1) = visc(i,j,k,1)
+            end do
+         end do
+      end if
+
+      if (fixuhi_x .or. fixvhi_x .or. fixwhi_x) then
+         i = hi(1)
+         do k = lo(3),hi(3)
+            do j = lo(2),hi(2)
+               ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+               vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+               wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = wzcen(i,j,k)
+               strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+               if (strnrt > 1.0e-8) then
+                 visc(i,j,k,1) = bingham_exp(strnrt)
+               else
+                 visc(i,j,k,1) = bingham_tlr(strnrt)
+               end if
+               ! Linear extrapolation 
+               visc(i+1,j,k,1) = visc(i,j,k,1)
+            end do
+         end do
+      end if
+
+      if (fixulo_y .or. fixvlo_y .or. fixwlo_y) then
+         j = lo(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+               vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+               wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = wzcen(i,j,k)
+               strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+               if (strnrt > 1.0e-8) then
+                 visc(i,j,k,1) = bingham_exp(strnrt)
+               else
+                 visc(i,j,k,1) = bingham_tlr(strnrt)
+               end if
+               ! Linear extrapolation 
+               visc(i,j-1,k,1) = visc(i,j,k,1)
+            end do
+         end do
+      end if
+
+      if (fixuhi_y .or. fixvhi_y .or. fixwhi_y) then
+         j = hi(2)
+         do k = lo(3),hi(3)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+               vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+               wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+               uz = uzcen(i,j,k)
+               vz = vzcen(i,j,k)
+               wz = wzcen(i,j,k)
+               strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+               if (strnrt > 1.0e-8) then
+                 visc(i,j,k,1) = bingham_exp(strnrt)
+               else
+                 visc(i,j,k,1) = bingham_tlr(strnrt)
+               end if
+               ! Linear extrapolation 
+               visc(i,j+1,k,1) = visc(i,j,k,1)
+            end do
+         end do
+      end if
+
+      if (fixulo_z .or. fixvlo_z .or. fixwlo_z) then
+         k = lo(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+               vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+               wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+               strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+               if (strnrt > 1.0e-8) then
+                 visc(i,j,k,1) = bingham_exp(strnrt)
+               else
+                 visc(i,j,k,1) = bingham_tlr(strnrt)
+               end if
+               ! Linear extrapolation 
+               visc(i,j,k-1,1) = visc(i,j,k,1)
+            end do
+         end do
+      end if
+
+      if (fixuhi_z .or. fixvhi_z .or. fixwhi_z) then
+         k = hi(3)
+         do j = lo(2),hi(2)
+            do i = lo(1),hi(1)
+               ux = uxcen(i,j,k)
+               vx = vxcen(i,j,k)
+               wx = wxcen(i,j,k)
+               uy = uycen(i,j,k)
+               vy = vycen(i,j,k)
+               wy = wycen(i,j,k)
+               uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+               vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+               wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+               strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+               if (strnrt > 1.0e-8) then
+                 visc(i,j,k,1) = bingham_exp(strnrt)
+               else
+                 visc(i,j,k,1) = bingham_tlr(strnrt)
+               end if
+               ! Linear extrapolation 
+               visc(i,j,k+1,1) = visc(i,j,k,1)
+            end do
+         end do
+      end if
+c
+c     Next do all the edges
+c
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixulo_y .or. fixvlo_y .or. fixwlo_y)) then
+         i = lo(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = wzcen(i,j,k)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i-1,j-1,k,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixulo_y .or. fixvlo_y .or. fixwlo_y)) then
+         i = hi(1)
+         j = lo(2)
+         do k = lo(3),hi(3)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = wzcen(i,j,k)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i+1,j-1,k,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixuhi_y .or. fixvhi_y .or. fixwhi_y)) then
+         i = lo(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = wzcen(i,j,k)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i-1,j+1,k,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixuhi_y .or. fixvhi_y .or. fixwhi_y)) then
+         i = hi(1)
+         j = hi(2)
+         do k = lo(3),hi(3)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = uzcen(i,j,k)
+            vz = vzcen(i,j,k)
+            wz = wzcen(i,j,k)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i+1,j+1,k,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = lo(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i-1,j,k-1,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = hi(1)
+         k = lo(3)
+         do j = lo(2),hi(2)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i+1,j,k-1,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixuhi_z .or. fixvhi_z .or. fixwhi_z)) then
+         i = lo(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+            vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+            wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i-1,j,k+1,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixuhi_z .or. fixvhi_z .or. fixwhi_z)) then
+         i = hi(1)
+         k = hi(3)
+         do j = lo(2),hi(2)
+            ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+            vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+            wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+            uy = uycen(i,j,k)
+            vy = vycen(i,j,k)
+            wy = wycen(i,j,k)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i+1,j,k+1,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixulo_y .or. fixvlo_y .or. fixwlo_y) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         j = lo(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            ux = uxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i,j-1,k-1,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         j = hi(2)
+         k = lo(3)
+         do i = lo(1),hi(1)
+            ux = uxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+            vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+            wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i,j+1,k-1,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixulo_y .or. fixvlo_y .or. fixwlo_y) .and. 
+     &    (fixuhi_z .or. fixvhi_z .or. fixwhi_z)) then
+         j = lo(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            ux = uxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+            vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+            wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i,j-1,k+1,1) = visc(i,j,k,1)
+         end do
+      end if
+
+      if ((fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. 
+     &    (fixuhi_z .or. fixvhi_z .or. fixwhi_z)) then
+         j = hi(2)
+         k = hi(3)
+         do i = lo(1),hi(1)
+            ux = vxcen(i,j,k)
+            vx = vxcen(i,j,k)
+            wx = wxcen(i,j,k)
+            uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+            vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+            wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+            uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+            vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+            wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+            strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+            if (strnrt > 1.0e-8) then
+              visc(i,j,k,1) = bingham_exp(strnrt)
+            else
+              visc(i,j,k,1) = bingham_tlr(strnrt)
+            end if
+            ! Linear extrapolation 
+            visc(i,j+1,k+1,1) = visc(i,j,k,1)
+         end do
+      end if
+c
+c     Finally do all the corners
+c
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixulo_y .or. fixvlo_y .or. fixwlo_y) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = lo(3)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i-1,j-1,k-1,1) = visc(i,j,k,1)
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixulo_y .or. fixvlo_y .or. fixwlo_y) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = lo(3)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i+1,j-1,k-1,1) = visc(i,j,k,1)
+      end if
+
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = lo(3)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i-1,j+1,k-1,1) = visc(i,j,k,1)
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. 
+     &    (fixulo_z .or. fixvlo_z .or. fixwlo_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = lo(3)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzlo(i,j,k),uzcen(i,j,k),fixulo_z)
+         vz = merge(vzlo(i,j,k),vzcen(i,j,k),fixvlo_z)
+         wz = merge(wzlo(i,j,k),wzcen(i,j,k),fixwlo_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i+1,j+1,k-1,1) = visc(i,j,k,1)
+      end if
+
+      if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixulo_y .or. fixvlo_y .or. fixwlo_y) .and. 
+     &    (fixuhi_z .or. fixvhi_z .or. fixwhi_z)) then
+         i = lo(1)
+         j = lo(2)
+         k = hi(3)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i-1,j-1,k+1,1) = visc(i,j,k,1)
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixulo_y .or. fixvlo_y .or. fixwlo_y) .and. 
+     &    (fixuhi_z .or. fixvhi_z .or. fixwhi_z)) then
+         i = hi(1)
+         j = lo(2)
+         k = hi(3)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uylo(i,j,k),uycen(i,j,k),fixulo_y)
+         vy = merge(vylo(i,j,k),vycen(i,j,k),fixvlo_y)
+         wy = merge(wylo(i,j,k),wycen(i,j,k),fixwlo_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i+1,j-1,k+1,1) = visc(i,j,k,1)
+      end if
+
+      if ((fixvlo_x .or. fixwlo_x) .and. 
+     &    (fixuhi_y .or. fixwhi_y) .and. 
+     &    (fixuhi_z .or. fixvhi_z)) then
+         i = lo(1)
+         j = hi(2)
+         k = hi(3)
+         ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
+         vx = merge(vxlo(i,j,k),vxcen(i,j,k),fixvlo_x)
+         wx = merge(wxlo(i,j,k),wxcen(i,j,k),fixwlo_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i-1,j+1,k+1,1) = visc(i,j,k,1)
+      end if
+
+      if ((fixuhi_x .or. fixvhi_x .or. fixwhi_x) .and. 
+     &    (fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. 
+     &    (fixuhi_z .or. fixvhi_z .or. fixwhi_z)) then
+         i = hi(1)
+         j = hi(2)
+         k = hi(3)
+         ux = merge(uxhi(i,j,k),uxcen(i,j,k),fixuhi_x)
+         vx = merge(vxhi(i,j,k),vxcen(i,j,k),fixvhi_x)
+         wx = merge(wxhi(i,j,k),wxcen(i,j,k),fixwhi_x)
+         uy = merge(uyhi(i,j,k),uycen(i,j,k),fixuhi_y)
+         vy = merge(vyhi(i,j,k),vycen(i,j,k),fixvhi_y)
+         wy = merge(wyhi(i,j,k),wycen(i,j,k),fixwhi_y)
+         uz = merge(uzhi(i,j,k),uzcen(i,j,k),fixuhi_z)
+         vz = merge(vzhi(i,j,k),vzcen(i,j,k),fixvhi_z)
+         wz = merge(wzhi(i,j,k),wzcen(i,j,k),fixwhi_z)
+         strnrt = strnrt_fun(ux,uy,uz,vx,vy,vz,wx,wy,wz)
+         if (strnrt > 1.0e-8) then
+           visc(i,j,k,1) = bingham_exp(strnrt)
+         else
+           visc(i,j,k,1) = bingham_tlr(strnrt)
+         end if
+         ! Linear extrapolation 
+         visc(i+1,j+1,k+1,1) = visc(i,j,k,1)
+      end if
+
+#     undef U
+#     undef V      
+#     undef W
+#     undef ULOX
+#     undef UHIX
+#     undef ULOY
+#     undef UHIY
+#     undef ULOZ
+#     undef UHIZ
+#     undef VLOX
+#     undef VHIX
+#     undef VLOY
+#     undef VHIY
+#     undef VLOZ
+#     undef VHIZ
+#     undef WLOX
+#     undef WHIX
+#     undef WLOY
+#     undef WHIY
+#     undef WLOZ
+#     undef WHIZ
+
+      end

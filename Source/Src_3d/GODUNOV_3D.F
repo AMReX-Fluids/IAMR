@@ -23,6 +23,9 @@
      &     tforces,DIMS(tf),
      &     rho,DIMS(rho),
      &     lo,hi,dt,dx,cfl,u_max)
+      implicit none
+
+#include <NSCOMM_F.H>
 c 
 c     ----------------------------------------------------------
 c     estimate the timestep for this grid and scale by CFL number
@@ -31,12 +34,12 @@ c     dt_est is estimated from the actual velocities and their
 c     total forcing
 c     ----------------------------------------------------------
 c
-      implicit none
       integer i, j, k
       REAL_T  u, v, w
       REAL_T  small
       REAL_T  dt_start
       REAL_T  tforce1,tforce2,tforce3
+      REAL_T  yield
       integer lo(SDIM), hi(SDIM)
       REAL_T  dt,dx(SDIM),cfl,u_max(SDIM)
 
@@ -56,6 +59,7 @@ c
       tforce1 = zero
       tforce2 = zero
       tforce3 = zero
+      yield   = zero
 
 !$omp parallel do private(i,j,k,irho)
 !$omp&reduction(max: u,v,w,tforce1,tforce2,tforce3)
@@ -63,12 +67,13 @@ c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                irho = 1.0d0/rho(i,j,k)
-               u = max(u,abs(vel(i,j,k,1)))	
-               v = max(v,abs(vel(i,j,k,2)))
-               w = max(w,abs(vel(i,j,k,3)))
-               tforce1 = max(tforce1,abs(tforces(i,j,k,1)*irho))
-               tforce2 = max(tforce2,abs(tforces(i,j,k,2)*irho))
-               tforce3 = max(tforce3,abs(tforces(i,j,k,3)*irho))
+               u        = max(u,abs(vel(i,j,k,1)))	
+               v        = max(v,abs(vel(i,j,k,2)))
+               w        = max(w,abs(vel(i,j,k,3)))
+               tforce1  = max(tforce1,abs(tforces(i,j,k,1)*irho))
+               tforce2  = max(tforce2,abs(tforces(i,j,k,2)*irho))
+               tforce3  = max(tforce3,abs(tforces(i,j,k,3)*irho))
+               yield    = max(yield,1.0e3*(tau/sqrt(2.0)+mu)/rho(i,j,k))
             end do
          end do
       end do
@@ -87,6 +92,13 @@ c
       if (tforce1 .gt. small) dt = min(dt,sqrt(two*dx(1)/tforce1))
       if (tforce2 .gt. small) dt = min(dt,sqrt(two*dx(2)/tforce2))
       if (tforce3 .gt. small) dt = min(dt,sqrt(two*dx(3)/tforce3))
+
+      if (tau .gt. small) then 
+        if (yield .gt. small) then 
+          dt = min(dt,dx(1)/yield)
+          dt = min(dt,dx(2)/yield)
+        end if
+      end if
 
       if (dt .eq. dt_start) dt = min(dx(1),dx(2),dx(3))
 
