@@ -1,4 +1,4 @@
-#AMREX_HOME defines the directory in which we will find the BoxLib directory
+#AMREX_HOME defines the directory in which we will find the AMReX directory
 AMREX_HOME ?= ../../../amrex
 
 #TOP defines the directory in which we will find Source, Exec, etc.

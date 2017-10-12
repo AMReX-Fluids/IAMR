@@ -25,8 +25,14 @@ ns.cfl                  =  0.7  # CFL number used to set dt
 ns.init_shrink          =  0.3  # factor which multiplies the very first time step
 ns.init_iter          	=  3    # number of initial iterations
 
-ns.vel_visc_coef        =  0.01
+ns.variable_vel_visc 	=  1
+ns.vel_visc_coef        =  0.1
+ns.yield_stress 		=  1.4142135623730951
+ns.reg_param 			=  0.0025
 ns.scal_diff_coefs      =  0.0
+
+mg.maxiter 				=  1000000
+cg.maxiter 				=  1000000
 
 amr.probin_file 		=  probin.3d.lid_driven_cavity
 
@@ -46,5 +52,5 @@ ns.hi_bc             	=  5 5 5
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 
-amr.derive_plot_vars   	=  mag_vort mag_strainrate
+amr.derive_plot_vars   	=  mag_vort mag_strainrate viscosity stress
 proj.v 					=  0
