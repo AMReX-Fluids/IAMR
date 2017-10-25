@@ -46,8 +46,7 @@ c     -----------------------------------------------------------
      $                         bc,level,grid_no)
       implicit none
 c
-c     This routine will derive kinetic energy from density
-c     and the velocity field.
+c     This routine will derive the modulus of the density gradients
 c
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
