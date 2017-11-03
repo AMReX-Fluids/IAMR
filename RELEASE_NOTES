@@ -1,1 +1,4 @@
 9/20/17 - Release version 17.09 (September, 2017)
+
+11/3/17 - Small changes to documentation and code commments.  Added a test problem with
+          an input tracer being forced into the domain with an inflow jet.
