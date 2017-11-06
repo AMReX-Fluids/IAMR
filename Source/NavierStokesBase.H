@@ -72,17 +72,17 @@ public:
 
     virtual void computeInitialDt (int                   finest_level,
                                    int                   sub_cycle,
-                                   amrex::Array<int>&           n_cycle,
-                                   const amrex::Array<amrex::IntVect>& ref_ratio,
-                                   amrex::Array<amrex::Real>&          dt_level,
+                                   amrex::Vector<int>&           n_cycle,
+                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
+                                   amrex::Vector<amrex::Real>&          dt_level,
                                    amrex::Real                  stop_time) override;
 
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
-                               amrex::Array<int>&           n_cycle,
-                               const amrex::Array<amrex::IntVect>& ref_ratio,
-                               amrex::Array<amrex::Real>&          dt_min,
-                               amrex::Array<amrex::Real>&          dt_level,
+                               amrex::Vector<int>&           n_cycle,
+                               const amrex::Vector<amrex::IntVect>& ref_ratio,
+                               amrex::Vector<amrex::Real>&          dt_min,
+                               amrex::Vector<amrex::Real>&          dt_level,
                                amrex::Real                  stop_time,
                                int                   post_regrid_flag) override;
     //
@@ -109,7 +109,7 @@ public:
     //   the list of tagged points
     //
     virtual void manual_tags_placement (amrex::TagBoxArray&    tags, 
-					const amrex::Array<amrex::IntVect>& bf_lev) override;
+					const amrex::Vector<amrex::IntVect>& bf_lev) override;
     //
     // Estimate the end of the simulation for amrLevel.
     //
@@ -308,8 +308,8 @@ protected:
     // This function estimates the initial timesteping used by the model.
     //
     void post_init_estDT (amrex::Real&        dt_init,
-			  amrex::Array<int>&  nc_save,
-			  amrex::Array<amrex::Real>& dt_save,
+			  amrex::Vector<int>&  nc_save,
+			  amrex::Vector<amrex::Real>& dt_save,
 			  amrex::Real         stop_time);
     //
     // Ensure state is consistent, i.e. velocity field is nondivergent,
@@ -494,7 +494,7 @@ private:
         return *sync_reg;
     }
     //
-    void getOutFlowFaces (amrex::Array<amrex::Orientation>& outFaces);
+    void getOutFlowFaces (amrex::Vector<amrex::Orientation>& outFaces);
     //
     // Get state data.
     //
@@ -586,7 +586,7 @@ protected:
     //
     // Radii for r-z calculations.
     //
-    amrex::Array< amrex::Array<amrex::Real> > radius;
+    amrex::Vector< amrex::Vector<amrex::Real> > radius;
     //
     // Flag for doing first step after regrid
     //
@@ -636,13 +636,13 @@ protected:
     // Controls over how the convective and diffusive terms are calculated
     // for each state variable.
     //
-    static amrex::Array<AdvectionForm> advectionType;
-    static amrex::Array<DiffusionForm> diffusionType;
+    static amrex::Vector<AdvectionForm> advectionType;
+    static amrex::Vector<DiffusionForm> diffusionType;
     //
     // Viscosity parameters.
     //
-    static amrex::Array<int>  is_diffusive;    // does variable diffuse?
-    static amrex::Array<amrex::Real> visc_coef;       // const coef viscosity terms
+    static amrex::Vector<int>  is_diffusive;    // does variable diffuse?
+    static amrex::Vector<amrex::Real> visc_coef;       // const coef viscosity terms
     static amrex::Real        visc_tol;
     static amrex::Real        visc_abs_tol;
     static amrex::Real        be_cn_theta;
@@ -674,7 +674,7 @@ protected:
     static int  do_tracer2_ref;
     static int  do_vorticity_ref;
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
-    static amrex::Array<int> scalarUpdateOrder;
+    static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin
     //
     // Member when pressure defined at points in time rather than interval

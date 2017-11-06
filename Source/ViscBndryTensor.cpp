@@ -22,7 +22,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
     {
         const int                  i     = fsi.index();
         RealTuple&                 bloc  = bcloc[i];
-        Array< Array<BoundCond> >& bctag = bcond[i];
+        Vector< Vector<BoundCond> >& bctag = bcond[i];
 
         for (OrientationIter fi; fi; ++fi)
         {
@@ -67,7 +67,7 @@ ViscBndryTensor::setBndryConds (const BCRec& bc,
 }
 
 void
-ViscBndryTensor::setHomogValues (const Array<BCRec>& bc,
+ViscBndryTensor::setHomogValues (const Vector<BCRec>& bc,
                                  int                 ratio)
 {
     for (int n = 0; n < bc.size(); ++n)

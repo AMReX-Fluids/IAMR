@@ -228,12 +228,12 @@ public:      // public access functions
                         const amrex::Box &grd, const amrex::Real *dx, const amrex::Real dt,
                         const amrex::Real *u_max );
 
-    static bool are_any(const amrex::Array<AdvectionForm>& advectionType,
+    static bool are_any(const amrex::Vector<AdvectionForm>& advectionType,
                         const AdvectionForm         testForm,
                         const int                   sComp,
                         const int                   nComp);
 
-    static int how_many(const amrex::Array<AdvectionForm>& advectionType,
+    static int how_many(const amrex::Vector<AdvectionForm>& advectionType,
                         const AdvectionForm         testForm,
                         const int                   sComp,
                         const int                   nComp);
@@ -334,16 +334,16 @@ public:      // public access functions
     amrex::FArrayBox D_DECL(sedgex, sedgey, sedgez);
 
     // 1D arrays used in computing slopes and edges states
-    amrex::Array<amrex::Real> stxlo; 
-    amrex::Array<amrex::Real> stxhi; 
-    amrex::Array<amrex::Real> slxscr;
-    amrex::Array<amrex::Real> stylo;
-    amrex::Array<amrex::Real> styhi;
-    amrex::Array<amrex::Real> slyscr;
+    amrex::Vector<amrex::Real> stxlo; 
+    amrex::Vector<amrex::Real> stxhi; 
+    amrex::Vector<amrex::Real> slxscr;
+    amrex::Vector<amrex::Real> stylo;
+    amrex::Vector<amrex::Real> styhi;
+    amrex::Vector<amrex::Real> slyscr;
 #if (BL_SPACEDIM == 3 )    
-    amrex::Array<amrex::Real> stzlo;
-    amrex::Array<amrex::Real> stzhi;
-    amrex::Array<amrex::Real> slzscr;
+    amrex::Vector<amrex::Real> stzlo;
+    amrex::Vector<amrex::Real> stzhi;
+    amrex::Vector<amrex::Real> slzscr;
 #endif
     
 protected:   // protected work functions

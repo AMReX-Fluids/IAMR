@@ -1690,7 +1690,7 @@ Godunov::Sum_tf_divu_visc (const FArrayBox& S,
 
 
 bool
-Godunov::are_any(const Array<AdvectionForm>& advectionType,
+Godunov::are_any(const Vector<AdvectionForm>& advectionType,
                  const AdvectionForm         testForm,
                  const int                   sComp,
                  const int                   nComp)
@@ -1711,7 +1711,7 @@ Godunov::hypgrow ()
 }
 
 int
-Godunov::how_many(const Array<AdvectionForm>& advectionType,
+Godunov::how_many(const Vector<AdvectionForm>& advectionType,
                   const AdvectionForm         testForm,
                   const int                   sComp,
                   const int                   nComp)

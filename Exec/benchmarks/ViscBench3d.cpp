@@ -113,14 +113,14 @@ main (int   argc,
     const int nComp          = amrDataI.NComp();
     const Real time = amrDataI.Time();
     const int finestLevel = amrDataI.FinestLevel();
-    const Array<std::string>& derives = amrDataI.PlotVarNames();
+    const Vector<std::string>& derives = amrDataI.PlotVarNames();
     
 
     //
     // Compute the error
     //
-    Array<MultiFab*> error(finestLevel+1);
-    Array<MultiFab*> dataE(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> dataE(finestLevel+1);
     
     cout << "Level Delta L"<< norm << " norm of Error in Each Component" << endl
          << "-----------------------------------------------" << endl;
@@ -128,7 +128,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
-        Array<Real> delI = amrDataI.DxLevel()[iLevel];
+        Vector<Real> delI = amrDataI.DxLevel()[iLevel];
 
 	error[iLevel] = new MultiFab(baI, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
@@ -156,8 +156,8 @@ main (int   argc,
             //
             const int *lo = dataGrid.loVect();
             const int *hi = dataGrid.hiVect();
-            Array<Real> xlo = amrDataI.GridLocLo()[iLevel][iGrid];
-            Array<Real> xhi = amrDataI.GridLocHi()[iLevel][iGrid];
+            Vector<Real> xlo = amrDataI.GridLocLo()[iLevel][iGrid];
+            Vector<Real> xhi = amrDataI.GridLocHi()[iLevel][iGrid];
 
             FORT_VISCBENCH(&time, &mu, &unifDir,
                            lo, hi, &nComp,
@@ -217,8 +217,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.length();
     if (length != derives2.length())
 	return false;

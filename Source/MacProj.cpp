@@ -873,7 +873,7 @@ MacProj::mac_sync_compute (int                   level,
                            MultiFab&             Ssync,
                            MultiFab&             rho_half,
                            FluxRegister*         adv_flux_reg,
-                           Array<AdvectionForm>& advectionType,
+                           Vector<AdvectionForm>& advectionType,
                            Real                  prev_time, 
                            Real                  prev_pres_time,
                            Real                  dt, 
@@ -881,7 +881,7 @@ MacProj::mac_sync_compute (int                   level,
                            Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
                            int                   do_mom_diff,
-                           const Array<int>&     increment_sync,
+                           const Vector<int>&     increment_sync,
 			   bool                  update_fluxreg)
 {
     if (modify_reflux_normal_vel)
@@ -929,7 +929,7 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
     }
 
-    Array<int> ns_level_bc, bndry[BL_SPACEDIM];
+    Vector<int> ns_level_bc, bndry[BL_SPACEDIM];
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
@@ -1102,7 +1102,7 @@ MacProj::mac_sync_compute (int                    level,
 			   int                    eComp,
                            MultiFab&              rho_half,
                            FluxRegister*          adv_flux_reg,
-                           Array<AdvectionForm>&  advectionType, 
+                           Vector<AdvectionForm>&  advectionType, 
 			   bool                   modify_reflux_normal_vel,
                            Real                   dt,
 			   bool                   update_fluxreg)
@@ -1419,7 +1419,7 @@ MacProj::test_umac_periodic (int       level,
     if (!geom.isAnyPeriodic()) return;
 
     FArrayBox              diff;
-    Array<IntVect>         pshifts(27);
+    Vector<IntVect>         pshifts(27);
     MultiFabCopyDescriptor mfcd;
     std::vector<TURec>     pirm;
     MultiFabId             mfid[BL_SPACEDIM];

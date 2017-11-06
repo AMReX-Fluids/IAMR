@@ -61,8 +61,8 @@ int         Diffusion::tensor_max_order;
 int         Diffusion::use_tensor_cg_solve;
 bool        Diffusion::use_mg_precond_flag;
 
-Array<Real> Diffusion::visc_coef;
-Array<int>  Diffusion::is_diffusive;
+Vector<Real> Diffusion::visc_coef;
+Vector<int>  Diffusion::is_diffusive;
 
 namespace
 {
@@ -85,8 +85,8 @@ Diffusion::Diffusion (Amr*               Parent,
                       Diffusion*         Coarser,
                       int                num_state,
                       FluxRegister*      Viscflux_reg,
-                      const Array<int>&  _is_diffusive,
-                      const Array<Real>& _visc_coef)
+                      const Vector<int>&  _is_diffusive,
+                      const Vector<Real>& _visc_coef)
     :
     parent(Parent),
     navier_stokes(Caller),
@@ -383,7 +383,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 #pragma omp parallel
 #endif
 	{
-	    Array<Real> rcen;
+	    Vector<Real> rcen;
 
 	    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 	    {
@@ -718,7 +718,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 FArrayBox& rhsfab = Rhs[Rhsmfi];
 
                 const Box& sbx    = U_old[Rhsmfi].box();
-                Array<Real> rcen(bx.length(0));
+                Vector<Real> rcen(bx.length(0));
                 navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
                 const int*       lo        = bx.loVect();
                 const int*       hi        = bx.hiVect();
@@ -1383,7 +1383,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
         for (MFIter mfi(alpha,true); mfi.isValid(); ++mfi)
         {
             const Box&  bx        = mfi.tilebox();
-            Array<Real> rcen(bx.length(0));
+            Vector<Real> rcen(bx.length(0));
 
             navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
@@ -1487,7 +1487,7 @@ Diffusion::getTensorOp (Real                   a,
     const Real* dx   = navier_stokes->Geom().CellSize();
     const int   nDer = MCLinOp::bcComponentsNeeded();
 
-    Array<BCRec> bcarray(nDer,BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+    Vector<BCRec> bcarray(nDer,BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
                                     D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
 
     for (int id = 0; id < BL_SPACEDIM; id++)
@@ -1617,7 +1617,7 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
         {
             const Box& bx = mfi.tilebox();
 
-            Array<Real> rcen(bx.length(0));
+            Vector<Real> rcen(bx.length(0));
             navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
 
             const int*       lo      = bx.loVect();
@@ -1807,7 +1807,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                 const Box& bx  = visc_tmpmfi.validbox();
                 Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
                 Box        sbx = amrex::grow(s_tmp.box(i),s_tmp.nGrow());
-                Array<Real> rcen(bx.length(0));
+                Vector<Real> rcen(bx.length(0));
                 navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
                 const int*  lo      = bx.loVect();
                 const int*  hi      = bx.hiVect();
@@ -1924,7 +1924,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                 Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
                 Box        sbx = amrex::grow(s_tmp.box(k),s_tmp.nGrow());
 
-		Array<Real> rcen;
+		Vector<Real> rcen;
                 rcen.resize(bx.length(0));
 
                 navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
@@ -2100,7 +2100,7 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
     //
     // Create the BCRec's interpreted by ViscBndry objects
     //
-    Array<BCRec> bcarray(nDer, BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
+    Vector<BCRec> bcarray(nDer, BCRec(D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
                                      D_DECL(EXT_DIR,EXT_DIR,EXT_DIR)));
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
@@ -2304,7 +2304,7 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
 }
 
 bool
-Diffusion::are_any(const Array<DiffusionForm>& diffusionType,
+Diffusion::are_any(const Vector<DiffusionForm>& diffusionType,
                    const DiffusionForm         testForm,
                    const int                   sComp,
                    const int                   nComp)
@@ -2319,7 +2319,7 @@ Diffusion::are_any(const Array<DiffusionForm>& diffusionType,
 }
 
 int
-Diffusion::how_many(const Array<DiffusionForm>& diffusionType,
+Diffusion::how_many(const Vector<DiffusionForm>& diffusionType,
                     const DiffusionForm         testForm,
                     const int                   sComp,
                     const int                   nComp)
@@ -2336,7 +2336,7 @@ Diffusion::how_many(const Array<DiffusionForm>& diffusionType,
 }
 /*
 bool
-Diffusion::are_any_Laplacian_SoverRho(const Array<DiffusionForm>& diffusionType,
+Diffusion::are_any_Laplacian_SoverRho(const Vector<DiffusionForm>& diffusionType,
                                       const int                   sComp,
                                       const int                   nComp)
 {

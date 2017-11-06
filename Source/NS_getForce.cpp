@@ -168,8 +168,8 @@ NavierStokesBase::getForce (FArrayBox&       force,
 		       << "(" << s_hi[0] << "," << s_hi[1] << ")" << std::endl;
 #endif
 
-	Array<Real> velmin(BL_SPACEDIM), velmax(BL_SPACEDIM);
-	Array<Real> scalmin(NUM_SCALARS), scalmax(NUM_SCALARS);
+	Vector<Real> velmin(BL_SPACEDIM), velmax(BL_SPACEDIM);
+	Vector<Real> scalmin(NUM_SCALARS), scalmax(NUM_SCALARS);
 	for (int n=0; n<BL_SPACEDIM; n++) {
 	    velmin[n]= 1.e234;
 	    velmax[n]=-1.e234;
@@ -249,8 +249,8 @@ NavierStokesBase::getForce (FArrayBox&       force,
 		    &grav,&scomp,&ncomp,&nscal,&getForceVerbose);
 
     if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-	Array<Real> forcemin(ncomp);
-	Array<Real> forcemax(ncomp);
+	Vector<Real> forcemin(ncomp);
+	Vector<Real> forcemax(ncomp);
 	for (int n=0; n<ncomp; n++) {
 	    forcemin[n]= 1.e234;
 	    forcemax[n]=-1.e234;

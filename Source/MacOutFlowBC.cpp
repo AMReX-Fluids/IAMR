@@ -123,7 +123,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
-    Array<Array<Real> > redge(2*BL_SPACEDIM);
+    Vector<Vector<Real> > redge(2*BL_SPACEDIM);
 #endif
 
     FArrayBox ccExt[2*BL_SPACEDIM];
@@ -264,7 +264,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
   
     if (connected == 0)
     {
-	Array<Real> x;
+	Vector<Real> x;
 
         for (iface = 0; iface < numOutFlowFaces; iface++)
         {
@@ -475,7 +475,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
 
             int per = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
 
-	    Array<Real> redge_conn(length+1);
+	    Vector<Real> redge_conn(length+1);
 
             FORT_MACFILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFaces,
                               ccEptr0,ccEptr1,ccEptr2,ccEptr3,

@@ -27,7 +27,7 @@ FORT_GETPLANE (int* filename, int* len, Real* data, int* plane, int* ncomp, int*
 {
     static int         kmax;
     static bool        first = true;
-    static Array<long> offset;
+    static Vector<long> offset;
     std::string        flctfile;
 
     for (int i = 0; i < *len; i++)

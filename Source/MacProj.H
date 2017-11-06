@@ -67,7 +67,7 @@ public:
                            amrex::MultiFab&             Ssync,
                            amrex::MultiFab&             rho_half, 
                            amrex::FluxRegister*         adv_flux_reg,
-                           amrex::Array<AdvectionForm>& advectionType,
+                           amrex::Vector<AdvectionForm>& advectionType,
                            amrex::Real                  prev_time,
                            amrex::Real                  prev_pres_time,
                            amrex::Real                  dt,
@@ -75,7 +75,7 @@ public:
                            amrex::Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
                            int		         do_mom_diff,
-                           const amrex::Array<int>&     increment_sync = amrex::Array<int>(),
+                           const amrex::Vector<int>&     increment_sync = amrex::Vector<int>(),
 			   bool                  update_fluxreg = true);
 
     void mac_sync_compute (int                   level,
@@ -86,7 +86,7 @@ public:
 			   int                   eComp,
                            amrex::MultiFab&             rho_half,
                            amrex::FluxRegister*         adv_flux_reg,
-                           amrex::Array<AdvectionForm>& advectionType,
+                           amrex::Vector<AdvectionForm>& advectionType,
                            bool		         modify_reflux_normal_vel,
                            amrex::Real                  dt,
 			   bool                  update_fluxreg = true);
@@ -116,21 +116,21 @@ protected:
     // Pointers to amr,amrlevel.
     //
     amrex::Amr*             parent;
-    amrex::Array<amrex::AmrLevel*> LevelData;
+    amrex::Vector<amrex::AmrLevel*> LevelData;
     //
     // Boundary condition objects.
     //
     amrex::BCRec*                phys_bc;
-    amrex::Array< amrex::Array<amrex::BCRec> > phi_bcs;
+    amrex::Vector< amrex::Vector<amrex::BCRec> > phi_bcs;
     //
     // MAC sync correction and solution.
     //
-    amrex::Array<std::unique_ptr<amrex::MultiFab    > > mac_phi_crse;
-    amrex::Array<std::unique_ptr<amrex::FluxRegister> > mac_reg;
+    amrex::Vector<std::unique_ptr<amrex::MultiFab    > > mac_phi_crse;
+    amrex::Vector<std::unique_ptr<amrex::FluxRegister> > mac_reg;
     //
     // Anelastic coefficient array.
     //
-    amrex::Array<amrex::Real**> anel_coeff;
+    amrex::Vector<amrex::Real**> anel_coeff;
     //
     // Parameters.
     //

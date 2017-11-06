@@ -47,7 +47,7 @@ ViscBndry::setBndryConds (const BCRec&   bc,
     {
         const int                  i     = fsi.index();
         RealTuple&                 bloc  = bcloc[i];
-        Array< Array<BoundCond> >& bctag = bcond[i];
+        Vector< Vector<BoundCond> >& bctag = bcond[i];
 
         for (OrientationIter fi; fi; ++fi)
         {

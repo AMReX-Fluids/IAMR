@@ -44,8 +44,8 @@ public:
                Diffusion*         coarser,
                int                num_state,
                amrex::FluxRegister*      Viscflux_reg,
-               const amrex::Array<int>&  _is_diffusive,
-               const amrex::Array<amrex::Real>& _visc_coef);
+               const amrex::Vector<int>&  _is_diffusive,
+               const amrex::Vector<amrex::Real>& _visc_coef);
 
     ~Diffusion ();
 
@@ -266,12 +266,12 @@ public:
 
     static int set_rho_flag (const DiffusionForm compDiffusionType);
 
-    static bool are_any (const amrex::Array<DiffusionForm>& diffusionType,
+    static bool are_any (const amrex::Vector<DiffusionForm>& diffusionType,
                          const DiffusionForm         testForm,
                          const int                   sComp,
                          const int                   nComp);
 
-    static int how_many (const amrex::Array<DiffusionForm>& diffusionType,
+    static int how_many (const amrex::Vector<DiffusionForm>& diffusionType,
                          const DiffusionForm         testForm,
                          const int                   sComp,
                          const int                   nComp);
@@ -300,8 +300,8 @@ protected:
     static bool        use_mg_precond_flag;
     static int         use_cg_solve;
     static int         scale_abec;
-    static amrex::Array<int>  is_diffusive;    // Does variable diffuse?
-    static amrex::Array<amrex::Real> visc_coef;       // Const coef viscosity terms
+    static amrex::Vector<int>  is_diffusive;    // Does variable diffuse?
+    static amrex::Vector<amrex::Real> visc_coef;       // Const coef viscosity terms
     static int         verbose;
     static amrex::Real        visc_tol;
 

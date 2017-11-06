@@ -188,8 +188,8 @@ private:
     // Initialize the pressure by iterating the initial timestep.
     //
     void post_init_press (amrex::Real&        dt_init,
-			  amrex::Array<int>&  nc_save,
-			  amrex::Array<amrex::Real>& dt_save);
+			  amrex::Vector<int>&  nc_save,
+			  amrex::Vector<amrex::Real>& dt_save);
     //
     // Compute divergent mac velocities, estimate best timestep
     // from t^n data, and compile cfl number.

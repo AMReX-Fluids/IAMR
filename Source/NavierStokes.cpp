@@ -155,7 +155,7 @@ NavierStokes::initData ()
             DataServices::Dispatch(DataServices::ExitRequest, NULL);
     
         AmrData&           amrData   = dataServices.AmrDataRef();
-        Array<std::string> plotnames = amrData.PlotVarNames();
+        Vector<std::string> plotnames = amrData.PlotVarNames();
 
         int idX = -1;
         for (int i = 0; i < plotnames.size(); ++i)
@@ -423,7 +423,7 @@ NavierStokes::predict_velocity (Real  dt,
 
     FArrayBox tforces;
 
-    Array<int> bndry[BL_SPACEDIM];
+    Vector<int> bndry[BL_SPACEDIM];
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
@@ -576,7 +576,7 @@ NavierStokes::scalar_advection (Real dt,
         else
             vel_visc_terms.setVal(0,1);
     }
-    Array<int> state_bc, bndry[BL_SPACEDIM];
+    Vector<int> state_bc, bndry[BL_SPACEDIM];
     //
     // Compute the advective forcing.
     //
@@ -1375,8 +1375,8 @@ NavierStokes::post_init (Real stop_time)
 
     const int   finest_level = parent->finestLevel();
     Real        dt_init      = 0.0;
-    Array<Real> dt_save(finest_level+1);
-    Array<int>  nc_save(finest_level+1);
+    Vector<Real> dt_save(finest_level+1);
+    Vector<int>  nc_save(finest_level+1);
     //
     // Ensure state is consistent, i.e. velocity field is non-divergent,
     // Coarse levels are fine level averages, pressure is zero.
@@ -1417,8 +1417,8 @@ NavierStokes::post_init (Real stop_time)
 
 void
 NavierStokes::post_init_press (Real&        dt_init,
-                               Array<int>&  nc_save,
-                               Array<Real>& dt_save)
+                               Vector<int>&  nc_save,
+                               Vector<Real>& dt_save)
 {
     const Real strt_time       = state[State_Type].curTime();
     const int  finest_level    = parent->finestLevel();
@@ -1435,7 +1435,7 @@ NavierStokes::post_init_press (Real&        dt_init,
         //
         // This constructs a guess at P, also sets p_old == p_new.
         //
-        Array<MultiFab*> sig(finest_level+1, nullptr);
+        Vector<MultiFab*> sig(finest_level+1, nullptr);
 
         for (int k = 0; k <= finest_level; k++)
         {
@@ -1678,8 +1678,8 @@ NavierStokes::mac_sync ()
         //
         const int N = grids.size();
 
-        Array<int*>         sync_bc(N);
-        Array< Array<int> > sync_bc_array(N);
+        Vector<int*>         sync_bc(N);
+        Vector< Vector<int> > sync_bc_array(N);
 
         for (int i = 0; i < N; i++)
         {

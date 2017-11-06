@@ -37,7 +37,7 @@ public:
     //
     void install_level (int                   level,
                         amrex::AmrLevel*             level_data,
-                        amrex::Array< amrex::Array<amrex::Real> >* _radius);
+                        amrex::Vector< amrex::Vector<amrex::Real> >* _radius);
 
     void install_anelastic_coefficient (int                        level,
                                         amrex::Real                **anel_coeff);
@@ -126,7 +126,7 @@ public:
     // This computes the stream function, given the velocity field
     //  *AND ASSUMING* no-flow boundaries on all physical boundaries.
     //
-    void getStreamFunction (amrex::Array<std::unique_ptr<amrex::MultiFab> >&);
+    void getStreamFunction (amrex::Vector<std::unique_ptr<amrex::MultiFab> >&);
     //
     // The initial velocity projection in post_init.
     // This function ensures that the velocities are nondivergent.
@@ -145,7 +145,7 @@ public:
     // pressure used in the timestepping.
     //
     void initialSyncProject (int       crse_level,
-                             const amrex::Array<amrex::MultiFab*> sig,
+                             const amrex::Vector<amrex::MultiFab*> sig,
                              amrex::Real      dt, 
                              amrex::Real      strt_time,
                              int       have_divu);
@@ -272,10 +272,10 @@ protected:
                      int             level);
 
     void set_outflow_bcs (int        which_call,
-                          const amrex::Array<amrex::MultiFab*>& phi,
-                          const amrex::Array<amrex::MultiFab*>& Vel_in,
-                          const amrex::Array<amrex::MultiFab*>& Divu_in,
-                          const amrex::Array<amrex::MultiFab*>& Sig_in,
+                          const amrex::Vector<amrex::MultiFab*>& phi,
+                          const amrex::Vector<amrex::MultiFab*>& Vel_in,
+                          const amrex::Vector<amrex::MultiFab*>& Divu_in,
+                          const amrex::Vector<amrex::MultiFab*>& Sig_in,
                           int        c_lev,
                           int        f_lev,
                           int        have_divu);
@@ -286,7 +286,7 @@ protected:
                                    amrex::Box*         state_strip,
                                    amrex::Orientation* outFacesAtThisLevel,
                                    int          numOutFlowFaces,
-                                   const amrex::Array<amrex::MultiFab*>& phi,
+                                   const amrex::Vector<amrex::MultiFab*>& phi,
                                    amrex::MultiFab*    Vel_in,
                                    amrex::MultiFab*    Divu_in,
                                    amrex::MultiFab*    Sig_in,
@@ -295,23 +295,23 @@ protected:
 
 protected:
 
-    void putDown(const amrex::Array<amrex::MultiFab*>& phi, amrex::FArrayBox* phi_fine_strip,
+    void putDown(const amrex::Vector<amrex::MultiFab*>& phi, amrex::FArrayBox* phi_fine_strip,
 		 int c_lev, int f_lev, const amrex::Orientation* outFaces,
 		 int numOutFlowFaces, int ncStripWidth);
     //
     // Pointers to amrlevel and amr.
     //
     amrex::Amr*             parent;
-    amrex::Array<amrex::AmrLevel*> LevelData;
+    amrex::Vector<amrex::AmrLevel*> LevelData;
     //
     // The array of Radii, and number of radii ghost cells.
     //
     int                    radius_grow;
-    amrex::Array< amrex::Array< amrex::Array<amrex::Real> > * > radius;
+    amrex::Vector< amrex::Vector< amrex::Vector<amrex::Real> > * > radius;
     //
     // Anelastic coefficient array.
     //
-    amrex::Array<amrex::Real**> anel_coeff;
+    amrex::Vector<amrex::Real**> anel_coeff;
 
     //
     // Boundary objects.
@@ -334,11 +334,11 @@ protected:
     static int  add_vort_proj;
 
     void doNodalProjection(int c_lev, int nlevel, 
-			   const amrex::Array<amrex::MultiFab*>& vel, 
-                           const amrex::Array<amrex::MultiFab*>& phi,
-                           const amrex::Array<amrex::MultiFab*>& sig,
-			   const amrex::Array<amrex::MultiFab*>& rhs_cc,
-                           const amrex::Array<amrex::MultiFab*>& rhnd, 
+			   const amrex::Vector<amrex::MultiFab*>& vel, 
+                           const amrex::Vector<amrex::MultiFab*>& phi,
+                           const amrex::Vector<amrex::MultiFab*>& sig,
+			   const amrex::Vector<amrex::MultiFab*>& rhs_cc,
+                           const amrex::Vector<amrex::MultiFab*>& rhnd, 
 			   amrex::Real rel_tol, amrex::Real abs_tol,
 			   amrex::MultiFab* sync_resid_crse=nullptr,
 			   amrex::MultiFab* sync_resid_fine=nullptr,
@@ -360,7 +360,7 @@ protected:
     void mask_grids(amrex::MultiFab& msk, const amrex::Geometry& geom);
     
     // set velocity in ghost cells to zero except for inflow
-    void set_boundary_velocity(int c_lev, int nlevel, const amrex::Array<amrex::MultiFab*>& vel, 
+    void set_boundary_velocity(int c_lev, int nlevel, const amrex::Vector<amrex::MultiFab*>& vel, 
                                bool doing_initial_velproj, bool inflowCorner);
 
 };

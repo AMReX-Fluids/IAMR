@@ -107,7 +107,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 	{
 	    FArrayBox tmpfab;
 	    std::vector< std::pair<int,Box> > isects;	    
-	    Array<IntVect> pshifts(26);
+	    Vector<IntVect> pshifts(26);
 
 	    for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
 	    {
@@ -129,7 +129,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 		{
 		    geom.periodicShift(geom.Domain(),mask_cells,pshifts);
 		    
-		    for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+		    for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
 			 it != End;
 			 ++it)
 		    {
@@ -252,7 +252,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 {
     BL_PROFILE("SyncRegister::CompAdd()");
 
-    Array<IntVect> pshifts(27);
+    Vector<IntVect> pshifts(27);
 
     std::vector< std::pair<int,Box> > isects;
 
@@ -273,7 +273,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 
             fine_geom.periodicShift(sync_box, pbx, pshifts);
 
-            for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+            for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
                  it != End;
                  ++it)
             {

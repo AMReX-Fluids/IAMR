@@ -16,7 +16,7 @@ writePlotFile (const char*     name,
 
 // Write an array of multifabs pulling all the data from the AmrData
 void
-WritePlotFile(const Array<MultiFab*> mfa,
+WritePlotFile(const Vector<MultiFab*> mfa,
 	      AmrData&               amrdToMimic,
 	      const std::string&     oFile,
 	      bool                   verbose);

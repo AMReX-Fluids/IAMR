@@ -136,8 +136,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
-    Array<Array<Real> > rcen(2*BL_SPACEDIM);
-    Array<Array<Real> > redge(2*BL_SPACEDIM);
+    Vector<Vector<Real> > rcen(2*BL_SPACEDIM);
+    Vector<Vector<Real> > redge(2*BL_SPACEDIM);
 #endif
 
     FArrayBox ccExt[2*BL_SPACEDIM];

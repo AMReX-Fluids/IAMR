@@ -23,7 +23,7 @@ public:
                                 int          ratio,
                                 int          comp=0) override;
 
-    void setHomogValues (const amrex::Array<amrex::BCRec>& phys_bc,
+    void setHomogValues (const amrex::Vector<amrex::BCRec>& phys_bc,
                          int                 ratio);
 
 };
