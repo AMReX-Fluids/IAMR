@@ -418,7 +418,7 @@ MacProj::mac_project (int             level,
     if (the_solver == the_mlmg_solver)
     {
         MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
-        mlmg_mac_level_solve(parent, cphi, *phys_bc, level, Density, dt, mac_tol, mac_abs_tol,
+        mlmg_mac_level_solve(parent, cphi, *phys_bc, level, Density, mac_tol, mac_abs_tol,
                              rhs_scale, area, volume, S, Rhs, u_mac, mac_phi, verbose);
     }
     else

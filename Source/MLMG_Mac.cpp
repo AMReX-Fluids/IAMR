@@ -19,7 +19,7 @@ namespace {
 
 namespace {
 static void compute_mac_coefficient (std::array<MultiFab,AMREX_SPACEDIM>& bcoefs, 
-                                     const MultiFab& rho, int rho_comp)
+                                     const MultiFab& rho, int rho_comp, Real scale)
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -35,11 +35,12 @@ static void compute_mac_coefficient (std::array<MultiFab,AMREX_SPACEDIM>& bcoefs
                       AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
                                    BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
                                    BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                      BL_TO_FORTRAN_N_ANYD(rho[mfi],rho_comp));
+                      BL_TO_FORTRAN_N_ANYD(rho[mfi],rho_comp),
+                      &scale);
     }
 }
 
-static void compute_mac_rhs (MultiFab& rhs, const MultiFab* umac, Real rhs_scale,
+static void compute_mac_rhs (MultiFab& rhs, const MultiFab* umac,
                              const MultiFab* area, const MultiFab& volume, const Real* dxinv)
 {
 #ifdef _OPENMP
@@ -56,19 +57,17 @@ static void compute_mac_rhs (MultiFab& rhs, const MultiFab* umac, Real rhs_scale
 #if (AMREX_SPACEDIM == 2)
                      BL_TO_FORTRAN_ANYD(area[0][mfi]),
                      BL_TO_FORTRAN_ANYD(area[1][mfi]),
-                     BL_TO_FORTRAN_ANYD(volume[mfi]),
+                     BL_TO_FORTRAN_ANYD(volume[mfi]));
 #else
-                     dxinv,
+                     dxinv);
 #endif
-                     &rhs_scale);
     }
 }
 
 }
 
 void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc,
-                           int level, int Density, Real dt,
-                           Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+                           int level, int Density, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                            const MultiFab *area, const MultiFab &volume,
                            const MultiFab &S, MultiFab &Rhs,
                            MultiFab *u_mac, MultiFab *mac_phi, int verbose)
@@ -132,7 +131,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
         const BoxArray& nba = amrex::convert(ba, IntVect::TheDimensionVector(idim));
         bcoefs[idim].define(nba, dm, 1, 0);
     }
-    compute_mac_coefficient(bcoefs, S, Density);
+    compute_mac_coefficient(bcoefs, S, Density, 1.0/rhs_scale);
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
 
     MLMG mlmg(mlabec);
@@ -140,15 +139,17 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     mlmg.setVerbose(verbose);
 
     const Real* dxinv = geom.InvCellSize();
-    compute_mac_rhs(Rhs, u_mac, rhs_scale, area, volume, dxinv);
+    compute_mac_rhs(Rhs, u_mac, area, volume, dxinv);
         
     mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
 
-    VisMF::Write(*mac_phi, "phi");
+    auto& fluxes = bcoefs;
+    mlmg.getFluxes({amrex::GetArrOfPtrs(fluxes)});
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiFab::Add(u_mac[idim], fluxes[idim], 0, 0, 1, 0);
+    }
 
     MLLinOp::setAgglomeration(old_agg);
     MLLinOp::setConsolidation(old_con);
-
-    amrex::Abort("xxxxx");
 }
 

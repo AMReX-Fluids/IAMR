@@ -17,7 +17,8 @@ extern "C" {
 #if (AMREX_SPACEDIM == 3)
                         amrex_real* bz, const int* bzlo, const int* bzhi,
 #endif
-                        const amrex_real* rho, const int* rlo, const int* rhi);
+                        const amrex_real* rho, const int* rlo, const int* rhi,
+                        const amrex_real* scale);
 
     void iamr_mac_rhs (const int* lo, const int* hi,
                        amrex_real* rhs, const int* rlo, const int* rhi,
@@ -29,11 +30,10 @@ extern "C" {
 #if (AMREX_SPACEDIM == 2)
                        const amrex_real* ax, const int* axlo, const int* axhi,
                        const amrex_real* ay, const int* aylo, const int* ayhi,
-                       const amrex_real* vol, const int* vlo, const int* vhi,
+                       const amrex_real* vol, const int* vlo, const int* vhi);
 #else
-                       const amrex_real* dxinv,
+                       const amrex_real* dxinv);
 #endif
-                       const amrex_real* scale);
                        
 
 #ifdef __cplusplus
