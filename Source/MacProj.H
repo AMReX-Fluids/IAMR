@@ -41,7 +41,6 @@ public:
                       int             have_divu,
                       bool            increment_vel_register = true);
 
-    void test_umac_periodic (int level, amrex::MultiFab* u_mac);
     //
     // The sync solve.
     //
@@ -91,12 +90,15 @@ public:
                            amrex::Real                  dt,
 			   bool                  update_fluxreg = true);
 
-    void scaleArea (int level, amrex::MultiFab* area, amrex::Real** anel_coeff);
-
     static void Initialize ();
     static void Finalize ();
 
 protected:
+
+    void test_umac_periodic (int level, amrex::MultiFab* u_mac);
+
+    void scaleArea (int level, amrex::MultiFab* area, amrex::Real** anel_coeff);
+
     //
     // Test the divergence constraint.
     //
@@ -145,6 +147,7 @@ protected:
     static amrex::Real mac_sync_tol;
     static int  check_umac_periodicity;
     static int fix_mac_sync_rhs;
+    static int use_mlmg_solver;
 };
 
 #endif
