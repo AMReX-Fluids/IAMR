@@ -109,14 +109,15 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
         initialized = true;
     }
     
-    const int old_agg = MLLinOp::setAgglomeration(agglomeration);
-    const int old_con = MLLinOp::setConsolidation(consolidation);
-
     const Geometry& geom = parent->Geom(level);
     const BoxArray& ba = Rhs.boxArray();
     const DistributionMapping& dm = Rhs.DistributionMap();
 
-    MLABecLaplacian mlabec({geom}, {ba}, {dm});
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+
+    MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
     mlabec.setMaxOrder(max_order);
 
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -156,9 +157,6 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Add(u_mac[idim], fluxes[idim], 0, 0, 1, 0);
     }
-
-    MLLinOp::setAgglomeration(old_agg);
-    MLLinOp::setConsolidation(old_con);
 }
 
 void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
@@ -179,15 +177,16 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
         
         initialized = true;
     }
-    
-    const int old_agg = MLLinOp::setAgglomeration(agglomeration);
-    const int old_con = MLLinOp::setConsolidation(consolidation);
 
     const Geometry& geom = parent->Geom(level);
     const BoxArray& ba = Rhs.boxArray();
     const DistributionMapping& dm = Rhs.DistributionMap();
 
-    MLABecLaplacian mlabec({geom}, {ba}, {dm});
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+
+    MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
     mlabec.setMaxOrder(max_order);
 
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -221,8 +220,5 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 
     mlmg.setFinalFillBC(true);
     mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
-
-    MLLinOp::setAgglomeration(old_agg);
-    MLLinOp::setConsolidation(old_con);
 }
 
