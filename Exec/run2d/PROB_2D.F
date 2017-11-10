@@ -770,7 +770,7 @@ c     ::::: local variables
       
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
-c ::: density gradient
+c ::: magnitude of the density
 c ::: 
 c ::: INPUTS/OUTPUTS:
 c ::: 
@@ -1115,7 +1115,7 @@ c
       end
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
-c ::: density gradient
+c ::: magnitude of the tracer
 c ::: 
 c ::: INPUTS/OUTPUTS:
 c ::: 
@@ -1337,7 +1337,7 @@ c     probtype = RT
 
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the
-c ::: temperature gradient
+c ::: magnitude or gradient of the temperature
 c :::
 c ::: INPUTS/OUTPUTS:
 c :::

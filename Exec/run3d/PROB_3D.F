@@ -4125,7 +4125,7 @@ c
 
 c     ::: -----------------------------------------------------------
 c     ::: This routine will tag high error cells based on the 
-c     ::: density gradient
+c     ::: magnitude or gradient of the density
 c     ::: 
 c     ::: INPUTS/OUTPUTS:
 c     ::: 
@@ -4197,7 +4197,7 @@ c     ::: -----------------------------------------------------------
 
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the 
-c ::: density gradient
+c ::: magnitude of the tracer
 c ::: 
 c ::: INPUTS/OUTPUTS:
 c ::: 
@@ -4552,7 +4552,7 @@ c     probtype = VISCOUS BENCHMARK
 
 c ::: -----------------------------------------------------------
 c ::: This routine will tag high error cells based on the
-c ::: temperature gradient
+c ::: magnitude or gradient of temperature
 c :::
 c ::: INPUTS/OUTPUTS:
 c :::
