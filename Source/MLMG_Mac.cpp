@@ -18,6 +18,30 @@ namespace {
 }
 
 namespace {
+
+static void set_mac_solve_bc (std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
+                              std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
+                              const BCRec& phys_bc, const Geometry& geom)
+{
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (geom.isPeriodic(idim)) {
+            mlmg_lobc[idim] = MLLinOp::BCType::Periodic;
+            mlmg_hibc[idim] = MLLinOp::BCType::Periodic;
+        } else {
+            if (phys_bc.lo(idim) == Outflow) {
+                mlmg_lobc[idim] = MLLinOp::BCType::Dirichlet;
+            } else {
+                mlmg_lobc[idim] = MLLinOp::BCType::Neumann;
+            }
+            if (phys_bc.hi(idim) == Outflow) {
+                mlmg_hibc[idim] = MLLinOp::BCType::Dirichlet;
+            } else {
+                mlmg_hibc[idim] = MLLinOp::BCType::Neumann;
+            }
+        }
+    }
+}
+
 static void compute_mac_coefficient (std::array<MultiFab,AMREX_SPACEDIM>& bcoefs, 
                                      const MultiFab& rho, int rho_comp, Real scale)
 {
@@ -97,23 +121,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
 
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (geom.isPeriodic(idim)) {
-            mlmg_lobc[idim] = MLLinOp::BCType::Periodic;
-            mlmg_hibc[idim] = MLLinOp::BCType::Periodic;
-        } else {
-            if (phys_bc.lo(idim) == Outflow) {
-                mlmg_lobc[idim] = MLLinOp::BCType::Dirichlet;
-            } else {
-                mlmg_lobc[idim] = MLLinOp::BCType::Neumann;
-            }
-            if (phys_bc.hi(idim) == Outflow) {
-                mlmg_hibc[idim] = MLLinOp::BCType::Dirichlet;
-            } else {
-                mlmg_hibc[idim] = MLLinOp::BCType::Neumann;
-            }
-        }
-    }
+    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
 
     mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
     if (level > 0) {
@@ -148,6 +156,71 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         MultiFab::Add(u_mac[idim], fluxes[idim], 0, 0, 1, 0);
     }
+
+    MLLinOp::setAgglomeration(old_agg);
+    MLLinOp::setConsolidation(old_con);
+}
+
+void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
+                          int level, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+                          const MultiFab* area, const MultiFab& volume,
+                          const MultiFab& rho, MultiFab& Rhs,
+                          MultiFab* mac_phi, int verbose)
+{
+    if (!initialized) 
+    {
+        ParmParse ppmacop("macop");
+        ppmacop.query("max_order", max_order);
+        
+        ParmParse ppmac("mac");
+        ppmac.query("agglomeration", agglomeration);
+        ppmac.query("consolidation", consolidation);
+        ppmac.query("max_fmg_iter", max_fmg_iter);
+        
+        initialized = true;
+    }
+    
+    const int old_agg = MLLinOp::setAgglomeration(agglomeration);
+    const int old_con = MLLinOp::setConsolidation(consolidation);
+
+    const Geometry& geom = parent->Geom(level);
+    const BoxArray& ba = Rhs.boxArray();
+    const DistributionMapping& dm = Rhs.DistributionMap();
+
+    MLABecLaplacian mlabec({geom}, {ba}, {dm});
+    mlabec.setMaxOrder(max_order);
+
+    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
+    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
+
+    mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+    if (level > 0) {
+        mlabec.setBCWithCoarseData(nullptr, parent->refRatio(level-1)[0]);
+    }
+    mlabec.setLevelBC(0, mac_phi);
+
+    mlabec.setScalars(0.0, 1.0);
+
+    // no need to set A coef because it's zero
+     
+    std::array<MultiFab,AMREX_SPACEDIM> bcoefs;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        const BoxArray& nba = amrex::convert(ba, IntVect::TheDimensionVector(idim));
+        bcoefs[idim].define(nba, dm, 1, 0);
+    }
+    compute_mac_coefficient(bcoefs, rho, 0, 1.0/rhs_scale);
+    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
+
+    MLMG mlmg(mlabec);
+    mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(verbose);
+
+    Rhs.negate();
+
+    mlmg.setFinalFillBC(true);
+    mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
 
     MLLinOp::setAgglomeration(old_agg);
     MLLinOp::setConsolidation(old_con);
