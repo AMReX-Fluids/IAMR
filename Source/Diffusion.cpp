@@ -20,6 +20,9 @@
 
 #include <AMReX_FMultiGrid.H>
 
+#include <AMReX_MLABecLaplacian.H>
+#include <AMReX_MLMG.H>
+
 using namespace amrex;
 
 #if defined(BL_OSF1)
@@ -47,6 +50,9 @@ const Real* fabdat = (fab).dataPtr();
 namespace
 {
     bool initialized = false;
+    static int agglomeration = 1;
+    static int consolidation = 1;
+    static int max_fmg_iter = 0;
 }
 //
 // Set default values in !initialized section of code in constructor!!!
@@ -60,6 +66,7 @@ int         Diffusion::use_cg_solve;
 int         Diffusion::tensor_max_order;
 int         Diffusion::use_tensor_cg_solve;
 bool        Diffusion::use_mg_precond_flag;
+int         Diffusion::use_mlmg_solver = 0;
 
 Vector<Real> Diffusion::visc_coef;
 Vector<int>  Diffusion::is_diffusive;
@@ -128,6 +135,11 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("use_mg_precond",      use_mg_precond);
         ppdiff.query("tensor_max_order",    tensor_max_order);
         ppdiff.query("use_tensor_cg_solve", use_tensor_cg_solve);
+        ppdiff.query("use_mlmg_solver",     use_mlmg_solver);
+
+        ppdiff.query("agglomeration", agglomeration);
+        ppdiff.query("consolidation", consolidation);
+        ppdiff.query("max_fmg_iter", max_fmg_iter);
 
 #ifdef MG_USE_HYPRE
         ppdiff.query("use_hypre_solve", use_hypre_solve);
@@ -457,32 +469,104 @@ Diffusion::diffuse_scalar (Real                   dt,
     if (allnull) {
         b *= visc_coef[sigma];
     }
-    ViscBndry  visc_bndry;
+
     const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
     Real       rhsscale = 1.0;
 
-    std::unique_ptr<ABecLaplacian> visc_op
-	(getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
-		   rho_flag,&rhsscale,betanp1,betaComp,alpha,alphaComp));
-    Rhs.mult(rhsscale,0,1);
-    visc_op->maxOrder(max_order);
+    if (use_mlmg_solver)
+    {
+        LPInfo info;
+        info.setAgglomeration(agglomeration);
+        info.setConsolidation(consolidation);
+        info.setMetricTerm(false);
 
-    //
-    // Construct solver and call it.
-    //
-    const Real S_tol     = visc_tol;
-    const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
+        MLABecLaplacian mlabec({navier_stokes->Geom()}, {rho_half.boxArray()},
+                               {rho_half.DistributionMap()}, info);
+        mlabec.setMaxOrder(max_order);
 
-    MultiGrid mg(*visc_op);
-    mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+        std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
+        std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
+        setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
+        
+        mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+        {
+            const int ng = 1;
+            MultiFab crsedata;
+            if (level > 0) {
+                auto& crse_ns = *(coarser->navier_stokes);
+                crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
+                AmrLevel::FillPatch(crse_ns,crsedata,ng,cur_time,State_Type,sigma,1);
+                if (rho_flag == 2) {
+                    const MultiFab& rhotime = crse_ns.get_rho(cur_time);
+                    MultiFab::Divide(crsedata,rhotime,0,0,1,1);
+                }
+                mlabec.setBCWithCoarseData(&crsedata, crse_ratio[0]);
+            }
+            MultiFab S(grids,dmap,1,ng);
+            AmrLevel::FillPatch(*navier_stokes,S,ng,cur_time,State_Type,sigma,1);
+            if (rho_flag == 2) {
+                const MultiFab& rhotime = navier_stokes->get_rho(cur_time);
+                MultiFab::Divide(S,rhotime,0,0,1,1);
+            }
+            mlabec.setLevelBC(0, &S);
+        }
 
-    Rhs.clear();
+        {
+            MultiFab acoef;
+            std::pair<Real,Real> scalars;
+            computeAlpha(acoef, scalars, sigma, a, b, cur_time, rho_half, rho_flag,
+                         &rhsscale, alphaComp, alpha);
+            mlabec.setScalars(scalars.first, scalars.second);
+            mlabec.setACoeffs(0, acoef);
+        }
+        
+        {
+            std::array<MultiFab,BL_SPACEDIM> bcoeffs;
+            computeBeta(bcoeffs, betanp1, betaComp);
+            mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+        }
 
-    //
-    // Get extensivefluxes from new-time op
-    //
-    bool do_applyBC = true;
-    visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp);
+        MLMG mlmg(mlabec);
+        mlmg.setMaxFmgIter(max_fmg_iter);
+        mlmg.setVerbose(verbose);
+
+        Rhs.mult(rhsscale,0,1);
+        const Real S_tol     = visc_tol;
+        const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
+
+        mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+
+        AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp, 1);,
+                     MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp, 1);,
+                     MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp, 1););
+        std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
+        mlmg.getFluxes({fp});
+    }
+    else
+    {
+        ViscBndry  visc_bndry;
+        std::unique_ptr<ABecLaplacian> visc_op
+            (getViscOp(sigma,a,b,cur_time,visc_bndry,rho_half,
+                       rho_flag,&rhsscale,betanp1,betaComp,alpha,alphaComp));
+        Rhs.mult(rhsscale,0,1);
+        visc_op->maxOrder(max_order);
+
+        //
+        // Construct solver and call it.
+        //
+        const Real S_tol     = visc_tol;
+        const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
+        
+        MultiGrid mg(*visc_op);
+        mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+
+        //
+        // Get extensivefluxes from new-time op
+        //
+        bool do_applyBC = true;
+        visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp);
+    }
+
     for (int i = 0; i < BL_SPACEDIM; ++i)
         (*fluxnp1[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
     //
@@ -1592,14 +1676,33 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
 {
     BL_ASSERT(visc_op != 0);
 
+    MultiFab alpha;
+    std::pair<Real,Real> scalars;
+    computeAlpha(alpha, scalars, comp, a, b, time, rho, rho_flag, rhsscale, dataComp, alpha_in);
+
+    visc_op->setScalars(scalars.first, scalars.second);
+    visc_op->aCoefficients(alpha);
+}
+
+void
+Diffusion::computeAlpha (MultiFab&       alpha,
+                         std::pair<Real,Real>& scalars,
+                         int             comp,
+                         Real            a,
+                         Real            b,
+                         Real            time,
+                         const MultiFab& rho,
+                         int             rho_flag, 
+                         Real*           rhsscale,
+                         int             dataComp,
+                         const MultiFab* alpha_in)
+{
+    alpha.define(grids, dmap, 1, 1);
+
     const MultiFab& volume = navier_stokes->Volume(); 
 
     int usehoop = (comp == Xvel && (Geometry::IsRZ()));
     int useden  = (rho_flag == 1);
-    //
-    // alpha should be the same size as volume.
-    //
-    MultiFab alpha(grids,dmap,1,1);
 
     if (!usehoop)
     {
@@ -1670,14 +1773,14 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
     {
         *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
 
-        visc_op->setScalars(a*(*rhsscale),b*(*rhsscale));
+        scalars.first = a*(*rhsscale);
+        scalars.second = b*(*rhsscale);
     }
     else
     {
-        visc_op->setScalars(a,b);
+        scalars.first = a;
+        scalars.second = b;
     }
-
-    visc_op->aCoefficients(alpha);
 }
 
 void
@@ -1687,17 +1790,35 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
 {
     BL_ASSERT(visc_op != 0);
 
+    std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
+
+    computeBeta(bcoeffs, beta, betaComp);
+
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
+    {
+        visc_op->bCoefficients(bcoeffs[n],n);
+    }
+}
+
+void
+Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                        const MultiFab* const* beta,
+                        int                    betaComp)
+{
+    const MultiFab* area = navier_stokes->Area(); 
+
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+	bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+    }
+
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
     const Real* dx = navier_stokes->Geom().CellSize();
 
-    const MultiFab* area = navier_stokes->Area(); 
-
-    std::array<MultiFab,BL_SPACEDIM> bcoeffs;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-	bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
 	MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
     }
 
@@ -1706,7 +1827,6 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
             bcoeffs[n].mult(dx[n]);
-            visc_op->bCoefficients(bcoeffs[n],n);
         }
     }
     else
@@ -1718,7 +1838,6 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
 		int gridno = bcoeffsmfi.index();
                 bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
                 bcoeffs[n][bcoeffsmfi].mult(dx[n]);
-                visc_op->bCoefficients(bcoeffs[n][bcoeffsmfi],n,gridno); // not threadsafe
             }
         }
     }
@@ -2349,3 +2468,60 @@ Diffusion::are_any_Laplacian_SoverRho(const Vector<DiffusionForm>& diffusionType
     return false;
 }
 */
+
+void
+Diffusion::setDomainBC (std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
+                        std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
+                        int src_comp)
+{
+    const BCRec& bc = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        if (Geometry::isPeriodic(idim))
+        {
+            mlmg_lobc[idim] = mlmg_hibc[idim] = MLLinOp::BCType::Periodic;
+        }
+        else
+        {
+            int pbc = bc.lo(idim);
+            if (pbc == EXT_DIR)
+            {
+                mlmg_lobc[idim] = MLLinOp::BCType::Dirichlet;
+            }
+            else if (pbc == FOEXTRAP      ||
+                     pbc == HOEXTRAP      || 
+                     pbc == REFLECT_EVEN)
+            {
+                mlmg_lobc[idim] = MLLinOp::BCType::Neumann;
+            }
+            else if (pbc == REFLECT_ODD)
+            {
+                
+            }
+            else
+            {
+                mlmg_lobc[idim] = MLLinOp::BCType::ReflectOdd;
+            }
+
+            pbc = bc.hi(idim);
+            if (pbc == EXT_DIR)
+            {
+                mlmg_hibc[idim] = MLLinOp::BCType::Dirichlet;
+            }
+            else if (pbc == FOEXTRAP      ||
+                     pbc == HOEXTRAP      || 
+                     pbc == REFLECT_EVEN)
+            {
+                mlmg_hibc[idim] = MLLinOp::BCType::Neumann;
+            }
+            else if (pbc == REFLECT_ODD)
+            {
+                
+            }
+            else
+            {
+                mlmg_hibc[idim] = MLLinOp::BCType::ReflectOdd;
+            }
+        }
+    }
+}
