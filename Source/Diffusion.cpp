@@ -484,8 +484,8 @@ Diffusion::diffuse_scalar (Real                   dt,
                                {rho_half.DistributionMap()}, info);
         mlabec.setMaxOrder(max_order);
 
-        std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
-        std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
+        std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+        std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
         setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
         
         mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -2470,8 +2470,8 @@ Diffusion::are_any_Laplacian_SoverRho(const Vector<DiffusionForm>& diffusionType
 */
 
 void
-Diffusion::setDomainBC (std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
-                        std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
+Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
+                        std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                         int src_comp)
 {
     const BCRec& bc = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp);
@@ -2479,20 +2479,20 @@ Diffusion::setDomainBC (std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
     {
         if (Geometry::isPeriodic(idim))
         {
-            mlmg_lobc[idim] = mlmg_hibc[idim] = MLLinOp::BCType::Periodic;
+            mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }
         else
         {
             int pbc = bc.lo(idim);
             if (pbc == EXT_DIR)
             {
-                mlmg_lobc[idim] = MLLinOp::BCType::Dirichlet;
+                mlmg_lobc[idim] = LinOpBCType::Dirichlet;
             }
             else if (pbc == FOEXTRAP      ||
                      pbc == HOEXTRAP      || 
                      pbc == REFLECT_EVEN)
             {
-                mlmg_lobc[idim] = MLLinOp::BCType::Neumann;
+                mlmg_lobc[idim] = LinOpBCType::Neumann;
             }
             else if (pbc == REFLECT_ODD)
             {
@@ -2500,19 +2500,19 @@ Diffusion::setDomainBC (std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
             else
             {
-                mlmg_lobc[idim] = MLLinOp::BCType::ReflectOdd;
+                mlmg_lobc[idim] = LinOpBCType::reflect_odd;
             }
 
             pbc = bc.hi(idim);
             if (pbc == EXT_DIR)
             {
-                mlmg_hibc[idim] = MLLinOp::BCType::Dirichlet;
+                mlmg_hibc[idim] = LinOpBCType::Dirichlet;
             }
             else if (pbc == FOEXTRAP      ||
                      pbc == HOEXTRAP      || 
                      pbc == REFLECT_EVEN)
             {
-                mlmg_hibc[idim] = MLLinOp::BCType::Neumann;
+                mlmg_hibc[idim] = LinOpBCType::Neumann;
             }
             else if (pbc == REFLECT_ODD)
             {
@@ -2520,7 +2520,7 @@ Diffusion::setDomainBC (std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
             else
             {
-                mlmg_hibc[idim] = MLLinOp::BCType::ReflectOdd;
+                mlmg_hibc[idim] = LinOpBCType::reflect_odd;
             }
         }
     }

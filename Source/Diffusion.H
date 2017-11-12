@@ -280,8 +280,8 @@ protected:
                            const amrex::MultiFab* const* beta,
                            int                    betaComp);
 
-    void setDomainBC (std::array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
-                      std::array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
+    void setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
+                      std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
 
     void computeAlpha (amrex::MultiFab&       alpha,
