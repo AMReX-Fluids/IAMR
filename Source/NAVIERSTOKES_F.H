@@ -189,7 +189,8 @@ extern "C" {
 
    void FORT_SET_NS_PARAMS(const amrex::Real& vel_visc_coef,
                         const amrex::Real& yield_stress, 
-                        const amrex::Real& reg_param);
+                        const amrex::Real& reg_param, 
+						const int& variable_vel_visc);
 #ifdef __cplusplus
 }
 #endif

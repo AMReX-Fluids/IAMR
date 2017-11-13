@@ -11,15 +11,17 @@
 
 c=========================================================
 
-      subroutine FORT_SET_NS_PARAMS(vel_visc_coef,yield_stress,reg_param)
+      subroutine FORT_SET_NS_PARAMS(vel_visc_coef,yield_stress,reg_param,variable_vel_visc)
       implicit none
       REAL_T vel_visc_coef,yield_stress,reg_param
+      integer variable_vel_visc
 
 #include <NSCOMM_F.H>
 
       mu = vel_visc_coef
       tau = yield_stress
       eps = reg_param
+      varvisc = variable_vel_visc
 
       if (mu .lt. 0) then
         write(6,*)'FORT_SET_PARAMS : illegal value of mu = ',mu
