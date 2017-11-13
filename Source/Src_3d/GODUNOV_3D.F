@@ -62,7 +62,7 @@ c
       yield   = zero
 
 !$omp parallel do private(i,j,k,irho)
-!$omp&reduction(max: u,v,w,tforce1,tforce2,tforce3)
+!$omp&reduction(max: u,v,w,tforce1,tforce2,tforce3,yield)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -93,7 +93,7 @@ c
       if (tforce2 .gt. small) dt = min(dt,sqrt(two*dx(2)/tforce2))
       if (tforce3 .gt. small) dt = min(dt,sqrt(two*dx(3)/tforce3))
 
-      if (tau .gt. small) then 
+      if (varvisc .ne. 0) then 
         if (yield .gt. small) then 
           dt = min(dt,dx(1)/yield)
           dt = min(dt,dx(2)/yield)
