@@ -480,8 +480,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         info.setConsolidation(consolidation);
         info.setMetricTerm(false);
 
-        MLABecLaplacian mlabec({navier_stokes->Geom()}, {rho_half.boxArray()},
-                               {rho_half.DistributionMap()}, info);
+        MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
         mlabec.setMaxOrder(max_order);
 
         std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -1039,46 +1038,95 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         const Real     a        = 1.0;
         const Real     b        = be_cn_theta*dt*visc_coef[comp];
         Real           rhsscale = 1.0;
-        std::unique_ptr<ABecLaplacian> visc_op
-	    (getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0,0));
-
-        visc_op->maxOrder(max_order);
-        Rhs.mult(rhsscale,0,1);
-        //
-        // Construct solver and call it.
-        //
-        const Real      S_tol     = visc_tol;
-        const Real      S_tol_abs = -1;
 
         MultiFab Soln(grids,dmap,1,1);
-
         Soln.setVal(0);
 
-        if (use_cg_solve)
+        const Real S_tol     = visc_tol;
+        const Real S_tol_abs = -1.0;
+        
+        if (use_mlmg_solver)
         {
-            CGSolver cg(*visc_op,use_mg_precond_flag);
-            cg.solve(Soln,Rhs,S_tol,S_tol_abs);
-        }
+            LPInfo info;
+            info.setAgglomeration(agglomeration);
+            info.setConsolidation(consolidation);
+            info.setMetricTerm(false);
 
+            MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
+            mlabec.setMaxOrder(max_order);
+
+            std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+            std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+            setDomainBC(mlmg_lobc, mlmg_hibc, comp);
+        
+            mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+            if (level > 0) {
+                mlabec.setBCWithCoarseData(nullptr, crse_ratio[0]);
+            }
+            mlabec.setLevelBC(0, nullptr);
+
+            {
+                MultiFab acoef;
+                std::pair<Real,Real> scalars;
+                const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
+                computeAlpha(acoef, scalars, comp, a, b, cur_time, rho, rho_flag,
+                             &rhsscale, 0, nullptr);
+                mlabec.setScalars(scalars.first, scalars.second);
+                mlabec.setACoeffs(0, acoef);
+            }
+        
+            {
+                std::array<MultiFab,BL_SPACEDIM> bcoeffs;
+                computeBeta(bcoeffs, nullptr, 0);
+                mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+            }
+
+            MLMG mlmg(mlabec);
+            mlmg.setMaxFmgIter(max_fmg_iter);
+            mlmg.setVerbose(verbose);
+
+            Rhs.mult(rhsscale,0,1);
+
+            mlmg.setFinalFillBC(true);
+            mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+        }
+        else
+        {
+            std::unique_ptr<ABecLaplacian> visc_op
+                (getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0,0));
+
+            visc_op->maxOrder(max_order);
+            Rhs.mult(rhsscale,0,1);
+            //
+            // Construct solver and call it.
+            //
+
+            if (use_cg_solve)
+            {
+                CGSolver cg(*visc_op,use_mg_precond_flag);
+                cg.solve(Soln,Rhs,S_tol,S_tol_abs);
+            }
+ 
 #ifdef MG_USE_HYPRE
-	else if ( use_hypre_solve )
-	  {
-	    amrex::Error("HypreABec not ready");
-	    //	    Real* dx = 0;
-	    //	    HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
-	    //	    hp.setup_solver(S_tol, S_tol_abs, 50);
-	    //	    hp.solve(Soln, Rhs, true);
-	    //	    hp.clear_solver();
-	  }
+            else if ( use_hypre_solve )
+            {
+                amrex::Error("HypreABec not ready");
+                //	    Real* dx = 0;
+                //	    HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
+                //	    hp.setup_solver(S_tol, S_tol_abs, 50);
+                //	    hp.solve(Soln, Rhs, true);
+                //	    hp.clear_solver();
+            }
 #endif
-	else
-        {
-            MultiGrid mg(*visc_op);
-            mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-        }
+            else
+            {
+                MultiGrid mg(*visc_op);
+                mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+            }
 
-        int visc_op_lev = 0;
-        visc_op->applyBC(Soln,0,1,visc_op_lev);
+            int visc_op_lev = 0;
+            visc_op->applyBC(Soln,0,1,visc_op_lev);
+        }
 
         MultiFab::Copy(Vsync,Soln,0,comp,1,1);
 
@@ -1375,6 +1423,9 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     MultiFab Soln(grids,dmap,1,1);
 
     Soln.setVal(0);
+
+    // TODO: xxxxx mlmg
+
     //
     // Construct solver and call it.
     //
