@@ -590,7 +590,7 @@ NavierStokesBase::Initialize ()
     read_particle_params ();
 #endif
 
-    FORT_SET_NS_PARAMS(visc_coef[0], yield_stress, reg_param);
+    FORT_SET_NS_PARAMS(visc_coef[0], yield_stress, reg_param, variable_vel_visc);
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
@@ -1292,7 +1292,7 @@ NavierStokesBase::estTimeStep ()
 #endif		 
 #endif		 
         tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
-		if (yield_stress > 0.0)
+		if (variable_vel_visc)
 		{
 		  tforces.minus(visc_terms[Rho_mfi],0,0,BL_SPACEDIM);
 		}
