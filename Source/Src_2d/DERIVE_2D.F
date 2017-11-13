@@ -778,6 +778,18 @@ c
       bingham_tlr(strnrt) =
      & mu+half*tau/eps*(one-half*strnrt/eps+half*third*strnrt**2/eps**2)
 
+c     ::::: If non-variable, viscosity coefficient equals mu everywhere
+      if (varvisc .eq. 0) then
+
+      do j = lo(2), hi(2)
+         do i = lo(1), hi(1)
+            visc(i,j,1) = mu
+         end do
+      end do
+
+c     ::::: Compute Bingham viscosity
+      else 
+
       dx = delta(1)
       dy = delta(2)
 
@@ -941,6 +953,8 @@ c
          end if
       end if
 
+      end if
+
 #     undef U
 #     undef V      
 #     undef VLOX
@@ -1035,7 +1049,11 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            stress(i,j,1) = stress_fun(strnrt)
+            if (varvisc .eq. 0) then
+              stress(i,j,1) = 2*mu*strnrt
+            else
+              stress(i,j,1) = stress_fun(strnrt)
+            end if
          end do
       end do
 
@@ -1062,7 +1080,11 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            stress(i,j,1) = stress_fun(strnrt)
+            if (varvisc .eq. 0) then
+              stress(i,j,1) = 2*mu*strnrt
+            else
+              stress(i,j,1) = stress_fun(strnrt)
+            end if
          end do
       end if
 c
@@ -1076,7 +1098,11 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            stress(i,j,1) = stress_fun(strnrt)
+            if (varvisc .eq. 0) then
+              stress(i,j,1) = 2*mu*strnrt
+            else
+              stress(i,j,1) = stress_fun(strnrt)
+            end if
          end do
       end if
 c
@@ -1090,7 +1116,11 @@ c
             uy  = uybot(i,j)
             vy  = vybot(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            stress(i,j,1) = stress_fun(strnrt)
+            if (varvisc .eq. 0) then
+              stress(i,j,1) = 2*mu*strnrt
+            else
+              stress(i,j,1) = stress_fun(strnrt)
+            end if
          end do
       end if
 c
@@ -1104,7 +1134,11 @@ c
             uy  = uytop(i,j)
             vy  = vytop(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            stress(i,j,1) = stress_fun(strnrt)
+            if (varvisc .eq. 0) then
+              stress(i,j,1) = 2*mu*strnrt
+            else
+              stress(i,j,1) = stress_fun(strnrt)
+            end if
          end do
       end if
 c
@@ -1118,7 +1152,11 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         stress(i,j,1) = stress_fun(strnrt)
+         if (varvisc .eq. 0) then
+           stress(i,j,1) = 2*mu*strnrt
+         else
+           stress(i,j,1) = stress_fun(strnrt)
+         end if
       end if
       if (fixlft .and. fixtop) then
          i = lo(1)
@@ -1128,7 +1166,11 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         stress(i,j,1) = stress_fun(strnrt)
+         if (varvisc .eq. 0) then
+           stress(i,j,1) = 2*mu*strnrt
+         else
+           stress(i,j,1) = stress_fun(strnrt)
+         end if
       end if
       if (fixrgt .and. fixtop) then
          i = hi(1)
@@ -1138,7 +1180,11 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         stress(i,j,1) = stress_fun(strnrt)
+         if (varvisc .eq. 0) then
+           stress(i,j,1) = 2*mu*strnrt
+         else
+           stress(i,j,1) = stress_fun(strnrt)
+         end if
       end if
       if (fixrgt .and. fixbot) then
          i = hi(1)
@@ -1148,7 +1194,11 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         stress(i,j,1) = stress_fun(strnrt)
+         if (varvisc .eq. 0) then
+           stress(i,j,1) = 2*mu*strnrt
+         else
+           stress(i,j,1) = stress_fun(strnrt)
+         end if
       end if
 
 #     undef U
