@@ -14,6 +14,7 @@
 #include <AMReX_ABecLaplacian.H>
 #include <ViscBndry.H>
 #include <FluxBoxes.H>
+#include <AMReX_MLLinOp.H>
 
 //
 // Include files for tensor solve.
@@ -221,12 +222,6 @@ public:
                        amrex::Real               time,
                        int                rho_flag);
 
-    void getBndryData (ViscBndry&          bndry,
-                       int                 state_ind,
-                       int                 num_comp,
-                       amrex::AmrLevel::TimeLevel the_time,
-                       int                 rho_flag);
-
     void getBndryDataGivenS (ViscBndry&         bndry,
                              amrex::MultiFab&          S,
                              amrex::MultiFab&          S_crse,
@@ -285,6 +280,25 @@ protected:
                            const amrex::MultiFab* const* beta,
                            int                    betaComp);
 
+    void setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
+                      std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
+                      int src_comp);
+
+    void computeAlpha (amrex::MultiFab&       alpha,
+                       std::pair<amrex::Real,amrex::Real>& scalars,
+                       int                    comp,
+                       amrex::Real            a,
+                       amrex::Real            b,
+                       amrex::Real            time,
+                       const amrex::MultiFab& rho,
+                       int                    rho_flag, 
+                       amrex::Real*           rhsscale,
+                       int                    dataComp,
+                       const amrex::MultiFab* alpha_in);
+
+    void computeBeta (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                      const amrex::MultiFab* const* beta, int betaComp);
+
     static void Finalize ();
     //
     // Data Required by Derived Classes
@@ -298,6 +312,7 @@ protected:
     // Static data.
     //
     static bool        use_mg_precond_flag;
+    static int         use_mlmg_solver;
     static int         use_cg_solve;
     static int         scale_abec;
     static amrex::Vector<int>  is_diffusive;    // Does variable diffuse?

@@ -9,3 +9,5 @@ FEXE_sources += DERIVE_$(DIM)D.F GODUNOV_$(DIM)D.F \
 ifndef ATMOS_MACOP
   FEXE_sources += MACOPERATOR_$(DIM)D.F
 endif
+
+F90EXE_sources += IAMR_MLMG_$(DIM)d.F90

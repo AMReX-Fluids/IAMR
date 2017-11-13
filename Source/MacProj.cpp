@@ -41,6 +41,7 @@ bool MacProj::use_cg_solve;
 int  MacProj::do_outflow_bcs;
 int  MacProj::fix_mac_sync_rhs;
 int  MacProj::check_umac_periodicity;
+int  MacProj::use_mlmg_solver = 0;
 
 namespace
 {
@@ -93,6 +94,8 @@ MacProj::Initialize ()
     pp.query("fix_mac_sync_rhs",       fix_mac_sync_rhs);
     pp.query("check_umac_periodicity", check_umac_periodicity);
     pp.query("umac_periodic_test_Tol", umac_periodic_test_Tol);
+
+    pp.query("use_mlmg_solver", use_mlmg_solver);
 
 #if MG_USE_HYPRE
     pp.query("use_hypre_solve", use_hypre_solve);
@@ -191,6 +194,7 @@ MacProj::install_anelastic_coefficient (int               level,
     anel_coeff[level] = _anel_coeff;
 }
 
+// xxxxx Can we skip this if using mlmg?
 void
 MacProj::BuildPhiBC (int level)
 {
@@ -338,39 +342,56 @@ MacProj::mac_project (int             level,
     // ghost cell.  We enforce that assumption by setting it here.
     //
     const MultiFab& rhotime = ns.get_rho(time);
+    MultiFab::Copy(S, rhotime, 0, Density, 1, 1);
 
-    for (MFIter mfi(rhotime); mfi.isValid(); ++mfi)
-        S[mfi].copy(rhotime[mfi],0,Density,1);
-
-    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs)
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
-    //
-    // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
-    //
-    MacBndry mac_bndry(grids,dmap,1,geom);
-    const int src_comp  = 0;
-    const int dest_comp = 0;
-    const int num_comp  = 1;
-    if (level == 0)
-    {
-        mac_bndry.setBndryValues(*mac_phi,src_comp,dest_comp,num_comp,*phys_bc);
     }
-    else
+
+    const int the_mlmg_solver = 3;
+    int the_solver = (use_mlmg_solver) ? the_mlmg_solver : 0;
+    if (use_cg_solve)
     {
-        MultiFab& CPhi = *mac_phi_crse[level-1];
-	CPhi.FillBoundary(parent->Geom(level-1).periodicity());
+	the_solver = 1;
+    }
+#if MG_USE_HYPRE
+    else if ( use_hypre_solve )
+    {
+	the_solver = 2;
+    }
+#endif
 
-        BoxArray crse_boxes(grids);
-        crse_boxes.coarsen(crse_ratio);
-        const int in_rad     = 0;
-        const int out_rad    = 1;
-        //const int extent_rad = 1;
-        const int extent_rad = 2;
-        BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
-        crse_br.copyFrom(CPhi,CPhi.nGrow(),src_comp,dest_comp,num_comp);
-
-        mac_bndry.setBndryValues(crse_br,src_comp,*mac_phi,src_comp,
-                                 dest_comp,num_comp,crse_ratio,*phys_bc);
+    std::unique_ptr<MacBndry> mac_bndry;
+    if (the_solver != the_mlmg_solver)
+    {
+        //
+        // Store the Dirichlet boundary condition for mac_phi in mac_bndry.
+        //
+        mac_bndry.reset(new MacBndry(grids,dmap,1,geom));
+        const int src_comp  = 0;
+        const int dest_comp = 0;
+        const int num_comp  = 1;
+        if (level == 0)
+        {
+            mac_bndry->setBndryValues(*mac_phi,src_comp,dest_comp,num_comp,*phys_bc);
+        }
+        else
+        {
+            MultiFab& CPhi = *mac_phi_crse[level-1];
+            CPhi.FillBoundary(parent->Geom(level-1).periodicity());
+            
+            BoxArray crse_boxes(grids);
+            crse_boxes.coarsen(crse_ratio);
+            const int in_rad     = 0;
+            const int out_rad    = 1;
+            //const int extent_rad = 1;
+            const int extent_rad = 2;
+            BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
+            crse_br.copyFrom(CPhi,CPhi.nGrow(),src_comp,dest_comp,num_comp);
+            
+            mac_bndry->setBndryValues(crse_br,src_comp,*mac_phi,src_comp,
+                                     dest_comp,num_comp,crse_ratio,*phys_bc);
+        }
     }
     //
     // Compute the nondivergent velocities, by creating the linop
@@ -383,18 +404,6 @@ MacProj::mac_project (int             level,
 
     Rhs.copy(divu);
 
-    int the_solver = 0;
-    if (use_cg_solve)
-    {
-	the_solver = 1;
-    }
-#if MG_USE_HYPRE
-    else if ( use_hypre_solve )
-    {
-	the_solver = 2;
-    }
-#endif
-
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -406,9 +415,18 @@ MacProj::mac_project (int             level,
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
-    mac_level_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, Density,
-		     dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
-		     area, volume, S, Rhs, u_mac, mac_phi, verbose);
+    if (the_solver == the_mlmg_solver)
+    {
+        MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
+        mlmg_mac_level_solve(parent, cphi, *phys_bc, level, Density, mac_tol, mac_abs_tol,
+                             rhs_scale, area, volume, S, Rhs, u_mac, mac_phi, verbose);
+    }
+    else
+    {
+        mac_level_driver(parent, *mac_bndry, *phys_bc, grids, the_solver, level, Density,
+                         dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
+                         area, volume, S, Rhs, u_mac, mac_phi, verbose);
+    }
 
     Rhs.clear();
     //
@@ -500,6 +518,23 @@ MacProj::mac_sync_solve (int       level,
     // into the call to mac_sync_compute.  Hope this works...  (LHH).
     //
     MultiFab* mac_sync_phi = mac_phi_crse[level].get();
+
+    //
+    // Solve the sync system.
+    //
+    const int the_mlmg_solver = 3;
+    int the_solver = (use_mlmg_solver) ? the_mlmg_solver : 0;
+    if ( use_cg_solve )
+    {
+	the_solver = 1;
+    }
+#if MG_USE_HYPRE
+    else if ( use_hypre_solve )
+    {
+	the_solver = 2;
+    }
+#endif
+
     //
     // Alloc and define RHS by doing a reflux-like operation in coarse
     // grid cells adjacent to fine grids.  The values in these
@@ -547,7 +582,7 @@ MacProj::mac_sync_solve (int       level,
     // Note that Rhs does not yet have the radial scaling in it for r-z
     // problems so we must do explicit volume-weighting here.
     //
-    if (fix_mac_sync_rhs)
+    if (the_solver != the_mlmg_solver && fix_mac_sync_rhs)
     {
         int all_neumann = 1;
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -587,49 +622,40 @@ MacProj::mac_sync_solve (int       level,
     }
 
     mac_sync_phi->setVal(0.0);
-    //
-    // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
-    //
-    MacBndry mac_bndry(grids,dmap,1,geom);
-    const int src_comp = 0;
-    const int dest_comp = 0;
-    const int num_comp = 1;
-    if (level == 0)
+
+    std::unique_ptr<MacBndry> mac_bndry;
+    if (the_solver != the_mlmg_solver)
     {
-        mac_bndry.setBndryValues(*mac_sync_phi,src_comp,dest_comp,num_comp,
-                                 *phys_bc);
-    }
-    else
-    {
-        BoxArray crse_boxes(grids);
-        crse_boxes.coarsen(crse_ratio);
-        const int in_rad     = 0;
-        const int out_rad    = 1;
-        //const int extent_rad = 1;
-        const int extent_rad = 2;
-        BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
-        crse_br.setVal(0);
-        mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
-                                 dest_comp,num_comp,crse_ratio, *phys_bc);
+        //
+        // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
+        //
+        mac_bndry.reset(new MacBndry(grids,dmap,1,geom));
+        const int src_comp = 0;
+        const int dest_comp = 0;
+        const int num_comp = 1;
+        if (level == 0)
+        {
+            mac_bndry->setBndryValues(*mac_sync_phi,src_comp,dest_comp,num_comp,
+                                      *phys_bc);
+        }
+        else
+        {
+            BoxArray crse_boxes(grids);
+            crse_boxes.coarsen(crse_ratio);
+            const int in_rad     = 0;
+            const int out_rad    = 1;
+            //const int extent_rad = 1;
+            const int extent_rad = 2;
+            BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
+            crse_br.setVal(0);
+            mac_bndry->setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
+                                      dest_comp,num_comp,crse_ratio, *phys_bc);
+        }
     }
     //
     // Now define edge centered coefficients and adjust RHS for MAC solve.
     //
     const Real rhs_scale = 2.0/dt;
-    //
-    // Solve the sync system.
-    //
-    int the_solver = 0;
-    if ( use_cg_solve )
-    {
-	the_solver = 1;
-    }
-#if MG_USE_HYPRE
-    else if ( use_hypre_solve )
-    {
-	the_solver = 2;
-    }
-#endif
 
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
@@ -642,9 +668,17 @@ MacProj::mac_sync_solve (int       level,
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
-    mac_sync_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
-                    mac_sync_tol, mac_abs_tol, rhs_scale, area,
-                    volume, Rhs, rho_half, mac_sync_phi, verbose);
+    if (the_solver == the_mlmg_solver)
+    {
+        mlmg_mac_sync_solve(parent,*phys_bc, level, mac_sync_tol, mac_abs_tol,
+                            rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi, verbose);
+    }
+    else
+    {
+        mac_sync_driver(parent, *mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
+                        mac_sync_tol, mac_abs_tol, rhs_scale, area,
+                        volume, Rhs, rho_half, mac_sync_phi, verbose);
+    }
 
     if (verbose)
     {
@@ -690,6 +724,23 @@ MacProj::mac_sync_solve (int       level,
     // into the call to mac_sync_compute.  Hope this works...  (LHH).
     //
     MultiFab* mac_sync_phi = mac_phi_crse[level].get();
+
+    //
+    // Solve the sync system.
+    //
+    const int the_mlmg_solver = 3;
+    int the_solver = (use_mlmg_solver) ? the_mlmg_solver : 0;
+    if ( use_cg_solve )
+    {
+	the_solver = 1;
+    }
+#if MG_USE_HYPRE
+    else if ( use_hypre_solve )
+    {
+	the_solver = 2;
+    }
+#endif
+
     //
     // Alloc and define RHS by doing a reflux-like operation in coarse
     // grid cells adjacent to fine grids.  The values in these
@@ -742,7 +793,7 @@ MacProj::mac_sync_solve (int       level,
     // Note that Rhs does not yet have the radial scaling in it for r-z
     // problems so we must do explicit volume-weighting here.
     //
-    if (fix_mac_sync_rhs || subtract_avg)
+    if (the_solver != the_mlmg_solver && (fix_mac_sync_rhs || subtract_avg))
     {
         int all_neumann = 1;
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
@@ -783,49 +834,40 @@ MacProj::mac_sync_solve (int       level,
     }
 
     mac_sync_phi->setVal(0.0);
-    //
-    // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
-    //
-    MacBndry mac_bndry(grids,dmap,1,geom);
-    const int src_comp = 0;
-    const int dest_comp = 0;
-    const int num_comp = 1;
-    if (level == 0)
+
+    std::unique_ptr<MacBndry> mac_bndry;
+    if (the_solver != the_mlmg_solver)
     {
-        mac_bndry.setBndryValues(*mac_sync_phi,src_comp,dest_comp,num_comp,
-                                 *phys_bc);
-    }
-    else
-    {
-        BoxArray crse_boxes(grids);
-        crse_boxes.coarsen(crse_ratio);
-        const int in_rad     = 0;
-        const int out_rad    = 1;
-        //const int extent_rad = 1;
-        const int extent_rad = 2;
-        BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
-        crse_br.setVal(0);
-        mac_bndry.setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
-                                 dest_comp,num_comp,crse_ratio, *phys_bc);
+        //
+        // store the Dirichlet boundary condition for mac_sync_phi in mac_bndry
+        //
+        mac_bndry.reset(new MacBndry(grids,dmap,1,geom));
+        const int src_comp = 0;
+        const int dest_comp = 0;
+        const int num_comp = 1;
+        if (level == 0)
+        {
+            mac_bndry->setBndryValues(*mac_sync_phi,src_comp,dest_comp,num_comp,
+                                      *phys_bc);
+        }
+        else
+        {
+            BoxArray crse_boxes(grids);
+            crse_boxes.coarsen(crse_ratio);
+            const int in_rad     = 0;
+            const int out_rad    = 1;
+            //const int extent_rad = 1;
+            const int extent_rad = 2;
+            BndryRegister crse_br(crse_boxes,dmap,in_rad,out_rad,extent_rad,num_comp);
+            crse_br.setVal(0);
+            mac_bndry->setBndryValues(crse_br,src_comp,*mac_sync_phi,src_comp,
+                                      dest_comp,num_comp,crse_ratio, *phys_bc);
+        }
     }
     //
     // Now define edge centered coefficients and adjust RHS for MAC solve.
     //
     const Real rhs_scale = 2.0/dt;
-    //
-    // Solve the sync system.
-    //
-    int the_solver = 0;
-    if ( use_cg_solve )
-    {
-	the_solver = 1;
-    }
-#if MG_USE_HYPRE
-    else if ( use_hypre_solve )
-    {
-	the_solver = 2;
-    }
-#endif
 
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
@@ -838,9 +880,17 @@ MacProj::mac_sync_solve (int       level,
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
-    mac_sync_driver(parent, mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
-                    mac_sync_tol, mac_abs_tol, rhs_scale, area,
-                    volume, Rhs, rho_half, mac_sync_phi, verbose);
+    if (the_solver == the_mlmg_solver)
+    {
+        mlmg_mac_sync_solve(parent,*phys_bc, level, mac_sync_tol, mac_abs_tol,
+                            rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi, verbose);
+    }
+    else
+    {
+        mac_sync_driver(parent, *mac_bndry, *phys_bc, grids, the_solver, level, dx, dt,
+                        mac_sync_tol, mac_abs_tol, rhs_scale, area,
+                        volume, Rhs, rho_half, mac_sync_phi, verbose);
+    }
 
     if (verbose)
     {
