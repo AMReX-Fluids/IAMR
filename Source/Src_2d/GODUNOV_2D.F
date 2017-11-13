@@ -87,7 +87,7 @@ c
         dt  = min(dt,sqrt(two*dx(2)/tforce2))
       end if
 
-      if (tau .gt. small) then
+      if (varvisc .ne. 0) then
         if (yield .gt. small) then
           dt  = min(dt,dx(1)/yield)
           dt  = min(dt,dx(2)/yield)
