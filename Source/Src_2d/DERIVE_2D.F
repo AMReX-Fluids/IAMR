@@ -728,7 +728,7 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun, bingham_exp, bingham_tlr
+      REAL_T    strnrt, strnrt_fun, relax, relax_exp, relax_tlr
 c
 c     ::::: some useful macro definitions
 c
@@ -770,16 +770,21 @@ c     ::::: function for computing magnitude of rate of strain tensor
 c
       strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
 c
-c     ::::: Functions for computing the regularised Bingham viscosity.
+c     ::::: Functions for computing the regularised term in the viscosity
 c     ::::: When the strain rate is small, Taylor expand the exponential
 c     ::::: to avoid floating point errors.
 c
-      bingham_exp(strnrt) = mu+half*tau*(1-exp(-strnrt/eps))/strnrt
-      bingham_tlr(strnrt) =
-     & mu+half*tau/eps*(one-half*strnrt/eps+half*third*strnrt**2/eps**2)
 
-c     ::::: If non-variable, viscosity coefficient equals mu everywhere
+      relax_exp(strnrt) = (one-exp(-strnrt/eps))/strnrt
+      relax_tlr(strnrt) = one/eps*
+     &     (one
+     &      -half*strnrt/eps
+     &      +sixth*(strnrt/eps)**2
+     &      -sixth*fourth*(strnrt/eps)**3
+     &      +sixth*fourth*fifth*(strnrt/eps)**4)
+
       if (varvisc .eq. 0) then
+c     ::::: If non-variable, viscosity coefficient equals mu everywhere
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
@@ -787,8 +792,8 @@ c     ::::: If non-variable, viscosity coefficient equals mu everywhere
          end do
       end do
 
-c     ::::: Compute Bingham viscosity
       else 
+c     ::::: Compute Herschel-Bulkley viscosity
 
       dx = delta(1)
       dy = delta(2)
@@ -800,10 +805,25 @@ c     ::::: Compute Bingham viscosity
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
+            ! Compute relaxed term based on strain rate magnitude
             if (strnrt > 1.0e-8) then
-               visc(i,j,1) = bingham_exp(strnrt)
+               relax = relax_exp(strnrt)
             else
-               visc(i,j,1) = bingham_tlr(strnrt)
+               relax = relax_tlr(strnrt)
+            end if
+            ! Calculate viscosity based on flow index value
+            if (n .lt. one) then
+               ! Pseudoplastic (shear-thinning)
+               ! Regularise power-law term and yield stress term
+               visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+            else if (n .eq. one) then
+               ! Bingham fluid
+               ! Regularise yield stress term only
+               visc(i,j,1) = mu+half*tau*relax
+            else 
+               ! Dilatant (shear-thickening)
+               ! Regularise yield stress term only
+               visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
             end if
          end do
       end do
@@ -833,9 +853,16 @@ c
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (strnrt > 1.0e-8) then
-               visc(i,j,1) = bingham_exp(strnrt)
+               relax = relax_exp(strnrt)
             else
-               visc(i,j,1) = bingham_tlr(strnrt)
+               relax = relax_tlr(strnrt)
+            end if
+            if (n .lt. one) then
+                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+            else if (n .eq. one) then
+                visc(i,j,1) = mu+half*tau*relax
+            else 
+                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
             end if
          end do
       end if
@@ -851,9 +878,16 @@ c
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (strnrt > 1.0e-8) then
-               visc(i,j,1) = bingham_exp(strnrt)
+               relax = relax_exp(strnrt)
             else
-               visc(i,j,1) = bingham_tlr(strnrt)
+               relax = relax_tlr(strnrt)
+            end if
+            if (n .lt. one) then
+                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+            else if (n .eq. one) then
+                visc(i,j,1) = mu+half*tau*relax
+            else 
+                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
             end if
          end do
       end if
@@ -869,9 +903,16 @@ c
             vy  = vybot(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (strnrt > 1.0e-8) then
-               visc(i,j,1) = bingham_exp(strnrt)
+               relax = relax_exp(strnrt)
             else
-               visc(i,j,1) = bingham_tlr(strnrt)
+               relax = relax_tlr(strnrt)
+            end if
+            if (n .lt. one) then
+                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+            else if (n .eq. one) then
+                visc(i,j,1) = mu+half*tau*relax
+            else 
+                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
             end if
          end do
       end if
@@ -887,9 +928,16 @@ c
             vy  = vytop(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (strnrt > 1.0e-8) then
-               visc(i,j,1) = bingham_exp(strnrt)
+               relax = relax_exp(strnrt)
             else
-               visc(i,j,1) = bingham_tlr(strnrt)
+               relax = relax_tlr(strnrt)
+            end if
+            if (n .lt. one) then
+                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+            else if (n .eq. one) then
+                visc(i,j,1) = mu+half*tau*relax
+            else 
+                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
             end if
          end do
       end if
@@ -905,9 +953,16 @@ c
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (strnrt > 1.0e-8) then
-             visc(i,j,1) = bingham_exp(strnrt)
+             relax = relax_exp(strnrt)
          else
-             visc(i,j,1) = bingham_tlr(strnrt)
+             relax = relax_tlr(strnrt)
+         end if
+         if (n .lt. one) then
+             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+         else if (n .eq. one) then
+             visc(i,j,1) = mu+half*tau*relax
+         else 
+             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
          end if
       end if
       if (fixlft .and. fixtop) then
@@ -919,9 +974,16 @@ c
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (strnrt > 1.0e-8) then
-             visc(i,j,1) = bingham_exp(strnrt)
+             relax = relax_exp(strnrt)
          else
-             visc(i,j,1) = bingham_tlr(strnrt)
+             relax = relax_tlr(strnrt)
+         end if
+         if (n .lt. one) then
+             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+         else if (n .eq. one) then
+             visc(i,j,1) = mu+half*tau*relax
+         else 
+             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
          end if
       end if
       if (fixrgt .and. fixtop) then
@@ -933,9 +995,16 @@ c
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (strnrt > 1.0e-8) then
-             visc(i,j,1) = bingham_exp(strnrt)
+             relax = relax_exp(strnrt)
          else
-             visc(i,j,1) = bingham_tlr(strnrt)
+             relax = relax_tlr(strnrt)
+         end if
+         if (n .lt. one) then
+             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+         else if (n .eq. one) then
+             visc(i,j,1) = mu+half*tau*relax
+         else 
+             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
          end if
       end if
       if (fixrgt .and. fixbot) then
@@ -947,9 +1016,16 @@ c
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (strnrt > 1.0e-8) then
-             visc(i,j,1) = bingham_exp(strnrt)
+             relax = relax_exp(strnrt)
          else
-             visc(i,j,1) = bingham_tlr(strnrt)
+             relax = relax_tlr(strnrt)
+         end if
+         if (n .lt. one) then
+             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+         else if (n .eq. one) then
+             visc(i,j,1) = mu+half*tau*relax
+         else 
+             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
          end if
       end if
 
@@ -1037,7 +1113,7 @@ c
 c
 c     ::::: Functions for computing the regularised Bingham stress.
 c
-      stress_fun(strnrt) = 2*mu*strnrt+tau*(1-exp(-strnrt/eps))
+      stress_fun(strnrt) = mu*two**((n+one)/two)*strnrt**n+tau
 
       dx = delta(1)
       dy = delta(2)

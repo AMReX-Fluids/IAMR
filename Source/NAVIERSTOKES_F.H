@@ -13,7 +13,7 @@
 #    define FORT_CEN2EDG     cen2edg
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
-#    define FORT_BINGHAM 	 bingham
+#    define FORT_HERSCHEL_BULKLEY 	 herschel_bulkley
 #    define FORT_SET_NS_PARAMS  setnsparams
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb
@@ -34,7 +34,7 @@
 #    define FORT_EDGE_INTERP EDGE_INTERP
 #    define FORT_PC_CF_EDGE_INTERP PC_EDGE_INTERP
 #    define FORT_HOEXTRAPTOCC HOEXTRAPTOCC
-#    define FORT_BINGHAM 	 BINGHAM
+#    define FORT_HERSCHEL_BULKLEY 	 HERSCHEL_BULKLEY
 #    define FORT_SET_NS_PARAMS  SETNSPARAMS
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     SUMTURB
@@ -54,7 +54,7 @@
 #    define FORT_EDGE_INTERP edge_interp
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
 #    define FORT_HOEXTRAPTOCC hoextraptocc
-#    define FORT_BINGHAM 	 bingham
+#    define FORT_HERSCHEL_BULKLEY 	 herschel_bulkley
 #    define FORT_SET_NS_PARAMS  setnsparams
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb
@@ -74,7 +74,7 @@
 #    define FORT_EDGE_INTERP edge_interp_
 #    define FORT_PC_CF_EDGE_INTERP pc_edge_interp_
 #    define FORT_HOEXTRAPTOCC hoextraptocc_
-#    define FORT_BINGHAM 	 bingham_
+#    define FORT_HERSCHEL_BULKLEY 	 herschel_bulkley_
 #    define FORT_SET_NS_PARAMS  setnsparams_
 #if (BL_SPACEDIM == 3)
 #    define FORT_SUMTURB     sumturb_
@@ -182,12 +182,13 @@ extern "C" {
                      const int* dom_lo, const int* dom_hi,
                      const amrex::Real* dx ,const amrex::Real* xlo);
 
-    void FORT_BINGHAM(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
+    void FORT_HERSCHEL_BULKLEY(amrex::Real* visc, ARLIM_P(visc_lo), ARLIM_P(visc_hi),
 		              const amrex::Real* vel, ARLIM_P(vel_lo), ARLIM_P(vel_hi),
                       const int* lo, const int* hi, const int* domain_lo, const int* domain_hi,
 		              const amrex::Real* delta, const int* vel_bc);
 
    void FORT_SET_NS_PARAMS(const amrex::Real& vel_visc_coef,
+                        const amrex::Real& flow_index, 
                         const amrex::Real& yield_stress, 
                         const amrex::Real& reg_param, 
 						const int& variable_vel_visc);
