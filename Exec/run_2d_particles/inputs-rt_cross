@@ -152,3 +152,6 @@ proj.proj_abs_tol = 1.e-15
 proj.stencil = cross
 
 mg.v = 1
+
+mac.use_mlmg_solver = 1
+diffuse.use_mlmg_solver = 1
