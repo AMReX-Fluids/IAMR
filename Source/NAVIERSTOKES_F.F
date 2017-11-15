@@ -11,20 +11,26 @@
 
 c=========================================================
 
-      subroutine FORT_SET_NS_PARAMS(vel_visc_coef,yield_stress,reg_param,variable_vel_visc)
+      subroutine FORT_SET_NS_PARAMS(vel_visc_coef,flow_index,yield_stress,reg_param,variable_vel_visc)
       implicit none
-      REAL_T vel_visc_coef,yield_stress,reg_param
+      REAL_T vel_visc_coef,flow_index,yield_stress,reg_param
       integer variable_vel_visc
 
 #include <NSCOMM_F.H>
 
-      mu = vel_visc_coef
-      tau = yield_stress
-      eps = reg_param
-      varvisc = variable_vel_visc
+      mu        = vel_visc_coef
+      n         = flow_index
+      tau       = yield_stress
+      eps       = reg_param
+      varvisc   = variable_vel_visc
 
       if (mu .lt. 0) then
         write(6,*)'FORT_SET_PARAMS : illegal value of mu = ',mu
+        call bl_abort(" ")
+      end if
+
+      if (n .le. 0) then
+        write(6,*)'FORT_SET_PARAMS : illegal value of n = ',n
         call bl_abort(" ")
       end if
 
@@ -35,6 +41,11 @@ c=========================================================
 
       if (eps .lt. 0) then
         write(6,*)'FORT_SET_PARAMS : illegal value of eps = ',eps
+        call bl_abort(" ")
+      end if
+
+      if (.not. ((varvisc .eq. 0) .or. (varvisc .eq. 1))) then
+        write(6,*)'FORT_SET_PARAMS : illegal value of varvisc =',varvisc
         call bl_abort(" ")
       end if
 

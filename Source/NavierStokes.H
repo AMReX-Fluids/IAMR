@@ -212,9 +212,9 @@ private:
                                   int  first_scalar,
                                   int  last_scalar);
     //
-    // Calculate Bingham viscosity from velocity distribution
+    // Calculate Herschel-Bulkley viscosity from velocity distribution
     //
-    void calcBingham (amrex::MultiFab& visc, amrex::Real time); 
+    void calcHerschelBulkley (amrex::MultiFab& visc, amrex::Real time); 
 
     //
     // Define error estimators

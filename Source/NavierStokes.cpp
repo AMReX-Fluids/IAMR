@@ -840,9 +840,9 @@ NavierStokes::scalar_diffusion_update (Real dt,
 }
 
 void 
-NavierStokes:: calcBingham  (MultiFab& visc, Real time)
+NavierStokes:: calcHerschelBulkley  (MultiFab& visc, Real time)
 {
-    BL_PROFILE("NavierStokes::calcBingham()");
+    BL_PROFILE("NavierStokes::calcHerschelBulkley()");
 
     MultiFab& vel = get_new_data(State_Type);
 
@@ -872,7 +872,7 @@ NavierStokes:: calcBingham  (MultiFab& visc, Real time)
 
        vel_bc = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
 
-       FORT_BINGHAM(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
+       FORT_HERSCHEL_BULKLEY(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
                	    veldat,  ARLIM(vel_lo),  ARLIM(vel_hi),
                	    lo, hi, domlo, domhi, dx, vel_bc.dataPtr());
     }
@@ -2180,32 +2180,24 @@ NavierStokes::calcViscosity (const Real time,
     {
         if (visc_coef[Xvel] >= 0.0)
         {
-            if (yield_stress > 0.0)
+            if (variable_vel_visc)
             {
                 // 
-                // Ensure visc_cc is initialised
+                // Compute apparent viscosity for regularised Herschel-Bulkley fluid
                 //
-                visc_cc->setVal(visc_coef[Xvel]+0.5*yield_stress/reg_param, 0, 1, nGrow);
-                //
-                // Compute apparent viscosity for regularised Bingham fluid
-                //
-				calcBingham(*visc_cc,time);
+				calcHerschelBulkley(*visc_cc,time);
 				//
 				// Fill the ghost cells for visc_cc
 				//
 				visc_cc->FillBoundary(geom.periodicity());
             }
-            else if (yield_stress == 0.0)
+            else 
             {
                 //
                 // Fluid is Newtonian
                 //
                 visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
-            }
-            else
-            {
-                amrex::Abort("NavierStokes::calcViscosity() : must have yield_stress >= 0.0");
-            }
+			}
         }
         else
         {
