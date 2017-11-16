@@ -126,7 +126,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
 
     mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
     if (level > 0) {
-        mlabec.setBCWithCoarseData(cphi, parent->refRatio(level-1)[0]);
+        mlabec.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
     }
     mlabec.setLevelBC(0, mac_phi);
 
@@ -195,7 +195,7 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 
     mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
     if (level > 0) {
-        mlabec.setBCWithCoarseData(nullptr, parent->refRatio(level-1)[0]);
+        mlabec.setCoarseFineBC(nullptr, parent->refRatio(level-1)[0]);
     }
     mlabec.setLevelBC(0, mac_phi);
 

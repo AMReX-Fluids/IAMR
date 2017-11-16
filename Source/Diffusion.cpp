@@ -500,7 +500,7 @@ Diffusion::diffuse_scalar (Real                   dt,
                     const MultiFab& rhotime = crse_ns.get_rho(cur_time);
                     MultiFab::Divide(crsedata,rhotime,0,0,1,1);
                 }
-                mlabec.setBCWithCoarseData(&crsedata, crse_ratio[0]);
+                mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
             }
             MultiFab S(grids,dmap,1,ng);
             AmrLevel::FillPatch(*navier_stokes,S,ng,cur_time,State_Type,sigma,1);
@@ -1062,7 +1062,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         
             mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
             if (level > 0) {
-                mlabec.setBCWithCoarseData(nullptr, crse_ratio[0]);
+                mlabec.setCoarseFineBC(nullptr, crse_ratio[0]);
             }
             mlabec.setLevelBC(0, nullptr);
 
@@ -1426,7 +1426,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
         
         mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
         if (level > 0) {
-            mlabec.setBCWithCoarseData(nullptr, crse_ratio[0]);
+            mlabec.setCoarseFineBC(nullptr, crse_ratio[0]);
         }
         mlabec.setLevelBC(0, nullptr);
 
