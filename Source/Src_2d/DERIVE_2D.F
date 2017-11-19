@@ -1113,7 +1113,7 @@ c
 c
 c     ::::: Functions for computing the regularised Bingham stress.
 c
-      stress_fun(strnrt) = mu*two**((n+one)/two)*strnrt**n+tau
+      stress_fun(strnrt) = mu*two**((n+one)/two)*strnrt**n+tau*(one-exp(-strnrt/eps))
 
       dx = delta(1)
       dy = delta(2)
