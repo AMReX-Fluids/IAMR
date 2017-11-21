@@ -14,42 +14,42 @@ c
          strnrt_fun = sqrt(ux**2+half*(vx+uy)**2+vy**2)
       end function strnrt_fun
 
-      REAL_T function relax_fun(strnrt)
+      REAL_T function regularisation(strnrt)
          ! Function for computing the regularised term in the viscosity
          ! When the strain rate is small, Taylor expand the exponential
          ! to avoid floating point errors.
          REAL_T, intent(in) :: strnrt
          if (strnrt > SMALL) then
-            relax_fun = (one-exp(-strnrt/eps))/strnrt
+            regularisation = (one-exp(-strnrt/eps))/strnrt
          else
-            relax_fun = one/eps*
+            regularisation = one/eps*
      &                (one
      &                -half*strnrt/eps
      &                +sixth*(strnrt/eps)**2
      &                -sixth*fourth*(strnrt/eps)**3
      &                +sixth*fourth*fifth*(strnrt/eps)**4)
           end if
-      end function relax_fun
+      end function regularisation
 
       REAL_T function visc_fun(strnrt)
          ! Function for computing the regularised Herschel-Bulkley
          ! viscosity depending on the strain rate and power-law index
          REAL_T, intent(in)  :: strnrt
-         REAL_T              :: relax
-         relax = relax_fun(strnrt)
+         REAL_T              :: reg
          ! Calculate visc_fun based on flow index value
+         reg = regularisation(strnrt)
          if (n .lt. one) then
             ! Pseudoplastic (shear-thinning)
             ! Regularise power-law term and yield stress term
-            visc_fun = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+            visc_fun = (mu*two**((n-one)/two)*strnrt**n+half*tau)*reg
          else if (n .eq. one) then
             ! Bingham fluid
             ! Regularise yield stress term only
-            visc_fun = mu+half*tau*relax
+            visc_fun = mu+half*tau*reg
          else 
             ! Dilatant (shear-thickening)
             ! Regularise yield stress term only
-            visc_fun = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+            visc_fun = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*reg
          end if
       end function visc_fun
 
@@ -57,14 +57,13 @@ c
       ! stress depending on the strain rate and power-law index
       REAL_T function stress_fun(strnrt)
          REAL_T, intent(in)  :: strnrt
-         REAL_T              :: relax
+         REAL_T              :: reg
          if (varvisc .eq. 0) then
             ! If non-variable, stress equals 2 mu strnrt everywhere
             stress_fun = 2*mu*strnrt
          else
-            ! Compute relaxed term based on strain rate magnitude
-            relax = relax_fun(strnrt)
             ! Calculate viscosity based on flow index value
+            reg = regularisation(strnrt)
             if (n .lt. one) then
                ! Pseudoplastic (shear-thinning)
                ! Regularise power-law term and yield stress_fun term
