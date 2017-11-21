@@ -702,16 +702,98 @@ c
 
       end
 
-      subroutine FORT_DERVISC (visc,DIMS(visc),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                         bc,level,grid_no)
-      implicit none
+c
+c ::: This module contains helper functions for computing the following
+c ::: derived quantites (viscosity + stress). We should make a separate
+c ::: module named e.g. viscosity for this, since it will be useful in
+c ::: the NAVIERSTOKES_2D file as well. 
+c
+      module derive_helper_functions
 
 #include <NSCOMM_F.H>
+
+      contains 
+
+      ! Function for computing the regularised term in the viscosity
+      ! When the strain rate is small, Taylor expand the exponential
+      ! to avoid floating point errors.
+      REAL_T function relax_fun(strnrt)
+         REAL_T, intent(in) :: strnrt
+         if (strnrt > SMALL) then
+            relax_fun = (one-exp(-strnrt/eps))/strnrt
+         else
+            relax_fun = one/eps*
+     &                (one
+     &                -half*strnrt/eps
+     &                +sixth*(strnrt/eps)**2
+     &                -sixth*fourth*(strnrt/eps)**3
+     &                +sixth*fourth*fifth*(strnrt/eps)**4)
+          end if
+      end function relax_fun
+
+      ! Function for computing the regularised Herschel-Bulkley
+      ! viscosity depending on the strain rate and power-law index
+      REAL_T function visc_fun(strnrt)
+        REAL_T, intent(in)  :: strnrt
+        REAL_T              :: relax
+        ! Compute relaxed term based on strain rate magnitude
+        relax = relax_fun(strnrt)
+        ! Calculate visc_fun based on flow index value
+        if (n .lt. one) then
+            ! Pseudoplastic (shear-thinning)
+            ! Regularise power-law term and yield stress term
+            visc_fun = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+        else if (n .eq. one) then
+            ! Bingham fluid
+            ! Regularise yield stress term only
+            visc_fun = mu+half*tau*relax
+        else 
+            ! Dilatant (shear-thickening)
+            ! Regularise yield stress term only
+            visc_fun = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+        end if
+      end function visc_fun
+
+      ! Function for computing the regularised Herschel-Bulkley
+      ! stress depending on the strain rate and power-law index
+      REAL_T function stress_fun(strnrt)
+         REAL_T, intent(in)  :: strnrt
+         REAL_T              :: relax
+         if (varvisc .eq. 0) then
+            ! If non-variable, stress equals 2 mu strnrt everywhere
+            stress_fun = 2*mu*strnrt
+         else
+            ! Compute relaxed term based on strain rate magnitude
+            relax = relax_fun(strnrt)
+            ! Calculate viscosity based on flow index value
+            if (n .lt. one) then
+                ! Pseudoplastic (shear-thinning)
+                ! Regularise power-law term and yield stress_fun term
+                stress_fun = (mu*two**((n+one)/two)*strnrt**n+tau)*(one-exp(-strnrt/eps))
+            else if (n .eq. one) then
+                ! Bingham fluid
+                ! Regularise yield stress_fun term only
+                stress_fun = mu*two*strnrt+tau*(one-exp(-strnrt/eps))
+            else 
+                ! Dilatant (shear-thickening)
+                ! Regularise yield stress_fun term only
+                stress_fun = mu*two**((n+one)/two)*strnrt**n+tau*(one-exp(-strnrt/eps))
+            end if
+         end if
+      end function stress_fun
+
+      end module derive_helper_functions
+
 c
 c ::: This routine will compute the 
 c ::: viscosity based on the velocity field
 c
+      subroutine FORT_DERVISC (visc,DIMS(visc),nv,dat,DIMS(dat),ncomp,
+     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
+     $                         bc,level,grid_no)
+      use derive_helper_functions
+      implicit none
+
       integer    lo(2), hi(2)
       integer    DIMDEC(visc)
       integer    DIMDEC(dat)
@@ -728,8 +810,7 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun, relax, relax_exp, relax_tlr
-      REAL_T    visc_pseudoplastic, visc_bingham, visc_dilatant
+      REAL_T    strnrt, strnrt_fun
 c
 c     ::::: some useful macro definitions
 c
@@ -770,37 +851,9 @@ c
 c     ::::: function for computing magnitude of rate of strain tensor
 c
       strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
-c
-c     ::::: Functions for computing the regularised term in the viscosity
-c     ::::: When the strain rate is small, Taylor expand the exponential
-c     ::::: to avoid floating point errors.
-c
-      relax_exp(strnrt) = (one-exp(-strnrt/eps))/strnrt
-      relax_tlr(strnrt) = one/eps*
-     &     (one
-     &      -half*strnrt/eps
-     &      +sixth*(strnrt/eps)**2
-     &      -sixth*fourth*(strnrt/eps)**3
-     &      +sixth*fourth*fifth*(strnrt/eps)**4)
-c
-c     ::::: Functions for computing the regularised stress for different
-c     ::::: power law behaviours 
-c
-      ! Pseudoplastic (shear-thinning)
-      ! Regularise power-law term and yield stress term
-      visc_pseudoplastic(strnrt,relax) = 
-     &      (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-      ! Bingham fluid
-      ! Regularise yield stress term only
-      visc_bingham(strnrt,relax) = 
-     &      mu+half*tau*relax
-      ! Dilatant (shear-thickening)
-      ! Regularise yield stress term only
-      visc_dilatant(strnrt,relax) = 
-     &      mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-
+      
       if (varvisc .eq. 0) then
-c     ::::: If non-variable, viscosity coefficient equals mu everywhere
+      ! If non-variable, viscosity coefficient equals mu everywhere
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
@@ -809,7 +862,7 @@ c     ::::: If non-variable, viscosity coefficient equals mu everywhere
       end do
 
       else 
-c     ::::: Compute Herschel-Bulkley viscosity
+      ! Compute Herschel-Bulkley viscosity
 
       dx = delta(1)
       dy = delta(2)
@@ -821,20 +874,7 @@ c     ::::: Compute Herschel-Bulkley viscosity
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            ! Compute relaxed term based on strain rate magnitude
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            ! Calculate viscosity based on flow index value
-            if (n .lt. one) then
-               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-            else if (n .eq. one) then
-               visc(i,j,1) = visc_bingham(strnrt,relax)
-            else 
-               visc(i,j,1) = visc_dilatant(strnrt,relax)
-            end if
+            visc(i,j,1) = visc_fun(strnrt)
          end do
       end do
 
@@ -862,18 +902,7 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-            else if (n .eq. one) then
-               visc(i,j,1) = visc_bingham(strnrt,relax)
-            else 
-               visc(i,j,1) = visc_dilatant(strnrt,relax)
-            end if
+            visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
 c
@@ -887,18 +916,7 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-            else if (n .eq. one) then
-               visc(i,j,1) = visc_bingham(strnrt,relax)
-            else 
-               visc(i,j,1) = visc_dilatant(strnrt,relax)
-            end if
+            visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
 c
@@ -912,18 +930,7 @@ c
             uy  = uybot(i,j)
             vy  = vybot(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-            else if (n .eq. one) then
-               visc(i,j,1) = visc_bingham(strnrt,relax)
-            else 
-               visc(i,j,1) = visc_dilatant(strnrt,relax)
-            end if
+            visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
 c
@@ -937,18 +944,7 @@ c
             uy  = uytop(i,j)
             vy  = vytop(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-            else if (n .eq. one) then
-               visc(i,j,1) = visc_bingham(strnrt,relax)
-            else 
-               visc(i,j,1) = visc_dilatant(strnrt,relax)
-            end if
+            visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
 c
@@ -962,18 +958,7 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-         else if (n .eq. one) then
-             visc(i,j,1) = visc_bingham(strnrt,relax)
-         else 
-             visc(i,j,1) = visc_dilatant(strnrt,relax)
-         end if
+         visc(i,j,1) = visc_fun(strnrt)
       end if
       if (fixlft .and. fixtop) then
          i = lo(1)
@@ -983,18 +968,7 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-         else if (n .eq. one) then
-             visc(i,j,1) = visc_bingham(strnrt,relax)
-         else 
-             visc(i,j,1) = visc_dilatant(strnrt,relax)
-         end if
+         visc(i,j,1) = visc_fun(strnrt)
       end if
       if (fixrgt .and. fixtop) then
          i = hi(1)
@@ -1004,18 +978,7 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-         else if (n .eq. one) then
-             visc(i,j,1) = visc_bingham(strnrt,relax)
-         else 
-             visc(i,j,1) = visc_dilatant(strnrt,relax)
-         end if
+         visc(i,j,1) = visc_fun(strnrt)
       end if
       if (fixrgt .and. fixbot) then
          i = hi(1)
@@ -1025,18 +988,7 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
-         else if (n .eq. one) then
-             visc(i,j,1) = visc_bingham(strnrt,relax)
-         else 
-             visc(i,j,1) = visc_dilatant(strnrt,relax)
-         end if
+         visc(i,j,1) = visc_fun(strnrt)
       end if
 
       end if
@@ -1053,13 +1005,12 @@ c
       subroutine FORT_DERSTRESS (stress,DIMS(stress),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      $                           bc,level,grid_no)
+      use derive_helper_functions
       implicit none
-
-#include <NSCOMM_F.H>
 
 c
 c ::: This routine will compute the 
-c ::: stressosity based on the velocity field
+c ::: stress based on the velocity field
 c
       integer    lo(2), hi(2)
       integer    DIMDEC(stress)
@@ -1077,8 +1028,7 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun, relax
-      REAL_T    stress_pseudoplastic, stress_bingham, stress_dilatant
+      REAL_T    strnrt, strnrt_fun
 c
 c     ::::: some useful macro definitions
 c
@@ -1121,24 +1071,6 @@ c     ::::: function for computing magnitude of rate of strain tensor
 c
       strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
 
-c
-c     ::::: Functions for computing the regularised stress for different
-c     ::::: power law behaviours 
-c
-      ! Pseudoplastic (shear-thinning)
-      ! Regularise power-law term and yield stress term
-      stress_pseudoplastic(strnrt) = 
-     &      (mu*two**((n+one)/two)*strnrt**n+tau)*(one-exp(-strnrt/eps))
-      ! Bingham fluid
-      ! Regularise yield stress term only
-      stress_bingham(strnrt) = 
-     &      mu*two*strnrt+tau*(one-exp(-strnrt/eps))
-      ! Dilatant (shear-thickening)
-      ! Regularise yield stress term only
-      stress_dilatant(strnrt) = 
-     &      mu*two**((n+one)/two)*strnrt**n+tau*(one-exp(-strnrt/eps))
-
-
       dx = delta(1)
       dy = delta(2)
 
@@ -1149,19 +1081,7 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (varvisc .eq. 0) then
-               ! If non-variable, stress equals 2 mu strnrt everywhere
-               stress(i,j,1) = 2*mu*strnrt
-            else
-               ! Calculate viscosity based on flow index value
-               if (n .lt. one) then
-                  stress(i,j,1) = stress_pseudoplastic(strnrt)
-               else if (n .eq. one) then
-                  stress(i,j,1) = stress_bingham(strnrt)
-               else 
-                  stress(i,j,1) = stress_dilatant(strnrt)
-               end if
-            end if
+            stress(i,j,1) = stress_fun(strnrt)
          end do
       end do
 
@@ -1188,17 +1108,7 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (varvisc .eq. 0) then
-               stress(i,j,1) = 2*mu*strnrt
-            else
-               if (n .lt. one) then
-                  stress(i,j,1) = stress_pseudoplastic(strnrt)
-               else if (n .eq. one) then
-                  stress(i,j,1) = stress_bingham(strnrt)
-               else 
-                  stress(i,j,1) = stress_dilatant(strnrt)
-               end if
-            end if
+            stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
 c
@@ -1212,17 +1122,7 @@ c
             uy  = uycen(i,j)
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (varvisc .eq. 0) then
-               stress(i,j,1) = 2*mu*strnrt
-            else
-               if (n .lt. one) then
-                  stress(i,j,1) = stress_pseudoplastic(strnrt)
-               else if (n .eq. one) then
-                  stress(i,j,1) = stress_bingham(strnrt)
-               else 
-                  stress(i,j,1) = stress_dilatant(strnrt)
-               end if
-            end if
+            stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
 c
@@ -1236,17 +1136,7 @@ c
             uy  = uybot(i,j)
             vy  = vybot(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (varvisc .eq. 0) then
-               stress(i,j,1) = 2*mu*strnrt
-            else
-               if (n .lt. one) then
-                  stress(i,j,1) = stress_pseudoplastic(strnrt)
-               else if (n .eq. one) then
-                  stress(i,j,1) = stress_bingham(strnrt)
-               else 
-                  stress(i,j,1) = stress_dilatant(strnrt)
-               end if
-            end if
+            stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
 c
@@ -1260,17 +1150,7 @@ c
             uy  = uytop(i,j)
             vy  = vytop(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (varvisc .eq. 0) then
-               stress(i,j,1) = 2*mu*strnrt
-            else
-               if (n .lt. one) then
-                  stress(i,j,1) = stress_pseudoplastic(strnrt)
-               else if (n .eq. one) then
-                  stress(i,j,1) = stress_bingham(strnrt)
-               else 
-                  stress(i,j,1) = stress_dilatant(strnrt)
-               end if
-            end if
+            stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
 c
@@ -1284,17 +1164,7 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (varvisc .eq. 0) then
-            stress(i,j,1) = 2*mu*strnrt
-         else
-            if (n .lt. one) then
-               stress(i,j,1) = stress_pseudoplastic(strnrt)
-            else if (n .eq. one) then
-               stress(i,j,1) = stress_bingham(strnrt)
-            else 
-               stress(i,j,1) = stress_dilatant(strnrt)
-            end if
-         end if
+         stress(i,j,1) = stress_fun(strnrt)
       end if
       if (fixlft .and. fixtop) then
          i = lo(1)
@@ -1304,17 +1174,7 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (varvisc .eq. 0) then
-            stress(i,j,1) = 2*mu*strnrt
-         else
-            if (n .lt. one) then
-               stress(i,j,1) = stress_pseudoplastic(strnrt)
-            else if (n .eq. one) then
-               stress(i,j,1) = stress_bingham(strnrt)
-            else 
-               stress(i,j,1) = stress_dilatant(strnrt)
-            end if
-         end if
+         stress(i,j,1) = stress_fun(strnrt)
       end if
       if (fixrgt .and. fixtop) then
          i = hi(1)
@@ -1324,17 +1184,7 @@ c
          uy = uytop(i,j)
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (varvisc .eq. 0) then
-            stress(i,j,1) = 2*mu*strnrt
-         else
-            if (n .lt. one) then
-               stress(i,j,1) = stress_pseudoplastic(strnrt)
-            else if (n .eq. one) then
-               stress(i,j,1) = stress_bingham(strnrt)
-            else 
-               stress(i,j,1) = stress_dilatant(strnrt)
-            end if
-         end if
+         stress(i,j,1) = stress_fun(strnrt)
       end if
       if (fixrgt .and. fixbot) then
          i = hi(1)
@@ -1344,17 +1194,7 @@ c
          uy = uybot(i,j)
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (varvisc .eq. 0) then
-            stress(i,j,1) = 2*mu*strnrt
-         else
-            if (n .lt. one) then
-               stress(i,j,1) = stress_pseudoplastic(strnrt)
-            else if (n .eq. one) then
-               stress(i,j,1) = stress_bingham(strnrt)
-            else 
-               stress(i,j,1) = stress_dilatant(strnrt)
-            end if
-         end if
+         stress(i,j,1) = stress_fun(strnrt)
       end if
 
 #     undef U
