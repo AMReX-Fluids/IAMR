@@ -10,7 +10,6 @@
 #include <AMReX_ArrayLim.H>
 #include <DERIVE_F.H> 
 #include <PROB_NS_F.H>
-#include <VISCOPLASTICITY_F.F>
 
 #define SDIM 2
 
@@ -583,7 +582,7 @@ c
             vx  = vxcen(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+            strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
          end do
       end do
 
@@ -609,7 +608,7 @@ c
             vx  = vxlft(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+            strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
          end do
       end if
 c
@@ -622,7 +621,7 @@ c
             vx  = vxrgt(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+            strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
          end do
       end if
 c
@@ -635,7 +634,7 @@ c
             vx  = vxcen(i,j)
             uy  = uybot(i,j)
             vy  = vybot(i,j)
-            strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+            strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
          end do
       end if
 c
@@ -648,7 +647,7 @@ c
             vx  = vxcen(i,j)
             uy  = uytop(i,j)
             vy  = vytop(i,j)
-            strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+            strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
          end do
       end if
 c
@@ -661,7 +660,7 @@ c
          vx = vxlft(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+         strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
       end if
       if (fixlft .and. fixtop) then
          i = lo(1)
@@ -670,7 +669,7 @@ c
          vx = vxlft(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+         strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
       end if
       if (fixrgt .and. fixtop) then
          i = hi(1)
@@ -679,7 +678,7 @@ c
          vx = vxrgt(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+         strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
       end if
       if (fixrgt .and. fixbot) then
          i = hi(1)
@@ -688,7 +687,7 @@ c
          vx = vxrgt(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt(i,j,1) = strnrt_fun(ux,vx,uy,vy)
+         strnrt(i,j,1) = strnrt_fun_2d(ux,vx,uy,vy)
       end if
 
 #     undef U
@@ -785,7 +784,7 @@ c
             vx  = vxcen(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             visc(i,j,1) = visc_fun(strnrt)
          end do
       end do
@@ -813,7 +812,7 @@ c
             vx  = vxlft(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
@@ -827,7 +826,7 @@ c
             vx  = vxrgt(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
@@ -841,7 +840,7 @@ c
             vx  = vxcen(i,j)
             uy  = uybot(i,j)
             vy  = vybot(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
@@ -855,7 +854,7 @@ c
             vx  = vxcen(i,j)
             uy  = uytop(i,j)
             vy  = vytop(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             visc(i,j,1) = visc_fun(strnrt)
          end do
       end if
@@ -869,7 +868,7 @@ c
          vx = vxlft(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          visc(i,j,1) = visc_fun(strnrt)
       end if
       if (fixlft .and. fixtop) then
@@ -879,7 +878,7 @@ c
          vx = vxlft(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          visc(i,j,1) = visc_fun(strnrt)
       end if
       if (fixrgt .and. fixtop) then
@@ -889,7 +888,7 @@ c
          vx = vxrgt(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          visc(i,j,1) = visc_fun(strnrt)
       end if
       if (fixrgt .and. fixbot) then
@@ -899,7 +898,7 @@ c
          vx = vxrgt(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          visc(i,j,1) = visc_fun(strnrt)
       end if
 
@@ -987,7 +986,7 @@ c
             vx  = vxcen(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             stress(i,j,1) = stress_fun(strnrt)
          end do
       end do
@@ -1014,7 +1013,7 @@ c
             vx  = vxlft(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
@@ -1028,7 +1027,7 @@ c
             vx  = vxrgt(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
@@ -1042,7 +1041,7 @@ c
             vx  = vxcen(i,j)
             uy  = uybot(i,j)
             vy  = vybot(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
@@ -1056,7 +1055,7 @@ c
             vx  = vxcen(i,j)
             uy  = uytop(i,j)
             vy  = vytop(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
             stress(i,j,1) = stress_fun(strnrt)
          end do
       end if
@@ -1070,7 +1069,7 @@ c
          vx = vxlft(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          stress(i,j,1) = stress_fun(strnrt)
       end if
       if (fixlft .and. fixtop) then
@@ -1080,7 +1079,7 @@ c
          vx = vxlft(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          stress(i,j,1) = stress_fun(strnrt)
       end if
       if (fixrgt .and. fixtop) then
@@ -1090,7 +1089,7 @@ c
          vx = vxrgt(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          stress(i,j,1) = stress_fun(strnrt)
       end if
       if (fixrgt .and. fixbot) then
@@ -1100,7 +1099,7 @@ c
          vx = vxrgt(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
          stress(i,j,1) = stress_fun(strnrt)
       end if
 

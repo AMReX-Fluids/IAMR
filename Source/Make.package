@@ -37,7 +37,7 @@ endif
 CEXE_sources += NavierStokesBase.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
 CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokesBase.H FluxBoxes.H
 
-FEXE_sources += GODUNOV_F.F NAVIERSTOKES_F.F
+FEXE_sources += VISCOPLASTICITY_F.F GODUNOV_F.F NAVIERSTOKES_F.F
 
 FEXE_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H PROJECTION_F.H \
                             MACPROJ_F.H DIFFUSION_F.H \
