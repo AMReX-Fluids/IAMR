@@ -729,6 +729,7 @@ c
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
       REAL_T    strnrt, strnrt_fun, relax, relax_exp, relax_tlr
+      REAL_T    visc_pseudoplastic, visc_bingham, visc_dilatant
 c
 c     ::::: some useful macro definitions
 c
@@ -774,7 +775,6 @@ c     ::::: Functions for computing the regularised term in the viscosity
 c     ::::: When the strain rate is small, Taylor expand the exponential
 c     ::::: to avoid floating point errors.
 c
-
       relax_exp(strnrt) = (one-exp(-strnrt/eps))/strnrt
       relax_tlr(strnrt) = one/eps*
      &     (one
@@ -782,6 +782,22 @@ c
      &      +sixth*(strnrt/eps)**2
      &      -sixth*fourth*(strnrt/eps)**3
      &      +sixth*fourth*fifth*(strnrt/eps)**4)
+c
+c     ::::: Functions for computing the regularised stress for different
+c     ::::: power law behaviours 
+c
+      ! Pseudoplastic (shear-thinning)
+      ! Regularise power-law term and yield stress term
+      visc_pseudoplastic(strnrt,relax) = 
+     &      (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+      ! Bingham fluid
+      ! Regularise yield stress term only
+      visc_bingham(strnrt,relax) = 
+     &      mu+half*tau*relax
+      ! Dilatant (shear-thickening)
+      ! Regularise yield stress term only
+      visc_dilatant(strnrt,relax) = 
+     &      mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
 
       if (varvisc .eq. 0) then
 c     ::::: If non-variable, viscosity coefficient equals mu everywhere
@@ -813,17 +829,11 @@ c     ::::: Compute Herschel-Bulkley viscosity
             end if
             ! Calculate viscosity based on flow index value
             if (n .lt. one) then
-               ! Pseudoplastic (shear-thinning)
-               ! Regularise power-law term and yield stress term
-               visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
             else if (n .eq. one) then
-               ! Bingham fluid
-               ! Regularise yield stress term only
-               visc(i,j,1) = mu+half*tau*relax
+               visc(i,j,1) = visc_bingham(strnrt,relax)
             else 
-               ! Dilatant (shear-thickening)
-               ! Regularise yield stress term only
-               visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+               visc(i,j,1) = visc_dilatant(strnrt,relax)
             end if
          end do
       end do
@@ -858,11 +868,11 @@ c
                relax = relax_tlr(strnrt)
             end if
             if (n .lt. one) then
-                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
             else if (n .eq. one) then
-                visc(i,j,1) = mu+half*tau*relax
+               visc(i,j,1) = visc_bingham(strnrt,relax)
             else 
-                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+               visc(i,j,1) = visc_dilatant(strnrt,relax)
             end if
          end do
       end if
@@ -883,11 +893,11 @@ c
                relax = relax_tlr(strnrt)
             end if
             if (n .lt. one) then
-                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
             else if (n .eq. one) then
-                visc(i,j,1) = mu+half*tau*relax
+               visc(i,j,1) = visc_bingham(strnrt,relax)
             else 
-                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+               visc(i,j,1) = visc_dilatant(strnrt,relax)
             end if
          end do
       end if
@@ -908,11 +918,11 @@ c
                relax = relax_tlr(strnrt)
             end if
             if (n .lt. one) then
-                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
             else if (n .eq. one) then
-                visc(i,j,1) = mu+half*tau*relax
+               visc(i,j,1) = visc_bingham(strnrt,relax)
             else 
-                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+               visc(i,j,1) = visc_dilatant(strnrt,relax)
             end if
          end do
       end if
@@ -933,11 +943,11 @@ c
                relax = relax_tlr(strnrt)
             end if
             if (n .lt. one) then
-                visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+               visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
             else if (n .eq. one) then
-                visc(i,j,1) = mu+half*tau*relax
+               visc(i,j,1) = visc_bingham(strnrt,relax)
             else 
-                visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+               visc(i,j,1) = visc_dilatant(strnrt,relax)
             end if
          end do
       end if
@@ -958,11 +968,11 @@ c
              relax = relax_tlr(strnrt)
          end if
          if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
          else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
+             visc(i,j,1) = visc_bingham(strnrt,relax)
          else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+             visc(i,j,1) = visc_dilatant(strnrt,relax)
          end if
       end if
       if (fixlft .and. fixtop) then
@@ -979,11 +989,11 @@ c
              relax = relax_tlr(strnrt)
          end if
          if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
          else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
+             visc(i,j,1) = visc_bingham(strnrt,relax)
          else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+             visc(i,j,1) = visc_dilatant(strnrt,relax)
          end if
       end if
       if (fixrgt .and. fixtop) then
@@ -1000,11 +1010,11 @@ c
              relax = relax_tlr(strnrt)
          end if
          if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
          else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
+             visc(i,j,1) = visc_bingham(strnrt,relax)
          else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+             visc(i,j,1) = visc_dilatant(strnrt,relax)
          end if
       end if
       if (fixrgt .and. fixbot) then
@@ -1021,11 +1031,11 @@ c
              relax = relax_tlr(strnrt)
          end if
          if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
+             visc(i,j,1) = visc_pseudoplastic(strnrt,relax)
          else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
+             visc(i,j,1) = visc_bingham(strnrt,relax)
          else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
+             visc(i,j,1) = visc_dilatant(strnrt,relax)
          end if
       end if
 
@@ -1067,7 +1077,8 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun, stress_fun 
+      REAL_T    strnrt, strnrt_fun, relax
+      REAL_T    stress_pseudoplastic, stress_bingham, stress_dilatant
 c
 c     ::::: some useful macro definitions
 c
@@ -1111,9 +1122,22 @@ c
       strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
 
 c
-c     ::::: Functions for computing the regularised Bingham stress.
+c     ::::: Functions for computing the regularised stress for different
+c     ::::: power law behaviours 
 c
-      stress_fun(strnrt) = mu*two**((n+one)/two)*strnrt**n+tau*(one-exp(-strnrt/eps))
+      ! Pseudoplastic (shear-thinning)
+      ! Regularise power-law term and yield stress term
+      stress_pseudoplastic(strnrt) = 
+     &      (mu*two**((n+one)/two)*strnrt**n+tau)*(one-exp(-strnrt/eps))
+      ! Bingham fluid
+      ! Regularise yield stress term only
+      stress_bingham(strnrt) = 
+     &      mu*two*strnrt+tau*(one-exp(-strnrt/eps))
+      ! Dilatant (shear-thickening)
+      ! Regularise yield stress term only
+      stress_dilatant(strnrt) = 
+     &      mu*two**((n+one)/two)*strnrt**n+tau*(one-exp(-strnrt/eps))
+
 
       dx = delta(1)
       dy = delta(2)
@@ -1126,9 +1150,17 @@ c
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (varvisc .eq. 0) then
-              stress(i,j,1) = 2*mu*strnrt
+               ! If non-variable, stress equals 2 mu strnrt everywhere
+               stress(i,j,1) = 2*mu*strnrt
             else
-              stress(i,j,1) = stress_fun(strnrt)
+               ! Calculate viscosity based on flow index value
+               if (n .lt. one) then
+                  stress(i,j,1) = stress_pseudoplastic(strnrt)
+               else if (n .eq. one) then
+                  stress(i,j,1) = stress_bingham(strnrt)
+               else 
+                  stress(i,j,1) = stress_dilatant(strnrt)
+               end if
             end if
          end do
       end do
@@ -1157,9 +1189,15 @@ c
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (varvisc .eq. 0) then
-              stress(i,j,1) = 2*mu*strnrt
+               stress(i,j,1) = 2*mu*strnrt
             else
-              stress(i,j,1) = stress_fun(strnrt)
+               if (n .lt. one) then
+                  stress(i,j,1) = stress_pseudoplastic(strnrt)
+               else if (n .eq. one) then
+                  stress(i,j,1) = stress_bingham(strnrt)
+               else 
+                  stress(i,j,1) = stress_dilatant(strnrt)
+               end if
             end if
          end do
       end if
@@ -1175,9 +1213,15 @@ c
             vy  = vycen(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (varvisc .eq. 0) then
-              stress(i,j,1) = 2*mu*strnrt
+               stress(i,j,1) = 2*mu*strnrt
             else
-              stress(i,j,1) = stress_fun(strnrt)
+               if (n .lt. one) then
+                  stress(i,j,1) = stress_pseudoplastic(strnrt)
+               else if (n .eq. one) then
+                  stress(i,j,1) = stress_bingham(strnrt)
+               else 
+                  stress(i,j,1) = stress_dilatant(strnrt)
+               end if
             end if
          end do
       end if
@@ -1193,9 +1237,15 @@ c
             vy  = vybot(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (varvisc .eq. 0) then
-              stress(i,j,1) = 2*mu*strnrt
+               stress(i,j,1) = 2*mu*strnrt
             else
-              stress(i,j,1) = stress_fun(strnrt)
+               if (n .lt. one) then
+                  stress(i,j,1) = stress_pseudoplastic(strnrt)
+               else if (n .eq. one) then
+                  stress(i,j,1) = stress_bingham(strnrt)
+               else 
+                  stress(i,j,1) = stress_dilatant(strnrt)
+               end if
             end if
          end do
       end if
@@ -1211,9 +1261,15 @@ c
             vy  = vytop(i,j)
             strnrt = strnrt_fun(ux,vx,uy,vy)
             if (varvisc .eq. 0) then
-              stress(i,j,1) = 2*mu*strnrt
+               stress(i,j,1) = 2*mu*strnrt
             else
-              stress(i,j,1) = stress_fun(strnrt)
+               if (n .lt. one) then
+                  stress(i,j,1) = stress_pseudoplastic(strnrt)
+               else if (n .eq. one) then
+                  stress(i,j,1) = stress_bingham(strnrt)
+               else 
+                  stress(i,j,1) = stress_dilatant(strnrt)
+               end if
             end if
          end do
       end if
@@ -1229,9 +1285,15 @@ c
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (varvisc .eq. 0) then
-           stress(i,j,1) = 2*mu*strnrt
+            stress(i,j,1) = 2*mu*strnrt
          else
-           stress(i,j,1) = stress_fun(strnrt)
+            if (n .lt. one) then
+               stress(i,j,1) = stress_pseudoplastic(strnrt)
+            else if (n .eq. one) then
+               stress(i,j,1) = stress_bingham(strnrt)
+            else 
+               stress(i,j,1) = stress_dilatant(strnrt)
+            end if
          end if
       end if
       if (fixlft .and. fixtop) then
@@ -1243,9 +1305,15 @@ c
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (varvisc .eq. 0) then
-           stress(i,j,1) = 2*mu*strnrt
+            stress(i,j,1) = 2*mu*strnrt
          else
-           stress(i,j,1) = stress_fun(strnrt)
+            if (n .lt. one) then
+               stress(i,j,1) = stress_pseudoplastic(strnrt)
+            else if (n .eq. one) then
+               stress(i,j,1) = stress_bingham(strnrt)
+            else 
+               stress(i,j,1) = stress_dilatant(strnrt)
+            end if
          end if
       end if
       if (fixrgt .and. fixtop) then
@@ -1257,9 +1325,15 @@ c
          vy = vytop(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (varvisc .eq. 0) then
-           stress(i,j,1) = 2*mu*strnrt
+            stress(i,j,1) = 2*mu*strnrt
          else
-           stress(i,j,1) = stress_fun(strnrt)
+            if (n .lt. one) then
+               stress(i,j,1) = stress_pseudoplastic(strnrt)
+            else if (n .eq. one) then
+               stress(i,j,1) = stress_bingham(strnrt)
+            else 
+               stress(i,j,1) = stress_dilatant(strnrt)
+            end if
          end if
       end if
       if (fixrgt .and. fixbot) then
@@ -1271,9 +1345,15 @@ c
          vy = vybot(i,j)
          strnrt = strnrt_fun(ux,vx,uy,vy)
          if (varvisc .eq. 0) then
-           stress(i,j,1) = 2*mu*strnrt
+            stress(i,j,1) = 2*mu*strnrt
          else
-           stress(i,j,1) = stress_fun(strnrt)
+            if (n .lt. one) then
+               stress(i,j,1) = stress_pseudoplastic(strnrt)
+            else if (n .eq. one) then
+               stress(i,j,1) = stress_bingham(strnrt)
+            else 
+               stress(i,j,1) = stress_dilatant(strnrt)
+            end if
          end if
       end if
 
