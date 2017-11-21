@@ -7,8 +7,8 @@
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
 #include <AMReX_BC_TYPES.H>
-#include <NAVIERSTOKES_F.H>
 #include <AMReX_ArrayLim.H>
+#include <NAVIERSTOKES_F.H>
 
 #define SDIM 2
 
@@ -421,9 +421,8 @@ c     coarse face, leave the in-between faces alone.
 
       subroutine FORT_HERSCHEL_BULKLEY(visc, DIMS(visc), vel, DIMS(vel), 
      &                                 lo, hi, domlo, domhi, delta, vel_bc)
+      use viscoplasticity_module
       implicit none
-
-# include <NSCOMM_F.H>
 c
 c ::: This routine will compute the Papanastasiou regularised Bingham
 c ::: viscosity based on the velocity field
@@ -442,7 +441,7 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun, relax, relax_exp, relax_tlr
+      REAL_T    strnrt
 c
 c     ::::: some useful macro definitions
 c
@@ -479,24 +478,6 @@ c      uytop(i,j) = (four*U(i,j+1)-three*U(i,j)-U(i,j-1))/(three*dy)
 c      vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
 c      vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
 
-c
-c     ::::: function for computing magnitude of rate of strain tensor
-c
-      strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
-
-c
-c     ::::: Functions for computing the regularised term in the viscosity.
-c     ::::: When the strain rate is small, Taylor expand the exponential
-c     ::::: to avoid floating point errors.
-c
-
-      relax_exp(strnrt) = (one-exp(-strnrt/eps))/strnrt
-      relax_tlr(strnrt) = one/eps*
-     &     (one
-     &      -half*strnrt/eps
-     &      +sixth*(strnrt/eps)**2
-     &      -sixth*fourth*(strnrt/eps)**3
-     &      +sixth*fourth*fifth*(strnrt/eps)**4)
 
       dx = delta(1)
       dy = delta(2)
@@ -507,27 +488,8 @@ c
             vx  = vxcen(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
-            ! Compute relaxed term based on strain rate magnitude
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            ! Calculate viscosity based on flow index value
-            if (n .lt. one) then
-               ! Pseudoplastic (shear-thinning)
-               ! Regularise power-law term and yield stress term
-               visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-            else if (n .eq. one) then
-               ! Bingham fluid
-               ! Regularise yield stress term only
-               visc(i,j,1) = mu+half*tau*relax
-            else 
-               ! Dilatant (shear-thickening)
-               ! Regularise yield stress term only
-               visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-            end if
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+            visc(i,j,1) = visc_fun(strnrt)
          end do
       end do
 
@@ -554,19 +516,8 @@ c
             vx  = vxlft(i,j)
             uy  = uycen(i,j) 
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-            else if (n .eq. one) then
-               visc(i,j,1) = mu+half*tau*relax
-            else 
-               visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-            end if
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+            visc(i,j,1) = visc_fun(strnrt)
             ! Linear extrapolation
             visc(i-1,j,1) = visc(i,j,1)
          end do
@@ -581,19 +532,8 @@ c
             vx  = vxrgt(i,j)
             uy  = uycen(i,j)
             vy  = vycen(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-            else if (n .eq. one) then
-               visc(i,j,1) = mu+half*tau*relax
-            else 
-               visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-            end if
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+            visc(i,j,1) = visc_fun(strnrt)
             ! Linear extrapolation
             visc(i+1,j,1) = visc(i,j,1)
          end do
@@ -608,19 +548,8 @@ c
             vx  = vxcen(i,j)
             uy  = uybot(i,j)
             vy  = vybot(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-            else if (n .eq. one) then
-               visc(i,j,1) = mu+half*tau*relax
-            else 
-               visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-            end if
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+            visc(i,j,1) = visc_fun(strnrt)
             ! Linear extrapolation
             visc(i,j-1,1) = visc(i,j,1)
          end do
@@ -635,19 +564,8 @@ c
             vx  = vxcen(i,j)
             uy  = uytop(i,j)
             vy  = vytop(i,j)
-            strnrt = strnrt_fun(ux,vx,uy,vy)
-            if (strnrt > 1.0e-8) then
-               relax = relax_exp(strnrt)
-            else
-               relax = relax_tlr(strnrt)
-            end if
-            if (n .lt. one) then
-               visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-            else if (n .eq. one) then
-               visc(i,j,1) = mu+half*tau*relax
-            else 
-               visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-            end if
+            strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+            visc(i,j,1) = visc_fun(strnrt)
             ! Linear extrapolation
             visc(i,j+1,1) = visc(i,j,1)
          end do
@@ -662,19 +580,8 @@ c
          vx = vxlft(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-         else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
-         else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-         end if
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+         visc(i,j,1) = visc_fun(strnrt)
          ! Linear extrapolation
          visc(i-1,j-1,1) = visc(i,j,1)
       end if
@@ -687,19 +594,8 @@ c
          vx = vxlft(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-         else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
-         else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-         end if
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+         visc(i,j,1) = visc_fun(strnrt)
          ! Linear extrapolation
          visc(i-1,j+1,1) = visc(i,j,1)
       end if
@@ -711,19 +607,8 @@ c
          vx = vxrgt(i,j)
          uy = uytop(i,j)
          vy = vytop(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-         else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
-         else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-         end if
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+         visc(i,j,1) = visc_fun(strnrt)
          ! Linear extrapolation
          visc(i+1,j+1,1) = visc(i,j,1)
       end if
@@ -735,19 +620,8 @@ c
          vx = vxrgt(i,j)
          uy = uybot(i,j)
          vy = vybot(i,j)
-         strnrt = strnrt_fun(ux,vx,uy,vy)
-         if (strnrt > 1.0e-8) then
-             relax = relax_exp(strnrt)
-         else
-             relax = relax_tlr(strnrt)
-         end if
-         if (n .lt. one) then
-             visc(i,j,1) = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-         else if (n .eq. one) then
-             visc(i,j,1) = mu+half*tau*relax
-         else 
-             visc(i,j,1) = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-         end if
+         strnrt = strnrt_fun_2d(ux,vx,uy,vy)
+         visc(i,j,1) = visc_fun(strnrt)
          ! Linear extrapolation
          visc(i+1,j-1,1) = visc(i,j,1)
       end if
