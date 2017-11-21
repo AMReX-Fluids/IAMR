@@ -7,9 +7,10 @@
 #include <AMReX_REAL.H> 
 #include <AMReX_CONSTANTS.H> 
 #include <AMReX_BC_TYPES.H> 
+#include <AMReX_ArrayLim.H>
 #include <DERIVE_F.H> 
 #include <PROB_NS_F.H>
-#include <AMReX_ArrayLim.H>
+#include <VISCOPLASTICITY_F.F>
 
 #define SDIM 2
 
@@ -513,6 +514,7 @@ c
       subroutine FORT_DERMGSTRNRT (strnrt,DIMS(strnrt),nv,dat,DIMS(dat),ncomp,
      &                             lo,hi,domlo,domhi,delta,xlo,time,dt,
      $                             bc,level,grid_no)
+      use viscoplasticity_module
       implicit none
 c
 c ::: This routine will derive magnitude of rate-of-strain tensor from
@@ -534,7 +536,6 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt_fun
 c
 c     ::::: some useful macro definitions
 c
@@ -571,10 +572,6 @@ c
       vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
       vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
       vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
-c
-c     ::::: function for computing magnitude of rate of strain tensor
-c
-      strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
 
       dx = delta(1)
       dy = delta(2)
@@ -703,95 +700,13 @@ c
       end
 
 c
-c ::: This module contains helper functions for computing the following
-c ::: derived quantites (viscosity + stress). We should make a separate
-c ::: module named e.g. viscosity for this, since it will be useful in
-c ::: the NAVIERSTOKES_2D file as well. 
-c
-      module derive_helper_functions
-
-#include <NSCOMM_F.H>
-
-      contains 
-
-      ! Function for computing the regularised term in the viscosity
-      ! When the strain rate is small, Taylor expand the exponential
-      ! to avoid floating point errors.
-      REAL_T function relax_fun(strnrt)
-         REAL_T, intent(in) :: strnrt
-         if (strnrt > SMALL) then
-            relax_fun = (one-exp(-strnrt/eps))/strnrt
-         else
-            relax_fun = one/eps*
-     &                (one
-     &                -half*strnrt/eps
-     &                +sixth*(strnrt/eps)**2
-     &                -sixth*fourth*(strnrt/eps)**3
-     &                +sixth*fourth*fifth*(strnrt/eps)**4)
-          end if
-      end function relax_fun
-
-      ! Function for computing the regularised Herschel-Bulkley
-      ! viscosity depending on the strain rate and power-law index
-      REAL_T function visc_fun(strnrt)
-        REAL_T, intent(in)  :: strnrt
-        REAL_T              :: relax
-        ! Compute relaxed term based on strain rate magnitude
-        relax = relax_fun(strnrt)
-        ! Calculate visc_fun based on flow index value
-        if (n .lt. one) then
-            ! Pseudoplastic (shear-thinning)
-            ! Regularise power-law term and yield stress term
-            visc_fun = (mu*two**((n-one)/two)*strnrt**n+half*tau)*relax
-        else if (n .eq. one) then
-            ! Bingham fluid
-            ! Regularise yield stress term only
-            visc_fun = mu+half*tau*relax
-        else 
-            ! Dilatant (shear-thickening)
-            ! Regularise yield stress term only
-            visc_fun = mu*two**((n-one)/two)*strnrt**(n-one)+half*tau*relax
-        end if
-      end function visc_fun
-
-      ! Function for computing the regularised Herschel-Bulkley
-      ! stress depending on the strain rate and power-law index
-      REAL_T function stress_fun(strnrt)
-         REAL_T, intent(in)  :: strnrt
-         REAL_T              :: relax
-         if (varvisc .eq. 0) then
-            ! If non-variable, stress equals 2 mu strnrt everywhere
-            stress_fun = 2*mu*strnrt
-         else
-            ! Compute relaxed term based on strain rate magnitude
-            relax = relax_fun(strnrt)
-            ! Calculate viscosity based on flow index value
-            if (n .lt. one) then
-                ! Pseudoplastic (shear-thinning)
-                ! Regularise power-law term and yield stress_fun term
-                stress_fun = (mu*two**((n+one)/two)*strnrt**n+tau)*(one-exp(-strnrt/eps))
-            else if (n .eq. one) then
-                ! Bingham fluid
-                ! Regularise yield stress_fun term only
-                stress_fun = mu*two*strnrt+tau*(one-exp(-strnrt/eps))
-            else 
-                ! Dilatant (shear-thickening)
-                ! Regularise yield stress_fun term only
-                stress_fun = mu*two**((n+one)/two)*strnrt**n+tau*(one-exp(-strnrt/eps))
-            end if
-         end if
-      end function stress_fun
-
-      end module derive_helper_functions
-
-c
 c ::: This routine will compute the 
 c ::: viscosity based on the velocity field
 c
       subroutine FORT_DERVISC (visc,DIMS(visc),nv,dat,DIMS(dat),ncomp,
      &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
      $                         bc,level,grid_no)
-      use derive_helper_functions
+      use viscoplasticity_module
       implicit none
 
       integer    lo(2), hi(2)
@@ -810,7 +725,7 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun
+      REAL_T    strnrt
 c
 c     ::::: some useful macro definitions
 c
@@ -847,10 +762,6 @@ c
       vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
       vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
       vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
-c
-c     ::::: function for computing magnitude of rate of strain tensor
-c
-      strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
       
       if (varvisc .eq. 0) then
       ! If non-variable, viscosity coefficient equals mu everywhere
@@ -1005,7 +916,7 @@ c
       subroutine FORT_DERSTRESS (stress,DIMS(stress),nv,dat,DIMS(dat),ncomp,
      &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
      $                           bc,level,grid_no)
-      use derive_helper_functions
+      use viscoplasticity_module
       implicit none
 
 c
@@ -1028,7 +939,7 @@ c
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    uxcen, uxlft, uxrgt, vxcen, vxlft, vxrgt
       REAL_T    uycen, uybot, uytop, vycen, vybot, vytop
-      REAL_T    strnrt, strnrt_fun
+      REAL_T    strnrt
 c
 c     ::::: some useful macro definitions
 c
@@ -1065,11 +976,6 @@ c
       vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
       vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
       vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
-
-c
-c     ::::: function for computing magnitude of rate of strain tensor
-c
-      strnrt_fun(ux,vx,uy,vy) = sqrt(ux**2+half*(vx+uy)**2+vy**2)
 
       dx = delta(1)
       dy = delta(2)
