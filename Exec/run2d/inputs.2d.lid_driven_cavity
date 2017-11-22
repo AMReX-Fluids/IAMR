@@ -2,8 +2,6 @@
 # INPUTS.2D.LID_DRIVEN_CAVITY
 #*******************************************************************************
 
-#NOTE: You may set *either* max_step or stop_time, or you may set them both.
-
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
 max_step 				= 10000
@@ -24,21 +22,16 @@ amr.max_grid_size		= 64
 
 #*******************************************************************************
 
-# Maximum level (defaults to 0 for single level calculation)
 #ns.do_stress_ref 		= 1
-# maximum number of levels of refinement
+# Maximum level (defaults to 0 for single level calculation)
 amr.max_level			= 0 
 # Interval (in number of level l timesteps) between regridding
 #amr.regrid_int			= 1
 
 #*******************************************************************************
 
-# Sets the "NavierStokes" code to not be verbose
+# Verbosity of different modules
 ns.v                    = 0
-
-#*******************************************************************************
-
-# Sets the "amr" code to be verbose
 amr.v                   = 1
 
 #*******************************************************************************
