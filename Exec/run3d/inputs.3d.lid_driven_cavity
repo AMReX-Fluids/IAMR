@@ -4,19 +4,19 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step                =  1000
+max_step                =  2000
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				=  -1
 
 # Stop simulation when we reach steady-state
 ns.stop_when_steady 	=  1
-ns.steady_tol 			=  1.0e-3
+ns.steady_tol 			=  1.0e-5
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 				= 64 64 64
+amr.n_cell 				= 256 256 256
 amr.max_grid_size		= 32
 #amr.grid_eff 			= 0.7
 
@@ -32,19 +32,17 @@ amr.max_level			= 0
 # Verbosity of different modules
 ns.v                    =  1
 amr.v                   =  1
-proj.v 					=  0
+proj.v 					   =  0
 
 #*******************************************************************************
 
-# Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_file 			= Test/Re1000_Bn10_N64/chk
-amr.check_int			= 1000
+# Names of checkpoint and plot files
+amr.check_file 			= /local/data/public/ksk38/RestSteadyCessation/Re1_Bn10_N256/chk
+amr.plot_file 			   = /local/data/public/ksk38/RestSteadyCessation/Re1_Bn10_N256/plt
 
-#*******************************************************************************
-
-# Interval (in number of coarse timesteps) between plot files
-amr.plot_file			= Test/Re1000_Bn10_N64/plt
-amr.plot_int			= 1000
+# Interval (in number of coarse timesteps) between checkpoint and plot files
+amr.check_int			   = 1000
+amr.plot_int			   = 50
 
 #*******************************************************************************
 
@@ -52,7 +50,7 @@ amr.plot_int			= 1000
 ns.cfl                  =  0.7  
 
 ns.init_shrink          =  0.3  # factor which multiplies the very first time step
-ns.change_max 			=  1.1
+ns.change_max 			   =  1.1
 ns.init_iter          	=  3    # number of initial iterations
 
 #*******************************************************************************
@@ -66,11 +64,13 @@ cg.maxiter              = 1000000
 # Use variable viscosity?  (0/1)
 ns.variable_vel_visc 	=  1
 # Dynamimc viscosity coefficient
-ns.vel_visc_coef        =  0.001
+ns.vel_visc_coef        =  1.0
 # Yield stress threshold
-ns.yield_stress 		=  0.014142135623730951
+ns.yield_stress 		=  14.142135623730951
 # Papanastasiou regularisation parameter
 ns.reg_param 			=  0.0025
+# Yield stress threshold
+ns.flow_index 		   =  1.0
 # Scalar diffusion coefficient
 ns.scal_diff_coefs      =  0.0
 # Forcing term defaults to  rho * abs(gravity) "down"
@@ -103,9 +103,10 @@ ns.hi_bc             	=  5 5 5
 #*******************************************************************************
 
 # Continue from checkpoint 
-# amr.restart 			= /Users/ksk/Code/IAMR/Exec/run3d/Test/Re1000_Bn10_N64/chk00244
+amr.restart 			= /local/data/public/ksk38/RestSteadyCessation/Re1_Bn10_N256/chk00450
 
 #*******************************************************************************
 
 # Which derived variables to write to plot files
+amr.plot_vars   	      =  x_velocity y_velocity z_velocity
 amr.derive_plot_vars   	=  stress viscosity
