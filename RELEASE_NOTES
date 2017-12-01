@@ -1,4 +1,14 @@
-9/20/17 - Release version 17.09 (September, 2017)
+9/20/17
+Release version 17.09 (September, 2017)
 
-11/3/17 - Small changes to documentation and code commments.  Added a test problem with
-          an input tracer being forced into the domain with an inflow jet.
+11/3/17
+Release version 17.11 (Novermber, 2017)
+Small changes to documentation and code commments.
+Added a test problem with an input tracer being forced into the domain with an inflow jet.
+
+12/1/17 - 
+Release version 17.12 (December, 2017)
+Array -> Vector because Array has been deprecated in AMReX.
+Use the new MLMG Cell-Centered solver for mac projection, mac sync solves, and
+  scalar diffusion.
+Minor interfaces changes and comment fixes.
