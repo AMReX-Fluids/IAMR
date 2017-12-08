@@ -1363,26 +1363,24 @@ Projection::initialSyncProject (int       c_lev,
     //
     // Project.
     //
-    if (!have_divu) 
-    {
-        //
-        // Zero divu only or debugging.
-        //
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig,
-                          amrex::GetVecOfPtrs(rhs),
-                          {}, proj_tol, proj_abs_tol);
-    } 
-    else 
-    {
-        //
-        // General divu.
-        //
+    if (have_divu) {
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
             rhs[lev]->mult(-1.0,0,1);
         }
+    }
 
-	doNodalProjection(c_lev, f_lev+1, vel, phi, sig,
+    if (use_mlmg_solver) {
+        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi, sig,
+                              amrex::GetVecOfPtrs(rhs),
+                              {}, proj_tol, proj_abs_tol);
+        if (test_mlmg_solver) {
+            doNodalProjection(c_lev, f_lev+1, vel, phi, sig,
+                              amrex::GetVecOfPtrs(rhs),
+                              {}, proj_tol, proj_abs_tol);
+        }
+    } else {
+        doNodalProjection(c_lev, f_lev+1, vel, phi, sig,
                           amrex::GetVecOfPtrs(rhs),
                           {}, proj_tol, proj_abs_tol);
     }
