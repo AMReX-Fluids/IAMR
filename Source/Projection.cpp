@@ -2370,6 +2370,23 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
     int f_lev = c_lev + nlevel - 1;
+
+    Vector<MultiFab> vel_test(nlevel);
+    Vector<MultiFab> phi_test(nlevel);
+    if (test_mlmg_solver) {
+        for (int i = 0; i < nlevel; ++i) {
+            vel_test[i].define(vel[c_lev+i]->boxArray(), vel[c_lev+i]->DistributionMap(),
+                              vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
+            MultiFab::Copy(vel_test[i], *vel[c_lev+i], 0, 0,
+                           vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
+
+            phi_test[i].define(phi[c_lev+i]->boxArray(), phi[c_lev+i]->DistributionMap(),
+                              phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
+
+//            MultiFab::Copy(phi_test[i], *phi[c_lev+i], 0, 0,
+//                           phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
+        }
+    }
     
     BL_ASSERT(vel[c_lev]->nGrow() == 1);
     BL_ASSERT(vel[f_lev]->nGrow() == 1);
@@ -2505,18 +2522,12 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     if (test_mlmg_solver) {
         Vector<MultiFab*> vel_ptmp(f_lev+1);
         Vector<MultiFab*> phi_ptmp(f_lev+1);
-        Vector<MultiFab> vel_tmp(nlevel);
-        Vector<MultiFab> phi_tmp(nlevel);
         for (int i = 0; i < nlevel; ++i) {
-            vel_tmp[i].define(vel[c_lev+i]->boxArray(), vel[c_lev+i]->DistributionMap(),
-                              vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
-            MultiFab::Copy(vel_tmp[i], *vel[c_lev+i], 0, 0, vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
-            vel_ptmp[c_lev+i] = &vel_tmp[i];
+            vel_ptmp[c_lev+i] = &vel_test[i];
+            phi_ptmp[c_lev+i] = &phi_test[i];
 
-            phi_tmp[i].define(phi[c_lev+i]->boxArray(), phi[c_lev+i]->DistributionMap(),
-                              phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
-            MultiFab::Copy(phi_tmp[i], *phi[c_lev+i], 0, 0, phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
-            phi_ptmp[c_lev+i] = &phi_tmp[i];
+            MultiFab::Copy(phi_test[i], *phi[c_lev+i], 0, 0,
+                           phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
         }
         doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, abs_tol,
                           sync_resid_crse, sync_resid_fine, doing_initial_velproj);
