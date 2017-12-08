@@ -1013,10 +1013,23 @@ Projection::initialVelocityProject (int  c_lev,
     if (!have_divu)
     {
         Vector<MultiFab*> rhs(maxlev, nullptr);
-	doNodalProjection(c_lev, f_lev+1, vel, phi,
-                          amrex::GetVecOfPtrs(sig),
-                          rhs, {}, 
-			  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
+        if (use_mlmg_solver) {
+            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+                                  amrex::GetVecOfPtrs(sig),
+                                  rhs, {}, 
+                                  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
+            if (test_mlmg_solver) {
+                doNodalProjection(c_lev, f_lev+1, vel, phi,
+                                  amrex::GetVecOfPtrs(sig),
+                                  rhs, {}, 
+                                  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
+            }
+        } else {
+            doNodalProjection(c_lev, f_lev+1, vel, phi,
+                              amrex::GetVecOfPtrs(sig),
+                              rhs, {}, 
+                              proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
+        }
     } 
     else 
     {
