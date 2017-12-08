@@ -1072,7 +1072,6 @@ Projection::initialVelocityProject (int  c_lev,
 
 void
 Projection::initialPressureProject (int  c_lev)
-                                    
 {
     int lev;
     int f_lev = parent->finestLevel();
@@ -1160,10 +1159,23 @@ Projection::initialPressureProject (int  c_lev)
     // Project
     //
     Vector<MultiFab*> rhs(maxlev, nullptr);
-    doNodalProjection(c_lev, f_lev+1, vel, phi,
-                      amrex::GetVecOfPtrs(sig),
-                      rhs, {},
-		      proj_tol, proj_abs_tol);
+    if (use_mlmg_solver) {
+        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+                              amrex::GetVecOfPtrs(sig),
+                              rhs, {},
+                              proj_tol, proj_abs_tol);
+        if (test_mlmg_solver) {
+            doNodalProjection(c_lev, f_lev+1, vel, phi,
+                              amrex::GetVecOfPtrs(sig),
+                              rhs, {},
+                              proj_tol, proj_abs_tol);
+        }
+    } else {
+        doNodalProjection(c_lev, f_lev+1, vel, phi,
+                          amrex::GetVecOfPtrs(sig),
+                          rhs, {},
+                          proj_tol, proj_abs_tol);
+    }
 
     //
     // Unscale initial projection variables.
@@ -1175,10 +1187,11 @@ Projection::initialPressureProject (int  c_lev)
     //
     // Copy "old" pressure just computed into "new" pressure as well.
     //
-    for (lev = c_lev; lev <= f_lev; lev++) 
+    for (lev = c_lev; lev <= f_lev; lev++) {
         MultiFab::Copy(LevelData[lev]->get_new_data(Press_Type),
                        LevelData[lev]->get_old_data(Press_Type),
                        0, 0, 1, 0);
+    }
 }
 
 //
