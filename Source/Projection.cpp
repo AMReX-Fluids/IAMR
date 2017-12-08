@@ -14,6 +14,9 @@
 #include <AMReX_stencil_types.H>
 #include <mg_cpp_f.h>
 
+#include <AMReX_MLMG.H>
+#include <AMReX_MLNodeLaplacian.H>
+
 using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
@@ -55,6 +58,13 @@ namespace
     bool benchmarking = false;
 
     int hg_stencil = ND_DENSE_STENCIL;
+
+    bool use_mlmg_solver = false;
+    bool agglomeration = true;
+    bool consolidation = true;
+    int max_fmg_iter = 0;
+    bool use_gauss_seidel = false;
+    bool test_mlmg_solver = false;
 }
 
 
@@ -77,6 +87,13 @@ Projection::Initialize ()
     pp.query("rho_wgt_vel_proj",    rho_wgt_vel_proj);
     pp.query("divu_minus_s_factor", divu_minus_s_factor);
     pp.query("make_sync_solvable",  make_sync_solvable);
+
+    pp.query("use_mlmg_solver",     use_mlmg_solver);
+    pp.query("agglomeration",       agglomeration);
+    pp.query("consolidation",       consolidation);
+    pp.query("max_fmg_iter",        max_fmg_iter);
+    pp.query("use_gauss_seidel",    use_gauss_seidel);
+    pp.query("test_mlmg_solver",    test_mlmg_solver);
 
     if (!proj_2) 
 	amrex::Error("With new gravity and outflow stuff, must use proj_2");
@@ -435,8 +452,17 @@ Projection::level_project (int             level,
     if (!have_divu) 
     {
         Vector<MultiFab*> rhs(maxlev, nullptr);
-        doNodalProjection(level, 1, vel, phi, sig, rhs, {}, proj_tol, proj_abs_tol, 
-			  sync_resid_crse.get(), sync_resid_fine.get());
+        if (use_mlmg_solver) {
+            doMLMGNodalProjection(level, 1, vel, phi, sig, rhs, {}, proj_tol, proj_abs_tol, 
+                                  sync_resid_crse.get(), sync_resid_fine.get());
+            if (test_mlmg_solver) {
+                doNodalProjection(level, 1, vel, phi, sig, rhs, {}, proj_tol, proj_abs_tol, 
+                                  sync_resid_crse.get(), sync_resid_fine.get());
+            }
+        } else {
+            doNodalProjection(level, 1, vel, phi, sig, rhs, {}, proj_tol, proj_abs_tol, 
+                              sync_resid_crse.get(), sync_resid_fine.get());
+        }
     }
     else 
     {
@@ -2319,6 +2345,161 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     {
         putDown(phi, phi_fine_strip, c_lev, lev, outFacesAtThisLevel,
                 numOutFlowFaces, ncStripWidth);
+    }
+}
+
+
+//
+// Given vel, rhs & sig, this solves Div (sig * Grad phi) = Div vel + rhs.
+// On return, vel becomes vel  - sig * Grad phi.
+//
+void Projection::doMLMGNodalProjection (int c_lev, int nlevel, 
+                                        const Vector<MultiFab*>& vel, 
+                                        const Vector<MultiFab*>& phi,
+                                        const Vector<MultiFab*>& sig,
+                                        const Vector<MultiFab*>& rhs_cc, 
+                                        const Vector<MultiFab*>& rhnd, 
+                                        Real rel_tol, Real abs_tol,
+                                        MultiFab* sync_resid_crse,
+                                        MultiFab* sync_resid_fine,
+                                        bool doing_initial_velproj) 
+{
+    BL_PROFILE("Projection:::doMLMGNodalProjection()");
+
+    int f_lev = c_lev + nlevel - 1;
+    
+    BL_ASSERT(vel[c_lev]->nGrow() == 1);
+    BL_ASSERT(vel[f_lev]->nGrow() == 1);
+    BL_ASSERT(phi[c_lev]->nGrow() == 1);
+    BL_ASSERT(phi[f_lev]->nGrow() == 1);
+    BL_ASSERT(sig[c_lev]->nGrow() == 1);
+    BL_ASSERT(sig[f_lev]->nGrow() == 1);
+    
+    BL_ASSERT(sig[c_lev]->nComp() == 1);
+    BL_ASSERT(sig[f_lev]->nComp() == 1);
+    
+    if (sync_resid_crse != 0) { 
+        BL_ASSERT(nlevel == 1);
+        BL_ASSERT(c_lev < parent->finestLevel());
+    }
+    
+    if (sync_resid_fine != 0) { 
+        BL_ASSERT((nlevel == 1 || nlevel == 2));
+        BL_ASSERT(c_lev > 0);
+    }
+    
+    if (rhs_cc[c_lev]) {
+        AMREX_ALWAYS_ASSERT(rhs_cc[c_lev]->boxArray().ixType().cellCentered());
+        BL_ASSERT(rhs_cc[c_lev]->nGrow() == 1);
+        BL_ASSERT(rhs_cc[f_lev]->nGrow() == 1);
+    }
+
+    // not supported yet
+    AMREX_ALWAYS_ASSERT(sync_resid_crse == 0);
+    AMREX_ALWAYS_ASSERT(sync_resid_fine == 0);
+    AMREX_ALWAYS_ASSERT(rhs_cc[c_lev] == 0);
+    AMREX_ALWAYS_ASSERT(nlevel == 1);
+    
+    Vector<std::unique_ptr<MultiFab> > vold(maxlev);
+    if (sync_resid_fine !=0 || sync_resid_crse != 0) {
+        vold[c_lev].reset(new MultiFab(parent->boxArray(c_lev), 
+                                       parent->DistributionMap(c_lev),
+                                       BL_SPACEDIM, 1));
+        MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
+
+        set_boundary_velocity(c_lev, 1, amrex::GetVecOfPtrs(vold), doing_initial_velproj, false);
+    }
+
+    set_boundary_velocity(c_lev, nlevel, vel, doing_initial_velproj, true);
+
+    // inflow not supported yet
+    {
+        const int* lo_bc = phys_bc->lo();
+        const int* hi_bc = phys_bc->hi();
+        for (int idir=0; idir<BL_SPACEDIM; idir++) {
+            AMREX_ALWAYS_ASSERT(lo_bc[idir] != Inflow);
+            AMREX_ALWAYS_ASSERT(hi_bc[idir] != Inflow);
+        }
+    }
+
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        if (Geometry::isPeriodic(idim))
+        {
+            mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
+        }
+        else
+        {
+            if (phys_bc->lo(idim) == Outflow) {
+                mlmg_lobc[idim] = LinOpBCType::Dirichlet;
+            } else if (phys_bc->lo(idim) == Inflow) {
+                mlmg_lobc[idim] = LinOpBCType::inflow;
+            } else {
+                mlmg_lobc[idim] = LinOpBCType::Neumann;
+            }
+
+            if (phys_bc->hi(idim) == Outflow) {
+                mlmg_hibc[idim] = LinOpBCType::Dirichlet;
+            } else if (phys_bc->hi(idim) == Inflow) {
+                mlmg_hibc[idim] = LinOpBCType::inflow;
+            } else {
+                mlmg_hibc[idim] = LinOpBCType::Neumann;
+            }
+        }
+    }
+
+    Vector<Geometry> mg_geom(nlevel);
+    for (int lev = 0; lev < nlevel; lev++) {
+        mg_geom[lev] = parent->Geom(lev+c_lev);
+    }  
+
+    Vector<BoxArray> mg_grids(nlevel);
+    for (int lev = 0; lev < nlevel; lev++) {
+        mg_grids[lev] = parent->boxArray(lev+c_lev);
+    }
+
+    Vector<DistributionMapping> dmap(nlevel);
+    for (int lev=0; lev < nlevel; lev++ ) {
+        dmap[lev] = LevelData[lev+c_lev]->get_new_data(State_Type).DistributionMap();
+    }
+
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setMetricTerm(false);
+
+    MLNodeLaplacian mlndlap(mg_geom, mg_grids, dmap, info);
+    mlndlap.setGaussSeidel(use_gauss_seidel);
+
+    mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
+  
+    for (int ilev = 0; ilev < nlevel; ++ilev) {
+        mlndlap.setSigma(ilev, *sig[c_lev+ilev]);
+    }
+
+    Vector<MultiFab> rhs(nlevel);
+    for (int ilev = 0; ilev < nlevel; ++ilev)
+    {
+        const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
+        rhs[ilev].define(ba, dmap[ilev], 1, 0);
+    }
+    {
+        Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
+        Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
+        rhnd_rebase.resize(nlevel,nullptr);
+        Vector<const MultiFab*> rhcc_rebase{rhs_cc.begin()+c_lev, rhs_cc.begin()+c_lev+nlevel};
+        mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
+    }
+
+    MLMG mlmg(mlndlap);
+    mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(P_code);
+
+    {
+        Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
+        mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
     }
 }
 

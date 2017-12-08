@@ -333,6 +333,17 @@ protected:
     static amrex::Real divu_minus_s_factor;
     static int  add_vort_proj;
 
+    void doMLMGNodalProjection(int c_lev, int nlevel, 
+                               const amrex::Vector<amrex::MultiFab*>& vel, 
+                               const amrex::Vector<amrex::MultiFab*>& phi,
+                               const amrex::Vector<amrex::MultiFab*>& sig,
+                               const amrex::Vector<amrex::MultiFab*>& rhs_cc,
+                               const amrex::Vector<amrex::MultiFab*>& rhnd, 
+                               amrex::Real rel_tol, amrex::Real abs_tol,
+                               amrex::MultiFab* sync_resid_crse=nullptr,
+                               amrex::MultiFab* sync_resid_fine=nullptr,
+                               bool doing_initial_velproj=false);
+
     void doNodalProjection(int c_lev, int nlevel, 
 			   const amrex::Vector<amrex::MultiFab*>& vel, 
                            const amrex::Vector<amrex::MultiFab*>& phi,
