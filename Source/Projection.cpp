@@ -455,10 +455,6 @@ Projection::level_project (int             level,
         if (use_mlmg_solver) {
             doMLMGNodalProjection(level, 1, vel, phi, sig, rhs, {}, proj_tol, proj_abs_tol, 
                                   sync_resid_crse.get(), sync_resid_fine.get());
-            if (test_mlmg_solver) {
-                doNodalProjection(level, 1, vel, phi, sig, rhs, {}, proj_tol, proj_abs_tol, 
-                                  sync_resid_crse.get(), sync_resid_fine.get());
-            }
         } else {
             doNodalProjection(level, 1, vel, phi, sig, rhs, {}, proj_tol, proj_abs_tol, 
                               sync_resid_crse.get(), sync_resid_fine.get());
@@ -1018,12 +1014,6 @@ Projection::initialVelocityProject (int  c_lev,
                                   amrex::GetVecOfPtrs(sig),
                                   rhs, {}, 
                                   proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
-            if (test_mlmg_solver) {
-                doNodalProjection(c_lev, f_lev+1, vel, phi,
-                                  amrex::GetVecOfPtrs(sig),
-                                  rhs, {}, 
-                                  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
-            }
         } else {
             doNodalProjection(c_lev, f_lev+1, vel, phi,
                               amrex::GetVecOfPtrs(sig),
@@ -1164,12 +1154,6 @@ Projection::initialPressureProject (int  c_lev)
                               amrex::GetVecOfPtrs(sig),
                               rhs, {},
                               proj_tol, proj_abs_tol);
-        if (test_mlmg_solver) {
-            doNodalProjection(c_lev, f_lev+1, vel, phi,
-                              amrex::GetVecOfPtrs(sig),
-                              rhs, {},
-                              proj_tol, proj_abs_tol);
-        }
     } else {
         doNodalProjection(c_lev, f_lev+1, vel, phi,
                           amrex::GetVecOfPtrs(sig),
@@ -1374,11 +1358,6 @@ Projection::initialSyncProject (int       c_lev,
         doMLMGNodalProjection(c_lev, f_lev+1, vel, phi, sig,
                               amrex::GetVecOfPtrs(rhs),
                               {}, proj_tol, proj_abs_tol);
-        if (test_mlmg_solver) {
-            doNodalProjection(c_lev, f_lev+1, vel, phi, sig,
-                              amrex::GetVecOfPtrs(rhs),
-                              {}, proj_tol, proj_abs_tol);
-        }
     } else {
         doNodalProjection(c_lev, f_lev+1, vel, phi, sig,
                           amrex::GetVecOfPtrs(rhs),
@@ -2509,22 +2488,41 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
         rhs[ilev].define(ba, dmap[ilev], 1, 0);
     }
-    {
-        Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
-        Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
-        rhnd_rebase.resize(nlevel,nullptr);
-        Vector<const MultiFab*> rhcc_rebase{rhs_cc.begin()+c_lev, rhs_cc.begin()+c_lev+nlevel};
-        mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
-    }
+
+    Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
+    Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
+    rhnd_rebase.resize(nlevel,nullptr);
+    Vector<const MultiFab*> rhcc_rebase{rhs_cc.begin()+c_lev, rhs_cc.begin()+c_lev+nlevel};
+    mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
 
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
 
-    {
-        Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
-        mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
+    Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
+    mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
+
+    if (test_mlmg_solver) {
+        Vector<MultiFab*> vel_ptmp(f_lev+1);
+        Vector<MultiFab*> phi_ptmp(f_lev+1);
+        Vector<MultiFab> vel_tmp(nlevel);
+        Vector<MultiFab> phi_tmp(nlevel);
+        for (int i = 0; i < nlevel; ++i) {
+            vel_tmp[i].define(vel[c_lev+i]->boxArray(), vel[c_lev+i]->DistributionMap(),
+                              vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
+            MultiFab::Copy(vel_tmp[i], *vel[c_lev+i], 0, 0, vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
+            vel_ptmp[c_lev+i] = &vel_tmp[i];
+
+            phi_tmp[i].define(phi[c_lev+i]->boxArray(), phi[c_lev+i]->DistributionMap(),
+                              phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
+            MultiFab::Copy(phi_tmp[i], *phi[c_lev+i], 0, 0, phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
+            phi_ptmp[c_lev+i] = &phi_tmp[i];
+        }
+        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, abs_tol,
+                          sync_resid_crse, sync_resid_fine, doing_initial_velproj);
     }
+
+    mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
 }
 
 
