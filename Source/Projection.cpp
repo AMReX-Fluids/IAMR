@@ -63,7 +63,7 @@ namespace
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
-    bool use_gauss_seidel = false;
+    bool use_gauss_seidel = true;
     bool test_mlmg_solver = false;
 }
 
