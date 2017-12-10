@@ -64,6 +64,7 @@ namespace
     bool consolidation = true;
     int max_fmg_iter = 0;
     bool use_gauss_seidel = true;
+    bool use_harmonic_average = true;
     bool test_mlmg_solver = false;
 }
 
@@ -93,6 +94,7 @@ Projection::Initialize ()
     pp.query("consolidation",       consolidation);
     pp.query("max_fmg_iter",        max_fmg_iter);
     pp.query("use_gauss_seidel",    use_gauss_seidel);
+    pp.query("use_harmonic_average", use_harmonic_average);
     pp.query("test_mlmg_solver",    test_mlmg_solver);
 
     if (!proj_2) 
@@ -2492,6 +2494,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, dmap, info);
     mlndlap.setGaussSeidel(use_gauss_seidel);
+    mlndlap.setHarmonicAverage(use_harmonic_average);
 
     mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
   
