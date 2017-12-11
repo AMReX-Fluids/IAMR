@@ -64,7 +64,7 @@ namespace
     bool consolidation = true;
     int max_fmg_iter = 0;
     bool use_gauss_seidel = true;
-    bool use_harmonic_average = true;
+    bool use_harmonic_average = false;
     bool test_mlmg_solver = false;
 }
 
