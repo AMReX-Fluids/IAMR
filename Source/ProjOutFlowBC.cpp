@@ -121,8 +121,8 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
 
-    int i, faces[2*BL_SPACEDIM];
-    for (i = 0; i < numOutFlowFaces; i++)
+    int faces[2*BL_SPACEDIM];
+    for (int i = 0; i < numOutFlowFaces; i++)
         faces[i] = int(outFaces[i]);
 
     const Real* dx    = geom.CellSize();
@@ -219,31 +219,31 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         {
             if (faces[iface] == 0)
             {
-                for (i=0;i<r_len  ;i++)
+                for (int i=0;i<r_len  ;i++)
                     redge[iface][i] = geom.ProbLo()[0];
-                for (i=0;i<r_len-1;i++)
+                for (int i=0;i<r_len-1;i++)
                     rcen[iface][i] = geom.ProbLo()[0];
             }
             else if (faces[iface] == 2)
             {
-                for (i=0;i<r_len  ;i++)
+                for (int i=0;i<r_len  ;i++)
                     redge[iface][i] = geom.ProbHi()[0];
-                for (i=0;i<r_len-1;i++)
+                for (int i=0;i<r_len-1;i++)
                     rcen[iface][i] = geom.ProbHi()[0];
             }
             else if (faces[iface] == 1 || faces[iface]== 3)
             {
-                for (i=0;i<r_len  ;i++)
+                for (int i=0;i<r_len  ;i++)
                     redge[iface][i] = geom.ProbLo()[0] + i     *dx[0];
-                for (i=0;i<r_len-1;i++)
+                for (int i=0;i<r_len-1;i++)
                     rcen[iface][i] = geom.ProbLo()[0] +(i+0.5)*dx[0];
             }
         }
         else
         {
-            for (i = 0; i < r_len  ; i++)
+            for (int i = 0; i < r_len  ; i++)
                 redge[iface][i] = 1.;
-            for (i = 0; i < r_len-1; i++)
+            for (int i = 0; i < r_len-1; i++)
                 rcen[iface][i] = 1.;
         }
 #endif
@@ -313,21 +313,21 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         }
         else
         {
-            int faces[2*BL_SPACEDIM];
+            int faces2[2*BL_SPACEDIM];
 #if (BL_SPACEDIM == 2)
             int numOutFlowFacesInRegion;
 #endif
             if (numRegions == 1)
             {
                 for (int i=0; i < numOutFlowFaces; i++) 
-                    faces[i] = int(outFaces[i]);
+                    faces2[i] = int(outFaces[i]);
 #if (BL_SPACEDIM == 2)
                 numOutFlowFacesInRegion = numOutFlowFaces;
 #endif
             }
             else if (numRegions == 2)
             {
-                faces[0] = int(outFaces[ireg]);
+                faces2[0] = int(outFaces[ireg]);
 #if (BL_SPACEDIM == 2)
                 numOutFlowFacesInRegion = 1;
 #endif
@@ -335,32 +335,32 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 
 #if (BL_SPACEDIM == 2)
             //
-            // Here we know the ordering of faces is XLO,XHI,YLO,YHI.
+            // Here we know the ordering of faces2 is XLO,XHI,YLO,YHI.
             //
             int length = 0;
             Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
             Real *r0,*r1,*r2,*r3;
             for (int i=0; i < numOutFlowFacesInRegion; i++) 
             {
-                if (faces[i] == 0)
+                if (faces2[i] == 0)
                 {
                     ccEptr0 = ccExt[i].dataPtr();
                     r0 = rcen[i].dataPtr();
                     length = length + leny;
                 }
-                else if (faces[i] == 1)
+                else if (faces2[i] == 1)
                 {
                     ccEptr1 = ccExt[i].dataPtr();
                     r1 = rcen[i].dataPtr();
                     length = length + lenx;
                 }
-                else if (faces[i] == 2)
+                else if (faces2[i] == 2)
                 {
                     ccEptr2 = ccExt[i].dataPtr();
                     r2 = rcen[i].dataPtr();
                     length = length + leny;
                 }
-                else if (faces[i] == 3) {
+                else if (faces2[i] == 3) {
                     ccEptr3 = ccExt[i].dataPtr();
                     r3 = rcen[i].dataPtr();
                     length = length + lenx;
@@ -389,7 +389,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             if ( (numOutFlowFaces == 1) || 
                  (numRegions == 2) ) per = isPeriodicFiltered[ireg][0];
 
-            FORT_FILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFacesInRegion,
+            FORT_FILL_ONED(&lenx,&leny,&length,faces2,&numOutFlowFacesInRegion,
                            ccEptr0, ccEptr1, ccEptr2, ccEptr3,
                            r0,r1,r2,r3,
                            ccE_conn.dataPtr(),s.dataPtr(),&per,
@@ -407,21 +407,21 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 
             for (int i=0; i < numOutFlowFacesInRegion; i++) 
             {
-                if (faces[i] == 0) {
+                if (faces2[i] == 0) {
                     phiptr0 = phiMF[i].dataPtr();
                 }
-                if (faces[i] == 1) {
+                if (faces2[i] == 1) {
                     phiptr1 = phiMF[i].dataPtr();
                 }
-                if (faces[i] == 2) {
+                if (faces2[i] == 2) {
                     phiptr2 = phiMF[i].dataPtr();
                 }
-                if (faces[i] == 3) {
+                if (faces2[i] == 3) {
                     phiptr3 = phiMF[i].dataPtr();
                 }
             }
 
-            FORT_ALLPHI_FROM_X(&lenx,&leny,&length,faces,&numOutFlowFaces,
+            FORT_ALLPHI_FROM_X(&lenx,&leny,&length,faces2,&numOutFlowFaces,
                                phiptr0, phiptr1, phiptr2, phiptr3,
                                x.dataPtr());
 #else
@@ -446,7 +446,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 #endif
             BL_ASSERT(dx[1] == dx[2]);
 
-            // Here we know the ordering of faces is XLO,YLO,ZLO,XHI,YHI,ZHI.
+            // Here we know the ordering of faces2 is XLO,YLO,ZLO,XHI,YHI,ZHI.
 
             int lenz = domain.length(2);
 
@@ -455,27 +455,27 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
             for (int i=0; i < numOutFlowFaces; i++) 
             {
-                if (faces[i] == 0) {
+                if (faces2[i] == 0) {
                     ccEptr0 = ccExt[i].dataPtr();
                     length = length + leny*lenz;
-                } else if (faces[i] == 1) {
+                } else if (faces2[i] == 1) {
                     ccEptr1 = ccExt[i].dataPtr();
                     length = length + lenx*lenz;
-                } else if (faces[i] == 2) {
+                } else if (faces2[i] == 2) {
                     ccEptr2 = ccExt[i].dataPtr();
                     length = length + lenx*leny;
-                } else if (faces[i] == 3) {
+                } else if (faces2[i] == 3) {
                     ccEptr3 = ccExt[i].dataPtr();
                     length = length + leny*lenz;
-                } else if (faces[i] == 4) {
+                } else if (faces2[i] == 4) {
                     ccEptr4 = ccExt[i].dataPtr();
                     length = length + lenx*lenz;
-                } else if (faces[i] == 5) {
+                } else if (faces2[i] == 5) {
                     ccEptr5 = ccExt[i].dataPtr();
                     length = length + lenx*leny;
                 } else {
    		    amrex::Print() << "OOPS - DIDNT PROGRAM FOR Z-OUTFLOW FACES! "
-				   << i << " " << faces[i] << std::endl;
+				   << i << " " << faces2[i] << std::endl;
 		    exit(0);
                 }
             }
@@ -499,7 +499,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             phiFiltered.setVal(0.);
 
             FORT_FILL_TWOD(&lenx,&leny,&lenz,&length,&width,
-                           faces,&numOutFlowFaces,
+                           faces2,&numOutFlowFaces,
                            ccEptr0, ccEptr1, ccEptr2, ccEptr3, ccEptr4, ccEptr5,
                            ccE_conn.dataPtr());
       
@@ -534,26 +534,26 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 
             for (int i=0; i < numOutFlowFaces; i++) 
             {
-                if (faces[i] == 0) {
+                if (faces2[i] == 0) {
                     phiptr0 = phiMF[i].dataPtr();
                 } else 
-                    if (faces[i] == 1) {
+                    if (faces2[i] == 1) {
                         phiptr1 = phiMF[i].dataPtr();
                     } else 
-                        if (faces[i] == 2) {
+                        if (faces2[i] == 2) {
                             phiptr2 = phiMF[i].dataPtr();
                         } else 
-                            if (faces[i] == 3) {
+                            if (faces2[i] == 3) {
                                 phiptr3 = phiMF[i].dataPtr();
                             } else 
-                                if (faces[i] == 4) {
+                                if (faces2[i] == 4) {
                                     phiptr4 = phiMF[i].dataPtr();
                                 } else 
-                                    if (faces[i] == 5) {
+                                    if (faces2[i] == 5) {
                                         phiptr5 = phiMF[i].dataPtr();
                                     }
             }
-            FORT_ALLPHI_FROM_X(&lenx,&leny,&lenz,&length,&width,faces,&numOutFlowFaces,
+            FORT_ALLPHI_FROM_X(&lenx,&leny,&lenz,&length,&width,faces2,&numOutFlowFaces,
                                phiptr0, phiptr1, phiptr2, phiptr3, phiptr4, phiptr5,
                                phi.dataPtr(),ARLIM(phi_lo),ARLIM(phi_hi));
 #endif
