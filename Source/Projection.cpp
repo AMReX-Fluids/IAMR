@@ -952,11 +952,11 @@ Projection::initialVelocityProject (int  c_lev,
             MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
             divu_new.FillBoundary();
 
-            Real curr_time = amr_level.get_state_data(Divu_Type).curTime();
+            Real curr_divu_time_lev = amr_level.get_state_data(Divu_Type).curTime();
 
             for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
             {
-                amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
+                amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_divu_time_lev,0,0,1);
             }
 	    
             const BoxArray& grids     = amr_level.boxArray();
@@ -2592,7 +2592,6 @@ void Projection::mask_grids (MultiFab& msk, const Geometry& geom)
 	for (MFIter mfi(msk); mfi.isValid(); ++mfi)
 	{
 	    FArrayBox& msk_fab = msk[mfi];
-	    const Box& fullBox = msk_fab.box(); // including ghost cells
 	    const Box& regBox = mfi.validbox();
 	    
 	    for (int idir=0; idir<BL_SPACEDIM; idir++) {
@@ -2711,7 +2710,10 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist); 
  
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
-	    v_fab.setVal(0.0, *it, Xvel+idir, 1);
+            Box ovlp = *it & v_fab.box();
+            if (ovlp.ok()) {
+              v_fab.setVal(0.0, ovlp, Xvel+idir, 1);
+            }
 	  }
 	}
       }
