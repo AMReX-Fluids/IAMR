@@ -65,9 +65,9 @@ MacOperator::Finalize ()
 
 MacOperator::MacOperator (Amr*             Parent,
                           const BndryData& mgb,
-                          const Real*      h)
+                          const Real*      h_)
     :
-    ABecLaplacian(mgb,h),
+    ABecLaplacian(mgb,h_),
     parent(Parent)
 {
     Initialize();

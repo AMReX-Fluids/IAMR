@@ -1004,7 +1004,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
     const MultiFab& volume = navier_stokes->Volume();
     const MultiFab* area   = navier_stokes->Area();
     const Real*   dx       = navier_stokes->Geom().CellSize();
-    const int     IOProc   = ParallelDescriptor::IOProcessorNumber();
     //
     // At this point in time we can only do decoupled scalar
     // so we loop over components.
@@ -1233,7 +1232,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     if (verbose) amrex::Print() << "Diffusion::diffuse_tensor_Vsync ...\n";
 
     const MultiFab& volume = navier_stokes->Volume(); 
-    const int   IOProc     = ParallelDescriptor::IOProcessorNumber();
 
     MultiFab Rhs(grids,dmap,BL_SPACEDIM,0);
 
@@ -1366,7 +1364,6 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 {
     const MultiFab& volume = navier_stokes->Volume(); 
     const int state_ind    = sigma + BL_SPACEDIM;
-    const int IOProc       = ParallelDescriptor::IOProcessorNumber();
 
     if (verbose)
     {
@@ -1957,7 +1954,6 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
         {
             for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
-		int gridno = bcoeffsmfi.index();
                 bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
                 bcoeffs[n][bcoeffsmfi].mult(dx[n]);
             }

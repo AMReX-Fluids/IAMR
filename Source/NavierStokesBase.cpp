@@ -659,8 +659,8 @@ NavierStokesBase::advance_setup (Real time,
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-	    const BoxArray& edge_grids = getEdgeBoxArray(dir);
-            u_mac[dir].define(edge_grids,dmap,1,umac_n_grow);
+	    const BoxArray& edgeba = getEdgeBoxArray(dir);
+            u_mac[dir].define(edgeba,dmap,1,umac_n_grow);
             u_mac[dir].setVal(1.e40);
         }
     }
@@ -1878,7 +1878,7 @@ void
 NavierStokesBase::injectDown (const Box&       ovlp,
 			      FArrayBox&       Pcrse,
 			      const FArrayBox& Pfine,
-			      IntVect&         fine_ratio )
+			      IntVect&         fratio )
 {
     BL_PROFILE("NavierStokesBase::injectDown()");
 
@@ -1893,7 +1893,7 @@ NavierStokesBase::injectDown (const Box&       ovlp,
 
     FORT_PUTDOWN(cpres,ARLIM(clo),ARLIM(chi),
                  fpres,ARLIM(flo),ARLIM(fhi),
-                 ovlo,ovhi,fine_ratio.getVect());
+                 ovlo,ovhi,fratio.getVect());
 }
 
 void
@@ -2044,7 +2044,7 @@ NavierStokesBase::level_sync (int crse_iteration)
     if (do_MLsync_proj)
     {
         
-        MultiFab&       vel_fine    = fine_level.get_new_data(State_Type);
+        MultiFab&         v_fine    = fine_level.get_new_data(State_Type);
         MultiFab&       rho_fine    = fine_level.rho_avg;
         const Geometry& crse_geom   = parent->Geom(level);
         const BoxArray& P_finegrids = pres_fine.boxArray();
@@ -2082,7 +2082,7 @@ NavierStokesBase::level_sync (int crse_iteration)
         bool pressure_time_is_interval = 
          (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval);
         projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
-                                 pres_fine,vel_fine,cc_rhs_fine,
+                                 pres_fine,v_fine,cc_rhs_fine,
                                  Rh,rho_fine,Vsync,V_corr,
                                  phi,&rhs_sync_reg,crsr_sync_ptr,
                                  dt,ratio,crse_iteration,crse_dt_ratio, 
@@ -2095,14 +2095,14 @@ NavierStokesBase::level_sync (int crse_iteration)
         //
         // Correct pressure and velocities after the projection.
         //
-        const int N = finegrids.size();
+        const int Nf = finegrids.size();
 
         ratio = IntVect::TheUnitVector();
 
-        Vector<int*>         fine_sync_bc(N);
-        Vector< Vector<int> > fine_sync_bc_array(N);
+        Vector<int*>         fine_sync_bc(Nf);
+        Vector< Vector<int> > fine_sync_bc_array(Nf);
 
-        for (int i = 0; i < N; i++)
+        for (int i = 0; i < Nf; i++)
         {
             fine_sync_bc_array[i] = getLevel(level+1).getBCArray(State_Type,
                                                                  i,
@@ -2114,10 +2114,10 @@ NavierStokesBase::level_sync (int crse_iteration)
         for (int lev = level+2; lev <= finest_level; lev++)
         {
             ratio                 *= parent->refRatio(lev-1);
-            NavierStokesBase& fine_lev = getLevel(lev);
-            MultiFab&     P_new    = fine_lev.get_new_data(Press_Type);
-            MultiFab&     P_old    = fine_lev.get_old_data(Press_Type);
-            MultiFab&     U_new    = fine_lev.get_new_data(State_Type);
+            NavierStokesBase& flev = getLevel(lev);
+            MultiFab&     P_new    = flev.get_new_data(Press_Type);
+            MultiFab&     P_old    = flev.get_old_data(Press_Type);
+            MultiFab&     U_new    = flev.get_new_data(State_Type);
 
             SyncInterp(V_corr, level+1, U_new, lev, ratio,
                        0, 0, BL_SPACEDIM, 1 , dt, fine_sync_bc.dataPtr());
@@ -2293,22 +2293,22 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 // Adjust this to get the number of cells to be left uncovered at
                 // levels higher than 0
                 //
-                for (int i = 1; i <= level; ++i)
+                for (int j = 1; j <= level; ++j)
                 {
                     /*** Calculate the minimum cells at this level ***/
                     
-                    const int rat = (parent->refRatio(i-1))[oDir];
+                    const int rat = (parent->refRatio(j-1))[oDir];
                     N_level_cells = N_level_cells * rat + np;
                     
                     /*** Calculate the required number of coarse cells ***/
                     
                     N_coarse_cells = N_level_cells / bf_lev[i][oDir];
-                    if (N_level_cells % bf_lev[i][oDir] != 0)
+                    if (N_level_cells % bf_lev[j][oDir] != 0)
                         N_coarse_cells++;
                     
                     /*** Calculate the corresponding number of level cells ***/
                     
-                    N_level_cells = N_coarse_cells * bf_lev[i][oDir];
+                    N_level_cells = N_coarse_cells * bf_lev[j][oDir];
                 }
                 //
                 // Untag the cells near the outflow
@@ -2386,17 +2386,15 @@ NavierStokesBase::steadyState()
 
     if (verbose)
     {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        amrex::Print() << "steadyState :: \n" << "LEV = " << level 
+                       << " MAX_CHANGE = " << max_change << std::endl; 
 
-		amrex::Print() << "steadyState :: \n" << "LEV = " << level 
-			<< " MAX_CHANGE = " << max_change << std::endl; 
-
-		if (steady)
-		{
-		    amrex::Print() 
-			  << "System reached steady-state, stopping simulation." 
-			  << std::endl;
-		}
+        if (steady)
+        {
+            amrex::Print() 
+                << "System reached steady-state, stopping simulation." 
+                << std::endl;
+        }
     }
 
     return steady;

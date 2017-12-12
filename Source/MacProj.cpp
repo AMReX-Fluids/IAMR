@@ -1556,7 +1556,7 @@ MacProj::test_umac_periodic (int       level,
 }
 
 void
-MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
+MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
 {
     const BoxArray& grids = LevelData[level]->boxArray();
 
@@ -1581,7 +1581,7 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
 #if (BL_SPACEDIM == 2)
         FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
-                       anel_coeff[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
 
 #elif (BL_SPACEDIM == 3)
         const FArrayBox& zarea = area[2][mfi];
@@ -1589,7 +1589,7 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff)
         FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                        az_dat,ARLIM(azlo),ARLIM(azhi), 
-                       anel_coeff[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
 
 #endif
     }
