@@ -2417,7 +2417,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     // not supported yet
-    AMREX_ALWAYS_ASSERT(sync_resid_crse == 0);
     AMREX_ALWAYS_ASSERT(sync_resid_fine == 0);
     AMREX_ALWAYS_ASSERT(rhs_cc[c_lev] == 0);
     AMREX_ALWAYS_ASSERT(nlevel == 1);
@@ -2482,9 +2481,9 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         mg_grids[lev] = parent->boxArray(lev+c_lev);
     }
 
-    Vector<DistributionMapping> dmap(nlevel);
+    Vector<DistributionMapping> mg_dmap(nlevel);
     for (int lev=0; lev < nlevel; lev++ ) {
-        dmap[lev] = LevelData[lev+c_lev]->get_new_data(State_Type).DistributionMap();
+        mg_dmap[lev] = LevelData[lev+c_lev]->get_new_data(State_Type).DistributionMap();
     }
 
     LPInfo info;
@@ -2492,7 +2491,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     info.setConsolidation(consolidation);
     info.setMetricTerm(false);
 
-    MLNodeLaplacian mlndlap(mg_geom, mg_grids, dmap, info);
+    MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info);
     mlndlap.setGaussSeidel(use_gauss_seidel);
     mlndlap.setHarmonicAverage(use_harmonic_average);
 
@@ -2506,7 +2505,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     for (int ilev = 0; ilev < nlevel; ++ilev)
     {
         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
-        rhs[ilev].define(ba, dmap[ilev], 1, 0);
+        rhs[ilev].define(ba, mg_dmap[ilev], 1, 0);
     }
 
     Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
@@ -2534,6 +2533,35 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         }
         doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, abs_tol,
                           sync_resid_crse, sync_resid_fine, doing_initial_velproj);
+    }
+
+    // xxxxx do we need to have vold?  We should zero the inflow corner inside the solver.
+    if (sync_resid_crse != 0) {  // only level solve will come to here
+
+        MultiFab resid_save;
+        Real rmin, rmax;
+        if (test_mlmg_solver)
+        {
+            resid_save.define(sync_resid_crse->boxArray(),
+                              sync_resid_crse->DistributionMap(), 1, 0);
+            MultiFab::Copy(resid_save, *sync_resid_crse, 0, 0, 1, 0);
+            rmin = resid_save.min(0);
+            rmax = resid_save.max(0);
+        }
+
+        const BoxArray& fineGrids = parent->boxArray(c_lev+1);
+        const IntVect& ref_ratio = parent->refRatio(c_lev);
+        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vold[c_lev], fineGrids, ref_ratio);
+
+        if (test_mlmg_solver)
+        {
+            MultiFab::Subtract(resid_save, *sync_resid_crse, 0, 0, 1, 0);
+            Real dmin = resid_save.min(0);
+            Real dmax = resid_save.max(0);
+            amrex::Print() << "TEST MLMG: crse resid diff "
+                           << "(" << dmin <<", " << dmax << ") / ("
+                           << rmin << ", " << rmax << ")\n";
+        }
     }
 
     mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
