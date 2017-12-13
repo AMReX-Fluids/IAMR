@@ -398,10 +398,11 @@ Diffusion::diffuse_scalar (Real                   dt,
 	{
 	    Vector<Real> rcen;
 
-	    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+	    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
 	    {
-		const Box& bx   = Rhsmfi.validbox();
+		const Box& bx   = Rhsmfi.tilebox();
 		
+		const Box& rbx  = Rhsmfi.validbox();
 		const Box& sbx  = S_old[Rhsmfi].box();
 		const Box& vbox = volume[Rhsmfi].box();
 		
@@ -410,6 +411,8 @@ Diffusion::diffuse_scalar (Real                   dt,
 		
 		const int*  lo      = bx.loVect();
 		const int*  hi      = bx.hiVect();
+		const int*  rlo     = rbx.loVect();
+		const int*  rhi     = rbx.hiVect();
 		const int*  slo     = sbx.loVect();
 		const int*  shi     = sbx.hiVect();
 		Real*       rhs     = Rhs[Rhsmfi].dataPtr();
@@ -419,7 +422,9 @@ Diffusion::diffuse_scalar (Real                   dt,
 		const Real* voli    = volume[Rhsmfi].dataPtr();
 		const int*  vlo     = vbox.loVect();
 		const int*  vhi     = vbox.hiVect();
-		FORT_HOOPRHS(rhs, ARLIM(lo), ARLIM(hi), 
+
+		FORT_HOOPRHS(ARLIM(lo),ARLIM(hi),
+			     rhs, ARLIM(rlo), ARLIM(rhi), 
 			     sdat, ARLIM(slo), ARLIM(shi),
 			     rcendat, &coeff, voli, ARLIM(vlo),ARLIM(vhi));
 	    }
@@ -796,9 +801,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+            for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
             {
-                const Box& bx     = Rhsmfi.validbox();
+                const Box& bx     = Rhsmfi.tilebox();
+
+                const Box& rbx    = Rhsmfi.validbox();
                 FArrayBox& rhsfab = Rhs[Rhsmfi];
 
                 const Box& sbx    = U_old[Rhsmfi].box();
@@ -806,6 +813,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
                 const int*       lo        = bx.loVect();
                 const int*       hi        = bx.hiVect();
+                const int*       rlo       = rbx.loVect();
+                const int*       rhi       = rbx.hiVect();
                 const int*       slo       = sbx.loVect();
                 const int*       shi       = sbx.hiVect();
                 Real*            rhs       = rhsfab.dataPtr();
@@ -825,7 +834,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 const int*       betay_hi  = betay.hiVect();
                 const Real*      betay_dat = betay.dataPtr(betaComp);
 
-                FORT_TENSOR_HOOPRHS(&fort_xvel_comp, rhs, ARLIM(lo), ARLIM(hi), 
+                FORT_TENSOR_HOOPRHS(&fort_xvel_comp,
+				    ARLIM(lo), ARLIM(hi),
+				    rhs, ARLIM(rlo), ARLIM(rhi), 
                                     sdat, ARLIM(slo), ARLIM(shi),
                                     rcendat, &coeff, 
                                     voli, ARLIM(vlo), ARLIM(vhi),
@@ -2039,14 +2050,16 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter visc_tmpmfi(visc_tmp); visc_tmpmfi.isValid(); ++visc_tmpmfi)
+	  for (MFIter visc_tmpmfi(visc_tmp,true); visc_tmpmfi.isValid(); ++visc_tmpmfi)
             {
                 //
                 // visc_tmp[k] += -mu * u / r^2
                 //
                 const int  i   = visc_tmpmfi.index();
-                const Box& bx  = visc_tmpmfi.validbox();
-                Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
+                const Box& bx  = visc_tmpmfi.tilebox();
+		const Box& tmpbx = visc_tmpmfi.validbox();
+
+		Box        vbx = amrex::grow(tmpbx,visc_tmp.nGrow());
                 Box        sbx = amrex::grow(s_tmp.box(i),s_tmp.nGrow());
                 Vector<Real> rcen(bx.length(0));
                 navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
@@ -2158,11 +2171,12 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter vmfi(visc_tmp); vmfi.isValid(); ++vmfi)
+            for (MFIter vmfi(visc_tmp,true); vmfi.isValid(); ++vmfi)
             {
                 const int  k   = vmfi.index();
-                const Box& bx  = visc_tmp.box(k);
-                Box        vbx = amrex::grow(bx,visc_tmp.nGrow());
+                const Box& bx  = vmfi.tilebox();
+		const Box& tmpbx  = vmfi.validbox();
+                Box        vbx = amrex::grow(tmpbx,visc_tmp.nGrow());
                 Box        sbx = amrex::grow(s_tmp.box(k),s_tmp.nGrow());
 
 		Vector<Real> rcen;
