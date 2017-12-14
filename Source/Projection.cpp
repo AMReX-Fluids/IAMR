@@ -2417,7 +2417,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     // not supported yet
-    AMREX_ALWAYS_ASSERT(sync_resid_fine == 0);
     AMREX_ALWAYS_ASSERT(rhs_cc[c_lev] == 0);
     AMREX_ALWAYS_ASSERT(nlevel == 1);
     
@@ -2519,7 +2518,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     mlmg.setVerbose(P_code);
 
     Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
-    mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
+    Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
 
     if (test_mlmg_solver) {
         Vector<MultiFab*> vel_ptmp(f_lev+1);
@@ -2531,8 +2530,34 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
             MultiFab::Copy(phi_test[i], *phi[c_lev+i], 0, 0,
                            phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
         }
-        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, abs_tol,
+        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, mlmg_err*1.000001,
                           sync_resid_crse, sync_resid_fine, doing_initial_velproj);
+    }
+
+    if (sync_resid_fine != 0)
+    {
+        MultiFab resid_save;
+        Real rmin, rmax;
+        if (test_mlmg_solver)
+        {
+            resid_save.define(sync_resid_fine->boxArray(),
+                              sync_resid_fine->DistributionMap(), 1, 0);
+            MultiFab::Copy(resid_save, *sync_resid_fine, 0, 0, 1, 0);
+            rmin = resid_save.min(0);
+            rmax = resid_save.max(0);
+        }
+
+        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vold[c_lev]);
+
+        if (test_mlmg_solver)
+        {
+            MultiFab::Subtract(resid_save, *sync_resid_fine, 0, 0, 1, 0);
+            Real dmin = resid_save.min(0);
+            Real dmax = resid_save.max(0);
+            amrex::Print() << "TEST MLMG: fine resid diff "
+                           << "(" << dmin <<", " << dmax << ") / ("
+                           << rmin << ", " << rmax << ")\n";
+        }
     }
 
     // xxxxx do we need to have vold?  We should zero the inflow corner inside the solver.
