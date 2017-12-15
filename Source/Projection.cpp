@@ -789,10 +789,17 @@ Projection::MLsyncProject (int             c_lev,
         sync_resid_fine.reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,ngrow));
     }
 
-    doNodalProjection(c_lev, 2, vel, 
-                      amrex::GetVecOfPtrs(phi),
-                      sig, rhs, {&rhnd}, sync_tol, proj_abs_tol,
-		      sync_resid_crse, sync_resid_fine.get());
+    if (use_mlmg_solver && false) {
+        doMLMGNodalProjection(c_lev, 2, vel,
+                          amrex::GetVecOfPtrs(phi),
+                          sig, rhs, {&rhnd}, sync_tol, proj_abs_tol,
+                          sync_resid_crse, sync_resid_fine.get());
+    } else {
+        doNodalProjection(c_lev, 2, vel, 
+                          amrex::GetVecOfPtrs(phi),
+                          sig, rhs, {&rhnd}, sync_tol, proj_abs_tol,
+                          sync_resid_crse, sync_resid_fine.get());
+    }
 
     //
     // If this sync project is not at levels 0-1 then we need to account for
@@ -2362,12 +2369,12 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                                         const Vector<MultiFab*>& vel, 
                                         const Vector<MultiFab*>& phi,
                                         const Vector<MultiFab*>& sig,
-                                        const Vector<MultiFab*>& rhs_cc, 
-                                        const Vector<MultiFab*>& rhnd, 
+                                        const Vector<MultiFab*>& rhs_cc,
+                                        const Vector<MultiFab*>& rhnd,
                                         Real rel_tol, Real abs_tol,
                                         MultiFab* sync_resid_crse,
                                         MultiFab* sync_resid_fine,
-                                        bool doing_initial_velproj) 
+                                        bool doing_initial_velproj)
 {
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
@@ -2416,10 +2423,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         BL_ASSERT(rhs_cc[f_lev]->nGrow() == 1);
     }
 
-    // not supported yet
-    AMREX_ALWAYS_ASSERT(rhs_cc[c_lev] == 0);
-    AMREX_ALWAYS_ASSERT(nlevel == 1);
-    
     Vector<std::unique_ptr<MultiFab> > vold(maxlev);
     if (sync_resid_fine !=0 || sync_resid_crse != 0) {
         vold[c_lev].reset(new MultiFab(parent->boxArray(c_lev), 
@@ -2510,7 +2513,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
     Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
     rhnd_rebase.resize(nlevel,nullptr);
-    Vector<const MultiFab*> rhcc_rebase{rhs_cc.begin()+c_lev, rhs_cc.begin()+c_lev+nlevel};
+    Vector<MultiFab*> rhcc_rebase{rhs_cc.begin()+c_lev, rhs_cc.begin()+c_lev+nlevel};
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
 
     MLMG mlmg(mlndlap);
@@ -2530,8 +2533,13 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
             MultiFab::Copy(phi_test[i], *phi[c_lev+i], 0, 0,
                            phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
         }
-        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, mlmg_err*1.000001,
+        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, mlmg_err*1.001,
                           sync_resid_crse, sync_resid_fine, doing_initial_velproj);
+
+        int niters = amrex_f90mg_get_niters();
+        if (niters > 0) {
+            amrex::Print() << "WARNING!!! F90MG # iters: " << niters << "\n";
+        }
     }
 
     if (sync_resid_fine != 0)
