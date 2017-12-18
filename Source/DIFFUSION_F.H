@@ -81,7 +81,8 @@ extern "C"
                        const amrex::Real *u, ARLIM_P(u_lo), ARLIM_P(u_hi),
                        const amrex::Real *r, const amrex::Real* mu);
     
-    void FORT_HOOPRHS (amrex::Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
+    void FORT_HOOPRHS (ARLIM_P(bx_lo), ARLIM_P(bx_hi),
+		       amrex::Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
                        const amrex::Real *u,   ARLIM_P(u_lo), ARLIM_P(u_hi),
                        const amrex::Real* r, const amrex::Real* b, 
                        const amrex::Real *vol, ARLIM_P(vol_lo), ARLIM_P(vol_hi));
@@ -108,7 +109,8 @@ extern "C"
                         const int* isrz);
     
     void FORT_TENSOR_HOOPRHS (const int* xvel_comp, 
-                       amrex::Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
+		       ARLIM_P(bx_lo), ARLIM_P(bx_hi),
+	       	       amrex::Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
                        const amrex::Real *u,   ARLIM_P(u_lo), ARLIM_P(u_hi),
                        const amrex::Real* r, const amrex::Real* b, 
                        const amrex::Real *vol, ARLIM_P(vol_lo), ARLIM_P(vol_hi),
@@ -119,7 +121,7 @@ extern "C"
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        amrex::Real *fab, ARLIM_P(fab_lo), ARLIM_P(fab_hi),
                        const amrex::Real *u, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                       const amrex::Real *r,
+		       const amrex::Real *r,
                        const amrex::Real *betax, ARLIM_P(betax_lo), ARLIM_P(betax_hi),
                        const amrex::Real *betay, ARLIM_P(betay_lo), ARLIM_P(betay_hi));
 

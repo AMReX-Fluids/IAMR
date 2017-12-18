@@ -66,8 +66,9 @@ c ::  DIMS(fab)  => index limits of fab
 c ::  mu         => viscous coefficient
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_HOOPSRC (DIMS(grid), fab, DIMS(fab), u, DIMS(u), r, mu)
-
+      subroutine FORT_HOOPSRC (DIMS(grid), fab, DIMS(fab), u, DIMS(u),
+     &                         r, mu)
+        
        implicit none
        integer DIMDEC(grid)
        integer DIMDEC(fab)
@@ -109,22 +110,24 @@ c ::  DIMS(vol)  => index limits of vol
 c ::  b          => (one-theta)*dt
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_HOOPRHS (fab, DIMS(fab), u, DIMS(u), r, b,
+       subroutine FORT_HOOPRHS (DIMS(bx),
+     &                          fab, DIMS(fab), u, DIMS(u), r, b,
      &                          vol, DIMS(vol))
        implicit none
+       integer DIMDEC(bx)
        integer DIMDEC(fab)
        integer DIMDEC(u)
        integer DIMDEC(vol)
        REAL_T  fab(DIMV(fab))
        REAL_T  u(DIMV(u))
        REAL_T  vol(DIMV(vol))
-       REAL_T  r(DIM1(fab))
+       REAL_T  r(DIM1(bx))
        REAL_T  b
 
        integer i, j
 
-       do j = ARG_L2(fab), ARG_H2(fab)
-          do i = ARG_L1(fab), ARG_H1(fab)
+       do j = ARG_L2(bx), ARG_H2(bx)
+          do i = ARG_L1(bx), ARG_H1(bx)
              fab(i,j) = fab(i,j) - b*vol(i,j)*u(i,j)/(r(i)*r(i))
           end do
        end do
@@ -150,12 +153,13 @@ c ::  DIMS(vol)  => index limits of vol
 c ::  b          => (1-theta)*dt
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_TENSOR_HOOPRHS (xvelcomp, fab, DIMS(fab), u, DIMS(u), 
-     &                          r, b,
+      subroutine FORT_TENSOR_HOOPRHS (xvelcomp, DIMS(bx),
+     &                          fab, DIMS(fab), u, DIMS(u), r, b,
      &                          vol, DIMS(vol), betax, DIMS(betax),
      &                          betay, DIMS(betay))
        implicit none
        integer xvelcomp
+       integer DIMDEC(bx)
        integer DIMDEC(fab)
        integer DIMDEC(u)
        integer DIMDEC(vol)
@@ -164,7 +168,7 @@ c ::
        REAL_T  fab(DIMV(fab),2)
        REAL_T  u(DIMV(u),2)
        REAL_T  vol(DIMV(vol))
-       REAL_T  r(DIM1(fab))
+       REAL_T  r(DIM1(bx))
        REAL_T  betax(DIMV(betax))
        REAL_T  betay(DIMV(betay))
        REAL_T  b
@@ -172,8 +176,8 @@ c ::
        REAL_T  betacen
        integer i, j
 
-       do j = ARG_L2(fab), ARG_H2(fab)
-          do i = ARG_L1(fab), ARG_H1(fab)
+       do j = ARG_L2(bx), ARG_H2(bx)
+          do i = ARG_L1(bx), ARG_H1(bx)
              betacen = fourth*(betax(i,j)+betax(i+1,j)+
      &                           betay(i,j)+betay(i,j+1))
              fab(i,j,xvelcomp) = fab(i,j,xvelcomp) - 
@@ -195,8 +199,8 @@ c ::  DIMS(fab)  => index limits of fab
 c ::  mu         => viscous coefficient
 c :: ----------------------------------------------------------
 c ::
-       subroutine FORT_TENSOR_HOOPSRC (comp, DIMS(grid), fab, DIMS(fab), u, 
-     &      DIMS(u), r, betax, DIMS(betax), betay, DIMS(betay))
+       subroutine FORT_TENSOR_HOOPSRC (comp, DIMS(grid), fab, DIMS(fab), 
+     &      u, DIMS(u), r, betax, DIMS(betax), betay, DIMS(betay))
 
        implicit none
        integer comp
@@ -218,7 +222,8 @@ c ::
           do i = ARG_L1(grid), ARG_H1(grid)
              betacen  = fourth*(betax(i,j)+betax(i+1,j)+
      &                           betay(i,j)+betay(i,j+1))
-             fab(i,j,comp) = fab(i,j,comp) - two*betacen*u(i,j,comp)/(r(i)*r(i))
+             fab(i,j,comp) = fab(i,j,comp) - two*betacen*u(i,j,comp)
+     &                                       /(r(i)*r(i))
           end do
        end do
 
