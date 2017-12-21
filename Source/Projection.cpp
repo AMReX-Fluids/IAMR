@@ -1012,6 +1012,12 @@ Projection::initialVelocityProject (int  c_lev,
 
     bool doing_initial_velproj = true;
 
+    for (lev = f_lev-1; lev >= c_lev; --lev)
+    {
+        amrex::average_down(*vel[lev+1], *vel[lev], parent->Geom(lev+1), parent->Geom(lev),
+                            0, BL_SPACEDIM, parent->refRatio(lev));
+    }
+
     //
     // Project
     //
@@ -2382,7 +2388,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     Vector<MultiFab> vel_test(nlevel);
     Vector<MultiFab> phi_test(nlevel);
-    if (test_mlmg_solver) {
+    if (test_mlmg_solver && nlevel == 1) {
         for (int i = 0; i < nlevel; ++i) {
             vel_test[i].define(vel[c_lev+i]->boxArray(), vel[c_lev+i]->DistributionMap(),
                               vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
@@ -2523,7 +2529,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
 
-    if (test_mlmg_solver) {
+    if (test_mlmg_solver && nlevel == 1) {
         Vector<MultiFab*> vel_ptmp(f_lev+1);
         Vector<MultiFab*> phi_ptmp(f_lev+1);
         for (int i = 0; i < nlevel; ++i) {
@@ -2546,7 +2552,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         MultiFab resid_save;
         Real rmin, rmax;
-        if (test_mlmg_solver)
+        if (test_mlmg_solver && nlevel == 1)
         {
             resid_save.define(sync_resid_fine->boxArray(),
                               sync_resid_fine->DistributionMap(), 1, 0);
@@ -2557,7 +2563,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
         mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vold[c_lev]);
 
-        if (test_mlmg_solver)
+        if (test_mlmg_solver && nlevel == 1)
         {
             MultiFab::Subtract(resid_save, *sync_resid_fine, 0, 0, 1, 0);
             Real dmin = resid_save.min(0);
@@ -2573,7 +2579,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
         MultiFab resid_save;
         Real rmin, rmax;
-        if (test_mlmg_solver)
+        if (test_mlmg_solver && nlevel == 1)
         {
             resid_save.define(sync_resid_crse->boxArray(),
                               sync_resid_crse->DistributionMap(), 1, 0);
@@ -2586,7 +2592,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         const IntVect& ref_ratio = parent->refRatio(c_lev);
         mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vold[c_lev], fineGrids, ref_ratio);
 
-        if (test_mlmg_solver)
+        if (test_mlmg_solver && nlevel == 1)
         {
             MultiFab::Subtract(resid_save, *sync_resid_crse, 0, 0, 1, 0);
             Real dmin = resid_save.min(0);
