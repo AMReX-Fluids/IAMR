@@ -2539,7 +2539,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
             MultiFab::Copy(phi_test[i], *phi[c_lev+i], 0, 0,
                            phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
         }
-        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, mlmg_err*1.001,
+        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhs_cc, rhnd, rel_tol, mlmg_err*1.01,
                           sync_resid_crse, sync_resid_fine, doing_initial_velproj);
 
         int niters = amrex_f90mg_get_niters();
