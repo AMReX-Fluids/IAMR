@@ -1091,6 +1091,9 @@ Projection::initialVelocityProject (int  c_lev,
 
 	amrex::Print() << "Projection::initialVelocityProject(): time: " << run_time << '\n';
     }
+
+
+    amrex::Abort("xxxxx");
 }
 
 void
@@ -2470,16 +2473,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     set_boundary_velocity(c_lev, nlevel, vel, doing_initial_velproj, true);
-
-    // inflow not supported yet
-    {
-        const int* lo_bc = phys_bc->lo();
-        const int* hi_bc = phys_bc->hi();
-        for (int idir=0; idir<BL_SPACEDIM; idir++) {
-            AMREX_ALWAYS_ASSERT(lo_bc[idir] != Inflow);
-            AMREX_ALWAYS_ASSERT(hi_bc[idir] != Inflow);
-        }
-    }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
