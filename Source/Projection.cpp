@@ -472,8 +472,13 @@ Projection::level_project (int             level,
 
 	Vector<MultiFab*> rhs_cc(maxlev, nullptr);
 	rhs_cc[level] = divusource.get();
-        doNodalProjection(level, 1, vel, phi, sig, rhs_cc, {}, proj_tol, proj_abs_tol,
-			  sync_resid_crse.get(), sync_resid_fine.get());
+        if (use_mlmg_solver) {
+            doMLMGNodalProjection(level, 1, vel, phi, sig, rhs_cc, {}, proj_tol, proj_abs_tol,
+                                  sync_resid_crse.get(), sync_resid_fine.get());
+        } else {
+            doNodalProjection(level, 1, vel, phi, sig, rhs_cc, {}, proj_tol, proj_abs_tol,
+                              sync_resid_crse.get(), sync_resid_fine.get());
+        }
     }
 
     //
@@ -638,8 +643,13 @@ Projection::syncProject (int             c_lev,
         sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow));
     }
 
-    doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, {&rhnd}, sync_tol, proj_abs_tol,
-		      sync_resid_crse, sync_resid_fine.get());
+    if (use_mlmg_solver) {
+        doMLMGNodalProjection(c_lev, 1, vels, phis, sigs, rhss, {&rhnd}, sync_tol, proj_abs_tol,
+                              sync_resid_crse, sync_resid_fine.get());
+    } else {
+        doNodalProjection(c_lev, 1, vels, phis, sigs, rhss, {&rhnd}, sync_tol, proj_abs_tol,
+                          sync_resid_crse, sync_resid_fine.get());
+    }
 
     //
     // If this sync project is not at level 0 then we need to account for
@@ -1044,11 +1054,19 @@ Projection::initialVelocityProject (int  c_lev,
             rhs_cc[lev]->mult(-1.0,0,1,nghost);
         }
 
-	doNodalProjection(c_lev, f_lev+1, vel, phi,
-                          amrex::GetVecOfPtrs(sig),
-                          amrex::GetVecOfPtrs(rhs_cc),
-                          {},
-			  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
+        if (use_mlmg_solver) {
+            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+                                  amrex::GetVecOfPtrs(sig),
+                                  amrex::GetVecOfPtrs(rhs_cc),
+                                  {},
+                                  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
+        } else {
+            doNodalProjection(c_lev, f_lev+1, vel, phi,
+                              amrex::GetVecOfPtrs(sig),
+                              amrex::GetVecOfPtrs(rhs_cc),
+                              {},
+                              proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
+        }
 
     }
 
@@ -1977,13 +1995,24 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Project.
     //
-    doNodalProjection(c_lev, f_lev+1,
-                      amrex::GetVecOfPtrs(u_real), 
-                      amrex::GetVecOfPtrs(p_real),
-                      amrex::GetVecOfPtrs(s_real),
-                      Vector<MultiFab*>(maxlev, nullptr),
-                      amrex::GetVecOfPtrs(rhnd),
-                      proj_tol, proj_abs_tol);
+    if (use_mlmg_solver) {
+        doMLMGNodalProjection(c_lev, f_lev+1,
+                              amrex::GetVecOfPtrs(u_real), 
+                              amrex::GetVecOfPtrs(p_real),
+                              amrex::GetVecOfPtrs(s_real),
+                              Vector<MultiFab*>(maxlev, nullptr),
+                              amrex::GetVecOfPtrs(rhnd),
+                              proj_tol, proj_abs_tol,
+                              nullptr, nullptr, false, true);
+    } else {
+        doNodalProjection(c_lev, f_lev+1,
+                          amrex::GetVecOfPtrs(u_real), 
+                          amrex::GetVecOfPtrs(p_real),
+                          amrex::GetVecOfPtrs(s_real),
+                          Vector<MultiFab*>(maxlev, nullptr),
+                          amrex::GetVecOfPtrs(rhnd),
+                          proj_tol, proj_abs_tol);
+    }
 
     //
     // Generate velocity field from potential
@@ -2380,7 +2409,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                                         Real rel_tol, Real abs_tol,
                                         MultiFab* sync_resid_crse,
                                         MultiFab* sync_resid_fine,
-                                        bool doing_initial_velproj)
+                                        bool doing_initial_velproj,
+                                        bool doing_initial_vortproj)
 {
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
@@ -2458,6 +2488,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         if (Geometry::isPeriodic(idim))
         {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
+        }
+        else if (doing_initial_vortproj)
+        {
+            mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Dirichlet;
         }
         else
         {

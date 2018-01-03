@@ -342,7 +342,8 @@ protected:
                                amrex::Real rel_tol, amrex::Real abs_tol,
                                amrex::MultiFab* sync_resid_crse=nullptr,
                                amrex::MultiFab* sync_resid_fine=nullptr,
-                               bool doing_initial_velproj=false);
+                               bool doing_initial_velproj=false,
+                               bool doing_initial_vortproj=false);
 
     void doNodalProjection(int c_lev, int nlevel, 
 			   const amrex::Vector<amrex::MultiFab*>& vel, 
