@@ -2969,13 +2969,14 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 
               bx = amrex::adjCellLo(reg, idir);
 
-              for (int odir = 0; odir < BL_SPACEDIM; odir++)
+              for (int odir = 0; odir < BL_SPACEDIM; odir++) {
                  if (odir != idir)
                  {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
-                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (idir) ) bx.growHi(odir,1);
-                    if (reg.smallEnd(odir) != domainBox.smallEnd(idir) ) bx.growLo(odir,1);
+                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (odir) ) bx.growHi(odir,1);
+                    if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
+              }
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
@@ -2995,13 +2996,14 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 
 	      bx = amrex::adjCellHi(reg, idir);
 
-              for (int odir = 0; odir < BL_SPACEDIM; odir++)
+              for (int odir = 0; odir < BL_SPACEDIM; odir++) {
                  if (odir != idir)
                  {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
-                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (idir) ) bx.growHi(odir,1);
-                    if (reg.smallEnd(odir) != domainBox.smallEnd(idir) ) bx.growLo(odir,1);
+                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (odir) ) bx.growHi(odir,1);
+                    if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
+              }
 
 	    } else if (inflowCorner) {
 	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
