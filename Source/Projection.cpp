@@ -1091,9 +1091,6 @@ Projection::initialVelocityProject (int  c_lev,
 
 	amrex::Print() << "Projection::initialVelocityProject(): time: " << run_time << '\n';
     }
-
-
-    amrex::Abort("xxxxx");
 }
 
 void
