@@ -2628,11 +2628,11 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
             else if (pbc == REFLECT_ODD)
             {
-                
+                mlmg_lobc[idim] = LinOpBCType::reflect_odd;
             }
             else
             {
-                mlmg_lobc[idim] = LinOpBCType::reflect_odd;
+                mlmg_lobc[idim] = LinOpBCType::bogus;
             }
 
             pbc = bc.hi(idim);
@@ -2648,11 +2648,11 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
             else if (pbc == REFLECT_ODD)
             {
-                
+                mlmg_hibc[idim] = LinOpBCType::reflect_odd;
             }
             else
             {
-                mlmg_hibc[idim] = LinOpBCType::reflect_odd;
+                mlmg_hibc[idim] = LinOpBCType::bogus;
             }
         }
     }
