@@ -2628,7 +2628,6 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
   //    ii) if inflowCorner =  true then the normal velocity at corners just outside inflow faces 
   //                                will be zero'd outside of Neumann boundaries 
   //                                (slipWall, noSlipWall, Symmetry) 
-  //                                but -- IF DOING INITIAL_VELPROJ,  
   //                                will retain non-zero values at periodic corners
 
   for (int lev=c_lev; lev < c_lev+nlevel; lev++) {
@@ -2657,22 +2656,22 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 	  if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
 	    Box bx;                // bx is the region we *protect* from zero'ing
 
-	    if (inflowCorner && doing_initial_velproj) {
+	    if (inflowCorner) {
 
               bx = amrex::adjCellLo(reg, idir);
 
-              for (int odir = 0; odir < BL_SPACEDIM; odir++)
+              for (int odir = 0; odir < BL_SPACEDIM; odir++) {
                  if (odir != idir)
                  {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
-                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (idir) ) bx.growHi(odir,1);
-                    if (reg.smallEnd(odir) != domainBox.smallEnd(idir) ) bx.growLo(odir,1);
+                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (odir) ) bx.growHi(odir,1);
+                    if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
+              }
 
-	    } else if (inflowCorner) {
-	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
-	      bx = amrex::adjCellLo(bxg1, idir);
-	      bx.shift(idir, +1);
+	      // This is the old code
+              // bx = amrex::adjCellLo(bxg1, idir);
+	      // bx.shift(idir, +1);
 
 	    } else {
 	      bx = amrex::adjCellLo(reg, idir);
@@ -2683,22 +2682,22 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 	  if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
 	    Box bx;                // bx is the region we *protect* from zero'ing
 
-	    if (inflowCorner && doing_initial_velproj) {
+	    if (inflowCorner) {
 
 	      bx = amrex::adjCellHi(reg, idir);
 
-              for (int odir = 0; odir < BL_SPACEDIM; odir++)
+              for (int odir = 0; odir < BL_SPACEDIM; odir++) {
                  if (odir != idir)
                  {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
-                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (idir) ) bx.growHi(odir,1);
-                    if (reg.smallEnd(odir) != domainBox.smallEnd(idir) ) bx.growLo(odir,1);
+                    if (reg.bigEnd  (odir) != domainBox.bigEnd  (odir) ) bx.growHi(odir,1);
+                    if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
+              }
 
-	    } else if (inflowCorner) {
-	      // This is the old code -- should it do the same thing as now for doing_initial_veloroj??
-	      bx = amrex::adjCellHi(bxg1, idir);
-	      bx.shift(idir, -1);
+	      // This is the old code
+              // bx = amrex::adjCellHi(bxg1, idir);
+              // bx.shift(idir, -1);
 
 	    } else {
 	      bx = amrex::adjCellHi(reg, idir);
