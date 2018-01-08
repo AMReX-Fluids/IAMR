@@ -1456,9 +1456,9 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
                 pMF.plus(dpdtMF,0,1,NGrow);
             }
 
-            for (MFIter mfi(pMF); mfi.isValid(); ++mfi) 
+	    for (MFIter mfi(gp, true); mfi.isValid(); ++mfi) 
             {
-                Projection::getGradP(pMF[mfi],gp[mfi],gp[mfi].box(),dx);
+                Projection::getGradP(pMF[mfi],gp[mfi],mfi.growntilebox(),dx);
             }
         }
         //
@@ -1466,12 +1466,16 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
         //
         MultiFab gpTmp(gp.boxArray(),gp.DistributionMap(),1,NGrow);
 
-        for (FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
-             P_fpi.isValid();
-             ++P_fpi) 
-        {
-            Projection::getGradP(P_fpi(),gpTmp[P_fpi],gpTmp[P_fpi].box(),dx);
-        }
+	{
+
+	  FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
+	  MultiFab& pMF = P_fpi.get_mf();
+
+	  for (MFIter mfi(gpTmp, true); mfi.isValid(); ++mfi) 
+	  {
+	    Projection::getGradP(pMF[mfi],gpTmp[mfi],mfi.growntilebox(),dx);
+	  }
+	}
         //
         // Now must decide which parts of gpTmp to copy to gp.
         //
@@ -1516,16 +1520,16 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
     }
     else
     {
+
         FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
-
-        for ( ; P_fpi.isValid(); ++P_fpi) 
+	MultiFab& pMF = P_fpi.get_mf();
+	
+	for (MFIter mfi(gp, true); mfi.isValid(); ++mfi) 
         {
-            BL_ASSERT(amrex::grow(grids[P_fpi.index()],NGrow) == gp[P_fpi].box());
+	  BL_ASSERT(amrex::grow(grids[mfi.index()],NGrow) == gp[mfi].box());
 
-            FArrayBox& gpfab = gp[P_fpi];
-
-            Projection::getGradP(P_fpi(),gpfab,gpfab.box(),dx);
-        }
+	  Projection::getGradP(pMF[mfi],gp[mfi],mfi.growntilebox(),dx);
+	}
     }
 }
 
