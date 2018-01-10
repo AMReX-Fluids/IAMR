@@ -987,6 +987,13 @@ Projection::initialVelocityProject (int  c_lev,
             int Divu_Type, Divu;
             if (!LevelData[lev]->isStateVariable("divu", Divu_Type, Divu)) 
                 amrex::Error("Projection::initialVelocityProject(): Divu not found");
+
+            // The FillBoundary seems unnecessary because
+            // put_divu_in_cc_rhs will call FillPatch.  Moreover, why
+            // does rhcc need to have ghost cells at all?  The solver
+            // could create a temp MF with one ghost cell and it knows
+            // how to properly fill ghost cell.  -- Weiqun
+
             //
             // Make sure ghost cells are properly filled.
             //
