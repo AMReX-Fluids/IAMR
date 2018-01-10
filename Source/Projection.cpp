@@ -2597,7 +2597,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
             rmax = resid_save.max(0);
         }
 
-        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev]);
+        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev], rhs_cc[c_lev]);
 
         if (test_mlmg_solver)
         {
@@ -2606,7 +2606,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
             Real dmax = resid_save.max(0);
             amrex::Print() << "TEST MLMG: fine resid diff "
                            << "(" << dmin <<", " << dmax << ") / ("
-                           << rmin << ", " << rmax << ")\n";
+                           << rmin << ", " << rmax << ")\n"
+                           << "                           "
+                           << "(" << dmin/(rmin+1.e-50) << ", "
+                           << dmax/(rmax+1.e-50) << ")\n";
         }
     }
 
@@ -2625,7 +2628,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
         const BoxArray& fineGrids = parent->boxArray(c_lev+1);
         const IntVect& ref_ratio = parent->refRatio(c_lev);
-        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], fineGrids, ref_ratio);
+        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], rhs_cc[c_lev],
+                                       fineGrids, ref_ratio);
 
         if (test_mlmg_solver)
         {
@@ -2634,7 +2638,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
             Real dmax = resid_save.max(0);
             amrex::Print() << "TEST MLMG: crse resid diff "
                            << "(" << dmin <<", " << dmax << ") / ("
-                           << rmin << ", " << rmax << ")\n";
+                           << rmin << ", " << rmax << ")\n"
+                           << "                           "
+                           << "(" << dmin/(rmin+1.e-50) << ", "
+                           << dmax/(rmax+1.e-50) << ")\n";
         }
     }
 
