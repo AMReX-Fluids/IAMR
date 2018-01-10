@@ -2572,6 +2572,11 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         }
     }
 
+    if (sync_resid_fine != 0 or sync_resid_crse != 0)
+    {
+        set_boundary_velocity(c_lev, 1, vel, doing_initial_velproj, false);
+    }
+
     if (sync_resid_fine != 0)
     {
         MultiFab resid_save;
@@ -2585,7 +2590,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
             rmax = resid_save.max(0);
         }
 
-        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vold[c_lev]);
+        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev]);
 
         if (test_mlmg_solver)
         {
@@ -2598,7 +2603,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         }
     }
 
-    // xxxxx do we need to have vold?  We should zero the inflow corner inside the solver.
     if (sync_resid_crse != 0) {  // only level solve will come to here
 
         MultiFab resid_save;
@@ -2614,7 +2618,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
         const BoxArray& fineGrids = parent->boxArray(c_lev+1);
         const IntVect& ref_ratio = parent->refRatio(c_lev);
-        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vold[c_lev], fineGrids, ref_ratio);
+        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], fineGrids, ref_ratio);
 
         if (test_mlmg_solver)
         {
