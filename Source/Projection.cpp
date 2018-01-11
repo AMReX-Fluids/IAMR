@@ -60,6 +60,7 @@ namespace
     int hg_stencil = ND_DENSE_STENCIL;
 
     bool use_mlmg_solver = false;
+    bool rz_correction = false;
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
@@ -90,6 +91,7 @@ Projection::Initialize ()
     pp.query("make_sync_solvable",  make_sync_solvable);
 
     pp.query("use_mlmg_solver",     use_mlmg_solver);
+    pp.query("rz_correction",       rz_correction);
     pp.query("agglomeration",       agglomeration);
     pp.query("consolidation",       consolidation);
     pp.query("max_fmg_iter",        max_fmg_iter);
@@ -2521,6 +2523,11 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     info.setMetricTerm(false);
 
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info);
+#if (AMREX_SPACEDIM == 2)
+    if (rz_correction) {
+        mlndlap.setRZCorrection(Geometry::IsRZ());
+    }
+#endif
     mlndlap.setGaussSeidel(use_gauss_seidel);
     mlndlap.setHarmonicAverage(use_harmonic_average);
 
