@@ -2466,16 +2466,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         BL_ASSERT(rhs_cc[f_lev]->nGrow() == 1);
     }
 
-    Vector<std::unique_ptr<MultiFab> > vold(maxlev);
-    if (sync_resid_fine !=0 || sync_resid_crse != 0) {
-        vold[c_lev].reset(new MultiFab(parent->boxArray(c_lev), 
-                                       parent->DistributionMap(c_lev),
-                                       BL_SPACEDIM, 1));
-        MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
-
-        set_boundary_velocity(c_lev, 1, amrex::GetVecOfPtrs(vold), doing_initial_velproj, false);
-    }
-
     set_boundary_velocity(c_lev, nlevel, vel, doing_initial_velproj, true);
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
