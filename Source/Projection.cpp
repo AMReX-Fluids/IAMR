@@ -1168,13 +1168,6 @@ Projection::initialPressureProject (int  c_lev)
                         c_lev,f_lev,have_divu_dummy);
     }
 
-    //
-    // Scale the projection variables.
-    //
-    for (lev = c_lev; lev <= f_lev; lev++) {
-        scaleVar(INITIAL_PRESS,sig[lev].get(),1,vel[lev],lev);
-    }
-
     Vector<std::unique_ptr<MultiFab> > raii;
     for (lev = c_lev; lev <= f_lev; lev++) {
         const BoxArray& grids = vel[lev]->boxArray();
@@ -1183,6 +1176,13 @@ Projection::initialPressureProject (int  c_lev)
         vel[lev] = raii.back().get();
         vel[lev]->setVal(0.0    , 0            , BL_SPACEDIM-1, 1);
         vel[lev]->setVal(gravity, BL_SPACEDIM-1, 1            , 1);
+    }
+
+    //
+    // Scale the projection variables.
+    //
+    for (lev = c_lev; lev <= f_lev; lev++) {
+        scaleVar(INITIAL_PRESS,sig[lev].get(),1,vel[lev],lev);
     }
 
     //
