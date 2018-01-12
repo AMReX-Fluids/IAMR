@@ -60,7 +60,7 @@ namespace
     int hg_stencil = ND_DENSE_STENCIL;
 
     bool use_mlmg_solver = false;
-    bool rz_correction = false;
+    bool rz_correction = true;
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
