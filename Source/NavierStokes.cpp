@@ -850,12 +850,10 @@ NavierStokes:: calcHerschelBulkley  (MultiFab& visc, Real time)
     const int *domhi   = geom.Domain().hiVect();
 
     const Real* dx     = geom.CellSize();
-    const int *bc      = phys_bc.vect();
 
-//  for (MFIter mfi(vel); mfi.isValid(); ++mfi)
+    Array<int> vel_bc;
 
-    const Real cur_time = state[State_Type].curTime();
-    FillPatchIterator fpi(*this,vel,vel.nGrow(),cur_time,State_Type,Xvel,BL_SPACEDIM);
+    FillPatchIterator fpi(*this,vel,vel.nGrow(),time,State_Type,Xvel,BL_SPACEDIM);
     for ( ; fpi.isValid(); ++fpi)
     {
        const int  i    = fpi.index();

@@ -431,7 +431,7 @@ c
       integer    DIMDEC(visc)
       integer    DIMDEC(vel)
       integer    domlo(2), domhi(2)
-      integer    bc(2,2,2)
+      integer    vel_bc(2,2,2)
       REAL_T     delta(2)
       REAL_T     visc(DIMV(visc),1)
       REAL_T     vel(DIMV(vel),2)
@@ -448,35 +448,35 @@ c
 #     define U(i,j) vel(i,j,1)
 #     define V(i,j) vel(i,j,2)
 
-c#     define ULOX bc(1,1,1)
-c#     define UHIX bc(1,2,1)
-c
-c#     define VLOX bc(1,1,2)
-c#     define VHIX bc(1,2,2)
-c
-c#     define ULOY bc(2,1,1)
-c#     define UHIY bc(2,2,1)
-c
-c#     define VLOY bc(2,1,2)
-c#     define VHIY bc(2,2,2)
+#     define ULOX vel_bc(1,1,1)
+#     define UHIX vel_bc(1,2,1)
+
+#     define VLOX vel_bc(1,1,2)
+#     define VHIX vel_bc(1,2,2)
+
+#     define ULOY vel_bc(2,1,1)
+#     define UHIY vel_bc(2,2,1)
+
+#     define VLOY vel_bc(2,1,2)
+#     define VHIY vel_bc(2,2,2)
 c
 c     ::::: statement functions that implement stencil
 c
       uxcen(i,j) = half*(U(i+1,j)-U(i-1,j))/dx
-c      uxlft(i,j) = (U(i+1,j)+three*U(i,j)-four*U(i-1,j))/(three*dx)
-c      uxrgt(i,j) = (four*U(i+1,j)-three*U(i,j)-U(i-1,j))/(three*dx)
+      uxlft(i,j) = (U(i+1,j)+three*U(i,j)-four*U(i-1,j))/(three*dx)
+      uxrgt(i,j) = (four*U(i+1,j)-three*U(i,j)-U(i-1,j))/(three*dx)
       
       vxcen(i,j) = half*(V(i+1,j)-V(i-1,j))/dx
-c      vxlft(i,j) = (V(i+1,j)+three*V(i,j)-four*V(i-1,j))/(three*dx)
-c      vxrgt(i,j) = (four*V(i+1,j)-three*V(i,j)-V(i-1,j))/(three*dx)
+      vxlft(i,j) = (V(i+1,j)+three*V(i,j)-four*V(i-1,j))/(three*dx)
+      vxrgt(i,j) = (four*V(i+1,j)-three*V(i,j)-V(i-1,j))/(three*dx)
 
       uycen(i,j) = half*(U(i,j+1)-U(i,j-1))/dy
-c      uybot(i,j) = (U(i,j+1)+three*U(i,j)-four*U(i,j-1))/(three*dy)
-c      uytop(i,j) = (four*U(i,j+1)-three*U(i,j)-U(i,j-1))/(three*dy)
+      uybot(i,j) = (U(i,j+1)+three*U(i,j)-four*U(i,j-1))/(three*dy)
+      uytop(i,j) = (four*U(i,j+1)-three*U(i,j)-U(i,j-1))/(three*dy)
 
       vycen(i,j) = half*(V(i,j+1)-V(i,j-1))/dy
-c      vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
-c      vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
+      vybot(i,j) = (V(i,j+1)+three*V(i,j)-four*V(i,j-1))/(three*dy)
+      vytop(i,j) = (four*V(i,j+1)-three*V(i,j)-V(i,j-1))/(three*dy)
 
 
       dx = delta(1)
