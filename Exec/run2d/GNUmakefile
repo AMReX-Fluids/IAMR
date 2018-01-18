@@ -16,6 +16,8 @@ DEBUG       = FALSE
 USE_MPI     = TRUE
 USE_OMP     = FALSE
 
+TINY_PROFILE = TRUE
+
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
 

@@ -31,20 +31,20 @@ amr.max_level			= 0
 #*******************************************************************************
 
 # Verbosity of different modules
-ns.v                    = 0
+ns.v                    = 1
 amr.v                   = 1
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_file 			= Test/Re1000_Bn10_n0p5_N128/chk
+amr.check_file 			= chk
 amr.check_int			= 10000
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_file			= Test/Re1000_Bn10_n0p5_N128/plt
-amr.plot_int			= 10000
+amr.plot_file			= plt
+amr.plot_int			= 100
 
 #*******************************************************************************
 
@@ -60,16 +60,17 @@ ns.change_max 			= 1.1
 #*******************************************************************************
 
 # Linear solver settings
-mg.maxiter              = 1000000
-cg.maxiter              = 1000000
+proj.use_mlmg_solver 	= 1
+mac.use_mlmg_solver 	= 1
+diffuse.use_mlmg_solver = 1
 
 #*******************************************************************************
 
 # Viscosity coefficient 
 ns.variable_vel_visc 	= 1
-ns.vel_visc_coef        = 0.001
-ns.yield_stress      	= 0.014142135623730951
-ns.flow_index      		= 0.5
+ns.vel_visc_coef        = 1.0
+ns.yield_stress      	= 14.142135623730951
+ns.flow_index      		= 1.0
 ns.reg_param         	= 0.0025
 
 #*******************************************************************************
