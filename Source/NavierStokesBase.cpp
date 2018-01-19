@@ -1138,6 +1138,11 @@ NavierStokesBase::create_umac_grown (int nGrow)
         dm.surroundingNodes(n);
         const int*  lo  = dm.loVect();
         const int*  hi  = dm.hiVect();
+
+	// call FillBoundary to make sure that fine/fine grow cells are valid
+	// before FORT_HOEXTRAPTOCC is called 
+	u_mac[n].FillBoundary(geom.periodicity());
+
         //
         // HOEXTRAPTOCC isn't threaded.  OMP over calls to it.
         //
@@ -1152,10 +1157,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
             const int* dhi = fab.hiVect();
             FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
         }
-        u_mac[n].FillBoundary_nowait(geom.periodicity());
-    }
-    for (int n = 0; n < BL_SPACEDIM; ++n) {
-	u_mac[n].FillBoundary_finish();
     }
 }
 
