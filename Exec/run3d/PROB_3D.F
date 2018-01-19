@@ -122,6 +122,7 @@ c ::: -----------------------------------------------------------
       namelist /fortin/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
       namelist /fortin/ do_inlet_ref, inlet_ref_height
       namelist /fortin/ lid_vel
+      namelist /fortin/ scaling_level
 c
 c      Build "probin" filename -- the name of file containing fortin namelist.
 c
@@ -1098,14 +1099,22 @@ c      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
          call initflow(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
+         
       else if (probtype .eq. 28) then
          call initswirltest(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
+
       else if (probtype .eq. 29 .or. probtype .eq. 30) then
          call initfromrest(level,time,lo,hi,nscal,
      &        vel,scal,DIMS(state),press,DIMS(press),
      &        dx,xlo,xhi)
+
+      else if (probtype .eq. 31) then 
+         call initscalingstudy(level,time,lo,hi,nscal,
+     &        vel,scal,DIMS(state),press,DIMS(press),
+     &        dx,xlo,xhi)
+
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
@@ -1126,6 +1135,71 @@ c     rad, over a width of trn
       else
          zblend1 = 0.5D0*(1.0D0 + TANH((x-rad)/trn))
       end if
+      end
+c
+c ::: -----------------------------------------------------------
+c
+      subroutine initscalingstudy(level,time,lo,hi,nscal,
+     &	 	            vel,scal,DIMS(state),press,DIMS(press),
+     &                      dx,xlo,xhi)
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+c
+c     ::::: local variables
+c
+      integer i, j, k
+      integer l, m, n
+      integer num_copies
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  x0, y0, z0
+      REAL_T  dist
+
+#include <probdata.H>
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      num_copies = 2**scaling_level
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               vel(i,j,k,1) = one
+               vel(i,j,k,2) = zero
+               vel(i,j,k,3) = zero
+               scal(i,j,k,1) = one
+               scal(i,j,k,2) = zero
+               do n = 1, num_copies
+                  z0 = half + float(n-1)
+                  do m = 1, num_copies
+                     y0 = half + float(m-1)
+                     do l = 1, num_copies
+                        x0 = half + float(l-1)
+                        dist = sqrt((x-x0)**2 + (y-y0)**2 + (z-z0)**2)
+                        if (dist.lt.0.1) then
+                          scal(i,j,k,2) = one
+                        end if
+                     end do
+                  end do
+               end do
+            end do
+         end do
+      end do
+
       end
 c
 c ::: -----------------------------------------------------------
@@ -3332,7 +3406,7 @@ c
          z = xlo(3) + hz*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
             y = xlo(2) + hy*(float(j-lo(2)) + half)
-	    do i = lo(1), hi(1)
+            do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
                vel(i,j,k,1) = one
@@ -3346,7 +3420,7 @@ c
                   scal(i,j,k,n) = zero
                end do
 
-	    end do
+            end do
          end do
       end do
 

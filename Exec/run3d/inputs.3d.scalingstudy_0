@@ -1,0 +1,81 @@
+#*******************************************************************************
+# INPUTS.3D.SCALINGSTUDY_0
+#*******************************************************************************
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step                =  10
+
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 				=  100.0
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 				= 128 128 128
+
+#*******************************************************************************
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level			= 0 
+
+#*******************************************************************************
+
+# Verbosity of different modules
+ns.v                    =  0
+amr.v                   =  0
+proj.v 					=  0
+
+#*******************************************************************************
+
+# Names of checkpoint and plot files
+amr.checkpoint_files_output = 0
+amr.plot_files_output 		= 0
+
+#*******************************************************************************
+
+# CFL number to be used in calculating the time step : 
+ns.cfl                  =  0.7  
+
+#*******************************************************************************
+
+# Linear solver settings
+proj.use_mlmg_solver 	=  1
+mac.use_mlmg_solver 	=  1
+diffuse.use_mlmg_solver =  1
+
+#*******************************************************************************
+
+# Use variable viscosity?  (0/1)
+ns.variable_vel_visc 	=  0
+# Dynamimc viscosity coefficient
+ns.vel_visc_coef        =  1.0
+ns.scal_diff_coefs      =  0.0
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity 				= 0.0
+
+#*******************************************************************************
+
+# Name of the file which specifies problem-specific parameters (defaults to "probin")
+amr.probin_file 		=  probin.3d.scalingstudy_0
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
+geometry.coord_sys   	=  0
+# Physical position of the low and high ends of the domain
+geometry.prob_lo     	=  0. 0. 0.
+geometry.prob_hi     	=  1. 1. 1.
+# BCs periodic in each direction?
+geometry.is_periodic 	=  1 1 1
+
+#*******************************************************************************
+
+# Boundary condtision
+ns.lo_bc             	=  0 0 0
+ns.hi_bc             	=  0 0 0
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
