@@ -2307,7 +2307,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                     
                     /*** Calculate the required number of coarse cells ***/
                     
-                    N_coarse_cells = N_level_cells / bf_lev[i][oDir];
+                    N_coarse_cells = N_level_cells / bf_lev[j][oDir];
                     if (N_level_cells % bf_lev[j][oDir] != 0)
                         N_coarse_cells++;
                     
