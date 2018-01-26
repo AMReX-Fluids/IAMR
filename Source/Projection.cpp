@@ -51,10 +51,6 @@ namespace
 {
     bool initialized = false;
 
-#if MG_USE_HYPRE
-    bool use_hypre_solve = false;
-#endif
-
     bool benchmarking = false;
 
     int hg_stencil = ND_DENSE_STENCIL;

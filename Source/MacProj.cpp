@@ -47,10 +47,6 @@ namespace
 {
     bool benchmarking;
     Real umac_periodic_test_Tol;
-
-#if MG_USE_HYPRE
-    bool use_hypre_solve;
-#endif
 }
 
 void
@@ -78,10 +74,6 @@ MacProj::Initialize ()
     MacProj::check_umac_periodicity = 1;
 #endif
 
-#if MG_USE_HYPRE
-    use_hypre_solve  = false;
-#endif
-
     ParmParse pp("mac");
 
     pp.query("v",                      verbose);
@@ -96,15 +88,6 @@ MacProj::Initialize ()
     pp.query("umac_periodic_test_Tol", umac_periodic_test_Tol);
 
     pp.query("use_mlmg_solver", use_mlmg_solver);
-
-#if MG_USE_HYPRE
-    pp.query("use_hypre_solve", use_hypre_solve);
-#endif
-
-#if MG_USE_HYPRE
-    if ( use_cg_solve && use_hypre_solve )
-	amrex::Error("MacProj::read_params: cg_solve && .not. hypre_solve");
-#endif
 
     amrex::ExecOnFinalize(MacProj::Finalize);
 
@@ -354,12 +337,6 @@ MacProj::mac_project (int             level,
     {
 	the_solver = 1;
     }
-#if MG_USE_HYPRE
-    else if ( use_hypre_solve )
-    {
-	the_solver = 2;
-    }
-#endif
 
     std::unique_ptr<MacBndry> mac_bndry;
     if (the_solver != the_mlmg_solver)
@@ -528,12 +505,6 @@ MacProj::mac_sync_solve (int       level,
     {
 	the_solver = 1;
     }
-#if MG_USE_HYPRE
-    else if ( use_hypre_solve )
-    {
-	the_solver = 2;
-    }
-#endif
 
     //
     // Alloc and define RHS by doing a reflux-like operation in coarse
@@ -734,12 +705,6 @@ MacProj::mac_sync_solve (int       level,
     {
 	the_solver = 1;
     }
-#if MG_USE_HYPRE
-    else if ( use_hypre_solve )
-    {
-	the_solver = 2;
-    }
-#endif
 
     //
     // Alloc and define RHS by doing a reflux-like operation in coarse
