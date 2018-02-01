@@ -14,10 +14,6 @@
 #include <iomanip>
 #include <array>
 
-#ifdef MG_USE_HYPRE
-#include <HypreABec.H>
-#endif
-
 #include <AMReX_FMultiGrid.H>
 
 #include <AMReX_MLABecLaplacian.H>
@@ -53,6 +49,8 @@ namespace
     static int agglomeration = 1;
     static int consolidation = 1;
     static int max_fmg_iter = 0;
+    static int use_hypre = 0;
+    static int hypre_verbose = 0;
 }
 //
 // Set default values in !initialized section of code in constructor!!!
@@ -70,13 +68,6 @@ int         Diffusion::use_mlmg_solver = 0;
 
 Vector<Real> Diffusion::visc_coef;
 Vector<int>  Diffusion::is_diffusive;
-
-namespace
-{
-#ifdef MG_USE_HYPRE
-    bool use_hypre_solve;
-#endif
-}
 
 void
 Diffusion::Finalize ()
@@ -121,9 +112,6 @@ Diffusion::Diffusion (Amr*               Parent,
         Diffusion::use_tensor_cg_solve = 0;
         Diffusion::use_mg_precond_flag = false;
 
-#ifdef MG_USE_HYPRE
-        use_hypre_solve = false;
-#endif
         int use_mg_precond = 0;
 
         ParmParse ppdiff("diffuse");
@@ -140,14 +128,11 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("agglomeration", agglomeration);
         ppdiff.query("consolidation", consolidation);
         ppdiff.query("max_fmg_iter", max_fmg_iter);
-
-#ifdef MG_USE_HYPRE
-        ppdiff.query("use_hypre_solve", use_hypre_solve);
-        if ( use_cg_solve && use_hypre_solve )
-        {
-            amrex::Error("Diffusion::read_params: cg_solve && .not. hypre_solve");
-        }
+#ifdef AMREX_USE_HYPRE
+        ppdiff.query("use_hypre", use_hypre);
+        ppdiff.query("hypre_verbose", hypre_verbose);
 #endif
+
         use_mg_precond_flag = (use_mg_precond ? true : false);
 
         ParmParse pp("ns");
@@ -532,6 +517,10 @@ Diffusion::diffuse_scalar (Real                   dt,
         }
 
         MLMG mlmg(mlabec);
+        if (use_hypre) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            mlmg.setBottomVerbose(hypre_verbose);
+        }
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
 
@@ -1093,6 +1082,10 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
             }
 
             MLMG mlmg(mlabec);
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+                mlmg.setBottomVerbose(hypre_verbose);
+            }
             mlmg.setMaxFmgIter(max_fmg_iter);
             mlmg.setVerbose(verbose);
 
@@ -1117,18 +1110,6 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                 CGSolver cg(*visc_op,use_mg_precond_flag);
                 cg.solve(Soln,Rhs,S_tol,S_tol_abs);
             }
- 
-#ifdef MG_USE_HYPRE
-            else if ( use_hypre_solve )
-            {
-                amrex::Error("HypreABec not ready");
-                //	    Real* dx = 0;
-                //	    HypreABec hp(Soln.boxArray(), visc_bndry, dx, 0, false);
-                //	    hp.setup_solver(S_tol, S_tol_abs, 50);
-                //	    hp.solve(Soln, Rhs, true);
-                //	    hp.clear_solver();
-            }
-#endif
             else
             {
                 MultiGrid mg(*visc_op);
@@ -1455,6 +1436,10 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
         }
 
         MLMG mlmg(mlabec);
+        if (use_hypre) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            mlmg.setBottomVerbose(hypre_verbose);
+        }
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
 
@@ -1515,17 +1500,6 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
             CGSolver cg(*visc_op,use_mg_precond_flag);
             cg.solve(Soln,Rhs,S_tol,S_tol_abs);
         }
-        
-#ifdef MG_USE_HYPRE
-        else if (use_hypre_solve)
-        {
-            amrex::Error("HypreABec not ready");
-            //	  HypreABec hp(Soln.boxArray(), 00, dx, 0, false);
-            //	  hp.setup_solver(S_tol, S_tol_abs, 50);
-            //	  hp.solve(Soln, Rhs, true);
-            //	  hp.clear_solver();
-        }
-#endif
         else
         {
             MultiGrid mg(*visc_op);
@@ -2628,11 +2602,11 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
             else if (pbc == REFLECT_ODD)
             {
-                
+                mlmg_lobc[idim] = LinOpBCType::reflect_odd;
             }
             else
             {
-                mlmg_lobc[idim] = LinOpBCType::reflect_odd;
+                mlmg_lobc[idim] = LinOpBCType::bogus;
             }
 
             pbc = bc.hi(idim);
@@ -2648,11 +2622,11 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
             }
             else if (pbc == REFLECT_ODD)
             {
-                
+                mlmg_hibc[idim] = LinOpBCType::reflect_odd;
             }
             else
             {
-                mlmg_hibc[idim] = LinOpBCType::reflect_odd;
+                mlmg_hibc[idim] = LinOpBCType::bogus;
             }
         }
     }

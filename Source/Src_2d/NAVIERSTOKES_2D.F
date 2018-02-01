@@ -31,10 +31,10 @@ c
       integer    i,j
       REAL_T     ddx, ddy
 
-      ddx = half/dx(1)
-      ddy = half/dx(2)
-
       if (is_full .eq. 0) then
+         ddx = half/dx(1)
+         ddy = half/dx(2)
+
         do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
