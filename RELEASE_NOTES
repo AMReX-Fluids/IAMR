@@ -17,3 +17,9 @@ Minor interfaces changes and comment fixes.
 Release version 18.01 (January, 2018)
 Minor changes to quiet compiler warnings.
 Added tiling to hoop stress.
+
+2/1/18
+Release version 18.02 (February, 2018)
+Bug fixes to projection and diffusion boundary conditions
+Interfaces to the new MLMG linear solvers in amrex/Src/LinearSolvers/MLMG
+Cylindrical coordinate bux fixes
