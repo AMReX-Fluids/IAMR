@@ -2,64 +2,76 @@
 # INPUTS.2D.LID_DRIVEN_CAVITY
 #*******************************************************************************
 
-#NOTE: You may set *either* max_step or stop_time, or you may set them both.
-
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 				= 100000
+max_step 				= 10000
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= -1
 
 # Stop simulation when we reach steady-state
 ns.stop_when_steady 	= 1
-ns.steady_tol 			= 1.0e-5
+ns.steady_tol 			= 1.0e-3
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 				= 128 128
-amr.max_grid_size		= 16
+amr.max_grid_size		= 64
+#amr.grid_eff 			= 0.7
 
 #*******************************************************************************
 
+#ns.do_stress_ref 		= 1
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level			= 0 # maximum number of levels of refinement
+amr.max_level			= 0 
+# Interval (in number of level l timesteps) between regridding
+#amr.regrid_int			= 1
 
 #*******************************************************************************
 
-# Sets the "NavierStokes" code to not be verbose
-ns.v                    = 0
-
-#*******************************************************************************
-
-# Sets the "amr" code to be verbose
+# Verbosity of different modules
+ns.v                    = 1
 amr.v                   = 1
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int			= 1000
+amr.check_file 			= chk
+amr.check_int			= 10000
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
+amr.plot_file			= plt
 amr.plot_int			= 100
 
 #*******************************************************************************
 
-# CFL number to be used in calculating the time step : dt = dx / max(velocity)
+# CFL number to be used in calculating the time step : 
 ns.cfl                  = 0.9  # CFL number used to set dt
 
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 0.3  # factor which multiplies the very first time step
+ns.init_shrink          = 0.1  # factor which multiplies the very first time step
+ns.change_max 			= 1.1
+
+#*******************************************************************************
+
+# Linear solver settings
+proj.use_mlmg_solver 	= 1
+mac.use_mlmg_solver 	= 1
+diffuse.use_mlmg_solver = 1
 
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 0.001
+ns.variable_vel_visc 	= 1
+ns.vel_visc_coef        = 1.0
+ns.yield_stress      	= 14.142135623730951
+ns.flow_index      		= 1.0
+ns.reg_param         	= 0.0025
 
 #*******************************************************************************
 
@@ -109,11 +121,11 @@ ns.hi_bc             	= 5 5
 #*******************************************************************************
 
 # Continue from checkpoint 
-# amr.restart 			= chk02607
+# amr.restart 			= 
 
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = ALL
+amr.derive_plot_vars    = 	ALL
 
 #*******************************************************************************

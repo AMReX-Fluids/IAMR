@@ -82,3 +82,6 @@
 
 	  REAL_T lid_vel
 	  common /probdt29/ lid_vel
+
+	  REAL_T scaling_level
+	  common /probdt31/ scaling_level

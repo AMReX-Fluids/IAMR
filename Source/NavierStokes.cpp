@@ -839,6 +839,45 @@ NavierStokes::scalar_diffusion_update (Real dt,
     }
 }
 
+void 
+NavierStokes:: calcHerschelBulkley  (MultiFab& visc, Real time)
+{
+    BL_PROFILE("NavierStokes::calcHerschelBulkley()");
+
+    MultiFab& vel = get_new_data(State_Type);
+
+    const int *domlo   = geom.Domain().loVect();
+    const int *domhi   = geom.Domain().hiVect();
+
+    const Real* dx     = geom.CellSize();
+
+    Array<int> vel_bc;
+
+    FillPatchIterator fpi(*this,vel,vel.nGrow(),time,State_Type,Xvel,BL_SPACEDIM);
+    for ( ; fpi.isValid(); ++fpi)
+    {
+       const int  i    = fpi.index();
+       const Box&  bx  = grids[i];
+       const int*  lo  = bx.loVect();
+       const int*  hi  = bx.hiVect();
+
+       Real *viscdat      = visc[i].dataPtr();
+       const int *visc_lo = visc[i].loVect();
+       const int *visc_hi = visc[i].hiVect();
+
+       FArrayBox& vfab    = fpi();
+       const Real *veldat = vfab.dataPtr();
+       const int *vel_lo  = vfab.loVect();
+       const int *vel_hi  = vfab.hiVect();
+
+       vel_bc = getBCArray(State_Type,i,Xvel,BL_SPACEDIM);
+
+       FORT_HERSCHEL_BULKLEY(viscdat, ARLIM(visc_lo), ARLIM(visc_hi),
+               	    veldat,  ARLIM(vel_lo),  ARLIM(vel_hi),
+               	    lo, hi, domlo, domhi, dx, vel_bc.dataPtr());
+    }
+}
+
 void
 NavierStokes::velocity_diffusion_update (Real dt)
 {
@@ -867,11 +906,11 @@ NavierStokes::velocity_diffusion_update (Real dt)
         if (variable_vel_visc)
         {
             Real viscTime = state[State_Type].prevTime();
-	    loc_viscn = fb_viscn.define(this);
+            loc_viscn = fb_viscn.define(this);
             getViscosity(loc_viscn, viscTime);
 
             viscTime = state[State_Type].curTime();
-	    loc_viscnp1 = fb_viscnp1.define(this);
+            loc_viscnp1 = fb_viscnp1.define(this);
             getViscosity(loc_viscnp1, viscTime);
         }
 
@@ -1585,7 +1624,7 @@ NavierStokes::mac_sync ()
             if (variable_vel_visc)
             {
                 Real viscTime = state[State_Type].prevTime();
-		loc_viscn = fb_viscn.define(this);
+                loc_viscn = fb_viscn.define(this);
                 getViscosity(loc_viscn, viscTime);
             }
 
@@ -2022,9 +2061,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 
         if (variable_vel_visc)
         {
-	    viscosity = fb.define(this);
+            viscosity = fb.define(this);
             getViscosity(viscosity, time);
-
             diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
         }
         else
@@ -2142,7 +2180,24 @@ NavierStokes::calcViscosity (const Real time,
     {
         if (visc_coef[Xvel] >= 0.0)
         {
-            visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
+            if (variable_vel_visc)
+            {
+                // 
+                // Compute apparent viscosity for regularised Herschel-Bulkley fluid
+                //
+				calcHerschelBulkley(*visc_cc,time);
+				//
+				// Fill the ghost cells for visc_cc
+				//
+				visc_cc->FillBoundary(geom.periodicity());
+            }
+            else 
+            {
+                //
+                // Fluid is Newtonian
+                //
+                visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
+			}
         }
         else
         {

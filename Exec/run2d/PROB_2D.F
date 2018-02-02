@@ -54,7 +54,7 @@ c
       parameter (nCompFile = 2)
       REAL_T dxFile(3)
 
-      namelist /fortin/ denerr, vorterr, adverr, temperr,
+      namelist /fortin/ denerr, vorterr, adverr, temperr, stresserr,
      &			denfact, xblob, yblob, zblob, radblob, 
      &                  velfact, probtype, randfact, bubgrad,
      &			rhozero, tempzero, c_d, r_d, grav_angle,
@@ -1532,6 +1532,68 @@ c     probtype = RT
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
+        stop
+      end if
+
+      end
+
+c ::: -----------------------------------------------------------
+c ::: This routine will tag high error cells based on the 
+c ::: magnitude of the stress tensor
+c ::: 
+c ::: INPUTS/OUTPUTS:
+c ::: 
+c ::: tag           <=  integer tag array
+c ::: DIMS(tag)     => index extent of tag array
+c ::: set           => integer value to tag cell for refinement
+c ::: clear         => integer value to untag cell
+c ::: stress        => array of vorticity values
+c ::: DIMS(stress)  => index extent of vort array
+c ::: nvar          => number of components in vort array (should be 1)
+c ::: lo,hi         => index extent of grid
+c ::: domlo,hi      => index extent of problem domain
+c ::: dx            => cell spacing
+c ::: xlo           => physical location of lower left hand
+c :::	           corner of tag array
+c ::: problo        => phys loc of lower left corner of prob domain
+c ::: time          => problem evolution time
+c ::: -----------------------------------------------------------
+      subroutine FORT_STRSERROR (tag,DIMS(tag),set,clear,
+     &                           stress,DIMS(stress),lo,hi,nvar,
+     &                           domlo,domhi,dx,xlo,
+     &			                 problo,time,level)
+
+      integer   DIMDEC(tag)
+      integer   DIMDEC(stress)
+      integer   nvar, set, clear, level
+      integer   lo(SDIM), hi(SDIM)
+      integer   domlo(SDIM), domhi(SDIM)
+      REAL_T    dx(SDIM), xlo(SDIM), problo(SDIM), time
+      integer   tag(DIMV(tag))
+      REAL_T    stress(DIMV(stress),nvar)
+
+      REAL_T    x, y
+      integer   i, j
+
+#include <probdata.H>
+#include <NSCOMM_F.H>
+
+c     probtype = LID-DRIVEN CAVITY
+      if (probtype .eq. 10) then
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) =
+     &          merge(set,tag(i,j),abs(stress(i,j,1)-tau).lt.stresserr)
+c              tag(i,j) =
+c     &          merge(set,tag(i,j),abs(domhi(2)-j).lt.16)
+c              tag(i,j) =
+c     &          merge(set,tag(i,j),
+c     &            ((abs(domhi(1)-i).lt.8) .or. (abs(domlo(1)-i).lt.8)) )
+           end do
+        end do
+
+      else
+        print *,'DONT KNOW THIS PROBTYPE IN FORT_STRSERROR ',probtype
         stop
       end if
 

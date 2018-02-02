@@ -49,6 +49,9 @@ Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
 int         NavierStokesBase::variable_vel_visc  = 0;
 int         NavierStokesBase::variable_scal_diff = 0;
+Real        NavierStokesBase::flow_index         = 1.0;
+Real        NavierStokesBase::yield_stress       = 0.0;
+Real        NavierStokesBase::reg_param          = 0.01;
 
 int         NavierStokesBase::Tracer                    = -1;
 int         NavierStokesBase::Tracer2                   = -1;
@@ -72,6 +75,7 @@ int         NavierStokesBase::do_density_ref            = 0;
 int         NavierStokesBase::do_tracer_ref             = 0;
 int         NavierStokesBase::do_tracer2_ref            = 0;
 int         NavierStokesBase::do_vorticity_ref          = 0;
+int         NavierStokesBase::do_stress_ref          	= 0;
 int         NavierStokesBase::do_scalar_update_in_order = 0; 
 Vector<int>  NavierStokesBase::scalarUpdateOrder;
 int         NavierStokesBase::getForceVerbose           = 0;
@@ -440,6 +444,7 @@ NavierStokesBase::Initialize ()
     pp.query("do_tracer_ref",            do_tracer_ref    );
     pp.query("do_tracer2_ref",           do_tracer2_ref   );
     pp.query("do_vorticity_ref",         do_vorticity_ref );
+    pp.query("do_stress_ref",         	 do_stress_ref    );
 
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
@@ -483,6 +488,12 @@ NavierStokesBase::Initialize ()
     pp.query("visc_abs_tol",visc_abs_tol);
     pp.query("variable_vel_visc",variable_vel_visc);
     pp.query("variable_scal_diff",variable_scal_diff);
+    //
+    // Viscosity parameters for Herschel-Bulkley model
+    //
+    pp.query("flow_index",flow_index);
+    pp.query("yield_stress",yield_stress);
+    pp.query("reg_param",reg_param);
 
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
@@ -580,6 +591,8 @@ NavierStokesBase::Initialize ()
 #ifdef PARTICLES
     read_particle_params ();
 #endif
+
+    FORT_SET_NS_PARAMS(visc_coef[0], flow_index, yield_stress, reg_param, variable_vel_visc);
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
@@ -742,14 +755,14 @@ NavierStokesBase::advance_setup (Real time,
     if (variable_vel_visc)
     {
         calcViscosity(prev_time,dt,iteration,ncycle);
-	MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
+        MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
     }
 
     if (variable_scal_diff)
     {
         const int num_diff = NUM_STATE-BL_SPACEDIM-1;
         calcDiffusivity(prev_time);
-	MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
+        MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
     }
 }
 
@@ -1240,6 +1253,7 @@ NavierStokesBase::estTimeStep ()
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
 
+    const Real  cur_time = state[State_Type].curTime();
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   U_new         = get_new_data(State_Type);
 
@@ -1249,6 +1263,12 @@ NavierStokesBase::estTimeStep ()
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 
+	//
+	// Viscous forcing - necessary for viscoplastic flow. 
+	//
+	MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1);
+	getViscTerms(visc_terms,Xvel,BL_SPACEDIM,cur_time);
+
     for (MFIter Rho_mfi(rho_ctime); Rho_mfi.isValid(); ++Rho_mfi)
     {
         const int i = Rho_mfi.index();
@@ -1256,7 +1276,6 @@ NavierStokesBase::estTimeStep ()
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
 #ifdef BOUSSINESQ
-        const Real cur_time = state[State_Type].curTime();
         // HACK HACK HACK 
         // THIS CALL IS BROKEN 
         // getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
@@ -1264,10 +1283,8 @@ NavierStokesBase::estTimeStep ()
         tforces.setVal(0.);
 #else
 #ifdef GENGETFORCE
-        const Real cur_time = state[State_Type].curTime();
         getForce(tforces,i,n_grow,Xvel,BL_SPACEDIM,cur_time,rho_ctime[Rho_mfi]);
 #elif MOREGENGETFORCE
-        const Real cur_time = state[State_Type].curTime();
 	if (getForceVerbose)
 	  amrex::Print() << "---" << '\n' 
 			 << "H - est Time Step:" << '\n' 
@@ -1278,6 +1295,10 @@ NavierStokesBase::estTimeStep ()
 #endif		 
 #endif		 
         tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
+		if (variable_vel_visc)
+		{
+		  tforces.minus(visc_terms[Rho_mfi],0,0,BL_SPACEDIM);
+		}
         //
         // Estimate the maximum allowable timestep from the Godunov box.
         //
@@ -1286,9 +1307,9 @@ NavierStokesBase::estTimeStep ()
 
         for (int k = 0; k < BL_SPACEDIM; k++)
         {
-	    u_max[k] = std::max(u_max[k],gr_max[k]);
-	}
-	estdt = std::min(estdt,dt);
+		  u_max[k] = std::max(u_max[k],gr_max[k]);
+		}
+		estdt = std::min(estdt,dt);
     }
 
     ParallelDescriptor::ReduceRealMin(estdt);

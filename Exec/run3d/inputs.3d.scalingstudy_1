@@ -1,57 +1,41 @@
 #*******************************************************************************
-# INPUTS.3D.LID_DRIVEN_CAVITY
+# INPUTS.3D.SCALINGSTUDY_1
 #*******************************************************************************
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step                =  100
+max_step                =  10
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 				=  -1
-
-# Stop simulation when we reach steady-state
-ns.stop_when_steady 	=  1
-ns.steady_tol 			=  1.0e-5
+stop_time 				=  100.0
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 				= 64 64 64
-amr.max_grid_size		= 32
-#amr.grid_eff 			= 0.7
+amr.n_cell 				= 256 256 256
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level			= 0 
-# Interval (in number of level l timesteps) between regridding
-#amr.regrid_int			= 1
 
 #*******************************************************************************
 
 # Verbosity of different modules
-ns.v                    =  1
-amr.v                   =  1
-proj.v 					   =  0
+ns.v                    =  0
+amr.v                   =  0
+proj.v 					=  0
 
 #*******************************************************************************
 
 # Names of checkpoint and plot files
-amr.check_file 			= chk
-amr.plot_file 			   = plt
-
-# Interval (in number of coarse timesteps) between checkpoint and plot files
-amr.check_int			   = 100
-amr.plot_int			   = 10
+amr.checkpoint_files_output = 0
+amr.plot_files_output 		= 0
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : 
 ns.cfl                  =  0.7  
-
-ns.init_shrink          =  0.3  # factor which multiplies the very first time step
-ns.change_max 			   =  1.1
-ns.init_iter          	=  3    # number of initial iterations
 
 #*******************************************************************************
 
@@ -63,16 +47,9 @@ diffuse.use_mlmg_solver =  1
 #*******************************************************************************
 
 # Use variable viscosity?  (0/1)
-ns.variable_vel_visc 	=  1
+ns.variable_vel_visc 	=  0
 # Dynamimc viscosity coefficient
 ns.vel_visc_coef        =  1.0
-# Yield stress threshold
-ns.yield_stress 		=  14.142135623730951
-# Papanastasiou regularisation parameter
-ns.reg_param 			=  0.0025
-# Yield stress threshold
-ns.flow_index 		   	=  1.0
-# Scalar diffusion coefficient
 ns.scal_diff_coefs      =  0.0
 # Forcing term defaults to  rho * abs(gravity) "down"
 ns.gravity 				= 0.0
@@ -80,7 +57,7 @@ ns.gravity 				= 0.0
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 		=  probin.3d.lid_driven_cavity
+amr.probin_file 		=  probin.3d.scalingstudy_1
 
 #*******************************************************************************
 
@@ -88,26 +65,17 @@ amr.probin_file 		=  probin.3d.lid_driven_cavity
 geometry.coord_sys   	=  0
 # Physical position of the low and high ends of the domain
 geometry.prob_lo     	=  0. 0. 0.
-geometry.prob_hi     	=  1. 1. 1.
+geometry.prob_hi     	=  2. 2. 2.
 # BCs periodic in each direction?
-geometry.is_periodic 	=  0 0 0
+geometry.is_periodic 	=  1 1 1
 
 #*******************************************************************************
 
 # Boundary condtision
-ns.lo_bc             	=  5 5 5
-ns.hi_bc             	=  5 5 5
+ns.lo_bc             	=  0 0 0
+ns.hi_bc             	=  0 0 0
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 
 #*******************************************************************************
-
-# Continue from checkpoint 
-#amr.restart 			= 
-
-#*******************************************************************************
-
-# Which derived variables to write to plot files
-amr.plot_vars   	      =  x_velocity y_velocity z_velocity
-amr.derive_plot_vars   	=  stress viscosity

@@ -212,6 +212,11 @@ private:
                                   int  first_scalar,
                                   int  last_scalar);
     //
+    // Calculate Herschel-Bulkley viscosity from velocity distribution
+    //
+    void calcHerschelBulkley (amrex::MultiFab& visc, amrex::Real time); 
+
+    //
     // Define error estimators
     //
     static void error_setup ();
