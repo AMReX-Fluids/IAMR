@@ -104,7 +104,7 @@ ns.hi_bc             	=  5 5 5
 #*******************************************************************************
 
 # Continue from checkpoint 
-#amr.restart 			= /local/data/public/ksk38/RestSteadyCessation/Re1_Bn10_N256/chk00450
+#amr.restart 			= 
 
 #*******************************************************************************
 

@@ -7,10 +7,10 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 50000
+max_step 		= 50
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 		= 5
+stop_time 		= 1.0
 
 # Use the tracer for the refinement criterion
 ns.do_tracer_ref = 1
@@ -18,13 +18,14 @@ ns.do_tracer_ref = 1
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 128 256
-amr.max_grid_size	= 32
+amr.n_cell 		= 16 32 
+amr.n_cell 		= 64 128
+amr.max_grid_size	= 16
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 0 # maximum number of levels of refinement
+amr.max_level		= 1 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -49,12 +50,12 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= 10000
+amr.check_int		= 10 
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 100
+amr.plot_int		= 10
 
 #*******************************************************************************
 
@@ -64,22 +65,12 @@ ns.cfl                  = 0.9  # CFL number used to set dt
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 0.1  # factor which multiplies the very first time step
+ns.init_shrink          = 0.3  # factor which multiplies the very first time step
 
 #*******************************************************************************
 
-# Linear solver settings
-mg.maxiter              = 1000000
-cg.maxiter              = 1000000
-
-#*******************************************************************************
-#
 # Viscosity coefficient 
-ns.variable_vel_visc 	= 1
-ns.vel_visc_coef        = 0.01
-ns.yield_stress      	= 0.0 #0.14142135623730951
-ns.flow_index      		= 0.5
-ns.reg_param         	= 0.0025
+ns.vel_visc_coef        = 0.001
 
 #*******************************************************************************
 
@@ -134,12 +125,11 @@ ns.hi_bc             = 4 4
 #*******************************************************************************
 
 # Factor by which grids must be coarsenable.
-# amr.blocking_factor     = 4
+amr.blocking_factor     = 4
 
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort   diveru   avg_pressure stress viscosity
+amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
 #*******************************************************************************
-#amr.restart = chk10000

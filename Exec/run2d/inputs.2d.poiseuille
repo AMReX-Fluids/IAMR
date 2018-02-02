@@ -6,7 +6,7 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 				= 200
+max_step 				= 1000
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= -1
@@ -18,8 +18,8 @@ ns.steady_tol 			= 1.0e-5
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 				= 64 64
-amr.max_grid_size		= 32
+amr.n_cell 				= 32 32  
+amr.max_grid_size		= 16
 
 #*******************************************************************************
 
@@ -38,24 +38,18 @@ amr.v                   = 1
 
 #*******************************************************************************
 
-# Set options for linear solvers
-mg.maxiter              = 1000000
-cg.maxiter              = 1000000
-
-#*******************************************************************************
-
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
 amr.check_int			= -1
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int			= 1
+amr.plot_int			= 10
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
-ns.cfl                  = 0.1  # CFL number used to set dt
+ns.cfl                  = 0.5  # CFL number used to set dt
 
 #*******************************************************************************
 
@@ -64,15 +58,8 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 
 #*******************************************************************************
 
-# Enable variable viscosity
-ns.variable_vel_visc    = 1
-ns.yield_stress         = 0.424264
-ns.reg_param            = 0.001
-
 # Viscosity coefficient 
 ns.vel_visc_coef        = 1.0
-
-ns.be_cn_theta 			= 0.5
 
 #*******************************************************************************
 
