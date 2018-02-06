@@ -372,6 +372,11 @@ c
 
       do i = imin,imax+1
          do j = jmin-1,jmax+1
+            if (i.eq.0 .AND. j.eq.26) then
+               write(*,*)"ulo ",ulo(i,j)
+               write(*,*)"uhi ",uhi(i,j)
+            endif
+
             uad = merge(ulo(i,j),uhi(i,j),(ulo(i,j)+uhi(i,j)) .ge. 0.0d0)
             ltm = ulo(i,j) .le. zero  .and.  uhi(i,j) .ge. zero
             ltm = ltm .or. (abs(ulo(i,j)+uhi(i,j)) .lt. eps)
@@ -421,6 +426,10 @@ c
 
       do i = imin-1,imax+1
          do j = jmin,jmax+1
+            if (i.eq.0 .AND. j.eq.26) then
+               write(*,*)"vlo ",vlo(i,j)
+               write(*,*)"vhi",vhi(i,j)
+            endif
             vad = merge(vlo(i,j),vhi(i,j),(vlo(i,j)+vhi(i,j)) .ge. 0.0d0)
             ltm = vlo(i,j) .le. zero  .and.  vhi(i,j) .ge. zero
             ltm = ltm .or. (abs(vlo(i,j)+vhi(i,j)) .lt. eps)
@@ -522,6 +531,39 @@ c
             do j = jmin-1,jmax+1
                xlo(i,j) = s(i-1,j) + (half - dthx*u(i-1,j))*sx(i-1,j)
                xhi(i,j) = s(i  ,j) - (half + dthx*u(i  ,j))*sx(i  ,j)
+C     FIXME
+C               if ( i .eq. 12 .AND. j .eq. 172) then
+C                  write(*,*)'sx (i-1,j-1)  (i,j-1)  (i+1,j-1) '
+C                  write(*,*)sx(i-1,j-1),  sx(i,j-1), sx(i+1,j-1) 
+C                  write(*,*)'sx (i-1,j)  (i,j) ' 
+C(i+1,j) '
+C                  write(*,*)sx(i-1,j),  sx(i,j)
+C                  , sx(i+1,j) 
+c$$$                  write(*,*)'sx (i-1,j+1)  (i,j+1)  (i+1,j+1) '
+c$$$                  write(*,*)sx(i-1,j+1),  sx(i,j+1), sx(i+1,j+1) 
+c$$$
+c$$$                  write(*,*)'sy (i-1,j-1)  (i,j-1)  (i+1,j-1) '
+c$$$                  write(*,*)sy(i-1,j-1),  sy(i,j-1), sy(i+1,j-1) 
+c$$$                  write(*,*)'sy (i-1,j)  (i,j)  (i+1,j) '
+c$$$                  write(*,*)sy(i-1,j),  sy(i,j), sy(i+1,j) 
+c$$$                  write(*,*)'sy (i-1,j+1)  (i,j+1)  (i+1,j+1) '
+c$$$                  write(*,*)sy(i-1,j+1),  sy(i,j+1), sy(i+1,j+1) 
+c$$$
+c$$$                  write(*,*)'slxscr (i-1,j-1)  (i,j-1)  (i+1,j-1) '
+c$$$                  write(*,*)slxscr(i-1,j-1),  slxscr(i,j-1), slxscr(i+1,j-1) 
+c$$$                  write(*,*)'slxscr (i-1,j)  (i,j)  (i+1,j) '
+c$$$                  write(*,*)slxscr(i-1,j),  slxscr(i,j), slxscr(i+1,j) 
+c$$$                  write(*,*)'slxscr (i-1,j+1)  (i,j+1)  (i+1,j+1) '
+c$$$                  write(*,*)slxscr(i-1,j+1),  slxscr(i,j+1), slxscr(i+1,j+1) 
+c$$$
+c$$$                  write(*,*)'slyscr (i-1,j-1)  (i,j-1)  (i+1,j-1) '
+c$$$                  write(*,*)slyscr(i-1,j-1),  slyscr(i,j-1), slyscr(i+1,j-1) 
+c$$$                  write(*,*)'slyscr (i-1,j)  (i,j)  (i+1,j) '
+c$$$                  write(*,*)slyscr(i-1,j),  slyscr(i,j), slyscr(i+1,j) 
+c$$$                  write(*,*)'slyscr (i-1,j+1)  (i,j+1)  (i+1,j+1) '
+c$$$                  write(*,*)slyscr(i-1,j+1),  slyscr(i,j+1), slyscr(i+1,j+1) 
+C               endif
+C               
             end do
          end do
       end if
@@ -545,6 +587,12 @@ c
             fu  = merge(zero,one,abs(uad(i,j)).lt.eps)
             stx = merge(xlo(i,j),xhi(i,j),uad(i,j) .ge. 0.0d0)
             xlo(i,j) = fu*stx + (one - fu)*half*(xhi(i,j)+xlo(i,j))
+C FIXME            
+C           if ( i .eq. 12 .AND. j .eq. 173) then
+C              write(*,*)'uad ', uad(i,j)
+C              write(*,*)'xlo ', xlo(i,j)
+C              write(*,*)'xhi ', xhi(i,j)
+C           endif
          end do
       end do
 
@@ -560,6 +608,12 @@ c
             do i = imin-1,imax+1
                ylo(i,j) = s(i,j-1) + (half - dthy*v(i,j-1))*sy(i,j-1)
                yhi(i,j) = s(i,j  ) - (half + dthy*v(i,j  ))*sy(i,j  )
+C     FIXME
+C              if ( i .eq. 12 .AND. j .eq. 172) then
+C                 write(*,*)'sy (i,j-1) (i,j)'
+C                 write(*,*)sy(i,j-1),sy(i,j)
+C              endif
+C               
             end do
          end do
       end if
@@ -583,6 +637,12 @@ c
             fv  = merge(zero,one,abs(vad(i,j)).lt.eps)
             sty = merge(ylo(i,j),yhi(i,j),vad(i,j) .ge. 0.0d0)
             ylo(i,j) = fv*sty + (one - fv)*half*(yhi(i,j)+ylo(i,j))
+C FIXME            
+C            if ( i .eq. 2 .AND. j .eq. 6) then
+C               write(*,*)'vad ',vad(i,j)
+C               write(*,*)'ylo yhi', ylo(i,j),yhi(i,j)
+C            endif
+
          end do
       end do
 c
@@ -609,6 +669,12 @@ c
                   stxhi(i  ) = s(i,j) - (half+dthx*u(i,j))*sx(i,j)
      &                 - dth*tr
      &                 + dth*tforces(i,j)
+C     FIXME
+C              if ( i .eq. 12 .AND. j .eq. 172) then
+C                 write(*,*)'tr ',tr
+C                 write(*,*)'stxlo, stxhi ',stxlo(i+1),stxhi(i)
+C              endif
+C               
                end if
             end do
 
@@ -688,12 +754,24 @@ c     prevent backflow
                   ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
                   stx = merge(stxlo(i),stxhi(i),(stxlo(i)+stxhi(i)) .ge. 0.0d0)
                   xstate(i,j) = merge(zero,stx,ltx)
+C     FIXME
+C              if ( i .eq. 12 .AND. j .eq. 172) then
+C                 write(*,*)' velpred', velpred
+C                 write(*,*)'xstate ',xstate(i,j)
+C              endif
+C               
                end do
             else
                do i = imin, imax+1
                   xstate(i,j) = merge(stxlo(i),stxhi(i),uedge(i,j) .ge. 0.0d0)
                   xstate(i,j) = merge(half*(stxlo(i)+stxhi(i)),xstate(i,j),
      &                 abs(uedge(i,j)).lt.eps)
+C     FIXME
+c$$$              if ( i .eq. 12 .AND. j .eq. 172) then
+c$$$                 write(*,*)' velpred', velpred
+c$$$                 write(*,*)'xstate ',xstate(i,j)
+c$$$              endif
+C               
                end do
             end if
             place_to_break = 1
@@ -724,6 +802,14 @@ c
      &                 - dth*tr
      &                 + dth*tforces(i,j)
                end if
+Cfixme
+c$$$               if ( i .eq. 12 .AND. j .eq. 172) then
+c$$$                  write(*,*)'tr ',tr
+c$$$                  write(*,*)'s,v ', s(i,j), v(i,j)
+c$$$                  write(*,*)'sy, tforces ',sy(i,j), tforces(i,j)
+c$$$                 write(*,*)'stylo, styhi ',stylo(j+1),styhi(j)
+c$$$              endif
+
             end do
 
             if (bc(2,1).eq.EXT_DIR .and. velpred .eq. 1) then
@@ -1258,7 +1344,7 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-c
+c     
 c     if nonconservative initialize the advective tendency as -U*grad(S)
 c
       if ( iconserv .ne. 1 ) then
@@ -1273,6 +1359,12 @@ c
                aofs(i,j) =
      &              - divux*half*(xflux(i+1,j) + xflux(i,j))
      &              - divuy*half*(yflux(i,j+1) + yflux(i,j))
+               if ( i .eq. 0 .AND. j .eq. 26) then
+                  write(*,*)'divux divuy '
+                  write(*,*) divux, divuy
+                  write(*,*) xflux(i+1,j), xflux(i,j)
+                  write(*,*) yflux(i,j+1), yflux(i,j)
+               endif
             end do
          end do
       end if
@@ -1298,6 +1390,21 @@ c
                aofs(i,j) = aofs(i,j) + (
      &              xflux(i+1,j) - xflux(i,j) +
      &              yflux(i,j+1) - yflux(i,j))/vol(i,j)
+c$$$               if ( i .eq. 0 .AND. j .eq. 0) then
+c$$$                  write(*,*) 'iconserv ne 1'
+c$$$                  write(*,*)'vol ', vol(i,j)
+c$$$                  write(*,*)
+c$$$                  write(*,*) 'aofs ', aofs(i,j)
+c$$$                  write(*,*)
+c$$$  endif
+               if ( i .eq. 0 .AND. j .eq. 26) then
+                  write(*,*)'aofs ', aofs(i,j)
+                  write(*,*) 'fluxes'
+                  write(*,*) xflux(i+1,j), xflux(i,j)
+                  write(*,*) yflux(i,j+1), yflux(i,j)
+               endif
+
+               if (isnan(aofs(i,j))) stop
             end do
          end do
       else
@@ -1306,6 +1413,11 @@ c
                aofs(i,j) = (
      &              xflux(i+1,j) - xflux(i,j) +
      &              yflux(i,j+1) - yflux(i,j))/vol(i,j)
+c$$$               if ( i .eq. 0 .AND. j .eq. 0) then
+c$$$                  write(*,*) 'iconserv eq 1'
+c$$$                  write(*,*)'vol ', vol(i,j)
+c$$$               endif
+               if (isnan(aofs(i,j))) stop
             end do
          end do
       end if
@@ -1599,7 +1711,30 @@ c
       REAL_T dpls,dmin,ds
       REAL_T del,slim,sflg
 
+
+C     make sure we have enough "ghost" cells. must determine ng
+C     in this way to cover the case of tiling where (lo:hi) is only
+C     a portion of the box s is defined on
       ng = lo(1) - ARG_L1(s)
+      if (slope_order .eq.1) then
+         if (ng .lt. 1) then
+            call bl_abort('FORT_SLOPES: too few bndry cells for  
+     &first order')
+         endif
+         ng = 1
+      else if (slope_order .eq. 2) then
+         if (ng .lt. 2) then
+            call bl_abort("SLOPE_2D: not enough bndry cells for 
+     &2nd order")
+         endif
+         ng = 2
+      else
+         if (ng .lt. 3) then
+            call bl_abort("SLOPE_2D: not enough bndry cells for 
+     &4th order")
+         end if
+         ng = 3
+      endif
 
       imin = lo(1)
       jmin = lo(2)
@@ -1610,16 +1745,15 @@ c ::: ::::: added to prevent underflow for small s values
 c
       do j = lo(2)-ng, hi(2)+ng
         do i = lo(1)-ng, hi(1)+ng
-	  s(i,j) = merge(s(i,j), zero, abs(s(i,j)).gt.1.0D-20)
-        end do
+           s(i,j) = merge(s(i,j), zero, abs(s(i,j)).gt.1.0D-20)
+C     FIXME
+C          if ( i .eq. 0 .AND. j .eq. 0) write(*,*)i,j,':',s(i,j)
+       end do
       end do
 c
 c     COMPUTE 0TH order slopes
 c
       if (slope_order.eq.1) then
-        if (ng .lt. 1) then
-	   call bl_abort("FORT_SLOPES: not enough bndry cells for 1st order")
-        end if
         do j = jmin-1,jmax+1
            do i = imin-1,imax+1
               slx(i,j) = zero
@@ -1631,9 +1765,6 @@ c
 c     COMPUTE 2nd order slopes
 c
       if (slope_order.eq.2) then
-         if (ng .lt. 2) then
-            call bl_abort("SLOPE_2D: not enough bndry cells for 2nd order")
-         end if
 c
 c     ------------------------ x slopes
 c
@@ -1760,9 +1891,6 @@ c
 c     COMPUTE 4TH order slopes
 c
       if (slope_order.eq.4) then
-         if (ng .lt. 3) then
-            call bl_abort("SLOPE_2D: not enough bndry cells for 4th order")
-         end if
 c         
 c     ------------------------ x slopes
 c

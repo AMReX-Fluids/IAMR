@@ -319,6 +319,7 @@ Godunov::Setup (const Box& grd, const Real* dx, Real dt, int velpred,
     Setup(grd,dx,dt,velpred,
           D_DECL(xflux,yflux,zflux), D_DECL(ubc,vbc,wbc),
           D_DECL(U,U,U), D_DECL(0,1,2), tforces,0);
+
 }
 
 void
@@ -333,7 +334,7 @@ Godunov::Setup (const Box& grd, const Real* dx, Real dt, int velpred,
 
     if (!velpred)
         AllocEdgeBoxes(grd,D_DECL(xflux,yflux,zflux));
-
+    
     ComputeTransverVelocities(grd,dx,dt,D_DECL(ubc,vbc,wbc),D_DECL(U,V,W),
                               D_DECL(Ucomp,Vcomp,Wcomp),tforces,Tcomp);
 }
@@ -941,6 +942,46 @@ Godunov::ComputeAofs (const Box& grd,
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
 
+    // IntVect loc;
+    // bool foundNAN=0;
+
+    // if (areax.contains_nan(loc)){
+    //   Print()<<"areax has NAN, location "<<loc<<"\n";
+    //   foundNAN=1;
+    // }
+    // if (areay.contains_nan(loc)){
+    //   Print()<<"areay has NAN, location "<<loc<<"\n";
+    //   foundNAN=1;
+    // }
+    // if (uedge.contains_nan(loc)){
+    //   Print()<<"uedge has NAN, location "<<loc<<"\n";
+    //   foundNAN=1;
+    // }
+    // if (vedge.contains_nan(loc)){
+    //   Print()<<"vedge has NAN, location "<<loc<<"\n";
+    //   foundNAN=1;
+    // }
+    // if (xflux.contains_nan(loc)){
+    //   Print()<<"xflux has NAN, location "<<loc<<"\n";
+    //   foundNAN=1;
+    // }
+    // if (yflux.contains_nan(loc)){
+    //   Print()<<"yflux has NAN, location "<<loc<<"\n";
+    //   foundNAN=1;
+    // }
+    // if (vol.contains_nan(loc)){
+    //   Print()<<"vol has NAN, location "<<loc<<"\n";
+    //   foundNAN=1;
+    // }
+    // if (foundNAN) exit(0);
+
+    // Print()<<"\n \n aofs hi lo: \n";
+    // Print()<< (aofs.loVect())[0]<<" "<<(aofs.loVect())[1]<<"\n";
+    // Print()<< (aofs.hiVect())[0]<<" "<<(aofs.hiVect())[1]<<"\n";
+    // Print()<<"lo hi \n";
+    // Print()<<lo[0]<<" "<<lo[1]<<" ";
+    // Print()<<hi[0]<<" "<<hi[1]<<"\n";
+    
     FORT_ADV_FORCING( aofs.dataPtr(acomp),ARLIM(aofs.loVect()), ARLIM(aofs.hiVect()),
 
                       xflux.dataPtr(fxcomp), ARLIM(xflux.loVect()), ARLIM(xflux.hiVect()),
@@ -957,6 +998,16 @@ Godunov::ComputeAofs (const Box& grd,
 #endif
                      vol.dataPtr(volcomp), ARLIM(vol.loVect()), ARLIM(vol.hiVect()),
                       lo, hi, &iconserv);
+    //  Print()<<"after adv_forcing..\n";
+    //  if (aofs.contains_nan(loc)){
+    //    Print()<<"aofs_AF has NAN, location "<<loc<<"\n";
+    //    foundNAN=1;
+    //  }
+    // if (foundNAN) exit(0);
+    //    Print()<<"ncomp "<<aofs.nc<<"\n";
+    // IntVect mypt {0,0};
+    // if (aofs.box().contains(mypt))
+    // 	Print()<<"aofs(0,0) "<<aofs(mypt)<<"\n";
 }
 
 //

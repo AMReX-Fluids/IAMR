@@ -1523,6 +1523,8 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 
         FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
 	MultiFab& pMF = P_fpi.get_mf();
+	Print()<<"writing getGP\n";
+	VisMF::Write(pMF,"getGP");
 	
 	for (MFIter mfi(gp, true); mfi.isValid(); ++mfi) 
         {
@@ -2222,8 +2224,13 @@ NavierStokesBase::mac_project (Real      time,
 
     const Real strt_time = ParallelDescriptor::second();
 
+    VisMF::Write(Sold,"soldMP");
+    Print()<<"writing sold after mac projector \n";
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,increment_vel_register);
-
+    VisMF::Write(u_mac[0],"umacxMP");
+    VisMF::Write(u_mac[1],"umacyMP");
+    Print()<<"writing umac after mac projector \n";
+    
     create_umac_grown(ngrow);
 
     if (verbose)
@@ -3352,85 +3359,120 @@ NavierStokesBase::velocity_advection (Real dt)
 
     getGradP(Gp, prev_pres_time);
 
+    VisMF::Write(divu_fp,"divufp");
+    VisMF::Write(Gp,"gp");
+    VisMF::Write(visc_terms,"visc");
+
     FArrayBox flux[BL_SPACEDIM], tforces, S;
 
-    if (do_reflux && level < parent->finestLevel())
+    if (do_reflux)
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
             fluxes[i].define(ba, dmap, BL_SPACEDIM, 0);
+	    // fluxes not originally initialized, maybe worth try for debugging
+	    //fluxes[i].setVal(0.0);
         }
     }
+
+    //FIXME
+    (*aofs).setVal(0.0);
+    MultiFab forceMF(grids,dmap,2,1);
+    forceMF.setVal(0.0);
     //
     // Compute the advective forcing.
     //
-    for (FillPatchIterator
-#ifdef BOUSSINESQ
-             U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel   ,BL_SPACEDIM),
-             S_fpi(*this,visc_terms,       1,prev_time,State_Type,Tracer,1),
-             Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
-         S_fpi.isValid() && U_fpi.isValid() && Rho_fpi.isValid(); 
-         ++S_fpi, ++U_fpi, ++Rho_fpi
-#else
-#ifdef MOREGENGETFORCE
-             U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel   ,BL_SPACEDIM),
-             S_fpi(*this,visc_terms,       1,prev_time,State_Type,Density,NUM_SCALARS),
-             Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
-         S_fpi.isValid() && U_fpi.isValid() && Rho_fpi.isValid(); 
-         ++S_fpi, ++U_fpi, ++Rho_fpi
-#else
-             U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
-             Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
-         U_fpi.isValid() && Rho_fpi.isValid(); 
-         ++U_fpi, ++Rho_fpi
-#endif
-#endif
-	)
-    {
-        const int i = U_fpi.index();
+    {   
+      FillPatchIterator
+	U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
+	Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+      MultiFab& Umf=U_fpi.get_mf();
+      MultiFab& Rmf=Rho_fpi.get_mf();
 
 #ifdef BOUSSINESQ
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+      FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
+      MultiFab& Smf=S_fpi.get_mf();
+#else
+#ifdef MOREGENGETFORCE
+      FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+      MultiFab& Smf=S_fpi.get_mf();
+#endif
+#endif
+      // FIXME -- Check if really need 3 iterators or can do with just Umfi
+      // I think we can do with one, since all fpi's are using visc_terms
+      /*for (MFIter
+#ifdef BOUSSINESQ
+             U_mfi(Umf,true), Rho_mfi(Rmf,true), S_mpi(Smf,true);
+	   S_mfi.isValid() && U_mfi.isValid() && Rho_mfi.isValid(); 
+	   ++S_mfi, ++U_mfi, ++Rho_mfi;
+#else
+#ifdef MOREGENGETFORCE
+	     U_mfi(Umf,true), Rho_mfi(Rmf,true), S_mpi(Smf,true);
+	   S_mfi.isValid() && U_mfi.isValid() && Rho_mfi.isValid(); 
+	   ++S_mfi, ++U_mfi, ++Rho_mfi;
+#else
+	     U_mfi(Umf,true), Rho_mfi(Rmf,true);
+	   U_mfi.isValid() && Rho_mfi.isValid(); 
+	   ++U_mfi, ++Rho_mfi;
+#endif
+#endif
+)*/
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      {
+	const int i = U_mfi.index();
+	
+	// For now, overload getForce so it accepts mfi in place of i=mfi.index()
+	//  thus we leave the mfi.index() version working
+#ifdef BOUSSINESQ
+	//amrex::Print() << "Boussinesq..." << '\n';
+        getForce(tforces,U_mfi,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
+	//amrex::Print() << "genGetForce..." << '\n';
+        getForce(tforces,U_mfi,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
+	//amrex::Print() << "moreGenGetForce" << '\n' ;
 	if (getForceVerbose)
 	{
 	  amrex::Print() << "---" << '\n' 
 			 << "B - velocity advection:" << '\n' 
 			 << "Calling getForce..." << '\n';
 	}
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
+        getForce(tforces,U_mfi,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 #else
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
+	//amrex::Print() << "getForce.." << '\n'; 
+        getForce(tforces,U_mfi,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_fpi],Gp[U_fpi],rho_ptime[U_fpi]);
+        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+	  //FIXME
+	forceMF[U_mfi].copy(tforces,1,1);
 
+	
         D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
                bndry[1] = getBCArray(State_Type,i,1,1);,
                bndry[2] = getBCArray(State_Type,i,2,1);)
 
-        godunov->Setup(grids[i], dx, dt, 0,
+	godunov->Setup(U_mfi.tilebox(), dx, dt, 0,
                        flux[0], bndry[0].dataPtr(), flux[1], bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                          
                        flux[2], bndry[2].dataPtr(),
 #endif
-                       U_fpi(),rho_ptime[U_fpi],tforces);
+                       Umf[U_mfi],rho_ptime[U_mfi],tforces);
+	
         //
         // Loop over the velocity components.
         //
-        S.resize(U_fpi().box(),BL_SPACEDIM);
-        S.copy(U_fpi(),0,0,BL_SPACEDIM);
+        S.resize(grow(U_mfi.tilebox(),Godunov::hypgrow()),BL_SPACEDIM); 
+        S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
+		
+        FArrayBox& divufab = divu_fp[U_mfi];
+        FArrayBox& aofsfab = (*aofs)[U_mfi];
 
-        FArrayBox& divufab = divu_fp[U_fpi];
-        FArrayBox& aofsfab = (*aofs)[U_fpi];
-
-        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_fpi];,
-               FArrayBox& u_mac_fab1 = u_mac[1][U_fpi];,
-               FArrayBox& u_mac_fab2 = u_mac[2][U_fpi];);
+        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
+               FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
+               FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
 
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
@@ -3438,40 +3480,153 @@ NavierStokesBase::velocity_advection (Real dt)
 
             if (do_mom_diff == 1)
             {
-                S.mult(Rho_fpi(),S.box(),S.box(),0,comp,1);
-                tforces.mult(rho_ptime[U_fpi],tforces.box(),tforces.box(),0,comp,1);
+                S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
+                tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
             }
 
-            godunov->AdvectState(grids[i], dx, dt, 
+	    // FIXME are area and volume screwed up with the switch to tiles?
+	    // Print()<<"AdvectState...\n";
+	    // Print()<<"tilebox "<<U_mfi.tilebox()<<"\n";
+	    // Print()<<"Box "<<U_mfi.validbox()<<"\n";
+
+	    //IntVect loc;
+	    //bool foundNAN;
+	    /*	    if(u_mac_fab0.contains_nan(loc) ){
+	      Print()<<"u_mac0 has NAN, location "<<loc<<"\n";
+	      foundNAN=1;
+	    }
+	    if(u_mac_fab1.contains_nan(loc) )
+	      Print()<<"u_mac1 has NAN, location "<<loc<<"\n";
+	    if(area[0][i].contains_nan(loc))
+	      Print()<<"area0 has NAN, location "<<loc<<"\n";
+	    if(area[1][i].contains_nan(loc))
+	      Print()<<"area1 has NAN, location "<<loc<<"\n";
+	    if(S.contains_nan(loc))
+	      Print()<<"S has NAN, location "<<loc<<"\n";
+	    */
+	    //if(tforces.contains_nan(loc))
+	    // Print()<<"tforces has NAN, location "<<loc<<"\n";
+	    /*if(divufab.contains_nan(loc))
+	      Print()<<"divufab has NAN, location "<<loc<<"\n";
+	    //	    if(aofsfab.contains_nan(loc))
+	    //Print()<<"aofsfab has NAN, location "<<loc<<"\n";
+	    */
+	    godunov->AdvectState(U_mfi.tilebox(), dx, dt, 
                                  area[0][i], u_mac_fab0, flux[0],
                                  area[1][i], u_mac_fab1, flux[1],
 #if (BL_SPACEDIM == 3)                       
                                  area[2][i], u_mac_fab2, flux[2],
 #endif
-                                 U_fpi(), S, tforces, divufab, comp,
+                                 Umf[U_mfi], S, tforces, divufab, comp,
                                  aofsfab,comp,use_conserv_diff,
                                  comp,bndry[comp].dataPtr(),PRE_MAC,volume[i]);
+		    //FIXME debugging
+	    // IntVect mypt {0,0};
+	    // if (aofsfab.box().contains(mypt)){
+	    //   Print()<<"aofsfab(0,0) "<<aofsfab(mypt)<<"\n";
+	    //   Print()<<"(*aofs)(0,0) "<<(*aofs)[U_mfi](mypt)<<"\n";
+	    // }
+	    /*	std :: ofstream ofs ( "area.txt" , std::ofstream::out | std::ofstream::app );
+	Print(ofs)<<area[0][i];
+	std :: ofstream ofs2 ( "flux0.txt" , std::ofstream::out | std::ofstream::app );
+	Print(ofs2)<<flux[0];
+	std :: ofstream ofs3 ( "flux1.txt" , std::ofstream::out | std::ofstream::app );
+	Print(ofs3)<<flux[1];
+	std :: ofstream ofs4 ( "umac0.txt" , std::ofstream::out | std::ofstream::app );
+	Print(ofs4)<<u_mac_fab0;
+	std :: ofstream ofs5 ( "umac1.txt" , std::ofstream::out | std::ofstream::app );
+	Print(ofs5)<<u_mac_fab1;
+	    */
+	    // std :: ofstream ofs2 ( "aofs.txt" , std::ofstream::out | std::ofstream::app );
+	    // Print(ofs2)<<aofsfab;
+	    //Print()<<"after call ...\n";
+	    /*	    if(u_mac_fab0.contains_nan(loc) )
+	      Print()<<"u_mac0 has NAN, location "<<loc<<"\n";
+	    if(u_mac_fab1.contains_nan(loc) )
+	    Print()<<"u_mac1 has NAN, location "<<loc<<"\n";*/
+	    // if(flux[0].contains_nan(loc)) 
+	    //   Print()<<"flux0 has NAN, location "<<loc<<"\n";
+	    // if(flux[1].contains_nan(loc))
+	    //   Print()<<"flux1 has NAN, location "<<loc<<"\n";
+	    /*If(Area[0][i].contains_nan(loc))
+	      Print()<<"area0 has NAN, location "<<loc<<"\n";
+	    if(area[1][i].contains_nan(loc))
+	      Print()<<"area1 has NAN, location "<<loc<<"\n";
+	    if(S.contains_nan(loc))
+	    Print()<<"S has NAN, location "<<loc<<"\n";*/
+	    // if(tforces.contains_nan(loc)) 
+	    //   Print()<<"tforces has NAN, location "<<loc<<"\n";
+	      //    if(divufab.contains_nan(loc))
+	      // Print()<<"divufab has NAN, location "<<loc<<"\n";
+	    //if(aofsfab.contains_nan(loc))
+	    //Print()<<"aofsfab has NAN, location "<<loc<<"\n";
+	      //exit(0);
+	    //
+
             if (do_reflux)
             {
-                if (level < parent->finestLevel())
-                {
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                        fluxes[d][U_fpi].copy(flux[d],0,comp,1);
-                }
-                if (level > 0)
-                {
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                        advflux_reg->FineAdd(flux[d],d,i,0,comp,1,dt);
-                }
+	        for (int d = 0; d < BL_SPACEDIM; d++)
+		  fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
+					U_mfi.nodaltilebox(d),comp,1);
             }
 
         }
-    }
+      } // end of MFIter
+          VisMF::Write(*aofs,"aofsVA");
+	  VisMF::Write(forceMF,"force");
+	  // for (int d = 0; d < BL_SPACEDIM; d++)
+	  //   VisMF::Write(fluxes[d],"flux"+char(d));
+	  // std::string name2="aofs_old";
+	  // std::cout << "Reading " << name2 << std::endl;
+	  // MultiFab mf2;
+	  // VisMF::Read(mf2, name2);
+	  // MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
 
-    if (do_reflux && level < finest_level)
+	  // MultiFab::Copy(mfdiff, *aofs, 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+	  // mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+	  // for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	  //   std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+	  // 	      << " and " << mfdiff.max(icomp,mf2.nGrow());
+	  //   if (mfdiff.nComp() > 1) {
+	  //     std::cout << " for component " << icomp;
+	  //   }
+	  //   std::cout << "." << std::endl;
+	  // }
+	  
+	  // std::cout << "Writing mfdiff" << std::endl;
+	  // VisMF::Write(mfdiff, "mfdiff");
+
+    } // end scope of FillPatchIterator  
+    // Print()<<"finished advect vel..\n";
+    // for (MFIter mfi(*aofs); mfi.isValid(); ++mfi)
+    //   {
+    // 	IntVect loc2;
+    // 	if((*aofs)[mfi].contains_nan(loc2)){
+    // 	  // Print()<<"Box "<<mfi.validbox()<<"\n";
+    // 	  Print()<<"Box "<<(*aofs)[mfi].box()<<"\n";
+    // 	  Print()<<"  aofsMF  has NAN "<<loc2<<"\n";
+    // 	  //IntVect mypt {0,0};
+    // 	  //if ((*aofs)[mfi].box().contains(mypt))
+    // 	  Print()<<"*aofs "<<loc2<<":"<<(*aofs)[mfi](loc2)<<"\n";
+    
+    // 	}
+    //   }
+    // exit(0);
+    if (do_reflux)
     {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-            getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
+        if (level > 0 )
+	{
+	  //Print()<<"doing FineAdd..\n";
+	  for (int d = 0; d < BL_SPACEDIM; d++)
+	      advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
+	}
+        if(level < finest_level)
+	{
+	  //Print()<<"doing CrseInit..\n";
+	    for (int i = 0; i < BL_SPACEDIM; i++)
+	      getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
+	}
     }
 }
 
@@ -3514,6 +3669,9 @@ NavierStokesBase::velocity_update (Real dt)
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
+    //FIXME
+    VisMF::Write(S_new,"vnew");
+
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
@@ -3535,11 +3693,25 @@ NavierStokesBase::velocity_advection_update (Real dt)
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
 
+    //fixme
+    Print()<<"Start of velocity advection update... \n";
+    for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
+    {
+       if (U_old.contains_nan(sigma,1,0))
+       {
+	 amrex::Print() << "Old velocity " << sigma << " contains Nans" << '\n';
+       }
+       if (U_new.contains_nan(sigma,1,0))
+       {
+	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+       }
+    }
+    //
+    
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
-
+    
     MultiFab& halftime = get_rho_half_time();
-
     for (MFIter Rhohalf_mfi(halftime); Rhohalf_mfi.isValid(); ++Rhohalf_mfi)
     {
         const int i = Rhohalf_mfi.index();
@@ -3633,6 +3805,25 @@ NavierStokesBase::velocity_advection_update (Real dt)
                 U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],grids[i],grids[i],0,d,1);
         }
     }
+    //fixme
+    Print()<<"end of velocity advection update... \n";
+    for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
+    {
+       if (U_old.contains_nan(sigma,1,0))
+       {
+	 amrex::Print() << "Old velocity " << sigma << " contains Nans" << '\n';
+       }
+       if (U_new.contains_nan(sigma,1,0))
+       {
+	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+       }
+    }
+
+    VisMF::Write(U_new,"unewVAU");
+    VisMF::Write(Aofs,"aofsVAU");
+    VisMF::Write(Gp,"gpVAU");
+
+
 }
 
 void
