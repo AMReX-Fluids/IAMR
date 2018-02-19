@@ -170,6 +170,12 @@ public:
     // Get pressure gradient data via fill-patching.
     //
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
+    //
+    // Boundary condition access functions.
+    //
+    amrex::Vector<int> fetchBCArray (int State_Type, amrex::Box& bx,
+			           int scomp, int ncomp);
+
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
@@ -212,7 +218,7 @@ protected:
 		   const amrex::Real       time,
                    const amrex::FArrayBox& Scal);
     void getForce (amrex::FArrayBox&       force,
-		   amrex::MFIter&    mfi,
+		   amrex::Box&      bx,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
@@ -230,7 +236,7 @@ protected:
                    const amrex::FArrayBox& Scal,
 		   int              scalScomp);
     void getForce (amrex::FArrayBox&       force,
-		   amrex::MFIter&    mfi,
+		   amrex::Box&      bx,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
@@ -249,7 +255,7 @@ protected:
                    const amrex::FArrayBox& Rho,
                    int              RComp = 0);
   void getForce (amrex::FArrayBox&       force,
-		   amrex::MFIter&    mfi,
+		   amrex::Box&      bx,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
@@ -265,7 +271,7 @@ protected:
                    const amrex::FArrayBox& Rho,
                    int              RComp = 0);
   void getForce (amrex::FArrayBox&       force,
-		   amrex::MFIter&    mfi,
+		   amrex::Box&      bx,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
