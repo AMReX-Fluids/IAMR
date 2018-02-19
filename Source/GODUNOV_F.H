@@ -153,10 +153,10 @@ extern "C"
 		       const amrex::Real* tforcedat, int* ppm_type);
    
    void FORT_ESTATE(const amrex::Real* s_dat, const amrex::Real* tfr_dat, 
-		    ARLIM_P(s_lo),ARLIM_P(s_hi),
-		    const amrex::Real* u_dat, const amrex::Real* xlo_dat, 
-		    const amrex::Real* xhi_dat, const amrex::Real* slx_dat, 
-		    const amrex::Real* uad_dat,
+		    ARLIM_P(s_lo), ARLIM_P(s_hi),
+		    const amrex::Real* u_dat, ARLIM_P(u_lo),ARLIM_P(u_hi),
+		    const amrex::Real* xlo_dat, const amrex::Real* xhi_dat,
+		    const amrex::Real* slx_dat, const amrex::Real* uad_dat,
 		    amrex::Real* slxscr, amrex::Real* stxlo, amrex::Real* stxhi,
 		    const amrex::Real* uedge_dat, ARLIM_P(ue_lo), ARLIM_P(ue_hi),
                     const amrex::Real* stx,       ARLIM_P(stx_lo),ARLIM_P(stx_hi), amrex::Real* Imx, amrex::Real* Ipx,

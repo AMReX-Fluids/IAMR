@@ -650,7 +650,8 @@ c
 
       subroutine FORT_ESTATE(s, tforces, DIMS(s),
 
-     &     u, xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
+     &     u, DIMS(u),
+     &     xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
      &     uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),
 
      &     v, ylo, yhi, sy, vad, slyscr, stylo, styhi,
@@ -687,6 +688,7 @@ c
       PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
       integer DIMDEC(s)
+      integer DIMDEC(u)
       integer DIMDEC(work)
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
@@ -702,9 +704,9 @@ c
       integer DIMDEC(smp)
 
       REAL_T s(DIMV(s))
-      REAL_T u(DIMV(s))
-      REAL_T v(DIMV(s))
-      REAL_T w(DIMV(s))
+      REAL_T u(DIMV(u))
+      REAL_T v(DIMV(u))
+      REAL_T w(DIMV(u))
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
       REAL_T stzlo(DIM3(s)),stzhi(DIM3(s)),slzscr(DIM3(s),4) 
@@ -3898,7 +3900,31 @@ c
       PARAMETER( sixteen15ths = sixteen/fifteen )
 
 
+C
+C     Determine ng in a way that covers the case of tiling where
+C     (lo:hi) is only a portion of the box s is defined on.
+C
       ng = lo(1) - ARG_L1(s)
+      if (slope_order .eq.1) then
+         if (ng .lt. 1) then
+            call bl_abort('FORT_SLOPES: too few bndry cells for  
+     &first order')
+         endif
+         ng = 1
+      else if (slope_order .eq. 2) then
+         if (ng .lt. 2) then
+            call bl_abort("SLOPE_2D: not enough bndry cells for 
+     &2nd order")
+         endif
+         ng = 2
+      else
+         if (ng .lt. 3) then
+            call bl_abort("SLOPE_2D: not enough bndry cells for 
+     &4th order")
+         end if
+         ng = 3
+      endif
+
       imin = lo(1)
       jmin = lo(2)
       kmin = lo(3)
@@ -3921,9 +3947,6 @@ c
 c     COMPUTE 0TH order slopes
 c
       if (slope_order.eq.1) then
-       if (ng .lt. 1) then
-       call bl_abort("FORT_SLOPES: not enough bndry cells for 1st order")
-       end if
          do k = kmin-1, kmax+1
             do j = jmin-1, jmax+1 
                do i = imin-1, imax+1
@@ -3939,9 +3962,6 @@ c
 c     COMPUTE 2ND order slopes
 c
       if (slope_order.eq.2) then
-        if (ng .lt. 2) then
-	   call bl_abort("FORT_SLOPES: not enough bndry cells for 2nd order")
-        end if
 c
 c     ------------------------ x slopes
 c
@@ -4124,9 +4144,6 @@ c
 c     COMPUTE 4TH order slopes
 c
       if (slope_order.eq.4)then
-        if (ng .lt. 3) then
-	   call bl_abort("SLOPE_3D: not enough bndry cells for 4th order")
-        end if
 c
 c     ------------------------ x slopes
 c
