@@ -65,14 +65,14 @@ NavierStokesBase::getForce (FArrayBox&       force,
 // create second version that takes MFIter as a parameter
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    MFIter&           mfi,
+			    Box&             bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,
 			    const Real       time,
 			    const FArrayBox& Scal)
 {
-  force.resize(grow(mfi.tilebox(),ngrow),ncomp);
+  force.resize(grow(bx,ngrow),ncomp);
 
     if (scomp == Xvel && ncomp == BL_SPACEDIM)
     {
@@ -88,7 +88,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
        const int*  s_lo     = Scal.loVect();
        const int*  s_hi     = Scal.hiVect();
    
-       RealBox gridloc = RealBox(force.box(),geom.CellSize(),geom.ProbLo());
+       RealBox gridloc = RealBox(bx,geom.CellSize(),geom.ProbLo());
 
        const Real* ScalDataPtr = Scal.dataPtr(0);
        FORT_MAKEFORCE (force.dataPtr(), ScalDataPtr,
@@ -139,7 +139,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    MFIter&           mfi,
+			    Box&             bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,
@@ -149,11 +149,11 @@ NavierStokesBase::getForce (FArrayBox&       force,
 {
     BL_ASSERT(Rho.nComp() == 1);
 
-    force.resize(grow(mfi.tilebox(),ngrow),ncomp);
+    force.resize(grow(bx,ngrow),ncomp);
 
     BL_ASSERT(Rho.box().contains(force.box()));
 
-    RealBox     gridloc = RealBox(force.box(),geom.CellSize(),geom.ProbLo());
+    RealBox     gridloc = RealBox(bx,geom.CellSize(),geom.ProbLo());
     const Real* dx      = geom.CellSize();
     const Real  grav    = gravity;
     const int*  s_lo    = Rho.loVect();
@@ -363,7 +363,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    MFIter&           mfi,
+			    Box&             bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,
@@ -391,7 +391,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
     }
 
-    force.resize(grow(mfi.tilebox(),ngrow),ncomp);
+    force.resize(grow(bx,ngrow),ncomp);
 
     const Real* VelDataPtr  = Vel.dataPtr();
     const Real* ScalDataPtr = Scal.dataPtr(scalScomp);
@@ -494,7 +494,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 			 << " / " << scalmax[n] << std::endl;
     }
 
-    RealBox gridloc = RealBox(force.box(),geom.CellSize(),geom.ProbLo());
+    RealBox gridloc = RealBox(bx,geom.CellSize(),geom.ProbLo());
     
     // Here's the meat
     FORT_MAKEFORCE (&time,
@@ -589,7 +589,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 }
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    MFIter&           mfi,
+			    Box&             bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,
@@ -598,7 +598,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 {
     BL_ASSERT(Rho.nComp() > RComp);
 
-    force.resize(amrex::grow(mfi.tilebox(),ngrow),ncomp);
+    force.resize(amrex::grow(bx,ngrow),ncomp);
 
     BL_ASSERT(Rho.box().contains(force.box()));
 
