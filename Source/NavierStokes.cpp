@@ -431,6 +431,23 @@ NavierStokes::predict_velocity (Real  dt,
     
     FArrayBox null_fab;
 
+//     FillPatchIterator
+//       U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+// #ifdef BOUSSINESQ
+//     FillPatchIterator
+//       S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
+// #else
+// #ifdef MOREGENGETFORCE
+//      FillPatchIterator
+//        S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+// #endif
+// #endif
+//      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+//      {
+//        const int i = U_mfi.index();
+//        Box bx=U_mfi.tilebox();
+
+    
     for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),
                                  prev_time,State_Type,Xvel,BL_SPACEDIM)
 #ifdef BOUSSINESQ
@@ -706,7 +723,7 @@ NavierStokes::scalar_advection (Real dt,
 
     delete divu_fp;
 
-    if (do_reflux && level < parent->finestLevel())
+    if (do_reflux)
     {
       if (level > 0 )
 	{
