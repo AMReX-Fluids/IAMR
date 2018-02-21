@@ -542,17 +542,15 @@ NavierStokes::scalar_advection (Real dt,
 
     MultiFab Gp, vel_visc_terms, fluxes[BL_SPACEDIM];
 
-    MultiFab* divu_fp = getDivCond(1,prev_time);
-    MultiFab* dsdt    = getDsdt(1,prev_time);
-    for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
-    {
-        FArrayBox& dsdtfab = (*dsdt)[dsdtmfi];
-        dsdtfab.mult(.5*dt);
-        (*divu_fp)[dsdtmfi].plus(dsdtfab);
-    }
+    int ng =1;
+    MultiFab* divu_fp = getDivCond(ng,prev_time);
+    MultiFab* dsdt    = getDsdt(ng,prev_time);
+
+    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, ng);
+    
     delete dsdt;
 
-    if (do_reflux && level < parent->finestLevel())
+    if (do_reflux)
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
@@ -580,77 +578,85 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Compute the advective forcing.
     //
-    for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
-#ifdef BOUSSINESQ
-             Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1),
-#endif
-             S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
-         U_fpi.isValid() && S_fpi.isValid();
-         ++U_fpi, ++S_fpi)
     {
-        const int i = U_fpi.index();
+      FillPatchIterator
+	U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
+	S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
+      MultiFab& Umf=U_fpi.get_mf();
+      MultiFab& Smf=S_fpi.get_mf();
+      
+#ifdef BOUSSINESQ
+      FillPatchIterator
+	Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
+      MultiFab& Scalmf=Scal_fpi.get_mf();
+#endif
+      
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      {
+	const int i = U_mfi.index();
+	Box bx = U_mfi.tilebox();
+	FArrayBox& Ufab = Umf[U_mfi];
+        FArrayBox& Sfab = Smf[U_mfi];
 
 #ifdef BOUSSINESQ
-        getForce(tforces,i,1,fscalar,num_scalars,prev_time,Scal_fpi());
+        getForce(tforces,bx,1,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,fscalar,num_scalars,prev_time,rho_ptime[U_fpi]);
+        getForce(tforces,bx,1,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
 	if (getForceVerbose) {
 	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
 			 << " Calling getForce..." << '\n';
 	}
-        getForce(tforces,i,1,fscalar,num_scalars,prev_time,U_fpi(),S_fpi(),0);
+        getForce(tforces,bx,1,fscalar,num_scalars,prev_time,Ufab,Sfab,0);
 #else
-        getForce(tforces,i,1,fscalar,num_scalars,rho_ptime[U_fpi]);
+        getForce(tforces,bx,1,fscalar,num_scalars,rho_ptime[U_mfi]);
 #endif		 
 #endif		 
         
         if (use_forces_in_trans)
         {
 #ifdef BOUSSINESQ
-        getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+        getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Sfab);
 #else
 #ifdef GENGETFORCE
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
+            getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
 	    if (getForceVerbose) {
 	      amrex::Print() << "---" << '\n' 
 			     << "D - scalar advection (use_forces_in_trans):" << '\n' 
 			     << " Calling getForce..." << '\n';
 	    }
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
+            getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Sfab,0);
 #else
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
+            getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
-            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[U_fpi],Gp[U_fpi],rho_ptime[U_fpi]);
+            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
         }
 
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
-               bndry[1] = getBCArray(State_Type,i,1,1);,
-               bndry[2] = getBCArray(State_Type,i,2,1);)
+        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+               bndry[2] = fetchBCArray(State_Type,bx,2,1);)
 
-        godunov->Setup(grids[i], dx, dt, 0,
+        godunov->Setup(bx, dx, dt, 0,
                        flux[0], bndry[0].dataPtr(),
                        flux[1], bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
                        flux[2], bndry[2].dataPtr(),
 #endif
-                       U_fpi(),rho_ptime[U_fpi],tvelforces);
+                       Ufab,rho_ptime[U_mfi],tvelforces);
 
         //
         // Loop over the scalar components.
         //
-        FArrayBox& divufab = (*divu_fp)[U_fpi];
-        FArrayBox& aofsfab = (*aofs)[U_fpi];
-        FArrayBox& rhopfab = rho_ptime[U_fpi];
-        FArrayBox& Ufab    = U_fpi();
-        FArrayBox& Sfab    = S_fpi();
+        FArrayBox& divufab = (*divu_fp)[U_mfi];
+        FArrayBox& aofsfab = (*aofs)[U_mfi];
+        FArrayBox& rhopfab = rho_ptime[U_mfi];
 
-        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_fpi];,
-               FArrayBox& u_mac_fab1 = u_mac[1][U_fpi];,
-               FArrayBox& u_mac_fab2 = u_mac[2][U_fpi];);
+        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
+               FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
+               FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
 
         for (int comp = 0 ; comp < num_scalars ; comp++)
         {
@@ -662,24 +668,24 @@ NavierStokes::scalar_advection (Real dt,
 
             AdvectionScheme adv_scheme = PRE_MAC;
 
-            if (adv_scheme == PRE_MAC)
-            {
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_fpi],
+            // if (adv_scheme == PRE_MAC)
+            // {
+                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_mfi],
                                           comp,divufab,rhopfab,use_conserv_diff);
-            }
-            else
-            {
-                FArrayBox junkDivu(tforces.box(),1);
-                junkDivu.setVal(0);
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_fpi],
-                                          comp,junkDivu,rhopfab,use_conserv_diff);
-            }
+            // }
+            // else
+            // {
+            //     FArrayBox junkDivu(tforces.box(),1);
+            //     junkDivu.setVal(0);
+            //     godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_mfi],
+            //                               comp,junkDivu,rhopfab,use_conserv_diff);
+            // }
             //
             // Advect scalar.
             //
-            state_bc = getBCArray(State_Type,i,state_ind,1);
+            state_bc = fetchBCArray(State_Type,bx,state_ind,1);
 
-            godunov->AdvectState(grids[i], dx, dt, 
+            godunov->AdvectState(bx, dx, dt, 
                                  area[0][i], u_mac_fab0, flux[0],
                                  area[1][i], u_mac_fab1, flux[1],
 #if (BL_SPACEDIM == 3)                        
@@ -690,26 +696,30 @@ NavierStokes::scalar_advection (Real dt,
                                  state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
             if (do_reflux)
             {
-                if (level < parent->finestLevel())
-                {
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                        fluxes[d][U_fpi].copy(flux[d],0,comp,1);
-                }
-                if (level > 0)
-                {
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                        advflux_reg->FineAdd(flux[d],d,i,0,state_ind,1,dt);
-                }
+	      for (int d = 0; d < BL_SPACEDIM; d++)
+		fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
+				      U_mfi.nodaltilebox(d),comp,1);
             }
         }
+      }
     }
-
+    
     delete divu_fp;
 
     if (do_reflux && level < parent->finestLevel())
     {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-            getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,fscalar,num_scalars,-dt);
+      if (level > 0 )
+	{
+	  //Print()<<"doing FineAdd..\n";
+	  for (int d = 0; d < BL_SPACEDIM; d++)
+	    advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
+	}
+      if (level < parent->finestLevel())
+	{
+	  //Print()<<"doing CrseInit..\n";
+	  for (int i = 0; i < BL_SPACEDIM; i++)
+	    getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
+	}
     }
 }
 
