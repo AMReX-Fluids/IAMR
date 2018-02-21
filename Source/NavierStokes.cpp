@@ -703,7 +703,7 @@ NavierStokes::scalar_advection (Real dt,
         }
       }
     }
-    
+
     delete divu_fp;
 
     if (do_reflux && level < parent->finestLevel())
