@@ -431,89 +431,74 @@ NavierStokes::predict_velocity (Real  dt,
     
     FArrayBox null_fab;
 
-//     FillPatchIterator
-//       U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
-// #ifdef BOUSSINESQ
-//     FillPatchIterator
-//       S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
-// #else
-// #ifdef MOREGENGETFORCE
-//      FillPatchIterator
-//        S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-// #endif
-// #endif
-//      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-//      {
-//        const int i = U_mfi.index();
-//        Box bx=U_mfi.tilebox();
+    FillPatchIterator
+      U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+    MultiFab& Umf=U_fpi.get_mf();
 
-    
-    for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),
-                                 prev_time,State_Type,Xvel,BL_SPACEDIM)
 #ifdef BOUSSINESQ
-             ,S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
-	 S_fpi.isValid() && U_fpi.isValid();
-	 ++S_fpi, ++U_fpi
+    FillPatchIterator
+      S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
+    MultiFab& Smf=S_fpi.get_mf();
 #else
 #ifdef MOREGENGETFORCE
-	     , S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-	 S_fpi.isValid() && U_fpi.isValid();
-	 ++S_fpi, ++U_fpi
-#else
-         ; U_fpi.isValid();
-	 ++U_fpi
+     FillPatchIterator
+       S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+      MultiFab& Smf=S_fpi.get_mf();
 #endif
 #endif
-	)
-    {
-        const int i = U_fpi.index();
+     
+     for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+     {
+       const int i = U_mfi.index();
+       Box bx=U_mfi.tilebox();
+       FArrayBox& Ufab = Umf[U_mfi];
 
 #ifdef BOUSSINESQ
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
 	if (getForceVerbose) {
 	  amrex::Print() << "---" << '\n' 
 			 << "A - Predict velocity:" << '\n'
 			 << " Calling getForce..." << '\n';
 	}
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 #else
-	getForce(tforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
+	getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
         //
         // Test velocities, rho and cfl.
         //
-        cflgrid  = godunov->test_u_rho(U_fpi(),rho_ptime[U_fpi],grids[i],dx,dt,u_max);
+        cflgrid  = godunov->test_u_rho(Ufab,rho_ptime[U_mfi],bx,dx,dt,u_max);
         cflmax   = std::max(cflgrid,cflmax);
         comp_cfl = std::max(cflgrid,comp_cfl);
         //
         // Compute the total forcing.
         //
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_fpi],Gp[U_fpi],rho_ptime[U_fpi]);
+        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
 
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
-               bndry[1] = getBCArray(State_Type,i,1,1);,
-               bndry[2] = getBCArray(State_Type,i,2,1);)
+        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+               bndry[2] = fetchBCArray(State_Type,bx,2,1);)
 
-        godunov->Setup(grids[i], dx, dt, 1,
+        godunov->Setup(bx, dx, dt, 1,
                        null_fab, bndry[0].dataPtr(),
                        null_fab, bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)                         
                        null_fab, bndry[2].dataPtr(),
 #endif
-                       U_fpi(), rho_ptime[U_fpi], tforces);
+                       Ufab, rho_ptime[U_mfi], tforces);
 
-        godunov->ComputeUmac(grids[i], dx, dt, 
-                             u_mac[0][U_fpi], bndry[0].dataPtr(),
-                             u_mac[1][U_fpi], bndry[1].dataPtr(),
+        godunov->ComputeUmac(bx, dx, dt, 
+                             u_mac[0][U_mfi], bndry[0].dataPtr(),
+                             u_mac[1][U_mfi], bndry[1].dataPtr(),
 #if (BL_SPACEDIM == 3)
-                             u_mac[2][U_fpi], bndry[2].dataPtr(),
+                             u_mac[2][U_mfi], bndry[2].dataPtr(),
 #endif
-                             U_fpi(), tforces);
+                             Ufab, tforces);
     }
 
     Real tempdt = std::min(change_max,cfl/cflmax);
