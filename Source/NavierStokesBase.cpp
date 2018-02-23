@@ -1503,9 +1503,9 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 
         std::vector< std::pair<int,Box> > isects;
 
-        for (MFIter mfi(gpTmp); mfi.isValid(); ++mfi) 
+        for (MFIter mfi(gpTmp,true); mfi.isValid(); ++mfi) 
         {
-            fineBA.intersections(gpTmp[mfi].box(),isects);
+            fineBA.intersections(mfi.growntilebox(),isects);
 
             FArrayBox&       gpfab    =    gp[mfi];
             const FArrayBox& gptmpfab = gpTmp[mfi];
@@ -3465,45 +3465,17 @@ NavierStokesBase::velocity_advection (Real dt)
       } // end of MFIter
     } //end scope of FillPatchIter
     
-	  //fixme
-	  // static int count=0;
-	  // ++count;
-	  // {
-	  //   std::string name2="../../../IAMR_old/Exec/run3d/aofsOld"+std::to_string(count);
-	  //   std::cout << "Reading " << name2 << std::endl;
-	  //   MultiFab mf2;
-	  //   VisMF::Read(mf2, name2);
-	  //   MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
-
-	  //   MultiFab::Copy(mfdiff, *aofs, 0, 0, mfdiff.nComp(), mfdiff.nGrow());
-	  //   mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-
-	  //   for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-	  //     std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-	  // 		<< " and " << mfdiff.max(icomp,mf2.nGrow());
-	  //     if (mfdiff.nComp() > 1) {
-	  // 	std::cout << " for component " << icomp;
-	  //     }
-	  //     std::cout << "." << std::endl;
-	  //   }
-	  
-	  //   std::cout << "Writing mfdiff" << std::endl;
-	  //   VisMF::Write(mfdiff, "aofsdiff"+std::to_string(count));
-	  // }
-
     if (do_reflux)
     {
         if (level > 0 )
 	{
-	  //Print()<<"doing FineAdd..\n";
 	  for (int d = 0; d < BL_SPACEDIM; d++)
-	      advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
+	    advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
 	}
         if(level < finest_level)
 	{
-	  //Print()<<"doing CrseInit..\n";
-	    for (int i = 0; i < BL_SPACEDIM; i++)
-	      getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
+	  for (int i = 0; i < BL_SPACEDIM; i++)
+	    getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
 	}
     }
 }
