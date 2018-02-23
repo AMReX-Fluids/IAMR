@@ -838,7 +838,6 @@ Godunov::ComputeUmac (const Box&  grd,
     // 3D calls.
     //
 #if (BL_SPACEDIM == 3)                  
-    int Wcomp = 0;
     int mCompZ = 0;
 
     edge_states_orig(grd,dx,dt,velpred,umac,vmac,wmac,mCompX,mCompY,mCompZ,umac,vmac,wmac,mCompX,mCompY,mCompZ,
