@@ -62,10 +62,10 @@ NavierStokesBase::getForce (FArrayBox&       force,
     }
 }
 
-// create second version that takes MFIter as a parameter
+// version of above function takes box as a parameter
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    Box&             bx,
+			    const Box&       bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,
@@ -139,7 +139,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    Box&             bx,
+			    const Box&       bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,
@@ -363,7 +363,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    Box&             bx,
+			    const Box&       bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,
@@ -589,7 +589,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
 }
 void
 NavierStokesBase::getForce (FArrayBox&       force,
-			    Box&             bx,
+			    const Box&       bx,
 			    int              ngrow,
 			    int              scomp,
 			    int              ncomp,

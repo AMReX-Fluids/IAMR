@@ -152,8 +152,8 @@ extern "C"
 		       const amrex::Real* dx, int* use_forces_in_trans, 
 		       const amrex::Real* tforcedat, int* ppm_type);
    
-   void FORT_ESTATE(const amrex::Real* s_dat, const amrex::Real* tfr_dat, 
-		    ARLIM_P(s_lo), ARLIM_P(s_hi),
+   void FORT_ESTATE(const amrex::Real* s_dat, ARLIM_P(s_lo), ARLIM_P(s_hi),
+		    const amrex::Real* tfr_dat, ARLIM_P(tfr_lo), ARLIM_P(tfr_hi),
 		    const amrex::Real* u_dat, ARLIM_P(u_lo),ARLIM_P(u_hi),
 		    const amrex::Real* xlo_dat, const amrex::Real* xhi_dat,
 		    const amrex::Real* slx_dat, const amrex::Real* uad_dat,
@@ -304,9 +304,12 @@ extern "C"
 #endif
 			     const int* lo, const int* hi, const int* bc);
 
-   void FORT_CONSSCALMINMAX (const amrex::Real* Sold_dat, const amrex::Real* Snew_dat, 
-			     const amrex::Real*  Rho_dat, const amrex::Real* Rhon_dat,
-                             ARLIM_P(slo), ARLIM_P(shi),
+   void FORT_CONSSCALMINMAX (const amrex::Real* Sold_dat, 
+			     const amrex::Real*  Rho_dat, 
+                             ARLIM_P(solo), ARLIM_P(sohi),
+			     const amrex::Real* Snew_dat,
+			     const amrex::Real* Rhon_dat,
+			     ARLIM_P(snlo), ARLIM_P(snhi),
 #if (BL_SPACEDIM == 3)
 			     const amrex::Real* smin_dat, const amrex::Real* smax_dat,
 			     ARLIM_P(lo),ARLIM_P(hi),
@@ -318,8 +321,10 @@ extern "C"
 			const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			const int* lo, const int* hi, amrex::Real* dt, int* num_comp);
    
-   void FORT_CORRECT_TF(const amrex::Real* SSdat, const amrex::Real* SPdat, ARLIM_P(slo), ARLIM_P(shi),
-			const amrex::Real* TSdat, const amrex::Real* TNdat, ARLIM_P(tlo), ARLIM_P(thi),
+   void FORT_CORRECT_TF(const amrex::Real* SSdat, ARLIM_P(slo), ARLIM_P(shi),
+			const amrex::Real* SPdat, ARLIM_P(splo), ARLIM_P(sphi),
+			const amrex::Real* TSdat, ARLIM_P(tlo), ARLIM_P(thi),
+			const amrex::Real* TNdat, ARLIM_P(tnlo), ARLIM_P(tnhi),
 			const int* lo, const int* hi, amrex::Real* dt, int* num_comp);
    
    void FORT_UPDATE_AOFS_TF(const amrex::Real* SOdat, ARLIM_P(slo), ARLIM_P(shi), 

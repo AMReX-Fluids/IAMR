@@ -319,7 +319,6 @@ Godunov::Setup (const Box& grd, const Real* dx, Real dt, int velpred,
     Setup(grd,dx,dt,velpred,
           D_DECL(xflux,yflux,zflux), D_DECL(ubc,vbc,wbc),
           D_DECL(U,U,U), D_DECL(0,1,2), tforces,0);
-
 }
 
 void
@@ -334,7 +333,7 @@ Godunov::Setup (const Box& grd, const Real* dx, Real dt, int velpred,
 
     if (!velpred)
         AllocEdgeBoxes(grd,D_DECL(xflux,yflux,zflux));
-    
+
     ComputeTransverVelocities(grd,dx,dt,D_DECL(ubc,vbc,wbc),D_DECL(U,V,W),
                               D_DECL(Ucomp,Vcomp,Wcomp),tforces,Tcomp);
 }
@@ -396,7 +395,7 @@ Godunov::edge_states( const Box &grd, const Real *dx, Real dt, int velpred,
   }
 #if (BL_SPACEDIM == 2)
   else if (advection_scheme == BDS) 
-  {
+  {    
       edge_states_bds(grd,dx,dt,D_DECL(uedge,vedge,wedge), D_DECL(mCompX,mCompY,mCompZ), D_DECL(stx,sty,stz),
                       D_DECL(eCompX,eCompY,eCompZ), S,Scomp,tforces,Tcomp,divu,Dcomp,state_ind,bc,use_conserv);
   }
@@ -444,6 +443,8 @@ Godunov::edge_states_orig( const Box &grd, const Real *dx, Real dt, int velpred,
     const int *s_hi       = S.hiVect();
     const int *u_lo       = U.loVect();
     const int *u_hi       = U.hiVect();
+    const int *tfr_lo     = tforces.loVect();
+    const int *tfr_hi     = tforces.hiVect();
     const int *ww_lo      = work.loVect();
     const int *ww_hi      = work.hiVect();
     const Real *s_dat     = S.dataPtr(Scomp);
@@ -523,7 +524,8 @@ Godunov::edge_states_orig( const Box &grd, const Real *dx, Real dt, int velpred,
     //
     int fort_ind = state_ind+1;  
 
-    FORT_ESTATE(s_dat, tfr_dat, ARLIM(s_lo), ARLIM(s_hi),
+    FORT_ESTATE(s_dat, ARLIM(s_lo), ARLIM(s_hi),
+		tfr_dat, ARLIM(tfr_lo), ARLIM(tfr_hi),
                 u_dat,ARLIM(u_lo), ARLIM(u_hi),
 		xlo_dat, xhi_dat, slx_dat, uad_dat,
                 slxscr.dataPtr(), stxlo.dataPtr(), stxhi.dataPtr(),
@@ -744,6 +746,12 @@ Godunov::edge_states_bds( const Box &grd, const Real *dx, Real dt,
     const int *hi         = grd.hiVect();
     const int *s_lo       = S.loVect();
     const int *s_hi       = S.hiVect();
+// FIXME? consider passing in bounds for tforces and divu rather
+// than assuming they're the same as S's bounds in FORT_ESTATE_BDS
+    const int *tfr_lo     = tforces.loVect();
+    const int *tfr_hi     = tforces.hiVect();
+    const int *divu_lo    = divu.loVect();
+    const int *divu_hi    = divu.hiVect();
     const int *ww_lo      = work.loVect();
     const int *ww_hi      = work.hiVect();
     const Real *s_dat     = S.dataPtr(Scomp);
@@ -944,7 +952,6 @@ Godunov::ComputeAofs (const Box& grd,
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
 
-    
     FORT_ADV_FORCING( aofs.dataPtr(acomp),ARLIM(aofs.loVect()), ARLIM(aofs.hiVect()),
 
                       xflux.dataPtr(fxcomp), ARLIM(xflux.loVect()), ARLIM(xflux.hiVect()),
@@ -1097,13 +1104,15 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
                                  const int* bc,
                                  const Box& grd)
 {
-    const int *slo        = Sold.loVect();
-    const int *shi        = Sold.hiVect();
+    const int *solo       = Sold.loVect();
+    const int *sohi       = Sold.hiVect();
+    const int *snlo       = Snew.loVect();
+    const int *snhi       = Snew.hiVect();
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
     const Real *Sold_dat  = Sold.dataPtr(ind_old_s);
-    const Real *Snew_dat  = Snew.dataPtr(ind_new_s);
     const Real *Rho_dat   = Sold.dataPtr(ind_old_rho);
+    const Real *Snew_dat  = Snew.dataPtr(ind_new_s);
     const Real *Rhon_dat  = Snew.dataPtr(ind_new_rho);
 
 #if (BL_SPACEDIM == 3)
@@ -1116,8 +1125,8 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
     const Real *smax_dat = smax.dataPtr(); 
 #endif
 
-    FORT_CONSSCALMINMAX (Sold_dat, Snew_dat, Rho_dat, Rhon_dat,
-                         ARLIM(slo), ARLIM(shi),
+    FORT_CONSSCALMINMAX (Sold_dat, Rho_dat, ARLIM(solo), ARLIM(sohi),
+			 Snew_dat, Rhon_dat,ARLIM(snlo), ARLIM(snhi),
 #if (BL_SPACEDIM == 3)
                          smin_dat, smax_dat,
                          ARLIM(lo), ARLIM(hi),
@@ -1350,8 +1359,10 @@ Godunov::Add_tf (const FArrayBox& Sold,
     BL_ASSERT(Sold.nComp()    >= start_ind + num_comp);
     BL_ASSERT(tforces.nComp() >= tf_ind    + num_comp);
 
-    const int *slo    = Sold.loVect();
-    const int *shi    = Sold.hiVect();
+    const int *solo   = Sold.loVect();
+    const int *sohi   = Sold.hiVect();
+    const int *snlo   = Snew.loVect();
+    const int *snhi   = Snew.hiVect();
     const int *tlo    = tforces.loVect();
     const int *thi    = tforces.hiVect();
     const int *lo     = grd.loVect();
@@ -1360,18 +1371,18 @@ Godunov::Add_tf (const FArrayBox& Sold,
     Real *SNdat = Snew.dataPtr(start_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_TF(SOdat, ARLIM(slo), ARLIM(shi), 
-                   SNdat, ARLIM(slo), ARLIM(shi),
+    FORT_UPDATE_TF(SOdat, ARLIM(solo), ARLIM(sohi), 
+                   SNdat, ARLIM(snlo), ARLIM(snhi),
                    TFdat, ARLIM(tlo), ARLIM(thi),
                    lo, hi, &dt, &num_comp);
 }
 
+// FIXME? this doesn't appear to ever get used ...
 //
 // Correct the 1st order RK to 2nd order via
 //
 // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
 //
-
 void
 Godunov::Correct_tf (const FArrayBox& Sstar,
                      FArrayBox& Snp1,
@@ -1390,8 +1401,12 @@ Godunov::Correct_tf (const FArrayBox& Sstar,
 
     const int *slo    = Sstar.loVect();
     const int *shi    = Sstar.hiVect();
+    const int *splo   = Snp1.loVect();
+    const int *sphi   = Snp1.hiVect();
     const int *tlo    = tfstar.loVect();
     const int *thi    = tfstar.hiVect();
+    const int *tnlo   = tfn.loVect();
+    const int *tnhi   = tfn.hiVect();
     const int *lo     = grd.loVect();
     const int *hi     = grd.hiVect();
     const Real *SSdat = Sstar.dataPtr(start_ind);
@@ -1399,8 +1414,10 @@ Godunov::Correct_tf (const FArrayBox& Sstar,
     const Real *TSdat = tfstar.dataPtr(tf_ind);
     const Real *TNdat = tfn.dataPtr(tf_ind);
     
-    FORT_CORRECT_TF(SSdat, SPdat, ARLIM(slo), ARLIM(shi),
-                    TSdat, TNdat, ARLIM(tlo), ARLIM(thi),
+    FORT_CORRECT_TF(SSdat, ARLIM(slo), ARLIM(shi),
+		    SPdat, ARLIM(splo), ARLIM(sphi),
+                    TSdat, ARLIM(tlo), ARLIM(thi),
+                    TNdat, ARLIM(tnlo), ARLIM(tnhi),
                     lo, hi, &dt, &num_comp);
 }
 
@@ -1427,8 +1444,10 @@ Godunov::Add_aofs_tf (const FArrayBox& Sold,
     BL_ASSERT(Aofs.nComp()    >= aofs_ind  + num_comp);
     BL_ASSERT(tforces.nComp() >= tf_ind    + num_comp);
 
-    const int *slo    = Sold.loVect();
-    const int *shi    = Sold.hiVect();
+    const int *solo   = Sold.loVect();
+    const int *sohi   = Sold.hiVect();
+    const int *snlo   = Snew.loVect();
+    const int *snhi   = Snew.hiVect();
     const int *alo    = Aofs.loVect();
     const int *ahi    = Aofs.hiVect();
     const int *tlo    = tforces.loVect();
@@ -1440,8 +1459,8 @@ Godunov::Add_aofs_tf (const FArrayBox& Sold,
     const Real *AOdat = Aofs.dataPtr(aofs_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_AOFS_TF(SOdat, ARLIM(slo), ARLIM(shi), 
-                        SNdat, ARLIM(slo), ARLIM(shi),
+    FORT_UPDATE_AOFS_TF(SOdat, ARLIM(solo), ARLIM(sohi), 
+                        SNdat, ARLIM(snlo), ARLIM(snhi),
                         AOdat, ARLIM(alo), ARLIM(ahi),
                         TFdat, ARLIM(tlo), ARLIM(thi),
                         lo, hi, &dt, &num_comp);
@@ -1472,8 +1491,10 @@ Godunov::Add_aofs_tf_gp (const FArrayBox& Uold,
     
     const int *lo     = grd.loVect();
     const int *hi     = grd.hiVect();
-    const int *ulo    = Uold.loVect();
-    const int *uhi    = Uold.hiVect();
+    const int *uolo   = Uold.loVect();
+    const int *uohi   = Uold.hiVect();
+    const int *unlo   = Unew.loVect();
+    const int *unhi   = Unew.hiVect();
     const int *alo    = Aofs.loVect();
     const int *ahi    = Aofs.hiVect();
     const int *tlo    = tforces.loVect();
@@ -1489,8 +1510,8 @@ Godunov::Add_aofs_tf_gp (const FArrayBox& Uold,
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
     
-    FORT_UPDATE_AOFS_TF_GP(UOdat, ARLIM(ulo), ARLIM(uhi),
-                           UNdat, ARLIM(ulo), ARLIM(uhi),
+    FORT_UPDATE_AOFS_TF_GP(UOdat, ARLIM(uolo), ARLIM(uohi),
+                           UNdat, ARLIM(unlo), ARLIM(unhi),
                            AOdat, ARLIM(alo), ARLIM(ahi),
                            TFdat, ARLIM(tlo), ARLIM(thi),
                            GPdat, ARLIM(glo), ARLIM(ghi),

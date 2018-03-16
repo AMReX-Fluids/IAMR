@@ -367,7 +367,7 @@ c
      &     u, ulo, uhi, sx, ubc, slxscr, Imx, Ipx, sedgex, DIMS(sedgex),
      &     v, vlo, vhi, sy, vbc, slyscr, Imy, Ipy, sedgey, DIMS(sedgey),
      &     w, wlo, whi, sz, wbc, slzscr, Imz, Ipz, sedgez, DIMS(sedgez),
-     &     DIMS(s), DIMS(work), DIMS(I),
+     &     DIMS(u), DIMS(work), DIMS(I),
      &     dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
      &     lo,hi,dt,dx,use_minion,tforces,ppm_type)
 c
@@ -386,7 +386,7 @@ c
 
       PARAMETER (eps = 1.d-6 , eps_for_bc = 1.d-10)
 
-      integer DIMDEC(s)
+      integer DIMDEC(u)
       integer DIMDEC(work)
       integer DIMDEC(I)
       integer DIMDEC(dsvl)
@@ -394,18 +394,18 @@ c
       integer DIMDEC(sedgex)
       integer DIMDEC(sedgey)
       integer DIMDEC(sedgez)
-      REAL_T  u(DIMV(s))
-      REAL_T  v(DIMV(s))
-      REAL_T  w(DIMV(s))
+      REAL_T  u(DIMV(u))
+      REAL_T  v(DIMV(u))
+      REAL_T  w(DIMV(u))
       REAL_T ulo(DIMV(work)),uhi(DIMV(work))
       REAL_T vlo(DIMV(work)),vhi(DIMV(work))
       REAL_T wlo(DIMV(work)),whi(DIMV(work))
       REAL_T sx(DIMV(work))
       REAL_T sy(DIMV(work))
       REAL_T sz(DIMV(work))
-      REAL_T slxscr(DIM1(s), 4)
-      REAL_T slyscr(DIM2(s), 4)
-      REAL_T slzscr(DIM3(s), 4)
+      REAL_T slxscr(DIM1(u), 4)
+      REAL_T slyscr(DIM2(u), 4)
+      REAL_T slzscr(DIM3(u), 4)
       REAL_T Imx(DIMV(I))
       REAL_T Ipx(DIMV(I))
       REAL_T Imy(DIMV(I))
@@ -449,13 +449,13 @@ c     compute the z transverse velocities
 c     --------------------------------------------------------------
 c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(u,u,v,w,DIMS(s),
+         call FORT_PPM(u,DIMS(u),u,v,w,DIMS(u),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
      &        lo,hi,dx,dt,ubc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES( XVEL,
-     &        u,DIMS(s),
+     &        u,DIMS(u),
      &        sx,sy,sz,DIMS(work),
      &        lo,hi,slxscr,slyscr,slzscr,ubc)
       end if
@@ -494,13 +494,13 @@ c
       end if
 
       if (ppm_type .gt. 0) then
-         call FORT_PPM(v,u,v,w,DIMS(s),
+         call FORT_PPM(v,DIMS(u),u,v,w,DIMS(u),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez), 
      &        lo,hi,dx,dt,vbc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(YVEL,
-     &        v,DIMS(s),
+     &        v,DIMS(u),
      &        sx,sy,sz,DIMS(work),
      &        lo,hi,slxscr,slyscr,slzscr,vbc)
       end if
@@ -539,13 +539,13 @@ c
       end if
 
       if (ppm_type .gt. 0) then
-         call FORT_PPM(w,u,v,w,DIMS(s),
+         call FORT_PPM(w,DIMS(u),u,v,w,DIMS(u),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
      &        lo,hi,dx,dt,wbc,eps_for_bc,ppm_type)
       else
          call FORT_SLOPES(ZVEL,
-     &        w,DIMS(s),
+     &        w,DIMS(u),
      &        sx,sy,sz,DIMS(work),
      &        lo,hi,slxscr,slyscr,slzscr,wbc)
       end if
@@ -584,17 +584,17 @@ c
       end if
 
       call trans_xbc(
-     &     u,DIMS(s),
+     &     u,DIMS(u),
      &     ulo,uhi,DIMS(work),ulo,DIMS(work),
      &     lo,hi,XVEL,ubc,eps_for_bc,.false.,.false.)
 
       call trans_ybc(
-     &     v,DIMS(s),
+     &     v,DIMS(u),
      &     vlo,vhi,DIMS(work),vlo,DIMS(work),
      &     lo,hi,YVEL,vbc,eps_for_bc,.false.,.false.)
 
       call trans_zbc(
-     &     w,DIMS(s),
+     &     w,DIMS(u),
      &     wlo,whi,DIMS(work),wlo,DIMS(work),
      &     lo,hi,ZVEL,wbc,eps_for_bc,.false.,.false.)
 
@@ -648,8 +648,7 @@ c
 
       end
 
-      subroutine FORT_ESTATE(s, tforces, DIMS(s),
-
+      subroutine FORT_ESTATE(s, DIMS(s), tforces, DIMS(tforces),
      &     u, DIMS(u),
      &     xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
      &     uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),
@@ -689,6 +688,7 @@ c
 
       integer DIMDEC(s)
       integer DIMDEC(u)
+      integer DIMDEC(tforces)
       integer DIMDEC(work)
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
@@ -704,12 +704,15 @@ c
       integer DIMDEC(smp)
 
       REAL_T s(DIMV(s))
-      REAL_T u(DIMV(u))
-      REAL_T v(DIMV(u))
-      REAL_T w(DIMV(u))
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
       REAL_T stzlo(DIM3(s)),stzhi(DIM3(s)),slzscr(DIM3(s),4) 
+
+      REAL_T u(DIMV(u))
+      REAL_T v(DIMV(u))
+      REAL_T w(DIMV(u))
+      REAL_T tforces(DIMV(tforces))
+      
       REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate)), Imx(DIMV(I)), Ipx(DIMV(I)), sedgex(DIMV(sedgex))
       REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate)), Imy(DIMV(I)), Ipy(DIMV(I)), sedgey(DIMV(sedgey))
       REAL_T wedge(DIMV(wedge)), zstate(DIMV(zstate)), Imz(DIMV(I)), Ipz(DIMV(I)), sedgez(DIMV(sedgez))
@@ -721,7 +724,7 @@ c
       REAL_T  sx(DIMV(work)), uad(DIMV(work))
       REAL_T  sy(DIMV(work)), vad(DIMV(work))
       REAL_T  sz(DIMV(work)), wad(DIMV(work))
-      REAL_T tforces(DIMV(work))
+      
       integer ppm_type, corner_couple
       logical ltx, lty, ltz
 
@@ -767,7 +770,7 @@ c
 c     compute the slopes
 c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(s,u,v,w,DIMS(s),
+         call FORT_PPM(s,DIMS(s),u,v,w,DIMS(u),
      &        Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),
      &        lo,hi,dx,dt,bc,eps_for_bc,ppm_type)
@@ -5717,7 +5720,7 @@ c     the value in the first cc ghost cell represents the edge value
 
       end
 
-      subroutine FORT_PPM(s,u,v,w,DIMS(s),
+      subroutine FORT_PPM(s,DIMS(s),u,v,w,DIMS(u),
      &     Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez),lo,hi,
      &     dx,dt,bc,eps,ppm_type)
@@ -5727,6 +5730,7 @@ c     the value in the first cc ghost cell represents the edge value
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)
       integer DIMDEC(s)
+      integer DIMDEC(u)
       integer DIMDEC(work)
       integer DIMDEC(smp)
       integer DIMDEC(dsvl)
@@ -5734,9 +5738,9 @@ c     the value in the first cc ghost cell represents the edge value
       integer DIMDEC(sedgey)
       integer DIMDEC(sedgez)
       REAL_T  s(DIMV(s))
-      REAL_T  u(DIMV(s))
-      REAL_T  v(DIMV(s))
-      REAL_T  w(DIMV(s))
+      REAL_T  u(DIMV(u))
+      REAL_T  v(DIMV(u))
+      REAL_T  w(DIMV(u))
       REAL_T  Ipx(DIMV(work))
       REAL_T  Imx(DIMV(work))
       REAL_T  Ipy(DIMV(work))
@@ -6021,97 +6025,8 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
-c
-c     correct the 8 corners
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-         s(imin-1,jmin-1,kmin-1) = s(imin,jmin,kmin)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-         s(imax+1,jmin-1,kmin-1) = s(imax,jmin,kmin)
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-         s(imin-1,jmax+1,kmin-1) = s(imin,jmax,kmin)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-         s(imax+1,jmax+1,kmin-1) = s(imax,jmax,kmin)
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-         s(imin-1,jmin-1,kmax+1) = s(imin,jmin,kmax)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-         s(imax+1,jmin-1,kmax+1) = s(imax,jmin,kmax)
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-         s(imin-1,jmax+1,kmax+1) = s(imin,jmax,kmax)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-         s(imax+1,jmax+1,kmax+1) = s(imax,jmax,kmax)
-      end if
-c
-c     correct the 12 edges
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-        do k = kmin,kmax
-          s(imin-1,jmin-1,k) = s(imin,jmin,k)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-        do k = kmin,kmax
-          s(imax+1,jmin-1,k) = s(imax,jmin,k)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-        do k = kmin,kmax
-          s(imin-1,jmax+1,k) = s(imin,jmax,k)
-        end do
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-        do k = kmin,kmax
-          s(imax+1,jmax+1,k) = s(imax,jmax,k)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do j = jmin,jmax
-          s(imin-1,j,kmin-1) = s(imin,j,kmin)
-        end do
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do j = jmin,jmax
-          s(imax+1,j,kmin-1) = s(imax,j,kmin)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do j = jmin,jmax
-          s(imin-1,j,kmax+1) = s(imin,j,kmax)
-        end do
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do j = jmin,jmax
-          s(imax+1,j,kmax+1) = s(imax,j,kmax)
-        end do
-      end if
-      if (bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do i = imin,imax
-          s(i,jmin-1,kmin-1) = s(i,jmin,kmin)
-        end do
-      end if
-      if (bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do i = imin,imax
-          s(i,jmax+1,kmin-1) = s(i,jmax,kmin)
-        end do
-      end if
-      if (bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do i = imin,imax
-          s(i,jmin-1,kmax+1) = s(i,jmin,kmax)
-        end do
-      end if
-      if (bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do i = imin,imax
-          s(i,jmax+1,kmax+1) = s(i,jmax,kmax)
-        end do
-      end if
-c
+
+c     
 c     ::::: compute min/max a slab at a time
 c     ::::: compute min and max of neighbors on kmin-1 slab
 c
@@ -6177,21 +6092,21 @@ c
 
       end
 
-      subroutine FORT_CONSSCALMINMAX(s,sn,rho,rhon,DIMS(s),
+      subroutine FORT_CONSSCALMINMAX(s,rho,DIMS(s),sn,rhon,DIMS(sn),
      &                               smin,smax,DIMS(smin),lo,hi,bc)
 c
 c     correct an conservatively-advected field for under/over shoots
 c
       implicit none
       integer  i, j, k, imin, imax, jmin, jmax, kmin, kmax
-      integer  DIMDEC(s)
+      integer  DIMDEC(s),DIMDEC(sn)
       integer  DIMDEC(smin)
       integer  lo(SDIM), hi(SDIM)
       integer  bc(SDIM,2)
       REAL_T      s(DIMV(s))
-      REAL_T     sn(DIMV(s))
       REAL_T    rho(DIMV(s))
-      REAL_T   rhon(DIMV(s))
+      REAL_T     sn(DIMV(sn))
+      REAL_T   rhon(DIMV(sn))
       integer  km, kk, kp
       REAL_T   smn, smx
       REAL_T   smin(DIM12(smin),0:2)
@@ -6203,116 +6118,6 @@ c
       jmax = hi(2)
       kmin = lo(3)
       kmax = hi(3)
-c
-c     correct the 8 corners
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-           s(imin-1,jmin-1,kmin-1) =   s(imin,jmin,kmin)
-         rho(imin-1,jmin-1,kmin-1) = rho(imin,jmin,kmin)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-           s(imax+1,jmin-1,kmin-1) =   s(imax,jmin,kmin)
-         rho(imax+1,jmin-1,kmin-1) = rho(imax,jmin,kmin)
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-           s(imin-1,jmax+1,kmin-1) =   s(imin,jmax,kmin)
-         rho(imin-1,jmax+1,kmin-1) = rho(imin,jmax,kmin)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-           s(imax+1,jmax+1,kmin-1) =   s(imax,jmax,kmin)
-         rho(imax+1,jmax+1,kmin-1) = rho(imax,jmax,kmin)
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-           s(imin-1,jmin-1,kmax+1) =   s(imin,jmin,kmax)
-         rho(imin-1,jmin-1,kmax+1) = rho(imin,jmin,kmax)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-           s(imax+1,jmin-1,kmax+1) =   s(imax,jmin,kmax)
-         rho(imax+1,jmin-1,kmax+1) = rho(imax,jmin,kmax)
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-           s(imin-1,jmax+1,kmax+1) =   s(imin,jmax,kmax)
-         rho(imin-1,jmax+1,kmax+1) = rho(imin,jmax,kmax)
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-           s(imax+1,jmax+1,kmax+1) =   s(imax,jmax,kmax)
-         rho(imax+1,jmax+1,kmax+1) = rho(imax,jmax,kmax)
-      end if
-c
-c     correct the 12 edges
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-        do k = kmin,kmax
-            s(imin-1,jmin-1,k) =   s(imin,jmin,k)
-          rho(imin-1,jmin-1,k) = rho(imin,jmin,k)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-        do k = kmin,kmax
-            s(imax+1,jmin-1,k) =   s(imax,jmin,k)
-          rho(imax+1,jmin-1,k) = rho(imax,jmin,k)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-        do k = kmin,kmax
-            s(imin-1,jmax+1,k) =   s(imin,jmax,k)
-          rho(imin-1,jmax+1,k) = rho(imin,jmax,k)
-        end do
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-        do k = kmin,kmax
-            s(imax+1,jmax+1,k) =   s(imax,jmax,k)
-          rho(imax+1,jmax+1,k) = rho(imax,jmax,k)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do j = jmin,jmax
-            s(imin-1,j,kmin-1) =   s(imin,j,kmin)
-          rho(imin-1,j,kmin-1) = rho(imin,j,kmin)
-        end do
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do j = jmin,jmax
-            s(imax+1,j,kmin-1) =   s(imax,j,kmin)
-          rho(imax+1,j,kmin-1) = rho(imax,j,kmin)
-        end do
-      end if
-      if (bc(1,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do j = jmin,jmax
-            s(imin-1,j,kmax+1) =   s(imin,j,kmax)
-          rho(imin-1,j,kmax+1) = rho(imin,j,kmax)
-        end do
-      end if
-      if (bc(1,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do j = jmin,jmax
-            s(imax+1,j,kmax+1) =   s(imax,j,kmax)
-          rho(imax+1,j,kmax+1) = rho(imax,j,kmax)
-        end do
-      end if
-      if (bc(2,1).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do i = imin,imax
-            s(i,jmin-1,kmin-1) =   s(i,jmin,kmin)
-          rho(i,jmin-1,kmin-1) = rho(i,jmin,kmin)
-        end do
-      end if
-      if (bc(2,2).ne.INT_DIR .or. bc(3,1).ne.INT_DIR) then
-        do i = imin,imax
-            s(i,jmax+1,kmin-1) =   s(i,jmax,kmin)
-          rho(i,jmax+1,kmin-1) = rho(i,jmax,kmin)
-        end do
-      end if
-      if (bc(2,1).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do i = imin,imax
-            s(i,jmin-1,kmax+1) =   s(i,jmin,kmax)
-          rho(i,jmin-1,kmax+1) = rho(i,jmin,kmax)
-        end do
-      end if
-      if (bc(2,2).ne.INT_DIR .or. bc(3,2).ne.INT_DIR) then
-        do i = imin,imax
-            s(i,jmax+1,kmax+1) =   s(i,jmax,kmax)
-          rho(i,jmax+1,kmax+1) = rho(i,jmax,kmax)
-        end do
-      end if
 
       do k = kmin-1, kmax+1
       do j = jmin-1, jmax+1
@@ -6635,8 +6440,10 @@ c
       end
 
       subroutine FORT_CORRECT_TF(
-     &     ss,  sp,  DIMS(ss),
-     &     tfs, tfn, DIMS(tfs),
+     &     ss,  DIMS(ss),
+     &     sp,  DIMS(sp),      
+     &     tfs, DIMS(tfs),
+     &     tfn, DIMS(tfn),      
      &     lo,hi,dt,nvar)
 c
 c     correct 1st order rk to second-order
@@ -6647,11 +6454,13 @@ c
       REAL_T dt,hdt
 
       integer DIMDEC(ss)
+      integer DIMDEC(sp)
       integer DIMDEC(tfs)
+      integer DIMDEC(tfn)
       REAL_T  ss(DIMV(ss),nvar)
-      REAL_T  sp(DIMV(ss),nvar)
+      REAL_T  sp(DIMV(sp),nvar)
       REAL_T tfs(DIMV(tfs),nvar)
-      REAL_T tfn(DIMV(tfs),nvar)
+      REAL_T tfn(DIMV(tfn),nvar)
 
       hdt = half*dt
       do n = 1,nvar

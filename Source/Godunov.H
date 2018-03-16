@@ -251,6 +251,7 @@ public:      // public access functions
                  const amrex::FArrayBox &tforces, int tf_ind,
                  const amrex::Box &grd,     amrex::Real dt ) const;
 
+    // FIXME? it doens't appear this funciton ever gets called...
     // correct the 1st order RK to 2nd order via
     // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
     void Correct_tf( const amrex::FArrayBox &Sstar, amrex::FArrayBox &Snew,

@@ -272,7 +272,7 @@ c      call flush(6)
       subroutine FORT_TRANSVEL(
      &     u, ulo, uhi, sx, ubc, slxscr, Imx, Ipx, sedgex, DIMS(sedgex),
      &     v, vlo, vhi, sy, vbc, slyscr, Imy, Ipy, sedgey, DIMS(sedgey),
-     &     DIMS(s), DIMS(work), DIMS(I),
+     &     DIMS(u), DIMS(work), DIMS(I),
      &     dsvl, DIMS(dsvl), sm, sp, DIMS(smp),
      &     lo,hi,dt,dx,use_minion,tforces,ppm_type)
 c
@@ -290,21 +290,21 @@ c
       logical ltm
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )
-      integer DIMDEC(s)
+      integer DIMDEC(u)
       integer DIMDEC(work)
       integer DIMDEC(I)
       integer DIMDEC(dsvl)
       integer DIMDEC(smp)
       integer DIMDEC(sedgex)
       integer DIMDEC(sedgey)
-      REAL_T  u(DIMV(s))
-      REAL_T  v(DIMV(s))
+      REAL_T  u(DIMV(u))
+      REAL_T  v(DIMV(u))
       REAL_T ulo(DIMV(work)),uhi(DIMV(work))
       REAL_T vlo(DIMV(work)),vhi(DIMV(work))
       REAL_T sx(DIMV(work))
       REAL_T sy(DIMV(work))
-      REAL_T slxscr(DIM1(s), 4)
-      REAL_T slyscr(DIM2(s), 4)
+      REAL_T slxscr(DIM1(u), 4)
+      REAL_T slyscr(DIM2(u), 4)
       REAL_T Imx(DIMV(I))
       REAL_T Ipx(DIMV(I))
       REAL_T Imy(DIMV(I))
@@ -332,13 +332,13 @@ c     compute the x transverse velocities
 c     --------------------------------------------------------------
 c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(u,u,v,DIMS(s),
+         call FORT_PPM(u,DIMS(u),u,v,DIMS(u),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,ubc,
      &        eps_for_bc,ppm_type)
 
       else
-         call FORT_SLOPES(u,DIMS(s),
+         call FORT_SLOPES(u,DIMS(u),
      &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,ubc)
       end if
          
@@ -367,7 +367,7 @@ c
         end do
       end if
 
-      call trans_xbc(u,DIMS(s),
+      call trans_xbc(u,DIMS(u),
      &     ulo,uhi,DIMS(work),ulo,DIMS(work),lo,hi,XVEL,ubc,eps_for_bc)
 
       do i = imin,imax+1
@@ -382,12 +382,12 @@ c
 c     compute the y transverse velocities
 c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(v,u,v,DIMS(s),
+         call FORT_PPM(v,DIMS(u),u,v,DIMS(u),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,vbc,
      &        eps_for_bc,ppm_type)
       else
-         call FORT_SLOPES(v,DIMS(s),
+         call FORT_SLOPES(v,DIMS(u),
      &        sx,sy,DIMS(work),lo,hi,slxscr,slyscr,vbc)
       end if
 
@@ -416,7 +416,7 @@ c
          end do
       end if
 
-      call trans_ybc(v,DIMS(s),
+      call trans_ybc(v,DIMS(u),
      &     vlo,vhi,DIMS(work),vlo,DIMS(work),lo,hi,YVEL,vbc,eps_for_bc)
 
       do i = imin-1,imax+1
@@ -430,7 +430,7 @@ c
 
       end
 
-      subroutine FORT_ESTATE(s, tforces, DIMS(s),
+      subroutine FORT_ESTATE(s, DIMS(s), tforces, DIMS(tforces),
      &     u, DIMS(u),
      &     xlo, xhi, sx, uad, slxscr, stxlo, stxhi,
      &     uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),
@@ -455,6 +455,7 @@ c
 
       integer DIMDEC(s)
       integer DIMDEC(u)
+      integer DIMDEC(tforces)
       integer DIMDEC(work)
       integer DIMDEC(uedge)
       integer DIMDEC(vedge)
@@ -467,10 +468,12 @@ c
       integer DIMDEC(smp)
 
       REAL_T s(DIMV(s))
-      REAL_T u(DIMV(u))
-      REAL_T v(DIMV(u))
       REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
       REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
+
+      REAL_T u(DIMV(u))
+      REAL_T v(DIMV(u))
+      REAL_T tforces(DIMV(tforces))
 
       REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate)), Imx(DIMV(I)), Ipx(DIMV(I)), sedgex(DIMV(sedgex))
       REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate)), Imy(DIMV(I)), Ipy(DIMV(I)), sedgey(DIMV(sedgey))
@@ -480,7 +483,6 @@ c
       REAL_T ylo(DIMV(work)), yhi(DIMV(work))
       REAL_T  sx(DIMV(work)), uad(DIMV(work)) 
       REAL_T  sy(DIMV(work)), vad(DIMV(work)) 
-      REAL_T tforces(DIMV(work))
 
       integer use_minion, ppm_type
 
@@ -500,7 +502,7 @@ c
 c     trace the state to the cell edges
 c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(s,u,v,DIMS(s),
+         call FORT_PPM(s,DIMS(s),u,v,DIMS(u),
      &        Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &        sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,
      &        eps_for_bc,ppm_type)
@@ -1259,7 +1261,7 @@ c
       jmin = lo(2)
       imax = hi(1)
       jmax = hi(2)
-c     
+c
 c     if nonconservative initialize the advective tendency as -U*grad(S)
 c
       if ( iconserv .ne. 1 ) then
@@ -1952,7 +1954,7 @@ c
 
       end
 
-      subroutine FORT_PPM(s,u,v,DIMS(s),
+      subroutine FORT_PPM(s,DIMS(s),u,v,DIMS(u),
      &     Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),
      &     sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps,
      &     ppm_type)
@@ -1962,14 +1964,15 @@ c
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)
       integer DIMDEC(s)
+      integer DIMDEC(u)
       integer DIMDEC(work)
       integer DIMDEC(smp)
       integer DIMDEC(dsvl)
       integer DIMDEC(sedgex)
       integer DIMDEC(sedgey)
       REAL_T  s(DIMV(s))
-      REAL_T  u(DIMV(s))
-      REAL_T  v(DIMV(s))
+      REAL_T  u(DIMV(u))
+      REAL_T  v(DIMV(u))
       REAL_T  Ipx(DIMV(work))
       REAL_T  Imx(DIMV(work))
       REAL_T  Ipy(DIMV(work))
@@ -3895,32 +3898,6 @@ c
       jmin = lo(2)
       jmax = hi(2)
 c
-c     set corner values for s
-c
-c     :: corner ilo, jlo
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-         s(imin-1,jmin-1) = s(imin,jmin)
-      end if
-c
-c     :: corner ihi, jlo
-c
-      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-         s(imax+1,jmin-1) = s(imax,jmin)
-      end if
-c
-c     :: corner ilo, jhi
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-         s(imin-1,jmax+1) = s(imin,jmax)
-      end if
-c
-c     :: corner ihi, jhi
-c
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-         s(imax+1,jmax+1) = s(imax,jmax)
-      end if
-c
 c     compute extrema of s
 c
       do j = jmin, jmax         
@@ -3940,18 +3917,19 @@ c
 
       end
 
-      subroutine FORT_CONSSCALMINMAX(s,sn,rho,rhon,DIMS(s),lo,hi,bc)
+      subroutine FORT_CONSSCALMINMAX(s,rho,DIMS(s),sn,rhon,DIMS(sn),
+     &                               lo,hi,bc)
 c
 c     correct an conservatively-advected field for under/over shoots
 c
       implicit none
-      integer DIMDEC(s)
+      integer DIMDEC(s),DIMDEC(sn)
       integer lo(SDIM), hi(SDIM)
       integer bc(SDIM,2)
       REAL_T    s(DIMV(s))
-      REAL_T   sn(DIMV(s))
       REAL_T  rho(DIMV(s))
-      REAL_T rhon(DIMV(s))
+      REAL_T   sn(DIMV(sn))
+      REAL_T rhon(DIMV(sn))
       integer  i, j, imin, imax, jmin, jmax
       REAL_T   slo_min,smd_min,shi_min
       REAL_T   slo_max,smd_max,shi_max
@@ -3961,36 +3939,6 @@ c
       imax = hi(1)
       jmin = lo(2)
       jmax = hi(2)
-c
-c     set corner values for s
-c
-c     :: corner ilo, jlo
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-           s(imin-1,jmin-1) =   s(imin,jmin)
-         rho(imin-1,jmin-1) = rho(imin,jmin)
-      end if
-c
-c     :: corner ihi, jlo
-c
-      if (bc(1,2).ne.INT_DIR .or. bc(2,1).ne.INT_DIR) then
-           s(imax+1,jmin-1) =   s(imax,jmin)
-         rho(imax+1,jmin-1) = rho(imax,jmin)
-      end if
-c
-c     :: corner ilo, jhi
-c
-      if (bc(1,1).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-           s(imin-1,jmax+1) =   s(imin,jmax)
-         rho(imin-1,jmax+1) = rho(imin,jmax)
-      end if
-c
-c     :: corner ihi, jhi
-c
-      if (bc(1,2).ne.INT_DIR .or. bc(2,2).ne.INT_DIR) then
-           s(imax+1,jmax+1) =   s(imax,jmax)
-         rho(imax+1,jmax+1) = rho(imax,jmax)
-      end if
 c
 c     compute extrema of s
 c
@@ -4220,8 +4168,10 @@ c
       end
 
       subroutine FORT_CORRECT_TF(
-     &     ss,  sp,  DIMS(ss),
-     &     tfs, tfn, DIMS(tfs),
+     &     ss, DIMS(ss),
+     &     sp, DIMS(sp),
+     &     tfs, DIMS(tfs),
+     &     tfn, DIMS(tfn),      
      &     lo,hi,dt,nvar)
 c
 c     correct 1st order rk to second-order
@@ -4232,11 +4182,13 @@ c
       REAL_T dt,hdt
 
       integer DIMDEC(ss)
+      integer DIMDEC(sp)
       integer DIMDEC(tfs)
+      integer DIMDEC(tfn)
       REAL_T  ss(DIMV(ss),nvar)
-      REAL_T  sp(DIMV(ss),nvar)
+      REAL_T  sp(DIMV(sp),nvar)
       REAL_T tfs(DIMV(tfs),nvar)
-      REAL_T tfn(DIMV(tfs),nvar)
+      REAL_T tfn(DIMV(tfn),nvar)
 
       hdt = half*dt
       do n = 1,nvar
@@ -4332,6 +4284,12 @@ c
 
       implicit none
       integer lo_1,lo_2,hi_1,hi_2
+C      
+C     FIXME? Do the arrays s, slx, sly, sc have the same bounds
+C            here and in the calling function?
+C            Perhaps passing in loop bounds (is,js,ie,je) instead
+C            of infering from lo and hi would be better...
+C
       REAL_T      s(lo_1-3:hi_1+3,lo_2-3:hi_2+3)
       REAL_T    slx(lo_1-1:hi_1+1,lo_2-1:hi_2+1)
       REAL_T    sly(lo_1-1:hi_1+1,lo_2-1:hi_2+1)
@@ -4543,6 +4501,7 @@ c
         enddo
       enddo
 
+C see comments in subroutine bdsslope      
       call bdsslope(s,lo(1),lo(2),hi(1),hi(2),sx,sy,sc,dx)
 
       do j = js,je 
@@ -4761,6 +4720,7 @@ c
 
       end
 
+C FIXME? check that the arrays are properly sized      
       subroutine bilin(poly,c,x,y,hx,hy,istart,iend,lo_1,hi_1)
 
       implicit none

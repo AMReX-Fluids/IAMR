@@ -93,7 +93,10 @@ c ::
       end
 
 c :: ----------------------------------------------------------
-c :: UTILITY ROUTINE: compute:
+c :: NOTE: This routine is no longer needed. Use saxpy
+c ::     funcitons in AMReX.
+c ::     
+C :: UTILITY ROUTINE: compute:
 c ::             A += alpha*B on subrange
 c ::
 c :: INPUTS / OUTPUTS:

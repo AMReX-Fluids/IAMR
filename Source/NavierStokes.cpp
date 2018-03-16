@@ -667,21 +667,22 @@ NavierStokes::scalar_advection (Real dt,
             // Compute total forcing.
             //
             int use_conserv_diff = (advectionType[state_ind] == Conservative) ? true : false;
-
+	    // WARNING: BDS does not work with tiling.
+	    // PRE_MAC and FPU do work with tiling.
             AdvectionScheme adv_scheme = PRE_MAC;
-
-            // if (adv_scheme == PRE_MAC)
-            // {
+	    
+            if (adv_scheme == PRE_MAC)
+            {
                 godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_mfi],
                                           comp,divufab,rhopfab,use_conserv_diff);
-            // }
-            // else
-            // {
-            //     FArrayBox junkDivu(tforces.box(),1);
-            //     junkDivu.setVal(0);
-            //     godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_mfi],
-            //                               comp,junkDivu,rhopfab,use_conserv_diff);
-            // }
+            }
+            else
+            {
+                FArrayBox junkDivu(tforces.box(),1);
+                junkDivu.setVal(0);
+                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_mfi],
+                                          comp,junkDivu,rhopfab,use_conserv_diff);
+            }
             //
             // Advect scalar.
             //

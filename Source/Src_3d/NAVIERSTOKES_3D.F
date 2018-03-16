@@ -124,6 +124,8 @@ c ::
       end
 
 c :: ----------------------------------------------------------
+c :: NOTE: This routine is no longer needed. Use saxpy
+c ::     funcitons in AMReX.
 c :: UTILITY ROUTINE: compute:
 c ::             A += alpha*B on subrange
 c ::
