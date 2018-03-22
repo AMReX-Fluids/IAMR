@@ -10,7 +10,17 @@
 #include <GODUNOV_F.H>
 #include <AMReX_ArrayLim.H>
 
-c=========================================================
+module godunov_module
+
+  implicit none
+
+  private
+
+  public FORT_SET_PARAMS
+
+contains
+
+!c=========================================================
 
       subroutine FORT_SET_PARAMS(slope_order_in,use_unlim_in)
       implicit none
@@ -22,15 +32,16 @@ c=========================================================
 
       use_unlimited_slopes = (use_unlim_in .eq. 1)
 
-      if(slope_order.ne.1.and.
+      if(slope_order.ne.1.and.&
 #if (BL_SPACEDIM==2)
-     &   slope_order.ne.2.and.
+        slope_order.ne.2.and.&
 #endif
-     &   slope_order.ne.4)then
-        write(6,*)'FORT_SET_PARAMS : illegal value of slope_order = ',
-     &            slope_order
+        slope_order.ne.4)then
+        write(6,*)'FORT_SET_PARAMS : illegal value of slope_order = ',&
+                 slope_order
 
         call bl_abort(" ")
       end if
 
-      end
+    end subroutine FORT_SET_PARAMS
+  end module godunov_module

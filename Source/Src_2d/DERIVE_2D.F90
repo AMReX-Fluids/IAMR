@@ -19,35 +19,49 @@
 #define SMALL 1.0d-10
 #endif
 
-c     -----------------------------------------------------------
-c     This file contains functions which compute derived quantities.  
-c     All of the argument lists have the same template, shown below
-c     
-c     INPUTS/OUTPUTS:
-c     
-c     e         <= the quantity derived
-c     DIMS(e)   => index extent of e array
-c     nv        => number of components in e array (should be 1)
-c     dat       => data neded to derive e
-c     DIMS(dat) => index limits of dat array
-c     ncomp     => number of components of dat array (3)
-c     lo,hi     => subrange of e array where result is requested
-c     domlo,hi  => index extent of problem domain (cell centered)
-c     delta     => cell spacing
-c     xlo       => physical location of lower left hand
-c 	           corner of e array
-c     time      => problem evolution time
-c     bc        => array of bndry types for component values
-c                  valid only if component touches bndry
-c     -----------------------------------------------------------
 
-      subroutine FORT_DERMODGRADRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                         bc,level,grid_no)
+module derive_2d_module
+  
+  implicit none
+
+  private
+
+  public FORT_DERMODGRADRHO, FORT_DERKENG,FORT_DERLOGS, FORT_DERMVEL, &
+       FORT_DERDVRHO, FORT_DERMPRHO, FORT_DERLGRHODUST,FORT_DERMGVORT, &
+       FORT_DERMGVORT2,FORT_DERMGDIVU,FORT_GRADP_DIR, FORT_DERAVGPRES, &
+       FORT_DERGRDPX,FORT_DERGRDPY, FORT_DERGRDP, FORT_DERNULL
+
+contains
+
+! c     -----------------------------------------------------------
+! c     This file contains functions which compute derived quantities.  
+! c     All of the argument lists have the same template, shown below
+! c     
+! c     INPUTS/OUTPUTS:
+! c     
+! c     e         <= the quantity derived
+! c     DIMS(e)   => index extent of e array
+! c     nv        => number of components in e array (should be 1)
+! c     dat       => data neded to derive e
+! c     DIMS(dat) => index limits of dat array
+! c     ncomp     => number of components of dat array (3)
+! c     lo,hi     => subrange of e array where result is requested
+! c     domlo,hi  => index extent of problem domain (cell centered)
+! c     delta     => cell spacing
+! c     xlo       => physical location of lower left hand
+! c 	           corner of e array
+! c     time      => problem evolution time
+! c     bc        => array of bndry types for component values
+! c                  valid only if component touches bndry
+! c     -----------------------------------------------------------
+
+      subroutine FORT_DERMODGRADRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                              bc,level,grid_no)
       implicit none
-c
-c     This routine will derive the modulus of the density gradients
-c
+!c
+!c     This routine will derive the modulus of the density gradients
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -73,16 +87,16 @@ c
          end do
       end do
 
-      end
+    end subroutine FORT_DERMODGRADRHO
 
-      subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                         bc,level,grid_no)
+      subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                              bc,level,grid_no)
       implicit none
-c
-c     This routine will derive kinetic energy from density
-c     and the velocity field.
-c
+!c
+!c     This routine will derive kinetic energy from density
+!c     and the velocity field.
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -106,15 +120,15 @@ c
 	 end do
       end do
 
-      end
+    end subroutine FORT_DERKENG
 
-      subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                         bc,level,grid_no)
+      subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                              bc,level,grid_no)
       implicit none
-c
-c     This routine will derive log of given scalar quantity
-c
+!c
+!c     This routine will derive log of given scalar quantity
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -136,16 +150,16 @@ c
 	 end do
       end do
 
-      end
+    end subroutine FORT_DERLOGS
 
-      subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                         bc,level,grid_no)
+      subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                              bc,level,grid_no)
       implicit none
-c
-c ::: This routine will derive the magnitude of the velocity field
-c ::: from the velocity field
-c
+!c
+!c ::: This routine will derive the magnitude of the velocity field
+!c ::: from the velocity field
+!c
 
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
@@ -169,15 +183,15 @@ c
 	 end do
       end do
 
-      end
+    end subroutine FORT_DERMVEL
 
-      subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                         bc,level,grid_no)
+      subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                              bc,level,grid_no)
       implicit none
-c
-c ::: This routine will derive C/RHO
-c
+!c
+!c ::: This routine will derive C/RHO
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -197,15 +211,15 @@ c
 	 end do
       end do
 
-      end
+    end subroutine FORT_DERDVRHO
 
-      subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                         bc,level,grid_no)
+      subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                              bc,level,grid_no)
       implicit none
-c
-c ::: This routine will derive RHO*C
-c
+!c
+!c ::: This routine will derive RHO*C
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -225,15 +239,15 @@ c
 	 end do
       end do
 
-      end
+    end subroutine FORT_DERMPRHO
 
-      subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                              lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                              bc,level,grid_no)
+      subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                                   lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                                   bc,level,grid_no)
       implicit none
-c
-c ::: This routine will derive log(RHO*C)
-c
+!c
+!c ::: This routine will derive log(RHO*C)
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -255,16 +269,16 @@ c
 	 end do
       end do
 
-      end
+    end subroutine FORT_DERLGRHODUST
 
-      subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                           bc,level,grid_no)
+      subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,&
+                                lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                                bc,level,grid_no)
       implicit none
-c
-c ::: This routine will derive magnitude of vorticity from
-c ::: the velocity field
-c
+!c
+!c ::: This routine will derive magnitude of vorticity from
+!c ::: the velocity field
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(vort)
       integer    DIMDEC(dat)
@@ -280,18 +294,18 @@ c
       REAL_T    vx, uy, dx, dy
       logical   fixlft, fixrgt, fixbot, fixtop
       REAL_T    vxcen, vxlft, vxrgt, uycen, uybot, uytop, vorfun
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
 #     define VLOX bc(1,1,2)
 #     define VHIX bc(1,2,2)
 #     define ULOY bc(2,1,1)
 #     define UHIY bc(2,2,1)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       vxcen(i,j) = half*(V(i+1,j)-V(i-1,j))/dx
       vxlft(i,j) = (V(i+1,j)+three*V(i,j)-four*V(i-1,j))/(three*dx)
       vxrgt(i,j) = (four*V(i+1,j)-three*V(i,j)-V(i-1,j))/(three*dx)
@@ -311,17 +325,17 @@ c
 	 end do
       end do
 
-      fixlft = ( (lo(1) .eq. domlo(1)) .and. 
-     &           (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
-      fixrgt = ( (hi(1) .eq. domhi(1)) .and. 
-     &           (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
-      fixbot = ( (lo(2) .eq. domlo(2)) .and. 
-     &           (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
-      fixtop = ( (hi(2) .eq. domhi(2)) .and. 
-     &           (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
-c
-c     ::::: handle special bndry conditions at the left edge
-c
+      fixlft = ( (lo(1) .eq. domlo(1)) .and. &
+                (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixrgt = ( (hi(1) .eq. domhi(1)) .and. &
+                (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixbot = ( (lo(2) .eq. domlo(2)) .and. &
+                (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixtop = ( (hi(2) .eq. domhi(2)) .and. &
+                (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+!c
+!c     ::::: handle special bndry conditions at the left edge
+!c
       if (fixlft) then
          i = lo(1)
          do j = lo(2), hi(2)
@@ -330,9 +344,9 @@ c
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-c
-c     ::::: handle special bndry conditions on the right
-c
+!c
+!c     ::::: handle special bndry conditions on the right
+!c
       if (fixrgt) then
          i = hi(1)
          do j = lo(2), hi(2)
@@ -341,9 +355,9 @@ c
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-c
-c     ::::: handle special bndry conditions on bottom
-c
+!c
+!c     ::::: handle special bndry conditions on bottom
+!c
       if (fixbot) then
          j = lo(2)
          do i = lo(1), hi(1)
@@ -352,9 +366,9 @@ c
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-c
-c     ::::: handle special bndry conditions on top
-c
+!c
+!c     ::::: handle special bndry conditions on top
+!c
       if (fixtop) then
          j = hi(2)
          do i = lo(1), hi(1)
@@ -363,9 +377,9 @@ c
     	    vort(i,j,1) = vorfun(vx,uy)
 	 end do
       end if
-c
-c     ::::: check corners
-c
+!c
+!c     ::::: check corners
+!c
       if (fixlft .and. fixbot) then
          i = lo(1)
 	 j = lo(2)
@@ -402,16 +416,16 @@ c
 #     undef ULOY
 #     undef UHIY
 
-      end
+    end subroutine FORT_DERMGVORT
 
-      subroutine FORT_DERMGVORT2 (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                            bc,level,grid_no)
+      subroutine FORT_DERMGVORT2 (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,&
+                                 lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                                 bc,level,grid_no)
       implicit none
-c
-c ::: This routine will derive magnitude of vorticity from
-c ::: the velocity field
-c
+!c
+!c ::: This routine will derive magnitude of vorticity from
+!c ::: the velocity field
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(vort)
       integer    DIMDEC(dat)
@@ -428,9 +442,9 @@ c
       REAL_T    uycen, uylo, uyhi
       REAL_T    vxcen, vxlo, vxhi
       REAL_T    vorfun
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
 
@@ -439,9 +453,9 @@ c
 
 #     define VLOX bc(1,1,2)
 #     define VHIX bc(1,2,2)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       uycen(i,j) = half*(U(i,j+1)-U(i,j-1))/dy
       uylo(i,j) = (eight*U(i,j)-six*U(i,j+1)+U(i,j+2))/(three*dy)
       uyhi(i,j) = (eight*U(i,j)-six*U(i,j-1)+U(i,j-2))/(three*dy)
@@ -454,12 +468,12 @@ c
 
       dx = delta(1)
       dy = delta(2)
-c
-c     :: at physical bndries where an edge value is prescribed,
-c     :: set the value in the outside cell so that a central
-c     :: difference formula is equivalent to the higher order
-c     :: one sided formula
-c
+!c
+!c     :: at physical bndries where an edge value is prescribed,
+!c     :: set the value in the outside cell so that a central
+!c     :: difference formula is equivalent to the higher order
+!c     :: one sided formula
+!c
       if (lo(1) .eq. domlo(1)) then
          i = lo(1)
          if (VLOX.eq.EXT_DIR .or. VLOX.eq.HOEXTRAP) then
@@ -508,15 +522,15 @@ c
 #     undef VLOX
 #     undef VHIX
 
-      end
+    end subroutine FORT_DERMGVORT2
 
-      subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                           bc,level,grid_no)
+      subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,&
+                                lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                                bc,level,grid_no)
       implicit none
-c
-c ::: This routine will derive magnitude of the divergence of velocity
-c
+!c
+!c ::: This routine will derive magnitude of the divergence of velocity
+!c
       integer    lo(2), hi(2)
       integer    DIMDEC(divu)
       integer    DIMDEC(dat)
@@ -532,9 +546,9 @@ c
       REAL_T    ux, vy, dx, dy
       REAL_T    uxcen, uxlo, uxhi
       REAL_T    vycen, vylo, vyhi
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j) dat(i,j,1)
 #     define V(i,j) dat(i,j,2)
 
@@ -543,9 +557,9 @@ c
 
 #     define VLOY bc(2,1,2)
 #     define VHIY bc(2,2,2)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       uxcen(i,j) = half*(U(i+1,j)-U(i-1,j))/dx
       uxlo(i,j) = (eight*U(i,j)-six*U(i+1,j)+U(i+2,j))/(three*dx)
       uxhi(i,j) = (eight*U(i,j)-six*U(i-1,j)+U(i-2,j))/(three*dx)
@@ -554,21 +568,21 @@ c
       vylo(i,j) = (eight*V(i,j)-six*V(i,j+1)+V(i,j+2))/(three*dy)
       vyhi(i,j) = (eight*V(i,j)-six*V(i,j-1)+V(i,j-2))/(three*dy)
 
-      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
-      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),2),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
+      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),1),DIMS(dat),&
+                        domlo,domhi,delta,xlo,time,bc(1,1,1))
+      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),2),DIMS(dat),&
+                        domlo,domhi,delta,xlo,time,bc(1,1,2))
 
       dx = delta(1)
       dy = delta(2)
-c
-c     :: at physical bndries where an edge value is prescribed,
-c     :: set the value in the outside cell so that a central
-c     :: difference formula is equivalent to the higher order
-c     :: one sided formula
-c
-c     boundaries handled by fill routines
-c
+!c
+!c     :: at physical bndries where an edge value is prescribed,
+!c     :: set the value in the outside cell so that a central
+!c     :: difference formula is equivalent to the higher order
+!c     :: one sided formula
+!c
+!c     boundaries handled by fill routines
+!c
       if (lo(1) .eq. domlo(1)) then
          i = lo(1)
          if (ULOX.eq.EXT_DIR) then
@@ -625,13 +639,13 @@ c
             divu(i,j,1) = ux + vy
          end do
       end do
-c
-c we overwrote the ghost cells above, so set them back below
-c
-      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
-      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),2),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
+!c
+!c we overwrote the ghost cells above, so set them back below
+!c
+      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),1),DIMS(dat),&
+                        domlo,domhi,delta,xlo,time,bc(1,1,1))
+      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),2),DIMS(dat),&
+                        domlo,domhi,delta,xlo,time,bc(1,1,2))
 
 #     undef U
 #     undef V      
@@ -640,16 +654,14 @@ c
 #     undef VLOY
 #     undef VHIY
 
-      end
+    end subroutine FORT_DERMGDIVU
 
-      subroutine FORT_GRADP_DIR (
-     &     p,DIMS(p),
-     &     gp,DIMS(gp),
-     &     lo,hi,dir,dx)
+      subroutine FORT_GRADP_DIR (p,DIMS(p), gp,DIMS(gp),&
+           lo,hi,dir,dx)
       implicit none
-c
-c     compute a node centered pressure gradient in direction (dir)
-c
+!c
+!c     compute a node centered pressure gradient in direction (dir)
+!c
       integer    DIMDEC(p)
       integer    DIMDEC(gp)
       integer    lo(SDIM),  hi(SDIM)
@@ -682,16 +694,16 @@ c
          call bl_abort("FORT_GRADP_DIR: invalid dir")
       end if
 
-      end
+    end subroutine FORT_GRADP_DIR
 
-      subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                            bc,level,grid_no)
+      subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
+                                 lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                                 bc,level,grid_no)
       implicit none
-c
-c     This routine computes cell-centered pressure as average of the four
-c       surrounding nodal values.
-c
+!c
+!c     This routine computes cell-centered pressure as average of the four
+!c       surrounding nodal values.
+!c
       integer DIMDEC(gp)
       integer DIMDEC(dat)
       REAL_T  avgpres(DIMV(gp))
@@ -710,23 +722,23 @@ c
 
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
-            avgpres(i,j) = fourth*( dat(i+1,j  )+dat(i,j  ) +
-     $                              dat(i+1,j+1)+dat(i,j+1) )
+            avgpres(i,j) = fourth*( dat(i+1,j  )+dat(i,j  ) +&
+                                   dat(i+1,j+1)+dat(i,j+1) )
          end do
       end do
 
-      end
+    end subroutine FORT_DERAVGPRES
 
-c=========================================================
+!c=========================================================
 
 
-      subroutine FORT_DERGRDPX (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                          bc,level,grid_no)
+      subroutine FORT_DERGRDPX (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
+                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                               bc,level,grid_no)
       implicit none
-c
-c     This routine computes pressure gradient in X direction
-c
+!c
+!c     This routine computes pressure gradient in X direction
+!c
       integer lo(2), hi(2)
       integer DIMDEC(gp)
       integer DIMDEC(dat)
@@ -737,20 +749,20 @@ c
       REAL_T  grdpx(DIMV(gp),nv)
       REAL_T  dat(DIMV(dat),ncomp)
       integer level, grid_no
-c
-      call FORT_GRADP_DIR (
-     &     dat,DIMS(dat),grdpx,DIMS(gp),
-     &     lo,hi,0,delta(1))
 
-      end
+      call FORT_GRADP_DIR (&
+          dat,DIMS(dat),grdpx,DIMS(gp),&
+          lo,hi,0,delta(1))
 
-      subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
-     $                          bc,level,grid_no)
+    end subroutine FORT_DERGRDPX
+
+      subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
+                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                               bc,level,grid_no)
       implicit none
-c
-c     This routine computes pressure gradient in Y direction
-c
+!c
+!c     This routine computes pressure gradient in Y direction
+!c
       integer lo(2), hi(2)
       integer DIMDEC(gp)
       integer DIMDEC(dat)
@@ -761,22 +773,22 @@ c
       REAL_T  grdpy(DIMV(gp),nv)
       REAL_T  dat(DIMV(dat),ncomp)
       integer level, grid_no
-c
-      call FORT_GRADP_DIR (
-     &     dat,DIMS(dat),grdpy,DIMS(gp),
-     &     lo,hi,1,delta(2))
 
-      end
+      call FORT_GRADP_DIR (&
+          dat,DIMS(dat),grdpy,DIMS(gp),&
+          lo,hi,1,delta(2))
 
-c=========================================================
+    end subroutine FORT_DERGRDPY
 
-      subroutine FORT_DERGRDP (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,
-     &                         lo,hi,domlo,domhi,dx,xlo,time,dt,
-     $                         bc,level,grid_no)
+!c=========================================================
+
+      subroutine FORT_DERGRDP (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,&
+                              lo,hi,domlo,domhi,dx,xlo,time,dt,&
+                              bc,level,grid_no)
       implicit none
-c
-c     This routine computes the magnitude of pressure gradient 
-c
+
+!c     This routine computes the magnitude of pressure gradient 
+
       integer lo(2), hi(2)
       integer DIMDEC(gp)
       integer DIMDEC(p)
@@ -790,7 +802,7 @@ c
 
       REAL_T     gpx, gpy
       integer    i,j
-c
+!c
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             gpx = half * (p(i+1,j,1)-p(i,j,1)+p(i+1,j+1,1)-p(i,j+1,1)) / dx(1)
@@ -799,13 +811,13 @@ c
          end do
       end do
 
-      end
+    end subroutine FORT_DERGRDP
 
-c=========================================================
+!c=========================================================
 
-      subroutine FORT_DERNULL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,bc,
-     $                         level,grid_no)
+      subroutine FORT_DERNULL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,bc,&
+                              level,grid_no)
       implicit none
       !
       ! This is a null derived routine.
@@ -821,5 +833,6 @@ c=========================================================
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 
-      end
+    end subroutine FORT_DERNULL
 
+  end module derive_2d_module

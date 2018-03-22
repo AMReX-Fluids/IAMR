@@ -2,7 +2,7 @@
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
-
+  
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
 #include <AMReX_BC_TYPES.H>
@@ -17,16 +17,31 @@
 #define SMALL 1.0d-10
 #endif
 
-c *************************************************************************
-c ** EXTRAP_PROJ **
-c *************************************************************************
 
-      subroutine FORT_EXTRAP_PROJ(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,
-     &     r_len,redge,DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &     DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt)
+module projoutflowbc_2d_module
+  
+  implicit none
+
+  private 
+
+  public  FORT_EXTRAP_PROJ, FORT_HGRELAX, FORT_HGSUBTRACTAVGPHI, &
+       FORT_HGRESID, FORT_HG_SHIFT_PHI, FORT_HG_RESHIFT_PHI, &
+       FORT_SOLVEHG, FORT_COARSIG, FORT_RESTRICT, FORT_INTERP, &
+       FORT_HGPHIBC, FORT_OLDHGPHIBC, FORT_RHOGBC, FORT_FILL_ONED,&
+       FORT_ALLPHI_FROM_X, FORT_PHI_FROM_X
+
+contains
+
+!c *************************************************************************
+!c ** EXTRAP_PROJ **
+!c *************************************************************************
+
+      subroutine FORT_EXTRAP_PROJ(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,&
+          r_len,redge,DIMS(uExt),uExt,DIMS(divuExt),divuExt,&
+          DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt)
       implicit none
 
-c subtract divu_ave twice due to precision problems
+!c subtract divu_ave twice due to precision problems
 
       integer DIMDEC(u)
       integer DIMDEC(divu)
@@ -42,11 +57,11 @@ c subtract divu_ave twice due to precision problems
       REAL_T    rho(DIMV(rho))
       REAL_T      uExt(DIMV(uExt),SDIM-1)
       REAL_T   divuExt(DIMV(divuExt))
-      REAL_T   r hoExt(DIMV(rhoExt))
+      REAL_T   rhoExt(DIMV(rhoExt))
       REAL_T   redge(0:r_len-1)
       integer  zeroIt
 
-c local variables
+!c local variables
       integer ics,ice,jcs,jce
       integer ife,jfe
       integer if,jf
@@ -141,7 +156,7 @@ c local variables
          end do
       endif
 
-c check to see if we should zero phi
+!c check to see if we should zero phi
       max_pert = max_pert/(ABS(divu_ave1+divu_ave2)+small_pert)
       if ((max_divu.eq.zero) .or. (max_pert.le.small_pert)) zeroIt = 1
 #undef XLO
@@ -149,17 +164,17 @@ c check to see if we should zero phi
 #undef XHI
 #undef YHI
 
-      end
+    end subroutine FORT_EXTRAP_PROJ
 
-c *************************************************************************
-c ** HGRELAX **
-c *************************************************************************
+!c *************************************************************************
+!c ** HGRELAX **
+!c *************************************************************************
 
 #define DGX (beta(i-1)*phi(i-1) - (beta(i)+beta(i-1))*phi(i) \
             +beta(i)*phi(i+1))*(hxsqinv)
 
-      subroutine FORT_HGRELAX(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,
-     &                        DIMS(dgphi),dgphi,lo,hi,h,isPeriodic,niter)
+      subroutine FORT_HGRELAX(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
+                             DIMS(dgphi),dgphi,lo,hi,h,isPeriodic,niter)
       implicit none
       integer DIMDEC(beta)
       integer DIMDEC(rhs)
@@ -193,9 +208,9 @@ c *************************************************************************
             do i=ins+redblack,ine,2
                dgphi(i) = DGX
                lam = hxsqinv*(beta(i)+beta(i-1))
-c double dgphi at edges
-               if ((i .eq. lo(1) .or. i .eq. hi(1)+1)
-     &              .and. isPeriodic(1) .ne. 1) then
+!c double dgphi at edges
+               if ((i .eq. lo(1) .or. i .eq. hi(1)+1)&
+                   .and. isPeriodic(1) .ne. 1) then
                   dgphi(i) = dgphi(i) * two
                   lam = lam* two
                endif
@@ -207,14 +222,14 @@ c double dgphi at edges
 
       call setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
 
-      end
+    end subroutine FORT_HGRELAX
 
-c *************************************************************************
-c ** HGSUBTRACTAVGPHI **
-c *************************************************************************
+!c *************************************************************************
+!c ** HGSUBTRACTAVGPHI **
+!c *************************************************************************
 
-      subroutine FORT_HGSUBTRACTAVGPHI(DIMS(phi),phi,r_lo,r_hi,r,lo,hi,
-     &                                 isPeriodic)
+      subroutine FORT_HGSUBTRACTAVGPHI(DIMS(phi),phi,r_lo,r_hi,r,lo,hi,&
+                                      isPeriodic)
       implicit none
       integer DIMDEC(phi)
       REAL_T phi(DIM1(phi))
@@ -255,16 +270,16 @@ c *************************************************************************
 
       call setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
 
-      end
+    end subroutine FORT_HGSUBTRACTAVGPHI
 
 
-c *************************************************************************
-c ** HGRESID **
-c *************************************************************************
+!c *************************************************************************
+!c ** HGRESID **
+!c *************************************************************************
 
-      subroutine FORT_HGRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,
-     &                   DIMS(resid),resid,DIMS(dgphi),dgphi,
-     &                   lo,hi,h,isPeriodic,maxnorm)
+      subroutine FORT_HGRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
+                        DIMS(resid),resid,DIMS(dgphi),dgphi,&
+                        lo,hi,h,isPeriodic,maxnorm)
 
       implicit none
       integer DIMDEC(beta)
@@ -290,18 +305,18 @@ c *************************************************************************
       setSingularPoint = .false.
       maxnorm = zero
 
-      call makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),beta,DIMS(beta),
-     &                   lo,hi,h,isPeriodic,setSingularPoint)
+      call makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),beta,DIMS(beta),&
+                        lo,hi,h,isPeriodic,setSingularPoint)
       do i=lo(1),hi(1)+1
          resid(i) = rhs(i)-dgphi(i)
          maxnorm = max(maxnorm,ABS(resid(i)))         
       enddo
-      end
+    end subroutine FORT_HGRESID
 
 
-c *************************************************************************
-c ** SETPROJBC **
-c *************************************************************************
+!c *************************************************************************
+!c ** SETPROJBC **
+!c *************************************************************************
 
       subroutine setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
       implicit none
@@ -329,11 +344,11 @@ c *************************************************************************
          phi(ine+1) = phi(ine-1)
       endif
 
-      end
+    end subroutine setprojbc
 
-c *************************************************************************
-c ** HG_SHIFT_PHI **
-c *************************************************************************
+!c *************************************************************************
+!c ** HG_SHIFT_PHI **
+!c *************************************************************************
 
       subroutine FORT_HG_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
       implicit none
@@ -366,11 +381,11 @@ c *************************************************************************
 #undef XHI
 #undef YHI
 
-      end
+    end subroutine FORT_HG_SHIFT_PHI
 
-c *************************************************************************
-c ** HG_RESHIFT_PHI **
-c *************************************************************************
+!c *************************************************************************
+!c ** HG_RESHIFT_PHI **
+!c *************************************************************************
 
       subroutine FORT_HG_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
       implicit none
@@ -403,17 +418,17 @@ c *************************************************************************
 #undef XHI
 #undef YHI
 
-      end
+    end subroutine FORT_HG_RESHIFT_PHI
 
-c *************************************************************************
-c ** HG_SOLVEHG **
-c *************************************************************************
+!c *************************************************************************
+!c ** HG_SOLVEHG **
+!c *************************************************************************
 
-      subroutine FORT_SOLVEHG(p,DIMS(p),dest0,DIMS(dest0),
-     &     source,DIMS(source),sigma,DIMS(sigma),
-     &     cen,DIMS(cen),r,DIMS(r),w,DIMS(w),
-     &     z,DIMS(z),x,DIMS(x),
-     $     lo,hi,h,isPeriodic,maxiter,tol,abs_tol,max_jump,norm)
+      subroutine FORT_SOLVEHG(p,DIMS(p),dest0,DIMS(dest0),&
+          source,DIMS(source),sigma,DIMS(sigma),&
+          cen,DIMS(cen),r,DIMS(r),w,DIMS(w),&
+          z,DIMS(z),x,DIMS(x),&
+          lo,hi,h,isPeriodic,maxiter,tol,abs_tol,max_jump,norm)
       
       implicit none
 
@@ -443,7 +458,7 @@ c *************************************************************************
       REAL_T tol
       REAL_T abs_tol,max_jump
 
-c     Local variables
+!c     Local variables
       REAL_T factor
       REAL_T  alpha,beta, rho, rho_old
       logical testx
@@ -467,15 +482,15 @@ c     Local variables
       enddo
       
       call setprojbc(DIMS(dest0),dest0,lo,hi,isPeriodic,setSingularPoint)
-      call makeprojdgphi(dest0,DIMS(dest0),w,DIMS(w),sigma,DIMS(sigma),
-     &     lo,hi,h,isPeriodic,setSingularPoint)
+      call makeprojdgphi(dest0,DIMS(dest0),w,DIMS(w),sigma,DIMS(sigma),&
+          lo,hi,h,isPeriodic,setSingularPoint)
       
       do i = istart, iend 
          r(i) = source(i) - w(i)
       enddo
       
-c note that all of this factor stuff is due to the problem being doubled
-c at edges -- both the rhs and the operator.
+!c note that all of this factor stuff is due to the problem being doubled
+!c at edges -- both the rhs and the operator.
       rho = zero
       norm0 = zero
       do i = istart, iend
@@ -511,8 +526,8 @@ c at edges -- both the rhs and the operator.
       enddo
       
       call setprojbc(DIMS(p),p,lo,hi,isPeriodic,setSingularPoint)
-      call makeprojdgphi(p,DIMS(p),w,DIMS(w),sigma,DIMS(sigma),
-     &     lo,hi,h,isPeriodic,setSingularPoint)
+      call makeprojdgphi(p,DIMS(p),w,DIMS(w),sigma,DIMS(sigma),&
+          lo,hi,h,isPeriodic,setSingularPoint)
       
       alpha = zero
       do i = istart, iend 
@@ -544,7 +559,7 @@ c at edges -- both the rhs and the operator.
       enddo
       
       iter = iter+1
-c      write(6,*) iter,norm
+!c      write(6,*) iter,norm
 
       if (iter .gt. maxiter .or. norm .gt. max_jump*norm0) then
          
@@ -575,15 +590,15 @@ c      write(6,*) iter,norm
       enddo
 
       return
-      end
+    end subroutine FORT_SOLVEHG
 
-c *************************************************************************
-c ** makeprojdgphi **
-c *************************************************************************
+!c *************************************************************************
+!c ** makeprojdgphi **
+!c *************************************************************************
 
-      subroutine makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),
-     &                     beta,DIMS(beta),
-     &                     lo,hi,h,isPeriodic,setSingularPoint)
+      subroutine makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),&
+                          beta,DIMS(beta),&
+                          lo,hi,h,isPeriodic,setSingularPoint)
 
       implicit none
 
@@ -598,7 +613,7 @@ c *************************************************************************
       REAL_T h(SDIM)
       logical setSingularPoint
 
-c     Local variables
+!c     Local variables
       REAL_T hxsqinv
       integer is,ie
       integer i
@@ -617,7 +632,7 @@ c     Local variables
          dgphi(i) = DGX
       enddo
       
-c  double dgphi at edges
+!c  double dgphi at edges
       if (isPeriodic(1) .ne. 1) then
         dgphi(is) = dgphi(is) * two
         dgphi(ie+1) = dgphi(ie+1) * two
@@ -628,15 +643,15 @@ c  double dgphi at edges
       endif
 
       return
-      end
+    end subroutine makeprojdgphi
 
-c *************************************************************************
-c ** COARSIG **
-c ** Coarsening of the sig coefficients
-c *************************************************************************
+!c *************************************************************************
+!c ** COARSIG **
+!c ** Coarsening of the sig coefficients
+!c *************************************************************************
 
-      subroutine FORT_COARSIG(sigma,DIMS(sigma),sigmac,DIMS(sigmac),
-     &                        lo,hi,loc,hic,isPeriodic)
+      subroutine FORT_COARSIG(sigma,DIMS(sigma),sigmac,DIMS(sigmac),&
+                             lo,hi,loc,hic,isPeriodic)
 
       implicit none
 
@@ -648,7 +663,7 @@ c *************************************************************************
       REAL_T sigmac(DIM1(sigmac))
       integer isPeriodic(SDIM)
 
-c     Local variables
+!c     Local variables
       integer i,i2 
 
       do i = loc(1),hic(1) 
@@ -665,15 +680,15 @@ c     Local variables
       endif
 
       return
-      end
+    end subroutine FORT_COARSIG
 
-c *************************************************************************
-c ** RESTRICT **
-c ** Conservative restriction of the residual
-c *************************************************************************
+!c *************************************************************************
+!c ** RESTRICT **
+!c ** Conservative restriction of the residual
+!c *************************************************************************
 
-      subroutine FORT_RESTRICT(res,DIMS(res),resc,DIMS(resc),
-     &                        lo,hi,loc,hic,isPeriodic)
+      subroutine FORT_RESTRICT(res,DIMS(res),resc,DIMS(resc),&
+                             lo,hi,loc,hic,isPeriodic)
 
       implicit none
 
@@ -685,7 +700,7 @@ c *************************************************************************
       REAL_T  resc(DIM1(resc))
       integer isPeriodic(SDIM)
 
-c     Local variables
+!c     Local variables
       integer i,ii
       integer istart,iend
 
@@ -703,35 +718,35 @@ c     Local variables
          resc(i) = half*res(ii) + fourth*(res(ii+1)+res(ii-1))
       enddo
 
-c  the top version is what we use when we double the problem at edges
-c  the bottom version (commented out) is what we would use if we did not 
-c      double the problem at edges.
+!c  the top version is what we use when we double the problem at edges
+!c  the bottom version (commented out) is what we would use if we did not 
+!c      double the problem at edges.
       if (isPeriodic(1) .NE. 1) then
         i = loc(1)
         ii = 2*(i-loc(1))+lo(1)
         
         resc(i) = half*(res(ii) + res(ii+1))
-c        resc(i) = half*res(ii) + fourth*res(ii+1)
+!c        resc(i) = half*res(ii) + fourth*res(ii+1)
         
         i = hic(1)+1
         ii = 2*(i-loc(1))+lo(1)
         
         resc(i) = half*(res(ii) + res(ii-1))
-c        resc(i) = half*res(ii) + fourth*res(ii-1)
+!c        resc(i) = half*res(ii) + fourth*res(ii-1)
 
       endif
 
       return
-      end
+    end subroutine FORT_RESTRICT
 
 
-c *************************************************************************
-c ** INTERP **
-c ** Simple bilinear interpolation
-c *************************************************************************
+!c *************************************************************************
+!c ** INTERP **
+!c ** Simple bilinear interpolation
+!c *************************************************************************
 
-      subroutine FORT_INTERP(phi,DIMS(phi),temp,DIMS(temp),deltac,DIMS(deltac),
-     &                       sigma,DIMS(sigma),lo,hi,loc,hic,isPeriodic)
+      subroutine FORT_INTERP(phi,DIMS(phi),temp,DIMS(temp),deltac,DIMS(deltac),&
+                            sigma,DIMS(sigma),lo,hi,loc,hic,isPeriodic)
 
       implicit none
 
@@ -747,7 +762,7 @@ c *************************************************************************
       REAL_T   temp(DIM1(temp))
       integer isPeriodic(SDIM)
 
-c     Local variables
+!c     Local variables
       integer ii,ic
       integer is,ie,isc,iec
 
@@ -771,19 +786,19 @@ c     Local variables
       enddo
 
       return
-      end
+    end subroutine FORT_INTERP
 
-c *************************************************************************
-c ** HGPHIBC **
-c ** Solution by back substitution
-c *************************************************************************
+!c *************************************************************************
+!c ** HGPHIB!C **
+!c ** Solution by back substitution
+!c *************************************************************************
 
       subroutine FORT_HGPHIBC(hx,sigExt,s,x,length,per)
-c
-c    Compute the value of phi for hgproj to be used at an outflow face,
-c    assuming that the tangential velocity on the edges of the outflow boundary
-c    are either zero or periodic.  
-c
+!c
+!c    Compute the value of phi for hgproj to be used at an outflow face,
+!c    assuming that the tangential velocity on the edges of the outflow boundary
+!c    are either zero or periodic.  
+!c
       implicit none
 
       integer length
@@ -794,7 +809,7 @@ c
       REAL_T  sigExt(0:length-1)
       REAL_T hx
       
-c     Local variables
+!c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 2000)
       integer ics, ice
@@ -812,21 +827,21 @@ c     Local variables
       ics = 0
       ice = length-1
 
-c     This description assumes outflow at yhi; however, code works for 
-c     outflow at any face.      
-c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
-c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodic or Neumann
-c     boundary conditions, using a tridiagonal solve which detects, and deals 
-c     with the singular equations.  In the Neumann case, arbitrarily set the 
-c     upper right corner to zero to pin the solution.  Note that the RHS of 
-c     this equation satisfies the solvability constraint that 
-c     Int[RHS.dV] = 0 by construction.
-c     This implies that the normal component takes up the slack:
-c     
-c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
-c     
-c     This information should be used to construct the normal gradient of the
-c     normal velocity, for the advective/diffusive step, for example.
+!c     This description assumes outflow at yhi; however, code works for 
+!c     outflow at any face.      
+!c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
+!c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodi!c or Neumann
+!c     boundary conditions, using a tridiagonal solve which detects, and deals 
+!c     with the singular equations.  In the Neumann case, arbitrarily set the 
+!c     upper right corner to zero to pin the solution.  Note that the RHS of 
+!c     this equation satisfies the solvability constraint that 
+!c     Int[RHS.dV] = 0 by construction.
+!c     This implies that the normal component takes up the slack:
+!c     
+!c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
+!c     
+!c     This information should be used to construct the normal gradient of the
+!c     normal velocity, for the advective/diffusive step, for example.
 
       do i = 2,length
          icR = ics + i - 1
@@ -840,8 +855,8 @@ c     normal velocity, for the advective/diffusive step, for example.
          
          hdr = 0.0d0
 
-c     Do left-side periodic BC (since first/last node coincide, use first 
-c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
+!c     Do left-side periodi!c B!C (since first/last node coincide, use first 
+!c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = length
          if ( neq .gt. NStripMax ) then
             call bl_abort('HGPHIBC: NstripMax too small')
@@ -852,7 +867,7 @@ c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          c(1) = sigExt(icR)
          b(1) = - beta - c(1)
          
-c     Do right-side periodic on penultimate node
+!c     Do right-side periodi!c on penultimate node
          icL = ice - 1
          icR = ice
          a(neq) = sigExt(icL)
@@ -862,7 +877,7 @@ c     Do right-side periodic on penultimate node
          call cyclic(a,b,c,alpha,beta,s,x,neq)
       else
 
-c     Solid walls, Neumann conditions
+!c     Solid walls, Neumann conditions
 
          hdr = half*(r(ics+1) - r(ics))
          neq = length + 1
@@ -877,23 +892,23 @@ c     Solid walls, Neumann conditions
          a(neq) = sigExt(icL)
          b(neq) = - a(neq)
 
-c     Solve the equations (we know they're singular, pass the arbitrary value, 
-c     and a flag that we've already normalized the rhs, in the sense that
-c                          Int[dU/dx - (S-S_ave)] == 0
+!c     Solve the equations (we know they're singular, pass the arbitrary value, 
+!c     and a flag that we've already normalized the rhs, in the sense that
+!c                          Int[dU/dx - (S-S_ave)] == 0
          sVal = zero
          rNormed = .true.
          call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
       end if
       
 #if 1
-c     Try normalizing phi to average to zero
+!c     Try normalizing phi to average to zero
       phitot = zero
       vtot = zero
-C     do i = 1, length-1
+!C     do i = 1, length-1
       do i = 2, length-1
-c        rnode = r(ics+i-1) - hdr
-c        phitot = phitot + x(i)*rnode
-c        vtot = vtot + rnode
+!c        rnode = r(ics+i-1) - hdr
+!c        phitot = phitot + x(i)*rnode
+!c        vtot = vtot + rnode
 
          phitot = phitot + x(i)
            vtot =   vtot + one
@@ -901,9 +916,9 @@ c        vtot = vtot + rnode
       end do
       do i = length,neq
 
-c        rnode = r(ics+i-2) + hdr
-c        phitot = phitot + x(i)*rnode
-c        vtot = vtot + rnode
+!c        rnode = r(ics+i-2) + hdr
+!c        phitot = phitot + x(i)*rnode
+!c        vtot = vtot + rnode
 
          phitot = phitot + x(i)
          vtot = vtot + one
@@ -919,19 +934,19 @@ c        vtot = vtot + rnode
 #undef YLO
 #undef XHI
 #undef YHI
-      end
+    end subroutine FORT_HGPHIBC
 
-c *************************************************************************
-c ** OLDHGPHIBC **
-c ** Solution by back substitution
-c *************************************************************************
+!c *************************************************************************
+!c ** OLDHGPHIB!C **
+!c ** Solution by back substitution
+!c *************************************************************************
 
       subroutine FORT_OLDHGPHIBC(hx,r,uExt, divuExt,rhoExt,x,flag,length,per)
-c
-c    Compute the value of phi for hgproj to be used at an outflow face,
-c    assuming that the tangential velocity on the edges of the outflow boundary
-c    are either zero or periodic.  
-c
+!c
+!c    Compute the value of phi for hgproj to be used at an outflow face,
+!c    assuming that the tangential velocity on the edges of the outflow boundary
+!c    are either zero or periodic.  
+!c
       implicit none
 
       integer length
@@ -944,7 +959,7 @@ c
       REAL_T    flag(0:length-1)
       REAL_T hx
       
-c     Local variables
+!c     Local variables
       integer NstripMAX
       parameter (NstripMAX = 2000)
       integer ics, ice
@@ -962,21 +977,21 @@ c     Local variables
       ics = 0
       ice = length-1
 
-c     This description assumes outflow at yhi; however, code works for 
-c     outflow at any face.      
-c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
-c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodic or Neumann
-c     boundary conditions, using a tridiagonal solve which detects, and deals 
-c     with the singular equations.  In the Neumann case, arbitrarily set the 
-c     upper right corner to zero to pin the solution.  Note that the RHS of 
-c     this equation satisfies the solvability constraint that 
-c     Int[RHS.dV] = 0 by construction.
-c     This implies that the normal component takes up the slack:
-c     
-c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
-c     
-c     This information should be used to construct the normal gradient of the
-c     normal velocity, for the advective/diffusive step, for example.
+!c     This description assumes outflow at yhi; however, code works for 
+!c     outflow at any face.      
+!c     Solve d/dx( 1/rho d/dx( phi ) ) = dU/dx - (S - S_ave) [S = divu if U is 
+!c     zero, S = d/dt(divu) if U = (ustar - uold)/dt] with periodi!c or Neumann
+!c     boundary conditions, using a tridiagonal solve which detects, and deals 
+!c     with the singular equations.  In the Neumann case, arbitrarily set the 
+!c     upper right corner to zero to pin the solution.  Note that the RHS of 
+!c     this equation satisfies the solvability constraint that 
+!c     Int[RHS.dV] = 0 by construction.
+!c     This implies that the normal component takes up the slack:
+!c     
+!c                        d/dy( 1/rho d/dy( phi ) ) = dV/dy - S_ave
+!c     
+!c     This information should be used to construct the normal gradient of the
+!c     normal velocity, for the advective/diffusive step, for example.
 
       do i = 2,length
          icR = ics + i - 1
@@ -985,16 +1000,16 @@ c     normal velocity, for the advective/diffusive step, for example.
          c(i) = r(icR) / rhoExt(icR)
          b(i) = - a(i) - c(i)
          rnode = half*(r(icL)+r(icR))
-         s(i) = (r(icR)*flag(icR)*uExt(icR)-r(icL)*flag(icL)*uExt(icL))*hx
-     &        -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
+         s(i) = (r(icR)*flag(icR)*uExt(icR)-r(icL)*flag(icL)*uExt(icL))*hx&
+             -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
       end do
 
       if (per .eq. 1) then
          
          hdr = 0.0D0 ! FIXME: This wasn't set before, used below
 
-c     Do left-side periodic BC (since first/last node coincide, use first 
-c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
+!c     Do left-side periodi!c B!C (since first/last node coincide, use first 
+!c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          neq = length
          if ( neq .gt. NStripMax ) then
             call bl_abort('HGPHIBC: NstripMax too small')
@@ -1005,23 +1020,23 @@ c     node only (retain r-stuff here, just to be sure scaling is not destroyed)
          c(1) = r(icR) / rhoExt(icR)
          b(1) = - beta - c(1)
          rnode = half*(r(icL)+r(icR))
-         s(1) = (flag(icR)*r(icR)*uExt(icR)-flag(icL)*r(icL)*uExt(icL))*hx
-     &        -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
+         s(1) = (flag(icR)*r(icR)*uExt(icR)-flag(icL)*r(icL)*uExt(icL))*hx&
+             -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
          
-c     Do right-side periodic on penultimate node
+!c     Do right-side periodi!c on penultimate node
          icL = ice - 1
          icR = ice
          a(neq) = r(icL) / rhoExt(icL)
          alpha  = r(icR) / rhoExt(icR)
          b(neq) = - a(neq) - alpha
-         s(neq) = (flag(icR)*r(icR)*uExt(icR)-flag(icL)*r(icL)*uExt(icL))*hx
-     &          -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
+         s(neq) = (flag(icR)*r(icR)*uExt(icR)-flag(icL)*r(icL)*uExt(icL))*hx&
+               -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
          
-c     Solve the equations
+!c     Solve the equations
          call cyclic(a,b,c,alpha,beta,s,x,neq)
       else
 
-c     Solid walls, Neumann conditions
+!c     Solid walls, Neumann conditions
          hdr = half*(r(ics+1) - r(ics))
          neq = length + 1
          if ( neq .gt. NStripMax ) then
@@ -1031,29 +1046,29 @@ c     Solid walls, Neumann conditions
          c(1) = r(icR) / rhoExt(icR-ics)
          b(1) = - c(1)
          rnode = r(ics) - hdr
-         s(1) =  flag(icR)*r(icR)*uExt(icR)*hx
-     &        -  rnode*half*divuExt(icR)*hx*hx
+         s(1) =  flag(icR)*r(icR)*uExt(icR)*hx&
+             -  rnode*half*divuExt(icR)*hx*hx
 
          icL = ice
          a(neq) = r(icL) / rhoExt(icL)
          b(neq) = - a(neq)
          rnode = r(ice) + hdr
-         s(neq) = -flag(icL)*r(icL)*uExt(icL)*hx
-     &        -  rnode*half*divuExt(icL)*hx*hx
+         s(neq) = -flag(icL)*r(icL)*uExt(icL)*hx&
+             -  rnode*half*divuExt(icL)*hx*hx
          
-c     Solve the equations (we know they're singular, pass the arbitrary value, 
-c     and a flag that we've already normalized the rhs, in the sense that
-c                          Int[dU/dx - (S-S_ave)] == 0
+!c     Solve the equations (we know they're singular, pass the arbitrary value, 
+!c     and a flag that we've already normalized the rhs, in the sense that
+!c                          Int[dU/dx - (S-S_ave)] == 0
          sVal = zero
          rNormed = .true.
          call tridag_sing(a,b,c,s,x,neq,sVal,rNormed)
       end if
       
 #if 1
-c     Try normalizing phi to average to zero
+!c     Try normalizing phi to average to zero
       phitot = zero
       vtot = zero
-C     do i = 1, length-1
+!C     do i = 1, length-1
       do i = 2, length-1
          rnode = r(ics+i-1) - hdr
          phitot = phitot + x(i)*rnode
@@ -1074,18 +1089,18 @@ C     do i = 1, length-1
 #undef YLO
 #undef XHI
 #undef YHI
-      end
+    end subroutine FORT_OLDHGPHIBC
 
-c *************************************************************************
-c ** RHOGBC **
-c *************************************************************************
+!c *************************************************************************
+!c ** RHOGB!C **
+!c *************************************************************************
 
-      subroutine FORT_RHOGBC(rho,DIMS(rho),phi,DIMS(phi),
-     &                       face,gravity,dx,domlo,domhi,lo_bc,hi_bc)
-c
-c    Compute the contribution of gravity to the boundary conditions
-c      for phi at outflow faces only.
-c
+      subroutine FORT_RHOGBC(rho,DIMS(rho),phi,DIMS(phi),&
+                            face,gravity,dx,domlo,domhi,lo_bc,hi_bc)
+!c
+!c    Compute the contribution of gravity to the boundary conditions
+!c      for phi at outflow faces only.
+!c
       implicit none
 
       integer DIMDEC(rho)
@@ -1100,7 +1115,7 @@ c
       REAL_T  dx(2)
       REAL_T  gravity
       
-c     Local variables
+!c     Local variables
       integer i,j
       REAL_T rhog
       REAL_T rhoExt
@@ -1110,11 +1125,11 @@ c     Local variables
 #define XHI 2
 #define YHI 3
 
-      if (face .eq. YLO .or. face .eq. YHI) 
-     $   call bl_abort('SHOULDNT BE IN RHOGBC WITH FACE IN Y-DIR')
+      if (face .eq. YLO .or. face .eq. YHI) &
+        call bl_abort('SHOULDNT BE IN RHOGB!C WITH FACE IN Y-DIR')
 
-c     Ok to only use low index of phi because phi is only one
-c        node wide in i-direction.
+!c     Ok to only use low index of phi because phi is only one
+!c        node wide in i-direction.
       i = ARG_L1(phi)
 
       if (face .eq. XLO) then
@@ -1142,7 +1157,7 @@ c        node wide in i-direction.
 #undef XHI
 #undef YHI
 
-      end
+    end subroutine FORT_RHOGBC
 
 
       SUBROUTINE tridag_sing(a,b,c,r,u,n,sVal,rNormed)
@@ -1183,7 +1198,7 @@ c        node wide in i-direction.
         u(j)=u(j)-gam(j+1)*u(j+1)
 12    continue
       return
-      END
+    END subroutine tridag_sing
       
       SUBROUTINE tridag(a,b,c,r,u,n)
       INTEGER n,NMAX
@@ -1209,7 +1224,7 @@ c        node wide in i-direction.
         u(j)=u(j)-gam(j+1)*u(j+1)
 12    continue
       return
-      END
+   END subroutine tridag
 
       SUBROUTINE cyclic(a,b,c,alpha,beta,r,x,n)
       INTEGER n,NMAX
@@ -1242,15 +1257,15 @@ c        node wide in i-direction.
         x(i)=x(i)-fact*z(i)
 13    continue
       return
-      END
+   END subroutine cyclic
 
 
-c *************************************************************************
-c ** FILL_ONED **
-c *************************************************************************
+!c *************************************************************************
+!c ** FILL_ONED **
+!c *************************************************************************
 
-      subroutine FORT_FILL_ONED(lenx,leny,length,faces,numOutFlowFaces,
-     $                          cc0,cc1,cc2,cc3,r0,r1,r2,r3,cc_conn,nodal_conn,per,hx,hy)
+      subroutine FORT_FILL_ONED(lenx,leny,length,faces,numOutFlowFaces,&
+                               cc0,cc1,cc2,cc3,r0,r1,r2,r3,cc_conn,nodal_conn,per,hx,hy)
 
       implicit none
       integer lenx,leny,length
@@ -1279,7 +1294,7 @@ c *************************************************************************
 #define XHI 2
 #define YHI 3
 
-c     Want to find the single non-outflow face.
+!c     Want to find the single non-outflow face.
       xlo_outflow = 0
       ylo_outflow = 0
       xhi_outflow = 0
@@ -1292,35 +1307,35 @@ c     Want to find the single non-outflow face.
         if (faces(i) .eq. YHI) yhi_outflow = 1
       enddo
 
-c     Possible combinations of faces to come in here:
-c       cc0 cc1 cc2 cc3
-c       XLO 
-c           YLO 
-c               XHI
-c                   YHI
-c       XLO YLO 
-c       XLO         YHI 
-c           YLO XHI 
-c           YLO     YHI 
-c       XLO YLO XHI
-c       XLO     XHI YHI
-c       XLO YLO     YHI
-c           YLO XHI YHI
-c       XLO YLO XHI YHI
+!c     Possible combinations of faces to come in here:
+!c       cc0 cc1 cc2 cc3
+!c       XLO 
+!c           YLO 
+!c               XHI
+!c                   YHI
+!c       XLO YLO 
+!c       XLO         YHI 
+!c           YLO XHI 
+!c           YLO     YHI 
+!c       XLO YLO XHI
+!c       XLO     XHI YHI
+!c       XLO YLO     YHI
+!c           YLO XHI YHI
+!c       XLO YLO XHI YHI
 
-c     We must remember here that the cc* arrays have already been
-c       ordered so that the 2nd spatial dimension is one cell wide.
+!c     We must remember here that the cc* arrays have already been
+!c       ordered so that the 2nd spatial dimension is one cell wide.
 
-c     cc*(i,1) = rho
-c     cc*(i,2) = divu
-c     cc*(i,3) = tangential vel.
+!c     cc*(i,1) = rho
+!c     cc*(i,2) = divu
+!c     cc*(i,3) = tangential vel.
  
       vol = hx*hy
 
       ifinal = 0
 
-      if (numOutFlowFaces .eq. 4 .or. 
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+      if (numOutFlowFaces .eq. 4 .or. &
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
 
           rnode = r0(1)
           do i = 1,leny
@@ -1328,25 +1343,25 @@ c     cc*(i,3) = tangential vel.
           enddo
 
           do i = 2,leny
-            nodal_conn(i) = rnode*(      (cc0(i,3) - cc0(i-1,3))*hx
-     &                             -half*(cc0(i,2)+cc0(i-1,2))*vol )
+            nodal_conn(i) = rnode*(      (cc0(i,3) - cc0(i-1,3))*hx&
+                                  -half*(cc0(i,2)+cc0(i-1,2))*vol )
           enddo
           i = 1
-          nodal_conn(i) = rnode*(     (cc0(i,3) - cc0(i-1,3))*hx
-     &                           -half*cc0(i,2)*vol )
+          nodal_conn(i) = rnode*(     (cc0(i,3) - cc0(i-1,3))*hx&
+                                -half*cc0(i,2)*vol )
           if (per .eq. 1) then
             nodal_conn(i) = nodal_conn(i) - half*rnode*cc0(leny,2)*vol 
           endif
 
           i = leny+1
-          nodal_conn(i) = rnode*(     (cc0(i,3) - cc0(i-1,3))*hx
-     &                           -half*cc0(i-1,2)*vol )
+          nodal_conn(i) = rnode*(     (cc0(i,3) - cc0(i-1,3))*hx&
+                                -half*cc0(i-1,2)*vol )
           ifinal = leny
 
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
 
           do i = 1,lenx
             cc_conn(ifinal+i) = r3(i)/cc3(i,1)
@@ -1354,17 +1369,17 @@ c     cc*(i,3) = tangential vel.
 
           do i = 2,lenx
             rnode = half*(r3(i)+r3(i-1))
-            nodal_conn(ifinal+i) = rnode*(      (cc3(i,3) - cc3(i-1,3))*hy
-     &                                    -half*(cc3(i,2)+cc3(i-1,2))*vol )
+            nodal_conn(ifinal+i) = rnode*(      (cc3(i,3) - cc3(i-1,3))*hy&
+                                         -half*(cc3(i,2)+cc3(i-1,2))*vol )
           enddo
           i = 1
           rnode = 1.5d0*r3(1) - 0.5d0*r3(2)
-c         Note: we get away with using r3(i) in place of r3(i-1), which isnt
-c               defined, because if this is r-z, then the vel. at i-1 is zero,
-c               and if not, then r is identically 1.
-          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + 
-     &                           r3(i)*(cc3(i,3) - cc3(i-1,3))*hy
-     &                           -half*rnode*cc3(i,2)*vol
+!c         Note: we get away with using r3(i) in place of r3(i-1), which isnt
+!c               defined, because if this is r-z, then the vel. at i-1 is zero,
+!c               and if not, then r is identically 1.
+          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + &
+                                r3(i)*(cc3(i,3) - cc3(i-1,3))*hy&
+                                -half*rnode*cc3(i,2)*vol
 
           if (per .eq. 1) then
             nodal_conn(ifinal+i) = nodal_conn(ifinal+i) - half*rnode*cc3(lenx,2)*vol 
@@ -1372,10 +1387,10 @@ c               and if not, then r is identically 1.
 
           i = lenx+1
           rnode = 1.5d0*r3(lenx) - 0.5d0*r3(lenx-1)
-c         Note: same reasoning as above for using r3(i-1)
-          nodal_conn(ifinal+i) = 
-     &                           r3(i-1)*(cc3(i,3) - cc3(i-1,3))*hy
-     &                           -half*rnode*cc3(i-1,2)*vol
+!c         Note: same reasoning as above for using r3(i-1)
+          nodal_conn(ifinal+i) = &
+                                r3(i-1)*(cc3(i,3) - cc3(i-1,3))*hy&
+                                -half*rnode*cc3(i-1,2)*vol
 
           ifinal = ifinal + lenx
 
@@ -1388,21 +1403,21 @@ c         Note: same reasoning as above for using r3(i-1)
           enddo
 
           do i = 2,leny
-            nodal_conn(ifinal+i) = rnode*(      (cc2(leny+2-i,3)-cc2(leny+1-i,3))*hx
-     &                                    -half*(cc2(leny+2-i,2)+cc2(leny+1-i,2))*vol )
+            nodal_conn(ifinal+i) = rnode*(      (cc2(leny+2-i,3)-cc2(leny+1-i,3))*hx&
+                                         -half*(cc2(leny+2-i,2)+cc2(leny+1-i,2))*vol )
           enddo
           i = 1
-          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) +
-     &                        rnode*(     (cc2(leny+2-i,3) - cc2(leny+1-i,3))*hx
-     &                               -half*cc2(leny+1-i,2)*vol )
+          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) +&
+                             rnode*(     (cc2(leny+2-i,3) - cc2(leny+1-i,3))*hx&
+                                    -half*cc2(leny+1-i,2)*vol )
           if (per .eq. 1) then
             nodal_conn(ifinal+i) = nodal_conn(ifinal+i) - half*rnode*cc2(1,2)*vol 
           endif
 
           i = leny+1
-          nodal_conn(ifinal+i) = 
-     &                        rnode*(     (cc2(leny+2-i,3) - cc2(leny+1-i,3))*hx
-     &                               -half*cc2(leny+2-i,2)*vol )
+          nodal_conn(ifinal+i) = &
+                             rnode*(     (cc2(leny+2-i,3) - cc2(leny+1-i,3))*hx&
+                                    -half*cc2(leny+2-i,2)*vol )
 
           do i = 1,leny+1
             nodal_conn(ifinal+i) = -nodal_conn(ifinal+i)
@@ -1420,27 +1435,27 @@ c         Note: same reasoning as above for using r3(i-1)
 
           do i = 2,lenx
             rnode = half*(r1(lenx+2-i)+r1(lenx+1-i))
-            nodal_conn(ifinal+i) = rnode*(      (cc1(lenx+2-i,3)-cc1(lenx+1-i,3))*hy
-     &                                    -half*(cc1(lenx+2-i,2)+cc1(lenx+1-i,2))*vol )
+            nodal_conn(ifinal+i) = rnode*(      (cc1(lenx+2-i,3)-cc1(lenx+1-i,3))*hy&
+                                         -half*(cc1(lenx+2-i,2)+cc1(lenx+1-i,2))*vol )
           enddo
           i = 1
           rnode = 1.5d0*r1(lenx) - 0.5d0*r1(lenx-1)
-c         Note: we get away with using r1(lenx)
-c               because if this is r-z, then the outside vel.
-c               and if not, then r is identically 1.
-          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + 
-     &                           r1(lenx)*(cc1(lenx+2-i,3) - cc1(lenx+1-i,3))*hy
-     &                           -half*rnode*cc1(lenx+1-i,2)*vol
+!c         Note: we get away with using r1(lenx)
+!c               because if this is r-z, then the outside vel.
+!c               and if not, then r is identically 1.
+          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + &
+                                r1(lenx)*(cc1(lenx+2-i,3) - cc1(lenx+1-i,3))*hy&
+                                -half*rnode*cc1(lenx+1-i,2)*vol
           if (per .eq. 1) then
             nodal_conn(ifinal+i) = nodal_conn(ifinal+i) - half*rnode*cc1(1,2)*vol 
           endif
 
           i = lenx+1
           rnode = 1.5d0*r1(2) - 0.5d0*r1(1)
-c         Note: same reasoning as above for using r1(1)
-          nodal_conn(ifinal+i) = 
-     &                           r1(1)*(cc1(lenx+2-i,3) - cc1(lenx+1-i,3))*hy
-     &                           -half*rnode*cc1(lenx+2-i,2)*vol
+!c         Note: same reasoning as above for using r1(1)
+          nodal_conn(ifinal+i) = &
+                                r1(1)*(cc1(lenx+2-i,3) - cc1(lenx+1-i,3))*hy&
+                                -half*rnode*cc1(lenx+2-i,2)*vol
 
           do i = 1,lenx+1
             nodal_conn(ifinal+i) = -nodal_conn(ifinal+i)
@@ -1448,53 +1463,53 @@ c         Note: same reasoning as above for using r1(1)
           ifinal = ifinal + lenx
       endif
 
-      if (numOutFlowFaces .lt. 4 .and.
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+      if (numOutFlowFaces .lt. 4 .and.&
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
 
           rnode = r0(1)
           do i = 1,leny
             cc_conn(ifinal+i) = rnode/cc0(i,1)
           enddo
           do i = 2,leny
-            nodal_conn(ifinal+i) = rnode*(      (cc0(i,3) - cc0(i-1,3))*hx
-     &                                    -half*(cc0(i,2)+cc0(i-1,2))*vol )
+            nodal_conn(ifinal+i) = rnode*(      (cc0(i,3) - cc0(i-1,3))*hx&
+                                         -half*(cc0(i,2)+cc0(i-1,2))*vol )
           enddo
           i = 1
-          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + 
-     &                           rnode*(     (cc0(i,3) - cc0(i-1,3))*hx
-     &                                  -half*cc0(i,2)*vol )
+          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + &
+                                rnode*(     (cc0(i,3) - cc0(i-1,3))*hx&
+                                       -half*cc0(i,2)*vol )
           i = leny+1
-          nodal_conn(ifinal+i) = rnode*(     (cc0(i,3) - cc0(i-1,3))*hx
-     &                           -half*cc0(i-1,2)*vol )
+          nodal_conn(ifinal+i) = rnode*(     (cc0(i,3) - cc0(i-1,3))*hx&
+                                -half*cc0(i-1,2)*vol )
 
           ifinal = ifinal + leny
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
           do i = 1,lenx
             cc_conn(ifinal+i) = r3(i)/cc3(i,1)
           enddo
 
           do i = 2,lenx
             rnode = half*(r3(i)+r3(i-1))
-            nodal_conn(ifinal+i) = rnode*(      (cc3(i,3) - cc3(i-1,3))*hy
-     &                                    -half*(cc3(i,2)+cc3(i-1,2))*vol )
+            nodal_conn(ifinal+i) = rnode*(      (cc3(i,3) - cc3(i-1,3))*hy&
+                                         -half*(cc3(i,2)+cc3(i-1,2))*vol )
           enddo
           i = 1
           rnode = 1.5d0*r3(1) - 0.5d0*r3(2)
-c         Note: we get away with using r3(i) in place of r3(i-1), which isnt
-c               defined, because if this is r-z, then the vel. at i-1 is zero,
-c               and if not, then r is identically 1.
-          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + 
-     &                           r3(i)*(cc3(i,3) - cc3(i-1,3))*hy
-     &                           -half*rnode*cc3(i,2)*vol
+!c         Note: we get away with using r3(i) in place of r3(i-1), which isnt
+!c               defined, because if this is r-z, then the vel. at i-1 is zero,
+!c               and if not, then r is identically 1.
+          nodal_conn(ifinal+i) = nodal_conn(ifinal+i) + &
+                                r3(i)*(cc3(i,3) - cc3(i-1,3))*hy&
+                                -half*rnode*cc3(i,2)*vol
           i = lenx+1
           rnode = 1.5d0*r3(lenx) - 0.5d0*r3(lenx-1)
-c         Note: same reasoning as above for using r3(i-1)
-          nodal_conn(ifinal+i) = 
-     &                           r3(i-1)*(cc3(i,3) - cc3(i-1,3))*hy
-     &                           -half*rnode*cc3(i-1,2)*vol
+!c         Note: same reasoning as above for using r3(i-1)
+          nodal_conn(ifinal+i) = &
+                                r3(i-1)*(cc3(i,3) - cc3(i-1,3))*hy&
+                                -half*rnode*cc3(i-1,2)*vol
 
           ifinal = ifinal + lenx
       endif
@@ -1506,14 +1521,14 @@ c         Note: same reasoning as above for using r3(i-1)
 #undef XHI
 #undef YHI
 
-      end
+    end subroutine FORT_FILL_ONED
 
-c *************************************************************************
-c ** ALLPHI_FROM_X **
-c *************************************************************************
+!c *************************************************************************
+!c ** ALLPHI_FROM_X **
+!c *************************************************************************
 
-      subroutine FORT_ALLPHI_FROM_X(lenx,leny,length,faces,numOutFlowFaces,
-     $                              phi0,phi1,phi2,phi3,x)
+      subroutine FORT_ALLPHI_FROM_X(lenx,leny,length,faces,numOutFlowFaces,&
+                                   phi0,phi1,phi2,phi3,x)
 
       implicit none
       integer lenx,leny,length
@@ -1534,19 +1549,19 @@ c *************************************************************************
 #define XHI 2
 #define YHI 3
 
-c     Possible combinations of faces to come in here:
-c       phi0 phi1 phi2 phi3
-c       XLO  YLO 
-c       XLO            YHI 
-c            YLO  XHI 
-c            YLO       YHI 
-c       XLO  YLO  XHI
-c       XLO       XHI  YHI
-c       XLO  YLO       YHI
-c            YLO  XHI  YHI
-c       XLO  YLO  XHI  YHI
+!c     Possible combinations of faces to come in here:
+!c       phi0 phi1 phi2 phi3
+!c       XLO  YLO 
+!c       XLO            YHI 
+!c            YLO  XHI 
+!c            YLO       YHI 
+!c       XLO  YLO  XHI
+!c       XLO       XHI  YHI
+!c       XLO  YLO       YHI
+!c            YLO  XHI  YHI
+!c       XLO  YLO  XHI  YHI
 
-c     Want to find which are outflow faces.
+!c     Want to find which are outflow faces.
       xlo_outflow = 0
       ylo_outflow = 0
       xhi_outflow = 0
@@ -1559,20 +1574,20 @@ c     Want to find which are outflow faces.
         if (faces(i) .eq. YHI) yhi_outflow = 1
       enddo
 
-c     We know that the faces are ordered: XLO,XHI,YLO,YHI
+!c     We know that the faces are ordered: XLO,XHI,YLO,YHI
       
       ifinal = 0
 
-      if (numOutFlowFaces .eq. 4 .or. 
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+      if (numOutFlowFaces .eq. 4 .or. &
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
         do j = 0,leny
           phi0(j) = x(j)
         enddo
         ifinal = leny
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
         do i = 0,lenx
           phi3(i) = x(i+ifinal)
         enddo
@@ -1600,28 +1615,28 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
         ifinal = ifinal+lenx
       endif
 
-      if (numOutFlowFaces .lt. 4 .and.
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+      if (numOutFlowFaces .lt. 4 .and.&
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
         do j = 0,leny
           phi0(j) = x(j+ifinal)
         enddo
         ifinal = ifinal+leny
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
         do i = 0,lenx
           phi3(i) = x(i+ifinal)
         enddo
         ifinal = ifinal+lenx
       endif
 
-      end
+    end subroutine FORT_ALLPHI_FROM_X
 
 
-c *************************************************************************
-c ** PHI_FROM_X **
-c *************************************************************************
+!c *************************************************************************
+!c ** PHI_FROM_X **
+!c *************************************************************************
 
       subroutine FORT_PHI_FROM_X(DIMS(phi),phi,length,x,per)
 
@@ -1635,7 +1650,7 @@ c *************************************************************************
       integer lenx, leny
       integer i,j
 
-c     We know that the faces are ordered: XLO,XHI,YLO,YHI
+!c     We know that the faces are ordered: XLO,XHI,YLO,YHI
       lenx = ARG_H1(phi)-ARG_L1(phi)
       leny = ARG_H2(phi)-ARG_L2(phi)
 
@@ -1664,4 +1679,5 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
 #undef XHI
 #undef YHI
 
-      end
+    end subroutine FORT_PHI_FROM_X
+  end module projoutflowbc_2d_module

@@ -18,14 +18,26 @@
 #define SMALL 1.0d-10
 #endif
 
-       subroutine FORT_ACCEL_TO_VEL( lo, hi, 
-     &     uold,DIMS(uold),
-     &     dt,
-     &     unew,DIMS(unew) )
-c
-c     This function converts unew into a velocity via
-c     Unew = Uold + alpha*Unew
-c
+
+module projection_2d_module
+  
+  implicit none
+
+  private 
+
+  public FORT_ACCEL_TO_VEL, FORT_VEL_TO_ACCEL,  &
+       FORT_PROJ_UPDATE, FORT_RADMPYSCAL,FORT_RADMPYVEL, FORT_RADDIV, &
+       FORT_ANELCOEFFMPY,FORT_HGN2C, FORT_HGC2N 
+  
+contains
+
+       subroutine FORT_ACCEL_TO_VEL( lo, hi, &
+          uold,DIMS(uold),dt,&
+          unew,DIMS(unew) )
+!c
+!c     This function converts unew into a velocity via
+!c     Unew = Uold + alpha*Unew
+!c
        implicit none
        integer    lo(SDIM), hi(SDIM)
        REAL_T     dt
@@ -43,15 +55,15 @@ c
           end do
        end do
 
-       end
+     end subroutine FORT_ACCEL_TO_VEL
 
-      subroutine FORT_VEL_TO_ACCEL( lo, hi, 
-     &     unew,DIMS(unew),
-     &     uold,DIMS(uold),
-     &     dt )
-c     
-c     This function converts unew into an acceleration
-c
+      subroutine FORT_VEL_TO_ACCEL( lo, hi, &
+          unew,DIMS(unew),&
+          uold,DIMS(uold),&
+          dt )
+!c     
+!c     This function converts unew into an acceleration
+!c
       implicit none
       integer    lo(SDIM), hi(SDIM)
       REAL_T     dt
@@ -72,17 +84,17 @@ c
          end do
       end do
 
-      end
+    end subroutine FORT_VEL_TO_ACCEL
 
-      subroutine FORT_PROJ_UPDATE(
-     &     boxlo, boxhi, nvar, ngrow,
-     &     un, DIMS(un),
-     &     alpha,
-     &     uo, DIMS(uo) )
-c     
-c     This function updates un via un = un + alpha*uo
-c     The loop bounds are determined in the C++
-c
+      subroutine FORT_PROJ_UPDATE(&
+          boxlo, boxhi, nvar, ngrow,&
+          un, DIMS(un),&
+          alpha,&
+          uo, DIMS(uo) )
+!c     
+!c     This function updates un via un = un + alpha*uo
+!c     The loop bounds are determined in the C++
+!c
       implicit none
       integer    boxlo(SDIM), boxhi(SDIM), nvar, ngrow
       REAL_T     alpha
@@ -100,22 +112,22 @@ c
          end do
       end do
 
-      end
+    end subroutine FORT_PROJ_UPDATE
 
       subroutine FORT_RADMPYSCAL(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
-c 
-c     multiply A by Radius r
-c
-c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
-c
+!c 
+!c     multiply A by Radius r
+!c
+!c 
+!c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+!c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+!c
       implicit none
       integer    ng,nr
       integer    DIMDEC(grid)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
-     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
+                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
       REAL_T     bogus_value
 
@@ -127,11 +139,11 @@ c
          end do
       end do
 
-c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
-c           But now in the divu routine in the F90 solvers we need to include these
-c           values in the stencil because they might contain inflow values, for example, 
-c           and the only test is on the BC for the pressure solve, which doesn't
-c           differentiate between inflow, reflecting and symmetry.
+!c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
+!c           But now in the divu routine in the F90 solvers we need to include these
+!c           values in the stencil because they might contain inflow values, for example, 
+!c           and the only test is on the B!C for the pressure solve, which doesn't
+!c           differentiate between inflow, reflecting and symmetry.
 
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
@@ -149,22 +161,22 @@ c           differentiate between inflow, reflecting and symmetry.
          end do
       end if
 
-      end
+    end subroutine FORT_RADMPYSCAL
 
       subroutine FORT_RADMPYVEL(a,DIMS(grid),domlo,domhi,ng,r,nr,ndim)
-c 
-c     multiply A by Radius r
-c
-c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
-c
+!c 
+!c     multiply A by Radius r
+!c
+!c 
+!c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+!c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+!c
       implicit none
       integer    ng,nr,ndim
       integer    DIMDEC(grid)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
-     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
+                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
       REAL_T     dr
 
@@ -176,11 +188,11 @@ c
          end do
       end do
 
-c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
-c           But now in the divu routine in the F90 solvers we need to include these
-c           values in the stencil because they might contain inflow values, for example, 
-c           and the only test is on the BC for the pressure solve, which doesn't
-c           differentiate between inflow, reflecting and symmetry.
+!c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
+!c           But now in the divu routine in the F90 solvers we need to include these
+!c           values in the stencil because they might contain inflow values, for example, 
+!c           and the only test is on the B!C for the pressure solve, which doesn't
+!c           differentiate between inflow, reflecting and symmetry.
 
       if (ARG_L1(grid)-ng .lt. domlo(1)) then
          do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
@@ -191,7 +203,7 @@ c           differentiate between inflow, reflecting and symmetry.
       end if
 
       dr = r(ARG_H1(grid)) - r(ARG_H1(grid)-1)
-c     Here we only multiply a possibly inflow x-velocity from the hi-r side                
+!c     Here we only multiply a possibly inflow x-velocity from the hi-r side 
       if (ndim .eq. 0) then
          if (ARG_H1(grid)+ng .gt. domhi(1)) then
             do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
@@ -210,22 +222,22 @@ c     Here we only multiply a possibly inflow x-velocity from the hi-r side
          end if
       end if
 
-      end
+    end subroutine FORT_RADMPYVEL
 
       subroutine FORT_RADDIV(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
-c 
-c     divide A by Radius r
-c
-c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
-c
+!c 
+!c     divide A by Radius r
+!c
+!c 
+!c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+!c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+!c
       implicit none
       integer    ng,nr
       integer    DIMDEC(grid)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
-     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
+                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
       REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
       REAL_T     bogus_value
 
@@ -253,22 +265,22 @@ c
          end do
       end if
 
-      end
+    end subroutine FORT_RADDIV
 
       subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,anel_coeff,nr,bogus_value,mult)
-c 
-c     multiply A by the anelastic coefficient
-c
-c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
-c
+!c 
+!c     multiply A by the anelasti!c coefficient
+!c
+!c 
+!c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+!c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+!c
       implicit none
       integer    ng,nr
       integer    DIMDEC(grid)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
-     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
+                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
       REAL_T     anel_coeff(ARG_L2(grid)-nr:ARG_H2(grid)+nr)
       REAL_T     bogus_value
       integer    mult
@@ -308,16 +320,16 @@ c
          end do
       end if
 
-      end
+    end subroutine FORT_ANELCOEFFMPY
 
-      subroutine FORT_HGN2C(
-     &     isrz,lrweighted, DIMS(nodedat), nodedat,
-     &     DIMS(ccdat), lo, hi, ccdat)
+      subroutine FORT_HGN2C(&
+          isrz,lrweighted, DIMS(nodedat), nodedat,&
+          DIMS(ccdat), lo, hi, ccdat)
 
-c     ----------------------------------------------------------
-c     HGN2C
-c     averages node centered data to cell centers for use in 
-c     holy grail projection
+!c     ----------------------------------------------------------
+!c     HGN2C
+!c     averages node centered data to cell centers for use in 
+!c     holy grail projection
 
       implicit none
       integer isrz,lrweighted
@@ -329,14 +341,14 @@ c     holy grail projection
 
       integer i,j
 
-      if (ARG_H1(ccdat)   .lt. lo(1) .or. 
-     &    ARG_L1(ccdat)   .gt. hi(1) .or. 
-     &    ARG_H2(ccdat)   .lt. lo(2) .or. 
-     &    ARG_L2(ccdat)   .gt. hi(2) .or. 
-     &    ARG_H1(nodedat) .lt. lo(1)+1 .or. 
-     &    ARG_L1(nodedat) .gt. hi(1) .or. 
-     &    ARG_H2(nodedat) .lt. lo(2)+1 .or. 
-     &    ARG_L2(nodedat) .gt. hi(2) ) then 
+      if (ARG_H1(ccdat)   .lt. lo(1) .or. &
+         ARG_L1(ccdat)   .gt. hi(1) .or. &
+         ARG_H2(ccdat)   .lt. lo(2) .or. &
+         ARG_L2(ccdat)   .gt. hi(2) .or. &
+         ARG_H1(nodedat) .lt. lo(1)+1 .or.& 
+         ARG_L1(nodedat) .gt. hi(1) .or. &
+         ARG_H2(nodedat) .lt. lo(2)+1 .or. &
+         ARG_L2(nodedat) .gt. hi(2) ) then 
         call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
       end if
 
@@ -346,33 +358,33 @@ c     holy grail projection
 
       do j=lo(2),hi(2)
         do i=lo(1),hi(1)
-          ccdat(i,j) = fourth*(nodedat(i,j)+nodedat(i+1,j)+
-     &                         nodedat(i,j+1)+nodedat(i+1,j+1))
+          ccdat(i,j) = fourth*(nodedat(i,j)+nodedat(i+1,j)+&
+                              nodedat(i,j+1)+nodedat(i+1,j+1))
         end do
       end do
 
-      end
+    end subroutine FORT_HGN2C
 
-      subroutine FORT_HGC2N(
-     &     nghost, DIMS(dat), dat, rcen,
-     &     DIMS(rhs), rhs,
-     &     domlo, domhi, dr, is_rz, imax) 
-c
-c     ----------------------------------------------------------
-c     HGC2N
-c     averages cell centered data to nodes for use in 
-c     holy grail projection
-c     
-c     INPUTS / OUTPUTS:
-c     nghost      => indicates buffer of rhs that does not need values
-c     dat         => cell centered array to be averaged
-c     DIMS(dat)   => index limits of dat
-c     rcen        => r-coordinate cell centers if geoem is r-z; 
-c     otherwise, should be 1
-c     rhslo,rhshi => index extents of rhs
-c     rhs         <= node centered array with results
-c     ----------------------------------------------------------
-c 
+      subroutine FORT_HGC2N(&
+          nghost, DIMS(dat), dat, rcen,&
+          DIMS(rhs), rhs,&
+          domlo, domhi, dr, is_rz, imax) 
+!c
+!c     ----------------------------------------------------------
+!c     HGC2N
+!c     averages cell centered data to nodes for use in 
+!c     holy grail projection
+!c     
+!c     INPUTS / OUTPUTS:
+!c     nghost      => indicates buffer of rhs that does not need values
+!c     dat         => cell centered array to be averaged
+!c     DIMS(dat)   => index limits of dat
+!c     rcen        => r-coordinate cell centers if geoem is r-z; 
+!c     otherwise, should be 1
+!c     rhslo,rhshi => index extents of rhs
+!c     rhs         <= node centered array with results
+!c     ----------------------------------------------------------
+!c 
       implicit none
       integer nghost 
       integer domlo(SDIM), domhi(SDIM)
@@ -391,18 +403,18 @@ c
       REAL_T  factor
 #endif
 
-      if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. 
-     $     ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.
-     &     ARG_L2(rhs)+1 .lt. ARG_L2(dat) .or. 
-     $     ARG_H2(rhs)-1 .gt. ARG_H2(dat)) then
+      if (ARG_L1(rhs)+1 .lt. ARG_L1(dat) .or. &
+          ARG_H1(rhs)-1 .gt. ARG_H1(dat) .or.&
+          ARG_L2(rhs)+1 .lt. ARG_L2(dat) .or. &
+          ARG_H2(rhs)-1 .gt. ARG_H2(dat)) then
          call bl_abort("FORT_HG_CELL_TO_NODE: bad index limits")
       end if
 
       if (is_rz.ne.1) then
          do j=ARG_L2(rhs)+nghost,ARG_H2(rhs)-nghost
             do i=ARG_L1(rhs)+nghost,ARG_H1(rhs)-nghost
-               rhs(i,j) = fourth*(dat(i-1,j-1)+dat(i-1,j)+
-     &                            dat(i  ,j-1)+dat(i  ,j) )
+               rhs(i,j) = fourth*(dat(i-1,j-1)+dat(i-1,j)+&
+                                 dat(i  ,j-1)+dat(i  ,j) )
             end do
          end do
 
@@ -422,8 +434,8 @@ c
                   rlo = rcen(i-1)
                end if
 
-               rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
-     &                            rhi * (dat(i  ,j-1) + dat(i  ,j)))
+               rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) + &
+                                 rhi * (dat(i  ,j-1) + dat(i  ,j)))
             end do
          end do
          factor = dr/24.0D0
@@ -439,9 +451,9 @@ c
                else
                   rlo = one
                end if
-               rhs(i,j) = rhs(i,j) + factor *
-     &              (rlo * (dat(i-1,j-1) + dat(i-1,j)) -
-     &               rhi * (dat(i  ,j-1) + dat(i  ,j)))
+               rhs(i,j) = rhs(i,j) + factor *&
+                   (rlo * (dat(i-1,j-1) + dat(i-1,j)) -&
+                    rhi * (dat(i  ,j-1) + dat(i  ,j)))
             end do
          end do
 
@@ -458,12 +470,13 @@ c
                else 
                   rlo = rcen(i-1)
                end if
-               rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +
-     &                            rhi * (dat(i  ,j-1) + dat(i  ,j)))
+               rhs(i,j) = fourth*(rlo * (dat(i-1,j-1) + dat(i-1,j)) +&
+                                 rhi * (dat(i  ,j-1) + dat(i  ,j)))
                if (i .eq. 0) rhs(i,j) = half * rhs(i,j)
             end do
          end do
 #endif
       end if
 
-      end
+    end subroutine FORT_HGC2N
+  end module projection_2d_module

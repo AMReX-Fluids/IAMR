@@ -2,7 +2,7 @@
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
-
+  
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
 #include <AMReX_BC_TYPES.H>
@@ -13,10 +13,23 @@
 #define BOGUS 1.d30
 #define LARGEINT 100000000
 
-      INTEGER FUNCTION FORT_PHIUPD(phi, DIMS(phi), phin, DIMS(phin),
-     &                             uadv, DIMS(uadv), vadv, DIMS(vadv),
-     &                             nband, nbandsize, mine, minesize,
-     &                             lo, hi, dt, dx, type,DIMS(type))
+
+module LS_2d_module
+  
+  implicit none
+
+  private 
+
+  public FORT_PHIUPD, SWITCH, FORT_LSCFL, FORT_FINDINTRFCE, FINDDIST, &
+       POLYVAL, DPOLYVAL, GRADPVAL, FORT_NARROWBAND, FORT_RETYPIFY, &
+       FORT_FASTMARCH, FORT_FASTMARCH2, FORT_MINE, FORT_NBANDNUMIFY
+       
+contains
+
+      INTEGER FUNCTION FORT_PHIUPD(phi, DIMS(phi), phin, DIMS(phin),&
+                                  uadv, DIMS(uadv), vadv, DIMS(vadv),&
+                                  nband, nbandsize, mine, minesize,&
+                                  lo, hi, dt, dx, type,DIMS(type))
 
       implicit none
 
@@ -54,8 +67,8 @@
         j = nband(p,2)
         p = p + 1
         
-        if (max(type(i+1,j), type(i-1,j), type(i,j+1), type(i,j-1),
-     &       type(i+1,j+1), type(i-1,j-1), type(i+1,j-1), type(i-1,j+1)) .LE. 1 ) then
+        if (max(type(i+1,j), type(i-1,j), type(i,j+1), type(i,j-1),&
+            type(i+1,j+1), type(i-1,j-1), type(i+1,j-1), type(i-1,j+1)) .LE. 1 ) then
 
            Dxm   = ( phi(i,j) - phi(i-1,j) ) / dx(1)
            Dxp   = ( phi(i+1,j) - phi(i,j) ) / dx(1)
@@ -65,17 +78,17 @@
            phix  = ( phi(i+1,j) - phi(i-1,j) ) / (2*dx(1))
            phiy  = ( phi(i,j+1) - phi(i,j-1) ) / (2*dx(2))
         
-           phixx = ( phi(i+1,j) - 2*phi(i,j) + phi(i-1,j) ) 
-     $          / (dx(1)**2)
-           phiyy = ( phi(i,j+1) - 2*phi(i,j) + phi(i,j-1) )
-     $          / (dx(2)**2)
-           phixy = ( phi(i+1,j+1) + phi(i-1,j-1)
-     $          - phi(i+1,j-1) - phi(i-1,j+1) )
-     $          / (4*dx(1)*dx(2))
+           phixx = ( phi(i+1,j) - 2*phi(i,j) + phi(i-1,j) ) &
+               / (dx(1)**2)
+           phiyy = ( phi(i,j+1) - 2*phi(i,j) + phi(i,j-1) )&
+               / (dx(2)**2)
+           phixy = ( phi(i+1,j+1) + phi(i-1,j-1)&
+               - phi(i+1,j-1) - phi(i-1,j+1) )&
+               / (4*dx(1)*dx(2))
         
            if (phix**2 + phiy**2 .GT. 0 ) then
-              Fkappa = -kapb*( phixx*phiy**2 - 2*phiy*phix*phixy 
-     $             + phiyy*phix**2 ) / (phix**2 + phiy**2) 
+              Fkappa = -kapb*( phixx*phiy**2 - 2*phiy*phix*phixy &
+                  + phiyy*phix**2 ) / (phix**2 + phiy**2) 
            else
               Fkappa = 0
            endif
@@ -130,11 +143,11 @@
            Fo = kapa
            if (LSorder .EQ. 1) then
               if (Fo .GT. 0) then
-                 Fo = Fo*( ( max(Dxm,0.d0) + min(Dxp,0.d0) )**2 
-     $                + ( max(Dym,0.d0) + min(Dyp,0.d0) )**2  )**(.5d0) 
+                 Fo = Fo*( ( max(Dxm,0.d0) + min(Dxp,0.d0) )**2 &
+                     + ( max(Dym,0.d0) + min(Dyp,0.d0) )**2  )**(.5d0) 
               else
-                 Fo = Fo*( ( min(Dxm,0.d0) + max(Dxp,0.d0) )**2 
-     $                + ( min(Dym,0.d0) + max(Dyp,0.d0) )**2  )**(.5d0) 
+                 Fo = Fo*( ( min(Dxm,0.d0) + max(Dxp,0.d0) )**2 &
+                     + ( min(Dym,0.d0) + max(Dyp,0.d0) )**2  )**(.5d0) 
               endif
            else if (LSorder .EQ. 2) then
               if (Fo .GT. 0) then
@@ -187,7 +200,7 @@
       enddo
       
       return 
-      end FUNCTION
+    end FUNCTION FORT_PHIUPD
 
 
 
@@ -204,13 +217,13 @@
       else
         SWITCH = 0
       endif
-      end FUNCTION
+    end FUNCTION SWITCH
 
 
 
-      REAL_T FUNCTION FORT_LSCFL(phi, DIMS(phi), uadv, DIMS(uadv), vadv, DIMS(vadv),
-     &                           nband, nbandsize, mine, minesize,
-     &                           lo, hi, phit, dx, type, DIMS(type))
+    REAL_T FUNCTION FORT_LSCFL(phi, DIMS(phi), uadv, DIMS(uadv), vadv,&
+                               DIMS(vadv),nband, nbandsize, mine, minesize,&
+                               lo, hi, phit, dx, type, DIMS(type))
 
       implicit none
       INTEGER  DIMDEC(phi)
@@ -243,8 +256,8 @@
          j = nband(p,2)
          p = p + 1
          
-         if(max(type(i+1,j),type(i-1,j),type(i,j+1),type(i,j-1),
-     &        type(i+1,j+1),type(i-1,j-1), type(i+1,j-1), type(i-1,j+1)) .LE. 1 ) then    
+         if(max(type(i+1,j),type(i-1,j),type(i,j+1),type(i,j-1),&
+             type(i+1,j+1),type(i-1,j-1), type(i+1,j-1), type(i-1,j+1)) .LE. 1 ) then    
           
             phix = (phi(i+1,j)-phi(i-1,j))/(2*dx(1))
             phiy = (phi(i,j+1)-phi(i,j-1))/(2*dx(2))
@@ -257,23 +270,23 @@
                kappa = 0.d0
             endif
             
-            speed = ( (.5d0*( uadv(i,j) + uadv(i+1,j) ) )**2 + ( .5d0*( vadv(i,j) +vadv(i,j+1) ) )**2)**.5d0
-     &           + abs(kapa-kapb*kappa)
+            speed = ( (.5d0*( uadv(i,j) + uadv(i+1,j) ) )**2 + ( .5d0*( vadv(i,j) +vadv(i,j+1) ) )**2)**.5d0&
+                + abs(kapa-kapb*kappa)
              
-            phidt = min( phit,
-     &                   1/(max(1.d0/phidt,speed/(.8d0*min(dx(1),dx(2))), 4*abs(kapb)/(.8d0*min(dx(1),dx(2))**2) ))  )     
+            phidt = min( phit,&
+                        1/(max(1.d0/phidt,speed/(.8d0*min(dx(1),dx(2))), 4*abs(kapb)/(.8d0*min(dx(1),dx(2))**2) ))  )     
 
          endif
       enddo
         
       FORT_LSCFL = phidt
-      end FUNCTION
+    end FUNCTION FORT_LSCFL
       
 
 
-      subroutine FORT_FINDINTRFCE( phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),
-     &                             lo, hi, dx, intfacenump, intfacenumn, intfacep,intfacen,
-     &                             nband, nbandsize, intfacesize)
+      subroutine FORT_FINDINTRFCE( phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
+                                  lo, hi, dx, intfacenump, intfacenumn, intfacep,intfacen,&
+                                  nband, nbandsize, intfacesize)
 
       implicit none
       
@@ -290,7 +303,7 @@
       integer    nbandsize
       integer    nband(nbandsize,SDIM)
       
-c     Local variables
+!c     Local variables
       INTEGER    i, j, r
       
       intfacenump=0
@@ -312,40 +325,40 @@ c     Local variables
         j = nband(r,2)
         r = r + 1
         
-        call UPDATEF(i, j, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),
-     &               intfacep, intfacen, intfacenump, intfacenumn,
-     &               dx, intfacesize, lo, hi) 
+        call UPDATEF(i, j, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
+                    intfacep, intfacen, intfacenump, intfacenumn,&
+                    dx, intfacesize, lo, hi) 
            
         if( (i .EQ. lo(1)) .OR. (j .EQ. lo(2)) ) then
            
            if(i .EQ. lo(1)) then
-                call UPDATEF(i-1, j, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),
-     &                       intfacep, intfacen, intfacenump, intfacenumn, 
-     &                       dx, intfacesize, lo, hi )
+                call UPDATEF(i-1, j, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
+                            intfacep, intfacen, intfacenump, intfacenumn, &
+                            dx, intfacesize, lo, hi )
              endif
              
              if(j. EQ. lo(2)) then 
-              call UPDATEF(i, j-1, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),
-     &                    intfacep, intfacen, intfacenump, intfacenumn, 
-     &                    dx, intfacesize, lo, hi )
+              call UPDATEF(i, j-1, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
+                         intfacep, intfacen, intfacenump, intfacenumn, &
+                         dx, intfacesize, lo, hi )
              endif
              
              if (i .EQ. lo(1) .AND. j .EQ. lo(2)) then
-               call UPDATEF(i-1, j-1, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),
-     &                     intfacep, intfacen, intfacenump, intfacenumn, 
-     &                     dx, intfacesize, lo, hi )
+               call UPDATEF(i-1, j-1, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
+                          intfacep, intfacen, intfacenump, intfacenumn, &
+                          dx, intfacesize, lo, hi )
              endif
           endif
       enddo
       	
       nband(1,1) = -LARGEINT
       nband(1,2) = -LARGEINT
-      end
+    end subroutine FORT_FINDINTRFCE
 
 
-      subroutine UPDATEF(i,j, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),
-     &                   intfacep, intfacen, intfacenump, intfacenumn, 
-     &                   dx, intfacesize, lo, hi  )
+      subroutine UPDATEF(i,j, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
+                        intfacep, intfacen, intfacenump, intfacenumn, &
+                        dx, intfacesize, lo, hi  )
       
       implicit none      
       INTEGER    DIMDEC(phi)
@@ -359,7 +372,7 @@ c     Local variables
       REAL_T     dx(SDIM)
       integer    lo(SDIM), hi(SDIM)
       
-c     Local variables
+!c     Local variables
       INTEGER    c,d,i, j, ii, jj, iii, jjj, k,l, m,n,p,q,r,s,t
       REAL_T     A(16,16)
       REAL_T     B(16)
@@ -374,9 +387,9 @@ c     Local variables
       if(max( abs(phi(i+1,j)),abs(phi(i,j+1)),abs(phi(i+1,j+1))) .LT. BOGUS) then
          
          
-         if ( phi(i,j)*phi(i+1,j+1)   .LT. 0
-     &       .OR. phi(i,j)*phi(i+1,j) .LT. 0 
-     &       .OR. phi(i,j)*phi(i,j+1) .LT. 0 ) then
+         if ( phi(i,j)*phi(i+1,j+1)   .LT. 0&
+            .OR. phi(i,j)*phi(i+1,j) .LT. 0 &
+            .OR. phi(i,j)*phi(i,j+1) .LT. 0 ) then
 
 
             m=0
@@ -410,18 +423,18 @@ c     Local variables
                                     
                   distance = FINDDIST(grad,B,sign(1.d0,phi(iii,jjj)),ii*dx(1),jj*dx(2),dx)              
                   
-                  if (type(iii,jjj) .NE. 0 .AND. phi(iii,jjj) .GE. 0 .AND. distance .GE. 0
-     &                 .AND. iii .GE. lo(1) .AND. iii .LE. hi(1)
-     &                 .AND. jjj .GE. lo(2) .AND. jjj .LE. hi(2)) then
+                  if (type(iii,jjj) .NE. 0 .AND. phi(iii,jjj) .GE. 0 .AND. distance .GE. 0&
+                      .AND. iii .GE. lo(1) .AND. iii .LE. hi(1)&
+                      .AND. jjj .GE. lo(2) .AND. jjj .LE. hi(2)) then
                      
                      intfacenump = intfacenump + 1
                      intfacep(intfacenump,1)=iii
                      intfacep(intfacenump,2)=jjj
                      
                      
-                  else if (type(iii,jjj) .NE. 0 .AND. distance .GE. 0
-     &                    .AND. iii .GE. lo(1) .AND. iii .LE. hi(1)
-     &                    .AND. jjj .GE. lo(2) .AND. jjj .LE. hi(2))  then
+                  else if (type(iii,jjj) .NE. 0 .AND. distance .GE. 0&
+                         .AND. iii .GE. lo(1) .AND. iii .LE. hi(1)&
+                         .AND. jjj .GE. lo(2) .AND. jjj .LE. hi(2))  then
                      
                      intfacenumn = intfacenumn + 1
                      intfacen(intfacenumn,1)=iii
@@ -440,7 +453,7 @@ c     Local variables
          endif
       endif
       return
-      end
+    end subroutine UPDATEF
       
 
 
@@ -452,7 +465,7 @@ c     Local variables
       REAL_T x0,y0
       REAL_T dx(SDIM)
 
-c     Local variables
+!c     Local variables
       REAL_T t,tp
       REAL_T POLYVAL
       REAL_T DPOLYVAL
@@ -502,7 +515,7 @@ c     Local variables
       endif
       
 
-      end FUNCTION      
+    end FUNCTION FINDDIST
       
       
       REAL_T FUNCTION POLYVAL(B,x,y)
@@ -516,7 +529,7 @@ c     Local variables
         POLYVAL = POLYVAL + B(n+1)*x**(c)*y**(d)
       enddo
       
-      end FUNCTION
+    end FUNCTION POLYVAL
       
       
       subroutine GRADPVAL(B,grad,x,y)
@@ -527,7 +540,7 @@ c     Local variables
       REAL_T grad(2)
       REAL_T x,y      
 
-c     Local variables
+!c     Local variables
       INTEGER c,d,n
       
       grad(1) = 0
@@ -544,7 +557,7 @@ c     Local variables
       enddo
 
       return
-      end       
+    end subroutine GRADPVAL
       
       REAL_T FUNCTION DPOLYVAL(B,grad,x,y)
       implicit none
@@ -556,7 +569,7 @@ c     Local variables
      &           + B(7)*y + B(8))  + (B(9)*y**3 + B(10)*y**2 + B(11)*y + B(12)) )*grad(1) 
      &           + (3*y**2*(B(1)*x**3 + B(5)*x**2 + B(9)*x + B(13)) + 2*y*(B(2)*x**3
      &           + B(6)*x**2 + B(10)*x + B(14))  + (B(3)*x**3 + B(7)*x**2 + B(11)*x + B(15)) )*grad(2)
-      end FUNCTION      
+   end FUNCTION DPOLYVAL
       
       
       subroutine GEPP(A,B,N,X,nrow)
@@ -612,16 +625,16 @@ c     Local variables
       do i = 1, N
         B(i) = X(i)
       enddo
-      end 
+    end subroutine GEPP
       
       
 
 
 
-      subroutine FORT_NARROWBAND(type, DIMS(type),
-     &		                 nband, nbandsize,
-     &		                 mine, minesize,
-     &		                 lo, hi)
+      subroutine FORT_NARROWBAND(type, DIMS(type),&
+     		                 nband, nbandsize,&
+     		                 mine, minesize,&
+     		                 lo, hi)
       implicit none     
      
       integer DIMDEC(type)
@@ -663,7 +676,7 @@ c     Local variables
       mine(nummine + 1,1) = -LARGEINT
       mine(nummine + 1,2) = -LARGEINT
       
-      end
+    end subroutine FORT_NARROWBAND
      
  
  
@@ -683,15 +696,15 @@ c     Local variables
         p = p + 1
         type(i,j) = 3
       enddo
-      end
+    end subroutine FORT_RETYPIFY
      
      
 
 
-      subroutine FORT_FASTMARCH(phi, DIMS(phi), type, DIMS(type),
-     &                          lo, hi, dx, intfacenum, intface, 
-     &                          nband, nbandsize, nbandnum, mine,
-     &                          sgn, intfacesize,heap, heaploc)
+      subroutine FORT_FASTMARCH(phi, DIMS(phi), type, DIMS(type),&
+                               lo, hi, dx, intfacenum, intface, &
+                               nband, nbandsize, nbandnum, mine,&
+                               sgn, intfacesize,heap, heaploc)
       implicit none
       integer     DIMS(phi)
       integer     DIMS(type)
@@ -718,8 +731,8 @@ c     Local variables
         i = intface(n,1)
         j = intface(n,2)
       
-	CALL UPDATE(phi,i,j,sgn, type, heap,numtent,DIMS(phi),DIMS(type),
-     &    	    nbandsize, lo, hi, dx, heaploc)
+	CALL UPDATE(phi,i,j,sgn, type, heap,numtent,DIMS(phi),DIMS(type),&
+         	    nbandsize, lo, hi, dx, heaploc)
 	
 	nbandnum = nbandnum + 1
 	nband(nbandnum,1) = i
@@ -728,8 +741,8 @@ c     Local variables
       
       do while (numtent .GT. 0  )
 
-         CALL RMVNODE(heap, i,j,numtent, phi, DIMS(phi),
-     &                nbandsize,heaploc,DIMS(type))
+         CALL RMVNODE(heap, i,j,numtent, phi, DIMS(phi),&
+                     nbandsize,heaploc,DIMS(type))
      
          if (abs(phi(i,j)) .LT. nbandwidth) then
             nbandnum = nbandnum + 1
@@ -742,15 +755,15 @@ c     Local variables
             exit
          endif
          
-         if (abs(phi(i,j)) .GT. mineloc
-     &        .AND. abs(phi(i,j)) .LT. nbandwidth ) then
+         if (abs(phi(i,j)) .GT. mineloc&
+             .AND. abs(phi(i,j)) .LT. nbandwidth ) then
           
             type(i,j) = 1
             
          endif
          
-         CALL UPDATE(phi,i,j,sgn, type, heap, numtent, DIMS(phi), DIMS(type),
-     &               nbandsize, lo, hi, dx,heaploc)
+         CALL UPDATE(phi,i,j,sgn, type, heap, numtent, DIMS(phi), DIMS(type),&
+                    nbandsize, lo, hi, dx,heaploc)
          
       enddo
       
@@ -763,12 +776,12 @@ c     Local variables
          phi(i,j) = sign(BOGUS,phi(i,j))
 
       enddo
-      end
+    end subroutine FORT_FASTMARCH
 
 
 
-      subroutine UPDATE(phi, i, j, sgn, type, heap, numtent, DIMS(phi), DIMS(type),
-     &                  nbandsize, lo, hi, dx, heaploc)
+      subroutine UPDATE(phi, i, j, sgn, type, heap, numtent, DIMS(phi), DIMS(type),&
+                       nbandsize, lo, hi, dx, heaploc)
       
       implicit none
       integer i,j
@@ -790,8 +803,8 @@ c     Local variables
          ii = i - 1 + n/2
          jj = j + 2*(n/3) - n/2
          
-         if ( ii .GE. lo(1) .AND. ii .LE. hi(1)
-     &        .AND. jj .GE. lo(2) .AND. jj .LE. hi(2)) then
+         if ( ii .GE. lo(1) .AND. ii .LE. hi(1)&
+             .AND. jj .GE. lo(2) .AND. jj .LE. hi(2)) then
             
             if (type(ii,jj) .GT. 1   .AND.   sgn*phi(ii,jj) .GE. 0) then
                
@@ -800,19 +813,19 @@ c     Local variables
                if (type(ii,jj) .GT. 2) then
                   
                   type(ii,jj) = 2
-                  CALL ADDNODE(heap, ii, jj, numtent, phi, DIMS(phi), lo, hi, 
-     &                 nbandsize,heaploc,DIMS(type))
+                  CALL ADDNODE(heap, ii, jj, numtent, phi, DIMS(phi), lo, hi, &
+                      nbandsize,heaploc,DIMS(type))
                   
                else
                   
-                  CALL UPDATENODE(heap, ii, jj, numtent, phi, DIMS(phi), lo, hi, 
-     &                 nbandsize,heaploc,DIMS(type))
+                  CALL UPDATENODE(heap, ii, jj, numtent, phi, DIMS(phi), lo, hi, &
+                      nbandsize,heaploc,DIMS(type))
                   
                endif
             endif    
          endif
       enddo
-      end
+    end subroutine UPDATE
       
       
       
@@ -845,12 +858,12 @@ c     Local variables
       rok  = right. LE. hi(1) .AND. sgn*phi(right,j) .GE. 0 . AND. type(right,j) .LE. 1 
       uok  = up .LE. hi(2) .AND. sgn*phi(i,up) .GE. 0  .AND. type(i,up) .LE. 1
       dok  = down . GE. lo(2) .AND. sgn*phi(i,down) .GE. 0  .AND. type(i,down) .LE. 1
-c      llok = FMMorder .EQ. 2 . AND. ll .GE. lo(1) .AND. sgn*phi(ll,j) .GE. 0 .AND. type(ll,j) .LE. 1
-c      rrok = FMMorder .EQ. 2 . AND. rr. LE. hi(1) .AND. sgn*phi(rr,j) .GE. 0 . AND. type(rr,j) .LE. 1 
-c      uuok = FMMorder .EQ. 2 . AND. uu .LE. hi(2) .AND. sgn*phi(i,uu) .GE. 0  .AND. type(i,uu) .LE. 1
-c      ddok = FMMorder .EQ. 2 . AND. dd . GE. lo(2) .AND. sgn*phi(i,dd) .GE. 0  .AND. type(i,dd) .LE. 1      
+!c      llok = FMMorder .EQ. 2 . AND. ll .GE. lo(1) .AND. sgn*phi(ll,j) .GE. 0 .AND. type(ll,j) .LE. 1
+!c      rrok = FMMorder .EQ. 2 . AND. rr. LE. hi(1) .AND. sgn*phi(rr,j) .GE. 0 . AND. type(rr,j) .LE. 1 
+!c      uuok = FMMorder .EQ. 2 . AND. uu .LE. hi(2) .AND. sgn*phi(i,uu) .GE. 0  .AND. type(i,uu) .LE. 1
+!c      ddok = FMMorder .EQ. 2 . AND. dd . GE. lo(2) .AND. sgn*phi(i,dd) .GE. 0  .AND. type(i,dd) .LE. 1      
             
-c     FIXME: The following had a sign(right,...), mistake?
+!c     FIXME: The following had a sign(right,...), mistake?
       if (lok .AND. rok) then
                     
         a = a + dx(2)/dx(1)
@@ -903,12 +916,12 @@ c     FIXME: The following had a sign(right,...), mistake?
       
       phi(i,j) = sgn*(-b + SQRT(b**2-4*a*c))/(2*a)
 
-      end
+    end subroutine EVAL
  
  
  
-      subroutine ADDNODE(heap,i,j,n,phi,DIMS(phi), lo, hi, 
-     &                   nbandsize, heaploc, DIMS(type))
+      subroutine ADDNODE(heap,i,j,n,phi,DIMS(phi), lo, hi, &
+                        nbandsize, heaploc, DIMS(type))
       implicit none
       integer    DIMDEC(phi)
       REAL_T     phi(DIMV(phi))
@@ -951,12 +964,12 @@ c     FIXME: The following had a sign(right,...), mistake?
       heap(index,2) = j
       heaploc(i,j) = index
       n = n + 1
-      end
+    end subroutine ADDNODE
 
 
       
-      subroutine UPDATENODE(heap,i,j,n,phi,DIMS(phi), lo, hi,
-     &                      nbandsize, heaploc,DIMS(type))
+      subroutine UPDATENODE(heap,i,j,n,phi,DIMS(phi), lo, hi,&
+                           nbandsize, heaploc,DIMS(type))
       implicit none
       integer    DIMDEC(phi)
       REAL_T     phi(DIMV(phi))
@@ -991,13 +1004,13 @@ c     FIXME: The following had a sign(right,...), mistake?
       heap(index,1) = i
       heap(index,2) = j
       heaploc(i,j) = index
-      end
+    end subroutine UPDATENODE
             
       
       
       
-      subroutine RMVNODE(heap, i,j,n, phi, DIMS(phi),
-     &                   nbandsize,heaploc, DIMS(type))
+      subroutine RMVNODE(heap, i,j,n, phi, DIMS(phi),&
+                        nbandsize,heaploc, DIMS(type))
       implicit none
       integer    DIMDEC(phi)
       REAL_T     phi(DIMV(phi))
@@ -1074,13 +1087,13 @@ c     FIXME: The following had a sign(right,...), mistake?
         heaploc(heap(index,1),heap(index,2)) = index
       endif
       n = n - 1
-      end
+    end subroutine RMVNODE
       
       
       
-      INTEGER FUNCTION FORT_FASTMARCH2(phi,DIMS(phi),type,DIMS(type),
-     &                                 lo, hi, dx, nband, nbandsize, nbandnum,
-     &                                 sgn, heaploc)
+      INTEGER FUNCTION FORT_FASTMARCH2(phi,DIMS(phi),type,DIMS(type),&
+                                      lo, hi, dx, nband, nbandsize, nbandnum,&
+                                      sgn, heaploc)
       implicit none
       integer     DIMDEC(phi)
       integer     DIMDEC(type)
@@ -1109,39 +1122,39 @@ c     FIXME: The following had a sign(right,...), mistake?
       i = lo(1)-1 
       do j = lo(2), hi(2)
          if((type(i,j) .EQ. 0 .OR. type(i,j) .EQ. 1) .AND. sgn*phi(i,j) .GE. 0) then
-            CALL UPDATE2(phi,i,j,sgn, type,heap,numtent,DIMS(phi), 
-     &                   DIMS(type), nbandsize, lo, hi, dx,heaploc)
+            CALL UPDATE2(phi,i,j,sgn, type,heap,numtent,DIMS(phi),& 
+                        DIMS(type), nbandsize, lo, hi, dx,heaploc)
          endif
       enddo
       
       i = hi(1)+1 
       do j = lo(2), hi(2) 
          if((type(i,j) .EQ. 0 .OR. type(i,j) .EQ. 1) .AND. sgn*phi(i,j) .GE. 0) then
-            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),
-     &                   DIMS(type), nbandsize, lo, hi, dx,heaploc)
+            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),&
+                        DIMS(type), nbandsize, lo, hi, dx,heaploc)
          endif
       enddo
       
       j = lo(2)-1 
       do i = lo(1) , hi(1)
          if((type(i,j) .EQ. 0 .OR. type(i,j) .EQ. 1) .AND. sgn*phi(i,j) .GE. 0) then
-            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),
-     &                   DIMS(type), nbandsize, lo, hi, dx,heaploc)
+            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),&
+                        DIMS(type), nbandsize, lo, hi, dx,heaploc)
          endif
       enddo
       
       j = hi(2)+1 
       do i = lo(1) , hi(1) 
          if((type(i,j) .EQ. 0 .OR. type(i,j) .EQ. 1) .AND. sgn*phi(i,j) .GE. 0) then
-            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),
-     & 	                 DIMS(type), nbandsize, lo, hi, dx,heaploc)
+            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),&
+      	                 DIMS(type), nbandsize, lo, hi, dx,heaploc)
          endif
       enddo
       
       FORT_FASTMARCH2 = 0
       do while (numtent .GT. 0 )
-         CALL RMVNODE(heap, i,j,numtent, phi, DIMS(phi), 
-     &                nbandsize,heaploc,DIMS(type))
+         CALL RMVNODE(heap, i,j,numtent, phi, DIMS(phi), &
+                     nbandsize,heaploc,DIMS(type))
          if (abs(phi(i,j)) .LT. nbandwidth ) then
          
             FORT_FASTMARCH2 = 1
@@ -1153,8 +1166,8 @@ c     FIXME: The following had a sign(right,...), mistake?
             endif
           
             type(i,j) = 0
-            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),
-     &                   DIMS(type), nbandsize, lo, hi, dx,heaploc)
+            CALL UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),&
+                        DIMS(type), nbandsize, lo, hi, dx,heaploc)
 
          else
 
@@ -1164,8 +1177,8 @@ c     FIXME: The following had a sign(right,...), mistake?
 
          endif
          
-         if (abs(phi(i,j)) .GT. mineloc
-     &        .AND. abs(phi(i,j)) .LT. nbandwidth) then
+         if (abs(phi(i,j)) .GT. mineloc &
+             .AND. abs(phi(i,j)) .LT. nbandwidth) then
           
             type(i,j) = 1
         endif
@@ -1176,18 +1189,18 @@ c     FIXME: The following had a sign(right,...), mistake?
       
       do while (numtent .GT. 0)
             
-         CALL RMVNODE(heap, i,j,numtent, phi, DIMS(phi),
-     &                nbandsize,heaploc,DIMS(type))
+         CALL RMVNODE(heap, i,j,numtent, phi, DIMS(phi),&
+                     nbandsize,heaploc,DIMS(type))
          type(i,j) = 3
          phi(i,j) = sign(BOGUS,phi(i,j))    
       enddo
 
-      end
+    end FUNCTION FORT_FASTMARCH2
 
 
 
-      subroutine UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),
-     &                   DIMS(type), nbandsize, lo, hi, dx, heaploc)      
+      subroutine UPDATE2(phi,i,j,sgn, type, heap,numtent,DIMS(phi),&
+                        DIMS(type), nbandsize, lo, hi, dx, heaploc)      
       implicit none
       integer i,j
       integer DIMDEC(phi)
@@ -1212,35 +1225,35 @@ c     FIXME: The following had a sign(right,...), mistake?
         ii = i -1 +n/2
         jj = j + 2*(n/3) - n/2
               
-        if (ii .GE. lo(1) .AND. ii .LE. hi(1)
-     &       .AND. jj .GE. lo(2) .AND. jj .LE. hi(2)) then
+        if (ii .GE. lo(1) .AND. ii .LE. hi(1)&
+            .AND. jj .GE. lo(2) .AND. jj .LE. hi(2)) then
         
-           if (sgn*sign(1.d0,phi(ii,jj)) .GE. 0 .AND. abs(phi(ii,jj)) .GT. abs(phi(i,j)) 
-     &          .AND. (abs(phi(ii,jj)) .GE. BOGUS .OR. .NOT.(sgn*phi(ii+1,jj) .LE. 0  
-     &          .OR. sgn*phi(ii-1,jj) .LE. 0 .OR. sgn*phi(ii,jj+1) .LE. 0 .OR. sgn*phi(ii,jj-1) .LE. 0) ))then 
-c     &          .OR. sgn*phi(ii+1,jj+1) .LE. 0 .OR. sgn*phi(ii-1,jj-1) .LE. 0 .OR. sgn*phi(ii+1,jj-1) .LE. 0 
-c     &          .OR. sgn*phi(ii-1,jj+1) .LE. 0) )) then
+           if (sgn*sign(1.d0,phi(ii,jj)) .GE. 0 .AND. abs(phi(ii,jj)) .GT. abs(phi(i,j)) &
+               .AND. (abs(phi(ii,jj)) .GE. BOGUS .OR. .NOT.(sgn*phi(ii+1,jj) .LE. 0  &
+               .OR. sgn*phi(ii-1,jj) .LE. 0 .OR. sgn*phi(ii,jj+1) .LE. 0 .OR. sgn*phi(ii,jj-1) .LE. 0) ))then 
+!c     &          .OR. sgn*phi(ii+1,jj+1) .LE. 0 .OR. sgn*phi(ii-1,jj-1) .LE. 0 .OR. sgn*phi(ii+1,jj-1) .LE. 0 
+!c     &          .OR. sgn*phi(ii-1,jj+1) .LE. 0) )) then
               
-              isnew = EVAL2(phi,ii,jj,DIMS(phi), DIMS(type),
-     &                      lo,hi, type,sgn,dx, phi(i,j))
+              isnew = EVAL2(phi,ii,jj,DIMS(phi), DIMS(type),&
+                           lo,hi, type,sgn,dx, phi(i,j))
            
-              isnew = isnew .OR. EVAL2(phi,ii,jj,DIMS(phi), DIMS(type),
-     &                                 lo,hi, type,sgn,dx, phi(ii,jj))
+              isnew = isnew .OR. EVAL2(phi,ii,jj,DIMS(phi), DIMS(type),&
+                                      lo,hi, type,sgn,dx, phi(ii,jj))
               
               if (isnew ) then
                  type(ii,jj) = min(2,type(ii,jj))
                  if(heaploc(ii,jj) .EQ. -1) then
-                    CALL ADDNODE(heap,ii,jj, numtent,phi,DIMS(phi), 
-     &                           lo, hi, nbandsize, heaploc,DIMS(type))
+                    CALL ADDNODE(heap,ii,jj, numtent,phi,DIMS(phi), &
+                                lo, hi, nbandsize, heaploc,DIMS(type))
                  else
-                    CALL UPDATENODE(heap,ii,jj, numtent,phi,DIMS(phi), 
-     &                              lo, hi, nbandsize, heaploc,DIMS(type))   
+                    CALL UPDATENODE(heap,ii,jj, numtent,phi,DIMS(phi),& 
+                                   lo, hi, nbandsize, heaploc,DIMS(type))   
                  endif
               endif
            endif    
         endif        
       enddo
-      end
+    end subroutine UPDATE2
       
       
       
@@ -1267,8 +1280,8 @@ c     &          .OR. sgn*phi(ii-1,jj+1) .LE. 0) )) then
       up    = j + 1
       down  = j - 1
    
-      if (sgn*phi(left,j) .GE. 0 .AND. type(left,j) .LE. 1 .AND. abs(phi(left,j)) .LE. abs(phisrc) 
-     &     .AND. sgn*phi(right,j) .GE. 0 . AND. type(right,j) .LE. 1 .AND. abs(phi(right,j)) .LE. abs(phisrc) ) then
+      if (sgn*phi(left,j) .GE. 0 .AND. type(left,j) .LE. 1 .AND. abs(phi(left,j)) .LE. abs(phisrc) &
+          .AND. sgn*phi(right,j) .GE. 0 . AND. type(right,j) .LE. 1 .AND. abs(phi(right,j)) .LE. abs(phisrc) ) then
       
          a = a + dx(2)/dx(1)        
          b = b + min(sgn*phi(left,j),sgn*phi(right,j))*(dx(2)/dx(1))
@@ -1288,8 +1301,8 @@ c     &          .OR. sgn*phi(ii-1,jj+1) .LE. 0) )) then
          
       endif
 
-      if ( sgn*phi(i,down) .GE. 0  .AND. type(i,down) .LE. 1 .AND. abs(phi(i,down)) .LE. abs(phisrc) 
-     &     .AND. sgn*phi(i,up) .GE. 0  .AND. type(i,up) .LE. 1 .AND. abs(phi(i,up)) .LE. abs(phisrc) ) then
+      if ( sgn*phi(i,down) .GE. 0  .AND. type(i,down) .LE. 1 .AND. abs(phi(i,down)) .LE. abs(phisrc) &
+          .AND. sgn*phi(i,up) .GE. 0  .AND. type(i,up) .LE. 1 .AND. abs(phi(i,up)) .LE. abs(phisrc) ) then
          
          a = a + dx(1)/dx(2)
          b = b + min(sgn*phi(i,down),sgn*phi(i,up))*(dx(1)/dx(2))
@@ -1332,12 +1345,12 @@ c     &          .OR. sgn*phi(ii-1,jj+1) .LE. 0) )) then
         EVAL2 = .TRUE.
       endif
       
-      end
+    end FUNCTION EVAL2
 
 
      
-      subroutine FORT_MINE(type, DIMS(type), nband, nbandsize,
-     &		                 mine, minesize,lo, hi)    
+      subroutine FORT_MINE(type, DIMS(type), nband, nbandsize,&
+     		                 mine, minesize,lo, hi)    
       implicit none     
       integer DIMDEC(type)
       integer nbandsize, minesize
@@ -1367,7 +1380,7 @@ c     &          .OR. sgn*phi(ii-1,jj+1) .LE. 0) )) then
       
       mine(nummine+1,1) = -LARGEINT
       mine(nummine+1,2) = -LARGEINT      
-      end
+    end subroutine FORT_MINE
      
 
      
@@ -1382,4 +1395,5 @@ c     &          .OR. sgn*phi(ii-1,jj+1) .LE. 0) )) then
         p = p + 1
       enddo
       nbandnum = p
-      end
+    end subroutine FORT_NBANDNUMIFY
+  end module LS_2d_module

@@ -3,7 +3,7 @@
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
-
+  
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
 #include <AMReX_BC_TYPES.H>
@@ -12,14 +12,27 @@
 
 #define SDIM 2
 
-      subroutine FORT_GRADP (
-     &     p,DIMS(p),
-     &     gp,DIMS(gp),
-     &     lo,hi,dx,is_full)
-c 
-c     Compute a cell centered gradient from a node
-c     centered field.  Returns all components of GRADP
-c
+
+module navierstokes_2d_module
+  
+  implicit none
+
+  private 
+
+  public FORT_GRADP, FORT_PUTDOWN, FORT_INCRMULT, FORT_MAXVAL, &
+       FORT_SUMMASS, FORT_SUMMASS_CYL, FORT_CEN2EDG, EDGE_INTERP, &
+       PC_EDGE_INTERP
+  
+contains
+
+      subroutine FORT_GRADP (&
+          p,DIMS(p),&
+          gp,DIMS(gp),&
+          lo,hi,dx,is_full)
+!c 
+!c     Compute a cell centered gradient from a node
+!c     centered field.  Returns all components of GRADP
+!c
       implicit none
       integer    DIMDEC(p)
       integer    DIMDEC(gp)
@@ -50,26 +63,26 @@ c
         end do
       endif
 
-      end
+    end subroutine FORT_GRADP
 
-c :: ----------------------------------------------------------
-c :: Replace coarse grid pressure data with corresponding
-c :: fine grid pressure data.
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  crse      <=  coarse grid data
-c ::  DIMS(crse) => index limits of crse
-c ::  fine       => fine grid data
-c ::  DIMS(fine) => index limits of fine 
-c ::  lo,hi      => index limits of overlap (crse grid)
-c ::  ratios     => IntVect refinement ratio
-c ::
-c :: NOTE:
-c ::  Assumes pressure fields are node based
-c :: ----------------------------------------------------------
-c ::
-      subroutine FORT_PUTDOWN (crse,DIMS(crse),
-     &			       fine,DIMS(fine),lo,hi,ratios)
+!c :: ----------------------------------------------------------
+!c :: Replace coarse grid pressure data with corresponding
+!c :: fine grid pressure data.
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  crse      <=  coarse grid data
+!c ::  DIMS(crse) => index limits of crse
+!c ::  fine       => fine grid data
+!c ::  DIMS(fine) => index limits of fine 
+!c ::  lo,hi      => index limits of overlap (crse grid)
+!c ::  ratios     => IntVect refinement ratio
+!c ::
+!c :: NOTE:
+!c ::  Assumes pressure fields are node based
+!c :: ----------------------------------------------------------
+!c ::
+      subroutine FORT_PUTDOWN (crse,DIMS(crse),&
+     			       fine,DIMS(fine),lo,hi,ratios)
       implicit none
       integer  DIMDEC(crse)
       integer  DIMDEC(fine)
@@ -90,24 +103,24 @@ c ::
          end do
       end do
 
-      end
+    end subroutine FORT_PUTDOWN
 
-c :: ----------------------------------------------------------
-c :: NOTE: This routine is no longer needed. Use saxpy
-c ::     funcitons in AMReX.
-c ::     
-C :: UTILITY ROUTINE: compute:
-c ::             A += alpha*B on subrange
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  a         <=  output array
-c ::  b          => input array
-c ::  DIMS(a)    => index limits of a array
-c ::  DIMS(b)    => index limits of a array
-c ::  lo,hi      => index limits of update region
-c ::  alpha      => multiplicative factor
-c :: ----------------------------------------------------------
-c ::
+!c :: ----------------------------------------------------------
+!c :: NOTE: This routine is no longer needed. Use saxpy
+!c ::     funcitons in AMReX.
+!c ::     
+!C :: UTILITY ROUTINE: compute:
+!c ::             A += alpha*B on subrange
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  a         <=  output array
+!c ::  b          => input array
+!c ::  DIMS(a)    => index limits of a array
+!c ::  DIMS(b)    => index limits of a array
+!c ::  lo,hi      => index limits of update region
+!c ::  alpha      => multiplicative factor
+!c :: ----------------------------------------------------------
+!c ::
        subroutine FORT_INCRMULT(a,DIMS(a),b,DIMS(b),lo,hi,alpha)
 
        implicit none
@@ -126,14 +139,14 @@ c ::
           end do
        end do
 
-       end
+     end subroutine FORT_INCRMULT
 
-c :: ----------------------------------------------------------
-c :: MAXVAL
-c ::             maxval = max{ rho(i,j) }
-c ::
-c :: ----------------------------------------------------------
-c ::
+!c :: ----------------------------------------------------------
+!c :: MAXVAL
+!c ::             maxval = max{ rho(i,j) }
+!c ::
+!c :: ----------------------------------------------------------
+!c ::
        subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),mxval)
 
        implicit none
@@ -152,26 +165,26 @@ c ::
           end do
        end do
 
-       end
+     end subroutine FORT_MAXVAL
 
-c :: ----------------------------------------------------------
-c :: SUMMASS
-c ::             MASS = sum{ vol(i,j)*rho(i,j) }
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  rho        => density field
-c ::  DIMS(rho)  => index limits of rho aray
-c ::  lo,hi      => index limits of grid interior
-c ::  dx	 => cell size
-c ::  mass      <=  total mass
-c ::  r		 => radius at cell center
-c ::  irlo,hi    => index limits of r array
-c ::  rz_flag    => == 1 if R_Z coords
-c ::  tmp        => temp column array
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),dx,mass,
-     &                         r,irlo,irhi,rz_flag)
+!c :: ----------------------------------------------------------
+!c :: SUMMASS
+!c ::             MASS = sum{ vol(i,j)*rho(i,j) }
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rho        => density field
+!c ::  DIMS(rho)  => index limits of rho aray
+!c ::  lo,hi      => index limits of grid interior
+!c ::  dx	 => cell size
+!c ::  mass      <=  total mass
+!c ::  r		 => radius at cell center
+!c ::  irlo,hi    => index limits of r array
+!c ::  rz_flag    => == 1 if R_Z coords
+!c ::  tmp        => temp column array
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),dx,mass,&
+                              r,irlo,irhi,rz_flag)
 
        implicit none
        integer irlo, irhi, rz_flag
@@ -197,29 +210,29 @@ c ::
 	  end do
        end do
 
-       end
+     end subroutine FORT_SUMMASS
 
-c :: ----------------------------------------------------------
-c :: SUMMASSCYL
-c ::    MASS = sum{ vol(i,j)*rho(i,j) } over subregion cylinder
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  rho        => density field
-c ::  DIMS(rho)  => index limits of rho aray
-c ::  lo,hi      => index limits of grid interior
-c ::  dx	 => cell size
-c ::  mass      <=  total mass
-c ::  r		 => radius at cell center
-c ::  irlo,hi    => index limits of r array
-c ::  rz_flag    => == 1 if R_Z coords
-c ::  plo        => domain lo end
-c ::  vws_dz     => height of subregion, from plo
-c ::  vws_R      => radius of subregion
-c ::  tmp        => temp column array
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),dx,mass,
-     &                             r,irlo,irhi,rz_flag,plo,vws_dz,vws_R)
+!c :: ----------------------------------------------------------
+!c :: SUMMASSCYL
+!c ::    MASS = sum{ vol(i,j)*rho(i,j) } over subregion cylinder
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rho        => density field
+!c ::  DIMS(rho)  => index limits of rho aray
+!c ::  lo,hi      => index limits of grid interior
+!c ::  dx	 => cell size
+!c ::  mass      <=  total mass
+!c ::  r		 => radius at cell center
+!c ::  irlo,hi    => index limits of r array
+!c ::  rz_flag    => == 1 if R_Z coords
+!c ::  plo        => domain lo end
+!c ::  vws_dz     => height of subregion, from plo
+!c ::  vws_R      => radius of subregion
+!c ::  tmp        => temp column array
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),dx,mass,&
+                                  r,irlo,irhi,rz_flag,plo,vws_dz,vws_R)
 
        implicit none
        integer irlo, irhi, rz_flag
@@ -254,27 +267,27 @@ c ::
           endif
        end do
 
-       end
+     end subroutine FORT_SUMMASS_CYL
 
-c ::
-c :: ----------------------------------------------------------
-c :: This routine fills an edge-centered fab from a cell-centered
-c :: fab using simple linear interpolation.
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  lo,hi      => index limits of the of the cell-centered fab
-c ::  DIMS(cfab) => index limits of the cell-centered fab
-c ::  cfab       => cell-centered data
-c ::  DIMS(efab) => index limits of the edge-centered fab
-c ::  efab       => edge-centered fab to fill
-c ::  nc         => Number of components in the fab to fill
-c ::  dir        => direction data needs to be shifted to get to edges
-c :: ----------------------------------------------------------
-c ::
-      subroutine FORT_CEN2EDG(lo, hi, 
-     &     DIMS(cfab), cfab,
-     &     DIMS(efab), efab, nc, dir,
-     &     isharm)
+!c ::
+!c :: ----------------------------------------------------------
+!c :: This routine fills an edge-centered fab from a cell-centered
+!c :: fab using simple linear interpolation.
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  lo,hi      => index limits of the of the cell-centered fab
+!c ::  DIMS(cfab) => index limits of the cell-centered fab
+!c ::  cfab       => cell-centered data
+!c ::  DIMS(efab) => index limits of the edge-centered fab
+!c ::  efab       => edge-centered fab to fill
+!c ::  n!c         => Number of components in the fab to fill
+!c ::  dir        => direction data needs to be shifted to get to edges
+!c :: ----------------------------------------------------------
+!c ::
+      subroutine FORT_CEN2EDG(lo, hi, &
+          DIMS(cfab), cfab,&
+          DIMS(efab), efab, nc, dir,&
+          isharm)
       implicit none
       integer lo(SDIM), hi(SDIM), nc, dir, isharm
       integer DIMDEC(cfab)
@@ -308,9 +321,9 @@ c ::
                do j = lo(2), hi(2)
                   do i = lo(1)+1, hi(1)
                      if((cfab(i,j,n) * cfab(i-1,j,n)).gt.zero)then
-                        efab(i,j,n)
-     &                       = 2*(cfab(i,j,n) * cfab(i-1,j,n))/
-     &                       (cfab(i,j,n) + cfab(i-1,j,n))
+                        efab(i,j,n)&
+                            = 2*(cfab(i,j,n) * cfab(i-1,j,n))/&
+                            (cfab(i,j,n) + cfab(i-1,j,n))
                      else
                         efab(i,j,n)=zero
                      endif
@@ -322,9 +335,9 @@ c ::
                do j = lo(2)+1, hi(2)
                   do i = lo(1), hi(1)
                      if((cfab(i,j,n) * cfab(i,j-1,n)).gt.zero)then
-                        efab(i,j,n)
-     &                       = 2*(cfab(i,j,n) * cfab(i,j-1,n))/
-     &                       (cfab(i,j,n) + cfab(i,j-1,n))
+                        efab(i,j,n)&
+                            = 2*(cfab(i,j,n) * cfab(i,j-1,n))/&
+                            (cfab(i,j,n) + cfab(i,j-1,n))
                      else
                         efab(i,j,n)=zero
                      endif
@@ -333,11 +346,11 @@ c ::
             end do
          end if
       end if
-      end
+    end subroutine FORT_CEN2EDG
 
-c-----------------------------------------------------------------------
-      subroutine EDGE_INTERP(flo, fhi, nc, ratio, dir,
-     &     fine, fine_l0, fine_l1, fine_h0, fine_h1)
+!c-----------------------------------------------------------------------
+      subroutine EDGE_INTERP(flo, fhi, nc, ratio, dir,&
+          fine, fine_l0, fine_l1, fine_h0, fine_h1)
       implicit none
       integer flo(0:2-1), fhi(0:2-1), nc, ratio(0:2-1), dir
       integer fine_l0, fine_l1, fine_h0, fine_h1
@@ -345,9 +358,9 @@ c-----------------------------------------------------------------------
       integer i,j,n,P,M
       DOUBLE PRECISION val, df
 
-c     Do linear in dir, pc transverse to dir, leave alone the fine values
-c     lining up with coarse edges--assume these have been set to hold the 
-c     values you want to interpolate to the rest.
+!c     Do linear in dir, p!c transverse to dir, leave alone the fine values
+!c     lining up with coarse edges--assume these have been set to hold the 
+!c     values you want to interpolate to the rest.
       if (dir.eq.0) then
          do n=1,nc
             do j=flo(1),fhi(1),ratio(1)
@@ -378,11 +391,11 @@ c     values you want to interpolate to the rest.
          enddo
       endif
 
-      end
-c-----------------------------------------------------------------------
-      subroutine PC_EDGE_INTERP(lo, hi, nc, ratio, dir,
-     &     crse, crse_l0, crse_l1, crse_h0, crse_h1,
-     &     fine, fine_l0, fine_l1, fine_h0, fine_h1)
+    end subroutine EDGE_INTERP
+!c-----------------------------------------------------------------------
+      subroutine PC_EDGE_INTERP(lo, hi, nc, ratio, dir,&
+          crse, crse_l0, crse_l1, crse_h0, crse_h1,&
+          fine, fine_l0, fine_l1, fine_h0, fine_h1)
       implicit none
       integer lo(2),hi(2), nc, ratio(0:2-1), dir
       integer crse_l0, crse_l1, crse_h0, crse_h1
@@ -391,9 +404,9 @@ c-----------------------------------------------------------------------
       DOUBLE PRECISION fine(fine_l0:fine_h0,fine_l1:fine_h1,nc)
       integer i,j,ii,jj,n,L
 
-c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
-c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
-c     coarse face, leave the in-between faces alone.
+!c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
+!c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
+!c     coarse face, leave the in-between faces alone.
       if (dir.eq.0) then
          do n=1,nc
             do j=lo(2),hi(2)
@@ -420,5 +433,5 @@ c     coarse face, leave the in-between faces alone.
          enddo
       endif
 
-      end
-
+    end subroutine PC_EDGE_INTERP
+  end module navierstokes_2d_module
