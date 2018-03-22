@@ -237,7 +237,7 @@ Projection::level_project (int             level,
     BL_ASSERT(U_new.nGrow() >= 1);
 
     if (verbose) {
-      amrex::Print() << "... level projector at level " << level << '\n';
+      amrex::Print() << "... Projection::level_project() at level " << level << '\n';
     }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
@@ -581,12 +581,9 @@ Projection::syncProject (int             c_lev,
 {
     BL_PROFILE("Projection::syncProject()");
 
-    if (verbose)
-    {
-      amrex::Print() << "SyncProject: level = "
-		     << c_lev
-		     << " correction to level "
-		     << parent->finestLevel() << '\n';
+    if (verbose) {
+        amrex::Print() << "Projection::syncProject(): level = " << c_lev
+                       << " correction to level " << parent->finestLevel() << '\n';
     }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
@@ -719,7 +716,7 @@ Projection::MLsyncProject (int             c_lev,
     BL_PROFILE("Projection::MLsyncProject()");
 
     if (verbose) {
-      amrex::Print() << "SyncProject: levels = " << c_lev << ", " << c_lev+1 << '\n';
+      amrex::Print() << "Projection::MLsyncProject(): levels = " << c_lev << ", " << c_lev+1 << '\n';
     }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
@@ -880,8 +877,7 @@ Projection::MLsyncProject (int             c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::MLsyncProject(): levels = "
-                       << c_lev << ", " << c_lev+1
+	amrex::Print() << "Projection::MLsyncProject(): levels = " << c_lev << ", " << c_lev+1
 		       << ", time: " << run_time << '\n';
     }
 }
@@ -901,7 +897,7 @@ Projection::initialVelocityProject (int  c_lev,
 
     if (verbose)
     {
-      amrex::Print() << "initialVelocityProject: levels = " << c_lev
+      amrex::Print() << "Projection::initialVelocityProject(): levels = " << c_lev
 		     << "  " << f_lev << '\n';
       if (rho_wgt_vel_proj) 
 	amrex::Print() << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
@@ -1088,8 +1084,7 @@ Projection::initialVelocityProject (int  c_lev,
         LevelData[lev]->get_new_data(Press_Type).setVal(0);
     }
 
-    if (verbose)
-    {
+    if (verbose) {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      run_time = ParallelDescriptor::second() - strt_time;
 
@@ -1105,9 +1100,11 @@ Projection::initialPressureProject (int  c_lev)
     int lev;
     int f_lev = parent->finestLevel();
     if (verbose) {
-      amrex::Print() << "initialPressureProject: levels = " << c_lev
+      amrex::Print() << "Projection::initialPressureProject(): levels = " << c_lev
 		     << "  " << f_lev << '\n';
     }
+
+    const Real strt_time = ParallelDescriptor::second();
 
     Vector<MultiFab*> vel(maxlev, nullptr);
     Vector<MultiFab*> phi(maxlev, nullptr);
@@ -1215,6 +1212,18 @@ Projection::initialPressureProject (int  c_lev)
                        LevelData[lev]->get_old_data(Press_Type),
                        0, 0, 1, 0);
     }
+
+
+
+    if (verbose) {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+	amrex::Print() << "Projection::initialPressureProject(): time: " << run_time << '\n';
+    }
+
 }
 
 //
@@ -1233,7 +1242,7 @@ Projection::initialSyncProject (int       c_lev,
     int f_lev = parent->finestLevel();
 
     if (verbose)
-      amrex::Print() << "initialSyncProject: levels = " << c_lev << "  " << f_lev << '\n';
+      amrex::Print() << "Projection::initialSyncProject(): levels = " << c_lev << "  " << f_lev << '\n';
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -1932,11 +1941,12 @@ Projection::initialVorticityProject (int c_lev)
 #if (BL_SPACEDIM == 2)
   int f_lev = parent->finestLevel();
 
-  if (verbose)
-  {
-    amrex::Print() << "initialVorticityProject: levels = " << c_lev
-		   << "  " << f_lev << std::endl;
+  if (verbose) {
+      amrex::Print() << "Projection::initialVorticityProject(): levels = " << c_lev
+                     << "  " << f_lev << std::endl;
   }
+  const Real strt_time = ParallelDescriptor::second();
+
     //
     // Set up projector bndry just for this projection.
     //
@@ -2060,6 +2070,14 @@ Projection::initialVorticityProject (int c_lev)
       phys_bc->setHi(i,phys_bc_save.hi()[i]);
     }
 
+    if (verbose) {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+	amrex::Print() << "Projection::initialVorticityProject(): time: " << run_time << '\n';
+    }
 
 #else
     amrex::Error("Projection::initialVorticityProject(): not implented yet for 3D");
