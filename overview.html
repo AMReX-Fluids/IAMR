@@ -7,7 +7,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <title>AMReX: Overview</title>
+    <title>IAMR: Overview</title>
     <link rel="icon" href="web_icon.ico" type="image/x-icon">
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <meta name="description" content="" />
@@ -27,12 +27,10 @@
 
     <!-- Header -->
     <header id="header">
-      <h1><a href="index.html">AMReX</a></h1>
+      <h1><a href="index.html">IAMR</a></h1>
       <nav id="nav">
 	<ul>
 	  <li><a href="overview.html">Overview</a></li>
-	  <li><a href="science.html">Science</a></li>
-	  <li><a href="gallery.html">Gallery</a></li>
 	  <li><a href="help.html" class="button special">Get Help</a></li>
 	</ul>
       </nav>
@@ -48,27 +46,33 @@
 	    <section>
 	      <ul class="unstyled">
 
-		<li><center><h3>AMReX at a Glance</h3></center>
-		AMReX is a publicly available software framework 
-                designed for building massively parallel block-
-                structured adaptive mesh refinement (AMR) applications.</li>
+		<li><center><h3>IAMR at a Glance</h3></center>
+		  IAMR is a parallel, adaptive mesh refinement (AMR) code that solves the 
+                  variable-density incompressible Navier-Stokes equations.</li>
+
+                <li>The core libraries for managing the subcycling AMR grids and 
+                  communication are found in the 
+                  <a href="https://amrex-codes.github.io/amrex/">AMReX source code.</a></li>
+
+                <li>The algorithm is described in the following paper (and references therein):</li>
+
+                <li>
+                  <b>A Conservative Adaptive Projection Method for the Variable Density Incompressible Navier-Stokes 
+                  Equations, A. S. Almgren, et al., J. Comp. Phys., 142, pp. 1-46, 1998.</b>
+                </li>
 
                 <li><center><h3>Features</h3></center>
                        <ul>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
-                           C++ and Fortran interfaces</li>
+                           Written in C++ and Fortran</li>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
-                           Support for cell-centered, 
-                           face-centered, edge-centered, and nodal data</li>
+                           Two- and Three- dimensional support</li>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
-                           Support for hyperbolic, parabolic, 
-                           and elliptic solves on hierarchical adaptive grid structure</li>
-                         <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
-                           Optional subcycling in time for time-dependent PDEs</li>
+                           Optional subcycling in time</li>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
                            Support for particles</li>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
-                           Embedded boundary description of irregular geometry</li>
+                           Support for particles</li>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
                            Parallelization via flat MPI, OpenMP, hybrid MPI/OpenMP, or MPI/MPI</li>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
@@ -76,18 +80,24 @@
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
                            Plotfile format supported by Amrvis, VisIt, ParaView, and yt</li>
                          <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
+                           Second-order projection methodology for enforcing the incompressibility constraint</li>
+                         <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
+                           Several higher-order Godunov integration schemes for advection</li>
+                         <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
+                           Implicit viscosity</li>
+                         <li style="margin-bottom: -15px; margin-left:20px; LINE-HEIGHT:25px">
                            Built-in profiling tools</li>
                        </ul>
                 </li>
 
                 <li><center><h3>Open Development Model</h3></center>
-                  All of AMReX's development is done
+                  All of IAMR's development is done
                   in the github repository under the development branch;
                   anyone can see the latest updates.  Changes are merged into
                   the master branch at the beginning of each month.</li>
 
-                <li><center><h3>Contribute to AMReX</h3></center>
-                  We encourage users contribute to the AMReX source code.
+                <li><center><h3>Contribute to IAMR</h3></center>
+                  We encourage users contribute to the IAMR source code.
                   To contribute, issue a pull request against the
                   <b>development</b> branch
                   (<a href="https://help.github.com/articles/creating-a-pull-request/">details</a>).
@@ -97,7 +107,7 @@
 
                 <li><center><h3>Getting Help</h3></center>
                   To obtain help, simply post an issue on the 
-                  <a href="https://github.com/AMReX-Codes/amrex">AMReX GitHub webpage</a>
+                  <a href="https://github.com/AMReX-Codes/IAMR">IAMR GitHub webpage</a>
                 </li>
               </ul>
             </section>
@@ -122,52 +132,9 @@
                 </center>
                 
                 Depicted above is a Kelvin-Helmholtz instability using 3 total levels of 
-                refinement generated
-                by the publicly available <b>IAMR</b> code 
-                (available <a href="https://github.com/AMReX-Codes/IAMR">HERE</a>)
-                for solving the variable-density incompressible Navier-Stokes equations.
+                refinement generated with the <b>IAMR</b> code.
                 <p><p>
                 
-              <header class="major">
-                <h3>Particles</h3>
-              </header>
-
-              AMReX provides data structures and iterators for performing 
-              data-parallel particle simulations. Our approach is particularly 
-              suited to particles that interact with data defined on a 
-              (possibly adaptive) block-structured hierarchy of meshes. Example 
-              applications include Particle-in-Cell (PIC) simulations, Lagrangian 
-              tracers, or particles that exert drag forces onto a fluid, such as 
-              in multi-phase flow calculations.<p><p>
-
-                <center>
-                  <img src="images/particles.gif" style="width: 347px; height: 456px" alt="" ><p>
-                </center>
-                
-                Depicted above is granular material color coded according
-                to their speed, falling into a bucket.  This simulation was performed
-                with the <b>MFiX-Exa</b> code developed by NETL, LBNL, and University 
-                of Colorado.<p><p>
-                
-              <header class="major">
-                <h3>Embedded Boundaries</h3>
-              </header>
-
-              For computations with complex geometries, AMReX provides data structures 
-              and algorithms to employ an embedded boundary (EB) approach to PDE 
-              discretizations. In this approach, the underlying computational mesh 
-              is uniform and block-structured, but the boundary of the irregular-shaped 
-              computational domain conceptually cuts through this mesh.<p><p>
-
-                <center>
-                  <img src="images/EmbeddedBoundaries.png" style="width: 347px; height: 456px" alt="" ><p>
-                </center>
-                
-                Depicted above is a compressible high speed swirling jet conducted 
-                using the <b>PeleC</b> simulation code created by NREL & LBNL with 
-                the support of the Exascale Computing Project.  Isosurface shows 
-                velocity magnitude.<p><p>
-             
               <header class="major">
                 <h3>Profiling Tools</h3>
               </header>
@@ -183,7 +150,7 @@
                 plotfiles showing point to point communication and timelines, 
                 HTML call trees, communication call statistics, function timing 
                 graphs, and other data products.  Read more in the 
-                <a href="https://amrex-codes.github.io/amrex/docs_html">Documentation.</a><p><p>
+                <a href="https://amrex-codes.github.io/amrex/docs_html">AMReX Documentation.</a><p><p>
 
             </div>
 
@@ -198,18 +165,15 @@
     <footer id="footer">
       <div class="container">
 	<section class="ack">
-	  AMReX is developed at 
-          <a href="http://www.lbl.gov/"> LBNL </a>,
-          <a href="https://www.nrel.gov/"> NREL </a>, and
-          <a href="http://www.anl.gov/"> ANL </a>
-          as part of the Block-Structured AMR Co-Design Center in DOE's 
-          Exascale Computing Project.
+	  IAMR is developed at the 
+          <a href="https://ccse.lbl.gov/"> 
+            Center for Computational Sciences and Engineering</a>
+          at <a href="http://www.lbl.gov/"> LBNL </a>.
 	</section>
 	<div class="row">
 	  <div class="8u 12u$(medium)">
 	    <ul class="copyright">
-	      <li>&copy; AMReX development team. All rights reserved.</li>
-	      <li>Design: <a href="http://templated.co">TEMPLATED</a></li>
+	      <li>&copy; IAMR development team. All rights reserved.</li>
 	    </ul>
 	  </div>
 	</div>
