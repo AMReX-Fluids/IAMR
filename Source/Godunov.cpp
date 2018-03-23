@@ -73,7 +73,7 @@ Godunov::Initialize ()
     BL_ASSERT(slope_order==1 || slope_order==4);
 #endif
 
-    FORT_SET_PARAMS(slope_order, use_unlimited_slopes);
+    set_params(slope_order, use_unlimited_slopes);
 
     amrex::ExecOnFinalize(Godunov::Finalize);
 
@@ -290,7 +290,7 @@ Godunov::ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
     //
     // Compute the transverse velocities.
     //
-    FORT_TRANSVEL(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr.dataPtr(), Imx, Ipx,
+    transvel(u_dat, uad_dat, xhi_dat, slx_dat, ubc, slxscr.dataPtr(), Imx, Ipx,
                   sedgex.dataPtr(), ARLIM(sedgex.loVect()),  ARLIM(sedgex.hiVect()),
                   v_dat, vad_dat, yhi_dat, sly_dat, vbc, slyscr.dataPtr(), Imy, Ipy, 
                   sedgey.dataPtr(), ARLIM(sedgey.loVect()),  ARLIM(sedgey.hiVect()),
@@ -524,7 +524,7 @@ Godunov::edge_states_orig( const Box &grd, const Real *dx, Real dt, int velpred,
     //
     int fort_ind = state_ind+1;  
 
-    FORT_ESTATE(s_dat, ARLIM(s_lo), ARLIM(s_hi),
+    estate(s_dat, ARLIM(s_lo), ARLIM(s_hi),
 		tfr_dat, ARLIM(tfr_lo), ARLIM(tfr_hi),
                 u_dat,ARLIM(u_lo), ARLIM(u_hi),
 		xlo_dat, xhi_dat, slx_dat, uad_dat,
@@ -673,7 +673,7 @@ Godunov::edge_states_fpu( const Box &grd, const Real *dx, Real dt,
     //
     int fort_ind = state_ind+1;  
 
-    FORT_ESTATE_FPU(s_dat,    ARLIM(s_lo), ARLIM(s_hi),
+    estate_fpu(s_dat,    ARLIM(s_lo), ARLIM(s_hi),
                     tfr_dat,  ARLIM(t_lo), ARLIM(t_hi),
                     divu_dat, ARLIM(d_lo), ARLIM(d_hi),
                     
@@ -786,7 +786,7 @@ Godunov::edge_states_bds( const Box &grd, const Real *dx, Real dt,
       
 #if (BL_SPACEDIM == 2)
     int fort_ind = state_ind+1;  
-    FORT_ESTATE_BDS(s_dat, tfr_dat, divu_dat, ARLIM(s_lo), ARLIM(s_hi),
+    estate_bds(s_dat, tfr_dat, divu_dat, ARLIM(s_lo), ARLIM(s_hi),
                     
                     xlo_dat, xhi_dat, slx_dat,
                     slxscr.dataPtr(), stxlo.dataPtr(), stxhi.dataPtr(),
@@ -952,7 +952,7 @@ Godunov::ComputeAofs (const Box& grd,
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
 
-    FORT_ADV_FORCING( aofs.dataPtr(acomp),ARLIM(aofs.loVect()), ARLIM(aofs.hiVect()),
+    adv_forcing( aofs.dataPtr(acomp),ARLIM(aofs.loVect()), ARLIM(aofs.hiVect()),
 
                       xflux.dataPtr(fxcomp), ARLIM(xflux.loVect()), ARLIM(xflux.hiVect()),
                       uedge.dataPtr(ucomp),  ARLIM(uedge.loVect()), ARLIM(uedge.hiVect()),
@@ -1073,7 +1073,7 @@ Godunov::ComputeSyncAofs (const Box& grd,
 {
     const int *lo         = grd.loVect();
     const int *hi         = grd.hiVect();
-    FORT_SYNC_ADV_FORCING(sync.dataPtr(sync_ind), ARLIM(sync.loVect()), ARLIM(sync.hiVect()),
+    sync_adv_forcing(sync.dataPtr(sync_ind), ARLIM(sync.loVect()), ARLIM(sync.hiVect()),
                            
                           xflux.dataPtr(),ARLIM(xflux.loVect()),ARLIM(xflux.hiVect()),
                           ucorr.dataPtr(),ARLIM(ucorr.loVect()),ARLIM(ucorr.hiVect()),
@@ -1125,7 +1125,7 @@ Godunov::ConservativeScalMinMax (FArrayBox& Sold,
     const Real *smax_dat = smax.dataPtr(); 
 #endif
 
-    FORT_CONSSCALMINMAX (Sold_dat, Rho_dat, ARLIM(solo), ARLIM(sohi),
+    consscalminmax (Sold_dat, Rho_dat, ARLIM(solo), ARLIM(sohi),
 			 Snew_dat, Rhon_dat,ARLIM(snlo), ARLIM(snhi),
 #if (BL_SPACEDIM == 3)
                          smin_dat, smax_dat,
@@ -1164,7 +1164,7 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
     const Real *smax_dat = smax.dataPtr(); 
 #endif
 
-    FORT_CONVSCALMINMAX (Sold_dat, 
+    convscalminmax (Sold_dat, 
                          ARLIM(slo), ARLIM(shi),
                          Snew_dat,
                          ARLIM(snlo), ARLIM(snhi),
@@ -1209,7 +1209,7 @@ Godunov::estdt (FArrayBox&  U,
     const Real *rdat  = rho.dataPtr();
 
     Real dt;
-    FORT_ESTDT(Udat,  ARLIM(vlo), ARLIM(vhi),
+    fort_estdt(Udat,  ARLIM(vlo), ARLIM(vhi),
                tfdat, ARLIM(tlo), ARLIM(thi),
                rdat,  ARLIM(rlo), ARLIM(rhi),
                lo, hi, &dt, dx, &cfl, u_max);
@@ -1238,7 +1238,7 @@ Godunov::maxchng_velmag (FArrayBox&  U_old,
     const Real *Undat = U_new.dataPtr();
 
 	Real max_change = 0.0;
-    FORT_MAXCHNG_VELMAG(Uodat, ARLIM(uo_lo), ARLIM(uo_hi),
+    fort_maxchng_velmag(Uodat, ARLIM(uo_lo), ARLIM(uo_hi),
                	   Undat, ARLIM(un_lo), ARLIM(un_hi),
                	   lo, hi, &max_change);
     return max_change;
@@ -1271,7 +1271,7 @@ Godunov::test_u_rho (FArrayBox&  U,
            const Real *w  = U.dataPtr(ZVEL););
 
     Real cflmax = 0;
-    FORT_TEST_U_RHO(u,  ARLIM(vlo), ARLIM(vhi),
+    fort_test_u_rho(u,  ARLIM(vlo), ARLIM(vhi),
                     v,  ARLIM(vlo), ARLIM(vhi),
 #if (BL_SPACEDIM == 3)                          
                     w,  ARLIM(vlo), ARLIM(vhi),
@@ -1325,7 +1325,7 @@ Godunov::test_umac_rho (FArrayBox&  umac,
 #endif
 
     Real cfl;
-    FORT_TEST_UMAC_RHO(um, ARLIM(ulo), ARLIM(uhi),
+    fort_test_umac_rho(um, ARLIM(ulo), ARLIM(uhi),
                        vm, ARLIM(vlo), ARLIM(vhi),
 #if (BL_SPACEDIM == 3)                            
                        wm, ARLIM(wlo), ARLIM(whi),
@@ -1371,7 +1371,7 @@ Godunov::Add_tf (const FArrayBox& Sold,
     Real *SNdat = Snew.dataPtr(start_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_TF(SOdat, ARLIM(solo), ARLIM(sohi), 
+    update_tf(SOdat, ARLIM(solo), ARLIM(sohi), 
                    SNdat, ARLIM(snlo), ARLIM(snhi),
                    TFdat, ARLIM(tlo), ARLIM(thi),
                    lo, hi, &dt, &num_comp);
@@ -1414,7 +1414,7 @@ Godunov::Correct_tf (const FArrayBox& Sstar,
     const Real *TSdat = tfstar.dataPtr(tf_ind);
     const Real *TNdat = tfn.dataPtr(tf_ind);
     
-    FORT_CORRECT_TF(SSdat, ARLIM(slo), ARLIM(shi),
+    fort_correct_tf(SSdat, ARLIM(slo), ARLIM(shi),
 		    SPdat, ARLIM(splo), ARLIM(sphi),
                     TSdat, ARLIM(tlo), ARLIM(thi),
                     TNdat, ARLIM(tnlo), ARLIM(tnhi),
@@ -1459,7 +1459,7 @@ Godunov::Add_aofs_tf (const FArrayBox& Sold,
     const Real *AOdat = Aofs.dataPtr(aofs_ind);
     const Real *TFdat = tforces.dataPtr(tf_ind);
     
-    FORT_UPDATE_AOFS_TF(SOdat, ARLIM(solo), ARLIM(sohi), 
+    update_aofs_tf(SOdat, ARLIM(solo), ARLIM(sohi), 
                         SNdat, ARLIM(snlo), ARLIM(snhi),
                         AOdat, ARLIM(alo), ARLIM(ahi),
                         TFdat, ARLIM(tlo), ARLIM(thi),
@@ -1510,7 +1510,7 @@ Godunov::Add_aofs_tf_gp (const FArrayBox& Uold,
     const Real *GPdat = gp.dataPtr();
     const Real *RHdat = rho.dataPtr();
     
-    FORT_UPDATE_AOFS_TF_GP(UOdat, ARLIM(uolo), ARLIM(uohi),
+    update_aofs_tf_gp(UOdat, ARLIM(uolo), ARLIM(uohi),
                            UNdat, ARLIM(unlo), ARLIM(unhi),
                            AOdat, ARLIM(alo), ARLIM(ahi),
                            TFdat, ARLIM(tlo), ARLIM(thi),
@@ -1544,7 +1544,7 @@ Godunov::Sum_tf_gp (FArrayBox& tforces, int Tcomp,
     const Real *GPdat = gp.dataPtr(Gcomp);
     const Real *RHdat = rho.dataPtr(Rcomp);
      
-    FORT_SUM_TF_GP(TFdat, ARLIM(tlo), ARLIM(thi),
+    fort_sum_tf_gp(TFdat, ARLIM(tlo), ARLIM(thi),
                    GPdat, ARLIM(glo), ARLIM(ghi),
                    RHdat, ARLIM(rlo), ARLIM(rhi),
                    tlo, thi);
@@ -1593,7 +1593,7 @@ Godunov::Sum_tf_gp_visc (FArrayBox&       tforces,
     const Real *GPdat = gp.dataPtr(Gcomp);
     const Real *RHdat = rho.dataPtr(Rcomp);
      
-    FORT_SUM_TF_GP_VISC(TFdat, ARLIM(tlo), ARLIM(thi),
+    fort_sum_tf_gp_visc(TFdat, ARLIM(tlo), ARLIM(thi),
                         VIdat, ARLIM(vlo), ARLIM(vhi),
                         GPdat, ARLIM(glo), ARLIM(ghi),
                         RHdat, ARLIM(rlo), ARLIM(rhi),
@@ -1639,7 +1639,7 @@ Godunov::Sum_tf_divu (const FArrayBox& S,
     const Real *DUdat = divu.dataPtr(d_ind);
     const Real *RHdat = rho.dataPtr(r_ind);
      
-    FORT_SUM_TF_DIVU(Sdat,  ARLIM(slo), ARLIM(shi),
+    fort_sum_tf_divu(Sdat,  ARLIM(slo), ARLIM(shi),
                      TFdat, ARLIM(tlo), ARLIM(thi),
                      DUdat, ARLIM(dlo), ARLIM(dhi),
                      RHdat, ARLIM(rlo), ARLIM(rhi),
@@ -1704,7 +1704,7 @@ Godunov::Sum_tf_divu_visc (const FArrayBox& S,
     const Real *VIdat = visc.dataPtr(v_ind);
     const Real *RHdat = rho.dataPtr(r_ind);
      
-    FORT_SUM_TF_DIVU_VISC(Sdat,  ARLIM(slo), ARLIM(shi),
+    fort_sum_tf_divu_visc(Sdat,  ARLIM(slo), ARLIM(shi),
                           TFdat, ARLIM(tlo), ARLIM(thi),
                           DUdat, ARLIM(dlo), ARLIM(dhi),
                           VIdat, ARLIM(vlo), ARLIM(vhi),

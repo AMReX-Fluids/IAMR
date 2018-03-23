@@ -16,13 +16,13 @@ module godunov_module
 
   private
 
-  public FORT_SET_PARAMS
+  public set_params
 
 contains
 
 !c=========================================================
 
-      subroutine FORT_SET_PARAMS(slope_order_in,use_unlim_in)
+      subroutine set_params(slope_order_in,use_unlim_in) bind(C,name="set_params")
       implicit none
       integer slope_order_in,use_unlim_in
 
@@ -37,11 +37,11 @@ contains
         slope_order.ne.2.and.&
 #endif
         slope_order.ne.4)then
-        write(6,*)'FORT_SET_PARAMS : illegal value of slope_order = ',&
+        write(6,*)'set_params : illegal value of slope_order = ',&
                  slope_order
 
         call bl_abort(" ")
       end if
 
-    end subroutine FORT_SET_PARAMS
+    end subroutine set_params
   end module godunov_module

@@ -21,21 +21,21 @@ module godunov_2d_module
 
   private 
 
-  public FORT_ESTDT, FORT_MAXCHNG_VELMAG,FORT_TEST_U_RHO, &
-       FORT_TEST_UMAC_RHO, FORT_TRANSVEL,FORT_ESTATE,FORT_ESTATE_FPU,&
-       FORT_ESTATE_BDS, FORT_ADV_FORCING, &
-       FORT_SYNC_ADV_FORCING, FORT_CONVSCALMINMAX,FORT_CONSSCALMINMAX,&
-       FORT_SUM_TF_GP,FORT_SUM_TF_GP_VISC,FORT_SUM_TF_DIVU,&
-       FORT_SUM_TF_DIVU_VISC, FORT_UPDATE_TF, FORT_CORRECT_TF,&
-       FORT_UPDATE_AOFS_TF, FORT_UPDATE_AOFS_TF_GP
+  public fort_estdt, fort_maxchng_velmag,fort_test_u_rho, &
+       fort_test_umac_rho, transvel,estate,estate_fpu,&
+       estate_bds, adv_forcing, &
+       sync_adv_forcing, convscalminmax,consscalminmax,&
+       fort_sum_tf_gp,fort_sum_tf_gp_visc,fort_sum_tf_divu,&
+       fort_sum_tf_divu_visc, update_tf, fort_correct_tf,&
+       update_aofs_tf, update_aofs_tf_gp
   
 contains
 
-      subroutine FORT_ESTDT (&
+      subroutine fort_estdt (&
           vel,DIMS(vel),&
           tforces,DIMS(tf),&
           rho,DIMS(rho),&
-          lo,hi,dt,dx,cfl,u_max)
+          lo,hi,dt,dx,cfl,u_max) bind(C,name="fort_estdt")
 ! c 
 ! c     ----------------------------------------------------------
 ! c     estimate the timestep for this grid and scale by CFL number
@@ -102,12 +102,12 @@ contains
 
       dt = dt*cfl
 
-    end subroutine FORT_ESTDT
+    end subroutine fort_estdt
 
-      subroutine FORT_MAXCHNG_VELMAG (&
+      subroutine fort_maxchng_velmag (&
           old_vel,DIMS(old_vel),&
           new_vel,DIMS(new_vel),&
-          lo,hi,max_change)
+          lo,hi,max_change) bind(C,name="fort_maxchng_velmag")
 ! c 
 ! c     ----------------------------------------------------------
 ! c     Given the velocity field at the previous and current time steps
@@ -137,13 +137,13 @@ contains
          end do
       end do
 
-    end subroutine FORT_MAXCHNG_VELMAG
+    end subroutine fort_maxchng_velmag
 
-      subroutine FORT_TEST_U_RHO(&
+      subroutine fort_test_u_rho(&
           u,DIMS(u),&
           v,DIMS(v),&
           rho,DIMS(rho),&
-          lo,hi,dt,dx,cflmax,u_max,verbose )
+          lo,hi,dt,dx,cflmax,u_max,verbose ) bind(C,name="fort_test_u_rho")
 ! c
 ! c     This subroutine computes the extrema of the density
 ! c     and velocities at cell centers
@@ -201,7 +201,7 @@ contains
         write(6,1000) umax,umin,u_max(1) 
         write(6,1001) vmax,vmin,u_max(2) 
         write(6,1002) rhomax,rhomin
-#ifndef	BL_NO_FORT_FLUSH
+#ifndef	BL_NO_FLUSH
 !c        call flush(6)
 #endif
       end if
@@ -210,13 +210,13 @@ contains
  1001 format(' V  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1002 format('RHO MAX/MIN      ',e21.14,2x,e21.14)
 
-    end subroutine FORT_TEST_U_RHO
+    end subroutine fort_test_u_rho
 
-      subroutine FORT_TEST_UMAC_RHO(&
+      subroutine fort_test_umac_rho(&
           umac,DIMS(umac),&
           vmac,DIMS(vmac),&
           rho,DIMS(rho),&
-          lo,hi,dt,dx,cflmax,u_max)
+          lo,hi,dt,dx,cflmax,u_max) bind(C,name="fort_test_umac_rho")
 ! c
 ! c     This subroutine computes the extrema of the density
 ! c     and mac edge velocities
@@ -280,18 +280,18 @@ contains
  1001 format('VMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
  1002 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
 
-#ifndef	BL_NO_FORT_FLUSH
+#ifndef	BL_NO_FLUSH
 !c      call flush(6)
 #endif
 
-    end subroutine FORT_TEST_UMAC_RHO
+    end subroutine fort_test_umac_rho
 
-      subroutine FORT_TRANSVEL(&
+      subroutine transvel(&
           u, ulo, uhi, sx, ubc, slxscr, Imx, Ipx, sedgex, DIMS(sedgex),&
           v, vlo, vhi, sy, vbc, slyscr, Imy, Ipy, sedgey, DIMS(sedgey),&
           DIMS(u), DIMS(work), DIMS(I),&
           dsvl, DIMS(dsvl), sm, sp, DIMS(smp),&
-          lo,hi,dt,dx,use_minion,tforces,ppm_type)
+          lo,hi,dt,dx,use_minion,tforces,ppm_type) bind(C,name="transvel")
 ! c
 ! c     This subroutine computes the advective velocities used in
 ! c     the transverse derivatives of the Godunov box
@@ -349,13 +349,13 @@ contains
 ! c     --------------------------------------------------------------
 ! c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(u,DIMS(u),u,v,DIMS(u),&
+         call ppm(u,DIMS(u),u,v,DIMS(u),&
              Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
              sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,ubc,&
              eps_for_bc,ppm_type)
 
       else
-         call FORT_SLOPES(u,DIMS(u),&
+         call slopes(u,DIMS(u),&
              sx,sy,DIMS(work),lo,hi,slxscr,slyscr,ubc)
       end if
          
@@ -399,12 +399,12 @@ contains
 ! c     compute the y transverse velocities
 ! c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(v,DIMS(u),u,v,DIMS(u),&
+         call ppm(v,DIMS(u),u,v,DIMS(u),&
              Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
              sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,vbc,&
              eps_for_bc,ppm_type)
       else
-         call FORT_SLOPES(v,DIMS(u),&
+         call slopes(v,DIMS(u),&
              sx,sy,DIMS(work),lo,hi,slxscr,slyscr,vbc)
       end if
 
@@ -445,9 +445,9 @@ contains
          end do
       end do
 
-    end subroutine FORT_TRANSVEL
+    end subroutine transvel
 
-      subroutine FORT_ESTATE(s, DIMS(s), tforces, DIMS(tforces),&
+      subroutine estate(s, DIMS(s), tforces, DIMS(tforces),&
           u, DIMS(u),&
           xlo, xhi, sx, uad, slxscr, stxlo, stxhi,&
           uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),&
@@ -456,7 +456,7 @@ contains
           vedge, DIMS(vedge), ystate, DIMS(ystate), Imy, Ipy, sedgey, DIMS(sedgey),&
 
           DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),&
-          bc,lo,hi,dt,dx,n,velpred, use_minion, ppm_type)
+          bc,lo,hi,dt,dx,n,velpred, use_minion, ppm_type) bind(C,name="estate")
 
       implicit none
       integer i,j,n,velpred
@@ -519,12 +519,12 @@ contains
 ! c     trace the state to the cell edges
 ! c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(s,DIMS(s),u,v,DIMS(u),&
+         call ppm(s,DIMS(s),u,v,DIMS(u),&
              Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
              sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,&
              eps_for_bc,ppm_type)
       else
-         call FORT_SLOPES(s,DIMS(s),&
+         call slopes(s,DIMS(s),&
              sx,sy,DIMS(work),lo,hi,slxscr,slyscr,bc)
       end if
 !c
@@ -833,9 +833,9 @@ contains
             place_to_break = 1
 200      continue
          end if
-      end subroutine FORT_ESTATE
+      end subroutine estate
 
-      subroutine FORT_ESTATE_FPU(&
+      subroutine estate_fpu(&
           s, DIMS(s), tforces, DIMS(t), divu, DIMS(d),&
           xlo, xhi, sx, slxscr, stxlo, stxhi,&
           uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),&
@@ -844,7 +844,7 @@ contains
           vedge, DIMS(vedge), ystate, DIMS(ystate), Imy, Ipy, sedgey, DIMS(sedgey),&
 
           DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),&
-          bc,lo,hi,dt,dx,n,use_minion,iconserv,ppm_type)
+          bc,lo,hi,dt,dx,n,use_minion,iconserv,ppm_type) bind(C,name="estate_fpu")
 ! c
 ! c     This subroutine computes edges states, right now it uses
 ! c     a lot of memory, but there becomes a trade off between
@@ -910,13 +910,13 @@ contains
 !c     compute the slopes
 !c
       if (ppm_type .gt. 0) then
-         call FORT_PPM_FPU(s,DIMS(s),uedge,DIMS(uedge),vedge,DIMS(vedge),&
+         call ppm_FPU(s,DIMS(s),uedge,DIMS(uedge),vedge,DIMS(vedge),&
              Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
              sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc, &
              eps_for_bc,ppm_type)
 
       else
-         call FORT_SLOPES(&
+         call slopes(&
              s,DIMS(s),&
              sx,sy,DIMS(work),&
              lo,hi,slxscr,slyscr,bc)
@@ -1234,10 +1234,10 @@ contains
             place_to_break = 1
       end do
 
-    end subroutine FORT_ESTATE_FPU
+    end subroutine estate_fpu
 
 
-      subroutine FORT_ADV_FORCING(&
+      subroutine adv_forcing(&
           aofs,DIMS(aofs),&
           xflux,DIMS(xflux),&
           uedge,DIMS(uedge),&
@@ -1246,7 +1246,7 @@ contains
           vedge,DIMS(vedge),&
           areay,DIMS(ay),&
           vol,DIMS(vol),&
-          lo,hi,iconserv )
+          lo,hi,iconserv ) bind(C,name="adv_forcing")
 ! c
 ! c     This subroutine uses scalar edge states to compute
 ! c     an advective tendency
@@ -1330,9 +1330,9 @@ contains
          end do
       end if
 
-    end subroutine FORT_ADV_FORCING
+    end subroutine adv_forcing
 
-      subroutine FORT_SYNC_ADV_FORCING(&
+      subroutine sync_adv_forcing(&
           sync,DIMS(sync),&
           xflux,DIMS(xflux),&
           ucor,DIMS(ucor),&
@@ -1341,7 +1341,7 @@ contains
           vcor,DIMS(vcor),&
           areay,DIMS(ay),&
           vol,DIMS(vol),&
-          lo,hi )
+          lo,hi ) bind(C,name="sync_adv_forcing")
 ! c
 ! c     This subroutine computes the sync advective tendency
 ! c     for a state variable
@@ -1395,7 +1395,7 @@ contains
          end do
       end do
 
-    end subroutine FORT_SYNC_ADV_FORCING
+    end subroutine sync_adv_forcing
 
       subroutine trans_xbc(&
           s,DIMS(s),&
@@ -1581,7 +1581,7 @@ contains
 
     end subroutine trans_ybc
 
-      subroutine FORT_SLOPES (s,DIMS(s),slx,sly,DIMS(sl),&
+      subroutine slopes (s,DIMS(s),slx,sly,DIMS(sl),&
           lo,hi,slxscr,slyscr,bc)
 ! c 
 ! c     this subroutine computes first, second or forth order slopes of
@@ -1626,7 +1626,7 @@ contains
       ng = lo(1) - ARG_L1(s)
       if (slope_order .eq.1) then
          if (ng .lt. 1) then
-            call bl_abort('FORT_SLOPES: too few bndry cells for first order')
+            call bl_abort('slopes: too few bndry cells for first order')
          endif
          ng = 1
       else if (slope_order .eq. 2) then
@@ -1966,9 +1966,9 @@ contains
 !c
       end if
 
-    end subroutine FORT_SLOPES
+    end subroutine slopes
 
-      subroutine FORT_PPM(s,DIMS(s),u,v,DIMS(u),&
+      subroutine ppm(s,DIMS(s),u,v,DIMS(u),&
           Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
           sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps,&
           ppm_type)
@@ -2926,9 +2926,9 @@ contains
          end do
       end do
 
-    end subroutine FORT_PPM
+    end subroutine ppm
 
-      subroutine FORT_PPM_FPU(s,DIMS(s),uedge,DIMS(uedge),vedge,DIMS(vedge),&
+      subroutine ppm_fpu(s,DIMS(s),uedge,DIMS(uedge),vedge,DIMS(vedge),&
           Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
           sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps,&
           ppm_type)
@@ -3890,10 +3890,10 @@ contains
          end do
       end do
 
-    end subroutine FORT_PPM_FPU
+    end subroutine ppm_fpu
 
-      subroutine FORT_CONVSCALMINMAX(s,DIMS(s),sn,DIMS(sn),&
-                                    lo,hi,bc)
+      subroutine convscalminmax(s,DIMS(s),sn,DIMS(sn),&
+                                    lo,hi,bc) bind(C,name="convscalminmax")
 !c
 !c     correct an convectively-advected field for under/over shoots
 !c
@@ -3929,10 +3929,10 @@ contains
          end do
       end do
 
-    end subroutine FORT_CONVSCALMINMAX
+    end subroutine convscalminmax
 
-      subroutine FORT_CONSSCALMINMAX(s,rho,DIMS(s),sn,rhon,DIMS(sn),&
-                                    lo,hi,bc)
+      subroutine consscalminmax(s,rho,DIMS(s),sn,rhon,DIMS(sn),&
+                                    lo,hi,bc) bind(C,name="consscalminmax")
 !c
 !c     correct an conservatively-advected field for under/over shoots
 !c
@@ -3985,13 +3985,13 @@ contains
          end do
       end do
       
-    end subroutine FORT_CONSSCALMINMAX
+    end subroutine consscalminmax
 
-      subroutine FORT_SUM_TF_GP(&
+      subroutine fort_sum_tf_gp(&
           tforces,DIMS(tf),&
           gp,DIMS(gp),&
           rho,DIMS(rho),&
-          lo,hi )
+          lo,hi ) bind(C,name="fort_sum_tf_gp")
 !c
 !c     sum pressure forcing into tforces
 !c
@@ -4015,14 +4015,14 @@ contains
          end do
       end do
 
-    end subroutine FORT_SUM_TF_GP
+    end subroutine fort_sum_tf_gp
 
-      subroutine FORT_SUM_TF_GP_VISC(&
+      subroutine fort_sum_tf_gp_visc(&
           tforces,DIMS(tf),&
           visc,DIMS(visc),&
           gp,DIMS(gp),&
           rho,DIMS(rho),&
-          lo,hi )
+          lo,hi ) bind(C,name="fort_sum_tf_gp_visc")
 !c
 !c     sum pressure forcing and viscous forcing into
 !c     tforces
@@ -4050,14 +4050,14 @@ contains
          end do
       end do
 
-    end subroutine FORT_SUM_TF_GP_VISC
+    end subroutine fort_sum_tf_gp_visc
 
-      subroutine FORT_SUM_TF_DIVU(&
-          S,DIMS(S),&
+      subroutine fort_sum_tf_divu(&
+          s,DIMS(S),&
           tforces,DIMS(tf),&
           divu,DIMS(divu),&
           rho,DIMS(rho),&
-          lo,hi,nvar,iconserv )
+          lo,hi,nvar,iconserv ) bind(C,name="fort_sum_tf_divu")
 !c
 !c     sum divU*S into tforces or divide tforces by rho
 !c     depending on the value of iconserv
@@ -4097,15 +4097,15 @@ contains
          end do
       end if
 
-    end subroutine FORT_SUM_TF_DIVU
+    end subroutine fort_sum_tf_divu
 
-      subroutine FORT_SUM_TF_DIVU_VISC(&
+      subroutine fort_sum_tf_divu_visc(&
           S,DIMS(S),&
           tforces,DIMS(tf),&
           divu,DIMS(divu),&
           visc,DIMS(visc),&
           rho,DIMS(rho),&
-          lo,hi,nvar,iconserv )
+          lo,hi,nvar,iconserv ) bind(C,name="fort_sum_tf_divu_visc")
 !c
 !c     sum tforces, viscous foricing and divU*S into tforces
 !c     depending on the value of iconserv
@@ -4150,13 +4150,13 @@ contains
          end do
       end if
 
-    end subroutine FORT_SUM_TF_DIVU_VISC
+    end subroutine fort_sum_tf_divu_visc
 
-      subroutine FORT_UPDATE_TF(&
+      subroutine update_tf(&
           s,       DIMS(s),&
           sn,      DIMS(sn),&
           tforces, DIMS(tf),&
-          lo,hi,dt,nvar)
+          lo,hi,dt,nvar) bind(C,name="update_tf")
 !c
 !c     update a field with a forcing term
 !c
@@ -4179,14 +4179,14 @@ contains
          end do
       end do
 
-    end subroutine FORT_UPDATE_TF
+    end subroutine update_tf
 
-      subroutine FORT_CORRECT_TF(&
+      subroutine fort_correct_tf(&
           ss, DIMS(ss),&
           sp, DIMS(sp),&
           tfs, DIMS(tfs),&
           tfn, DIMS(tfn), &
-          lo,hi,dt,nvar)
+          lo,hi,dt,nvar) bind(C,name="fort_correct_tf")
 !c
 !c     correct 1st order rk to second-order
 !c
@@ -4214,14 +4214,14 @@ contains
          end do
       end do
 
-    end subroutine FORT_CORRECT_TF
+    end subroutine fort_correct_tf
 
-      subroutine FORT_UPDATE_AOFS_TF(&
+      subroutine update_aofs_tf(&
           s,       DIMS(s),&
           sn,      DIMS(sn),&
           aofs,    DIMS(aofs),&
           tforces, DIMS(tf),&
-          lo,hi,dt,nvar)
+          lo,hi,dt,nvar) bind(C,name="update_aofs_tf")
 !c
 !c     update a field with an advective tendency
 !c     and a forcing term
@@ -4249,16 +4249,16 @@ contains
          end do
       end do
 
-    end subroutine FORT_UPDATE_AOFS_TF
+    end subroutine update_aofs_tf
 
-      subroutine FORT_UPDATE_AOFS_TF_GP(&
+      subroutine update_aofs_tf_gp(&
           u,       DIMS(u),&
           un,      DIMS(un),&
           aofs,    DIMS(aofs),&
           tforces, DIMS(tf),&
           gp,      DIMS(gp),&
           rho,     DIMS(rho),&
-          lo, hi, dt)
+          lo, hi, dt) bind(C,name="update_apfs_tf_gp")
 
 !c
 !c     update the velocities
@@ -4291,7 +4291,7 @@ contains
          end do
       end do
 
-    end subroutine FORT_UPDATE_AOFS_TF_GP
+    end subroutine update_aofs_tf_gp
 
 
       subroutine bdsslope(s,lo_1,lo_2,hi_1,hi_2,slx,sly,sc,dx)
@@ -4431,7 +4431,7 @@ contains
       return
     end subroutine bdsslope
 
-      subroutine FORT_ESTATE_BDS(s, tforces, divu, DIMS(s),&
+      subroutine estate_bds(s, tforces, divu, DIMS(s),&
           xlo, xhi, sx, slxscr, stxlo, stxhi,&
           uedge, DIMS(uedge), xstate, DIMS(xstate),&
 
@@ -4439,7 +4439,7 @@ contains
           vedge, DIMS(vedge), ystate, DIMS(ystate),&
 
           DIMS(work),&
-          bc,lo,hi,dt,dx,n,use_minion,iconserv)
+          bc,lo,hi,dt,dx,n,use_minion,iconserv) bind(C,name="estate_bds")
 ! c
 ! c     This subroutine computes edges states, right now it uses
 ! c     a lot of memory, but there becomes a trade off between
@@ -4732,7 +4732,7 @@ contains
         end if
       enddo
 
-    end subroutine FORT_ESTATE_BDS
+    end subroutine estate_bds
 
 !C FIXME? check that the arrays are properly sized      
       subroutine bilin(poly,c,x,y,hx,hy,istart,iend,lo_1,hi_1)
