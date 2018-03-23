@@ -8,6 +8,7 @@
 #include "AMReX_REAL.H"
 #include "AMReX_CONSTANTS.H"
 #include "AMReX_ArrayLim.H"
+#include "SYNCREG_F.H"
 
 #define SDIM 2
 
