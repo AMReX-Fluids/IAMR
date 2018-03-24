@@ -26,10 +26,10 @@ module derive_2d_module
 
   private
 
-  public FORT_DERMODGRADRHO, FORT_DERKENG,FORT_DERLOGS, FORT_DERMVEL, &
-       FORT_DERDVRHO, FORT_DERMPRHO, FORT_DERLGRHODUST,FORT_DERMGVORT, &
-       FORT_DERMGVORT2,FORT_DERMGDIVU,FORT_GRADP_DIR, FORT_DERAVGPRES, &
-       FORT_DERGRDPX,FORT_DERGRDPY, FORT_DERGRDP, FORT_DERNULL
+  public dermodgradrho, derkeng,derlogs, dermvel, &
+       derdvrho, dermprho, derlgrhodust,dermgvort, &
+       dermgvort2,dermgdivu, deravgpres, &
+       dergrdpx,dergrdpy, dergrdp, dernull
 
 contains
 
@@ -55,9 +55,9 @@ contains
 ! c                  valid only if component touches bndry
 ! c     -----------------------------------------------------------
 
-      subroutine FORT_DERMODGRADRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine dermodgradrho (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no)
+                              bc,level,grid_no) bind(C,name="dermodgradrho")
       implicit none
 !c
 !c     This routine will derive the modulus of the density gradients
@@ -87,11 +87,11 @@ contains
          end do
       end do
 
-    end subroutine FORT_DERMODGRADRHO
+    end subroutine dermodgradrho
 
-      subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine derkeng (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no)
+                              bc,level,grid_no) bind(C,name="derkeng")
       implicit none
 !c
 !c     This routine will derive kinetic energy from density
@@ -120,11 +120,11 @@ contains
 	 end do
       end do
 
-    end subroutine FORT_DERKENG
+    end subroutine derkeng
 
-      subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine derlogs (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no)
+                              bc,level,grid_no) bind(C,name="derlogs")
       implicit none
 !c
 !c     This routine will derive log of given scalar quantity
@@ -150,11 +150,11 @@ contains
 	 end do
       end do
 
-    end subroutine FORT_DERLOGS
+    end subroutine derlogs
 
-      subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine dermvel (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no)
+                              bc,level,grid_no) bind(C,name="dermvel")
       implicit none
 !c
 !c ::: This routine will derive the magnitude of the velocity field
@@ -183,11 +183,11 @@ contains
 	 end do
       end do
 
-    end subroutine FORT_DERMVEL
+    end subroutine dermvel
 
-      subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine derdvrho (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no)
+                              bc,level,grid_no)bind(C,name="derdvrho")
       implicit none
 !c
 !c ::: This routine will derive C/RHO
@@ -211,11 +211,11 @@ contains
 	 end do
       end do
 
-    end subroutine FORT_DERDVRHO
+    end subroutine derdvrho
 
-      subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine dermprho (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no)
+                              bc,level,grid_no) bind(C,name="dermprho")
       implicit none
 !c
 !c ::: This routine will derive RHO*C
@@ -239,11 +239,11 @@ contains
 	 end do
       end do
 
-    end subroutine FORT_DERMPRHO
+    end subroutine dermprho
 
-      subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine derlgrhodust (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                                    lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                                   bc,level,grid_no)
+                                   bc,level,grid_no) bind(C,name="derlgrhodust")
       implicit none
 !c
 !c ::: This routine will derive log(RHO*C)
@@ -269,11 +269,11 @@ contains
 	 end do
       end do
 
-    end subroutine FORT_DERLGRHODUST
+    end subroutine derlgrhodust
 
-      subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,&
+      subroutine dermgvort (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,&
                                 lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                                bc,level,grid_no)
+                                bc,level,grid_no) bind(C,name="dermgvort")
       implicit none
 !c
 !c ::: This routine will derive magnitude of vorticity from
@@ -416,11 +416,11 @@ contains
 #     undef ULOY
 #     undef UHIY
 
-    end subroutine FORT_DERMGVORT
+    end subroutine dermgvort
 
-      subroutine FORT_DERMGVORT2 (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,&
+      subroutine dermgvort2 (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,&
                                  lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                                 bc,level,grid_no)
+                                 bc,level,grid_no) bind(C,name="dermgvort2")
       implicit none
 !c
 !c ::: This routine will derive magnitude of vorticity from
@@ -522,11 +522,11 @@ contains
 #     undef VLOX
 #     undef VHIX
 
-    end subroutine FORT_DERMGVORT2
+    end subroutine dermgvort2
 
-      subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,&
+      subroutine dermgdivu (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,&
                                 lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                                bc,level,grid_no)
+                                bc,level,grid_no) bind(C,name="dermgdivu")
       implicit none
 !c
 !c ::: This routine will derive magnitude of the divergence of velocity
@@ -654,10 +654,11 @@ contains
 #     undef VLOY
 #     undef VHIY
 
-    end subroutine FORT_DERMGDIVU
+    end subroutine dermgdivu
 
-      subroutine FORT_GRADP_DIR (p,DIMS(p), gp,DIMS(gp),&
+      subroutine gradp_dir (p,DIMS(p), gp,DIMS(gp),&
            lo,hi,dir,dx)
+!        bind(C,name="gradp_dir")
       implicit none
 !c
 !c     compute a node centered pressure gradient in direction (dir)
@@ -694,11 +695,11 @@ contains
          call bl_abort("FORT_GRADP_DIR: invalid dir")
       end if
 
-    end subroutine FORT_GRADP_DIR
+    end subroutine gradp_dir
 
-      subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
+      subroutine deravgpres (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
                                  lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                                 bc,level,grid_no)
+                                 bc,level,grid_no) bind(C,name="deravgpres")
       implicit none
 !c
 !c     This routine computes cell-centered pressure as average of the four
@@ -727,14 +728,14 @@ contains
          end do
       end do
 
-    end subroutine FORT_DERAVGPRES
+    end subroutine deravgpres
 
 !c=========================================================
 
 
-      subroutine FORT_DERGRDPX (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
+      subroutine dergrdpx (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
                                lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                               bc,level,grid_no)
+                               bc,level,grid_no) bind(C,name="dergrdpx")
       implicit none
 !c
 !c     This routine computes pressure gradient in X direction
@@ -750,15 +751,15 @@ contains
       REAL_T  dat(DIMV(dat),ncomp)
       integer level, grid_no
 
-      call FORT_GRADP_DIR (&
+      call gradp_dir (&
           dat,DIMS(dat),grdpx,DIMS(gp),&
           lo,hi,0,delta(1))
 
-    end subroutine FORT_DERGRDPX
+    end subroutine dergrdpx
 
-      subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
+      subroutine dergrdpy (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
                                lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                               bc,level,grid_no)
+                               bc,level,grid_no) bind(C,name="dergrdpy")
       implicit none
 !c
 !c     This routine computes pressure gradient in Y direction
@@ -774,17 +775,17 @@ contains
       REAL_T  dat(DIMV(dat),ncomp)
       integer level, grid_no
 
-      call FORT_GRADP_DIR (&
+      call gradp_dir (&
           dat,DIMS(dat),grdpy,DIMS(gp),&
           lo,hi,1,delta(2))
 
-    end subroutine FORT_DERGRDPY
+    end subroutine dergrdpy
 
 !c=========================================================
 
-      subroutine FORT_DERGRDP (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,&
+      subroutine dergrdp (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,&
                               lo,hi,domlo,domhi,dx,xlo,time,dt,&
-                              bc,level,grid_no)
+                              bc,level,grid_no) bind(C,name="dergrdp")
       implicit none
 
 !c     This routine computes the magnitude of pressure gradient 
@@ -811,13 +812,13 @@ contains
          end do
       end do
 
-    end subroutine FORT_DERGRDP
+    end subroutine dergrdp
 
 !c=========================================================
 
-      subroutine FORT_DERNULL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+      subroutine dernull (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,bc,&
-                              level,grid_no)
+                              level,grid_no) bind(C,name="dernull")
       implicit none
       !
       ! This is a null derived routine.
@@ -833,6 +834,6 @@ contains
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 
-    end subroutine FORT_DERNULL
+    end subroutine dernull
 
   end module derive_2d_module

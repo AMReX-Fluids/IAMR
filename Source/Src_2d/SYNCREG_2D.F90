@@ -19,7 +19,7 @@ module syncreg_2d_module
 
   private 
 
-  public :: FORT_SRCRSEREG, FORT_MAKEMASK, FORT_CONVERTMASK
+  public :: srcrsereg, makemask, convertmask
 
 contains
   
@@ -37,8 +37,8 @@ contains
 !c ::: ratio      => refinement ratio      
 !c ::: -----------------------------------------------------------
 
-      subroutine FORT_SRCRSEREG(fine,DIMS(fine),crse,DIMS(crse),lo,hi,dir,&
-                               ratios)
+      subroutine srcrsereg(fine,DIMS(fine),crse,DIMS(crse),lo,hi,dir,&
+                           ratios) bind(C,name="srcrsereg")
 
       implicit none
       integer    DIMDEC(fine)
@@ -136,7 +136,7 @@ contains
 
       end if
       
-    end subroutine FORT_SRCRSEREG
+    end subroutine srcrsereg
 
 
 !c ::: -----------------------------------------------------------
@@ -149,7 +149,7 @@ contains
 !c ::: DIMS(cells) => index limits for cells
 !c ::: -----------------------------------------------------------
 
-      subroutine FORT_MAKEMASK(mask,DIMS(mask),cells,DIMS(cells))
+      subroutine makemask(mask,DIMS(mask),cells,DIMS(cells)) bind(C,name="makemask")
 
       implicit none
       integer    DIMDEC(mask)
@@ -168,7 +168,7 @@ contains
         end do
       end do
       
-    end subroutine FORT_MAKEMASK
+    end subroutine makemask
 
 !c ::: -----------------------------------------------------------
 !c ::: modify mask from values 0. through 4. to values 0. or 1.
@@ -178,7 +178,7 @@ contains
 !c ::: DIMS(mask)  => index limits for mask
 !c ::: -----------------------------------------------------------
 
-      subroutine FORT_CONVERTMASK(mask,DIMS(mask))
+      subroutine convertmask(mask,DIMS(mask)) bind(C,name="convertmask")
 
       implicit none
       integer    DIMDEC(mask)
@@ -198,5 +198,5 @@ contains
         end do
       end do
       
-    end subroutine FORT_CONVERTMASK
+    end subroutine convertmask
   end module syncreg_2d_module

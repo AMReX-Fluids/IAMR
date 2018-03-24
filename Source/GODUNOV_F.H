@@ -1,7 +1,10 @@
+
 #ifndef _GODUNOV_F_H_
 #define _GODUNOV_F_H_
 
-#include <AMReX_BLFort.H>
+#ifndef BL_LANG_FORT
+
+#include <AMReX_ArrayLim.H>
 
 #ifdef __cplusplus
 extern "C"
@@ -282,5 +285,5 @@ extern "C"
 }
 #endif
 
-
+#endif
 #endif /*_GODUNOV_F_H_*/

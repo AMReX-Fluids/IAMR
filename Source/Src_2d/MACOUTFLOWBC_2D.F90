@@ -24,11 +24,11 @@ module macoutflowbc_2d_module
 
   private 
 
-  public FORT_EXTRAP_MAC,FORT_MACRELAX, FORT_MACSUBTRACTAVGPHI, &
-       FORT_MACRESID, FORT_MAC_SHIFT_PHI, FORT_MAC_RESHIFT_PHI, &
-       FORT_SOLVEMAC, FORT_COARSIGMA, FORT_RESTRICT, FORT_INTERPOLATE, &
-       FORT_MACPHIBC,FORT_MACFILL_ONED, FORT_MACPHI_FROM_X, &
-       FORT_MACALLPHI_FROM_X
+  public extrap_mac,macrelax, macsubtractavgphi, &
+       macresid, mac_shift_phi, mac_reshift_phi, &
+       solvemac, coarsigma, outflowbc_restrict, fort_interpolate, &
+       macphibc,macfill_oned, macphi_from_x, &
+       macallphi_from_x,subtractavg
   
 contains
 
@@ -36,14 +36,16 @@ contains
 !c ** EXTRAP_MAC
 !c *************************************************************************
 
-      subroutine FORT_EXTRAP_MAC(DIMS(u0),u0,DIMS(u1),u1,DIMS(div),divu,DIMS(rho),rho,&
+      subroutine extrap_mac(DIMS(u0),u0,DIMS(u1),u1,DIMS(div),divu,DIMS(rho),rho,&
                               r_len,redge,DIMS(divuExt),divuExt,&
-                              DIMS(rhoExt),rhoExt,dx,lo,hi,face,per,zeroIt,small_udiff)
+                              DIMS(rhoExt),rhoExt,dx,lo,hi,face,per,zeroIt,&
+                              small_udiff) bind(C,name="extrap_mac")
 !c
 !c     Compute the value of phi for macproj 
 !c
 !c     (subtract divu_ave twice due to precision problems)
-      implicit none
+        use projoutflowbc_2d_module, only : subtractavg
+        implicit none
 
       integer DIMDEC(u0)
       integer DIMDEC(u1)
@@ -259,60 +261,7 @@ contains
           .or.(max_pert.le.small_pert)) then
          zeroIt = 1
       end if
-    end subroutine FORT_EXTRAP_MAC
-
-!c *************************************************************************
-!c ** SUBTRACTAVG
-!c *************************************************************************
-
-      subroutine subtractavg(DIMS(divu),divu,redge,r_len,lo,hi,divu_ave,face)
-      implicit none
-      integer DIMDEC(divu)
-      integer r_len
-      integer lo(SDIM),hi(SDIM)
-      REAL_T  redge(0:r_len-1)
-      REAL_T divu(DIMV(divu))
-      REAL_T divu_ave
-      integer face
-
-      integer i,j
-      REAL_T rcen
-      REAL_T vtot
-
-      divu_ave = zero
-      vtot = zero
-
-      if (face .eq. XLO .or. face .eq. XHI) then
-         i = lo(1)
-         do j=lo(2),hi(2)
-            vtot = vtot+one
-            divu_ave = divu_ave+divu(j,i)
-         enddo
-         divu_ave = divu_ave/vtot
-         do j=lo(2),hi(2)
-            divu(j,i) = divu(j,i) - divu_ave
-         enddo
-      elseif (face .eq. YLO .or. face .eq. YHI) then
-         j = lo(2)
-         do i=lo(1),hi(1)
-            rcen = half*(redge(i)+redge(i+1))
-            vtot = vtot+rcen
-            divu_ave = divu_ave+rcen*divu(i,j)
-         enddo
-         divu_ave = divu_ave/vtot
-         do i=lo(1),hi(1)
-            divu(i,j) = divu(i,j) - divu_ave
-         enddo
-      else 
-         print*, "bad value of face in subtractavg"
-      endif
-
-    end subroutine subtractavg
-#undef XLO
-#undef YLO
-#undef XHI
-#undef YHI
-
+    end subroutine extrap_mac
 
 !c *************************************************************************
 !c ** MACRELAX
@@ -321,8 +270,8 @@ contains
 #define DGX (beta(i)*phi(i-1) - (beta(i)+beta(i+1))*phi(i) \
             +beta(i+1)*phi(i+1))*(hxsqinv)
 
-      subroutine FORT_MACRELAX(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
-                             lo,hi,h,isPeriodic,niter)
+      subroutine macrelax(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
+                          lo,hi,h,isPeriodic,niter) bind(C,name="macrelax")
       implicit none
       integer DIMDEC(beta)
       integer DIMDEC(rhs)
@@ -361,14 +310,14 @@ contains
          end do
       end do
 
-    end subroutine FORT_MACRELAX
+    end subroutine macrelax
 
 !c *************************************************************************
 !c ** MACSUBTRACTAVGPHI
 !c *************************************************************************
 
-      subroutine FORT_MACSUBTRACTAVGPHI(DIMS(phi),phi,r_lo,r_hi,r,lo,hi,&
-                                       isPeriodic)
+      subroutine macsubtractavgphi(DIMS(phi),phi,r_lo,r_hi,r,lo,hi,&
+           isPeriodic) bind(C,name="macsubtractavgphi")
       implicit none
       integer DIMDEC(phi)
       REAL_T phi(DIM1(phi))
@@ -399,14 +348,15 @@ contains
 
       call setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
       
-    end subroutine FORT_MACSUBTRACTAVGPHI
+    end subroutine macsubtractavgphi
 
 !c *************************************************************************
 !c ** MACRESID
 !c *************************************************************************
 
-      subroutine FORT_MACRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
-                         DIMS(resid),resid,lo,hi,h,isPeriodic,maxnorm)
+      subroutine macresid(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
+           DIMS(resid),resid,lo,hi,h,isPeriodic,maxnorm)&
+           bind(C,name="macresid")
       implicit none
       integer DIMDEC(beta)
       integer DIMDEC(rhs)
@@ -432,7 +382,7 @@ contains
          maxnorm = max(maxnorm,ABS(resid(i)))
       enddo
 
-    end subroutine FORT_MACRESID
+    end subroutine macresid
 
 !c *************************************************************************
 !c ** SETMACBC
@@ -467,7 +417,8 @@ contains
 !c ** MAC_SHIFT_PHI
 !c *************************************************************************
 
-      subroutine FORT_MAC_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+    subroutine mac_shift_phi(DIMS(out),out,DIMS(in),in,face) &
+         bind(C,name="mac_shift_phi")
       implicit none
       integer face
       integer DIMDEC(in)
@@ -498,14 +449,15 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_MAC_SHIFT_PHI
+    end subroutine mac_shift_phi
 
 !c *************************************************************************
 !c ** MAC_RESHIFT_PHI
 !c *************************************************************************
 
 
-      subroutine FORT_MAC_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+    subroutine mac_reshift_phi(DIMS(out),out,DIMS(in),in,face) &
+         bind(C,name="mac_reshift_phi")
       implicit none
       integer face
       integer DIMDEC(in)
@@ -536,19 +488,20 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_MAC_RESHIFT_PHI
+    end subroutine mac_reshift_phi
 
 
 !c *************************************************************************
 !c ** SOLVEMAC
 !c *************************************************************************
 
-      subroutine FORT_SOLVEMAC(p, DIMS(p),dest0, DIMS(dest0),&
+      subroutine solvemac(p, DIMS(p),dest0, DIMS(dest0),&
                               source,DIMS(source), sigma, DIMS(sigma),&
                               cen, DIMS(cen),&
                               r,DIMS(r), w, DIMS(w),z, DIMS(z),&
                               x, DIMS(x),lo, hi, h,&
-                              isPeriodic, maxiter, tol, abs_tol,max_jump,norm)
+                              isPeriodic, maxiter, tol, abs_tol,max_jump,norm) &
+                              bind(C,name="solvemac")
 
       implicit none
 
@@ -690,7 +643,7 @@ contains
       endif
 
       return
-    end subroutine FORT_SOLVEMAC
+    end subroutine solvemac
 
       subroutine makemacdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),&
                           beta,DIMS(beta),&
@@ -724,8 +677,8 @@ contains
 !c ** Coarsen the edge-based sigma coefficients
 !c *************************************************************************
 
-      subroutine FORT_COARSIGMA(sigma,DIMS(sigma),sigmac,DIMS(sigmac),&
-                               lo,hi,loc,hic)
+      subroutine COARSIGMA(sigma,DIMS(sigma),sigmac,DIMS(sigmac),&
+                               lo,hi,loc,hic) bind(C,name="coarsigma")
 
       implicit none
       integer lo(SDIM),hi(SDIM)
@@ -744,7 +697,7 @@ contains
       enddo
 
       return
-    end subroutine FORT_COARSIGMA
+    end subroutine coarsigma
 
 
 !c *************************************************************************
@@ -752,8 +705,8 @@ contains
 !c ** Conservatively average the residual
 !c *************************************************************************
 
-      subroutine FORT_RESTRICT(res,DIMS(res),resc,DIMS(resc),&
-                              lo,hi,loc,hic)
+      subroutine outflowbc_restrict(res,DIMS(res),resc,DIMS(resc),&
+           lo,hi,loc,hic) bind(C,name="outflowbc_restrict")
 
       implicit none
       integer lo(SDIM),hi(SDIM)
@@ -775,15 +728,15 @@ contains
         enddo
 
       return
-    end subroutine FORT_RESTRICT
+    end subroutine outflowbc_restrict
 
 !c *************************************************************************
 !c ** INTERPOLATE **
 !c ** Piecewise constant interpolation
 !c *************************************************************************
 
-      subroutine FORT_INTERPOLATE(phi,DIMS(phi),deltac,DIMS(deltac),&
-                                 lo,hi,loc,hic)
+      subroutine fort_interpolate(phi,DIMS(phi),deltac,DIMS(deltac),&
+                                 lo,hi,loc,hic) bind(C,name="fort_interpolate")
 
       implicit none
       integer lo(SDIM),hi(SDIM)
@@ -803,19 +756,21 @@ contains
       enddo
       
       return
-    end subroutine FORT_INTERPOLATE
+    end subroutine fort_interpolate
       
 
 !c *************************************************************************
 !c ** MACPHIB!C **
 !c *************************************************************************
 
-      subroutine FORT_MACPHIBC(phi,length,divuExt,rhoExt,redge,hx,per)
+    subroutine macphibc(phi,length,divuExt,rhoExt,redge,hx,per)&
+      bind(C,name="macphibc")
 !c
 !c    Compute the value of phi for macproj to be used at an  outflow face,
 !c    assuming that the tangential velocity on the edges of the outflow boundary
 !c    are either zero or periodic.
 !c
+      use projoutflowbc_2d_module, only : tridag_sing, cyclc
       implicit none
       integer length
       integer per
@@ -938,15 +893,16 @@ contains
 #undef YLO
 #undef XHI
 #undef YHI
-    end subroutine FORT_MACPHIBC
+    end subroutine macphibc
 
 !c *************************************************************************
 !c ** MACFILL_ONED **
 !c *************************************************************************
 
-      subroutine FORT_MACFILL_ONED(lenx,leny,length,faces,numOutFlowFaces,&
+      subroutine macfill_oned(lenx,leny,length,faces,numOutFlowFaces,&
                                   cc0,cc1,cc2,cc3,&
-                                  r0, r1, r2, r3 , conn, redge_conn)
+                                  r0, r1, r2, r3 , conn, redge_conn) &
+                                  bind(C,name="macfill_oned")
 
       implicit none
       integer lenx,leny,length
@@ -1083,13 +1039,14 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_MACFILL_ONED
+    end subroutine macfill_oned
 
 !c *************************************************************************
 !c ** MACPHI_FROM_X **
 !c *************************************************************************
 
-      subroutine FORT_MACPHI_FROM_X(DIMS(phi),phi,length,x)
+    subroutine macphi_from_x(DIMS(phi),phi,length,x) &
+         bind(C,name="macphi_from_x")
 
       implicit none
       integer DIMDEC(phi)
@@ -1119,14 +1076,14 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_MACPHI_FROM_X
+    end subroutine macphi_from_x
 
 !c *************************************************************************
 !c ** MACALLPHI_FROM_X **
 !c *************************************************************************
 
-      subroutine FORT_MACALLPHI_FROM_X(lenx,leny,length,faces,numOutFlowFaces,&
-                                      phi0,phi1,phi2,phi3,x)
+      subroutine macallphi_from_x(lenx,leny,length,faces,numOutFlowFaces,&
+           phi0,phi1,phi2,phi3,x) bind(C,name="macallphi_from_x")
 
       implicit none
       integer lenx,leny,length
@@ -1229,5 +1186,5 @@ contains
         ifinal = ifinal+lenx
       endif
 
-    end subroutine FORT_MACALLPHI_FROM_X
+    end subroutine macallphi_from_x
   end module macoutflowbc_2d_module

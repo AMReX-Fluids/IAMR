@@ -152,7 +152,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 		const int* clo = tmpfab.loVect(); 
 		const int* chi = tmpfab.hiVect();
 		
-		FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
+		makemask(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
 	    }
         }
     }
@@ -210,7 +210,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
             const int* mlo      = fab.loVect(); 
             const int* mhi      = fab.hiVect();
 
-            FORT_CONVERTMASK(mask_dat,ARLIM(mlo),ARLIM(mhi));
+            convertmask(mask_dat,ARLIM(mlo),ARLIM(mhi));
         }
     }
 
@@ -336,7 +336,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 		    const int* clo = bndbox.loVect();
 		    const int* chi = bndbox.hiVect();
 
-		    FORT_SRCRSEREG(finefab.dataPtr(),
+		    srcrsereg(finefab.dataPtr(),
 				   ARLIM(resid_lo),ARLIM(resid_hi),
 				   cbndfab.dataPtr(),ARLIM(clo),ARLIM(chi),
 				   clo,chi,&dir,ratio.getVect());

@@ -25,15 +25,15 @@ module projection_2d_module
 
   private 
 
-  public FORT_ACCEL_TO_VEL, FORT_VEL_TO_ACCEL,  &
-       FORT_PROJ_UPDATE, FORT_RADMPYSCAL,FORT_RADMPYVEL, FORT_RADDIV, &
-       FORT_ANELCOEFFMPY,FORT_HGN2C, FORT_HGC2N 
+  public accel_to_vel, vel_to_accel,  &
+       proj_update, radmpyscal,radmpyvel, fort_raddiv, &
+       anelcoeffmpy
   
 contains
 
-       subroutine FORT_ACCEL_TO_VEL( lo, hi, &
+       subroutine accel_to_vel( lo, hi, &
           uold,DIMS(uold),dt,&
-          unew,DIMS(unew) )
+          unew,DIMS(unew) ) bind(C,name="accel_to_vel")
 !c
 !c     This function converts unew into a velocity via
 !c     Unew = Uold + alpha*Unew
@@ -55,12 +55,12 @@ contains
           end do
        end do
 
-     end subroutine FORT_ACCEL_TO_VEL
+     end subroutine accel_to_vel
 
-      subroutine FORT_VEL_TO_ACCEL( lo, hi, &
+      subroutine vel_to_accel( lo, hi, &
           unew,DIMS(unew),&
           uold,DIMS(uold),&
-          dt )
+          dt ) bind(C,name="vel_to_accel")
 !c     
 !c     This function converts unew into an acceleration
 !c
@@ -84,13 +84,13 @@ contains
          end do
       end do
 
-    end subroutine FORT_VEL_TO_ACCEL
+    end subroutine vel_to_accel
 
-      subroutine FORT_PROJ_UPDATE(&
+      subroutine proj_update(&
           boxlo, boxhi, nvar, ngrow,&
           un, DIMS(un),&
           alpha,&
-          uo, DIMS(uo) )
+          uo, DIMS(uo) ) bind(C,name="proj_update")
 !c     
 !c     This function updates un via un = un + alpha*uo
 !c     The loop bounds are determined in the C++
@@ -112,9 +112,10 @@ contains
          end do
       end do
 
-    end subroutine FORT_PROJ_UPDATE
+    end subroutine proj_update
 
-      subroutine FORT_RADMPYSCAL(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
+    subroutine radmpyscal(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value) &
+         bind(C,name="radmpyscal")
 !c 
 !c     multiply A by Radius r
 !c
@@ -161,9 +162,10 @@ contains
          end do
       end if
 
-    end subroutine FORT_RADMPYSCAL
+    end subroutine radmpyscal
 
-      subroutine FORT_RADMPYVEL(a,DIMS(grid),domlo,domhi,ng,r,nr,ndim)
+    subroutine radmpyvel(a,DIMS(grid),domlo,domhi,ng,r,nr,ndim)&
+         bind(C,name="radmpyvel")
 !c 
 !c     multiply A by Radius r
 !c
@@ -222,9 +224,10 @@ contains
          end if
       end if
 
-    end subroutine FORT_RADMPYVEL
+    end subroutine radmpyvel
 
-      subroutine FORT_RADDIV(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)
+    subroutine fort_raddiv(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)&
+         bind(C,name="fort_raddiv")
 !c 
 !c     divide A by Radius r
 !c
@@ -265,9 +268,10 @@ contains
          end do
       end if
 
-    end subroutine FORT_RADDIV
+    end subroutine fort_raddiv
 
-      subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,anel_coeff,nr,bogus_value,mult)
+    subroutine anelcoeffmpy(a,DIMS(grid),domlo,domhi,ng,anel_coeff,&
+         nr,bogus_value,mult) bind(C,name="anelcoeffmpy")
 !c 
 !c     multiply A by the anelasti!c coefficient
 !c
@@ -320,11 +324,11 @@ contains
          end do
       end if
 
-    end subroutine FORT_ANELCOEFFMPY
+    end subroutine anelcoeffmpy
 
-      subroutine FORT_HGN2C(&
+      subroutine hgn2c(&
           isrz,lrweighted, DIMS(nodedat), nodedat,&
-          DIMS(ccdat), lo, hi, ccdat)
+          DIMS(ccdat), lo, hi, ccdat) bind(C,name="hgn2c")
 
 !c     ----------------------------------------------------------
 !c     HGN2C
@@ -363,12 +367,12 @@ contains
         end do
       end do
 
-    end subroutine FORT_HGN2C
+    end subroutine hgn2c
 
-      subroutine FORT_HGC2N(&
+      subroutine hgc2n(&
           nghost, DIMS(dat), dat, rcen,&
           DIMS(rhs), rhs,&
-          domlo, domhi, dr, is_rz, imax) 
+          domlo, domhi, dr, is_rz, imax)  bind(C,name="hgc2n")
 !c
 !c     ----------------------------------------------------------
 !c     HGC2N
@@ -478,5 +482,5 @@ contains
 #endif
       end if
 
-    end subroutine FORT_HGC2N
+    end subroutine hgc2n
   end module projection_2d_module

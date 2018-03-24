@@ -1423,7 +1423,7 @@ Projection::UnConvertUnew (FArrayBox& Uold,
     const int*  un_hi = Unew.hiVect(); 
     const Real* unew  = Unew.dataPtr(0);
     
-    FORT_ACCEL_TO_VEL(lo, hi,
+    accel_to_vel(lo, hi,
                       uold, ARLIM(uo_lo), ARLIM(uo_hi),
                       &alpha,
                       unew, ARLIM(un_lo), ARLIM(un_hi));
@@ -1469,7 +1469,7 @@ Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
     const int*  un_hi = Unew.hiVect(); 
     const Real* unew  = Unew.dataPtr(0);
                     
-    FORT_VEL_TO_ACCEL(lo, hi, 
+    vel_to_accel(lo, hi, 
                       unew, ARLIM(un_lo), ARLIM(un_hi),
                       uold, ARLIM(uo_lo), ARLIM(uo_hi), &alpha );
 }
@@ -1529,7 +1529,7 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     const int*  un_hi = Unew.hiVect(); 
     const Real* unew  = Unew.dataPtr(0);
                     
-    FORT_PROJ_UPDATE(lo,hi,&nvar,&ngrow,
+    proj_update(lo,hi,&nvar,&ngrow,
                      unew, ARLIM(un_lo), ARLIM(un_hi),
                      &alpha,
                      uold, ARLIM(uo_lo), ARLIM(uo_hi) );
@@ -1704,7 +1704,7 @@ Projection::radMultScal (int       level,
         Real* dat     = mf[mfmfi].dataPtr(0);
         Real* rad     = &(*radius[level])[mfmfi.index()][0];
 
-        FORT_RADMPYSCAL(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+        radmpyscal(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                         rad,&nr,&bogus_value);
     }
 #endif
@@ -1739,7 +1739,7 @@ Projection::radMultVel (int       level,
            Real* dat     = mf[mfmfi].dataPtr(n);
            Real* rad     = &(*radius[level])[mfmfi.index()][0];
 
-           FORT_RADMPYVEL(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+           radmpyvel(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                           rad,&nr,&n);
        }
     }
@@ -1778,7 +1778,7 @@ Projection::radDiv (int       level,
         Real*      dat = mf[mfmfi].dataPtr(comp);
         Real*      rad = &(*radius[level])[mfmfi.index()][0];
 
-        FORT_RADDIV(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+        fort_raddiv(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                     rad,&nr,&bogus_value);
     }
 #endif
@@ -1814,7 +1814,7 @@ Projection::AnelCoeffMult (int       level,
         const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
 
-        FORT_ANELCOEFFMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+        anelcoeffmpy(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                           anel_coeff[level][mfmfi.index()],&nr,&bogus_value,&mult);
     }
 }
@@ -1849,7 +1849,7 @@ Projection::AnelCoeffDiv (int       level,
         const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
 
-        FORT_ANELCOEFFMPY(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
+        anelcoeffmpy(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
                           anel_coeff[level][mfmfi.index()],&nr,&bogus_value,&mult);
     }
 }
@@ -2026,7 +2026,7 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 if (ovlp.ok())
                 {
                     FArrayBox& cfab = phi_crse_strip[mfi];
-                    FORT_PUTDOWN (BL_TO_FORTRAN(cfab),
+                    fort_putdown (BL_TO_FORTRAN(cfab),
                                   BL_TO_FORTRAN(phi_fine_strip[iface]),
                                   ovlp.loVect(), ovlp.hiVect(), ratio.getVect());
                 }
@@ -2070,10 +2070,10 @@ Projection::getGradP (FArrayBox& p_fab,
 
 #if (BL_SPACEDIM == 2)
     int is_full = 0;
-    FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx,
+    gradp(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx,
                &is_full);
 #elif (BL_SPACEDIM == 3)
-    FORT_GRADP(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx);
+    gradp(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx);
 #endif
 }
 

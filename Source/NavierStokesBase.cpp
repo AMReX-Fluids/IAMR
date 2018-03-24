@@ -1081,7 +1081,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 const int  nComp = 1;
                 const Box& box   = crse_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
-                FORT_PC_CF_EDGE_INTERP(box.loVect(), box.hiVect(), &nComp, rat, &n,
+                pc_edge_interp(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[mfi].dataPtr(),
                                        ARLIM(crse_src[mfi].loVect()),
                                        ARLIM(crse_src[mfi].hiVect()),
@@ -1109,7 +1109,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 const int  nComp = 1;
                 const Box& fbox  = fine_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
-                FORT_EDGE_INTERP(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
+                edge_interp(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
                                  fine_src[mfi].dataPtr(),
                                  ARLIM(fine_src[mfi].loVect()),
                                  ARLIM(fine_src[mfi].hiVect()));
@@ -1886,7 +1886,7 @@ NavierStokesBase::injectDown (const Box&       ovlp,
     const int*  flo   = Pfine.loVect();
     const int*  fhi   = Pfine.hiVect();
 
-    FORT_PUTDOWN(cpres,ARLIM(clo),ARLIM(chi),
+    fort_putdown(cpres,ARLIM(clo),ARLIM(chi),
                  fpres,ARLIM(flo),ARLIM(fhi),
                  ovlo,ovhi,fratio.getVect());
 }
@@ -3096,19 +3096,23 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 
+    //is this setVal really necessary? doesn't coarse data exist under all fine data?
     cdataMF.setVal(0);
 
     cdataMF.copy(CrseSync, src_comp, 0, num_comp);
     //
     // Set physical boundary conditions in cdataMF.
     //
-    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
+    for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
     {
         int         i       = mfi.index();
         RealBox     gridloc = RealBox(fine_level.grids[i],fine_level.geom.CellSize(),fine_level.geom.ProbLo());
         FArrayBox&  cdata   = cdataMF[mfi];
         const int*  clo     = cdata.loVect();
         const int*  chi     = cdata.hiVect();
+	const Box&  bx      = mfi.growntilebox(); 
+        const int*  lo      = bx.loVect();
+        const int*  hi      = bx.hiVect();
         const Real* xlo     = gridloc.lo();
 
 #ifdef _OPENMP
@@ -3116,11 +3120,16 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 #endif
         for (int n = 0; n < num_comp; n++)
         {
-            set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+            set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+	    //need to set link in NAVIERSTOKES_F.H to point to a new fn 
+	    filcc_tile(ARLIM(lo),ARLIM(hi),
+			    cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
+			    cdomlo, cdomhi, dx_crse, xlo,
+			    &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
 
-            FORT_FILCC(cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
-                       cdomlo, cdomhi, dx_crse, xlo,
-                       &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
+	    // filcc(cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
+            //            cdomlo, cdomhi, dx_crse, xlo,
+            //            &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
         }
     }
     cdataMF.EnforcePeriodicity(cgeom.periodicity());
@@ -3138,12 +3147,13 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         fine_stateMF = &(getLevel(f_lev).get_new_data(State_Type));
     }
 
-    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
+    for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
     {
         int        i     = mfi.index();
         FArrayBox& cdata = cdataMF[mfi];
-        const int* clo   = cdata.loVect();
-        const int* chi   = cdata.hiVect();
+	const Box&  bx      = mfi.growntilebox(); 
+        const int*  lo      = bx.loVect();
+        const int*  hi      = bx.hiVect();
 
         fdata.resize(fgrids[i], num_comp);
         //
@@ -3151,7 +3161,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         //
         for (int n = 0; n < num_comp; n++)
         {
-            set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+            set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
         }
 
         for (int n = 0; n < num_comp; n++)
@@ -3166,7 +3176,10 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
-        interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
+	// not sure this is really the way we want to refine box here
+	// could be off by 1 in lo/hi
+	Box bx_fine=refine(bx,ratio); 
+        interpolater->interp(cdata,0,fdata,0,num_comp,bx_fine,ratio,
                              cgeom,fgeom,bc_interp,src_comp,State_Type);
 
 //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
@@ -3180,7 +3193,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
               cdata.mult(dt_clev);
               FArrayBox& fine_state = (*fine_stateMF)[mfi];
               interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
-                                    num_comp,fgrids[i],ratio,
+                                    num_comp,bx_fine,ratio,
                                     cgeom,fgeom,bc_interp);
               Real dt_clev_inv = 1./dt_clev;
               cdata.mult(dt_clev_inv);
@@ -3770,13 +3783,13 @@ NavierStokesBase::volWgtSum (const std::string& name,
         if (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0)
         {
             const Real* plo = geom.ProbLo();
-            FORT_SUMMASS_CYL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+            summass_cyl(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
                              dx,&s,rad,&irlo,&irhi,&rz_flag,plo,
                              &volWgtSum_sub_dz,&volWgtSum_sub_Rcyl);
         }
         else
         {
-            FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+            summass(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
                          dx,&s,rad,&irlo,&irhi,&rz_flag);
         }
 #endif
@@ -3789,12 +3802,12 @@ NavierStokesBase::volWgtSum (const std::string& name,
         if (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0)
         {
             const Real* plo = geom.ProbLo();
-            FORT_SUMMASS_CYL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+            summass_cyl(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
                              dx,plo,&volWgtSum_sub_dz,&volWgtSum_sub_Rcyl,&s);
         }
         else
         {
-            FORT_SUMMASS(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s);
+            summass(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s);
         }
 #endif
         sum += s;
@@ -3929,7 +3942,7 @@ NavierStokesBase::TurbSum (Real time, Real *turb, int ksize, int turbVars)
         const int*  lo  = grdbx.loVect();
         const int*  hi  = grdbx.hiVect();
 
-        FORT_SUMTURB(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
+        sumturb(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
 		     dx,turb,&ksize,&turbVars);
    } 
 }
@@ -3995,7 +4008,7 @@ NavierStokesBase::JetSum (Real time, Real *jetData, int levRsize,  int levKsize,
         const int*  lo  = grids[turbMfi.index()].loVect();
         const int*  hi  = grids[turbMfi.index()].hiVect();
 
-        FORT_SUMJET(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
+        sumjet(turbData,presData,ARLIM(dlo),ARLIM(dhi),ARLIM(plo),ARLIM(phi),ARLIM(lo),ARLIM(hi),
 		    dx,jetData,&levRsize,&levKsize,&rsize,&ksize,&jetVars,&jet_interval_split,
 		    gridloc.lo(),gridloc.hi());
     }

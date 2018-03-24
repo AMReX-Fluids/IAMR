@@ -24,11 +24,12 @@ module projoutflowbc_2d_module
 
   private 
 
-  public  FORT_EXTRAP_PROJ, FORT_HGRELAX, FORT_HGSUBTRACTAVGPHI, &
-       FORT_HGRESID, FORT_HG_SHIFT_PHI, FORT_HG_RESHIFT_PHI, &
-       FORT_SOLVEHG, FORT_COARSIG, FORT_RESTRICT, FORT_INTERP, &
-       FORT_HGPHIBC, FORT_OLDHGPHIBC, FORT_RHOGBC, FORT_FILL_ONED,&
-       FORT_ALLPHI_FROM_X, FORT_PHI_FROM_X
+  public  extrap_proj, hgrelax, hgsubtractavgphi, &
+       hgresid, hg_shift_phi, hg_reshift_phi, &
+       solvehg, coarsig, fort_restrict, interp, &
+       hgphibc, oldhgphibc, rhogbc, fill_oned,&
+       allphi_from_x, phi_from_x, tridag_sing, cyclc, &
+       subtractavg
 
 contains
 
@@ -36,10 +37,11 @@ contains
 !c ** EXTRAP_PROJ **
 !c *************************************************************************
 
-      subroutine FORT_EXTRAP_PROJ(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,&
+      subroutine extrap_proj(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,&
           r_len,redge,DIMS(uExt),uExt,DIMS(divuExt),divuExt,&
-          DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt)
-      implicit none
+          DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt) bind(C,name="extrap_proj")
+        use macoutflowbc_2d_module, only: subtractavg
+        implicit none
 
 !c subtract divu_ave twice due to precision problems
 
@@ -164,7 +166,7 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_EXTRAP_PROJ
+    end subroutine extrap_proj
 
 !c *************************************************************************
 !c ** HGRELAX **
@@ -173,8 +175,10 @@ contains
 #define DGX (beta(i-1)*phi(i-1) - (beta(i)+beta(i-1))*phi(i) \
             +beta(i)*phi(i+1))*(hxsqinv)
 
-      subroutine FORT_HGRELAX(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
-                             DIMS(dgphi),dgphi,lo,hi,h,isPeriodic,niter)
+      subroutine hgrelax(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
+           DIMS(dgphi),dgphi,lo,hi,h,isPeriodic,niter)&
+           bind(C,name="hgrelax")
+
       implicit none
       integer DIMDEC(beta)
       integer DIMDEC(rhs)
@@ -222,14 +226,14 @@ contains
 
       call setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
 
-    end subroutine FORT_HGRELAX
+    end subroutine hgrelax
 
 !c *************************************************************************
 !c ** HGSUBTRACTAVGPHI **
 !c *************************************************************************
 
-      subroutine FORT_HGSUBTRACTAVGPHI(DIMS(phi),phi,r_lo,r_hi,r,lo,hi,&
-                                      isPeriodic)
+      subroutine hgsubtractavgphi(DIMS(phi),phi,r_lo,r_hi,r,lo,hi,&
+           isPeriodic) bind(C,name="hgsubtractavgphi")
       implicit none
       integer DIMDEC(phi)
       REAL_T phi(DIM1(phi))
@@ -270,16 +274,16 @@ contains
 
       call setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
 
-    end subroutine FORT_HGSUBTRACTAVGPHI
+    end subroutine hgsubtractavgphi
 
 
 !c *************************************************************************
 !c ** HGRESID **
 !c *************************************************************************
 
-      subroutine FORT_HGRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
+      subroutine hgresid(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,&
                         DIMS(resid),resid,DIMS(dgphi),dgphi,&
-                        lo,hi,h,isPeriodic,maxnorm)
+                        lo,hi,h,isPeriodic,maxnorm) bind(C,name="hgresid")
 
       implicit none
       integer DIMDEC(beta)
@@ -311,7 +315,7 @@ contains
          resid(i) = rhs(i)-dgphi(i)
          maxnorm = max(maxnorm,ABS(resid(i)))         
       enddo
-    end subroutine FORT_HGRESID
+    end subroutine hgresid
 
 
 !c *************************************************************************
@@ -350,7 +354,8 @@ contains
 !c ** HG_SHIFT_PHI **
 !c *************************************************************************
 
-      subroutine FORT_HG_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+    subroutine hg_shift_phi(DIMS(out),out,DIMS(in),in,face) &
+         bind(C,name="hg_shift_phi")
       implicit none
       integer face
       integer DIMDEC(in)
@@ -381,13 +386,14 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_HG_SHIFT_PHI
+    end subroutine hg_shift_phi
 
 !c *************************************************************************
 !c ** HG_RESHIFT_PHI **
 !c *************************************************************************
 
-      subroutine FORT_HG_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+    subroutine hg_reshift_phi(DIMS(out),out,DIMS(in),in,face) &
+         bind(C,name="hg_reshift_phi")
       implicit none
       integer face
       integer DIMDEC(in)
@@ -418,17 +424,18 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_HG_RESHIFT_PHI
+    end subroutine hg_reshift_phi
 
 !c *************************************************************************
 !c ** HG_SOLVEHG **
 !c *************************************************************************
 
-      subroutine FORT_SOLVEHG(p,DIMS(p),dest0,DIMS(dest0),&
+      subroutine solvehg(p,DIMS(p),dest0,DIMS(dest0),&
           source,DIMS(source),sigma,DIMS(sigma),&
           cen,DIMS(cen),r,DIMS(r),w,DIMS(w),&
           z,DIMS(z),x,DIMS(x),&
-          lo,hi,h,isPeriodic,maxiter,tol,abs_tol,max_jump,norm)
+          lo,hi,h,isPeriodic,maxiter,tol,abs_tol,max_jump,norm)&
+          bind(C,name="solvehg")
       
       implicit none
 
@@ -590,7 +597,7 @@ contains
       enddo
 
       return
-    end subroutine FORT_SOLVEHG
+    end subroutine solvehg
 
 !c *************************************************************************
 !c ** makeprojdgphi **
@@ -650,8 +657,8 @@ contains
 !c ** Coarsening of the sig coefficients
 !c *************************************************************************
 
-      subroutine FORT_COARSIG(sigma,DIMS(sigma),sigmac,DIMS(sigmac),&
-                             lo,hi,loc,hic,isPeriodic)
+      subroutine coarsig(sigma,DIMS(sigma),sigmac,DIMS(sigmac),&
+           lo,hi,loc,hic,isPeriodic) bind(C,name="coarsig")
 
       implicit none
 
@@ -680,15 +687,15 @@ contains
       endif
 
       return
-    end subroutine FORT_COARSIG
+    end subroutine coarsig
 
 !c *************************************************************************
 !c ** RESTRICT **
 !c ** Conservative restriction of the residual
 !c *************************************************************************
 
-      subroutine FORT_RESTRICT(res,DIMS(res),resc,DIMS(resc),&
-                             lo,hi,loc,hic,isPeriodic)
+      subroutine fort_restrict(res,DIMS(res),resc,DIMS(resc),&
+           lo,hi,loc,hic,isPeriodic) bind(C,name="fort_restrict")
 
       implicit none
 
@@ -737,7 +744,7 @@ contains
       endif
 
       return
-    end subroutine FORT_RESTRICT
+    end subroutine fort_restrict
 
 
 !c *************************************************************************
@@ -745,8 +752,8 @@ contains
 !c ** Simple bilinear interpolation
 !c *************************************************************************
 
-      subroutine FORT_INTERP(phi,DIMS(phi),temp,DIMS(temp),deltac,DIMS(deltac),&
-                            sigma,DIMS(sigma),lo,hi,loc,hic,isPeriodic)
+      subroutine interp(phi,DIMS(phi),temp,DIMS(temp),deltac,DIMS(deltac),&
+           sigma,DIMS(sigma),lo,hi,loc,hic,isPeriodic) bind(C,name="interp")
 
       implicit none
 
@@ -786,14 +793,14 @@ contains
       enddo
 
       return
-    end subroutine FORT_INTERP
+    end subroutine interp
 
 !c *************************************************************************
 !c ** HGPHIB!C **
 !c ** Solution by back substitution
 !c *************************************************************************
 
-      subroutine FORT_HGPHIBC(hx,sigExt,s,x,length,per)
+      subroutine hgphibc(hx,sigExt,s,x,length,per) bind(C,name="hgphibc")
 !c
 !c    Compute the value of phi for hgproj to be used at an outflow face,
 !c    assuming that the tangential velocity on the edges of the outflow boundary
@@ -874,7 +881,7 @@ contains
          alpha  = sigExt(icR)
          b(neq) = - a(neq) - alpha
          
-         call cyclic(a,b,c,alpha,beta,s,x,neq)
+         call cyclc(a,b,c,alpha,beta,s,x,neq)
       else
 
 !c     Solid walls, Neumann conditions
@@ -934,14 +941,15 @@ contains
 #undef YLO
 #undef XHI
 #undef YHI
-    end subroutine FORT_HGPHIBC
+    end subroutine hgphibc
 
 !c *************************************************************************
-!c ** OLDHGPHIB!C **
+!c ** OLDHGPHIBC **
 !c ** Solution by back substitution
 !c *************************************************************************
 
-      subroutine FORT_OLDHGPHIBC(hx,r,uExt, divuExt,rhoExt,x,flag,length,per)
+    subroutine oldhgphibc(hx,r,uExt, divuExt,rhoExt,x,flag,length,per) &
+         bind(C,name="oldhgphibc")
 !c
 !c    Compute the value of phi for hgproj to be used at an outflow face,
 !c    assuming that the tangential velocity on the edges of the outflow boundary
@@ -1033,7 +1041,7 @@ contains
                -  rnode*half*(divuExt(icL)+divuExt(icR))*hx*hx
          
 !c     Solve the equations
-         call cyclic(a,b,c,alpha,beta,s,x,neq)
+         call cyclc(a,b,c,alpha,beta,s,x,neq)
       else
 
 !c     Solid walls, Neumann conditions
@@ -1089,14 +1097,14 @@ contains
 #undef YLO
 #undef XHI
 #undef YHI
-    end subroutine FORT_OLDHGPHIBC
+    end subroutine oldhgphibc
 
 !c *************************************************************************
-!c ** RHOGB!C **
+!c ** RHOGBC **
 !c *************************************************************************
 
-      subroutine FORT_RHOGBC(rho,DIMS(rho),phi,DIMS(phi),&
-                            face,gravity,dx,domlo,domhi,lo_bc,hi_bc)
+      subroutine rhogbc(rho,DIMS(rho),phi,DIMS(phi),&
+           face,gravity,dx,domlo,domhi,lo_bc,hi_bc) bind(C,name="rhogbc")
 !c
 !c    Compute the contribution of gravity to the boundary conditions
 !c      for phi at outflow faces only.
@@ -1126,7 +1134,7 @@ contains
 #define YHI 3
 
       if (face .eq. YLO .or. face .eq. YHI) &
-        call bl_abort('SHOULDNT BE IN RHOGB!C WITH FACE IN Y-DIR')
+        call bl_abort('SHOULDNT BE IN RHOGBC WITH FACE IN Y-DIR')
 
 !c     Ok to only use low index of phi because phi is only one
 !c        node wide in i-direction.
@@ -1157,7 +1165,7 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_RHOGBC
+    end subroutine rhogbc
 
 
       SUBROUTINE tridag_sing(a,b,c,r,u,n,sVal,rNormed)
@@ -1226,17 +1234,17 @@ contains
       return
    END subroutine tridag
 
-      SUBROUTINE cyclic(a,b,c,alpha,beta,r,x,n)
+      SUBROUTINE cyclc(a,b,c,alpha,beta,r,x,n)
       INTEGER n,NMAX
       REAL_T alpha,beta,a(n),b(n),c(n),r(n),x(n)
       PARAMETER (NMAX=2000)
       INTEGER i
       REAL_T fact,gamma,bb(NMAX),u(NMAX),z(NMAX),den
       if(n.le.2)then
-         call bl_abort('CYCLIC: n too small in cyclic')
+         call bl_abort('CYCLC: n too small in cyclc')
       end if
       if(n.gt.NMAX)then
-         call bl_abort('CYCLIC: NMAX too small in cyclic')
+         call bl_abort('CYCLC: NMAX too small in cyclc')
       end if
       gamma=-b(1)
       bb(1)=b(1)-gamma
@@ -1257,15 +1265,70 @@ contains
         x(i)=x(i)-fact*z(i)
 13    continue
       return
-   END subroutine cyclic
+   END subroutine cyclc
 
+   
+!c *************************************************************************
+!c ** SUBTRACTAVG
+!c *************************************************************************
 
+      subroutine subtractavg(DIMS(divu),divu,redge,r_len,lo,hi,divu_ave,face)
+
+        implicit none
+      integer DIMDEC(divu)
+      integer r_len
+      integer lo(SDIM),hi(SDIM)
+      REAL_T  redge(0:r_len-1)
+      REAL_T divu(DIMV(divu))
+      REAL_T divu_ave
+      integer face
+
+      integer i,j
+      REAL_T rcen
+      REAL_T vtot
+
+      divu_ave = zero
+      vtot = zero
+
+      if (face .eq. XLO .or. face .eq. XHI) then
+         i = lo(1)
+         do j=lo(2),hi(2)
+            vtot = vtot+one
+            divu_ave = divu_ave+divu(j,i)
+         enddo
+         divu_ave = divu_ave/vtot
+         do j=lo(2),hi(2)
+            divu(j,i) = divu(j,i) - divu_ave
+         enddo
+      elseif (face .eq. YLO .or. face .eq. YHI) then
+         j = lo(2)
+         do i=lo(1),hi(1)
+            rcen = half*(redge(i)+redge(i+1))
+            vtot = vtot+rcen
+            divu_ave = divu_ave+rcen*divu(i,j)
+         enddo
+         divu_ave = divu_ave/vtot
+         do i=lo(1),hi(1)
+            divu(i,j) = divu(i,j) - divu_ave
+         enddo
+      else 
+         print*, "bad value of face in subtractavg"
+      endif
+
+    end subroutine subtractavg
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
+
+   
 !c *************************************************************************
 !c ** FILL_ONED **
 !c *************************************************************************
 
-      subroutine FORT_FILL_ONED(lenx,leny,length,faces,numOutFlowFaces,&
-                               cc0,cc1,cc2,cc3,r0,r1,r2,r3,cc_conn,nodal_conn,per,hx,hy)
+      subroutine fill_oned(lenx,leny,length,faces,numOutFlowFaces,&
+           cc0,cc1,cc2,cc3,r0,r1,r2,r3,cc_conn,nodal_conn,per,hx,hy) &
+           bind(C,name="fill_oned")
 
       implicit none
       integer lenx,leny,length
@@ -1521,14 +1584,14 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_FILL_ONED
+    end subroutine fill_oned
 
 !c *************************************************************************
 !c ** ALLPHI_FROM_X **
 !c *************************************************************************
 
-      subroutine FORT_ALLPHI_FROM_X(lenx,leny,length,faces,numOutFlowFaces,&
-                                   phi0,phi1,phi2,phi3,x)
+      subroutine allphi_from_x(lenx,leny,length,faces,numOutFlowFaces,&
+           phi0,phi1,phi2,phi3,x) bind(C,name="allphi_from_x")
 
       implicit none
       integer lenx,leny,length
@@ -1631,14 +1694,15 @@ contains
         ifinal = ifinal+lenx
       endif
 
-    end subroutine FORT_ALLPHI_FROM_X
+    end subroutine allphi_from_x
 
 
 !c *************************************************************************
 !c ** PHI_FROM_X **
 !c *************************************************************************
 
-      subroutine FORT_PHI_FROM_X(DIMS(phi),phi,length,x,per)
+    subroutine phi_from_x(DIMS(phi),phi,length,x,per) &
+         bind(C,name="phi_from_x")
 
       implicit none
       integer DIMDEC(phi)
@@ -1679,5 +1743,5 @@ contains
 #undef XHI
 #undef YHI
 
-    end subroutine FORT_PHI_FROM_X
+    end subroutine phi_from_x
   end module projoutflowbc_2d_module

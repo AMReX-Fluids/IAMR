@@ -1264,7 +1264,7 @@ MacProj::check_div_cond (int      level,
         DEF_CLIMITS(vol,vol_dat,vlo,vhi);
 
 #if (BL_SPACEDIM == 2)
-        FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
+        macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
                     ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                     uy_dat,ARLIM(uylo),ARLIM(uyhi),
                     ax_dat,ARLIM(axlo),ARLIM(axhi), 
@@ -1278,7 +1278,7 @@ MacProj::check_div_cond (int      level,
         const FArrayBox& zarea = area[2][U_edge0mfi];
         DEF_CLIMITS(zarea,az_dat,azlo,azhi);
 
-        FORT_MACDIV(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
+        macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
                     ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                     uy_dat,ARLIM(uylo),ARLIM(uyhi),
                     uz_dat,ARLIM(uzlo),ARLIM(uzhi),
@@ -1579,14 +1579,14 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
         int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
 
 #if (BL_SPACEDIM == 2)
-        FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+        fort_scalearea(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                        anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
 
 #elif (BL_SPACEDIM == 3)
         const FArrayBox& zarea = area[2][mfi];
         DEF_CLIMITS(zarea,az_dat,azlo,azhi);
-        FORT_SCALEAREA(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+        fort_scalearea(ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                        az_dat,ARLIM(azlo),ARLIM(azhi), 
                        anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);

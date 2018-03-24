@@ -18,7 +18,7 @@ module macoperator_2d_module
 
   private 
 
-  public FORT_MACCOEF,FORT_MACRHS, FORT_MACUPDATE, FORT_MACSYNCRHS
+  public maccoef,macrhs, macupdate, macsyncrhs
   
 contains
 
@@ -39,9 +39,10 @@ contains
 !c ::  dx           => cell size
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_MACCOEF (cx,DIMS(cx),cy,DIMS(cy),&
-                               ax,DIMS(ax),ay,DIMS(ay),&
-                               rho,DIMS(rho),lo,hi,dx)
+       subroutine maccoef (cx,DIMS(cx),cy,DIMS(cy),&
+                           ax,DIMS(ax),ay,DIMS(ay),&
+                           rho,DIMS(rho),lo,hi,dx) &
+                           bind(C,name="maccoef")
        implicit none
        integer DIMDEC(cx)
        integer DIMDEC(cy)
@@ -88,7 +89,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_MACCOEF
+     end subroutine maccoef
        
 !c :: ----------------------------------------------------------
 !c :: MACRHS
@@ -110,10 +111,10 @@ contains
 !c ::  scale        => scale factor
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_MACRHS (ux,DIMS(ux),uy,DIMS(uy),&
-                              ax,DIMS(ax),ay,DIMS(ay),&
-                              vol,DIMS(vol),rhs,DIMS(rhs),&
-                              lo,hi,scale)
+       subroutine macrhs (ux,DIMS(ux),uy,DIMS(uy),&
+                          ax,DIMS(ax),ay,DIMS(ay),&
+                          vol,DIMS(vol),rhs,DIMS(rhs),&
+                          lo,hi,scale) bind(C,name="macrhs")
        implicit none
        integer DIMDEC(ux)
        integer DIMDEC(uy)
@@ -143,7 +144,7 @@ contains
           end do
        end do
  
-     end subroutine FORT_MACRHS
+     end subroutine macrhs
 
 !c :: ----------------------------------------------------------
 !c :: MACUPDATE
@@ -162,9 +163,9 @@ contains
 !c ::  mult         => scalar multiplier
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_MACUPDATE(init,ux,DIMS(ux),uy,DIMS(uy),&
+       subroutine macupdate(init,ux,DIMS(ux),uy,DIMS(uy),&
                                 phi,DIMS(phi),rho,DIMS(rho),&
-                                lo,hi,dx,mult)
+                                lo,hi,dx,mult) bind(C,name="macupdate")
 
        implicit none
        integer DIMDEC(ux)
@@ -217,7 +218,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_MACUPDATE
+     end subroutine macupdate
 
 !c :: ----------------------------------------------------------
 !c :: MACSYNCRHS
@@ -231,8 +232,8 @@ contains
 !c ::  rhsscale     => const multiplier to rhs
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_MACSYNCRHS(rhs,DIMS(rhs),lo,hi,&
-                                 vol,DIMS(vol),rhsscale)
+       subroutine macsyncrhs(rhs,DIMS(rhs),lo,hi,&
+            vol,DIMS(vol),rhsscale) bind(C,name="macsyncrhs")
        implicit none
        integer DIMDEC(rhs)
        integer DIMDEC(vol)
@@ -252,5 +253,5 @@ contains
           end do
        end do
 
-     end subroutine FORT_MACSYNCRHS
+     end subroutine macsyncrhs
    end module macoperator_2d_module

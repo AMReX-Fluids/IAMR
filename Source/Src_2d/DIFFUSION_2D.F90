@@ -19,16 +19,17 @@ module diffusion_2d_module
 
   private
 
-  public FORT_VISCSYNCFLUX, FORT_HOOPSRC, FORT_HOOPRHS, FORT_TENSOR_HOOPRHS, &
-       FORT_TENSOR_HOOPSRC, FORT_SETALPHA, FORT_SET_TENSOR_ALPHA, &
-       FORT_DIV_VARMU_SI, FORT_DIV_MU_SI
+  public viscsyncflux, hoopsrc, hooprhs, tensor_hooprhs, &
+       tensor_hoopsrc, fort_setalpha, set_tensor_alpha, & !
+       div_varmu_si, div_mu_si
 
 contains
 
-      subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),&
+      subroutine viscsyncflux (ssync,DIMS(ssync),&
                                    xlo,xhi,ylo,yhi,&
                                    xflux,DIMS(xf),yflux,DIMS(yf),&
-                                   xarea,DIMS(ax),yarea,DIMS(ay),dx,mult)
+                                   xarea,DIMS(ax),yarea,DIMS(ay),dx,mult)&
+                                   bind(C,name="viscsyncflux")
 
       implicit none
       integer xlo(2), xhi(2), ylo(2), yhi(2)
@@ -67,7 +68,7 @@ contains
 	    end do
          end do
 
-       end subroutine FORT_VISCSYNCFLUX
+       end subroutine viscsyncflux
 
 ! c :: ----------------------------------------------------------
 ! c :: HOOPSRC
@@ -79,8 +80,8 @@ contains
 ! c ::  mu         => viscous coefficient
 ! c :: ----------------------------------------------------------
 ! c ::
-      subroutine FORT_HOOPSRC (DIMS(grid), fab, DIMS(fab), u, DIMS(u),&
-                              r, mu)
+      subroutine hoopsrc (DIMS(grid), fab, DIMS(fab), u, DIMS(u),&
+                          r, mu) bind(C,name="hoopsrc")
         
        implicit none
        integer DIMDEC(grid)
@@ -104,7 +105,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_HOOPSRC
+     end subroutine hoopsrc
 
 ! c :: ----------------------------------------------------------
 ! c :: HOOPRHS
@@ -123,9 +124,9 @@ contains
 ! c ::  b          => (one-theta)*dt
 ! c :: ----------------------------------------------------------
 ! c ::
-       subroutine FORT_HOOPRHS (DIMS(bx),&
-                               fab, DIMS(fab), u, DIMS(u), r, b,&
-                               vol, DIMS(vol))
+       subroutine hooprhs (DIMS(bx),&
+                           fab, DIMS(fab), u, DIMS(u), r, b,&
+                           vol, DIMS(vol)) bind(C,name="hooprhs")
        implicit none
        integer DIMDEC(bx)
        integer DIMDEC(fab)
@@ -145,7 +146,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_HOOPRHS
+     end subroutine hooprhs
 
 ! c :: ----------------------------------------------------------
 ! c :: TENSOR_HOOPRHS
@@ -166,10 +167,10 @@ contains
 ! c ::  b          => (1-theta)*dt
 ! c :: ----------------------------------------------------------
 ! c ::
-      subroutine FORT_TENSOR_HOOPRHS (xvelcomp, DIMS(bx),&
-                               fab, DIMS(fab), u, DIMS(u), r, b,&
-                               vol, DIMS(vol), betax, DIMS(betax),&
-                               betay, DIMS(betay))
+      subroutine tensor_hooprhs (xvelcomp, DIMS(bx),&
+                                 fab, DIMS(fab), u, DIMS(u), r, b,&
+                                 vol, DIMS(vol), betax, DIMS(betax),&
+                                 betay, DIMS(betay)) bind(C,name="tensor_hooprhs")
        implicit none
        integer xvelcomp
        integer DIMDEC(bx)
@@ -198,7 +199,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_TENSOR_HOOPRHS
+     end subroutine tensor_hooprhs
 
 ! c :: ----------------------------------------------------------
 ! c :: TENSOR_HOOPSRC
@@ -212,8 +213,9 @@ contains
 ! c ::  mu         => viscous coefficient
 ! c :: ----------------------------------------------------------
 ! c ::
-       subroutine FORT_TENSOR_HOOPSRC (comp, DIMS(grid), fab, DIMS(fab), &
-           u, DIMS(u), r, betax, DIMS(betax), betay, DIMS(betay))
+       subroutine tensor_hoopsrc (comp, DIMS(grid), fab, DIMS(fab), &
+            u, DIMS(u), r, betax, DIMS(betax), betay, DIMS(betay))&
+            bind(C,name="tensor_hoopsrc")
 
        implicit none
        integer comp
@@ -240,7 +242,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_TENSOR_HOOPSRC
+     end subroutine tensor_hoopsrc
 
 ! c :: ----------------------------------------------------------
 ! c :: SETALPHA
@@ -260,9 +262,10 @@ contains
 ! c ::  useden    => do we divide by density? (only if velocity component)
 ! c :: ----------------------------------------------------------
 ! c ::
-       subroutine FORT_SETALPHA (fab, DIMS(fab), lo, hi, r, DIMS(r),&
+       subroutine fort_setalpha (fab, DIMS(fab), lo, hi, r, DIMS(r),&
                                 b, vol, DIMS(vol),&
-                                denfab,DIMS(den),usehoop,useden)
+                                denfab,DIMS(den),usehoop,useden)&
+                                bind(C,name="fort_setalpha")
 
        implicit none
        integer DIMDEC(fab)
@@ -309,7 +312,7 @@ contains
           end if
        end if
 
-     end subroutine FORT_SETALPHA
+     end subroutine fort_setalpha
 
 ! c :: ----------------------------------------------------------
 ! c :: SET_TENSOR_ALPHA
@@ -332,10 +335,11 @@ contains
 ! c ::  useden    => do we divide by density? (only if velocity component)
 ! c :: ----------------------------------------------------------
 ! c ::
-       subroutine FORT_SET_TENSOR_ALPHA (alpha, DIMS(alpha), lo, hi, r, DIMS(r),&
+       subroutine set_tensor_alpha (alpha, DIMS(alpha), lo, hi, r, DIMS(r),&
                                 b, vol, DIMS(vol),&
                                 denfab,DIMS(den),betax,DIMS(betax),&
-                                betay,DIMS(betay),isrz)
+                                betay,DIMS(betay),isrz) &
+                                bind(C,name="set_tensor_alpha")
 
        implicit none
        integer DIMDEC(alpha)
@@ -375,10 +379,10 @@ contains
           end do
        end if
 
-     end subroutine FORT_SET_TENSOR_ALPHA
+     end subroutine set_tensor_alpha
 
-      subroutine FORT_DIV_MU_SI(lo, hi, dx, mu, DIMS(divu), divu,&
-          DIMS(divmusi), divmusi)
+      subroutine div_mu_si(lo, hi, dx, mu, DIMS(divu), divu,&
+          DIMS(divmusi), divmusi) bind(C,name="div_mu_si")
 
       implicit none
 !c
@@ -418,10 +422,11 @@ contains
          end do
       end do
 
-    end subroutine FORT_DIV_MU_SI
+    end subroutine div_mu_si
 
-      subroutine FORT_DIV_VARMU_SI (lo, hi, dx, DIMS(divu), divu,&
-          DIMS(betax), betax, DIMS(betay), betay, DIMS(divmusi), divmusi)
+      subroutine div_varmu_si (lo, hi, dx, DIMS(divu), divu,&
+           DIMS(betax), betax, DIMS(betay), betay, DIMS(divmusi), divmusi) &
+           bind(C,name="div_varmu_si")
 
       implicit none
 !c
@@ -466,6 +471,6 @@ contains
          end do
       end do
 
-    end subroutine FORT_DIV_VARMU_SI
+    end subroutine div_varmu_si
 
   end module diffusion_2d_module

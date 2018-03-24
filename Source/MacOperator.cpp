@@ -130,7 +130,7 @@ MacOperator::setCoefficients (const MultiFab* area,
         const Real* den_dat = den.dataPtr(rho_comp);
 
 #if (BL_SPACEDIM == 2)
-        FORT_MACCOEF(bx_dat,ARLIM(bxlo),ARLIM(bxhi),
+        maccoef(bx_dat,ARLIM(bxlo),ARLIM(bxhi),
                      by_dat,ARLIM(bylo),ARLIM(byhi),
                      ax_dat,ARLIM(axlo),ARLIM(axhi),
                      ay_dat,ARLIM(aylo),ARLIM(ayhi),
@@ -143,7 +143,7 @@ MacOperator::setCoefficients (const MultiFab* area,
         DEF_CLIMITS(az,az_dat,azlo,azhi);
         DEF_LIMITS(bz,bz_dat,bzlo,bzhi);
 
-        FORT_MACCOEF(bx_dat,ARLIM(bxlo),ARLIM(bxhi),
+        maccoef(bx_dat,ARLIM(bxlo),ARLIM(bxhi),
                      by_dat,ARLIM(bylo),ARLIM(byhi),
                      bz_dat,ARLIM(bzlo),ARLIM(bzhi),
                      ax_dat,ARLIM(axlo),ARLIM(axhi),
@@ -194,7 +194,7 @@ MacOperator::defRHS (const MultiFab* area,
         DEF_LIMITS(rhs,rhs_dat,rlo,rhi);
 
 #if (BL_SPACEDIM == 2)
-        FORT_MACRHS(ux_dat,ARLIM(uxlo),ARLIM(uxhi),
+        macrhs(ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                     uy_dat,ARLIM(uylo),ARLIM(uyhi),
                     ax_dat,ARLIM(axlo),ARLIM(axhi),
                     ay_dat,ARLIM(aylo),ARLIM(ayhi),
@@ -209,7 +209,7 @@ MacOperator::defRHS (const MultiFab* area,
         const FArrayBox& uz = vel[2][Rhsmfi];
         DEF_CLIMITS(uz,uz_dat,uzlo,uzhi);
 
-        FORT_MACRHS(ux_dat,ARLIM(uxlo),ARLIM(uxhi),
+        macrhs(ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                     uy_dat,ARLIM(uylo),ARLIM(uyhi),
                     uz_dat,ARLIM(uzlo),ARLIM(uzhi),
                     ax_dat,ARLIM(axlo),ARLIM(axhi),
@@ -254,7 +254,7 @@ mac_vel_update (int              init,
     const Real* rho_dat = rho.dataPtr(rho_comp);
     
 #if (BL_SPACEDIM == 2)
-    FORT_MACUPDATE(&init,
+    macupdate(&init,
                    ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                    uy_dat,ARLIM(uylo),ARLIM(uyhi),
                    phi_dat,ARLIM(p_lo),ARLIM(p_hi),
@@ -264,7 +264,7 @@ mac_vel_update (int              init,
 #if (BL_SPACEDIM == 3)
     DEF_LIMITS(uz,uz_dat,uzlo,uzhi);
     
-    FORT_MACUPDATE(&init,
+    macupdate(&init,
                    ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                    uy_dat,ARLIM(uylo),ARLIM(uyhi),
                    uz_dat,ARLIM(uzlo),ARLIM(uzhi),
@@ -330,7 +330,7 @@ MacOperator::syncRhs (const MultiFab& Volume,
 
         DEF_CLIMITS(vol,vol_dat,vlo,vhi);
         DEF_LIMITS(rhs,rhs_dat,rlo,rhi);
-        FORT_MACSYNCRHS(rhs_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
+        macsyncrhs(rhs_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
                         vol_dat,ARLIM(vlo),ARLIM(vhi),&rhs_scale);
     }
     Rhs.mult(-1.0,Rhs.nGrow());

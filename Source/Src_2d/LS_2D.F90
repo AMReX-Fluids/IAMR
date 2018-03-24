@@ -20,16 +20,17 @@ module LS_2d_module
 
   private 
 
-  public FORT_PHIUPD, SWITCH, FORT_LSCFL, FORT_FINDINTRFCE, FINDDIST, &
-       POLYVAL, DPOLYVAL, GRADPVAL, FORT_NARROWBAND, FORT_RETYPIFY, &
+  public FORT_PHIUPD, FORT_LSCFL, FORT_FINDINTRFCE, FINDDIST, &
+       FORT_NARROWBAND, FORT_RETYPIFY, &
        FORT_FASTMARCH, FORT_FASTMARCH2, FORT_MINE, FORT_NBANDNUMIFY
        
 contains
 
-      INTEGER FUNCTION FORT_PHIUPD(phi, DIMS(phi), phin, DIMS(phin),&
-                                  uadv, DIMS(uadv), vadv, DIMS(vadv),&
-                                  nband, nbandsize, mine, minesize,&
-                                  lo, hi, dt, dx, type,DIMS(type))
+      INTEGER FUNCTION phiupd(phi, DIMS(phi), phin, DIMS(phin),&
+                              uadv, DIMS(uadv), vadv, DIMS(vadv),&
+                              nband, nbandsize, mine, minesize,&
+                              lo, hi, dt, dx, type,DIMS(type)) &
+                              bind(C,name="phiupd")
 
       implicit none
 
@@ -200,7 +201,7 @@ contains
       enddo
       
       return 
-    end FUNCTION FORT_PHIUPD
+    end FUNCTION phiupd
 
 
 
@@ -221,9 +222,10 @@ contains
 
 
 
-    REAL_T FUNCTION FORT_LSCFL(phi, DIMS(phi), uadv, DIMS(uadv), vadv,&
-                               DIMS(vadv),nband, nbandsize, mine, minesize,&
-                               lo, hi, phit, dx, type, DIMS(type))
+    REAL_T FUNCTION lscfl(phi, DIMS(phi), uadv, DIMS(uadv), vadv,&
+                          DIMS(vadv),nband, nbandsize, mine, minesize,&
+                          lo, hi, phit, dx, type, DIMS(type)) &
+                          bind(C,name="lscfl")
 
       implicit none
       INTEGER  DIMDEC(phi)
@@ -280,13 +282,13 @@ contains
       enddo
         
       FORT_LSCFL = phidt
-    end FUNCTION FORT_LSCFL
+    end FUNCTION lscfl
       
 
 
-      subroutine FORT_FINDINTRFCE( phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
-                                  lo, hi, dx, intfacenump, intfacenumn, intfacep,intfacen,&
-                                  nband, nbandsize, intfacesize)
+      subroutine findintrfce( phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
+           lo, hi, dx, intfacenump, intfacenumn, intfacep,intfacen,&
+           nband, nbandsize, intfacesize) & bind(C,name="findintrfce")
 
       implicit none
       
@@ -353,7 +355,7 @@ contains
       	
       nband(1,1) = -LARGEINT
       nband(1,2) = -LARGEINT
-    end subroutine FORT_FINDINTRFCE
+    end subroutine findintrfce
 
 
       subroutine UPDATEF(i,j, phi, DIMS(phi), phin, DIMS(phin), type, DIMS(type),&
@@ -627,14 +629,11 @@ contains
       enddo
     end subroutine GEPP
       
-      
 
-
-
-      subroutine FORT_NARROWBAND(type, DIMS(type),&
-     		                 nband, nbandsize,&
-     		                 mine, minesize,&
-     		                 lo, hi)
+    subroutine narrowband(type, DIMS(type),&
+     		          nband, nbandsize,&
+                          mine, minesize,&
+                          lo, hi) & bind(C,name="narrowband")
       implicit none     
      
       integer DIMDEC(type)
@@ -676,12 +675,13 @@ contains
       mine(nummine + 1,1) = -LARGEINT
       mine(nummine + 1,2) = -LARGEINT
       
-    end subroutine FORT_NARROWBAND
+    end subroutine narrowband
      
  
  
  
-      subroutine FORT_RETYPIFY(type, DIMS(type), nband, nbandsize)     
+    subroutine retypify(type, DIMS(type), nband, nbandsize) &
+         bind(C,name="retypify")
       implicit none  
       integer DIMDEC(type)
       integer type(DIMV(type))
@@ -696,15 +696,16 @@ contains
         p = p + 1
         type(i,j) = 3
       enddo
-    end subroutine FORT_RETYPIFY
+    end subroutine retypify
      
      
 
 
-      subroutine FORT_FASTMARCH(phi, DIMS(phi), type, DIMS(type),&
-                               lo, hi, dx, intfacenum, intface, &
-                               nband, nbandsize, nbandnum, mine,&
-                               sgn, intfacesize,heap, heaploc)
+      subroutine fastmarch(phi, DIMS(phi), type, DIMS(type),&
+                           lo, hi, dx, intfacenum, intface, &
+                           nband, nbandsize, nbandnum, mine,&
+                           sgn, intfacesize,heap, heaploc) &
+                           bind(C,name="fastmarch")
       implicit none
       integer     DIMS(phi)
       integer     DIMS(type)
@@ -776,7 +777,7 @@ contains
          phi(i,j) = sign(BOGUS,phi(i,j))
 
       enddo
-    end subroutine FORT_FASTMARCH
+    end subroutine fastmarch
 
 
 
@@ -1091,9 +1092,9 @@ contains
       
       
       
-      INTEGER FUNCTION FORT_FASTMARCH2(phi,DIMS(phi),type,DIMS(type),&
-                                      lo, hi, dx, nband, nbandsize, nbandnum,&
-                                      sgn, heaploc)
+      INTEGER FUNCTION fastmarch2(phi,DIMS(phi),type,DIMS(type),&
+                                  lo, hi, dx, nband, nbandsize, nbandnum,&
+                                  sgn, heaploc) bind(C,name="fastmarch2")
       implicit none
       integer     DIMDEC(phi)
       integer     DIMDEC(type)
@@ -1195,7 +1196,7 @@ contains
          phi(i,j) = sign(BOGUS,phi(i,j))    
       enddo
 
-    end FUNCTION FORT_FASTMARCH2
+    end FUNCTION fastmarch2
 
 
 
@@ -1349,8 +1350,8 @@ contains
 
 
      
-      subroutine FORT_MINE(type, DIMS(type), nband, nbandsize,&
-     		                 mine, minesize,lo, hi)    
+      subroutine mine(type, DIMS(type), nband, nbandsize,&
+     		      mine, minesize,lo, hi) bind(C,name="mine")
       implicit none     
       integer DIMDEC(type)
       integer nbandsize, minesize
@@ -1380,11 +1381,12 @@ contains
       
       mine(nummine+1,1) = -LARGEINT
       mine(nummine+1,2) = -LARGEINT      
-    end subroutine FORT_MINE
+    end subroutine mine
      
 
      
-      subroutine FORT_NBANDNUMIFY(nband, nbandsize,nbandnum)
+    subroutine nbandnumify(nband, nbandsize,nbandnum) &
+         bind(C<name="nbandnumify")
       implicit none      
       integer nbandsize, nbandnum
       integer nband(nbandsize,SDIM)
@@ -1395,5 +1397,5 @@ contains
         p = p + 1
       enddo
       nbandnum = p
-    end subroutine FORT_NBANDNUMIFY
+    end subroutine nbandnumify
   end module LS_2d_module

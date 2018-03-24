@@ -18,7 +18,7 @@ module macproj_2d_module
 
   private
 
-  public FORT_MACDIV, FORT_SCALEAREA
+  public macdiv, fort_scalearea
 
 contains
 
@@ -41,10 +41,10 @@ contains
 ! c ::  DIMS(vol)    => index limits for vol
 ! c :: ----------------------------------------------------------
 ! c ::
-       subroutine FORT_MACDIV (dmac,DIMS(dmac),lo,hi, &
+       subroutine macdiv (dmac,DIMS(dmac),lo,hi, &
                               ux,DIMS(ux),uy,DIMS(uy), &
                               xarea,DIMS(ax),yarea,DIMS(ay), &
-                              vol,DIMS(vol))
+                              vol,DIMS(vol)) bind(C,name="macdiv")
 
        implicit none
        integer DIMDEC(dmac)
@@ -72,7 +72,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_MACDIV
+     end subroutine macdiv
 
 ! c :: ----------------------------------------------------------
 ! c :: SCALEAREA
@@ -81,9 +81,9 @@ contains
 ! c ::          area = area / anel_coeff
 ! c :: ----------------------------------------------------------
 
-       subroutine FORT_SCALEAREA (xarea,DIMS(ax),yarea,DIMS(ay), &
+       subroutine fort_scalearea (xarea,DIMS(ax),yarea,DIMS(ay), &
             anel_coeff,anel_coeff_lo,anel_coeff_hi, &
-            lo,hi,mult)
+            lo,hi,mult) bind(C,name="fort_scalearea")
 
        implicit none
        integer lo(SDIM), hi(SDIM)
@@ -148,6 +148,6 @@ contains
 
        end if
 
-     end subroutine FORT_SCALEAREA
+     end subroutine fort_scalearea
 
    end module macproj_2d_module

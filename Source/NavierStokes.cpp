@@ -996,7 +996,7 @@ NavierStokes::MaxVal (const std::string& name,
         const int*  lo  = bx.loVect();
         const int*  hi  = bx.hiVect();
 
-        FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
+        fort_maxval(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
 
         mxval = std::max(mxval, s);
     }
@@ -2332,7 +2332,7 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
             fillBox.setRange(d, ecbox.smallEnd(d), ecbox.length(d));
     
     const int isharm = def_harm_avg_cen2edge;
-    FORT_CEN2EDG(fillBox.loVect(), fillBox.hiVect(),
+    cen2edg(fillBox.loVect(), fillBox.hiVect(),
                  ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
                  ccfab.dataPtr(sComp),
                  ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),

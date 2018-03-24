@@ -4258,7 +4258,7 @@ contains
           tforces, DIMS(tf),&
           gp,      DIMS(gp),&
           rho,     DIMS(rho),&
-          lo, hi, dt) bind(C,name="update_apfs_tf_gp")
+          lo, hi, dt) bind(C,name="update_aofs_tf_gp")
 
 !c
 !c     update the velocities

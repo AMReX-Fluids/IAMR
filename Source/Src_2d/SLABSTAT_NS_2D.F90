@@ -13,13 +13,13 @@
 #define SDIM 2
 
 
-module projoutflowbc_2d_module
+module slabstat_ns_2d_module
   
   implicit none
 
   private 
 
-  public FORT_NS_BASICSTATS_NCTRAC, FORT_NS_BASICSTATS_CTRAC
+  public ns_basicstats_nctrac, ns_basicstats_ctrac
 
 
 contains
@@ -46,9 +46,9 @@ contains
 !c ::: delta          => Grid spacing
 !c ::: -----------------------------------------------------------
 !c
-      subroutine FORT_NS_BASICSTATS_NCTRAC(state, DIMS(state), nStateComp,&
-                                          runStats, DIMS(runStats), nStats,&
-                                          dt, delta)
+      subroutine ns_basicstats_nctrac(state, DIMS(state), nStateComp,&
+           runStats, DIMS(runStats), nStats,dt, delta)&
+           bind(C,name="ns_basicstats_nctrac")
 
       implicit none
 
@@ -169,7 +169,7 @@ contains
       enddo
 
       return
-    end subroutine FORT_NS_BASICSTATS_NCTRAC
+    end subroutine ns_basicstats_nctrac
 
 
 
@@ -195,9 +195,9 @@ contains
 !c ::: delta          => Grid spacing
 !c ::: -----------------------------------------------------------
 !c
-      subroutine FORT_NS_BASICSTATS_CTRAC(state, DIMS(state), nStateComp,&
-                                         runStats, DIMS(runStats), nStats,&
-                                         dt, delta)
+    subroutine ns_basicstats_ctrac(state, DIMS(state), nStateComp,&
+         runStats, DIMS(runStats), nStats,dt, delta)&
+         bind(C,name="ns_basicstats_ctrac")
 
       implicit none
 
@@ -322,5 +322,5 @@ contains
       enddo
 
       return
-    end subroutine FORT_NS_BASICSTATS_CTRAC
-  end module projoutflowbc_2d_module
+    end subroutine ns_basicstats_ctrac
+  end module slabstat_ns_2d_module

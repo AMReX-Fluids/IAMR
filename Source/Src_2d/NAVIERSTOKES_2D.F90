@@ -19,16 +19,16 @@ module navierstokes_2d_module
 
   private 
 
-  public FORT_GRADP, FORT_PUTDOWN, FORT_INCRMULT, FORT_MAXVAL, &
-       FORT_SUMMASS, FORT_SUMMASS_CYL, FORT_CEN2EDG, EDGE_INTERP, &
-       PC_EDGE_INTERP
+  public gradp, fort_putdown, incrmult, fort_maxval, &
+       summass, summass_cyl, cen2edg, edge_interp, &
+       pc_edge_interp, filcc_tile
   
 contains
 
-      subroutine FORT_GRADP (&
+      subroutine gradp (&
           p,DIMS(p),&
           gp,DIMS(gp),&
-          lo,hi,dx,is_full)
+          lo,hi,dx,is_full) bind(C,name="gradp")
 !c 
 !c     Compute a cell centered gradient from a node
 !c     centered field.  Returns all components of GRADP
@@ -63,7 +63,7 @@ contains
         end do
       endif
 
-    end subroutine FORT_GRADP
+    end subroutine gradp
 
 !c :: ----------------------------------------------------------
 !c :: Replace coarse grid pressure data with corresponding
@@ -81,8 +81,9 @@ contains
 !c ::  Assumes pressure fields are node based
 !c :: ----------------------------------------------------------
 !c ::
-      subroutine FORT_PUTDOWN (crse,DIMS(crse),&
-     			       fine,DIMS(fine),lo,hi,ratios)
+      subroutine fort_putdown (crse,DIMS(crse),&
+           fine,DIMS(fine),lo,hi,ratios) &
+           bind(C,name="fort_putdown")
       implicit none
       integer  DIMDEC(crse)
       integer  DIMDEC(fine)
@@ -103,7 +104,7 @@ contains
          end do
       end do
 
-    end subroutine FORT_PUTDOWN
+    end subroutine fort_putdown
 
 !c :: ----------------------------------------------------------
 !c :: NOTE: This routine is no longer needed. Use saxpy
@@ -121,7 +122,8 @@ contains
 !c ::  alpha      => multiplicative factor
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_INCRMULT(a,DIMS(a),b,DIMS(b),lo,hi,alpha)
+    subroutine incrmult(a,DIMS(a),b,DIMS(b),lo,hi,alpha)&
+         bind(C,name="incrmult")
 
        implicit none
        integer    DIMDEC(a)
@@ -139,7 +141,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_INCRMULT
+     end subroutine incrmult
 
 !c :: ----------------------------------------------------------
 !c :: MAXVAL
@@ -147,7 +149,8 @@ contains
 !c ::
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),mxval)
+     subroutine fort_maxval(rho,DIMS(rho),DIMS(grid),mxval) &
+          bind(C,name="fort_maxval")
 
        implicit none
        integer DIMDEC(rho)
@@ -165,7 +168,7 @@ contains
           end do
        end do
 
-     end subroutine FORT_MAXVAL
+     end subroutine fort_maxval
 
 !c :: ----------------------------------------------------------
 !c :: SUMMASS
@@ -183,8 +186,8 @@ contains
 !c ::  tmp        => temp column array
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),dx,mass,&
-                              r,irlo,irhi,rz_flag)
+       subroutine summass(rho,DIMS(rho),DIMS(grid),dx,mass,&
+            r,irlo,irhi,rz_flag) bind(C,name="summass")
 
        implicit none
        integer irlo, irhi, rz_flag
@@ -210,7 +213,7 @@ contains
 	  end do
        end do
 
-     end subroutine FORT_SUMMASS
+     end subroutine summass
 
 !c :: ----------------------------------------------------------
 !c :: SUMMASSCYL
@@ -231,8 +234,9 @@ contains
 !c ::  tmp        => temp column array
 !c :: ----------------------------------------------------------
 !c ::
-       subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),dx,mass,&
-                                  r,irlo,irhi,rz_flag,plo,vws_dz,vws_R)
+       subroutine summass_cyl(rho,DIMS(rho),DIMS(grid),dx,mass,&
+            r,irlo,irhi,rz_flag,plo,vws_dz,vws_R) &
+            bind(C,name="summass_cyl")
 
        implicit none
        integer irlo, irhi, rz_flag
@@ -267,7 +271,7 @@ contains
           endif
        end do
 
-     end subroutine FORT_SUMMASS_CYL
+     end subroutine summass_cyl
 
 !c ::
 !c :: ----------------------------------------------------------
@@ -284,10 +288,10 @@ contains
 !c ::  dir        => direction data needs to be shifted to get to edges
 !c :: ----------------------------------------------------------
 !c ::
-      subroutine FORT_CEN2EDG(lo, hi, &
+      subroutine cen2edg(lo, hi, &
           DIMS(cfab), cfab,&
           DIMS(efab), efab, nc, dir,&
-          isharm)
+          isharm) bind(C,name="cen2edg")
       implicit none
       integer lo(SDIM), hi(SDIM), nc, dir, isharm
       integer DIMDEC(cfab)
@@ -346,11 +350,12 @@ contains
             end do
          end if
       end if
-    end subroutine FORT_CEN2EDG
+    end subroutine cen2edg
 
 !c-----------------------------------------------------------------------
-      subroutine EDGE_INTERP(flo, fhi, nc, ratio, dir,&
-          fine, fine_l0, fine_l1, fine_h0, fine_h1)
+      subroutine edge_interp(flo, fhi, nc, ratio, dir,&
+           fine, fine_l0, fine_l1, fine_h0, fine_h1) &
+           bind(C,name="edge_interp")
       implicit none
       integer flo(0:2-1), fhi(0:2-1), nc, ratio(0:2-1), dir
       integer fine_l0, fine_l1, fine_h0, fine_h1
@@ -391,11 +396,12 @@ contains
          enddo
       endif
 
-    end subroutine EDGE_INTERP
+    end subroutine edge_interp
 !c-----------------------------------------------------------------------
-      subroutine PC_EDGE_INTERP(lo, hi, nc, ratio, dir,&
+      subroutine pc_edge_interp(lo, hi, nc, ratio, dir,&
           crse, crse_l0, crse_l1, crse_h0, crse_h1,&
-          fine, fine_l0, fine_l1, fine_h0, fine_h1)
+          fine, fine_l0, fine_l1, fine_h0, fine_h1) &
+          bind(C,name="pc_edge_interp")
       implicit none
       integer lo(2),hi(2), nc, ratio(0:2-1), dir
       integer crse_l0, crse_l1, crse_h0, crse_h1
@@ -433,5 +439,51 @@ contains
          enddo
       endif
 
-    end subroutine PC_EDGE_INTERP
+    end subroutine pc_edge_interp
+
+! ::: -----------------------------------------------------------
+! ::: This routine is intended to be a generic fill function
+! ::: for cell-centered data.  It knows how to extrapolate
+! ::: and reflect data and is used to supplement the problem-specific
+! ::: fill functions which call it.
+! ::: 
+! ::: INPUTS/OUTPUTS:
+! ::: q           <=  array to fill
+! ::: lo,hi        => index extent of loops
+! ::: q_l,q_h      => index extent of q array
+! ::: domlo,domhi  => index extent of problem domain
+! ::: dx           => cell spacing
+! ::: xlo          => physical location of lower left hand
+! :::	              corner of q array
+! ::: bc	   => array of boundary flags bc(SPACEDIM,lo:hi)
+! ::: 
+! ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
+! ::: -----------------------------------------------------------
+
+    subroutine filcc_tile(l1,l2,h1,h2,q,q_l1,q_l2,q_h1,q_h2,&
+         domlo,domhi,dx,xlo,bc) bind(C,name="filcc_tile")
+
+      use amrex_filcc_module, only: filccn
+      
+      implicit none
+
+      integer    l1,l2,h1,h2
+      integer    q_l1, q_l2, q_h1, q_h2
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    bc(SDIM,2)
+      REAL_T     xlo(SDIM), dx(SDIM)
+      REAL_T     q(q_l1:q_h1,q_l2:q_h2)
+
+      integer :: q_lo(3), q_hi(3)
+      integer    lo(3),hi(3)
+      
+      lo   = [l1, l2, 0]
+      hi   = [h1, h2, 0]
+      q_lo = [q_l1, q_l2, 0]
+      q_hi = [q_h1, q_h2, 0]
+
+      call filccn(lo, hi, q, q_lo, q_hi, 1, domlo, domhi, dx, xlo, bc)
+
+    end subroutine filcc_tile
+
   end module navierstokes_2d_module
