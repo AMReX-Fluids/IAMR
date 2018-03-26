@@ -23,23 +23,19 @@ NavierStokes::error_setup()
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
     if (do_density_ref)   {
-        err_list.add("density",  1, ErrorRec::Special, 
-                     BL_FORT_PROC_CALL(FORT_DENERROR,fort_denerror));
+        err_list.add("density",  1, ErrorRec::Special,FORT_DENERROR);
 	amrex::Print() << "Refining on DENSITY" << std::endl;
     }
     if (do_tracer_ref)    {
-        err_list.add("tracer",   1, ErrorRec::Special, 
-                     BL_FORT_PROC_CALL(FORT_ADVERROR,fort_adverror));
+        err_list.add("tracer",   1, ErrorRec::Special,FORT_ADVERROR);
 	amrex::Print() << "Refining on TRACER" << std::endl;
     }
     if (do_tracer2_ref)    {
-	err_list.add("tracer2",   1, ErrorRec::Special, 
-                     BL_FORT_PROC_CALL(FORT_ADV2ERROR,fort_adv2error));
+	err_list.add("tracer2",   1, ErrorRec::Special,FORT_ADV2ERROR);
 	amrex::Print() << "Refining on TRACER2" << std::endl;
     }
     if (do_vorticity_ref) {
-        err_list.add("mag_vort", 0, ErrorRec::Special, 
-                     BL_FORT_PROC_CALL(FORT_MVERROR,fort_mverror));
+        err_list.add("mag_vort", 0, ErrorRec::Special,FORT_MVERROR);
 	amrex::Print() << "Refining on MAG_VORT" << std::endl;
     }
 }

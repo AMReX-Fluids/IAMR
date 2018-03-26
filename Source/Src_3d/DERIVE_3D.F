@@ -4520,204 +4520,204 @@ c
       end
 
 
-      subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
-      implicit none
-c
-c ::: This routine will derive magnitude of the divergence of velocity
-c
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(divu)
-      integer    DIMDEC(dat)
-      integer    domlo(SDIM), domhi(SDIM)
-      integer    nv, ncomp
-      integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM)
-      REAL_T     time, dt
-      REAL_T     divu(DIMV(divu),nv)
-      REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
-
-      integer   i,j,k
-      REAL_T    ux, vy, wz, dx, dy, dz
-      REAL_T    uxcen, uxlo, uxhi
-      REAL_T    vycen, vylo, vyhi
-      REAL_T    wzcen, wzlo, wzhi
-c
-c     ::::: some useful macro definitions
-c
-#     define U(i,j,k) dat(i,j,k,1)
-#     define V(i,j,k) dat(i,j,k,2)
-#     define W(i,j,k) dat(i,j,k,3)
-
-#     define ULOX bc(1,1,1)
-#     define UHIX bc(1,2,1)
-#     define VLOY bc(2,1,2)
-#     define VHIY bc(2,2,2)
-#     define WLOZ bc(3,1,2)
-#     define WHIZ bc(3,2,2)
-c
-c     ::::: statement functions that implement stencil
-c
-      uxcen(i,j,k) = half*(U(i+1,j,k)-U(i-1,j,k))/dx
-      uxlo(i,j,k) = (eight*U(i,j,k)-six*U(i+1,j,k)+U(i+2,j,k))/(three*dx)
-      uxhi(i,j,k) = (eight*U(i,j,k)-six*U(i-1,j,k)+U(i-2,j,k))/(three*dx)
-
-      vycen(i,j,k) = half*(V(i,j+1,k)-V(i,j-1,k))/dy
-      vylo(i,j,k) = (eight*V(i,j,k)-six*V(i,j+1,k)+V(i,j+2,k))/(three*dy)
-      vyhi(i,j,k) = (eight*V(i,j,k)-six*V(i,j-1,k)+V(i,j-2,k))/(three*dy)
-
-      wzcen(i,j,k) = half*(W(i,j,k+1)-W(i,j,k-1))/dz
-      wzlo(i,j,k) = (eight*W(i,j,k)-six*W(i,j,k+1)+W(i,j,k+2))/(three*dz)
-      wzhi(i,j,k) = (eight*W(i,j,k)-six*W(i,j,k-1)+W(i,j,k-2))/(three*dz)
-
-      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
-      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),2),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
-      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),3),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,3))
-
-      dx = delta(1)
-      dy = delta(2)
-      dz = delta(3)
-c
-c     :: at physical bndries where an edge value is prescribed,
-c     :: set the value in the outside cell so that a central
-c     :: difference formula is equivalent to the higher order
-c     :: one sided formula
-c
-      if (lo(1) .eq. domlo(1)) then
-         i = lo(1)
-         if (ULOX.eq.EXT_DIR) then
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  U(i-1,j,k) = two*U(i-1,j,k) - U(i,j,k)
-               end do
-            end do
-         else if (ULOX.eq.HOEXTRAP) then
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  U(i-1,j,k) = uxlo(i,j,k)
-               end do
-            end do
-	 end if
-      end if
-      if (hi(1) .eq. domhi(1)) then
-         i = hi(1)
-         if (UHIX.eq.EXT_DIR) then
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  U(i+1,j,k) = two*U(i+1,j,k) - U(i,j,k)
-               end do
-            end do
-         else if (UHIX.eq.HOEXTRAP) then
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  U(i+1,j,k) = uxhi(i,j,k)
-               end do
-            end do
-	 end if
-      end if
-      if (lo(2) .eq. domlo(2)) then
-         j = lo(2)
-	 if (VLOY.eq.EXT_DIR) then
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  V(i,j-1,k) = two*V(i,j-1,k) - V(i,j,k)
-               end do
-            end do
-         else if (VLOY.eq.HOEXTRAP) then
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  V(i,j-1,k) = vylo(i,j,k)
-               end do
-            end do
-	 end if
-      end if
-      if (hi(2) .eq. domhi(2)) then
-         j = hi(2)
-	 if (VHIY.eq.EXT_DIR) then
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  V(i,j+1,k) = two*V(i,j+1,k) - V(i,j,k)
-               end do
-            end do
-	 else if (VHIY.eq.HOEXTRAP) then
-            do k = lo(3), hi(3)
-               do i = lo(1), hi(1)
-                  V(i,j+1,k) = vyhi(i,j,k)
-               end do
-            end do
-	 end if
-      end if
-      if (lo(3) .eq. domlo(3)) then
-         k = lo(3)
-	 if (WLOZ.eq.EXT_DIR) then
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  W(i,j,k-1) = two*W(i,j,k-1) - W(i,j,k)
-               end do
-            end do
-	 else if (WLOZ.eq.HOEXTRAP) then
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  W(i,j,k-1) = wzlo(i,j,k)
-               end do
-            end do
-	 end if
-      end if
-      if (hi(3) .eq. domhi(3)) then
-         k = hi(3)
-	 if (WHIZ.eq.EXT_DIR) then
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  W(i,j,k+1) = two*W(i,j,k+1) - W(i,j,k)
-               end do
-            end do
-	 else if (WHIZ.eq.HOEXTRAP) then
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  W(i,j,k+1) = wzhi(i,j,k)
-               end do
-            end do
-	 end if
-      end if
-
-!$omp parallel do private(ux,vy,wz)
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               ux = uxcen(i,j,k)
-               vy = vycen(i,j,k)
-               wz = wzcen(i,j,k)
-               divu(i,j,k,1) = ux + vy + wz
-            end do
-         end do
-      end do
-!$omp end parallel do
-c
-c we overwrote the ghost cells above, so set them back below
-c
-      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
-      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
-      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,3))
-
-#     undef U
-#     undef V      
-#     undef W
-#     undef ULOX
-#     undef UHIX
-#     undef VLOY
-#     undef VHIY
-#     undef WLOZ
-#     undef WHIZ
-
-      end
+!      subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
+!     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
+!     &                           bc,level,grid_no)
+!      implicit none
+!c
+!c ::: This routine will derive magnitude of the divergence of velocity
+!c
+!      integer    lo(SDIM), hi(SDIM)
+!      integer    DIMDEC(divu)
+!      integer    DIMDEC(dat)
+!      integer    domlo(SDIM), domhi(SDIM)
+!      integer    nv, ncomp
+!      integer    bc(SDIM,2,ncomp)
+!      REAL_T     delta(SDIM), xlo(SDIM)
+!      REAL_T     time, dt
+!      REAL_T     divu(DIMV(divu),nv)
+!      REAL_T     dat(DIMV(dat),ncomp)
+!      integer    level, grid_no
+!
+!      integer   i,j,k
+!      REAL_T    ux, vy, wz, dx, dy, dz
+!      REAL_T    uxcen, uxlo, uxhi
+!      REAL_T    vycen, vylo, vyhi
+!      REAL_T    wzcen, wzlo, wzhi
+!c
+!c     ::::: some useful macro definitions
+!c
+!#     define U(i,j,k) dat(i,j,k,1)
+!#     define V(i,j,k) dat(i,j,k,2)
+!#     define W(i,j,k) dat(i,j,k,3)
+!
+!#     define ULOX bc(1,1,1)
+!#     define UHIX bc(1,2,1)
+!#     define VLOY bc(2,1,2)
+!#     define VHIY bc(2,2,2)
+!#     define WLOZ bc(3,1,2)
+!#     define WHIZ bc(3,2,2)
+!c
+!c     ::::: statement functions that implement stencil
+!c
+!      uxcen(i,j,k) = half*(U(i+1,j,k)-U(i-1,j,k))/dx
+!      uxlo(i,j,k) = (eight*U(i,j,k)-six*U(i+1,j,k)+U(i+2,j,k))/(three*dx)
+!      uxhi(i,j,k) = (eight*U(i,j,k)-six*U(i-1,j,k)+U(i-2,j,k))/(three*dx)
+!
+!      vycen(i,j,k) = half*(V(i,j+1,k)-V(i,j-1,k))/dy
+!      vylo(i,j,k) = (eight*V(i,j,k)-six*V(i,j+1,k)+V(i,j+2,k))/(three*dy)
+!      vyhi(i,j,k) = (eight*V(i,j,k)-six*V(i,j-1,k)+V(i,j-2,k))/(three*dy)
+!
+!      wzcen(i,j,k) = half*(W(i,j,k+1)-W(i,j,k-1))/dz
+!      wzlo(i,j,k) = (eight*W(i,j,k)-six*W(i,j,k+1)+W(i,j,k+2))/(three*dz)
+!      wzhi(i,j,k) = (eight*W(i,j,k)-six*W(i,j,k-1)+W(i,j,k-2))/(three*dz)
+!
+!      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
+!     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
+!      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),2),DIMS(dat),
+!     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
+!      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),3),DIMS(dat),
+!    ! $                   domlo,domhi,delta,xlo,time,bc(1,1,3))
+!
+!      dx = delta(1)
+!      dy = delta(2)
+!      dz = delta(3)
+!c
+!c     :: at physical bndries where an edge value is prescribed,
+!c     :: set the value in the outside cell so that a central
+!c     :: difference formula is equivalent to the higher order
+!c     :: one sided formula
+!c
+!      if (lo(1) .eq. domlo(1)) then
+!         i = lo(1)
+!         if (ULOX.eq.EXT_DIR) then
+!            do k = lo(3), hi(3)
+!               do j = lo(2), hi(2)
+!                  U(i-1,j,k) = two*U(i-1,j,k) - U(i,j,k)
+!               end do
+!            end do
+!         else if (ULOX.eq.HOEXTRAP) then
+!            do k = lo(3), hi(3)
+!               do j = lo(2), hi(2)
+!                  U(i-1,j,k) = uxlo(i,j,k)
+!               end do
+!            end do
+!	 end if
+!      end if
+!      if (hi(1) .eq. domhi(1)) then
+!         i = hi(1)
+!         if (UHIX.eq.EXT_DIR) then
+!            do k = lo(3), hi(3)
+!               do j = lo(2), hi(2)
+!                  U(i+1,j,k) = two*U(i+1,j,k) - U(i,j,k)
+!               end do
+!            end do
+!         else if (UHIX.eq.HOEXTRAP) then
+!            do k = lo(3), hi(3)
+!               do j = lo(2), hi(2)
+!                  U(i+1,j,k) = uxhi(i,j,k)
+!               end do
+!            end do
+!	 end if
+!      end if
+!      if (lo(2) .eq. domlo(2)) then
+!         j = lo(2)
+!	 if (VLOY.eq.EXT_DIR) then
+!            do k = lo(3), hi(3)
+!               do i = lo(1), hi(1)
+!                  V(i,j-1,k) = two*V(i,j-1,k) - V(i,j,k)
+!               end do
+!            end do
+!         else if (VLOY.eq.HOEXTRAP) then
+!            do k = lo(3), hi(3)
+!               do i = lo(1), hi(1)
+!                  V(i,j-1,k) = vylo(i,j,k)
+!               end do
+!            end do
+!	 end if
+!      end if
+!      if (hi(2) .eq. domhi(2)) then
+!         j = hi(2)
+!	 if (VHIY.eq.EXT_DIR) then
+!            do k = lo(3), hi(3)
+!               do i = lo(1), hi(1)
+!                  V(i,j+1,k) = two*V(i,j+1,k) - V(i,j,k)
+!               end do
+!            end do
+!	 else if (VHIY.eq.HOEXTRAP) then
+!            do k = lo(3), hi(3)
+!               do i = lo(1), hi(1)
+!                  V(i,j+1,k) = vyhi(i,j,k)
+!               end do
+!            end do
+!	 end if
+!      end if
+!      if (lo(3) .eq. domlo(3)) then
+!         k = lo(3)
+!	 if (WLOZ.eq.EXT_DIR) then
+!            do j = lo(2), hi(2)
+!               do i = lo(1), hi(1)
+!                  W(i,j,k-1) = two*W(i,j,k-1) - W(i,j,k)
+!               end do
+!            end do
+!	 else if (WLOZ.eq.HOEXTRAP) then
+!            do j = lo(2), hi(2)
+!               do i = lo(1), hi(1)
+!                  W(i,j,k-1) = wzlo(i,j,k)
+!               end do
+!            end do
+!	 end if
+!      end if
+!      if (hi(3) .eq. domhi(3)) then
+!         k = hi(3)
+!	 if (WHIZ.eq.EXT_DIR) then
+!            do j = lo(2), hi(2)
+!               do i = lo(1), hi(1)
+!                  W(i,j,k+1) = two*W(i,j,k+1) - W(i,j,k)
+!               end do
+!            end do
+!	 else if (WHIZ.eq.HOEXTRAP) then
+!            do j = lo(2), hi(2)
+!               do i = lo(1), hi(1)
+!                  W(i,j,k+1) = wzhi(i,j,k)
+!               end do
+!            end do
+!	 end if
+!      end if
+!
+!!$omp parallel do private(ux,vy,wz)
+!      do k = lo(3), hi(3)
+!         do j = lo(2), hi(2)
+!            do i = lo(1), hi(1)
+!               ux = uxcen(i,j,k)
+!               vy = vycen(i,j,k)
+!               wz = wzcen(i,j,k)
+!               divu(i,j,k,1) = ux + vy + wz
+!            end do
+!         end do
+!      end do
+!!$omp end parallel do
+!c
+!c we overwrote the ghost cells above, so set them back below
+!c
+!      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
+!     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
+!      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
+!     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
+!      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
+!     $                   domlo,domhi,delta,xlo,time,bc(1,1,3))
+!
+!#     undef U
+!#     undef V      
+!#     undef W
+!#     undef ULOX
+!#     undef UHIX
+!#     undef VLOY
+!#     undef VHIY
+!#     undef WLOZ
+!#     undef WHIZ
+!
+!      end
 
       subroutine FORT_GRADP_DIR (
      &     p,DIMS(p),

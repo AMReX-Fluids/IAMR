@@ -28,7 +28,7 @@ module macoutflowbc_2d_module
        macresid, mac_shift_phi, mac_reshift_phi, &
        solvemac, coarsigma, outflowbc_restrict, fort_interpolate, &
        macphibc,macfill_oned, macphi_from_x, &
-       macallphi_from_x,subtractavg
+       macallphi_from_x
   
 contains
 
@@ -853,7 +853,7 @@ contains
          s(neq)= -divuExt(i)
          
 !c     Solve the equations
-         call cyclic(a,b,c,alpha,beta,s,phi,neq)
+         call cyclc(a,b,c,alpha,beta,s,phi,neq)
          
       else
 !c     Solid walls, Neumann conditions (dphi/dx=u=0)

@@ -40,7 +40,7 @@ contains
       subroutine extrap_proj(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,&
           r_len,redge,DIMS(uExt),uExt,DIMS(divuExt),divuExt,&
           DIMS(rhoExt),rhoExt,lo,hi,face,zeroIt) bind(C,name="extrap_proj")
-        use macoutflowbc_2d_module, only: subtractavg
+
         implicit none
 
 !c subtract divu_ave twice due to precision problems
@@ -1274,6 +1274,7 @@ contains
 
       subroutine subtractavg(DIMS(divu),divu,redge,r_len,lo,hi,divu_ave,face)
 
+
         implicit none
       integer DIMDEC(divu)
       integer r_len
@@ -1287,6 +1288,11 @@ contains
       REAL_T rcen
       REAL_T vtot
 
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
+      
       divu_ave = zero
       vtot = zero
 

@@ -527,6 +527,8 @@ contains
       subroutine dermgdivu (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,&
                                 lo,hi,domlo,domhi,delta,xlo,time,dt,&
                                 bc,level,grid_no) bind(C,name="dermgdivu")
+      
+      use prob_2D_module, only : FORT_XVELFILL, FORT_YVELFILL
       implicit none
 !c
 !c ::: This routine will derive magnitude of the divergence of velocity
