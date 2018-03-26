@@ -1,0 +1,46 @@
+godunov.ppm_type = 0,1 or 2
+advection_scheme - hard coded in advection routines
+bousinesq: in GNUMakefile DEFINES += -DBOUSSINESQ
+GENGETFORCE   		  DEFINES += -DGENGETFORCE
+MOREGENGETFORCE           DEFINES += -DMOREGENGETFORCE
+godunov.use_forces_in_trans = use_minion in .F files
+ns.do_denminmax 
+
+BC types info table in AMReX_BC_Types.H
+bc(spatial direction, hi or lo side)
+
+instead of figuring out the "right" way to get IAMR to execute certain lines of code,
+can force execution by hacking and then compare MF/fab at end.
+	  //fixme - MF diff code to compare result from old code and tiled code
+	  static int count=0;
+	  ++count;
+	  {
+	    // read in result MF from unaltered version of code
+	    std::string name2="../../../IAMR_old/Exec/run2d/aofsOld"+std::to_string(count);
+	    std::cout << "Reading " << name2 << std::endl;
+	    MultiFab mf2(aofs.boxArray(),dmap,aofs.nComp(),aofs.nGrow());
+	    VisMF::Read(mf2, name2);
+	    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+	    // Diff local MF and MF from unaltered code 
+	    MultiFab::Copy(mfdiff, *aofs, 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+	    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+	    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+			<< " and " << mfdiff.max(icomp,mf2.nGrow());
+	      if (mfdiff.nComp() > 1) {
+		std::cout << " for component " << icomp;
+	      }
+	      std::cout << "." << std::endl;
+	    }
+	    // write out difference MF for viewing: amrvis -mf 
+	    std::cout << "Writing mfdiff" << std::endl;
+	    VisMF::Write(mfdiff, "aofsdiff"+std::to_string(count));
+	  }
+
+Access data at a single point
+	  //FIXME debugging - see what's in MF at my point
+	  IntVect mypt {0,0};	  
+	  if ((*aofs)[U_mfi].box().contains(mypt))
+	      Print()<<"(*aofs)(0,0) "<<(*aofs)[U_mfi](mypt)<<"\n";
+

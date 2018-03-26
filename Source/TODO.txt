@@ -1,0 +1,29 @@
+
+
+1. Files to do
+   - Projection.cpp
+   - Macproj.cpp
+   - MacOperator.cpp
+   - SyncRegister.cpp?
+   - NavierStokes
+
+3. F -> F90
+   - 3d routines
+   - F files in Exec/
+
+Done for first pass, but for later:
+A. NavierStokesBase
+   - Sync funcitons
+   - Get sums update from cache.
+
+B. GODUNOV
+   - pull out work array in favor of dynamic arrays
+   - look at all the add/sum routines to see if Multifab/BaseFab routines could be used instead
+
+Are both PROB_F.H and PROB_NS_F.H both really needed?
+
+Wrap up for Weiqun
+     1. BDS 
+     2. ref_ratio = 4 (in advection_setup)
+
+
