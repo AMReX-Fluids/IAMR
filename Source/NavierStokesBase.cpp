@@ -1135,6 +1135,11 @@ NavierStokesBase::create_umac_grown (int nGrow)
         dm.surroundingNodes(n);
         const int*  lo  = dm.loVect();
         const int*  hi  = dm.hiVect();
+
+	// call FillBoundary to make sure that fine/fine grow cells are valid
+	// before FORT_HOEXTRAPTOCC is called 
+	u_mac[n].FillBoundary(geom.periodicity());
+
         //
         // HOEXTRAPTOCC isn't threaded.  OMP over calls to it.
         //
@@ -1147,10 +1152,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
             FArrayBox& fab = u_mac[n][mfi];
             amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),lo,hi,dx,xlo);
         }
-        u_mac[n].FillBoundary_nowait(geom.periodicity());
-    }
-    for (int n = 0; n < BL_SPACEDIM; ++n) {
-	u_mac[n].FillBoundary_finish();
     }
 }
 
@@ -2285,7 +2286,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                     
                     /*** Calculate the required number of coarse cells ***/
                     
-                    N_coarse_cells = N_level_cells / bf_lev[i][oDir];
+                    N_coarse_cells = N_level_cells / bf_lev[j][oDir];
                     if (N_level_cells % bf_lev[j][oDir] != 0)
                         N_coarse_cells++;
                     
