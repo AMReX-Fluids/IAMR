@@ -1145,9 +1145,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
         for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
         {
             FArrayBox& fab = u_mac[n][mfi];
-            const int* dlo = fab.loVect();
-            const int* dhi = fab.hiVect();
-            FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
+            amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),lo,hi,dx,xlo);
         }
         u_mac[n].FillBoundary_nowait(geom.periodicity());
     }

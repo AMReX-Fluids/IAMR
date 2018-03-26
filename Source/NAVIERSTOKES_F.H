@@ -5,6 +5,7 @@
 #ifndef BL_LANG_FORT
 
 #include <AMReX_ArrayLim.H>
+#include <AMReX_filcc_f.H>
 
 #ifdef __cplusplus
 extern "C" {
@@ -103,9 +104,7 @@ extern "C" {
                                 const amrex::Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                                 amrex::Real*       fine, ARLIM_P(flo), ARLIM_P(fhi));
 
-    void FORT_HOEXTRAPTOCC (const amrex::Real* q, ARLIM_P(q_lo), ARLIM_P(q_hi),
-                     const int* dom_lo, const int* dom_hi,
-                     const amrex::Real* dx ,const amrex::Real* xlo);
+
 
 #ifdef __cplusplus
 }
