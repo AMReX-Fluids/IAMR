@@ -12,14 +12,25 @@
 
 #define SDIM 3
 
-       subroutine FORT_ACCEL_TO_VEL( lo, hi, 
-     &     uold,DIMS(uold),
-     &     dt,
-     &     unew,DIMS(unew) )
-c
-c     This function converts unew into a velocity via
-c     Unew = Uold + alpha*Unew
-c
+module projection_3d_module
+
+  implicit none
+
+  private
+
+  public accel_to_vel, vel_to_accel, &
+       proj_update, anelcoeffmpy
+
+contains
+
+       subroutine accel_to_vel( lo, hi, &
+          uold,DIMS(uold), &
+          dt, &
+          unew,DIMS(unew) )bind(C,name="accel_to_vel")
+!c
+!c     This function converts unew into a velocity via
+!c     Unew = Uold + alpha*Unew
+!c
        implicit none
        integer    lo(SDIM), hi(SDIM)
        REAL_T     dt
@@ -39,15 +50,15 @@ c
           end do
        end do
 
-       end
+       end subroutine accel_to_vel
 
-      subroutine FORT_VEL_TO_ACCEL( lo, hi, 
-     &     unew,DIMS(unew),
-     &     uold,DIMS(uold),
-     &     dt )
-c     
-c     This function converts unew into an acceleration
-c
+      subroutine vel_to_accel( lo, hi, &
+          unew,DIMS(unew), &
+          uold,DIMS(uold), &
+          dt ) bind(C,name="vel_to_accel")
+!c     
+!c     This function converts unew into an acceleration
+!c
       implicit none
       integer    lo(SDIM), hi(SDIM)
       REAL_T     dt
@@ -67,17 +78,17 @@ c
          end do
       end do
 
-      end
+      end subroutine vel_to_accel
 
-      subroutine FORT_PROJ_UPDATE(
-     &     boxlo, boxhi, nvar, ngrow,
-     &     un, DIMS(un),
-     &     alpha,
-     &     uo, DIMS(uo) )
-c     
-c     This function updates un via un = un + alpha*uo
-c     The loop bounds are determined in the C++
-c
+      subroutine proj_update( &
+          boxlo, boxhi, nvar, ngrow, &
+          un, DIMS(un), &
+          alpha, &
+          uo, DIMS(uo) )bind(C,name="proj_update")
+!c     
+!c     This function updates un via un = un + alpha*uo
+!c     The loop bounds are determined in the C++
+!c
       implicit none
       integer    boxlo(SDIM), boxhi(SDIM), nvar, ngrow
       REAL_T     alpha
@@ -87,7 +98,6 @@ c
 
       integer i, j, k, n
 
-!$omp parallel do private(i,j,k,n) collapse(2)
       do n = 1, nvar
          do k = boxlo(3), boxhi(3)
             do j = boxlo(2), boxhi(2)
@@ -97,26 +107,26 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine proj_update
 
-      subroutine FORT_ANELCOEFFMPY(a,DIMS(grid),domlo,domhi,ng,
-     $                             anel_coeff,nr,bogus_value,mult)
-c 
-c     multiply A by anel_coeff
-c
-c 
-c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
-c
+      subroutine anelcoeffmpy (a,DIMS(grid),domlo,domhi,ng, &
+                               anel_coeff,nr,bogus_value,mult) &
+                               bind(C, name="anelcoeffmpy")
+!c 
+!c     multiply A by anel_coeff
+!c
+!c 
+!c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
+!c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+!c
       implicit none
       integer    ng,nr
       integer    DIMDEC(grid)
       integer    domlo(3), domhi(3)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, 
-     $             ARG_L2(grid)-ng:ARG_H2(grid)+ng,
-     $             ARG_L3(grid)-ng:ARG_H3(grid)+ng)
+      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
+                  ARG_L2(grid)-ng:ARG_H2(grid)+ng, &
+                  ARG_L3(grid)-ng:ARG_H3(grid)+ng)
       REAL_T     anel_coeff(ARG_L3(grid)-nr:ARG_H3(grid)+nr)
       REAL_T     bogus_value
       integer    mult
@@ -164,4 +174,6 @@ c
          end do
       end if
 
-      end
+      end subroutine anelcoeffmpy
+
+end module projection_3d_module

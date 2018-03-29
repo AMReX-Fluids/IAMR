@@ -677,7 +677,7 @@ contains
 !c ** Coarsen the edge-based sigma coefficients
 !c *************************************************************************
 
-      subroutine COARSIGMA(sigma,DIMS(sigma),sigmac,DIMS(sigmac),&
+      subroutine COARSIGMA(sigma,DIMS(sigma),sigmac,DIMS(sigmac), &
                                lo,hi,loc,hic) bind(C,name="coarsigma")
 
       implicit none

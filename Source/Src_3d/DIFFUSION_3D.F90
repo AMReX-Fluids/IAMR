@@ -12,12 +12,24 @@
 
 #define SDIM 3
 
-      subroutine FORT_VISCSYNCFLUX (ssync,DIMS(ssync),
-     $                              xlo,xhi,ylo,yhi,zlo,zhi,
-     $                              xflux,DIMS(xf),yflux,DIMS(yf),
-     $                              zflux,DIMS(zf),
-     $                              xarea,DIMS(ax),yarea,DIMS(ay),
-     $                              zarea,DIMS(az),dx,mult)
+module diffusion_3d_module
+  
+  implicit none
+
+  private
+
+  public :: viscsyncflux, fort_setalpha, set_tensor_alpha, &
+            div_mu_si, div_varmu_si
+
+contains
+
+      subroutine viscsyncflux (ssync,DIMS(ssync), &
+                                   xlo,xhi,ylo,yhi,zlo,zhi, &
+                                   xflux,DIMS(xf),yflux,DIMS(yf), &
+                                   zflux,DIMS(zf), &
+                                   xarea,DIMS(ax),yarea,DIMS(ay),&
+                                   zarea,DIMS(az),dx,mult)&
+                                   bind(C,name="viscsyncflux")
 
       implicit none
       integer xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3)
@@ -45,9 +57,9 @@
       idy = 1.0d0 / dx(2)
       idz = 1.0d0 / dx(3)
 
-c
-c     ::::: compute X fluxes
-c
+!c
+!c     ::::: compute X fluxes
+!c
       do       k = xlo(3), xhi(3)
          do    j = xlo(2), xhi(2)
             do i = xlo(1), xhi(1)
@@ -56,9 +68,9 @@ c
             end do
          end do
       end do
-c
-c     ::::: compute Y fluxes
-c
+!c
+!c     ::::: compute Y fluxes
+!c
       do       k = ylo(3), yhi(3)
          do    j = ylo(2), yhi(2)
             do i = ylo(1), yhi(1)
@@ -67,9 +79,9 @@ c
             end do
          end do
       end do
-c
-c     ::::: compute Z fluxes
-c
+!c
+!c     ::::: compute Z fluxes
+!c
       do       k = zlo(3), zhi(3)
          do    j = zlo(2), zhi(2)
             do i = zlo(1), zhi(1)
@@ -79,30 +91,31 @@ c
          end do
       end do
       
-      end
+      end subroutine viscsyncflux
 
-c :: ----------------------------------------------------------
-c :: SETALPHA
-c ::             alpha(i,j,k) = vol*(1+b/(r(i)^2)) / density
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  fab       <=  array to be modified
-c ::  DIMS(fab) => index limits of fab
-c ::  lo,hi     => index limits of box
-c ::  r         =>  1-d array of radius
-c ::  DIMS(r)   => index limits of r
-c ::  b         =>  viscous coefficient
-c ::  vol       =>  volume array
-c ::  DIMS(vol) => index limits of fab
-c ::  denfab    => array of density at time n+1/2
-c ::  DIMS(den) => index limits of fab
-c ::  usehoop   => do we add hoop stress?   NOT IN 3-D
-c ::  useden    => do we divide by density? (only if velocity component)
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SETALPHA (fab, DIMS(fab), lo, hi, r, DIMS(r), b, 
-     $                           vol, DIMS(vol), denfab, DIMS(den),
-     &                           usehoop,useden)
+!c :: ----------------------------------------------------------
+!c :: SETALPHA
+!c ::             alpha(i,j,k) = vol*(1+b/(r(i)^2)) / density
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  fab       <=  array to be modified
+!c ::  DIMS(fab) => index limits of fab
+!c ::  lo,hi     => index limits of box
+!c ::  r         =>  1-d array of radius
+!c ::  DIMS(r)   => index limits of r
+!c ::  b         =>  viscous coefficient
+!c ::  vol       =>  volume array
+!c ::  DIMS(vol) => index limits of fab
+!c ::  denfab    => array of density at time n+1/2
+!c ::  DIMS(den) => index limits of fab
+!c ::  usehoop   => do we add hoop stress?   NOT IN 3-D
+!c ::  useden    => do we divide by density? (only if velocity component)
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine fort_setalpha (fab, DIMS(fab), lo, hi, r, DIMS(r), b, &
+                                 vol, DIMS(vol), denfab, DIMS(den), &
+                                 usehoop,useden) &
+                                 bind(C,name="fort_setalpha")
 
        implicit none
        integer DIMDEC(fab)
@@ -137,30 +150,31 @@ c ::
           end do
        end if
 
-       end
+       end subroutine fort_setalpha
 
-c :: ----------------------------------------------------------
-c :: SET_TENSOR_ALPHA
-c ::             alpha(i,j) = vol*density
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  fab       <=  array to be modified
-c ::  DIMS(fab) => index limits of fab
-c ::  lo,hi     => index limits of box
-c ::  r         =>  1-d array of radius
-c ::  b         =>  theta*dt or -(1-theta)*dt
-c ::  vol       =>  volume array
-c ::  DIMS(vol) => index limits of fab
-c ::  denfab    => array of density at time n+1/2
-c ::  DIMS(den) => index limits of fab
-c ::  usehoop   => do we add hoop stress?   (only if x-vel component)
-c ::  useden    => do we divide by density? (only if velocity component)
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SET_TENSOR_ALPHA (alpha, DIMS(alpha), lo, hi, r, DIMS(r),
-     $                           b, vol, DIMS(vol),
-     &                           denfab,DIMS(den),betax,DIMS(betax),
-     &                           betay,DIMS(betay),betaz,DIMS(betaz),isrz)
+!c :: ----------------------------------------------------------
+!c :: SET_TENSOR_ALPHA
+!c ::             alpha(i,j) = vol*density
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  fab       <=  array to be modified
+!c ::  DIMS(fab) => index limits of fab
+!c ::  lo,hi     => index limits of box
+!c ::  r         =>  1-d array of radius
+!c ::  b         =>  theta*dt or -(1-theta)*dt
+!c ::  vol       =>  volume array
+!c ::  DIMS(vol) => index limits of fab
+!c ::  denfab    => array of density at time n+1/2
+!c ::  DIMS(den) => index limits of fab
+!c ::  usehoop   => do we add hoop stress?   (only if x-vel component)
+!c ::  useden    => do we divide by density? (only if velocity component)
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine set_tensor_alpha (alpha, DIMS(alpha), lo, hi, r, DIMS(r), &
+                                b, vol, DIMS(vol), &
+                                denfab,DIMS(den),betax,DIMS(betax), &
+                                betay,DIMS(betay),betaz,DIMS(betaz),isrz) &
+                                bind(C,name="set_tensor_alpha")
 
        implicit none
        integer DIMDEC(alpha)
@@ -190,11 +204,11 @@ c ::
              end do
           end do
        end do
+ 
+       end subroutine set_tensor_alpha
 
-       end
-
-      subroutine FORT_DIV_MU_SI(lo, hi, dx, mu, DIMS(divu), divu,
-     &     DIMS(divmusi), divmusi)
+      subroutine div_mu_si (lo, hi, dx, mu, DIMS(divu), divu, &
+          DIMS(divmusi), divmusi) bind(C,name="div_mu_si")
 
       implicit none
 
@@ -213,10 +227,10 @@ c ::
       idx = 1.0d0 / dx(1)
       idy = 1.0d0 / dx(2)
       idz = 1.0d0 / dx(3)
-c
-c ... Note: the following IS correct for r-z. Terms from the hoop stress
-c           cancel with terms from tau_rr to eliminate all r dependence.
-c
+!c
+!c ... Note: the following IS correct for r-z. Terms from the hoop stress
+!c           cancel with terms from tau_rr to eliminate all r dependence.
+!c
       do k=lo(3),hi(3)
          do j=lo(2),hi(2)
             do i=lo(1),hi(1)
@@ -238,11 +252,12 @@ c
          end do
       end do
 
-      end
+      end subroutine div_mu_si
 
-      subroutine FORT_DIV_VARMU_SI(lo, hi, dx, DIMS(divu), divu,
-     &     DIMS(betax), betax, DIMS(betay), betay,  DIMS(betaz), 
-     &     betaz, DIMS(divmusi), divmusi)
+      subroutine div_varmu_si(lo, hi, dx, DIMS(divu), divu, &
+          DIMS(betax), betax, DIMS(betay), betay,  DIMS(betaz),  &
+          betaz, DIMS(divmusi), divmusi)&
+           bind(C,name="div_varmu_si")
 
       implicit none
 
@@ -273,25 +288,25 @@ c
                sleft  = (divu(i-1,j,k)+divu(i,j,k))
                sright = (divu(i+1,j,k)+divu(i,j,k))
 
-               divmusi(i,j,k,1) = (betax(i+1,j,k)*sright-
-     &              betax(i,j,k)*sleft)*idx*half
+               divmusi(i,j,k,1) = (betax(i+1,j,k)*sright- &
+                   betax(i,j,k)*sleft)*idx*half
 
                stp  = (divu(i,j,k)+divu(i,j+1,k))
                sbot = (divu(i,j-1,k)+divu(i,j,k))
 
-               divmusi(i,j,k,2) = (betay(i,j+1,k)*stp-
-     &              betay(i,j,k)*sbot)*idy*half
+               divmusi(i,j,k,2) = (betay(i,j+1,k)*stp- &
+                   betay(i,j,k)*sbot)*idy*half
 
                sfront = (divu(i,j,k)+divu(i,j,k+1))
                sback  = (divu(i,j,k-1)+divu(i,j,k))
 
-               divmusi(i,j,k,3) = (betaz(i,j,k+1)*sfront-
-     &              betaz(i,j,k)*sback)*idz*half
+               divmusi(i,j,k,3) = (betaz(i,j,k+1)*sfront- &
+                   betaz(i,j,k)*sback)*idz*half
 
             end do
          end do
       end do
 
-      end
+      end subroutine div_varmu_si
 
-
+  end module diffusion_3d_module

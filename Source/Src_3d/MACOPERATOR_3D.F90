@@ -11,28 +11,39 @@
 
 #define SDIM 3
 
-c :: ----------------------------------------------------------
-c :: MACCOEF
-c ::             Compute the coefficents for MAC solve
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  cx,cy,cz    <=  edge coef arrays
-c ::  DIMS(cx)     => index limits for cx
-c ::  DIMS(cy)     => index limits for cy
-c ::  DIMS(cz)     => index limits for cz
-c ::  ax,ay,az     => edge based area arrays
-c ::  DIMS(ax)     => index limits for ax
-c ::  DIMS(ay)     => index limits for ay
-c ::  DIMS(az)     => index limits for az
-c ::  rho          => cell centered density array
-c ::  DIMS(rho)    => index limits of rho array
-c ::  lo,hi        => index limits for rhs
-c ::  dx           => cell size
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_MACCOEF (cx,DIMS(cx),cy,DIMS(cy),cz,DIMS(cz),
-     &                          ax,DIMS(ax),ay,DIMS(ay),az,DIMS(az),
-     &                          rho,DIMS(rho),lo,hi,dx)
+module macoperator_3d_module
+  
+  implicit none
+
+  private 
+
+  public maccoef,macrhs, macupdate, macsyncrhs
+  
+contains
+
+!c :: ----------------------------------------------------------
+!c :: MACCOEF
+!c ::             Compute the coefficents for MAC solve
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  cx,cy,cz    <=  edge coef arrays
+!c ::  DIMS(cx)     => index limits for cx
+!c ::  DIMS(cy)     => index limits for cy
+!c ::  DIMS(cz)     => index limits for cz
+!c ::  ax,ay,az     => edge based area arrays
+!c ::  DIMS(ax)     => index limits for ax
+!c ::  DIMS(ay)     => index limits for ay
+!c ::  DIMS(az)     => index limits for az
+!c ::  rho          => cell centered density array
+!c ::  DIMS(rho)    => index limits of rho array
+!c ::  lo,hi        => index limits for rhs
+!c ::  dx           => cell size
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine maccoef (cx,DIMS(cx),cy,DIMS(cy),cz,DIMS(cz), &
+                           ax,DIMS(ax),ay,DIMS(ay),az,DIMS(az), &
+                           rho,DIMS(rho),lo,hi,dx) &
+                           bind(C,name="maccoef")
        implicit none
        integer DIMDEC(cx)
        integer DIMDEC(cy)
@@ -67,11 +78,11 @@ c ::
              end do
           end do
        end do
-!$omp parallel private(i,j,k,rhoavg)
-c
-c      ::::: finish coef in X direction (part 2)
-c
-!$omp do
+
+!c
+!c      ::::: finish coef in X direction (part 2)
+!c
+
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)+1
@@ -80,11 +91,11 @@ c
              end do
           end do
        end do
-!$omp end do nowait
-c
-c      ::::: finish coef in Y direction (part 2)
-c
-!$omp do
+
+!c
+!c      ::::: finish coef in Y direction (part 2)
+!c
+
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)+1
              do i = lo(1), hi(1)
@@ -93,11 +104,11 @@ c
              end do
           end do
        end do
-!$omp end do nowait
-c
-c      ::::: finish coef in Z direction (part 2)
-c
-!$omp do
+
+!c
+!c      ::::: finish coef in Z direction (part 2)
+!c
+
        do k = lo(3), hi(3)+1
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -106,34 +117,35 @@ c
              end do
           end do
        end do
-!$omp end do nowait
-!$omp end parallel
-       end
 
-c :: ----------------------------------------------------------
-c :: MACRHS
-c ::             Compute the RHS for MAC solve
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  ux,uy,uz    <=  edge velocity arrays
-c ::  DIMS(ux)     => index limits for ux
-c ::  DIMS(uy)     => index limits for uy
-c ::  DIMS(uz)     => index limits for uz
-c ::  ax,ay,az     => edge based area arrays
-c ::  DIMS(ax)     => index limits for ax
-c ::  DIMS(ay)     => index limits for ay
-c ::  DIMS(az)     => index limits for az
-c ::  vol          => cell centered volume array
-c ::  DIMS(vol)    => index limits of vol array
-c ::  rhs         <=> cell centered rhs array
-c ::  DIMS(rhs)    => index limits of rhs array
-c ::  lo,hi        => index limits for rhs
-c ::  scale        => scale factor
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_MACRHS (ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz),
-     &                         ax,DIMS(ax),ay,DIMS(ay),az,DIMS(az),
-     &                         vol,DIMS(vol),rhs,DIMS(rhs),lo,hi,scale)
+       end subroutine maccoef
+
+!c :: ----------------------------------------------------------
+!c :: MACRHS
+!c ::             Compute the RHS for MAC solve
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  ux,uy,uz    <=  edge velocity arrays
+!c ::  DIMS(ux)     => index limits for ux
+!c ::  DIMS(uy)     => index limits for uy
+!c ::  DIMS(uz)     => index limits for uz
+!c ::  ax,ay,az     => edge based area arrays
+!c ::  DIMS(ax)     => index limits for ax
+!c ::  DIMS(ay)     => index limits for ay
+!c ::  DIMS(az)     => index limits for az
+!c ::  vol          => cell centered volume array
+!c ::  DIMS(vol)    => index limits of vol array
+!c ::  rhs         <=> cell centered rhs array
+!c ::  DIMS(rhs)    => index limits of rhs array
+!c ::  lo,hi        => index limits for rhs
+!c ::  scale        => scale factor
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine macrhs (ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz), &
+                          ax,DIMS(ax),ay,DIMS(ay),az,DIMS(az), &
+                          vol,DIMS(vol),rhs,DIMS(rhs),lo,hi,scale) &
+                          bind(C,name="macrhs")
+      
        implicit none
        integer DIMDEC(ux)
        integer DIMDEC(uy)
@@ -156,47 +168,46 @@ c ::
 
        integer i, j, k
        REAL_T  divu
-c
-c      ::::: rhs holds the divergence condition (possibly zero)
-c
-!$omp parallel do private(i,j,k,divu)
+!c
+!c      ::::: rhs holds the divergence condition (possibly zero)
+!c
+
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                divu = ax(i+1,j,k)*ux(i+1,j,k) - ax(i,j,k)*ux(i,j,k)
-     &               + ay(i,j+1,k)*uy(i,j+1,k) - ay(i,j,k)*uy(i,j,k)
-     &               + az(i,j,k+1)*uz(i,j,k+1) - az(i,j,k)*uz(i,j,k)
+                divu = ax(i+1,j,k)*ux(i+1,j,k) - ax(i,j,k)*ux(i,j,k) &
+                    + ay(i,j+1,k)*uy(i,j+1,k) - ay(i,j,k)*uy(i,j,k) &
+                    + az(i,j,k+1)*uz(i,j,k+1) - az(i,j,k)*uz(i,j,k)
                 rhs(i,j,k) = scale*(divu - vol(i,j,k)*rhs(i,j,k))
              end do
           end do
        end do
-!$omp end parallel do
 
-       end
+       end subroutine macrhs
 
-c :: ----------------------------------------------------------
-c :: MACUPDATE
-c ::             Compute the update to velocity field to
-c ::             make it divergence free
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  ux,uy,uz    <=  edge based velocity arrays
-c ::  DIMS(ux)     => index limits for ux
-c ::  DIMS(uy)     => index limits for uy
-c ::  DIMS(uz)     => index limits for uz
-c ::  phi          => soln from MAC project
-c ::  DIMS(phi)    => index limits for phi
-c ::  rho          => density at time N
-c ::  DIMS(rho)    => index limits for rho
-c ::  dx           => cell size
-c ::  mult         => scalar multiplier
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_MACUPDATE(
-     &     init,
-     &     ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz),
-     &     phi,DIMS(phi),rho,DIMS(rho),
-     &     lo,hi,dx,mult)
+!c :: ----------------------------------------------------------
+!c :: MACUPDATE
+!c ::             Compute the update to velocity field to
+!c ::             make it divergence free
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  ux,uy,uz    <=  edge based velocity arrays
+!c ::  DIMS(ux)     => index limits for ux
+!c ::  DIMS(uy)     => index limits for uy
+!c ::  DIMS(uz)     => index limits for uz
+!c ::  phi          => soln from MAC project
+!c ::  DIMS(phi)    => index limits for phi
+!c ::  rho          => density at time N
+!c ::  DIMS(rho)    => index limits for rho
+!c ::  dx           => cell size
+!c ::  mult         => scalar multiplier
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine macupdate( &
+          init, &
+          ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz), &
+          phi,DIMS(phi),rho,DIMS(rho), &
+          lo,hi,dx,mult)bind(C,name="macupdate")
 
        implicit none
        integer DIMDEC(ux)
@@ -215,9 +226,9 @@ c ::
 
        integer i, j, k
        REAL_T  rhoavg, gp, idx, idy, idz
-c
-c     set gradient to zero if initializing
-c
+!c
+!c     set gradient to zero if initializing
+!c
        if ( init .eq. 1 ) then
           do k = ARG_L3(ux), ARG_H3(ux)
              do j = ARG_L2(ux), ARG_H2(ux)
@@ -246,11 +257,9 @@ c
        idy = 1.0d0 / dx(2)
        idz = 1.0d0 / dx(3)
 
-!$omp parallel private(i,j,k,rhoavg,gp)
-c
-c      compute x MAC gradient
-c
-!$omp do
+!c
+!c      compute x MAC gradient
+!c
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)+1
@@ -260,11 +269,9 @@ c
              end do
           end do
        end do
-!$omp end do nowait
-c     
-c     compute y mac gradient
-c
-!$omp do
+!c     
+!c     compute y mac gradient
+!c
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)+1
              do i = lo(1),hi(1)
@@ -274,11 +281,9 @@ c
              end do
           end do
        end do
-!$omp end do nowait
-c       
-c     compute z mac gradient
-c
-!$omp do
+!c       
+!c     compute z mac gradient
+!c
        do k = lo(3),hi(3)+1
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -288,24 +293,25 @@ c
              end do
           end do
        end do
-!$omp end do nowait
-!$omp end parallel
-       end
 
-c :: ----------------------------------------------------------
-c :: MACSYNCRHS
-c ::        Modify the RHS for MAC SYNC solve
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  rhs         <=  right hand side array
-c ::  lo,hi        => index limits for rhs
-c ::  vol          => cell centered volume array
-c ::  vlo,vhi      => index limits of vol array
-c ::  rhsscale     => const multiplier to rhs
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_MACSYNCRHS(rhs,DIMS(rhs),lo,hi,
-     &                            vol,DIMS(vol),rhsscale)
+       end subroutine macupdate
+
+!c :: ----------------------------------------------------------
+!c :: MACSYNCRHS
+!c ::        Modify the RHS for MAC SYNC solve
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rhs         <=  right hand side array
+!c ::  lo,hi        => index limits for rhs
+!c ::  vol          => cell centered volume array
+!c ::  vlo,vhi      => index limits of vol array
+!c ::  rhsscale     => const multiplier to rhs
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine macsyncrhs(rhs,DIMS(rhs),lo,hi, &
+                                  vol,DIMS(vol),rhsscale) &
+                                  bind(C,name="macsyncrhs")
+                                  
        implicit none
        integer DIMDEC(rhs)
        integer DIMDEC(vol)
@@ -315,11 +321,11 @@ c ::
        REAL_T  vol(DIMV(vol))
 
        integer i, j, k
-c
-c      ::::: multiply by volume since reflux step (which computed rhs)
-c      ::::: divided by volume.
-c
-!$omp parallel do private(i,j,k)
+!c
+!c      ::::: multiply by volume since reflux step (which computed rhs)
+!c      ::::: divided by volume.
+!c
+
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -327,6 +333,7 @@ c
              end do
           end do
        end do
-!$omp end parallel do
+       
+       end subroutine macsyncrhs
 
-       end
+end module macoperator_3d_module

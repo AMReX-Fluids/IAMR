@@ -21,7 +21,7 @@ module godunov_2d_module
 
   private 
 
-  public fort_estdt, fort_maxchng_velmag,fort_test_u_rho, &
+  public :: fort_estdt, fort_maxchng_velmag,fort_test_u_rho, &
        fort_test_umac_rho, transvel,estate,estate_fpu,&
        estate_bds, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax,&

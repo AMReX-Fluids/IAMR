@@ -17,17 +17,34 @@
 #define SMALL 1.0d-10
 #endif
 
-      subroutine FORT_EXTRAP_MAC(DIMS(u0),u0,DIMS(u1),u1,DIMS(u2),u2,DIMS(div),
-     &                           divu,DIMS(rho),rho,
-     &                           DIMS(divuExt),divuExt,DIMS(rhoExt),rhoExt,
-     &                           dx,lo,hi,face,per,zeroIt,small_udiff)
-c
-c     Compute the value of phi for macproj 
-c     assuming that the tangential velocity on the edges of the outflow boundary
-c     are either zero or periodic.
-c     note that u is edge centered
+module macoutflowbc_3d_module
+  
+  implicit none
 
-c    compute divu_ave twice due to precision problems
+  private 
+
+  public :: extrap_mac, compute_maccoeff, macrelax, &
+            macresid, mac_shift_phi, &
+            mac_reshift_phi, solvemac, makemacdgphi, coarsigma, &
+            outflowbc_restrict, fort_interpolate, macfill_twod
+            
+contains
+
+
+      subroutine extrap_mac(DIMS(u0),u0,DIMS(u1),u1,DIMS(u2),u2,DIMS(div), &
+                            divu,DIMS(rho),rho, &
+                            DIMS(divuExt),divuExt,DIMS(rhoExt),rhoExt, &
+                            dx,lo,hi,face,per,zeroIt,small_udiff) &
+                            bind(C,name="extrap_mac")
+!c
+!c     Compute the value of phi for macproj 
+!c     assuming that the tangential velocity on the edges of the outflow boundary
+!c     are either zero or periodic.
+!c     note that u is edge centered
+
+!c    compute divu_ave twice due to precision problems
+
+      use projoutflowbc_3d_module, only : subtractavg
 
       implicit none
 
@@ -52,7 +69,7 @@ c    compute divu_ave twice due to precision problems
       integer face
       REAL_T small_udiff
 
-c     Local variables
+!c     Local variables
       REAL_T small_pert
       parameter ( small_pert = SMALL)
       REAL_T max_divu, min_divu, max_pert
@@ -63,14 +80,14 @@ c     Local variables
       integer ics,ice,jcs,jce,kcs,kce
       integer ifs,ife,jfs,jfe,kfs,kfe
       integer if,jf,kf
-c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
-c             (1) Linear fit of rho between nodes
-c             (2) rho, divu on same boxes (box)
-c             (3) phi is on box, shifted up one
-c             (4) u is edge-based, on surroundingNodes(box)
+!c     NOTE: Assumes that rho at edge between i, i-1 = half*(rho(i)+rho(i-1))
+!c             (1) Linear fit of rho between nodes
+!c             (2) rho, divu on same boxes (box)
+!c             (3) phi is on box, shifted up one
+!c             (4) u is edge-based, on surroundingNodes(box)
 
-c     Compute average of divu over outflow bc.  Set trivial solution if average
-c     is zero, or if divu is constant
+!c     Compute average of divu over outflow bc.  Set trivial solution if average
+!c     is zero, or if divu is constant
 #define XLO 0
 #define YLO 1
 #define ZLO 2
@@ -110,12 +127,12 @@ c     is zero, or if divu is constant
          end do
          end do
 
-c        Here we modify divuExt to include the velocity terms.
+!c        Here we modify divuExt to include the velocity terms.
          do k = kcs, kce
          do j = jcs, jce
-            divuExt(j,k,if) = divuExt(j,k,if) 
-     $        - (u1(ics,j+1,k)-u1(ics,j,k))/hy 
-     $        - (u2(ics,j,k+1)-u2(ics,j,k))/hz 
+            divuExt(j,k,if) = divuExt(j,k,if)  &
+             - (u1(ics,j+1,k)-u1(ics,j,k))/hy  &
+             - (u2(ics,j,k+1)-u2(ics,j,k))/hz 
          end do
          end do
 
@@ -129,7 +146,7 @@ c        Here we modify divuExt to include the velocity terms.
          end do
          end do
 
-c        Make sure u_mac is periodic
+!c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u1(ics,jcs,kcs)-u1(ics,jce+1,kcs))
            do k = kcs, kce
@@ -164,12 +181,12 @@ c        Make sure u_mac is periodic
          end do
          end do
 
-c        Here we modify divuExt to include the velocity terms.
+!c        Here we modify divuExt to include the velocity terms.
          do k = kcs, kce
          do i = ics, ice
-            divuExt(i,k,jf) = divuExt(i,k,jf)
-     $        - (u0(i+1,jcs,k)-u0(i,jcs,k))/hx
-     $        - (u2(i,jcs,k+1)-u2(i,jcs,k))/hz
+            divuExt(i,k,jf) = divuExt(i,k,jf) &
+             - (u0(i+1,jcs,k)-u0(i,jcs,k))/hx &
+             - (u2(i,jcs,k+1)-u2(i,jcs,k))/hz
          end do
          end do
 
@@ -182,7 +199,7 @@ c        Here we modify divuExt to include the velocity terms.
          end do
          end do
 
-c        Make sure u_mac is periodic
+!c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jcs,kcs)-u0(ice+1,jcs,kcs))
            do k = kcs, kce
@@ -217,12 +234,12 @@ c        Make sure u_mac is periodic
          end do
          end do
 
-c        Here we modify divuExt to include the velocity terms.
+!c        Here we modify divuExt to include the velocity terms.
          do j = jcs, jce
          do i = ics, ice
-            divuExt(i,j,kf) = divuExt(i,j,kf)
-     $        - (u0(i+1,j,kcs)-u0(i,j,kcs))/hx
-     $        - (u1(i,j+1,kcs)-u1(i,j,kcs))/hy
+            divuExt(i,j,kf) = divuExt(i,j,kf) &
+             - (u0(i+1,j,kcs)-u0(i,j,kcs))/hx &
+             - (u1(i,j+1,kcs)-u1(i,j,kcs))/hy
          end do
          end do
 
@@ -235,7 +252,7 @@ c        Here we modify divuExt to include the velocity terms.
          end do
          end do
 
-c        Make sure u_mac is periodic
+!c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jcs,kcs)-u0(ice+1,jcs,kcs))
            do j = jcs, jce
@@ -273,9 +290,9 @@ c        Make sure u_mac is periodic
 
          do k = kcs, kce
          do j = jcs, jce
-            divuExt(j,k,if) = divuExt(j,k,if) 
-     $        - (u1(ice,j+1,k)-u1(ice,j,k))/hy 
-     $        - (u2(ice,j,k+1)-u2(ice,j,k))/hz 
+            divuExt(j,k,if) = divuExt(j,k,if) &
+             - (u1(ice,j+1,k)-u1(ice,j,k))/hy  &
+             - (u2(ice,j,k+1)-u2(ice,j,k))/hz 
          end do
          end do
 
@@ -289,7 +306,7 @@ c        Make sure u_mac is periodic
          end do
          end do
 
-c        Make sure u_mac is periodic
+!c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u1(ice,jcs,kcs)-u1(ice,jce+1,kcs))
            do k = kcs, kce
@@ -327,9 +344,9 @@ c        Make sure u_mac is periodic
 
          do k = kcs, kce
          do i = ics, ice
-            divuExt(i,k,jf) = divuExt(i,k,jf)
-     $        - (u0(i+1,jce,k)-u0(i,jce,k))/hx
-     $        - (u2(i,jce,k+1)-u2(i,jce,k))/hz
+            divuExt(i,k,jf) = divuExt(i,k,jf) &
+             - (u0(i+1,jce,k)-u0(i,jce,k))/hx &
+             - (u2(i,jce,k+1)-u2(i,jce,k))/hz
          end do
          end do
 
@@ -342,7 +359,7 @@ c        Make sure u_mac is periodic
          end do
          end do
 
-c        Make sure u_mac is periodic
+!c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jce,kcs)-u0(ice+1,jce,kcs))
            do k = kcs, kce
@@ -378,12 +395,12 @@ c        Make sure u_mac is periodic
          end do
          end do
 
-c        Here we modify divuExt to include the velocity terms.
+!c        Here we modify divuExt to include the velocity terms.
          do j = jcs, jce
          do i = ics, ice
-            divuExt(i,j,kf) = divuExt(i,j,kf)
-     $        - (u0(i+1,j,kce)-u0(i,j,kce))/hx
-     $        - (u1(i,j+1,kce)-u1(i,j,kce))/hy
+            divuExt(i,j,kf) = divuExt(i,j,kf) &
+             - (u0(i+1,j,kce)-u0(i,j,kce))/hx &
+             - (u1(i,j+1,kce)-u1(i,j,kce))/hy
          end do
          end do
 
@@ -396,7 +413,7 @@ c        Here we modify divuExt to include the velocity terms.
          end do
          end do
 
-c        Make sure u_mac is periodic
+!c        Make sure u_mac is periodic
          if (per(1) .eq. 1) then
            diff = abs(u0(ics,jcs,kce)-u0(ice+1,jcs,kce))
            do j = jcs, jce
@@ -420,77 +437,17 @@ c        Make sure u_mac is periodic
 
       endif
 
-c  check to see if we should zero phi
+!c  check to see if we should zero phi
          max_pert = max_pert/(ABS(divu_ave1+divu_ave2)+small_pert)
-      if ((max_divu.eq.zero.and.min_divu.eq.zero)
-     &     .or.(max_pert.le.small_pert)) then
+      if ((max_divu.eq.zero.and.min_divu.eq.zero) &
+          .or.(max_pert.le.small_pert)) then
          zeroIt = 1
       end if
 
-      end
+      end subroutine extrap_mac
 
 
-      subroutine subtractavg(DIMS(divu),divu,lo,hi,divu_ave,face)
-      implicit none
-      integer DIMDEC(divu)
-      integer lo(SDIM),hi(SDIM)
-      REAL_T divu_ave
-      REAL_T divu(DIMV(divu))
-      integer face
 
-      integer i,j,k
-      REAL_T vtot
-
-      divu_ave = zero
-      vtot = zero
-
-      if (face .eq. XLO .or. face .eq. XHI) then
-         i = lo(1)
-         do k = lo(3),hi(3)
-            do j=lo(2),hi(2)
-               vtot = vtot+one
-               divu_ave = divu_ave+divu(j,k,i)
-            enddo
-         enddo
-         divu_ave = divu_ave/vtot
-         do k = lo(3),hi(3)
-            do j=lo(2),hi(2)
-               divu(j,k,i) = divu(j,k,i) - divu_ave
-            enddo
-         enddo
-      elseif (face .eq. YLO .or. face .eq. YHI) then
-         j = lo(2)
-         do k = lo(3),hi(3)
-            do i=lo(1),hi(1)
-               vtot = vtot+one
-               divu_ave = divu_ave+divu(i,k,j)
-            enddo
-         enddo
-         divu_ave = divu_ave/vtot
-         do k = lo(3),hi(3)
-            do i=lo(1),hi(1)
-               divu(i,k,j) = divu(i,k,j) - divu_ave
-            enddo
-         enddo
-      elseif(face .eq. ZLO .or. face .eq. ZHI) then
-         k = lo(3)
-         do j=lo(2),hi(2)
-            do i=lo(1),hi(1)
-               vtot = vtot+one
-               divu_ave = divu_ave+divu(i,j,k)
-            enddo
-         enddo
-         divu_ave = divu_ave/vtot
-         do j=lo(2),hi(2)
-            do i=lo(1),hi(1)
-               divu(i,j,k) = divu(i,j,k) - divu_ave
-            enddo
-         enddo
-      else 
-         print*, "bad length"
-      endif
-
-      end
 
 #undef XLO
 #undef YLO
@@ -499,10 +456,12 @@ c  check to see if we should zero phi
 #undef YHI
 #undef ZHI
 
-      subroutine FORT_COMPUTE_MACCOEFF(DIMS(rhs),rhs,
-     &     DIMS(beta0),beta0,DIMS(beta1),beta1,
-     &     DIMS(divuExt),divuExt,
-     &     DIMS(rhoExt),rhoExt,lo,hi,h,isPeriodic)
+      subroutine compute_maccoeff  (DIMS(rhs),rhs, &
+                    DIMS(beta0),beta0,DIMS(beta1),beta1, &
+                    DIMS(divuExt),divuExt, &
+                    DIMS(rhoExt),rhoExt,lo,hi,h,isPeriodic)&
+                    bind(C, name="compute_maccoeff")
+                    
       implicit none
       integer DIMDEC(rhs)
       integer DIMDEC(beta0)
@@ -567,7 +526,7 @@ c  check to see if we should zero phi
          enddo
       endif
 
-      end
+      end subroutine compute_maccoeff
 
 
 #define DGXY (hxsqinv*(beta0(i+1,j)*(phi(i+1,j)-phi(i  ,j))      \
@@ -575,9 +534,13 @@ c  check to see if we should zero phi
               hysqinv*(beta1(i,j+1)*(phi(i,j+1)-phi(i,j))        \
                       -beta1(i,j  )*(phi(i,j  )-phi(i,j-1))))
 
-      subroutine FORT_MACRELAX(DIMS(rhs),rhs,DIMS(beta0),beta0,
-     &                         DIMS(beta1),beta1,DIMS(phi),phi,
-     &                         lo,hi,h,isPeriodic,niter)
+      subroutine macrelax (DIMS(rhs),rhs,DIMS(beta0),beta0, &
+                           DIMS(beta1),beta1,DIMS(phi),phi, &
+                           lo,hi,h,isPeriodic,niter) &
+                           bind(C, name="macrelax")
+                           
+      use projoutflowbc_3d_module, only : setmacbc
+      
       implicit none
       integer DIMDEC(beta0)
       integer DIMDEC(beta1)
@@ -591,7 +554,7 @@ c  check to see if we should zero phi
       REAL_T h(SDIM)
       integer lo(SDIM),hi(SDIM)
 
-c Local variables
+!c Local variables
       integer ics,ice,jcs,jce
       logical setSingularPoint
       integer i,j,iter
@@ -608,7 +571,7 @@ c Local variables
       jcs = lo(2)
       jce = hi(2)
 
-      if (h(2). gt. 1.5D0*h(1)) then
+      if (h(2) .gt. 1.5D0*h(1)) then
         call bl_abort("line solve for mac not yet implemented")
       else if (h(1) .gt. 1.5D0*h(2)) then
         call bl_abort("line solve for mac not yet implemented")
@@ -623,8 +586,8 @@ c Local variables
                iinc = mod(j+redblack,2)
                do i=ics+iinc,ice,2
                   dg = DGXY 
-                  lam = -one/(hxsqinv*(beta0(i,j)+beta0(i+1,j))
-     &                 +hysqinv*(beta1(i,j)+beta1(i,j+1)))
+                  lam = -one/(hxsqinv*(beta0(i,j)+beta0(i+1,j)) &
+                      +hysqinv*(beta1(i,j)+beta1(i,j+1)))
                   phi(i,j) = phi(i,j) + lam*(rhs(i,j)-dg)
                enddo
             end do
@@ -632,50 +595,15 @@ c Local variables
          enddo
       end do
       
-      end
+      end subroutine macrelax
 
-      subroutine FORT_MACSUBTRACTAVGPHI(DIMS(phi),phi,lo,hi,isPeriodic)
-      implicit none
-      integer DIMDEC(phi)
-      REAL_T phi(DIM12(phi))
-      integer lo(SDIM),hi(SDIM)
-      integer isPeriodic(SDIM)
+ 
 
-      REAL_T phitot,vtot
-      integer ics,ice,jcs,jce
-      integer i,j
-      logical setSingularPoint
-
-      ics = lo(1)
-      ice = hi(1)
-      jcs = lo(2)
-      jce = hi(2)
-      setSingularPoint = .false.
-
-      phitot = zero
-      vtot   = zero
-
-      do j=jcs,jce
-      do i=ics,ice
-         phitot = phitot+phi(i,j)
-         vtot = vtot + one
-      enddo
-      enddo
-      phitot = phitot/vtot
-
-      do j=jcs,jce
-      do i=ics,ice
-         phi(i,j) = phi(i,j) - phitot
-      enddo
-      enddo
-
-      call setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
-
-      end
-
-      subroutine FORT_MACRESID(DIMS(rhs),rhs,DIMS(beta0),beta0,
-     &                    DIMS(beta1),beta1,DIMS(phi),phi,
-     &                    DIMS(resid),resid,lo,hi,h,isPeriodic,maxnorm)
+      subroutine macresid(DIMS(rhs),rhs,DIMS(beta0),beta0, &
+                          DIMS(beta1),beta1,DIMS(phi),phi, &
+                          DIMS(resid),resid,lo,hi,h,isPeriodic,maxnorm) &
+                          bind(C,name="macresid")
+           
       implicit none
       integer DIMDEC(beta0)
       integer DIMDEC(beta1)
@@ -706,56 +634,14 @@ c Local variables
          enddo
       enddo
 
-      end
+      end subroutine macresid
 
 
-      subroutine setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
-      implicit none
-      integer DIMDEC(phi)
-      REAL_T phi(DIM12(phi))
-      integer lo(SDIM),hi(SDIM)
-      integer isPeriodic(SDIM)
-      logical setSingularPoint
       
-      integer ics,ice,jcs,jce
-      integer i,j
 
-      ics = lo(1)
-      ice = hi(1)
-      jcs = lo(2)
-      jce = hi(2)
-
-      if (isPeriodic(1) .NE. 1 .AND. isPeriodic(2) .NE. 1 .AND. setSingularPoint) then
-         phi(ice,jce) = zero
-      endif
-
-      if (isPeriodic(1) .eq. 1) then
-         do j=jcs,jce
-            phi(ics-1,j) = phi(ice,j)
-            phi(ice+1,j) = phi(ics,j)
-         enddo
-      else
-         do j=jcs,jce
-            phi(ics-1,j) = phi(ics,j)
-            phi(ice+1,j) = phi(ice,j)
-         enddo
-      endif
-      
-      if (isPeriodic(2) .eq. 1) then
-         do i=ics,ice
-            phi(i,jcs-1) = phi(i,jce)
-            phi(i,jce+1) = phi(i,jcs)
-         enddo
-      else
-         do i=ics,ice
-            phi(i,jcs-1) = phi(i,jcs)
-            phi(i,jce+1) = phi(i,jce)
-         enddo
-      endif
-
-      end
-
-      subroutine FORT_MAC_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+      subroutine mac_shift_phi(DIMS(out),out,DIMS(in),in,face) &
+                               bind(C,name="mac_shift_phi")
+         
       implicit none
       integer face
       integer DIMDEC(in)
@@ -802,10 +688,12 @@ c Local variables
 #undef YHI
 #undef ZHI
 
-      end
+      end subroutine mac_shift_phi
 
 
-      subroutine FORT_MAC_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+      subroutine mac_reshift_phi(DIMS(out),out,DIMS(in),in,face) &
+                                 bind(C,name="mac_reshift_phi")
+         
       implicit none
       integer face
       integer DIMDEC(in)
@@ -852,15 +740,18 @@ c Local variables
 #undef YHI
 #undef ZHI
 
-      end
+      end subroutine mac_reshift_phi
 
-      subroutine FORT_SOLVEMAC(p, DIMS(p),dest0, DIMS(dest0),
-     &                         source,DIMS(source), sigmax, DIMS(sigmax),
-     &                         sigmay,DIMS(sigmay), cen, DIMS(cen),
-     $                         r,DIMS(r), w, DIMS(w),z, DIMS(z),
-     &                         x, DIMS(x),lo, hi, h,
-     $                         isPeriodic, maxiter,tol, abs_tol,max_jump,norm)
+      subroutine solvemac(p, DIMS(p),dest0, DIMS(dest0), &
+                          source,DIMS(source), sigmax, DIMS(sigmax), &
+                          sigmay,DIMS(sigmay), cen, DIMS(cen), &
+                          r,DIMS(r), w, DIMS(w),z, DIMS(z), &
+                          x, DIMS(x),lo, hi, h, &
+                          isPeriodic, maxiter,tol, abs_tol,max_jump,norm) &
+                          bind(C,name="solvemac")
 
+      use projoutflowbc_3d_module, only : setmacbc
+      
       implicit none
 
       integer lo(SDIM),hi(SDIM)
@@ -891,7 +782,7 @@ c Local variables
       integer maxiter
       REAL_T abs_tol,max_jump
 
-c     Local variables
+!c     Local variables
       integer i,j,iter
       integer istart,iend,jstart,jend
       REAL_T alpha, beta, rho, rho_old
@@ -920,8 +811,8 @@ c     Local variables
       enddo
 
       call setmacbc(DIMS(dest0),dest0,lo,hi,isPeriodic,setSingularPoint)
-      call makemacdgphi(dest0,DIMS(dest0),w,DIMS(w),sigmax,DIMS(sigmax),
-     &               sigmay,DIMS(sigmay),lo,hi,h,isPeriodic,setSingularPoint)
+      call makemacdgphi(dest0,DIMS(dest0),w,DIMS(w),sigmax,DIMS(sigmax), &
+                        sigmay,DIMS(sigmay),lo,hi,h,isPeriodic,setSingularPoint)
 
       do j = jstart, jend 
         do i = istart, iend 
@@ -969,8 +860,8 @@ c     Local variables
       enddo
 
       call setmacbc(DIMS(p),p,lo,hi,isPeriodic,setSingularPoint)
-      call makemacdgphi(p,DIMS(p),w,DIMS(w),sigmax,DIMS(sigmax),
-     &               sigmay,DIMS(sigmay),lo,hi,h,isPeriodic,setSingularPoint)
+      call makemacdgphi(p,DIMS(p),w,DIMS(w),sigmax,DIMS(sigmax), &
+                        sigmay,DIMS(sigmay),lo,hi,h,isPeriodic,setSingularPoint)
 
       alpha = zero
       do j = jstart, jend 
@@ -994,7 +885,7 @@ c     Local variables
       enddo
 
       iter = iter+1
-c      write(6,*) iter,norm
+!c      write(6,*) iter,norm
 
       if (iter .gt. maxiter .or. norm .gt. max_jump*norm0) then
          
@@ -1029,11 +920,12 @@ c      write(6,*) iter,norm
       endif
 
       return
-      end
+      end subroutine solvemac
 
-      subroutine makemacdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),
-     &                     beta0,DIMS(beta0),beta1,DIMS(beta1),
-     &                     lo,hi,h,isPeriodic,setSingularPoint)
+      subroutine makemacdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi), &
+                          beta0,DIMS(beta0),beta1,DIMS(beta1), &
+                          lo,hi,h,isPeriodic,setSingularPoint)
+                          
       implicit none
 
       integer DIMDEC(phi)
@@ -1061,18 +953,18 @@ c      write(6,*) iter,norm
         enddo
       enddo
 
-      end
+      end subroutine makemacdgphi
 
 
 
-c *************************************************************************
-c ** COARSIGMA **
-c ** Coarsen the edge-based sigma coefficients
-c *************************************************************************
+!c *************************************************************************
+!c ** COARSIGMA **
+!c ** Coarsen the edge-based sigma coefficients
+!c *************************************************************************
 
-      subroutine FORT_COARSIGMA(sigmax,DIMS(sigmax),sigmay,DIMS(sigmay),
-     &                          sigmaxc,DIMS(sigmaxc),sigmayc,DIMS(sigmayc),
-     &                          lo,hi,loc,hic)
+      subroutine coarsigma(sigmax,DIMS(sigmax),sigmay,DIMS(sigmay), &
+                           sigmaxc,DIMS(sigmaxc),sigmayc,DIMS(sigmayc), &
+                           lo,hi,loc,hic) bind(C,name="coarsigma")
 
       implicit none
       integer lo(SDIM),hi(SDIM)
@@ -1086,7 +978,7 @@ c *************************************************************************
       REAL_T sigmaxc(DIM12(sigmaxc))
       REAL_T sigmayc(DIM12(sigmayc))
 
-c     Local variables
+!c     Local variables
       integer i,j,twoi,twoj
 
       do j = loc(2),hic(2) 
@@ -1107,15 +999,15 @@ c     Local variables
 
 
       return
-      end
+      end subroutine coarsigma
 
-c *************************************************************************
-c ** RESTRICT **
-c ** Conservatively average the residual
-c *************************************************************************
+!c *************************************************************************
+!c ** RESTRICT **
+!c ** Conservatively average the residual
+!c *************************************************************************
 
-      subroutine FORT_RESTRICT(res,DIMS(res),resc,DIMS(resc),
-     &                         lo,hi,loc,hic)
+      subroutine outflowbc_restrict(res,DIMS(res),resc,DIMS(resc), &
+                          lo,hi,loc,hic) bind(C, name="outflowbc_restrict")
 
       implicit none
       integer lo(SDIM),hi(SDIM)
@@ -1125,31 +1017,31 @@ c *************************************************************************
       REAL_T  res(DIM12(res))
       REAL_T resc(DIM12(resc))
 
-c     Local variables
+!c     Local variables
       integer i,j,twoi,twoj
 
-c ::: NOTE: dont need factor of r here for volume-weighting because
-c ::: what were calling the residual is really already r*residual
+!c ::: NOTE: dont need factor of r here for volume-weighting because
+!c ::: what were calling the residual is really already r*residual
 
       do j = loc(2),hic(2) 
         do i = loc(1),hic(1) 
           twoi = 2*(i-loc(1))+lo(1)
           twoj = 2*(j-loc(2))+lo(2)
-          resc(i,j) = ((res(twoi  ,twoj) + res(twoi  ,twoj+1)) + 
-     $                 (res(twoi+1,twoj) + res(twoi+1,twoj+1)))*fourth
+          resc(i,j) = ((res(twoi  ,twoj) + res(twoi  ,twoj+1)) + &
+                      (res(twoi+1,twoj) + res(twoi+1,twoj+1)))*fourth
         enddo
       enddo
 
       return
-      end
+      end subroutine outflowbc_restrict
 
-c *************************************************************************
-c ** INTERPOLATE **
-c ** Piecewise constant interpolation
-c *************************************************************************
+!c *************************************************************************
+!c ** INTERPOLATE **
+!c ** Piecewise constant interpolation
+!c *************************************************************************
 
-      subroutine FORT_INTERPOLATE(phi,DIMS(phi),deltac,DIMS(deltac),
-     &                            lo,hi,loc,hic)
+      subroutine fort_interpolate(phi,DIMS(phi),deltac,DIMS(deltac), &
+                             lo,hi,loc,hic) bind(C,name="fort_interpolate")
 
       implicit none
       integer lo(SDIM),hi(SDIM)
@@ -1159,7 +1051,7 @@ c *************************************************************************
       REAL_T    phi(DIM12(phi))
       REAL_T deltac(DIM12(deltac))
 
-c     Local variables
+!c     Local variables
       integer i,j,twoi,twoj
 
       do j = loc(2), hic(2) 
@@ -1176,14 +1068,15 @@ c     Local variables
       enddo
 
       return
-      end
+      end subroutine fort_interpolate
 
-c *************************************************************************
-c ** MACFILL_TWOD **
-c *************************************************************************
+!c *************************************************************************
+!c ** MACFILL_TWOD **
+!c *************************************************************************
 
-      subroutine FORT_MACFILL_TWOD(lenx,leny,length,width,faces,numOutFlowFaces,
-     $                             cc0,cc1,cc2,cc3,cc4,cc5,conn)
+      subroutine macfill_twod(lenx,leny,length,width,faces,numOutFlowFaces,&
+                              cc0,cc1,cc2,cc3,cc4,cc5,conn) &
+                              bind(C, name="macfill_twod")
 
       implicit none
       integer lenx,leny,length,width
@@ -1208,7 +1101,7 @@ c *************************************************************************
 #define YHI 4
 #define ZHI 5
 
-c     Want to find any non-outflow faces.
+!c     Want to find any non-outflow faces.
       xlo_outflow = 0
       ylo_outflow = 0
       zlo_outflow = 0
@@ -1225,17 +1118,18 @@ c     Want to find any non-outflow faces.
         if (faces(i) .eq. ZHI) zhi_outflow = 1
       enddo
 
-c     Possible combinations of faces to come in here:
-c       cc0 cc1 cc2 cc3
-c       XLO YLO
-c       XLO         YHI
-c           YLO XHI
-c           YLO     YHI
-c       XLO YLO XHI
-c       XLO     XHI YHI
-c       XLO YLO     YHI
-c           YLO XHI YHI
-c       XLO YLO XHI YHI
+!c     Possible combinations of faces to come in here:
+!c       cc0 cc1 cc2 cc3
+!c       XLO YLO
+!c       XLO         YHI
+!c           YLO XHI
+!c           YLO     YHI
+!c       XLO YLO XHI
+!c       XLO     XHI YHI
+!c       XLO YLO     YHI
+!c           YLO XHI YHI
+!c       XLO YLO XHI YHI
 
-       end
-
+       end  subroutine macfill_twod
+       
+  end module macoutflowbc_3d_module

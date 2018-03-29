@@ -24,7 +24,7 @@ module projoutflowbc_2d_module
 
   private 
 
-  public  extrap_proj, hgrelax, hgsubtractavgphi, &
+  public ::  extrap_proj, hgrelax, hgsubtractavgphi, &
        hgresid, hg_shift_phi, hg_reshift_phi, &
        solvehg, coarsig, fort_restrict, interp, &
        hgphibc, oldhgphibc, rhogbc, fill_oned,&
