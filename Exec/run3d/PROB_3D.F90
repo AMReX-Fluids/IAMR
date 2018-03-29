@@ -39,10 +39,10 @@ module prob_3D_module
             initcoriolis, initheating, initgravitycurrent, &
             initrayleightaylor, initraneul, initdenadvect, &
             initshearlayer, initiwpctm, FORT_AVERAGE_EDGE_STATES, &
-            FORT_MAKEFORCE, &
+            FORT_MAKEFORCE, FORT_DSDTFILL, &
             FORT_ADVERROR, FORT_ADV2ERROR, FORT_TEMPERROR, FORT_MVERROR, &
             FORT_DENFILL, FORT_ADVFILL, FORT_TEMPFILL, FORT_XVELFILL, &
-            FORT_YVELFILL, FORT_PRESFILL, FORT_DIVUFILL, FORT_DSDTFILL
+            FORT_YVELFILL, FORT_ZVELFILL, FORT_PRESFILL, FORT_DIVUFILL
 
 contains      
       

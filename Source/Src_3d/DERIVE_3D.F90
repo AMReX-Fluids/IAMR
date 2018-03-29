@@ -4468,6 +4468,8 @@ contains
       subroutine dermgdivu (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp, &
                                 lo,hi,domlo,domhi,delta,xlo,time,dt, &
                                 bc,level,grid_no) bind(C, name="dermgdivu")
+      
+      use prob_3D_module, only : FORT_XVELFILL, FORT_YVELFILL, FORT_ZVELFILL
       implicit none
 !c
 !c ::: This routine will derive magnitude of the divergence of velocity
@@ -4743,7 +4745,7 @@ contains
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 !c
-      call FORT_GRADP_DIR ( &
+      call gradp_dir ( &
           dat,DIMS(dat),grdpx,DIMS(gp), &
           lo,hi,0,delta(1))
 
@@ -4768,7 +4770,7 @@ contains
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 !c
-      call FORT_GRADP_DIR ( &
+      call gradp_dir ( &
           dat,DIMS(dat),grdpy,DIMS(gp), &
           lo,hi,1,delta(2))
 
@@ -4793,7 +4795,7 @@ contains
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 !c
-      call FORT_GRADP_DIR ( &
+      call gradp_dir ( &
           dat,DIMS(dat),grdpz,DIMS(gp), &
           lo,hi,2,delta(3))
 

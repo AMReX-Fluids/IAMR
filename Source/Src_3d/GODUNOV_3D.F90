@@ -748,12 +748,12 @@ contains
 !c     compute the slopes
 !c
       if (ppm_type .gt. 0) then
-         call FORT_PPM(s,DIMS(s),u,v,w,DIMS(u), &
+         call ppm(s,DIMS(s),u,v,w,DIMS(u), &
              Ipx,Imx,Ipy,Imy,Ipz,Imz,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
              sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),sedgez,DIMS(sedgez), &
              lo,hi,dx,dt,bc,eps_for_bc,ppm_type)
       else
-         call FORT_SLOPES(ALL, &
+         call slopes(ALL, &
              s,DIMS(s), &
              sx,sy,sz,DIMS(work), &
              lo,hi,slxscr,slyscr,slzscr,bc)
@@ -4655,7 +4655,7 @@ contains
             end do
          end do
 
-         call ppm_zdire_colella(s,DIMS(s),sm,sp,DIMS(smp), &
+         call ppm_zdir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
              sedgez,DIMS(sedgez),lo,hi,lo(3)-1,hi(3)+1)
          !
          ! Different stencil needed for z-component of
@@ -5674,7 +5674,7 @@ contains
          end do
       end do
 
-      call pm_zdir(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
+      call ppm_zdir(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
           sedgez,DIMS(sedgez),lo,hi,bc,ppm_type)
 
       idtz = dt / dx(3)
