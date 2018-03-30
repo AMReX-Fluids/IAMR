@@ -18,7 +18,7 @@ module slabstat_ns_3d_module
 
   private
 
-  public ns_basicstats_nctrac, ns_basicstats_ctrac
+  public :: ns_basicstats_nctrac, ns_basicstats_ctrac
 
 
 contains

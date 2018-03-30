@@ -20,15 +20,20 @@ module derive_3d_module
 
   private
 
-  public :: derradvel, derazivel, derxvelrot, deryvelrot, dermagvelrot, &
-            dermagvortrot, derforcing, derforcex, derforcey, derforcez, &
-            derpresvars, derturbvars, derjetpresvars, derjetvars, &
+  public :: derpresvars, derturbvars, derjetpresvars, derjetvars, &
             dermodgradrho, derudotlapu, derkeng, derlogs, dermvel, &
             derdvrho, dermprho, derlgrhodust, derdmag, dermgvort, &
             dervortx, dervorty, dervortz, dermgdivu, gradp_dir, &
             dergrdpx, dergrdpy, dergrdpz, deravgpres, dergrdp, &
-            dernull
+#ifdef MOREGENGETFORCE            
+            derradvel, derazivel, derxvelrot, deryvelrot, dermagvelrot, &
+            dermagvortrot, &
             
+#endif
+#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE))
+            derforcing, derforcex, derforcey, derforcez, &    
+#endif
+            dernull
 
 contains
 

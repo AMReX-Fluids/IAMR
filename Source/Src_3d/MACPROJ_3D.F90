@@ -18,7 +18,7 @@ module macproj_3d_module
 
   private
 
-  public macdiv, fort_scalearea
+  public :: macdiv, fort_scalearea
 
 contains
 

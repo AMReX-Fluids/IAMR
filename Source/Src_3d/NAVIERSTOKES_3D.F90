@@ -1210,10 +1210,10 @@ contains
       integer :: q_lo(3), q_hi(3)
       integer    lo(3),hi(3)
       
-      lo   = [l1, l2, 0]
-      hi   = [h1, h2, 0]
-      q_lo = [q_l1, q_l2, 0]
-      q_hi = [q_h1, q_h2, 0]
+      lo   = [l1, l2, l3]
+      hi   = [h1, h2, h3]
+      q_lo = [q_l1, q_l2, q_l3]
+      q_hi = [q_h1, q_h2, q_h3]
 
       call filccn(lo, hi, q, q_lo, q_hi, 1, domlo, domhi, dx, xlo, bc)
 

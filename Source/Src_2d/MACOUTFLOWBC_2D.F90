@@ -24,7 +24,7 @@ module macoutflowbc_2d_module
 
   private 
 
-  public extrap_mac,macrelax, macsubtractavgphi, &
+  public :: extrap_mac,macrelax, macsubtractavgphi, &
        macresid, mac_shift_phi, mac_reshift_phi, &
        solvemac, coarsigma, outflowbc_restrict, fort_interpolate, &
        macphibc,macfill_oned, macphi_from_x, &

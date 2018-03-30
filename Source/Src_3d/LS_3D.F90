@@ -527,8 +527,8 @@ contains
                      B(m+5) = (phi(i+ii+1,j+jj+1,k+kk) - phi(i+ii-1,j+jj+1,k+kk) - phi(i+ii+1,j+jj-1,k+kk) + phi(i+ii-1,j+jj-1,k+kk))/(4*dx(1)*dx(2))
                      B(m+6) = (phi(i+ii+1,j+jj,k+kk+1) - phi(i+ii-1,j+jj,k+kk+1) - phi(i+ii+1,j+jj,k+kk-1) + phi(i+ii-1,j+jj,k+kk-1))/(4*dx(1)*dx(3))
                      B(m+7) = (phi(i+ii,j+jj+1,k+kk+1) - phi(i+ii,j+jj-1,k+kk+1) - phi(i+ii,j+jj+1,k+kk-1) + phi(i+ii,j+jj-1,k+kk-1))/(4*dx(2)*dx(3))    
-                     B(m+8) = (phi(i+ii+1,j+jj+1,k+kk+1) - phi(i+ii+1,j+jj+1,k+kk-1) + phi(i+ii+1,j+jj-1,k+kk-1) - phi(i+ii+1,j+jj-1,k+kk+1)                
-                           -  phi(i+ii-1,j+jj+1,k+kk+1) + phi(i+ii-1,j+jj+1,k+kk-1) - phi(i+ii-1,j+jj-1,k+kk-1) + phi(i+ii-1,j+jj-1,k+kk+1))
+                     B(m+8) = (phi(i+ii+1,j+jj+1,k+kk+1) - phi(i+ii+1,j+jj+1,k+kk-1) + phi(i+ii+1,j+jj-1,k+kk-1) - phi(i+ii+1,j+jj-1,k+kk+1)  &          
+                           -  phi(i+ii-1,j+jj+1,k+kk+1) + phi(i+ii-1,j+jj+1,k+kk-1) - phi(i+ii-1,j+jj-1,k+kk-1) + phi(i+ii-1,j+jj-1,k+kk+1)) &
                               /(8*dx(1)*dx(2)*dx(3))
                      m = m + 8
   enddo
@@ -1387,7 +1387,7 @@ contains
          type(i,j,k) = 3
          phi(i,j,k) = sign(BOGUS,phi(i,j,k))    
       enddo
-      end end FUNCTION fastmarch2
+      end FUNCTION fastmarch2
       
       
       
@@ -1651,7 +1651,7 @@ contains
       
       end FUNCTION EVAL2
       
-      subroutine mine(type, DIMS(type), nband, nbandsize,
+      subroutine mine(type, DIMS(type), nband, nbandsize, &
                        mine, minesize,lo, hi) bind(C,name="mine") 
       implicit none     
       integer DIMDEC(type)

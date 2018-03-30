@@ -16,7 +16,7 @@ module godunov_module
 
   private
 
-  public set_params
+  public :: set_params
 
 contains
 

@@ -17,7 +17,7 @@ module macoperator_3d_module
 
   private 
 
-  public maccoef,macrhs, macupdate, macsyncrhs
+  public :: maccoef, macrhs, macupdate, macsyncrhs
   
 contains
 
@@ -40,6 +40,7 @@ contains
 !c ::  dx           => cell size
 !c :: ----------------------------------------------------------
 !c ::
+
        subroutine maccoef (cx,DIMS(cx),cy,DIMS(cy),cz,DIMS(cz), &
                            ax,DIMS(ax),ay,DIMS(ay),az,DIMS(az), &
                            rho,DIMS(rho),lo,hi,dx) &

@@ -18,7 +18,7 @@ module projection_3d_module
 
   private
 
-  public accel_to_vel, vel_to_accel, &
+  public :: accel_to_vel, vel_to_accel, &
        proj_update, anelcoeffmpy
 
 contains
