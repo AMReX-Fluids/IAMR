@@ -3146,13 +3146,12 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         fine_stateMF = &(getLevel(f_lev).get_new_data(State_Type));
     }
 
-    for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
         int        i     = mfi.index();
         FArrayBox& cdata = cdataMF[mfi];
-	const Box&  bx      = mfi.growntilebox(); 
-        const int*  lo      = bx.loVect();
-        const int*  hi      = bx.hiVect();
+        const int* clo   = cdata.loVect();
+        const int* chi   = cdata.hiVect();
 
         fdata.resize(fgrids[i], num_comp);
         //
@@ -3160,7 +3159,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         //
         for (int n = 0; n < num_comp; n++)
         {
-            set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+            set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
         }
 
         for (int n = 0; n < num_comp; n++)
@@ -3177,8 +3176,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 	// not sure this is really the way we want to refine box here
 	// could be off by 1 in lo/hi
-	Box bx_fine=refine(bx,ratio); 
-        interpolater->interp(cdata,0,fdata,0,num_comp,bx_fine,ratio,
+        interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
                              cgeom,fgeom,bc_interp,src_comp,State_Type);
 
 //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
@@ -3192,7 +3190,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
               cdata.mult(dt_clev);
               FArrayBox& fine_state = (*fine_stateMF)[mfi];
               interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
-                                    num_comp,bx_fine,ratio,
+                                    num_comp,fgrids[i],ratio,
                                     cgeom,fgeom,bc_interp);
               Real dt_clev_inv = 1./dt_clev;
               cdata.mult(dt_clev_inv);
