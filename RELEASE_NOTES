@@ -23,3 +23,7 @@ Release version 18.02 (February, 2018)
 Bug fixes to projection and diffusion boundary conditions
 Interfaces to the new MLMG linear solvers in amrex/Src/LinearSolvers/MLMG
 Cylindrical coordinate bux fixes
+
+4/1/18
+Release version 18.04 (April, 2018)
+comments and variable rennaming only
