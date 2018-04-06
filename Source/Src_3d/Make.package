@@ -10,4 +10,4 @@ ifndef ATMOS_MACOP
   FEXE_sources += MACOPERATOR_$(DIM)D.F
 endif
 
-F90EXE_sources += IAMR_MLMG_$(DIM)d.F90
+F90EXE_sources += IAMR_MLMG_$(DIM)d.F90 ARRAYLIM_$(DIM)D.F90
