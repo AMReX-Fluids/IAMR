@@ -211,7 +211,7 @@ NavierStokes::initData ()
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     initParticleData ();
 #endif
 }
@@ -364,7 +364,7 @@ NavierStokes::advance (Real time,
            p_avg.setVal(0);
     }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (theNSPC() != 0)
     {
         theNSPC()->AdvectWithUmac(u_mac, level, dt);
@@ -1341,7 +1341,7 @@ NavierStokes::derive (const std::string& name,
                       Real               time,
                       int                ngrow)
 {
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     return ParticleDerive(name, time, ngrow);
 #else
     return AmrLevel::derive(name, time, ngrow);
@@ -1354,7 +1354,7 @@ NavierStokes::derive (const std::string& name,
                       MultiFab&          mf,
                       int                dcomp)
 {
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
         ParticleDerive(name,time,mf,dcomp);
 #else
         AmrLevel::derive(name,time,mf,dcomp);
