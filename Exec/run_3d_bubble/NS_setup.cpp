@@ -301,7 +301,7 @@ NavierStokes::variableSetUp ()
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
 #endif
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     //
     // The particle count at this level.
     //

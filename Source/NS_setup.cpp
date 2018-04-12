@@ -466,7 +466,7 @@ NavierStokes::variableSetUp ()
 //3D
 #endif
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     //
     // The particle count at this level.
     //

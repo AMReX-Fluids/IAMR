@@ -19,7 +19,7 @@
 #include <AMReX_Utility.H>
 #include <ViscBndry.H>
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 #include <AMReX_AmrParticles.H>
 #endif
 
@@ -457,7 +457,7 @@ protected:
     static void Finalize ();
     static void read_geometry (); // Set metrics
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     static amrex::AmrTracerParticleContainer* theNSPC ();
     static void read_particle_params ();
 
