@@ -2348,7 +2348,29 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
         rho[iface].resize(state_strip[iface],1);
 
-        (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
+        //(*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
+        const Orientation& o = outFacesAtThisLevel[iface];
+        int sgn = o.isLow() ? +1 : -1;
+        int dir = o.coordDir();
+        Box ccBndryFace = amrex::shift(amrex::adjCell(domain,o,1),dir,sgn);
+
+        int num_grow = 1; // FIXME: Assumes that state_strip extends this many cells outside domain
+        BoxDomain bd;
+        const BoxArray& bav = Sig_in->boxArray();
+        for (int i=0; i<bav.size(); ++i) {
+          Box gbox = bav[i]; // FIXME: unnecessary space used here for boxes away from bndry, but simplifies logic
+          const Box ovlp = bav[i] & ccBndryFace;
+          if (ovlp.ok()) { // i.e. if bav[i] touches boundary on this face
+            gbox = o.isLow() ? amrex::growLo(gbox,dir,num_grow) : amrex::growHi(gbox,dir,num_grow);
+          }
+          bd.add(gbox);
+        }
+        BoxArray bastrip(bd.boxList());
+        MultiFab gsig(bastrip,Sig_in->DistributionMap(),1,0);
+        for (MFIter mfi(*Sig_in); mfi.isValid(); ++mfi) {
+          gsig[mfi].copy((*Sig_in)[mfi]);
+        }
+        gsig.copyTo(rho[iface]);
 
         Box phi_strip = 
             amrex::surroundingNodes(amrex::bdryNode(domain,
