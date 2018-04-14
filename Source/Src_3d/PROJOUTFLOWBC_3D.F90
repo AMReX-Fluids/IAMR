@@ -1406,7 +1406,7 @@ contains
         end do
 
         j = ARG_L2(phi)
-        rhog = zero
+
         if (j .eq. domlo(2) .and. lo_bc(2) .eq. EXT_DIR) then
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
