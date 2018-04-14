@@ -2348,7 +2348,19 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
         rho[iface].resize(state_strip[iface],1);
 
-        //(*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
+        /* original code here was simply:
+
+             (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
+
+           however, this had the flaw that corner cells in the phys bc region (outside domain) 
+           may have junk in them.  Under the assumption that we trust non-corner grow cells in 
+           that bc region, we need to generate a "copy-to" MF->Fab operation that pulls data only
+           from non-corner grow cells.  Do this by creating a temporary multifab built on a modified
+           boxarray grown only in the direction normal to the boundary.  The new mf has the same
+           distribution map as Sig_in, so we can march through and do Fab-Fab copies to fill it.
+           Then a normal MF->Fab parallel operation will get this good data into the fab, and there
+           or no redundant and/or badly defined corner grow cells involved.
+        */
         const Orientation& o = outFacesAtThisLevel[iface];
         int sgn = o.isLow() ? +1 : -1;
         int dir = o.coordDir();
@@ -2360,7 +2372,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         for (int i=0; i<bav.size(); ++i) {
           Box gbox = bav[i]; // FIXME: unnecessary space used here for boxes away from bndry, but simplifies logic
           const Box ovlp = bav[i] & ccBndryFace;
-          if (ovlp.ok()) { // i.e. if bav[i] touches boundary on this face
+          if (ovlp.ok()) { // i.e. checking that bav[i] touches boundary on this face
             gbox = o.isLow() ? amrex::growLo(gbox,dir,num_grow) : amrex::growHi(gbox,dir,num_grow);
           }
           bd.add(gbox);
@@ -2371,6 +2383,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
           gsig[mfi].copy((*Sig_in)[mfi]);
         }
         gsig.copyTo(rho[iface]);
+        // ................ End of Sig_in.copyTo replacement code.
 
         Box phi_strip = 
             amrex::surroundingNodes(amrex::bdryNode(domain,
