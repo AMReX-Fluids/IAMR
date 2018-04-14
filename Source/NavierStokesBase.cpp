@@ -110,7 +110,7 @@ namespace
     bool benchmarking = false;
 }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 namespace
 {
     //
