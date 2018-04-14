@@ -1406,14 +1406,28 @@ contains
         end do
 
         j = ARG_L2(phi)
-        if (j .eq. domlo(2) .and. &
-           (lo_bc(2) .eq. HOEXTRAP .or. &
-            lo_bc(2) .eq. FOEXTRAP .or. &
-            lo_bc(2) .eq. EXT_DIR) ) then
+        rhog = zero
+        if (j .eq. domlo(2) .and. lo_bc(2) .eq. EXT_DIR) then
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = rho(i  ,j-1,k)
             rho_ip1 = rho(i+1,j-1,k)
+            rhoExt  = half * (three*rho_i - rho_ip1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+         else if (j .eq. domlo(2) .and. lo_bc(2) .eq. HOEXTRAP ) then 
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half*(three*rho(i  ,j,k) - rho(i  ,j+1,k))
+            rho_ip1 = half*(three*rho(i+1,j,k) - rho(i+1,j+1,k))
+            rhoExt  = half * (three*rho_i - rho_ip1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (j .eq. domlo(2) .and. lo_bc(2) .eq. FOEXTRAP ) then 
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = rho(i  ,j,k)
+            rho_ip1 = rho(i+1,j,k)
             rhoExt  = half * (three*rho_i - rho_ip1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
@@ -1430,14 +1444,27 @@ contains
         end if
 
         j = ARG_H2(phi)
-        if (j.eq.domhi(2)+1 .and. &
-           (hi_bc(2) .eq. HOEXTRAP .or. &
-            hi_bc(2) .eq. FOEXTRAP .or. &
-            hi_bc(2) .eq. EXT_DIR) ) then
-          rhog = zero
+        rhog = zero
+        if (j.eq.domhi(2)+1 .and. hi_bc(2) .eq. EXT_DIR) then
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = rho(i  ,j,k)
             rho_ip1 = rho(i+1,j,k)
+            rhoExt  = half * (three*rho_i - rho_ip1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (j.eq.domhi(2)+1 .and. hi_bc(2) .eq. HOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half*(three*rho(i  ,j-1,k) - rho(i  ,j-2,k))
+            rho_ip1 = half*(three*rho(i+1,j-1,k) - rho(i+1,j-2,k))
+            rhoExt  = half * (three*rho_i - rho_ip1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (j.eq.domhi(2)+1 .and. hi_bc(2) .eq. FOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = rho(i  ,j-1,k)
+            rho_ip1 = rho(i+1,j-1,k)
             rhoExt  = half * (three*rho_i - rho_ip1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
@@ -1469,14 +1496,27 @@ contains
         end do
 
         j = ARG_L2(phi)
-        if (j .eq. domlo(2) .and. &
-           (lo_bc(2) .eq. HOEXTRAP .or. &
-            lo_bc(2) .eq. FOEXTRAP .or. &
-            lo_bc(2) .eq. EXT_DIR) ) then
-          rhog = zero
+        rhog = zero
+        if (j .eq. domlo(2) .and. lo_bc(2) .eq. EXT_DIR) then
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = rho(i-1,j-1,k)
             rho_im1 = rho(i-2,j-1,k)
+            rhoExt  = half * (three*rho_i - rho_im1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (j .eq. domlo(2) .and. lo_bc(2) .eq. HOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half*(three*rho(i-1,j,k) - rho(i-1,j+1,k))
+            rho_im1 = half*(three*rho(i-2,j,k) - rho(i-2,j+1,k))
+            rhoExt  = half * (three*rho_i - rho_im1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (j .eq. domlo(2) .and. lo_bc(2) .eq. FOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = rho(i-1,j,k)
+            rho_im1 = rho(i-2,j,k)
             rhoExt  = half * (three*rho_i - rho_im1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
@@ -1493,14 +1533,27 @@ contains
         end if
 
         j = ARG_H2(phi)
-        if (j.eq.domhi(2)+1 .and. &
-           (hi_bc(2) .eq. HOEXTRAP .or. &
-            hi_bc(2) .eq. FOEXTRAP .or. &
-            hi_bc(2) .eq. EXT_DIR) ) then
-          rhog = zero
+        rhog = zero
+        if (j.eq.domhi(2)+1 .and. hi_bc(2) .eq. EXT_DIR) then
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = rho(i-1,j,k)
             rho_im1 = rho(i-2,j,k)
+            rhoExt  = half * (three*rho_i - rho_im1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (j.eq.domhi(2)+1 .and. hi_bc(2) .eq. HOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = half*(three*rho(i-1,j-1,k) - rho(i-1,j-2,k))
+            rho_im1 = half*(three*rho(i-2,j-1,k) - rho(i-2,j-2,k))
+            rhoExt  = half * (three*rho_i - rho_im1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (j.eq.domhi(2)+1 .and. hi_bc(2) .eq. FOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_i   = rho(i-1,j-1,k)
+            rho_im1 = rho(i-2,j-1,k)
             rhoExt  = half * (three*rho_i - rho_im1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
@@ -1532,14 +1585,27 @@ contains
         end do
 
         i = ARG_L1(phi)
-        if (i .eq. domlo(1) .and. &
-           (lo_bc(1) .eq. HOEXTRAP .or. &
-            lo_bc(1) .eq. FOEXTRAP .or. &
-            lo_bc(1) .eq. EXT_DIR) ) then
-          rhog = zero
+        rhog = zero
+        if (i .eq. domlo(1) .and. lo_bc(1) .eq. EXT_DIR) then
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = rho(i-1,j  ,k)
             rho_jp1 = rho(i-1,j+1,k)
+            rhoExt  = half * (three*rho_j - rho_jp1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domlo(1) .and. lo_bc(1) .eq. HOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half*(three*rho(i,j  ,k) - rho(i+1,j  ,k))
+            rho_jp1 = half*(three*rho(i,j+1,k) - rho(i+1,j+1,k))
+            rhoExt  = half * (three*rho_j - rho_jp1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domlo(1) .and. lo_bc(1) .eq. FOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = rho(i,j  ,k)
+            rho_jp1 = rho(i,j+1,k)
             rhoExt  = half * (three*rho_j - rho_jp1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
@@ -1556,14 +1622,27 @@ contains
         end if
 
         i = ARG_H1(phi)
-        if (i .eq. domhi(1)+1 .and. &
-           (hi_bc(1) .eq. HOEXTRAP .or. &
-            hi_bc(1) .eq. FOEXTRAP .or. &
-            hi_bc(1) .eq. EXT_DIR) ) then
-          rhog = zero
+        rhog = zero
+        if (i .eq. domhi(1)+1 .and. hi_bc(1) .eq. EXT_DIR) then
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = rho(i,j  ,k)
             rho_jp1 = rho(i,j+1,k)
+            rhoExt  = half * (three*rho_j - rho_jp1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domhi(1)+1 .and. hi_bc(1) .eq. HOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half*(three*rho(i-1,j  ,k) - rho(i-2,j  ,k))
+            rho_jp1 = half*(three*rho(i-1,j+1,k) - rho(i-2,j+1,k))
+            rhoExt  = half * (three*rho_j - rho_jp1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domhi(1)+1 .and. hi_bc(1) .eq. FOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = rho(i-1,j  ,k)
+            rho_jp1 = rho(i-1,j+1,k)
             rhoExt  = half * (three*rho_j - rho_jp1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
@@ -1595,14 +1674,27 @@ contains
         end do
 
         i = ARG_L1(phi)
-        if (i .eq. domlo(1) .and.  &
-           (lo_bc(1) .eq. HOEXTRAP .or. &
-            lo_bc(1) .eq. FOEXTRAP .or. &
-            lo_bc(1) .eq. EXT_DIR) ) then
-          rhog = zero
+        rhog = zero
+        if (i .eq. domlo(1) .and. lo_bc(1) .eq. EXT_DIR) then
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = rho(i-1,j-1,k)
             rho_jm1 = rho(i-1,j-2,k)
+            rhoExt  = half * (three*rho_j - rho_jm1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domlo(1) .and. lo_bc(1) .eq. HOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half*(three*rho(i,j-1,k) - rho(i+1,j-1,k))
+            rho_jm1 = half*(three*rho(i,j-2,k) - rho(i+1,j-2,k))
+            rhoExt  = half * (three*rho_j - rho_jm1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domlo(1) .and. lo_bc(1) .eq. FOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = rho(i,j-1,k)
+            rho_jm1 = rho(i,j-2,k)
             rhoExt  = half * (three*rho_j - rho_jm1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
@@ -1619,14 +1711,27 @@ contains
         end if
 
         i = ARG_H1(phi)
-        if (i .eq. domhi(1)+1 .and. &
-           (hi_bc(1) .eq. HOEXTRAP .or. &
-            hi_bc(1) .eq. FOEXTRAP .or. &
-            hi_bc(1) .eq. EXT_DIR) ) then
-          rhog = zero
+        rhog = zero
+        if (i .eq. domhi(1)+1 .and. hi_bc(1) .eq. EXT_DIR) then
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = rho(i,j-1,k)
             rho_jm1 = rho(i,j-2,k)
+            rhoExt  = half * (three*rho_j - rho_jm1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domhi(1)+1 .and. hi_bc(1) .eq. HOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = half*(three*rho(i-1,j-1,k) - rho(i-2,j-1,k))
+            rho_jm1 = half*(three*rho(i-1,j-2,k) - rho(i-2,j-2,k))
+            rhoExt  = half * (three*rho_j - rho_jm1 )
+            rhog = rhog - gravity * rhoExt * dx(3)
+            phi(i,j,k) = phi(i,j,k) + rhog
+          end do
+        else if (i .eq. domhi(1)+1 .and. hi_bc(1) .eq. FOEXTRAP) then
+          do k = ARG_H3(phi)-1,ARG_L3(phi),-1
+            rho_j   = rho(i-1,j-1,k)
+            rho_jm1 = rho(i-1,j-2,k)
             rhoExt  = half * (three*rho_j - rho_jm1 )
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
