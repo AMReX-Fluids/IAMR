@@ -12,16 +12,28 @@
 
 #define SDIM 3
 
-      subroutine FORT_GRADP(
-     &     p,DIMS(p),
-     &     gp,DIMS(gp),
-     &     lo,hi,dx)
-c ::
-c :: ----------------------------------------------------------
-c :: Compute a cell centered gradient from a node
-c :: centered field.  Returns all components of GRADP
-c :: ----------------------------------------------------------
-c ::
+module navierstokes_3d_module
+  
+  implicit none
+
+  private 
+
+  public :: gradp, fort_putdown, incrmult, sumturb, sum_jet, &
+            fort_maxval, summass, summass_cyl, cen2edg, edge_interp, &
+            pc_edge_interp, filcc_tile
+  
+contains
+
+      subroutine gradp ( &
+          p,DIMS(p), &
+          gp,DIMS(gp), &
+          lo,hi,dx)bind(C,name="gradp")
+!c ::
+!c :: ----------------------------------------------------------
+!c :: Compute a cell centered gradient from a node
+!c :: centered field.  Returns all components of GRADP
+!c :: ----------------------------------------------------------
+!c ::
       implicit none
 
       integer DIMDEC(p)  
@@ -37,62 +49,57 @@ c ::
       ddy = fourth/dx(2)
       ddz = fourth/dx(3)
 
-!$omp parallel private(i,j,k)
-!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               gp(i,j,k,1) = ddx*(
-     &              p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+
-     &              p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))
+               gp(i,j,k,1) = ddx*( &
+                   p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+ &
+                   p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))
             end do
          end do
       end do
-!$omp end do nowait
-!$omp do
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               gp(i,j,k,2) = ddy*(
-     &              p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+
-     &              p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))
-            end do
-         end do
-      end do
-!$omp end do nowait
-!$omp do
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               gp(i,j,k,3) = ddz*(
-     &              p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+
-     &              p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
-            end do
-         end do
-      end do
-!$omp end do nowait
-!$omp end parallel
 
-      end
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               gp(i,j,k,2) = ddy*( &
+                   p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+ &
+                   p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))
+            end do
+         end do
+      end do
 
-c :: ----------------------------------------------------------
-c :: Replace coarse grid pressure data with corresponding
-c :: fine grid pressure data.
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  crse      <=  coarse grid data
-c ::  DIMS(crse) => index limits of crse
-c ::  fine       => fine grid data
-c ::  DIMS(fine) => index limits of fine
-c ::  lo,hi      => index limits of overlap (crse grid)
-c ::  ratios     => refinement ratio
-c ::
-c :: NOTE:
-c ::  Assumes pressure fields are node based
-c :: ----------------------------------------------------------
-c ::
-      subroutine FORT_PUTDOWN (crse,DIMS(crse),
-     &			       fine,DIMS(fine),lo,hi,ratios)
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               gp(i,j,k,3) = ddz*( &
+                   p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+ &
+                   p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
+            end do
+         end do
+      end do
+
+      end subroutine gradp 
+
+!c :: ----------------------------------------------------------
+!c :: Replace coarse grid pressure data with corresponding
+!c :: fine grid pressure data.
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  crse      <=  coarse grid data
+!c ::  DIMS(crse) => index limits of crse
+!c ::  fine       => fine grid data
+!c ::  DIMS(fine) => index limits of fine
+!c ::  lo,hi      => index limits of overlap (crse grid)
+!c ::  ratios     => refinement ratio
+!c ::
+!c :: NOTE:
+!c ::  Assumes pressure fields are node based
+!c :: ----------------------------------------------------------
+!c ::
+      subroutine fort_putdown (crse,DIMS(crse), &
+     			           fine,DIMS(fine),lo,hi,ratios)&
+                     bind(C,name="fort_putdown")
 
       implicit none
 
@@ -121,24 +128,25 @@ c ::
          end do
       end do
 
-      end
+      end subroutine fort_putdown 
 
-c :: ----------------------------------------------------------
-c :: NOTE: This routine is no longer needed. Use saxpy
-c ::     funcitons in AMReX.
-c :: UTILITY ROUTINE: compute:
-c ::             A += alpha*B on subrange
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  a         <=  output array
-c ::  b          => input array
-c ::  alo,ahi    => index limits of a array
-c ::  blo,bhi    => index limits of a array
-c ::  lo,hi      => index limits of update region
-c ::  alpha      => multiplicative factor
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_INCRMULT(a,DIMS(a),b,DIMS(b),lo,hi,alpha)
+!c :: ----------------------------------------------------------
+!c :: NOTE: This routine is no longer needed. Use saxpy
+!c ::     funcitons in AMReX.
+!c :: UTILITY ROUTINE: compute:
+!c ::             A += alpha*B on subrange
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  a         <=  output array
+!c ::  b          => input array
+!c ::  alo,ahi    => index limits of a array
+!c ::  blo,bhi    => index limits of a array
+!c ::  lo,hi      => index limits of update region
+!c ::  alpha      => multiplicative factor
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine incrmult(a,DIMS(a),b,DIMS(b),lo,hi,alpha)&
+                           bind(C,name="incrmult")
 
        implicit none
       
@@ -151,7 +159,6 @@ c ::
 
        integer i, j, k
 
-!$omp parallel do private(i,j,k)
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
@@ -159,17 +166,16 @@ c ::
              end do
           end do
        end do
-!$omp end parallel do
 
-       end
+       end subroutine incrmult
 
-c ::
-c :: ----------------------------------------------------------
-c :: SUMTURB
-c :: ----------------------------------------------------------
-c ::
-      subroutine FORT_SUMTURB(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta,
-     &                        turb,ksize,turbVars)
+!c ::
+!c :: ----------------------------------------------------------
+!c :: SUMTURB
+!c :: ----------------------------------------------------------
+!c ::
+      subroutine sumturb(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta, &
+                             turb,ksize,turbVars) bind(C, name="sumturb")
 
       implicit none
 
@@ -217,7 +223,7 @@ c ::
                uy   = dat(i,j,k,3)
                uz   = dat(i,j,k,4)
 
-c     Here are the derivatives, can't do it here because of zeroed intersections
+!c     Here are the derivatives, can't do it here because of zeroed intersections
                drhodx= dat(i,j,k,5)
                duxdx = dat(i,j,k,6)
                duydx = dat(i,j,k,7)
@@ -262,17 +268,16 @@ c     Here are the derivatives, can't do it here because of zeroed intersections
          end do
       end do
       
-      end
+      end subroutine sumturb
 
-#ifdef SUMJET
-c ::
-c :: ----------------------------------------------------------
-c :: SUMJET
-c :: ----------------------------------------------------------
-c ::
-      subroutine FORT_SUMJET(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta,
-     &                      jetData,levRsize,levKsize,rsize,ksize,jetVars,numSplit,
-     &                      xlo,xhi);
+!c ::
+!c :: ----------------------------------------------------------
+!c :: SUMJET
+!c :: ----------------------------------------------------------
+!c ::
+      subroutine sum_jet(dat,pres,DIMS(dat),DIMS(pres),DIMS(grid),delta, &
+                           jetData,levRsize,levKsize,rsize,ksize,jetVars,numSplit, &
+                           xlo,xhi) bind(C, name="sum_jet")
 
       implicit none
 
@@ -323,7 +328,7 @@ c ::
 
       call bl_pd_is_ioproc(isioproc)
 
-c     Hack to zero
+!c     Hack to zero
       isioproc = 0
 
       ilo = ARG_L1(grid)
@@ -341,9 +346,9 @@ c     Hack to zero
       nn   = numSplit*kn
       dxnn = dx/dble(nn)
       dynn = dy/dble(nn)
-c     Note this is right, it really should be kn not nn
+!c     Note this is right, it really should be kn not nn
       dznn = dz/dble(kn)
-c     Mod dx
+!c     Mod dx
       mdx = sqrt(dxnn*dxnn+dynn*dynn)
       
       gridDx=dx/dble(kn)
@@ -386,24 +391,24 @@ c     Mod dx
       idx_dpdz = 4
 
       do k = klo, khi
-c     Bounds for vertical numerical integration
+!c     Bounds for vertical numerical integration
          kklo=k*kn
          kkhi=kklo+kn-1
-c     Calculate left hand edge of cell
+!c     Calculate left hand edge of cell
          zlow = xlo(3) + dz*dble(k-klo)
-c     And x centre/er
+!c     And x centre/er
          zctr = zlow + 0.5d0*dz
          
          do j = jlo, jhi
-c     Calculate front of cell
+!c     Calculate front of cell
             ylow = xlo(2) + dy*dble(j-jlo) - jet_y
-c     And y centre/er
+!c     And y centre/er
             yctr = ylow + 0.5d0*dy
             
             do i = ilo, ihi
-c     Calculate left hand edge of cell
+!c     Calculate left hand edge of cell
                xlow = xlo(1) + dx*dble(i-ilo) - jet_x
-c     And x centre/er
+!c     And x centre/er
                xctr = xlow + 0.5d0*dx
                
                rhoctr  = dat(i,j,k,idx_rho)
@@ -419,9 +424,9 @@ c     And x centre/er
                dpdzctr = pres(i,j,k,idx_dpdz)
 
                if (rhoctr.gt.zero) then
-c     We're not in a zeroed out bit, let's integrate...
+!c     We're not in a zeroed out bit, let's integrate...
 
-c     Integrate numerically
+!c     Integrate numerically
                   do jj=1,nn
                      yy = ylow + dynn*(dble(jj)-half)
                      
@@ -437,22 +442,22 @@ c     Integrate numerically
                            do kk=kklo,kkhi
                               
                               zz = zlow + dznn*(dble(kk-kklo)+half)
-c     How far are we from the centre of the cell?
+!c     How far are we from the centre of the cell?
                               deltax = xx-xctr
                               deltay = yy-yctr
                               deltaz = zz-zctr
-c     Do slope reconstruction
+!c     Do slope reconstruction
                               rho  = rhoctr  + deltax*dat(i,j,k,idx_rho +06) + deltay*dat(i,j,k,idx_rho +12) + deltaz*dat(i,j,k,idx_rho +18)
                               ux   = uxctr   + deltax*dat(i,j,k,idx_ux  +06) + deltay*dat(i,j,k,idx_ux  +12) + deltaz*dat(i,j,k,idx_ux  +18)
                               uy   = uyctr   + deltax*dat(i,j,k,idx_uy  +06) + deltay*dat(i,j,k,idx_uy  +12) + deltaz*dat(i,j,k,idx_uy  +18)
                               uz   = uzctr   + deltax*dat(i,j,k,idx_uz  +06) + deltay*dat(i,j,k,idx_uz  +12) + deltaz*dat(i,j,k,idx_uz  +18)
                               trac = tracctr + deltax*dat(i,j,k,idx_trac+06) + deltay*dat(i,j,k,idx_trac+12) + deltaz*dat(i,j,k,idx_trac+18)
                               temp = tempctr + deltax*dat(i,j,k,idx_temp+06) + deltay*dat(i,j,k,idx_temp+12) + deltaz*dat(i,j,k,idx_temp+18)
-c     Radial and azimuthal velocities
+!c     Radial and azimuthal velocities
                               ur = (ux*xx+uy*yy)/rr
                               ut = (uy*xx-ux*yy)/rr
 
-c     Get radial derivative of radial and azimuthal velocity (more complicated than it sounds)
+!c     Get radial derivative of radial and azimuthal velocity (more complicated than it sounds)
                               drx = mdx*xx/rr
                               dry = mdx*yy/rr
                               xxp = xx + drx
@@ -473,7 +478,7 @@ c     Get radial derivative of radial and azimuthal velocity (more complicated t
 
                               durdr = (urp-urm)/(two*mdx)
                               dutdr = (utp-utm)/(two*mdx)
-c     Get azimuthal derivative of radial and azimuthal velocity (more complicated than it sounds)
+!c     Get azimuthal derivative of radial and azimuthal velocity (more complicated than it sounds)
                               dtx =-mdx*yy/rr
                               dty = mdx*xx/rr
                               xxp = xx + dtx
@@ -492,27 +497,27 @@ c     Get azimuthal derivative of radial and azimuthal velocity (more complicate
                               utm = (uym*xxm-uxm*yym)/rrm
                               durdt = (urp-urm)/(two*mdx)
                               dutdt = (utp-utm)/(two*mdx)
-c     Pressure and its derivatives
+!c     Pressure and its derivatives
                               p      = pctr    + deltax*pres(i,j,k,idx_p   +04) + deltay*pres(i,j,k,idx_p   +08) + deltaz*pres(i,j,k,idx_p   +12)
                               dpdx   = dpdxctr + deltax*pres(i,j,k,idx_dpdx+04) + deltay*pres(i,j,k,idx_dpdx+08) + deltaz*pres(i,j,k,idx_dpdx+12)
                               dpdy   = dpdyctr + deltax*pres(i,j,k,idx_dpdy+04) + deltay*pres(i,j,k,idx_dpdy+08) + deltaz*pres(i,j,k,idx_dpdy+12)
                               dpdz   = dpdzctr + deltax*pres(i,j,k,idx_dpdz+04) + deltay*pres(i,j,k,idx_dpdz+08) + deltaz*pres(i,j,k,idx_dpdz+12)
-c     Radial and azimuthal derivatives of pressure
+!c     Radial and azimuthal derivatives of pressure
                               dpdr   = ( xx*dpdx + yy*dpdy)/rr
                               dpdt   = (-yy*dpdx + xx*dpdy)
-c     KE terms
+!c     KE terms
                               KEK  = ux*ux   + uy*uy   + uz*uz
                               KEP  = ux*dpdx + uy*dpdy + uz*dpdz
                               KED  = ux*dat(i,j,k,25) + uy*dat(i,j,k,26) + uz*dat(i,j,k,27)
                               
-c     Start counter
+!c     Start counter
                               idx = (kk*rsize+ridx)*jetVars+00
-c     0 - Let's keep track of how many cells contribute to the integral
+!c     0 - Let's keep track of how many cells contribute to the integral
                               jetData(idx) = jetData(idx) + one
-c     1 - Denstiy
+!c     1 - Denstiy
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho
-c     2 - Flow vars not density-weighted
+!c     2 - Flow vars not density-weighted
                               idx = idx + 1
                               jetData(idx) = jetData(idx) +     ur
                               idx = idx + 1
@@ -523,7 +528,7 @@ c     2 - Flow vars not density-weighted
                               jetData(idx) = jetData(idx) +     trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) +     temp
-c     7 - Flow vars density-weighted
+!c     7 - Flow vars density-weighted
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*ur
                               idx = idx + 1
@@ -534,7 +539,7 @@ c     7 - Flow vars density-weighted
                               jetData(idx) = jetData(idx) + rho*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*temp
-c     12 - Second order (ur)
+!c     12 - Second order (ur)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*ur*ur
                               idx = idx + 1
@@ -569,7 +574,7 @@ c     12 - Second order (ur)
 
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*temp*temp
-c     27 - Third-order (ur)
+!c     27 - Third-order (ur)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*ur*ur*ur
                               idx = idx + 1
@@ -604,7 +609,7 @@ c     27 - Third-order (ur)
 
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*ur*temp*temp
-c     42 - Third-order (ut)
+!c     42 - Third-order (ut)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*ut*ut*ut
                               idx = idx + 1
@@ -628,7 +633,7 @@ c     42 - Third-order (ut)
 
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*ut*temp*temp
-c     52 - Third-order (uz)
+!c     52 - Third-order (uz)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*uz*uz*uz
                               idx = idx + 1
@@ -643,7 +648,7 @@ c     52 - Third-order (uz)
 
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*uz*temp*temp
-c     58 - Third-order (trac)
+!c     58 - Third-order (trac)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*trac*trac*trac
                               idx = idx + 1
@@ -651,10 +656,10 @@ c     58 - Third-order (trac)
 
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*trac*temp*temp
-c     61 - Third-order (temp)
+!c     61 - Third-order (temp)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*temp*temp*temp
-c     62 - Pressure
+!c     62 - Pressure
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p
                               idx = idx + 1
@@ -667,7 +672,7 @@ c     62 - Pressure
                               jetData(idx) = jetData(idx) + p*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*temp
-c     68 - Presure gradient (r)
+!c     68 - Presure gradient (r)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdr*ur
                               idx = idx + 1
@@ -678,7 +683,7 @@ c     68 - Presure gradient (r)
                               jetData(idx) = jetData(idx) + dpdr*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdr*temp
-c     73 - Presure gradient (t)
+!c     73 - Presure gradient (t)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdt*ur
                               idx = idx + 1
@@ -689,7 +694,7 @@ c     73 - Presure gradient (t)
                               jetData(idx) = jetData(idx) + dpdt*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdt*temp
-c     78 - Presure gradient (z)idx_uy
+!c     78 - Presure gradient (z)idx_uy
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdz*ur
                               idx = idx + 1
@@ -700,7 +705,7 @@ c     78 - Presure gradient (z)idx_uy
                               jetData(idx) = jetData(idx) + dpdz*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + dpdz*temp
-c     83 - Pressure . gradient (r)
+!c     83 - Pressure . gradient (r)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*durdr
                               idx = idx + 1
@@ -711,7 +716,7 @@ c     83 - Pressure . gradient (r)
                               jetData(idx) = jetData(idx) + p*((xx/rr)*dat(i,j,k,idx_trac+06)+(yy/rr)*dat(i,j,k,idx_trac+12))
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*((xx/rr)*dat(i,j,k,idx_temp+06)+(yy/rr)*dat(i,j,k,idx_temp+12))
-c     88 - Pressure . gradient (t)
+!c     88 - Pressure . gradient (t)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*durdt
                               idx = idx + 1
@@ -722,7 +727,7 @@ c     88 - Pressure . gradient (t)
                               jetData(idx) = jetData(idx) + p*(-yy*dat(i,j,k,idx_trac+06)+xx*dat(i,j,k,idx_trac+12))
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*(-yy*dat(i,j,k,idx_temp+06)+xx*dat(i,j,k,idx_temp+12))
-c     93 - Pressure . gradient (z)
+!c     93 - Pressure . gradient (z)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*( xx*dat(i,j,k,idx_ux  +18)+yy*dat(i,j,k,idx_uy  +18))/rr
                               idx = idx + 1
@@ -733,7 +738,7 @@ c     93 - Pressure . gradient (z)
                               jetData(idx) = jetData(idx) + p*dat(i,j,k,idx_trac+18)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*dat(i,j,k,idx_temp+18)
-c     98 - Density fluctuations
+!c     98 - Density fluctuations
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*rho
                               idx = idx + 1
@@ -746,10 +751,10 @@ c     98 - Density fluctuations
                               jetData(idx) = jetData(idx) + rho*rho*trac
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*rho*temp
-c     103 - Pressue fluctuations
+!c     103 - Pressue fluctuations
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + p*p
-c     104 - Kinetic Energy Equation (shouldn't need these)
+!c     104 - Kinetic Energy Equation (shouldn't need these)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*KEK
                               idx = idx + 1
@@ -763,25 +768,25 @@ c     104 - Kinetic Energy Equation (shouldn't need these)
                               idx = idx + 1
                               jetData(idx) = jetData(idx) + rho*KED
 
-c     zz loop
+!c     zz loop
                         enddo
-c     r < rsize
+!c     r < rsize
                      endif
-c     yy
+!c     yy
                   enddo
-c     xx
+!c     xx
                enddo
-c     zeroed out
+!c     zeroed out
             endif
 
             end do
          end do
       end do
 
-      end
-#endif
+      end subroutine sum_jet
 
-       subroutine FORT_MAXVAL(rho,DIMS(rho),DIMS(grid),mxval)
+
+       subroutine fort_maxval(rho,DIMS(rho),DIMS(grid),mxval)bind(C, name="fort_maxval")
 
        implicit none
 
@@ -794,7 +799,6 @@ c     zeroed out
 
        mxval = -Huge(0.0d0)
 
-!$omp parallel do private(i,j,k) reduction(max : mxval)
        do k = ARG_L3(grid), ARG_H3(grid)
           do j = ARG_L2(grid), ARG_H2(grid)
              do i = ARG_L1(grid), ARG_H1(grid)
@@ -802,25 +806,25 @@ c     zeroed out
              end do
           end do
        end do
-!$omp end parallel do
 
-       end
+       end subroutine fort_maxval
 
-c :: ----------------------------------------------------------
-c :: SUMMASS
-c ::             MASS = sum{ vol(i,j)*rho(i,j) }
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  rho        => density field
-c ::  DIMS(rho)  => index limits of rho aray
-c ::  lo,hi      => index limits of grid interior
-c ::  delta	 => cell size
-c ::  mass      <=  total mass
-c ::  r		 => radius at cell center
-c ::  tmp        => temp column array
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMMASS(rho,DIMS(rho),DIMS(grid),delta,mass)
+!c :: ----------------------------------------------------------
+!c :: SUMMASS
+!c ::             MASS = sum{ vol(i,j)*rho(i,j) }
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rho        => density field
+!c ::  DIMS(rho)  => index limits of rho aray
+!c ::  lo,hi      => index limits of grid interior
+!c ::  delta	 => cell size
+!c ::  mass      <=  total mass
+!c ::  r		 => radius at cell center
+!c ::  tmp        => temp column array
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine summass(rho,DIMS(rho),DIMS(grid),delta,mass)&
+                          bind(C,name="summass")
 
        implicit none
 
@@ -836,7 +840,6 @@ c ::
 
        mass = zero
 
-!$omp parallel do private(i,j,k) reduction(+ : mass)
        do k = ARG_L3(grid), ARG_H3(grid)
           do j = ARG_L2(grid), ARG_H2(grid)
              do i = ARG_L1(grid), ARG_H1(grid)
@@ -844,28 +847,28 @@ c ::
              end do
           end do
        end do
-!$omp end parallel do
 
        mass = vol*mass
 
-       end
+       end subroutine summass
 
-c :: ----------------------------------------------------------
-c :: SUMMASSCYL
-c ::    MASS = sum{ vol(i,j,k)*rho(i,j,k) } over subregion cylinder
-c ::
-c :: INPUTS / OUTPUTS:
-c ::  rho        => density field
-c ::  DIMS(rho)  => index limits of rho aray
-c ::  lo,hi      => index limits of grid interior
-c ::  delta	 => cell size
-c ::  mass      <=  total mass
-c ::  r		 => radius at cell center
-c ::  tmp        => temp column array
-c :: ----------------------------------------------------------
-c ::
-       subroutine FORT_SUMMASS_CYL(rho,DIMS(rho),DIMS(grid),delta,
-     &                             plo,vws_dz,vws_Rcyl,mass)
+!c :: ----------------------------------------------------------
+!c :: SUMMASSCYL
+!c ::    MASS = sum{ vol(i,j,k)*rho(i,j,k) } over subregion cylinder
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rho        => density field
+!c ::  DIMS(rho)  => index limits of rho aray
+!c ::  lo,hi      => index limits of grid interior
+!c ::  delta	 => cell size
+!c ::  mass      <=  total mass
+!c ::  r		 => radius at cell center
+!c ::  tmp        => temp column array
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine summass_cyl(rho,DIMS(rho),DIMS(grid),delta, &
+                              plo,vws_dz,vws_Rcyl,mass) &
+                              bind(C,name="summass_cyl")
 
        implicit none
 
@@ -881,7 +884,6 @@ c ::
 
        mass = zero
 
-!$omp parallel do private(i,j,k,x,y,z,r) reduction(+ : mass)
        do k = ARG_L3(grid), ARG_H3(grid)
           z = plo(3) + (k+half)*delta(3)
           if (z-plo(3) .le. vws_dz) then
@@ -897,31 +899,31 @@ c ::
              end do
           end if
        end do
-!$omp end parallel do
 
        mass = vol*mass
 
-       end
+       end subroutine summass_cyl
 
-c-----------------------------------------------------------------------
-c     This routine fills an edge-centered fab from a cell-centered
-c     fab using simple linear interpolation.
-c
-c     INPUTS / OUTPUTS:
-c     lo,hi      => index limits of the region of the edge-centered fab
-c                   to be filled
-c     DIMS(cfab) => index limits of the cell-centered fab
-c     cfab       => cell-centered data
-c     DIMS(efab) => index limits of the edge-centered fab
-c     efab       => edge-centered fab to fill
-c     nc         => Number of components in the fab to fill
-c     dir        => direction data needs to be shifted to get to edges
-c-----------------------------------------------------------------------
-c
-      subroutine FORT_CEN2EDG(lo, hi, 
-     &     DIMS(cfab), cfab,
-     &     DIMS(efab), efab, nc, dir, isharm
-     &     )
+!c-----------------------------------------------------------------------
+!c     This routine fills an edge-centered fab from a cell-centered
+!c     fab using simple linear interpolation.
+!c
+!c     INPUTS / OUTPUTS:
+!c     lo,hi      => index limits of the region of the edge-centered fab
+!c                   to be filled
+!c     DIMS(cfab) => index limits of the cell-centered fab
+!c     cfab       => cell-centered data
+!c     DIMS(efab) => index limits of the edge-centered fab
+!c     efab       => edge-centered fab to fill
+!c     nc         => Number of components in the fab to fill
+!c     dir        => direction data needs to be shifted to get to edges
+!c-----------------------------------------------------------------------
+!c
+      subroutine cen2edg(lo, hi, &
+          DIMS(cfab), cfab, &
+          DIMS(efab), efab, nc, dir, isharm &
+          ) bind(C,name="cen2edg")
+          
       implicit none
 
       integer lo(SDIM), hi(SDIM), nc, dir, isharm
@@ -931,12 +933,9 @@ c
       REAL_T  efab(DIMV(efab), nc)
       integer i,j,k,n
 
-!$omp parallel private(i,j,k)
-
       if ( isharm .eq. 0 ) then
          if (dir .EQ. 0) then
             do n = 1,nc
-!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1)+1, hi(1)
@@ -944,11 +943,9 @@ c
                      end do
                   end do
                end do
-!$omp end do nowait
             end do
          else if (dir .EQ. 1) then
             do n = 1,nc
-!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2)+1, hi(2)
                      do i = lo(1), hi(1)
@@ -956,11 +953,9 @@ c
                      end do
                   end do
                end do
-!$omp end do nowait
             end do
          else if (dir .EQ. 2) then
             do n = 1,nc
-!$omp do
                do k = lo(3)+1, hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
@@ -968,88 +963,83 @@ c
                      end do
                   end do
                end do
-!$omp end do nowait
             end do
          end if
       else
          if (dir .EQ. 0) then
             do n = 1,nc
-!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1)+1, hi(1)
-                        if((cfab(i,j,k,n) * cfab(i-1,j,k,n)) .gt.zero)
-     &                       then
-                           efab(i,j,k,n) =
-     &                          2*(cfab(i,j,k,n) * cfab(i-1,j,k,n))/
-     &                          (cfab(i,j,k,n) + cfab(i-1,j,k,n))
+                        if((cfab(i,j,k,n) * cfab(i-1,j,k,n)) .gt.zero) &
+                            then
+                           efab(i,j,k,n) = &
+                               2*(cfab(i,j,k,n) * cfab(i-1,j,k,n))/ &
+                               (cfab(i,j,k,n) + cfab(i-1,j,k,n))
                         else
                            efab(i,j,k,n) = zero
                         endif
                      end do
                   end do
                end do
-!$omp end do nowait
             end do
          else if (dir .EQ. 1) then
             do n = 1,nc
-!$omp do
                do k = lo(3), hi(3)
                   do j = lo(2)+1, hi(2)
                      do i = lo(1), hi(1)
-                        if((cfab(i,j,k,n) * cfab(i,j-1,k,n)).gt.zero)
-     &                       then
-                           efab(i,j,k,n) =
-     &                          2*(cfab(i,j,k,n) * cfab(i,j-1,k,n))/
-     &                          (cfab(i,j,k,n) + cfab(i,j-1,k,n))
+                        if((cfab(i,j,k,n) * cfab(i,j-1,k,n)).gt.zero) &
+                            then
+                           efab(i,j,k,n) = &
+                               2*(cfab(i,j,k,n) * cfab(i,j-1,k,n))/ &
+                               (cfab(i,j,k,n) + cfab(i,j-1,k,n))
                         else
                            efab(i,j,k,n) = zero
                         endif
                      end do
                   end do
                end do
-!$omp end do nowait
             end do
          else if (dir .EQ. 2) then
             do n = 1,nc
-!$omp do
                do k = lo(3)+1, hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
-                        if((cfab(i,j,k,n) * cfab(i,j,k-1,n)).gt.zero)
-     &                       then
-                           efab(i,j,k,n) =
-     &                          2*(cfab(i,j,k,n) * cfab(i,j,k-1,n))/
-     &                          (cfab(i,j,k,n) + cfab(i,j,k-1,n))
+                        if((cfab(i,j,k,n) * cfab(i,j,k-1,n)).gt.zero) &
+                            then
+                           efab(i,j,k,n) = &
+                               2*(cfab(i,j,k,n) * cfab(i,j,k-1,n))/ &
+                               (cfab(i,j,k,n) + cfab(i,j,k-1,n))
                         else
                            efab(i,j,k,n) = zero
                         endif
                      end do
                   end do
                end do
-!$omp end do nowait
             end do
          end if
       end if
 
-!$omp end parallel
+      end subroutine cen2edg
+      
+!c-----------------------------------------------------------------------
 
-      end
-c-----------------------------------------------------------------------
-      subroutine EDGE_INTERP(flo, fhi, nc, ratio, dir,
-     &     fine, fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2)
+      subroutine edge_interp (flo, fhi, nc, ratio, dir, &
+          fine, fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2)&
+           bind(C,name="edge_interp")
+           
       implicit none
       integer flo(0:3-1), fhi(0:3-1), nc, ratio(0:3-1), dir
       integer fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2
-      DOUBLE PRECISION
-     &     fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
+      DOUBLE PRECISION &
+          fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
       integer i,j,k,n,P,M,L
       DOUBLE PRECISION val, df
-c
-c     Do linear in dir, pc transverse to dir, leave alone the fine values
-c     lining up with coarse edges--assume these have been set to hold the 
-c     values you want to interpolate to the rest.
-c
+!c
+!c     Do linear in dir, pc transverse to dir, leave alone the fine values
+!c     lining up with coarse edges--assume these have been set to hold the 
+!c     values you want to interpolate to the rest.
+!c
       if (dir.eq.0) then
          do n=1,nc
             do k=flo(2),fhi(2),ratio(2)
@@ -1057,8 +1047,8 @@ c
                   do i=flo(0),fhi(0)-ratio(dir),ratio(0)
                      df = fine(i+ratio(dir),j,k,n)-fine(i,j,k,n)
                      do M=1,ratio(dir)-1
-                        val = fine(i,j,k,n)
-     &                       + df*dble(M)/dble(ratio(dir))
+                        val = fine(i,j,k,n) &
+                            + df*dble(M)/dble(ratio(dir))
                         do P=MAX(j,flo(1)),MIN(j+ratio(1)-1,fhi(1))
                            do L=MAX(k,flo(2)),MIN(k+ratio(2)-1,fhi(2))
                               fine(i+M,P,L,n) = val
@@ -1076,8 +1066,8 @@ c
                   do i=flo(0),fhi(0)
                      df = fine(i,j+ratio(dir),k,n)-fine(i,j,k,n)
                      do M=1,ratio(dir)-1
-                        val = fine(i,j,k,n)
-     &                       + df*dble(M)/dble(ratio(dir))
+                        val = fine(i,j,k,n) &
+                            + df*dble(M)/dble(ratio(dir))
                         do P=MAX(i,flo(0)),MIN(i+ratio(0)-1,fhi(0))
                            do L=MAX(k,flo(2)),MIN(k+ratio(2)-1,fhi(2))
                               fine(P,j+M,L,n) = val
@@ -1095,8 +1085,8 @@ c
                   do i=flo(0),fhi(0),ratio(0)
                      df = fine(i,j,k+ratio(dir),n)-fine(i,j,k,n)
                      do M=1,ratio(dir)-1
-                        val = fine(i,j,k,n)
-     &                       + df*dble(M)/dble(ratio(dir))
+                        val = fine(i,j,k,n) &
+                            + df*dble(M)/dble(ratio(dir))
                         do P=MAX(i,flo(0)),MIN(i+ratio(0)-1,fhi(0))
                            do L=MAX(j,flo(1)),MIN(j+ratio(1)-1,fhi(1))
                               fine(P,L,k+M,n) = val
@@ -1108,25 +1098,27 @@ c
             enddo
          enddo
       endif
-      end
-c-----------------------------------------------------------------------
-      subroutine PC_EDGE_INTERP(lo, hi, nc, ratio, dir,
-     &     crse, crse_l0, crse_l1, crse_l2, crse_h0, crse_h1, crse_h2,
-     &     fine, fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2)
+      end subroutine edge_interp
+      
+!c-----------------------------------------------------------------------
+
+      subroutine pc_edge_interp(lo, hi, nc, ratio, dir, &
+          crse, crse_l0, crse_l1, crse_l2, crse_h0, crse_h1, crse_h2, &
+          fine, fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2)&
+          bind(C,name="pc_edge_interp")
+          
       implicit none
       integer lo(3),hi(3), nc, ratio(0:3-1), dir
       integer crse_l0, crse_l1, crse_l2, crse_h0, crse_h1, crse_h2
       integer fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2
-      DOUBLE PRECISION
-     &     crse(crse_l0:crse_h0,crse_l1:crse_h1,crse_l2:crse_h2,nc)
-      DOUBLE PRECISION
-     &     fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
+      DOUBLE PRECISION crse(crse_l0:crse_h0,crse_l1:crse_h1,crse_l2:crse_h2,nc)
+      DOUBLE PRECISION fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
       integer i,j,k,ii,jj,kk,n,L, P
-c
-c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
-c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
-c     coarse face, leave the in-between faces alone.
-c
+!c
+!c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
+!c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
+!c     coarse face, leave the in-between faces alone.
+!c
       if (dir.eq.0) then
          do n=1,nc
             do k=lo(3),hi(3)
@@ -1179,4 +1171,52 @@ c
             enddo
          enddo
       endif
-      end
+      end subroutine pc_edge_interp
+      
+      
+! ::: -----------------------------------------------------------
+! ::: This routine is intended to be a generic fill function
+! ::: for cell-centered data.  It knows how to extrapolate
+! ::: and reflect data and is used to supplement the problem-specific
+! ::: fill functions which call it.
+! ::: 
+! ::: INPUTS/OUTPUTS:
+! ::: q           <=  array to fill
+! ::: lo,hi        => index extent of loops
+! ::: q_l,q_h      => index extent of q array
+! ::: domlo,domhi  => index extent of problem domain
+! ::: dx           => cell spacing
+! ::: xlo          => physical location of lower left hand
+! :::	              corner of q array
+! ::: bc	   => array of boundary flags bc(SPACEDIM,lo:hi)
+! ::: 
+! ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
+! ::: -----------------------------------------------------------
+
+    subroutine filcc_tile(l1,l2,l3,h1,h2,h3,q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,&
+         domlo,domhi,dx,xlo,bc) bind(C,name="filcc_tile")
+
+      use amrex_filcc_module, only: filccn
+      
+      implicit none
+
+      integer    l1,l2,l3,h1,h2,h3
+      integer    q_l1, q_l2, q_l3, q_h1, q_h2, q_h3
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    bc(SDIM,3)
+      REAL_T     xlo(SDIM), dx(SDIM)
+      REAL_T     q(q_l1:q_h1,q_l2:q_h2,q_l3:q_h3)
+
+      integer :: q_lo(3), q_hi(3)
+      integer    lo(3),hi(3)
+      
+      lo   = [l1, l2, l3]
+      hi   = [h1, h2, h3]
+      q_lo = [q_l1, q_l2, q_l3]
+      q_hi = [q_h1, q_h2, q_h3]
+
+      call filccn(lo, hi, q, q_lo, q_hi, 1, domlo, domhi, dx, xlo, bc)
+
+    end subroutine filcc_tile
+    
+end module navierstokes_3d_module

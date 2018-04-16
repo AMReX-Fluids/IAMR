@@ -20,9 +20,10 @@ module LS_2d_module
 
   private 
 
-  public FORT_PHIUPD, FORT_LSCFL, FORT_FINDINTRFCE, FINDDIST, &
-       FORT_NARROWBAND, FORT_RETYPIFY, &
-       FORT_FASTMARCH, FORT_FASTMARCH2, FORT_MINE, FORT_NBANDNUMIFY
+  public :: phiupd, SWITCH, lscfl, findintrfce, UPDATEF, FINDDIST, POLYVAL, &
+         GRADPVAL, DPOLYVAL, GEPP, narrowband, retypify, fastmarch, &
+         UPDATE, EVAL, ADDNODE, UPDATENODE, RMVNODE, fastmarch2, &
+         UPDATE2, EVAL2, mine, nbandnumify 
        
 contains
 
@@ -185,7 +186,7 @@ contains
         endif
       enddo
       
-      FORT_PHIUPD = 0
+      PHIUPD = 0
       
       p = 1
       
@@ -195,7 +196,7 @@ contains
          p = p + 1
          
          if (sign(1.d0,phi(i,j))*sign(1.d0,phin(i,j)) .LE. 0) then
-            FORT_PHIUPD = 1
+            PHIUPD = 1
             exit
          endif 
       enddo
@@ -281,7 +282,7 @@ contains
          endif
       enddo
         
-      FORT_LSCFL = phidt
+      lscfl = phidt
     end FUNCTION lscfl
       
 
@@ -352,7 +353,7 @@ contains
              endif
           endif
       enddo
-      	
+      
       nband(1,1) = -LARGEINT
       nband(1,2) = -LARGEINT
     end subroutine findintrfce
@@ -400,18 +401,18 @@ contains
                   x = ii*dx(1)
                   y = jj*dx(2)
                   do n = 0,15
-		     c = n/4
-	       	     d = n-4*(n/4)
-	 	     A(m+1,n+1) = x**(c) * y**(d)
-	 	     A(m+2,n+1) = c * x**(max(c-1,0)) * y**(d)
-	 	     A(m+3,n+1) = d * x**(c) * y**(max(d-1,0))
-	 	     A(m+4,n+1) = c * d * x**(max(c-1,0)) * y**(max(d-1,0))                    
+                    c = n/4
+                    d = n-4*(n/4)
+                    A(m+1,n+1) = x**(c) * y**(d)
+                    A(m+2,n+1) = c * x**(max(c-1,0)) * y**(d)
+                    A(m+3,n+1) = d * x**(c) * y**(max(d-1,0))
+                    A(m+4,n+1) = c * d * x**(max(c-1,0)) * y**(max(d-1,0))                    
                   enddo
-	     	  B(m+1) = phi(i+ii,j+jj)
-	     	  B(m+2) = (phi(i+ii+1,j+jj) - phi(i+ii-1,j+jj))/(2*dx(1))
-	     	  B(m+3) = (phi(i+ii,j+jj+1) - phi(i+ii,j+jj-1))/(2*dx(2))
-	     	  B(m+4) = (phi(i+ii+1,j+jj+1) - phi(i+ii-1,j+jj+1) - phi(i+ii+1,j+jj-1) + phi(i+ii-1,j+jj-1))/(4*dx(1)*dx(2))
-	     	  m = m + 4
+                  B(m+1) = phi(i+ii,j+jj)
+                  B(m+2) = (phi(i+ii+1,j+jj) - phi(i+ii-1,j+jj))/(2*dx(1))
+                  B(m+3) = (phi(i+ii,j+jj+1) - phi(i+ii,j+jj-1))/(2*dx(2))
+                  B(m+4) = (phi(i+ii+1,j+jj+1) - phi(i+ii-1,j+jj+1) - phi(i+ii+1,j+jj-1) + phi(i+ii-1,j+jj-1))/(4*dx(1)*dx(2))
+                  m = m + 4
                enddo
             enddo
             
@@ -550,11 +551,11 @@ contains
       
       do n = 0,15
       
-	c = n/4
-	d = n-4*(n/4)
+        c = n/4
+        d = n-4*(n/4)
       
-      	grad(1) = grad(1) + B(n+1) * c * x**(max(c-1,0)) * y**(d)
-      	grad(2) = grad(2) + B(n+1) * d * x**(c) * y**(max(d-1,0))
+        grad(1) = grad(1) + B(n+1) * c * x**(max(c-1,0)) * y**(d)
+        grad(2) = grad(2) + B(n+1) * d * x**(c) * y**(max(d-1,0))
       
       enddo
 
@@ -567,10 +568,10 @@ contains
       REAL_T grad(2)
       REAL_T x,y      
       INTEGER n
-      DPOLYVAL= (3*x**2*(B(1)*y**3 + B(2)*y**2 + B(3)*y + B(4)) + 2*x*(B(5)*y**3 + B(6)*y**2
-     &           + B(7)*y + B(8))  + (B(9)*y**3 + B(10)*y**2 + B(11)*y + B(12)) )*grad(1) 
-     &           + (3*y**2*(B(1)*x**3 + B(5)*x**2 + B(9)*x + B(13)) + 2*y*(B(2)*x**3
-     &           + B(6)*x**2 + B(10)*x + B(14))  + (B(3)*x**3 + B(7)*x**2 + B(11)*x + B(15)) )*grad(2)
+      DPOLYVAL= (3*x**2*(B(1)*y**3 + B(2)*y**2 + B(3)*y + B(4)) + 2*x*(B(5)*y**3 + B(6)*y*2* &
+                + B(7)*y + B(8))  + (B(9)*y**3 + B(10)*y**2 + B(11)*y + B(12)) )*grad(1)  &
+                + (3*y**2*(B(1)*x**3 + B(5)*x**2 + B(9)*x + B(13)) + 2*y*(B(2)*x**3 &
+                + B(6)*x**2 + B(10)*x + B(14))  + (B(3)*x**3 + B(7)*x**2 + B(11)*x + B(15)) )*grad(2)
    end FUNCTION DPOLYVAL
       
       
@@ -631,7 +632,7 @@ contains
       
 
     subroutine narrowband(type, DIMS(type),&
-     		          nband, nbandsize,&
+                          nband, nbandsize,&
                           mine, minesize,&
                           lo, hi) & bind(C,name="narrowband")
       implicit none     
@@ -732,12 +733,12 @@ contains
         i = intface(n,1)
         j = intface(n,2)
       
-	CALL UPDATE(phi,i,j,sgn, type, heap,numtent,DIMS(phi),DIMS(type),&
-         	    nbandsize, lo, hi, dx, heaploc)
-	
-	nbandnum = nbandnum + 1
-	nband(nbandnum,1) = i
-	nband(nbandnum,2) = j
+        CALL UPDATE(phi,i,j,sgn, type, heap,numtent,DIMS(phi),DIMS(type),&
+                   nbandsize, lo, hi, dx, heaploc)
+
+        nbandnum = nbandnum + 1
+        nband(nbandnum,1) = i
+        nband(nbandnum,2) = j
       enddo
       
       do while (numtent .GT. 0  )
@@ -874,13 +875,13 @@ contains
       else if (lok) then
       
         a = a + dx(2)/dx(1)
-	b = b + sgn*phi(left,j)*(dx(2)/dx(1))
+        b = b + sgn*phi(left,j)*(dx(2)/dx(1))
         c = c + phi(left,j)**2*(dx(2)/dx(1))
       
       else if (rok ) then
 
         a = a + dx(2)/dx(1)
-	b = b + sgn*phi(right,j)*(dx(2)/dx(1))
+        b = b + sgn*phi(right,j)*(dx(2)/dx(1))
         c = c + phi(right,j)**2*(dx(2)/dx(1))
         
       endif
@@ -895,13 +896,13 @@ contains
       else if (dok) then
       
         a = a + dx(1)/dx(2)
-	b = b + sgn*phi(i,down)*(dx(1)/dx(2))
+        b = b + sgn*phi(i,down)*(dx(1)/dx(2))
         c = c + phi(i,down)**2*(dx(1)/dx(2))
       
       else if (uok ) then
 
         a = a + dx(1)/dx(2)
-	b = b + sgn*phi(i,up)*(dx(1)/dx(2))
+        b = b + sgn*phi(i,up)*(dx(1)/dx(2))
         c = c + phi(i,up)**2*(dx(1)/dx(2))
         
       endif      
@@ -1047,7 +1048,7 @@ contains
                   else
                      heap(index,1) = heap(right,1)
                      heap(index,2) = heap(right,2)
-                     heaploc(heap(index,1),heap(index,2)) = index	      
+                     heaploc(heap(index,1),heap(index,2)) = index
                      index = right
                      left=2*index
                      right=2*index+1  
@@ -1055,7 +1056,7 @@ contains
                else                  
                   heap(index,1) = heap(left,1)
                   heap(index,2) = heap(left,2)
-                  heaploc(heap(index,1),heap(index,2)) = index	    
+                  heaploc(heap(index,1),heap(index,2)) = index
                   
                   index = left
                   left=2*index
@@ -1067,7 +1068,7 @@ contains
                if (abs(phi(heap(right,1),heap(right,2))) .LT. abs( phi(heap(n,1),heap(n,2)))) then
                   heap(index,1) = heap(right,1)
                   heap(index,2) = heap(right,2)
-                  heaploc(heap(index,1),heap(index,2)) = index	      
+                  heaploc(heap(index,1),heap(index,2)) = index
                   index = right
                   left=2*index
                   right=2*index+1
@@ -1152,13 +1153,13 @@ contains
          endif
       enddo
       
-      FORT_FASTMARCH2 = 0
+      FASTMARCH2 = 0
       do while (numtent .GT. 0 )
          CALL RMVNODE(heap, i,j,numtent, phi, DIMS(phi), &
                      nbandsize,heaploc,DIMS(type))
          if (abs(phi(i,j)) .LT. nbandwidth ) then
          
-            FORT_FASTMARCH2 = 1
+            FASTMARCH2 = 1
 
             if (type(i,j) .GE. 2) then
                nbandnum = nbandnum + 1         
@@ -1351,7 +1352,7 @@ contains
 
      
       subroutine mine(type, DIMS(type), nband, nbandsize,&
-     		      mine, minesize,lo, hi) bind(C,name="mine")
+                      mine, minesize,lo, hi) bind(C,name="mine")
       implicit none     
       integer DIMDEC(type)
       integer nbandsize, minesize
@@ -1386,7 +1387,7 @@ contains
 
      
     subroutine nbandnumify(nband, nbandsize,nbandnum) &
-         bind(C<name="nbandnumify")
+         bind(C,name="nbandnumify")
       implicit none      
       integer nbandsize, nbandnum
       integer nband(nbandsize,SDIM)
@@ -1398,4 +1399,5 @@ contains
       enddo
       nbandnum = p
     end subroutine nbandnumify
-  end module LS_2d_module
+  
+end module LS_2d_module

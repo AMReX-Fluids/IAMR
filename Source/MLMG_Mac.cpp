@@ -15,6 +15,8 @@ namespace {
     static int agglomeration = 1;
     static int consolidation = 1;
     static int max_fmg_iter = 0;
+    static int use_hypre = 0;
+    static int hypre_verbose = 0;
 }
 
 namespace {
@@ -105,7 +107,11 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
         ppmac.query("agglomeration", agglomeration);
         ppmac.query("consolidation", consolidation);
         ppmac.query("max_fmg_iter", max_fmg_iter);
-        
+#ifdef AMREX_USE_HYPRE
+        ppmac.query("use_hypre", use_hypre);
+        ppmac.query("hypre_verbose", hypre_verbose);
+#endif
+ 
         initialized = true;
     }
     
@@ -144,6 +150,10 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
 
     MLMG mlmg(mlabec);
+    if (use_hypre) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        mlmg.setBottomVerbose(hypre_verbose);
+    }
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
 
@@ -213,6 +223,10 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
 
     MLMG mlmg(mlabec);
+    if (use_hypre) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        mlmg.setBottomVerbose(hypre_verbose);
+    }
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
 

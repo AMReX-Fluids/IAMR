@@ -18,7 +18,7 @@ module macoperator_2d_module
 
   private 
 
-  public maccoef,macrhs, macupdate, macsyncrhs
+  public maccoef, macrhs, macupdate, macsyncrhs
   
 contains
 

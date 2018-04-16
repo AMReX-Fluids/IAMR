@@ -12,6 +12,7 @@ PRECISION   = DOUBLE
 
 DIM         = 2
 COMP        = gnu
+
 DEBUG       = TRUE
 USE_MPI     = TRUE
 USE_OMP     = TRUE

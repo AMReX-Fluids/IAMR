@@ -16,30 +16,56 @@
 
 #define SDIM 3
 
+
       block data rt_common
 #include <probdata.H>
       data rt_pertamp/0.0D0/
       data rt_nfreq/0/
       data rt_xfrontw/0.0d0/
-      end
-c ::: -----------------------------------------------------------
-c ::: This routine is called at problem initialization time
-c ::: and when restarting from a checkpoint file.
-c ::: The purpose is (1) to specify the initial time value
-c ::: (not all problems start at time=0.0) and (2) to read
-c ::: problem specific data from a namelist or other inputcdm
-c ::: files and possibly store them or derived information
-c ::: in FORTRAN common blocks for later use.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: init      => TRUE if called at start of problem run
-c :::              FALSE if called from restart
-c ::: name      => name of "probin" file
-c ::: namlen    => length of name
-c ::: strttime <=  start problem with this time variable
-c ::: 
-c ::: -----------------------------------------------------------
+      end  
+    
+module prob_3D_module
+
+  implicit none
+
+  private
+
+  public :: amrex_probinit, FORT_INITDATA, initfromrest, &
+            initrt, initbubble, initpervort, initspin, &
+            initviscbench, initvort, initchannel, inithotspot, &
+            initeuler, initbrnrsh, inflowt, taylorgreen, &
+            swirl, inithit, initinflow, initswirltest, &
+            initflow, initjet, initinjection, initroundjet, &
+            initcoriolis, initheating, initgravitycurrent, &
+            initrayleightaylor, initraneul, initdenadvect, &
+            initshearlayer, initiwpctm, FORT_AVERAGE_EDGE_STATES, &
+            FORT_MAKEFORCE, FORT_DSDTFILL, &
+            FORT_ADVERROR, FORT_ADV2ERROR, FORT_TEMPERROR, FORT_MVERROR, &
+            FORT_DENFILL, FORT_ADVFILL, FORT_TEMPFILL, FORT_XVELFILL, &
+            FORT_YVELFILL, FORT_ZVELFILL, FORT_PRESFILL, FORT_DIVUFILL
+
+contains      
+      
+
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called at problem initialization time
+!c ::: and when restarting from a checkpoint file.
+!c ::: The purpose is (1) to specify the initial time value
+!c ::: (not all problems start at time=0.0) and (2) to read
+!c ::: problem specific data from a namelist or other inputcdm
+!c ::: files and possibly store them or derived information
+!c ::: in FORTRAN common blocks for later use.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: init      => TRUE if called at start of problem run
+!c :::              FALSE if called from restart
+!c ::: name      => name of "probin" file
+!c ::: namlen    => length of name
+!c ::: strttime <=  start problem with this time variable
+!c ::: 
+!c ::: -----------------------------------------------------------
+
       subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
       implicit none
       integer init,namlen
@@ -47,7 +73,7 @@ c ::: -----------------------------------------------------------
       integer untin, i
       REAL_T  problo(SDIM), probhi(SDIM)
 
-      
+    
 #include <probdata.H>
 
 #ifdef DO_IAMR_FORCE
@@ -74,57 +100,57 @@ c ::: -----------------------------------------------------------
       REAL_T  Lx, Ly, Lz, Lmin
       REAL_T  kappa, kappaMax, freqMin, freqMax, freqDiff, pdk
 
-      namelist /fortin/ denerr, vorterr, adverr, temperr,
-     &			denfact, xblob, yblob, zblob, radblob, 
-     &                  velfact, probtype, randfact, bubgrad,
-     &			rhozero, rhograd, tempzero, c_d, r_d, 
-     &                  adv_dir, adv_vel, slot_vel, axis_dir, radvort,
-     &                  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,
-     &                  vb_unifdir, blrandseed, turb_scale, injection_time,
-     &                  override_turb_force
+      namelist /fortin/ denerr, vorterr, adverr, temperr, &
+     			denfact, xblob, yblob, zblob, radblob,  &
+                       velfact, probtype, randfact, bubgrad, &
+     			rhozero, rhograd, tempzero, c_d, r_d,  &
+                       adv_dir, adv_vel, slot_vel, axis_dir, radvort, &
+                       den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag, &
+                       vb_unifdir, blrandseed, turb_scale, injection_time, &
+                       override_turb_force
 #ifdef BL_DO_FLCT
-      namelist /fortin/ forceInflow, numInflPlanesStore, strmwse_dir,
-     &                  forceLo, forceHi, flct_file, nCompInflow, infl_type,
-     &                  tstart_turb
+      namelist /fortin/ forceInflow, numInflPlanesStore, strmwse_dir, &
+                       forceLo, forceHi, flct_file, nCompInflow, infl_type, &
+                       tstart_turb
 #endif
-      namelist /fortin/ rt_splitx, rt_xfrontw, rt_den_1, rt_den_2,
-     &                  rt_pertamp, rt_nfreq, rt_graddenerr
+      namelist /fortin/ rt_splitx, rt_xfrontw, rt_den_1, rt_den_2, &
+                       rt_pertamp, rt_nfreq, rt_graddenerr
 
       namelist /fortin/ eul_nfreq, eul_pertamp, iseed
 
       namelist /fortin/ Vco, Rfu, Rtran, tVco_l, tVco_r, Vco_l, Vco_r
 
-      namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius, time_offset,
-     &                  thermal_expansion, heating_coeff, heating_centre, heating_radius
+      namelist /fortin/ grav_angle, omega, infl_time_offset, ref_centre, ref_radius, time_offset, &
+                       thermal_expansion, heating_coeff, heating_centre, heating_radius
 
       namelist /fortin/ density_pert, interface_height, wavelength_min, wavelength_max, tracer_height
 
 #ifdef DO_IAMR_FORCE
-      namelist /fortin/ nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz,
-     &                  forcing_type, spectrum_type, ref_type, forcing_twice_wavelength,
-     &                  forcing_xlength, forcing_ylength, forcing_zlength,
-     &                  forcing_time_scale_min, forcing_time_scale_max, 
-     &                  force_scale, forcing_epsilon,
-     &                  use_rho_in_forcing, do_mode_division, div_free_force, moderate_zero_modes,
-     &                  AXY, BXY, CXY, DXY, PXY, QXY, RXY,
-     &                  AZX, BZX, CZX, DZX, PZX, QZX, RZX,
-     &                  AYZ, BYZ, CYZ, DYZ, PYZ, QYZ, RYZ,
-     &                  FTX, FTY, FTZ, TAT, TAP,
-     &                  FPX, FPY, FPZ, FAX, FAY, FAZ
+      namelist /fortin/ nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz, &
+                      forcing_type, spectrum_type, ref_type, forcing_twice_wavelength, &
+                       forcing_xlength, forcing_ylength, forcing_zlength, &
+                       forcing_time_scale_min, forcing_time_scale_max,  &
+                       force_scale, forcing_epsilon, &
+                       use_rho_in_forcing, do_mode_division, div_free_force, moderate_zero_modes, &
+                       AXY, BXY, CXY, DXY, PXY, QXY, RXY, &
+                       AZX, BZX, CZX, DZX, PZX, QZX, RZX, &
+                       AYZ, BYZ, CYZ, DYZ, PYZ, QYZ, RYZ, &
+                       FTX, FTY, FTZ, TAT, TAP, &
+                       FPX, FPY, FPZ, FAX, FAY, FAZ
 #endif
 
-      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel,
-     &                  coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet,
-     &                  do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
+      namelist /fortin/ jet_x, jet_y, jet_width, jet_rho, jet_vel, &
+                       coflow_rho, coflow_vel, jet_temp, ref_height, ref_height2, plane_jet, &
+                       do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
 
       namelist /fortin/ holeRad, holeBLfac, nHolesX, nHolesY, nHolesZ, holeSp, slotWidth, alpha, beta
 
       namelist /fortin/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
       namelist /fortin/ do_inlet_ref, inlet_ref_height
       namelist /fortin/ lid_vel
-c
-c      Build "probin" filename -- the name of file containing fortin namelist.
-c
+!c
+!c      Build "probin" filename -- the name of file containing fortin namelist.
+!c
       integer maxlen, isioproc, ierr
       parameter (maxlen=256)
 
@@ -138,8 +164,7 @@ c
       parameter (MAXPHASE = 1000)
       DOUBLE PRECISION rn, permin, permax, xtmp, ytmp, pert
 
-      REAL_T   ran1, f0, fmin, fmax, fdif
-      external ran1
+      REAL_T   f0, fmin, fmax, fdif
       integer  idum
 
       call bl_pd_is_ioproc(isioproc)
@@ -193,7 +218,7 @@ c
          open(untin,file=probin(1:namlen),form='formatted',status='old')
       end if
       read(untin,fortin)
-c      if (isioproc .eq. 1) write(6,fortin)
+!c      if (isioproc .eq. 1) write(6,fortin)
       close(unit=untin)
 
 #ifdef BL_DO_FLCT
@@ -222,7 +247,7 @@ c      if (isioproc .eq. 1) write(6,fortin)
          end if
       endif
 
-c     Need to set adv_vel for the round jet
+!c     Need to set adv_vel for the round jet
       if (probtype.eq.18) then
          adv_vel = jet_vel
       endif
@@ -248,9 +273,9 @@ c     Need to set adv_vel for the round jet
             mag(i)=onep7*mag(1)/float(i)
          enddo
       endif
-c
-c     Initialize the common blocks
-c
+!c
+!c     Initialize the common blocks
+!c
       do i=1, SDIM
          f_problo(i) = problo(i)
          f_probhi(i) = probhi(i)
@@ -309,14 +334,14 @@ c
                   pert = 0.d0
                   do n = 1, rt_nfreq
                      do m = 1, rt_nfreq
-                        pert = pert
-     &                       + sin(
-     &                       2.0D0*rt_PI*dble(n)*xtmp + rt_ranphse(n,m,1)
-     &                       )
-     &                       * sin(
-     &                       2.0D0*rt_PI*dble(m)*ytmp + rt_ranphse(n,m,2)
-     &                       )
-     &                       *rt_ranampl(n,m)
+                        pert = pert &
+                            + sin( &
+                            2.0D0*rt_PI*dble(n)*xtmp + rt_ranphse(n,m,1) &
+                            ) &
+                            * sin( &
+                            2.0D0*rt_PI*dble(m)*ytmp + rt_ranphse(n,m,2) &
+                            ) &
+                            *rt_ranampl(n,m)
                      end do
                   end do
                   permin = min(permin, pert)
@@ -424,12 +449,12 @@ c
                      FTY(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
                      call blutilrand(rn)
                      FTZ(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-c     Translation angles, theta=0..2Pi and phi=0..Pi
+!c     Translation angles, theta=0..2Pi and phi=0..Pi
                      call blutilrand(rn)
                      TAT(kx,ky,kz) = rn*twicePi
                      call blutilrand(rn)
                      TAP(kx,ky,kz) = rn*Pi
-c     Phases
+!c     Phases
                      call blutilrand(rn)
                      FPX(kx,ky,kz) = rn*twicePi
                      call blutilrand(rn)
@@ -456,7 +481,7 @@ c     Phases
                         call blutilrand(rn)
                         FPZZ(kx,ky,kz) = rn*twicePi
                      endif
-c     Amplitudes (alpha)
+!c     Amplitudes (alpha)
                      call blutilrand(rn)
                      thetaTmp      = rn*twicePi
                      cosThetaTmp   = cos(thetaTmp)
@@ -479,9 +504,9 @@ c     Amplitudes (alpha)
                         FAY(kx,ky,kz) = zero
                         FAZ(kx,ky,kz) = zero
                      else
-c     Count modes that contribute
+!c     Count modes that contribute
                         mode_count = mode_count + 1
-c     Set amplitudes
+!c     Set amplitudes
                         if (spectrum_type.eq.1) then
                            Ekh        = one / kappa
                         else if (spectrum_type.eq.2) then
@@ -521,7 +546,7 @@ c     Set amplitudes
             enddo
          enddo
 
-c     Now let's break symmetry, have to assume high aspect ratio in z for now
+!c     Now let's break symmetry, have to assume high aspect ratio in z for now
          reduced_mode_count = 0
          do kz = 1, zstep - 1
             kzd = dfloat(kz)
@@ -539,12 +564,12 @@ c     Now let's break symmetry, have to assume high aspect ratio in z for now
                      FTY(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
                      call blutilrand(rn)
                      FTZ(kx,ky,kz) = (freqMin + freqDiff*rn)*twicePi
-c     Translation angles, theta=0..2Pi and phi=0..Pi
+!c     Translation angles, theta=0..2Pi and phi=0..Pi
                      call blutilrand(rn)
                      TAT(kx,ky,kz) = rn*twicePi
                      call blutilrand(rn)
                      TAP(kx,ky,kz) = rn*Pi
-c     Phases
+!c     Phases
                      call blutilrand(rn)
                      FPX(kx,ky,kz) = rn*twicePi
                      call blutilrand(rn)
@@ -571,7 +596,7 @@ c     Phases
                         call blutilrand(rn)
                         FPZZ(kx,ky,kz) = rn*twicePi
                      endif
-c     Amplitudes (alpha)
+!c     Amplitudes (alpha)
                      call blutilrand(rn)
                      thetaTmp      = rn*twicePi
                      cosThetaTmp   = cos(thetaTmp)
@@ -594,9 +619,9 @@ c     Amplitudes (alpha)
                         FAY(kx,ky,kz) = zero
                         FAZ(kx,ky,kz) = zero
                      else
-c     Count modes that contribute
+!c     Count modes that contribute
                         reduced_mode_count = reduced_mode_count + 1
-c     Set amplitudes
+!c     Set amplitudes
                         if (spectrum_type.eq.1) then
                            Ekh        = one / kappa
                         else if (spectrum_type.eq.2) then
@@ -648,7 +673,7 @@ c     Set amplitudes
             endif
          endif
 
-c Override random numbers
+!c Override random numbers
          if (override_turb_force.ge.1) then
 
             if (override_turb_force.eq.1) then
@@ -881,13 +906,13 @@ c Override random numbers
                   enddo
                enddo
             endif
-c     override 
+!c     override 
          endif
 
-c     probtype 14 or 15
+!c     probtype 14 or 15
       endif
 
-c     iamr_force
+!c     iamr_force
 #endif
 
       if (probtype.eq.23) then
@@ -895,17 +920,17 @@ c     iamr_force
          Ly = f_probhi(2)-f_problo(2)
          Lz = f_probhi(3)-f_problo(3)
          
-c     Initialise random number generator
+!c     Initialise random number generator
          idum=-1
          f0 = ran1(idum)
          
-c     Get frequencies higher than fundamental
+!c     Get frequencies higher than fundamental
          f0 = half*(vel1+vel2)/(five*delta0)
          fmin = f0/five
          fmax = f0
          fdif = fmax-fmin
          
-c     Get random numbers
+!c     Get random numbers
          do n = 1, 10
             mag(n)  = amag*ran1(idum)
             freq(n) = ran1(idum)*(fmax-fmin)+fmin
@@ -914,38 +939,40 @@ c     Get random numbers
          end do
       endif
 
-      end
+      end subroutine amrex_probinit 
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called at problem setup time and is used
-c ::: to initialize data on each grid.  The velocity field you
-c ::: provide does not have to be divergence free and the pressure
-c ::: field need not be set.  A subsequent projection iteration
-c ::: will define aa divergence free velocity field along with a
-c ::: consistant pressure.
-c ::: 
-c ::: NOTE:  all arrays have one cell of ghost zones surrounding
-c :::        the grid interior.  Values in these cells need not
-c :::        be set here.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: level     => amr level of grid
-c ::: time      => time at which to init data             
-c ::: lo,hi     => index limits of grid interior (cell centered)
-c ::: nscal     => number of scalar quantities.  You should know
-c :::		   this already!
-c ::: vel      <=  Velocity array
-c ::: scal     <=  Scalar array
-c ::: press    <=  Pressure array
-c ::: dx     => cell size
-c ::: xlo,xhi   => physical locations of lower left and upper
-c :::              right hand corner of grid.  (does not include
-c :::		   ghost region).
-c ::: -----------------------------------------------------------
-      subroutine FORT_INITDATA(level,time,lo,hi,nscal,
-     &	 	               vel,scal,DIMS(state),press,DIMS(press),
-     &                         dx,xlo,xhi)
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called at problem setup time and is used
+!c ::: to initialize data on each grid.  The velocity field you
+!c ::: provide does not have to be divergence free and the pressure
+!c ::: field need not be set.  A subsequent projection iteration
+!c ::: will define aa divergence free velocity field along with a
+!c ::: consistant pressure.
+!c ::: 
+!c ::: NOTE:  all arrays have one cell of ghost zones surrounding
+!c :::        the grid interior.  Values in these cells need not
+!c :::        be set here.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: level     => amr level of grid
+!c ::: time      => time at which to init data             
+!c ::: lo,hi     => index limits of grid interior (cell centered)
+!c ::: nscal     => number of scalar quantities.  You should know
+!c :::		   this already!
+!c ::: vel      <=  Velocity array
+!c ::: scal     <=  Scalar array
+!c ::: press    <=  Pressure array
+!c ::: dx     => cell size
+!c ::: xlo,xhi   => physical locations of lower left and upper
+!c :::              right hand corner of grid.  (does not include
+!c :::		   ghost region).
+!c ::: -----------------------------------------------------------
+      subroutine FORT_INITDATA(level,time,lo,hi,nscal, &
+     	 	                      vel,scal,DIMS(state),press,DIMS(press), &
+                              dx,xlo,xhi) &
+                              bind(C, name="FORT_INITDATA")
+                              
       implicit none
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -960,160 +987,160 @@ c ::: -----------------------------------------------------------
      
 #include <probdata.H>
 
-c      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
+!c      print *, 'INITDATA ', time, lo(1),hi(1), lo(2), hi(2), lo(3), hi(3)
 
       if (probtype .eq. 1) then
-         call initspin(level,time,lo,hi,nscal,
-     &     	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+         call initspin(level,time,lo,hi,nscal, &
+          	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
 
       else if (probtype .eq. 2) then
-         call initbubble(level,time,lo,hi,nscal,
-     &     	         vel,scal,DIMS(state),press,DIMS(press),
-     &                   dx,xlo,xhi)
+         call initbubble(level,time,lo,hi,nscal, &
+          	         vel,scal,DIMS(state),press,DIMS(press), &
+                        dx,xlo,xhi)
 
       else if (probtype .eq. 3) then
-         call initvort(level,time,lo,hi,nscal,
-     &     	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+         call initvort(level,time,lo,hi,nscal, &
+          	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
 
       else if (probtype .eq. 4) then
-         call initchannel(level,time,lo,hi,nscal,
-     &     	          vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+         call initchannel(level,time,lo,hi,nscal, &
+          	          vel,scal,DIMS(state),press,DIMS(press), &
+                         dx,xlo,xhi) 
 
       else if (probtype .eq. 5) then
-         call initpervort(level,time,lo,hi,nscal,
-     &     	          vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+         call initpervort(level,time,lo,hi,nscal, &
+          	          vel,scal,DIMS(state),press,DIMS(press), &
+                         dx,xlo,xhi)
 
       else if (probtype .eq. 6) then
-         call inithotspot(level,time,lo,hi,nscal,
-     &     	          vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+         call inithotspot(level,time,lo,hi,nscal, &
+          	          vel,scal,DIMS(state),press,DIMS(press), &
+                         dx,xlo,xhi)
 
       else if (probtype .eq. 7) then
-         call initeuler(level,time,lo,hi,nscal,
-     &                    vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+         call initeuler(level,time,lo,hi,nscal, &
+                         vel,scal,DIMS(state),press,DIMS(press), &
+                         dx,xlo,xhi)
 
       else if (probtype .eq. 8) then
-         call initbrnrsh(level,time,lo,hi,nscal,
-     &                    vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+         call initbrnrsh(level,time,lo,hi,nscal, &
+                         vel,scal,DIMS(state),press,DIMS(press), &
+                         dx,xlo,xhi)
 
       else if (probtype .eq. 9) then
-         call initviscbench(level,time,lo,hi,nscal,
-     &                      vel,scal,DIMS(state),press,DIMS(press),
-     &                      dx,xlo,xhi)
+         call initviscbench(level,time,lo,hi,nscal, &
+                           vel,scal,DIMS(state),press,DIMS(press), &
+                           dx,xlo,xhi)
 
 
       else if (probtype .eq. 10) then
-         call initrt(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initrt(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
 
       else if (probtype .eq. 11) then
-         call inflowt(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call inflowt(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 12) then
-         call taylorgreen(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call taylorgreen(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 13) then
-         call swirl(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call swirl(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 14) then
-         call inithit(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call inithit(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 15) then
-         call initinflow(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initinflow(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 16) then
-         call initjet(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initjet(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 17) then
-         call initinjection(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initinjection(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 18) then
-         call initroundjet(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initroundjet(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 19) then
-         call initcoriolis(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initcoriolis(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 20) then
-         call initheating(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initheating(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 21) then
-         call initraneul(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initraneul(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 22) then
-         call initdenadvect(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initdenadvect(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 23) then
-         call initrayleightaylor(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initrayleightaylor(level,time,lo,hi,nscal,  &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 24) then
-         call initshearlayer(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initshearlayer(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 25) then
-         call initgravitycurrent(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initgravitycurrent(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 26) then
-         call initinflow(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initinflow(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
 
       else if (probtype .eq. 27) then
-         call initflow(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initflow(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
       else if (probtype .eq. 28) then
-         call initswirltest(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initswirltest(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
       else if (probtype .eq. 29 .or. probtype .eq. 30) then
-         call initfromrest(level,time,lo,hi,nscal,
-     &        vel,scal,DIMS(state),press,DIMS(press),
-     &        dx,xlo,xhi)
+         call initfromrest(level,time,lo,hi,nscal, &
+             vel,scal,DIMS(state),press,DIMS(press), &
+             dx,xlo,xhi)
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
-      end
+      end subroutine FORT_INITDATA
 
-c----------------------------------------------------------------------
-c     A handy statement function: here blend goes from 0 to 1 in x at
-c     rad, over a width of trn
+!c----------------------------------------------------------------------
+!c     A handy statement function: here blend goes from 0 to 1 in x at
+!c     rad, over a width of trn
 
       DOUBLE PRECISION function zblend1(x,rad,trn)
       DOUBLE PRECISION x, rad, trn
@@ -1127,14 +1154,14 @@ c     rad, over a width of trn
          zblend1 = 0.5D0*(1.0D0 + TANH((x-rad)/trn))
       end if
       end
-c
-c ::: -----------------------------------------------------------
-c ::: Initialise system from rest. Introduced for the lid-driven cavity
-c ::: test case. 
-c
-      subroutine initfromrest(level,time,lo,hi,nscal,
-     &                        vel,scal,DIMS(state),press,DIMS(press),
-     &                            dx,xlo,xhi)
+!c
+!c ::: -----------------------------------------------------------
+!c ::: Initialise system from rest. Introduced for the lid-driven cavity
+!c ::: test case. 
+!c
+      subroutine initfromrest(level,time,lo,hi,nscal, &
+                             vel,scal,DIMS(state),press,DIMS(press), &
+                                 dx,xlo,xhi)
       implicit none
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -1145,11 +1172,10 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-      REAL_T  zblend1
-      EXTERNAL zblend1
-c
-c     ::::: local variables
-c
+
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
 
 #include <probdata.H>
@@ -1169,13 +1195,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initrt(level,time,lo,hi,nscal,
-     &	 	            vel,scal,DIMS(state),press,DIMS(press),
-     &                      dx,xlo,xhi)
+      end subroutine initfromrest
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initrt(level,time,lo,hi,nscal, &
+     	 	            vel,scal,DIMS(state),press,DIMS(press), &
+                           dx,xlo,xhi)
       implicit none
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -1186,11 +1212,10 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-      REAL_T  zblend1
-      EXTERNAL zblend1
-c
-c     ::::: local variables
-c
+
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n, m
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1209,22 +1234,22 @@ c
             pert = 0.d0
             do n = 1, rt_nfreq
                do m = 1, rt_nfreq
-                  pert = pert
-     &                 + sin(
-     &                 2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1)
-     &                 )
-     &                 * sin(
-     &                 2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2)
-     &                 )
-     &                 *rt_ranampl(n,m)
+                  pert = pert &
+                      + sin( &
+                      2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1) &
+                      ) &
+                      * sin( &
+                      2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2) &
+                      ) &
+                      *rt_ranampl(n,m)
                end do
             end do
             ztemp = rt_splitx - pert*rt_pertamp
             do k = lo(3), hi(3)
                z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
-               scal(i,j,k,1) = 
-     &              rt_den_1 
-     &              + (rt_den_2-rt_den_1)*zblend1(z,ztemp,rt_xfrontw)
+               scal(i,j,k,1) = &
+                   rt_den_1  &
+                   + (rt_den_2-rt_den_1)*zblend1(z,ztemp,rt_xfrontw)
                vel(i,j,k,1) = 0
                vel(i,j,k,2) = 0
                vel(i,j,k,3) = 0
@@ -1236,13 +1261,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initbubble(level,time,lo,hi,nscal,
-     &	 	            vel,scal,DIMS(state),press,DIMS(press),
-     &                      dx,xlo,xhi)
+      end subroutine initrt
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initbubble(level,time,lo,hi,nscal, &
+     	 	            vel,scal,DIMS(state),press,DIMS(press), &
+                           dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1254,9 +1279,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1277,7 +1302,7 @@ c
          x_vel = zero
          y_vel = adv_vel
          z_vel = zero
-c     AJA - This next line originally said 2!
+!c     AJA - This next line originally said 2!
       else if (adv_dir .eq. 3) then
          x_vel = zero
          y_vel = zero
@@ -1306,13 +1331,13 @@ c     AJA - This next line originally said 2!
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initpervort(level,time,lo,hi,nscal,
-     &                       vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initbubble
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initpervort(level,time,lo,hi,nscal, &
+                            vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1324,9 +1349,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1361,16 +1386,16 @@ c
          end do
       end do
 
-      end
-c
+      end subroutine initpervort
+!c
 
-c
-c ::: -----------------------------------------------------------
-c
+!c
+!c ::: -----------------------------------------------------------
+!c
 
-      subroutine initspin(level,time,lo,hi,nscal,
-     &	 	          vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+      subroutine initspin(level,time,lo,hi,nscal, &
+     	 	          vel,scal,DIMS(state),press,DIMS(press), &
+                         dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1382,9 +1407,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1406,7 +1431,7 @@ c
          x_vel = zero
          y_vel = adv_vel
          z_vel = zero
-c     AJA - This next line also originally said 2!
+!c     AJA - This next line also originally said 2!
       else if (adv_dir .eq. 3) then
          x_vel = zero
          y_vel = zero
@@ -1444,25 +1469,25 @@ c     AJA - This next line also originally said 2!
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c ::: This case is an unsteady  viscous benchmark for which the
-c ::: exact solution is,
-c :::     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
-c :::     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
-c :::     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
-c ::: In the utilities, iamrlib/BenchMarks, there is a
-c ::: tool ViscBench2d.cpp that reads a plot file and compares the
-c ::: solution against this exact solution.  This benchmark was
-c ::: originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274,
-c ::: pp. 671-674, 1923) and Ethier and Steinman
-c ::: (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
-c ::: the pressure field.
-c
-      subroutine initviscbench(level,time,lo,hi,nscal,
-     &                         vel,scal,DIMS(state),press,DIMS(press),
-     &                         dx,xlo,xhi)
+      end subroutine initspin
+!c
+!c ::: -----------------------------------------------------------
+!c ::: This case is an unsteady  viscous benchmark for which the
+!c ::: exact solution is,
+!c :::     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
+!c :::     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
+!c :::     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
+!c ::: In the utilities, iamrlib/BenchMarks, there is a
+!c ::: tool ViscBench2d.cpp that reads a plot file and compares the
+!c ::: solution against this exact solution.  This benchmark was
+!c ::: originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274,
+!c ::: pp. 671-674, 1923) and Ethier and Steinman
+!c ::: (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
+!c ::: the pressure field.
+!c
+      subroutine initviscbench(level,time,lo,hi,nscal, &
+                              vel,scal,DIMS(state),press,DIMS(press), &
+                              dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1474,9 +1499,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1504,9 +1529,9 @@ c
             spx = sin(Pi*x)
             cpx = cos(Pi*x)
 
-c
-c           Uniform in the X-direction
-c
+!c
+!c           Uniform in the X-direction
+!c
             if (vb_unifdir .eq. 0) then
               vel(i,j,k,1) =   zero
               vel(i,j,k,2) =   spz*cpy
@@ -1516,9 +1541,9 @@ c
                 scal(i,j,k,n) =   cpz*cpy
               enddo
 
-c
-c           Uniform in the Y-direction
-c
+!c
+!c           Uniform in the Y-direction
+!c
             elseif (vb_unifdir .eq. 1) then
               vel(i,j,k,1) = - cpx*spz
               vel(i,j,k,2) =   zero
@@ -1528,9 +1553,9 @@ c
                 scal(i,j,k,n) =   cpx*cpz
               enddo
 
-c
-c           Uniform in the Z-direction
-c
+!c
+!c           Uniform in the Z-direction
+!c
             elseif (vb_unifdir .eq. 2) then
               vel(i,j,k,1) = - cpx*spy
               vel(i,j,k,2) =   spx*cpy
@@ -1543,13 +1568,13 @@ c
             end do
          end do
       end do
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initvort(level,time,lo,hi,nscal,
-     &	 	          vel,scal,DIMS(state),press,DIMS(press),
-     &                    dx,xlo,xhi)
+      end subroutine initviscbench
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initvort(level,time,lo,hi,nscal, &
+     	 	          vel,scal,DIMS(state),press,DIMS(press), &
+                         dx,xlo,xhi)
       implicit none
       integer    level, nscal
       integer    lo(SDIM), hi(SDIM)
@@ -1560,9 +1585,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z, r
       REAL_T  hx, hy, hz
@@ -1588,8 +1613,8 @@ c
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half) - xblob
   	       r = sqrt(x**2 + y**2)
-c              umagin = .5*r - 4*r**3
-c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
+!c              umagin = .5*r - 4*r**3
+!c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
                umagin = velfact * (one - a*(r - r0)**2)
                umagout = velfact * b/max(radvort,r)
                absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
@@ -1607,13 +1632,13 @@ c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initchannel(level,time,lo,hi,nscal,
-     &	 	             vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initvort
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initchannel(level,time,lo,hi,nscal, &
+     	 	             vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1625,9 +1650,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1660,12 +1685,12 @@ c
          end do
       end do
 
-      end
-c ::: -----------------------------------------------------------
-c
-      subroutine inithotspot(level,time,lo,hi,nscal,
-     &	 	             vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initchannel
+!c ::: -----------------------------------------------------------
+!c
+      subroutine inithotspot(level,time,lo,hi,nscal, &
+     	 	             vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1679,7 +1704,7 @@ c
       REAL_T   press(DIMV(press))
 
 
-c     ::::: local variables
+!c     ::::: local variables
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1700,7 +1725,7 @@ c     ::::: local variables
          x_vel = zero
          y_vel = adv_vel
          z_vel = zero
-c     AJA - Strangely, this one did not
+!c     AJA - Strangely, this one did not
       else if (adv_dir .eq. 3) then
          x_vel = zero
          y_vel = zero
@@ -1720,8 +1745,8 @@ c     AJA - Strangely, this one did not
                vel(i,j,k,1) = x_vel
                vel(i,j,k,2) = y_vel
                vel(i,j,k,3) = z_vel
-               scal(i,j,k,1) = one/denfact + (one - one/denfact)
-     &              *half*(one + tanh(40.*(dist - radblob)))
+               scal(i,j,k,1) = one/denfact + (one - one/denfact) &
+                   *half*(one + tanh(40.*(dist - radblob)))
                scal(i,j,k,2) = merge(one,zero,dist.lt.radblob)
                do n = 3,nscal-1
                   scal(i,j,k,n) = one
@@ -1731,13 +1756,13 @@ c     AJA - Strangely, this one did not
          end do
       end do
       
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initeuler(level,time,lo,hi,nscal,
-     &                       vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine inithotspot
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initeuler(level,time,lo,hi,nscal, &
+                            vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1749,9 +1774,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz, r_yz
@@ -1792,13 +1817,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initbrnrsh(level,time,lo,hi,nscal,
-     &                      vel,scal,DIMS(state),press,DIMS(press),
-     &                      dx,xlo,xhi)
+      end subroutine initeuler
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initbrnrsh(level,time,lo,hi,nscal, &
+                           vel,scal,DIMS(state),press,DIMS(press), &
+                           dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1810,9 +1835,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1847,13 +1872,13 @@ c
          enddo
 
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine inflowt(level,time,lo,hi,nscal,
-     &                       vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initbrnrsh
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine inflowt(level,time,lo,hi,nscal, &
+                            vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1865,9 +1890,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz, r_yz
@@ -1901,13 +1926,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine taylorgreen(level,time,lo,hi,nscal,
-     &	 	             vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine inflowt
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine taylorgreen(level,time,lo,hi,nscal, &
+     	 	             vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1919,9 +1944,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -1944,30 +1969,30 @@ c
                vel(i,j,k,1) =  velfact*sin(x)*cos(y)*cos(z)
                vel(i,j,k,2) = -velfact*cos(x)*sin(y)*cos(z)
 
-c               vel(i,j,k,1) = sin(x-pi*0.5d0)*cos(y-pi)*cos(z-pi*0.5d0)
-c               vel(i,j,k,2) = -cos(x-pi*0.5d0)*sin(y-pi)*cos(z-pi*0.5d0)
+!c               vel(i,j,k,1) = sin(x-pi*0.5d0)*cos(y-pi)*cos(z-pi*0.5d0)
+!c               vel(i,j,k,2) = -cos(x-pi*0.5d0)*sin(y-pi)*cos(z-pi*0.5d0)
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = denfact
-c     This is the theoretical pressure perturbation from p_0
+!c     This is the theoretical pressure perturbation from p_0
                scal(i,j,k,2) = (denfact*velfact*velfact/16.d0)*(two+cos(two*z))*(cos(two*x)+cos(two*y))
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
                end do
                   
-c 	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
-c	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
+!c 	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+!c	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
 	    end do
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine swirl(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine taylorgreen
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine swirl(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -1979,9 +2004,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -2014,13 +2039,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine inithit(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine swirl
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine inithit(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2032,9 +2057,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  f_xlo, f_ylo, f_zlo
@@ -2072,19 +2097,19 @@ c
                x = xlo(1) + hx*(float(i-lo(1)) + half)
                x = (x-f_xlo)/Lmin
 
-c               if (turb_scale.gt.zero) then
+!c               if (turb_scale.gt.zero) then
                   vel(i,j,k,1) = turb_scale * cos(twicePi*y)*cos(twicePi*z)
                   vel(i,j,k,2) = turb_scale * cos(twicePi*x)*cos(twicePi*z)
                   vel(i,j,k,3) = turb_scale * cos(twicePi*x)*cos(twicePi*y)
-c               else
-c                  vel(i,j,k,1) = cos(twicePi*y)*cos(twicePi*z)
-c                  vel(i,j,k,2) = cos(twicePi*x)*cos(twicePi*z)
-c                  vel(i,j,k,3) = cos(twicePi*x)*cos(twicePi*y)
-c               endif
+!c               else
+!c                  vel(i,j,k,1) = cos(twicePi*y)*cos(twicePi*z)
+!c                  vel(i,j,k,2) = cos(twicePi*x)*cos(twicePi*z)
+!c                  vel(i,j,k,3) = cos(twicePi*x)*cos(twicePi*y)
+!c               endif
 
-c               vel(i,j,k,1) = zero
-c               vel(i,j,k,2) = zero
-c               vel(i,j,k,3) = zero
+!c               vel(i,j,k,1) = zero
+!c               vel(i,j,k,2) = zero
+!c               vel(i,j,k,3) = zero
                
                if (rhozero.gt.zero) then 
                   scal(i,j,k,1) = rhozero
@@ -2103,13 +2128,13 @@ c               vel(i,j,k,3) = zero
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initinflow(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine inithit
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initinflow(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2121,15 +2146,15 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
       REAL_T  dist
       REAL_T  x_vel, y_vel, z_vel
-      REAL_T  twicePi, rn, plateVel
+      REAL_T  twicePi, rn
 
 #include <probdata.H>
 
@@ -2173,13 +2198,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initswirltest(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine initinflow
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initswirltest(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2191,9 +2216,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       integer    bc(SDIM,2)
       REAL_T  x, y, z
@@ -2241,7 +2266,7 @@ c
 #ifdef BL_DO_FLCT
       if (forceInflow) then
          t_flct = fluct_times(k+1)+1.d-12
-c         t_flct = time
+!c         t_flct = time
          call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc,domnlo,domnhi)
          call INFL_FILL(FLCT_YVEL,DIMS(uflct),vflct,xlo,dx,t_flct,bc,domnlo,domnhi)
          call INFL_FILL(FLCT_ZVEL,DIMS(uflct),wflct,xlo,dx,t_flct,bc,domnlo,domnhi)
@@ -2285,13 +2310,13 @@ c         t_flct = time
 #endif
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initflow(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine initswirltest
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initflow(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2307,9 +2332,9 @@ c
       integer dir(SDIM), numholes(SDIM), idholes(SDIM)
       REAL_T  holespace(SDIM)
       REAL_T  dist(SDIM), loc(SDIM)
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  twicePi, rn
       REAL_T cond 
@@ -2342,9 +2367,9 @@ c
 
      
       
-      sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+
-     &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
-     &     dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
+      sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+ &
+          dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+ &
+          dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
        
 
       do n = 1, 3 
@@ -2366,15 +2391,15 @@ c
                   vel(i,j,k, n) = 0.d0
                end do
 
-               radius = SQRT(dir(1)*(dist(2)**2 + dist(3)**2)+
-     &              dir(2)*(dist(1)**2 + dist(3)**2) +
-     &              dir(3)*(dist(1)**2 + dist(2)**2))
+               radius = SQRT(dir(1)*(dist(2)**2 + dist(3)**2)+ &
+                   dir(2)*(dist(1)**2 + dist(3)**2) + &
+                   dir(3)*(dist(1)**2 + dist(2)**2))
                
                if (radius.le.holeRad) then
                   call blutilrand(rn)
                   do n = 1, 3
-                     vel(i,j,k, n) =dir(n)*(jetVel +
-     &                    0.01*sin(twicePi*(loc(n)/(domnhi(n)-domnlo(n)) + rn ))) 
+                     vel(i,j,k, n) =dir(n)*(jetVel + &
+                         0.01*sin(twicePi*(loc(n)/(domnhi(n)-domnlo(n)) + rn ))) 
                   end do
                endif
                
@@ -2387,13 +2412,13 @@ c
          end do
       end do
      
-      end
-c     
-c ::: -----------------------------------------------------------
-c
-      subroutine initjet(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine initflow
+!c     
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initjet(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2405,9 +2430,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -2445,13 +2470,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initinjection(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine initjet
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initinjection(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2463,9 +2488,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -2503,13 +2528,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initroundjet(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine initinjection
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initroundjet(level,time,lo,hi,nscal, &
+      	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                     dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2521,9 +2546,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z, r, r2
       REAL_T  hx, hy, hz
@@ -2569,13 +2594,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initcoriolis(level,time,lo,hi,nscal,
-     &	 	              vel,scal,DIMS(state),press,DIMS(press),
-     &                        dx,xlo,xhi)
+      end subroutine initroundjet
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initcoriolis(level,time,lo,hi,nscal, &
+     	 	              vel,scal,DIMS(state),press,DIMS(press), &
+                             dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -2587,24 +2612,24 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n, m
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
       REAL_T  Lx, Ly, Lz
 
       integer nx, mx, mn
-c     nx is the number of modes to use for velocity perturbation
+!c     nx is the number of modes to use for velocity perturbation
       parameter (nx=16)
-c     mx is the maximum wavenumber in each direction to choose random modes from
+!c     mx is the maximum wavenumber in each direction to choose random modes from
       parameter (mx=8)
-c     mn is the miniimum wavenumber in each direction to choose random modes from
+!c     mn is the miniimum wavenumber in each direction to choose random modes from
       parameter (mn=4)
-c     a,b,c are random amplitudes in the range (0,1)
+!c     a,b,c are random amplitudes in the range (0,1)
       REAL_T  a(nx,SDIM),b(nx,SDIM),c(nx,SDIM),rn
-c     d,e,f are random modes in the range (1,mx)
+!c     d,e,f are random modes in the range (1,mx)
       integer d(nx,SDIM),e(nx,SDIM),f(nx,SDIM)
 
       integer isioproc
@@ -2658,8 +2683,8 @@ c     d,e,f are random modes in the range (1,mx)
                vel(i,j,k,3)  = zero
 
                if (ref_height.gt.zero.and.z.gt.ref_height) then
-c     Maybe try a real free surface? Let's soften the blow with a hyperbolic tangent though
-c     To run without the free surface, make sure ref_height is greater than the top of the box
+!c     Maybe try a real free surface? Let's soften the blow with a hyperbolic tangent though
+!c     To run without the free surface, make sure ref_height is greater than the top of the box
                   scal(i,j,k,1) = half*rhozero*((one+denfact)-(one-denfact)*tanh((z-ref_height)/(two*delta0)))
                   scal(i,j,k,2) = zero
                   do n = 2,nscal-1
@@ -2668,13 +2693,13 @@ c     To run without the free surface, make sure ref_height is greater than the 
                else
                   do n = 1, nx
                      do m = 1, SDIM
-                        vel(i,j,k,m) = vel(i,j,k,m) + turb_scale*
-     &                       a(n,m)*sin(two*Pi*d(n,m)*(x-f_problo(1))/Lx)*
-     &                       b(n,m)*sin(two*Pi*e(n,m)*(y-f_problo(2))/Ly)*
-     &                       c(n,m)*sin(two*Pi*f(n,m)*(z-f_problo(3))/Lz)
+                        vel(i,j,k,m) = vel(i,j,k,m) + turb_scale* &
+                            a(n,m)*sin(two*Pi*d(n,m)*(x-f_problo(1))/Lx)* &
+                            b(n,m)*sin(two*Pi*e(n,m)*(y-f_problo(2))/Ly)* &
+                            c(n,m)*sin(two*Pi*f(n,m)*(z-f_problo(3))/Lz)
                      enddo
                   enddo
-c     Let's add a stratification
+!c     Let's add a stratification
                   if (rhograd.lt.zero) then
                      scal(i,j,k,1) = rhozero + rhograd*z
                   else
@@ -2689,13 +2714,13 @@ c     Let's add a stratification
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initheating(level,time,lo,hi,nscal,
-     &	 	             vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initcoriolis
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initheating(level,time,lo,hi,nscal, &
+     	 	             vel,scal,DIMS(state),press,DIMS(press),  &
+                            dx,xlo,xhi) 
       implicit none
 
       integer    level, nscal
@@ -2707,9 +2732,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       integer ii,jj,kk,nn
       REAL_T  x, y, z
@@ -2769,13 +2794,13 @@ c
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initgravitycurrent(level,time,lo,hi,nscal,
-     &                       vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initheating
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initgravitycurrent(level,time,lo,hi,nscal, &
+                            vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
 
       implicit none
 
@@ -2788,18 +2813,18 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, l, n, m, mdp_trace_counter,mdp_mod
 
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  mdp_lock_Z_start,mdp_lock_Z_finish,
-     &        mdp_lock_X_start,mdp_lock_X_finish,
-     &        mdp_lock_Y_start,mdp_lock_Y_finish,
-     &        mdp_lock_density,mdp_ambient_density_at_base,
-     &        mdp_delta_den,mdp_z_max
+      REAL_T  mdp_lock_Z_start,mdp_lock_Z_finish, &
+             mdp_lock_X_start,mdp_lock_X_finish, &
+             mdp_lock_Y_start,mdp_lock_Y_finish, &
+             mdp_lock_density,mdp_ambient_density_at_base, &
+             mdp_delta_den,mdp_z_max
       REAL_T  hz0, zOhz0
 
       integer x_modes, y_modes, z_modes, amps
@@ -2818,7 +2843,7 @@ c
       hy = dx(2)
       hz = dx(3)
 
-c     To get stratification consistent with old way
+!c     To get stratification consistent with old way
       hz0 = 0.3d0/64.0d0
 
       open(33,file="gc.data")
@@ -2909,7 +2934,7 @@ c     To get stratification consistent with old way
 
          write (*,*) "amps = ",amps
          
-c     Need to integrate over the lock volume to normalise the perturbation
+!c     Need to integrate over the lock volume to normalise the perturbation
          
          write (*,*) int(0.5+Lx/hx)
          write (*,*) int(0.5+Ly/hy)
@@ -2959,20 +2984,20 @@ c     Need to integrate over the lock volume to normalise the perturbation
 	       vel(i,j,k,2) =  zero
 	       vel(i,j,k,3) =  zero
 
-               if(x.ge.mdp_lock_X_start.and.x.le.mdp_lock_X_finish.and.
-     &              y.ge.mdp_lock_Y_start.and.y.le.mdp_lock_Y_finish.and.
-     &              z.ge.mdp_lock_Z_start.and.z.le.mdp_lock_Z_finish)then
+               if(x.ge.mdp_lock_X_start.and.x.le.mdp_lock_X_finish.and. &
+                   y.ge.mdp_lock_Y_start.and.y.le.mdp_lock_Y_finish.and. &
+                   z.ge.mdp_lock_Z_start.and.z.le.mdp_lock_Z_finish)then
 
                   scal(i,j,k,1) = mdp_lock_density
                   scal(i,j,k,2) = zero
                   mdp_mod=(i+j+k)
 
-c                  if (mod(mdp_mod,10).eq.0)then
-c                     mdp_trace_counter=mdp_trace_counter+1
-c                     scal(i,j,k,2) = mdp_trace_counter
-c                  endif
+!c                  if (mod(mdp_mod,10).eq.0)then
+!c                     mdp_trace_counter=mdp_trace_counter+1
+!c                     scal(i,j,k,2) = mdp_trace_counter
+!c                  endif
 
-c     if ( mdp_lock_X_finish-x .lt. hx+1d-6) then
+!c     if ( mdp_lock_X_finish-x .lt. hx+1d-6) then
                   aja_pert = one
                   do l = -x_modes, x_modes
                      do m = -y_modes, y_modes
@@ -2989,19 +3014,19 @@ c     if ( mdp_lock_X_finish-x .lt. hx+1d-6) then
                   scal(i,j,k,1) = scal(i,j,k,1)*aja_pert
                   if (aja_pert.gt.aja_pert_max) aja_pert_max=aja_pert
                   if (aja_pert.lt.aja_pert_min) aja_pert_min=aja_pert
-c     endif
+!c     endif
 
                   scal(i,j,k,2) = one
                   
                else
 
-c     This is the old way with k
-c                  scal(i,j,k,1) = mdp_ambient_density_at_base + (abs(k-mdp_z_max)*mdp_delta_den)
-c     This is the new way with z, should be consistent and resoltion independent
+!c     This is the old way with k
+!c                  scal(i,j,k,1) = mdp_ambient_density_at_base + (abs(k-mdp_z_max)*mdp_delta_den)
+!c     This is the new way with z, should be consistent and resoltion independent
                   scal(i,j,k,1) = mdp_ambient_density_at_base + (zOhz0*mdp_delta_den)
-c     if (i.eq.100.and.j.eq.30)then
-c     write(*,*)'ZZZZZZZZZZ=',k,scal(i,j,k,1) 
-c     endif
+!c     if (i.eq.100.and.j.eq.30)then
+!c     write(*,*)'ZZZZZZZZZZ=',k,scal(i,j,k,1) 
+!c     endif
 
                   scal(i,j,k,2) = zero
                   
@@ -3016,14 +3041,14 @@ c     endif
          write (*,*) "pert max = ",aja_pert_max
       endif
       
-      end
+      end subroutine initgravitycurrent
 
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initrayleightaylor(level,time,lo,hi,nscal,
-     &                       vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initrayleightaylor(level,time,lo,hi,nscal, &
+                            vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
 
       implicit none
 
@@ -3036,15 +3061,13 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k
       REAL_T  x, y, z
       REAL_T  hx, hy, hz, hz0
 
-      REAL_T   ran1
-      external ran1
       integer  idum
 
       integer x_modes, y_modes, amps, l, m
@@ -3064,14 +3087,14 @@ c
       Ly = f_probhi(2)-f_problo(2)
       Lz = f_probhi(3)-f_problo(3)
 
-c     Use hz0 for base resolution for consistency (only used in defining perturbation)
+!c     Use hz0 for base resolution for consistency (only used in defining perturbation)
       hz0 = Lz/512.d0
 
       idum=-1
       random_number = ran1(idum)
-
-c      write (*,*) "wavelength_min = ",wavelength_min
-c      write (*,*) "wavelength_max = ",wavelength_max
+!
+!c      write (*,*) "wavelength_min = ",wavelength_min
+!c      write (*,*) "wavelength_max = ",wavelength_max
       
       x_modes = int( 0.5 + Lx / wavelength_min )
       y_modes = int( 0.5 + Ly / wavelength_min )
@@ -3115,7 +3138,7 @@ c      write (*,*) "wavelength_max = ",wavelength_max
       
       write (*,*) "amps = ",amps
          
-c     Need to integrate to normalise the perturbation
+!c     Need to integrate to normalise the perturbation
       amp_rms = zero
       do j = 1,int(0.5+Ly/hy)
          y = hy*(float(j) + half)/Ly
@@ -3171,13 +3194,13 @@ c     Need to integrate to normalise the perturbation
       write (*,*) "pert_min/hz = ",pert_min/hz
       write (*,*) "pert_max/hz = ",pert_max/hz
 
-c     Go to work...
+!c     Go to work...
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half) - interface_height
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                
-c     Set velocities to zero if required
+!c     Set velocities to zero if required
                vel(i,j,k,1) = zero
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = zero
@@ -3193,7 +3216,7 @@ c     Set velocities to zero if required
                   endif
                endif
 
-c     Set a tracer on the interface
+!c     Set a tracer on the interface
                if (abs(z).lt.half*tracer_height) then
                   scal(i,j,k,2) = one
                else
@@ -3204,13 +3227,13 @@ c     Set a tracer on the interface
          enddo
       enddo
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initraneul(level,time,lo,hi,nscal,
-     &	 	       vel,scal,DIMS(state),press,DIMS(press),
-     &                 dx,xlo,xhi)
+      end subroutine initrayleightaylor
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initraneul(level,time,lo,hi,nscal, &
+     	 	       vel,scal,DIMS(state),press,DIMS(press), &
+                      dx,xlo,xhi)
       implicit none
 
       integer    level, nscal
@@ -3222,9 +3245,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n, ifx, jfx, kfx
       integer ift,jft,kft
       REAL_T  x, y, z
@@ -3253,9 +3276,9 @@ c
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = zero
 
-c              do kfx = 1, eul_nfreq
-c              do jfx = 1, eul_nfreq
-c              do ifx = 1, eul_nfreq
+!c              do kfx = 1, eul_nfreq
+!c              do jfx = 1, eul_nfreq
+!c              do ifx = 1, eul_nfreq
                do kft = 1, eul_nfreq
                do jft = 1, eul_nfreq
                do ift = 1, eul_nfreq
@@ -3270,15 +3293,15 @@ c              do ifx = 1, eul_nfreq
                   cosy = dfloat(jfx)* cos(2.d0*piloc*dfloat(jfx)*y + eul_ranphase(ifx,jfx,kfx,2))
                   cosz = dfloat(kfx)* cos(2.d0*piloc*dfloat(kfx)*z + eul_ranphase(ifx,jfx,kfx,3))
 
-                  vel(i,j,k,1) = vel(i,j,k,1) 
-     1                + eul_ranampl(ifx,jfx,kfx,3)*sinx*cosy*sinz
-     1                - eul_ranampl(ifx,jfx,kfx,2)*sinx*siny*cosz
-                  vel(i,j,k,2) = vel(i,j,k,2) 
-     1                + eul_ranampl(ifx,jfx,kfx,1)*sinx*siny*cosz
-     1                - eul_ranampl(ifx,jfx,kfx,3)*cosx*siny*sinz
-                  vel(i,j,k,3) = vel(i,j,k,3) 
-     1                + eul_ranampl(ifx,jfx,kfx,2)*cosx*siny*sinz
-     1                - eul_ranampl(ifx,jfx,kfx,1)*sinx*cosy*sinz
+                  vel(i,j,k,1) = vel(i,j,k,1) &
+                     + eul_ranampl(ifx,jfx,kfx,3)*sinx*cosy*sinz &
+                     - eul_ranampl(ifx,jfx,kfx,2)*sinx*siny*cosz
+                  vel(i,j,k,2) = vel(i,j,k,2)  &
+                     + eul_ranampl(ifx,jfx,kfx,1)*sinx*siny*cosz &
+                     - eul_ranampl(ifx,jfx,kfx,3)*cosx*siny*sinz
+                  vel(i,j,k,3) = vel(i,j,k,3)  &
+                     + eul_ranampl(ifx,jfx,kfx,2)*cosx*siny*sinz &
+                     - eul_ranampl(ifx,jfx,kfx,1)*sinx*cosy*sinz
                
                enddo
                enddo
@@ -3297,13 +3320,13 @@ c              do ifx = 1, eul_nfreq
          end do
       end do
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initdenadvect(level,time,lo,hi,nscal,
-     &	 	               vel,scal,DIMS(state),press,DIMS(press),
-     &     dx,xlo,xhi)
+      end subroutine initraneul
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initdenadvect(level,time,lo,hi,nscal, &
+     	 	               vel,scal,DIMS(state),press,DIMS(press), &
+          dx,xlo,xhi) 
       implicit none
 
       integer    level, nscal
@@ -3315,9 +3338,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
@@ -3350,7 +3373,7 @@ c
          end do
       end do
 
-c     initialize a block of tracer
+!c     initialize a block of tracer
       scal(7,7,7,2) = 1.0d0
       scal(7,7,8,2) = 1.0d0
       scal(7,8,7,2) = 1.0d0
@@ -3360,14 +3383,14 @@ c     initialize a block of tracer
       scal(8,8,7,2) = 1.0d0
       scal(8,8,8,2) = 1.0d0
 
-      end
-c
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initshearlayer(level,time,lo,hi,nscal,
-     &                       vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initdenadvect
+!c
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initshearlayer(level,time,lo,hi,nscal, &
+                            vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
 
       implicit none
 
@@ -3380,9 +3403,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z, t
       REAL_T  hx, hy, hz
@@ -3399,7 +3422,7 @@ c
       Ly = f_probhi(2)-f_problo(2)
       Lz = f_probhi(3)-f_problo(3)
 
-c     Go to work...
+!c     Go to work...
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
@@ -3424,13 +3447,13 @@ c     Go to work...
          enddo
       enddo
 
-      end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initiwpctm(level,time,lo,hi,nscal,
-     &                       vel,scal,DIMS(state),press,DIMS(press),
-     &                       dx,xlo,xhi)
+      end subroutine initshearlayer
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initiwpctm(level,time,lo,hi,nscal, &
+                            vel,scal,DIMS(state),press,DIMS(press), &
+                            dx,xlo,xhi)
 
       implicit none
 
@@ -3443,9 +3466,9 @@ c
       REAL_T     vel(DIMV(state),SDIM)
       REAL_T    scal(DIMV(state),nscal)
       REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       REAL_T  x, y, z, t
       REAL_T  hx, hy, hz
@@ -3462,7 +3485,7 @@ c
       Ly = f_probhi(2)-f_problo(2)
       Lz = f_probhi(3)-f_problo(3)
 
-c     Go to work...
+!c     Go to work...
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
@@ -3490,16 +3513,17 @@ c     Go to work...
          enddo
       enddo
 
-      end
-c     
-c     
-c     ::: -----------------------------------------------------------
-c     
-c     This routine averages the mac face velocities for makeforce at half time
-c
-      subroutine FORT_AVERAGE_EDGE_STATES(vel,umacx,umacy,umacz,
-     &                                    DIMS(vel),DIMS(umacx),DIMS(umacy),DIMS(umacz),
-     &                                    getForceVerbose)
+      end subroutine initiwpctm
+!c     
+!c     
+!c     ::: -----------------------------------------------------------
+!c     
+!c     This routine averages the mac face velocities for makeforce at half time
+!c
+      subroutine FORT_AVERAGE_EDGE_STATES(vel,umacx,umacy,umacz, &
+                                         DIMS(vel),DIMS(umacx),DIMS(umacy),DIMS(umacz),&
+                                         getForceVerbose)&
+                                         bind(C, name="FORT_AVERAGE_EDGE_STATES")
 
       implicit none
 
@@ -3558,28 +3582,28 @@ c
          endif
       endif
 
-      end
-c
-c
-c ::: -----------------------------------------------------------
-c
-c     This routine add the forcing terms to the momentum equation
-c
-      subroutine FORT_MAKEFORCE(time,force,
+      end subroutine FORT_AVERAGE_EDGE_STATES
+!c
+!c
+!c ::: -----------------------------------------------------------
+!c
+!c     This routine add the forcing terms to the momentum equation
+!c
+      subroutine FORT_MAKEFORCE(time,force, &
 #ifdef MOREGENGETFORCE
-     &                          vel,
+     &                          vel, &
 #endif
-     &                          scal,
-     &                          DIMS(force),
+     &                          scal, &
+     &                          DIMS(force), &
 #ifdef MOREGENGETFORCE
-     &                          DIMS(vel),
+     &                          DIMS(vel), &
 #endif
-     &                          DIMS(scal),
-     &                          dx,xlo,xhi,gravity,scomp,ncomp
+     &                          DIMS(scal), &
+     &                          dx,xlo,xhi,gravity,scomp,ncomp &
 #ifdef MOREGENGETFORCE
-     &,                         nscal,getForceVerbose
+     &,                         nscal,getForceVerbose &
 #endif
-     &)
+     &)bind(C, name="FORT_MAKEFORCE")
 
       implicit none
 
@@ -3608,9 +3632,9 @@ c
 #include <forcedata.H>
 #endif
 
-c
-c     ::::: local variables
-c
+!c
+!c     ::::: local variables
+!c
       integer i, j, k, n
       integer ilo, jlo, klo
       integer ihi, jhi, khi
@@ -3651,7 +3675,7 @@ c
       jhi = force_h2
       khi = force_h3
 
-c     Assumes components are in the following order
+!c     Assumes components are in the following order
       nXvel  = 0
       nYvel  = 1
       nZvel  = 2
@@ -3686,11 +3710,11 @@ c     Assumes components are in the following order
             enddo
 
             count = 0
-c     Get min/max
+!c     Get min/max
             do k = klo, khi
                do j = jlo, jhi
                   do i = ilo, ihi
-c     Velocities
+!c     Velocities
                      do n = 0, SDIM-1
                         if (vel(i,j,k,n).gt.velmax(n)) then
                            velmax(n)=vel(i,j,k,n)
@@ -3699,10 +3723,10 @@ c     Velocities
                            velmin(n)=vel(i,j,k,n)
                         endif
                      enddo
-c     Scalars
+!c     Scalars
                      if (scal(i,j,k,0).lt.0.001) then
                         count=count+1
-c                        write (*,*) i,j,k,scal(i,j,k,n)
+!c                        write (*,*) i,j,k,scal(i,j,k,n)
                      endif
                      do n = 0, nscal-1
                         if (scal(i,j,k,n).gt.scalmax(n)) then
@@ -3731,14 +3755,14 @@ c                        write (*,*) i,j,k,scal(i,j,k,n)
       endif
 #endif
 
-c
-c     Here's where the forcing actually gets done
-c
+!c
+!c     Here's where the forcing actually gets done
+!c
       
       if (scomp.eq.0) then
-c
-c     Do velocity forcing
-c
+!c
+!c     Do velocity forcing
+!c
          if (probtype.eq.20) then 
             do k = klo, khi
                z = xlo(3) + hz*(float(k-klo) + half)
@@ -3758,7 +3782,7 @@ c
                enddo
             enddo
          else if (probtype.eq.18) then 
-c     Round jet/plume
+!c     Round jet/plume
             do k = klo, khi
                z = xlo(3) + hz*(float(k-klo) + half)
                do j = jlo, jhi
@@ -3773,10 +3797,10 @@ c     Round jet/plume
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
                      if (do_jet_sponge.eq.1) then
-c                        call bl_pd_is_ioproc(isioproc)
-c                        if (isioproc.eq.1) then
-c                           write (*,*) "jet_sponge_scale = ",jet_sponge_scale
-c                        endif
+!c                        call bl_pd_is_ioproc(isioproc)
+!c                        if (isioproc.eq.1) then
+!c                           write (*,*) "jet_sponge_scale = ",jet_sponge_scale
+!c                        endif
                         if (z.gt.jet_sponge_height) then
                            force(i,j,k,nXvel) = force(i,j,k,nXvel) - jet_sponge_scale*vel(i,j,k,0)*scal(i,j,k,nRhoScal)
                            force(i,j,k,nYvel) = force(i,j,k,nYvel) - jet_sponge_scale*vel(i,j,k,1)*scal(i,j,k,nRhoScal)
@@ -3791,10 +3815,10 @@ c                        endif
             enddo
          else if (probtype.eq.14.or.probtype.eq.15) then
 #ifdef DO_IAMR_FORCE
-c     Homogeneous Isotropic Turbulence
+!c     Homogeneous Isotropic Turbulence
             twicePi=two*Pi
             
-c     Adjust z offset for probtype 15
+!c     Adjust z offset for probtype 15
             if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
                infl_time = time + infl_time_offset
                zlo = xlo(3) - (time*adv_vel)
@@ -3840,8 +3864,8 @@ c     Adjust z offset for probtype 15
                HLz = Lz
             endif
 
-!$omp parallel do private(i,j,k,x,y,z,f1,f2,f3,kx,ky,kz,kxd,kyd,kzd)
-!$omp&private(xT,kappa)
+!!$omp parallel do private(i,j,k,x,y,z,f1,f2,f3,kx,ky,kz,kxd,kyd,kzd)
+!!$omp&private(xT,kappa)
             do k = klo, khi
                z = zlo + hz*(float(k-klo) + half)
                do j = jlo, jhi
@@ -3861,12 +3885,12 @@ c     Adjust z offset for probtype 15
                               if (kappa.le.kappaMax) then
                                  xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                                  if (div_free_force.eq.1) then
-                                    f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
-     &                                   -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
-                                    f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
-     &                                   -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
-                                    f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
-     &                                   -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                    f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) &
+                                        -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                    f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) &
+                                        -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                    f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) &
+                                        -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
                                  else
                                     f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                                     f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
@@ -3886,12 +3910,12 @@ c     Adjust z offset for probtype 15
                               if (kappa.le.kappaMax) then
                                  xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                                  if (div_free_force.eq.1) then
-                                    f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
-     &                                   -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
-                                    f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
-     &                                   -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
-                                    f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
-     &                                   -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                    f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) &
+                                        -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                    f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) &
+                                        -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                    f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) &
+                                        -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
                                  else
                                     f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
                                     f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/Lx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/Ly+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/Lz+FPZ(kx,ky,kz))
@@ -3913,7 +3937,6 @@ c     Adjust z offset for probtype 15
                   enddo
                enddo
             enddo
-!$omp end parallel do
 #else
             do k = klo, khi
                do j = jlo, jhi
@@ -3927,7 +3950,7 @@ c     Adjust z offset for probtype 15
 #endif
          else if (probtype.eq.19) then
 #ifdef MOREGENGETFORCE
-c     Coriolis
+!c     Coriolis
             do k = klo, khi
                z = xlo(3) + hz*(float(k-klo) + half)
                do j = jlo, jhi
@@ -3955,7 +3978,7 @@ c     Coriolis
             enddo
 #endif
          else if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
-c     Angled gravity
+!c     Angled gravity
             sga =  gravity * sin(Pi*grav_angle/180.)
             cga = -gravity * cos(Pi*grav_angle/180.)
             do k = klo, khi
@@ -3967,7 +3990,7 @@ c     Angled gravity
                   enddo
                enddo
             enddo
-c     Default to gravity...
+!c     Default to gravity...
          elseif (abs(gravity).gt.0.0001) then
             do k = klo, khi
                do j = jlo, jhi
@@ -3978,7 +4001,7 @@ c     Default to gravity...
                   enddo
                enddo
             enddo
-c     else to zero
+!c     else to zero
          else
             do k = klo, khi
                do j = jlo, jhi
@@ -3990,18 +4013,18 @@ c     else to zero
                enddo
             enddo
          endif
-c     End of velocity forcing
+!c     End of velocity forcing
       endif
 
       if ((scomp+ncomp).gt.BL_SPACEDIM) then
-c
-c     Scalar forcing
-c
+!c
+!c     Scalar forcing
+!c
          do n = max(scomp,nRho), scomp+ncomp-1
             if (n.eq.nRho) then
-c
-c     Density
-c
+!c
+!c     Density
+!c
                do k = klo, khi
                   do j = jlo, jhi
                      do i = ilo, ihi
@@ -4010,9 +4033,9 @@ c
                   enddo
                enddo
             else if (n.eq.nTrac) then
-c
-c     Tracer
-c
+!c
+!c     Tracer
+!c
                do k = klo, khi
                   do j = jlo, jhi
                      do i = ilo, ihi
@@ -4021,11 +4044,11 @@ c
                   enddo
                enddo
             else if (n.eq.nTrac2.and.do_trac2.eq.1) then
-c
-c     Other scalar
-c
+!c
+!c     Other scalar
+!c
                if (probtype.eq.20) then 
-c     Temperature perturbation
+!c     Temperature perturbation
                   do k = klo, khi
                      do j = jlo, jhi
                         do i = ilo, ihi
@@ -4038,7 +4061,7 @@ c     Temperature perturbation
                      enddo
                   enddo
                else  if (probtype.eq.18) then 
-c     Round Jet/Plume (18)
+!c     Round Jet/Plume (18)
                   do k = klo, khi
                      z = xlo(3) + hz*(float(k-klo) + half)
                      do j = jlo, jhi
@@ -4056,7 +4079,7 @@ c     Round Jet/Plume (18)
                      enddo
                   enddo
                else  if (probtype.eq.19) then 
-c     Coriolis evaporation (19)
+!c     Coriolis evaporation (19)
                   do k = klo, khi
                      z = xlo(3) + hz*(float(k-klo) + half)
                      do j = jlo, jhi
@@ -4074,7 +4097,7 @@ c     Coriolis evaporation (19)
                      enddo
                   enddo
                else
-c     Some other probtype
+!c     Some other probtype
                   do k = klo, khi
                      do j = jlo, jhi
                         do i = ilo, ihi
@@ -4084,9 +4107,9 @@ c     Some other probtype
                   enddo
                endif
             else
-c
-c     Other scalar
-c
+!c
+!c     Other scalar
+!c
                do k = klo, khi
                   do j = jlo, jhi
                      do i = ilo, ihi
@@ -4121,33 +4144,34 @@ c
       endif
 #endif
 
-      end
+      end subroutine FORT_MAKEFORCE
 
-c     ::: -----------------------------------------------------------
-c     ::: This routine will tag high error cells based on the 
-c     ::: magnitude or gradient of the density
-c     ::: 
-c     ::: INPUTS/OUTPUTS:
-c     ::: 
-c     ::: tag      <=  integer tag array
-c     ::: DIMS(tag) => index extent of tag array
-c     ::: set       => integer value to tag cell for refinement
-c     ::: clear     => integer value to untag cell
-c     ::: rho       => density array
-c     ::: DIMS(rho) => index extent of rho array
-c     ::: nvar      => number of components in rho array (should be 1)
-c     ::: lo,hi     => index extent of grid
-c     ::: domlo,hi  => index extent of problem domain
-c     ::: dx        => cell spacing
-c     ::: xlo       => physical location of lower left hand
-c     :::	           corner of tag array
-c     ::: problo    => phys loc of lower left corner of prob domain
-c     ::: time      => problem evolution time
-c     ::: -----------------------------------------------------------
-      subroutine FORT_DENERROR (tag,DIMS(tag),set,clear,
-     &     rho,DIMS(rho),lo,hi,nvar,
-     &     domlo,domhi,dx,xlo,
-     &     problo,time,level)
+!c     ::: -----------------------------------------------------------
+!c     ::: This routine will tag high error cells based on the 
+!c     ::: magnitude or gradient of the density
+!c     ::: 
+!c     ::: INPUTS/OUTPUTS:
+!c     ::: 
+!c     ::: tag      <=  integer tag array
+!c     ::: DIMS(tag) => index extent of tag array
+!c     ::: set       => integer value to tag cell for refinement
+!c     ::: clear     => integer value to untag cell
+!c     ::: rho       => density array
+!c     ::: DIMS(rho) => index extent of rho array
+!c     ::: nvar      => number of components in rho array (should be 1)
+!c     ::: lo,hi     => index extent of grid
+!c     ::: domlo,hi  => index extent of problem domain
+!c     ::: dx        => cell spacing
+!c     ::: xlo       => physical location of lower left hand
+!c     :::	           corner of tag array
+!c     ::: problo    => phys loc of lower left corner of prob domain
+!c     ::: time      => problem evolution time
+!c     ::: -----------------------------------------------------------
+      subroutine FORT_DENERROR (tag,DIMS(tag),set,clear, &
+                                rho,DIMS(rho),lo,hi,nvar, &
+                                domlo,domhi,dx,xlo,  &
+                                problo,time,level)&
+                                bind(C, name="FORT_DENERROR")
       implicit none
       integer   DIMDEC(tag)
       integer   DIMDEC(rho)
@@ -4193,33 +4217,34 @@ c     ::: -----------------------------------------------------------
          end do
       endif
 
-      end
+      end subroutine FORT_DENERROR
 
-c ::: -----------------------------------------------------------
-c ::: This routine will tag high error cells based on the 
-c ::: magnitude of the tracer
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: tag      <=  integer tag array
-c ::: DIMS(tag) => index extent of tag array
-c ::: set       => integer value to tag cell for refinement
-c ::: clear     => integer value to untag cell
-c ::: adv       => scalar array
-c ::: DIMS(adv) => index extent of adv array
-c ::: nvar      => number of components in rho array (should be 1)
-c ::: lo,hi     => index extent of grid
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of tag array
-c ::: problo    => phys loc of lower left corner of prob domain
-c ::: time      => problem evolution time
-c ::: -----------------------------------------------------------
-      subroutine FORT_ADVERROR (tag,DIMS(tag),set,clear,
-     &                          adv,DIMS(adv),lo,hi,nvar,
-     &                          domlo,domhi,dx,xlo,
-     &			        problo,time,level)
+!c ::: -----------------------------------------------------------
+!c ::: This routine will tag high error cells based on the 
+!c ::: magnitude of the tracer
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: tag      <=  integer tag array
+!c ::: DIMS(tag) => index extent of tag array
+!c ::: set       => integer value to tag cell for refinement
+!c ::: clear     => integer value to untag cell
+!c ::: adv       => scalar array
+!c ::: DIMS(adv) => index extent of adv array
+!c ::: nvar      => number of components in rho array (should be 1)
+!c ::: lo,hi     => index extent of grid
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of tag array
+!c ::: problo    => phys loc of lower left corner of prob domain
+!c ::: time      => problem evolution time
+!c ::: -----------------------------------------------------------
+      subroutine FORT_ADVERROR (tag,DIMS(tag),set,clear, &
+                               adv,DIMS(adv),lo,hi,nvar, &
+                               domlo,domhi,dx,xlo, &
+     			                     problo,time,level)&
+                               bind(C, name="FORT_ADVERROR")
       implicit none
       integer   DIMDEC(tag)
       integer   DIMDEC(adv)
@@ -4235,7 +4260,7 @@ c ::: -----------------------------------------------------------
 
 #include <probdata.H>
 
-c     probtype = SPIN
+!c     probtype = SPIN
       if (probtype .eq. 1) then
 
         do k = lo(3), hi(3)
@@ -4246,7 +4271,7 @@ c     probtype = SPIN
            end do
         end do
 
-c     probtype = BUBBLE
+!c     probtype = BUBBLE
       else if (probtype .eq. 2) then
 
         do k = lo(3), hi(3)
@@ -4257,7 +4282,7 @@ c     probtype = BUBBLE
            end do
         end do
 
-c     probtype = VORTEX IN A BOX
+!c     probtype = VORTEX IN A BOX
       else if (probtype .eq. 3) then
 
         do k = lo(3), hi(3)
@@ -4268,7 +4293,7 @@ c     probtype = VORTEX IN A BOX
            end do
         end do
 
-c     probtype = CHANNEL
+!c     probtype = CHANNEL
       else if (probtype .eq. 4) then
 
         do k = lo(3), hi(3)
@@ -4279,7 +4304,7 @@ c     probtype = CHANNEL
            end do
         end do
 
-c     probtype = PERIODIC SHEAR LAYER
+!c     probtype = PERIODIC SHEAR LAYER
       else if (probtype .eq. 5) then
 
         do k = lo(3), hi(3)
@@ -4290,7 +4315,7 @@ c     probtype = PERIODIC SHEAR LAYER
            end do
         end do
 
-c     probtype = HOT SPOT
+!c     probtype = HOT SPOT
       else if (probtype .eq. 6) then
 
         do k = lo(3), hi(3)
@@ -4332,7 +4357,7 @@ c     probtype = HOT SPOT
           enddo
         endif
 
-c     probtype = VISCOUS BENCHMARK
+!c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 9) then
 
         do k = lo(3), hi(3)
@@ -4514,12 +4539,13 @@ c     probtype = VISCOUS BENCHMARK
         stop
       end if
  
-      end
+      end subroutine FORT_ADVERROR
 
-      subroutine FORT_ADV2ERROR (tag,DIMS(tag),set,clear,
-     &                           adv,DIMS(adv),lo,hi,nvar,
-     &                           domlo,domhi,dx,xlo,
-     &			         problo,time,level)
+      subroutine FORT_ADV2ERROR (tag,DIMS(tag),set,clear, &
+                                 adv,DIMS(adv),lo,hi,nvar, &
+                                 domlo,domhi,dx,xlo, &
+     		 	                       problo,time,level)&
+                                 bind(C, name="FORT_ADV2ERROR")
       implicit none
       integer   DIMDEC(tag)
       integer   DIMDEC(adv)
@@ -4548,33 +4574,34 @@ c     probtype = VISCOUS BENCHMARK
          stop
       end if
       
-      end
+      end subroutine FORT_ADV2ERROR 
 
-c ::: -----------------------------------------------------------
-c ::: This routine will tag high error cells based on the
-c ::: magnitude or gradient of temperature
-c :::
-c ::: INPUTS/OUTPUTS:
-c :::
-c ::: tag      <=  integer tag array
-c ::: DIMS(tag) => index extent of tag array
-c ::: set       => integer value to tag cell for refinement
-c ::: clear     => integer value to untag cell
-c ::: temp      => density array
-c ::: DIMS(temp)=> index extent of temp array
-c ::: lo,hi     => index extent of grid
-c ::: nvar      => number of components in rho array (should be 1)
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::              corner of tag array
-c ::: problo    => phys loc of lower left corner of prob domain
-c ::: time      => problem evolution time
-c ::: -----------------------------------------------------------
-      subroutine FORT_TEMPERROR (tag,DIMS(tag),set,clear,
-     &                           temperature,DIMS(temp),lo,hi,nvar,
-     &                           domlo,domhi,dx,xlo,
-     &                           problo,time,level)
+!c ::: -----------------------------------------------------------
+!c ::: This routine will tag high error cells based on the
+!c ::: magnitude or gradient of temperature
+!c :::
+!c ::: INPUTS/OUTPUTS:
+!c :::
+!c ::: tag      <=  integer tag array
+!c ::: DIMS(tag) => index extent of tag array
+!c ::: set       => integer value to tag cell for refinement
+!c ::: clear     => integer value to untag cell
+!c ::: temp      => density array
+!c ::: DIMS(temp)=> index extent of temp array
+!c ::: lo,hi     => index extent of grid
+!c ::: nvar      => number of components in rho array (should be 1)
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::              corner of tag array
+!c ::: problo    => phys loc of lower left corner of prob domain
+!c ::: time      => problem evolution time
+!c ::: -----------------------------------------------------------
+      subroutine FORT_TEMPERROR (tag,DIMS(tag),set,clear, &
+                                 temperature,DIMS(temp),lo,hi,nvar, &
+                                 domlo,domhi,dx,xlo, &
+                                 problo,time,level)&
+                                 bind(C, name="FORT_TEMPERROR")
       implicit none
 
       integer   DIMDEC(tag)
@@ -4591,26 +4618,26 @@ c ::: -----------------------------------------------------------
 
 #include <probdata.H>
 
-c     probtype = SPIN
+!c     probtype = SPIN
       if (probtype .eq. 1) then
 
-c     probtype = BUBBLE
+!c     probtype = BUBBLE
       else if (probtype .eq. 2) then
 
-c     probtype = VORTEX IN A BOX
+!c     probtype = VORTEX IN A BOX
       else if (probtype .eq. 3) then
 
-c     probtype = CHANNEL
+!c     probtype = CHANNEL
       else if (probtype .eq. 4) then
 
-c     probtype = PERIODIC SHEAR LAYER
+!c     probtype = PERIODIC SHEAR LAYER
       else if (probtype .eq. 5) then
 
-c     probtype = HOT SPOT
+!c     probtype = HOT SPOT
       else if (probtype .eq. 6) then
 
         if (level .eq. 0) then
-c         ::::: refine around entire hot spot
+!c         ::::: refine around entire hot spot
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
@@ -4619,7 +4646,7 @@ c         ::::: refine around entire hot spot
              end do
           end do
         else
-c         ::::: refine where there is temperature gradient
+!c         ::::: refine where there is temperature gradient
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
@@ -4633,7 +4660,7 @@ c         ::::: refine where there is temperature gradient
           end do
         end if
 
-c     probtype = VISCOUS BENCHMARK
+!c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 9) then
 
       else if (probtype .eq. 10.or. probtype .eq. 11 .or.probtype.eq.12) then
@@ -4669,32 +4696,33 @@ c     probtype = VISCOUS BENCHMARK
         stop
       end if
 
-      end
-c ::: -----------------------------------------------------------
-c ::: This routine will tag high error cells based on the 
-c ::: magnitude of vorticity
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: tag      <=  integer tag array
-c ::: DIMS(tag) => index extent of tag array
-c ::: set       => integer value to tag cell for refinement
-c ::: clear     => integer value to untag cell
-c ::: vort      => vorticitiy array
-c ::: DIMS(vort)=> index extent of vort array
-c ::: nvar      => number of components in rho array (should be 1)
-c ::: lo,hi     => index extent of grid
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of tag array
-c ::: problo    => phys loc of lower left corner of prob domain
-c ::: time      => problem evolution time
-c ::: -----------------------------------------------------------
-      subroutine FORT_MVERROR (tag,DIMS(tag),set,clear,
-     &                         vort,DIMS(vort),lo,hi,nvar,
-     &                         domlo,domhi,dx,xlo,
-     &			       problo,time,level)
+      end subroutine FORT_TEMPERROR
+!c ::: -----------------------------------------------------------
+!c ::: This routine will tag high error cells based on the 
+!c ::: magnitude of vorticity
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: tag      <=  integer tag array
+!c ::: DIMS(tag) => index extent of tag array
+!c ::: set       => integer value to tag cell for refinement
+!c ::: clear     => integer value to untag cell
+!c ::: vort      => vorticitiy array
+!c ::: DIMS(vort)=> index extent of vort array
+!c ::: nvar      => number of components in rho array (should be 1)
+!c ::: lo,hi     => index extent of grid
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of tag array
+!c ::: problo    => phys loc of lower left corner of prob domain
+!c ::: time      => problem evolution time
+!c ::: -----------------------------------------------------------
+      subroutine FORT_MVERROR (tag,DIMS(tag),set,clear, &
+                               vort,DIMS(vort),lo,hi,nvar, &
+                               domlo,domhi,dx,xlo, &
+                               problo,time,level) &
+                               bind(C, name="FORT_MVERROR")
       implicit none
 
       integer   DIMDEC(tag)
@@ -4712,12 +4740,12 @@ c ::: -----------------------------------------------------------
 
 #include <probdata.H>
 
-c      write (*,*) "MVERROR: probtype ",probtype," on level ",level
+!c      write (*,*) "MVERROR: probtype ",probtype," on level ",level
 
-c     probtype = SPIN
+!c     probtype = SPIN
       if (probtype .eq. 1) then
 
-c     probtype = BUBBLE
+!c     probtype = BUBBLE
       else if (probtype .eq. 2) then
 
          do k = lo(3), hi(3)
@@ -4728,7 +4756,7 @@ c     probtype = BUBBLE
             end do
          end do
 
-c     probtype = VORTEX IN A BOX
+!c     probtype = VORTEX IN A BOX
       else if (probtype .eq. 3) then
 
          do k = lo(3), hi(3)
@@ -4739,7 +4767,7 @@ c     probtype = VORTEX IN A BOX
             end do
          end do
 
-c     probtype = CHANNEL
+!c     probtype = CHANNEL
       else if (probtype .eq. 4) then
 
          do k = lo(3), hi(3)
@@ -4750,7 +4778,7 @@ c     probtype = CHANNEL
             end do
          end do
 
-c     probtype = PERIODIC SHEAR LAYER
+!c     probtype = PERIODIC SHEAR LAYER
       else if (probtype .eq. 5) then
 
          do k = lo(3), hi(3)
@@ -4761,7 +4789,7 @@ c     probtype = PERIODIC SHEAR LAYER
             end do
          end do
 
-c     probtype = HOT SPOT
+!c     probtype = HOT SPOT
       else if (probtype .eq. 6) then
 
          do k = lo(3), hi(3)
@@ -4771,25 +4799,25 @@ c     probtype = HOT SPOT
                end do
             end do
          end do
-c     probtype = EULER
+!c     probtype = EULER
       else if (probtype .eq. 7) then
 
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  tag(i,j,k) = merge(set,tag(i,j,k),
-     &                   abs(dx(1)*vort(i,j,k,1)).gt.vorterr)
+                  tag(i,j,k) = merge(set,tag(i,j,k), &
+                        abs(dx(1)*vort(i,j,k,1)).gt.vorterr)
                end do
             end do
          end do
 
-c     probtype = BROWN ROSHKO
+!c     probtype = BROWN ROSHKO
       else if (probtype .eq. 8) then
 
         return
 
 
-c     probtype = VISCOUS BENCHMARK
+!c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 9) then
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
@@ -4998,33 +5026,34 @@ c     probtype = VISCOUS BENCHMARK
         stop
       end if
 
-      end
+      end subroutine FORT_MVERROR
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: rho      <=  density array
-c ::: DIMS(rho) => index extent of rho array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: rho      <=  density array
+!c ::: DIMS(rho) => index extent of rho array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_DENFILL (rho,DIMS(rho),domlo,domhi,dx,
-     &                         xlo,time,bc )
+      subroutine FORT_DENFILL (rho,DIMS(rho),domlo,domhi,dx, &
+                              xlo,time,bc ) &
+                              bind(C, name="FORT_DENFILL")
       implicit none
 
       integer    DIMDEC(rho)
@@ -5134,7 +5163,7 @@ c ::: -----------------------------------------------------------
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(rho).lt.domlo(1)) then
          if (probtype.eq.24) then
-c     SHEAR LAYER
+!c     SHEAR LAYER
             Ly = f_probhi(2)-f_problo(2)
             do k = ARG_L3(rho), ARG_H3(rho)
                z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
@@ -5145,7 +5174,7 @@ c     SHEAR LAYER
                      z0 = z0 + mag(n)*cos(freq(n)*time+phi1(n))*cos(float(n)*y/Ly+phi2(n))
                   enddo
                   do i = ARG_L1(rho), domlo(1)-1
-c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+!c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                      rho(i,j,k) = half*((den1+den2)+(den1-den2)*tanh(two*(z-z0)/delta0))
                   end do
                end do
@@ -5193,7 +5222,7 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
 
       if (bc(3,1).eq.EXT_DIR.and.ARG_L3(rho).lt.domlo(3)) then
          if (probtype.eq.15) then
-c           write (6,*) "Filling with unit density"
+!c           write (6,*) "Filling with unit density"
            do k = lo(3), domlo(3)-1
               do j = lo(2), hi(2)
                  do i = lo(1), hi(1)
@@ -5284,33 +5313,34 @@ c           write (6,*) "Filling with unit density"
 
       endif
 
-      end
+      end subroutine FORT_DENFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: adv      <=  advected quantity array
-c ::: DIMS(adv) => index extent of adv array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of adv array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: adv      <=  advected quantity array
+!c ::: DIMS(adv) => index extent of adv array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of adv array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_ADVFILL (adv,DIMS(adv),domlo,domhi,dx,
-     &                         xlo,time,bc )
+      subroutine FORT_ADVFILL (adv,DIMS(adv),domlo,domhi,dx,&
+                               xlo,time,bc )&
+                               bind(C, name="FORT_ADVFILL")
       implicit none
 
       integer    DIMDEC(adv)
@@ -5412,17 +5442,17 @@ c ::: -----------------------------------------------------------
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(adv).lt.domlo(1)) then
          if (probtype.eq.24) then
-c     SHEAR LAYER
+!c     SHEAR LAYER
             do k = ARG_L3(adv), ARG_H3(adv)
                z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
                do j = ARG_L2(adv), ARG_H2(adv)
-c                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
+!c                  y = xlo(2) + dx(2)*(float(j-lo(2)) + half)
                   z0 = interface_height
-c                  do n = 1, 10
-c                     z0 = z0 + mag(n)*cos(freq(n)*time+phi1(n))*cos(float(n)*y/Ly+phi2(n))
-c                  enddo
+!c                  do n = 1, 10
+!c                     z0 = z0 + mag(n)*cos(freq(n)*time+phi1(n))*cos(float(n)*y/Ly+phi2(n))
+!c                  enddo
                   do i = ARG_L1(adv), domlo(1)-1
-c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+!c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                      adv(i,j,k) = exp(-((z-z0)/delta0)**2)
                   end do
                end do
@@ -5533,10 +5563,12 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
 
       endif
 
-      end
+      end subroutine FORT_ADVFILL
 
-      subroutine FORT_ADV2FILL (adv,DIMS(adv),domlo,domhi,dx,
-     &                         xlo,time,bc )
+      subroutine FORT_ADV2FILL (adv,DIMS(adv),domlo,domhi,dx, &
+                                xlo,time,bc )&
+                                bind(C, name="FORT_ADV2FILL")
+                                
       implicit none
 
       integer    DIMDEC(adv)
@@ -5657,33 +5689,35 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
          endif
       end if
 
-      end
+      end subroutine FORT_ADV2FILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: temp      <= temperature array
-c ::: DIMS(temp)=> index extent of temp array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of temp array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: temp      <= temperature array
+!c ::: DIMS(temp)=> index extent of temp array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of temp array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_TEMPFILL (temp,DIMS(temp),domlo,domhi,dx,
-     &                          xlo,time,bc )
+      subroutine FORT_TEMPFILL (temp,DIMS(temp),domlo,domhi,dx,&
+                                xlo,time,bc )&
+                                bind(C, name="FORT_TEMPFILL")
+                                
       implicit none
 
       integer    DIMDEC(temp)
@@ -5784,32 +5818,33 @@ c ::: -----------------------------------------------------------
          end do
       end if
 
-      end
+      end subroutine FORT_TEMPFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: u        <=  x velocity array
-c ::: DIMS(u)   => index extent of u array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: u        <=  x velocity array
+!c ::: DIMS(u)   => index extent of u array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_XVELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc)
+      subroutine FORT_XVELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc)&
+                                bind(C, name="FORT_XVELFILL")
       implicit none
       integer    DIMDEC(u)
       integer    domlo(SDIM), domhi(SDIM)
@@ -5825,7 +5860,7 @@ c ::: -----------------------------------------------------------
       REAL_T     hx, hy, hz, gpert, z,  ypert, magwif, constn
       REAL_T     jv, s, t, xc, yc
 
-      REAL_T plateVel, factor
+      REAL_T  factor
 
 #include <probdata.H>
 
@@ -5858,11 +5893,11 @@ c ::: -----------------------------------------------------------
          hiFlctArray(adv_dir) = 1
          call SET_ARGS(DIMS(uflct), loFlctArray, hiFlctArray)
          allocate(uflct(DIMV(uflct)))
-c
-c        Note that we are 'scaling time' here to step into the fluct file to the
-c        correct depth.  This requires that time is not further scaled inside the
-c        the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
-c
+!c
+!c        Note that we are 'scaling time' here to step into the fluct file to the
+!c        correct depth.  This requires that time is not further scaled inside the
+!c        the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
+!c
          convVel = one
          t_flct = time
          
@@ -5880,9 +5915,9 @@ c
          else if (time .ge. tInflowFact_r) then
             factor = InflowFact_r
          else
-            factor = InflowFact_l
-     &           +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l)
-     &           /(tInflowFact_r-tInflowFact_l)
+            factor = InflowFact_l &
+                +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l) &
+                /(tInflowFact_r-tInflowFact_l)
          endif
       endif
 
@@ -5896,7 +5931,7 @@ c
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(u).lt.domlo(1)) then
          if (probtype.eq.24) then
-c     SHEAR LAYER
+!c     SHEAR LAYER
             Ly = f_probhi(2)-f_problo(2)
             do k = ARG_L3(u), ARG_H3(u)
                z = xlo(3) + dx(3)*(float(k-lo(3)) + half)
@@ -5907,7 +5942,7 @@ c     SHEAR LAYER
                      z0 = z0 + mag(n)*cos(freq(n)*time+phi1(n))*cos(float(n)*y/Ly+phi2(n))
                   enddo
                   do i = ARG_L1(u), domlo(1)-1
-c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
+!c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                      u(i,j,k) = half*((vel1+vel2)+(vel1-vel2)*tanh(two*(z-z0)/delta0))
                   end do
                end do
@@ -6000,7 +6035,7 @@ c                     x = xlo(1) + dx(1)*(float(i-lo(1)) + half)
                      x = domnlo(1) + (i+0.5)*dx(1)
                      u(i,j,k) = zero
 #ifdef BL_DO_FLCT
-c     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
+!c     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
                      u(i,j,k) = plateVel(x, y, z, 1, uflct(i,j,1))
                      
 #endif
@@ -6044,7 +6079,7 @@ c     u(i,j,k) = u(i,j,k) + uflct(i,j,1)*turb_scale
                      if (probtype.eq.13) then
 #ifdef BL_DO_FLCT
                         r = SQRT( x*x + y*y )
-c     call vswirlXYZ(x,y,u1,u2,u3)
+!c     call vswirlXYZ(x,y,u1,u2,u3)
                         if (r.gt.Rfu) then
                            u_inf = 0.d0
                            eta = TANH(2*(r-Rfu)/Rtran)
@@ -6105,7 +6140,7 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
                enddo
             enddo
          else if (probtype .eq. 29) then
-c ::: Lid-driven cavity test case, constant velocity on top of domain
+!c ::: Lid-driven cavity test case, constant velocity on top of domain
             do k = domhi(3)+1, ARG_H3(u)
                do j = ARG_L2(u), ARG_H2(u)
                   do i = ARG_L1(u), ARG_H1(u)
@@ -6130,32 +6165,34 @@ c ::: Lid-driven cavity test case, constant velocity on top of domain
       if (forceInflow) deallocate(uflct)
 #endif
 
-      end
+      end subroutine FORT_XVELFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: v        <=  y velocity array
-c ::: DIMS(v)   => index extent of v array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: v        <=  y velocity array
+!c ::: DIMS(v)   => index extent of v array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_YVELFILL (v,DIMS(v),domlo,domhi,dx,xlo,time,bc)
+      subroutine FORT_YVELFILL (v,DIMS(v),domlo,domhi,dx,xlo,time,bc)&
+                                bind(C, name="FORT_YVELFILL")
+                                
       implicit none
       integer    DIMDEC(v)
       integer    domlo(SDIM), domhi(SDIM)
@@ -6168,7 +6205,7 @@ c ::: -----------------------------------------------------------
       REAL_T     y_vel
       REAL_T     rn
       REAL_T     jv, s, t, xc, yc
-      REAL_T plateVel, factor
+      REAL_T factor
 #include <probdata.H>
 
 #ifdef BL_DO_FLCT
@@ -6213,9 +6250,9 @@ c ::: -----------------------------------------------------------
          else if (time .ge. tInflowFact_r) then
             factor = InflowFact_r
          else
-            factor = InflowFact_l
-     &           +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l)
-     &           /(tInflowFact_r-tInflowFact_l)
+            factor = InflowFact_l &
+                +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l) &
+                /(tInflowFact_r-tInflowFact_l)
          endif
       endif
 
@@ -6314,7 +6351,7 @@ c ::: -----------------------------------------------------------
                      x = domnlo(1) + (i+0.5)*dx(1)
                      v(i,j,k) = zero
 #ifdef BL_DO_FLCT
-c     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
+!c     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
                      v(i,j,k) = plateVel(x, y, z, 2, vflct(i,j,1))
 #endif
                   enddo
@@ -6351,7 +6388,7 @@ c     v(i,j,k) = v(i,j,k) + vflct(i,j,1)*turb_scale
                      if (probtype.eq.13) then
 #ifdef BL_DO_FLCT
                         r = SQRT( x*x + y*y )
-c     call vswirlXYZ(x,y,u1,u2,u3)
+!c     call vswirlXYZ(x,y,u1,u2,u3)
                         if (r.gt.Rfu) then
                            u_inf = 0.d0
                            eta = TANH(2*(r-Rfu)/Rtran)
@@ -6424,32 +6461,34 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
       if (forceInflow) deallocate(vflct)
 #endif
 
-      end
+      end subroutine FORT_YVELFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: w        <=  z velocity array
-c ::: DIMS(w)   => index extent of v array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: w        <=  z velocity array
+!c ::: DIMS(w)   => index extent of v array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_ZVELFILL (w,DIMS(w),domlo,domhi,dx,xlo,time,bc)
+      subroutine FORT_ZVELFILL (w,DIMS(w),domlo,domhi,dx,xlo,time,bc)&
+                                bind(C, name="FORT_ZVELFILL")
+                                
       implicit none
       integer    DIMDEC(w)
       integer    domlo(SDIM), domhi(SDIM)
@@ -6471,7 +6510,7 @@ c ::: -----------------------------------------------------------
 #include <INFL_FORCE_F.H>
 #endif
       REAL_T x,y,z,r,u1,u2,u3,u_inf,eta
-      REAL_T meanPlateVel, plateVel, Lx, Ly, pert, factor
+      REAL_T Lx, Ly, pert, factor
 
       lo(1) = ARG_L1(w)
       lo(2) = ARG_L2(w)
@@ -6516,9 +6555,9 @@ c ::: -----------------------------------------------------------
          else if (time .ge. tInflowFact_r) then
             factor = InflowFact_r
          else
-            factor = InflowFact_l
-     &           +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l)
-     &           /(tInflowFact_r-tInflowFact_l)
+            factor = InflowFact_l &
+                +(time-tInflowFact_l)*(InflowFact_r-InflowFact_l) &
+                /(tInflowFact_r-tInflowFact_l)
          endif
       endif
 
@@ -6623,7 +6662,7 @@ c ::: -----------------------------------------------------------
                      w(i,j,k) = meanPlateVel(x,y)
 #ifdef BL_DO_FLCT
                      w(i,j,k) = plateVel(x, y, z, 3, wflct(i,j,1))
-c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
+!c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
 #endif
                   enddo
                enddo
@@ -6660,7 +6699,7 @@ c                     w(i,j,k) = w(i,j,k)*(one+wflct(i,j,1)*turb_scale)
                      if (probtype.eq.13) then
 #ifdef BL_DO_FLCT
                         r = SQRT( x*x + y*y )
-c     call vswirlXYZ(x,y,u1,u2,u3)
+!c     call vswirlXYZ(x,y,u1,u2,u3)
                         if (r.gt.Rfu) then
                            u_inf = Vco
                            eta = TANH(2*(r-Rfu)/Rtran)
@@ -6688,8 +6727,8 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
 
                         Lx = domnhi(1)-domnlo(1)
                         Ly = domnhi(2)-domnlo(2)
-                        pert = .03*(sin(2*Pi*4*x/Lx) * sin(2*Pi*3*y/Ly) ) * sin(time/.00001) +
-     &                       .0438*(sin(2*Pi*5*(x-.17)/Lx) * sin(2*Pi*6*(y-.49)/Ly)) * sin(time/.000012)
+                        pert = .03*(sin(2*Pi*4*x/Lx) * sin(2*Pi*3*y/Ly) ) * sin(time/.00001) + &
+                            .0438*(sin(2*Pi*5*(x-.17)/Lx) * sin(2*Pi*6*(y-.49)/Ly)) * sin(time/.000012)
                         w(i,j,k) = w(i,j,k)*(1.d0 + pert)
                      else
                         w(i,j,k) = z_vel
@@ -6750,14 +6789,14 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
       if (forceInflow) deallocate(wflct)
 #endif
 
-      end
+      end subroutine FORT_ZVELFILL
 
       REAL_T function meanPlateVel(x,y)
       implicit none
 #include <probdata.H>
       REAL_T x,y
       REAL_T totHoleA, holeSepX, holeSepY, Lx, Ly
-      REAL_T jetVel, xHole, yHole, rHole, zblend1, rFact
+      REAL_T jetVel, xHole, yHole, rHole, rFact
       REAL_T hRad, hBL
       integer iHoleX, iHoleY
       
@@ -6780,11 +6819,11 @@ c     call vswirlXYZ(x,y,u1,u2,u3)
 
       rFact = 1.d0 - zblend1(rHole,hRad,hBL)
       meanPlateVel = jetVel * rFact
-      end
+      end function meanPlateVel
 
-c *****
-c **
-c *****
+!c *****
+!c **
+!c *****
       REAL_T function plateVel(x,y,z,cord,flct)
       implicit none
       
@@ -6792,15 +6831,15 @@ c *****
       integer dir(SDIM), numholes(SDIM), idholes(SDIM)
       REAL_T  holespace(SDIM)
       REAL_T  dist(SDIM), loc(SDIM)
-c     
-c     ::::: local variables
-c     
+!c     
+!c     ::::: local variables
+!c     
       integer cord, n
       REAL_T  twicePi
       REAL_T totHoleA
       REAL_T jetVel, radius, sectarea
       REAL_T x, y, z, xcen,ycen, xloc, yloc, xcord(5), ycord(5)
-      REAL_T mean, zblend1, vholeSp, vane, xshift, yshift, delta,vslot
+      REAL_T mean, vholeSp, vane, xshift, yshift, delta,vslot
       integer icell,jcell,npts
 
       integer NringMAX, NperMAX
@@ -6835,7 +6874,7 @@ c
       else
          dir(3) = 1
       endif
-c     perforated plate of square pattern         
+!c     perforated plate of square pattern         
 #if 0
     
       radius = 0.d0
@@ -6850,9 +6889,9 @@ c     perforated plate of square pattern
       totHoleA = numholes(1)*numholes(2)*numholes(3)*Pi*holeRad**2
      
       
-      sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+
-     &     dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+
-     &     dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
+      sectarea = dir(1)*(domnhi(2) - domnlo(2))*(domnhi(3) - domnlo(3))+ &
+          dir(2)*(domnhi(1) - domnlo(1)) * (domnhi(3) - domnlo(3))+ &
+          dir(3)*(domnhi(1) - domnlo(1)) * (domnhi(2) - domnlo(2)) 
       
       do n = 1, 3 
          holespace(n) = (domnhi(n) - domnlo(n)) / numholes(n)
@@ -6869,9 +6908,9 @@ c     perforated plate of square pattern
          dist(n) = loc(n) - (idholes(n) + half)*holespace(n)
       end do
       
-      radius = SQRT(dir(1)*(dist(2)**2 + dist(3)**2)+
-     &     dir(2)*(dist(1)**2 + dist(3)**2) +
-     &     dir(3)*(dist(1)**2 + dist(2)**2))
+      radius = SQRT(dir(1)*(dist(2)**2 + dist(3)**2)+ &
+          dir(2)*(dist(1)**2 + dist(3)**2) + &
+          dir(3)*(dist(1)**2 + dist(2)**2))
       
       if (radius .le. holeRad) then
          plateVel = jetVel*dir(cord)+flct*turb_scale 
@@ -6879,7 +6918,7 @@ c     perforated plate of square pattern
          plateVel = 0.d0
       endif
 #endif
-c     perforated plate of hexagnoal pattern     
+!c     perforated plate of hexagnoal pattern     
 #if 0
       
       jetVel = adv_vel/(1.0 - holeBLfac)      
@@ -6925,7 +6964,7 @@ c     perforated plate of hexagnoal pattern
       
 
 #endif
-c     perforated plate of hexagnoal pattern, no flow on boundaries (to enable periodic ok)
+!c     perforated plate of hexagnoal pattern, no flow on boundaries (to enable periodic ok)
 #if 0
       
       jetVel = adv_vel/(1.0 - holeBLfac)      
@@ -6965,20 +7004,20 @@ c     perforated plate of hexagnoal pattern, no flow on boundaries (to enable pe
          
          if(radius .le. holeRad) then
             plateVel = jetVel*dir(cord) + flct*turb_scale 
-c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+!c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
       
-      if ((x.lt.domnlo(1) + .001) .or. 
-     &     (x.gt.domnhi(1) - .001) .or.
-     &     (y.lt.domnlo(2) + .001) .or. 
-     &     (y.gt.domnhi(2) - .001)) then
+      if ((x.lt.domnlo(1) + .001) .or.  &
+          (x.gt.domnhi(1) - .001) .or. &
+          (y.lt.domnlo(2) + .001) .or.  &
+          (y.gt.domnhi(2) - .001)) then
          plateVel = 0.d0
       endif
 
 #endif
 
-c     perforated plate with radial pattern, no flow on boundaries (to enable periodic ok)
+!c     perforated plate with radial pattern, no flow on boundaries (to enable periodic ok)
 #if 1
       jetVel = adv_vel/(1.0 - holeBLfac)      
       do n=1,3
@@ -7018,15 +7057,15 @@ c     perforated plate with radial pattern, no flow on boundaries (to enable per
          enddo
       enddo
       
-      if ((x.lt.domnlo(1) + .001) .or. 
-     &     (x.gt.domnhi(1) - .001) .or.
-     &     (y.lt.domnlo(2) + .001) .or. 
-     &     (y.gt.domnhi(2) - .001)) then
+      if ((x.lt.domnlo(1) + .001) .or. &
+          (x.gt.domnhi(1) - .001) .or. &
+          (y.lt.domnlo(2) + .001) .or.  &
+          (y.gt.domnhi(2) - .001)) then
          plateVel = 0.d0
       endif
 
 #endif
-c  this is the original code
+!c  this is the original code
 #if 0
       
       jetVel = adv_vel/(1.0 - holeBLfac)      
@@ -7051,18 +7090,18 @@ c  this is the original code
       radius = SQRT((xloc-xcen)**2 + (yloc-ycen)**2)
       if(radius .le. holeRad) then
          plateVel = jetVel*dir(cord) + flct*turb_scale 
-c         plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
-c      else
-c         plateVel = -jetVel*dir(cord)
-c         plateVel = 0.d0
+!c         plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+!c      else
+!c         plateVel = -jetVel*dir(cord)
+!c         plateVel = 0.d0
       endif
       
 #endif
-c     perforated plate of hexagnoal pattern with slot  (2 gaps in swirl region)
+!c     perforated plate of hexagnoal pattern with slot  (2 gaps in swirl region)
 #if 0
       
-c     jetVel = adv_vel/(1.0 - holeBLfac)     
-c 
+!c     jetVel = adv_vel/(1.0 - holeBLfac)     
+!c 
       jetVel = 18.d0
       plateVel = 0.d0
       
@@ -7099,10 +7138,10 @@ c
          
          if(radius .le. holeRad) then
             plateVel = jetVel*dir(cord) + flct*turb_scale 
-c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+!c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
-c     in the slot region (5 mm width)
+!c     in the slot region (5 mm width)
       if (y.ge.((domnhi(2)-domnlo(2)) - slotWidth)) then
          if (cord .eq. 1) then
             plateVel = 32.d0*tan(37.d0/180.d0*Pi)
@@ -7125,20 +7164,20 @@ c     in the slot region (5 mm width)
             endif
          endif
       endif
-      if ((y.ge.((domnhi(2)-domnlo(2)) - slotWidth - vane)) .and. 
-     &     (y.lt.((domnhi(2)-domnlo(2)) - slotWidth))) then
+      if ((y.ge.((domnhi(2)-domnlo(2)) - slotWidth - vane)) .and. & 
+          (y.lt.((domnhi(2)-domnlo(2)) - slotWidth))) then
          plateVel = 0.d0
       endif
-c     in the region of 1 mm between the slot region and the plate 
+!c     in the region of 1 mm between the slot region and the plate 
       
 #endif
 
 
-c     perforated plate of hexagnoal pattern with slot and shifting in x and y directions (4 gaps in swirl region)
+!c     perforated plate of hexagnoal pattern with slot and shifting in x and y directions (4 gaps in swirl region)
 #if 0
       
-c     jetVel = adv_vel/(1.0 - holeBLfac)     
-c 
+!c     jetVel = adv_vel/(1.0 - holeBLfac)     
+!c 
      
       jetVel = adv_vel
       vslot = slot_vel
@@ -7189,14 +7228,14 @@ c
          
          if(radius .le. holeRad) then
             plateVel = jetVel*dir(cord) + flct*turb_scale 
-c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
+!c            plateVel = plateVel *(1.d0 - 2.d0*zblend1(radius,holeRad,holeRad/8.0))
          endif
       end do
-c     in the slot region (5 mm width)
+!c     in the slot region (5 mm width)
       if (y.ge.((domnhi(2)-domnlo(2)) - slotWidth)) then
          delta = (domnhi(1)-domnlo(1))
          if (cord .eq. 1) then
-c            plateVel = 32.d0*tan(37.d0/180.d0*Pi)
+!c            plateVel = 32.d0*tan(37.d0/180.d0*Pi)
             plateVel = vslot*tan(37.d0/180.d0*Pi)
             
             do n = 1, 7, 2
@@ -7208,7 +7247,7 @@ c            plateVel = 32.d0*tan(37.d0/180.d0*Pi)
          else if (cord .eq. 2) then
             plateVel = 0.d0
          else
-c            plateVel = 32.d0
+!c            plateVel = 32.d0
             plateVel = vslot
             do n = 1, 7, 2
                if (x .ge. (dfloat(n)/8.d0*delta-half*vane) .and. (x .le. (dfloat(n)/8.d0*delta + half*vane))) then 
@@ -7217,9 +7256,9 @@ c            plateVel = 32.d0
             end do
          endif
       endif
-c     in the thin 1 mm wide no flow region
-      if ((y.ge.((domnhi(2)-domnlo(2)) - slotWidth - vane)) .and. 
-     &     (y.lt.((domnhi(2)-domnlo(2)) - slotWidth))) then
+!c     in the thin 1 mm wide no flow region
+      if ((y.ge.((domnhi(2)-domnlo(2)) - slotWidth - vane)) .and. & 
+          (y.lt.((domnhi(2)-domnlo(2)) - slotWidth))) then
          plateVel = 0.d0
       endif
 
@@ -7228,34 +7267,35 @@ c     in the thin 1 mm wide no flow region
 
 
 
-      end
+      end function PlateVel
       
 
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: u        <=  full velocity array
-c ::: DIMS(u)   => index extent of v array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi,comp)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: u        <=  full velocity array
+!c ::: DIMS(u)   => index extent of v array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi,comp)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_VELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc)
+      subroutine FORT_VELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc) &
+                               bind(C, name="FORT_VELFILL")
       implicit none
       integer    DIMDEC(u)
       integer    domlo(SDIM), domhi(SDIM)
@@ -7303,11 +7343,11 @@ c ::: -----------------------------------------------------------
          allocate(uflct(DIMV(uflct)))
          allocate(vflct(DIMV(uflct)))
          allocate(wflct(DIMV(uflct)))
-c
-c        Note that we are 'scaling time' here to step into the fluct file to the
-c        correct depth.  This requires that time is not further scaled inside the
-c        the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
-c
+!c
+!c        Note that we are 'scaling time' here to step into the fluct file to the
+!c        correct depth.  This requires that time is not further scaled inside the
+!c        the INFL_FILL routine.  Just to be sure, we set convVel = 1 here again.
+!c
          convVel = one
          t_flct = adv_vel*time
          call INFL_FILL(FLCT_XVEL,DIMS(uflct),uflct,xlo,dx,t_flct,bc(1,1,1),domnlo,domnhi)
@@ -7316,32 +7356,32 @@ c
       end if
 #endif
 
-      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),1),
-     $            DIMS(u),domlo,domhi,dx,xlo,bc(1,1,1))
-      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),2),
-     $            DIMS(u),domlo,domhi,dx,xlo,bc(1,1,2))
-      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),3),
-     $            DIMS(u),domlo,domhi,dx,xlo,bc(1,1,3))
+      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),1), &
+                 DIMS(u),domlo,domhi,dx,xlo,bc(1,1,1)) 
+      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),2),&
+                 DIMS(u),domlo,domhi,dx,xlo,bc(1,1,2))
+      call filcc (u(ARG_L1(u),ARG_L2(u),ARG_L3(u),3),&
+                 DIMS(u),domlo,domhi,dx,xlo,bc(1,1,3))
 
-c     This forces radial inflow in a plane satisfying potential flow/incompressiblity
+!c     This forces radial inflow in a plane satisfying potential flow/incompressiblity
 
       call bl_pd_is_ioproc(isioproc)
       
-c      if (isioproc.eq.1) then
-c         write (*,*) "In VELFILL..."
-c      endif
+!c      if (isioproc.eq.1) then
+!c         write (*,*) "In VELFILL..."
+!c      endif
 
       if (probtype.eq.18) then
-c     This is the Jet probtype
-c     Here, we assume all the velocity components have the same bc type
+!c     This is the Jet probtype
+!c     Here, we assume all the velocity components have the same bc type
 
          if (bc(1,1,1).eq.FOEXTRAP.and.ARG_L1(u).lt.domlo(1)) then
-c     Lo x boundary            
-c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+!c     Lo x boundary            
+!c            write (*,*) "Doing 'outflow' boundary conditions for jet"
 
-c     i on the interior
+!c     i on the interior
             ii = domlo(1)
-c     x position of ii
+!c     x position of ii
             xi = domnlo(1) + (ii+0.5)*dx(1) - jet_x
             
             jlo = ARG_L2(u); if (jlo.lt.domlo(2)) jlo=domlo(2);
@@ -7352,25 +7392,25 @@ c     x position of ii
                do k = ARG_L3(u), ARG_H3(u)
                   do j = jlo, jhi
                      y = domnlo(2) + (j+0.5)*dx(2) - jet_y
-c     radius squared of ghost cell
+!c     radius squared of ghost cell
                      r2 = x*x + y*y
-c     j one cell closer to the origin
+!c     j one cell closer to the origin
                      jp = merge(j+1,j-1,y.lt.zero)
-c     y position of the radius at ii
+!c     y position of the radius at ii
                      yp = xi*y/x
-c     radius of yp
+!c     radius of yp
                      rp = sqrt( xi*xi + yp*yp )
-c     interpolate factor
+!c     interpolate factor
                      ax = (y-yp)/dx(2)
-c     interpolate velocities to xp
+!c     interpolate velocities to xp
                      uxp = u(ii,j,k,1) + ax*(u(ii,jp,k,1)-u(ii,j,k,1))
                      uyp = u(ii,j,k,2) + ax*(u(ii,jp,k,2)-u(ii,j,k,2))
-c     radial velocity at yp 
-c                     up = (uxp*xi-uyp*yp)/rp
+!c     radial velocity at yp 
+!c                     up = (uxp*xi-uyp*yp)/rp
                      up = (uxp*xi-uyp*yp)
-c     radial velocity at bc
-c                     u(i,j,k,1) = x*rp*up/r2
-c                     u(i,j,k,2) = y*rp*up/r2
+!c     radial velocity at bc
+!c                     u(i,j,k,1) = x*rp*up/r2
+!c                     u(i,j,k,2) = y*rp*up/r2
                      u(i,j,k,1) = x*up/r2
                      u(i,j,k,2) = y*up/r2
                      u(i,j,k,3) = zero
@@ -7380,12 +7420,12 @@ c                     u(i,j,k,2) = y*rp*up/r2
          endif
          
          if (bc(1,2,1).eq.FOEXTRAP.and.ARG_H1(u).gt.domhi(1)) then
-c     Hi x boundary
-c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+!c     Hi x boundary
+!c            write (*,*) "Doing 'outflow' boundary conditions for jet"
 
-c     i on the interior
+!c     i on the interior
             ii = domhi(1)
-c     x position of ji
+!c     x position of ji
             xi = domnlo(1) + (ii+0.5)*dx(1) - jet_x
 
             jlo = ARG_L2(u); if (jlo.lt.domlo(2)) jlo=domlo(2);
@@ -7396,25 +7436,25 @@ c     x position of ji
                do k = ARG_L3(u), ARG_H3(u)
                   do j = jlo, jhi
                      y = domnlo(2) + (j+0.5)*dx(2) - jet_y
-c     radius squared of ghost cell
+!c     radius squared of ghost cell
                      r2 = x*x + y*y
-c     j one cell closer to the origin
+!c     j one cell closer to the origin
                      jp = merge(j+1,j-1,y.lt.zero)
-c     y position of the radius at ii
+!c     y position of the radius at ii
                      yp = xi*y/x
-c     radius of yp
+!c     radius of yp
                      rp = sqrt( xi*xi + yp*yp )
-c     interpolate factor
+!c     interpolate factor
                      ax = (y-yp)/dx(2)
-c     interpolate velocities to xp
+!c     interpolate velocities to xp
                      uxp = u(ii,j,k,1) + ax*(u(ii,jp,k,1)-u(ii,j,k,1))
                      uyp = u(ii,j,k,2) + ax*(u(ii,jp,k,2)-u(ii,j,k,2))
-c     radial velocity at yp
-c                     up = (uxp*xi-uyp*yp)/rp
+!c     radial velocity at yp
+!c                     up = (uxp*xi-uyp*yp)/rp
                      up = (uxp*xi-uyp*yp)/rp
-c     radial velocity at bc
-c                     u(i,j,k,1) = x*rp*up/r2
-c                     u(i,j,k,2) = y*rp*up/r2
+!c     radial velocity at bc
+!c                     u(i,j,k,1) = x*rp*up/r2
+!c                     u(i,j,k,2) = y*rp*up/r2
                      u(i,j,k,1) = x*up/r2
                      u(i,j,k,2) = y*up/r2
                      u(i,j,k,3) = zero
@@ -7424,12 +7464,12 @@ c                     u(i,j,k,2) = y*rp*up/r2
          endif
       
          if (bc(2,1,1).eq.FOEXTRAP.and.ARG_L2(u).lt.domlo(2)) then
-c     Lo y boundary
-c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+!c     Lo y boundary
+!c            write (*,*) "Doing 'outflow' boundary conditions for jet"
 
-c     j on the interior
+!c     j on the interior
             ji = domlo(2)
-c     y position of ji
+!c     y position of ji
             yi = domnlo(2) + (ji+0.5)*dx(2) - jet_y
 
             ilo = ARG_L1(u); if (ilo.lt.domlo(1)) ilo=domlo(1);
@@ -7440,25 +7480,25 @@ c     y position of ji
                do k = ARG_L3(u), ARG_H3(u)
                   do i = ilo, ihi
                      x = domnlo(1) + (i+0.5)*dx(1) - jet_x
-c     radius squared of ghost cell
+!c     radius squared of ghost cell
                      r2 = x*x + y*y
-c     i one cell closer to the origin
+!c     i one cell closer to the origin
                      ip = merge(i+1,i-1,x.lt.zero)
-c     x position of the radius at ji
+!c     x position of the radius at ji
                      xp = yi*x/y
-c     radius of xp
+!c     radius of xp
                      rp = sqrt( xp*xp + yi*yi )
-c     interpolate factor
+!c     interpolate factor
                      ax = (x-xp)/dx(1)
-c     interpolate velocities to xp (assumes azimuthal component is zero)
+!c     interpolate velocities to xp (assumes azimuthal component is zero)
                      uxp = u(i,ji,k,1) + ax*(u(ip,ji,k,1)-u(i,ji,k,1))
                      uyp = u(i,ji,k,2) + ax*(u(ip,ji,k,2)-u(i,ji,k,2))
-c     radial velocity at xp
-c                     up = (uxp*xp-uyp*yi)/rp
+!c     radial velocity at xp
+!c                     up = (uxp*xp-uyp*yi)/rp
                      up = (uxp*xp-uyp*yi)
-c     radial velocity at bc
-c                     u(i,j,k,1) = x*rp*up/r2
-c                     u(i,j,k,2) = y*rp*up/r2
+!c     radial velocity at bc
+!c                     u(i,j,k,1) = x*rp*up/r2
+!c                     u(i,j,k,2) = y*rp*up/r2
                      u(i,j,k,1) = x*up/r2
                      u(i,j,k,2) = y*up/r2
                      u(i,j,k,3) = zero
@@ -7468,12 +7508,12 @@ c                     u(i,j,k,2) = y*rp*up/r2
          endif
          
          if (bc(2,2,1).eq.FOEXTRAP.and.ARG_H2(u).gt.domhi(2)) then
-c     Hi y boundary
-c            write (*,*) "Doing 'outflow' boundary conditions for jet"
+!c     Hi y boundary
+!c            write (*,*) "Doing 'outflow' boundary conditions for jet"
 
-c     j on the interior
+!c     j on the interior
             ji = domhi(2)
-c     y position of ji
+!c     y position of ji
             yi = domnlo(2) + (ji+0.5)*dx(2) - jet_y
 
             ilo = ARG_L1(u); if (ilo.lt.domlo(1)) ilo=domlo(1);
@@ -7484,25 +7524,25 @@ c     y position of ji
                do k = ARG_L3(u), ARG_H3(u)
                   do i = ilo, ihi
                      x = domnlo(1) + (i+0.5)*dx(1) - jet_x
-c     radius squared of ghost cell
+!c     radius squared of ghost cell
                      r2 = x*x + y*y
-c     i one cell closer to the origin
+!c     i one cell closer to the origin
                      ip = merge(i+1,i-1,x.lt.zero)
-c     x position of the radius at ji
+!c     x position of the radius at ji
                      xp = yi*x/y
-c     radius of xp
+!c     radius of xp
                      rp = sqrt( xp*xp + yi*yi )
-c     interpolate factor
+!c     interpolate factor
                      ax = (x-xp)/dx(1)
-c     interpolate velocities to xp
+!c     interpolate velocities to xp
                      uxp = u(i,ji,k,1) + ax*(u(ip,ji,k,1)-u(i,ji,k,1))
                      uyp = u(i,ji,k,2) + ax*(u(ip,ji,k,2)-u(i,ji,k,2))
-c     radial velocity at xp
-c                     up = (uxp*xp-uyp*yi)/rp
+!c     radial velocity at xp
+!c                     up = (uxp*xp-uyp*yi)/rp
                      up = (uxp*xp-uyp*yi)
-c     radial velocity at bc
-c                     u(i,j,k,1) = x*rp*up/r2
-c                     u(i,j,k,2) = y*rp*up/r2
+!c     radial velocity at bc
+!c                     u(i,j,k,1) = x*rp*up/r2
+!c                     u(i,j,k,2) = y*rp*up/r2
                      u(i,j,k,1) = x*up/r2
                      u(i,j,k,2) = y*up/r2
                      u(i,j,k,3) = zero
@@ -7512,7 +7552,7 @@ c                     u(i,j,k,2) = y*rp*up/r2
          endif
          
          if (bc(3,1,1).eq.EXT_DIR.and.ARG_L3(u).lt.domlo(3)) then
-c     Lo z boundary
+!c     Lo z boundary
             do k = ARG_L3(u), domlo(3)-1
                do j = ARG_L2(u), ARG_H2(u)
                   y = domnlo(2) + (j+0.5)*dx(2) - jet_y
@@ -7536,7 +7576,7 @@ c     Lo z boundary
          endif
          
          if (bc(3,2,1).eq.EXT_DIR.and.ARG_H3(u).gt.domhi(3)) then
-c     Hi z boundary
+!c     Hi z boundary
             do k = domhi(3)+1, ARG_H3(u)
                do j = ARG_L2(u), ARG_H2(u)
                   do i = ARG_L1(u), ARG_H1(u)
@@ -7548,7 +7588,7 @@ c     Hi z boundary
             end do
          endif
       else
-c     Not probtype 18 - do general fill
+!c     Not probtype 18 - do general fill
          call bl_error('General VELFILL not implemented yet')
       endif
       
@@ -7559,32 +7599,34 @@ c     Not probtype 18 - do general fill
          deallocate(wflct)
       endif
 #endif
-      end
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: divu     <=  divergence of velocity array
-c ::: DIMS(divu)=> index extent of divu array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+      end subroutine FORT_VELFILL
+      
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: divu     <=  divergence of velocity array
+!c ::: DIMS(divu)=> index extent of divu array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_DIVUFILL (divu,DIMS(divu),domlo,domhi,dx,
-     &                          xlo,time,bc)
+      subroutine FORT_DIVUFILL (divu,DIMS(divu),domlo,domhi,dx, &
+                               xlo,time,bc)&
+                               bind(C, name="FORT_DIVUFILL")
       implicit none
 
       integer    DIMDEC(divu)
@@ -7666,33 +7708,34 @@ c ::: -----------------------------------------------------------
          end do
       end if        
 
-      end
+      end subroutine FORT_DIVUFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: dsdt     <=  dsdt array
-c ::: DIMS(dsdt)=> index extent of dsdt array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: dsdt     <=  dsdt array
+!c ::: DIMS(dsdt)=> index extent of dsdt array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_DSDTFILL (dsdt,DIMS(dsdt),domlo,domhi,dx,
-     &                          xlo,time,bc)
+      subroutine FORT_DSDTFILL (dsdt,DIMS(dsdt),domlo,domhi,dx, &
+                               xlo,time,bc) &
+                               bind(C, name="FORT_DSDTFILL")
       implicit none
 
       integer    DIMDEC(dsdt)
@@ -7765,33 +7808,34 @@ c ::: -----------------------------------------------------------
          end do
       end if        
 
-      end
+      end subroutine FORT_DSDTFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: p        <=  pressure array
-c ::: lo,hi     => index extent of p array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!c ::: -----------------------------------------------------------
+!c ::: This routine is called during a filpatch operation when
+!c ::: the patch to be filled falls outside the interior
+!c ::: of the problem domain.  You are requested to supply the
+!c ::: data outside the problem interior in such a way that the
+!c ::: data is consistant with the types of the boundary conditions
+!c ::: you specified in the C++ code.  
+!c ::: 
+!c ::: NOTE:  you can assume all interior cells have been filled
+!c :::        with valid data.
+!c ::: 
+!c ::: INPUTS/OUTPUTS:
+!c ::: 
+!c ::: p        <=  pressure array
+!c ::: lo,hi     => index extent of p array
+!c ::: domlo,hi  => index extent of problem domain
+!c ::: dx        => cell spacing
+!c ::: xlo       => physical location of lower left hand
+!c :::	           corner of rho array
+!c ::: time      => problem evolution time
+!c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!c ::: -----------------------------------------------------------
 
-      subroutine FORT_PRESFILL (p,DIMS(p),domlo,domhi,dx,
-     &                          xlo,time,bc)
+      subroutine FORT_PRESFILL (p,DIMS(p),domlo,domhi,dx, &
+                                xlo,time,bc) &
+                                bind(C, name="FORT_PRESFILL")
       implicit none
 
       integer    DIMDEC(p)
@@ -7829,9 +7873,9 @@ c ::: -----------------------------------------------------------
       Klo = max(ARG_L3(p),domlo(3))
       khi = min(ARG_H3(p),domhi(3))
 
-c*****************************************************************************
-c SETTING XLO 
-c*****************************************************************************
+!c*****************************************************************************
+!c SETTING XLO 
+!c*****************************************************************************
 
       if (fix_xlo) then
          do i = ARG_L1(p), domlo(1)-1
@@ -8068,9 +8112,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING XHI
-c*****************************************************************************
+!c*****************************************************************************
+!c SETTING XHI
+!c*****************************************************************************
 
       if (fix_xhi) then
          do i = domhi(1)+1, ARG_H1(p)
@@ -8307,9 +8351,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING YLO
-c*****************************************************************************
+!c*****************************************************************************
+!c SETTING YLO
+!c*****************************************************************************
 
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
@@ -8457,9 +8501,9 @@ c*****************************************************************************
 
       end if            
  
-c*****************************************************************************
-c SETTING YHI
-c*****************************************************************************
+!c*****************************************************************************
+!c SETTING YHI
+!c*****************************************************************************
 
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
@@ -8606,9 +8650,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING ZLO
-c*****************************************************************************
+!c*****************************************************************************
+!c SETTING ZLO
+!c*****************************************************************************
 
       if (fix_zlo) then
          do k = ARG_L3(p), domlo(3)-1
@@ -8699,9 +8743,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING ZHI
-c*****************************************************************************
+!c*****************************************************************************
+!c SETTING ZHI
+!c*****************************************************************************
 
       if (fix_zhi) then
          do k = domhi(3)+1, ARG_H3(p)
@@ -8793,23 +8837,23 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
+!c*****************************************************************************
 
-      end
+      end subroutine FORT_PRESFILL
 
-***************************************************************
-*    "Minimal" random number generator of Park and Miller with
-*    Bays-Durham shuffle and added safeguards.  Returns a uniform random
-*    deviate between 0.0 and 1.0 (exclusive of the endpoint values).
-*    Call with IDUM a negative integer to initialize; thereafter, do not
-*    alter IDUM between successive deviates in a sequence.  RNMX should
-*    approximate the largest floating value that is less than 1.
+!***************************************************************
+!*    "Minimal" random number generator of Park and Miller with
+!*    Bays-Durham shuffle and added safeguards.  Returns a uniform random
+!*    deviate between 0.0 and 1.0 (exclusive of the endpoint values).
+!*    Call with IDUM a negative integer to initialize; thereafter, do not
+!*    alter IDUM between successive deviates in a sequence.  RNMX should
+!*    approximate the largest floating value that is less than 1.
 
       function ran1(idum)
       integer idum,ia,im,iq,ir,ntab,ndiv
       REAL_T ran1,am,eps,rnmx
-      parameter (ia=16807,im=2147483647,am=1./im,iq=127773,ir=2836,
-     &     ntab=32,ndiv=1+(im-1)/ntab,eps=1.2e-7,rnmx=1.-eps)
+      parameter (ia=16807,im=2147483647,am=1./im,iq=127773,ir=2836, &
+          ntab=32,ndiv=1+(im-1)/ntab,eps=1.2e-7,rnmx=1.-eps)
       integer j,k,iv(ntab),iy
       save iv,iy
       data iv /ntab*0/, iy /0/
@@ -8831,6 +8875,9 @@ c*****************************************************************************
       iv(j)=idum
       ran1=min(am*iy,rnmx)
       return
-      end
-*
-*     After Press et al., Numerical Recipes for Fortran
+      end function ran1
+!*
+!*     After Press et al., Numerical Recipes for Fortran
+
+
+end module prob_3D_module

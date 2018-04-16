@@ -110,7 +110,7 @@ namespace
     bool benchmarking = false;
 }
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 namespace
 {
     //
@@ -1135,6 +1135,11 @@ NavierStokesBase::create_umac_grown (int nGrow)
         dm.surroundingNodes(n);
         const int*  lo  = dm.loVect();
         const int*  hi  = dm.hiVect();
+
+	// call FillBoundary to make sure that fine/fine grow cells are valid
+	// before FORT_HOEXTRAPTOCC is called 
+	u_mac[n].FillBoundary(geom.periodicity());
+
         //
         // HOEXTRAPTOCC isn't threaded.  OMP over calls to it.
         //
@@ -1145,14 +1150,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
         for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
         {
             FArrayBox& fab = u_mac[n][mfi];
-            const int* dlo = fab.loVect();
-            const int* dhi = fab.hiVect();
-            FORT_HOEXTRAPTOCC(fab.dataPtr(),ARLIM(dlo),ARLIM(dhi),lo,hi,dx,xlo);
+            amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),lo,hi,dx,xlo);
         }
-        u_mac[n].FillBoundary_nowait(geom.periodicity());
-    }
-    for (int n = 0; n < BL_SPACEDIM; ++n) {
-	u_mac[n].FillBoundary_finish();
     }
 }
 
@@ -2287,7 +2286,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                     
                     /*** Calculate the required number of coarse cells ***/
                     
-                    N_coarse_cells = N_level_cells / bf_lev[i][oDir];
+                    N_coarse_cells = N_level_cells / bf_lev[j][oDir];
                     if (N_level_cells % bf_lev[j][oDir] != 0)
                         N_coarse_cells++;
                     
@@ -3147,13 +3146,12 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         fine_stateMF = &(getLevel(f_lev).get_new_data(State_Type));
     }
 
-    for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
         int        i     = mfi.index();
         FArrayBox& cdata = cdataMF[mfi];
-	const Box&  bx      = mfi.growntilebox(); 
-        const int*  lo      = bx.loVect();
-        const int*  hi      = bx.hiVect();
+        const int* clo   = cdata.loVect();
+        const int* chi   = cdata.hiVect();
 
         fdata.resize(fgrids[i], num_comp);
         //
@@ -3161,7 +3159,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         //
         for (int n = 0; n < num_comp; n++)
         {
-            set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+            set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
         }
 
         for (int n = 0; n < num_comp; n++)
@@ -3178,8 +3176,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 	// not sure this is really the way we want to refine box here
 	// could be off by 1 in lo/hi
-	Box bx_fine=refine(bx,ratio); 
-        interpolater->interp(cdata,0,fdata,0,num_comp,bx_fine,ratio,
+        interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
                              cgeom,fgeom,bc_interp,src_comp,State_Type);
 
 //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
@@ -3193,7 +3190,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
               cdata.mult(dt_clev);
               FArrayBox& fine_state = (*fine_stateMF)[mfi];
               interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
-                                    num_comp,bx_fine,ratio,
+                                    num_comp,fgrids[i],ratio,
                                     cgeom,fgeom,bc_interp);
               Real dt_clev_inv = 1./dt_clev;
               cdata.mult(dt_clev_inv);
