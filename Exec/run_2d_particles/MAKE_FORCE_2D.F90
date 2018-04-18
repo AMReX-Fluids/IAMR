@@ -10,15 +10,25 @@
 #include <PROB_NS_F.H>
 #include <AMReX_ArrayLim.H>
 
-c
-c     This routine computes the forcing terms that will be added to the momentum equation
-c
-c     subroutine FORT_MAKEFORCE(force,
-      subroutine makeforce(force,
-     &                          scal,
-     &                          DIMS(force),
-     &                          DIMS(scal),
-     &                          dx,xlo,xhi,scomp,ncomp)
+module make_force_2d_moldule
+
+  implicit none
+
+  private
+
+  public :: makeforce
+  
+contains
+
+!c
+!    This routine computes the forcing terms that will be added to the momentum equation
+!c
+!    subroutine FORT_MAKEFORCE(force,
+      subroutine makeforce(force,&
+                               scal,&
+                               DIMS(force),&
+                               DIMS(scal),&
+                               dx,xlo,xhi,scomp,ncomp) bind(c, name="makeforce")
 
       implicit none
 
@@ -31,7 +41,7 @@ c     subroutine FORT_MAKEFORCE(force,
 
       integer    i,j
 
-c     Here the  force array has Xvel in the first component, Yvel in the second
+!    Here the  force array has Xvel in the first component, Yvel in the second
 
       do j = force_l2, force_h2
       do i = force_l1, force_h1
@@ -40,4 +50,6 @@ c     Here the  force array has Xvel in the first component, Yvel in the second
       end do
       end do
 
-      end
+    end subroutine makeforce
+
+  end module make_force_2d_moldule
