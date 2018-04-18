@@ -3095,13 +3095,14 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 
-    //is this setVal really necessary? doesn't coarse data exist under all fine data?
+    //is this setVal really necessary? doesn't coarse data exist under all fine data? Maybe there is a concern at boundaries? Coarse box could expand beyond the extent of fine box depending on the interpolation type
     cdataMF.setVal(0);
 
     cdataMF.copy(CrseSync, src_comp, 0, num_comp);
     //
     // Set physical boundary conditions in cdataMF.
     //
+    // tiling is probably not needed here, but what the hey
     for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
     {
         int         i       = mfi.index();
@@ -3109,6 +3110,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         FArrayBox&  cdata   = cdataMF[mfi];
         const int*  clo     = cdata.loVect();
         const int*  chi     = cdata.hiVect();
+	//why use growntilebox when cdataMF has no ghost cells?
 	const Box&  bx      = mfi.growntilebox(); 
         const int*  lo      = bx.loVect();
         const int*  hi      = bx.hiVect();
@@ -3120,7 +3122,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         for (int n = 0; n < num_comp; n++)
         {
             set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
-	    //need to set link in NAVIERSTOKES_F.H to point to a new fn 
+	    
 	    filcc_tile(ARLIM(lo),ARLIM(hi),
 			    cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
 			    cdomlo, cdomhi, dx_crse, xlo,
@@ -3146,19 +3148,35 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         fine_stateMF = &(getLevel(f_lev).get_new_data(State_Type));
     }
 
+    // Don't tile here for now...
+    // This is very similar to InterpFromCoarseLevel() in
+    // amrex/Src/AmrCore/AMReX_FillPatchUtil.cpp, which does not use tiling 
+    //
+    // Thoughts for best approach to tiling
+    // mfiter on fine box
+    // use interpolater->BoxCoarsener to get subregion of coarse box needed
+    // but then would need to worry about how the coarse fab is sized when
+    // passing to f90
+    // the f90 function already has the right parameters, but the pass
+    // through function interp (found in AmrCore/AMReX_Interpolater.cpp)
+    // does not
     for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
         int        i     = mfi.index();
         FArrayBox& cdata = cdataMF[mfi];
         const int* clo   = cdata.loVect();
         const int* chi   = cdata.hiVect();
-
+	// const Box&  bx      = mfi.growntilebox(); //mfi.tilebox();
+        // const int*  lo      = bx.loVect();
+        // const int*  hi      = bx.hiVect();
+	
         fdata.resize(fgrids[i], num_comp);
         //
         // Set the boundary condition array for interpolation.
         //
         for (int n = 0; n < num_comp; n++)
         {
+	  //set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
             set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
         }
 
@@ -3174,11 +3192,13 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
-	// not sure this is really the way we want to refine box here
-	// could be off by 1 in lo/hi
+	// This does not work because the interpolater could expand the coarse box
+	// beyond the bounds of the fine box, so bx_fine would end up too large
+	// Box bx_fine=refine(bx,ratio);
+        // interpolater->interp(cdata,0,fdata,0,num_comp,bx_fine,ratio,
+
         interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
                              cgeom,fgeom,bc_interp,src_comp,State_Type);
-
 //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
         if (increment)
@@ -3256,6 +3276,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         const Real cur_mult_factor  = dt_to_cur_time / time_since_zero;
         const Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
 
+	// See comments above in SyncInterp() when considering tiling
         for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
         {
             fine_phi.resize(P_grids[mfi.index()],1);
