@@ -16,19 +16,18 @@ module make_force_2d_moldule
 
   private
 
-  public :: makeforce
+  public :: FORT_MAKEFORCE
   
 contains
 
 !c
 !    This routine computes the forcing terms that will be added to the momentum equation
 !c
-!    subroutine FORT_MAKEFORCE(force,
-      subroutine makeforce(force,&
+    subroutine FORT_MAKEFORCE(force,&
                                scal,&
                                DIMS(force),&
                                DIMS(scal),&
-                               dx,xlo,xhi,scomp,ncomp) bind(c, name="makeforce")
+                               dx,xlo,xhi,scomp,ncomp) bind(c, name="FORT_MAKEFORCE")
 
       implicit none
 
@@ -50,6 +49,6 @@ contains
       end do
       end do
 
-    end subroutine makeforce
+    end subroutine FORT_MAKEFORCE
 
   end module make_force_2d_moldule
