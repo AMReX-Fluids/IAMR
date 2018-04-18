@@ -317,7 +317,7 @@ NavierStokesBase::variableCleanUp ()
     delete mac_projector;
     mac_projector = 0;
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     delete NSPC;
     NSPC = 0;
 #endif
@@ -577,7 +577,7 @@ NavierStokesBase::Initialize ()
 
     pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     read_particle_params ();
 #endif
 
@@ -839,7 +839,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (level == 0)
     {
         if (NSPC != 0)
@@ -2508,7 +2508,7 @@ void
 NavierStokesBase::post_regrid (int lbase,
 			       int new_finest)
 {
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     if (NSPC && level == lbase)
     {
         NSPC->Redistribute(lbase);
@@ -2525,7 +2525,7 @@ NavierStokesBase::post_restart ()
     make_rho_prev_time();
     make_rho_curr_time();
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     post_restart_particle ();
 #endif
 }
@@ -2543,7 +2543,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 {
     const int finest_level = parent->finestLevel();
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
     post_timestep_particle (crse_iteration);
 #endif
 
@@ -4122,7 +4122,7 @@ NavierStokesBase::sum_jet_quantities ()
 
 #endif  // (BL_SPACEDIM == 3)
 
-#ifdef PARTICLES
+#ifdef AMREX_PARTICLES
 
 void
 NavierStokesBase::read_particle_params ()
@@ -4415,7 +4415,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
     }
 }
 
-#endif  // PARTICLES
+#endif  // AMREX_PARTICLES
 
 // Boundary condition access function.
 Vector<int>
