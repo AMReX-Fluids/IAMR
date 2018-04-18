@@ -20,6 +20,5 @@ NavierStokes::error_setup()
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
-    err_list.add("tracer",   1, amrex::ErrorRec::Special, 
-                 BL_FORT_PROC_CALL(FORT_ADVERROR,fort_adverror));
+    err_list.add("tracer",   1, amrex::ErrorRec::Special,FORT_ADVERROR);
 }

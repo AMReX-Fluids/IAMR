@@ -18,7 +18,10 @@ module navierstokes_3d_module
 
   private 
 
-  public :: gradp, fort_putdown, incrmult, sumturb, sum_jet, &
+  public :: gradp, fort_putdown, incrmult, sumturb, &
+#ifdef SUMJET
+            sum_jet, &
+#endif
             fort_maxval, summass, summass_cyl, cen2edg, edge_interp, &
             pc_edge_interp, filcc_tile
   
@@ -270,6 +273,7 @@ contains
       
       end subroutine sumturb
 
+#ifdef SUMJET
 !c ::
 !c :: ----------------------------------------------------------
 !c :: SUMJET
@@ -784,7 +788,7 @@ contains
       end do
 
       end subroutine sum_jet
-
+#endif
 
        subroutine fort_maxval(rho,DIMS(rho),DIMS(grid),mxval)bind(C, name="fort_maxval")
 
