@@ -3154,7 +3154,8 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     // Thoughts for best approach to tiling
     // mfiter on fine box
-    // use interpolater->BoxCoarsener to get subregion of coarse box needed
+    // use interpolater->BoxCoarsener to get subregion of coarse box we
+    // want to work on,
     // but then would need to worry about how the coarse fab is sized when
     // passing to f90
     // the f90 function already has the right parameters, but the pass
