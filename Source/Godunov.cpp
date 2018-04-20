@@ -170,6 +170,9 @@ Godunov::BuildWorkSpace (const Box& grd, const Real* dx, Real dt)
     SetScratch(amrex::grow(grd,hyp_grow).longside());
 
     work_bx = amrex::grow(grd,1);
+//Print() << "In build_wrks " << grd << " " << work_bx << std::endl;
+
+
     D_TERM(;,
            work.resize(work_bx,5);,
            work.resize(work_bx,19););
@@ -220,7 +223,7 @@ Godunov::ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
     D_TERM(BL_ASSERT(U.nComp() > Ucomp);,
            BL_ASSERT(V.nComp() > Vcomp);,
            BL_ASSERT(W.nComp() > Wcomp););
-
+//Print()<<grd << " in ComputeTransverVelocities " << work_bx << std::endl;
     BL_ASSERT(work_bx.contains(amrex::grow(grd,1)));
     D_TERM(;,
            BL_ASSERT(work.nComp() >= 5);,
@@ -330,7 +333,7 @@ Godunov::Setup (const Box& grd, const Real* dx, Real dt, int velpred,
                 const FArrayBox& tforces, int Tcomp)
 {
     BuildWorkSpace(grd,dx,dt);
-
+//Print() << "In Setup grd: " << grd << "work_bx:  " << work_bx << std::endl;
     if (!velpred)
         AllocEdgeBoxes(grd,D_DECL(xflux,yflux,zflux));
 

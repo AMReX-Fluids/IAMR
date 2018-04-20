@@ -942,7 +942,7 @@ contains
             do n = 1,nc
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
-                     do i = lo(1)+1, hi(1)
+                     do i = lo(1), hi(1)
                         efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i-1,j,k,n))
                      end do
                   end do
@@ -951,7 +951,7 @@ contains
          else if (dir .EQ. 1) then
             do n = 1,nc
                do k = lo(3), hi(3)
-                  do j = lo(2)+1, hi(2)
+                  do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
                         efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j-1,k,n))
                      end do
@@ -960,7 +960,7 @@ contains
             end do
          else if (dir .EQ. 2) then
             do n = 1,nc
-               do k = lo(3)+1, hi(3)
+               do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
                         efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j,k-1,n))
@@ -974,7 +974,7 @@ contains
             do n = 1,nc
                do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
-                     do i = lo(1)+1, hi(1)
+                     do i = lo(1), hi(1)
                         if((cfab(i,j,k,n) * cfab(i-1,j,k,n)) .gt.zero) &
                             then
                            efab(i,j,k,n) = &
@@ -990,7 +990,7 @@ contains
          else if (dir .EQ. 1) then
             do n = 1,nc
                do k = lo(3), hi(3)
-                  do j = lo(2)+1, hi(2)
+                  do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
                         if((cfab(i,j,k,n) * cfab(i,j-1,k,n)).gt.zero) &
                             then
@@ -1006,7 +1006,7 @@ contains
             end do
          else if (dir .EQ. 2) then
             do n = 1,nc
-               do k = lo(3)+1, hi(3)
+               do k = lo(3), hi(3)
                   do j = lo(2), hi(2)
                      do i = lo(1), hi(1)
                         if((cfab(i,j,k,n) * cfab(i,j,k-1,n)).gt.zero) &
