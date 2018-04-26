@@ -748,10 +748,6 @@ Godunov::edge_states_bds( const Box &grd, const Real *dx, Real dt,
     const int *s_hi       = S.hiVect();
 // FIXME? consider passing in bounds for tforces and divu rather
 // than assuming they're the same as S's bounds in FORT_ESTATE_BDS
-    const int *tfr_lo     = tforces.loVect();
-    const int *tfr_hi     = tforces.hiVect();
-    const int *divu_lo    = divu.loVect();
-    const int *divu_hi    = divu.hiVect();
     const int *ww_lo      = work.loVect();
     const int *ww_hi      = work.hiVect();
     const Real *s_dat     = S.dataPtr(Scomp);
@@ -808,6 +804,38 @@ Godunov::edge_states_bds( const Box &grd, const Real *dx, Real dt,
                     &use_forces_in_trans, &iconserv);
 #endif
 }
+
+//
+// Compute upwinded FC velocities by extrapolating CC values in space and time
+void
+Godunov::ExtrapVelToFaces (const Box&  box,
+                           const Real* dx,
+                           Real        dt,
+                           FArrayBox&  umac,
+                           const int*  ubc,
+                           FArrayBox&  vmac,
+                           const int*  vbc, 
+#if (BL_SPACEDIM == 3)
+                           FArrayBox&  wmac,
+                           const int*  wbc, 
+#endif
+                           FArrayBox&  U,
+                           FArrayBox&  tforces)
+{
+  compute_umac(box.loVect(),box.hiVect(),
+               D_DECL(BL_TO_FORTRAN_N_ANYD(U,0),
+                      BL_TO_FORTRAN_N_ANYD(U,1),
+                      BL_TO_FORTRAN_N_ANYD(U,2)),
+               D_DECL(ubc,vbc,wbc),
+               D_DECL(BL_TO_FORTRAN_N_ANYD(tforces,0),
+                      BL_TO_FORTRAN_N_ANYD(tforces,1),
+                      BL_TO_FORTRAN_N_ANYD(tforces,2)),
+               D_DECL(BL_TO_FORTRAN_ANYD(umac),
+                      BL_TO_FORTRAN_ANYD(vmac),
+                      BL_TO_FORTRAN_ANYD(wmac)),
+               &dt, dx, &use_forces_in_trans, &ppm_type);
+}
+
 
 //
 // Compute the edge states for The Mac projection.

@@ -4,7 +4,7 @@
 
 #ifndef BL_LANG_FORT
 
-#include <AMReX_ArrayLim.H>
+#include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C"
@@ -171,6 +171,30 @@ extern "C"
 		    amrex::Real* dt, const amrex::Real* dx, int* fort_ind, 
 		    int* use_forces_in_trans, int* iconserv);
    
+   void compute_umac(const int* lo, const int* hi,
+                     amrex::Real* u_dat, const int* u_lo, const int* u_hi,
+                     amrex::Real* v_dat, const int* v_lo, const int* v_hi,
+#if (BL_SPACEDIM == 3)
+                     amrex::Real* w_dat, const int* w_lo, const int* w_hi,
+#endif
+                     const int* ubc,
+                     const int* vbc,
+#if (BL_SPACEDIM == 3)
+                     const int* wbc,
+#endif
+                     const amrex::Real* tfx_dat, const int* tfx_lo, const int* tfx_hi,
+                     const amrex::Real* tfy_dat, const int* tfy_lo, const int* tfy_hi,
+#if (BL_SPACEDIM == 3)
+                     const amrex::Real* tfz_dat, const int* tfz_lo, const int* tfz_hi,
+#endif
+                     amrex::Real*       umac_dat, const int* umac_lo, const int* umac_hi,
+                     amrex::Real*       vmac_dat, const int* vmac_lo, const int* vmac_hi,
+#if (BL_SPACEDIM == 3)
+                     amrex::Real*       wmac_dat, const int* wmac_lo, const int* wmac_hi,
+#endif
+                     const amrex::Real* dt, const amrex::Real* dx,
+                     int* use_forces_in_trans, int* ppm_type);
+
    void adv_forcing(const amrex::Real* aofs_dat, ARLIM_P(a_lo), ARLIM_P(a_hi),
 
 			 const amrex::Real* xflux_dat, ARLIM_P(xflux_lo),ARLIM_P(xflux_hi),

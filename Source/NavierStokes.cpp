@@ -192,10 +192,10 @@ NavierStokes::initData ()
     {
         const Real dt       = 1.0;
         const Real dtin     = -1.0; // Dummy value denotes initialization.
-        const Real cur_time = state[Divu_Type].curTime();
+        const Real curTime = state[Divu_Type].curTime();
         MultiFab&  Divu_new = get_new_data(Divu_Type);
 
-        state[State_Type].setTimeLevel(cur_time,dt,dt);
+        state[State_Type].setTimeLevel(curTime,dt,dt);
 
         calc_divu(cur_time,dtin,Divu_new);
 
@@ -449,7 +449,6 @@ NavierStokes::predict_velocity (Real  dt,
      
      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
      {
-       const int i = U_mfi.index();
        Box bx=U_mfi.tilebox();
        FArrayBox& Ufab = Umf[U_mfi];
 
@@ -1016,8 +1015,12 @@ NavierStokes::sum_integrated_quantities ()
     // Real trac = 0.0;
     Real energy = 0.0;
     Real mgvort = 0.0;
+#if (BL_SPACEDIM==3)
     Real udotlapu = 0.0;
+#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     Real forcing = 0.0;
+#endif
+#endif
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -1240,14 +1243,14 @@ NavierStokes::writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string Level = amrex::Concatenate("Level_", level, 1);
+    std::string LevelStr = amrex::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
     std::string FullPath = dir;
     if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
         FullPath += '/';
-    FullPath += Level;
+    FullPath += LevelStr;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -1277,7 +1280,7 @@ NavierStokes::writePlotFile (const std::string& dir,
         //
         if (n_data_items > 0)
         {
-            std::string PathNameInHeader = Level;
+            std::string PathNameInHeader = LevelStr;
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }
@@ -1716,9 +1719,9 @@ NavierStokes::mac_sync ()
             SyncInterp(Ssync,level,sync_incr,lev,ratio,0,0,
                        numscal,1,mult,sync_bc.dataPtr());
 
-            MultiFab& S_new = fine_lev.get_new_data(State_Type);
-            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-                S_new[mfi].plus(sync_incr[mfi],fine_grids[mfi.index()],0,Density,numscal);
+            MultiFab& S_new_flev = fine_lev.get_new_data(State_Type);
+            for (MFIter mfi(S_new_flev); mfi.isValid(); ++mfi)
+                S_new_flev[mfi].plus(sync_incr[mfi],fine_grids[mfi.index()],0,Density,numscal);
 
             fine_lev.make_rho_curr_time();
             fine_lev.incrRhoAvg(sync_incr,Density-BL_SPACEDIM,1.0);

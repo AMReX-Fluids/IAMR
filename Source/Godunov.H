@@ -27,6 +27,20 @@ public:      // public access functions
     // destruct the advection object
     ~Godunov();
 
+    void ExtrapVelToFaces (const amrex::Box&  box,
+                           const amrex_real*  dx,
+                           amrex_real         dt,
+                           amrex::FArrayBox&  umac,
+                           const int*         ubc,
+                           amrex::FArrayBox&  vmac,
+                           const int*         vbc, 
+#if (BL_SPACEDIM == 3)
+                           amrex::FArrayBox&  wmac,
+                           const int*         wbc, 
+#endif
+                           amrex::FArrayBox&  U,
+                           amrex::FArrayBox&  tforces);
+
     // set up the Godunov amrex::Box
     void BuildWorkSpace (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt);
 

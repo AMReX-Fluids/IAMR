@@ -1246,7 +1246,6 @@ NavierStokesBase::estTimeStep ()
 
     for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
-        const int i = Rho_mfi.index();
 	Box bx=Rho_mfi.tilebox();
         //
         // Get the velocity forcing.  For some reason no viscous forcing.

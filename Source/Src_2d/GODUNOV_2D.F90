@@ -34,7 +34,7 @@ module godunov_2d_module
 contains
 
   subroutine compute_umac(lo,hi,&
-       u,u_lo,u_hi,          v,v_lo,v_hi,ubc,vbc,&
+       u,u_lo,u_hi,          v,v_lo,v_hi, ubc,vbc,&
        tfx,tfx_lo,tfx_hi,    tfy,tfy_lo,tfy_hi,&
        umac,umac_lo,umac_hi, vmac,vmac_lo,vmac_hi,&
        dt, dx, use_forces_in_trans, ppm_type)  bind(C,name="compute_umac")
@@ -130,9 +130,9 @@ contains
 
     ! estate fab arguments: 
     ! s              cc to predict from
-    ! tf             total cc forces
+    ! tf             cc forcing
     ! u,v            cc x,y velocity (used to trace to face)
-    ! xlo, xhi      (lo/hi wrt face) ec, traced from cc (using u,sx), xlo is "upwinded" (w/uad) at exit
+    ! xlo, xhi      (lo/hi wrt face) fc, traced from cc (using u,sx), xlo is "upwinded" (w/uad) at exit
     ! sx,sy          cc slope of s
     ! uad,vad        fc advection vel, used to resolve transverse terms
     ! stxlo,stxhi   (cc idx) edge state predicted from s using u,sx & transvere derivatives using (x,y)lo
@@ -141,6 +141,8 @@ contains
     ! Imx, Ipx       PPM version of extrap terms from cc to fc (unused if ppm_type<=0)
     ! sedgex         Interpolated fc state using s (unused if ppm_type<=0)
     ! sp,sm          limited sedgex (unused if ppm_type<=0)
+    !
+    ! Here, we are using estate to compute velocities, so s->u,v, xstate->umac, uedge (unused, pass mac as dummy)
 
     ! get velocity on x-face, predict from cc u
     call estate_msd(u,u_lo,u_hi, tfx,tfx_lo,tfx_hi,&
