@@ -53,7 +53,7 @@ contains
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2))
 
 
-    integer, dimension(2) :: wklo,wkhi,ublo,ubhi,vblo,vbhi,&
+    integer, dimension(2) :: wklo,wkhi,uwlo,uwhi,vwlo,vwhi,&
          slxscr_lo,slxscr_hi,slyscr_lo,slyscr_hi,eblo,ebxhi,ebyhi,g2lo,g2hi
     real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx,stxlo,stxhi,uad,slxscr
     real(rt), dimension(:,:), pointer, contiguous :: ylo,yhi,sy,stylo,styhi,vad,slyscr
@@ -93,14 +93,14 @@ contains
     call amrex_allocate(styhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
 
 
-    ublo = wklo
-    ubhi = wkhi
-    ubhi(1) = wkhi(1) + 1
-    vblo = wklo
-    vbhi = wkhi
-    vbhi(2) = vbhi(2) + 1
-    call amrex_allocate(uad,ublo(1),ubhi(1),ublo(2),ubhi(2))
-    call amrex_allocate(vad,vblo(1),vbhi(1),vblo(2),vbhi(2))
+    uwlo = wklo
+    uwhi = wkhi
+    uwhi(1) = wkhi(1) + 1
+    vwlo = wklo
+    vwhi = wkhi
+    vwhi(2) = vwhi(2) + 1
+    call amrex_allocate(uad,uwlo(1),uwhi(1),uwlo(2),uwhi(2))
+    call amrex_allocate(vad,vwlo(1),vwhi(1),vwlo(2),vwhi(2))
 
     slxscr_lo = g2lo
     slxscr_hi = g2hi
@@ -144,10 +144,10 @@ contains
 
     ! get transverse velocities, (uad,vad)
     call transvel(lo, hi,&
-         u,u_lo,u_hi, uad,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi,&
+         u,u_lo,u_hi, uad,uwlo,uwhi, xhi,wklo,wkhi, sx,wklo,wkhi,&
          ubc, slxscr,slxscr_lo,slxscr_hi, Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
 
-         v,v_lo,v_hi, vad,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi,&
+         v,v_lo,v_hi, vad,vwlo,vwhi, yhi,wklo,wkhi, sy,wklo,wkhi,&
          vbc, slyscr,slyscr_lo,slyscr_hi, Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
 
          dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi, tfx,tfxlo,tfxhi, tfy,tfylo,tfyhi,&
@@ -170,29 +170,29 @@ contains
 
     ! get velocity on x-face, predict from cc u
     call estate(u,u_lo,u_hi, tfx,tfx_lo,tfx_hi,&
-                u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,ublo,ubhi,&
+                u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
                 slxscr,slxscr_lo,slxscr_hi, stxlo,wklo,wkhi, stxhi,wklo,wkhi,&
                 umac,umac_lo,umac_hi, umac,umac_lo,umac_hi, sedgex,eblo,ebxhi,&
 
-                v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vblo,vbhi,&
+                v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
                 slyscr,slyscr_lo,slyscr_hi, stylo,wklo,wkhi, styhi,wklo,wkhi,&
                 vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi, sedgey,eblo,ebyhi,&
 
                 sm,wklo,wkhi, sp,wklo,wkhi, ubc, lo, hi, dt, dx,&
-                fort_ind, velpred, use_forces_in_trans, ppm_typ)
+                XVEL, velpred, use_forces_in_trans, ppm_typ)
 
     ! get velocity on y-face, predict from cc v
     call estate(v,v_lo,v_hi, tfy,tfy_lo,tfy_hi,&
-                u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,ublo,ubhi,&
+                u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
                 slxscr,slxscr_lo,slxscr_hi, stxlo,wklo,wkhi, stxhi,wklo,wkhi,&
                 umac,umac_lo,umac_hi, umac,umac_lo,umac_hi, sedgex,eblo,ebxhi,&
 
-                v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vblo,vbhi,&
+                v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
                 slyscr,slyscr_lo,slyscr_hi, stylo,wklo,wkhi, styhi,wklo,wkhi,&
                 vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi, sedgey,eblo,ebyhi,&
 
                 sm,wklo,wkhi, sp,wklo,wkhi, ubc, lo, hi, dt, dx,&
-                fort_ind, velpred, use_forces_in_trans, ppm_typ)
+                YVEL, velpred, use_forces_in_trans, ppm_typ)
 
 
     call amrex_deallocate(xlo)
