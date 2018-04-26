@@ -39,24 +39,26 @@ contains
        umac,umac_lo,umac_hi, vmac,vmac_lo,vmac_hi,&
        dt, dx, use_forces_in_trans, ppm_type)  bind(C,name="compute_umac")
 
+    use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
+
     implicit none
     integer, intent(in) ::  ubc(SDIM,2),vbc(SDIM,2), use_forces_in_trans, ppm_type
     integer, dimension(2), intent(in) :: lo,hi,u_lo,u_hi,v_lo,v_hi,&
          tfx_lo,tfx_hi,tfy_lo,tfy_hi,umac_lo,umac_hi,vmac_lo,vmac_hi
 
-    real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
-    real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
+    real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2)) ! gets floored
+    real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
     real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
 
-    real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
-    real(rt), intent(in) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2))
+    real(rt), intent(inout) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2)) ! gets floored
+    real(rt), intent(inout) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2))
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2))
-
+    real(rt), intent(in) :: dt, dx(SDIM)
 
     integer, dimension(2) :: wklo,wkhi,uwlo,uwhi,vwlo,vwhi,&
-         slxscr_lo,slxscr_hi,slyscr_lo,slyscr_hi,eblo,ebxhi,ebyhi,g2lo,g2hi
-    real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx,stxlo,stxhi,uad,slxscr
-    real(rt), dimension(:,:), pointer, contiguous :: ylo,yhi,sy,stylo,styhi,vad,slyscr
+         slxscr_lo,slxscr_hi,slyscr_lo,slyscr_hi,eblo,ebhi,ebxhi,ebyhi,g2lo,g2hi
+    real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx,uad,slxscr
+    real(rt), dimension(:,:), pointer, contiguous :: ylo,yhi,sy,vad,slyscr
     real(rt), dimension(:,:), pointer, contiguous :: Imx,Ipx,sedgex
     real(rt), dimension(:,:), pointer, contiguous :: Imy,Ipy,sedgey
     real(rt), dimension(:,:), pointer, contiguous :: sm,sp,dsvl
@@ -83,14 +85,9 @@ contains
     call amrex_allocate(xlo,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(xhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(sx,wklo(1),wkhi(1),wklo(2),wkhi(2))
-    call amrex_allocate(stxlo,wklo(1),wkhi(1),wklo(2),wkhi(2))
-    call amrex_allocate(stxhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
-
     call amrex_allocate(ylo,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(yhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(sy,wklo(1),wkhi(1),wklo(2),wkhi(2))
-    call amrex_allocate(stylo,wklo(1),wkhi(1),wklo(2),wkhi(2))
-    call amrex_allocate(styhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
 
 
     uwlo = wklo
@@ -143,15 +140,15 @@ contains
     endif
 
     ! get transverse velocities, (uad,vad)
-    call transvel(lo, hi,&
+    call transvel_msd(lo, hi,&
          u,u_lo,u_hi, uad,uwlo,uwhi, xhi,wklo,wkhi, sx,wklo,wkhi,&
          ubc, slxscr,slxscr_lo,slxscr_hi, Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
 
          v,v_lo,v_hi, vad,vwlo,vwhi, yhi,wklo,wkhi, sy,wklo,wkhi,&
          vbc, slyscr,slyscr_lo,slyscr_hi, Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
 
-         dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi, tfx,tfxlo,tfxhi, tfy,tfylo,tfyhi,&
-         dt, dx, use_minion, ppm_type)
+         dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi, tfx,tfx_lo,tfx_hi, tfy,tfy_lo,tfy_hi,&
+         dt, dx, use_forces_in_trans, ppm_type)
 
     ! estate fab arguments: 
     ! s              cc to predict from
@@ -169,44 +166,39 @@ contains
     ! sp,sm          limited sedgex (unused if ppm_type<=0)
 
     ! get velocity on x-face, predict from cc u
-    call estate(u,u_lo,u_hi, tfx,tfx_lo,tfx_hi,&
-                u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
-                slxscr,slxscr_lo,slxscr_hi, stxlo,wklo,wkhi, stxhi,wklo,wkhi,&
-                umac,umac_lo,umac_hi, umac,umac_lo,umac_hi, sedgex,eblo,ebxhi,&
-
-                v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
-                slyscr,slyscr_lo,slyscr_hi, stylo,wklo,wkhi, styhi,wklo,wkhi,&
-                vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi, sedgey,eblo,ebyhi,&
-
-                sm,wklo,wkhi, sp,wklo,wkhi, ubc, lo, hi, dt, dx,&
-                XVEL, velpred, use_forces_in_trans, ppm_typ)
+    call estate_msd(u,u_lo,u_hi, tfx,tfx_lo,tfx_hi,&
+         u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
+         slxscr,slxscr_lo,slxscr_hi,&
+         umac,umac_lo,umac_hi, umac,umac_lo,umac_hi,&
+         Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
+         v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
+         slyscr,slyscr_lo,slyscr_hi,&
+         vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi,&
+         Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
+         dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi,&
+         ubc,lo,hi,dt,dx,XVEL,velpred,use_forces_in_trans,ppm_type)
 
     ! get velocity on y-face, predict from cc v
-    call estate(v,v_lo,v_hi, tfy,tfy_lo,tfy_hi,&
-                u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
-                slxscr,slxscr_lo,slxscr_hi, stxlo,wklo,wkhi, stxhi,wklo,wkhi,&
-                umac,umac_lo,umac_hi, umac,umac_lo,umac_hi, sedgex,eblo,ebxhi,&
-
-                v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
-                slyscr,slyscr_lo,slyscr_hi, stylo,wklo,wkhi, styhi,wklo,wkhi,&
-                vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi, sedgey,eblo,ebyhi,&
-
-                sm,wklo,wkhi, sp,wklo,wkhi, ubc, lo, hi, dt, dx,&
-                YVEL, velpred, use_forces_in_trans, ppm_typ)
-
+    call estate_msd(v,v_lo,v_hi, tfy,tfy_lo,tfy_hi,&
+         u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
+         slxscr,slxscr_lo,slxscr_hi,&
+         umac,umac_lo,umac_hi, umac,umac_lo,umac_hi,&
+         Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
+         v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
+         slyscr,slyscr_lo,slyscr_hi,&
+         vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi,&
+         Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
+         dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi,&
+         vbc,lo,hi,dt,dx,YVEL,velpred,use_forces_in_trans,ppm_type)
 
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
     call amrex_deallocate(slxscr)
-    call amrex_deallocate(stxlo)
-    call amrex_deallocate(stxhi)
     call amrex_deallocate(ylo)
     call amrex_deallocate(yhi)
     call amrex_deallocate(sy)
     call amrex_deallocate(slyscr)
-    call amrex_deallocate(stylo)
-    call amrex_deallocate(styhi)
     call amrex_deallocate(dsvl)
     if (ppm_type .gt. 0) then
        call amrex_deallocate(Imx)
@@ -476,54 +468,54 @@ contains
 
     end subroutine fort_test_umac_rho
 
-      subroutine transvel(lo,hi,&
+      subroutine transvel_msd(lo,hi,&
            u,u_lo,u_hi, ulo,ulo_lo,ulo_hi, uhi,uhi_lo,uhi_hi, sx,sx_lo,sx_hi,&
            ubc, slxscr,slxscr_lo,slxscr_hi, Imx,Imx_lo,Imx_hi, Ipx,Ipx_lo,Ipx_hi,&
            sedgex,sedgex_lo,sedgex_hi,&
            v,v_lo,v_hi, vlo,vlo_lo,vlo_hi, vhi,vhi_lo,vhi_hi, sy,sy_lo,sy_hi,&
            vbc, slyscr,slyscr_lo,slyscr_hi, Imy,Imy_lo,Imy_hi, Ipy,Ipy_lo,Ipy_hi,&
            sedgey,sedgey_lo,sedgey_hi,&
-           dsvl,dsvl_lo,dsvl_hi, sm,sm_lo,sm_hi, sp,sp_lo,sp_hi, tfx,tfxlo,tfxhi, tfy,tfylo,tfyhi,&
-           dt, dx, use_minion, ppm_type) bind(C,name="transvel")
+           dsvl,dsvl_lo,dsvl_hi, sm,sm_lo,sm_hi, sp,sp_lo,sp_hi, tfx,tfx_lo,tfx_hi, tfy,tfy_lo,tfy_hi,&
+           dt, dx, use_minion, ppm_type)
 ! c
 ! c     This subroutine computes the advective velocities used in
 ! c     the transverse derivatives of the Godunov box
 ! c
       implicit none
       integer, intent(in) ::  ubc(SDIM,2),vbc(SDIM,2), use_minion, ppm_type
-      integer, dimension(2), intent(in) :: &
+      integer, dimension(2), intent(in) :: lo,hi,&
            u_lo,u_hi,ulo_lo,ulo_hi,uhi_lo,uhi_hi,sx_lo,sx_hi,&
            slxscr_lo,slxscr_hi,Imx_lo,Imx_hi,Ipx_lo,Ipx_hi,sedgex_lo,sedgex_hi,&
            v_lo,v_hi,vlo_lo,vlo_hi,vhi_lo,vhi_hi,sy_lo,sy_hi,&
            slyscr_lo,slyscr_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
-           dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
+           dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,tfx_lo,tfx_hi,tfy_lo,tfy_hi
 
-      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
-      real(rt), intent(in) :: ulo(ulo_lo(1):ulo_hi(1),ulo_lo(2):ulo_hi(2))
-      real(rt), intent(in) :: uhi(uhi_lo(1):uhi_hi(1),uhi_lo(2):uhi_hi(2))
-      real(rt), intent(in) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
-      real(rt), intent(in) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
-      real(rt), intent(in) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
-      real(rt), intent(in) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2))
-      real(rt), intent(in) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
+      real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2)) ! gets floored!
+      real(rt), intent(inout) :: ulo(ulo_lo(1):ulo_hi(1),ulo_lo(2):ulo_hi(2))
+      real(rt), intent(inout) :: uhi(uhi_lo(1):uhi_hi(1),uhi_lo(2):uhi_hi(2))
+      real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
+      real(rt), intent(inout) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
+      real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
+      real(rt), intent(inout) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2))
+      real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
       real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
 
-      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
-      real(rt), intent(in) :: vlo(vlo_lo(1):vlo_hi(1),vlo_lo(2):vlo_hi(2))
-      real(rt), intent(in) :: vhi(vhi_lo(1):vhi_hi(1),vhi_lo(2):vhi_hi(2))
-      real(rt), intent(in) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
-      real(rt), intent(in) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
-      real(rt), intent(in) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
-      real(rt), intent(in) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2))
-      real(rt), intent(in) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2))
+      real(rt), intent(inout) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
+      real(rt), intent(inout) :: vlo(vlo_lo(1):vlo_hi(1),vlo_lo(2):vlo_hi(2))
+      real(rt), intent(inout) :: vhi(vhi_lo(1):vhi_hi(1),vhi_lo(2):vhi_hi(2))
+      real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
+      real(rt), intent(inout) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
+      real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
+      real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2))
+      real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2))
       real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2))
 
-      real(rt), intent(in) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2))
-      real(rt), intent(in) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2))
-      real(rt), intent(in) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2))
+      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2))
 
       integer :: i,j, imin,jmin,imax,jmax
-      real(rt) :: hx, hy, dt, dth, dthx, dthy, dx(DIM), uad, vad
+      real(rt) :: hx, hy, dt, dth, dthx, dthy, dx(SDIM), uad, vad
       real(rt) :: eps,eps_for_bc
       logical :: ltm
       parameter( eps        = 1.0D-6 )
@@ -545,15 +537,2101 @@ contains
 ! c     --------------------------------------------------------------
 ! c
       if (ppm_type .gt. 0) then
-         call ppm(u,u_lo,u_hi,u,u_lo,u_hi,v,v_lo,v_hi,&
+         call ppm_msd(u,u_lo,u_hi,u,u_lo,u_hi,v,v_lo,v_hi,&
              Ipx,Ipx_lo,Ipx_hi,Imx,Imx_lo,Imx_hi,Ipy,Ipy_lo,Ipy_hi,Imy,Imy_lo,Imy_hi,&
              sm,sm_lo,sm_hi,sp,sp_lo,sp_hi,dsvl,dsvl_lo,dsvl_hi,&
              sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,ubc,&
              eps_for_bc,ppm_type)
+      else
+         call slopes_msd(u,u_lo,u_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,lo,hi,&
+              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,ubc)
+      end if
+         
+      if (ppm_type .gt. 0) then
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               ulo(i,j) = Ipx(i-1,j)
+               uhi(i,j) = Imx(i  ,j)
+            end do
+         end do
+      else
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               ulo(i,j) = u(i-1,j) + (half  - dthx*u(i-1,j))*sx(i-1,j)
+               uhi(i,j) = u(i,j)   + (-half - dthx*u(i,  j))*sx(i,j)
+            end do
+         end do
+      end if
+
+      if(use_minion.eq.1)then
+        do i = imin, imax+1
+          do j = jmin-1,jmax+1
+            ulo(i,j) = ulo(i,j) + dth*tfx(i-1,j)
+            uhi(i,j) = uhi(i,j) + dth*tfx(i,  j)
+          end do
+        end do
+      end if
+
+      call trans_xbc_msd(u,u_lo,u_hi,&
+          ulo,ulo_lo,ulo_hi,uhi,uhi_lo,uhi_hi,ulo,ulo_lo,ulo_hi,lo,hi,XVEL,ubc,eps_for_bc)
+
+      do i = imin,imax+1
+         do j = jmin-1,jmax+1
+            uad = merge(ulo(i,j),uhi(i,j),(ulo(i,j)+uhi(i,j)) .ge. 0.0d0)
+            ltm = ulo(i,j) .le. zero  .and.  uhi(i,j) .ge. zero
+            ltm = ltm .or. (abs(ulo(i,j)+uhi(i,j)) .lt. eps)
+            ulo(i,j) = merge(zero,uad,ltm)
+         end do
+      end do
+! c
+! c     compute the y transverse velocities
+! c
+      if (ppm_type .gt. 0) then
+         call ppm_msd(v,v_lo,v_hi,u,u_lo,u_hi,v,v_lo,v_hi,&
+             Ipx,Ipx_lo,Ipx_hi,Imx,Imx_lo,Imx_hi,Ipy,Ipy_lo,Ipy_hi,Imy,Imy_lo,Imy_hi,&
+             sm,sm_lo,sm_hi,sp,sp_lo,sp_hi,dsvl,dsvl_lo,dsvl_hi,&
+             sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,vbc,&
+             eps_for_bc,ppm_type)
+      else
+         call slopes_msd(v,v_lo,v_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,lo,hi,&
+              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,vbc)
+      end if
+
+      if (ppm_type .gt. 0) then
+         do i = imin-1,imax+1
+            do j = jmin,jmax+1
+               vlo(i,j) = Ipy(i,j-1)
+               vhi(i,j) = Imy(i,j  )
+            end do
+         end do
+      else
+         do i = imin-1,imax+1
+            do j = jmin,jmax+1
+               vlo(i,j) = v(i,j-1) + (half  - dthy*v(i,j-1))*sy(i,j-1)
+               vhi(i,j) = v(i,j)   + (-half - dthy*v(i,j  ))*sy(i,j)
+            end do
+         end do
+      end if
+
+      if(use_minion.eq.1)then
+         do i = imin-1, imax+1
+            do j = jmin,jmax+1
+               vlo(i,j) = vlo(i,j) + dth*tfy(i,j-1)
+               vhi(i,j) = vhi(i,j) + dth*tfy(i,j)
+            end do
+         end do
+      end if
+
+      call trans_ybc_msd(v,v_lo,v_hi,&
+          vlo,vlo_lo,vlo_hi,vhi,vhi_lo,vhi_hi,vlo,vlo_lo,vlo_hi,lo,hi,YVEL,vbc,eps_for_bc)
+
+      do i = imin-1,imax+1
+         do j = jmin,jmax+1
+            vad = merge(vlo(i,j),vhi(i,j),(vlo(i,j)+vhi(i,j)) .ge. 0.0d0)
+            ltm = vlo(i,j) .le. zero  .and.  vhi(i,j) .ge. zero
+            ltm = ltm .or. (abs(vlo(i,j)+vhi(i,j)) .lt. eps)
+            vlo(i,j) = merge(zero,vad,ltm)
+         end do
+      end do
+
+    end subroutine transvel_msd
+
+      subroutine estate_msd(s,s_lo,s_hi, tf,tf_lo,tf_hi,&
+          u,u_lo,u_hi, xlo,xlo_lo,xlo_hi, xhi,xhi_lo,xhi_hi, sx,sx_lo,sx_hi, uad,uad_lo,uad_hi,&
+          slxscr,slxscr_lo,slxscr_hi,&
+          uedge,uedge_lo,uedge_hi, xstate,xstate_lo,xstate_hi,&
+          Imx,Imx_lo,Imx_hi, Ipx,Ipx_lo,Ipx_hi, sedgex,sedgex_lo,sedgex_hi,&
+          v,v_lo,v_hi, ylo,ylo_lo,ylo_hi, yhi,yhi_lo,yhi_hi, sy,sy_lo,sy_hi, vad,vad_lo,vad_hi,&
+          slyscr,slyscr_lo,slyscr_hi,&
+          vedge,vedge_lo,vedge_hi, ystate,ystate_lo,ystate_hi,&
+          Imy,Imy_lo,Imy_hi, Ipy,Ipy_lo,Ipy_hi, sedgey,sedgey_lo,sedgey_hi,&
+          dsvl,dsvl_lo,dsvl_hi, sm,sm_lo,sm_hi, sp,sp_lo,sp_hi,&
+          bc,lo,hi,dt,dx,n,velpred, use_minion, ppm_type)
+
+      implicit none
+
+      integer, intent(in) :: velpred, use_minion, ppm_type, bc(SDIM,2), n
+      real(rt), intent(in) :: dt, dx(SDIM)
+
+      integer, dimension(2), intent(in) :: s_lo,s_hi,tf_lo,tf_hi,&
+           u_lo,u_hi,xlo_lo,xlo_hi,xhi_lo,xhi_hi,sx_lo,sx_hi,&
+           uad_lo,uad_hi,slxscr_lo,slxscr_hi,&
+           uedge_lo,uedge_hi,xstate_lo,xstate_hi,Imx_lo,Imx_hi,Ipx_lo,Ipx_hi,sedgex_lo,sedgex_hi,&
+           v_lo,v_hi,ylo_lo,ylo_hi,yhi_lo,yhi_hi,sy_lo,sy_hi,&
+           vad_lo,vad_hi,slyscr_lo,slyscr_hi,&
+           vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
+           dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
+
+      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2)) ! floored!
+      real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2))
+      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
+      real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
+      real(rt), intent(inout) :: xhi(xhi_lo(1):xhi_hi(1),xhi_lo(2):xhi_hi(2))
+      real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
+      real(rt), intent(in) :: uad(uad_lo(1):uad_hi(1),uad_lo(2):uad_hi(2))
+      real(rt), intent(inout) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
+      real(rt), intent(in) :: uedge(uedge_lo(1):uedge_hi(1),uedge_lo(2):uedge_hi(2))
+      real(rt), intent(inout) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2))
+      real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
+      real(rt), intent(inout) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2))
+      real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
+      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
+      real(rt), intent(inout) :: ylo(ylo_lo(1):ylo_hi(1),ylo_lo(2):ylo_hi(2))
+      real(rt), intent(inout) :: yhi(yhi_lo(1):yhi_hi(1),yhi_lo(2):yhi_hi(2))
+      real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
+      real(rt), intent(in) :: vad(vad_lo(1):vad_hi(1),vad_lo(2):vad_hi(2))
+      real(rt), intent(inout) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
+      real(rt), intent(in) :: vedge(vedge_lo(1):vedge_hi(1),vedge_lo(2):vedge_hi(2))
+      real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2))
+      real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
+      real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2))
+      real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2))
+      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2))
+
+      real(rt) :: stxlo(lo(1)-2:hi(1)+2)
+      real(rt) :: stxhi(lo(1)-2:hi(1)+2)
+      real(rt) :: stylo(lo(2)-2:hi(2)+2)
+      real(rt) :: styhi(lo(2)-2:hi(2)+2)
+      real(rt) :: hx, hy, dth, dthx, dthy
+      real(rt) :: tr,stx,sty,fu,fv,eps,eps_for_bc
+      integer  :: i,j,imin,jmin,imax,jmax, place_to_break
+      logical  :: ltx,lty
+      parameter( eps        = 1.0D-6 )
+      parameter( eps_for_bc = 1.0D-10 )
+
+      dth  = half*dt
+      dthx = half*dt/dx(1)
+      dthy = half*dt/dx(2)
+      hx = dx(1)
+      hy = dx(2)
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+! c     
+! c     compute the slopes
+! c
+! c     trace the state to the cell edges
+! c
+      if (ppm_type .gt. 0) then
+         call ppm_msd(s,s_lo,s_hi,u,u_lo,u_hi,v,v_lo,v_hi,&
+             Ipx,Ipx_lo,Ipx_hi,Imx,Imx_lo,Imx_hi,Ipy,Ipy_lo,Ipy_hi,Imy,Imy_lo,Imy_hi,&
+             sm,sm_lo,sm_hi,sp,sp_lo,sp_hi,dsvl,dsvl_lo,dsvl_hi,&
+             sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,bc,&
+             eps_for_bc,ppm_type)
+      else
+         call slopes_msd(s,s_lo,s_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,lo,hi,&
+              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,bc)
+      end if
+!c
+!c     trace the state to the cell edges
+!c
+      if (ppm_type .gt. 0) then
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               xlo(i,j) = Ipx(i-1,j)
+               xhi(i,j) = Imx(i  ,j)
+            end do
+         end do
+      else
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               xlo(i,j) = s(i-1,j) + (half - dthx*u(i-1,j))*sx(i-1,j)
+               xhi(i,j) = s(i  ,j) - (half + dthx*u(i  ,j))*sx(i  ,j)
+            end do
+         end do
+      end if
+
+      if(use_minion.eq.1)then
+         do i = imin, imax+1
+            do j = jmin-1,jmax+1
+               xlo(i,j) = xlo(i,j) + dth*tf(i-1,j)
+               xhi(i,j) = xhi(i,j) + dth*tf(i,  j)
+            end do
+         end do
+      end if
+
+      call trans_xbc_msd(s,s_lo,s_hi,&
+          xlo,xlo_lo,xlo_hi,xhi,xhi_lo,xhi_hi,uad,uad_lo,uad_hi,lo,hi,n,bc,eps_for_bc)
+
+      do j = jmin-1,jmax+1
+         do i = imin, imax+1
+            fu  = merge(zero,one,abs(uad(i,j)).lt.eps)
+            stx = merge(xlo(i,j),xhi(i,j),uad(i,j) .ge. 0.0d0)
+            xlo(i,j) = fu*stx + (one - fu)*half*(xhi(i,j)+xlo(i,j))
+         end do
+      end do
+
+      if (ppm_type .gt. 0) then
+         do j = jmin,jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j) = Ipy(i,j-1)
+               yhi(i,j) = Ipy(i,j  )
+            end do
+         end do
+      else
+         do j = jmin,jmax+1
+            do i = imin-1,imax+1
+               ylo(i,j) = s(i,j-1) + (half - dthy*v(i,j-1))*sy(i,j-1)
+               yhi(i,j) = s(i,j  ) - (half + dthy*v(i,j  ))*sy(i,j  )
+            end do
+         end do
+      end if
+
+      if(use_minion.eq.1)then
+         do i = imin-1, imax+1
+            do j = jmin,jmax+1
+               ylo(i,j) = ylo(i,j) + dth*tf(i,j-1)
+               yhi(i,j) = yhi(i,j) + dth*tf(i,j)
+            end do
+         end do
+      end if
+
+      call trans_ybc_msd(s,s_lo,s_hi,&
+          ylo,ylo_lo,ylo_hi,yhi,yhi_lo,yhi_hi,vad,vad_lo,vad_hi,lo,hi,n,bc,eps_for_bc)
+
+      do j = jmin,jmax+1
+         do i = imin-1,imax+1
+            fv  = merge(zero,one,abs(vad(i,j)).lt.eps)
+            sty = merge(ylo(i,j),yhi(i,j),vad(i,j) .ge. 0.0d0)
+            ylo(i,j) = fv*sty + (one - fv)*half*(yhi(i,j)+ylo(i,j))
+         end do
+      end do
+!c
+!c     compute the xedge state
+!c
+      if ((velpred.ne.1) .or. (n.eq.XVEL)) then
+         do 100 j = jmin,jmax
+            do i = imin-1,imax+1
+               tr = half*&
+                   (vad(i,j+1)+vad(i,j))*&
+                   (ylo(i,j+1)-ylo(i,j))/hy
+               
+               if (ppm_type .gt. 0) then
+                  stxlo(i+1) = Ipx(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+                  stxhi(i  ) = Imx(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+               else
+                  stxlo(i+1) = s(i,j) + (half-dthx*u(i,j))*sx(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+                  stxhi(i  ) = s(i,j) - (half+dthx*u(i,j))*sx(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+               end if
+            end do
+
+            if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
+               stxhi(imin) = s(imin-1,j)
+               stxlo(imin) = s(imin-1,j)
+            else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).ge.zero) then
+               stxhi(imin) = s(imin-1,j)
+               stxlo(imin) = s(imin-1,j)
+            else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).lt.zero) then
+               stxlo(imin) = stxhi(imin)
+            else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
+               if (n.eq.XVEL) then
+                  if (velpred.eq.1) then
+#ifndef ALLOWXINFLOW
+!c     prevent backflow
+                     stxhi(imin) = MIN(stxhi(imin),zero)
+#endif
+                     stxlo(imin) = stxhi(imin)
+                  else
+                     if (uad(imin,j).ge.zero) then
+#ifndef ALLOWXINFLOW
+!c     prevent backflow
+                        stxhi(imin) = MIN(stxhi(imin),zero)
+#endif
+                        stxlo(imin) = stxhi(imin)
+                     endif
+                  endif
+               else
+                  stxlo(imin) = stxhi(imin)
+               end if
+            else if (bc(1,1).eq.REFLECT_EVEN) then
+               stxlo(imin) = stxhi(imin)
+            else if (bc(1,1).eq.REFLECT_ODD) then
+               stxhi(imin) = zero
+               stxlo(imin) = stxhi(imin)
+            end if
+
+            if (bc(1,2).eq.EXT_DIR .and. velpred.eq.1) then
+               stxlo(imax+1) = s(imax+1,j)
+               stxhi(imax+1) = s(imax+1,j)
+            else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).le.zero) then
+               stxlo(imax+1) = s(imax+1,j)
+               stxhi(imax+1) = s(imax+1,j)
+            else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).gt.zero) then
+               stxhi(imax+1) = stxlo(imax+1) 
+            else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
+               if (n.eq.XVEL) then
+                  if (velpred.eq.1) then
+#ifndef ALLOWXINFLOW
+!c     prevent backflow
+                     stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+#endif
+                     stxhi(imax+1) = stxlo(imax+1)
+                  else
+                     if (uad(imax+1,j).le.zero) then
+#ifndef ALLOWXINFLOW
+!c     prevent backflow
+                        stxlo(imax+1) = MAX(stxlo(imax+1),zero)
+#endif
+                        stxhi(imax+1) = stxlo(imax+1)
+                     endif
+                  endif
+               else
+                  stxhi(imax+1) = stxlo(imax+1)
+               endif
+            else if (bc(1,2).eq.REFLECT_EVEN) then
+               stxhi(imax+1) = stxlo(imax+1)
+            else if (bc(1,2).eq.REFLECT_ODD) then
+               stxlo(imax+1) = zero
+               stxhi(imax+1) = zero
+            end if
+
+            if ( velpred .eq. 1 ) then
+               do i = imin, imax+1
+                  ltx = stxlo(i) .le. zero  .and.  stxhi(i) .ge. zero
+                  ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
+                  stx = merge(stxlo(i),stxhi(i),(stxlo(i)+stxhi(i)) .ge. 0.0d0)
+                  xstate(i,j) = merge(zero,stx,ltx)
+               end do
+            else
+               do i = imin, imax+1
+                  xstate(i,j) = merge(stxlo(i),stxhi(i),uedge(i,j) .ge. 0.0d0)
+                  xstate(i,j) = merge(half*(stxlo(i)+stxhi(i)),xstate(i,j),&
+                      abs(uedge(i,j)).lt.eps)
+               end do
+            end if
+            place_to_break = 1
+100      continue
+         end if
+!c
+!c     compute the yedge states
+!c      
+      if ((velpred.ne.1) .or. (n.eq.YVEL)) then
+         do 200 i = imin, imax
+            do j = jmin-1,jmax+1
+               tr = half*&
+                   (uad(i+1,j)+uad(i,j))*&
+                   (xlo(i+1,j)-xlo(i,j))/hx
+
+               if (ppm_type .gt. 0) then
+                  stylo(j+1)= Ipy(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+                  styhi(j  )= Imy(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+               else
+                  stylo(j+1)= s(i,j) + (half-dthy*v(i,j))*sy(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+                  styhi(j  )= s(i,j) - (half+dthy*v(i,j))*sy(i,j)&
+                      - dth*tr&
+                      + dth*tf(i,j)
+               end if
+            end do
+
+            if (bc(2,1).eq.EXT_DIR .and. velpred .eq. 1) then
+               styhi(jmin) = s(i,jmin-1)
+               stylo(jmin) = s(i,jmin-1)
+            else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).ge.zero) then
+               styhi(jmin) = s(i,jmin-1)
+               stylo(jmin) = s(i,jmin-1)
+            else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).lt.zero) then
+               stylo(jmin) = styhi(jmin)
+            else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
+               if (n.eq.YVEL) then
+                  if (velpred.eq.1) then
+#ifndef ALLOWYINFLOW
+!c     prevent backflow
+                     styhi(jmin) = MIN(styhi(jmin),zero)
+#endif
+                     stylo(jmin) = styhi(jmin)
+                  else
+                     if (vad(i,jmin).ge.zero) then
+#ifndef ALLOWYINFLOW
+!c     prevent backflow
+                        styhi(jmin) = MIN(styhi(jmin),zero)
+#endif
+                        stylo(jmin) = styhi(jmin)
+                     endif
+                  endif
+               else
+                  stylo(jmin) = styhi(jmin)
+               endif
+            else if (bc(2,1).eq.REFLECT_EVEN) then
+               stylo(jmin) = styhi(jmin)
+            else if (bc(2,1).eq.REFLECT_ODD) then
+               styhi(jmin) = zero
+               stylo(jmin) = zero
+            end if
+            
+            if (bc(2,2).eq.EXT_DIR .and. velpred .eq. 1) then
+               stylo(jmax+1) = s(i,jmax+1)
+               styhi(jmax+1) = s(i,jmax+1)
+            else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).le.zero) then
+               stylo(jmax+1) = s(i,jmax+1)
+               styhi(jmax+1) = s(i,jmax+1)
+            else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).gt.zero) then
+               styhi(jmax+1) = stylo(jmax+1)
+            else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
+               if (n.eq.YVEL) then
+                  if (velpred.eq.1) then
+#ifndef ALLOWYINFLOW
+!c     prevent backflow
+                     stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+#endif
+                     styhi(jmax+1) = stylo(jmax+1)
+                  else
+                     if (vad(i,jmax+1).le.zero) then
+#ifndef ALLOWYINFLOW
+!c     prevent backflow
+                        stylo(jmax+1) = MAX(stylo(jmax+1),zero)
+#endif
+                        styhi(jmax+1) = stylo(jmax+1)
+                     endif
+                  endif
+               else
+                  styhi(jmax+1) = stylo(jmax+1)
+               endif
+            else if (bc(2,2).eq.REFLECT_EVEN) then
+               styhi(jmax+1) = stylo(jmax+1)
+            else if (bc(2,2).eq.REFLECT_ODD) then
+               stylo(jmax+1) = zero
+               styhi(jmax+1) = zero
+            end if
+
+            if ( velpred .eq. 1 ) then
+               do j = jmin, jmax+1
+                  lty = stylo(j) .le. zero  .and.  styhi(j) .ge. zero
+                  lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
+                  sty = merge(stylo(j),styhi(j),(stylo(j)+styhi(j)) .ge. 0.0d0)
+                  ystate(i,j)=merge(zero,sty,lty)
+               end do
+            else
+               do j=jmin,jmax+1
+                  ystate(i,j) = merge(stylo(j),styhi(j),vedge(i,j) .ge. 0.0d0)
+                  ystate(i,j) = merge(half*(stylo(j)+styhi(j)),ystate(i,j),&
+                      abs(vedge(i,j)).lt.eps)
+               end do
+            end if
+            place_to_break = 1
+200      continue
+         end if
+       end subroutine estate_msd
+
+      subroutine trans_xbc_msd(&
+          s,s_lo,s_hi,&
+          xlo,xlo_lo,xlo_hi,xhi,xhi_lo,xhi_hi,uad,uad_lo,uad_hi,&
+          lo,hi,n,xbc,eps)
+! c
+! c     This subroutine processes boundary conditions on information
+! c     traced to cell faces in the x direction.  This is used for
+! c     computing velocities and edge states used in calculating
+! c     transverse derivatives
+! c
+      implicit none
+
+      integer, intent(in) :: n,xbc(SDIM,2)
+      integer, dimension(2), intent(in) :: &
+           s_lo,s_hi,xlo_lo,xlo_hi,xhi_lo,xhi_hi,uad_lo,uad_hi,lo,hi
+
+      real(rt), intent(in)    :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
+      real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
+      real(rt), intent(inout) :: xhi(xhi_lo(1):xhi_hi(1),xhi_lo(2):xhi_hi(2))
+      real(rt), intent(in)    :: uad(uad_lo(1):uad_hi(1),uad_lo(2):uad_hi(2))
+      real(rt), intent(in)    ::  eps
+
+      real(rt) ::  stx
+      logical ltest
+      integer j
+      integer imin,jmin,imax,jmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+      if (xbc(1,1).eq.EXT_DIR) then
+         if (n .eq. XVEL) then
+            do j = jmin-1,jmax+1
+              if (uad(imin,j) .ge. zero) then
+                 xhi(imin,j) = s(imin-1,j)
+                 xlo(imin,j) = s(imin-1,j)
+              else 
+                 xlo(imin,j) = xhi(imin,j)
+              end if
+            end do
+         else
+            do j = jmin-1,jmax+1
+               ltest = uad(imin,j).le.eps
+               stx   = merge(xhi(imin,j),s(imin-1,j),ltest)
+               xhi(imin,j) = stx
+               xlo(imin,j) = stx
+            end do
+         end if
+      else if (xbc(1,1).eq.FOEXTRAP.or.xbc(1,1).eq.HOEXTRAP&
+             .or.xbc(1,1).eq.REFLECT_EVEN) then
+         do j = jmin-1,jmax+1
+            xlo(imin,j) = xhi(imin,j)
+         end do
+      else if (xbc(1,1).eq.REFLECT_ODD) then
+         do j = jmin-1,jmax+1
+            xhi(imin,j) = zero
+            xlo(imin,j) = zero
+         end do
+      end if
+
+      if (xbc(1,2).eq.EXT_DIR) then
+         if (n .eq. XVEL) then
+            do j = jmin-1,jmax+1
+              if (uad(imax+1,j) .le. zero) then
+                 xhi(imax+1,j) = s(imax+1,j)
+                 xlo(imax+1,j) = s(imax+1,j)
+               else 
+                 xhi(imax+1,j) = xlo(imax+1,j)
+               end if
+             end do
+         else
+            do j = jmin-1,jmax+1
+               ltest = uad(imax+1,j).ge.-eps
+               stx   = merge(xlo(imax+1,j),s(imax+1,j),ltest)
+               xhi(imax+1,j) = stx
+               xlo(imax+1,j) = stx
+            end do
+         end if
+      else if (xbc(1,2).eq.FOEXTRAP.or.xbc(1,2).eq.HOEXTRAP&
+             .or.xbc(1,2).eq.REFLECT_EVEN) then
+         do j = jmin-1,jmax+1
+            xhi(imax+1,j) = xlo(imax+1,j)
+         end do
+      else if (xbc(1,2).eq.REFLECT_ODD) then
+         do j = jmin-1,jmax+1
+            xhi(imax+1,j) = zero
+            xlo(imax+1,j) = zero
+         end do
+      end if
+
+    end subroutine trans_xbc_msd
+
+      subroutine trans_ybc_msd(&
+          s,s_lo,s_hi,&
+          ylo,ylo_lo,ylo_hi,yhi,yhi_lo,yhi_hi,vad,vad_lo,vad_hi,&
+          lo,hi,n,ybc,eps)
+! c
+! c     This subroutine processes boundary conditions on information
+! c     traced to cell faces in the y direction.  This is used for
+! c     computing velocities and edge states used in calculating
+! c     transverse derivatives
+! c
+      implicit none
+
+      integer, intent(in) :: n,ybc(SDIM,2)
+      integer, dimension(2), intent(in) :: &
+           s_lo,s_hi,ylo_lo,ylo_hi,yhi_lo,yhi_hi,vad_lo,vad_hi,lo,hi
+
+      real(rt), intent(in)    :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
+      real(rt), intent(inout) :: ylo(ylo_lo(1):ylo_hi(1),ylo_lo(2):ylo_hi(2))
+      real(rt), intent(inout) :: yhi(yhi_lo(1):yhi_hi(1),yhi_lo(2):yhi_hi(2))
+      real(rt), intent(in)    :: vad(vad_lo(1):vad_hi(1),vad_lo(2):vad_hi(2))
+      real(rt), intent(in)    ::  eps
+
+      real(rt) :: sty
+      logical ltest
+      integer i
+      integer imin,jmin,imax,jmax
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+      if (ybc(2,1).eq.EXT_DIR) then
+         if (n .eq. YVEL) then
+            do i = imin-1,imax+1
+              if (vad(i,jmin).ge.zero) then
+                 yhi(i,jmin) = s(i,jmin-1)
+                 ylo(i,jmin) = s(i,jmin-1)
+              else
+                 ylo(i,jmin) = yhi(i,jmin)
+              end if
+            end do
+         else
+            do i = imin-1,imax+1
+               ltest = vad(i,jmin).le.eps
+               sty   = merge(yhi(i,jmin),s(i,jmin-1),ltest)
+               yhi(i,jmin) = sty
+               ylo(i,jmin) = sty
+            end do
+         end if
+      else if (ybc(2,1).eq.FOEXTRAP.or.ybc(2,1).eq.HOEXTRAP&
+             .or.ybc(2,1).eq.REFLECT_EVEN) then
+         do i = imin-1,imax+1
+            ylo(i,jmin) = yhi(i,jmin)
+         end do
+      else if (ybc(2,1).eq.REFLECT_ODD) then
+         do i = imin-1,imax+1
+            yhi(i,jmin) = zero
+            ylo(i,jmin) = zero
+         end do
+      end if
+
+      if (ybc(2,2).eq.EXT_DIR) then
+         if (n .eq. YVEL) then
+            do i = imin-1,imax+1
+              if (vad(i,jmax+1).le.zero) then
+                 ylo(i,jmax+1) = s(i,jmax+1)
+                 yhi(i,jmax+1) = s(i,jmax+1)
+              else
+                 yhi(i,jmax+1) = ylo(i,jmax+1)
+              end if
+            end do
+         else
+            do i = imin-1,imax+1
+               ltest = vad(i,jmax+1).ge.-eps
+               sty   = merge(ylo(i,jmax+1),s(i,jmax+1),ltest)
+               yhi(i,jmax+1) = sty
+               ylo(i,jmax+1) = sty
+            end do
+         end if
+      else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP&
+             .or.ybc(2,2).eq.REFLECT_EVEN) then
+         do i = imin-1,imax+1
+            yhi(i,jmax+1) = ylo(i,jmax+1)
+         end do
+      else if (ybc(2,2).eq.REFLECT_ODD) then
+         do i = imin-1,imax+1
+            ylo(i,jmax+1) = zero
+            yhi(i,jmax+1) = zero
+         end do
+      end if
+
+    end subroutine trans_ybc_msd
+
+      subroutine slopes_msd (s,s_lo,s_hi,slx,slx_lo,slx_hi,sly,sly_lo,sly_hi,lo,hi,&
+              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,bc)
+! c 
+! c     this subroutine computes first, second or forth order slopes of
+! c     a 2D scalar field.
+! c
+! c     Boundary conditions on interior slopes are handled automatically
+! c     by the ghost cells
+! c
+! c     Boundary conditions on EXT_DIR and HOEXTRAP slopes are implemented
+! c     by setting them to zero outside of the domain and using a
+! c     one-sided derivative from the interior
+! c
+      implicit none
+
+#include <GODCOMM_F.H>
+
+      integer, intent(in) :: bc(SDIM,2)
+      integer, dimension(2), intent(in) :: &
+           s_lo,s_hi,slx_lo,slx_hi,sly_lo,sly_hi,lo,hi,&
+           slxscr_lo,slxscr_hi,slyscr_lo,slyscr_hi
+      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2)) ! Applies a floor!
+      real(rt), intent(inout) :: slx(slx_lo(1):slx_hi(1),slx_lo(2):slx_hi(2))
+      real(rt), intent(inout) :: sly(sly_lo(1):sly_hi(1),sly_lo(2):sly_hi(2))
+      real(rt), intent(inout) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
+      real(rt), intent(inout) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
+
+      integer cen,lim,flag,fromm
+      parameter( cen = 1 )
+      parameter( lim = 2 )
+      parameter( flag = 3 )
+      parameter( fromm = 4 )
+
+      integer imin,jmin,imax,jmax,i,j
+      integer ng
+      real(rt) dpls,dmin,ds
+      real(rt) del,slim,sflg
+
+! C
+! C     Determine ng in a way that covers the case of tiling where
+! C     (lo:hi) is only a portion of the box s is defined on.
+! C
+      ng = lo(1) - s_lo(1)
+      if (slope_order .eq.1) then
+         if (ng .lt. 1) then
+            call bl_abort('slopes: too few bndry cells for first order')
+         endif
+         ng = 1
+      else if (slope_order .eq. 2) then
+         if (ng .lt. 2) then
+            call bl_abort("SLOPE_2D: not enough bndry cells for 2nd order")
+         endif
+         ng = 2
+      else
+         if (ng .lt. 3) then
+            call bl_abort("SLOPE_2D: not enough bndry cells for 4th order")
+         end if
+         ng = 3
+      endif
+
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+!c
+!c ::: ::::: added to prevent underflow for small s values
+!c
+      do j = lo(2)-ng, hi(2)+ng
+        do i = lo(1)-ng, hi(1)+ng
+           s(i,j) = merge(s(i,j), zero, abs(s(i,j)).gt.1.0D-20)
+       end do
+      end do
+!c
+!c     COMPUTE 0TH order slopes
+!c
+      if (slope_order.eq.1) then
+        do j = jmin-1,jmax+1
+           do i = imin-1,imax+1
+              slx(i,j) = zero
+              sly(i,j) = zero
+  	   end do
+        end do
+      end if
+!c
+!c     COMPUTE 2nd order slopes
+!c
+      if (slope_order.eq.2) then
+!c
+!c     ------------------------ x slopes
+!c
+         if (use_unlimited_slopes) then
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  slx(i,j) = half*(s(i+1,j)-s(i-1,j))
+               end do
+            end do
+            if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+               do j = jmin-1, jmax+1
+                  slx(imin-1,j) = zero
+                  slx(imin,j)   = (s(imin+1,j)+three*s(imin,j)-four*s(imin-1,j))/three
+               end do
+            end if
+            if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+               do j = jmin-1, jmax+1
+                  slx(imax+1,j) = zero
+                  slx(imax,j)   = -(s(imax-1,j)+three*s(imax,j)-four*s(imax+1,j))/three
+               end do
+            end if
+         else
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  del  = half*(s(i+1,j)-s(i-1,j))
+                  dpls = two*(s(i+1,j) - s(i ,j))
+                  dmin = two*(s(i ,j) - s(i-1,j))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  slx(i,j)= sflg*min(slim,abs(del))
+               end do
+            end do
+            
+            if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+               do j = jmin-1, jmax+1
+                  slx(imin-1,j) = zero
+                  del  = (s(imin+1,j)+three*s(imin,j)-four*s(imin-1,j))/three
+                  dpls = two*(s(imin+1,j) - s(imin  ,j))
+                  dmin = two*(s(imin  ,j) - s(imin-1,j))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  slx(imin,j)= sflg*min(slim,abs(del))
+               end do
+            end if
+            if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+               do j = jmin-1, jmax+1
+                  slx(imax+1,j) = zero
+                  del  = -(s(imax-1,j)+three*s(imax,j)-four*s(imax+1,j))/three
+                  dpls = two*(s(imax+1,j) - s(imax  ,j))
+                  dmin = two*(s(imax  ,j) - s(imax-1,j))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  slx(imax,j)= sflg*min(slim,abs(del))
+               end do
+            end if
+         end if
+!c
+!c     ------------------------ y slopes
+!c
+         if (use_unlimited_slopes) then
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  sly(i,j) = half*(s(i,j+1)-s(i,j-1))
+               end do
+            end do
+            if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+               do i = imin-1, imax+1
+                  sly(i,jmin-1) = zero
+                  sly(i,jmin) = (s(i,jmin+1)+three*s(i,jmin)-four*s(i,jmin-1))/three
+               end do
+            end if
+            if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+               do i = imin-1, imax+1
+                  sly(i,jmax+1) = zero
+                  sly(i,jmax) = -(s(i,jmax-1)+three*s(i,jmax)-four*s(i,jmax+1))/three
+               end do
+            end if
+         else
+            do j = jmin-1,jmax+1
+               do i = imin-1,imax+1
+                  del  = half*(s(i,j+1)-s(i,j-1))
+                  dpls = two*(s(i,j+1) - s(i,j ))
+                  dmin = two*(s(i,j ) - s(i,j-1))
+                  slim = min(abs(dpls),abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  sly(i,j)= sflg*min(slim,abs(del))
+               end do
+            end do
+
+            if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+               do i = imin-1, imax+1
+                  sly(i,jmin-1) = zero
+                  del  = (s(i,jmin+1)+three*s(i,jmin)-four*s(i,jmin-1))/three
+                  dpls = two*(s(i,jmin+1) - s(i,jmin  ))
+                  dmin = two*(s(i,jmin  ) - s(i,jmin-1))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  sly(i,jmin)= sflg*min(slim,abs(del))
+               end do
+            end if
+            if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+               do i = imin-1, imax+1
+                  sly(i,jmax+1) = zero
+                  del  = -(s(i,jmax-1)+three*s(i,jmax)-four*s(i,jmax+1))/three
+                  dpls = two*(s(i,jmax+1) - s(i,jmax  ))
+                  dmin = two*(s(i,jmax  ) - s(i,jmax-1))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  sly(i,jmax)= sflg*min(slim,abs(del))
+               end do
+            end if
+         end if
+!c
+!c ... end, if slope_order .eq. 2
+!c
+      end if
+!c
+!c     COMPUTE 4TH order slopes
+!c
+      if (slope_order.eq.4) then
+!c         
+!c     ------------------------ x slopes
+!c
+         if (use_unlimited_slopes) then
+            do j = jmin-1,jmax+1
+               do i = imin-2,imax+2
+                  slxscr(i,cen)  = half*(s(i+1,j)-s(i-1,j))
+               end do
+               do i = imin-1,imax+1
+                  slx(i,j) = two * two3rd * slxscr(i,cen) -&
+                      sixth * (slxscr(i+1,cen) + slxscr(i-1,cen))
+               end do
+            end do
+            
+            if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+               do j = jmin-1, jmax+1
+                  slx(imin,j) = -sixteen/fifteen*s(imin-1,j) + half*s(imin,j) + &
+                      two3rd*s(imin+1,j) - tenth*s(imin+2,j)
+                  slx(imin-1,j) = zero
+               end do
+            end if
+            if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+               do j = jmin-1, jmax+1
+                  slx(imax,j) = -( -sixteen/fifteen*s(imax+1,j) + half*s(imax,j) + &
+                      two3rd*s(imax-1,j) - tenth*s(imax-2,j) )
+                  slx(imax+1,j) = zero
+               end do
+            end if
+         else
+            do j = jmin-1,jmax+1
+               do i = imin-2,imax+2
+                  dmin           =  two*(s(i,  j)-s(i-1,j))
+                  dpls           =  two*(s(i+1,j)-s(i  ,j))
+                  slxscr(i,cen)  = half*(s(i+1,j)-s(i-1,j))
+                  slxscr(i,lim)  = min(abs(dmin),abs(dpls))
+                  slxscr(i,lim)  = merge(slxscr(i,lim),zero,(dpls*dmin) .ge. 0.0d0)
+                  slxscr(i,flag) = sign(one,slxscr(i,cen))
+                  slxscr(i,fromm)= slxscr(i,flag)*&
+                      min(slxscr(i,lim),abs(slxscr(i,cen)))
+               end do
+
+               do i = imin-1,imax+1
+                  ds = two * two3rd * slxscr(i,cen) -&
+                      sixth * (slxscr(i+1,fromm) + slxscr(i-1,fromm))
+                  slx(i,j) = slxscr(i,flag)*min(abs(ds),slxscr(i,lim))
+               end do
+
+               if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
+                  del  = -sixteen/fifteen*s(imin-1,j) + half*s(imin,j) + &
+                      two3rd*s(imin+1,j) - tenth*s(imin+2,j)
+                  dmin = two*(s(imin  ,j)-s(imin-1,j))
+                  dpls = two*(s(imin+1,j)-s(imin  ,j))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  slx(imin-1,j) = zero
+                  slx(imin,  j) = sflg*min(slim,abs(del))
+
+!c                 Recalculate the slope at imin+1 using the revised slxscr(imin,fromm)
+                  slxscr(imin,fromm) = slx(imin,j)
+                  ds = two * two3rd * slxscr(imin+1,cen) -&
+                    sixth * (slxscr(imin+2,fromm) + slxscr(imin,fromm))
+                  slx(imin+1,j) = slxscr(imin+1,flag)*min(abs(ds),slxscr(imin+1,lim))
+               end if
+
+               if (bc(1,2) .eq. EXT_DIR .or. bc(1,2) .eq. HOEXTRAP) then
+                  del  = -( -sixteen/fifteen*s(imax+1,j) + half*s(imax,j) + &
+                      two3rd*s(imax-1,j) - tenth*s(imax-2,j) )
+                  dmin = two*(s(imax  ,j)-s(imax-1,j))
+                  dpls = two*(s(imax+1,j)-s(imax  ,j))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  slx(imax,  j) = sflg*min(slim,abs(del))
+                  slx(imax+1,j) = zero
+
+!c                 Recalculate the slope at imax-1 using the revised slxscr(imax,fromm)
+                  slxscr(imax,fromm) = slx(imax,j)
+                  ds = two * two3rd * slxscr(imax-1,cen) -&
+                    sixth * (slxscr(imax-2,fromm) + slxscr(imax,fromm))
+                  slx(imax-1,j) = slxscr(imax-1,flag)*min(abs(ds),slxscr(imax-1,lim))
+               end if
+            end do
+         end if
+!c
+!c     ------------------------ y slopes
+!c
+         if (use_unlimited_slopes) then
+            do i = imin-1,imax+1
+               do j = jmin-2,jmax+2
+                  slyscr(j,cen)  = half*(s(i,j+1)-s(i,j-1))
+               end do
+               do j = jmin-1,jmax+1
+                  sly(i,j) = two * two3rd * slyscr(j,cen) -&
+                      sixth * (slyscr(j+1,cen) + slyscr(j-1,cen))
+               end do
+            end do
+            
+            if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+               do i = imin-1, imax+1
+                  sly(i,jmin-1) = zero
+                  sly(i,jmin) = -sixteen/fifteen*s(i,jmin-1) + half*s(i,jmin) + &
+                      two3rd*s(i,jmin+1) - tenth*s(i,jmin+2)
+               end do
+            end if
+            if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+               do i = imin-1, imax+1
+                  sly(i,jmax) = -( -sixteen/fifteen*s(i,jmax+1) + half*s(i,jmax) + &
+                      two3rd*s(i,jmax-1) - tenth*s(i,jmax-2) )
+                  sly(i,jmax+1) = zero
+               end do
+            end if
+         else
+            do i = imin-1,imax+1
+              do j = jmin-2,jmax+2
+                  dmin           =  two*(s(i,j  )-s(i,j-1))
+                  dpls           =  two*(s(i,j+1)-s(i,j  ))
+                  slyscr(j,cen)  = half*(s(i,j+1)-s(i,j-1))
+                  slyscr(j,lim)  = min(abs(dmin),abs(dpls))
+                  slyscr(j,lim)  = merge(slyscr(j,lim),zero,(dpls*dmin) .ge. 0.0d0)
+                  slyscr(j,flag) = sign(one,slyscr(j,cen))
+                  slyscr(j,fromm)= slyscr(j,flag)*&
+                      min(slyscr(j,lim),abs(slyscr(j,cen)))
+               end do
+               do j = jmin-1,jmax+1
+                  ds = two * two3rd * slyscr(j,cen) -&
+                      sixth * (slyscr(j+1,fromm) + slyscr(j-1,fromm))
+                  sly(i,j) = slyscr(j,flag)*min(abs(ds),slyscr(j,lim))
+               end do
+
+               if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
+                  del  = -sixteen/fifteen*s(i,jmin-1) + half*s(i,jmin) + &
+                      two3rd*s(i,jmin+1) - tenth*s(i,jmin+2)
+                  dmin = two*(s(i,jmin  )-s(i,jmin-1))
+                  dpls = two*(s(i,jmin+1)-s(i,jmin  ))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  sly(i,jmin-1) = zero
+                  sly(i,jmin  ) = sflg*min(slim,abs(del))
+
+!c                 Recalculate the slope at jmin+1 using the revised slyscr(jmin,fromm)
+                  slyscr(jmin,fromm) = sly(i,jmin)
+                  ds = two * two3rd * slyscr(jmin+1,cen) -&
+                    sixth * (slyscr(jmin+2,fromm) + slyscr(jmin,fromm))
+                  sly(i,jmin+1) = slyscr(jmin+1,flag)*min(abs(ds),slyscr(jmin+1,lim))
+               end if
+
+               if (bc(2,2) .eq. EXT_DIR .or. bc(2,2) .eq. HOEXTRAP) then
+                  del  = -( -sixteen/fifteen*s(i,jmax+1) + half*s(i,jmax) + &
+                      two3rd*s(i,jmax-1) - tenth*s(i,jmax-2) )
+                  dmin = two*(s(i,jmax  )-s(i,jmax-1))
+                  dpls = two*(s(i,jmax+1)-s(i,jmax  ))
+                  slim = min(abs(dpls), abs(dmin))
+                  slim = merge(slim, zero, (dpls*dmin) .ge. 0.0d0)
+                  sflg = sign(one,del)
+                  sly(i,jmax  ) = sflg*min(slim,abs(del))
+                  sly(i,jmax+1) = zero
+
+!c                 Recalculate the slope at jmax-1 using the revised slyscr(jmax,fromm)
+                  slyscr(jmax,fromm) = sly(i,jmax)
+                  ds = two * two3rd * slyscr(jmax-1,cen) -&
+                    sixth * (slyscr(jmax-2,fromm) + slyscr(jmax,fromm))
+                  sly(i,jmax-1) = slyscr(jmax-1,flag)*min(abs(ds),slyscr(jmax-1,lim))
+               end if
+           end do
+         end if
+!c
+!c ... end, if slope_order .eq. 4
+!c
+      end if
+
+    end subroutine slopes_msd
+
+      subroutine ppm_msd(s,s_lo,s_hi,u,u_lo,u_hi,v,v_lo,v_hi,&
+           Ipx,Ipx_lo,Ipx_hi,Imx,Imx_lo,Imx_hi,Ipy,Ipy_lo,Ipy_hi,Imy,Imy_lo,Imy_hi,&
+           sm,sm_lo,sm_hi,sp,sp_lo,sp_hi,dsvl,dsvl_lo,dsvl_hi,&
+           sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,bc,&
+           eps,ppm_type)
+
+      implicit none
+
+      integer, intent(in) :: bc(SDIM,2)
+      integer, dimension(2), intent(in) :: &
+           s_lo,s_hi,u_lo,u_hi,v_lo,v_hi,Ipx_lo,Ipx_hi,Imx_lo,Imx_hi,Ipy_lo,Ipy_hi,Imy_lo,Imy_hi,&
+           sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgex_lo,sedgex_hi,sedgey_lo,sedgey_hi,&
+           lo,hi
+
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
+      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
+      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
+      real(rt), intent(inout) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2))
+      real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
+      real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2))
+      real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2))
+      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2))
+      real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
+      real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2))
+      real(rt), intent(in) :: eps, dx(SDIM), dt
+      integer ppm_type
+
+!c     local
+      integer i,j
+
+      logical extremum, bigp, bigm
+
+      real(rt) :: dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
+      real(rt) :: sgn, sigma, s6, amax, delam, delap
+      real(rt) :: dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
+
+!c     constant used in Colella 2008
+      C = 1.25d0
+
+!c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!c     x-direction
+!c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!c     compute s at x-edges
+      if (ppm_type .eq. 1) then
+
+!c     compute van Leer slopes in x-direction
+         dsvl = 0.d0
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-2,hi(1)+2
+               dsc = 0.5d0 * (s(i+1,j) - s(i-1,j))
+               dsl = 2.d0  * (s(i  ,j) - s(i-1,j))
+               dsr = 2.d0  * (s(i+1,j) - s(i  ,j))
+               if (dsl*dsr .gt. 0.d0)&
+                   dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+            end do
+         end do
+         
+!c     interpolate s to x-edges
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+2
+               sedgex(i,j) = 0.5d0*(s(i,j)+s(i-1,j)) - (1.d0/6.d0)*(dsvl(i,j)-dsvl(i-1,j))
+!c     make sure sedgex lies in between adjacent cell-centered values
+               sedgex(i,j) = max(sedgex(i,j),min(s(i,j),s(i-1,j)))
+               sedgex(i,j) = min(sedgex(i,j),max(s(i,j),s(i-1,j)))
+            end do
+         end do
+
+!c     copy sedgex into sp and sm
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+               sp(i,j) = sedgex(i+1,j)
+               sm(i,j) = sedgex(i  ,j)
+            end do
+         end do
+
+!c     modify using quadratic limiters
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+               if ((sp(i,j)-s(i,j))*(s(i,j)-sm(i,j)) .le. 0.d0) then
+                  sp(i,j) = s(i,j)
+                  sm(i,j) = s(i,j)
+               else if (abs(sp(i,j)-s(i,j)) .ge. 2.d0*abs(sm(i,j)-s(i,j))) then
+                  sp(i,j) = 3.d0*s(i,j) - 2.d0*sm(i,j)
+               else if (abs(sm(i,j)-s(i,j)) .ge. 2.d0*abs(sp(i,j)-s(i,j))) then
+                  sm(i,j) = 3.d0*s(i,j) - 2.d0*sp(i,j)
+               end if
+            end do
+         end do
+         
+!c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
+         if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
+!c     the value in the first cc ghost cell represents the edge value
+            sm(lo(1),lo(2)-1:hi(2)+1) = s(lo(1)-1,lo(2)-1:hi(2)+1)
+
+!c     use a modified stencil to get sedgex on the first interior edge
+            sedgex(lo(1)+1,lo(2)-1:hi(2)+1) = &
+                -(1.d0/5.d0)  *s(lo(1)-1,lo(2)-1:hi(2)+1)&
+                +(3.d0/4.d0)  *s(lo(1)  ,lo(2)-1:hi(2)+1)&
+                +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1)&
+                -(1.d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1)
+
+!c     make sure sedgex lies in between adjacent cell-centered values
+            do j=lo(2)-1,hi(2)+1
+               sedgex(lo(1)+1,j) = max(sedgex(lo(1)+1,j),min(s(lo(1)+1,j),s(lo(1),j)))
+               sedgex(lo(1)+1,j) = min(sedgex(lo(1)+1,j),max(s(lo(1)+1,j),s(lo(1),j)))
+            end do
+
+!c     copy sedgex into sp and sm
+            do j=lo(2)-1,hi(2)+1
+               sp(lo(1)  ,j) = sedgex(lo(1)+1,j)
+               sm(lo(1)+1,j) = sedgex(lo(1)+1,j)
+            end do
+
+!c     reset sp on second interior edge
+            do j=lo(2)-1,hi(2)+1
+               sp(lo(1)+1,j) = sedgex(lo(1)+2,j)
+            end do
+
+!c     modify using quadratic limiters
+            do j=lo(2)-1,hi(2)+1
+               i = lo(1)+1
+               if ((sp(i,j)-s(i,j))*(s(i,j)-sm(i,j)) .le. 0.d0) then
+                  sp(i,j) = s(i,j)
+                  sm(i,j) = s(i,j)
+               else if (abs(sp(i,j)-s(i,j)) .ge. 2.d0*abs(sm(i,j)-s(i,j))) then
+                  sp(i,j) = 3.d0*s(i,j) - 2.d0*sm(i,j)
+               else if (abs(sm(i,j)-s(i,j)) .ge. 2.d0*abs(sp(i,j)-s(i,j))) then
+                  sm(i,j) = 3.d0*s(i,j) - 2.d0*sp(i,j)
+               end if
+            end do
+         end if
+         
+         if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
+!c     the value in the first cc ghost cell represents the edge value
+            sp(hi(1),lo(2)-1:hi(2)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1)
+
+!c     use a modified stencil to get sedgex on the first interior edge
+            sedgex(hi(1),lo(2)-1:hi(2)+1) =&
+                -(1.d0/5.d0)  *s(hi(1)+1,lo(2)-1:hi(2)+1)&
+                +(3.d0/4.d0)  *s(hi(1)  ,lo(2)-1:hi(2)+1)&
+                +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1)&
+                -(1.d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1)
+
+!c     make sure sedgex lies in between adjacent cell-centered values
+            do j=lo(2)-1,hi(2)+1
+               sedgex(hi(1),j) = max(sedgex(hi(1),j),min(s(hi(1)-1,j),s(hi(1),j)))
+               sedgex(hi(1),j) = min(sedgex(hi(1),j),max(s(hi(1)-1,j),s(hi(1),j)))
+            end do
+
+!c     copy sedgex into sp and sm
+            do j=lo(2)-1,hi(2)+1
+               sp(hi(1)-1,j) = sedgex(hi(1),j)
+               sm(hi(1)  ,j) = sedgex(hi(1),j)
+            end do
+
+!c     reset sm on second interior edge
+            do j=lo(2)-1,hi(2)+1
+               sm(hi(1)-1,j) = sedgex(hi(1)-1,j)
+            end do
+
+!c     modify using quadratic limiters
+            do j=lo(2)-1,hi(2)+1
+               i = hi(1)-1
+               if ((sp(i,j)-s(i,j))*(s(i,j)-sm(i,j)) .le. 0.d0) then
+                  sp(i,j) = s(i,j)
+                  sm(i,j) = s(i,j)
+               else if (abs(sp(i,j)-s(i,j)) .ge. 2.d0*abs(sm(i,j)-s(i,j))) then
+                  sp(i,j) = 3.d0*s(i,j) - 2.d0*sm(i,j)
+               else if (abs(sm(i,j)-s(i,j)) .ge. 2.d0*abs(sp(i,j)-s(i,j))) then
+                  sm(i,j) = 3.d0*s(i,j) - 2.d0*sp(i,j)
+               end if
+            end do
+         end if
+
+      else if (ppm_type .eq. 2) then
+
+!c     interpolate s to x-edges
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-2,hi(1)+3
+               sedgex(i,j) = (7.d0/12.d0)*(s(i-1,j)+s(i,j)) - (1.d0/12.d0)*(s(i-2,j)+s(i+1,j))
+!c     limit sedgex
+               if ((sedgex(i,j)-s(i-1,j))*(s(i,j)-sedgex(i,j)) .lt. 0.d0) then
+                  D2  = 3.d0*(s(i-1,j)-2.d0*sedgex(i,j)+s(i,j))
+                  D2L = s(i-2,j)-2.d0*s(i-1,j)+s(i,j)
+                  D2R = s(i-1,j)-2.d0*s(i,j)+s(i+1,j)
+                  sgn = sign(1.d0,D2)
+                  D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
+                  sedgex(i,j) = 0.5d0*(s(i-1,j)+s(i,j)) - (1.d0/6.d0)*D2LIM
+               end if
+            end do
+         end do
+
+!c     use Colella 2008 limiters
+!c     This is a new version of the algorithm 
+!c     to eliminate sensitivity to roundoff.
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+
+               alphap = sedgex(i+1,j)-s(i,j)
+               alpham = sedgex(i  ,j)-s(i,j)
+               bigp = abs(alphap).gt.2.d0*abs(alpham)
+               bigm = abs(alpham).gt.2.d0*abs(alphap)
+               extremum = .false.
+
+               if (alpham*alphap .ge. 0.d0) then
+                  extremum = .true.
+               else if (bigp .or. bigm) then
+!c     Possible extremum. We look at cell centered values and face
+!c     centered values for a change in sign in the differences adjacent to
+!c     the cell. We use the pair of differences whose minimum magnitude is the
+!c     largest, and thus least susceptible to sensitivity to roundoff.
+                  dafacem = sedgex(i,j) - sedgex(i-1,j)
+                  dafacep = sedgex(i+2,j) - sedgex(i+1,j)
+                  dabarm = s(i,j) - s(i-1,j)
+                  dabarp = s(i+1,j) - s(i,j)
+                  dafacemin = min(abs(dafacem),abs(dafacep))
+                  dabarmin= min(abs(dabarm),abs(dabarp))
+                  if (dafacemin.ge.dabarmin) then
+                     dachkm = dafacem
+                     dachkp = dafacep
+                  else
+                     dachkm = dabarm
+                     dachkp = dabarp
+                  endif
+                  extremum = (dachkm*dachkp .le. 0.d0)
+               end if
+
+               if (extremum) then
+                  D2  = 6.d0*(alpham + alphap)
+                  D2L = s(i-2,j)-2.d0*s(i-1,j)+s(i,j)
+                  D2R = s(i,j)-2.d0*s(i+1,j)+s(i+2,j)
+                  D2C = s(i-1,j)-2.d0*s(i,j)+s(i+1,j)
+                  sgn = sign(1.d0,D2)
+                  D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
+                  alpham = alpham*D2LIM/max(abs(D2),1.d-10)
+                  alphap = alphap*D2LIM/max(abs(D2),1.d-10)
+               else
+                  if (bigp) then
+                     sgn = sign(1.d0,alpham)
+                     amax = -alphap**2 / (4*(alpham + alphap))
+                     delam = s(i-1,j) - s(i,j)
+                     if (sgn*amax .ge. sgn*delam) then
+                        if (sgn*(delam - alpham).ge.1.d-10) then
+                           alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
+                        else 
+                           alphap = -2.d0*alpham
+                        endif
+                     endif
+                  end if
+                  if (bigm) then
+                     sgn = sign(1.d0,alphap)
+                     amax = -alpham**2 / (4*(alpham + alphap))
+                     delap = s(i+1,j) - s(i,j)
+                     if (sgn*amax .ge. sgn*delap) then
+                        if (sgn*(delap - alphap).ge.1.d-10) then
+                           alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
+                        else
+                           alpham = -2.d0*alphap
+                        endif
+                     endif
+                  end if
+               end if
+
+               sm(i,j) = s(i,j) + alpham
+               sp(i,j) = s(i,j) + alphap
+
+            end do
+         end do
+
+!c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
+         if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
+!c     the value in the first cc ghost cell represents the edge value
+            sm(lo(1),lo(2)-1:hi(2)+1)    = s(lo(1)-1,lo(2)-1:hi(2)+1)
+            sedgex(lo(1),lo(2)-1:hi(2)+1) = s(lo(1)-1,lo(2)-1:hi(2)+1)
+
+!c     use a modified stencil to get sedgex on the first interior edge
+            sedgex(lo(1)+1,lo(2)-1:hi(2)+1) =&
+                -(1.d0/5.d0)  *s(lo(1)-1,lo(2)-1:hi(2)+1)&
+                +(3.d0/4.d0)  *s(lo(1)  ,lo(2)-1:hi(2)+1)&
+                +0.5d0        *s(lo(1)+1,lo(2)-1:hi(2)+1)&
+                -(1.d0/20.0d0)*s(lo(1)+2,lo(2)-1:hi(2)+1)
+
+!c     make sure sedgex lies in between adjacent cell-centered values
+            do j=lo(2)-1,hi(2)+1
+               sedgex(lo(1)+1,j) = max(sedgex(lo(1)+1,j),min(s(lo(1)+1,j),s(lo(1),j)))
+               sedgex(lo(1)+1,j) = min(sedgex(lo(1)+1,j),max(s(lo(1)+1,j),s(lo(1),j)))
+            end do
+
+!c     copy sedgex into sp
+            do j=lo(2)-1,hi(2)+1
+               sp(lo(1)  ,j) = sedgex(lo(1)+1,j)
+            end do
+
+!c     apply Colella 2008 limiters to compute sm and sp in the second
+!c     and third inner cells
+            do j=lo(2)-1,hi(2)+1
+               do i=lo(1)+1,lo(1)+2
+
+                  alphap = sedgex(i+1,j)-s(i,j)
+                  alpham = sedgex(i  ,j)-s(i,j)
+                  bigp = abs(alphap).gt.2.d0*abs(alpham)
+                  bigm = abs(alpham).gt.2.d0*abs(alphap)
+                  extremum = .false.
+
+                  if (alpham*alphap .ge. 0.d0) then
+                     extremum = .true.
+                  else if (bigp .or. bigm) then
+!c     Possible extremum. We look at cell centered values and face
+!c     centered values for a change in sign in the differences adjacent to
+!c     the cell. We use the pair of differences whose minimum magnitude is the
+!c     largest, and thus least susceptible to sensitivity to roundoff.
+                     dafacem = sedgex(i,j) - sedgex(i-1,j)
+                     dafacep = sedgex(i+2,j) - sedgex(i+1,j)
+                     dabarm = s(i,j) - s(i-1,j)
+                     dabarp = s(i+1,j) - s(i,j)
+                     dafacemin = min(abs(dafacem),abs(dafacep))
+                     dabarmin= min(abs(dabarm),abs(dabarp))
+                     if (dafacemin.ge.dabarmin) then
+                        dachkm = dafacem
+                        dachkp = dafacep
+                     else
+                        dachkm = dabarm
+                        dachkp = dabarp
+                     endif
+                     extremum = (dachkm*dachkp .le. 0.d0)
+                  end if
+
+                  if (extremum) then
+                     D2  = 6.d0*(alpham + alphap)
+                     D2L = s(i-2,j)-2.d0*s(i-1,j)+s(i,j)
+                     D2R = s(i,j)-2.d0*s(i+1,j)+s(i+2,j)
+                     D2C = s(i-1,j)-2.d0*s(i,j)+s(i+1,j)
+                     sgn = sign(1.d0,D2)
+                     D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
+                     alpham = alpham*D2LIM/max(abs(D2),1.d-10)
+                     alphap = alphap*D2LIM/max(abs(D2),1.d-10)
+                  else
+                     if (bigp) then
+                        sgn = sign(1.d0,alpham)
+                        amax = -alphap**2 / (4*(alpham + alphap))
+                        delam = s(i-1,j) - s(i,j)
+                        if (sgn*amax .ge. sgn*delam) then
+                           if (sgn*(delam - alpham).ge.1.d-10) then
+                              alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
+                           else 
+                              alphap = -2.d0*alpham
+                           endif
+                        endif
+                     end if
+                     if (bigm) then
+                        sgn = sign(1.d0,alphap)
+                        amax = -alpham**2 / (4*(alpham + alphap))
+                        delap = s(i+1,j) - s(i,j)
+                        if (sgn*amax .ge. sgn*delap) then
+                           if (sgn*(delap - alphap).ge.1.d-10) then
+                              alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
+                           else
+                              alpham = -2.d0*alphap
+                           endif
+                        endif
+                     end if
+                  end if
+
+                  sm(i,j) = s(i,j) + alpham
+                  sp(i,j) = s(i,j) + alphap
+
+               end do
+            end do
+         end if
+
+         if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
+!c     the value in the first cc ghost cell represents the edge value
+            sp(hi(1),lo(2)-1:hi(2)+1)      = s(hi(1)+1,lo(2)-1:hi(2)+1)
+            sedgex(hi(1)+1,lo(2)-1:hi(2)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1)
+
+!c     use a modified stencil to get sedgex on the first interior edge
+            sedgex(hi(1),lo(2)-1:hi(2)+1) =&
+                -(1.d0/5.d0)  *s(hi(1)+1,lo(2)-1:hi(2)+1)&
+                +(3.d0/4.d0)  *s(hi(1)  ,lo(2)-1:hi(2)+1)&
+                +0.5d0        *s(hi(1)-1,lo(2)-1:hi(2)+1)&
+                -(1.d0/20.0d0)*s(hi(1)-2,lo(2)-1:hi(2)+1)
+
+!c     make sure sedgex lies in between adjacent cell-centered values
+            do j=lo(2)-1,hi(2)+1
+               sedgex(hi(1),j) = max(sedgex(hi(1),j),min(s(hi(1)-1,j),s(hi(1),j)))
+               sedgex(hi(1),j) = min(sedgex(hi(1),j),max(s(hi(1)-1,j),s(hi(1),j)))
+            end do
+
+!c     copy sedgex into sm
+            do j=lo(2)-1,hi(2)+1
+               sm(hi(1)  ,j) = sedgex(hi(1),j)
+            end do
+
+!c     reset sm on second interior edge
+            do j=lo(2)-1,hi(2)+1
+               sm(hi(1)-1,j) = sedgex(hi(1)-1,j)
+            end do
+
+!c     apply Colella 2008 limiters to compute sm and sp in the second
+!c     and third inner cells
+            do j=lo(2)-1,hi(2)+1
+               do i=hi(1)-2,hi(1)-1
+
+                  alphap = sedgex(i+1,j)-s(i,j)
+                  alpham = sedgex(i  ,j)-s(i,j)
+                  bigp = abs(alphap).gt.2.d0*abs(alpham)
+                  bigm = abs(alpham).gt.2.d0*abs(alphap)
+                  extremum = .false.
+
+                  if (alpham*alphap .ge. 0.d0) then
+                     extremum = .true.
+                  else if (bigp .or. bigm) then
+!c     Possible extremum. We look at cell centered values and face
+!c     centered values for a change in sign in the differences adjacent to
+!c     the cell. We use the pair of differences whose minimum magnitude is the
+!c     largest, and thus least susceptible to sensitivity to roundoff.
+                     dafacem = sedgex(i,j) - sedgex(i-1,j)
+                     dafacep = sedgex(i+2,j) - sedgex(i+1,j)
+                     dabarm = s(i,j) - s(i-1,j)
+                     dabarp = s(i+1,j) - s(i,j)
+                     dafacemin = min(abs(dafacem),abs(dafacep))
+                     dabarmin= min(abs(dabarm),abs(dabarp))
+                     if (dafacemin.ge.dabarmin) then
+                        dachkm = dafacem
+                        dachkp = dafacep
+                     else
+                        dachkm = dabarm
+                        dachkp = dabarp
+                     endif
+                     extremum = (dachkm*dachkp .le. 0.d0)
+                  end if
+
+                  if (extremum) then
+                     D2  = 6.d0*(alpham + alphap)
+                     D2L = s(i-2,j)-2.d0*s(i-1,j)+s(i,j)
+                     D2R = s(i,j)-2.d0*s(i+1,j)+s(i+2,j)
+                     D2C = s(i-1,j)-2.d0*s(i,j)+s(i+1,j)
+                     sgn = sign(1.d0,D2)
+                     D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
+                     alpham = alpham*D2LIM/max(abs(D2),1.d-10)
+                     alphap = alphap*D2LIM/max(abs(D2),1.d-10)
+                  else
+                     if (bigp) then
+                        sgn = sign(1.d0,alpham)
+                        amax = -alphap**2 / (4*(alpham + alphap))
+                        delam = s(i-1,j) - s(i,j)
+                        if (sgn*amax .ge. sgn*delam) then
+                           if (sgn*(delam - alpham).ge.1.d-10) then
+                              alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
+                           else 
+                              alphap = -2.d0*alpham
+                           endif
+                        endif
+                     end if
+                     if (bigm) then
+                        sgn = sign(1.d0,alphap)
+                        amax = -alpham**2 / (4*(alpham + alphap))
+                        delap = s(i+1,j) - s(i,j)
+                        if (sgn*amax .ge. sgn*delap) then
+                           if (sgn*(delap - alphap).ge.1.d-10) then
+                              alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
+                           else
+                              alpham = -2.d0*alphap
+                           endif
+                        endif
+                     end if
+                  end if
+
+                  sm(i,j) = s(i,j) + alpham
+                  sp(i,j) = s(i,j) + alphap
+
+               end do
+            end do
+         end if
+
+      end if
+
+!c     compute x-component of Ip and Im
+      do j=lo(2)-1,hi(2)+1
+         do i=lo(1)-1,hi(1)+1
+            sigma = abs(u(i,j))*dt/dx(1)
+            s6 = 6.0d0*s(i,j) - 3.0d0*(sm(i,j)+sp(i,j))
+            if (u(i,j) .gt. eps) then
+               Ipx(i,j) = sp(i,j) - (sigma/2.0d0)*&
+                   (sp(i,j)-sm(i,j)-(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+               Imx(i,j) = s(i,j)
+            else if (u(i,j) .lt. -eps) then
+               Ipx(i,j) = s(i,j)
+               Imx(i,j) = sm(i,j) + (sigma/2.0d0)*&
+                   (sp(i,j)-sm(i,j)+(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+            else
+               Ipx(i,j) = s(i,j)
+               Imx(i,j) = s(i,j)
+            end if
+         end do
+      end do
+
+!c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!c     y-direction
+!c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!c     compute s at y-edges
+      if (ppm_type .eq. 1) then
+
+!c     compute van Leer slopes in y-direction
+         dsvl = 0.d0
+         do j=lo(2)-2,hi(2)+2
+            do i=lo(1)-1,hi(1)+1
+               dsc = 0.5d0 * (s(i,j+1) - s(i,j-1))
+               dsl = 2.d0  * (s(i,j  ) - s(i,j-1))
+               dsr = 2.d0  * (s(i,j+1) - s(i,j  ))
+               if (dsl*dsr .gt. 0.d0)&
+                   dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
+            end do
+         end do
+         
+!c     interpolate s to y-edges
+         do j=lo(2)-1,hi(2)+2
+            do i=lo(1)-1,hi(1)+1
+               sedgey(i,j) = 0.5d0*(s(i,j)+s(i,j-1)) - (1.d0/6.d0)*(dsvl(i,j)-dsvl(i,j-1))
+!c     make sure sedgey lies in between adjacent cell-centered values
+               sedgey(i,j) = max(sedgey(i,j),min(s(i,j),s(i,j-1)))
+               sedgey(i,j) = min(sedgey(i,j),max(s(i,j),s(i,j-1)))
+            end do
+         end do
+
+!c     copy sedgey into sp and sm
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+               sp(i,j) = sedgey(i,j+1)
+               sm(i,j) = sedgey(i,j  )
+            end do
+         end do
+
+!c     modify using quadratic limiters
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+               if ((sp(i,j)-s(i,j))*(s(i,j)-sm(i,j)) .le. 0.d0) then
+                  sp(i,j) = s(i,j)
+                  sm(i,j) = s(i,j)
+               else if (abs(sp(i,j)-s(i,j)) .ge. 2.d0*abs(sm(i,j)-s(i,j))) then
+                  sp(i,j) = 3.d0*s(i,j) - 2.d0*sm(i,j)
+               else if (abs(sm(i,j)-s(i,j)) .ge. 2.d0*abs(sp(i,j)-s(i,j))) then
+                  sm(i,j) = 3.d0*s(i,j) - 2.d0*sp(i,j)
+               end if
+            end do
+         end do
+         
+!c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
+         if (bc(2,1) .eq. EXT_DIR  .or. bc(2,1) .eq. HOEXTRAP) then
+!c     the value in the first cc ghost cell represents the edge value
+            sm(lo(1)-1:hi(1)+1,lo(2)) = s(lo(1)-1:hi(1)+1,lo(2)-1)
+
+!c     use a modified stencil to get sedgey on the first interior edge
+            sedgey(lo(1)-1:hi(1)+1,lo(2)+1) =&
+                -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1)&
+                +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)  )&
+                +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1)&
+                -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2)
+
+!c     make sure sedgey lies in between adjacent cell-centered values
+            do i=lo(1)-1,hi(1)+1
+               sedgey(i,lo(2)+1) = max(sedgey(i,lo(2)+1),min(s(i,lo(2)+1),s(i,lo(2))))
+               sedgey(i,lo(2)+1) = min(sedgey(i,lo(2)+1),max(s(i,lo(2)+1),s(i,lo(2))))
+            end do
+
+!c     copy sedgey into sp and sm
+            do i=lo(1)-1,hi(1)+1
+               sp(i,lo(2)  ) = sedgey(i,lo(2)+1)
+               sm(i,lo(2)+1) = sedgey(i,lo(2)+1)
+            end do
+
+!c     reset sp on second interior edge
+            do i=lo(1)-1,hi(1)+1
+               sp(i,lo(2)+1) = sedgey(i,lo(2)+2)
+            end do
+
+!c     modify using quadratic limiters
+            do i=lo(1)-1,hi(1)+1
+               j = lo(2)+1
+               if ((sp(i,j)-s(i,j))*(s(i,j)-sm(i,j)) .le. 0.d0) then
+                  sp(i,j) = s(i,j)
+                  sm(i,j) = s(i,j)
+               else if (abs(sp(i,j)-s(i,j)) .ge. 2.d0*abs(sm(i,j)-s(i,j))) then
+                  sp(i,j) = 3.d0*s(i,j) - 2.d0*sm(i,j)
+               else if (abs(sm(i,j)-s(i,j)) .ge. 2.d0*abs(sp(i,j)-s(i,j))) then
+                  sm(i,j) = 3.d0*s(i,j) - 2.d0*sp(i,j)
+               end if
+            end do
+         end if
+
+         if (bc(2,2) .eq. EXT_DIR  .or. bc(2,2) .eq. HOEXTRAP) then
+!c     the value in the first cc ghost cell represents the edge value
+            sp(lo(1)-1:hi(1)+1,hi(2)) = s(lo(1)-1:hi(1)+1,hi(2)+1)
+
+!c     use a modified stencil to get sedgey on the first interior edge
+            sedgey(lo(1)-1:hi(1)+1,hi(2)) =&
+                -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,hi(2)+1)&
+                +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,hi(2)  )&
+                +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1)&
+                -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2)
+
+!c     make sure sedgey lies in between adjacent cell-centered values
+            do i=lo(1)-1,hi(1)+1
+               sedgey(i,hi(2)) = max(sedgey(i,hi(2)),min(s(i,hi(2)-1),s(i,hi(2))))
+               sedgey(i,hi(2)) = min(sedgey(i,hi(2)),max(s(i,hi(2)-1),s(i,hi(2))))
+            end do
+
+!c     copy sedgey into sp and sm
+            do i=lo(1)-1,hi(1)+1
+               sp(i,hi(2)-1) = sedgey(i,hi(2))
+               sm(i,hi(2)  ) = sedgey(i,hi(2))
+            end do
+
+!c     reset sm on second interior edge
+            do i=lo(1)-1,hi(1)+1
+               sm(i,hi(2)-1) = sedgey(i,hi(2)-1)
+            end do
+
+!c     modify using quadratic limiters
+            do i=lo(1)-1,hi(1)+1
+               j = hi(2)-1
+               if ((sp(i,j)-s(i,j))*(s(i,j)-sm(i,j)) .le. 0.d0) then
+                  sp(i,j) = s(i,j)
+                  sm(i,j) = s(i,j)
+               else if (abs(sp(i,j)-s(i,j)) .ge. 2.d0*abs(sm(i,j)-s(i,j))) then
+                  sp(i,j) = 3.d0*s(i,j) - 2.d0*sm(i,j)
+               else if (abs(sm(i,j)-s(i,j)) .ge. 2.d0*abs(sp(i,j)-s(i,j))) then
+                  sm(i,j) = 3.d0*s(i,j) - 2.d0*sp(i,j)
+               end if
+            end do
+         end if
+
+      else if (ppm_type .eq. 2) then
+         
+!c     interpolate s to y-edges
+         do j=lo(2)-2,hi(2)+3
+            do i=lo(1)-1,hi(1)+1
+               sedgey(i,j) = (7.d0/12.d0)*(s(i,j-1)+s(i,j)) - (1.d0/12.d0)*(s(i,j-2)+s(i,j+1))
+!c     limit sedgey
+               if ((sedgey(i,j)-s(i,j-1))*(s(i,j)-sedgey(i,j)) .lt. 0.d0) then
+                  D2  = 3.d0*(s(i,j-1)-2.d0*sedgey(i,j)+s(i,j))
+                  D2L = s(i,j-2)-2.d0*s(i,j-1)+s(i,j)
+                  D2R = s(i,j-1)-2.d0*s(i,j)+s(i,j+1)
+                  sgn = sign(1.d0,D2)
+                  D2LIM = sgn*max(min(C*sgn*D2L,C*sgn*D2R,sgn*D2),0.d0)
+                  sedgey(i,j) = 0.5d0*(s(i,j-1)+s(i,j)) - (1.d0/6.d0)*D2LIM
+               end if
+            end do
+         end do
+
+!c     use Colella 2008 limiters
+!c     This is a new version of the algorithm 
+!c     to eliminate sensitivity to roundoff.
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+
+               alphap = sedgey(i,j+1)-s(i,j)
+               alpham = sedgey(i,j  )-s(i,j)
+               bigp = abs(alphap).gt.2.d0*abs(alpham)
+               bigm = abs(alpham).gt.2.d0*abs(alphap)
+               extremum = .false.
+
+               if (alpham*alphap .ge. 0.d0) then
+                  extremum = .true.
+               else if (bigp .or. bigm) then
+!c     Possible extremum. We look at cell centered values and face
+!c     centered values for a change in sign in the differences adjacent to
+!c     the cell. We use the pair of differences whose minimum magnitude is the
+!c     largest, and thus least susceptible to sensitivity to roundoff.
+                  dafacem = sedgey(i,j) - sedgey(i,j-1)
+                  dafacep = sedgey(i,j+2) - sedgey(i,j+1)
+                  dabarm = s(i,j) - s(i,j-1)
+                  dabarp = s(i,j+1) - s(i,j)
+                  dafacemin = min(abs(dafacem),abs(dafacep))
+                  dabarmin= min(abs(dabarm),abs(dabarp))
+                  if (dafacemin.ge.dabarmin) then
+                     dachkm = dafacem
+                     dachkp = dafacep
+                  else
+                     dachkm = dabarm
+                     dachkp = dabarp
+                  endif
+                  extremum = (dachkm*dachkp .le. 0.d0)
+               end if
+
+               if (extremum) then
+                  D2  = 6.d0*(alpham + alphap)
+                  D2L = s(i,j-2)-2.d0*s(i,j-1)+s(i,j)
+                  D2R = s(i,j)-2.d0*s(i,j+1)+s(i,j+2)
+                  D2C = s(i,j-1)-2.d0*s(i,j)+s(i,j+1)
+                  sgn = sign(1.d0,D2)
+                  D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
+                  alpham = alpham*D2LIM/max(abs(D2),1.d-10)
+                  alphap = alphap*D2LIM/max(abs(D2),1.d-10)
+               else
+                  if (bigp) then
+                     sgn = sign(1.d0,alpham)
+                     amax = -alphap**2 / (4*(alpham + alphap))
+                     delam = s(i,j-1) - s(i,j)
+                     if (sgn*amax .ge. sgn*delam) then
+                        if (sgn*(delam - alpham).ge.1.d-10) then
+                           alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
+                        else 
+                           alphap = -2.d0*alpham
+                        endif
+                     endif
+                  end if
+                  if (bigm) then
+                     sgn = sign(1.d0,alphap)
+                     amax = -alpham**2 / (4*(alpham + alphap))
+                     delap = s(i,j+1) - s(i,j)
+                     if (sgn*amax .ge. sgn*delap) then
+                        if (sgn*(delap - alphap).ge.1.d-10) then
+                           alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
+                        else
+                           alpham = -2.d0*alphap
+                        endif
+                     endif
+                  end if
+               end if
+
+               sm(i,j) = s(i,j) + alpham
+               sp(i,j) = s(i,j) + alphap
+
+            end do
+         end do
+
+!c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
+         if (bc(2,1) .eq. EXT_DIR  .or. bc(2,1) .eq. HOEXTRAP) then
+!c     the value in the first c!c ghost cell represents the edge value
+            sm(lo(1)-1:hi(1)+1,lo(2))    = s(lo(1)-1:hi(1)+1,lo(2)-1)
+            sedgey(lo(1)-1:hi(1)+1,lo(2)) = s(lo(1)-1:hi(1)+1,lo(2)-1)
+
+!c     use a modified stencil to get sedgey on the first interior edge
+            sedgey(lo(1)-1:hi(1)+1,lo(2)+1) =&
+                -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,lo(2)-1)&
+                +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,lo(2)  )&
+                +0.5d0        *s(lo(1)-1:hi(1)+1,lo(2)+1)&
+                -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,lo(2)+2)
+
+!c     make sure sedgey lies in between adjacent cell-centered values
+            do i=lo(1)-1,hi(1)+1
+               sedgey(i,lo(2)+1) = max(sedgey(i,lo(2)+1),min(s(i,lo(2)+1),s(i,lo(2))))
+               sedgey(i,lo(2)+1) = min(sedgey(i,lo(2)+1),max(s(i,lo(2)+1),s(i,lo(2))))
+            end do
+
+!c     copy sedgey into sp
+            do i=lo(1)-1,hi(1)+1
+               sp(i,lo(2)  ) = sedgey(i,lo(2)+1)
+            end do
+
+!c     apply Colella 2008 limiters to compute sm and sp in the second
+!c     and third inner cells
+            do j=lo(2)+1,lo(2)+1
+               do i=lo(1)-1,hi(1)+1
+
+                  alphap = sedgey(i,j+1)-s(i,j)
+                  alpham = sedgey(i,j  )-s(i,j)
+                  bigp = abs(alphap).gt.2.d0*abs(alpham)
+                  bigm = abs(alpham).gt.2.d0*abs(alphap)
+                  extremum = .false.
+
+                  if (alpham*alphap .ge. 0.d0) then
+                     extremum = .true.
+                  else if (bigp .or. bigm) then
+!c     Possible extremum. We look at cell centered values and face
+!c     centered values for a change in sign in the differences adjacent to
+!c     the cell. We use the pair of differences whose minimum magnitude is the
+!c     largest, and thus least susceptible to sensitivity to roundoff.
+                     dafacem = sedgey(i,j) - sedgey(i,j-1)
+                     dafacep = sedgey(i,j+2) - sedgey(i,j+1)
+                     dabarm = s(i,j) - s(i,j-1)
+                     dabarp = s(i,j+1) - s(i,j)
+                     dafacemin = min(abs(dafacem),abs(dafacep))
+                     dabarmin= min(abs(dabarm),abs(dabarp))
+                     if (dafacemin.ge.dabarmin) then
+                        dachkm = dafacem
+                        dachkp = dafacep
+                     else
+                        dachkm = dabarm
+                        dachkp = dabarp
+                     endif
+                     extremum = (dachkm*dachkp .le. 0.d0)
+                  end if
+
+                  if (extremum) then
+                     D2  = 6.d0*(alpham + alphap)
+                     D2L = s(i,j-2)-2.d0*s(i,j-1)+s(i,j)
+                     D2R = s(i,j)-2.d0*s(i,j+1)+s(i,j+2)
+                     D2C = s(i,j-1)-2.d0*s(i,j)+s(i,j+1)
+                     sgn = sign(1.d0,D2)
+                     D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
+                     alpham = alpham*D2LIM/max(abs(D2),1.d-10)
+                     alphap = alphap*D2LIM/max(abs(D2),1.d-10)
+                  else
+                     if (bigp) then
+                        sgn = sign(1.d0,alpham)
+                        amax = -alphap**2 / (4*(alpham + alphap))
+                        delam = s(i,j-1) - s(i,j)
+                        if (sgn*amax .ge. sgn*delam) then
+                           if (sgn*(delam - alpham).ge.1.d-10) then
+                              alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
+                           else 
+                              alphap = -2.d0*alpham
+                           endif
+                        endif
+                     end if
+                     if (bigm) then
+                        sgn = sign(1.d0,alphap)
+                        amax = -alpham**2 / (4*(alpham + alphap))
+                        delap = s(i,j+1) - s(i,j)
+                        if (sgn*amax .ge. sgn*delap) then
+                           if (sgn*(delap - alphap).ge.1.d-10) then
+                              alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
+                           else
+                              alpham = -2.d0*alphap
+                           endif
+                        endif
+                     end if
+                  end if
+
+                  sm(i,j) = s(i,j) + alpham
+                  sp(i,j) = s(i,j) + alphap
+
+               end do
+            end do
+         end if
+
+         if (bc(2,2) .eq. EXT_DIR  .or. bc(2,2) .eq. HOEXTRAP) then
+!c     the value in the first c!c ghost cell represents the edge value
+            sp(lo(1)-1:hi(1)+1,hi(2))      = s(lo(1)-1:hi(1)+1,hi(2)+1)
+            sedgey(lo(1)-1:hi(1)+1,hi(2)+1) = s(lo(1)-1:hi(1)+1,hi(2)+1)
+
+!c     use a modified stencil to get sedgey on the first interior edge
+            sedgey(lo(1)-1:hi(1)+1,hi(2)) =&
+                -(1.d0/5.d0)  *s(lo(1)-1:hi(1)+1,hi(2)+1)&
+                +(3.d0/4.d0)  *s(lo(1)-1:hi(1)+1,hi(2)  )&
+                +0.5d0        *s(lo(1)-1:hi(1)+1,hi(2)-1)&
+                -(1.d0/20.0d0)*s(lo(1)-1:hi(1)+1,hi(2)-2)
+
+!c     make sure sedgey lies in between adjacent cell-centered values
+            do i=lo(1)-1,hi(1)+1
+               sedgey(i,hi(2)) = max(sedgey(i,hi(2)),min(s(i,hi(2)-1),s(i,hi(2))))
+               sedgey(i,hi(2)) = min(sedgey(i,hi(2)),max(s(i,hi(2)-1),s(i,hi(2))))
+            end do
+
+!c     copy sedgey into sm
+            do i=lo(1)-1,hi(1)+1
+               sm(i,hi(2)  ) = sedgey(i,hi(2))
+            end do
+
+!c     apply Colella 2008 limiters to compute sm and sp in the second
+!c     and third inner cells
+            do j=hi(2)-2,hi(2)-1
+               do i=lo(1)-1,hi(1)+1
+
+                  alphap = sedgey(i,j+1)-s(i,j)
+                  alpham = sedgey(i,j  )-s(i,j)
+                  bigp = abs(alphap).gt.2.d0*abs(alpham)
+                  bigm = abs(alpham).gt.2.d0*abs(alphap)
+                  extremum = .false.
+
+                  if (alpham*alphap .ge. 0.d0) then
+                     extremum = .true.
+                  else if (bigp .or. bigm) then
+!c     Possible extremum. We look at cell centered values and face
+!c     centered values for a change in sign in the differences adjacent to
+!c     the cell. We use the pair of differences whose minimum magnitude is the
+!c     largest, and thus least susceptible to sensitivity to roundoff.
+                     dafacem = sedgey(i,j) - sedgey(i,j-1)
+                     dafacep = sedgey(i,j+2) - sedgey(i,j+1)
+                     dabarm = s(i,j) - s(i,j-1)
+                     dabarp = s(i,j+1) - s(i,j)
+                     dafacemin = min(abs(dafacem),abs(dafacep))
+                     dabarmin= min(abs(dabarm),abs(dabarp))
+                     if (dafacemin.ge.dabarmin) then
+                        dachkm = dafacem
+                        dachkp = dafacep
+                     else
+                        dachkm = dabarm
+                        dachkp = dabarp
+                     endif
+                     extremum = (dachkm*dachkp .le. 0.d0)
+                  end if
+
+                  if (extremum) then
+                     D2  = 6.d0*(alpham + alphap)
+                     D2L = s(i,j-2)-2.d0*s(i,j-1)+s(i,j)
+                     D2R = s(i,j)-2.d0*s(i,j+1)+s(i,j+2)
+                     D2C = s(i,j-1)-2.d0*s(i,j)+s(i,j+1)
+                     sgn = sign(1.d0,D2)
+                     D2LIM = max(min(sgn*D2,C*sgn*D2L,C*sgn*D2R,C*sgn*D2C),0.d0)
+                     alpham = alpham*D2LIM/max(abs(D2),1.d-10)
+                     alphap = alphap*D2LIM/max(abs(D2),1.d-10)
+                  else
+                     if (bigp) then
+                        sgn = sign(1.d0,alpham)
+                        amax = -alphap**2 / (4*(alpham + alphap))
+                        delam = s(i,j-1) - s(i,j)
+                        if (sgn*amax .ge. sgn*delam) then
+                           if (sgn*(delam - alpham).ge.1.d-10) then
+                              alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
+                           else 
+                              alphap = -2.d0*alpham
+                           endif
+                        endif
+                     end if
+                     if (bigm) then
+                        sgn = sign(1.d0,alphap)
+                        amax = -alpham**2 / (4*(alpham + alphap))
+                        delap = s(i,j+1) - s(i,j)
+                        if (sgn*amax .ge. sgn*delap) then
+                           if (sgn*(delap - alphap).ge.1.d-10) then
+                              alpham = (-2.d0*delap - 2.d0*sgn*sqrt(delap**2 - delap*alphap))
+                           else
+                              alpham = -2.d0*alphap
+                           endif
+                        endif
+                     end if
+                  end if
+
+                  sm(i,j) = s(i,j) + alpham
+                  sp(i,j) = s(i,j) + alphap
+
+               end do
+            end do
+         end if
+
+      end if
+
+!c     compute y-component of Ip and Im
+      do j=lo(2)-1,hi(2)+1
+         do i=lo(1)-1,hi(1)+1
+            sigma = abs(v(i,j))*dt/dx(2)
+            s6 = 6.0d0*s(i,j) - 3.0d0*(sm(i,j)+sp(i,j))
+            if (v(i,j) .gt. eps) then
+               Ipy(i,j) = sp(i,j) - (sigma/2.0d0)*&
+                   (sp(i,j)-sm(i,j)-(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+               Imy(i,j) = s(i,j)
+            else if (v(i,j) .lt. -eps) then
+               Ipy(i,j) = s(i,j)
+               Imy(i,j) = sm(i,j) + (sigma/2.0d0)*&
+                   (sp(i,j)-sm(i,j)+(1.0d0-(2.0d0/3.0d0)*sigma)*s6)
+            else
+               Ipy(i,j) = s(i,j)
+               Imy(i,j) = s(i,j)
+            end if
+         end do
+      end do
+
+    end subroutine ppm_msd
+
+      subroutine transvel(&
+          u, ulo, uhi, sx, ubc, slxscr, Imx, Ipx, sedgex, DIMS(sedgex),&
+          v, vlo, vhi, sy, vbc, slyscr, Imy, Ipy, sedgey, DIMS(sedgey),&
+          DIMS(u), DIMS(work), DIMS(I),&
+          dsvl, DIMS(dsvl), sm, sp, DIMS(smp),&
+          lo,hi,dt,dx,use_minion,tforces,ppm_type) bind(C,name="transvel")
+! c
+! c     This subroutine computes the advective velocities used in
+! c     the transverse derivatives of the Godunov box
+! c
+      implicit none
+      integer i,j
+      integer ubc(SDIM,2),vbc(SDIM,2)
+      integer lo(SDIM),hi(SDIM)
+      integer imin,jmin,imax,jmax
+      REAL_T hx, hy, dt, dth, dthx, dthy,dx(SDIM)
+      REAL_T uad,vad
+      REAL_T eps,eps_for_bc
+      logical ltm
+      parameter( eps        = 1.0D-6 )
+      parameter( eps_for_bc = 1.0D-10 )
+      integer DIMDEC(u)
+      integer DIMDEC(work)
+      integer DIMDEC(I)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(smp)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
+      REAL_T  u(DIMV(u))
+      REAL_T  v(DIMV(u))
+      REAL_T ulo(DIMV(work)),uhi(DIMV(work))
+      REAL_T vlo(DIMV(work)),vhi(DIMV(work))
+      REAL_T sx(DIMV(work))
+      REAL_T sy(DIMV(work))
+      REAL_T slxscr(DIM1(u), 4)
+      REAL_T slyscr(DIM2(u), 4)
+      REAL_T Imx(DIMV(I))
+      REAL_T Ipx(DIMV(I))
+      REAL_T Imy(DIMV(I))
+      REAL_T Ipy(DIMV(I))
+      REAL_T sedgex(DIMV(sedgex))
+      REAL_T sedgey(DIMV(sedgey))
+      REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
+
+      integer use_minion, ppm_type
+      REAL_T tforces(DIMV(work),SDIM)
+
+      dth  = half*dt
+      dthx = half*dt / dx(1)
+      dthy = half*dt / dx(2)
+      hx   = dx(1)
+      hy   = dx(2)
+      imin = lo(1)
+      jmin = lo(2)
+      imax = hi(1)
+      jmax = hi(2)
+
+! c
+! c     --------------------------------------------------------------
+! c     compute the x transverse velocities
+! c     --------------------------------------------------------------
+! c
+      if (ppm_type .gt. 0) then
+         call ppm(u,DIMS(u),u,v,DIMS(u),&
+             Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
+             sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,ubc,&
+             eps_for_bc,ppm_type)
 
       else
-         call slopes(u,u_lo,u_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,lo,hi,&
-              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,ubc)
+         call slopes(u,DIMS(u),&
+             sx,sy,DIMS(work),lo,hi,slxscr,slyscr,ubc)
       end if
          
       if (ppm_type .gt. 0) then
@@ -581,8 +2659,8 @@ contains
         end do
       end if
 
-      call trans_xbc(u,u_lo,u_hi,&
-          ulo,ulo_lo,ulo_hi,uhi,uhi_lo,uhi_hi,ulo,ulo_lo,ulo_hi,lo,hi,XVEL,ubc,eps_for_bc)
+      call trans_xbc(u,DIMS(u),&
+          ulo,uhi,DIMS(work),ulo,DIMS(work),lo,hi,XVEL,ubc,eps_for_bc)
 
       do i = imin,imax+1
          do j = jmin-1,jmax+1
@@ -630,8 +2708,8 @@ contains
          end do
       end if
 
-      call trans_ybc(v,v_lo,v_hi,&
-          vlo,vlo_lo,vlo_hi,vhi,vhi_lo,vhi_hi,vlo,vlo_lo,vlo_hi,lo,hi,YVEL,vbc,eps_for_bc)
+      call trans_ybc(v,DIMS(u),&
+          vlo,vhi,DIMS(work),vlo,DIMS(work),lo,hi,YVEL,vbc,eps_for_bc)
 
       do i = imin-1,imax+1
          do j = jmin,jmax+1
@@ -644,68 +2722,61 @@ contains
 
     end subroutine transvel
 
-      subroutine estate(s,s_lo,s_hi, tf,tf_lo_tf_hi,&
-          u,u_lo,u_hi, xlo,xlo_lo,xlo_hi, xhi,xhi_lo,xhi_hi, sx,sx_lo,sx_hi, uad,uad_lo,uad_hi,&
-          slxscr,slxscr_lo,slxscr_hi, stxlo,stxlo_lo,stxlo_hi, stxhi,stxhi_lo,stxhi_hi,&
-          uedge,uedge_lo,uedge_hi, xstate,xstate_lo,xstate_hi,&
-          Imx,Imx_lo,Imx_hi, Ipx,Ipx_lo,Ipx_hi, sedgex,sedgex_lo,sedge_hi,&
-          v,v_lo,v_hi, ylo,ylo_lo,ylo_hi, yhi,yhi_lo,yhi_hi, sy,sy_lo,sy_hi, vad,vad_lo,vad_hi,&
-          slyscr,slyscr_lo,slyscr_hi, stylo,stylo_lo,stylo_hi, styhi,styhi_lo,styhi_hi,&
+      subroutine estate(s, DIMS(s), tforces, DIMS(tforces),&
+          u, DIMS(u),&
+          xlo, xhi, sx, uad, slxscr, stxlo, stxhi,&
+          uedge, DIMS(uedge), xstate, DIMS(xstate), Imx, Ipx, sedgex, DIMS(sedgex),&
+
+          v, ylo, yhi, sy, vad, slyscr, stylo, styhi,&
           vedge, DIMS(vedge), ystate, DIMS(ystate), Imy, Ipy, sedgey, DIMS(sedgey),&
-          sm,sm_lo,sm_hi, sp,sp_lo,sp_hi,&
+
+          DIMS(work), DIMS(I), dsvl, DIMS(dsvl), sm, sp, DIMS(smp),&
           bc,lo,hi,dt,dx,n,velpred, use_minion, ppm_type) bind(C,name="estate")
 
       implicit none
-
-      integer, intent(in) :: velpred, use_minion, ppm_type, bc(SDIM,2), n
-      real(rt), intent(in) :: dt, dt(SDIM), 
-
-      integer, dimension(2), intent(in) :: s_lo,s_hi,tf_lo,tf_hi,&
-           u_lo,u_hi,xlo_lo,xlo_hi,xhi_lo,xhi_hi,sx_lo,sx_hi,&
-           uad_lo,uad_hi,slxscr_lo,slxscr_hi,stxlo_lo,stxlo_hi,stxhi_lo,stxhi_hi,&
-           uedge_lo,uedge_hi,xstate_lo,xstate_hi,Imx_lo,Imx_hi,Ipx_lo,Ipx_hi,sedgex_lo,sedgex_hi,&
-           v_lo,v_hi,ylo_lo,ylo_hi,yhi_lo,yhi_hi,sy_lo,sy_hi,&
-           vad_lo,vad_hi,slyscr_lo,slyscr_hi,stylo_lo,stylo_hi,styhi_lo,styhi_hi,&
-           vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
-           dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
-
-      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
-      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
-      real(rt), intent(in) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
-      real(rt), intent(in) :: xhi(xhi_lo(1):xhi_hi(1),xhi_lo(2):xhi_hi(2))
-      real(rt), intent(in) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
-      real(rt), intent(in) :: uad(uad_lo(1):uad_hi(1),uad_lo(2):uad_hi(2))
-      real(rt), intent(in) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
-      real(rt), intent(in) :: stxlo(stxlo_lo(1):stxlo_hi(1),stxlo_lo(2):stxlo_hi(2))
-      real(rt), intent(in) :: stxhi(stxhi_lo(1):stxhi_hi(1),stxhi_lo(2):stxhi_hi(2))
-      real(rt), intent(in) :: uedge(uedge_lo(1):uedge_hi(1),uedge_lo(2):uedge_hi(2))
-      real(rt), intent(in) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2))
-      real(rt), intent(in) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
-      real(rt), intent(in) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2))
-      real(rt), intent(in) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
-      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
-      real(rt), intent(in) :: ylo(ylo_lo(1):ylo_hi(1),ylo_lo(2):ylo_hi(2))
-      real(rt), intent(in) :: yhi(yhi_lo(1):yhi_hi(1),yhi_lo(2):yhi_hi(2))
-      real(rt), intent(in) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
-      real(rt), intent(in) :: vad(vad_lo(1):vad_hi(1),vad_lo(2):vad_hi(2))
-      real(rt), intent(in) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
-      real(rt), intent(in) :: stylo(stylo_lo(1):stylo_hi(1),stylo_lo(2):stylo_hi(2))
-      real(rt), intent(in) :: styhi(styhi_lo(1):styhi_hi(1),styhi_lo(2):styhi_hi(2))
-      real(rt), intent(in) :: vedge(vedge_lo(1):vedge_hi(1),vedge_lo(2):vedge_hi(2))
-      real(rt), intent(in) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2))
-      real(rt), intent(in) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
-      real(rt), intent(in) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2))
-      real(rt), intent(in) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2))
-      real(rt), intent(in) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2))
-      real(rt), intent(in) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2))
-
-
-      integer  :: i,j,imin,jmin,imax,jmax, place_to_break
-      real(rt) :: hx, hy, dt, dth, dthx, dthy, dx(SDIM)
-      real(rt) :: tr,stx,sty,fu,fv,eps,eps_for_bc
-      logical  :: ltx,lty
+      integer i,j,n,velpred
+      integer lo(SDIM),hi(SDIM),bc(SDIM,2)
+      integer imin,jmin,imax,jmax
+      REAL_T place_to_break
+      REAL_T hx, hy, dt, dth, dthx, dthy, dx(SDIM)
+      REAL_T tr,stx,sty,fu,fv
+      REAL_T eps,eps_for_bc
+      logical ltx,lty
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )
+
+      integer DIMDEC(s)
+      integer DIMDEC(u)
+      integer DIMDEC(tforces)
+      integer DIMDEC(work)
+      integer DIMDEC(uedge)
+      integer DIMDEC(vedge)
+      integer DIMDEC(xstate)
+      integer DIMDEC(ystate)
+      integer DIMDEC(I)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(smp)
+
+      REAL_T s(DIMV(s))
+      REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
+      REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
+
+      REAL_T u(DIMV(u))
+      REAL_T v(DIMV(u))
+      REAL_T tforces(DIMV(tforces))
+
+      REAL_T uedge(DIMV(uedge)), xstate(DIMV(xstate)), Imx(DIMV(I)), Ipx(DIMV(I)), sedgex(DIMV(sedgex))
+      REAL_T vedge(DIMV(vedge)), ystate(DIMV(ystate)), Imy(DIMV(I)), Ipy(DIMV(I)), sedgey(DIMV(sedgey))
+      REAL_T dsvl(DIMV(dsvl)), sm(DIMV(smp)), sp(DIMV(smp))
+
+      REAL_T xlo(DIMV(work)), xhi(DIMV(work))
+      REAL_T ylo(DIMV(work)), yhi(DIMV(work))
+      REAL_T  sx(DIMV(work)), uad(DIMV(work)) 
+      REAL_T  sy(DIMV(work)), vad(DIMV(work)) 
+
+      integer use_minion, ppm_type
 
       dth  = half*dt
       dthx = half*dt/dx(1)
@@ -759,9 +2830,11 @@ contains
          end do
       end if
 
-      call trans_xbc(s,s_lo,s_hi,&
-          xlo,xlo_lo,xlo_hi,xhi,xhi_lo,xhi_hi,uad,uad_lo,uad_hi,lo,hi,n,bc,eps_for_bc)
-
+      call trans_xbc(&
+          s,DIMS(s),&
+          xlo,xhi,DIMS(work),uad,DIMS(work),&
+          lo,hi,n,bc,eps_for_bc)
+      
       do j = jmin-1,jmax+1
          do i = imin, imax+1
             fu  = merge(zero,one,abs(uad(i,j)).lt.eps)
@@ -795,8 +2868,10 @@ contains
          end do
       end if
 
-      call trans_ybc(s,s_lo,s_hi,&
-          ylo,ylo_lo,ylo_hi,yhi,yhi_lo,yhi_hi,vad,vad_lo,vad_hi,lo,hi,n,bc,eps_for_bc)
+      call trans_ybc(&
+          s,DIMS(s),&
+          ylo,yhi,DIMS(work),vad,DIMS(work),&
+          lo,hi,n,bc,eps_for_bc)
 
       do j = jmin,jmax+1
          do i = imin-1,imax+1
@@ -1159,8 +3234,10 @@ contains
          end if
       end if
 
-      call trans_xbc(s,s_lo,s_hi,&
-          xlo,xlo_lo,xlo_hi,xhi,xhi_lo,xhi_hi,uedge,uedge_lo,uedge_hi,lo,hi,n,bc,eps_for_bc)
+      call trans_xbc(&
+          s,DIMS(s),&
+          xlo,xhi,DIMS(work),uedge,DIMS(uedge),&
+          lo,hi,n,bc,eps_for_bc)
 
       do j = jmin-1,jmax+1
          do i = imin,  imax+1
@@ -1203,8 +3280,10 @@ contains
          end if
       end if
 
-      call trans_ybc(s,s_lo,s_hi,&
-          ylo,ylo_lo,ylo_hi,yhi,yhi_lo,yhi_hi,vedge,vedge_lo,vedge_hi,lo,hi,n,bc,eps_for_bc)
+      call trans_ybc(&
+          s,DIMS(s),&
+          ylo,yhi,DIMS(work),vedge,DIMS(vedge),&
+          lo,hi,n,bc,eps_for_bc)
 
       do j = jmin,  jmax+1
          do i = imin-1,imax+1
@@ -1544,7 +3623,6 @@ contains
 ! c
       implicit none
       integer i,j
-      integer iconserv
       integer imin,jmin,imax,jmax
       integer lo(SDIM),hi(SDIM)
       integer DIMDEC(sync)
@@ -1594,8 +3672,8 @@ contains
     end subroutine sync_adv_forcing
 
       subroutine trans_xbc(&
-          s,s_lo,s_hi,&
-          xlo,xlo_lo,xlo_hi,xhi,xhi_lo,xhi_hi,uad,uad_lo,uad_hi,&
+          s,DIMS(s),&
+          xlo,xhi,DIMS(xx),uad,DIMS(uad),&
           lo,hi,n,xbc,eps)
 ! c
 ! c     This subroutine processes boundary conditions on information
@@ -1604,16 +3682,16 @@ contains
 ! c     transverse derivatives
 ! c
       implicit none
-
-      integer, intent(in) :: n,xbc(SDIM,2)
-      integer, dimension(2), intent(in) :: &
-           s_lo,s_hi,xlo_lo,xlo_hi,xhi_lo,xhi_hi,uad_lo,uad_hi,lo,hi
-
-      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
-      real(rt), intent(in) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
-      real(rt), intent(in) :: xhi(xhi_lo(1):xhi_hi(1),xhi_lo(2):xhi_hi(2))
-      real(rt), intent(in) :: uad(uad_lo(1):uad_hi(1),uad_lo(2):uad_hi(2))
-      real(rt), intent(in) ::  eps
+      integer DIMDEC(s), DIMDEC(xx), DIMDEC(uad)
+      integer n
+      integer lo(SDIM), hi(SDIM)
+      REAL_T stx
+      REAL_T s(DIMV(s))
+      REAL_T xlo(DIMV(xx))
+      REAL_T xhi(DIMV(xx))
+      REAL_T uad(DIMV(uad))
+      REAL_T eps
+      integer xbc(SDIM,2)
       logical ltest
       integer j
       integer imin,jmin,imax,jmax
@@ -1686,8 +3764,8 @@ contains
     end subroutine trans_xbc
 
       subroutine trans_ybc(&
-          s,s_lo,s_hi,&
-          ylo,ylo_lo,ylo_hi,yhi,yhi_lo,yhi_hi,vad,vad_lo,vad_hi,&
+          s,DIMS(s),&
+          ylo,yhi,DIMS(yy),vad,DIMS(vad),&
           lo,hi,n,ybc,eps)
 ! c
 ! c     This subroutine processes boundary conditions on information
@@ -1696,16 +3774,16 @@ contains
 ! c     transverse derivatives
 ! c
       implicit none
-
-      integer, intent(in) :: n,ybc(SDIM,2)
-      integer, dimension(2), intent(in) :: &
-           s_lo,s_hi,ylo_lo,ylo_hi,yhi_lo,yhi_hi,uad_lo,uad_hi,lo,hi
-
-      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
-      real(rt), intent(in) :: ylo(ylo_lo(1):ylo_hi(1),ylo_lo(2):ylo_hi(2))
-      real(rt), intent(in) :: yhi(yhi_lo(1):yhi_hi(1),yhi_lo(2):yhi_hi(2))
-      real(rt), intent(in) :: vad(vad_lo(1):vad_hi(1),vad_lo(2):vad_hi(2))
-      real(rt), intent(in) ::  eps
+      integer DIMDEC(s), DIMDEC(yy), DIMDEC(vad)
+      integer n
+      integer lo(SDIM), hi(SDIM)
+      REAL_T sty
+      REAL_T s(DIMV(s))
+      REAL_T ylo(DIMV(yy))
+      REAL_T yhi(DIMV(yy))
+      REAL_T vad(DIMV(vad))
+      REAL_T eps
+      integer ybc(SDIM,2)
       logical ltest
       integer i
       integer imin,jmin,imax,jmax
@@ -1777,8 +3855,8 @@ contains
 
     end subroutine trans_ybc
 
-      subroutine slopes (s,s_lo,s_hi,slx,slx_lo,slx_hi,sly,sly_lo,sly_hi,lo,hi,&
-              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,bc
+      subroutine slopes (s,DIMS(s),slx,sly,DIMS(sl),&
+          lo,hi,slxscr,slyscr,bc)
 ! c 
 ! c     this subroutine computes first, second or forth order slopes of
 ! c     a 2D scalar field.
@@ -1794,15 +3872,15 @@ contains
 
 #include <GODCOMM_F.H>
 
-      integer, intent(in) :: bc(SDIM,2)
-      integer, dimension(2), intent(in) :: &
-           s_lo,s_hi,slx_lo,slx_hi,sly_lo,sly_hi,lo,hi,&
-           slxscr_lo,slxscr_hi,slyscr_lo,slyscr_hi
-      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
-      real(rt), intent(inout) :: slx(slx_lo(1):slx_hi(1),slx_lo(2):slx_hi(2))
-      real(rt), intent(inout) :: sly(sly_lo(1):sly_hi(1),sly_lo(2):sly_hi(2))
-      real(rt), intent(inout) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
-      real(rt), intent(inout) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      integer DIMDEC(s)
+      integer DIMDEC(sl)
+      REAL_T     s(DIMV(s))
+      REAL_T   slx(DIMV(sl))
+      REAL_T   sly(DIMV(sl))
+      REAL_T slxscr(DIM1(s), 4)
+      REAL_T slyscr(DIM2(s), 4)
 
       integer cen,lim,flag,fromm
       parameter( cen = 1 )
@@ -1812,8 +3890,8 @@ contains
 
       integer imin,jmin,imax,jmax,i,j
       integer ng
-      real(rt) dpls,dmin,ds
-      real(rt) del,slim,sflg
+      REAL_T dpls,dmin,ds
+      REAL_T del,slim,sflg
 
 ! C
 ! C     Determine ng in a way that covers the case of tiling where
@@ -2164,33 +4242,37 @@ contains
 
     end subroutine slopes
 
-      subroutine ppm(s,s_lo,s_hi,u,u_lo,u_hi,v,v_lo,v_hi,&
-           Ipx,Ipx_lo,Ipx_hi,Imx,Imx_lo,Imx_hi,Ipy,Ipy_lo,Ipy_hi,Imy,Imy_lo,Imy_hi,&
-           sm,sm_lo,sm_hi,sp,sp_lo,sp_hi,dsvl,dsvl_lo,dsvl_hi,&
-           sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,ubc,&
-           eps_for_bc,ppm_type)
+      subroutine ppm(s,DIMS(s),u,v,DIMS(u),&
+          Ipx,Imx,Ipy,Imy,DIMS(work),sm,sp,DIMS(smp),dsvl,DIMS(dsvl),&
+          sedgex,DIMS(sedgex),sedgey,DIMS(sedgey),lo,hi,dx,dt,bc,eps,&
+          ppm_type)
 
       implicit none
 
-      integer, intent(in) bc(SDIM,2)
-      integer, dimension(2), intent(in) :: &
-           s_lo,s_hi,u_lo,u_hi,v_lo,v_hi,Ipx_lo,Ipx_hi,Imx_lo,Imx_hi,Ipy_lo,Ipy_hi,Imy_lo,Imy_hi,&
-           sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgex_lo,sedgex_hi,sedgey_lo,sedgey_hi,&
-           lo,hi
-
-      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
-      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
-      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
-      real(rt), intent(inout) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2))
-      real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
-      real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2))
-      real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
-      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2))
-      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2))
-      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2))
-      real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
-      real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2))
-      real(rt), intent(in) :: eps, dx(SDIM), dt
+      integer lo(SDIM), hi(SDIM)
+      integer bc(SDIM,2)
+      integer DIMDEC(s)
+      integer DIMDEC(u)
+      integer DIMDEC(work)
+      integer DIMDEC(smp)
+      integer DIMDEC(dsvl)
+      integer DIMDEC(sedgex)
+      integer DIMDEC(sedgey)
+      REAL_T  s(DIMV(s))
+      REAL_T  u(DIMV(u))
+      REAL_T  v(DIMV(u))
+      REAL_T  Ipx(DIMV(work))
+      REAL_T  Imx(DIMV(work))
+      REAL_T  Ipy(DIMV(work))
+      REAL_T  Imy(DIMV(work))
+      REAL_T   sm(DIMV(smp))
+      REAL_T   sp(DIMV(smp))
+      REAL_T dsvl(DIMV(dsvl))
+      REAL_T sedgex(DIMV(sedgex))
+      REAL_T sedgey(DIMV(sedgey))
+      REAL_T eps
+      REAL_T dx(SDIM)
+      REAL_T dt
       integer ppm_type
 
 !c     local
@@ -2198,9 +4280,9 @@ contains
 
       logical extremum, bigp, bigm
 
-      real(rt) :: dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
-      real(rt) :: sgn, sigma, s6, amax, delam, delap
-      real(rt) :: dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
+      REAL_T dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
+      REAL_T sgn, sigma, s6, amax, delam, delap
+      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
 
 !c     constant used in Colella 2008
       C = 1.25d0
