@@ -55,10 +55,9 @@ contains
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2))
     real(rt), intent(in) :: dt, dx(SDIM)
 
-    integer, dimension(2) :: wklo,wkhi,uwlo,uwhi,vwlo,vwhi,&
-         slxscr_lo,slxscr_hi,slyscr_lo,slyscr_hi,eblo,ebhi,ebxhi,ebyhi,g2lo,g2hi
-    real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx,uad,slxscr
-    real(rt), dimension(:,:), pointer, contiguous :: ylo,yhi,sy,vad,slyscr
+    integer, dimension(2) :: wklo,wkhi,uwlo,uwhi,vwlo,vwhi,eblo,ebhi,ebxhi,ebyhi,g2lo,g2hi
+    real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx,uad
+    real(rt), dimension(:,:), pointer, contiguous :: ylo,yhi,sy,vad
     real(rt), dimension(:,:), pointer, contiguous :: Imx,Ipx,sedgex
     real(rt), dimension(:,:), pointer, contiguous :: Imy,Ipy,sedgey
     real(rt), dimension(:,:), pointer, contiguous :: sm,sp,dsvl
@@ -68,8 +67,6 @@ contains
     ! Works space requirements:
     !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy,    uad,vad - ec(wk)
     !  on g2=grow(bx,2): dsvl
-    !  on (grow(bx,0,2),4): slxscr
-    !  on (grow(bx,1,2),4): slyscr
     !
     !  Grow cells for u,v:
     !  ppm:
@@ -78,17 +75,14 @@ contains
     !    slope_order = 1, need 1 grow cell
     !    slope_order = 2, need 2 grow cells
     !    else , need 3 grow cells
-
     wklo = lo - 1
     wkhi = hi + 1
-
     call amrex_allocate(xlo,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(xhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(sx,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(ylo,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(yhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(sy,wklo(1),wkhi(1),wklo(2),wkhi(2))
-
 
     uwlo = wklo
     uwhi = wkhi
@@ -98,17 +92,6 @@ contains
     vwhi(2) = vwhi(2) + 1
     call amrex_allocate(uad,uwlo(1),uwhi(1),uwlo(2),uwhi(2))
     call amrex_allocate(vad,vwlo(1),vwhi(1),vwlo(2),vwhi(2))
-
-    slxscr_lo = g2lo
-    slxscr_hi = g2hi
-    slxscr_lo(2) = 1
-    slxscr_hi(2) = 4
-    slyscr_lo = g2lo
-    slyscr_hi = g2hi
-    slxscr_lo(2) = 1
-    slxscr_hi(2) = 4
-    call amrex_allocate(slxscr,slxscr_lo(1),slxscr_hi(1),slxscr_lo(2),slxscr_hi(2))
-    call amrex_allocate(slyscr,slyscr_lo(1),slyscr_hi(1),slyscr_lo(2),slyscr_hi(2))
 
     if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
@@ -121,10 +104,8 @@ contains
 
        ebxhi = ebhi
        ebxhi(1) = ebxhi(1) + 1
-
        ebyhi = ebhi
        ebyhi(2) = ebyhi(2) + 1
-
        call amrex_allocate(Imx,wklo(1),wkhi(1),wklo(2),wkhi(2))
        call amrex_allocate(Ipx,wklo(1),wkhi(1),wklo(2),wkhi(2))
        call amrex_allocate(Imy,wklo(1),wkhi(1),wklo(2),wkhi(2))
@@ -133,7 +114,6 @@ contains
        call amrex_allocate(sp,wklo(1),wkhi(1),wklo(2),wkhi(2))
        call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2))
        call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2))
-
        g2lo = lo - 2
        g2hi = hi + 2
        call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2))
@@ -142,11 +122,9 @@ contains
     ! get transverse velocities, (uad,vad)
     call transvel_msd(lo, hi,&
          u,u_lo,u_hi, uad,uwlo,uwhi, xhi,wklo,wkhi, sx,wklo,wkhi,&
-         ubc, slxscr,slxscr_lo,slxscr_hi, Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
-
+         ubc, Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
          v,v_lo,v_hi, vad,vwlo,vwhi, yhi,wklo,wkhi, sy,wklo,wkhi,&
-         vbc, slyscr,slyscr_lo,slyscr_hi, Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
-
+         vbc, Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
          dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi, tfx,tfx_lo,tfx_hi, tfy,tfy_lo,tfy_hi,&
          dt, dx, use_forces_in_trans, ppm_type)
 
@@ -157,7 +135,6 @@ contains
     ! xlo, xhi      (lo/hi wrt face) ec, traced from cc (using u,sx), xlo is "upwinded" (w/uad) at exit
     ! sx,sy          cc slope of s
     ! uad,vad        fc advection vel, used to resolve transverse terms
-    ! slxscr,slyscr  scratch for computing sx,sy
     ! stxlo,stxhi   (cc idx) edge state predicted from s using u,sx & transvere derivatives using (x,y)lo
     ! xstate         fc resolution of stx(lo/hi)  if velpred: based on stxlo+stxhi, else based on uedge
     ! uedge          fc vel used to resolve stx(lo/hi) if !velpred
@@ -168,11 +145,9 @@ contains
     ! get velocity on x-face, predict from cc u
     call estate_msd(u,u_lo,u_hi, tfx,tfx_lo,tfx_hi,&
          u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
-         slxscr,slxscr_lo,slxscr_hi,&
          umac,umac_lo,umac_hi, umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
          v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
-         slyscr,slyscr_lo,slyscr_hi,&
          vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
          dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi,&
@@ -181,11 +156,9 @@ contains
     ! get velocity on y-face, predict from cc v
     call estate_msd(v,v_lo,v_hi, tfy,tfy_lo,tfy_hi,&
          u,u_lo,u_hi, xlo,wklo,wkhi, xhi,wklo,wkhi, sx,wklo,wkhi, uad,uwlo,uwhi,&
-         slxscr,slxscr_lo,slxscr_hi,&
          umac,umac_lo,umac_hi, umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi, Ipx,wklo,wkhi, sedgex,eblo,ebxhi,&
          v,v_lo,v_hi, ylo,wklo,wkhi, yhi,wklo,wkhi, sy,wklo,wkhi, vad,vwlo,vwhi,&
-         slyscr,slyscr_lo,slyscr_hi,&
          vmac,vmac_lo,vmac_hi, vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi, Ipy,wklo,wkhi, sedgey,eblo,ebyhi,&
          dsvl,g2lo,g2hi, sm,wklo,wkhi, sp,wklo,wkhi,&
@@ -194,11 +167,9 @@ contains
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
-    call amrex_deallocate(slxscr)
     call amrex_deallocate(ylo)
     call amrex_deallocate(yhi)
     call amrex_deallocate(sy)
-    call amrex_deallocate(slyscr)
     call amrex_deallocate(dsvl)
     if (ppm_type .gt. 0) then
        call amrex_deallocate(Imx)
@@ -470,10 +441,10 @@ contains
 
       subroutine transvel_msd(lo,hi,&
            u,u_lo,u_hi, ulo,ulo_lo,ulo_hi, uhi,uhi_lo,uhi_hi, sx,sx_lo,sx_hi,&
-           ubc, slxscr,slxscr_lo,slxscr_hi, Imx,Imx_lo,Imx_hi, Ipx,Ipx_lo,Ipx_hi,&
+           ubc, Imx,Imx_lo,Imx_hi, Ipx,Ipx_lo,Ipx_hi,&
            sedgex,sedgex_lo,sedgex_hi,&
            v,v_lo,v_hi, vlo,vlo_lo,vlo_hi, vhi,vhi_lo,vhi_hi, sy,sy_lo,sy_hi,&
-           vbc, slyscr,slyscr_lo,slyscr_hi, Imy,Imy_lo,Imy_hi, Ipy,Ipy_lo,Ipy_hi,&
+           vbc, Imy,Imy_lo,Imy_hi, Ipy,Ipy_lo,Ipy_hi,&
            sedgey,sedgey_lo,sedgey_hi,&
            dsvl,dsvl_lo,dsvl_hi, sm,sm_lo,sm_hi, sp,sp_lo,sp_hi, tfx,tfx_lo,tfx_hi, tfy,tfy_lo,tfy_hi,&
            dt, dx, use_minion, ppm_type)
@@ -485,16 +456,15 @@ contains
       integer, intent(in) ::  ubc(SDIM,2),vbc(SDIM,2), use_minion, ppm_type
       integer, dimension(2), intent(in) :: lo,hi,&
            u_lo,u_hi,ulo_lo,ulo_hi,uhi_lo,uhi_hi,sx_lo,sx_hi,&
-           slxscr_lo,slxscr_hi,Imx_lo,Imx_hi,Ipx_lo,Ipx_hi,sedgex_lo,sedgex_hi,&
+           Imx_lo,Imx_hi,Ipx_lo,Ipx_hi,sedgex_lo,sedgex_hi,&
            v_lo,v_hi,vlo_lo,vlo_hi,vhi_lo,vhi_hi,sy_lo,sy_hi,&
-           slyscr_lo,slyscr_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
+           Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,tfx_lo,tfx_hi,tfy_lo,tfy_hi
 
       real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2)) ! gets floored!
       real(rt), intent(inout) :: ulo(ulo_lo(1):ulo_hi(1),ulo_lo(2):ulo_hi(2))
       real(rt), intent(inout) :: uhi(uhi_lo(1):uhi_hi(1),uhi_lo(2):uhi_hi(2))
       real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
-      real(rt), intent(inout) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
       real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
       real(rt), intent(inout) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2))
       real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
@@ -504,7 +474,6 @@ contains
       real(rt), intent(inout) :: vlo(vlo_lo(1):vlo_hi(1),vlo_lo(2):vlo_hi(2))
       real(rt), intent(inout) :: vhi(vhi_lo(1):vhi_hi(1),vhi_lo(2):vhi_hi(2))
       real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
-      real(rt), intent(inout) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
       real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
       real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2))
       real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2))
@@ -543,8 +512,7 @@ contains
              sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,ubc,&
              eps_for_bc,ppm_type)
       else
-         call slopes_msd(u,u_lo,u_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,lo,hi,&
-              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,ubc)
+         call slopes_msd(lo,hi,u,u_lo,u_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,ubc)
       end if
          
       if (ppm_type .gt. 0) then
@@ -593,8 +561,7 @@ contains
              sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,vbc,&
              eps_for_bc,ppm_type)
       else
-         call slopes_msd(v,v_lo,v_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,lo,hi,&
-              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,vbc)
+         call slopes_msd(lo,hi,v,v_lo,v_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,vbc)
       end if
 
       if (ppm_type .gt. 0) then
@@ -638,11 +605,9 @@ contains
 
       subroutine estate_msd(s,s_lo,s_hi, tf,tf_lo,tf_hi,&
           u,u_lo,u_hi, xlo,xlo_lo,xlo_hi, xhi,xhi_lo,xhi_hi, sx,sx_lo,sx_hi, uad,uad_lo,uad_hi,&
-          slxscr,slxscr_lo,slxscr_hi,&
           uedge,uedge_lo,uedge_hi, xstate,xstate_lo,xstate_hi,&
           Imx,Imx_lo,Imx_hi, Ipx,Ipx_lo,Ipx_hi, sedgex,sedgex_lo,sedgex_hi,&
           v,v_lo,v_hi, ylo,ylo_lo,ylo_hi, yhi,yhi_lo,yhi_hi, sy,sy_lo,sy_hi, vad,vad_lo,vad_hi,&
-          slyscr,slyscr_lo,slyscr_hi,&
           vedge,vedge_lo,vedge_hi, ystate,ystate_lo,ystate_hi,&
           Imy,Imy_lo,Imy_hi, Ipy,Ipy_lo,Ipy_hi, sedgey,sedgey_lo,sedgey_hi,&
           dsvl,dsvl_lo,dsvl_hi, sm,sm_lo,sm_hi, sp,sp_lo,sp_hi,&
@@ -654,11 +619,9 @@ contains
       real(rt), intent(in) :: dt, dx(SDIM)
 
       integer, dimension(2), intent(in) :: s_lo,s_hi,tf_lo,tf_hi,&
-           u_lo,u_hi,xlo_lo,xlo_hi,xhi_lo,xhi_hi,sx_lo,sx_hi,&
-           uad_lo,uad_hi,slxscr_lo,slxscr_hi,&
+           u_lo,u_hi,xlo_lo,xlo_hi,xhi_lo,xhi_hi,sx_lo,sx_hi,uad_lo,uad_hi,&
            uedge_lo,uedge_hi,xstate_lo,xstate_hi,Imx_lo,Imx_hi,Ipx_lo,Ipx_hi,sedgex_lo,sedgex_hi,&
-           v_lo,v_hi,ylo_lo,ylo_hi,yhi_lo,yhi_hi,sy_lo,sy_hi,&
-           vad_lo,vad_hi,slyscr_lo,slyscr_hi,&
+           v_lo,v_hi,ylo_lo,ylo_hi,yhi_lo,yhi_hi,sy_lo,sy_hi,vad_lo,vad_hi,&
            vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
 
@@ -669,7 +632,6 @@ contains
       real(rt), intent(inout) :: xhi(xhi_lo(1):xhi_hi(1),xhi_lo(2):xhi_hi(2))
       real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
       real(rt), intent(in) :: uad(uad_lo(1):uad_hi(1),uad_lo(2):uad_hi(2))
-      real(rt), intent(inout) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
       real(rt), intent(in) :: uedge(uedge_lo(1):uedge_hi(1),uedge_lo(2):uedge_hi(2))
       real(rt), intent(inout) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2))
       real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2))
@@ -680,7 +642,6 @@ contains
       real(rt), intent(inout) :: yhi(yhi_lo(1):yhi_hi(1),yhi_lo(2):yhi_hi(2))
       real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
       real(rt), intent(in) :: vad(vad_lo(1):vad_hi(1),vad_lo(2):vad_hi(2))
-      real(rt), intent(inout) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
       real(rt), intent(in) :: vedge(vedge_lo(1):vedge_hi(1),vedge_lo(2):vedge_hi(2))
       real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2))
       real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2))
@@ -723,8 +684,7 @@ contains
              sedgex,sedgex_lo,sedgex_hi,sedgey,sedgey_lo,sedgey_hi,lo,hi,dx,dt,bc,&
              eps_for_bc,ppm_type)
       else
-         call slopes_msd(s,s_lo,s_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,lo,hi,&
-              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,bc)
+         call slopes_msd(lo,hi,s,s_lo,s_hi,sx,sx_lo,sx_hi,sy,sy_lo,sy_hi,bc)
       end if
 !c
 !c     trace the state to the cell edges
@@ -1218,8 +1178,7 @@ contains
 
     end subroutine trans_ybc_msd
 
-      subroutine slopes_msd (s,s_lo,s_hi,slx,slx_lo,slx_hi,sly,sly_lo,sly_hi,lo,hi,&
-              slxscr,slxscr_lo,slxscr_hi,slyscr,slyscr_lo,slyscr_hi,bc)
+      subroutine slopes_msd (lo,hi,s,s_lo,s_hi,slx,slx_lo,slx_hi,sly,sly_lo,sly_hi,bc)
 ! c 
 ! c     this subroutine computes first, second or forth order slopes of
 ! c     a 2D scalar field.
@@ -1236,14 +1195,12 @@ contains
 #include <GODCOMM_F.H>
 
       integer, intent(in) :: bc(SDIM,2)
-      integer, dimension(2), intent(in) :: &
-           s_lo,s_hi,slx_lo,slx_hi,sly_lo,sly_hi,lo,hi,&
-           slxscr_lo,slxscr_hi,slyscr_lo,slyscr_hi
+      integer, dimension(2), intent(in) :: lo,hi,s_lo,s_hi,slx_lo,slx_hi,sly_lo,sly_hi
       real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2)) ! Applies a floor!
       real(rt), intent(inout) :: slx(slx_lo(1):slx_hi(1),slx_lo(2):slx_hi(2))
       real(rt), intent(inout) :: sly(sly_lo(1):sly_hi(1),sly_lo(2):sly_hi(2))
-      real(rt), intent(inout) :: slxscr(slxscr_lo(1):slxscr_hi(1),slxscr_lo(2):slxscr_hi(2))
-      real(rt), intent(inout) :: slyscr(slyscr_lo(1):slyscr_hi(1),slyscr_lo(2):slyscr_hi(2))
+      real(rt) :: slxscr(lo(1)-2:hi(1)+2,4)
+      real(rt) :: slyscr(lo(2)-2:hi(2)+2,4)
 
       integer cen,lim,flag,fromm
       parameter( cen = 1 )
