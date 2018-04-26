@@ -33,16 +33,16 @@ module godunov_2d_module
   
 contains
 
-  subroutine compute_umac(lo,hi,u,u_lo,u_hi,v,v_lo,v_hi,ubc,vbc,&
-       tfx,tfx_lo,tfx_hi, tfy,tfy_lo,tfy_hi, umac,umac_lo,umac_hi, vmac,vmac_lo,vmac_hi,&
-       dt,dx,use_forces_in_trans,ppm_type)  bind(C,name="compute_umac")
+  subroutine compute_umac(lo,hi,&
+       u,u_lo,u_hi,          v,v_lo,v_hi,ubc,vbc,&
+       tfx,tfx_lo,tfx_hi,    tfy,tfy_lo,tfy_hi,&
+       umac,umac_lo,umac_hi, vmac,vmac_lo,vmac_hi,&
+       dt, dx, use_forces_in_trans, ppm_type)  bind(C,name="compute_umac")
 
     implicit none
-
     integer, intent(in) ::  ubc(SDIM,2),vbc(SDIM,2), use_forces_in_trans, ppm_type
-    integer, dimension(2), intent(in) :: lo,hi,&
-         u_lo,u_hi,v_lo,v_hi,tfx_lo,tfx_hi,tfy_lo,tfy_hi,&
-         umac_lo,umac_hi,vmac_lo,vmac_hi
+    integer, dimension(2), intent(in) :: lo,hi,u_lo,u_hi,v_lo,v_hi,&
+         tfx_lo,tfx_hi,tfy_lo,tfy_hi,umac_lo,umac_hi,vmac_lo,vmac_hi
 
     real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
     real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
