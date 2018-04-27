@@ -172,7 +172,6 @@ contains
     call amrex_deallocate(ylo)
     call amrex_deallocate(yhi)
     call amrex_deallocate(sy)
-    call amrex_deallocate(dsvl)
     if (ppm_type .gt. 0) then
        call amrex_deallocate(Imx)
        call amrex_deallocate(Ipx)
@@ -182,6 +181,7 @@ contains
        call amrex_deallocate(sp)
        call amrex_deallocate(sedgex)
        call amrex_deallocate(sedgey)
+       call amrex_deallocate(dsvl)
     endif
 
   end subroutine compute_umac
