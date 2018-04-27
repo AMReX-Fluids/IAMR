@@ -483,6 +483,7 @@ NavierStokes::predict_velocity (Real  dt,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1);)
 
+#if 0
         godunov->Setup(bx, dx, dt, 1,
                        null_fab, bndry[0].dataPtr(),
                        null_fab, bndry[1].dataPtr(),
@@ -498,6 +499,17 @@ NavierStokes::predict_velocity (Real  dt,
                              u_mac[2][U_mfi], bndry[2].dataPtr(),
 #endif
                              Ufab, tforces);
+#else
+
+        godunov->ExtrapVelToFaces(bx, dx, dt,
+                                  u_mac[0][U_mfi], bndry[0].dataPtr(),
+                                  u_mac[1][U_mfi], bndry[1].dataPtr(),
+#if (BL_SPACEDIM == 3)
+                                  u_mac[2][U_mfi], bndry[2].dataPtr(),
+#endif
+                                  Ufab, tforces);
+
+#endif
     }
 
     Real tempdt = std::min(change_max,cfl/cflmax);
