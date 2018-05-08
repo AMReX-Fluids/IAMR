@@ -1207,7 +1207,7 @@ contains
       integer    l1,l2,l3,h1,h2,h3
       integer    q_l1, q_l2, q_l3, q_h1, q_h2, q_h3
       integer    domlo(SDIM), domhi(SDIM)
-      integer    bc(SDIM,3)
+      integer    bc(SDIM,2)
       REAL_T     xlo(SDIM), dx(SDIM)
       REAL_T     q(q_l1:q_h1,q_l2:q_h2,q_l3:q_h3)
 
