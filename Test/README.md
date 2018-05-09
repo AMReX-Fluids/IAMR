@@ -61,7 +61,10 @@ repositories for the exclusive use of the regression tester.
     git clone git@github.com:AMReX-Codes/IAMR.git ${IAMR_HOME}
     ```
 
-3.  Generate the initial benchmark solutions for all the tests listed
+3.  Edit the paths in the config file,  ${IAMR_HOME}/Test/IAMR-tests.ini, to
+set the AMReX and IAMR scratch clone locations.
+
+4.  Generate the initial benchmark solutions for all the tests listed
 in the .ini configuration file.  Rerunning this at any time will
 overwrite the previous versions of the benchmarks
 
@@ -69,7 +72,7 @@ overwrite the previous versions of the benchmarks
     ${AMREX_REGTEST_HOME}/regtest.py --make_benchmarks "<a useful comment>" ${IAMR_HOME}/Test/IAMR-tests.ini
     ```
 
-4. Upon some trigger event, re-run the tests and format the results in
+5. Upon some trigger event, re-run the tests and format the results in
 html.  In this case, the results will appear as
 TestData/IAMR/www/index.html
 
