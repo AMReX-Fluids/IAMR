@@ -1,58 +1,40 @@
 
 #*******************************************************************************
-# INPUTS.2D.BUBBLE
+# INPUTS.2D.HOTSPOT
 #*******************************************************************************
 
-#godunov.ppm_type=0
-#godunov.slope_order=2
-#godunov.use_forces_in_trans=1
+proj.use_mlmg_solver = 1
 
-#mg.usecg=0
-mg.maxiter=1000
-
-#ns.velocity_plotfile=plt00005
-
-#ns.do_mom_diff=1
-#ns.predict_mom_together=1
-
-proj.v = 1
 ns.do_temp=1
-ns.temp_cond_coef=100
-
-#ns.init_iter=0
-#ns.do_init_proj=0
-
-ns.do_denminmax=0
-ns.variable_vel_visc = 0
-ns.variable_scal_diff = 0
-ns.sum_interval = 0
-
-fabarray.mfiter_tile_size = 8 8 8 
+ns.temp_cond_coef=1.e-8
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 1
+max_step 		= 0
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
+# What to use for the refinement criterion
+ns.do_tracer_ref = 0
+ns.do_density_ref = 0
+ns.do_vorticity_ref = 0
+ns.do_temp_ref = 1
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 16 32 
 amr.n_cell 		= 64 128
-amr.max_grid_size	= 16
+amr.max_grid_size	= 32
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
 #amr.max_level		= 4 # maximum number of levels of refinement
-amr.max_level		= 0 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -82,7 +64,7 @@ amr.check_int		= 10
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 10
+amr.plot_int		= 1
 
 #*******************************************************************************
 
@@ -103,7 +85,7 @@ ns.vel_visc_coef        = 0.001
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.1
+ns.scal_diff_coefs      = 0.001
 
 #*******************************************************************************
 
