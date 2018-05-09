@@ -42,18 +42,16 @@ contains
     use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
 
     implicit none
-    integer, intent(in) ::  ubc(SDIM,2),vbc(SDIM,2), use_forces_in_trans, ppm_type
-    integer, dimension(2), intent(in) :: lo,hi,u_lo,u_hi,&
+    real(rt), intent(in) :: dt, dx(SDIM)
+    integer,  intent(in) ::  ubc(SDIM,2),vbc(SDIM,2), use_forces_in_trans, ppm_type
+    integer,  intent(in), dimension(2) :: lo,hi,u_lo,u_hi,&
          tfx_lo,tfx_hi,tfy_lo,tfy_hi,umac_lo,umac_hi,vmac_lo,vmac_hi
 
-    real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),2) ! gets floored
-
+    real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),2) ! get floored
     real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
+    real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2)) ! result
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2))
-
-    real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
-    real(rt), intent(inout) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2))
-    real(rt), intent(in) :: dt, dx(SDIM)
+    real(rt), intent(inout) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2)) ! result
 
     integer, dimension(2) :: wklo,wkhi,uwlo,uwhi,vwlo,vwhi,eblo,ebhi,ebxhi,ebyhi,g2lo,g2hi
     real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx,uad
@@ -247,12 +245,12 @@ contains
 
     real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
     real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
-    real(rt), intent(inout) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2),nc)
-    real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2),nc)
     real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2))
+    real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
+    real(rt), intent(inout) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2),nc) ! result
+    real(rt), intent(in) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2))
+    real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2),nc) ! result
 
-    real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
-    real(rt), intent(inout) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2))
     real(rt), intent(in) :: dt, dx(SDIM)
 
     integer, dimension(2) :: wklo,wkhi,eblo,ebhi,ebxhi,ebyhi,g2lo,g2hi
@@ -860,7 +858,7 @@ contains
            vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! floored!
+      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
       real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
@@ -1286,7 +1284,7 @@ contains
            vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! floored!
+      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
       real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
