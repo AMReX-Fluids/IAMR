@@ -626,8 +626,10 @@ NavierStokesBase::advance_setup (Real time,
     
     umac_n_grow = 1;
     
+#ifdef AMREX_PARTICLES
     if (ncycle >= 1)
         umac_n_grow = ncycle;
+#endif
         
     mac_projector->setup(level);
     //
