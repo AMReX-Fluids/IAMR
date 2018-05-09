@@ -224,7 +224,7 @@ NavierStokes::initData ()
 // This function ensures that the multifab registers and boundary
 // flux registers needed for syncing the composite grid
 //
-//     u_mac, umacG, Vsync, Ssync, rhoavg, fr_adv, fr_visc
+//     u_mac, Vsync, Ssync, rhoavg, fr_adv, fr_visc
 //
 // are initialized to zero.  In general these quantities
 // along with the pressure sync registers (sync_reg) and
@@ -358,7 +358,7 @@ NavierStokes::advance (Real time,
         //
         // Do a level project to update the pressure and velocity fields.
         //
-        if (projector)
+        if (0 && projector)
             level_projector(dt,time,iteration);
         if (level > 0 && iteration == 1)
            p_avg.setVal(0);
@@ -481,35 +481,12 @@ NavierStokes::predict_velocity (Real  dt,
 
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-               bndry[2] = fetchBCArray(State_Type,bx,2,1);)
-
-#if 0
-        godunov->Setup(bx, dx, dt, 1,
-                       null_fab, bndry[0].dataPtr(),
-                       null_fab, bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                         
-                       null_fab, bndry[2].dataPtr(),
-#endif
-                       Ufab, rho_ptime[U_mfi], tforces);
-
-        godunov->ComputeUmac(bx, dx, dt, 
-                             u_mac[0][U_mfi], bndry[0].dataPtr(),
-                             u_mac[1][U_mfi], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)
-                             u_mac[2][U_mfi], bndry[2].dataPtr(),
-#endif
-                             Ufab, tforces);
-#else
+               bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
         godunov->ExtrapVelToFaces(bx, dx, dt,
-                                  u_mac[0][U_mfi], bndry[0].dataPtr(),
-                                  u_mac[1][U_mfi], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)
-                                  u_mac[2][U_mfi], bndry[2].dataPtr(),
-#endif
+                                  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                                  D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                   Ufab, tforces);
-
-#endif
     }
 
     Real tempdt = std::min(change_max,cfl/cflmax);
@@ -537,7 +514,6 @@ NavierStokes::scalar_advection (Real dt,
     const int   num_scalars    = lscalar - fscalar + 1;
     const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
-    const Real  prev_pres_time = state[Press_Type].prevTime();
     //
     // Get the viscous terms.
     //
@@ -548,9 +524,79 @@ NavierStokes::scalar_advection (Real dt,
     } else {
         visc_terms.setVal(0,1);
     }
+
+#if 1
+    int nGrowF = 1;
+    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
+    MultiFab* dsdt    = getDsdt(nGrowF,prev_time);
+    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nGrowF);
+    
+    delete dsdt;
+
+    MultiFab fluxes[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++) {
+      const BoxArray& ba = getEdgeBoxArray(i);
+      fluxes[i].define(ba, dmap, num_scalars, 0);
+    }
+
+    Vector<int> state_bc;
+    //
+    // Compute the advective forcing.
+    //
+    {
+      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+      FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
+      const MultiFab& Umf=U_fpi.get_mf();
+      const MultiFab& Smf=S_fpi.get_mf();
+      
+#ifdef BOUSSINESQ
+      FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
+      const MultiFab& Scalmf=Scal_fpi.get_mf();
+#endif
+      
+      FArrayBox tforces;
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      {
+	Box bx = U_mfi.tilebox();
+
+#ifdef BOUSSINESQ
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
+#else
+#ifdef GENGETFORCE
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
+#elif MOREGENGETFORCE
+	if (getForceVerbose) {
+	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+			 << " Calling getForce..." << '\n';
+	}
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+#else
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[U_mfi]);
+#endif		 
+#endif		 
+
+        for (int i=0; i<num_scalars; ++i) { // FIXME: Loop here because the function does not take array for conserv_diff flag
+          int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
+          godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
+                                    (*divu_fp)[U_mfi],0,rho_ptime[U_mfi],0,use_conserv_diff);
+        }
+
+        state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+        godunov->AdvectScalars(bx, dx, dt, 
+                               D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
+                               D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                               D_DECL(fluxes[0][U_mfi],fluxes[1][U_mfi],fluxes[2][U_mfi]),
+                               Umf[U_mfi], Smf[U_mfi], fscalar, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
+                               (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
+      }
+    }
+#else
     //
     // Set up the grid loop.
     //
+    const Real  prev_pres_time = state[Press_Type].prevTime();
+    const int use_forces_in_trans = godunov->useForcesInTrans();
+
     FArrayBox flux[BL_SPACEDIM], tforces, tvelforces;
 
     MultiFab Gp, vel_visc_terms, fluxes[BL_SPACEDIM];
@@ -571,8 +617,6 @@ NavierStokes::scalar_advection (Real dt,
             fluxes[i].define(ba, dmap, num_scalars, 0);
         }
     }
-
-    const int use_forces_in_trans = godunov->useForcesInTrans();
 
     if (use_forces_in_trans)
     {
@@ -717,6 +761,7 @@ NavierStokes::scalar_advection (Real dt,
         }
       }
     }
+#endif
 
     delete divu_fp;
 

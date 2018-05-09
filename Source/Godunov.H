@@ -30,18 +30,26 @@ public:      // public access functions
     void ExtrapVelToFaces (const amrex::Box&  box,
                            const amrex_real*  dx,
                            amrex_real         dt,
-                           amrex::FArrayBox&  umac,
-                           const int*         ubc,
-                           amrex::FArrayBox&  vmac,
-                           const int*         vbc, 
-#if (BL_SPACEDIM == 3)
-                           amrex::FArrayBox&  wmac,
-                           const int*         wbc, 
-#endif
+                           D_DECL(      amrex::FArrayBox&  umac,       amrex::FArrayBox&  vmac,       amrex::FArrayBox&  wmac),
+                           D_DECL(const amrex::Vector<int>& ubc, const amrex::Vector<int>& vbc, const amrex::Vector<int>& wbc),
                            amrex::FArrayBox&  U,
                            amrex::FArrayBox&  tforces);
 
-    // set up the Godunov amrex::Box
+    void AdvectScalars(const amrex::Box&  box,
+                       const amrex::Real* dx,
+                       amrex::Real        dt,
+                       D_DECL(const amrex::FArrayBox&   Ax, const amrex::FArrayBox&   Ay, const amrex::FArrayBox&   Az),
+                       D_DECL(const amrex::FArrayBox& umac, const amrex::FArrayBox& vmac, const amrex::FArrayBox& wmac),
+                       D_DECL(      amrex::FArrayBox& xflx,       amrex::FArrayBox& yflx,       amrex::FArrayBox& zflx),
+                       const amrex::FArrayBox& Ufab,
+                       const amrex::FArrayBox& Sfab,   int first_scalar, int num_scalars,
+                       const amrex::FArrayBox& Forces, int fcomp, 
+                       const amrex::FArrayBox& Divu,   int ducomp, 
+                       amrex::FArrayBox& aofs,         int state_ind,
+                       const amrex::Vector<AdvectionForm>& advectionType, const amrex::Vector<int>& state_bc,
+                       AdvectionScheme adv_scheme, const amrex::FArrayBox& V);
+
+    // set up the Godunov box
     void BuildWorkSpace (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt);
 
     void AllocEdgeBoxes (const amrex::Box& grd, D_DECL(amrex::FArrayBox& xflux,
@@ -264,15 +272,6 @@ public:      // public access functions
                  amrex::FArrayBox &Snew,    int start_ind, int num_comp,
                  const amrex::FArrayBox &tforces, int tf_ind,
                  const amrex::Box &grd,     amrex::Real dt ) const;
-
-    // FIXME? it doens't appear this funciton ever gets called...
-    // correct the 1st order RK to 2nd order via
-    // psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
-    void Correct_tf( const amrex::FArrayBox &Sstar, amrex::FArrayBox &Snew,
-                     int start_ind, int num_comp, 
-                     const amrex::FArrayBox &tfstar, const amrex::FArrayBox &tfn,
-                     int tf_ind,
-                     const amrex::Box &grd,     amrex::Real dt ) const;
 
     // compute the update rule
     // psi^n+1 = psi^n - dt*aofs + dt*tforces
