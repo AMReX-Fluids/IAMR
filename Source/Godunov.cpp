@@ -818,13 +818,11 @@ Godunov::ExtrapVelToFaces (const amrex::Box&  box,
 {
   extrap_vel_to_faces(box.loVect(),box.hiVect(),
                       BL_TO_FORTRAN_ANYD(U),
-                      D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-                      D_DECL(BL_TO_FORTRAN_N_ANYD(tforces,0),
-                             BL_TO_FORTRAN_N_ANYD(tforces,1),
-                             BL_TO_FORTRAN_N_ANYD(tforces,2)),
-                      D_DECL(BL_TO_FORTRAN_ANYD(umac),
-                             BL_TO_FORTRAN_ANYD(vmac),
-                             BL_TO_FORTRAN_ANYD(wmac)),
+                      ubc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,0),BL_TO_FORTRAN_ANYD(umac),
+                      vbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,1),BL_TO_FORTRAN_ANYD(vmac),
+#if (AMREX_SPACEDIM == 3)
+                      wbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,2),BL_TO_FORTRAN_ANYD(wmac),
+#endif
                       &dt, dx, &use_forces_in_trans, &ppm_type);
 }
 
@@ -843,6 +841,8 @@ Godunov::AdvectScalars(const Box&  box,
                        const amrex::Vector<AdvectionForm>& advectionType, const amrex::Vector<int>& state_bc,
                        AdvectionScheme adv_scheme, const amrex::FArrayBox& V)
 {
+    AMREX_ASSERT(Sfab.nComp() >= first_scalar + num_scalars);
+
     Vector<int> use_conserv_diff(num_scalars);
     for (int i=0; i<num_scalars; ++i) {
         use_conserv_diff[i] = (advectionType[first_scalar+i] == Conservative) ? 1 : 0;

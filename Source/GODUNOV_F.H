@@ -174,18 +174,14 @@ extern "C"
    void extrap_vel_to_faces(const int* lo, const int* hi,
                             amrex::Real* u_dat, const int* u_lo, const int* u_hi,
                             const int* ubc,
-                            const int* vbc,
-#if (BL_SPACEDIM == 3)
-                            const int* wbc,
-#endif
                             const amrex::Real* tfx_dat, const int* tfx_lo, const int* tfx_hi,
-                            const amrex::Real* tfy_dat, const int* tfy_lo, const int* tfy_hi,
-#if (BL_SPACEDIM == 3)
-                            const amrex::Real* tfz_dat, const int* tfz_lo, const int* tfz_hi,
-#endif
                             amrex::Real*       umac_dat, const int* umac_lo, const int* umac_hi,
+                            const int* vbc,
+                            const amrex::Real* tfy_dat, const int* tfy_lo, const int* tfy_hi,
                             amrex::Real*       vmac_dat, const int* vmac_lo, const int* vmac_hi,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
+                            const int* wbc,
+                            const amrex::Real* tfz_dat, const int* tfz_lo, const int* tfz_hi,
                             amrex::Real*       wmac_dat, const int* wmac_lo, const int* wmac_hi,
 #endif
                             const amrex::Real* dt, const amrex::Real* dx,
@@ -199,7 +195,7 @@ extern "C"
                                amrex::Real* xstate_dat, const int* xstate_lo, const int* xstate_hi,
                                const amrex::Real* v_dat, const int* v_lo, const int* v_hi,
                                amrex::Real* ystate_dat, const int* ystate_lo, const int* ystate_hi,
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                                const amrex::Real* w_dat, const int* w_lo, const int* w_hi,
                                amrex::Real* zstate_dat, const int* zstate_lo, const int* zstate_hi,
 #endif

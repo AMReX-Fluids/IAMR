@@ -34,9 +34,9 @@ module godunov_2d_module
 contains
 
   subroutine extrap_vel_to_faces(lo,hi,&
-       u,u_lo,u_hi,          ubc,vbc,&
-       tfx,tfx_lo,tfx_hi,    tfy,tfy_lo,tfy_hi,&
-       umac,umac_lo,umac_hi, vmac,vmac_lo,vmac_hi,&
+       u,u_lo,u_hi,&
+       ubc, tfx,tfx_lo,tfx_hi, umac,umac_lo,umac_hi,&
+       vbc, tfy,tfy_lo,tfy_hi, vmac,vmac_lo,vmac_hi,&
        dt, dx, use_forces_in_trans, ppm_type)  bind(C,name="extrap_vel_to_faces")
 
     use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
