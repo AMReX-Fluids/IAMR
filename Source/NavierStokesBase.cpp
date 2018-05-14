@@ -1285,7 +1285,7 @@ NavierStokesBase::estTimeStep ()
 	}
 	estdt = std::min(estdt,dt);
     }
-    
+
     ParallelDescriptor::ReduceRealMin(estdt);
 
     if (verbose)

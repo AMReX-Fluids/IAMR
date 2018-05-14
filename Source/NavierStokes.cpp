@@ -292,6 +292,7 @@ NavierStokes::advance (Real time,
     //
     if (do_mom_diff == 0) 
         velocity_advection(dt);
+
     //
     // Advect scalars.
     //
@@ -530,7 +531,6 @@ NavierStokes::scalar_advection (Real dt,
     MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
     MultiFab* dsdt    = getDsdt(nGrowF,prev_time);
     MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nGrowF);
-    
     delete dsdt;
 
     MultiFab fluxes[BL_SPACEDIM];
@@ -539,7 +539,6 @@ NavierStokes::scalar_advection (Real dt,
       fluxes[i].define(ba, dmap, num_scalars, 0);
     }
 
-    Vector<int> state_bc;
     //
     // Compute the advective forcing.
     //
@@ -554,10 +553,11 @@ NavierStokes::scalar_advection (Real dt,
       const MultiFab& Scalmf=Scal_fpi.get_mf();
 #endif
       
+      Vector<int> state_bc;
       FArrayBox tforces;
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
-	Box bx = U_mfi.tilebox();
+	const Box bx = U_mfi.tilebox();
 
 #ifdef BOUSSINESQ
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
@@ -575,21 +575,24 @@ NavierStokes::scalar_advection (Real dt,
 #endif		 
 #endif		 
 
-        for (int i=0; i<num_scalars; ++i) { // FIXME: Loop here because the function does not take array for conserv_diff flag
+        for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
           int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
           godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
                                     (*divu_fp)[U_mfi],0,rho_ptime[U_mfi],0,use_conserv_diff);
         }
 
         state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+
         godunov->AdvectScalars(bx, dx, dt, 
                                D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
                                D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                D_DECL(fluxes[0][U_mfi],fluxes[1][U_mfi],fluxes[2][U_mfi]),
                                Umf[U_mfi], Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
                                (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
+
       }
     }
+
 #else
     //
     // Set up the grid loop.
@@ -724,7 +727,8 @@ NavierStokes::scalar_advection (Real dt,
             int use_conserv_diff = (advectionType[state_ind] == Conservative) ? true : false;
 	    // WARNING: BDS does not work with tiling.
 	    // PRE_MAC and FPU do work with tiling.
-            AdvectionScheme adv_scheme = PRE_MAC;
+            //AdvectionScheme adv_scheme = PRE_MAC;
+            AdvectionScheme adv_scheme = FPU;
 	    
             if (adv_scheme == PRE_MAC)
             {
@@ -752,6 +756,7 @@ NavierStokes::scalar_advection (Real dt,
                                  Ufab,Sfab,tforces,divufab,comp,
                                  aofsfab,state_ind,use_conserv_diff,
                                  state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
+
             if (do_reflux)
             {
 	      for (int d = 0; d < BL_SPACEDIM; d++)

@@ -1353,10 +1353,10 @@ contains
               sy,sy_lo,sy_hi,&
               bc(1,1,L))
       end if
+
 !c
 !c     trace the state to the cell edges
 !c
-
       if (ppm_type .gt. 0) then
          do j = jmin-1,jmax+1
             do i = imin,  imax+1
@@ -1395,7 +1395,7 @@ contains
            xlo,xlo_lo,xlo_hi,&
            xhi,xhi_lo,xhi_hi,&
            uedge,uedge_lo,uedge_hi,&
-           n+L-1, bc, eps_for_bc)
+           n+L-1, bc(1,1,L), eps_for_bc)
 
       do j = jmin-1,jmax+1
          do i = imin,  imax+1
@@ -1443,7 +1443,7 @@ contains
            ylo,ylo_lo,ylo_hi,&
            yhi,yhi_lo,yhi_hi,&
            vedge,vedge_lo,vedge_hi,&
-           n+L-1, bc, eps_for_bc)
+           n+L-1, bc(1,1,L), eps_for_bc)
 
       do j = jmin,  jmax+1
          do i = imin-1,imax+1
@@ -1452,7 +1452,6 @@ contains
             ylo(i,j) = fv*sty + (one - fv)*half*(yhi(i,j)+ylo(i,j))
          end do
       end do
-
 !c
 !c     compute the xedge states
 !c
@@ -1461,7 +1460,7 @@ contains
             do i = imin-1,imax+1
 
                if (iconserv(L).eq.1) then
-
+                  
                   st = -(vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy&
                       + s(i,j,L)*(vedge(i,j+1)-vedge(i,j))/hy&
                       - s(i,j,L)*divu(i,j)
@@ -1553,6 +1552,7 @@ contains
             end do
             place_to_break = 1
       end do
+
 !c
 !c     compute the yedge states
 !c
@@ -1652,7 +1652,7 @@ contains
                    abs(vedge(i,j)).lt.eps)
             end do
             place_to_break = 1
-      end do
+         end do
       end do
 
     end subroutine estate_fpu_msd
