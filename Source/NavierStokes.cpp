@@ -2397,7 +2397,16 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
             fillBox.setRange(d, ecbox.smallEnd(d), ecbox.length(d));
     
     const int isharm = def_harm_avg_cen2edge;
-    cen2edg(fillBox.loVect(), fillBox.hiVect(),
+    // WARNING: HACK HERE
+    // For the tiling of PeleLM, the routine cen2edg now takes
+    // mfi.nodaltilebox(d) to build the edge_box in each direction
+    // otherwise during the tiling process, the last extra edge on one tile will
+    // be computed in the same time as the first edge on the next tile
+    // Below fillBox has been changed by ecbox
+    // This change has been barely tested in IAMR and it seems to be ok,
+    // but maybe much more investigation must be done.
+    
+    cen2edg(ecbox.loVect(), ecbox.hiVect(),
                  ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
                  ccfab.dataPtr(sComp),
                  ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),

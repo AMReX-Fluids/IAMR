@@ -305,14 +305,14 @@ contains
          if (dir .EQ. 0) then
             do n = 1,nc
                do j = lo(2), hi(2)
-                  do i = lo(1)+1, hi(1)
+                  do i = lo(1), hi(1)
                      efab(i,j,n) = half*(cfab(i,j,n) + cfab(i-1,j,n))
                   end do
                end do
             end do
          else
             do n = 1,nc
-               do j = lo(2)+1, hi(2)
+               do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      efab(i,j,n) = half*(cfab(i,j,n) + cfab(i,j-1,n))
                   end do
@@ -323,7 +323,7 @@ contains
          if (dir .EQ. 0) then
             do n = 1,nc
                do j = lo(2), hi(2)
-                  do i = lo(1)+1, hi(1)
+                  do i = lo(1), hi(1)
                      if((cfab(i,j,n) * cfab(i-1,j,n)).gt.zero)then
                         efab(i,j,n)&
                             = 2*(cfab(i,j,n) * cfab(i-1,j,n))/&
@@ -336,7 +336,7 @@ contains
             end do
          else
             do n = 1,nc
-               do j = lo(2)+1, hi(2)
+               do j = lo(2), hi(2)
                   do i = lo(1), hi(1)
                      if((cfab(i,j,n) * cfab(i,j-1,n)).gt.zero)then
                         efab(i,j,n)&
