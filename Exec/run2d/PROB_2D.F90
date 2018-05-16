@@ -81,7 +81,7 @@ contains
                        ,forceInflow, numInflPlanesStore, strmwse_dir, &
                        forceLo, forceHi, flct_file, turb_scale
 #endif
-&
+
 !c
 !c      Build "probin" filename -- the name of file containing fortin namelist.
 !c
@@ -1446,6 +1446,21 @@ contains
                 aerr = max(ax,ay)
                 tag(i,j) = merge(set,tag(i,j),aerr.gt.bubgrad)
              end do
+          end do
+C     ::::: Use appropriate difference formula at lower boundaries
+          j = lo(2)
+          do i = lo(1)+1, hi(1)
+             ax = abs(temperature(i,j,1) - temperature(i-1,j,1))
+             ay = abs(temperature(i,j+1,1) - temperature(i,j,1))
+             aerr = max(ax,ay)
+             tag(i,j) = merge(set,tag(i,j),aerr.gt.bubgrad)
+          end do
+          i = lo(1)
+          do j = lo(2)+1, hi(2)
+             ax = abs(temperature(i+1,j,1) - temperature(i,j,1))
+             ay = abs(temperature(i,j,1) - temperature(i,j-1,1))
+             aerr = max(ax,ay)
+             tag(i,j) = merge(set,tag(i,j),aerr.gt.bubgrad)
           end do
         end if
 

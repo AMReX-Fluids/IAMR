@@ -3,45 +3,22 @@
 # INPUTS.2D.HOTSPOT
 #*******************************************************************************
 
-#godunov.ppm_type=0
-#godunov.slope_order=2
-#godunov.use_forces_in_trans=1
-
-#mg.usecg=1
-#mg.maxiter=1000
-#mg.v = 1
 proj.use_mlmg_solver = 1
-
-#ns.velocity_plotfile=plt00005
-
-#ns.do_mom_diff=1
-#ns.predict_mom_together=1
-
-#proj.v = 1
 
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
-#ns.init_iter=0
-#ns.do_init_proj=0
-
-ns.do_denminmax=0
-ns.variable_vel_visc = 0
-ns.variable_scal_diff = 0
-ns.sum_interval = 0
-
-#fabarray.mfiter_tile_size = 8 8 8 
-
+#fabarray.mfiter_tile_size = 8 8 8
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 10
+max_step 		= 0
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# Use the tracer for the refinement criterion
+# What to use for the refinement criterion
 ns.do_tracer_ref = 0
 ns.do_density_ref = 0
 ns.do_vorticity_ref = 0
@@ -88,7 +65,7 @@ amr.check_int		= 10
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 5
+amr.plot_int		= 1
 
 #*******************************************************************************
 
