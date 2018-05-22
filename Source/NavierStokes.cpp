@@ -534,9 +534,11 @@ NavierStokes::scalar_advection (Real dt,
     delete dsdt;
 
     MultiFab fluxes[BL_SPACEDIM];
+    MultiFab edgstate[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
       const BoxArray& ba = getEdgeBoxArray(i);
       fluxes[i].define(ba, dmap, num_scalars, 0);
+      edgstate[i].define(ba, dmap, num_scalars, 0);
     }
 
     //
@@ -587,7 +589,8 @@ NavierStokes::scalar_advection (Real dt,
                                D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
                                D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                D_DECL(fluxes[0][U_mfi],fluxes[1][U_mfi],fluxes[2][U_mfi]),
-                               Umf[U_mfi], Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
+                               D_DECL(edgstate[0][U_mfi],edgstate[1][U_mfi],edgstate[2][U_mfi]),
+                               Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
                                (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
 
       }

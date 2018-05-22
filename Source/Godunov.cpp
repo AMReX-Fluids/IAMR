@@ -836,7 +836,7 @@ Godunov::AdvectScalars(const Box&  box,
                        D_DECL(const FArrayBox&   Ax, const FArrayBox&   Ay, const FArrayBox&   Az),
                        D_DECL(const FArrayBox& umac, const FArrayBox& vmac, const FArrayBox& wmac),
                        D_DECL(      FArrayBox& xflx,       FArrayBox& yflx,       FArrayBox& zflx),
-                       const FArrayBox& Ufab,
+                       D_DECL(      FArrayBox& xstate,     FArrayBox& ystate,     FArrayBox& zstate),
                        const FArrayBox& Sfab,   int first_scalar, int num_scalars,
                        const FArrayBox& Forces, int fcomp, 
                        const FArrayBox& Divu,   int ducomp, 
@@ -857,13 +857,21 @@ Godunov::AdvectScalars(const Box&  box,
                           BL_TO_FORTRAN_N_ANYD(Sfab,first_scalar), &num_scalars,
                           BL_TO_FORTRAN_N_ANYD(Forces,fcomp),
                           BL_TO_FORTRAN_N_ANYD(Divu,ducomp),
-                          BL_TO_FORTRAN_ANYD(umac),     BL_TO_FORTRAN_ANYD(xflx),
-                          BL_TO_FORTRAN_ANYD(vmac),     BL_TO_FORTRAN_ANYD(yflx),
+                          BL_TO_FORTRAN_ANYD(umac),     BL_TO_FORTRAN_ANYD(xstate),
+                          BL_TO_FORTRAN_ANYD(vmac),     BL_TO_FORTRAN_ANYD(ystate),
 #if (AMREX_SPACEDIM == 3)
-                          BL_TO_FORTRAN_ANYD(wmac),     BL_TO_FORTRAN_ANYD(zflx),
+                          BL_TO_FORTRAN_ANYD(wmac),     BL_TO_FORTRAN_ANYD(zstate),
 #endif
                           &dt, dx, &(state_bc[0]), &state_fidx, 
                           &use_forces_in_trans, &ppm_type, &(use_conserv_diff[0]));
+
+    // ComputeAofs erase the edge state values to write the fluxes
+    // So here we make a copy to keep separated fluxes and edge state
+    xflx.copy(xstate);
+    yflx.copy(ystate);
+#if (AMREX_SPACEDIM == 3)
+    zflx.copy(zstate);
+#endif
 
     // Convert face states to face fluxes (return in place) and compute flux divergence
     for (int i=0; i<num_scalars; ++i) { // FIXME: Loop required because conserv_diff flag only scalar

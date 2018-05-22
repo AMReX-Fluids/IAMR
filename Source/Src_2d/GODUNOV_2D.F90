@@ -1544,7 +1544,7 @@ contains
                stxlo(imax+1) = 0.d0
                stxhi(imax+1) = 0.d0
             end if
-            
+
             do i = imin, imax+1
                xstate(i,j,L) = merge(stxlo(i),stxhi(i),uedge(i,j) .ge. 0.0d0)
                xstate(i,j,L) = merge(half*(stxlo(i)+stxhi(i)),xstate(i,j,L)&
