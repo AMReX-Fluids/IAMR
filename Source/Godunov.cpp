@@ -333,7 +333,7 @@ Godunov::Setup (const Box& grd, const Real* dx, Real dt, int velpred,
                 const FArrayBox& tforces, int Tcomp)
 {
     BuildWorkSpace(grd,dx,dt);
-//Print() << "In Setup grd: " << grd << "work_bx:  " << work_bx << std::endl;
+
     if (!velpred)
         AllocEdgeBoxes(grd,D_DECL(xflux,yflux,zflux));
 

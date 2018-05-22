@@ -351,7 +351,7 @@ contains
 
   end subroutine extrap_state_to_faces
 
-      subroutine fort_estdt (&
+  subroutine fort_estdt (&
           vel,DIMS(vel),&
           tforces,DIMS(tf),&
           rho,DIMS(rho),&
@@ -424,7 +424,7 @@ contains
 
     end subroutine fort_estdt
 
-      subroutine fort_maxchng_velmag (&
+    subroutine fort_maxchng_velmag (&
           old_vel,DIMS(old_vel),&
           new_vel,DIMS(new_vel),&
           lo,hi,max_change) bind(C,name="fort_maxchng_velmag")
@@ -459,7 +459,7 @@ contains
 
     end subroutine fort_maxchng_velmag
 
-      subroutine fort_test_u_rho(&
+    subroutine fort_test_u_rho(&
           u,DIMS(u),&
           v,DIMS(v),&
           rho,DIMS(rho),&
