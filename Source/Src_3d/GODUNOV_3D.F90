@@ -56,7 +56,7 @@ contains
                                           umac_lo, umac_hi, vmac_lo, vmac_hi, wmac_lo, wmac_hi
 
     real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),u_lo(3):u_hi(3),3) ! get floored
-    real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
+    real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2),tfx_lo(3):tfx_hi(3))
     real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2),umac_lo(3):umac_hi(3)) ! result
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2),tfy_lo(3):tfy_hi(3))
     real(rt), intent(inout) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2),vmac_lo(3):vmac_hi(3)) ! result
@@ -65,15 +65,20 @@ contains
 
     integer, dimension(3) :: wklo,wkhi,uwlo,uwhi,vwlo,vwhi,wwlo,wwhi, &
                              eblo,ebhi,ebxhi,ebyhi,ebzhi,g2lo,g2hi
-    real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx,uad
-    real(rt), dimension(:,:), pointer, contiguous :: ylo,yhi,sy,vad
-    real(rt), dimension(:,:), pointer, contiguous :: Imx,Ipx,sedgex
-    real(rt), dimension(:,:), pointer, contiguous :: Imy,Ipy,sedgey
-    real(rt), dimension(:,:), pointer, contiguous :: Imz,Ipz,sedgez
-    real(rt), dimension(:,:), pointer, contiguous :: sm,sp,dsvl
-    integer velpred
+    real(rt), dimension(:,:,:), pointer, contiguous :: xlo,xhi,sx,xedge,uad
+    real(rt), dimension(:,:,:), pointer, contiguous :: ylo,yhi,sy,yedge,vad
+    real(rt), dimension(:,:,:), pointer, contiguous :: zlo,zhi,sz,zedge,wad
+    real(rt), dimension(:,:,:), pointer, contiguous :: Imx,Ipx,sedgex
+    real(rt), dimension(:,:,:), pointer, contiguous :: Imy,Ipy,sedgey
+    real(rt), dimension(:,:,:), pointer, contiguous :: Imz,Ipz,sedgez
+    real(rt), dimension(:,:,:), pointer, contiguous :: sm,sp,dsvl
+    real(rt), dimension(:,:,:), pointer, contiguous :: xylo,xzlo,yxlo,yzlo,zxlo,zylo
+    real(rt), dimension(:,:,:), pointer, contiguous :: xyhi,xzhi,yxhi,yzhi,zxhi,zyhi
+    integer velpred, corner_couple
     parameter( velpred = 1 )
-
+    
+    corner_couple = 1
+    
     ! Works space requirements:
     !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy,    uad,vad - ec(wk)
     !  on g2=grow(bx,2): dsvl
@@ -101,6 +106,20 @@ contains
     call amrex_allocate(zhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(sz, wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zedge,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    
+    call amrex_allocate(xylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(xzlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(yxlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(yzlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(zxlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(zylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    
+    call amrex_allocate(xyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(xzhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(yxhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(yzhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(zxhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(zyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))    
 
     uwlo = wklo
     uwhi = wkhi
@@ -163,7 +182,7 @@ contains
     ! These face-centered arrays for each direction, dir, are needed on surroundingNodes(gBox(lo,hi),dir), where
     ! gBox is Box(lo,hi) grown in all directions but dir.
     call transvel_msd(lo, hi,&
-         u(u_lo(1),u_lo(2),1),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),1),u_lo,u_hi,&
          uad,uwlo,uwhi,&
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
@@ -171,7 +190,7 @@ contains
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
          sedgex,eblo,ebxhi,&
-         u(u_lo(1),u_lo(2),2),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),2),u_lo,u_hi,&
          vad,vwlo,vwhi,&
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
@@ -179,9 +198,9 @@ contains
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
          sedgey,eblo,ebyhi,&
-         u(u_lo(1),u_lo(2),3),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),3),u_lo,u_hi,&
          wad,wwlo,wwhi,&
-         whi,wklo,wkhi,&
+         zhi,wklo,wkhi,&
          sz,wklo,wkhi,&
          wbc,&
          Imz,wklo,wkhi,&
@@ -200,9 +219,9 @@ contains
 
     ! get velocity on x-face, predict from cc u (because velpred=1 && n=XVEL, only predicts to xfaces)
     call estate_premac_msd(lo,hi,&
-         u(u_lo(1),u_lo(2),1),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),1),u_lo,u_hi,&
          tfx,tfx_lo,tfx_hi,&
-         u(u_lo(1),u_lo(2),1),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),1),u_lo,u_hi,&
          xlo,wklo,wkhi,&
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
@@ -213,7 +232,7 @@ contains
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
          sedgex,eblo,ebxhi,&
-         u(u_lo(1),u_lo(2),2),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),2),u_lo,u_hi,&
          ylo,wklo,wkhi,&
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
@@ -224,7 +243,7 @@ contains
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
          sedgey,eblo,ebyhi,&
-         u(u_lo(1),u_lo(2),3),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),3),u_lo,u_hi,&
          zlo,wklo,wkhi,&
          zhi,wklo,wkhi,&
          sz,wklo,wkhi,&
@@ -238,13 +257,26 @@ contains
          dsvl,g2lo,g2hi,&
          sm,wklo,wkhi,&
          sp,wklo,wkhi,&
+         xylo,wklo,wkhi,&
+         xzlo,wklo,wkhi,&
+         yxlo,wklo,wkhi,&
+         yzlo,wklo,wkhi,&
+         zxlo,wklo,wkhi,&
+         zylo,wklo,wkhi,&
+         xyhi,wklo,wkhi,&
+         xzhi,wklo,wkhi,&
+         yxhi,wklo,wkhi,&
+         yzhi,wklo,wkhi,&
+         zxhi,wklo,wkhi,&
+         zyhi,wklo,wkhi,&
+         corner_couple,&
          ubc, dt, dx, XVEL, 1, velpred, use_forces_in_trans, ppm_type)
 
     ! get velocity on y-face, predict from cc v (because velpred=1 && n=YVEL, only predicts to yfaces)
     call estate_premac_msd(lo,hi,&
-         u(u_lo(1),u_lo(2),2),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),2),u_lo,u_hi,&
          tfy,tfy_lo,tfy_hi,&
-         u(u_lo(1),u_lo(2),1),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),1),u_lo,u_hi,&
          xlo,wklo,wkhi,&
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
@@ -255,7 +287,7 @@ contains
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
          sedgex,eblo,ebxhi,&
-         u(u_lo(1),u_lo(2),2),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),2),u_lo,u_hi,&
          ylo,wklo,wkhi,&
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
@@ -266,7 +298,7 @@ contains
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
          sedgey,eblo,ebyhi,&
-         u(u_lo(1),u_lo(2),3),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),3),u_lo,u_hi,&
          zlo,wklo,wkhi,&
          zhi,wklo,wkhi,&
          sz,wklo,wkhi,&
@@ -292,37 +324,41 @@ contains
          yzhi,wklo,wkhi,&
          zxhi,wklo,wkhi,&
          zyhi,wklo,wkhi,&
+         corner_couple,&
          vbc, dt, dx, YVEL, 1, velpred, use_forces_in_trans, ppm_type)
 
    ! get velocity on z-face, predict from cc w (because velpred=1 && n=ZVEL, only predicts to zfaces)
     call estate_premac_msd(lo,hi,&
-         u(u_lo(1),u_lo(2),2),u_lo,u_hi,&
-         tfy,tfy_lo,tfy_hi,&
-         u(u_lo(1),u_lo(2),1),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),3),u_lo,u_hi,&
+         tfz,tfz_lo,tfz_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),1),u_lo,u_hi,&
          xlo,wklo,wkhi,&
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
+         xedge,wklo,wkhi,&
          umac,umac_lo,umac_hi,&
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
          sedgex,eblo,ebxhi,&
-         u(u_lo(1),u_lo(2),2),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),2),u_lo,u_hi,&
          ylo,wklo,wkhi,&
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
+         yedge,wklo,wkhi,&
          vmac,vmac_lo,vmac_hi,&
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
          sedgey,eblo,ebyhi,&
-         u(u_lo(1),u_lo(2),3),u_lo,u_hi,&
+         u(u_lo(1),u_lo(2),u_lo(3),3),u_lo,u_hi,&
          zlo,wklo,wkhi,&
          zhi,wklo,wkhi,&
          sz,wklo,wkhi,&
          wad,wwlo,wwhi,&
+         zedge,wklo,wkhi,&
          wmac,wmac_lo,wmac_hi,&
          wmac,wmac_lo,wmac_hi,&
          Imz,wklo,wkhi,&
@@ -343,6 +379,7 @@ contains
          yzhi,wklo,wkhi,&
          zxhi,wklo,wkhi,&
          zyhi,wklo,wkhi,&
+         corner_couple,&
          wbc, dt, dx, ZVEL, 1, velpred, use_forces_in_trans, ppm_type)
 
     call amrex_deallocate(xlo)
@@ -375,156 +412,156 @@ contains
   end subroutine extrap_vel_to_faces
 
 
-  !subroutine extrap_state_to_faces(lo,hi,&
-  !     s,s_lo,s_hi,nc,              tf, tf_lo,tf_hi,              divu,divu_lo,divu_hi,&
-  !     umac,umac_lo,umac_hi,        xstate,xstate_lo,xstate_hi,&
-  !     vmac,vmac_lo,vmac_hi,        ystate,ystate_lo,ystate_hi,&
-  !     wmac,wmac_lo,wmac_hi,        zstate,zstate_lo,zstate_hi,&
-  !     dt, dx, bc, state_ind, use_forces_in_trans, ppm_type, iconserv)  bind(C,name="extrap_state_to_faces")
-  !
-  !  use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
-  !
-  !  implicit none
-  !  integer, intent(in) ::  nc, bc(SDIM,2,nc), state_ind, use_forces_in_trans, ppm_type, iconserv(nc)
-  !  integer, dimension(2), intent(in) :: lo,hi,s_lo,s_hi,tf_lo,tf_hi,&
-  !                            divu_lo,divu_hi,xstate_lo,xstate_hi,ystate_lo,ystate_hi,zstate_lo,zstate_hi, &
-  !                            umac_lo,umac_hi,vmac_lo,vmac_hi,wmac_lo,wmac_hi
-  !
-  !  real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc) ! gets floored
-  !  real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),tf_lo(3):tf_hi(3),nc)
-  !  real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2),divu_lo(3):divu_hi(3))
-  !  real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2),umac_lo(3):umac_hi(3))
-  !  real(rt), intent(inout) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2),xstate_lo(3):xstate_hi(3),nc) ! result
-  !  real(rt), intent(in) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2),vmac_lo(3):vmac_hi(3))
-  !  real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2),ystate_lo(3):ystate_hi(3),nc) ! result
-  !  real(rt), intent(in) :: wmac(wmac_lo(1):wmac_hi(1),wmac_lo(2):wmac_hi(2),wmac_lo(3):wmac_hi(3))
-  !  real(rt), intent(inout) :: zstate(zstate_lo(1):zstate_hi(1),zstate_lo(2):zstate_hi(2),zstate_lo(3):zstate_hi(3),nc) ! result
-  !
-  !
-  !  real(rt), intent(in) :: dt, dx(SDIM)
-  !
-  !  integer, dimension(3) :: wklo,wkhi,eblo,ebhi,ebxhi,ebyhi,ebzhi,g2lo,g2hi
-  !  real(rt), dimension(:,:), pointer, contiguous :: xlo,xhi,sx
-  !  real(rt), dimension(:,:), pointer, contiguous :: ylo,yhi,sy
-  !  real(rt), dimension(:,:), pointer, contiguous :: zlo,zhi,sz
-  !  real(rt), dimension(:,:), pointer, contiguous :: Imx,Ipx,sedgex
-  !  real(rt), dimension(:,:), pointer, contiguous :: Imy,Ipy,sedgey
-  !  real(rt), dimension(:,:), pointer, contiguous :: Imz,Ipz,sedgez
-  !  real(rt), dimension(:,:), pointer, contiguous :: sm,sp,dsvl
-  !
-  !  ! Works space requirements:
-  !  !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy
-  !  !  on g2=grow(bx,2): dsvl
-  !  !
-  !  !  Grow cells for s:
-  !  !  ppm:
-  !  !    ppm=1 or 2, need 3 grow cells
-  !  !  else:
-  !  !    slope_order = 1, need 1 grow cell
-  !  !    slope_order = 2, need 2 grow cells
-  !  !    else , need 3 grow cells
-  !  wklo = lo - 1
-  !  wkhi = hi + 1
-  !  call amrex_allocate(xlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(xhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(sx,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(ylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(yhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(sy,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(zlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(zhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !  call amrex_allocate(sz,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !
-  !
-  !  if (ppm_type .gt. 0) then
-  !     if (ppm_type .eq. 2) then
-  !        eblo = lo - 2
-  !        ebhi = hi + 2
-  !     else
-  !        eblo = lo - 1
-  !        ebhi = hi + 1
-  !     endif
-  !
-  !     ebxhi = ebhi
-  !     ebxhi(1) = ebxhi(1) + 1
-  !     ebyhi = ebhi
-  !     ebyhi(2) = ebyhi(2) + 1
-  !     ebzhi = ebhi
-  !     ebzhi(2) = ebzhi(2) + 1
-  !     call amrex_allocate(Imx,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(Ipx,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(Imy,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(Ipy,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(Imz,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(Ipz,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(sm,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(sp,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  !     call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2),eblo(3),ebxhi(3))
-  !     call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2),eblo(3),ebyhi(3))
-  !     call amrex_allocate(sedgez,eblo(1),ebzhi(1),eblo(2),ebzhi(2),eblo(3),ebzhi(3))
-  !     g2lo = lo - 2
-  !     g2hi = hi + 2
-  !     call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2),g2lo(3),g2hi(3))
-  !  endif
-  !
-  !  call estate_fpu_msd(lo,hi,&
-  !       s,s_lo,s_hi,&
-  !       tf,tf_lo,tf_hi,&
-  !       divu,divu_lo,divu_hi,&
-  !       xlo,wklo,wkhi,&
-  !       xhi,wklo,wkhi,&
-  !       sx,wklo,wkhi,&
-  !       umac,umac_lo,umac_hi,&
-  !       xstate,xstate_lo,xstate_hi,&
-  !       Imx,wklo,wkhi,&
-  !       Ipx,wklo,wkhi,&
-  !       sedgex,eblo,ebxhi,&
-  !       ylo,wklo,wkhi,&
-  !       yhi,wklo,wkhi,&
-  !       sy,wklo,wkhi,&
-  !       vmac,vmac_lo,vmac_hi,&
-  !       ystate,ystate_lo,ystate_hi,&
-  !       Imy,wklo,wkhi,&
-  !       Ipy,wklo,wkhi,&
-  !       sedgey,eblo,ebyhi,&
-  !       zlo,wklo,wkhi,&
-  !       zhi,wklo,wkhi,&
-  !       sz,wklo,wkhi,&
-  !       wmac,wmac_lo,wmac_hi,&
-  !       zstate,zstate_lo,zstate_hi,&
-  !       Imz,wklo,wkhi,&
-  !       Ipz,wklo,wkhi,&
-  !       sedgez,eblo,ebzhi,&
-  !       dsvl,g2lo,g2hi,&
-  !       sm,wklo,wkhi,&
-  !       sp,wklo,wkhi,&
-  !       bc, dt, dx, state_ind, nc, use_forces_in_trans, iconserv, ppm_type)
-  !
-  !  call amrex_deallocate(xlo)
-  !  call amrex_deallocate(xhi)
-  !  call amrex_deallocate(sx)
-  !  call amrex_deallocate(ylo)
-  !  call amrex_deallocate(yhi)
-  !  call amrex_deallocate(sy)
-  !  call amrex_deallocate(zlo)
-  !  call amrex_deallocate(zhi)
-  !  call amrex_deallocate(sz)
-  !  if (ppm_type .gt. 0) then
-  !     call amrex_deallocate(Imx)
-  !     call amrex_deallocate(Ipx)
-  !     call amrex_deallocate(Imy)
-  !     call amrex_deallocate(Ipy)
-  !     call amrex_deallocate(Imz)
-  !     call amrex_deallocate(Ipz)
-  !     call amrex_deallocate(sm)
-  !     call amrex_deallocate(sp)
-  !     call amrex_deallocate(sedgex)
-  !     call amrex_deallocate(sedgey)
-  !     call amrex_deallocate(sedgez)
-  !     call amrex_deallocate(dsvl)
-  !  endif
-  !
-  !end subroutine extrap_state_to_faces
+  subroutine extrap_state_to_faces(lo,hi,&
+       s,s_lo,s_hi,nc,              tf, tf_lo,tf_hi,              divu,divu_lo,divu_hi,&
+       umac,umac_lo,umac_hi,        xstate,xstate_lo,xstate_hi,&
+       vmac,vmac_lo,vmac_hi,        ystate,ystate_lo,ystate_hi,&
+       wmac,wmac_lo,wmac_hi,        zstate,zstate_lo,zstate_hi,&
+       dt, dx, bc, state_ind, use_forces_in_trans, ppm_type, iconserv)  bind(C,name="extrap_state_to_faces")
+  
+    use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
+  
+    implicit none
+    integer, intent(in) ::  nc, bc(SDIM,2,nc), state_ind, use_forces_in_trans, ppm_type, iconserv(nc)
+    integer, dimension(3), intent(in) :: lo,hi,s_lo,s_hi,tf_lo,tf_hi,&
+                              divu_lo,divu_hi,xstate_lo,xstate_hi,ystate_lo,ystate_hi,zstate_lo,zstate_hi, &
+                              umac_lo,umac_hi,vmac_lo,vmac_hi,wmac_lo,wmac_hi
+  
+    real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc) ! gets floored
+    real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),tf_lo(3):tf_hi(3),nc)
+    real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2),divu_lo(3):divu_hi(3))
+    real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2),umac_lo(3):umac_hi(3))
+    real(rt), intent(inout) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2),xstate_lo(3):xstate_hi(3),nc) ! result
+    real(rt), intent(in) :: vmac(vmac_lo(1):vmac_hi(1),vmac_lo(2):vmac_hi(2),vmac_lo(3):vmac_hi(3))
+    real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2),ystate_lo(3):ystate_hi(3),nc) ! result
+    real(rt), intent(in) :: wmac(wmac_lo(1):wmac_hi(1),wmac_lo(2):wmac_hi(2),wmac_lo(3):wmac_hi(3))
+    real(rt), intent(inout) :: zstate(zstate_lo(1):zstate_hi(1),zstate_lo(2):zstate_hi(2),zstate_lo(3):zstate_hi(3),nc) ! result
+  
+  
+    real(rt), intent(in) :: dt, dx(SDIM)
+  
+    integer, dimension(3) :: wklo,wkhi,eblo,ebhi,ebxhi,ebyhi,ebzhi,g2lo,g2hi
+    real(rt), dimension(:,:,:), pointer, contiguous :: xlo,xhi,sx
+    real(rt), dimension(:,:,:), pointer, contiguous :: ylo,yhi,sy
+    real(rt), dimension(:,:,:), pointer, contiguous :: zlo,zhi,sz
+    real(rt), dimension(:,:,:), pointer, contiguous :: Imx,Ipx,sedgex
+    real(rt), dimension(:,:,:), pointer, contiguous :: Imy,Ipy,sedgey
+    real(rt), dimension(:,:,:), pointer, contiguous :: Imz,Ipz,sedgez
+    real(rt), dimension(:,:,:), pointer, contiguous :: sm,sp,dsvl
+  
+    ! Works space requirements:
+    !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy
+    !  on g2=grow(bx,2): dsvl
+    !
+    !  Grow cells for s:
+    !  ppm:
+    !    ppm=1 or 2, need 3 grow cells
+    !  else:
+    !    slope_order = 1, need 1 grow cell
+    !    slope_order = 2, need 2 grow cells
+    !    else , need 3 grow cells
+    wklo = lo - 1
+    wkhi = hi + 1
+    call amrex_allocate(xlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(xhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(sx,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(ylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(yhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(sy,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(zlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(zhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+    call amrex_allocate(sz,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+  
+  
+    if (ppm_type .gt. 0) then
+       if (ppm_type .eq. 2) then
+          eblo = lo - 2
+          ebhi = hi + 2
+       else
+          eblo = lo - 1
+          ebhi = hi + 1
+       endif
+  
+       ebxhi = ebhi
+       ebxhi(1) = ebxhi(1) + 1
+       ebyhi = ebhi
+       ebyhi(2) = ebyhi(2) + 1
+       ebzhi = ebhi
+       ebzhi(2) = ebzhi(2) + 1
+       call amrex_allocate(Imx,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(Ipx,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(Imy,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(Ipy,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(Imz,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(Ipz,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(sm,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(sp,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
+       call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2),eblo(3),ebxhi(3))
+       call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2),eblo(3),ebyhi(3))
+       call amrex_allocate(sedgez,eblo(1),ebzhi(1),eblo(2),ebzhi(2),eblo(3),ebzhi(3))
+       g2lo = lo - 2
+       g2hi = hi + 2
+       call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2),g2lo(3),g2hi(3))
+    endif
+  
+    !call estate_fpu_msd(lo,hi,&
+    !     s,s_lo,s_hi,&
+    !     tf,tf_lo,tf_hi,&
+    !     divu,divu_lo,divu_hi,&
+    !     xlo,wklo,wkhi,&
+    !     xhi,wklo,wkhi,&
+    !     sx,wklo,wkhi,&
+    !     umac,umac_lo,umac_hi,&
+    !     xstate,xstate_lo,xstate_hi,&
+    !     Imx,wklo,wkhi,&
+    !     Ipx,wklo,wkhi,&
+    !     sedgex,eblo,ebxhi,&
+    !     ylo,wklo,wkhi,&
+    !     yhi,wklo,wkhi,&
+    !     sy,wklo,wkhi,&
+    !     vmac,vmac_lo,vmac_hi,&
+    !     ystate,ystate_lo,ystate_hi,&
+    !     Imy,wklo,wkhi,&
+    !     Ipy,wklo,wkhi,&
+    !     sedgey,eblo,ebyhi,&
+    !     zlo,wklo,wkhi,&
+    !     zhi,wklo,wkhi,&
+    !     sz,wklo,wkhi,&
+    !     wmac,wmac_lo,wmac_hi,&
+    !     zstate,zstate_lo,zstate_hi,&
+    !     Imz,wklo,wkhi,&
+    !     Ipz,wklo,wkhi,&
+    !     sedgez,eblo,ebzhi,&
+    !     dsvl,g2lo,g2hi,&
+    !     sm,wklo,wkhi,&
+    !     sp,wklo,wkhi,&
+    !     bc, dt, dx, state_ind, nc, use_forces_in_trans, iconserv, ppm_type)
+    !
+    call amrex_deallocate(xlo)
+    call amrex_deallocate(xhi)
+    call amrex_deallocate(sx)
+    call amrex_deallocate(ylo)
+    call amrex_deallocate(yhi)
+    call amrex_deallocate(sy)
+    call amrex_deallocate(zlo)
+    call amrex_deallocate(zhi)
+    call amrex_deallocate(sz)
+    if (ppm_type .gt. 0) then
+       call amrex_deallocate(Imx)
+       call amrex_deallocate(Ipx)
+       call amrex_deallocate(Imy)
+       call amrex_deallocate(Ipy)
+       call amrex_deallocate(Imz)
+       call amrex_deallocate(Ipz)
+       call amrex_deallocate(sm)
+       call amrex_deallocate(sp)
+       call amrex_deallocate(sedgex)
+       call amrex_deallocate(sedgey)
+       call amrex_deallocate(sedgez)
+       call amrex_deallocate(dsvl)
+    endif
+  
+  end subroutine extrap_state_to_faces
 
   subroutine fort_estdt ( &
           vel,DIMS(vel), &
@@ -925,9 +962,9 @@ contains
       real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
       real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
 
-      integer :: i,j, imin,jmin,imax,jmax
-      real(rt) :: hx, hy, dt, dth, dthx, dthy, dx(SDIM), uad, vad
-      real(rt) :: eps,eps_for_bc
+      integer :: i,j, k, imin,jmin,kmin,imax,jmax,kmax
+      real(rt) :: hx, hy, hz, dt, dth, dthx, dthy, dthz, dx(SDIM), uad, vad, wad
+      real(rt) :: eps,eps_for_bc, val, tst
       logical :: ltm
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )
@@ -1038,7 +1075,7 @@ contains
               sedgex,sedgex_lo,sedgex_hi,&
               sedgey,sedgey_lo,sedgey_hi,&
               sedgez,sedgez_lo,sedgez_hi,&
-              dx, dt, ubc, eps_for_bc, ppm_type)
+              dx, dt, vbc, eps_for_bc, ppm_type)
       else
          call slopes_msd( YVEL, &
                           lo,hi,&
@@ -1046,7 +1083,7 @@ contains
                           sx,sx_lo,sx_hi,&
                           sy,sy_lo,sy_hi,&
                           sz,sz_lo,sz_hi,&
-                          ubc)
+                          vbc)
 
       end if
 
@@ -1099,7 +1136,7 @@ contains
               sedgex,sedgex_lo,sedgex_hi,&
               sedgey,sedgey_lo,sedgey_hi,&
               sedgez,sedgez_lo,sedgez_hi,&
-              dx, dt, ubc, eps_for_bc, ppm_type)
+              dx, dt, wbc, eps_for_bc, ppm_type)
       else
          call slopes_msd( ZVEL, &
                           lo,hi,&
@@ -1107,7 +1144,7 @@ contains
                           sx,sx_lo,sx_hi,&
                           sy,sy_lo,sy_hi,&
                           sz,sz_lo,sz_hi,&
-                          ubc)
+                          wbc)
 
       end if
 
@@ -1148,21 +1185,21 @@ contains
            ulo,ulo_lo,ulo_hi,&
            uhi,uhi_lo,uhi_hi,&
            ulo,ulo_lo,ulo_hi,&
-           XVEL, ubc, eps_for_bc)
+           XVEL, ubc, eps_for_bc,.false.,.false.)
 
       call trans_ybc_msd(lo,hi,&
            v,v_lo,v_hi,&
            vlo,vlo_lo,vlo_hi,&
            vhi,vhi_lo,vhi_hi,&
            vlo,vlo_lo,vlo_hi,&
-           YVEL, vbc, eps_for_bc)
+           YVEL, vbc, eps_for_bc,.false.,.false.)
 
       call trans_zbc_msd(lo,hi,&
            w,w_lo,w_hi,&
            wlo,wlo_lo,wlo_hi,&
            whi,whi_lo,whi_hi,&
            wlo,wlo_lo,wlo_hi,&
-           ZVEL, wbc, eps_for_bc)
+           ZVEL, wbc, eps_for_bc,.false.,.false.)
 
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
@@ -1259,6 +1296,7 @@ contains
          yzhi,yzhi_lo,yzhi_hi,&
          zxhi,zxhi_lo,zxhi_hi,&
          zyhi,zyhi_lo,zyhi_hi,&
+         corner_couple, &
          bc, dt, dx, n, nc, velpred, use_minion, ppm_type)
          
 
@@ -1289,7 +1327,7 @@ contains
       real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2),sx_lo(3):sx_hi(3))
       real(rt), intent(in) :: uad(uad_lo(1):uad_hi(1),uad_lo(2):uad_hi(2),uad_lo(3):uad_hi(3))
       real(rt), intent(in) :: uedge(uedge_lo(1):uedge_hi(1),uedge_lo(2):uedge_hi(2),uedge_lo(3):uedge_hi(3))
-      real(rt), intent(in) :: xedge(xedge_lo(1):xedge_hi(1),xedge_lo(2):xedge_hi(2),xedge_lo(3):xedge_hi(3))
+      real(rt), intent(inout) :: xedge(xedge_lo(1):xedge_hi(1),xedge_lo(2):xedge_hi(2),xedge_lo(3):xedge_hi(3))
       real(rt), intent(inout) :: xstate(xstate_lo(1):xstate_hi(1),xstate_lo(2):xstate_hi(2),xstate_lo(3):xstate_hi(3),nc) ! result
       real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2),Imx_lo(3):Imx_hi(3))
       real(rt), intent(inout) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2),Ipx_lo(3):Ipx_hi(3))
@@ -1300,7 +1338,7 @@ contains
       real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2),sy_lo(3):sy_hi(3))
       real(rt), intent(in) :: vad(vad_lo(1):vad_hi(1),vad_lo(2):vad_hi(2),vad_lo(3):vad_hi(3))
       real(rt), intent(in) :: vedge(vedge_lo(1):vedge_hi(1),vedge_lo(2):vedge_hi(2),vedge_lo(3):vedge_hi(3))
-      real(rt), intent(in) :: yedge(yedge_lo(1):yedge_hi(1),yedge_lo(2):yedge_hi(2),yedge_lo(3):yedge_hi(3))
+      real(rt), intent(inout) :: yedge(yedge_lo(1):yedge_hi(1),yedge_lo(2):yedge_hi(2),yedge_lo(3):yedge_hi(3))
       real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2),ystate_lo(3):ystate_hi(3),nc) ! result
       real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2),Imy_lo(3):Imy_hi(3))
       real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2),Ipy_lo(3):Ipy_hi(3))
@@ -1311,7 +1349,7 @@ contains
       real(rt), intent(inout) :: sz(sz_lo(1):sz_hi(1),sz_lo(2):sz_hi(2),sz_lo(3):sz_hi(3))
       real(rt), intent(in) :: wad(wad_lo(1):wad_hi(1),wad_lo(2):wad_hi(2),wad_lo(3):wad_hi(3))
       real(rt), intent(in) :: wedge(wedge_lo(1):wedge_hi(1),wedge_lo(2):wedge_hi(2),wedge_lo(3):wedge_hi(3))
-      real(rt), intent(in) :: zedge(zedge_lo(1):zedge_hi(1),zedge_lo(2):zedge_hi(2),zedge_lo(3):zedge_hi(3))
+      real(rt), intent(inout) :: zedge(zedge_lo(1):zedge_hi(1),zedge_lo(2):zedge_hi(2),zedge_lo(3):zedge_hi(3))
       real(rt), intent(inout) :: zstate(zstate_lo(1):zstate_hi(1),zstate_lo(2):zstate_hi(2),zstate_lo(3):zstate_hi(3),nc) ! result
       real(rt), intent(inout) :: Imz(Imz_lo(1):Imz_hi(1),Imz_lo(2):Imz_hi(2),Imz_lo(3):Imz_hi(3))
       real(rt), intent(inout) :: Ipz(Ipz_lo(1):Ipz_hi(1),Ipz_lo(2):Ipz_hi(2),Ipz_lo(3):Ipz_hi(3))
@@ -1339,36 +1377,18 @@ contains
       real(rt) :: stxhi(lo(1)-2:hi(1)+2)
       real(rt) :: stylo(lo(2)-2:hi(2)+2)
       real(rt) :: styhi(lo(2)-2:hi(2)+2)
-      real(rt) :: stzlo(lo(2)-2:hi(2)+2)
-      real(rt) :: stzhi(lo(2)-2:hi(2)+2)
-      real(rt) :: hx, hy, hz, dth, dthx, dthy, dthz
-      real(rt) :: tr,stx,sty,stz,fu,fv,fw,eps,eps_for_bc
-      integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax, place_to_break
+      real(rt) :: stzlo(lo(3)-2:hi(3)+2)
+      real(rt) :: stzhi(lo(3)-2:hi(3)+2)
+      real(rt) ::  hx, hy, hz, dth, dthx, dthy, dthz, ihx, ihy, ihz
+      real(rt) ::  dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
+      real(rt) ::  dt6, dt6x, dt6y, dt6z
+      real(rt) ::  tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw
+
+      real(rt) ::  eps, eps_for_bc
+      integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax, inc, place_to_break, corner_couple
       logical  :: ltx,lty,ltz
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )         
-
-      real(rt) :: dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
-      real(rt) :: dt6, dt6x, dt6y, dt6z
-      real(rt) :: tr1,tr2,ubar,vbar,wbar
-
-!      REAL_T s(DIMV(s))
-!      REAL_T stxlo(DIM1(s)),stxhi(DIM1(s)),slxscr(DIM1(s),4)
-!      REAL_T stylo(DIM2(s)),styhi(DIM2(s)),slyscr(DIM2(s),4)
-!      REAL_T stzlo(DIM3(s)),stzhi(DIM3(s)),slzscr(DIM3(s),4) 
-!
-
-!      integer ppm_type, corner_couple
-!      logical ltx, lty, ltz
-!
-!!c     used in 3d corner coupling
-!      REAL_T xylo(DIMV(work)), xyhi(DIMV(work))
-!      REAL_T xzlo(DIMV(work)), xzhi(DIMV(work))
-!      REAL_T yxlo(DIMV(work)), yxhi(DIMV(work))
-!      REAL_T yzlo(DIMV(work)), yzhi(DIMV(work))
-!      REAL_T zxlo(DIMV(work)), zxhi(DIMV(work))
-!      REAL_T zylo(DIMV(work)), zyhi(DIMV(work))
-!      integer use_minion
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -1477,7 +1497,7 @@ contains
            xlo,xlo_lo,xlo_hi,&
            xhi,xhi_lo,xhi_hi,&
            uad,uad_lo,uad_hi,&
-           n+L-1, bc, eps_for_bc)
+           n+L-1, bc, eps_for_bc,.false.,.false.)
       
 
       do k = kmin-1,kmax+1
@@ -1526,7 +1546,7 @@ contains
               ylo,ylo_lo,ylo_hi,&
               yhi,yhi_lo,yhi_hi,&
               vad,vad_lo,vad_hi,&
-              n+L-1, bc, eps_for_bc)
+              n+L-1, bc, eps_for_bc,.false.,.false.)
       
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
@@ -1574,7 +1594,7 @@ contains
               zlo,zlo_lo,zlo_hi,&
               zhi,zhi_lo,zhi_hi,&
               wad,wad_lo,wad_hi,&
-              n+L-1, bc, eps_for_bc)
+              n+L-1, bc, eps_for_bc,.false.,.false.)
 
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
@@ -1782,7 +1802,7 @@ contains
               zylo,zylo_lo,zylo_hi,&
               zyhi,zyhi_lo,zyhi_hi,&
               wad,wad_lo,wad_hi,&
-              n+L-1, bc, eps_for_bc,.true.,.false.)
+              n+L-1, bc, eps_for_bc,.false.,.true.)
               
 !c     upwind
       do k=kmin,kmax+1
@@ -2898,10 +2918,10 @@ contains
       integer, dimension(3), intent(in) :: &
            s_lo,s_hi,zlo_lo,zlo_hi,zhi_lo,zhi_hi,wad_lo,wad_hi,lo,hi
 
-      real(rt), intent(in)    :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
-      real(rt), intent(inout) :: zlo(zlo_lo(1):zlo_hi(1),zlo_lo(2):zlo_hi(2))
-      real(rt), intent(inout) :: zhi(zhi_lo(1):zhi_hi(1),zhi_lo(2):zhi_hi(2))
-      real(rt), intent(in)    :: wad(wad_lo(1):wad_hi(1),wad_lo(2):wad_hi(2))
+      real(rt), intent(in)    :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(inout) :: zlo(zlo_lo(1):zlo_hi(1),zlo_lo(2):zlo_hi(2),zlo_lo(3):zlo_hi(3))
+      real(rt), intent(inout) :: zhi(zhi_lo(1):zhi_hi(1),zhi_lo(2):zhi_hi(2),zhi_lo(3):zhi_hi(3))
+      real(rt), intent(in)    :: wad(wad_lo(1):wad_hi(1),wad_lo(2):wad_hi(2),wad_lo(3):wad_hi(3))
       real(rt), intent(in)    ::  eps
 
       logical xcouple
@@ -3045,7 +3065,7 @@ contains
       real(rt), intent(inout) :: slz(slz_lo(1):slz_hi(1),slz_lo(2):slz_hi(2),slz_lo(3):slz_hi(3))
       real(rt) :: slxscr(lo(1)-2:hi(1)+2,4)
       real(rt) :: slyscr(lo(2)-2:hi(2)+2,4)
-      real(rt) :: slzscr(lo(2)-2:hi(2)+2,4)
+      real(rt) :: slzscr(lo(3)-2:hi(3)+2,4)
       
       integer imin,jmin,kmin,imax,jmax,kmax,i,j,k
       integer ng
@@ -3603,8 +3623,11 @@ contains
 
       REAL_T sigma, s6, idtx, idty, idtz
 
-      call ppm_xdir(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
-          sedgex,DIMS(sedgex),lo,hi,bc,ppm_type)
+      call ppm_xdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
+                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
+                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
+                    sedgex,sedgex_lo(1),sedgex_hi(1),sedgex_lo(2),sedgex_hi(2),sedgex_lo(3),sedgex_hi(3),&
+                    lo,hi,bc,ppm_type)
 
       idtx = dt / dx(1)
 
@@ -3632,8 +3655,11 @@ contains
          end do
       end do
 
-      call ppm_ydir(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
-          sedgey,DIMS(sedgey),lo,hi,bc,ppm_type)
+      call ppm_ydir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
+                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
+                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
+                    sedgey,sedgey_lo(1),sedgey_hi(1),sedgey_lo(2),sedgey_hi(2),sedgey_lo(3),sedgey_hi(3),&
+                    lo,hi,bc,ppm_type)
 
       idty = dt / dx(2)
 
@@ -3660,9 +3686,12 @@ contains
             end do
          end do
       end do
-
-      call ppm_zdir(s,DIMS(s),sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
-          sedgez,DIMS(sedgez),lo,hi,bc,ppm_type)
+      
+      call ppm_zdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
+                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
+                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
+                    sedgez,sedgez_lo(1),sedgez_hi(1),sedgez_lo(2),sedgez_hi(2),sedgez_lo(3),sedgez_hi(3),&
+                    lo,hi,bc,ppm_type)
 
       idtz = dt / dx(3)
 
