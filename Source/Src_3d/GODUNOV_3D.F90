@@ -5103,6 +5103,162 @@ contains
 
       end subroutine ppm_msd
       
+      
+      subroutine ppm_fpu_msd(lo,hi,&
+         s,s_lo,s_hi,&
+         uedge,uedge_lo,uedge_hi,&
+         vedge,vedge_lo,vedge_hi,&
+         wedge,wedge_lo,wedge_hi,&
+         Ipx,Ipx_lo,Ipx_hi,&
+         Imx,Imx_lo,Imx_hi,&
+         Ipy,Ipy_lo,Ipy_hi,&
+         Imy,Imy_lo,Imy_hi,&
+         Ipz,Ipz_lo,Ipz_hi,&
+         Imz,Imz_lo,Imz_hi,&
+         sm,sm_lo,sm_hi,&
+         sp,sp_lo,sp_hi,&
+         dsvl,dsvl_lo,dsvl_hi,&
+         sedgex,sedgex_lo,sedgex_hi,&
+         sedgey,sedgey_lo,sedgey_hi,&
+         sedgez,sedgez_lo,sedgez_hi,&
+         dx, dt, bc, eps,ppm_type)
+
+      implicit none
+
+      integer, intent(in) :: bc(SDIM,2)
+      integer, dimension(3), intent(in) :: &
+           s_lo,s_hi,uedge_lo,uedge_hi,vedge_lo,vedge_hi,wedge_lo,wedge_hi,&
+           Ipx_lo,Ipx_hi,Imx_lo,Imx_hi,Ipy_lo,Ipy_hi,Imy_lo,Imy_hi,Ipz_lo,Ipz_hi,Imz_lo,Imz_hi,&
+           sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgex_lo,sedgex_hi,sedgey_lo,sedgey_hi,sedgez_lo,sedgez_hi,&
+           lo,hi
+
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(in) :: uedge(uedge_lo(1):uedge_hi(1),uedge_lo(2):uedge_hi(2),uedge_lo(3):uedge_hi(3))
+      real(rt), intent(in) :: vedge(vedge_lo(1):vedge_hi(1),vedge_lo(2):vedge_hi(2),vedge_lo(3):vedge_hi(3))
+      real(rt), intent(in) :: wedge(wedge_lo(1):wedge_hi(1),wedge_lo(2):wedge_hi(2),wedge_lo(3):wedge_hi(3))
+      real(rt), intent(inout) :: Ipx(Ipx_lo(1):Ipx_hi(1),Ipx_lo(2):Ipx_hi(2),Ipx_lo(3):Ipx_hi(3))
+      real(rt), intent(inout) :: Imx(Imx_lo(1):Imx_hi(1),Imx_lo(2):Imx_hi(2),Imx_lo(3):Imx_hi(3))
+      real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2),Ipy_lo(3):Ipy_hi(3))
+      real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2),Imy_lo(3):Imy_hi(3))
+      real(rt), intent(inout) :: Ipz(Ipz_lo(1):Ipz_hi(1),Ipz_lo(2):Ipz_hi(2),Ipz_lo(3):Ipz_hi(3))
+      real(rt), intent(inout) :: Imz(Imz_lo(1):Imz_hi(1),Imz_lo(2):Imz_hi(2),Imz_lo(3):Imz_hi(3))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
+      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2),dsvl_lo(3):dsvl_hi(3))
+      real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2),sedgex_lo(3):sedgex_hi(3))
+      real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2),sedgey_lo(3):sedgey_hi(3))
+      real(rt), intent(inout) :: sedgez(sedgez_lo(1):sedgez_hi(1),sedgez_lo(2):sedgez_hi(2),sedgez_lo(3):sedgez_hi(3))
+      real(rt), intent(in) :: eps, dx(SDIM), dt
+      integer ppm_type
+
+      integer i, j, k
+
+      REAL_T sigmam, sigmap, s6, idtx, idty, idtz
+
+      call ppm_xdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
+                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
+                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
+                    sedgex,sedgex_lo(1),sedgex_hi(1),sedgex_lo(2),sedgex_hi(2),sedgex_lo(3),sedgex_hi(3),&
+                    lo,hi,bc,ppm_type)
+
+
+      idtx = dt / dx(1)
+
+      !
+      ! Compute x-component of Ip and Im.
+      !
+      do k=lo(3)-1,hi(3)+1
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+             s6     = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             sigmap = abs(uedge(i+1,j,k))*idtx
+             sigmam = abs(uedge(i,j,k)  )*idtx
+             if (uedge(i+1,j,k) .gt. eps) then
+                Ipx(i,j,k) = sp(i,j,k) - (sigmap*half)* &
+                    (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
+             else
+                Ipx(i,j,k) = s(i,j,k)
+             end if
+             if (uedge(i,j,k) .lt. -eps) then
+                Imx(i,j,k) = sm(i,j,k) + (sigmam*half)* &
+                    (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigmam)*s6)
+             else
+                Imx(i,j,k) = s(i,j,k)
+             end if
+            end do
+         end do
+      end do
+
+      call ppm_ydir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
+                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
+                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
+                    sedgey,sedgey_lo(1),sedgey_hi(1),sedgey_lo(2),sedgey_hi(2),sedgey_lo(3),sedgey_hi(3),&
+                    lo,hi,bc,ppm_type)
+
+
+      idty = dt / dx(2)
+
+      !
+      ! Compute y-component of Ip and Im.
+      !
+      do k=lo(3)-1,hi(3)+1
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+             s6     = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             sigmap = abs(vedge(i,j+1,k))*idty
+             sigmam = abs(vedge(i,j,k)  )*idty
+             if (vedge(i,j+1,k) .gt. eps) then
+                Ipy(i,j,k) = sp(i,j,k) - (sigmap*half)* &
+                    (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
+             else
+                Ipy(i,j,k) = s(i,j,k)
+             end if
+             if (vedge(i,j,k) .lt. -eps) then
+                Imy(i,j,k) = sm(i,j,k) + (sigmam*half)* &
+                    (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigmam)*s6)
+             else
+                Imy(i,j,k) = s(i,j,k)
+             end if
+            end do
+         end do
+      end do
+
+      call ppm_zdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
+                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
+                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
+                    sedgez,sedgez_lo(1),sedgez_hi(1),sedgez_lo(2),sedgez_hi(2),sedgez_lo(3),sedgez_hi(3),&
+                    lo,hi,bc,ppm_type)
+
+
+      idtz = dt / dx(3)
+
+      !
+      ! Compute z-component of Ip and Im.
+      !
+      do k=lo(3)-1,hi(3)+1
+         do j=lo(2)-1,hi(2)+1
+            do i=lo(1)-1,hi(1)+1
+             s6     = 6.0d0*s(i,j,k) - 3.0d0*(sm(i,j,k)+sp(i,j,k))
+             sigmap = abs(wedge(i,j,k+1))*idtz
+             sigmam = abs(wedge(i,j,k)  )*idtz
+             if (wedge(i,j,k+1) .gt. eps) then
+                Ipz(i,j,k) = sp(i,j,k) - (sigmap*half)* &
+                    (sp(i,j,k)-sm(i,j,k)-(1.0d0-two3rd*sigmap)*s6)
+             else
+                Ipz(i,j,k) = s(i,j,k)
+             end if
+             if (wedge(i,j,k) .lt. -eps) then
+                Imz(i,j,k) = sm(i,j,k) + (sigmam*half)* &
+                    (sp(i,j,k)-sm(i,j,k)+(1.0d0-two3rd*sigmam)*s6)
+             else
+                Imz(i,j,k) = s(i,j,k)
+             end if
+            end do
+         end do
+      end do
+
+      end subroutine ppm_fpu_msd
+      
       subroutine transvel ( & 
           u, ulo, uhi, sx, ubc, slxscr, Imx, Ipx, sedgex, DIMS(sedgex), &
           v, vlo, vhi, sy, vbc, slyscr, Imy, Ipy, sedgey, DIMS(sedgey), &
