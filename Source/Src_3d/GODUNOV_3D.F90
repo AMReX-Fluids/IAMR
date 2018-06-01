@@ -382,6 +382,25 @@ contains
          corner_couple,&
          wbc, dt, dx, ZVEL, 1, velpred, use_forces_in_trans, ppm_type)
 
+         
+         
+
+    call amrex_deallocate(xedge)
+    call amrex_deallocate(yedge)
+    call amrex_deallocate(zedge)
+    call amrex_deallocate(xylo)
+    call amrex_deallocate(xzlo)
+    call amrex_deallocate(yxlo)
+    call amrex_deallocate(yzlo)
+    call amrex_deallocate(zxlo)
+    call amrex_deallocate(zylo)
+    call amrex_deallocate(xyhi)
+    call amrex_deallocate(xzhi)
+    call amrex_deallocate(yxhi)
+    call amrex_deallocate(yzhi)
+    call amrex_deallocate(zxhi)
+    call amrex_deallocate(zyhi)
+    
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
@@ -573,6 +592,23 @@ contains
          corner_couple,&
          bc, dt, dx, state_ind, nc, use_forces_in_trans, iconserv, ppm_type)
     !
+    
+    call amrex_deallocate(xedge)
+    call amrex_deallocate(yedge)
+    call amrex_deallocate(zedge)
+    call amrex_deallocate(xylo)
+    call amrex_deallocate(xzlo)
+    call amrex_deallocate(yxlo)
+    call amrex_deallocate(yzlo)
+    call amrex_deallocate(zxlo)
+    call amrex_deallocate(zylo)
+    call amrex_deallocate(xyhi)
+    call amrex_deallocate(xzhi)
+    call amrex_deallocate(yxhi)
+    call amrex_deallocate(yzhi)
+    call amrex_deallocate(zxhi)
+    call amrex_deallocate(zyhi)
+    
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
