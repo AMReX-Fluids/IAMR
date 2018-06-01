@@ -1120,8 +1120,6 @@ Projection::initialPressureProject (int  c_lev)
         const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
         sig[lev].reset(new MultiFab(grids,dmap,1,nghost));
 
-        LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
-
         AmrLevel& amr_level = parent->getLevel(lev);
 
         MultiFab& S_new = amr_level.get_new_data(State_Type);
@@ -1144,9 +1142,7 @@ Projection::initialPressureProject (int  c_lev)
                        1,
                        nghost);
 
-	if (geom.isAnyPeriodic()) {
-	    sig[lev]->FillBoundary(0,1,geom.periodicity());
-	}
+        sig[lev]->FillBoundary(0,1,geom.periodicity());
     }
 
     //

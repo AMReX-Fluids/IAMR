@@ -72,6 +72,7 @@ int         NavierStokesBase::do_density_ref            = 0;
 int         NavierStokesBase::do_tracer_ref             = 0;
 int         NavierStokesBase::do_tracer2_ref            = 0;
 int         NavierStokesBase::do_vorticity_ref          = 0;
+int         NavierStokesBase::do_temp_ref               = 0;
 int         NavierStokesBase::do_scalar_update_in_order = 0; 
 Vector<int>  NavierStokesBase::scalarUpdateOrder;
 int         NavierStokesBase::getForceVerbose           = 0;
@@ -440,7 +441,8 @@ NavierStokesBase::Initialize ()
     pp.query("do_tracer_ref",            do_tracer_ref    );
     pp.query("do_tracer2_ref",           do_tracer2_ref   );
     pp.query("do_vorticity_ref",         do_vorticity_ref );
-
+    pp.query("do_temp_ref",              do_temp_ref      );
+ 
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
@@ -624,8 +626,10 @@ NavierStokesBase::advance_setup (Real time,
     
     umac_n_grow = 1;
     
+#ifdef AMREX_PARTICLES
     if (ncycle >= 1)
         umac_n_grow = ncycle;
+#endif
         
     mac_projector->setup(level);
     //
@@ -1783,7 +1787,7 @@ NavierStokesBase::init_additional_state_types ()
     }
     if (have_divu && _Divu!=Divu)
     {
-        amrex::Print() << "divu must be 0-th, Divu_Type component in the state\n";
+        amrex::Print() << "divu must be 0-th Divu_Type component in the state\n";
 
         amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
@@ -1809,7 +1813,7 @@ NavierStokesBase::init_additional_state_types ()
     }
     if (have_dsdt && _Dsdt!=Dsdt)
     {
-        amrex::Print() << "dsdt must be 0-th, Dsdt_Type component in the state\n";
+        amrex::Print() << "dsdt must be 0-th Dsdt_Type component in the state\n";
 
         amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
