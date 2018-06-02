@@ -242,8 +242,7 @@ protected:
                      amrex::Real       alpha,
                      amrex::FArrayBox& Uold,
                      int        nvar,
-                     const amrex::Box& grd,
-                     int        ngrow);
+                     const amrex::Box& grd);
     //
     // Add phi to P.
     //

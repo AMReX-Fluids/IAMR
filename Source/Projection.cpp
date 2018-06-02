@@ -331,11 +331,11 @@ Projection::level_project (int             level,
     }
     else
     {
-        for (MFIter U_newmfi(U_new); U_newmfi.isValid(); ++U_newmfi) 
+      for (MFIter U_newmfi(U_new,true); U_newmfi.isValid(); ++U_newmfi) 
         {
-            const int i = U_newmfi.index();
+	    const Box& bx = U_newmfi.growntilebox(1);
 
-            ConvertUnew(U_new[U_newmfi],U_old[U_newmfi],dt,U_new.box(i));
+            ConvertUnew(U_new[U_newmfi],U_old[U_newmfi],dt,bx);
         } 
 
         if (have_divu)
@@ -1302,9 +1302,18 @@ Projection::initialSyncProject (int       c_lev,
             std::unique_ptr<MultiFab> divu (ns->getDivCond(nghost,strt_time));
             std::unique_ptr<MultiFab> dsdt (ns->getDivCond(nghost,strt_time+dt));
 
-            for (MFIter mfi(*rhcclev); mfi.isValid(); ++mfi)
+	    //FIXME - need to test this! There is something off with have_divu
+	    // but it's not necessarily what I tried here.
+	    //Print()<<"Testing ...\n";
+            for (MFIter mfi(*rhcclev,false); mfi.isValid(); ++mfi)
             {
-                FArrayBox& dsdtfab = (*dsdt)[mfi];
+       	        // const Box& bx = mfi.growntilebox(nghost);
+	        FArrayBox& dsdtfab = (*dsdt)[mfi];
+
+                // dsdtfab.minus((*divu)[mfi],bx,0,0);
+                // dsdtfab.mult(dt_inv,bx,0,0);
+                // (*rhcclev)[mfi].copy(dsdtfab,bx,0,bx,0,1);
+
                 dsdtfab.minus((*divu)[mfi]);
                 dsdtfab.mult(dt_inv);
                 (*rhcclev)[mfi].copy(dsdtfab);
@@ -1447,9 +1456,16 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     std::unique_ptr<MultiFab> divu (ns->getDivCond(1,time));
 
-    for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
+    //FIXME - something is off when have_divu, but it's not necessarily
+    // what I tried here
+    //Print()<<"Testing 2 ...\n";
+    for (MFIter mfi(rhs,false); mfi.isValid(); ++mfi)
     {
-        rhs[mfi].copy((*divu)[mfi]);
+      // const Box& bx = mfi.growntilebox();
+      
+      // rhs[mfi].copy((*divu)[mfi],bx,0,bx,0,1);
+
+      rhs[mfi].copy((*divu)[mfi]);
     }
 }
 
@@ -1463,11 +1479,13 @@ Projection::UnConvertUnew (MultiFab&       Uold,
                            MultiFab&       Unew, 
                            const BoxArray& grids)
 {
-    for (MFIter Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
+  Print()<<"Testing UnConvertUnew...\n";
+  for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
-        BL_ASSERT(grids[Uoldmfi.index()] == Uoldmfi.validbox());
-
-        UnConvertUnew(Uold[Uoldmfi],alpha,Unew[Uoldmfi],Uoldmfi.validbox());
+        BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
+        const Box& bx=Uoldmfi.growntilebox(1);
+      
+        UnConvertUnew(Uold[Uoldmfi],alpha,Unew[Uoldmfi],bx);
     }
 }
 
@@ -1512,11 +1530,12 @@ Projection::ConvertUnew (MultiFab&       Unew,
                          Real            alpha,
                          const BoxArray& grids)
 {
-    for (MFIter Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
+  for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
-        BL_ASSERT(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+        const Box& bx=Uoldmfi.growntilebox(1);
+        BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
 
-        ConvertUnew(Unew[Uoldmfi],Uold[Uoldmfi],alpha,Uoldmfi.validbox());
+        ConvertUnew(Unew[Uoldmfi],Uold[Uoldmfi],alpha,bx);
     }
 }
 
@@ -1559,17 +1578,18 @@ Projection::UpdateArg1 (MultiFab&       Unew,
                         const BoxArray& grids,
                         int             ngrow)
 {
-    for (MFIter Uoldmfi(Uold); Uoldmfi.isValid(); ++Uoldmfi) 
+  Print()<<"Testing Arg1... \n";
+  for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
-        BL_ASSERT(grids[Uoldmfi.index()] == Uoldmfi.validbox());
+      BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
 
-        UpdateArg1(Unew[Uoldmfi],alpha,Uold[Uoldmfi],nvar,Uoldmfi.validbox(),ngrow);
+      UpdateArg1(Unew[Uoldmfi],alpha,Uold[Uoldmfi],nvar,Uoldmfi.growntilebox(ngrow));
     }
 }
 
 //
 // Update a quantity U using the formula
-// currently only the velocity, but will do the pressure as well.
+// currently only the velocity and the pressure.
 // Unew = Unew + alpha*Uold
 //
 
@@ -1578,18 +1598,10 @@ Projection::UpdateArg1 (FArrayBox& Unew,
                         Real       alpha,
                         FArrayBox& Uold,
                         int        nvar,
-                        const Box& grd,
-                        int        ngrow)
+                        const Box& b)
 {
     BL_ASSERT(nvar <= Uold.nComp());
     BL_ASSERT(nvar <= Unew.nComp());
-
-    Box        b  = amrex::grow(grd,ngrow);
-    const Box& bb = Unew.box();
-
-    if (bb.ixType() == IndexType::TheNodeType())
-        b.surroundingNodes();
-
     BL_ASSERT(Uold.contains(b) == true);
     BL_ASSERT(Unew.contains(b) == true);
 
@@ -1601,11 +1613,11 @@ Projection::UpdateArg1 (FArrayBox& Unew,
     const int*  un_lo = Unew.loVect(); 
     const int*  un_hi = Unew.hiVect(); 
     const Real* unew  = Unew.dataPtr(0);
-                    
-    proj_update(lo,hi,&nvar,&ngrow,
-                     unew, ARLIM(un_lo), ARLIM(un_hi),
-                     &alpha,
-                     uold, ARLIM(uo_lo), ARLIM(uo_hi) );
+
+    proj_update(lo,hi,&nvar,
+		unew, ARLIM(un_lo), ARLIM(un_hi),
+		&alpha,
+		uold, ARLIM(uo_lo), ARLIM(uo_hi) );
 }
 
 //
@@ -1616,9 +1628,12 @@ void
 Projection::AddPhi (MultiFab&        p,
                     MultiFab&       phi)
 {
-    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi) 
+
+  for (MFIter pmfi(p,true); pmfi.isValid(); ++pmfi) 
     {
-        p[pmfi].plus(phi[pmfi]);
+      const Box& bx = pmfi.growntilebox();
+      
+      p[pmfi].plus(phi[pmfi],bx,0,0,1);
     }
 }
 
@@ -1635,13 +1650,14 @@ Projection::incrPress (int  level,
 
     const BoxArray& grids = LevelData[level]->boxArray();
 
-    for (MFIter P_newmfi(P_new); P_newmfi.isValid(); ++P_newmfi)
+    Print()<<"Testing incrPress...\n";
+    for (MFIter P_newmfi(P_new,true); P_newmfi.isValid(); ++P_newmfi)
     {
-        const int i = P_newmfi.index();
+        const Box& b  = P_newmfi.growntilebox(1);
 
-        UpdateArg1(P_new[P_newmfi],1.0/dt,P_old[P_newmfi],1,grids[i],1);
+        UpdateArg1(P_new[P_newmfi],1.0/dt,P_old[P_newmfi],1,b);
 
-        P_old[P_newmfi].setVal(BogusValue);
+        P_old[P_newmfi].setVal(BogusValue,b);
     }
 }
 
@@ -1878,6 +1894,7 @@ Projection::AnelCoeffMult (int       level,
 
     int mult = 1;
 
+    Print()<<"Testing anelCoefMult...\n";
     for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
@@ -1913,6 +1930,7 @@ Projection::AnelCoeffDiv (int       level,
 
     int mult = 0;
 
+        Print()<<"Testing anelCoefDiv...\n";
     for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());

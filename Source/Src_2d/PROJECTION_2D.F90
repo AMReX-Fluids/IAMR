@@ -48,8 +48,8 @@ contains
        integer i, j, n
 
        do n = 1, SDIM
-          do j = lo(2)-1, hi(2)+1
-             do i = lo(1)-1, hi(1)+1
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
                 unew(i,j,n) = uold(i,j,n) + dt*unew(i,j,n)
              end do
           end do
@@ -77,8 +77,8 @@ contains
       dt_inv = one/dt
 
       do n = 1, SDIM
-         do j = lo(2)-1, hi(2)+1
-            do i = lo(1)-1, hi(1)+1
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
                unew(i,j,n) = (unew(i,j,n)-uold(i,j,n))*dt_inv
             end do
          end do
@@ -87,7 +87,7 @@ contains
     end subroutine vel_to_accel
 
       subroutine proj_update(&
-          boxlo, boxhi, nvar, ngrow,&
+          boxlo, boxhi, nvar, &
           un, DIMS(un),&
           alpha,&
           uo, DIMS(uo) ) bind(C,name="proj_update")
@@ -96,7 +96,7 @@ contains
 !c     The loop bounds are determined in the C++
 !c
       implicit none
-      integer    boxlo(SDIM), boxhi(SDIM), nvar, ngrow
+      integer    boxlo(SDIM), boxhi(SDIM), nvar
       REAL_T     alpha
       integer    DIMDEC(un),DIMDEC(uo)
       REAL_T     un(DIMV(un),nvar)
@@ -143,7 +143,7 @@ contains
 !c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
 !c           But now in the divu routine in the F90 solvers we need to include these
 !c           values in the stencil because they might contain inflow values, for example, 
-!c           and the only test is on the B!C for the pressure solve, which doesn't
+!c           and the only test is on the BC for the pressure solve, which doesn't
 !c           differentiate between inflow, reflecting and symmetry.
 
       if (ARG_L1(grid)-ng .lt. domlo(1)) then

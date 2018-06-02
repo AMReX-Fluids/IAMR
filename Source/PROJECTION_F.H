@@ -21,7 +21,7 @@ extern "C" {
                             const amrex::Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
     void proj_update (const int* lo,   const int* hi,
-                           const int *nvar, const int *ngrow, 
+                           const int *nvar, 
                            const amrex::Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
                            const  amrex::Real* dt,
                            const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
