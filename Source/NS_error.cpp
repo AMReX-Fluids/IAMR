@@ -43,8 +43,8 @@ NavierStokes::error_setup()
 	amrex::Print() << "Refining on MAG_VORT" << std::endl;
     }
     if (do_temp_ref) {
-        err_list.add("temp", 0, ErrorRec::Special, 
+        err_list.add("temp", 1, ErrorRec::Special, 
                      BL_FORT_PROC_CALL(FORT_TEMPERROR,fort_temperror));
-	amrex::Print() << "Refining on TEMP for level 0 and GRADT for levels > 0" << std::endl;
+	amrex::Print() << "Refining on TEMP for level 0 and GRAD T for levels > 0" << std::endl;
     }
 }
