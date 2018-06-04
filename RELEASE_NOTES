@@ -27,3 +27,9 @@ Cylindrical coordinate bux fixes
 4/1/18
 Release version 18.04 (April, 2018)
 comments and variable rennaming only
+
+6/1/18
+Release version 18.06 (June, 2018)
+Small changes to some problem setups
+Some improvements to the particle algorithm
+Fixed some ghost cell issues in the projection
