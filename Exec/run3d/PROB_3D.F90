@@ -4658,7 +4658,7 @@ contains
                 end do
              end do
           end do
-        end if
+       end if
 
 !c     probtype = VISCOUS BENCHMARK
       else if (probtype .eq. 9) then
