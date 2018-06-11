@@ -940,12 +940,10 @@ NavierStokes::diffuse_velocity_setup (Real       dt,
         if (!variable_vel_visc)
         {
             diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
-            divmusi.mult((1./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
-            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
-
+	    MultiFab::Saxpy(*delta_rhs,(1./3.)*(1.0-be_cn_theta),divmusi,0,0,BL_SPACEDIM,0);
+	    
             diffusion->compute_divmusi(time+dt,visc_coef[Xvel],divmusi);
-            divmusi.mult((1./3.)*be_cn_theta,0,BL_SPACEDIM,0);
-            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+	    MultiFab::Saxpy(*delta_rhs,(1./3.)*be_cn_theta,divmusi,0,0,BL_SPACEDIM,0);
         }
         else
         {
