@@ -1302,21 +1302,14 @@ Projection::initialSyncProject (int       c_lev,
             std::unique_ptr<MultiFab> divu (ns->getDivCond(nghost,strt_time));
             std::unique_ptr<MultiFab> dsdt (ns->getDivCond(nghost,strt_time+dt));
 
-	    //FIXME - need to test this! There is something off with have_divu
-	    // but it's not necessarily what I tried here.
-	    //Print()<<"Testing ...\n";
-            for (MFIter mfi(*rhcclev,false); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*rhcclev,true); mfi.isValid(); ++mfi)
             {
-       	        // const Box& bx = mfi.growntilebox(nghost);
+       	        const Box& bx = mfi.growntilebox();
 	        FArrayBox& dsdtfab = (*dsdt)[mfi];
 
-                // dsdtfab.minus((*divu)[mfi],bx,0,0);
-                // dsdtfab.mult(dt_inv,bx,0,0);
-                // (*rhcclev)[mfi].copy(dsdtfab,bx,0,bx,0,1);
-
-                dsdtfab.minus((*divu)[mfi]);
-                dsdtfab.mult(dt_inv);
-                (*rhcclev)[mfi].copy(dsdtfab);
+                dsdtfab.minus((*divu)[mfi],bx,bx,0,0,1);
+                dsdtfab.mult(dt_inv,bx);
+                (*rhcclev)[mfi].copy(dsdtfab,bx,0,bx,0,1);
             }
         }
     }
@@ -1456,16 +1449,11 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     std::unique_ptr<MultiFab> divu (ns->getDivCond(1,time));
 
-    //FIXME - something is off when have_divu, but it's not necessarily
-    // what I tried here
-    //Print()<<"Testing 2 ...\n";
     for (MFIter mfi(rhs,false); mfi.isValid(); ++mfi)
     {
-      // const Box& bx = mfi.growntilebox();
+      const Box& bx = mfi.growntilebox();
       
-      // rhs[mfi].copy((*divu)[mfi],bx,0,bx,0,1);
-
-      rhs[mfi].copy((*divu)[mfi]);
+      rhs[mfi].copy((*divu)[mfi],bx,0,bx,0,1);
     }
 }
 
@@ -1479,6 +1467,7 @@ Projection::UnConvertUnew (MultiFab&       Uold,
                            MultiFab&       Unew, 
                            const BoxArray& grids)
 {
+  //FIXME!!! Need to find some way to test this one
   Print()<<"Testing UnConvertUnew...\n";
   for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
@@ -1650,7 +1639,6 @@ Projection::incrPress (int  level,
 
     const BoxArray& grids = LevelData[level]->boxArray();
 
-    Print()<<"Testing incrPress...\n";
     for (MFIter P_newmfi(P_new,true); P_newmfi.isValid(); ++P_newmfi)
     {
         const Box& b  = P_newmfi.growntilebox(1);
