@@ -1467,8 +1467,6 @@ Projection::UnConvertUnew (MultiFab&       Uold,
                            MultiFab&       Unew, 
                            const BoxArray& grids)
 {
-  //FIXME!!! Need to find some way to test this one
-  Print()<<"Testing UnConvertUnew...\n";
   for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
         BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
@@ -1567,7 +1565,6 @@ Projection::UpdateArg1 (MultiFab&       Unew,
                         const BoxArray& grids,
                         int             ngrow)
 {
-  Print()<<"Testing Arg1... \n";
   for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
       BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
