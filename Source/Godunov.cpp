@@ -748,10 +748,6 @@ Godunov::edge_states_bds( const Box &grd, const Real *dx, Real dt,
     const int *s_hi       = S.hiVect();
 // FIXME? consider passing in bounds for tforces and divu rather
 // than assuming they're the same as S's bounds in FORT_ESTATE_BDS
-    const int *tfr_lo     = tforces.loVect();
-    const int *tfr_hi     = tforces.hiVect();
-    const int *divu_lo    = divu.loVect();
-    const int *divu_hi    = divu.hiVect();
     const int *ww_lo      = work.loVect();
     const int *ww_hi      = work.hiVect();
     const Real *s_dat     = S.dataPtr(Scomp);
@@ -808,6 +804,74 @@ Godunov::edge_states_bds( const Box &grd, const Real *dx, Real dt,
                     &use_forces_in_trans, &iconserv);
 #endif
 }
+
+//
+// Compute upwinded FC velocities by extrapolating CC values in space and time
+void
+Godunov::ExtrapVelToFaces (const amrex::Box&  box,
+                           const amrex_real*  dx,
+                           amrex_real         dt,
+                           D_DECL(      FArrayBox&  umac,       FArrayBox&  vmac,       FArrayBox&  wmac),
+                           D_DECL(const Vector<int>& ubc, const Vector<int>& vbc, const Vector<int>& wbc),
+                           amrex::FArrayBox&  U,
+                           amrex::FArrayBox&  tforces)
+{
+  extrap_vel_to_faces(box.loVect(),box.hiVect(),
+                      BL_TO_FORTRAN_ANYD(U),
+                      ubc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,0),BL_TO_FORTRAN_ANYD(umac),
+                      vbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,1),BL_TO_FORTRAN_ANYD(vmac),
+#if (AMREX_SPACEDIM == 3)
+                      wbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,2),BL_TO_FORTRAN_ANYD(wmac),
+#endif
+                      &dt, dx, &use_forces_in_trans, &ppm_type);
+}
+
+void
+Godunov::AdvectScalars(const Box&  box,
+                       const Real* dx,
+                       Real        dt,
+                       D_DECL(const FArrayBox&   Ax, const FArrayBox&   Ay, const FArrayBox&   Az),
+                       D_DECL(const FArrayBox& umac, const FArrayBox& vmac, const FArrayBox& wmac),
+                       D_DECL(      FArrayBox& xflx,       FArrayBox& yflx,       FArrayBox& zflx),
+                       const FArrayBox& Ufab,
+                       const FArrayBox& Sfab,   int first_scalar, int num_scalars,
+                       const FArrayBox& Forces, int fcomp, 
+                       const FArrayBox& Divu,   int ducomp, 
+                       FArrayBox& aofs,         int state_ind,
+                       const amrex::Vector<AdvectionForm>& advectionType, const amrex::Vector<int>& state_bc,
+                       AdvectionScheme adv_scheme, const amrex::FArrayBox& V)
+{
+    AMREX_ASSERT(Sfab.nComp() >= first_scalar + num_scalars);
+
+    Vector<int> use_conserv_diff(num_scalars);
+    for (int i=0; i<num_scalars; ++i) {
+        use_conserv_diff[i] = (advectionType[state_ind+i] == Conservative) ? 1 : 0;
+    }
+
+    // Extrapolate to cell faces (store result in flux container)
+    const int state_fidx = first_scalar + 1;
+    extrap_state_to_faces(box.loVect(),box.hiVect(),
+                          BL_TO_FORTRAN_N_ANYD(Sfab,first_scalar), &num_scalars,
+                          BL_TO_FORTRAN_N_ANYD(Forces,fcomp),
+                          BL_TO_FORTRAN_N_ANYD(Divu,ducomp),
+                          BL_TO_FORTRAN_ANYD(umac),     BL_TO_FORTRAN_ANYD(xflx),
+                          BL_TO_FORTRAN_ANYD(vmac),     BL_TO_FORTRAN_ANYD(yflx),
+#if (AMREX_SPACEDIM == 3)
+                          BL_TO_FORTRAN_ANYD(wmac),     BL_TO_FORTRAN_ANYD(zflx),
+#endif
+                          &dt, dx, &(state_bc[0]), &state_fidx, 
+                          &use_forces_in_trans, &ppm_type, &(use_conserv_diff[0]));
+
+    // Convert face states to face fluxes (return in place) and compute flux divergence
+    for (int i=0; i<num_scalars; ++i) { // FIXME: Loop required because conserv_diff flag only scalar
+        ComputeAofs (box,
+                     D_DECL(Ax,  Ay,  Az),  D_DECL(0,0,0),
+                     D_DECL(umac,vmac,wmac),D_DECL(0,0,0),
+                     D_DECL(xflx,yflx,zflx),D_DECL(i,i,i),
+                     V,0,aofs,state_ind+i,use_conserv_diff[i]);
+    }
+}
+
 
 //
 // Compute the edge states for The Mac projection.
@@ -1375,50 +1439,6 @@ Godunov::Add_tf (const FArrayBox& Sold,
                    SNdat, ARLIM(snlo), ARLIM(snhi),
                    TFdat, ARLIM(tlo), ARLIM(thi),
                    lo, hi, &dt, &num_comp);
-}
-
-// FIXME? this doesn't appear to ever get used ...
-//
-// Correct the 1st order RK to 2nd order via
-//
-// psi^n+1 = psi^* + (dt/2)*(tf^* - tf^n)
-//
-void
-Godunov::Correct_tf (const FArrayBox& Sstar,
-                     FArrayBox& Snp1,
-                     int        start_ind,
-                     int        num_comp, 
-                     const FArrayBox& tfstar,
-                     const FArrayBox& tfn,
-                     int        tf_ind,
-                     const Box& grd,
-                     Real       dt) const
-{
-    BL_ASSERT(Snp1.nComp()   >= start_ind + num_comp);
-    BL_ASSERT(Sstar.nComp()  >= start_ind + num_comp);
-    BL_ASSERT(tfstar.nComp() >= tf_ind    + num_comp);
-    BL_ASSERT(tfn.nComp()    >= tf_ind    + num_comp);
-
-    const int *slo    = Sstar.loVect();
-    const int *shi    = Sstar.hiVect();
-    const int *splo   = Snp1.loVect();
-    const int *sphi   = Snp1.hiVect();
-    const int *tlo    = tfstar.loVect();
-    const int *thi    = tfstar.hiVect();
-    const int *tnlo   = tfn.loVect();
-    const int *tnhi   = tfn.hiVect();
-    const int *lo     = grd.loVect();
-    const int *hi     = grd.hiVect();
-    const Real *SSdat = Sstar.dataPtr(start_ind);
-    Real *SPdat = Snp1.dataPtr(start_ind);
-    const Real *TSdat = tfstar.dataPtr(tf_ind);
-    const Real *TNdat = tfn.dataPtr(tf_ind);
-    
-    fort_correct_tf(SSdat, ARLIM(slo), ARLIM(shi),
-		    SPdat, ARLIM(splo), ARLIM(sphi),
-                    TSdat, ARLIM(tlo), ARLIM(thi),
-                    TNdat, ARLIM(tnlo), ARLIM(tnhi),
-                    lo, hi, &dt, &num_comp);
 }
 
 //

@@ -31,7 +31,7 @@ module godunov_3d_module
             ppm_ydir_colella, ppm_ydir, ppm_xdir_colella, ppm_xdir, &
             ppm, ppm_fpu, convscalminmax, consscalminmax, &
             fort_sum_tf_gp, fort_sum_tf_gp_visc, fort_sum_tf_divu, &
-            fort_sum_tf_divu_visc, update_tf, fort_correct_tf, update_aofs_tf, &
+            fort_sum_tf_divu_visc, update_tf, update_aofs_tf, &
             update_aofs_tf_gp
 
 contains
@@ -6262,42 +6262,6 @@ contains
       end do
 
       end subroutine update_tf 
-
-      subroutine fort_correct_tf ( &
-          ss,  DIMS(ss), &
-          sp,  DIMS(sp),       &
-          tfs, DIMS(tfs), &
-          tfn, DIMS(tfn),      & 
-          lo,hi,dt,nvar)  bind(C,name="fort_correct_tf")
-!c
-!c     correct 1st order rk to second-order
-!c
-      implicit none
-      integer i, j, k, n, nvar
-      integer lo(SDIM), hi(SDIM)
-      REAL_T dt,hdt
-
-      integer DIMDEC(ss)
-      integer DIMDEC(sp)
-      integer DIMDEC(tfs)
-      integer DIMDEC(tfn)
-      REAL_T  ss(DIMV(ss),nvar)
-      REAL_T  sp(DIMV(sp),nvar)
-      REAL_T tfs(DIMV(tfs),nvar)
-      REAL_T tfn(DIMV(tfn),nvar)
-
-      hdt = half*dt
-      do n = 1,nvar
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  sp(i,j,k,n) = ss(i,j,k,n) + hdt*(tfs(i,j,k,n)-tfn(i,j,k,n))
-               end do
-            end do
-         end do
-      end do
-
-      end subroutine fort_correct_tf
 
       subroutine update_aofs_tf ( &
           s,       DIMS(s), &

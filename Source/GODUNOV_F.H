@@ -4,7 +4,7 @@
 
 #ifndef BL_LANG_FORT
 
-#include <AMReX_ArrayLim.H>
+#include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C"
@@ -171,6 +171,38 @@ extern "C"
 		    amrex::Real* dt, const amrex::Real* dx, int* fort_ind, 
 		    int* use_forces_in_trans, int* iconserv);
    
+   void extrap_vel_to_faces(const int* lo, const int* hi,
+                            amrex::Real* u_dat, const int* u_lo, const int* u_hi,
+                            const int* ubc,
+                            const amrex::Real* tfx_dat, const int* tfx_lo, const int* tfx_hi,
+                            amrex::Real*       umac_dat, const int* umac_lo, const int* umac_hi,
+                            const int* vbc,
+                            const amrex::Real* tfy_dat, const int* tfy_lo, const int* tfy_hi,
+                            amrex::Real*       vmac_dat, const int* vmac_lo, const int* vmac_hi,
+#if (AMREX_SPACEDIM == 3)
+                            const int* wbc,
+                            const amrex::Real* tfz_dat, const int* tfz_lo, const int* tfz_hi,
+                            amrex::Real*       wmac_dat, const int* wmac_lo, const int* wmac_hi,
+#endif
+                            const amrex::Real* dt, const amrex::Real* dx,
+                            int* use_forces_in_trans, int* ppm_type);
+
+    void extrap_state_to_faces(const int* lo, const int* hi,
+                               const amrex::Real* s_dat, const int* s_lo, const int* s_hi,  const int* nc,
+                               const amrex::Real* tf_dat, const int* tf_lo, const int* tf_hi,
+                               const amrex::Real* du_dat, const int* du_lo, const int* du_hi,
+                               const amrex::Real* u_dat, const int* u_lo, const int* u_hi,
+                               amrex::Real* xstate_dat, const int* xstate_lo, const int* xstate_hi,
+                               const amrex::Real* v_dat, const int* v_lo, const int* v_hi,
+                               amrex::Real* ystate_dat, const int* ystate_lo, const int* ystate_hi,
+#if (AMREX_SPACEDIM == 3)
+                               const amrex::Real* w_dat, const int* w_lo, const int* w_hi,
+                               amrex::Real* zstate_dat, const int* zstate_lo, const int* zstate_hi,
+#endif
+                               const amrex::Real* dt, const amrex::Real* dx, const int* bc, const int* state_ind,
+                               const int* use_forces_in_trans, const int* ppm_type, const int* iconserv);
+
+
    void adv_forcing(const amrex::Real* aofs_dat, ARLIM_P(a_lo), ARLIM_P(a_hi),
 
 			 const amrex::Real* xflux_dat, ARLIM_P(xflux_lo),ARLIM_P(xflux_hi),

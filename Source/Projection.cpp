@@ -1799,8 +1799,6 @@ Projection::radMultVel (int       level,
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
 
-    Real bogus_value = BogusValue;
-
     for (int n = 0; n < BL_SPACEDIM; n++) 
     {
        for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 

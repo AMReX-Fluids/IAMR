@@ -192,10 +192,10 @@ NavierStokes::initData ()
     {
         const Real dt       = 1.0;
         const Real dtin     = -1.0; // Dummy value denotes initialization.
-        const Real cur_time = state[Divu_Type].curTime();
+        const Real curTime = state[Divu_Type].curTime();
         MultiFab&  Divu_new = get_new_data(Divu_Type);
 
-        state[State_Type].setTimeLevel(cur_time,dt,dt);
+        state[State_Type].setTimeLevel(curTime,dt,dt);
 
         calc_divu(cur_time,dtin,Divu_new);
 
@@ -224,7 +224,7 @@ NavierStokes::initData ()
 // This function ensures that the multifab registers and boundary
 // flux registers needed for syncing the composite grid
 //
-//     u_mac, umacG, Vsync, Ssync, rhoavg, fr_adv, fr_visc
+//     u_mac, Vsync, Ssync, rhoavg, fr_adv, fr_visc
 //
 // are initialized to zero.  In general these quantities
 // along with the pressure sync registers (sync_reg) and
@@ -292,6 +292,7 @@ NavierStokes::advance (Real time,
     //
     if (do_mom_diff == 0) 
         velocity_advection(dt);
+
     //
     // Advect scalars.
     //
@@ -358,7 +359,7 @@ NavierStokes::advance (Real time,
         //
         // Do a level project to update the pressure and velocity fields.
         //
-        if (projector)
+        if (0 && projector)
             level_projector(dt,time,iteration);
         if (level > 0 && iteration == 1)
            p_avg.setVal(0);
@@ -449,7 +450,6 @@ NavierStokes::predict_velocity (Real  dt,
      
      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
      {
-       const int i = U_mfi.index();
        Box bx=U_mfi.tilebox();
        FArrayBox& Ufab = Umf[U_mfi];
 
@@ -482,23 +482,12 @@ NavierStokes::predict_velocity (Real  dt,
 
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-               bndry[2] = fetchBCArray(State_Type,bx,2,1);)
+               bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-        godunov->Setup(bx, dx, dt, 1,
-                       null_fab, bndry[0].dataPtr(),
-                       null_fab, bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                         
-                       null_fab, bndry[2].dataPtr(),
-#endif
-                       Ufab, rho_ptime[U_mfi], tforces);
-
-        godunov->ComputeUmac(bx, dx, dt, 
-                             u_mac[0][U_mfi], bndry[0].dataPtr(),
-                             u_mac[1][U_mfi], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)
-                             u_mac[2][U_mfi], bndry[2].dataPtr(),
-#endif
-                             Ufab, tforces);
+        godunov->ExtrapVelToFaces(bx, dx, dt,
+                                  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                                  D_DECL(bndry[0],        bndry[1],        bndry[2]),
+                                  Ufab, tforces);
     }
 
     Real tempdt = std::min(change_max,cfl/cflmax);
@@ -526,7 +515,6 @@ NavierStokes::scalar_advection (Real dt,
     const int   num_scalars    = lscalar - fscalar + 1;
     const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
-    const Real  prev_pres_time = state[Press_Type].prevTime();
     //
     // Get the viscous terms.
     //
@@ -537,9 +525,81 @@ NavierStokes::scalar_advection (Real dt,
     } else {
         visc_terms.setVal(0,1);
     }
+
+#if 1
+    int nGrowF = 1;
+    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
+    MultiFab* dsdt    = getDsdt(nGrowF,prev_time);
+    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nGrowF);
+    delete dsdt;
+
+    MultiFab fluxes[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++) {
+      const BoxArray& ba = getEdgeBoxArray(i);
+      fluxes[i].define(ba, dmap, num_scalars, 0);
+    }
+
+    //
+    // Compute the advective forcing.
+    //
+    {
+      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+      FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
+      const MultiFab& Umf=U_fpi.get_mf();
+      const MultiFab& Smf=S_fpi.get_mf();
+      
+#ifdef BOUSSINESQ
+      FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
+      const MultiFab& Scalmf=Scal_fpi.get_mf();
+#endif
+      
+      Vector<int> state_bc;
+      FArrayBox tforces;
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      {
+	const Box bx = U_mfi.tilebox();
+
+#ifdef BOUSSINESQ
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
+#else
+#ifdef GENGETFORCE
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
+#elif MOREGENGETFORCE
+	if (getForceVerbose) {
+	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+			 << " Calling getForce..." << '\n';
+	}
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+#else
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[U_mfi]);
+#endif		 
+#endif		 
+
+        for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
+          int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
+          godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
+                                    (*divu_fp)[U_mfi],0,rho_ptime[U_mfi],0,use_conserv_diff);
+        }
+
+        state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+
+        godunov->AdvectScalars(bx, dx, dt, 
+                               D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
+                               D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                               D_DECL(fluxes[0][U_mfi],fluxes[1][U_mfi],fluxes[2][U_mfi]),
+                               Umf[U_mfi], Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
+                               (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
+
+      }
+    }
+
+#else
     //
     // Set up the grid loop.
     //
+    const Real  prev_pres_time = state[Press_Type].prevTime();
+    const int use_forces_in_trans = godunov->useForcesInTrans();
+
     FArrayBox flux[BL_SPACEDIM], tforces, tvelforces;
 
     MultiFab Gp, vel_visc_terms, fluxes[BL_SPACEDIM];
@@ -560,8 +620,6 @@ NavierStokes::scalar_advection (Real dt,
             fluxes[i].define(ba, dmap, num_scalars, 0);
         }
     }
-
-    const int use_forces_in_trans = godunov->useForcesInTrans();
 
     if (use_forces_in_trans)
     {
@@ -669,7 +727,8 @@ NavierStokes::scalar_advection (Real dt,
             int use_conserv_diff = (advectionType[state_ind] == Conservative) ? true : false;
 	    // WARNING: BDS does not work with tiling.
 	    // PRE_MAC and FPU do work with tiling.
-            AdvectionScheme adv_scheme = PRE_MAC;
+            //AdvectionScheme adv_scheme = PRE_MAC;
+            AdvectionScheme adv_scheme = FPU;
 	    
             if (adv_scheme == PRE_MAC)
             {
@@ -697,6 +756,7 @@ NavierStokes::scalar_advection (Real dt,
                                  Ufab,Sfab,tforces,divufab,comp,
                                  aofsfab,state_ind,use_conserv_diff,
                                  state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
+
             if (do_reflux)
             {
 	      for (int d = 0; d < BL_SPACEDIM; d++)
@@ -706,6 +766,7 @@ NavierStokes::scalar_advection (Real dt,
         }
       }
     }
+#endif
 
     delete divu_fp;
 
@@ -1014,8 +1075,12 @@ NavierStokes::sum_integrated_quantities ()
     // Real trac = 0.0;
     Real energy = 0.0;
     Real mgvort = 0.0;
+#if (BL_SPACEDIM==3)
     Real udotlapu = 0.0;
+#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     Real forcing = 0.0;
+#endif
+#endif
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -1238,14 +1303,14 @@ NavierStokes::writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string Level = amrex::Concatenate("Level_", level, 1);
+    std::string LevelStr = amrex::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
     std::string FullPath = dir;
     if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
         FullPath += '/';
-    FullPath += Level;
+    FullPath += LevelStr;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -1275,7 +1340,7 @@ NavierStokes::writePlotFile (const std::string& dir,
         //
         if (n_data_items > 0)
         {
-            std::string PathNameInHeader = Level;
+            std::string PathNameInHeader = LevelStr;
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }
@@ -1714,9 +1779,9 @@ NavierStokes::mac_sync ()
             SyncInterp(Ssync,level,sync_incr,lev,ratio,0,0,
                        numscal,1,mult,sync_bc.dataPtr());
 
-            MultiFab& S_new = fine_lev.get_new_data(State_Type);
-            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-                S_new[mfi].plus(sync_incr[mfi],fine_grids[mfi.index()],0,Density,numscal);
+            MultiFab& S_new_flev = fine_lev.get_new_data(State_Type);
+            for (MFIter mfi(S_new_flev); mfi.isValid(); ++mfi)
+                S_new_flev[mfi].plus(sync_incr[mfi],fine_grids[mfi.index()],0,Density,numscal);
 
             fine_lev.make_rho_curr_time();
             fine_lev.incrRhoAvg(sync_incr,Density-BL_SPACEDIM,1.0);
