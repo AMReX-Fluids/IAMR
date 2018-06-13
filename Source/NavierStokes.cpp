@@ -478,7 +478,7 @@ NavierStokes::predict_velocity (Real  dt,
         //
         // Compute the total forcing.
         //
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+        godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
 
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
@@ -533,11 +533,11 @@ NavierStokes::scalar_advection (Real dt,
     delete dsdt;
 
     MultiFab fluxes[BL_SPACEDIM];
-    MultiFab edgstate[BL_SPACEDIM];
+    //MultiFab edgstate[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
       const BoxArray& ba = getEdgeBoxArray(i);
       fluxes[i].define(ba, dmap, num_scalars, 0);
-      edgstate[i].define(ba, dmap, num_scalars, 0);
+      //edgstate[i].define(ba, dmap, num_scalars, 0);
     }
 
     //
@@ -556,6 +556,11 @@ NavierStokes::scalar_advection (Real dt,
       
       Vector<int> state_bc;
       FArrayBox tforces;
+      FArrayBox cfluxes[BL_SPACEDIM];
+      FArrayBox edgstate[BL_SPACEDIM];
+
+      
+      
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
 	const Box bx = U_mfi.tilebox();
@@ -576,6 +581,15 @@ NavierStokes::scalar_advection (Real dt,
 #endif		 
 #endif		 
 
+for (int d=0; d<BL_SPACEDIM; ++d)
+    {
+      const Box& ebx = amrex::surroundingNodes(bx,d);
+      cfluxes[d].resize(ebx,num_scalars);
+      edgstate[d].resize(ebx,num_scalars);
+    }
+
+
+
         for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
           int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
           godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
@@ -587,11 +601,19 @@ NavierStokes::scalar_advection (Real dt,
         godunov->AdvectScalars(bx, dx, dt, 
                                D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
                                D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                               D_DECL(fluxes[0][U_mfi],fluxes[1][U_mfi],fluxes[2][U_mfi]),
-                               D_DECL(edgstate[0][U_mfi],edgstate[1][U_mfi],edgstate[2][U_mfi]),
+                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                               D_DECL(edgstate[0],edgstate[1],edgstate[2]),
                                Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
                                (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
 
+                               
+       for (int d=0; d<BL_SPACEDIM; ++d)
+     {
+       const Box& ebx = U_mfi.nodaltilebox(d);
+       (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+     }
+
+                               
       }
     }
 
