@@ -197,6 +197,10 @@ NavierStokes::initData ()
 
         state[State_Type].setTimeLevel(cur_time,dt,dt);
 
+	if (variable_scal_diff)
+	  //Make sure something reasonable is in diffn_cc
+	  calcDiffusivity(cur_time);
+
         calc_divu(cur_time,dtin,Divu_new);
 
         if (have_dsdt)
