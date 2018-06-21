@@ -2369,7 +2369,11 @@ NavierStokesBase::okToContinue ()
 int 
 NavierStokesBase::steadyState()
 {
-	Real 	    max_change    = 0.0;
+    if (!get_state_data(State_Type).hasOldData()) {
+        return false; // If nothing to compare to, must not yet be steady :)
+    }
+
+    Real        max_change    = 0.0;
     MultiFab&   U_old         = get_old_data(State_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
 
