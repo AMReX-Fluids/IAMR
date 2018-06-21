@@ -102,7 +102,7 @@ Godunov::Godunov (int max_size)
 void
 Godunov::SetBogusScratch ()
 {
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     const Real bogus_value = 1.e200;
 
     for (int i = 0 ; i < stxlo.size() ; ++i)

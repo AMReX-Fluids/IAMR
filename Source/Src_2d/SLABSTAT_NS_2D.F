@@ -69,7 +69,7 @@ c
       call SET_LOHI(DIMS(runStats), loStats, hiStats)
       call SET_LOHI(DIMS(state), loState, hiState)
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
       if (nStats .NE. nStatsExpect .or. nStateComp .ne. nStateExpect) then
         write(*,1000) nStatsExpect, nStateExpect, nStats, nStateComp
  1000   format('Incorrect number of statistic and/or state components',
@@ -221,7 +221,7 @@ c
       call SET_LOHI(DIMS(runStats), loStats, hiStats)
       call SET_LOHI(DIMS(state), loState, hiState)
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
       if (nStats .NE. nStatsExpect .or. nStateComp .ne. nStateExpect) then
         write(*,1000) nStatsExpect, nStateExpect, nStats, nStateComp
  1000   format('Incorrect number of statistic and/or state components',

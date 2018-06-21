@@ -1993,7 +1993,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // not allow for calling NavierStokes::getViscTerms with src_comp=Yvel
     // or Zvel
     //
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
       amrex::Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
