@@ -29,7 +29,7 @@ amr.max_grid_size	= 32
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 4 # maximum number of levels of refinement
+amr.max_level		= 3 # maximum number of levels of refinement
 
 #*******************************************************************************
 
