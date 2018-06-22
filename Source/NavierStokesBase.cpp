@@ -1032,9 +1032,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
     {
         BoxList bl = amrex::GetBndryCells(grids,nGrow);
 
-        BoxArray f_bnd_ba(bl);
-
-        bl.clear();
+        BoxArray f_bnd_ba(std::move(bl));
 
         BoxArray c_bnd_ba = f_bnd_ba; c_bnd_ba.coarsen(crse_ratio);
 
