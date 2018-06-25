@@ -1,0 +1,57 @@
+#*******************************************************************************
+# INPUTS.3D.POISEUILLE for regression testing
+#*******************************************************************************
+
+# just testing
+godunov.ppm_type = 2
+ns.do_refine_outflow = 1
+ns.do_derefine_outflow = 0
+
+max_step                =  20
+
+stop_time 		=  -1
+
+ns.stop_when_steady 	=  1
+ns.steady_tol 		=  1.0e-4
+
+amr.n_cell              =  32 32 32
+
+amr.max_level           =  2
+ns.do_tracer_ref        =  1
+
+ns.v                    =  1
+amr.v                   =  1
+proj.v 			=  1
+
+amr.check_int		=  1000
+amr.plot_int		=  10
+
+ns.cfl                  =  0.5  # CFL number used to set dt
+
+ns.init_shrink          =  0.3  # factor which multiplies the very first time step
+ns.init_iter          	=  3    # number of initial iterations
+
+ns.variable_vel_visc    =  0
+ns.vel_visc_coef        =  1.0
+ns.variable_scal_diff   =  0
+ns.scal_diff_coefs      =  0.001
+
+amr.probin_file 		=  probin.3d.poiseuille-rg
+
+geometry.coord_sys   	=  0
+
+geometry.prob_lo     	=  0. 0. 0.
+geometry.prob_hi     	=  1. 1. 1.
+
+geometry.is_periodic 	=  0 0 0
+
+ns.gravity		=  1.0
+
+ns.lo_bc             	=  5 5 2
+ns.hi_bc             	=  5 5 2
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+amr.derive_plot_vars   	=  mag_vort
