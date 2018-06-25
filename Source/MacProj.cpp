@@ -68,7 +68,7 @@ MacProj::Initialize ()
     //
     // Only check umac periodicity when debugging.  Can be overridden on input.
     //
-#ifdef NDEBUG
+#ifndef AMREX_DEBUG
     MacProj::check_umac_periodicity = 0;
 #else
     MacProj::check_umac_periodicity = 1;

@@ -426,7 +426,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                                x.dataPtr());
 #else
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
             //
             // Assert that, if faces are connected, one of the coordinate
             // directions has no outflow faces.

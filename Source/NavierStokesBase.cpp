@@ -1032,9 +1032,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
     {
         BoxList bl = amrex::GetBndryCells(grids,nGrow);
 
-        BoxArray f_bnd_ba(bl);
-
-        bl.clear();
+        BoxArray f_bnd_ba(std::move(bl));
 
         BoxArray c_bnd_ba = f_bnd_ba; c_bnd_ba.coarsen(crse_ratio);
 
@@ -2369,7 +2367,11 @@ NavierStokesBase::okToContinue ()
 int 
 NavierStokesBase::steadyState()
 {
-	Real 	    max_change    = 0.0;
+    if (!get_state_data(State_Type).hasOldData()) {
+        return false; // If nothing to compare to, must not yet be steady :)
+    }
+
+    Real        max_change    = 0.0;
     MultiFab&   U_old         = get_old_data(State_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
 
