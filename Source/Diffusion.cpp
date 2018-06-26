@@ -1339,40 +1339,11 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
         for (int d =0; d <BL_SPACEDIM; d++)
             tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
 	if (update_fluxreg)
 	{	  
-
-	  // 6/20/18 - This was not a good idea
-	  // This FineAdd not thread safe, nor does it use tiling
-	  // Best to keep untiled MFIter below
-	  //
-	  // for (int k = 0; k < BL_SPACEDIM; k++)
-	  //   viscflux_reg->FineAdd(*(tensorflux[k]),k,Xvel,Xvel,
-	  // 			  BL_SPACEDIM,dt*dt);
-
-	  FArrayBox flux;
-	  for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
-	  {
-            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
-            {
-	      const int i    = mfi.index();
-	      const Box& grd = amrex::enclosedCells(mfi.validbox());
-
-	      BL_ASSERT(grd==grids[mfi.index()]);
-	      
-	      for (int k = 0; k < BL_SPACEDIM; k++)
-              {
-	  	Box flux_bx(grd);
-	  	flux_bx.surroundingNodes(k);
-	  	flux.resize(flux_bx,1);
-	  	flux.copy((*(tensorflux[k]))[mfi],sigma,0,1);
-	  	viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
-	      }
-            }
-	  }
+	  for (int k = 0; k < BL_SPACEDIM; k++)
+	    viscflux_reg->FineAdd(*(tensorflux[k]),k,Xvel,Xvel,
+	  			  BL_SPACEDIM,dt*dt);
 	}
     }
 }
