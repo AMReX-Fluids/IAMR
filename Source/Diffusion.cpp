@@ -1899,17 +1899,14 @@ Diffusion::computeAlpha (MultiFab&       alpha,
         }
     }
 
-    //FIXME - need to find a test problem with one of these flags
     if (rho_flag == 2 || rho_flag == 3)
     {
         MultiFab& S = navier_stokes->get_data(State_Type,time);
 
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
-       // for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
+	for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
         {
-            BL_ASSERT(grids[alphamfi.index()] == alphamfi.validbox());
-            alpha[alphamfi].mult(S[alphamfi],alphamfi.validbox(),Density,0,1);
-	    //alpha[alphamfi].mult(S[alphamfi],alphamfi.tilebox(),Density,0,1);
+	  BL_ASSERT(grids[alphamfi.index()].contains(alphamfi.tilebox())==1);
+	    alpha[alphamfi].mult(S[alphamfi],alphamfi.tilebox(),Density,0,1);
         }
     }
 
@@ -2573,6 +2570,9 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
             rho_flag = 2;
             break;
 
+	    //NOTE: rho_flag = 3 is used in a different context for
+	    //      do_mom_diff==1
+	    
         default:
             amrex::Print() << "compDiffusionType = " << compDiffusionType << '\n';
             amrex::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
