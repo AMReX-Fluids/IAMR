@@ -22,6 +22,8 @@ c. Diffusion.cpp
      that doesn't rely on gridno
      could perhaps deal with this by creating bcoeffs multifab and
      then calling mf version of bCoefficients which relies on mf.copy(mf)
+     But does that function (uses mf.copy()) use tiling?
+     Castro uses a setBcoef fn, but relies on mlmg (not DivVis)
    - Tensor op called if visc coef=0? Dont think so
    - tensorFlux MFIter not tile-able (see comments in code)
    - alpha MFIter - need to find problem with right rho_flag...
@@ -73,11 +75,13 @@ NavierStokesBase.cpp:3995:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 NavierStokesBase.cpp:4017:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 
 !!I made changes here that seem to work, but I would like to make sure I have properly tested them
+!!! ASK about this change, see note in code
 NavierStokesBase.cpp:4314:		      // FillPatchIterator fpi(parent->getLevel(lev), S_new, 
 NavierStokesBase.cpp:4321:// 			for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
 NavierStokesBase.cpp:4326:		      // why not use fab.copy to iterate over components? 
 
 
+! Initialization, not for first pass
 NavierStokes.cpp:87:    for (MFIter snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
 NavierStokes.cpp:173:            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
 
