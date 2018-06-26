@@ -823,30 +823,27 @@ NavierStokes::scalar_diffusion_update (Real dt,
             //
             if (do_reflux)
             {
-                FArrayBox fluxtot;
-
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
                     MultiFab fluxes;
 
-                    if (level < parent->finestLevel()) {
-                        fluxes.define(fluxSCn[d]->boxArray(), fluxSCn[d]->DistributionMap(), 1, 0);
+		    fluxes.define(fluxSCn[d]->boxArray(), fluxSCn[d]->DistributionMap(), 1, 0);
+
+		    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
+                    for (MFIter fmfi(*fluxSCn[d],true); fmfi.isValid(); ++fmfi)
+		    {
+                        const Box& ebox = fmfi.tilebox();
+
+                        fluxes[fmfi].copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,1);
+                        fluxes[fmfi].plus((*fluxSCnp1[d])[fmfi],ebox,ebox,0,0,1);
                     }
-
-                    for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
-                    {
-                        const Box& ebox = (*fluxSCn[d])[fmfi].box();
-
-                        fluxtot.resize(ebox,1);
-                        fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,1);
-                        fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,1);
-
-                        if (level < parent->finestLevel())
-                            fluxes[fmfi].copy(fluxtot);
-
-                        if (level > 0)
-                            getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt);
-                    }
+		    }
+		    
+		    if (level > 0)
+		      getViscFluxReg().FineAdd(fluxes,d,0,sigma,1,dt);
 
                     if (level < parent->finestLevel())
                         getLevel(level+1).getViscFluxReg().CrseInit(fluxes,d,0,sigma,1,-dt);
