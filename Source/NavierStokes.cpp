@@ -1552,18 +1552,16 @@ NavierStokes::mac_sync ()
             if (istate != Density && advectionType[istate] == Conservative)
             {
                 iconserved++;
-
-                for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
+                for (MFIter Smfi(S_new,true); Smfi.isValid(); ++Smfi)
                 {
-                    const int  i   = Smfi.index();
-                    const Box& grd = grids[i];
-
-                    delta_ssync.resize(grd,1);
-                    delta_ssync.copy(S_new[Smfi], grd, istate, grd, 0, 1);
-                    delta_ssync.divide(S_new[Smfi], grd, Density, 0, 1);
-                    delta_ssync.mult(Ssync[Smfi],grd,Density-BL_SPACEDIM,0,1);
-                    (*DeltaSsync)[Smfi].copy(delta_ssync,grd,0,grd,iconserved,1);
-                    Ssync[Smfi].minus(delta_ssync,grd,0,istate-BL_SPACEDIM,1);
+		    const Box& bx = Smfi.tilebox();
+		    
+                    delta_ssync.resize(bx,1);
+                    delta_ssync.copy(S_new[Smfi], bx, istate, bx, 0, 1);
+                    delta_ssync.divide(S_new[Smfi], bx, Density, 0, 1);
+                    delta_ssync.mult(Ssync[Smfi],bx,Density-BL_SPACEDIM,0,1);
+                    (*DeltaSsync)[Smfi].copy(delta_ssync,bx,0,bx,iconserved,1);
+                    Ssync[Smfi].minus(delta_ssync,bx,0,istate-BL_SPACEDIM,1);
                 }
             }
         }
@@ -1572,13 +1570,12 @@ NavierStokes::mac_sync ()
 
         if (do_mom_diff == 1)
         {
-            for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+	    for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
-                const int        i      = Vsyncmfi.index();
-                FArrayBox&       vfab   = Vsync[Vsyncmfi];
+	        FArrayBox&       vfab   = Vsync[Vsyncmfi];
                 const FArrayBox& rhofab = rho_ctime[Vsyncmfi];
-                const Box&       bx     = rho_ctime.box(i);
-
+		const Box&       bx     = Vsyncmfi.tilebox();
+		
                 D_TERM(vfab.divide(rhofab,bx,0,Xvel,1);,
                        vfab.divide(rhofab,bx,0,Yvel,1);,
                        vfab.divide(rhofab,bx,0,Zvel,1););
@@ -1660,10 +1657,10 @@ NavierStokes::mac_sync ()
             {
                 iconserved++;
 
-                for (MFIter SsyncMfi(Ssync); SsyncMfi.isValid(); ++SsyncMfi)
+                for (MFIter SsyncMfi(Ssync,true); SsyncMfi.isValid(); ++SsyncMfi)
                 {
-                    const int i = SsyncMfi.index();
-                    Ssync[SsyncMfi].plus((*DeltaSsync)[SsyncMfi], grids[i],
+		    const Box& bx = SsyncMfi.tilebox();
+                    Ssync[SsyncMfi].plus((*DeltaSsync)[SsyncMfi], bx,
                                      iconserved, istate-BL_SPACEDIM, 1);
                 }
             }
@@ -1673,9 +1670,9 @@ NavierStokes::mac_sync ()
         //
         for (int sigma  = 0; sigma < numscal; sigma++)
         {
-            for (MFIter S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi)
+	    for (MFIter S_newmfi(S_new,true); S_newmfi.isValid(); ++S_newmfi)
             {
-                S_new[S_newmfi].plus(Ssync[S_newmfi],S_newmfi.validbox(),
+                S_new[S_newmfi].plus(Ssync[S_newmfi],S_newmfi.tilebox(),
                                      sigma,BL_SPACEDIM+sigma,1);
             }
         }
@@ -1763,13 +1760,13 @@ NavierStokes::reflux ()
 
     if (do_mom_diff == 0)
     {
-        for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+        for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
             const int        i     = Vsyncmfi.index();
             FArrayBox&       vfab  = Vsync[Vsyncmfi];
             const FArrayBox& rhfab = Rh[Vsyncmfi];
-            const Box&       bx    = Rh.box(i);
-
+	    const Box&       bx    = Vsyncmfi.tilebox();
+	    
             D_TERM(vfab.divide(rhfab,bx,0,Xvel,1);,
                    vfab.divide(rhfab,bx,0,Yvel,1);,
                    vfab.divide(rhfab,bx,0,Zvel,1););
@@ -1782,11 +1779,10 @@ NavierStokes::reflux ()
         {
             const int sigma = istate -  BL_SPACEDIM;
 
-            for (MFIter Ssyncmfi(Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+            for (MFIter Ssyncmfi(Ssync,true); Ssyncmfi.isValid(); ++Ssyncmfi)
             {
-                const int i = Ssyncmfi.index();
-
-                Ssync[Ssyncmfi].divide(Rh[Ssyncmfi],Rh.box(i),0,sigma,1);
+		const Box& bx = Ssyncmfi.tilebox();
+                Ssync[Ssyncmfi].divide(Rh[Ssyncmfi],bx,0,sigma,1);
             }
         }
     }
@@ -1804,6 +1800,7 @@ NavierStokes::reflux ()
 
     std::vector< std::pair<int,Box> > isects;
 
+    // Is this a really a good canidate for tiling?
     for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();
@@ -1945,17 +1942,15 @@ NavierStokes::calc_divu (Real      time,
 
             const MultiFab&   rhotime = get_rho(time);
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
-            MFIter            rho_mfi(rhotime);
-
-            for ( ;
-                  rho_mfi.isValid() && temp_fpi.isValid();
-                  ++rho_mfi, ++temp_fpi)
+	    const MultiFab& tmf = temp_fpi.get_mf();
+	    
+            for ( MFIter rho_mfi(rhotime,true); rho_mfi.isValid(); ++rho_mfi)
             {
-                const int  i       = rho_mfi.index();
                 FArrayBox& divufab = divu[rho_mfi];
+		const Box& bx = rho_mfi.tilebox();
 
-                divufab.divide(rhotime[rho_mfi],divu.box(i),0,0,1);
-                divufab.divide(temp_fpi(),divu.box(i),0,0,1);
+                divufab.divide(rhotime[rho_mfi],bx,0,0,1);
+                divufab.divide(tmf[rho_mfi],bx,0,0,1);
             }
             Real THERMO_cp_inv = 1.0 / 1004.6;
             divu.mult(THERMO_cp_inv);
@@ -1981,9 +1976,9 @@ NavierStokes::calc_dsdt (Real      time,
             MultiFab& Divu_new = get_new_data(Divu_Type);
             MultiFab& Divu_old = get_old_data(Divu_Type);
 
-            for (MFIter mfi(dsdt); mfi.isValid(); ++mfi)
+            for (MFIter mfi(dsdt,true); mfi.isValid(); ++mfi)
             {
-                const Box& vbx     = mfi.validbox();
+                const Box& vbx     = mfi.tilebox();
                 FArrayBox& dsdtfab = dsdt[mfi];
                 dsdtfab.copy(Divu_new[mfi],vbx,0,vbx,0,1);
                 dsdtfab.minus(Divu_old[mfi],vbx,0,0,1);
