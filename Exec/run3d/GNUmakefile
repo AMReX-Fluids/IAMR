@@ -11,7 +11,7 @@ TOP = ../..
 DIM        = 3
 COMP	   = gnu
 DEBUG	   = FALSE
-USE_MPI    = TRUE
+USE_MPI    = FALSE
 USE_OPENMP = FALSE
 
 PRECISION = DOUBLE
@@ -51,10 +51,10 @@ endif
 
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
-DEFINES += -DMOREGENGETFORCE
+#DEFINES += -DMOREGENGETFORCE
 
 # This is for the time-dependent turbulence forcing term
-DEFINES += -DDO_IAMR_FORCE
+#DEFINES += -DDO_IAMR_FORCE
 
 Bpack   := ./Make.package
 Blocs   := .

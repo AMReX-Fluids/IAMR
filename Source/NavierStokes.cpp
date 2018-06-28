@@ -664,7 +664,7 @@ NavierStokes::scalar_advection (Real dt,
             //
             int use_conserv_diff = (advectionType[state_ind] == Conservative) ? true : false;
 
-            AdvectionScheme adv_scheme = PRE_MAC;
+            AdvectionScheme adv_scheme = FPU;
 
             if (adv_scheme == PRE_MAC)
             {

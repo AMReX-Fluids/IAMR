@@ -9,7 +9,7 @@ ns.do_vorticity_ref=1
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 10000
+max_step 		= 2
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 2.0
@@ -21,6 +21,8 @@ amr.n_cell 		= 8 8 8
 amr.n_cell 		= 16 16 16
 amr.n_cell 		= 32 32 32
 
+
+godunov.ppm_type = 1
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
@@ -55,7 +57,7 @@ amr.check_int		= 10
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 10
+amr.plot_int		= 1
 
 #*******************************************************************************
 
@@ -76,6 +78,19 @@ ns.vel_visc_coef        = 0.0
 
 # Diffusion coefficient for first scalar
 ns.scal_diff_coefs      = 0.0
+
+proj.v=1
+mg.v = 5
+proj.v=4
+proj.proj_tol = 1.e-10
+proj.sync_tol = 1.e-8
+
+mg.v = 1
+
+mac.use_mlmg_solver = 1
+diffuse.use_mlmg_solver = 1
+proj.use_mlmg_solver = 1
+
 
 #*******************************************************************************
 
@@ -123,4 +138,3 @@ amr.blocking_factor     = 8
 amr.derive_plot_vars    = mag_vort
 
 #*******************************************************************************
-proj.v=1
