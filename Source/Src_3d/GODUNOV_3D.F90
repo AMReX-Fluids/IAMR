@@ -44,13 +44,14 @@ contains
        ubc, tfx,tfx_lo,tfx_hi, umac,umac_lo,umac_hi, &
        vbc, tfy,tfy_lo,tfy_hi, vmac,vmac_lo,vmac_hi, &
        wbc, tfz,tfz_lo,tfz_hi, wmac,wmac_lo,wmac_hi, &
+       corner_couple, &
        dt, dx, use_forces_in_trans, ppm_type)  bind(C,name="extrap_vel_to_faces")
 
     use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
 
     implicit none
     real(rt), intent(in) :: dt, dx(SDIM)
-    integer,  intent(in) ::  ubc(SDIM,2),vbc(SDIM,2),wbc(SDIM,2), use_forces_in_trans, ppm_type
+    integer,  intent(in) ::  ubc(SDIM,2),vbc(SDIM,2),wbc(SDIM,2), use_forces_in_trans, ppm_type, corner_couple
     integer,  intent(in), dimension(3) :: lo,hi,u_lo,u_hi,&
                                           tfx_lo, tfx_hi, tfy_lo, tfy_hi, tfz_lo, tfz_hi, &
                                           umac_lo, umac_hi, vmac_lo, vmac_hi, wmac_lo, wmac_hi
@@ -74,10 +75,8 @@ contains
     real(rt), dimension(:,:,:), pointer, contiguous :: sm,sp,dsvl
     real(rt), dimension(:,:,:), pointer, contiguous :: xylo,xzlo,yxlo,yzlo,zxlo,zylo
     real(rt), dimension(:,:,:), pointer, contiguous :: xyhi,xzhi,yxhi,yzhi,zxhi,zyhi
-    integer velpred, corner_couple
+    integer velpred
     parameter( velpred = 1 )
-    
-    corner_couple = 1
     
     ! Works space requirements:
     !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy,    uad,vad - ec(wk)
@@ -436,12 +435,13 @@ contains
        umac,umac_lo,umac_hi,        xstate,xstate_lo,xstate_hi,&
        vmac,vmac_lo,vmac_hi,        ystate,ystate_lo,ystate_hi,&
        wmac,wmac_lo,wmac_hi,        zstate,zstate_lo,zstate_hi,&
+       corner_couple, &
        dt, dx, bc, state_ind, use_forces_in_trans, ppm_type, iconserv)  bind(C,name="extrap_state_to_faces")
   
     use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
   
     implicit none
-    integer, intent(in) ::  nc, bc(SDIM,2,nc), state_ind, use_forces_in_trans, ppm_type, iconserv(nc)
+    integer, intent(in) ::  nc, bc(SDIM,2,nc), state_ind, use_forces_in_trans, ppm_type, iconserv(nc), corner_couple
     integer, dimension(3), intent(in) :: lo,hi,s_lo,s_hi,tf_lo,tf_hi,&
                               divu_lo,divu_hi,xstate_lo,xstate_hi,ystate_lo,ystate_hi,zstate_lo,zstate_hi, &
                               umac_lo,umac_hi,vmac_lo,vmac_hi,wmac_lo,wmac_hi
@@ -468,9 +468,6 @@ contains
     real(rt), dimension(:,:,:), pointer, contiguous :: sm,sp,dsvl
     real(rt), dimension(:,:,:), pointer, contiguous :: xylo,xzlo,yxlo,yzlo,zxlo,zylo
     real(rt), dimension(:,:,:), pointer, contiguous :: xyhi,xzhi,yxhi,yzhi,zxhi,zyhi
-    integer :: corner_couple
-  
-    corner_couple = 1
   
     ! Works space requirements:
     !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy
@@ -511,7 +508,7 @@ contains
     call amrex_allocate(yzhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zxhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  
+
     if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
           eblo = lo - 2

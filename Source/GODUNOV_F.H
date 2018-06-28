@@ -183,6 +183,7 @@ extern "C"
                             const int* wbc,
                             const amrex::Real* tfz_dat, const int* tfz_lo, const int* tfz_hi,
                             amrex::Real*       wmac_dat, const int* wmac_lo, const int* wmac_hi,
+														int* corner_couple,
 #endif
                             const amrex::Real* dt, const amrex::Real* dx,
                             int* use_forces_in_trans, int* ppm_type);
@@ -198,6 +199,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                                const amrex::Real* w_dat, const int* w_lo, const int* w_hi,
                                amrex::Real* zstate_dat, const int* zstate_lo, const int* zstate_hi,
+															 int* corner_couple,
 #endif
                                const amrex::Real* dt, const amrex::Real* dx, const int* bc, const int* state_ind,
                                const int* use_forces_in_trans, const int* ppm_type, const int* iconserv);

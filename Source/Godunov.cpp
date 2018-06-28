@@ -223,7 +223,7 @@ Godunov::ComputeTransverVelocities (const Box& grd, const Real* dx, Real dt,
     D_TERM(BL_ASSERT(U.nComp() > Ucomp);,
            BL_ASSERT(V.nComp() > Vcomp);,
            BL_ASSERT(W.nComp() > Wcomp););
-//Print()<<grd << " in ComputeTransverVelocities " << work_bx << std::endl;
+
     BL_ASSERT(work_bx.contains(amrex::grow(grd,1)));
     D_TERM(;,
            BL_ASSERT(work.nComp() >= 5);,
@@ -552,7 +552,6 @@ Godunov::edge_states_orig( const Box &grd, const Real *dx, Real dt, int velpred,
 		xedge_dat, yedge_dat, zedge_dat,
 		xylo_dat, xzlo_dat, yxlo_dat, yzlo_dat, zxlo_dat, zylo_dat,
 		xyhi_dat, xzhi_dat, yxhi_dat, yzhi_dat, zxhi_dat, zyhi_dat,
-
 		&corner_couple,
 #endif
                 ARLIM(ww_lo), ARLIM(ww_hi),
@@ -825,6 +824,7 @@ Godunov::ExtrapVelToFaces (const amrex::Box&  box,
                       vbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,1),BL_TO_FORTRAN_ANYD(vmac),
 #if (AMREX_SPACEDIM == 3)
                       wbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,2),BL_TO_FORTRAN_ANYD(wmac),
+                      &corner_couple,
 #endif
                       &dt, dx, &use_forces_in_trans, &ppm_type);
 }
@@ -861,6 +861,7 @@ Godunov::AdvectScalars(const Box&  box,
                           BL_TO_FORTRAN_ANYD(vmac),     BL_TO_FORTRAN_ANYD(ystate),
 #if (AMREX_SPACEDIM == 3)
                           BL_TO_FORTRAN_ANYD(wmac),     BL_TO_FORTRAN_ANYD(zstate),
+                          &corner_couple,
 #endif
                           &dt, dx, &(state_bc[0]), &state_fidx, 
                           &use_forces_in_trans, &ppm_type, &(use_conserv_diff[0]));
