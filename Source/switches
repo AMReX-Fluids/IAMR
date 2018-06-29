@@ -23,6 +23,9 @@ ns.do_denminmax do_scalminmax
 velocity restart
 use jet
 sum turbulent quantities
+
+ns.do_cons_trac  0 DEFAULT
+ns.do_cons_trac2 0 DEFAULT
 ! Not sure why the next 2 are not one thing... predict_mom_diff never seems to really
 ! get used
 ns.do_mom_diff = 0 DEFAULT
