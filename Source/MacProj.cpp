@@ -965,6 +965,7 @@ MacProj::mac_sync_compute (int                   level,
         const int i     = S_fpi.index();
         FArrayBox& S    = S_fpi();
         FArrayBox& divu = (*divu_fp)[S_fpi];
+        const Box bx = S_fpi.tilebox();
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
@@ -1061,7 +1062,7 @@ MacProj::mac_sync_compute (int                   level,
                   tforces.mult(S,tforces.box(),tforces.box(),Density,comp,1);
                 }
 
-                godunov->SyncAdvect(grids[i], dx, dt, level, 
+                godunov->SyncAdvect(bx, dx, dt, level, 
                                     area[0][i], u_mac_fab0, grad_phi[0], xflux, 
                                     area[1][i], u_mac_fab1, grad_phi[1], yflux,
 #if (BL_SPACEDIM == 3)                            
@@ -1069,7 +1070,7 @@ MacProj::mac_sync_compute (int                   level,
 #endif
                                     U, S, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
-                                    ns_level_bc.dataPtr(), PRE_MAC, volume[i]);
+                                    ns_level_bc.dataPtr(), FPU, volume[i]);
                 //
                 // NOTE: the signs here are opposite from VELGOD.
                 // NOTE: fluxes expected to be in extensive form.

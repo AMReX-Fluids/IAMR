@@ -886,57 +886,6 @@ Godunov::AdvectScalars(const Box&  box,
 
 
 //
-// Compute the edge states for The Mac projection.
-// FArrayBox work sized as in edge_states.
-//
-
-void
-Godunov::ComputeUmac (const Box&  grd,
-                      const Real* dx,
-                      Real        dt, 
-                      FArrayBox&  umac,
-                      const int*  ubc, 
-                      FArrayBox&  vmac,
-                      const int*  vbc, 
-#if (BL_SPACEDIM == 3)
-                      FArrayBox&  wmac,
-                      const int*  wbc, 
-#endif
-                      FArrayBox&  U,
-                      FArrayBox&  tforces)
-{
-    int velpred = 1;
-    int mCompX = 0;
-    int mCompY = 0;
-    //
-    // 2D calls.
-    //
-#if (BL_SPACEDIM == 2)                  
-    edge_states_orig(grd,dx,dt,velpred,umac,vmac,mCompX,mCompY,umac,vmac,mCompX,mCompY,
-                     U,U,XVEL,YVEL,U,XVEL,tforces,XVEL,XVEL,ubc);
-
-    edge_states_orig(grd,dx,dt,velpred,umac,vmac,mCompX,mCompY,umac,vmac,mCompX,mCompY,
-                     U,U,XVEL,YVEL,U,YVEL,tforces,YVEL,YVEL,vbc);
-#endif
-    //
-    // 3D calls.
-    //
-#if (BL_SPACEDIM == 3)                  
-    int mCompZ = 0;
-
-    edge_states_orig(grd,dx,dt,velpred,umac,vmac,wmac,mCompX,mCompY,mCompZ,umac,vmac,wmac,mCompX,mCompY,mCompZ,
-                     U,U,U,XVEL,YVEL,ZVEL,U,XVEL,tforces,XVEL,XVEL,ubc);
-
-    edge_states_orig(grd,dx,dt,velpred,umac,vmac,wmac,mCompX,mCompY,mCompZ,umac,vmac,wmac,mCompX,mCompY,mCompZ,
-                     U,U,U,XVEL,YVEL,ZVEL,U,YVEL,tforces,YVEL,YVEL,vbc);
-
-    edge_states_orig(grd,dx,dt,velpred,umac,vmac,wmac,mCompX,mCompY,mCompZ,umac,vmac,wmac,mCompX,mCompY,mCompZ,
-                     U,U,U,XVEL,YVEL,ZVEL,U,ZVEL,tforces,ZVEL,ZVEL,wbc);
-
-#endif
-}
-
-//
 // Advect a state component.
 // This routine assumes uad,vad,wad have been precomputed.
 // FArrayBox work sized as in edge_states.
@@ -1052,7 +1001,7 @@ Godunov::ComputeAofs (const Box& grd,
 //
 
 void
-Godunov::SyncAdvect (const Box&  grd,
+Godunov::SyncAdvect (const Box&  box,
                      const Real* dx,
                      Real        dt,
                      int         level,
@@ -1102,21 +1051,47 @@ Godunov::SyncAdvect (const Box&  grd,
 #if (BL_SPACEDIM == 3)
     BL_ASSERT(wcorr.box()     == zflux.box());
     BL_ASSERT(wcorr.nComp()   >= 1          );
-#endif    
+#endif
+
+
+amrex::Print() << "DEBUG In SyncAdvect before extrap_state_to_faces " << "\n";
+
+
+//int ppm_type=0;
+const int state_fidx = 1;
+const int nc = 1;
     //
     // Compute the edge states.
     //
-    edge_states(grd, dx, dt, velpred,
-                D_DECL(uedge,vedge,wedge), D_DECL(0,0,0),
-                D_DECL(xflux,yflux,zflux), D_DECL(0,0,0),
-                D_DECL(U,U,U), D_DECL(0,1,2),
-                S, fab_ind, tforces, fab_ind, divu, 0, sync_ind, bc,
-                iconserv, scheme);
+    extrap_state_to_faces(box.loVect(),box.hiVect(),
+                          BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
+                          BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
+                          BL_TO_FORTRAN_N_ANYD(divu,0),
+                          BL_TO_FORTRAN_ANYD(uedge),     BL_TO_FORTRAN_ANYD(xflux),
+                          BL_TO_FORTRAN_ANYD(vedge),     BL_TO_FORTRAN_ANYD(yflux),
+#if (AMREX_SPACEDIM == 3)
+                          BL_TO_FORTRAN_ANYD(wedge),     BL_TO_FORTRAN_ANYD(zflux),
+                          &corner_couple,
+#endif
+                          &dt, dx, bc, &state_fidx,
+                          &use_forces_in_trans, &ppm_type, &iconserv);
 
+amrex::Print() << "DEBUG In SyncAdvect after extrap_state_to_faces " << "\n";
+
+    
+    //edge_states(box, dx, dt, velpred,
+    //            D_DECL(uedge,vedge,wedge), D_DECL(0,0,0),
+    //            D_DECL(xflux,yflux,zflux), D_DECL(0,0,0),
+    //            D_DECL(U,U,U), D_DECL(0,1,2),
+    //            S, fab_ind, tforces, fab_ind, divu, 0, sync_ind, bc,
+    //            iconserv, scheme);
+
+    
+    
     //
     // Compute the advective tendency for the mac sync.
     //
-    ComputeSyncAofs(grd,
+    ComputeSyncAofs(box,
                     areax, ucorr, xflux,  
                     areay, vcorr, yflux,  
 #if (BL_SPACEDIM == 3)                             

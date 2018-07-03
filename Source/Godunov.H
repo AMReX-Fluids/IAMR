@@ -134,16 +134,7 @@ public:      // public access functions
                           D_DECL(int eCompX,       int eCompY,       int eCompZ),
                           const amrex::FArrayBox &S, int Scomp, const amrex::FArrayBox &tforces, int Tcomp, const amrex::FArrayBox& divu, int Dcomp,
                           int state_ind, const int *bc, int use_conserv);
-    
-    // compute divergent mac velocities
-    void ComputeUmac( const amrex::Box &grd, const amrex::Real *dx, amrex::Real dt, 
-                      amrex::FArrayBox &umac, const int *ubc, 
-                      amrex::FArrayBox &vmac, const int *vbc, 
-#if (BL_SPACEDIM == 3 )
-                      amrex::FArrayBox &wmac, const int *wbc, 
-#endif
-                      amrex::FArrayBox &U, amrex::FArrayBox &tforces );
-    
+
     // advect a state component
     void AdvectState( const amrex::Box &grd, const amrex::Real *dx, amrex::Real dt, 
                       amrex::FArrayBox &areax, amrex::FArrayBox &uedge, amrex::FArrayBox &xflux,  
