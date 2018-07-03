@@ -1055,10 +1055,10 @@ Godunov::SyncAdvect (const Box&  box,
 
 
 amrex::Print() << "DEBUG In SyncAdvect before extrap_state_to_faces " << "\n";
+amrex::Print() << "DEBUG In SyncAdvect fab_ind " << fab_ind << "\n";
 
-
-//int ppm_type=0;
-const int state_fidx = 1;
+////int ppm_type=0;
+const int state_fidx = state_ind+1;
 const int nc = 1;
     //
     // Compute the edge states.
@@ -1078,7 +1078,7 @@ const int nc = 1;
 
 amrex::Print() << "DEBUG In SyncAdvect after extrap_state_to_faces " << "\n";
 
-    
+    //
     //edge_states(box, dx, dt, velpred,
     //            D_DECL(uedge,vedge,wedge), D_DECL(0,0,0),
     //            D_DECL(xflux,yflux,zflux), D_DECL(0,0,0),
