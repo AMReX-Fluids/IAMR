@@ -545,8 +545,9 @@ NavierStokesBase::Initialize ()
     //
     pp.query("do_refine_outflow",do_refine_outflow);
     pp.query("do_derefine_outflow",do_derefine_outflow);
-    if (do_derefine_outflow) do_refine_outflow = 0;
-
+    if (do_derefine_outflow == 1 && do_refine_outflow == 1)
+      amrex::Abort("NavierStokesBase::Initialize(): Cannot have both do_refine_outflow==1 and do_derefine_outflow==1");
+    
     pp.query("Nbuf_outflow",Nbuf_outflow);
     BL_ASSERT(Nbuf_outflow >= 0);
     BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
@@ -1083,10 +1084,14 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+	    //FIXME
+	    Print()<<"Testing HERE...\n";
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const Box& box   = crse_src[mfi].box();
+                //const Box& box   = crse_src[mfi].box();
+		// I don't think mfi has any grow cells
+		const Box& box   = mfi.tilebox();
                 const int* rat   = crse_ratio.getVect();
                 pc_edge_interp(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[mfi].dataPtr(),
@@ -1111,10 +1116,11 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
+            for (MFIter mfi(fine_src,true); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const Box& fbox  = fine_src[mfi].box();
+                //const Box& fbox  = fine_src[mfi].box();
+		const Box& fbox  = mfi.tilebox();
                 const int* rat   = crse_ratio.getVect();
                 edge_interp(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
                                  fine_src[mfi].dataPtr(),
@@ -2257,7 +2263,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 // region
                 //
                 bool hasTags = false;
-                for (MFIter tbi(tags,true); !hasTags && tbi.isValid(); ++tbi)
+                for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
                     if (tags[tbi].numTags(outflowBox) > 0)
                         hasTags = true;
                 
@@ -2828,6 +2834,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
         //
       if (do_denminmax)
       {
+	Print()<<"Calling denminmax \n";
 	    //
             // Must do FillPatch here instead of MF iterator because we need the
             // boundary values in the old data (especially at inflow)
@@ -2929,6 +2936,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
     //
     if ( do_scalminmax && (sComp <= last_scalar) )
     {
+      	Print()<<"Calling scalminmax \n";
         const int num_scalars = last_scalar - Density + 1;
         //
         // Must do FillPatch here instead of MF iterator because we need the
@@ -3558,7 +3566,6 @@ NavierStokesBase::velocity_update (Real dt)
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
-
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
@@ -4330,7 +4337,8 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 
 		    if (n > 0)
 		    {
-		      // changed to use FillPatch here
+		      // changed to use FillPatch here. Not sure if other way
+		      // was used for a reason...
 		      FillPatch(parent->getLevel(lev), tmf, ng, curr_time,
 				State_Type, timestamp_indices[0], n, 0);
 		      // FillPatchIterator fpi(parent->getLevel(lev), S_new, 
