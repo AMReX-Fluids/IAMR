@@ -919,23 +919,11 @@ Godunov::AdvectState (const Box&  box,
                       AdvectionScheme scheme,
                       FArrayBox&  vol)
 {
-    int velpred = 0;
-    //
-    // Compute edge states for an advected quantity.
-    //
-    //edge_states(grd, dx, dt, velpred,
-    //            D_DECL(uedge,vedge,wedge), D_DECL(0,0,0),
-    //            D_DECL(xflux,yflux,zflux), D_DECL(0,0,0),
-    //            D_DECL(U,U,U), D_DECL(0,1,2),
-    //            S, fab_ind, tforces, fab_ind, divu, 0, state_ind, bc, 
-    //            iconserv, scheme);
-
-    
+     //Compute edge states for an advected quantity.
+       
     const int state_fidx = state_ind+1;
     const int nc = 1;
-    //
-    // Compute the edge states.
-    //
+    
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
                           BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
@@ -1052,7 +1040,6 @@ Godunov::SyncAdvect (const Box&  box,
                      AdvectionScheme scheme,
                      const FArrayBox& vol)
 {
-    int velpred = 0;
     //
     // Error block.
     //
@@ -1074,15 +1061,14 @@ Godunov::SyncAdvect (const Box&  box,
 #endif
 
 
-amrex::Print() << "DEBUG In SyncAdvect before extrap_state_to_faces " << "\n";
-amrex::Print() << "DEBUG In SyncAdvect fab_ind " << fab_ind << "\n";
-
-////int ppm_type=0;
-const int state_fidx = state_ind+1;
-const int nc = 1;
     //
     // Compute the edge states.
     //
+    
+    const int state_fidx = state_ind+1;
+    const int nc = 1;
+
+    
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
                           BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
@@ -1095,19 +1081,7 @@ const int nc = 1;
 #endif
                           &dt, dx, bc, &state_fidx,
                           &use_forces_in_trans, &ppm_type, &iconserv);
-
-amrex::Print() << "DEBUG In SyncAdvect after extrap_state_to_faces " << "\n";
-
-    //
-    //edge_states(box, dx, dt, velpred,
-    //            D_DECL(uedge,vedge,wedge), D_DECL(0,0,0),
-    //            D_DECL(xflux,yflux,zflux), D_DECL(0,0,0),
-    //            D_DECL(U,U,U), D_DECL(0,1,2),
-    //            S, fab_ind, tforces, fab_ind, divu, 0, sync_ind, bc,
-    //            iconserv, scheme);
-
-    
-    
+   
     //
     // Compute the advective tendency for the mac sync.
     //
