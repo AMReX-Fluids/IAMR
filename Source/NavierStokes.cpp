@@ -563,7 +563,7 @@ NavierStokes::scalar_advection (Real dt,
       
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
-	const Box bx = U_mfi.tilebox();
+	    const Box bx = U_mfi.tilebox();
 
 #ifdef BOUSSINESQ
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
@@ -571,24 +571,22 @@ NavierStokes::scalar_advection (Real dt,
 #ifdef GENGETFORCE
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
-	if (getForceVerbose) {
-	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
-			 << " Calling getForce..." << '\n';
-	}
+	      if (getForceVerbose) {
+	        amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+			    << " Calling getForce..." << '\n';
+	      }
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 #else
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[U_mfi]);
 #endif		 
 #endif		 
 
-for (int d=0; d<BL_SPACEDIM; ++d)
-    {
-      const Box& ebx = amrex::surroundingNodes(bx,d);
-      cfluxes[d].resize(ebx,num_scalars);
-      edgstate[d].resize(ebx,num_scalars);
-    }
-
-
+        for (int d=0; d<BL_SPACEDIM; ++d)
+        {
+          const Box& ebx = amrex::surroundingNodes(bx,d);
+          cfluxes[d].resize(ebx,num_scalars);
+          edgstate[d].resize(ebx,num_scalars);
+        }
 
         for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
           int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
@@ -607,11 +605,11 @@ for (int d=0; d<BL_SPACEDIM; ++d)
                                (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
 
                                
-       for (int d=0; d<BL_SPACEDIM; ++d)
-     {
-       const Box& ebx = U_mfi.nodaltilebox(d);
-       (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
-     }
+        for (int d=0; d<BL_SPACEDIM; ++d)
+        {
+          const Box& ebx = U_mfi.nodaltilebox(d);
+          (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+        }
 
                                
       }

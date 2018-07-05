@@ -892,7 +892,7 @@ Godunov::AdvectScalars(const Box&  box,
 //
 
 void
-Godunov::AdvectState (const Box&  grd,
+Godunov::AdvectState (const Box&  box,
                       const Real* dx,
                       Real        dt, 
                       FArrayBox&  areax,
@@ -923,14 +923,34 @@ Godunov::AdvectState (const Box&  grd,
     //
     // Compute edge states for an advected quantity.
     //
-    edge_states(grd, dx, dt, velpred,
-                D_DECL(uedge,vedge,wedge), D_DECL(0,0,0),
-                D_DECL(xflux,yflux,zflux), D_DECL(0,0,0),
-                D_DECL(U,U,U), D_DECL(0,1,2),
-                S, fab_ind, tforces, fab_ind, divu, 0, state_ind, bc, 
-                iconserv, scheme);
+    //edge_states(grd, dx, dt, velpred,
+    //            D_DECL(uedge,vedge,wedge), D_DECL(0,0,0),
+    //            D_DECL(xflux,yflux,zflux), D_DECL(0,0,0),
+    //            D_DECL(U,U,U), D_DECL(0,1,2),
+    //            S, fab_ind, tforces, fab_ind, divu, 0, state_ind, bc, 
+    //            iconserv, scheme);
 
-    ComputeAofs (grd,
+    
+    const int state_fidx = state_ind+1;
+    const int nc = 1;
+    //
+    // Compute the edge states.
+    //
+    extrap_state_to_faces(box.loVect(),box.hiVect(),
+                          BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
+                          BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
+                          BL_TO_FORTRAN_N_ANYD(divu,fab_ind),
+                          BL_TO_FORTRAN_ANYD(uedge),     BL_TO_FORTRAN_ANYD(xflux),
+                          BL_TO_FORTRAN_ANYD(vedge),     BL_TO_FORTRAN_ANYD(yflux),
+#if (AMREX_SPACEDIM == 3)
+                          BL_TO_FORTRAN_ANYD(wedge),     BL_TO_FORTRAN_ANYD(zflux),
+                          &corner_couple,
+#endif
+                          &dt, dx, bc, &state_fidx,
+                          &use_forces_in_trans, &ppm_type, &iconserv);
+    
+    
+    ComputeAofs (box,
                  D_DECL(areax,areay,areaz),D_DECL(0,0,0),
                  D_DECL(uedge,vedge,wedge),D_DECL(0,0,0),
                  D_DECL(xflux,yflux,zflux),D_DECL(0,0,0),

@@ -3468,7 +3468,7 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
                                  Umf[U_mfi], S, tforces, divufab, comp,
                                  aofsfab,comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),PRE_MAC,volume[i]);
+                                 comp,bndry[comp].dataPtr(),FPU,volume[i]);
 
             if (do_reflux)
             {
