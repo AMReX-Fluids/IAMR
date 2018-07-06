@@ -954,8 +954,9 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    FArrayBox xflux, yflux, zflux, tforces, tvelforces, U;
+    FArrayBox tforces, tvelforces, U;
     FArrayBox grad_phi[BL_SPACEDIM], Rho;
+    FArrayBox flux[BL_SPACEDIM];
 
     for (FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
                                  prev_time,State_Type,0,NUM_STATE);
@@ -1026,11 +1027,6 @@ MacProj::mac_sync_compute (int                   level,
                bndry[1] = ns_level.getBCArray(State_Type,i,1,1);,
                bndry[2] = ns_level.getBCArray(State_Type,i,2,1);)
 
-        godunov->Setup(grids[i], dx, dt, 0,
-                       D_DECL(xflux,yflux,zflux),
-                       D_DECL(bndry[0].dataPtr(),bndry[1].dataPtr(),bndry[2].dataPtr()),
-                       D_DECL(S,S,S), D_DECL(0,1,2), tvelforces, 0);
-
         //
         // Get the sync FABS.
         //
@@ -1061,12 +1057,17 @@ MacProj::mac_sync_compute (int                   level,
                         S.mult(S,      S.box(),      S.box(),Density,comp,1);
                   tforces.mult(S,tforces.box(),tforces.box(),Density,comp,1);
                 }
+                
+                for (int d=0; d<BL_SPACEDIM; ++d){
+                  const Box& ebx = amrex::surroundingNodes(bx,d);
+                  flux[d].resize(ebx,BL_SPACEDIM+1);
+                }
 
                 godunov->SyncAdvect(bx, dx, dt, level, 
-                                    area[0][i], u_mac_fab0, grad_phi[0], xflux, 
-                                    area[1][i], u_mac_fab1, grad_phi[1], yflux,
+                                    area[0][i], u_mac_fab0, grad_phi[0], flux[0], 
+                                    area[1][i], u_mac_fab1, grad_phi[1], flux[1],
 #if (BL_SPACEDIM == 3)                            
-                                    area[2][i], u_mac_fab2, grad_phi[2], zflux,
+                                    area[2][i], u_mac_fab2, grad_phi[2], flux[2],
 #endif
                                     U, S, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
@@ -1076,10 +1077,10 @@ MacProj::mac_sync_compute (int                   level,
                 // NOTE: fluxes expected to be in extensive form.
                 //
                 if (level > 0 && update_fluxreg)
-                {
-                    D_TERM(adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);,
-                           adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);,
-                           adv_flux_reg->FineAdd(zflux,2,i,0,comp,1,-dt););
+                { 
+                  for (int d = 0; d < BL_SPACEDIM; d++){
+	                  adv_flux_reg->FineAdd(flux[d],d,i,0,comp,1,-dt);
+	                } 
                 }
             }
         }
@@ -1093,6 +1094,7 @@ MacProj::mac_sync_compute (int                   level,
             D_TERM(mac_reg[level]->FineAdd(grad_phi[0],area[0][i],0,i,0,0,1,mlt);,
                    mac_reg[level]->FineAdd(grad_phi[1],area[1][i],1,i,0,0,1,mlt);,
                    mac_reg[level]->FineAdd(grad_phi[2],area[2][i],2,i,0,0,1,mlt););
+                
         }
         //
         // Multiply the sync term by dt -- now done in the calling routine.

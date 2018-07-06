@@ -3427,14 +3427,13 @@ NavierStokesBase::velocity_advection (Real dt)
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1);)
-
-	godunov->Setup(bx, dx, dt, 0,
-                       flux[0], bndry[0].dataPtr(), flux[1], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                          
-                       flux[2], bndry[2].dataPtr(),
-#endif
-                       Umf[U_mfi],rho_ptime[U_mfi],tforces);
-	
+        
+        
+        for (int d=0; d<BL_SPACEDIM; ++d){
+          const Box& ebx = amrex::surroundingNodes(bx,d);
+          flux[d].resize(ebx,BL_SPACEDIM+1);
+        }
+        
         //
         // Loop over the velocity components.
         //
@@ -3470,13 +3469,12 @@ NavierStokesBase::velocity_advection (Real dt)
                                  aofsfab,comp,use_conserv_diff,
                                  comp,bndry[comp].dataPtr(),FPU,volume[i]);
 
-            if (do_reflux)
-            {
-	        for (int d = 0; d < BL_SPACEDIM; d++)
-		  fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
-					U_mfi.nodaltilebox(d),comp,1);
+            if (do_reflux){
+	            for (int d = 0; d < BL_SPACEDIM; d++){
+		            fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
+					                             U_mfi.nodaltilebox(d),comp,1);
+              }
             }
-
         }
       } // end of MFIter
     } //end scope of FillPatchIter

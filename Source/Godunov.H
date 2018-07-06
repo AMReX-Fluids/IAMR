@@ -49,35 +49,6 @@ public:      // public access functions
                        const amrex::Vector<AdvectionForm>& advectionType, const amrex::Vector<int>& state_bc,
                        AdvectionScheme adv_scheme, const amrex::FArrayBox& V);
 
-    // set up the Godunov box
-    void BuildWorkSpace (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt);
-
-    void AllocEdgeBoxes (const amrex::Box& grd, D_DECL(amrex::FArrayBox& xflux,
-                                                        amrex::FArrayBox& yflux,
-                                                        amrex::FArrayBox& zflux));
-
-    void ComputeTransverVelocities (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt,
-                                    D_DECL(const int* ubc,const int* vbc,const int* wbc),
-                                    D_DECL(const amrex::FArrayBox& U,const amrex::FArrayBox& V,const amrex::FArrayBox& W),
-                                    D_DECL(int Ucomp,int Vcomp,int Wcomp),
-                                    const amrex::FArrayBox& tforces, int Tcomp);
-
-    void Setup (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt, int velpred, 
-                amrex::FArrayBox& xflux, const int* ubc,
-                amrex::FArrayBox& yflux, const int* vbc,
-#if (BL_SPACEDIM == 3 )
-                amrex::FArrayBox& zflux, const int* wbc,
-#endif
-                const amrex::FArrayBox& U, const amrex::FArrayBox& Rho, 
-                const amrex::FArrayBox& tforces);
-
-    void Setup (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt, int velpred,
-                D_DECL(amrex::FArrayBox& xflux,amrex::FArrayBox& yflux,amrex::FArrayBox& zflux),
-                D_DECL(const int* ubc,const int* vbc,const int* wbc),
-                D_DECL(const amrex::FArrayBox& U,const amrex::FArrayBox& V,const amrex::FArrayBox& W),
-                D_DECL(int Ucomp,int Vcomp,int Wcomp),
-                const amrex::FArrayBox& tforces, int Tcomp);
-
     // =============================================================
     // Data access functions
     // ==============================================================
@@ -87,53 +58,6 @@ public:      // public access functions
     // =============================================================
     // Advection functions follow
     // =============================================================
-
-    void edge_states (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt, int velpred,
-                      const amrex::FArrayBox& uedge, amrex::FArrayBox& stx,
-                      const amrex::FArrayBox& vedge, amrex::FArrayBox& sty,
-#if (BL_SPACEDIM == 3 )
-                      const amrex::FArrayBox& wedge, amrex::FArrayBox& stz,
-#endif
-                      const amrex::FArrayBox& U, const amrex::FArrayBox& S, 
-                      const amrex::FArrayBox& tforces, const amrex::FArrayBox& divu,
-                      int fab_ind, int state_ind, const int *bc,
-                      int use_conserv, AdvectionScheme which_scheme);
-
-    void edge_states (const amrex::Box& grd, const amrex::Real* dx, amrex::Real dt, int velpred,
-                      D_DECL(const amrex::FArrayBox &uedge, const amrex::FArrayBox &vedge, const amrex::FArrayBox &wedge),
-                      D_DECL(int mCompX,       int mCompY,       int mCompZ),
-                      D_DECL(amrex::FArrayBox &stx,   amrex::FArrayBox &sty,   amrex::FArrayBox &stz  ),
-                      D_DECL(int eCompX,       int eCompY,       int eCompZ),
-                      D_DECL(const amrex::FArrayBox& U, const amrex::FArrayBox &V, const amrex::FArrayBox &W),
-                      D_DECL(int Ucomp,        int Vcomp,        int Wcomp),
-                      const amrex::FArrayBox &S, int Scomp, const amrex::FArrayBox &tforces, int Tcomp, const amrex::FArrayBox& divu, int Dcomp,
-                      int state_ind, const int *bc, int use_conserv, AdvectionScheme which_scheme);
-
-    void edge_states_orig( const amrex::Box &grd, const amrex::Real *dx, amrex::Real dt, int velpred,
-                           D_DECL(const amrex::FArrayBox &uedge, const amrex::FArrayBox &vedge, const amrex::FArrayBox &wedge),
-                           D_DECL(int mCompX,       int mCompY,       int mCompZ),
-                           D_DECL(amrex::FArrayBox &stx,   amrex::FArrayBox &sty,   amrex::FArrayBox &stz  ),
-                           D_DECL(int eCompX,       int eCompY,       int eCompZ),
-                           D_DECL(const amrex::FArrayBox& U, const amrex::FArrayBox &V, const amrex::FArrayBox &W),
-                           D_DECL(int Ucomp,        int Vcomp,        int Wcomp),
-                           const amrex::FArrayBox &S, int Scomp, const amrex::FArrayBox &tforces, int Tcomp,
-                           int state_ind, const int *bc);
-
-    void edge_states_fpu( const amrex::Box &grd, const amrex::Real *dx, amrex::Real dt,
-                          D_DECL(const amrex::FArrayBox &uedge, const amrex::FArrayBox &vedge, const amrex::FArrayBox &wedge),
-                          D_DECL(int mCompX,       int mCompY,       int mCompZ),
-                          D_DECL(amrex::FArrayBox &stx,   amrex::FArrayBox &sty,   amrex::FArrayBox &stz  ),
-                          D_DECL(int eCompX,       int eCompY,       int eCompZ),
-                          const amrex::FArrayBox &S, int Scomp, const amrex::FArrayBox &tforces, int Tcomp, const amrex::FArrayBox& divu, int Dcomp,
-                          int state_ind, const int *bc, int use_conserv);
-    
-    void edge_states_bds( const amrex::Box &grd, const amrex::Real *dx, amrex::Real dt,
-                          D_DECL(const amrex::FArrayBox &uedge, const amrex::FArrayBox &vedge, const amrex::FArrayBox &wedge),
-                          D_DECL(int mCompX,       int mCompY,       int mCompZ),
-                          D_DECL(amrex::FArrayBox &stx,   amrex::FArrayBox &sty,   amrex::FArrayBox &stz  ),
-                          D_DECL(int eCompX,       int eCompY,       int eCompZ),
-                          const amrex::FArrayBox &S, int Scomp, const amrex::FArrayBox &tforces, int Tcomp, const amrex::FArrayBox& divu, int Dcomp,
-                          int state_ind, const int *bc, int use_conserv);
 
     // advect a state component
     void AdvectState( const amrex::Box &grd, const amrex::Real *dx, amrex::Real dt, 
@@ -353,10 +277,6 @@ public:      // public access functions
     
 protected:   // protected work functions
     
-    // manipulate 1d scratch space
-    void SetBogusScratch();
-    void SetScratch( int max_size );
-
     static void Initialize ();
     static void Finalize ();
 
