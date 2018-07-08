@@ -1084,9 +1084,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	    //FIXME
-	    Print()<<"Testing HERE...\n";
-            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse_src,true); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
                 //const Box& box   = crse_src[mfi].box();
@@ -3136,7 +3134,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     // Set physical boundary conditions in cdataMF.
     //
-    // tiling is probably not needed here, but what the hey
+    // tiling may not needed here, but what the hey
     for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
     {
         int         i       = mfi.index();
