@@ -1713,8 +1713,11 @@ NavierStokes::mac_sync ()
                        numscal,1,mult,sync_bc.dataPtr());
 
             MultiFab& S_new = fine_lev.get_new_data(State_Type);
-            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-                S_new[mfi].plus(sync_incr[mfi],fine_grids[mfi.index()],0,Density,numscal);
+            for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi){
+	      const Box& bx = mfi.tilebox();
+	      
+	      S_new[mfi].plus(sync_incr[mfi],bx,0,Density,numscal);
+	    }
 
             fine_lev.make_rho_curr_time();
             fine_lev.incrRhoAvg(sync_incr,Density-BL_SPACEDIM,1.0);
@@ -1800,7 +1803,10 @@ NavierStokes::reflux ()
 
     std::vector< std::pair<int,Box> > isects;
 
-    // Is this a really a good canidate for tiling?
+    // Tile? Perhaps just OMP:
+    // #ifdef _OPENMP
+    // #pragma omp parallel
+    // #endif
     for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();
