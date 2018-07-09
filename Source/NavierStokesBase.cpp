@@ -4334,28 +4334,22 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 
 		    if (n > 0)
 		    {
-		      // changed to use FillPatch here. Not sure if other way
-		      // was used for a reason...
-		      FillPatch(parent->getLevel(lev), tmf, ng, curr_time,
-				State_Type, timestamp_indices[0], n, 0);
-		      // FillPatchIterator fpi(parent->getLevel(lev), S_new, 
-			// 		      ng, curr_time, State_Type, 0, NUM_STATE);
-			// const MultiFab& S = fpi.get_mf();
+		       FillPatchIterator fpi(parent->getLevel(lev), S_new, 
+                                             ng, curr_time, State_Type, 0, NUM_STATE);
+                       const MultiFab& S = fpi.get_mf();
 		
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-// 			for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
-// 			{
-// 			    FArrayBox& tfab = tmf[mfi];
-// 			    const FArrayBox& sfab = S[mfi];
-		      // not sure if this loop is needed for some reason. otherwise
-		      // why not use fab.copy to iterate over components? 
-// 			    for (int i = 0; i < n; ++i)
-// 			    {
-// 				tfab.copy(sfab, timestamp_indices[i], i);
-// 			    }
-// 			}
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                       for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
+                       {
+                         FArrayBox& tfab = tmf[mfi];
+                         const FArrayBox& sfab = S[mfi];
+                         for (int i = 0; i < n; ++i)
+                         {
+                           tfab.copy(sfab, timestamp_indices[i], i);
+                         }
+                       }
 		    }
 
 		    if (nextras > 0)
