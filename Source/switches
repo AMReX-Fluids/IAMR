@@ -1,10 +1,44 @@
-godunov.ppm_type = 0,1 or 2
+godunov.ppm_type =
+		 0 (compute 0th, 2nd or 4th order slopes depending on the value of
+		    slope_order=1, 2 (not supported by projector), or 4) DEFAULT
+		 1 (van leer slopes with quadratic limiters) or
+		 2 (interpolate and limit, use Colella 2008 limiters)
+godunov.slope_order = only used if ppm_type=0
+		    1 (compute 0th order slopes) -- no test needed, i think bc so simple
+		    2 in Godunov, but projection gives error: 2nd order not supported
+		    4 DEFAULT, 4th order
+godunov.use_unlimited_slopes - only used in slopes(), so needs ppm_type=0
+			       only relevant to slope_order= 2, 4
+			       0 DEFAULT
+godunov.use_forces_in_trans = use_minion in .F files
+			    0 DEFAULT
+godunov.courner_couple = 1 DEFAULT
+		       only in 3D
+
 advection_scheme - hard coded in advection routines
 bousinesq: in GNUMakefile DEFINES += -DBOUSSINESQ
 GENGETFORCE   		  DEFINES += -DGENGETFORCE
 MOREGENGETFORCE           DEFINES += -DMOREGENGETFORCE
-godunov.use_forces_in_trans = use_minion in .F files
-ns.do_denminmax 
+ns.do_denminmax do_scalminmax
+velocity restart
+use jet
+sum turbulent quantities
+
+ns.do_cons_trac  0 DEFAULT
+ns.do_cons_trac2 0 DEFAULT
+! Not sure why the next 2 are not one thing... predict_mom_diff never seems to really
+! get used
+ns.do_mom_diff = 0 DEFAULT
+                 1 requires predict_mom_together=1
+ns.predict_mom_together = 0 DEFAULT
+			  1 requires do_mom_diff = 1
+
+anel_coeff in Proj MacProj
+
+NOTES to self:
+1. FineAdd routines in AmrCore/AMReX_FluxRegister do not use tiling. Nor
+   do they appear to work with OMP. Switching to YA would probably be
+   really nice....
 
 BC types info table in AMReX_BC_Types.H
 bc(spatial direction, hi or lo side)

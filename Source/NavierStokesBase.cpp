@@ -464,7 +464,7 @@ NavierStokesBase::Initialize ()
     // Make sure we don't use divu_sync.
     //
     if (do_divu_sync)
-        amrex::Error("do_divu_sync == 1 is the wrong setting");
+        amrex::Error("do_divu_sync == 1 is not supported");
     //
     // This test ensures that if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
@@ -545,8 +545,9 @@ NavierStokesBase::Initialize ()
     //
     pp.query("do_refine_outflow",do_refine_outflow);
     pp.query("do_derefine_outflow",do_derefine_outflow);
-    if (do_derefine_outflow) do_refine_outflow = 0;
-
+    if (do_derefine_outflow == 1 && do_refine_outflow == 1)
+      amrex::Abort("NavierStokesBase::Initialize(): Cannot have both do_refine_outflow==1 and do_derefine_outflow==1");
+    
     pp.query("Nbuf_outflow",Nbuf_outflow);
     BL_ASSERT(Nbuf_outflow >= 0);
     BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
@@ -697,41 +698,44 @@ NavierStokesBase::advance_setup (Real time,
     }
 
     make_rho_prev_time();
+
+    // refRatio==4 is not currently supported
     //
     // If refRatio==4 to the next level coarser, and we're going to diffuse
     // scalars as SoverRho, we're going to need rho at 1/4 and 3/4 time there.
     // Make these things if need be.
     //
-    if (level > 0)
-    {
-        bool needs_rho4 = false;
+    // if (level > 0)
+    // {
+    //     bool needs_rho4 = false;
 
-        if (parent->nCycle(level) == 4)
-            for (int i = 0; i < NUM_STATE && !needs_rho4; ++i)
-                needs_rho4 = (diffusionType[i] == Laplacian_SoverRho);
+    //     if (parent->nCycle(level) == 4)
+    //         for (int i = 0; i < NUM_STATE && !needs_rho4; ++i)
+    //             needs_rho4 = (diffusionType[i] == Laplacian_SoverRho);
 
-        if (needs_rho4)
-        {
-            NavierStokesBase& clevel = getLevel(level-1);
-            const BoxArray& cgrids = clevel.boxArray();
-            const DistributionMapping& cdmap = clevel.DistributionMap();
-            const Real      ptime  = clevel.state[State_Type].prevTime();
-            const Real      ctime  = clevel.state[State_Type].curTime();
+    //     if (needs_rho4)
+    //     {
+    //         NavierStokesBase& clevel = getLevel(level-1);
+    //         const BoxArray& cgrids = clevel.boxArray();
+    //         const DistributionMapping& cdmap = clevel.DistributionMap();
+    //         const Real      ptime  = clevel.state[State_Type].prevTime();
+    //         const Real      ctime  = clevel.state[State_Type].curTime();
 
-            if (clevel.rho_qtime == 0)
-            {
-                const Real qtime = ptime + 0.25*(ctime-ptime);
-                clevel.rho_qtime = new MultiFab(cgrids,cdmap,1,1);
-                FillPatch(clevel,*(clevel.rho_qtime),1,qtime,State_Type,Density,1,0);
-            }
-            if (clevel.rho_tqtime == 0)
-            {
-                const Real tqtime = ptime + 0.75*(ctime-ptime);
-                clevel.rho_tqtime = new MultiFab(cgrids,cdmap,1,1);
-		FillPatch(clevel, *(clevel.rho_tqtime), 1, tqtime, State_Type, Density, 1, 0);
-            }
-        }
-    }
+    //         if (clevel.rho_qtime == 0)
+    //         {
+    //             const Real qtime = ptime + 0.25*(ctime-ptime);
+    //             clevel.rho_qtime = new MultiFab(cgrids,cdmap,1,1);
+    //             FillPatch(clevel,*(clevel.rho_qtime),1,qtime,State_Type,Density,1,0);
+    //         }
+    //         if (clevel.rho_tqtime == 0)
+    //         {
+    //             const Real tqtime = ptime + 0.75*(ctime-ptime);
+    //             clevel.rho_tqtime = new MultiFab(cgrids,cdmap,1,1);
+    // 		FillPatch(clevel, *(clevel.rho_tqtime), 1, tqtime, State_Type, Density, 1, 0);
+    //         }
+    //    }
+    // }
+
     //
     // Calculate the time N viscosity and diffusivity
     //   Note: The viscosity and diffusivity at time N+1 are 
@@ -1080,10 +1084,12 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse_src,true); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const Box& box   = crse_src[mfi].box();
+                //const Box& box   = crse_src[mfi].box();
+		// I don't think mfi has any grow cells
+		const Box& box   = mfi.tilebox();
                 const int* rat   = crse_ratio.getVect();
                 pc_edge_interp(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[mfi].dataPtr(),
@@ -1108,10 +1114,11 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
+            for (MFIter mfi(fine_src,true); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                const Box& fbox  = fine_src[mfi].box();
+                //const Box& fbox  = fine_src[mfi].box();
+		const Box& fbox  = mfi.tilebox();
                 const int* rat   = crse_ratio.getVect();
                 edge_interp(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
                                  fine_src[mfi].dataPtr(),
@@ -2253,7 +2260,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 // region
                 //
                 bool hasTags = false;
-                for (MFIter tbi(tags,true); !hasTags && tbi.isValid(); ++tbi)
+                for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
                     if (tags[tbi].numTags(outflowBox) > 0)
                         hasTags = true;
                 
@@ -2458,6 +2465,25 @@ NavierStokesBase::post_init_state ()
     const int finest_level = parent->finestLevel();
     const Real divu_time   = have_divu ? state[Divu_Type].curTime()
                                        : state[Press_Type].curTime();
+
+    // 
+    // Make sure we're not trying to use ref_ratio=4
+    // Fortran multigrid has a problem and MLMG does not support rr=4 yet
+    //
+    // Derived class PeleLM seems to also use this function , so it's a
+    // convienient place for the test, even though it's not the most
+    // logical place to put the check
+    int maxlev = parent->maxLevel();
+    for (int i = 0; i<maxlev; i++)
+    {
+      const int rr = parent->MaxRefRatio(i);
+      if (rr == 4)
+      {  
+	  Print()<<"Refinement ratio of 4 not currently supported.\n";
+	  exit(0);
+      }
+    }
+
     if (do_init_vort_proj)
     {
         //
@@ -2805,6 +2831,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
         //
       if (do_denminmax)
       {
+	Print()<<"Calling denminmax \n";
 	    //
             // Must do FillPatch here instead of MF iterator because we need the
             // boundary values in the old data (especially at inflow)
@@ -2906,6 +2933,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
     //
     if ( do_scalminmax && (sComp <= last_scalar) )
     {
+      	Print()<<"Calling scalminmax \n";
         const int num_scalars = last_scalar - Density + 1;
         //
         // Must do FillPatch here instead of MF iterator because we need the
@@ -3105,7 +3133,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     // Set physical boundary conditions in cdataMF.
     //
-    // tiling is probably not needed here, but what the hey
+    // tiling may not be needed here, but what the hey
     for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
     {
         int         i       = mfi.index();
@@ -3535,7 +3563,6 @@ NavierStokesBase::velocity_update (Real dt)
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
-
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
@@ -4307,7 +4334,8 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 
 		    if (n > 0)
 		    {
-		      // changed to use FillPatch here
+		      // changed to use FillPatch here. Not sure if other way
+		      // was used for a reason...
 		      FillPatch(parent->getLevel(lev), tmf, ng, curr_time,
 				State_Type, timestamp_indices[0], n, 0);
 		      // FillPatchIterator fpi(parent->getLevel(lev), S_new, 

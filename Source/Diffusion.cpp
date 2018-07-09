@@ -1339,31 +1339,11 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
         for (int d =0; d <BL_SPACEDIM; d++)
             tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
 	if (update_fluxreg)
-	{
-	  FArrayBox flux;
-	  for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
-	  {
-            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
-            {
-	      const int i    = mfi.index();
-	      const Box& grd = amrex::enclosedCells(mfi.validbox());
-
-	      BL_ASSERT(grd==grids[mfi.index()]);
-	      
-	      for (int k = 0; k < BL_SPACEDIM; k++)
-              {
-		Box flux_bx(grd);
-		flux_bx.surroundingNodes(k);
-		flux.resize(flux_bx,1);
-		flux.copy((*(tensorflux[k]))[mfi],sigma,0,1);
-		viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
-	      }
-            }
-	  }
+	{	  
+	  for (int k = 0; k < BL_SPACEDIM; k++)
+	    viscflux_reg->FineAdd(*(tensorflux[k]),k,Xvel,Xvel,
+	  			  BL_SPACEDIM,dt*dt);
 	}
     }
 }
@@ -1665,19 +1645,23 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
 
     alpha.clear();
 
-    FArrayBox bcoeffs;
-
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-        {
-            const int gridno = bcoeffsmfi.index();
-	    bcoeffs.resize(area[n][bcoeffsmfi].box(), 1);
-	    bcoeffs.copy(area[n][bcoeffsmfi]);
-            bcoeffs.mult(dx[n]);
-            bcoeffs.mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
-            tensor_op->bCoefficients(bcoeffs,n,gridno); // not thread safe
-        }
+        MultiFab bcoeffs(area[n].boxArray(),area[n].DistributionMap(),1,0);
+	
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+	{
+	    const Box& bx = bcoeffsmfi.tilebox();
+	      
+	    bcoeffs[bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
+	    bcoeffs[bcoeffsmfi].mult(dx[n],bx);
+	    bcoeffs[bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+	}
+	
+	tensor_op->bCoefficients(bcoeffs,n); // not thread safe?
     }
 }
 
@@ -1894,10 +1878,10 @@ Diffusion::computeAlpha (MultiFab&       alpha,
     {
         MultiFab& S = navier_stokes->get_data(State_Type,time);
 
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+	for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
         {
-            BL_ASSERT(grids[alphamfi.index()] == alphamfi.validbox());
-            alpha[alphamfi].mult(S[alphamfi],alphamfi.validbox(),Density,0,1);
+	  BL_ASSERT(grids[alphamfi.index()].contains(alphamfi.tilebox())==1);
+	    alpha[alphamfi].mult(S[alphamfi],alphamfi.tilebox(),Density,0,1);
         }
     }
 
@@ -1962,26 +1946,28 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
 
     const Real* dx = navier_stokes->Geom().CellSize();
 
-    for (int n = 0; n < BL_SPACEDIM; n++)
-    {
-	MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
-    }
-
     if (allnull)
     {
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            bcoeffs[n].mult(dx[n]);
+	    MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
+	    bcoeffs[n].mult(dx[n]);
         }
     }
     else
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+	    for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
-                bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
-                bcoeffs[n][bcoeffsmfi].mult(dx[n]);
+ 	        const Box& bx = bcoeffsmfi.tilebox();
+	      
+ 		bcoeffs[n][bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
+		bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+		bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
             }
         }
     }
@@ -2154,14 +2140,20 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
 	    MultiFab bcoeffs(area[n].boxArray(),area[n].DistributionMap(),1,0);
-	    MultiFab::Copy(bcoeffs, area[n], 0, 0, 1, 0);
-            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+	    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
-                const int gridno = bcoeffsmfi.index();
-                bcoeffs[bcoeffsmfi].mult(dx[n]);
-                bcoeffs[bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
-                tensor_op.bCoefficients(bcoeffs[bcoeffsmfi],n,gridno); // not thread safe
+	        const Box& bx = bcoeffsmfi.tilebox();
+	      
+		bcoeffs[bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
+                bcoeffs[bcoeffsmfi].mult(dx[n],bx);
+                bcoeffs[bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
             }
+	    
+	    tensor_op.bCoefficients(bcoeffs,n); // not thread safe?
         }
 
         MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
@@ -2561,6 +2553,9 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
             rho_flag = 2;
             break;
 
+	    //NOTE: rho_flag = 3 is used in a different context for
+	    //      do_mom_diff==1
+	    
         default:
             amrex::Print() << "compDiffusionType = " << compDiffusionType << '\n';
             amrex::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");
