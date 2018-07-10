@@ -340,8 +340,6 @@ Godunov::SyncAdvect (const Box&  box,
     //
     // Error block.
     //
-    BL_ASSERT(S.box().contains(work_bx));
-
     BL_ASSERT(S.nComp()       >= BL_SPACEDIM);
     BL_ASSERT(S.nComp()       >= fab_ind    );
     BL_ASSERT(tforces.nComp() >= fab_ind    );
