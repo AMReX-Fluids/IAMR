@@ -1036,6 +1036,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
 
         BoxArray c_bnd_ba = f_bnd_ba; c_bnd_ba.coarsen(crse_ratio);
 
+        c_bnd_ba.maxSize(32);
+
         f_bnd_ba = c_bnd_ba; f_bnd_ba.refine(crse_ratio);
 
         for (int n = 0; n < BL_SPACEDIM; ++n)
