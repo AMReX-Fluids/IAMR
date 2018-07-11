@@ -2570,6 +2570,9 @@ NavierStokesBase::post_restart ()
 void
 NavierStokesBase::post_timestep (int crse_iteration)
 {
+
+  BL_PROFILE("NavierStokesBase::post_timestep()");
+
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_PARTICLES
