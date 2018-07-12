@@ -54,7 +54,7 @@ endif
 DEFINES += -DMOREGENGETFORCE
 
 # This is for the time-dependent turbulence forcing term
-#DEFINES += -DDO_IAMR_FORCE
+DEFINES += -DDO_IAMR_FORCE
 
 Bpack   := ./Make.package
 Blocs   := .
