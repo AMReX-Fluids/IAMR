@@ -363,7 +363,7 @@ NavierStokes::advance (Real time,
         //
         // Do a level project to update the pressure and velocity fields.
         //
-        if (0 && projector)
+        if (projector)
             level_projector(dt,time,iteration);
         if (level > 0 && iteration == 1)
            p_avg.setVal(0);
