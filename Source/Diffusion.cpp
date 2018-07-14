@@ -626,7 +626,7 @@ Diffusion::diffuse_velocity (Real                   dt,
  
     BL_ASSERT( rho_flag == 1 || rho_flag == 3);
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     for (int d = 0; d < BL_SPACEDIM; ++d)
         BL_ASSERT(allnull ? visc_coef[Xvel+d]>=0 : betan[d]->min(0,0) >= 0.0);
 #endif
@@ -979,7 +979,7 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     for (int d = 0; d < BL_SPACEDIM; ++d)
         BL_ASSERT(allnull ? visc_coef[Xvel+d]>=0 : beta[d]->min(0,0) >= 0.0);
 #endif

@@ -101,6 +101,11 @@ c
 
       logical, save :: first = .true.
 
+        print*, 'infl_type is: ', infl_type
+        print*, 'infl_periodic_type is: ', infl_periodic_type
+        print*, 'infl_swirl_type is: ', infl_swirl_type
+
+
       call bl_pd_myproc(proc)
 
       if (proc.eq.0) print*, 'Entered RD_SCL_FLCTHD'

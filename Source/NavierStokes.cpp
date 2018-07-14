@@ -197,6 +197,10 @@ NavierStokes::initData ()
 
         state[State_Type].setTimeLevel(curTime,dt,dt);
 
+	if (variable_scal_diff)
+	  //Make sure something reasonable is in diffn_cc
+	  calcDiffusivity(cur_time);
+	
         calc_divu(cur_time,dtin,Divu_new);
 
         if (have_dsdt)
@@ -610,8 +614,6 @@ NavierStokes::scalar_advection (Real dt,
           const Box& ebx = U_mfi.nodaltilebox(d);
           (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
         }
-
-                               
       }
     }
 
@@ -1918,7 +1920,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // not allow for calling NavierStokes::getViscTerms with src_comp=Yvel
     // or Zvel
     //
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
       amrex::Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';

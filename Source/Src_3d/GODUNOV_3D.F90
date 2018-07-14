@@ -982,7 +982,6 @@ contains
 !c     the transverse derivatives of the Godunov box
 !c
       implicit none
-
       integer, intent(in) ::  ubc(SDIM,2),vbc(SDIM,2),wbc(SDIM,2), use_minion, ppm_type
       integer, dimension(3), intent(in) :: lo,hi,&
            u_lo,u_hi,ulo_lo,ulo_hi,uhi_lo,uhi_hi,sx_lo,sx_hi,&
@@ -1028,12 +1027,13 @@ contains
 
       integer :: i,j, k, imin,jmin,kmin,imax,jmax,kmax
       real(rt) :: hx, hy, hz, dt, dth, dthx, dthy, dthz, dx(SDIM), uad, vad, wad
-      real(rt) :: eps,eps_for_bc, val, tst
+      real(rt) :: eps,eps_for_bc, val, tst, dt3
       logical :: ltm
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )
 
       dth  = half*dt
+      dt3  = dt / 3.d0
       dthx = half*dt / dx(1)
       dthy = half*dt / dx(2)
       dthz = half*dt / dx(3)
@@ -3100,13 +3100,13 @@ contains
                   xylo(i,j,k) = xlo(i,j,k) &
                       - dt3y*(yedge(i-1,j+1,k)*vedge(i-1,j+1,k) &
                       - yedge(i-1,j,k)*vedge(i-1,j,k)) &
-                       - dt3*s(i-1,j,k,L)*divu(i-1,j,k) &
-                       + dt3y*s(i-1,j,k,L)*(vedge(i-1,j+1,k)-vedge(i-1,j,k))
-                  xyhi(i,j,k) = xhi(i,j,k) &
+                      - dt3*s(i-1,j,k,L)*divu(i-1,j,k) &
+                      + dt3y*s(i-1,j,k,L)*(vedge(i-1,j+1,k)-vedge(i-1,j,k))
+                 xyhi(i,j,k) = xhi(i,j,k) &
                       - dt3y*(yedge(i  ,j+1,k)*vedge(i  ,j+1,k) &
-                      - yedge(i  ,j,k)*vedge(i  ,j,k))   &
-                       - dt3*s(i,j,k,L)*divu(i,j,k) &
-                       + dt3y*s(i,j,k,L)*(vedge(i,j+1,k)-vedge(i,j,k))
+                      - yedge(i  ,j,k)*vedge(i  ,j,k)) &
+                      - dt3*s(i,j,k,L)*divu(i,j,k) &
+                      + dt3y*s(i,j,k,L)*(vedge(i,j+1,k)-vedge(i,j,k))
                end do
             end do
          end do
@@ -3153,13 +3153,13 @@ contains
                   xzlo(i,j,k) = xlo(i,j,k) &
                       - dt3z*(zedge(i-1,j,k+1)*wedge(i-1,j,k+1) &
                       - zedge(i-1,j,k)*wedge(i-1,j,k)) &
-                       - dt3*s(i-1,j,k,L)*divu(i-1,j,k) &
-                       + dt3z*s(i-1,j,k,L)*(wedge(i-1,j,k+1)-wedge(i-1,j,k))
-                  xzhi(i,j,k) = xhi(i,j,k) &
+                      - dt3*s(i-1,j,k,L)*divu(i-1,j,k) &
+                      + dt3z*s(i-1,j,k,L)*(wedge(i-1,j,k+1)-wedge(i-1,j,k))
+                 xzhi(i,j,k) = xhi(i,j,k) &
                       - dt3z*(zedge(i  ,j,k+1)*wedge(i  ,j,k+1) &
                       - zedge(i  ,j,k)*wedge(i  ,j,k)) &
-                       - dt3*s(i,j,k,L)*divu(i,j,k) &
-                       + dt3z*s(i,j,k,L)*(wedge(i,j,k+1)-wedge(i,j,k))
+                      - dt3*s(i,j,k,L)*divu(i,j,k) &
+                      + dt3z*s(i,j,k,L)*(wedge(i,j,k+1)-wedge(i,j,k))
                end do
             end do
          end do
@@ -3205,13 +3205,13 @@ contains
                   yxlo(i,j,k) = ylo(i,j,k) &
                       - dt3x*(xedge(i+1,j-1,k)*uedge(i+1,j-1,k) &
                       - xedge(i,j-1,k)*uedge(i,j-1,k)) &
-                       - dt3*s(i,j-1,k,L)*divu(i,j-1,k) &
-                       + dt3x*s(i,j-1,k,L)*(uedge(i+1,j-1,k)-uedge(i,j-1,k))
-                  yxhi(i,j,k) = yhi(i,j,k) &
+                      - dt3*s(i,j-1,k,L)*divu(i,j-1,k) &
+                      + dt3x*s(i,j-1,k,L)*(uedge(i+1,j-1,k)-uedge(i,j-1,k))
+                 yxhi(i,j,k) = yhi(i,j,k) &
                       - dt3x*(xedge(i+1,j  ,k)*uedge(i+1,j  ,k) &
                       - xedge(i,j  ,k)*uedge(i,j  ,k)) &
-                       - dt3*s(i,j,k,L)*divu(i,j,k) &
-                       + dt3x*s(i,j,k,L)*(uedge(i+1,j,k)-uedge(i,j,k))
+                      - dt3*s(i,j,k,L)*divu(i,j,k) &
+                      + dt3x*s(i,j,k,L)*(uedge(i+1,j,k)-uedge(i,j,k))
                end do
             end do
          end do
@@ -3259,13 +3259,13 @@ contains
                   yzlo(i,j,k) = ylo(i,j,k) &
                       - dt3z*(zedge(i,j-1,k+1)*wedge(i,j-1,k+1) &
                       - zedge(i,j-1,k)*wedge(i,j-1,k)) &
-                       - dt3*s(i,j-1,k,L)*divu(i,j-1,k) &
-                       + dt3z*s(i,j-1,k,L)*(wedge(i,j-1,k+1)-wedge(i,j-1,k))
-                  yzhi(i,j,k) = yhi(i,j,k) &
+                      - dt3*s(i,j-1,k,L)*divu(i,j-1,k) &
+                      + dt3z*s(i,j-1,k,L)*(wedge(i,j-1,k+1)-wedge(i,j-1,k))
+                 yzhi(i,j,k) = yhi(i,j,k) &
                       - dt3z*(zedge(i,j  ,k+1)*wedge(i,j  ,k+1) &
                       - zedge(i,j  ,k)*wedge(i,j  ,k)) &
-                       - dt3*s(i,j,k,L)*divu(i,j,k) &
-                       + dt3z*s(i,j,k,L)*(wedge(i,j,k+1)-wedge(i,j,k))
+                      - dt3*s(i,j,k,L)*divu(i,j,k) &
+                      + dt3z*s(i,j,k,L)*(wedge(i,j,k+1)-wedge(i,j,k))
                end do
             end do
          end do
@@ -3311,13 +3311,13 @@ contains
                   zxlo(i,j,k) = zlo(i,j,k) &
                       - dt3x*(xedge(i+1,j,k-1)*uedge(i+1,j,k-1) &
                       - xedge(i,j,k-1)*uedge(i,j,k-1)) &
-                       - dt3*s(i,j,k-1,L)*divu(i,j,k-1) &
-                       + dt3x*s(i,j,k-1,L)*(uedge(i+1,j,k-1)-uedge(i,j,k-1))
-                  zxhi(i,j,k) = zhi(i,j,k) &
+                      - dt3*s(i,j,k-1,L)*divu(i,j,k-1) &
+                      + dt3x*s(i,j,k-1,L)*(uedge(i+1,j,k-1)-uedge(i,j,k-1))
+                 zxhi(i,j,k) = zhi(i,j,k) &
                       - dt3x*(xedge(i+1,j,k  )*uedge(i+1,j,k  ) &
                       - xedge(i,j,k  )*uedge(i,j,k  )) &
-                       - dt3*s(i,j,k,L)*divu(i,j,k) &
-                       + dt3x*s(i,j,k,L)*(uedge(i+1,j,k)-uedge(i,j,k))
+                      - dt3*s(i,j,k,L)*divu(i,j,k) &
+                      + dt3x*s(i,j,k,L)*(uedge(i+1,j,k)-uedge(i,j,k))
                end do
             end do
          end do
@@ -3363,13 +3363,13 @@ contains
                   zylo(i,j,k) = zlo(i,j,k) &
                       - dt3y*(yedge(i,j+1,k-1)*vedge(i,j+1,k-1) &
                       - yedge(i,j,k-1)*vedge(i,j,k-1)) &
-                       - dt3*s(i,j,k-1,L)*divu(i,j,k-1) &
-                       + dt3y*s(i,j,k-1,L)*(vedge(i,j+1,k-1)-vedge(i,j,k-1))
-                  zyhi(i,j,k) = zhi(i,j,k) &
+                      - dt3*s(i,j,k-1,L)*divu(i,j,k-1) &
+                      + dt3y*s(i,j,k-1,L)*(vedge(i,j+1,k-1)-vedge(i,j,k-1))
+                 zyhi(i,j,k) = zhi(i,j,k) &
                       - dt3y*(yedge(i,j+1,k  )*vedge(i,j+1,k  ) &
                       - yedge(i,j,k  )*vedge(i,j,k  )) &
-                       - dt3*s(i,j,k,L)*divu(i,j,k) &
-                       + dt3y*s(i,j,k,L)*(vedge(i,j+1,k)-vedge(i,j,k))
+                      - dt3*s(i,j,k,L)*divu(i,j,k) &
+                      + dt3y*s(i,j,k,L)*(vedge(i,j+1,k)-vedge(i,j,k))
                end do
             end do
          end do
