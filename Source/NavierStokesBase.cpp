@@ -464,7 +464,7 @@ NavierStokesBase::Initialize ()
     // Make sure we don't use divu_sync.
     //
     if (do_divu_sync)
-        amrex::Error("do_divu_sync == 1 is the wrong setting");
+        amrex::Error("do_divu_sync == 1 is not supported");
     //
     // This test ensures that if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
@@ -697,41 +697,44 @@ NavierStokesBase::advance_setup (Real time,
     }
 
     make_rho_prev_time();
+
+    // refRatio==4 is not currently supported
     //
     // If refRatio==4 to the next level coarser, and we're going to diffuse
     // scalars as SoverRho, we're going to need rho at 1/4 and 3/4 time there.
     // Make these things if need be.
     //
-    if (level > 0)
-    {
-        bool needs_rho4 = false;
+    // if (level > 0)
+    // {
+    //     bool needs_rho4 = false;
 
-        if (parent->nCycle(level) == 4)
-            for (int i = 0; i < NUM_STATE && !needs_rho4; ++i)
-                needs_rho4 = (diffusionType[i] == Laplacian_SoverRho);
+    //     if (parent->nCycle(level) == 4)
+    //         for (int i = 0; i < NUM_STATE && !needs_rho4; ++i)
+    //             needs_rho4 = (diffusionType[i] == Laplacian_SoverRho);
 
-        if (needs_rho4)
-        {
-            NavierStokesBase& clevel = getLevel(level-1);
-            const BoxArray& cgrids = clevel.boxArray();
-            const DistributionMapping& cdmap = clevel.DistributionMap();
-            const Real      ptime  = clevel.state[State_Type].prevTime();
-            const Real      ctime  = clevel.state[State_Type].curTime();
+    //     if (needs_rho4)
+    //     {
+    //         NavierStokesBase& clevel = getLevel(level-1);
+    //         const BoxArray& cgrids = clevel.boxArray();
+    //         const DistributionMapping& cdmap = clevel.DistributionMap();
+    //         const Real      ptime  = clevel.state[State_Type].prevTime();
+    //         const Real      ctime  = clevel.state[State_Type].curTime();
 
-            if (clevel.rho_qtime == 0)
-            {
-                const Real qtime = ptime + 0.25*(ctime-ptime);
-                clevel.rho_qtime = new MultiFab(cgrids,cdmap,1,1);
-                FillPatch(clevel,*(clevel.rho_qtime),1,qtime,State_Type,Density,1,0);
-            }
-            if (clevel.rho_tqtime == 0)
-            {
-                const Real tqtime = ptime + 0.75*(ctime-ptime);
-                clevel.rho_tqtime = new MultiFab(cgrids,cdmap,1,1);
-		FillPatch(clevel, *(clevel.rho_tqtime), 1, tqtime, State_Type, Density, 1, 0);
-            }
-        }
-    }
+    //         if (clevel.rho_qtime == 0)
+    //         {
+    //             const Real qtime = ptime + 0.25*(ctime-ptime);
+    //             clevel.rho_qtime = new MultiFab(cgrids,cdmap,1,1);
+    //             FillPatch(clevel,*(clevel.rho_qtime),1,qtime,State_Type,Density,1,0);
+    //         }
+    //         if (clevel.rho_tqtime == 0)
+    //         {
+    //             const Real tqtime = ptime + 0.75*(ctime-ptime);
+    //             clevel.rho_tqtime = new MultiFab(cgrids,cdmap,1,1);
+    // 		FillPatch(clevel, *(clevel.rho_tqtime), 1, tqtime, State_Type, Density, 1, 0);
+    //         }
+    //    }
+    // }
+
     //
     // Calculate the time N viscosity and diffusivity
     //   Note: The viscosity and diffusivity at time N+1 are 
@@ -2462,6 +2465,25 @@ NavierStokesBase::post_init_state ()
     const int finest_level = parent->finestLevel();
     const Real divu_time   = have_divu ? state[Divu_Type].curTime()
                                        : state[Press_Type].curTime();
+
+    // 
+    // Make sure we're not trying to use ref_ratio=4
+    // Fortran multigrid has a problem and MLMG does not support rr=4 yet
+    //
+    // Derived class PeleLM seems to also use this function , so it's a
+    // convienient place for the test, even though it's not the most
+    // logical place to put the check
+    int maxlev = parent->maxLevel();
+    for (int i = 0; i<maxlev; i++)
+    {
+      const int rr = parent->MaxRefRatio(i);
+      if (rr == 4)
+      {  
+	  Print()<<"Refinement ratio of 4 not currently supported.\n";
+	  exit(0);
+      }
+    }
+
     if (do_init_vort_proj)
     {
         //
