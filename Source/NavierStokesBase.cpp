@@ -547,7 +547,7 @@ NavierStokesBase::Initialize ()
     pp.query("do_derefine_outflow",do_derefine_outflow);
     if (do_derefine_outflow == 1 && do_refine_outflow == 1)
       amrex::Abort("NavierStokesBase::Initialize(): Cannot have both do_refine_outflow==1 and do_derefine_outflow==1");
-    
+
     pp.query("Nbuf_outflow",Nbuf_outflow);
     BL_ASSERT(Nbuf_outflow >= 0);
     BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
@@ -1033,11 +1033,11 @@ NavierStokesBase::create_umac_grown (int nGrow)
     {
         BoxList bl = amrex::GetBndryCells(grids,nGrow);
 
-        BoxArray f_bnd_ba(bl);
-
-        bl.clear();
+        BoxArray f_bnd_ba(std::move(bl));
 
         BoxArray c_bnd_ba = f_bnd_ba; c_bnd_ba.coarsen(crse_ratio);
+
+        c_bnd_ba.maxSize(32);
 
         f_bnd_ba = c_bnd_ba; f_bnd_ba.refine(crse_ratio);
 
@@ -1084,12 +1084,10 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(crse_src,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                //const Box& box   = crse_src[mfi].box();
-		// I don't think mfi has any grow cells
-		const Box& box   = mfi.tilebox();
+                const Box& box   = crse_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
                 pc_edge_interp(box.loVect(), box.hiVect(), &nComp, rat, &n,
                                        crse_src[mfi].dataPtr(),
@@ -1114,11 +1112,10 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(fine_src,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
-                //const Box& fbox  = fine_src[mfi].box();
-		const Box& fbox  = mfi.tilebox();
+                const Box& fbox  = fine_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
                 edge_interp(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
                                  fine_src[mfi].dataPtr(),
@@ -2354,7 +2351,11 @@ NavierStokesBase::okToContinue ()
 int 
 NavierStokesBase::steadyState()
 {
-    Real 	max_change    = 0.0;
+    if (!get_state_data(State_Type).hasOldData()) {
+        return false; // If nothing to compare to, must not yet be steady :)
+    }
+
+    Real        max_change    = 0.0;
     MultiFab&   U_old         = get_old_data(State_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
 
@@ -2570,6 +2571,9 @@ NavierStokesBase::post_restart ()
 void
 NavierStokesBase::post_timestep (int crse_iteration)
 {
+
+  BL_PROFILE("NavierStokesBase::post_timestep()");
+
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_PARTICLES
@@ -2831,7 +2835,6 @@ NavierStokesBase::scalar_advection_update (Real dt,
         //
       if (do_denminmax)
       {
-	Print()<<"Calling denminmax \n";
 	    //
             // Must do FillPatch here instead of MF iterator because we need the
             // boundary values in the old data (especially at inflow)
@@ -2933,7 +2936,6 @@ NavierStokesBase::scalar_advection_update (Real dt,
     //
     if ( do_scalminmax && (sComp <= last_scalar) )
     {
-      	Print()<<"Calling scalminmax \n";
         const int num_scalars = last_scalar - Density + 1;
         //
         // Must do FillPatch here instead of MF iterator because we need the
@@ -3455,14 +3457,13 @@ NavierStokesBase::velocity_advection (Real dt)
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1);)
-
-	godunov->Setup(bx, dx, dt, 0,
-                       flux[0], bndry[0].dataPtr(), flux[1], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                          
-                       flux[2], bndry[2].dataPtr(),
-#endif
-                       Umf[U_mfi],rho_ptime[U_mfi],tforces);
-	
+        
+        
+        for (int d=0; d<BL_SPACEDIM; ++d){
+          const Box& ebx = amrex::surroundingNodes(bx,d);
+          flux[d].resize(ebx,BL_SPACEDIM+1);
+        }
+        
         //
         // Loop over the velocity components.
         //
@@ -3496,15 +3497,14 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
                                  Umf[U_mfi], S, tforces, divufab, comp,
                                  aofsfab,comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),PRE_MAC,volume[i]);
+                                 comp,bndry[comp].dataPtr(),FPU,volume[i]);
 
-            if (do_reflux)
-            {
-	        for (int d = 0; d < BL_SPACEDIM; d++)
-		  fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
-					U_mfi.nodaltilebox(d),comp,1);
+            if (do_reflux){
+	            for (int d = 0; d < BL_SPACEDIM; d++){
+		            fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
+					                             U_mfi.nodaltilebox(d),comp,1);
+              }
             }
-
         }
       } // end of MFIter
     } //end scope of FillPatchIter
@@ -3563,6 +3563,7 @@ NavierStokesBase::velocity_update (Real dt)
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
+
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
@@ -4334,22 +4335,22 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 
 		    if (n > 0)
 		    {
-		       FillPatchIterator fpi(parent->getLevel(lev), S_new, 
-                                             ng, curr_time, State_Type, 0, NUM_STATE);
-                       const MultiFab& S = fpi.get_mf();
+		      FillPatchIterator fpi(parent->getLevel(lev), S_new, 
+                                            ng, curr_time, State_Type, 0, NUM_STATE);
+                      const MultiFab& S = fpi.get_mf();
 		
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-                       for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
-                       {
-                         FArrayBox& tfab = tmf[mfi];
-                         const FArrayBox& sfab = S[mfi];
-                         for (int i = 0; i < n; ++i)
-                         {
-                           tfab.copy(sfab, timestamp_indices[i], i);
-                         }
-                       }
+                      for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
+                      {
+                        FArrayBox& tfab = tmf[mfi];
+                        const FArrayBox& sfab = S[mfi];
+                        for (int i = 0; i < n; ++i)
+                        {
+                          tfab.copy(sfab, timestamp_indices[i], i);
+                        }
+                      }
 		    }
 
 		    if (nextras > 0)

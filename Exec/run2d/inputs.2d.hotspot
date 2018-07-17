@@ -9,6 +9,7 @@ ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
 #fabarray.mfiter_tile_size = 8 8 8
+
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
@@ -35,7 +36,7 @@ amr.max_grid_size	= 32
 
 # Maximum level (defaults to 0 for single level calculation)
 #amr.max_level		= 4 # maximum number of levels of refinement
-amr.max_level		= 2 # maximum number of levels of refinement
+amr.max_level		= 1 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -65,7 +66,7 @@ amr.check_int		= 10
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 1
+amr.plot_int		= 5
 
 #*******************************************************************************
 
@@ -80,13 +81,14 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 0.001
-#ns.vel_visc_coef        = 0
+#ns.vel_visc_coef        = 0.001
+ns.vel_visc_coef        = 0
 
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001
+#ns.scal_diff_coefs      = 0.001
+ns.scal_diff_coefs      = 0.0
 
 #*******************************************************************************
 

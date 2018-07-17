@@ -40,6 +40,6 @@ NavierStokes::error_setup()
     }
     if (do_temp_ref) {
         err_list.add("temp", 1, ErrorRec::Special, FORT_TEMPERROR);
-	amrex::Print() << "Refining on TEMP for level 0 and GRAD T for levels > 0" << std::endl;
+	amrex::Print() << "Refining on TEMP and/or GRAD T" << std::endl;
     }
 }

@@ -27,3 +27,16 @@ Cylindrical coordinate bux fixes
 4/1/18
 Release version 18.04 (April, 2018)
 comments and variable rennaming only
+
+6/1/18
+Release version 18.06 (June, 2018)
+Small changes to some problem setups
+Some improvements to the particle algorithm
+Fixed some ghost cell issues in the projection
+
+7/2/18
+Release version 18.07 (July, 2018)
+Fixed a 3D corner coupling bug in FPU advection for conserved quantities.
+Enabled FPU advection for scalars.
+Added new test problems for regression suite.
+Various minor fixes to other test problems.
