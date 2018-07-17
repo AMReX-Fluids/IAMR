@@ -1447,7 +1447,7 @@ contains
                 tag(i,j) = merge(set,tag(i,j),aerr.gt.bubgrad)
              end do
           end do
-       end if
+        end if
 
 
 !c     probtype = VISCOUS BENCHMARK

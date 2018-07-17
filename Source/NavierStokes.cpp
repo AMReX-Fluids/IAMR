@@ -482,7 +482,7 @@ NavierStokes::predict_velocity (Real  dt,
         //
         // Compute the total forcing.
         //
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+        godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
 
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
@@ -530,7 +530,6 @@ NavierStokes::scalar_advection (Real dt,
         visc_terms.setVal(0,1);
     }
 
-#if 1
     int nGrowF = 1;
     MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
     MultiFab* dsdt    = getDsdt(nGrowF,prev_time);
@@ -538,9 +537,11 @@ NavierStokes::scalar_advection (Real dt,
     delete dsdt;
 
     MultiFab fluxes[BL_SPACEDIM];
+    //MultiFab edgstate[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
       const BoxArray& ba = getEdgeBoxArray(i);
       fluxes[i].define(ba, dmap, num_scalars, 0);
+      //edgstate[i].define(ba, dmap, num_scalars, 0);
     }
 
     //
@@ -559,9 +560,14 @@ NavierStokes::scalar_advection (Real dt,
       
       Vector<int> state_bc;
       FArrayBox tforces;
+      FArrayBox cfluxes[BL_SPACEDIM];
+      FArrayBox edgstate[BL_SPACEDIM];
+
+      
+      
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
-	const Box bx = U_mfi.tilebox();
+	    const Box bx = U_mfi.tilebox();
 
 #ifdef BOUSSINESQ
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
@@ -569,15 +575,22 @@ NavierStokes::scalar_advection (Real dt,
 #ifdef GENGETFORCE
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
-	if (getForceVerbose) {
-	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
-			 << " Calling getForce..." << '\n';
-	}
+	      if (getForceVerbose) {
+	        amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+			    << " Calling getForce..." << '\n';
+	      }
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 #else
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[U_mfi]);
 #endif		 
 #endif		 
+
+        for (int d=0; d<BL_SPACEDIM; ++d)
+        {
+          const Box& ebx = amrex::surroundingNodes(bx,d);
+          cfluxes[d].resize(ebx,num_scalars);
+          edgstate[d].resize(ebx,num_scalars);
+        }
 
         for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
           int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
@@ -590,187 +603,19 @@ NavierStokes::scalar_advection (Real dt,
         godunov->AdvectScalars(bx, dx, dt, 
                                D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
                                D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                               D_DECL(fluxes[0][U_mfi],fluxes[1][U_mfi],fluxes[2][U_mfi]),
-                               Umf[U_mfi], Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
+                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                               D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+                               Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
                                (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
 
-      }
-    }
-
-#else
-    //
-    // Set up the grid loop.
-    //
-    const Real  prev_pres_time = state[Press_Type].prevTime();
-    const int use_forces_in_trans = godunov->useForcesInTrans();
-
-    FArrayBox flux[BL_SPACEDIM], tforces, tvelforces;
-
-    MultiFab Gp, vel_visc_terms, fluxes[BL_SPACEDIM];
-
-    int ng =1;
-    MultiFab* divu_fp = getDivCond(ng,prev_time);
-    MultiFab* dsdt    = getDsdt(ng,prev_time);
-
-    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, ng);
-    
-    delete dsdt;
-
-    if (do_reflux)
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
+                               
+        for (int d=0; d<BL_SPACEDIM; ++d)
         {
-            const BoxArray& ba = getEdgeBoxArray(i);
-            fluxes[i].define(ba, dmap, num_scalars, 0);
-        }
-    }
-
-    if (use_forces_in_trans)
-    {
-        Gp.define(grids,dmap,BL_SPACEDIM,1);
-
-        vel_visc_terms.define(grids,dmap,BL_SPACEDIM,1);
-
-        getGradP(Gp, prev_pres_time);
-
-        if (be_cn_theta != 1.0)
-            getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
-        else
-            vel_visc_terms.setVal(0,1);
-    }
-    Vector<int> state_bc, bndry[BL_SPACEDIM];
-    //
-    // Compute the advective forcing.
-    //
-    {
-      FillPatchIterator
-	U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
-	S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
-      MultiFab& Umf=U_fpi.get_mf();
-      MultiFab& Smf=S_fpi.get_mf();
-      
-#ifdef BOUSSINESQ
-      FillPatchIterator
-	Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
-      MultiFab& Scalmf=Scal_fpi.get_mf();
-#endif
-      
-      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-      {
-	const int i = U_mfi.index();
-	Box bx = U_mfi.tilebox();
-	FArrayBox& Ufab = Umf[U_mfi];
-        FArrayBox& Sfab = Smf[U_mfi];
-
-#ifdef BOUSSINESQ
-        getForce(tforces,bx,1,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
-#else
-#ifdef GENGETFORCE
-        getForce(tforces,bx,1,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
-#elif MOREGENGETFORCE
-	if (getForceVerbose) {
-	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
-			 << " Calling getForce..." << '\n';
-	}
-        getForce(tforces,bx,1,fscalar,num_scalars,prev_time,Ufab,Sfab,0);
-#else
-        getForce(tforces,bx,1,fscalar,num_scalars,rho_ptime[U_mfi]);
-#endif		 
-#endif		 
-        
-        if (use_forces_in_trans)
-        {
-#ifdef BOUSSINESQ
-        getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Sfab);
-#else
-#ifdef GENGETFORCE
-            getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
-#elif MOREGENGETFORCE
-	    if (getForceVerbose) {
-	      amrex::Print() << "---" << '\n' 
-			     << "D - scalar advection (use_forces_in_trans):" << '\n' 
-			     << " Calling getForce..." << '\n';
-	    }
-            getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Sfab,0);
-#else
-            getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
-#endif		 
-#endif
-            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
-        }
-
-        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-               bndry[2] = fetchBCArray(State_Type,bx,2,1);)
-
-        godunov->Setup(bx, dx, dt, 0,
-                       flux[0], bndry[0].dataPtr(),
-                       flux[1], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                         
-                       flux[2], bndry[2].dataPtr(),
-#endif
-                       Ufab,rho_ptime[U_mfi],tvelforces);
-
-        //
-        // Loop over the scalar components.
-        //
-        FArrayBox& divufab = (*divu_fp)[U_mfi];
-        FArrayBox& aofsfab = (*aofs)[U_mfi];
-        FArrayBox& rhopfab = rho_ptime[U_mfi];
-
-        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
-               FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
-               FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
-
-        for (int comp = 0 ; comp < num_scalars ; comp++)
-        {
-            int state_ind = fscalar + comp;
-            //
-            // Compute total forcing.
-            //
-            int use_conserv_diff = (advectionType[state_ind] == Conservative) ? true : false;
-	    // WARNING: BDS does not work with tiling.
-	    // PRE_MAC and FPU do work with tiling.
-            //AdvectionScheme adv_scheme = PRE_MAC;
-            AdvectionScheme adv_scheme = FPU;
-	    
-            if (adv_scheme == PRE_MAC)
-            {
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_mfi],
-                                          comp,divufab,rhopfab,use_conserv_diff);
-            }
-            else
-            {
-                FArrayBox junkDivu(tforces.box(),1);
-                junkDivu.setVal(0);
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_mfi],
-                                          comp,junkDivu,rhopfab,use_conserv_diff);
-            }
-            //
-            // Advect scalar.
-            //
-            state_bc = fetchBCArray(State_Type,bx,state_ind,1);
-
-            godunov->AdvectState(bx, dx, dt, 
-                                 area[0][i], u_mac_fab0, flux[0],
-                                 area[1][i], u_mac_fab1, flux[1],
-#if (BL_SPACEDIM == 3)                        
-                                 area[2][i], u_mac_fab2, flux[2],
-#endif
-                                 Ufab,Sfab,tforces,divufab,comp,
-                                 aofsfab,state_ind,use_conserv_diff,
-                                 state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
-
-            if (do_reflux)
-            {
-	      for (int d = 0; d < BL_SPACEDIM; d++)
-		fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
-				      U_mfi.nodaltilebox(d),comp,1);
-            }
+          const Box& ebx = U_mfi.nodaltilebox(d);
+          (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
         }
       }
     }
-#endif
 
     delete divu_fp;
 
@@ -1779,8 +1624,7 @@ NavierStokes::mac_sync ()
 
             MultiFab& S_new = fine_lev.get_new_data(State_Type);
             for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi){
-	      const Box& bx = mfi.tilebox();
-	      
+	      const Box& bx = mfi.tilebox();	      
 	      S_new[mfi].plus(sync_incr[mfi],bx,0,Density,numscal);
 	    }
 
@@ -2071,7 +1915,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // not allow for calling NavierStokes::getViscTerms with src_comp=Yvel
     // or Zvel
     //
-#ifndef NDEBUG
+#ifdef AMREX_DEBUG
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
       amrex::Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
@@ -2397,7 +2241,16 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
             fillBox.setRange(d, ecbox.smallEnd(d), ecbox.length(d));
     
     const int isharm = def_harm_avg_cen2edge;
-    cen2edg(fillBox.loVect(), fillBox.hiVect(),
+    // WARNING: HACK HERE
+    // For the tiling of PeleLM, the routine cen2edg now takes
+    // mfi.nodaltilebox(d) to build the edge_box in each direction
+    // otherwise during the tiling process, the last extra edge on one tile will
+    // be computed in the same time as the first edge on the next tile
+    // Below fillBox has been changed by ecbox
+    // This change has been barely tested in IAMR and it seems to be ok,
+    // but maybe much more investigation must be done.
+    
+    cen2edg(ecbox.loVect(), ecbox.hiVect(),
                  ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
                  ccfab.dataPtr(sComp),
                  ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
