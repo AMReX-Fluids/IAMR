@@ -39,7 +39,7 @@ NavierStokes::error_setup()
 	amrex::Print() << "Refining on MAG_VORT" << std::endl;
     }
     if (do_temp_ref) {
-        err_list.add("temp", 1, ErrorRec::Special,FORT_TEMPERROR);
-	amrex::Print() << "Refining on TEMP or GRAD T" << std::endl;
+        err_list.add("temp", 1, ErrorRec::Special, FORT_TEMPERROR);
+	amrex::Print() << "Refining on TEMP and/or GRAD T" << std::endl;
     }
 }

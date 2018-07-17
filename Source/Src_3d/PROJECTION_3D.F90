@@ -41,9 +41,9 @@ contains
        integer i, j, k, n
 
        do n = 1, SDIM
-          do k = lo(3)-1, hi(3)+1
-             do j = lo(2)-1, hi(2)+1
-                do i = lo(1)-1, hi(1)+1
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
                    unew(i,j,k,n) = uold(i,j,k,n) + dt*unew(i,j,k,n)
                 end do
              end do
@@ -69,9 +69,9 @@ contains
       integer i, j, k, n
 
       do n = 1, SDIM
-         do k = lo(3)-1, hi(3)+1
-            do j = lo(2)-1, hi(2)+1
-               do i = lo(1)-1, hi(1)+1
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
                   unew(i,j,k,n) = (unew(i,j,k,n)-uold(i,j,k,n))/dt
                end do
             end do
@@ -81,7 +81,7 @@ contains
       end subroutine vel_to_accel
 
       subroutine proj_update( &
-          boxlo, boxhi, nvar, ngrow, &
+          boxlo, boxhi, nvar, &
           un, DIMS(un), &
           alpha, &
           uo, DIMS(uo) )bind(C,name="proj_update")
@@ -90,7 +90,7 @@ contains
 !c     The loop bounds are determined in the C++
 !c
       implicit none
-      integer    boxlo(SDIM), boxhi(SDIM), nvar, ngrow
+      integer    boxlo(SDIM), boxhi(SDIM), nvar
       REAL_T     alpha
       integer    DIMDEC(un),DIMDEC(uo)
       REAL_T     un(DIMV(un),nvar)

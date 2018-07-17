@@ -76,12 +76,12 @@ contains
                        velfact, probtype, randfact, bubgrad, &
      			rhozero, tempzero, c_d, r_d, grav_angle, &
                        adv_dir, adv_vel, axis_dir, radvort, &
-               lid_vel &
+                       lid_vel 
 #ifdef BL_DO_FLCT
                        ,forceInflow, numInflPlanesStore, strmwse_dir, &
                        forceLo, forceHi, flct_file, turb_scale
 #endif
-&
+
 !c
 !c      Build "probin" filename -- the name of file containing fortin namelist.
 !c
