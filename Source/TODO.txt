@@ -37,37 +37,45 @@ Wrap up for Weiqun
 
 MFIters not tiled (6/20/18): 
 
-Diffusion.cpp:1350:            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
+! See note in code, Maybe can do better with a different call to bcoefs
 Diffusion.cpp:1672:        for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-Diffusion.cpp:1897:        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
 Diffusion.cpp:1981:            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
 Diffusion.cpp:2158:            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
 
+! All straight forward
 MacOperator.cpp:106:    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
 MacOperator.cpp:173:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 MacOperator.cpp:296:    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
 MacOperator.cpp:319:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 
+! coarse-fine box intersections - if not properly nested, could tiling lead be a bad idea?
 MacProj.cpp:535:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-MacProj.cpp:570:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 MacProj.cpp:735:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+
+!straight-forward
+MacProj.cpp:570:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 MacProj.cpp:775:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+! some work, but not too complicated
 MacProj.cpp:960:    for (FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
 MacProj.cpp:1141:    for (MFIter Syncmfi(Sync); Syncmfi.isValid(); ++Syncmfi)
 MacProj.cpp:1214:    for (MFIter U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(); ++U_edge0mfi)
+
+! Just doing ghost cells?  Tiling needed?
 MacProj.cpp:1384:            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
+! Just looking at boundary. Tiling needed?
 MacProj.cpp:1452:            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
+! Need anelastic problem to test.  straight forward
 MacProj.cpp:1530:    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
 
-!!Create_umac_grown() - just boundary layer?
+!!Create_umac_grown() - coarse-fine interaction requires some thought. Is just boundary layer?
 NavierStokesBase.cpp:1083:            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
 NavierStokesBase.cpp:1111:            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
 NavierStokesBase.cpp:1154:        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
-!!SyncInterp functions
+!!SyncInterp functions - coarse-fine interaction
 NavierStokesBase.cpp:3168:    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
 NavierStokesBase.cpp:3285:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
 NavierStokesBase.cpp:3300:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
-!!! I think I have these changes stashed in git
+!!! For analysis stuff that should get moved out of NavierStokesBase? -- I think I have these changes stashed in git
 NavierStokesBase.cpp:3778:    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
 NavierStokesBase.cpp:3929:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
 NavierStokesBase.cpp:3951:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
@@ -84,26 +92,23 @@ NavierStokesBase.cpp:4326:		      // why not use fab.copy to iterate over compon
 ! Initialization, not for first pass
 NavierStokes.cpp:87:    for (MFIter snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
 NavierStokes.cpp:173:            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
-
-NavierStokes.cpp:832:                    for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
-
+! Maxval - looks like analysis stuff, can do later
 NavierStokes.cpp:979:    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
 
-NavierStokes.cpp:1557:                for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
-NavierStokes.cpp:1576:            for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-NavierStokes.cpp:1664:                for (MFIter SsyncMfi(Ssync); SsyncMfi.isValid(); ++SsyncMfi)
-NavierStokes.cpp:1677:            for (MFIter S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi)
-NavierStokes.cpp:1720:            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-NavierStokes.cpp:1767:        for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-NavierStokes.cpp:1786:            for (MFIter Ssyncmfi(Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
-NavierStokes.cpp:1808:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-NavierStokes.cpp:1888:    for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
-NavierStokes.cpp:1948:            FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
-NavierStokes.cpp:1949:            MFIter            rho_mfi(rhotime);
-NavierStokes.cpp:1985:            for (MFIter mfi(dsdt); mfi.isValid(); ++mfi)
+! Sync iter with coarsened fine complication
+NavierStokes.cpp:1716:            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+
+! Operates on intersection of fine box and coarse. Tiling the right size?
+NavierStokes.cpp:1803:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+
+! Coarsend fine box - Does IAMR require boxes to be properly nested?
+NavierStokes.cpp:1884:    for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
+
+! Needs some thought. May require some work because takes cc data and makes edge centered data
 NavierStokes.cpp:2245:        for (MFIter ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
 NavierStokes.cpp:2286:        for (MFIter ecMfi(*diffusivity[dir]); ecMfi.isValid(); ++ecMfi)
 
+! setPhysBoundaryValues, for 2nd pass?
 Projection.cpp:264:    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
 Projection.cpp:943:            for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
 Projection.cpp:976:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
@@ -111,20 +116,31 @@ Projection.cpp:1001:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
 Projection.cpp:1133:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
 Projection.cpp:1287:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
 Projection.cpp:1353:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+
+! Some work here, but not complicated
 Projection.cpp:1788:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
 Projection.cpp:1823:       for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
 Projection.cpp:1862:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+! Anel stuff (next 2)- don't know problem to test this, not complicated
 Projection.cpp:1900:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
 Projection.cpp:1936:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+! InitialVortProj - 2nd pass? easy updates here
 Projection.cpp:2008:        for (MFIter mfi(*rhnd[lev]); mfi.isValid(); ++mfi)
 Projection.cpp:2066:            for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi)
+! PutDown - coarse-fine interaction, requires some thought
 Projection.cpp:2135:            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
+! easy, need outflow problem to test
 Projection.cpp:2424:        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
+! requires thought - needs inflow problem to fully test
 Projection.cpp:2867:  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
 Projection.cpp:2947:	for (MFIter mfi(msk); mfi.isValid(); ++mfi)
-Projection.cpp:3001:	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
+Projection.cpp:3001:	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) { //This one needs inflowCorner 
 
+! Think this operates on a thin box, worth tiling? 
 SyncRegister.cpp:79:            for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
+! Operates on intersection of boxes. If boxes not properly nested, then could tiling this be a bad idea?
 SyncRegister.cpp:259:    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+
+!FineAdd - coarse-fine interaction, requires some thought
 SyncRegister.cpp:313:	    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
 
