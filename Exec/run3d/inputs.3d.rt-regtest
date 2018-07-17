@@ -3,6 +3,15 @@
 # INPUTS.3D.RT for regression testing
 #*******************************************************************************
 
+#ns.do_scalminmax=1
+#ns.do_denminmax=1
+
+# default values#######
+#godunov.ppm_type=0
+#godunov.slope_order=4
+#godunov.use_unlimited_slopes=0
+#######################
+
 godunov.ppm_type            = 1
 godunov.use_forces_in_trans = 1
 godunov.corner_couple       = 0
