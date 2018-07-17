@@ -37,7 +37,9 @@ Wrap up for Weiqun
 
 MFIters not tiled (6/20/18): 
 
-! See note in code, Maybe can do better with a different call to bcoefs
+! Revisit, thread safe?
+! DONE by building up bcoef MF and then calling tensorOp->bCoef(MF)
+!  Castro seems to take this approach
 Diffusion.cpp:1672:        for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
 Diffusion.cpp:1981:            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
 Diffusion.cpp:2158:            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
@@ -48,7 +50,8 @@ MacOperator.cpp:173:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 MacOperator.cpp:296:    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
 MacOperator.cpp:319:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 
-! coarse-fine box intersections - if not properly nested, could tiling lead be a bad idea?
+! coarse-fine box intersections 
+! Castro, Nyx do not tile similar loops
 MacProj.cpp:535:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 MacProj.cpp:735:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 
@@ -67,9 +70,10 @@ MacProj.cpp:1452:            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
 ! Need anelastic problem to test.  straight forward
 MacProj.cpp:1530:    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
 
-!!Create_umac_grown() - coarse-fine interaction requires some thought. Is just boundary layer?
+!! Done - need regression test
 NavierStokesBase.cpp:1083:            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
 NavierStokesBase.cpp:1111:            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
+! Pick up here
 NavierStokesBase.cpp:1154:        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
 !!SyncInterp functions - coarse-fine interaction
 NavierStokesBase.cpp:3168:    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)

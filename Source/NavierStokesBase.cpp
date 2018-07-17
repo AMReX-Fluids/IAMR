@@ -545,7 +545,8 @@ NavierStokesBase::Initialize ()
     //
     pp.query("do_refine_outflow",do_refine_outflow);
     pp.query("do_derefine_outflow",do_derefine_outflow);
-    if (do_derefine_outflow) do_refine_outflow = 0;
+    if (do_derefine_outflow == 1 && do_refine_outflow == 1)
+      amrex::Abort("NavierStokesBase::Initialize(): Cannot have both do_refine_outflow==1 and do_derefine_outflow==1");
 
     pp.query("Nbuf_outflow",Nbuf_outflow);
     BL_ASSERT(Nbuf_outflow >= 0);
@@ -2256,7 +2257,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 // region
                 //
                 bool hasTags = false;
-                for (MFIter tbi(tags,true); !hasTags && tbi.isValid(); ++tbi)
+                for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
                     if (tags[tbi].numTags(outflowBox) > 0)
                         hasTags = true;
                 
@@ -4334,27 +4335,22 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 
 		    if (n > 0)
 		    {
-		      // changed to use FillPatch here
-		      FillPatch(parent->getLevel(lev), tmf, ng, curr_time,
-				State_Type, timestamp_indices[0], n, 0);
-		      // FillPatchIterator fpi(parent->getLevel(lev), S_new, 
-			// 		      ng, curr_time, State_Type, 0, NUM_STATE);
-			// const MultiFab& S = fpi.get_mf();
+		      FillPatchIterator fpi(parent->getLevel(lev), S_new, 
+                                            ng, curr_time, State_Type, 0, NUM_STATE);
+                      const MultiFab& S = fpi.get_mf();
 		
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-// 			for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
-// 			{
-// 			    FArrayBox& tfab = tmf[mfi];
-// 			    const FArrayBox& sfab = S[mfi];
-		      // not sure if this loop is needed for some reason. otherwise
-		      // why not use fab.copy to iterate over components? 
-// 			    for (int i = 0; i < n; ++i)
-// 			    {
-// 				tfab.copy(sfab, timestamp_indices[i], i);
-// 			    }
-// 			}
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                      for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
+                      {
+                        FArrayBox& tfab = tmf[mfi];
+                        const FArrayBox& sfab = S[mfi];
+                        for (int i = 0; i < n; ++i)
+                        {
+                          tfab.copy(sfab, timestamp_indices[i], i);
+                        }
+                      }
 		    }
 
 		    if (nextras > 0)

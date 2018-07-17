@@ -363,7 +363,7 @@ contains
       integer i,j,n,P,M
       DOUBLE PRECISION val, df
 
-!c     Do linear in dir, p!c transverse to dir, leave alone the fine values
+!c     Do linear in dir, pc transverse to dir, leave alone the fine values
 !c     lining up with coarse edges--assume these have been set to hold the 
 !c     values you want to interpolate to the rest.
       if (dir.eq.0) then
