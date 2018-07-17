@@ -910,6 +910,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     std::unique_ptr<DivVis> tensor_op
 	(getTensorOp(a,b,cur_time,visc_bndry,rho,betanp1,betaComp));
     tensor_op->maxOrder(tensor_max_order);
+    Print()<<"****TEnsor op used!!!!\n";
     //
     // Construct solver and call it.
     //
@@ -983,7 +984,7 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
     for (int d = 0; d < BL_SPACEDIM; ++d)
         BL_ASSERT(allnull ? visc_coef[Xvel+d]>=0 : beta[d]->min(0,0) >= 0.0);
 #endif
-
+    Print()<<"allnull ="<<allnull<<"\n";
     if (allnull)
       diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag,update_fluxreg);
     else
@@ -1344,26 +1345,10 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 #endif
 	if (update_fluxreg)
 	{
-	  FArrayBox flux;
-	  for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
-	  {
-            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
-            {
-	      const int i    = mfi.index();
-	      const Box& grd = amrex::enclosedCells(mfi.validbox());
-
-	      BL_ASSERT(grd==grids[mfi.index()]);
-	      
-	      for (int k = 0; k < BL_SPACEDIM; k++)
-              {
-		Box flux_bx(grd);
-		flux_bx.surroundingNodes(k);
-		flux.resize(flux_bx,1);
-		flux.copy((*(tensorflux[k]))[mfi],sigma,0,1);
-		viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
-	      }
-            }
-	  }
+	    for (int k = 0; k < BL_SPACEDIM; k++)
+	      viscflux_reg->FineAdd(*(tensorflux[k]),k,Xvel,Xvel,
+				    BL_SPACEDIM,dt*dt);
+		  
 	}
     }
 }
@@ -1890,14 +1875,15 @@ Diffusion::computeAlpha (MultiFab&       alpha,
         }
     }
 
+    Print()<<"\n *rho_flag = "<<rho_flag<<"\n";
     if (rho_flag == 2 || rho_flag == 3)
     {
         MultiFab& S = navier_stokes->get_data(State_Type,time);
-
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+	//FIXME needs to be tested
+        for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
         {
             BL_ASSERT(grids[alphamfi.index()] == alphamfi.validbox());
-            alpha[alphamfi].mult(S[alphamfi],alphamfi.validbox(),Density,0,1);
+            alpha[alphamfi].mult(S[alphamfi],alphamfi.tilebox(),Density,0,1);
         }
     }
 
