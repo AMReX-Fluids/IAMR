@@ -4342,13 +4342,14 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-                      for (MFIter mfi(tmf); mfi.isValid(); ++mfi)
+                      for (MFIter mfi(tmf,true); mfi.isValid(); ++mfi)
                       {
                         FArrayBox& tfab = tmf[mfi];
                         const FArrayBox& sfab = S[mfi];
+                        const Box& box = mfi.growntilebox();
                         for (int i = 0; i < n; ++i)
                         {
-                          tfab.copy(sfab, timestamp_indices[i], i);
+                          tfab.copy(sfab, box, timestamp_indices[i], box, i, 1);
                         }
                       }
 		    }
