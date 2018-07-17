@@ -6,6 +6,7 @@
 godunov.ppm_type = 2
 ns.do_refine_outflow = 1
 ns.do_derefine_outflow = 0
+mac.mac_sync_tol=1.e-10
 
 max_step                =  20
 
@@ -14,7 +15,7 @@ stop_time 		=  -1
 ns.stop_when_steady 	=  1
 ns.steady_tol 		=  1.0e-4
 
-amr.n_cell              =  32 32 32
+amr.n_cell              =  16 16 16
 
 amr.max_level           =  2
 ns.do_tracer_ref        =  1

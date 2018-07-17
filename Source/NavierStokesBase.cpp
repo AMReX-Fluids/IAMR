@@ -3135,7 +3135,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     // Set physical boundary conditions in cdataMF.
     //
-    // tiling is probably not needed here, but what the hey
+    // tiling may not be needed here, but what the hey
     for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
     {
         int         i       = mfi.index();
