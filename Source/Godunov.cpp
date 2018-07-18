@@ -224,7 +224,7 @@ Godunov::AdvectState (const Box&  box,
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
                           BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
-                          BL_TO_FORTRAN_N_ANYD(divu,fab_ind),
+                          BL_TO_FORTRAN_ANYD(divu),
                           BL_TO_FORTRAN_ANYD(uedge),     BL_TO_FORTRAN_ANYD(xflux),
                           BL_TO_FORTRAN_ANYD(vedge),     BL_TO_FORTRAN_ANYD(yflux),
 #if (AMREX_SPACEDIM == 3)

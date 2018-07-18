@@ -642,20 +642,20 @@ contains
 !c
       implicit none
       integer i, j, k
-      REAL_T  u, v, w
-      REAL_T  small
-      REAL_T  dt_start
-      REAL_T  tforce1,tforce2,tforce3
+      real(rt)  u, v, w
+      real(rt)  small
+      real(rt)  dt_start
+      real(rt)  tforce1,tforce2,tforce3
       integer lo(SDIM), hi(SDIM)
-      REAL_T  dt,dx(SDIM),cfl,u_max(SDIM)
+      real(rt)  dt,dx(SDIM),cfl,u_max(SDIM)
 
       integer DIMDEC(vel)
       integer DIMDEC(rho)
       integer DIMDEC(tf)
 
-      REAL_T  vel(DIMV(vel),SDIM)
-      REAL_T  rho(DIMV(rho))
-      REAL_T  tforces(DIMV(tf),SDIM), irho
+      real(rt)  vel(DIMV(vel),SDIM)
+      real(rt)  rho(DIMV(rho))
+      real(rt)  tforces(DIMV(tf),SDIM), irho
 
       PARAMETER(small = 1.0D-8, dt_start = 1.0D+20)
 
@@ -712,16 +712,16 @@ contains
 !c     ----------------------------------------------------------
 !c
       implicit none
-      REAL_T   old_velmag, new_velmag
+      real(rt)   old_velmag, new_velmag
       integer  i, j, k
       integer  lo(SDIM), hi(SDIM)
-      REAL_T   max_change
+      real(rt)   max_change
 
       integer DIMDEC(old_vel)
       integer DIMDEC(new_vel)
 
-      REAL_T  old_vel(DIMV(old_vel),SDIM)
-      REAL_T  new_vel(DIMV(new_vel),SDIM)
+      real(rt)  old_vel(DIMV(old_vel),SDIM)
+      real(rt)  new_vel(DIMV(new_vel),SDIM)
 
       max_change = zero
 
@@ -760,14 +760,14 @@ contains
       integer imin, imax, jmin, jmax, kmin, kmax
       integer i, j, k
       integer lo(SDIM),hi(SDIM)
-      REAL_T  dx(SDIM), u_max(SDIM),cflmax, dt
-      REAL_T  hx, hy, hz
-      REAL_T  umax, vmax, wmax, rhomax
-      REAL_T  umin, vmin, wmin, rhomin
-      REAL_T  u(DIMV(u))
-      REAL_T  v(DIMV(v))
-      REAL_T  w(DIMV(w))
-      REAL_T  rho(DIMV(rho))
+      real(rt)  dx(SDIM), u_max(SDIM),cflmax, dt
+      real(rt)  hx, hy, hz
+      real(rt)  umax, vmax, wmax, rhomax
+      real(rt)  umin, vmin, wmin, rhomin
+      real(rt)  u(DIMV(u))
+      real(rt)  v(DIMV(v))
+      real(rt)  w(DIMV(w))
+      real(rt)  rho(DIMV(rho))
       integer verbose
 
       hx   = dx(1)
@@ -856,22 +856,22 @@ contains
 !c
       implicit none
       integer lo(SDIM),hi(SDIM)
-      REAL_T  dt, dx(SDIM), u_max(SDIM), cflmax
+      real(rt)  dt, dx(SDIM), u_max(SDIM), cflmax
       integer imin, imax, jmin, jmax, kmin, kmax
       integer i, j, k
-      REAL_T  hx, hy, hz
-      REAL_T  umax, vmax, wmax, rhomax
-      REAL_T  umin, vmin, wmin, rhomin
+      real(rt)  hx, hy, hz
+      real(rt)  umax, vmax, wmax, rhomax
+      real(rt)  umin, vmin, wmin, rhomin
 
       integer DIMDEC(umac)
       integer DIMDEC(vmac)
       integer DIMDEC(wmac)
       integer DIMDEC(rho)
 
-      REAL_T  umac(DIMV(umac))
-      REAL_T  vmac(DIMV(vmac))
-      REAL_T  wmac(DIMV(wmac))
-      REAL_T  rho(DIMV(rho))
+      real(rt)  umac(DIMV(umac))
+      real(rt)  vmac(DIMV(vmac))
+      real(rt)  wmac(DIMV(wmac))
+      real(rt)  rho(DIMV(rho))
 
       hx   = dx(1)
       hy   = dx(2)
@@ -1026,7 +1026,7 @@ contains
       real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
 
       integer :: i,j, k, imin,jmin,kmin,imax,jmax,kmax
-      real(rt) :: hx, hy, hz, dt, dth, dthx, dthy, dthz, dx(SDIM), uad, vad, wad
+      real(rt) :: hx, hy, hz, dt, dth, dthx, dthy, dthz, dx(SDIM)
       real(rt) :: eps,eps_for_bc, val, tst, dt3
       logical :: ltm
       parameter( eps        = 1.0D-6 )
@@ -1449,7 +1449,7 @@ contains
       real(rt) ::  tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw
 
       real(rt) ::  eps, eps_for_bc
-      integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax, inc, place_to_break, corner_couple
+      integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax, inc, corner_couple
       logical  :: ltx,lty,ltz
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )         
@@ -2837,7 +2837,7 @@ contains
       real(rt) :: tr,tr1,tr2,ubar,vbar,wbar,stx,sty,stz,fu,fv,fw,eps,eps_for_bc,st
       real(rt) ::  dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
       real(rt) ::  dt6, dt6x, dt6y, dt6z
-      integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax,inc,place_to_break,corner_couple
+      integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax,inc,corner_couple
       parameter( eps        = 1.0D-6 )
       parameter( eps_for_bc = 1.0D-10 )
 
@@ -5052,12 +5052,13 @@ contains
 
       integer i, j, k
 
-      REAL_T sigma, s6, idtx, idty, idtz
+      real(rt) sigma, s6, idtx, idty, idtz
 
-      call ppm_xdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
-                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
-                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
-                    sedgex,sedgex_lo(1),sedgex_hi(1),sedgex_lo(2),sedgex_hi(2),sedgex_lo(3),sedgex_hi(3),&
+      call ppm_xdir(s,s_lo,s_hi, &
+                    sm,sm_lo,sm_hi, &
+                    sp,sp_lo,sp_hi, &
+                    dsvl,dsvl_lo,dsvl_hi, &
+                    sedgex,sedgex_lo,sedgex_hi,&
                     lo,hi,bc,ppm_type)
 
       idtx = dt / dx(1)
@@ -5086,10 +5087,11 @@ contains
          end do
       end do
 
-      call ppm_ydir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
-                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
-                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
-                    sedgey,sedgey_lo(1),sedgey_hi(1),sedgey_lo(2),sedgey_hi(2),sedgey_lo(3),sedgey_hi(3),&
+      call ppm_ydir(s,s_lo,s_hi, &
+                    sm,sm_lo,sm_hi, &
+                    sp,sp_lo,sp_hi, &
+                    dsvl,dsvl_lo,dsvl_hi, &
+                    sedgey,sedgey_lo,sedgey_hi,&
                     lo,hi,bc,ppm_type)
 
       idty = dt / dx(2)
@@ -5118,10 +5120,11 @@ contains
          end do
       end do
       
-      call ppm_zdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
-                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
-                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
-                    sedgez,sedgez_lo(1),sedgez_hi(1),sedgez_lo(2),sedgez_hi(2),sedgez_lo(3),sedgez_hi(3),&
+      call ppm_zdir(s,s_lo,s_hi, &
+                    sm,sm_lo,sm_hi, &
+                    sp,sp_lo,sp_hi, &
+                    dsvl,dsvl_lo,dsvl_hi, &
+                    sedgez,sedgez_lo,sedgez_hi,&
                     lo,hi,bc,ppm_type)
 
       idtz = dt / dx(3)
@@ -5201,12 +5204,13 @@ contains
 
       integer i, j, k
 
-      REAL_T sigmam, sigmap, s6, idtx, idty, idtz
+      real(rt) sigmam, sigmap, s6, idtx, idty, idtz
 
-      call ppm_xdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
-                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
-                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
-                    sedgex,sedgex_lo(1),sedgex_hi(1),sedgex_lo(2),sedgex_hi(2),sedgex_lo(3),sedgex_hi(3),&
+      call ppm_xdir(s,s_lo,s_hi, &
+                    sm,sm_lo,sm_hi, &
+                    sp,sp_lo,sp_hi, &
+                    dsvl,dsvl_lo,dsvl_hi, &
+                    sedgex,sedgex_lo,sedgex_hi,&
                     lo,hi,bc,ppm_type)
 
 
@@ -5237,10 +5241,11 @@ contains
          end do
       end do
 
-      call ppm_ydir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
-                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
-                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
-                    sedgey,sedgey_lo(1),sedgey_hi(1),sedgey_lo(2),sedgey_hi(2),sedgey_lo(3),sedgey_hi(3),&
+      call ppm_ydir(s,s_lo,s_hi, &
+                    sm,sm_lo,sm_hi, &
+                    sp,sp_lo,sp_hi, &
+                    dsvl,dsvl_lo,dsvl_hi, &
+                    sedgey,sedgey_lo,sedgey_hi,&
                     lo,hi,bc,ppm_type)
 
 
@@ -5271,10 +5276,11 @@ contains
          end do
       end do
 
-      call ppm_zdir(s,s_lo(1),s_hi(1),s_lo(2),s_hi(2),s_lo(3),s_hi(3), &
-                    sm,sp,sm_lo(1),sm_hi(1),sm_lo(2),sm_hi(2),sm_lo(3),sm_hi(3), &
-                    dsvl,dsvl_lo(1),dsvl_hi(1),dsvl_lo(2),dsvl_hi(2),dsvl_lo(3),dsvl_hi(3), &
-                    sedgez,sedgez_lo(1),sedgez_hi(1),sedgez_lo(2),sedgez_hi(2),sedgez_lo(3),sedgez_hi(3),&
+      call ppm_zdir(s,s_lo,s_hi, &
+                    sm,sm_lo,sm_hi, &
+                    sp,sp_lo,sp_hi, &
+                    dsvl,dsvl_lo,dsvl_hi, &
+                    sedgez,sedgez_lo,sedgez_hi,&
                     lo,hi,bc,ppm_type)
 
 
@@ -5327,7 +5333,7 @@ contains
       implicit none
       integer i,j,k
       integer iconserv
-      REAL_T divux,divuy,divuz
+      real(rt) divux,divuy,divuz
       integer imin,jmin,kmin,imax,jmax,kmax
       integer lo(SDIM),hi(SDIM)
       integer DIMDEC(aofs)
@@ -5341,17 +5347,17 @@ contains
       integer DIMDEC(ax)
       integer DIMDEC(ay)
       integer DIMDEC(az)
-      REAL_T aofs(DIMV(aofs))
-      REAL_T vol(DIMV(vol))
-      REAL_T uedge(DIMV(uedge))
-      REAL_T vedge(DIMV(vedge))
-      REAL_T wedge(DIMV(wedge))
-      REAL_T xflux(DIMV(xflux))
-      REAL_T yflux(DIMV(yflux))
-      REAL_T zflux(DIMV(zflux))
-      REAL_T areax(DIMV(ax))
-      REAL_T areay(DIMV(ay))
-      REAL_T areaz(DIMV(az))
+      real(rt) aofs(DIMV(aofs))
+      real(rt) vol(DIMV(vol))
+      real(rt) uedge(DIMV(uedge))
+      real(rt) vedge(DIMV(vedge))
+      real(rt) wedge(DIMV(wedge))
+      real(rt) xflux(DIMV(xflux))
+      real(rt) yflux(DIMV(yflux))
+      real(rt) zflux(DIMV(zflux))
+      real(rt) areax(DIMV(ax))
+      real(rt) areay(DIMV(ay))
+      real(rt) areaz(DIMV(az))
 
       imin = lo(1)
       jmin = lo(2)
@@ -5475,17 +5481,17 @@ contains
       integer DIMDEC(ax)
       integer DIMDEC(ay)
       integer DIMDEC(az)
-      REAL_T sync(DIMV(sync))
-      REAL_T vol(DIMV(vol))
-      REAL_T ucor(DIMV(ucor))
-      REAL_T vcor(DIMV(vcor))
-      REAL_T wcor(DIMV(wcor))
-      REAL_T xflux(DIMV(xflux))
-      REAL_T yflux(DIMV(yflux))
-      REAL_T zflux(DIMV(zflux))
-      REAL_T areax(DIMV(ax))
-      REAL_T areay(DIMV(ay))
-      REAL_T areaz(DIMV(az))
+      real(rt) sync(DIMV(sync))
+      real(rt) vol(DIMV(vol))
+      real(rt) ucor(DIMV(ucor))
+      real(rt) vcor(DIMV(vcor))
+      real(rt) wcor(DIMV(wcor))
+      real(rt) xflux(DIMV(xflux))
+      real(rt) yflux(DIMV(yflux))
+      real(rt) zflux(DIMV(zflux))
+      real(rt) areax(DIMV(ax))
+      real(rt) areay(DIMV(ay))
+      real(rt) areaz(DIMV(az))
 
       imin = lo(1)
       jmin = lo(2)
@@ -5535,34 +5541,33 @@ contains
 
       end subroutine sync_adv_forcing
 
-      subroutine ppm_zdir_colella (s,DIMS(s),&
-          sm,sp,DIMS(smp), &
-          sedgez,DIMS(sedgez),lo,hi,klo,khi)
+      subroutine ppm_zdir_colella (s,s_lo,s_hi,&
+                                   sm,sm_lo,sm_hi, &
+                                   sp,sp_lo,sp_hi, &
+                                   sedgez,sedgez_lo,sedgez_hi,lo,hi,klo,khi)
 
       implicit none
-      
-      integer lo(SDIM), hi(SDIM), klo, khi
-      integer DIMDEC(s)
-      integer DIMDEC(smp)
-      integer DIMDEC(sedgez)
-      REAL_T  s(DIMV(s))
-      REAL_T  sm(DIMV(smp))
-      REAL_T  sp(DIMV(smp))
-      REAL_T  sedgez(DIMV(sedgez))
+
+      integer, intent(in) :: lo(SDIM), hi(SDIM), klo, khi
+      integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,sedgez_lo,sedgez_hi
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
+      real(rt), intent(in) :: sedgez(sedgez_lo(1):sedgez_hi(1),sedgez_lo(2):sedgez_hi(2),sedgez_lo(3):sedgez_hi(3))
 
       integer i, j, k
 
       logical extremum, bigp, bigm
 
-      REAL_T D2, D2C, D2L, D2R, D2LIM, alphap, alpham
-      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
-      REAL_T sgn, amax, delam, delap, dachkm, dachkp
+      real(rt) D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      real(rt) dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
+      real(rt) sgn, amax, delam, delap, dachkm, dachkp
 
-      REAL_T, PARAMETER :: C          = 1.25d0
-      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
-      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
-      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
-      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
+      real(rt), PARAMETER :: C          = 1.25d0
+      real(rt), PARAMETER :: three4ths  = 3.d0/4.d0
+      real(rt), PARAMETER :: one20th    = 1.d0/20.0d0
+      real(rt), PARAMETER :: one12th    = 1.d0/12.d0
+      real(rt), PARAMETER :: seven12ths = 7.d0/12.d0
        !
        ! Use Colella 2008 limiters.
        ! This is a new version of the algorithm
@@ -5651,32 +5656,31 @@ contains
 
       end subroutine ppm_zdir_colella
 
-      subroutine ppm_zdir (s,DIMS(s), &
-          sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
-          sedgez,DIMS(sedgez),lo,hi,bc,ppm_type)
+      subroutine ppm_zdir (s,s_lo,s_hi, &
+                           sm,sm_lo,sm_hi, &
+                           sp,sp_lo,sp_hi, &
+                           dsvl,dsvl_lo,dsvl_hi, &
+                           sedgez,sedgez_lo,sedgez_hi,lo,hi,bc,ppm_type)
 
       implicit none
       
-      integer lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
-      integer DIMDEC(s)
-      integer DIMDEC(smp)
-      integer DIMDEC(dsvl)
-      integer DIMDEC(sedgez)
-      REAL_T  s(DIMV(s))
-      REAL_T  sm(DIMV(smp))
-      REAL_T  sp(DIMV(smp))
-      REAL_T  dsvl(DIMV(dsvl))
-      REAL_T  sedgez(DIMV(sedgez))
+      integer, intent(in) :: lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
+      integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgez_lo,sedgez_hi
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
+      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2),dsvl_lo(3):dsvl_hi(3))
+      real(rt), intent(inout) :: sedgez(sedgez_lo(1):sedgez_hi(1),sedgez_lo(2):sedgez_hi(2),sedgez_lo(3):sedgez_hi(3))
 
       integer i, j, k
 
-      REAL_T dsl, dsr, dsc, D2, D2L, D2R, D2LIM, sgn
+      real(rt) dsl, dsr, dsc, D2, D2L, D2R, D2LIM, sgn
 
-      REAL_T, PARAMETER :: C          = 1.25d0
-      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
-      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
-      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
-      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
+      real(rt), PARAMETER :: C          = 1.25d0
+      real(rt), PARAMETER :: three4ths  = 3.d0/4.d0
+      real(rt), PARAMETER :: one20th    = 1.d0/20.0d0
+      real(rt), PARAMETER :: one12th    = 1.d0/12.d0
+      real(rt), PARAMETER :: seven12ths = 7.d0/12.d0
 
       if (ppm_type .eq. 1) then
 
@@ -5866,8 +5870,8 @@ contains
             end do
          end do
 
-         call ppm_zdir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-             sedgez,DIMS(sedgez),lo,hi,lo(3)-1,hi(3)+1)
+         call ppm_zdir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+             sedgez,sedgez_lo,sedgez_hi,lo,hi,lo(3)-1,hi(3)+1)
          !
          ! Different stencil needed for z-component of
          ! EXT_DIR and HOEXTRAP bc's.
@@ -5906,8 +5910,8 @@ contains
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call ppm_zdir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-                sedgez,DIMS(sedgez),lo,hi,lo(3)+1,lo(3)+2)
+            call ppm_zdir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+                sedgez,sedgez_lo,sedgez_hi,lo,hi,lo(3)+1,lo(3)+2)
          end if
 
          if (bc(3,2) .eq. EXT_DIR  .or. bc(3,2) .eq. HOEXTRAP) then
@@ -5945,42 +5949,42 @@ contains
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call ppm_zdir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-                sedgez,DIMS(sedgez),lo,hi,hi(3)-2,hi(3)-1)
+            call ppm_zdir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+                sedgez,sedgez_lo,sedgez_hi,lo,hi,hi(3)-2,hi(3)-1)
          end if
 
       end if
 
       end subroutine ppm_zdir
 
-      subroutine ppm_ydir_colella (s,DIMS(s), &
-          sm,sp,DIMS(smp), &
-          sedgey,DIMS(sedgey),lo,hi,jlo,jhi)
+
+      subroutine ppm_ydir_colella (s,s_lo,s_hi,&
+                                   sm,sm_lo,sm_hi, &
+                                   sp,sp_lo,sp_hi, &
+                                   sedgey,sedgey_lo,sedgey_hi,lo,hi,jlo,jhi)
 
       implicit none
-      
-      integer lo(SDIM), hi(SDIM), jlo, jhi
-      integer DIMDEC(s)
-      integer DIMDEC(smp)
-      integer DIMDEC(sedgey)
-      REAL_T  s(DIMV(s))
-      REAL_T  sm(DIMV(smp))
-      REAL_T  sp(DIMV(smp))
-      REAL_T  sedgey(DIMV(sedgey))
+
+      integer, intent(in) :: lo(SDIM), hi(SDIM), jlo, jhi
+      integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,sedgey_lo,sedgey_hi
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
+      real(rt), intent(in) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2),sedgey_lo(3):sedgey_hi(3))
 
       integer i, j, k
 
       logical extremum, bigp, bigm
 
-      REAL_T D2, D2C, D2L, D2R, D2LIM, alphap, alpham
-      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
-      REAL_T sgn, amax, delam, delap, dachkm, dachkp
+      real(rt) D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      real(rt) dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
+      real(rt) sgn, amax, delam, delap, dachkm, dachkp
 
-      REAL_T, PARAMETER :: C          = 1.25d0
-      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
-      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
-      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
-      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
+      real(rt), PARAMETER :: C          = 1.25d0
+      real(rt), PARAMETER :: three4ths  = 3.d0/4.d0
+      real(rt), PARAMETER :: one20th    = 1.d0/20.0d0
+      real(rt), PARAMETER :: one12th    = 1.d0/12.d0
+      real(rt), PARAMETER :: seven12ths = 7.d0/12.d0
        !
        ! Use Colella 2008 limiters.
        ! This is a new version of the algorithm
@@ -6069,32 +6073,31 @@ contains
 
       end subroutine ppm_ydir_colella
 
-      subroutine ppm_ydir (s,DIMS(s), &
-          sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
-          sedgey,DIMS(sedgey),lo,hi,bc,ppm_type)
+      subroutine ppm_ydir (s,s_lo,s_hi, &
+                           sm,sm_lo,sm_hi, &
+                           sp,sp_lo,sp_hi, &
+                           dsvl,dsvl_lo,dsvl_hi, &
+                           sedgey,sedgey_lo,sedgey_hi,lo,hi,bc,ppm_type)
 
       implicit none
-      
-      integer lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
-      integer DIMDEC(s)
-      integer DIMDEC(smp)
-      integer DIMDEC(dsvl)
-      integer DIMDEC(sedgey)
-      REAL_T  s(DIMV(s))
-      REAL_T  sm(DIMV(smp))
-      REAL_T  sp(DIMV(smp))
-      REAL_T  dsvl(DIMV(dsvl))
-      REAL_T  sedgey(DIMV(sedgey))
+
+      integer, intent(in) :: lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
+      integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgey_lo,sedgey_hi
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
+      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2),dsvl_lo(3):dsvl_hi(3))
+      real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2),sedgey_lo(3):sedgey_hi(3))
 
       integer i, j, k
 
-      REAL_T dsl, dsr, dsc, D2, D2L, D2R, D2LIM, sgn
+      real(rt) dsl, dsr, dsc, D2, D2L, D2R, D2LIM, sgn
 
-      REAL_T, PARAMETER :: C          = 1.25d0
-      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
-      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
-      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
-      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
+      real(rt), PARAMETER :: C          = 1.25d0
+      real(rt), PARAMETER :: three4ths  = 3.d0/4.d0
+      real(rt), PARAMETER :: one20th    = 1.d0/20.0d0
+      real(rt), PARAMETER :: one12th    = 1.d0/12.d0
+      real(rt), PARAMETER :: seven12ths = 7.d0/12.d0
 
       if (ppm_type .eq. 1) then
 
@@ -6284,8 +6287,8 @@ contains
             end do
          end do
 
-         call ppm_ydir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-             sedgey,DIMS(sedgey),lo,hi,lo(2)-1,hi(2)+1)
+         call ppm_ydir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+             sedgey,sedgey_lo,sedgey_hi,lo,hi,lo(2)-1,hi(2)+1)
          !
          ! Different stencil needed for y-component of
          ! EXT_DIR and HOEXTRAP bc's
@@ -6325,8 +6328,8 @@ contains
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call ppm_ydir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-                sedgey,DIMS(sedgey),lo,hi,lo(2)+1,lo(2)+2)
+            call ppm_ydir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+                sedgey,sedgey_lo,sedgey_hi,lo,hi,lo(2)+1,lo(2)+2)
          end if
 
          if (bc(2,2) .eq. EXT_DIR  .or. bc(2,2) .eq. HOEXTRAP) then
@@ -6364,41 +6367,42 @@ contains
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call ppm_ydir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-                sedgey,DIMS(sedgey),lo,hi,hi(2)-2,hi(2)-1)
+            call ppm_ydir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+                sedgey,sedgey_lo,sedgey_hi,lo,hi,hi(2)-2,hi(2)-1)
          end if
 
       end if
 
       end subroutine ppm_ydir
 
-      subroutine ppm_xdir_colella(s,DIMS(s), &
-          sm,sp,DIMS(smp),sedgex,DIMS(sedgex),lo,hi,ilo,ihi)
+
+      subroutine ppm_xdir_colella (s,s_lo,s_hi,&
+                                   sm,sm_lo,sm_hi, &
+                                   sp,sp_lo,sp_hi, &
+                                   sedgex,sedgex_lo,sedgex_hi,lo,hi,ilo,ihi)
 
       implicit none
-      
-      integer lo(SDIM), hi(SDIM), ilo, ihi
-      integer DIMDEC(s)
-      integer DIMDEC(smp)
-      integer DIMDEC(sedgex)
-      REAL_T  s(DIMV(s))
-      REAL_T  sm(DIMV(smp))
-      REAL_T  sp(DIMV(smp))
-      REAL_T  sedgex(DIMV(sedgex))
+
+      integer, intent(in) :: lo(SDIM), hi(SDIM), ilo, ihi
+      integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,sedgex_lo,sedgex_hi
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
+      real(rt), intent(in) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2),sedgex_lo(3):sedgex_hi(3))
 
       integer i, j, k
 
       logical extremum, bigp, bigm
 
-      REAL_T D2, D2C, D2L, D2R, D2LIM, alphap, alpham
-      REAL_T dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
-      REAL_T sgn, amax, delam, delap, dachkm, dachkp
+      real(rt) D2, D2C, D2L, D2R, D2LIM, alphap, alpham
+      real(rt) dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin
+      real(rt) sgn, amax, delam, delap, dachkm, dachkp
 
-      REAL_T, PARAMETER :: C          = 1.25d0
-      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
-      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
-      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
-      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
+      real(rt), PARAMETER :: C          = 1.25d0
+      real(rt), PARAMETER :: three4ths  = 3.d0/4.d0
+      real(rt), PARAMETER :: one20th    = 1.d0/20.0d0
+      real(rt), PARAMETER :: one12th    = 1.d0/12.d0
+      real(rt), PARAMETER :: seven12ths = 7.d0/12.d0
        !
        ! Use Colella 2008 limiters.
        ! This is a new version of the algorithm
@@ -6487,32 +6491,31 @@ contains
 
       end subroutine ppm_xdir_colella
 
-      subroutine ppm_xdir (s,DIMS(s), &
-          sm,sp,DIMS(smp),dsvl,DIMS(dsvl), &
-          sedgex,DIMS(sedgex),lo,hi,bc,ppm_type)
+      subroutine ppm_xdir (s,s_lo,s_hi, &
+                           sm,sm_lo,sm_hi, &
+                           sp,sp_lo,sp_hi, &
+                           dsvl,dsvl_lo,dsvl_hi, &
+                           sedgex,sedgex_lo,sedgex_hi,lo,hi,bc,ppm_type)
 
       implicit none
       
-      integer lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
-      integer DIMDEC(s)
-      integer DIMDEC(smp)
-      integer DIMDEC(dsvl)
-      integer DIMDEC(sedgex)
-      REAL_T  s(DIMV(s))
-      REAL_T  sm(DIMV(smp))
-      REAL_T  sp(DIMV(smp))
-      REAL_T  dsvl(DIMV(dsvl))
-      REAL_T  sedgex(DIMV(sedgex))
+      integer, intent(in) :: lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
+      integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgex_lo,sedgex_hi
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
+      real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
+      real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
+      real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2),dsvl_lo(3):dsvl_hi(3))
+      real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2),sedgex_lo(3):sedgex_hi(3))
 
       integer i, j, k
 
-      REAL_T dsl, dsr, dsc, D2, D2L, D2R, D2LIM, sgn
+      real(rt) dsl, dsr, dsc, D2, D2L, D2R, D2LIM, sgn
 
-      REAL_T, PARAMETER :: C          = 1.25d0
-      REAL_T, PARAMETER :: three4ths  = 3.d0/4.d0
-      REAL_T, PARAMETER :: one20th    = 1.d0/20.0d0
-      REAL_T, PARAMETER :: one12th    = 1.d0/12.d0
-      REAL_T, PARAMETER :: seven12ths = 7.d0/12.d0
+      real(rt), PARAMETER :: C          = 1.25d0
+      real(rt), PARAMETER :: three4ths  = 3.d0/4.d0
+      real(rt), PARAMETER :: one20th    = 1.d0/20.0d0
+      real(rt), PARAMETER :: one12th    = 1.d0/12.d0
+      real(rt), PARAMETER :: seven12ths = 7.d0/12.d0
 
       if (ppm_type .eq. 1) then
 
@@ -6699,8 +6702,8 @@ contains
             end do
          end do
 
-      call ppm_xdir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-          sedgex,DIMS(sedgex),lo,hi,lo(1)-1,hi(1)+1)
+      call ppm_xdir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+          sedgex,sedgex_lo,sedgex_hi,lo,hi,lo(1)-1,hi(1)+1)
          !
          ! Different stencil needed for x-component of
          ! EXT_DIR and HOEXTRAP bc's.
@@ -6740,8 +6743,8 @@ contains
             ! Apply Colella 2008 limiters to compute
             ! sm and sp in the 2nd and 3rd inner cells.
             !
-            call ppm_xdir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-                sedgex,DIMS(sedgex),lo,hi,lo(1)+1,lo(1)+2)
+            call ppm_xdir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+                sedgex,sedgex_lo,sedgex_hi,lo,hi,lo(1)+1,lo(1)+2)
          end if
 
          if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
@@ -6777,8 +6780,8 @@ contains
             ! Apply Colella 2008 limiters to compute sm and sp
             ! in the 2nd and 3rd inner cells.
             !
-            call ppm_xdir_colella(s,DIMS(s),sm,sp,DIMS(smp), &
-                sedgex,DIMS(sedgex),lo,hi,hi(1)-2,hi(1)-1)
+            call ppm_xdir_colella(s,s_lo,s_hi,sm,sm_lo,sm_hi,sp,sp_lo,sp_hi, &
+                sedgex,sedgex_lo,sedgex_hi,lo,hi,hi(1)-2,hi(1)-1)
          end if
 
       end if
@@ -6798,12 +6801,12 @@ contains
       integer  DIMDEC(smin)
       integer  lo(SDIM), hi(SDIM)
       integer  bc(SDIM,2)
-      REAL_T   s(DIMV(s))
-      REAL_T   sn(DIMV(sn))
+      real(rt)   s(DIMV(s))
+      real(rt)   sn(DIMV(sn))
       integer  km, kk, kp
-      REAL_T   smn, smx
-      REAL_T   smin(DIM12(smin),0:2)
-      REAL_T   smax(DIM12(smin),0:2)
+      real(rt)   smn, smx
+      real(rt)   smin(DIM12(smin),0:2)
+      real(rt)   smax(DIM12(smin),0:2)
 
       imin = lo(1)
       imax = hi(1)
@@ -6889,14 +6892,14 @@ contains
       integer  DIMDEC(smin)
       integer  lo(SDIM), hi(SDIM)
       integer  bc(SDIM,2)
-      REAL_T      s(DIMV(s))
-      REAL_T    rho(DIMV(s))
-      REAL_T     sn(DIMV(sn))
-      REAL_T   rhon(DIMV(sn))
+      real(rt)      s(DIMV(s))
+      real(rt)    rho(DIMV(s))
+      real(rt)     sn(DIMV(sn))
+      real(rt)   rhon(DIMV(sn))
       integer  km, kk, kp
-      REAL_T   smn, smx
-      REAL_T   smin(DIM12(smin),0:2)
-      REAL_T   smax(DIM12(smin),0:2)
+      real(rt)   smn, smx
+      real(rt)   smin(DIM12(smin),0:2)
+      real(rt)   smax(DIM12(smin),0:2)
 
       imin = lo(1)
       imax = hi(1)
@@ -7001,10 +7004,10 @@ contains
       integer DIMDEC(gp)
       integer DIMDEC(rho)
       integer lo(SDIM), hi(SDIM)
-      REAL_T tforces(DIMV(tf),SDIM)
-      REAL_T gp(DIMV(gp),SDIM)
-      REAL_T rho(DIMV(rho))
-      REAL_T, allocatable :: irho(:,:,:)
+      real(rt) tforces(DIMV(tf),SDIM)
+      real(rt) gp(DIMV(gp),SDIM)
+      real(rt) rho(DIMV(rho))
+      real(rt), allocatable :: irho(:,:,:)
 
       allocate(irho(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
@@ -7044,11 +7047,11 @@ contains
       integer DIMDEC(gp)
       integer DIMDEC(rho)
       integer lo(SDIM), hi(SDIM)
-      REAL_T tforces(DIMV(tf),SDIM)
-      REAL_T visc(DIMV(visc),SDIM)
-      REAL_T gp(DIMV(gp),SDIM)
-      REAL_T rho(DIMV(rho))
-      REAL_T, allocatable :: irho(:,:,:)
+      real(rt) tforces(DIMV(tf),SDIM)
+      real(rt) visc(DIMV(visc),SDIM)
+      real(rt) gp(DIMV(gp),SDIM)
+      real(rt) rho(DIMV(rho))
+      real(rt), allocatable :: irho(:,:,:)
 
       allocate(irho(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
 
@@ -7092,10 +7095,10 @@ contains
       integer DIMDEC(divu)
       integer DIMDEC(rho)
 
-      REAL_T S(DIMV(S),nvar)
-      REAL_T tforces(DIMV(tf),nvar)
-      REAL_T divu(DIMV(divu))
-      REAL_T rho(DIMV(rho))
+      real(rt) S(DIMV(S),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
+      real(rt) divu(DIMV(divu))
+      real(rt) rho(DIMV(rho))
 
       if ( iconserv .eq. 1 ) then
          do n = 1, nvar
@@ -7144,11 +7147,11 @@ contains
       integer DIMDEC(visc)
       integer DIMDEC(rho)
 
-      REAL_T S(DIMV(S),nvar)
-      REAL_T tforces(DIMV(tf),nvar)
-      REAL_T divu(DIMV(divu))
-      REAL_T visc(DIMV(visc),nvar)
-      REAL_T rho(DIMV(rho))
+      real(rt) S(DIMV(S),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
+      real(rt) divu(DIMV(divu))
+      real(rt) visc(DIMV(visc),nvar)
+      real(rt) rho(DIMV(rho))
 
 
       if ( iconserv .eq. 1 ) then
@@ -7190,10 +7193,10 @@ contains
       integer DIMDEC(sn)
       integer DIMDEC(tf)
       integer lo(SDIM), hi(SDIM)
-      REAL_T dt
-      REAL_T s(DIMV(s),nvar)
-      REAL_T sn(DIMV(sn),nvar)
-      REAL_T tforces(DIMV(tf),nvar)
+      real(rt) dt
+      real(rt) s(DIMV(s),nvar)
+      real(rt) sn(DIMV(sn),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
 
       do n = 1,nvar
          do k = lo(3), hi(3)
@@ -7224,11 +7227,11 @@ contains
       integer DIMDEC(aofs)
       integer DIMDEC(tf)
       integer lo(SDIM), hi(SDIM)
-      REAL_T dt
-      REAL_T s(DIMV(s),nvar)
-      REAL_T sn(DIMV(sn),nvar)
-      REAL_T aofs(DIMV(aofs),nvar)
-      REAL_T tforces(DIMV(tf),nvar)
+      real(rt) dt
+      real(rt) s(DIMV(s),nvar)
+      real(rt) sn(DIMV(sn),nvar)
+      real(rt) aofs(DIMV(aofs),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
 
       do n = 1,nvar
          do k = lo(3), hi(3)
@@ -7261,13 +7264,13 @@ contains
       integer DIMDEC(gp)
       integer DIMDEC(tf)
       integer lo(SDIM), hi(SDIM)
-      REAL_T u(DIMV(u),SDIM)
-      REAL_T un(DIMV(un),SDIM)
-      REAL_T aofs(DIMV(aofs),SDIM)
-      REAL_T rho(DIMV(rho))
-      REAL_T gp(DIMV(gp),SDIM)
-      REAL_T tforces(DIMV(tf),SDIM)
-      REAL_T dt
+      real(rt) u(DIMV(u),SDIM)
+      real(rt) un(DIMV(un),SDIM)
+      real(rt) aofs(DIMV(aofs),SDIM)
+      real(rt) rho(DIMV(rho))
+      real(rt) gp(DIMV(gp),SDIM)
+      real(rt) tforces(DIMV(tf),SDIM)
+      real(rt) dt
 
       do n = 1, SDIM
          do k = lo(3), hi(3)
