@@ -1713,9 +1713,9 @@ NavierStokes::reflux ()
     std::vector< std::pair<int,Box> > isects;
 
     // Tile? Perhaps just OMP:
-    // #ifdef _OPENMP
-    // #pragma omp parallel
-    // #endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();

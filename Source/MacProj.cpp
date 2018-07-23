@@ -532,6 +532,9 @@ MacProj::mac_sync_solve (int       level,
 
     std::vector< std::pair<int,Box> > isects;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
@@ -732,6 +735,9 @@ MacProj::mac_sync_solve (int       level,
 
     std::vector< std::pair<int,Box> > isects;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
