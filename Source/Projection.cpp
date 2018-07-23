@@ -2280,7 +2280,6 @@ Projection::set_outflow_bcs (int        which_call,
 
     if (which_call == INITIAL_SYNC || which_call == INITIAL_VEL)
     {
-      gravity = 0;
       if (!LevelData[c_lev]->isStateVariable("divu", Divu_Type, Divu))
         amrex::Error("Projection::set_outflow_bcs: No divu.");
     }
