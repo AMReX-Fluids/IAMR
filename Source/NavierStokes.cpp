@@ -1796,11 +1796,11 @@ NavierStokes::avgDown ()
 
     MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0);
 
-    for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
+    for (MFIter mfi(crse_P_fine,true); mfi.isValid(); ++mfi)
     {
-        const int i = mfi.index();
-
-        injectDown(crse_P_fine_BA[i],crse_P_fine[mfi],P_fine[mfi],fine_ratio);
+	const Box& bx = mfi.tilebox(); 
+	
+	injectDown(bx,crse_P_fine[mfi],P_fine[mfi],fine_ratio);
     }
     P_crse.copy(crse_P_fine, parent->Geom(level).periodicity());
 
