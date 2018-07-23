@@ -530,8 +530,6 @@ MacProj::mac_sync_solve (int       level,
 
     baf.coarsen(fine_ratio);
 
-    std::vector< std::pair<int,Box> > isects;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -539,7 +537,7 @@ MacProj::mac_sync_solve (int       level,
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
-        baf.intersections(Rhsmfi.validbox(),isects);
+	const std::vector< std::pair<int,Box> >& isects = baf.intersections(Rhsmfi.validbox());
 
         FArrayBox& rhsfab = Rhs[Rhsmfi];
 
@@ -733,8 +731,6 @@ MacProj::mac_sync_solve (int       level,
 
     baf.coarsen(fine_ratio);
 
-    std::vector< std::pair<int,Box> > isects;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -742,7 +738,7 @@ MacProj::mac_sync_solve (int       level,
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
-        baf.intersections(Rhsmfi.validbox(),isects);
+        const std::vector< std::pair<int,Box> >& isects = baf.intersections(Rhsmfi.validbox());
 
         FArrayBox& rhsfab = Rhs[Rhsmfi];
 

@@ -1710,8 +1710,6 @@ NavierStokes::reflux ()
 
     baf.coarsen(fine_ratio);
 
-    std::vector< std::pair<int,Box> > isects;
-
     // Tile? Perhaps just OMP:
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1724,7 +1722,7 @@ NavierStokes::reflux ()
 
         BL_ASSERT(grids[i] == Vsyncmfi.validbox());
 
-        baf.intersections(Vsyncmfi.validbox(),isects);
+	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.validbox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
