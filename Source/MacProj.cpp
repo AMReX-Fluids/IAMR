@@ -1298,11 +1298,18 @@ MacProj::set_outflow_bcs (int             level,
     // Create 1-wide cc box just inside  boundary to hold rho,u,divu.
     //
     BoxList ccBoxList, phiBoxList;
-
+    // numOutFlowFaces gives the number of outflow faces on the entire
+    //   problem domain
+    // nOutFlowTouched gives the number of outflow faces a level touches, so
+    //   nOutFlowTouched = numOutFlowFaces for level 0, but
+    //   nOutFlowTouched <= numOutFlowFaces for levels > 0, since
+    //   finer levels may not span the entire problem domain
+    int nOutFlowTouched = 0;
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
         if (grids_on_side_of_domain(grids,geom.Domain(),outFaces[iface])) 
 	{
+	    nOutFlowTouched++;
             const int outDir    = outFaces[iface].coordDir();
 
             Box ccBndBox;
@@ -1340,8 +1347,8 @@ MacProj::set_outflow_bcs (int             level,
         FArrayBox rhodat[2*BL_SPACEDIM];
         FArrayBox divudat[2*BL_SPACEDIM];
         FArrayBox phidat[2*BL_SPACEDIM];
-      
-        for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
+
+	for ( int iface = 0; iface < nOutFlowTouched; ++iface) 
 	{
             rhodat[iface].resize(ccBoxArray[iface], 1);
             divudat[iface].resize(ccBoxArray[iface], 1);
@@ -1364,7 +1371,7 @@ MacProj::set_outflow_bcs (int             level,
 	{
             BoxArray edgeArray(ccBoxArray);
             edgeArray.surroundingNodes(i);
-            for ( int iface = 0; iface < numOutFlowFaces; ++iface) 
+	    for ( int iface = 0; iface < nOutFlowTouched; ++iface) 
 	    {
                 uedat[i][iface].resize(edgeArray[iface], 1);
                 u_mac[i].copyTo(uedat[i][iface], 0, 0, 1);
@@ -1378,14 +1385,18 @@ MacProj::set_outflow_bcs (int             level,
         const int* lo_bc = phys_bc->lo();
         const int* hi_bc = phys_bc->hi();
         macBC.computeBC(uedat, divudat, rhodat, phidat,
-                        geom, outFaces, numOutFlowFaces, lo_bc, hi_bc, umac_periodic_test_Tol, gravity);
+			geom, outFaces, nOutFlowTouched, lo_bc, hi_bc,
+			umac_periodic_test_Tol, gravity);
         //
         // Must do this kind of copy instead of mac_phi->copy(phidat);
         // because we're copying onto the ghost cells of the FABs,
         // not the valid regions.
         //
-        for ( int iface = 0; iface < numOutFlowFaces; ++iface )
+	for ( int iface = 0; iface < nOutFlowTouched; ++iface )
 	{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
 	    {
                 Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
@@ -1454,6 +1465,11 @@ MacProj::test_umac_periodic (int       level,
 
             mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
 
+	    // Would need to test this OMP to make sure all is OK
+	    // need to think about pshifts and eDomain, can threads share?
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
             for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
             {
                 Box eBox = u_mac[dim].boxArray()[mfi.index()];
@@ -1464,6 +1480,8 @@ MacProj::test_umac_periodic (int       level,
                 {
                     eBox += pshifts[iiv];
 
+		    // If loop gets OMP, then need to declare isects here
+		    //    std::vector< std::pair<int,Box> > isects;
                     u_mac[dim].boxArray().intersections(eBox,isects);
 
                     for (int i = 0, N = isects.size(); i < N; i++)
