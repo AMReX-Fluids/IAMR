@@ -75,7 +75,6 @@ Projection::Initialize ()
 
     pp.query("v",                   verbose);
     pp.query("Pcode",               P_code);
-    pp.query("proj_2",              proj_2);
     pp.query("proj_tol",            proj_tol);
     pp.query("sync_tol",            sync_tol);
     pp.query("proj_abs_tol",        proj_abs_tol);
@@ -95,8 +94,9 @@ Projection::Initialize ()
     pp.query("use_harmonic_average", use_harmonic_average);
     pp.query("test_mlmg_solver",    test_mlmg_solver);
 
+    pp.query("proj_2",              proj_2);
     if (!proj_2) 
-	amrex::Error("With new gravity and outflow stuff, must use proj_2");
+	amrex::Error("Must use proj_2 = 1, due to new gravity and outflow stuff. proj_2 != 1 no longer supported.");
 
     std::string stencil;
 
@@ -2113,6 +2113,9 @@ Projection::putDown (const Vector<MultiFab*>& phi,
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
@@ -2401,6 +2404,10 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         DistributionMapping dm {phi_fine_strip_ba};
         MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
+	//Are there enough boxes here for using OMP to make sense?
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
             phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
         }
