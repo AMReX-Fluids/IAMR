@@ -88,14 +88,13 @@ E. Loops operating on bondary regions. Need tiling?
    ! Just doing ghost cells?  Tiling needed?
    ! 7/23 CEG OMPed loop
    MacProj.cpp:1387:            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
-   ! Just looking at boundary. Tiling needed?
-   ! Do later, in function test_umac_periodic(), which by default is only for DEBUG
-   MacProj.cpp:1455:            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
    !! Tile? already OMPed
    !! call to HOEXTRAPTOCC which fills outside of domain cells according to comments.
    NavierStokesBase.cpp:1154:        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
-   ! Narrow boundary box, i think. Could use MultiFab::Copy instead of MFIter?
+   ! 7/25 CEG OMPed loop
+   ! Narrow boundary box, i think. 
    Projection.cpp:2405:        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
+   ! 7/25 CEG OMPed loop
    ! Specific to outflow. Narrow boundary box
    Projection.cpp:2116:            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
    ! setPhysBoundaryValues, for 2nd pass?
@@ -106,6 +105,9 @@ E. Loops operating on bondary regions. Need tiling?
    Projection.cpp:1131:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
    Projection.cpp:1285:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
    Projection.cpp:1344:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+   ! Just looking at boundary. Tiling needed?
+   ! Do later, in function test_umac_periodic(), which by default is only for DEBUG
+   MacProj.cpp:1455:            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
 
 
 F. Not enough work to be worth tiling?
