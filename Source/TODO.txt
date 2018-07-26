@@ -6,9 +6,10 @@ A. NavierStokesBase
 
 B. GODUNOV
    - look at all the add/sum routines to see if Multifab/BaseFab routines could be used instead
+   - I did not update BDS. I don't think it will work with my tiling updates.
 
 c. Diffusion.cpp
-   - Tensor op called if visc coef=0? Dont think so
+   - Tensor op called if visc coef=0? Dont think so b/c is_diffusive == 0
 
 
 
@@ -41,10 +42,6 @@ A. Straight forward updates:
    Projection.cpp:1843:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
 
 
-   ! Coarsend fine box - this one probably not complicated b/c both are nodal
-   NavierStokes.cpp:1799:    for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
-
-
 B. Loops requiring thought
    !!SyncInterp functions - coarse-fine interaction. Got these wrong earlier
      // This is very similar to InterpFromCoarseLevel() in
@@ -65,15 +62,22 @@ C. Needs new problem setup to test any changes
    Projection.cpp:1881:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
    Projection.cpp:1917:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
 
-   ! Would need inflow problem to test, but probably not worth tiling any of them, not much workthere
+   ! Would need inflow problem to test next 3
+   ! This first one does a setVal on regular box, and then work on coarse/fine overlap (so smaller boxes), and then (potentially) thin boxes. Probably should tile.
    Projection.cpp:2848:  for (MFIter mfi(msk); mfi.isValid(); ++mfi) { 
-   Projection.cpp:2928:	for (MFIter mfi(msk); mfi.isValid(); ++mfi)
-   Projection.cpp:2982:	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) { //This one needs inflowCorner 
+   ! 7/18 This one needs OMP but no tiling b/c it already operates on a thin box 
+   Projection.cpp:2982:	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) { //This one needs inflowCorner
+   ! 7/18 This one is good to go. Already OMP'ed and good without tiling b/c it already operates on a thin box 
+   Projection.cpp:2928:	for (MFIter mfi(msk); mfi.isValid(); ++mfi) 
 
 
 Loops that might not need tiling right now or potentially at all
 
-D. Coarse-fine box intersections. Castro, Nyx do not tile similar loops. Add OMP?
+D. Coarse-fine box intersections.
+   ! 7/23 CEG Added OMP, but no tiling.
+   Castro, Nyx do not tile similar loops.
+   !! A fine box isn't guaranteed to fit inside exactly 1 crse box, so tiling could
+   !! create unneccessarily small boxes in the intersection set we have to loop over
    (Castro does OMP. see Castro.cpp:3425, radiation/MGFLD.cpp:740, Radiation.cpp)
    MacProj.cpp:535:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
    MacProj.cpp:735:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
@@ -82,13 +86,15 @@ D. Coarse-fine box intersections. Castro, Nyx do not tile similar loops. Add OMP
 
 E. Loops operating on bondary regions. Need tiling?
    ! Just doing ghost cells?  Tiling needed?
+   ! 7/23 CEG OMPed loop
    MacProj.cpp:1387:            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
-   ! Just looking at boundary. Tiling needed?
-   MacProj.cpp:1455:            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
-   !! Tile? call to HOEXTRAPTOCC which fills outside of domain cells.
+   !! Tile? already OMPed
+   !! call to HOEXTRAPTOCC which fills outside of domain cells according to comments.
    NavierStokesBase.cpp:1154:        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
-   ! Narrow boundary box, i think. Could use MultiFab::Copy instead of MFIter?
+   ! 7/25 CEG OMPed loop
+   ! Narrow boundary box, i think. 
    Projection.cpp:2405:        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
+   ! 7/25 CEG OMPed loop
    ! Specific to outflow. Narrow boundary box
    Projection.cpp:2116:            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
    ! setPhysBoundaryValues, for 2nd pass?
@@ -99,6 +105,9 @@ E. Loops operating on bondary regions. Need tiling?
    Projection.cpp:1131:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
    Projection.cpp:1285:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
    Projection.cpp:1344:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+   ! Just looking at boundary. Tiling needed?
+   ! Do later, in function test_umac_periodic(), which by default is only for DEBUG
+   MacProj.cpp:1455:            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
 
 
 F. Not enough work to be worth tiling?

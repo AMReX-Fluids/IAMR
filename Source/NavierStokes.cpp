@@ -1710,12 +1710,10 @@ NavierStokes::reflux ()
 
     baf.coarsen(fine_ratio);
 
-    std::vector< std::pair<int,Box> > isects;
-
     // Tile? Perhaps just OMP:
-    // #ifdef _OPENMP
-    // #pragma omp parallel
-    // #endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();
@@ -1724,7 +1722,7 @@ NavierStokes::reflux ()
 
         BL_ASSERT(grids[i] == Vsyncmfi.validbox());
 
-        baf.intersections(Vsyncmfi.validbox(),isects);
+	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.validbox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -1796,11 +1794,11 @@ NavierStokes::avgDown ()
 
     MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0);
 
-    for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
+    for (MFIter mfi(crse_P_fine,true); mfi.isValid(); ++mfi)
     {
-        const int i = mfi.index();
-
-        injectDown(crse_P_fine_BA[i],crse_P_fine[mfi],P_fine[mfi],fine_ratio);
+	const Box& bx = mfi.tilebox(); 
+	
+	injectDown(bx,crse_P_fine[mfi],P_fine[mfi],fine_ratio);
     }
     P_crse.copy(crse_P_fine, parent->Geom(level).periodicity());
 
