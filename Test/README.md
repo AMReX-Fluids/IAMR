@@ -37,14 +37,10 @@ the regression tester.  This is because the testing suite may optionally
 checkout specific branches or SHA1 commits of the needed repositories,
 and while it always restores the repository to it's original state, it's
 best to let the tester work on its own where it won't risk confusing
-you.
+you.  We assume REGTEST_SCRATCH is defined to point to this location.
 
-2. Clone the required repos into the scratch area.  Assuming the
-following environment variable is set 
+2. Clone the required repos into the scratch area.
 
-   *  REGTEST_SCRATCH: Scratch location set up in step 2 above
-
-the following example commands will clone the required repositories
     ```
     git clone https://github.com/AMReX-Codes/amrex.git ${REGTEST_SCRATCH}/amrex
     git clone https://github.com/AMReX-Codes/regression_testing.git ${REGTEST_SCRATCH}/regression_testing
@@ -60,7 +56,7 @@ testing area expected by reg test scripts:
 
 4.  Edit the config file, ${REGTEST_SCRATCH}/IAMR/Test/IAMR-tests.ini
 to set the AMReX and IAMR scratch clone locations and desired branch/SHA.
-Also set
+In that file, also set
 
      testTopDir =  ${REGTEST_SCRATCH}/TestData/IAMR
 
