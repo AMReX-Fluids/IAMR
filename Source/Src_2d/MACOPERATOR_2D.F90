@@ -41,7 +41,7 @@ contains
 !c ::
        subroutine maccoef (cx,DIMS(cx),cy,DIMS(cy),&
                            ax,DIMS(ax),ay,DIMS(ay),&
-                           rho,DIMS(rho),lo,hi,dx) &
+                           rho,DIMS(rho),lo,hi,vbxhi,dx) &
                            bind(C,name="maccoef")
        implicit none
        integer DIMDEC(cx)
@@ -49,7 +49,7 @@ contains
        integer DIMDEC(ax)
        integer DIMDEC(ay)
        integer DIMDEC(rho)
-       integer lo(SDIM), hi(SDIM)
+       integer lo(SDIM), hi(SDIM), vbxhi(SDIM)
        REAL_T  dx(SDIM)
        REAL_T  cx(DIMV(cx))
        REAL_T  cy(DIMV(cy))
@@ -57,7 +57,7 @@ contains
        REAL_T  ay(DIMV(ay))
        REAL_T  rho(DIMV(rho))
 
-       integer i, j
+       integer i, j, hi1, hi2
        REAL_T rhoavg
 
        do j = lo(2), hi(2)
@@ -70,11 +70,26 @@ contains
             end if
           end do
        end do
+
+       ! check to see if we're at a cc box boundary
+       ! if so, we need to include 1 more point at high end because
+       ! c is nodal in one dim
+       if (hi(1) .eq. vbxhi(1)) then
+          hi1 = hi(1)+1
+       else
+          hi1=hi(1)
+       endif
+       if (hi(2) .eq. vbxhi(2)) then
+          hi2 = hi(2)+1
+       else
+          hi2=hi(2)
+       endif
+       
 !c
 !c      ::::: finish coef in X direction (part 2)
 !c
        do j = lo(2), hi(2)
-          do i = lo(1), hi(1)+1
+          do i = lo(1), hi1
              rhoavg = half * (rho(i,j) + rho(i-1,j))
              cx(i,j) = dx(1) * ax(i,j) / rhoavg
           end do
@@ -82,7 +97,7 @@ contains
 !c
 !c      ::::: finish coef in Y direction (part 2)
 !c
-       do j = lo(2), hi(2)+1
+       do j = lo(2), hi2
           do i = lo(1), hi(1)
              rhoavg = half * (rho(i,j) + rho(i,j-1))
              cy(i,j) = dx(2) * ay(i,j) / rhoavg
@@ -93,7 +108,7 @@ contains
        
 !c :: ----------------------------------------------------------
 !c :: MACRHS
-!c ::             Compute the RHS for MA!C solve
+!c ::             Compute the RHS for MAC solve
 !c ::
 !c :: INPUTS / OUTPUTS:
 !c ::  ux,uy       <=  edge velocity arrays
@@ -165,14 +180,14 @@ contains
 !c ::
        subroutine macupdate(init,ux,DIMS(ux),uy,DIMS(uy),&
                                 phi,DIMS(phi),rho,DIMS(rho),&
-                                lo,hi,dx,mult) bind(C,name="macupdate")
+                                lo,hi,vbxhi,dx,mult) bind(C,name="macupdate")
 
        implicit none
        integer DIMDEC(ux)
        integer DIMDEC(uy)
        integer DIMDEC(phi)
        integer DIMDEC(rho)
-       integer lo(SDIM), hi(SDIM)
+       integer lo(SDIM), hi(SDIM), vbxhi(SDIM)
        REAL_T  ux(DIMV(ux))
        REAL_T  uy(DIMV(uy))
        REAL_T  phi(DIMV(phi))
@@ -180,7 +195,7 @@ contains
        REAL_T  dx(SDIM), mult
        integer init
 
-       integer i, j
+       integer i, j, hi1, hi2
        REAL_T  rhoavg, gp
 !c
 !c     set values to 0.0 if initializing
@@ -197,32 +212,46 @@ contains
              end do
           end do
        end if
+
+       ! check to see if we're at a cc box boundary
+       ! if so, we need to include 1 more point at high end because
+       ! u is nodal in one dim
+       if (hi(1) .eq. vbxhi(1)) then
+          hi1 = hi(1)+1
+       else
+          hi1=hi(1)
+       endif
+       if (hi(2) .eq. vbxhi(2)) then
+          hi2 = hi(2)+1
+       else
+          hi2=hi(2)
+       endif
 !c
-!c     compute the x ma!c gradient
+!c     compute the x mac gradient
 !c
        do j = lo(2),hi(2)
-          do i = lo(1),hi(1)+1
+          do i = lo(1),hi1
              rhoavg = half*(rho(i,j) + rho(i-1,j))
              gp = (phi(i,j)-phi(i-1,j))/dx(1)
              ux(i,j) = ux(i,j) + mult * gp / rhoavg
           end do
        end do
 !c
-!c      compute the y ma!c gradient
+!c      compute the y mac gradient
 !c
-       do j = lo(2),hi(2)+1
+       do j = lo(2),hi2
           do i = lo(1),hi(1)
              rhoavg = half*(rho(i,j) + rho(i,j-1))
              gp = (phi(i,j)-phi(i,j-1))/dx(2)
              uy(i,j) = uy(i,j) + mult * gp / rhoavg
           end do
        end do
-
+       
      end subroutine macupdate
 
 !c :: ----------------------------------------------------------
 !c :: MACSYNCRHS
-!c ::        Modify the RHS for MA!C SYN!C solve
+!c ::        Modify the RHS for MAC SYNC solve
 !c ::
 !c :: INPUTS / OUTPUTS:
 !c ::  rhs         <=  right hand side array

@@ -16,7 +16,7 @@ extern "C"
                        const amrex::Real* ax, ARLIM_P(axlo), ARLIM_P(axhi),
                        const amrex::Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
                        const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
-                       const int* lo, const int* hi,
+                       const int* lo, const int* hi, const int* vbxhi,
                        const amrex::Real* dx);
 
     void macrhs  (const amrex::Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
@@ -33,7 +33,7 @@ extern "C"
                          amrex::Real* uy, ARLIM_P(uylo), ARLIM_P(uyhi),
                          const amrex::Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
                          const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
-                         const int* lo, const int* hi,
+                         const int* lo, const int* hi, const int* vbxhi,
                          const amrex::Real* dx, const amrex::Real* scale);
 #endif
 
@@ -45,7 +45,7 @@ extern "C"
                        const amrex::Real* ay, ARLIM_P(aylo), ARLIM_P(ayhi),
                        const amrex::Real* az, ARLIM_P(azlo), ARLIM_P(azhi),
                        const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
-                       const int* lo, const int* hi,
+                       const int* lo, const int* hi, const int* vbxhi,
                        const amrex::Real* dx);
 
     void macrhs  (const amrex::Real* ux, ARLIM_P(uxlo), ARLIM_P(uxhi),
@@ -65,7 +65,7 @@ extern "C"
                          amrex::Real* uz, ARLIM_P(uzlo), ARLIM_P(uzhi),
                          const amrex::Real* phi, ARLIM_P(p_lo), ARLIM_P(p_hi),
                          const amrex::Real* rho, ARLIM_P(rlo), ARLIM_P(rhi),
-                         const int* lo, const int* hi,
+                         const int* lo, const int* hi, const int* vbxhi,
                          const amrex::Real* dx, const amrex::Real* scale); 
 
 #endif

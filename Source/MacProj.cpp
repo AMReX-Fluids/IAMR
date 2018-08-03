@@ -969,6 +969,7 @@ MacProj::mac_sync_compute (int                   level,
         FArrayBox& S    = S_fpi();
         FArrayBox& divu = (*divu_fp)[S_fpi];
         const Box bx = S_fpi.tilebox();
+	const Box vbx = S_fpi.validbox();
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
@@ -980,9 +981,10 @@ MacProj::mac_sync_compute (int                   level,
                grad_phi[1].resize(amrex::surroundingNodes(grids[i],1),1);,
                grad_phi[2].resize(amrex::surroundingNodes(grids[i],2),1););
 
+	// why call mac_vel_update here?  All it does is set grad_phi=0
         mac_vel_update(1,D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[S_fpi], rho_half[S_fpi],
-                       0, grids[i], level, i, dx, dt/2.0);
+                       0, bx, vbx, level, dx, dt/2.0);
         //
         // Step 2: compute Mac correction by calling GODUNOV box
         //
@@ -1147,6 +1149,7 @@ MacProj::mac_sync_compute (int                    level,
     {
         const int  i   = Syncmfi.index();
         const Box& grd = grids[i];
+	const Box& vbx = Syncmfi.validbox();
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
@@ -1154,11 +1157,12 @@ MacProj::mac_sync_compute (int                    level,
                grad_phi[1].resize(amrex::surroundingNodes(grd,1),1);,
                grad_phi[2].resize(amrex::surroundingNodes(grd,2),1););
 
+	// why call mac_vel_update here?  All it does is set grad_phi=0
         mac_vel_update(1,
                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[Syncmfi],
                        rho_half[Syncmfi], 0,
-                       grd, level, i,
+                       grd, vbx, level,
                        geom.CellSize(), dt/2.0);
         //
         // Step 2: compute Mac correction by advecting the edge states.
