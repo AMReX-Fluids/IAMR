@@ -24,6 +24,8 @@
 
 #include <AMReX_buildInfo.H>
 
+#include <ittnotify.h>
+
 using namespace amrex;
 
 namespace
@@ -84,17 +86,20 @@ NavierStokes::initData ()
     MultiFab&   P_new    = get_new_data(Press_Type);
     const Real  cur_time = state[State_Type].curTime();
 
-    for (MFIter snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
+    for (MFIter snewmfi(S_new,true); snewmfi.isValid(); ++snewmfi)
     {
-        const Box& vbx = snewmfi.validbox();
+        const Box& vbx = snewmfi.tilebox();
 
-        BL_ASSERT(grids[snewmfi.index()] == vbx);
+        //BL_ASSERT(grids[snewmfi.index()] == vbx);
 
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
-	Sfab.setVal(0.0);
-        Pfab.setVal(0.0);
+	Sfab.setVal(0.0,vbx);
+        Pfab.setVal(0.0,vbx);
 
         const int  i       = snewmfi.index();
         RealBox    gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
@@ -268,6 +273,9 @@ NavierStokes::advance (Real time,
                        int  iteration,
                        int  ncycle)
 {
+    if (level==0) {
+       __itt_resume();
+    }
     BL_PROFILE("NavierStokes::advance()");
 
     if (verbose) {
@@ -381,6 +389,9 @@ NavierStokes::advance (Real time,
     //
     advance_cleanup(iteration,ncycle);
 
+    if (level==0) {
+       __itt_pause();
+    }
     return dt_test;  // Return estimate of best new timestep.
 }
 
@@ -436,6 +447,12 @@ NavierStokes::predict_velocity (Real  dt,
     
     FArrayBox null_fab;
 
+    Real tempdt;
+
+// #ifdef _OPENMP
+// #pragma omp parallel reduction(min:tempdt)
+// #endif	      
+    {
     FillPatchIterator
       U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
@@ -494,7 +511,8 @@ NavierStokes::predict_velocity (Real  dt,
                                   Ufab, tforces);
     }
 
-    Real tempdt = std::min(change_max,cfl/cflmax);
+    tempdt = std::min(change_max,cfl/cflmax);
+    }
 
     ParallelDescriptor::ReduceRealMin(tempdt);
 
@@ -547,6 +565,9 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Compute the advective forcing.
     //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
     {
       FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
       FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
@@ -1462,6 +1483,9 @@ NavierStokes::mac_sync ()
             if (istate != Density && advectionType[istate] == Conservative)
             {
                 iconserved++;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
                 for (MFIter Smfi(S_new,true); Smfi.isValid(); ++Smfi)
                 {
 		    const Box& bx = Smfi.tilebox();
@@ -1480,6 +1504,9 @@ NavierStokes::mac_sync ()
 
         if (do_mom_diff == 1)
         {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
 	    for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
 	        FArrayBox&       vfab   = Vsync[Vsyncmfi];
@@ -1567,6 +1594,9 @@ NavierStokes::mac_sync ()
             {
                 iconserved++;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
                 for (MFIter SsyncMfi(Ssync,true); SsyncMfi.isValid(); ++SsyncMfi)
                 {
 		    const Box& bx = SsyncMfi.tilebox();
@@ -1580,6 +1610,9 @@ NavierStokes::mac_sync ()
         //
         for (int sigma  = 0; sigma < numscal; sigma++)
         {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
 	    for (MFIter S_newmfi(S_new,true); S_newmfi.isValid(); ++S_newmfi)
             {
                 S_new[S_newmfi].plus(Ssync[S_newmfi],S_newmfi.tilebox(),
@@ -1623,6 +1656,9 @@ NavierStokes::mac_sync ()
                        numscal,1,mult,sync_bc.dataPtr());
 
             MultiFab& S_new = fine_lev.get_new_data(State_Type);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
             for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi){
 	      const Box& bx = mfi.tilebox();	      
 	      S_new[mfi].plus(sync_incr[mfi],bx,0,Density,numscal);
@@ -1672,6 +1708,9 @@ NavierStokes::reflux ()
 
     if (do_mom_diff == 0)
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
         for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
             const int        i     = Vsyncmfi.index();
@@ -1691,6 +1730,9 @@ NavierStokes::reflux ()
         {
             const int sigma = istate -  BL_SPACEDIM;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
             for (MFIter Ssyncmfi(Ssync,true); Ssyncmfi.isValid(); ++Ssyncmfi)
             {
 		const Box& bx = Ssyncmfi.tilebox();
@@ -1794,6 +1836,9 @@ NavierStokes::avgDown ()
 
     MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
     for (MFIter mfi(crse_P_fine,true); mfi.isValid(); ++mfi)
     {
 	const Box& bx = mfi.tilebox(); 
@@ -1857,6 +1902,9 @@ NavierStokes::calc_divu (Real      time,
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
 	    const MultiFab& tmf = temp_fpi.get_mf();
 	    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
             for ( MFIter rho_mfi(rhotime,true); rho_mfi.isValid(); ++rho_mfi)
             {
                 FArrayBox& divufab = divu[rho_mfi];
@@ -1889,6 +1937,9 @@ NavierStokes::calc_dsdt (Real      time,
             MultiFab& Divu_new = get_new_data(Divu_Type);
             MultiFab& Divu_old = get_old_data(Divu_Type);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
             for (MFIter mfi(dsdt,true); mfi.isValid(); ++mfi)
             {
                 const Box& vbx     = mfi.tilebox();
