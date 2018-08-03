@@ -533,17 +533,15 @@ MacProj::mac_sync_solve (int       level,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-
-	const std::vector< std::pair<int,Box> >& isects = baf.intersections(Rhsmfi.validbox());
-
-        FArrayBox& rhsfab = Rhs[Rhsmfi];
+      BL_ASSERT(grids[Rhsmfi.index()].contains(Rhsmfi.tilebox()) );
+      
+	const std::vector< std::pair<int,Box> >& isects = baf.intersections(Rhsmfi.tilebox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
-            rhsfab.setVal(0.0,isects[ii].second,0);
+            Rhs[Rhsmfi].setVal(0.0,isects[ii].second,0);
         }
     }
 
@@ -568,14 +566,17 @@ MacProj::mac_sync_solve (int       level,
             Real sum = 0.0;
             Real vol = 0.0;
             FArrayBox vol_wgted_rhs;
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+
+            for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
             {
                 const FArrayBox& rhsfab = Rhs[Rhsmfi];
-                vol_wgted_rhs.resize(rhsfab.box());
+		const Box& bx = Rhsmfi.tilebox();
+		
+                vol_wgted_rhs.resize(bx);
                 vol_wgted_rhs.copy(rhsfab);
                 vol_wgted_rhs.mult(volume[Rhsmfi]);
                 sum += vol_wgted_rhs.sum(0,1);
-                vol += volume[Rhsmfi].sum(rhsfab.box(),0,1);
+                vol += volume[Rhsmfi].sum(bx,0,1);
             }
 
             Real vals[2] = {sum,vol};
@@ -774,14 +775,16 @@ MacProj::mac_sync_solve (int       level,
             Real sum = 0.0;
             Real vol = 0.0;
             FArrayBox vol_wgted_rhs;
-            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+            for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
             {
                 const FArrayBox& rhsfab = Rhs[Rhsmfi];
-                vol_wgted_rhs.resize(rhsfab.box());
+		const Box& bx = Rhsmfi.tilebox();
+		
+                vol_wgted_rhs.resize(bx);
                 vol_wgted_rhs.copy(rhsfab);
                 vol_wgted_rhs.mult(volume[Rhsmfi]);
                 sum += vol_wgted_rhs.sum(0,1);
-                vol += volume[Rhsmfi].sum(rhsfab.box(),0,1);
+                vol += volume[Rhsmfi].sum(bx,0,1);
             }
 
             Real vals[2] = {sum,vol};
