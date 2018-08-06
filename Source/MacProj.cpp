@@ -533,6 +533,7 @@ MacProj::mac_sync_solve (int       level,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    // fixme? Should do some real tests to see if tiling here is a win or not
     for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
       BL_ASSERT(grids[Rhsmfi.index()].contains(Rhsmfi.tilebox()) );
@@ -1209,7 +1210,6 @@ MacProj::mac_sync_compute (int                    level,
 //
 // Check the mac divergence.
 //
-
 void
 MacProj::check_div_cond (int      level,
                          MultiFab U_edge[]) const
@@ -1223,9 +1223,11 @@ MacProj::check_div_cond (int      level,
 
     FArrayBox dmac;
 
-    for (MFIter U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(); ++U_edge0mfi)
+    for (MFIter U_edge0mfi(U_edge[0],true); U_edge0mfi.isValid(); ++U_edge0mfi)
     {
-        dmac.resize(grids[U_edge0mfi.index()],1);
+      const Box& bx = U_edge0mfi.tilebox(IntVect::Zero);
+
+      dmac.resize(bx,1);
 
         const FArrayBox& uxedge = U_edge[0][U_edge0mfi];
         const FArrayBox& uyedge = U_edge[1][U_edge0mfi];
@@ -1272,8 +1274,8 @@ MacProj::check_div_cond (int      level,
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
         ParallelDescriptor::ReduceRealSum(sum,IOProc);
-        
-	amrex::Print() << "SUM of DIV(U_edge) = " << sum << '\n';
+
+	amrex::Print().SetPrecision(15) << "SUM of DIV(U_edge) = " << sum << '\n';
     }
 }
 
