@@ -1022,12 +1022,12 @@ MacProj::mac_sync_compute (int                   level,
         if (use_forces_in_trans)
         {
 #ifdef BOUSSINESQ
-            ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smfi());
+            ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi]);
 #else
 #ifdef GENGETFORCE
             ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Rho);
 #elif MOREGENGETFORCE
-            ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smfi(),Smfi(),Density);
+            ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi],Smf[Smfi],Density);
 #else
             ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,Rho);
 #endif		 
