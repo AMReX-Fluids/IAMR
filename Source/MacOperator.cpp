@@ -103,13 +103,21 @@ MacOperator::setCoefficients (const MultiFab* area,
            bycoef.setVal(0);,
            bzcoef.setVal(0););
 
-    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
+    for (MFIter rhomfi(rho,true); rhomfi.isValid(); ++rhomfi)
     {
         BL_ASSERT(ba[rhomfi.index()] == rhomfi.validbox());
 
-        const Box& grd       = ba[rhomfi.index()];
-        const int* lo        = grd.loVect();
-        const int* hi        = grd.hiVect();
+        const Box& tilebx    = rhomfi.tilebox();
+	// If maccoef were to operate on one dim at a time,
+	// then only tilebox would be needed here, by switching the MFIter
+	// to be on bcoef (which is nodal in one dimension), or perhaps by
+	// keeping rhomfi and using enclosedCells/surroudingNodes 
+	// But to keep updating all bcoefs at the same time, must pass validbox
+	// and test inside the fortran function 
+        const Box& vbx       = rhomfi.validbox();
+        const int* lo        = tilebx.loVect();
+        const int* hi        = tilebx.hiVect();
+	const int* vbxhi     = vbx.hiVect();	
         FArrayBox& bx        = bxcoef[rhomfi];
         FArrayBox& by        = bycoef[rhomfi];
         const FArrayBox& ax  = area[0][rhomfi];
@@ -130,7 +138,7 @@ MacOperator::setCoefficients (const MultiFab* area,
                      by_dat,ARLIM(bylo),ARLIM(byhi),
                      ax_dat,ARLIM(axlo),ARLIM(axhi),
                      ay_dat,ARLIM(aylo),ARLIM(ayhi),
-                     den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,dx);
+		den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,vbxhi,dx);
 #endif
 #if (BL_SPACEDIM == 3)
         FArrayBox& bz       = bzcoef[rhomfi];
@@ -145,7 +153,7 @@ MacOperator::setCoefficients (const MultiFab* area,
                      ax_dat,ARLIM(axlo),ARLIM(axhi),
                      ay_dat,ARLIM(aylo),ARLIM(ayhi),
                      az_dat,ARLIM(azlo),ARLIM(azhi),
-                     den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,dx);
+		den_dat,ARLIM(dlo),ARLIM(dhi),lo,hi,vbxhi,dx);
 #endif
     }
   
@@ -170,11 +178,11 @@ MacOperator::defRHS (const MultiFab* area,
     //
     BL_ASSERT(Rhs.boxArray() == gbox[0]);
 
-    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        const Box& grd       = Rhsmfi.validbox();
-        const int* lo        = grd.loVect();
-        const int* hi        = grd.hiVect();
+        const Box& bx        = Rhsmfi.tilebox();
+        const int* lo        = bx.loVect();
+        const int* hi        = bx.hiVect();
         const FArrayBox& ax  = area[0][Rhsmfi];
         const FArrayBox& ay  = area[1][Rhsmfi];
         const FArrayBox& vol = volume[Rhsmfi];
@@ -232,15 +240,20 @@ mac_vel_update (int              init,
                 const FArrayBox& phi,
                 const FArrayBox& rho,
                 int              rho_comp,  
-                const Box&       grd,
+                const Box&       bx,
+		const Box&       vbx,
                 int              level,
-                int              n,
                 const Real*      dx,
                 Real             scale)
 {
-    const int* lo        = grd.loVect();
-    const int* hi        = grd.hiVect();
-
+    const int* lo        = bx.loVect();
+    const int* hi        = bx.hiVect();
+    // Need to pass the high coords of validbox into macupdate
+    // to test if tilebox is at validbox boundary, in which case
+    // we'll need to include an extra point at high end because
+    // ux, uy are nodal in one dim (and validbox/phi are cell centered)
+    const int* vbx_hi    = vbx.hiVect();
+    
     DEF_LIMITS(ux,ux_dat,uxlo,uxhi);
     DEF_LIMITS(uy,uy_dat,uylo,uyhi);
     DEF_CLIMITS(phi,phi_dat,p_lo,p_hi);
@@ -255,7 +268,7 @@ mac_vel_update (int              init,
                    uy_dat,ARLIM(uylo),ARLIM(uyhi),
                    phi_dat,ARLIM(p_lo),ARLIM(p_hi),
                    rho_dat,ARLIM(rlo),ARLIM(rhi),
-                   lo,hi,dx,&scale);
+	           lo,hi,vbx_hi,dx,&scale);
 #endif
 #if (BL_SPACEDIM == 3)
     DEF_LIMITS(uz,uz_dat,uzlo,uzhi);
@@ -266,7 +279,7 @@ mac_vel_update (int              init,
                    uz_dat,ARLIM(uzlo),ARLIM(uzhi),
                    phi_dat,ARLIM(p_lo),ARLIM(p_hi),
                    rho_dat,ARLIM(rlo),ARLIM(rhi),
-                   lo,hi,dx,&scale);
+   	           lo,hi,vbx_hi,dx,&scale);
 #endif
 }
 
@@ -293,15 +306,23 @@ MacOperator::velUpdate (MultiFab*       Vel,
     int apply_lev = 0;
     applyBC(Phi,0,1,apply_lev);
 
-    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
+    for (MFIter Phimfi(Phi,true); Phimfi.isValid(); ++Phimfi)
     {
-        const Box& grd = Phimfi.validbox();
-
+        const Box& bx = Phimfi.tilebox();
+	const Box& vbx = Phimfi.validbox();
+	// If mac_vel_update were to operate on one dim at a time,
+	// could pass only one box here, by doing the MFIter on Vel[]
+	// (which is nodal in one dimension)
+	// and then only tilebox would be needed... Or perhaps could do
+	// something smart with surroundingNodes?
+	// But to keep updating 
+	// all component of Vel at the same time, must pass validbox
+	// and test inside the fortran function macupdate
         mac_vel_update(0, 
                        D_DECL(Vel[0][Phimfi],Vel[1][Phimfi],Vel[2][Phimfi]),
                        Phi[Phimfi],
                        Rho[Phimfi], rho_comp,  
-                       grd, 0, Phimfi.index(), dx, scale );
+                       bx, vbx, 0, dx, scale );
     }
 }
 
@@ -316,9 +337,9 @@ MacOperator::syncRhs (const MultiFab& Volume,
                       Real            rhs_scale,
                       const Real*     dx)
 {
-    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+  for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
-        const Box& grd       = Rhsmfi.validbox();
+        const Box& grd       = Rhsmfi.tilebox();
         const int* lo        = grd.loVect();
         const int* hi        = grd.hiVect();
         FArrayBox& rhs       = Rhs[Rhsmfi];

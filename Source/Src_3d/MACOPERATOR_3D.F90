@@ -43,7 +43,7 @@ contains
 
        subroutine maccoef (cx,DIMS(cx),cy,DIMS(cy),cz,DIMS(cz), &
                            ax,DIMS(ax),ay,DIMS(ay),az,DIMS(az), &
-                           rho,DIMS(rho),lo,hi,dx) &
+                           rho,DIMS(rho),lo,hi,vbxhi,dx) &
                            bind(C,name="maccoef")
        implicit none
        integer DIMDEC(cx)
@@ -53,7 +53,7 @@ contains
        integer DIMDEC(ay)
        integer DIMDEC(az)
        integer DIMDEC(rho)
-       integer lo(SDIM), hi(SDIM)
+       integer lo(SDIM), hi(SDIM), vbxhi(SDIM)
        REAL_T  dx(SDIM)
        REAL_T  cx(DIMV(cx))
        REAL_T  cy(DIMV(cy))
@@ -63,7 +63,7 @@ contains
        REAL_T  az(DIMV(az))
        REAL_T  rho(DIMV(rho))
 
-       integer i, j, k
+       integer i, j, k, hi1, hi2, hi3
        REAL_T  rhoavg
 
        do k = lo(3), hi(3)
@@ -80,13 +80,32 @@ contains
           end do
        end do
 
+       ! check to see if we're at a cc box boundary
+       ! if so, we need to include 1 more point at high end because
+       ! c is nodal in one dim
+       if (hi(1) .eq. vbxhi(1)) then
+          hi1 = hi(1)+1
+       else
+          hi1=hi(1)
+       endif
+       if (hi(2) .eq. vbxhi(2)) then
+          hi2 = hi(2)+1
+       else
+          hi2=hi(2)
+       endif
+       if (hi(3) .eq. vbxhi(3)) then
+          hi3 = hi(3)+1
+       else
+          hi3=hi(3)
+       endif
+
 !c
 !c      ::::: finish coef in X direction (part 2)
 !c
 
        do k = lo(3), hi(3)
           do j = lo(2), hi(2)
-             do i = lo(1), hi(1)+1
+             do i = lo(1), hi1
                 rhoavg = half * ( rho(i,j,k) + rho(i-1,j,k) )
                 cx(i,j,k) = dx(1) * ax(i,j,k) / rhoavg 
              end do
@@ -98,7 +117,7 @@ contains
 !c
 
        do k = lo(3), hi(3)
-          do j = lo(2), hi(2)+1
+          do j = lo(2), hi2
              do i = lo(1), hi(1)
                 rhoavg = half * ( rho(i,j,k) + rho(i,j-1,k) )
                 cy(i,j,k) = dx(2) * ay(i,j,k) / rhoavg 
@@ -110,7 +129,7 @@ contains
 !c      ::::: finish coef in Z direction (part 2)
 !c
 
-       do k = lo(3), hi(3)+1
+       do k = lo(3), hi3
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 rhoavg = half * ( rho(i,j,k) + rho(i,j,k-1) )
@@ -208,7 +227,7 @@ contains
           init, &
           ux,DIMS(ux),uy,DIMS(uy),uz,DIMS(uz), &
           phi,DIMS(phi),rho,DIMS(rho), &
-          lo,hi,dx,mult)bind(C,name="macupdate")
+          lo,hi,vbxhi,dx,mult)bind(C,name="macupdate")
 
        implicit none
        integer DIMDEC(ux)
@@ -216,7 +235,7 @@ contains
        integer DIMDEC(uz)
        integer DIMDEC(phi)
        integer DIMDEC(rho)
-       integer lo(SDIM), hi(SDIM)
+       integer lo(SDIM), hi(SDIM), vbxhi(SDIM)
        REAL_T  dx(SDIM), mult
        REAL_T  ux(DIMV(ux))
        REAL_T  uy(DIMV(uy))
@@ -225,7 +244,7 @@ contains
        REAL_T  rho(DIMV(rho))
        integer init
 
-       integer i, j, k
+       integer i, j, k, hi1, hi2, hi3
        REAL_T  rhoavg, gp, idx, idy, idz
 !c
 !c     set gradient to zero if initializing
@@ -258,12 +277,30 @@ contains
        idy = 1.0d0 / dx(2)
        idz = 1.0d0 / dx(3)
 
+       ! check to see if we're at a cc box boundary
+       ! if so, we need to include 1 more point at high end because
+       ! u is nodal in one dim
+       if (hi(1) .eq. vbxhi(1)) then
+          hi1 = hi(1)+1
+       else
+          hi1=hi(1)
+       endif
+       if (hi(2) .eq. vbxhi(2)) then
+          hi2 = hi(2)+1
+       else
+          hi2=hi(2)
+       endif
+       if (hi(3) .eq. vbxhi(3)) then
+          hi3 = hi(3)+1
+       else
+          hi3=hi(3)
+       endif
 !c
 !c      compute x MAC gradient
 !c
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
-             do i = lo(1),hi(1)+1
+             do i = lo(1),hi1
                 rhoavg = half*(rho(i,j,k) + rho(i-1,j,k))
                 gp = (phi(i,j,k)-phi(i-1,j,k))*idx
                 ux(i,j,k) = ux(i,j,k) + mult * gp / rhoavg
@@ -274,7 +311,7 @@ contains
 !c     compute y mac gradient
 !c
        do k = lo(3),hi(3)
-          do j = lo(2),hi(2)+1
+          do j = lo(2),hi2
              do i = lo(1),hi(1)
                 rhoavg = half*(rho(i,j,k) + rho(i,j-1,k))
                 gp = (phi(i,j,k)-phi(i,j-1,k))*idy
@@ -285,7 +322,7 @@ contains
 !c       
 !c     compute z mac gradient
 !c
-       do k = lo(3),hi(3)+1
+       do k = lo(3),hi3
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
                 rhoavg = half*(rho(i,j,k) + rho(i,j,k-1))
