@@ -964,16 +964,17 @@ MacProj::mac_sync_compute (int                   level,
     FArrayBox grad_phi[BL_SPACEDIM], Rho;
     FArrayBox flux[BL_SPACEDIM];
     MultiFab fluxes[BL_SPACEDIM];
+    MultiFab mac_fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
       const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
       fluxes[i].define(ba, dmap, NUM_STATE, 0);
+      mac_fluxes[i].define(ba, dmap, 1, 0);
     }
-
     
     FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
                                  prev_time,State_Type,0,NUM_STATE);
     MultiFab& Smf = S_fpi.get_mf();
-    for (MFIter Smfi(Smf); Smfi.isValid(); ++Smfi)
+    for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
     {
         const int i     = Smfi.index();
         FArrayBox& S    = Smf[Smfi];
@@ -985,15 +986,15 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Create storage for corrective velocities.
         //
-        Rho.resize(Smfi.growntilebox(1),1);
+        Rho.resize(amrex::grow(bx,1),1);
 
-        D_TERM(grad_phi[0].resize(Smfi.nodaltilebox(0),1);,
-               grad_phi[1].resize(Smfi.nodaltilebox(1),1);,
-               grad_phi[2].resize(Smfi.nodaltilebox(2),1););
+        D_TERM(grad_phi[0].resize(amrex::surroundingNodes(bx,0),1);,
+               grad_phi[1].resize(amrex::surroundingNodes(bx,1),1);,
+	       grad_phi[2].resize(amrex::surroundingNodes(bx,2),1););
 
         mac_vel_update(1,D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[Smfi], rho_half[Smfi],
-                       0, bx, vbx, level, dx, dt/2.0);
+                       0, bx, bx, level, dx, dt/2.0);
         //
         // Step 2: compute Mac correction by calling GODUNOV box
         //
@@ -1097,19 +1098,21 @@ MacProj::mac_sync_compute (int                   level,
         //
         if (level > 0 && update_fluxreg)
         {
-	    for (int d = 0; d < BL_SPACEDIM; d++){ 
-	      adv_flux_reg->FineAdd(fluxes[d],d,0,0,NUM_STATE,-dt);
-	    }
-	  
-            const Real mlt =  -1.0/( (double) parent->nCycle(level));
-            D_TERM(mac_reg[level]->FineAdd(grad_phi[0],area[0][i],0,i,0,0,1,mlt);,
-                   mac_reg[level]->FineAdd(grad_phi[1],area[1][i],1,i,0,0,1,mlt);,
-                   mac_reg[level]->FineAdd(grad_phi[2],area[2][i],2,i,0,0,1,mlt););
-                
+	  for (int d = 0; d < BL_SPACEDIM; d++){
+	    const Box& ebx = Smfi.nodaltilebox(d);
+	    mac_fluxes[d][Smfi].copy(grad_phi[d],ebx,0,ebx,0,1);
+	  }                 
         }
         //
         // Multiply the sync term by dt -- now done in the calling routine.
         //
+    }
+    if (level > 0 && update_fluxreg){
+      const Real mlt =  -1.0/( (double) parent->nCycle(level));
+      for (int d = 0; d < BL_SPACEDIM; d++){ 
+	adv_flux_reg->FineAdd(fluxes[d],d,0,0,NUM_STATE,-dt);
+	mac_reg[level]->FineAdd(mac_fluxes[d],area[d],d,0,0,1,mlt);
+      }
     }
 }
 
