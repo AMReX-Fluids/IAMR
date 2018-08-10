@@ -37,18 +37,20 @@ A. Straight forward updates:
    ! Ask Marc. (Has OMP and tiling.)
    ! Zeros area of coarse grid covered by fine.  Depending on box size,
    ! tilebox size, and layout of grids, could already be operating on small enough
-   ! regions without adding tiling. Way to test if tiling a likely win?
+   ! regions without adding tiling. Test if tiling a likely win?
    MacProj.cpp:535:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
 
    ! 8/3 Done. More checks needed?  No regtest in IAMR hits this area of code
-   ! is this fix really still needed?
+   ! is this fix_mac_sync_rhs really still needed?
    ! Get differences of O(-14) by step 2, but same at step 50 (inputs.2d.periodic_shear_layer)
+   ! no difference with tiling off
+   ! size of fix is O(-15)
    ! use mac.fix_mac_sync_rhs = 1
    MacProj.cpp:570:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
    ! version for LMC flame in a box, tested with inputs.2d-regt, no diffs at 10 steps (not sure size of the fix)
    MacProj.cpp:770:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)	
 
-   ! some work, but not complicated
+   ! Done 
    MacProj.cpp:961:    for (FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
    MacProj.cpp:1144:    for (MFIter Syncmfi(Sync); Syncmfi.isValid(); ++Syncmfi)
    MacProj.cpp:1217:    for (MFIter U_edge0mfi(U_edge[0]); U_edge0mfi.isValid(); ++U_edge0mfi)
@@ -94,8 +96,9 @@ Loops that might not need tiling right now or potentially at all
 D. Coarse-fine box intersections.
    ! 7/23 CEG Added OMP, but no tiling.
    Castro, Nyx do not tile similar loops.
-   !! A fine box isn't guaranteed to fit inside exactly 1 crse box, so tiling could
-   !! create unneccessarily small boxes in the intersection set we have to loop over
+   ! Depending on box size, tilebox size, and layout of grids, could already be
+   ! operating on small enough regions without adding tiling.
+   ! Test if tiling a likely win?
    (Castro does OMP. see Castro.cpp:3425, radiation/MGFLD.cpp:740, Radiation.cpp)
    MacProj.cpp:535:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
    MacProj.cpp:735:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)

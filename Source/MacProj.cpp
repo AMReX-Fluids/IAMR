@@ -1127,112 +1127,6 @@ MacProj::mac_sync_compute (int                   level,
 // in a physics-class-specific manner. (For example, as they are
 // in the calculation of div rho U h = div U sum_l (rho Y)_l h_l(T)).
 //
-
-//void
-// MacProj::mac_sync_compute (int                    level,
-//                            MultiFab&              Sync,
-//                            int                    comp,
-//                            int                    s_ind,
-//                            const MultiFab* const* sync_edges,
-// 			   int                    eComp,
-//                            MultiFab&              rho_half,
-//                            FluxRegister*          adv_flux_reg,
-//                            Vector<AdvectionForm>&  advectionType, 
-// 			   bool                   modify_reflux_normal_vel,
-//                            Real                   dt,
-// 			   bool                   update_fluxreg)
-// {
-//     if (modify_reflux_normal_vel)
-//         amrex::Abort("modify_reflux_normal_vel is no longer supported");
-
-//     FArrayBox flux[BL_SPACEDIM], grad_phi[BL_SPACEDIM];
-
-//     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
-//     const Geometry& geom         = parent->Geom(level);
-//     MultiFab*       mac_sync_phi = mac_phi_crse[level].get();
-//     const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
-//     const MultiFab& volume       = ns_level.Volume();
-//     const MultiFab* area         = ns_level.Area();
-
-//     Godunov godunov(512);
-//     MultiFab fluxes[BL_SPACEDIM];
-//     for (int i = 0; i < BL_SPACEDIM; i++) {
-//       const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-//       fluxes[i].define(ba, dmap, 1, 0);
-//     }
-
-//     //
-//     // Compute the mac sync correction.
-//     //
-//     for (MFIter Syncmfi(Sync,false); Syncmfi.isValid(); ++Syncmfi)
-//     {
-//         const int  i  = Syncmfi.index();
-// 	const Box& bx = Syncmfi.tilebox();
-// 	//FIXME
-// 	Print()<<" $$$ tilebox "<<bx<<" \n";
-
-//         //
-//         // Step 1: compute ucorr = grad(phi)/rhonph
-//         //
-//         D_TERM(grad_phi[0].resize(amrex::surroundingNodes(bx,0),1);,
-//                grad_phi[1].resize(amrex::surroundingNodes(bx,1),1);,
-//                grad_phi[2].resize(amrex::surroundingNodes(bx,2),1););
-
-//         mac_vel_update(1,
-//                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
-//                        (*mac_sync_phi)[Syncmfi],
-//                        rho_half[Syncmfi], 0,
-//                        bx, bx, level,
-//                        geom.CellSize(), dt/2.0);
-//         //
-//         // Step 2: compute Mac correction by advecting the edge states.
-//         //
-//         D_TERM(flux[0].resize(amrex::surroundingNodes(bx,0),1);,
-//                flux[1].resize(amrex::surroundingNodes(bx,1),1);,
-//                flux[2].resize(amrex::surroundingNodes(bx,2),1););
-
-//         D_TERM(flux[0].copy((*sync_edges[0])[Syncmfi],eComp,0,1);,
-//                flux[1].copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
-//                flux[2].copy((*sync_edges[2])[Syncmfi],eComp,0,1););
-
-//         int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
-
-//         godunov.ComputeSyncAofs(bx,
-//                                 area[0][Syncmfi],
-//                                 grad_phi[0],       flux[0],
-                                
-//                                 area[1][Syncmfi],
-//                                 grad_phi[1],       flux[1],
-// #if (BL_SPACEDIM == 3)                            
-//                                 area[2][Syncmfi],
-//                                 grad_phi[2],       flux[2],
-// #endif
-//                                 volume[Syncmfi], Sync[Syncmfi],
-//                                 s_ind, use_conserv_diff);
-
-//         D_TERM(grad_phi[0].clear();, grad_phi[1].clear();, grad_phi[2].clear(););
-//         //
-//         // NOTE: the signs here are opposite from VELGOD.
-//         // NOTE: fluxes expected to be in extensive form.
-//         //
-//         if (level > 0 && update_fluxreg)
-//         {
-// 	  for (int d = 0; d < BL_SPACEDIM; d++){
-// 	    const Box& ebx = Syncmfi.nodaltilebox(d);
-// 	    fluxes[d][Syncmfi].copy(flux[d],ebx,0,ebx,0,1);
-// 	  } 
-//         }
-//     }
-
-//     VisMF::Write(Sync,"S");
-    
-//     if (level > 0 && update_fluxreg){
-//       for (int d = 0; d < BL_SPACEDIM; d++){ 
-// 	adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
-//       }  
-//     }    
-// }
-
 void
 MacProj::mac_sync_compute (int                    level,
                            MultiFab&              Sync,
@@ -1250,9 +1144,9 @@ MacProj::mac_sync_compute (int                    level,
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
-    FArrayBox xflux, yflux, zflux, grad_phi[BL_SPACEDIM];
+    FArrayBox flux[BL_SPACEDIM], grad_phi[BL_SPACEDIM];
 
-    const BoxArray& grids        = LevelData[level]->boxArray();
+    const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom         = parent->Geom(level);
     MultiFab*       mac_sync_phi = mac_phi_crse[level].get();
     const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
@@ -1260,48 +1154,55 @@ MacProj::mac_sync_compute (int                    level,
     const MultiFab* area         = ns_level.Area();
 
     Godunov godunov(512);
+    MultiFab fluxes[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++) {
+      const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
+      fluxes[i].define(ba, dmap, 1, 0);
+    }
+
     //
     // Compute the mac sync correction.
     //
-    for (MFIter Syncmfi(Sync); Syncmfi.isValid(); ++Syncmfi)
+    for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
     {
-        const int  i   = Syncmfi.index();
-        const Box& grd = grids[i];
+        const int  i  = Syncmfi.index();
+	const Box& bx = Syncmfi.tilebox();
+
         //
         // Step 1: compute ucorr = grad(phi)/rhonph
         //
-        D_TERM(grad_phi[0].resize(amrex::surroundingNodes(grd,0),1);,
-               grad_phi[1].resize(amrex::surroundingNodes(grd,1),1);,
-               grad_phi[2].resize(amrex::surroundingNodes(grd,2),1););
+        D_TERM(grad_phi[0].resize(amrex::surroundingNodes(bx,0),1);,
+               grad_phi[1].resize(amrex::surroundingNodes(bx,1),1);,
+               grad_phi[2].resize(amrex::surroundingNodes(bx,2),1););
 
         mac_vel_update(1,
                        D_DECL(grad_phi[0],grad_phi[1],grad_phi[2]),
                        (*mac_sync_phi)[Syncmfi],
                        rho_half[Syncmfi], 0,
-                       grd, grd, level,
+                       bx, bx, level,
                        geom.CellSize(), dt/2.0);
         //
         // Step 2: compute Mac correction by advecting the edge states.
         //
-        D_TERM(xflux.resize(amrex::surroundingNodes(grd,0),1);,
-               yflux.resize(amrex::surroundingNodes(grd,1),1);,
-               zflux.resize(amrex::surroundingNodes(grd,2),1););
+        D_TERM(flux[0].resize(amrex::surroundingNodes(bx,0),1);,
+               flux[1].resize(amrex::surroundingNodes(bx,1),1);,
+               flux[2].resize(amrex::surroundingNodes(bx,2),1););
 
-        D_TERM(xflux.copy((*sync_edges[0])[Syncmfi],eComp,0,1);,
-               yflux.copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
-               zflux.copy((*sync_edges[2])[Syncmfi],eComp,0,1););
+        D_TERM(flux[0].copy((*sync_edges[0])[Syncmfi],eComp,0,1);,
+               flux[1].copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
+               flux[2].copy((*sync_edges[2])[Syncmfi],eComp,0,1););
 
         int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
 
-        godunov.ComputeSyncAofs(grd,
+        godunov.ComputeSyncAofs(bx,
                                 area[0][Syncmfi],
-                                grad_phi[0],       xflux,
+                                grad_phi[0],       flux[0],
                                 
                                 area[1][Syncmfi],
-                                grad_phi[1],       yflux,
+                                grad_phi[1],       flux[1],
 #if (BL_SPACEDIM == 3)                            
                                 area[2][Syncmfi],
-                                grad_phi[2],       zflux,
+                                grad_phi[2],       flux[2],
 #endif
                                 volume[Syncmfi], Sync[Syncmfi],
                                 s_ind, use_conserv_diff);
@@ -1313,11 +1214,18 @@ MacProj::mac_sync_compute (int                    level,
         //
         if (level > 0 && update_fluxreg)
         {
-            D_TERM(adv_flux_reg->FineAdd(xflux,0,i,0,comp,1,-dt);,
-                   adv_flux_reg->FineAdd(yflux,1,i,0,comp,1,-dt);,
-                   adv_flux_reg->FineAdd(zflux,2,i,0,comp,1,-dt););
+	  for (int d = 0; d < BL_SPACEDIM; d++){
+	    const Box& ebx = Syncmfi.nodaltilebox(d);
+	    fluxes[d][Syncmfi].copy(flux[d],ebx,0,ebx,0,1);
+	  } 
         }
     }
+
+    if (level > 0 && update_fluxreg){
+      for (int d = 0; d < BL_SPACEDIM; d++){ 
+	adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
+      }  
+    }    
 }
 
 //
