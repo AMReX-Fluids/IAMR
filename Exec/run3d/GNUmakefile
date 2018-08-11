@@ -10,7 +10,6 @@ TOP = ../..
 
 DIM        = 3
 COMP	   = gnu
-COMP	   = intel
 DEBUG	   = FALSE
 USE_MPI    = TRUE
 USE_OMP    = TRUE
@@ -33,8 +32,6 @@ USE_XBLAS = TRUE
 USE_XBLAS = FALSE
 
 EBASE     = amr
-
-THIRD_PARTY_PROFILING=VTUNE
 
 ifeq (${USE_FLCTS}, TRUE)
   DEFINES += -DBL_DO_FLCT
