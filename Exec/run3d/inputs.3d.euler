@@ -9,7 +9,7 @@ ns.do_vorticity_ref=1
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 2
+max_step 		= 5
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 2.0
