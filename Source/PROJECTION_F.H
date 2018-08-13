@@ -27,23 +27,23 @@ extern "C" {
                            const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi) );
     
 #if (BL_SPACEDIM < 3)
-    void radmpyscal (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                          const int* domlo, const int* domhi,
-                          const int* nghost,
-                          const amrex::Real* radius, const int* nrad,
-                          const amrex::Real* bogus_value);
+    void radmpyscal (const int* lo, const int* hi,
+		     amrex::Real*a, ARLIM_P(alo), ARLIM_P(ahi),
+		     const int* domlo, const int* domhi,
+		     const amrex::Real* radius, const int* rlo,
+		     const int* rhi);
 
-    void radmpyvel (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                         const int* domlo, const int* domhi,
-                         const int* nghost,
-                         const amrex::Real* radius, const int* nrad,
-                         const int* ndim);
+    void radmpyvel (const int* lo, const int* hi,
+		    amrex::Real*a, ARLIM_P(alo), ARLIM_P(ahi),
+		    const int* domlo, const int* domhi,
+		    const amrex::Real* radius, const int* rlo,
+		    const int* rhi, const int* ndim);
     
-    void fort_raddiv (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                      const int* domlo, const int* domhi,
-                      const int* nghost,
-                      const amrex::Real* radius, const int* nrad,
-                      const amrex::Real* bogus_value);
+    void fort_raddiv (const int* lo, const int* hi,
+		      amrex::Real*a, ARLIM_P(alo), ARLIM_P(ahi),
+		      const int* domlo, const int* domhi,
+		      const amrex::Real* radius, const int* rlo,
+		      const int* rhi, const amrex::Real* bogus_value);
 #endif
 
     void anelcoeffmpy (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),

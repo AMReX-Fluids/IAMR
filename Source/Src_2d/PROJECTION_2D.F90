@@ -114,49 +114,51 @@ contains
 
     end subroutine proj_update
 
-    subroutine radmpyscal(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value) &
+    subroutine radmpyscal(lo,hi,a,DIMS(a),domlo,domhi,r,rlo,rhi) &
          bind(C,name="radmpyscal")
 !c 
 !c     multiply A by Radius r
 !c
 !c 
 !c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-!c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+!c           OUTSIDE THE DOMAIN ARE SET TO ZERO
 !c
       implicit none
-      integer    ng,nr
-      integer    DIMDEC(grid)
+      integer    rlo,rhi
+      integer    DIMDEC(a)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
-                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
-      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      integer    lo(SDIM),hi(SDIM)
+      REAL_T     a(DIMV(a))
+      REAL_T     r(rlo:rhi)
       REAL_T     bogus_value
 
       integer i, j
 
-      do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, min(ARG_H1(grid)+ng,domhi(1))
+      do j = lo(2),hi(2)
+         do i = lo(1),min(domhi(1),hi(1))
            a(i,j) = r(i)*a(i,j)
          end do
       end do
 
-!c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
-!c           But now in the divu routine in the F90 solvers we need to include these
-!c           values in the stencil because they might contain inflow values, for example, 
-!c           and the only test is on the BC for the pressure solve, which doesn't
-!c           differentiate between inflow, reflecting and symmetry.
+      !c     NOTE: We used to set these to bogus_value to be sure that we
+      !c           didn't use them. But now in the divu routine in the F90
+      !c           solvers we need to include these values in the stencil
+      !c           because they might contain inflow values, for example, 
+      !c           and the only test is on the BC for the pressure solve,
+      !c           which doesn't differentiate between inflow, reflecting
+      !c           and symmetry.
 
-      if (ARG_L1(grid)-ng .lt. domlo(1)) then
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, domlo(1)-1
+      if (lo(1) .lt. domlo(1)) then
+         do j = lo(2),hi(2)
+         do i = lo(1), domlo(1)-1
            a(i,j) = 0.d0
          end do
          end do
       end if
 
-      if (ARG_H1(grid)+ng .gt. domhi(1)) then
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = domhi(1)+1, ARG_H1(grid)+ng
+      if (hi(1) .gt. domhi(1)) then
+         do j = lo(2),hi(2)
+         do i = domhi(1)+1, hi(1)
            a(i,j) = 0.d0
          end do
          end do
@@ -164,28 +166,29 @@ contains
 
     end subroutine radmpyscal
 
-    subroutine radmpyvel(a,DIMS(grid),domlo,domhi,ng,r,nr,ndim)&
+    subroutine radmpyvel(lo,hi,a,DIMS(a),domlo,domhi,r,rlo,rhi,ndim) &
          bind(C,name="radmpyvel")
 !c 
 !c     multiply A by Radius r
 !c
 !c 
 !c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
-!c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
+!c           OUTSIDE THE DOMAIN ARE SET TO ZERO
 !c
       implicit none
-      integer    ng,nr,ndim
-      integer    DIMDEC(grid)
+      integer    ndim
+      integer    rlo,rhi
+      integer    DIMDEC(a)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
-                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
-      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      integer    lo(SDIM),hi(SDIM)
+      REAL_T     a(DIMV(a))
+      REAL_T     r(rlo:rhi)
+
+      integer    i,j 
       REAL_T     dr
 
-      integer i, j
-
-      do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, min(ARG_H1(grid)+ng,domhi(1))
+      do j = lo(2),hi(2)
+         do i = lo(1), min(hi(1),domhi(1))
            a(i,j) = r(i)*a(i,j)
          end do
       end do
@@ -196,28 +199,28 @@ contains
 !c           and the only test is on the B!C for the pressure solve, which doesn't
 !c           differentiate between inflow, reflecting and symmetry.
 
-      if (ARG_L1(grid)-ng .lt. domlo(1)) then
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, domlo(1)-1
+      if (lo(1) .lt. domlo(1)) then
+         do j = lo(2),hi(2)
+         do i = lo(1), domlo(1)-1
            a(i,j) = 0.d0
          end do
          end do
       end if
 
-      dr = r(ARG_H1(grid)) - r(ARG_H1(grid)-1)
 !c     Here we only multiply a possibly inflow x-velocity from the hi-r side 
       if (ndim .eq. 0) then
-         if (ARG_H1(grid)+ng .gt. domhi(1)) then
-            do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-            do i = domhi(1)+1, ARG_H1(grid)+ng
+         if (hi(1) .gt. domhi(1)) then
+            dr = r(hi(1)) - r(hi(1)-1)
+            do j = lo(2),hi(2)
+            do i = domhi(1)+1, hi(1)
               a(i,j) = (r(domhi(1)) + (i-domhi(1))*dr - 0.5*dr)*a(i,j)
             end do
             end do
          end if
       else
-         if (ARG_H1(grid)+ng .gt. domhi(1)) then
-            do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-            do i = domhi(1)+1, ARG_H1(grid)+ng
+         if (hi(1) .gt. domhi(1)) then
+            do j = lo(2),hi(2)
+            do i = domhi(1)+1, hi(1)
               a(i,j) = 0.d0
             end do
             end do
@@ -226,7 +229,7 @@ contains
 
     end subroutine radmpyvel
 
-    subroutine fort_raddiv(a,DIMS(grid),domlo,domhi,ng,r,nr,bogus_value)&
+    subroutine fort_raddiv(lo,hi,a,DIMS(a),domlo,domhi,r,rlo,rhi,bogus_value)&
          bind(C,name="fort_raddiv")
 !c 
 !c     divide A by Radius r
@@ -236,33 +239,33 @@ contains
 !c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
 !c
       implicit none
-      integer    ng,nr
-      integer    DIMDEC(grid)
+      integer    rlo,rhi
+      integer    DIMDEC(a)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
-                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
-      REAL_T     r(ARG_L1(grid)-nr:ARG_H1(grid)+nr)
+      integer    lo(SDIM),hi(SDIM)
+      REAL_T     a(DIMV(a))
+      REAL_T     r(rlo:rhi)
       REAL_T     bogus_value
 
       integer i, j
 
-      do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+      do j = lo(2), hi(2)
+         do i = lo(1),min(domhi(1),hi(1))
            a(i,j) = a(i,j)/r(i)
          end do
       end do
 
-      if (ARG_L1(grid)-ng .lt. domlo(1)) then
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, domlo(1)-1
+      if (lo(1) .lt. domlo(1)) then
+         do j = lo(2),hi(2)
+         do i = lo(1), domlo(1)-1
            a(i,j) = bogus_value
          end do
          end do
       end if
 
-      if (ARG_H1(grid)+ng .gt. domhi(1)) then
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = domhi(1)+1, ARG_H1(grid)+ng
+      if (hi(1) .gt. domhi(1)) then
+         do j = lo(2),hi(2)
+         do i = domhi(1)+1, hi(1)
            a(i,j) = bogus_value
          end do
          end do

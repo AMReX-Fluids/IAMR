@@ -1449,7 +1449,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     std::unique_ptr<MultiFab> divu (ns->getDivCond(1,time));
 
-    for (MFIter mfi(rhs,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
     {
       const Box& bx = mfi.growntilebox();
       
@@ -1758,28 +1758,27 @@ Projection::radMultScal (int       level,
 #if (BL_SPACEDIM < 3)
     BL_ASSERT(radius_grow >= mf.nGrow());
 
-    int ngrow = mf.nGrow();
-
-    int nr = radius_grow;
-
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
-
-    Real bogus_value = BogusValue;
-
-    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    
+    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
     {
-        BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
+      BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-        const Box& bx = mfmfi.validbox();
+        const Box& bx = mfmfi.growntilebox();
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
-        Real* dat     = mf[mfmfi].dataPtr(0);
-        Real* rad     = &(*radius[level])[mfmfi.index()][0];
+        Real* dat        = mf[mfmfi].dataPtr(0);
+        const int* datlo = mf[mfmfi].loVect();
+        const int* dathi = mf[mfmfi].hiVect();
+        Real* rad        = &(*radius[level])[mfmfi.index()][0];
+	const Box& gbx = mfmfi.validbox();
+        int rlo   = (gbx.loVect())[0]-radius_grow;
+        int rhi   = (gbx.hiVect())[0]+radius_grow;
 
-        radmpyscal(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
-                        rad,&nr,&bogus_value);
+        radmpyscal(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
+		   domlo,domhi,rad,&rlo,&rhi);
     }
 #endif
 }
@@ -1801,18 +1800,23 @@ Projection::radMultVel (int       level,
 
     for (int n = 0; n < BL_SPACEDIM; n++) 
     {
-       for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+      for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
        {
            BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
    
-           const Box& bx = mfmfi.validbox();
-           const int* lo = bx.loVect();
-           const int* hi = bx.hiVect();
-           Real* dat     = mf[mfmfi].dataPtr(n);
-           Real* rad     = &(*radius[level])[mfmfi.index()][0];
+	   const Box& bx = mfmfi.growntilebox();
+	   const int* lo = bx.loVect();
+	   const int* hi = bx.hiVect();
+	   Real* dat        = mf[mfmfi].dataPtr(n);
+	   const int* datlo = mf[mfmfi].loVect();
+	   const int* dathi = mf[mfmfi].hiVect();
+	   Real* rad        = &(*radius[level])[mfmfi.index()][0];
+	   const Box& gbx = mfmfi.validbox();
+	   int rlo   = (gbx.loVect())[0]-radius_grow;
+	   int rhi   = (gbx.hiVect())[0]+radius_grow;
 
-           radmpyvel(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
-                          rad,&nr,&n);
+	   radmpyvel(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
+		     domlo,domhi,rad,&rlo,&rhi,&n);
        }
     }
 #endif
@@ -1840,18 +1844,24 @@ Projection::radDiv (int       level,
 
     Real bogus_value = BogusValue;
 
-    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-        const Box& bx  = mfmfi.validbox();
-        const int* lo  = bx.loVect();
-        const int* hi  = bx.hiVect();
-        Real*      dat = mf[mfmfi].dataPtr(comp);
-        Real*      rad = &(*radius[level])[mfmfi.index()][0];
+	const Box& bx = mfmfi.growntilebox();
+	const int* lo = bx.loVect();
+	const int* hi = bx.hiVect();
+	Real* dat        = mf[mfmfi].dataPtr(comp);
+	const int* datlo = mf[mfmfi].loVect();
+	const int* dathi = mf[mfmfi].hiVect();
+	Real* rad        = &(*radius[level])[mfmfi.index()][0];
+	const Box& gbx = mfmfi.validbox();
+	int rlo   = (gbx.loVect())[0]-radius_grow;
+	int rhi   = (gbx.hiVect())[0]+radius_grow;
 
-        fort_raddiv(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
-                    rad,&nr,&bogus_value);
+        fort_raddiv(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
+		    domlo,domhi,rad,&rlo,&rhi,&bogus_value);
+
     }
 #endif
 }
