@@ -3389,8 +3389,6 @@ NavierStokesBase::velocity_advection (Real dt)
     else
         visc_terms.setVal(0,1);
 
-    Vector<int> bndry[BL_SPACEDIM];
-
     MultiFab divu_fp(grids,dmap,1,1);
 
     create_mac_rhs(divu_fp,1,prev_time,dt);
@@ -3398,8 +3396,6 @@ NavierStokesBase::velocity_advection (Real dt)
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1), fluxes[BL_SPACEDIM];
 
     getGradP(Gp, prev_pres_time);
-
-    FArrayBox flux[BL_SPACEDIM], tforces, S;
 
     if (do_reflux)
     {
@@ -3413,10 +3409,11 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Compute the advective forcing.
     //
-    { 
+ { 
       FillPatchIterator
-	U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
-	Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+	    U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
+	    Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+      
       MultiFab& Umf=U_fpi.get_mf();
       MultiFab& Rmf=Rho_fpi.get_mf();
 
@@ -3430,39 +3427,46 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+      Vector<int> bndry[BL_SPACEDIM];
+      FArrayBox tforces;
+      FArrayBox S;
+      FArrayBox cfluxes[BL_SPACEDIM];
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
-	const int i = U_mfi.index();
-	const Box& bx=U_mfi.tilebox();
+
+	    const Box& bx=U_mfi.tilebox();
 		
 #ifdef BOUSSINESQ
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
-	if (getForceVerbose)
-	{
-	  amrex::Print() << "---" << '\n' 
-			 << "B - velocity advection:" << '\n' 
-			 << "Calling getForce..." << '\n';
-	}
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+	    if (getForceVerbose)
+	    {
+	      amrex::Print() << "---" << '\n' 
+			   << "B - velocity advection:" << '\n' 
+			   << "Calling getForce..." << '\n';
+	    }
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 #else
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
-
-        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+      godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+      
+      D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1);)
-        
-        
-        for (int d=0; d<BL_SPACEDIM; ++d){
+         
+      for (int d=0; d<BL_SPACEDIM; ++d){
           const Box& ebx = amrex::surroundingNodes(bx,d);
-          flux[d].resize(ebx,BL_SPACEDIM+1);
-        }
+          cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+      }
         
         //
         // Loop over the velocity components.
@@ -3487,27 +3491,28 @@ NavierStokesBase::velocity_advection (Real dt)
                 tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
             }
 
-	    // WARNING: BDS does not work with tiling.
-	    // PRE_MAC and FPU do work with tiling.
+	    // WARNING: FPU argument is not used because FPU is by default in AdvectState
 	    godunov->AdvectState(bx, dx, dt, 
-                                 area[0][i], u_mac_fab0, flux[0],
-                                 area[1][i], u_mac_fab1, flux[1],
+                                 area[0][U_mfi], u_mac_fab0, cfluxes[0],
+                                 area[1][U_mfi], u_mac_fab1, cfluxes[1],
 #if (BL_SPACEDIM == 3)                       
-                                 area[2][i], u_mac_fab2, flux[2],
+                                 area[2][U_mfi], u_mac_fab2, cfluxes[2],
 #endif
                                  Umf[U_mfi], S, tforces, divufab, comp,
                                  aofsfab,comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),FPU,volume[i]);
+                                 comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
 
             if (do_reflux){
 	            for (int d = 0; d < BL_SPACEDIM; d++){
-		            fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
-					                             U_mfi.nodaltilebox(d),comp,1);
+                const Box& ebx = U_mfi.nodaltilebox(d);
+		            fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
               }
             }
         }
       } // end of MFIter
-    } //end scope of FillPatchIter
+}
+
+ } //end scope of FillPatchIter
     
     if (do_reflux)
     {
