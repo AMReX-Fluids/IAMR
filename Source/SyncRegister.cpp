@@ -252,38 +252,40 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 {
     BL_PROFILE("SyncRegister::CompAdd()");
 
-    Vector<IntVect> pshifts(27);
-
-    std::vector< std::pair<int,Box> > isects;
-
-    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        const Box& sync_box = mfi.validbox();
+      Vector<IntVect> pshifts(27);
+      std::vector< std::pair<int,Box> > isects;
 
-        Pgrids.intersections(sync_box,isects);
+      for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+	{
+	  const Box& sync_box = mfi.validbox();
 
-        FArrayBox& syncfab = Sync_resid_fine[mfi];
+	  Pgrids.intersections(sync_box,isects);
+	  FArrayBox& syncfab = Sync_resid_fine[mfi];
 
-        for (int ii = 0, N = isects.size(); ii < N; ii++)
-        {
-            const int  i   = isects[ii].first;
-            const Box& pbx = Pgrids[i];
+	  for (int ii = 0, N = isects.size(); ii < N; ii++)
+	    {
+	      const int  i   = isects[ii].first;
+	      const Box& pbx = Pgrids[i];
 
-            syncfab.setVal(0,isects[ii].second,0,1);
+	      syncfab.setVal(0,isects[ii].second,0,1);
+	      fine_geom.periodicShift(sync_box, pbx, pshifts);
 
-            fine_geom.periodicShift(sync_box, pbx, pshifts);
-
-            for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                 it != End;
-                 ++it)
-            {
-                Box isect = pbx + *it;
-                isect    &= sync_box;
-                syncfab.setVal(0,isect,0,1);
-            }
-        }
+	      for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+		   it != End;
+		   ++it)
+		{
+		  Box isect = pbx + *it;
+		  isect    &= sync_box;
+		  syncfab.setVal(0,isect,0,1);
+		}
+	    }
+	}
     }
-
+    
     FineAdd(Sync_resid_fine,crse_geom,mult);
 }
 
