@@ -96,7 +96,7 @@ NavierStokes::initData ()
         FArrayBox& Pfab = P_new[snewmfi];
 
 	Sfab.setVal(0.0,vbx);
-        Pfab.setVal(0.0,vbx);
+        Pfab.setVal(0.0,snewmfi.nodaltilebox());
 
         const int  i       = snewmfi.index();
         RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
