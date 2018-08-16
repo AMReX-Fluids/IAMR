@@ -24,8 +24,6 @@
 
 #include <AMReX_buildInfo.H>
 
-#include <ittnotify.h>
-
 using namespace amrex;
 
 namespace
@@ -99,7 +97,7 @@ NavierStokes::initData ()
         FArrayBox& Pfab = P_new[snewmfi];
 
 	Sfab.setVal(0.0,vbx);
-        Pfab.setVal(0.0,vbx);
+        Pfab.setVal(0.0,snewmfi.nodaltilebox());
 
         const int  i       = snewmfi.index();
         RealBox    gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
@@ -273,9 +271,6 @@ NavierStokes::advance (Real time,
                        int  iteration,
                        int  ncycle)
 {
-    if (level==0) {
-       __itt_resume();
-    }
     BL_PROFILE("NavierStokes::advance()");
 
     if (verbose) {
@@ -389,9 +384,6 @@ NavierStokes::advance (Real time,
     //
     advance_cleanup(iteration,ncycle);
 
-    if (level==0) {
-       __itt_pause();
-    }
     return dt_test;  // Return estimate of best new timestep.
 }
 
