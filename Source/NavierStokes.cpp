@@ -699,78 +699,109 @@ NavierStokes::scalar_diffusion_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_diffusion_update()");
 
-    FluxBoxes fb_SCn  (this);
-    FluxBoxes fb_SCnp1(this);
-
-    MultiFab** fluxSCn   = fb_SCn.get();
-    MultiFab** fluxSCnp1 = fb_SCnp1.get();
-
     const MultiFab& Rh = get_rho_half_time();
 
-    for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+    int ng=1;
+    const Real prev_time = state[State_Type].prevTime();
+    const Real curr_time = state[State_Type].curTime();
+
+    FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,0,NUM_STATE);
+    FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,0,NUM_STATE);
+
+    std::unique_ptr<MultiFab> Snc = 0, Snp1c = 0;
+
+    if (level > 0) {
+      auto& crselev = getLevel(level-1);
+      Snc->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng);
+      FillPatch(crselev,*Snc  ,ng,prev_time,State_Type,0,NUM_STATE);
+
+      Snp1c->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng);
+      FillPatch(crselev,*Snp1c,ng,curr_time,State_Type,0,NUM_STATE);
+    }
+
+    const int nlev = 2;
+    Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
+    Sn[0]   = &(get_old_data(State_Type));
+    Snp1[0] = &(get_new_data(State_Type));
+    Sn[1]   = level > 0 ? Snc.get() : 0;
+    Snp1[1] = level > 0 ? Snp1c.get() : 0;
+
+    const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
+
+    FluxBoxes fb_diffn, fb_diffnp1;
+    MultiFab **cmp_diffn = 0, **cmp_diffnp1 = 0;
+
+    MultiFab *delta_rhs = 0;
+    const MultiFab *alpha = 0;
+    const int rhsComp = 0, alphaComp = 0, fluxComp  = 0;
+    const int num_comps = last_scalar - first_scalar + 1;
+
+    if (variable_scal_diff) {
+      
+        cmp_diffn = fb_diffn.define(this,num_comps);
+        getDiffusivity(cmp_diffn, prev_time, first_scalar, 0, num_comps);
+      
+        cmp_diffnp1 = fb_diffnp1.define(this,num_comps);
+        getDiffusivity(cmp_diffnp1, curr_time, first_scalar, 0, num_comps);
+    }
+
+    FluxBoxes fb_fluxn  (this,num_comps);
+    FluxBoxes fb_fluxnp1(this,num_comps);
+    MultiFab** fluxn   = fb_fluxn.get();
+    MultiFab** fluxnp1 = fb_fluxnp1.get();
+
+    Vector<int> diffuse_comp(num_comps);
+    for (int icomp=0; icomp<num_comps; ++icomp) {
+        diffuse_comp[icomp] = is_diffusive[first_scalar + icomp];
+    }
+
+    const int rho_flag = Diffusion::set_rho_flag(diffusionType[first_scalar]);
+
+    for (int icomp=1; icomp<num_comps; ++icomp) {
+        BL_ASSERT(rho_flag == Diffusion::set_rho_flag(diffusionType[first_scalar+icomp]));
+    }
+
+    const bool add_hoop_stress = false; // Only true if sigma == Xvel && Geometry::IsRZ())
+    const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
+    const bool add_old_time_divFlux = true;
+
+
+    const int betaComp = first_scalar;
+    const int visc_coef_comp = first_scalar;
+    const int Rho_comp = Density;
+    const int bc_comp  = first_scalar;
+            
+    diffusion->diffuse_scalar_msd(Sn, Sn, Snp1, Snp1, first_scalar, num_comps, Rho_comp,
+                                  prev_time,curr_time,be_cn_theta,Rh,rho_flag,
+                                  fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,alpha,alphaComp,
+                                  cmp_diffn,cmp_diffnp1,betaComp,
+                                  visc_coef,visc_coef_comp,volume,area,crse_ratio,theBCs,bc_comp,geom,
+                                  add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp);
+    
+    //
+    // Increment the viscous flux registers
+    //
+    if (do_reflux)
     {
-        if (is_diffusive[sigma])
-        {
-            int        rho_flag    = 0;
-            MultiFab*  delta_rhs   = 0;
-            MultiFab*  alpha       = 0;
-            MultiFab** cmp_diffn   = 0;
-            MultiFab** cmp_diffnp1 = 0;
-
-	    FluxBoxes fb_diffn, fb_diffnp1;
-
-            if (variable_scal_diff)
-            {
-                Real diffTime = state[State_Type].prevTime();
-		cmp_diffn = fb_diffn.define(this);
-                getDiffusivity(cmp_diffn, diffTime, sigma, 0, 1);
-
-                diffTime = state[State_Type].curTime();
-		cmp_diffnp1 = fb_diffnp1.define(this);
-                getDiffusivity(cmp_diffnp1, diffTime, sigma, 0, 1);
-            }
-
-            diffuse_scalar_setup(sigma, rho_flag);
-
-            const int betaComp = 0, rhsComp = 0, alphaComp = 0, fluxComp  = 0;
-
-            diffusion->diffuse_scalar(dt,sigma,be_cn_theta,Rh,
-                                      rho_flag,fluxSCn,fluxSCnp1,fluxComp,delta_rhs,
-                                      rhsComp,alpha,alphaComp,cmp_diffn,cmp_diffnp1,betaComp);
-
-            delete delta_rhs;
-            delete alpha;
-            //
-            // Increment the viscous flux registers
-            //
-            if (do_reflux)
-            {
-                for (int d = 0; d < BL_SPACEDIM; d++)
-                {
-                    MultiFab fluxes;
-
-		    fluxes.define(fluxSCn[d]->boxArray(), fluxSCn[d]->DistributionMap(), 1, 0);
-
-		    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif	      
-                    for (MFIter fmfi(*fluxSCn[d],true); fmfi.isValid(); ++fmfi)
-		    {
-                        const Box& ebox = fmfi.tilebox();
-
-                        fluxes[fmfi].copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,1);
-                        fluxes[fmfi].plus((*fluxSCnp1[d])[fmfi],ebox,ebox,0,0,1);
-                    }
-		    }
-		    
-		    if (level > 0)
-		      getViscFluxReg().FineAdd(fluxes,d,0,sigma,1,dt);
-
-                    if (level < parent->finestLevel())
-                        getLevel(level+1).getViscFluxReg().CrseInit(fluxes,d,0,sigma,1,-dt);
-                }
+        for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            for (MFIter fmfi(*fluxn[d],true); fmfi.isValid(); ++fmfi)
+            {
+                const Box& ebox = fmfi.tilebox();
+                (*fluxnp1[d])[fmfi].copy((*fluxn[d])[fmfi],ebox,0,ebox,0,num_comps);
             }
+        }
+
+        for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            if (level > 0)
+                getViscFluxReg().FineAdd(*fluxnp1[d],d,0,first_scalar,num_comps,dt);
+            
+            if (level < parent->finestLevel())
+                getLevel(level+1).getViscFluxReg().CrseInit(*fluxnp1[d],d,0,first_scalar,num_comps,-dt);
         }
     }
 }
