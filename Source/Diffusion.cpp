@@ -658,7 +658,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     {
 	bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
     }
-    std::unique_ptr<MultiFab> Solnc;
+    auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
     if (level > 0) {
         Solnc->define(S_new[1]->boxArray(), S_new[1]->DistributionMap(), 1, ng);
     }
@@ -702,7 +702,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             if (allnull)
                 b *= visc_coef[visc_coef_comp + icomp];
 
-            ViscBndry visc_bndry_0;
+            ViscBndry visc_bndry_0(ba,dmap,1,geom);
             std::unique_ptr<ABecLaplacian> visc_op
                 (getViscOp_msd(a,b,prev_time,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
                                rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
@@ -921,7 +921,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         }
         else
         {
-            ViscBndry  visc_bndry;
+            ViscBndry visc_bndry(ba,dmap,1,geom);
             std::unique_ptr<ABecLaplacian> visc_op
                 (getViscOp_msd(a,b,curr_time,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
                                betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bcs[bc_comp+icomp],

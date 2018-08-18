@@ -708,7 +708,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
     FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,0,NUM_STATE);
     FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,0,NUM_STATE);
 
-    std::unique_ptr<MultiFab> Snc = 0, Snp1c = 0;
+    auto Snc = std::unique_ptr<MultiFab>(new MultiFab());
+    auto Snp1c = std::unique_ptr<MultiFab>(new MultiFab());
 
     if (level > 0) {
       auto& crselev = getLevel(level-1);
