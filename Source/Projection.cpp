@@ -2025,11 +2025,16 @@ Projection::initialVorticityProject (int c_lev)
         rhnd[lev].reset(new MultiFab(P_new.boxArray(), 
                                      P_new.DistributionMap(),
                                      1, 0));
-
-        for (MFIter mfi(*rhnd[lev]); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(*rhnd[lev],true); mfi.isValid(); ++mfi)
         {
-            (*rhnd[lev])[mfi].setVal(0);
-            (*rhnd[lev])[mfi].copy(P_new[mfi], 0, 0);
+	  // rhnd has ng=0 as declared above
+	  const Box& bx = mfi.tilebox();
+	  
+	  (*rhnd[lev])[mfi].setVal(0,bx);
+	  (*rhnd[lev])[mfi].copy(P_new[mfi], bx, 0, bx, 0, 1);
         }
     }
 
@@ -2084,9 +2089,12 @@ Projection::initialVorticityProject (int c_lev)
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
             {
-                const Box& box = mfi.validbox();
+                const Box& box = mfi.tilebox();
                 if (add_vort_proj)
                 {
                   (*vel[lev])[mfi].plus((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
@@ -2149,13 +2157,17 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 amrex::surroundingNodes(amrex::bdryNode(domainC, outFaces[iface], ncStripWidth));
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
+	    // need to size like in create_umac_grown()?
+	    //ba.maxSize(32);
+
             DistributionMapping dm{ba};
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+	    
+	    // Not sure there's enough boxes here to warrant threads
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
@@ -2441,13 +2453,15 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
         BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
+	// need to size like in create_umac_grown()?
+	//phi_fine_strip_ba.maxSize(32);
         DistributionMapping dm {phi_fine_strip_ba};
         MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
 	//Are there enough boxes here for using OMP to make sense?
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
         for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
             phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
         }

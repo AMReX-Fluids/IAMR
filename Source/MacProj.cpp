@@ -733,10 +733,11 @@ MacProj::mac_sync_solve (int       level,
 
     baf.coarsen(fine_ratio);
 
+    // Use tiling here?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
