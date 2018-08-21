@@ -691,6 +691,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 fluxn[n]->setVal(0,fluxComp,num_comp);
                 fluxnp1[n]->setVal(0,fluxComp,num_comp);
             }
+            break;
         }
 
         bool use_hoop_stress = (sigma == Xvel && (Geometry::IsRZ()));
@@ -850,18 +851,6 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         }
 
         //
-        // Make a good guess for Soln
-        //
-        MultiFab::Copy(Soln,*S_new[0],sigma,0,1,0);
-        if (rho_flag == 2) {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-            for (MFIter Smfi(Soln,true); Smfi.isValid(); ++Smfi) {
-                Soln[Smfi].divide((*Rho_new[0])[Smfi],Smfi.tilebox(),Rho_comp,0,1);
-            }
-        }
-        //
         // Construct viscous operator with bndry data at time N+1.
         //
         Real a = 1.0;
@@ -907,6 +896,19 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             }
 
 
+            //
+            // Make a good guess for Soln
+            //
+            MultiFab::Copy(Soln,*S_new[0],sigma,0,1,0);
+            if (rho_flag == 2) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                for (MFIter Smfi(Soln,true); Smfi.isValid(); ++Smfi) {
+                    Soln[Smfi].divide((*Rho_new[0])[Smfi],Smfi.tilebox(),Rho_comp,0,1);
+                }
+            }
+
             Rhs.mult(rhsscale,0,1);
             const Real S_tol     = visc_tol;
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
@@ -926,6 +928,19 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 (getViscOp_msd(a,b,curr_time,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
                                betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bcs[bc_comp+icomp],
                                cratio,geom,volume,area,use_hoop_stress));
+
+            //
+            // Make a good guess for Soln
+            //
+            MultiFab::Copy(Soln,*S_new[0],sigma,0,1,0);
+            if (rho_flag == 2) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                for (MFIter Smfi(Soln,true); Smfi.isValid(); ++Smfi) {
+                    Soln[Smfi].divide((*Rho_new[0])[Smfi],Smfi.tilebox(),Rho_comp,0,1);
+                }
+            }
 
             Rhs.mult(rhsscale,0,1);
             visc_op->maxOrder(max_order);
