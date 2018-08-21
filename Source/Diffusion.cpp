@@ -292,7 +292,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     //
     MultiFab Rhs(grids,dmap,1,0),Soln(grids,dmap,1,1);
 
-    if (add_old_time_divFlux)
+    if (add_old_time_divFlux && be_cn_theta!=1)
     {
         Real a = 0.0;
         Real b = -(1.0-be_cn_theta)*dt;
@@ -318,6 +318,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     {
         Rhs.setVal(0);
     }
+
     //
     // If this is a predictor step, put "explicit" updates passed via S_new
     // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
@@ -371,7 +372,6 @@ Diffusion::diffuse_scalar (Real                   dt,
         }
     }
     }
-
     //
     // Add hoop stress for x-velocity in r-z coordinates
     // Note: we have to add hoop stress explicitly because the hoop
@@ -621,8 +621,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                                const MultiFab&           volume,
                                const MultiFab*           area,
                                const IntVect&            cratio,
-                               const Vector<BCRec>&      bcs,
-                               int                       bc_comp,
+                               const BCRec&              bc,
                                const Geometry&           geom,
                                bool                      add_hoop_stress,
                                const SolveMode&          solve_mode,
@@ -663,23 +662,34 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         Solnc->define(S_new[1]->boxArray(), S_new[1]->DistributionMap(), 1, ng);
     }
 
+    LPInfo infon;
+    infon.setAgglomeration(agglomeration);
+    infon.setConsolidation(consolidation);
+    infon.setMetricTerm(false);
+    infon.setMaxCoarseningLevel(0);
+    MLABecLaplacian opn({geom}, {ba}, {dmap}, infon);
+    opn.setMaxOrder(max_order);
+    MLMG mgn(opn);
+
+    LPInfo infonp1;
+    infon.setMetricTerm(false);
+    MLABecLaplacian opnp1({geom}, {ba}, {dmap}, infonp1);
+    opnp1.setMaxOrder(max_order);
+
+    MLMG mgnp1(opnp1);
+    if (use_hypre) {
+        mgnp1.setBottomSolver(MLMG::BottomSolver::hypre);
+        mgnp1.setBottomVerbose(hypre_verbose);
+    }
+    mgnp1.setMaxFmgIter(max_fmg_iter);
+    mgnp1.setVerbose(verbose);
+
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    setDomainBC_msd(mlmg_lobc, mlmg_hibc, bc); // Same for all comps, by assumption
 
-    LPInfo info;
-    info.setAgglomeration(agglomeration);
-    info.setConsolidation(consolidation);
-    info.setMetricTerm(false);
-    MLABecLaplacian mlabec({geom}, {ba}, {dmap}, info);
-    mlabec.setMaxOrder(max_order);
-
-    MLMG mlmg(mlabec);
-    if (use_hypre) {
-        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-        mlmg.setBottomVerbose(hypre_verbose);
-    }
-    mlmg.setMaxFmgIter(max_fmg_iter);
-    mlmg.setVerbose(verbose);
+    opn.setDomainBC(mlmg_lobc, mlmg_hibc);
+    opnp1.setDomainBC(mlmg_lobc, mlmg_hibc);
 
     for (int icomp=0; icomp<num_comp; ++icomp) {
 
@@ -694,36 +704,77 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             break;
         }
 
-        bool use_hoop_stress = (sigma == Xvel && (Geometry::IsRZ()));
-
-        if (add_old_time_divFlux)
+        if (add_old_time_divFlux && be_cn_theta!=1)
         {
             Real a = 0.0;
             Real b = -(1.0-be_cn_theta)*dt;
             if (allnull)
                 b *= visc_coef[visc_coef_comp + icomp];
 
-            ViscBndry visc_bndry_0(ba,dmap,1,geom);
-            std::unique_ptr<ABecLaplacian> visc_op
-                (getViscOp_msd(a,b,prev_time,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
-                               rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
-                               alpha,bcoeffs,bcs[bc_comp+icomp],cratio,geom,volume,area,use_hoop_stress));
-            visc_op->maxOrder(max_order);
-            //
-            // Copy to single-component multifab, then apply op to rho-scaled state
-            //
-            MultiFab::Copy(Soln,*S_old[0],sigma,0,1,0);
-            if (rho_flag == 2)
-                MultiFab::Divide(Soln, *Rho_old[0], Rho_comp, 0, 1, 0);
-            visc_op->apply(Rhs,Soln);
-            visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp+icomp);
-            for (int i = 0; i < BL_SPACEDIM; ++i)
-                (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+            if (use_mlmg_solver)
+            {
+                {
+                    if (level > 0) {
+                        MultiFab::Copy(*Solnc,*S_old[1],sigma,0,1,ng);
+                        if (rho_flag == 2) {
+                            MultiFab::Divide(*Solnc,*Rho_old[1],Rho_comp,0,1,ng);
+                        }
+                        opn.setCoarseFineBC(Solnc.get(), crse_ratio[0]);
+                    }
+                    MultiFab::Copy(Soln,*S_old[0],sigma,0,1,ng);
+                    if (rho_flag == 2) {
+                        MultiFab::Divide(Soln,*Rho_old[0],Rho_comp,0,1,ng);
+                    }
+                    opn.setLevelBC(0, &Soln);
+                }
+
+                {
+                    Real* rhsscale = 0;
+                    std::pair<Real,Real> scalars;
+                    computeAlpha_msd(alpha, scalars, a, b, prev_time, rho_half, rho_flag,
+                                     rhsscale, alpha_in, alpha_in_comp+icomp, geom, volume, add_hoop_stress);
+                    opn.setScalars(scalars.first, scalars.second);
+                    opn.setACoeffs(0, alpha);
+                }
+        
+                {
+                    computeBeta_msd(bcoeffs, betan, betaComp+icomp, geom, area);
+                    opn.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+                }
+
+                mgn.apply({&Rhs},{&Soln});
+
+                AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp+icomp, 1);,
+                             MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp+icomp, 1);,
+                             MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp+icomp, 1););
+                std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
+                mgn.getFluxes({fp});
+            }
+            else
+            {
+                ViscBndry visc_bndry_0(ba,dmap,1,geom);
+                std::unique_ptr<ABecLaplacian> visc_op
+                    (getViscOp_msd(a,b,prev_time,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
+                                   rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
+                                   alpha,bcoeffs,bc,cratio,geom,volume,area,add_hoop_stress));
+                visc_op->maxOrder(max_order);
+                //
+                // Copy to single-component multifab, then apply op to rho-scaled state
+                //
+                MultiFab::Copy(Soln,*S_old[0],sigma,0,1,0);
+                if (rho_flag == 2)
+                    MultiFab::Divide(Soln, *Rho_old[0], Rho_comp, 0, 1, 0);
+                visc_op->apply(Rhs,Soln);
+                visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp+icomp);
+                for (int i = 0; i < BL_SPACEDIM; ++i)
+                    (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+            }
         }
         else
         {
             Rhs.setVal(0);
         }
+
         //
         // If this is a predictor step, put "explicit" updates passed via S_new
         // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
@@ -863,36 +914,32 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
         if (use_mlmg_solver)
         {
-            setDomainBC_msd(mlmg_lobc, mlmg_hibc, bcs[bc_comp+icomp]);
-        
-            mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
-
             {
                 if (level > 0) {
                     MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
                     if (rho_flag == 2) {
                         MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
                     }
-                    mlabec.setCoarseFineBC(Solnc.get(), crse_ratio[0]);
+                    opnp1.setCoarseFineBC(Solnc.get(), crse_ratio[0]);
                 }
                 MultiFab::Copy(Soln,*S_new[0],sigma,0,1,ng);
                 if (rho_flag == 2) {
                     MultiFab::Divide(Soln,*Rho_new[0],Rho_comp,0,1,ng);
                 }
-                mlabec.setLevelBC(0, &Soln);
+                opnp1.setLevelBC(0, &Soln);
             }
 
             {
                 std::pair<Real,Real> scalars;
                 computeAlpha_msd(alpha, scalars, a, b, curr_time, rho_half, rho_flag,
-                                 &rhsscale, alpha_in, alpha_in_comp+icomp, geom, volume, use_hoop_stress);
-                mlabec.setScalars(scalars.first, scalars.second);
-                mlabec.setACoeffs(0, alpha);
+                                 &rhsscale, alpha_in, alpha_in_comp+icomp, geom, volume, add_hoop_stress);
+                opnp1.setScalars(scalars.first, scalars.second);
+                opnp1.setACoeffs(0, alpha);
             }
         
             {
                 computeBeta_msd(bcoeffs, betanp1, betaComp+icomp, geom, area);
-                mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+                opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
             }
 
 
@@ -912,22 +959,21 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             Rhs.mult(rhsscale,0,1);
             const Real S_tol     = visc_tol;
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
-
-            mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+            mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
             AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
                          MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
                          MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
             std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
-            mlmg.getFluxes({fp});
+            mgnp1.getFluxes({fp});
         }
         else
         {
             ViscBndry visc_bndry(ba,dmap,1,geom);
             std::unique_ptr<ABecLaplacian> visc_op
                 (getViscOp_msd(a,b,curr_time,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
-                               betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bcs[bc_comp+icomp],
-                               cratio,geom,volume,area,use_hoop_stress));
+                               betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bc,
+                               cratio,geom,volume,area,add_hoop_stress));
 
             //
             // Make a good guess for Soln
@@ -3273,6 +3319,7 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                         int src_comp)
 {
     const BCRec& bc = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp);
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         if (Geometry::isPeriodic(idim))
