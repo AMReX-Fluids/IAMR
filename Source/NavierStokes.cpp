@@ -776,7 +776,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                   prev_time,curr_time,be_cn_theta,Rh,rho_flag,
                                   fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,alpha,alphaComp,
                                   cmp_diffn,cmp_diffnp1,betaComp,
-                                  visc_coef,visc_coef_comp,volume,area,crse_ratio,theBCs,bc_comp,geom,
+                                  visc_coef,visc_coef_comp,volume,area,crse_ratio,theBCs[bc_comp],geom,
                                   add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp);
     
     //
