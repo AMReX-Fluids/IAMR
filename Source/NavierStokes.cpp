@@ -720,14 +720,15 @@ NavierStokes::scalar_diffusion_update (Real dt,
       FillPatch(crselev,*Snp1c,ng,curr_time,State_Type,0,NUM_STATE);
     }
 
-    const int nlev = 2;
+    const int nlev = level ==0 ? 1 : 2;
     Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
     Sn[0]   = &(get_old_data(State_Type));
     Snp1[0] = &(get_new_data(State_Type));
-    Sn[1]   = level > 0 ? Snc.get() : 0;
-    Snp1[1] = level > 0 ? Snp1c.get() : 0;
 
-    const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
+    if (nlev>0) {
+      Sn[1]   = level > 0 ? Snc.get() : 0;
+      Snp1[1] = level > 0 ? Snp1c.get() : 0;
+    }
 
     FluxBoxes fb_diffn, fb_diffnp1;
     MultiFab **cmp_diffn = 0, **cmp_diffnp1 = 0;
@@ -756,8 +757,18 @@ NavierStokes::scalar_diffusion_update (Real dt,
         diffuse_comp[icomp] = is_diffusive[first_scalar + icomp];
     }
 
-    const int rho_flag = Diffusion::set_rho_flag(diffusionType[first_scalar]);
+    /*
+      The array form of the diffuse_scalar call below requires that the settings
+      below be the same for all solves in the group.  If this is not the case, one
+      should probably modify this to diffuse each comp separately, or otherwise
+      group the solves by type.
+     */
+    const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
+    for (int icomp=1; icomp<num_comps; ++icomp) {
+        BL_ASSERT(theBCs[first_scalar] == theBCs[first_scalar + icomp]);
+    }
 
+    const int rho_flag = Diffusion::set_rho_flag(diffusionType[first_scalar]);
     for (int icomp=1; icomp<num_comps; ++icomp) {
         BL_ASSERT(rho_flag == Diffusion::set_rho_flag(diffusionType[first_scalar+icomp]));
     }
