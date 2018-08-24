@@ -759,7 +759,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
     const int rho_flag = Diffusion::set_rho_flag(diffusionType[first_scalar]);
 
     for (int icomp=1; icomp<num_comps; ++icomp) {
-        BL_ASSERT(rho_flag == Diffusion::set_rho_flag(diffusionType[first_scalar+icomp]));
+        //BL_ASSERT(rho_flag == Diffusion::set_rho_flag(diffusionType[first_scalar+icomp]));
     }
 
     const bool add_hoop_stress = false; // Only true if sigma == Xvel && Geometry::IsRZ())
@@ -784,25 +784,43 @@ NavierStokes::scalar_diffusion_update (Real dt,
     //
     if (do_reflux)
     {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif	      
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            for (MFIter fmfi(*fluxn[d],true); fmfi.isValid(); ++fmfi)
-            {
-                const Box& ebox = fmfi.tilebox();
-                (*fluxnp1[d])[fmfi].copy((*fluxn[d])[fmfi],ebox,0,ebox,0,num_comps);
-            }
-        }
 
+        FArrayBox fluxtot;
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
+            MultiFab fluxes;
+            
+            if (level < parent->finestLevel()) {
+               fluxes.define(fluxn[d]->boxArray(), fluxn[d]->DistributionMap(), num_comps, 0);
+            }
+
+            
+            for (MFIter fmfi(*fluxn[d]); fmfi.isValid(); ++fmfi)
+            {
+                const Box& ebox = (*fluxn[d])[fmfi].box();//fmfi.tilebox();
+                
+                fluxtot.resize(ebox,num_comps);
+                fluxtot.copy((*fluxn[d])[fmfi],ebox,0,ebox,0,num_comps);
+                fluxtot.plus((*fluxnp1[d])[fmfi],ebox,0,0,num_comps);
+                
+                if (level < parent->finestLevel())
+                            fluxes[fmfi].copy(fluxtot);
+                
+                //(*fluxnp1[d])[fmfi].copy((*fluxn[d])[fmfi],ebox,0,ebox,0,num_comps);
+            //}
+        //}
+        //
+        //for (int d = 0; d < BL_SPACEDIM; d++)
+        //{
             if (level > 0)
-                getViscFluxReg().FineAdd(*fluxnp1[d],d,0,first_scalar,num_comps,dt);
+                getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,first_scalar,num_comps,dt);
+                
+                
+            }
             
             if (level < parent->finestLevel())
-                getLevel(level+1).getViscFluxReg().CrseInit(*fluxnp1[d],d,0,first_scalar,num_comps,-dt);
+                getLevel(level+1).getViscFluxReg().CrseInit(fluxes,d,0,first_scalar,num_comps,-dt);
+            
         }
     }
 }
