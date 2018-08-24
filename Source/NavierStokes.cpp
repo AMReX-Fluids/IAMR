@@ -724,12 +724,21 @@ NavierStokes::scalar_diffusion_update (Real dt,
     Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
     Sn[0]   = &(get_old_data(State_Type));
     Snp1[0] = &(get_new_data(State_Type));
-
+    
     if (nlev>0) {
       Sn[1]   = level > 0 ? Snc.get() : 0;
       Snp1[1] = level > 0 ? Snp1c.get() : 0;
     }
 
+    //const int nlev = 2;
+    //Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
+    //Sn[0]   = &(get_old_data(State_Type));
+    //Snp1[0] = &(get_new_data(State_Type));
+    //Sn[1]   = level > 0 ? Snc.get() : 0;
+    //Snp1[1] = level > 0 ? Snp1c.get() : 0;
+
+    const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
+    
     FluxBoxes fb_diffn, fb_diffnp1;
     MultiFab **cmp_diffn = 0, **cmp_diffnp1 = 0;
 
@@ -757,21 +766,21 @@ NavierStokes::scalar_diffusion_update (Real dt,
         diffuse_comp[icomp] = is_diffusive[first_scalar + icomp];
     }
 
-    /*
-      The array form of the diffuse_scalar call below requires that the settings
-      below be the same for all solves in the group.  If this is not the case, one
-      should probably modify this to diffuse each comp separately, or otherwise
-      group the solves by type.
-     */
-    const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
-    for (int icomp=1; icomp<num_comps; ++icomp) {
-        BL_ASSERT(theBCs[first_scalar] == theBCs[first_scalar + icomp]);
-    }
+    ///*
+    //  The array form of the diffuse_scalar call below requires that the settings
+    //  below be the same for all solves in the group.  If this is not the case, one
+    //  should probably modify this to diffuse each comp separately, or otherwise
+    //  group the solves by type.
+    // */
+    //const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
+    //for (int icomp=1; icomp<num_comps; ++icomp) {
+    //    BL_ASSERT(theBCs[first_scalar] == theBCs[first_scalar + icomp]);
+    //}
 
     const int rho_flag = Diffusion::set_rho_flag(diffusionType[first_scalar]);
-    for (int icomp=1; icomp<num_comps; ++icomp) {
-        BL_ASSERT(rho_flag == Diffusion::set_rho_flag(diffusionType[first_scalar+icomp]));
-    }
+    //for (int icomp=1; icomp<num_comps; ++icomp) {
+    //    BL_ASSERT(rho_flag == Diffusion::set_rho_flag(diffusionType[first_scalar+icomp]));
+    //}
 
     const bool add_hoop_stress = false; // Only true if sigma == Xvel && Geometry::IsRZ())
     const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
@@ -795,26 +804,45 @@ NavierStokes::scalar_diffusion_update (Real dt,
     //
     if (do_reflux)
     {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif	      
-        for (int d = 0; d < BL_SPACEDIM; d++)
-        {
-            for (MFIter fmfi(*fluxn[d],true); fmfi.isValid(); ++fmfi)
-            {
-                const Box& ebox = fmfi.tilebox();
-                (*fluxnp1[d])[fmfi].copy((*fluxn[d])[fmfi],ebox,0,ebox,0,num_comps);
-            }
-        }
 
+        FArrayBox fluxtot;
         for (int d = 0; d < BL_SPACEDIM; d++)
         {
+            MultiFab fluxes;
+            
+            if (level < parent->finestLevel()) {
+               fluxes.define(fluxn[d]->boxArray(), fluxn[d]->DistributionMap(), 1, 0);
+            }
+
+            
+            for (MFIter fmfi(*fluxn[d]); fmfi.isValid(); ++fmfi)
+            {
+                const Box& ebox = (*fluxn[d])[fmfi].box();//fmfi.tilebox();
+                
+                fluxtot.resize(ebox,1);
+                fluxtot.copy((*fluxn[d])[fmfi],ebox,0,ebox,0,num_comps);
+                fluxtot.plus((*fluxnp1[d])[fmfi],ebox,0,0,num_comps);
+                
+                if (level < parent->finestLevel())
+                            fluxes[fmfi].copy(fluxtot);
+                
+                //(*fluxnp1[d])[fmfi].copy((*fluxn[d])[fmfi],ebox,0,ebox,0,num_comps);
+            //}
+        //}
+        //
+        //for (int d = 0; d < BL_SPACEDIM; d++)
+        //{
             if (level > 0)
-                getViscFluxReg().FineAdd(*fluxnp1[d],d,0,first_scalar,num_comps,dt);
+                getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,first_scalar,num_comps,dt);
+                
+                
+            }
             
             if (level < parent->finestLevel())
-                getLevel(level+1).getViscFluxReg().CrseInit(*fluxnp1[d],d,0,first_scalar,num_comps,-dt);
+                getLevel(level+1).getViscFluxReg().CrseInit(fluxes,d,0,first_scalar,num_comps,-dt);
+            
         }
+
     }
 }
 

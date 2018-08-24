@@ -657,10 +657,10 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-	bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+      bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
     }
     auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
-    if (have_coarse_data > 0) {
+    if (has_coarse_data > 0) {
         Solnc->define(S_new[1]->boxArray(), S_new[1]->DistributionMap(), 1, ng);
     }
 
