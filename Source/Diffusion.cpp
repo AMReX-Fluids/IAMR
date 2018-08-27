@@ -638,6 +638,9 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     // state + dt*Div(explicit_fluxes), e.g.)
     //
     
+    
+    bool has_coarse_data = S_old.size() > 1;
+    
     const Real strt_time = ParallelDescriptor::second();
 
     int allnull, allthere;
@@ -655,10 +658,10 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-	bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+      bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
     }
     auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
-    if (level > 0) {
+    if (has_coarse_data > 0) {
         Solnc->define(S_new[1]->boxArray(), S_new[1]->DistributionMap(), 1, ng);
     }
 
@@ -714,7 +717,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             if (use_mlmg_solver)
             {
                 {
-                    if (level > 0) {
+                    if (has_coarse_data > 0) {
                         MultiFab::Copy(*Solnc,*S_old[1],sigma,0,1,ng);
                         if (rho_flag == 2) {
                             MultiFab::Divide(*Solnc,*Rho_old[1],Rho_comp,0,1,ng);
@@ -915,7 +918,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         if (use_mlmg_solver)
         {
             {
-                if (level > 0) {
+                if (has_coarse_data > 0) {
                     MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
                     if (rho_flag == 2) {
                         MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
@@ -1032,8 +1035,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Diffusion::diffuse_scalar(): lev: " << level
-		       << ", time: " << run_time << '\n';
+	amrex::Print() << "Diffusion::diffuse_scalar() time: " << run_time << '\n';
     }
 }
 
