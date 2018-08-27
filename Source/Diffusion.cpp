@@ -630,16 +630,17 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 {
     //
     // This routine expects that physical BC's have been loaded into
-    // the grow cells of the old and new state passed in.  If rho_flag==2,
-    // the values there are rho.phi, where grad(phi) is the diffusive driving
-    // force.  Values in these cells will be preserved.  Also, if there are any
+    // the grow cells of the old and new state at this level.  If rho_flag==2,
+    // the values there are rho.phi, where phi is the quantity being diffused.
+    // Values in these cells will be preserved.  Also, if there are any
     // explicit update terms, these have already incremented the new state
     // on the valid region (i.e., on the valid region the new state is the old
     // state + dt*Div(explicit_fluxes), e.g.)
     //
     
+    
     bool has_coarse_data = S_old.size() > 1;
-
+    
     const Real strt_time = ParallelDescriptor::second();
 
     int allnull, allthere;
@@ -664,10 +665,6 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         Solnc->define(S_new[1]->boxArray(), S_new[1]->DistributionMap(), 1, ng);
     }
 
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
-    setDomainBC_msd(mlmg_lobc, mlmg_hibc, bc); // Same for all comps, by assumption
-
     LPInfo infon;
     infon.setAgglomeration(agglomeration);
     infon.setConsolidation(consolidation);
@@ -675,14 +672,13 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     infon.setMaxCoarseningLevel(0);
     MLABecLaplacian opn({geom}, {ba}, {dmap}, infon);
     opn.setMaxOrder(max_order);
-    opn.setDomainBC(mlmg_lobc, mlmg_hibc);
     MLMG mgn(opn);
 
     LPInfo infonp1;
     infon.setMetricTerm(false);
     MLABecLaplacian opnp1({geom}, {ba}, {dmap}, infonp1);
     opnp1.setMaxOrder(max_order);
-    opnp1.setDomainBC(mlmg_lobc, mlmg_hibc);
+
     MLMG mgnp1(opnp1);
     if (use_hypre) {
         mgnp1.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -690,6 +686,13 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     }
     mgnp1.setMaxFmgIter(max_fmg_iter);
     mgnp1.setVerbose(verbose);
+
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    setDomainBC_msd(mlmg_lobc, mlmg_hibc, bc); // Same for all comps, by assumption
+
+    opn.setDomainBC(mlmg_lobc, mlmg_hibc);
+    opnp1.setDomainBC(mlmg_lobc, mlmg_hibc);
 
     for (int icomp=0; icomp<num_comp; ++icomp) {
 
@@ -714,7 +717,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             if (use_mlmg_solver)
             {
                 {
-                    if (has_coarse_data) {
+                    if (has_coarse_data > 0) {
                         MultiFab::Copy(*Solnc,*S_old[1],sigma,0,1,ng);
                         if (rho_flag == 2) {
                             MultiFab::Divide(*Solnc,*Rho_old[1],Rho_comp,0,1,ng);
@@ -902,7 +905,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         }
 
         //
-        // Construct diffusion operator with bndry data at time N+1, solve and retrieve fluxes
+        // Construct viscous operator with bndry data at time N+1.
         //
         Real a = 1.0;
         Real b = be_cn_theta*dt;
@@ -915,7 +918,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         if (use_mlmg_solver)
         {
             {
-                if (has_coarse_data) {
+                if (has_coarse_data > 0) {
                     MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
                     if (rho_flag == 2) {
                         MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
