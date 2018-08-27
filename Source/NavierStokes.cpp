@@ -731,13 +731,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
       Snp1[1] =  Snp1c.get() ;
     }
     
-    //const int nlev = 2;
-    //Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
-    //Sn[0]   = &(get_old_data(State_Type));
-    //Snp1[0] = &(get_new_data(State_Type));
-    //Sn[1]   = level > 0 ? Snc.get() : 0;
-    //Snp1[1] = level > 0 ? Snp1c.get() : 0;
-
     const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
 
     FluxBoxes fb_diffn, fb_diffnp1;
@@ -801,7 +794,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
               fluxes.define(fluxn[d]->boxArray(), fluxn[d]->DistributionMap(), 1, 0);
           }
 
-            
+	            
           for (MFIter fmfi(*fluxn[d]); fmfi.isValid(); ++fmfi)
           {
             const Box& ebox = (*fluxn[d])[fmfi].box();//fmfi.tilebox();
