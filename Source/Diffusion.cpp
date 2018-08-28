@@ -652,17 +652,23 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     Real dt = curr_time - prev_time;
     const int ng = 1;
     const BoxArray& ba = S_new[0]->boxArray();
-
-    MultiFab Rhs(ba,dmap,1,0),Soln(ba,dmap,1,ng);
-    MultiFab alpha(ba,dmap,1,0);
+    const DistributionMapping& dm = S_new[0]->DistributionMap();
+    const DistributionMapping* dmc = (has_coarse_data > 0 ? &(S_new[1]->DistributionMap()) : 0);
+    const BoxArray* bac = (has_coarse_data > 0 ? &(S_new[1]->boxArray()) : 0);
+    
+    BL_ASSERT(volume.DistributionMap() == dm);
+ 
+    MultiFab Rhs(ba,dm,1,0),Soln(ba,dm,1,ng);
+    MultiFab alpha(ba,dm,1,0);
     std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-      bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+      BL_ASSERT(area[n].DistributionMap() == dm); 
+      bcoeffs[n].define(area[n].boxArray(),dm,1,0);
     }
     auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
     if (has_coarse_data > 0) {
-        Solnc->define(S_new[1]->boxArray(), S_new[1]->DistributionMap(), 1, ng);
+        Solnc->define(*bac, *dmc, 1, ng);
     }
 
     LPInfo infon;
@@ -670,13 +676,13 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
     infon.setConsolidation(consolidation);
     infon.setMetricTerm(false);
     infon.setMaxCoarseningLevel(0);
-    MLABecLaplacian opn({geom}, {ba}, {dmap}, infon);
+    MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
     opn.setMaxOrder(max_order);
     MLMG mgn(opn);
 
     LPInfo infonp1;
     infon.setMetricTerm(false);
-    MLABecLaplacian opnp1({geom}, {ba}, {dmap}, infonp1);
+    MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
     opnp1.setMaxOrder(max_order);
 
     MLMG mgnp1(opnp1);
@@ -755,7 +761,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             }
             else
             {
-                ViscBndry visc_bndry_0(ba,dmap,1,geom);
+                ViscBndry visc_bndry_0(ba,dm,1,geom);
                 std::unique_ptr<ABecLaplacian> visc_op
                     (getViscOp_msd(a,b,prev_time,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
                                    rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
@@ -972,7 +978,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         }
         else
         {
-            ViscBndry visc_bndry(ba,dmap,1,geom);
+            ViscBndry visc_bndry(ba,dm,1,geom);
             std::unique_ptr<ABecLaplacian> visc_op
                 (getViscOp_msd(a,b,curr_time,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
                                betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bc,
