@@ -1607,6 +1607,7 @@ MacProj::test_umac_periodic (int       level,
     }
 }
 
+// Remove - all anelastic stuff is to be removed from IAMR
 void
 MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
 {
