@@ -1302,6 +1302,9 @@ Projection::initialSyncProject (int       c_lev,
             std::unique_ptr<MultiFab> divu (ns->getDivCond(nghost,strt_time));
             std::unique_ptr<MultiFab> dsdt (ns->getDivCond(nghost,strt_time+dt));
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (MFIter mfi(*rhcclev,true); mfi.isValid(); ++mfi)
             {
        	        const Box& bx = mfi.growntilebox();
@@ -1449,6 +1452,9 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     std::unique_ptr<MultiFab> divu (ns->getDivCond(1,time));
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
     {
       const Box& bx = mfi.growntilebox();
@@ -1460,13 +1466,16 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 //
 // Convert U from an Accl-like quantity to a velocity: Unew = Uold + alpha*Unew
 //
-
+// NOTE: this only gets called for !proj_2 and !proj_2 is no longer supported
 void
 Projection::UnConvertUnew (MultiFab&       Uold,
                            Real            alpha,
                            MultiFab&       Unew, 
                            const BoxArray& grids)
 {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
         BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
@@ -1517,6 +1526,9 @@ Projection::ConvertUnew (MultiFab&       Unew,
                          Real            alpha,
                          const BoxArray& grids)
 {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
         const Box& bx=Uoldmfi.growntilebox(1);
@@ -1565,6 +1577,9 @@ Projection::UpdateArg1 (MultiFab&       Unew,
                         const BoxArray& grids,
                         int             ngrow)
 {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
     {
       BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
@@ -1614,7 +1629,9 @@ void
 Projection::AddPhi (MultiFab&        p,
                     MultiFab&       phi)
 {
-
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter pmfi(p,true); pmfi.isValid(); ++pmfi) 
     {
       const Box& bx = pmfi.growntilebox();
@@ -1635,6 +1652,10 @@ Projection::incrPress (int  level,
     MultiFab& P_new = LevelData[level]->get_new_data(Press_Type);
 
     const BoxArray& grids = LevelData[level]->boxArray();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 
     for (MFIter P_newmfi(P_new,true); P_newmfi.isValid(); ++P_newmfi)
     {
@@ -1761,7 +1782,10 @@ Projection::radMultScal (int       level,
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
-    
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
     {
       BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
@@ -1800,6 +1824,9 @@ Projection::radMultVel (int       level,
 
     for (int n = 0; n < BL_SPACEDIM; n++) 
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
       for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
        {
            BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
@@ -1844,6 +1871,9 @@ Projection::radDiv (int       level,
 
     Real bogus_value = BogusValue;
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
@@ -1995,11 +2025,16 @@ Projection::initialVorticityProject (int c_lev)
         rhnd[lev].reset(new MultiFab(P_new.boxArray(), 
                                      P_new.DistributionMap(),
                                      1, 0));
-
-        for (MFIter mfi(*rhnd[lev]); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(*rhnd[lev],true); mfi.isValid(); ++mfi)
         {
-            (*rhnd[lev])[mfi].setVal(0);
-            (*rhnd[lev])[mfi].copy(P_new[mfi], 0, 0);
+	  // rhnd has ng=0 as declared above
+	  const Box& bx = mfi.tilebox();
+	  
+	  (*rhnd[lev])[mfi].setVal(0,bx);
+	  (*rhnd[lev])[mfi].copy(P_new[mfi], bx, 0, bx, 0, 1);
         }
     }
 
@@ -2054,9 +2089,12 @@ Projection::initialVorticityProject (int c_lev)
 
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
             {
-                const Box& box = mfi.validbox();
+                const Box& box = mfi.tilebox();
                 if (add_vort_proj)
                 {
                   (*vel[lev])[mfi].plus((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
@@ -2119,13 +2157,17 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 amrex::surroundingNodes(amrex::bdryNode(domainC, outFaces[iface], ncStripWidth));
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
+	    // need to size like in create_umac_grown()?
+	    //ba.maxSize(32);
+
             DistributionMapping dm{ba};
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+	    
+	    // Not sure there's enough boxes here to warrant threads
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
@@ -2411,13 +2453,15 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
         BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
+	// need to size like in create_umac_grown()?
+	//phi_fine_strip_ba.maxSize(32);
         DistributionMapping dm {phi_fine_strip_ba};
         MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
 	//Are there enough boxes here for using OMP to make sense?
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
         for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
             phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
         }

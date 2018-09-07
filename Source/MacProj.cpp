@@ -566,25 +566,29 @@ MacProj::mac_sync_solve (int       level,
         {
             Real sum = 0.0;
             Real vol = 0.0;
-            FArrayBox vol_wgted_rhs;
 
-            for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                const FArrayBox& rhsfab = Rhs[Rhsmfi];
-		const Box& bx = Rhsmfi.tilebox();
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sum,vol)
+#endif
+	    {
+	      FArrayBox vol_wgted_rhs;
+	      for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
+		{
+		  const FArrayBox& rhsfab = Rhs[Rhsmfi];
+		  const Box& bx = Rhsmfi.tilebox();
 		
-                vol_wgted_rhs.resize(bx);
-                vol_wgted_rhs.copy(rhsfab);
-                vol_wgted_rhs.mult(volume[Rhsmfi]);
-                sum += vol_wgted_rhs.sum(0,1);
-                vol += volume[Rhsmfi].sum(bx,0,1);
-            }
-
-            Real vals[2] = {sum,vol};
-
-            ParallelDescriptor::ReduceRealSum(&vals[0],2);
-
-            sum = vals[0];
+		  vol_wgted_rhs.resize(bx);
+		  vol_wgted_rhs.copy(rhsfab);
+		  vol_wgted_rhs.mult(volume[Rhsmfi]);
+		  sum += vol_wgted_rhs.sum(0,1);
+		  vol += volume[Rhsmfi].sum(bx,0,1);
+		}
+	    }
+	    
+	    Real vals[2] = {sum,vol};
+	    
+	    ParallelDescriptor::ReduceRealSum(&vals[0],2);
+	    sum = vals[0];
             vol = vals[1];
 
             const Real fix = sum / vol;
@@ -733,10 +737,11 @@ MacProj::mac_sync_solve (int       level,
 
     baf.coarsen(fine_ratio);
 
+    // Use tiling here?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
         BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
 
@@ -771,24 +776,41 @@ MacProj::mac_sync_solve (int       level,
                 all_neumann = 0;
         }
 
+	//FIXME still debugging
+	// Print()<<"      rhs "<<Rhs.boxArray()<<"\n";
+	// Print()<<"      geom "<<geom.Domain()<<"\n";
+	// Print()<<"all neumann "<<all_neumann<<"\n";
         if (Rhs.boxArray().contains(geom.Domain()) && all_neumann == 1)
         {
-            Real sum = 0.0;
-            Real vol = 0.0;
-            FArrayBox vol_wgted_rhs;
-            for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
-            {
-                const FArrayBox& rhsfab = Rhs[Rhsmfi];
-		const Box& bx = Rhsmfi.tilebox();
-		
-                vol_wgted_rhs.resize(bx);
-                vol_wgted_rhs.copy(rhsfab);
-                vol_wgted_rhs.mult(volume[Rhsmfi]);
-                sum += vol_wgted_rhs.sum(0,1);
-                vol += volume[Rhsmfi].sum(bx,0,1);
-            }
+	    Real sum = 0.0;
+	    Real vol = 0.0;
 
-            Real vals[2] = {sum,vol};
+	    Print()<<"$$$$          Testing in mac_sync_solve\n";
+	    Print()<<"See comments in code";
+	    Abort();
+	    //The following tiled loop has not been tested.
+	    //If your problem lands you here, please test the following
+	    // looping with tiling/OMP on vs off
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sum,vol)
+#endif
+	    {
+	      FArrayBox vol_wgted_rhs;
+	    
+	      for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
+	      {
+		  const FArrayBox& rhsfab = Rhs[Rhsmfi];
+		  const Box& bx = Rhsmfi.tilebox();
+		
+		  vol_wgted_rhs.resize(bx);
+		  vol_wgted_rhs.copy(rhsfab);
+		  vol_wgted_rhs.mult(volume[Rhsmfi]);
+		  sum += vol_wgted_rhs.sum(0,1);
+		  vol += volume[Rhsmfi].sum(bx,0,1);
+	      }
+	    }
+	  
+	    Real vals[2] = {sum,vol};
 
             ParallelDescriptor::ReduceRealSum(&vals[0],2);
 
@@ -950,8 +972,6 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
     }
 
-    Vector<int> ns_level_bc;
-
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
     ns_level.getGradP(Gp, prev_pres_time);
@@ -960,9 +980,6 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    FArrayBox tforces, tvelforces, U;
-    FArrayBox grad_phi[BL_SPACEDIM], Rho;
-    FArrayBox flux[BL_SPACEDIM];
     MultiFab fluxes[BL_SPACEDIM];
     MultiFab mac_fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
@@ -974,8 +991,17 @@ MacProj::mac_sync_compute (int                   level,
     FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
                                  prev_time,State_Type,0,NUM_STATE);
     MultiFab& Smf = S_fpi.get_mf();
-    for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
+#ifdef _OPENMP
+#pragma omp parallel 
+#endif
     {
+      Vector<int> ns_level_bc;
+      FArrayBox tforces, tvelforces, U;
+      FArrayBox grad_phi[BL_SPACEDIM], Rho;
+      FArrayBox flux[BL_SPACEDIM];
+
+      for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
+      {
         const int i     = Smfi.index();
         FArrayBox& S    = Smf[Smfi];
         FArrayBox& divu = (*divu_fp)[Smfi];
@@ -1105,7 +1131,8 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Multiply the sync term by dt -- now done in the calling routine.
         //
-    }
+      }
+    } //end OMP parallel region
     if (level > 0 && update_fluxreg){
       const Real mlt =  -1.0/( (double) parent->nCycle(level));
       for (int d = 0; d < BL_SPACEDIM; d++){
@@ -1144,8 +1171,6 @@ MacProj::mac_sync_compute (int                    level,
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
-    FArrayBox flux[BL_SPACEDIM], grad_phi[BL_SPACEDIM];
-
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom         = parent->Geom(level);
     MultiFab*       mac_sync_phi = mac_phi_crse[level].get();
@@ -1163,8 +1188,14 @@ MacProj::mac_sync_compute (int                    level,
     //
     // Compute the mac sync correction.
     //
-    for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
+#ifdef _OPENMP
+#pragma omp parallel 
+#endif
     {
+      FArrayBox flux[BL_SPACEDIM], grad_phi[BL_SPACEDIM];
+    
+      for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
+      {
         const int  i  = Syncmfi.index();
 	const Box& bx = Syncmfi.tilebox();
 
@@ -1219,7 +1250,8 @@ MacProj::mac_sync_compute (int                    level,
 	    fluxes[d][Syncmfi].copy(flux[d],ebx,0,ebx,0,1);
 	  } 
         }
-    }
+      }
+    }//end OMP parallel region
 
     if (level > 0 && update_fluxreg){
       for (int d = 0; d < BL_SPACEDIM; d++){ 
@@ -1242,13 +1274,17 @@ MacProj::check_div_cond (int      level,
 
     Real sum = 0.0;
 
-    FArrayBox dmac;
-
-    for (MFIter U_edge0mfi(U_edge[0],true); U_edge0mfi.isValid(); ++U_edge0mfi)
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:sum)
+#endif
     {
-      const Box& bx = U_edge0mfi.tilebox(IntVect::Zero);
+      FArrayBox dmac;
+      
+      for (MFIter U_edge0mfi(U_edge[0],true);U_edge0mfi.isValid();++U_edge0mfi)
+      {
+        const Box& bx = U_edge0mfi.tilebox(IntVect::Zero);
 
-      dmac.resize(bx,1);
+        dmac.resize(bx,1);
 
         const FArrayBox& uxedge = U_edge[0][U_edge0mfi];
         const FArrayBox& uyedge = U_edge[1][U_edge0mfi];
@@ -1288,8 +1324,9 @@ MacProj::check_div_cond (int      level,
                     vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
         sum += dmac.sum(0);
+      }
     }
-
+    
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -1424,9 +1461,6 @@ MacProj::set_outflow_bcs (int             level,
         //
 	for ( int iface = 0; iface < nOutFlowTouched; ++iface )
 	{
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
             for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
 	    {
                 Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
@@ -1573,6 +1607,7 @@ MacProj::test_umac_periodic (int       level,
     }
 }
 
+// Remove - all anelastic stuff is to be removed from IAMR
 void
 MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
 {

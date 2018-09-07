@@ -109,9 +109,9 @@ MacOperator::setCoefficients (const MultiFab* area,
 
         const Box& tilebx    = rhomfi.tilebox();
 	// If maccoef were to operate on one dim at a time,
-	// then only tilebox would be needed here, by switching the MFIter
+	// then only tilebox would be needed here by switching the MFIter
 	// to be on bcoef (which is nodal in one dimension), or perhaps by
-	// keeping rhomfi and using enclosedCells/surroudingNodes 
+	// keeping rhomfi and using enclosedCells/surroudingNodes. 
 	// But to keep updating all bcoefs at the same time, must pass validbox
 	// and test inside the fortran function 
         const Box& vbx       = rhomfi.validbox();
