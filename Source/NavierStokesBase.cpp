@@ -1190,9 +1190,8 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
 #endif
         for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
         {
-	    int i = mfi.index();
-            const Box&  vbx     = mfi.tilebox();
-            RealBox     gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
+	          const Box&  vbx     = mfi.tilebox();
+            RealBox     gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
             Vector<int>  itags   = tags[mfi].tags();
             int*        tptr    = itags.dataPtr();
             const int*  tlo     = tags[mfi].box().loVect();
@@ -1248,13 +1247,19 @@ NavierStokesBase::estTimeStep ()
 
     Real gr_max[BL_SPACEDIM], u_max[BL_SPACEDIM] = {0};
 
-    FArrayBox tforces;
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(min:estdt)
+#endif
+{
     for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
-	Box bx=Rho_mfi.tilebox();
+    
+        FArrayBox tforces;
+      
+	      Box bx=Rho_mfi.tilebox();
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
@@ -1289,23 +1294,24 @@ NavierStokesBase::estTimeStep ()
 
         for (int k = 0; k < BL_SPACEDIM; k++)
         {
-	    u_max[k] = std::max(u_max[k],gr_max[k]);
-	}
-	estdt = std::min(estdt,dt);
+	        u_max[k] = std::max(u_max[k],gr_max[k]);
+	      }
+	      estdt = std::min(estdt,dt);
     }
+}
 
     ParallelDescriptor::ReduceRealMin(estdt);
 
     if (verbose)
     {
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+      const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-        ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
+      ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
-	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
-	for (int k = 0; k < BL_SPACEDIM; k++)
-	  amrex::Print() << u_max[k] << "  ";
-	amrex::Print() << '\n';
+	    amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
+	    for (int k = 0; k < BL_SPACEDIM; k++)
+	      amrex::Print() << u_max[k] << "  ";
+	      amrex::Print() << '\n';
     }
 
     return estdt;
@@ -1352,34 +1358,17 @@ NavierStokesBase::get_rho_half_time ()
     //
     // Fill it in when needed ...
     //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (MFIter mfi(rho_half,true); mfi.isValid(); ++mfi)
     {
         FArrayBox& rhofab = rho_half[mfi];
-	const Box& bx = mfi.growntilebox();
+	      const Box& bx = mfi.growntilebox();
 	
         rhofab.copy(rho_ptime[mfi],bx,0,bx,0,1);
         rhofab.plus(rho_ctime[mfi],bx,0,0);
         rhofab.mult(.5,bx);
-
-	//FIXME? template to write FORT_GEOAVG function to do above work
-	// for (MFIter mfi(rho_incr,true); mfi.isValid(); ++mfi)
-    // {
-    //     FArrayBox&       avgfab  = rho_avg[mfi];
-    //     const FArrayBox& incrfab = rho_incr[mfi];
-
-    //     const Box& vbx     = mfi.growntilebox();
-    //     const int* lo      = vbx.loVect();
-    //     const int* hi      = vbx.hiVect();
-    //     const int* rlo     = incrfab.loVect();
-    //     const int* rhi     = incrfab.hiVect();
-    //     const Real* rhodat = incrfab.dataPtr(sComp);
-    //     const int* alo     = avgfab.loVect();
-    //     const int* ahi     = avgfab.hiVect();
-    //     Real* avgdat       = avgfab.dataPtr();
-
-    //     FORT_GEOAVG(avgdat,ARLIM(alo),ARLIM(ahi),
-    //                   rhodat,ARLIM(rlo),ARLIM(rhi),lo,hi,&alpha);
-    // }
 
     }
 
@@ -1482,10 +1471,13 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 
                 pMF.plus(dpdtMF,0,1,NGrow);
             }
-
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	    for (MFIter mfi(gp, true); mfi.isValid(); ++mfi) 
             {
-                Projection::getGradP(pMF[mfi],gp[mfi],mfi.growntilebox(),dx);
+              Box bx=mfi.growntilebox();
+              Projection::getGradP(pMF[mfi],gp[mfi],bx,dx);
             }
         }
         //
@@ -1498,9 +1490,13 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 	  FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
 	  MultiFab& pMF = P_fpi.get_mf();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	  for (MFIter mfi(gpTmp, true); mfi.isValid(); ++mfi) 
 	  {
-	    Projection::getGradP(pMF[mfi],gpTmp[mfi],mfi.growntilebox(),dx);
+      Box bx=mfi.growntilebox();
+	    Projection::getGradP(pMF[mfi],gpTmp[mfi],bx,dx);
 	  }
 	}
         //
@@ -1529,7 +1525,9 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
         }
 
         std::vector< std::pair<int,Box> > isects;
-
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (MFIter mfi(gpTmp,true); mfi.isValid(); ++mfi) 
         {
             fineBA.intersections(mfi.growntilebox(),isects);
@@ -1550,7 +1548,9 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 
         FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
 	MultiFab& pMF = P_fpi.get_mf();
-	
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	
 	for (MFIter mfi(gp, true); mfi.isValid(); ++mfi) 
         {
 	  BL_ASSERT(amrex::grow(grids[mfi.index()],NGrow) == gp[mfi].box());
@@ -1623,7 +1623,9 @@ NavierStokesBase::initRhoAvg (Real alpha)
     // 3/03/18 - this setVal appears to be unnecessary, comment it out
     // note: rho_avg has 1 ghost cell
     //rho_avg.setVal(0);
-
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter rho_avgmfi(rho_avg,true); rho_avgmfi.isValid(); ++rho_avgmfi)
     {
     	const Box& bx = rho_avgmfi.growntilebox();
@@ -1679,8 +1681,11 @@ NavierStokesBase::init (AmrLevel &old)
     {
 	FillPatchIterator fpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
 	const MultiFab& mf_fpi = fpi.get_mf();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	for (MFIter mfi(mf_fpi,true); mfi.isValid(); ++mfi)
-        {
+  {
 	  const Box& vbx  = mfi.tilebox();
 	  const FArrayBox& pfab = mf_fpi[mfi];
 
@@ -2363,6 +2368,9 @@ NavierStokesBase::steadyState()
 	// Estimate the maximum change in velocity magnitude since previous
 	// iteration
 	//
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
       const Box& bx=Rho_mfi.tilebox();
@@ -2812,8 +2820,8 @@ NavierStokesBase::scalar_advection_update (Real dt,
     MultiFab&  Aofs      = *aofs;
 
     const Real prev_time = state[State_Type].prevTime();
-    Vector<int> state_bc;
-    FArrayBox  tforces;
+    
+    
     //
     // Compute inviscid estimate of scalars.
     // (do rho separate, as we do not have rho at new time yet)
@@ -2822,14 +2830,21 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
     if (sComp == Density)
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+      FArrayBox  tforces;
       for (MFIter S_oldmfi(S_old,true); S_oldmfi.isValid(); ++S_oldmfi)
       {
+        
 	    const Box& bx = S_oldmfi.tilebox();
             tforces.resize(bx,1);
             tforces.setVal(0);
             godunov->Add_aofs_tf(S_old[S_oldmfi],S_new[S_oldmfi],Density,1,
                                  Aofs[S_oldmfi],Density,tforces,0,bx,dt);
       }
+}
         //
         // Call ScalMinMax to avoid overshoots in density.
         //
@@ -2846,6 +2861,12 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
             FillPatchIterator S_fpi(*this,S_old,1,prev_time,State_Type,Density,1);
             MultiFab& Smf=S_fpi.get_mf();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+      Vector<int> state_bc;
 	    for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.tilebox();
@@ -2855,6 +2876,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
                                                 index_new_s, index_new_rho,
                                                 state_bc.dataPtr(),bx);
             }
+}
       }
       ++sComp;
     }
@@ -2862,6 +2884,11 @@ NavierStokesBase::scalar_advection_update (Real dt,
     if (sComp <= last_scalar)
     {
         const MultiFab& rho_halftime = get_rho_half_time();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+        FArrayBox  tforces;
 
         for (MFIter Rho_mfi(rho_halftime,true); Rho_mfi.isValid(); ++Rho_mfi)
         {
@@ -2871,10 +2898,10 @@ NavierStokesBase::scalar_advection_update (Real dt,
             {
 #ifdef BOUSSINESQ
                 const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-		FArrayBox Scal(amrex::grow(bx,0),1);
-		Scal.copy(S_old[Rho_mfi],bx,Tracer,bx,0,1);
-		Scal.plus(S_new[Rho_mfi],bx,Tracer,0,1);
-		Scal.mult(0.5,bx);
+		            FArrayBox Scal(amrex::grow(bx,0),1);
+		            Scal.copy(S_old[Rho_mfi],bx,Tracer,bx,0,1);
+		            Scal.plus(S_new[Rho_mfi],bx,Tracer,0,1);
+		            Scal.mult(0.5,bx);
                 getForce(tforces,bx,0,sigma,1,halftime,Scal);
 #else
 #ifdef GENGETFORCE
@@ -2887,38 +2914,38 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
 		// Average the mac face velocities to get cell centred velocities
                 const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-		FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
-		const int* vel_lo  = Vel.loVect();
-		const int* vel_hi  = Vel.hiVect();
-		const int* umacx_lo = u_mac[0][Rho_mfi].loVect();
-		const int* umacx_hi = u_mac[0][Rho_mfi].hiVect();
-		const int* umacy_lo = u_mac[1][Rho_mfi].loVect();
-		const int* umacy_hi = u_mac[1][Rho_mfi].hiVect();
+		            FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
+		            const int* vel_lo  = Vel.loVect();
+		            const int* vel_hi  = Vel.hiVect();
+		            const int* umacx_lo = u_mac[0][Rho_mfi].loVect();
+		            const int* umacx_hi = u_mac[0][Rho_mfi].hiVect();
+		            const int* umacy_lo = u_mac[1][Rho_mfi].loVect();
+		            const int* umacy_hi = u_mac[1][Rho_mfi].hiVect();
 #if (BL_SPACEDIM==3)
-		const int* umacz_lo = u_mac[2][Rho_mfi].loVect();
-		const int* umacz_hi = u_mac[2][Rho_mfi].hiVect();
+		            const int* umacz_lo = u_mac[2][Rho_mfi].loVect();
+		            const int* umacz_hi = u_mac[2][Rho_mfi].hiVect();
 #endif
-		FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-					 u_mac[0][Rho_mfi].dataPtr(),
-					 u_mac[1][Rho_mfi].dataPtr(),
+		            FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
+			            		 u_mac[0][Rho_mfi].dataPtr(),
+				            	 u_mac[1][Rho_mfi].dataPtr(),
 #if (BL_SPACEDIM==3)
-					 u_mac[2][Rho_mfi].dataPtr(),
+			            		 u_mac[2][Rho_mfi].dataPtr(),
 #endif
-					 ARLIM(vel_lo),  ARLIM(vel_hi),
-					 ARLIM(umacx_lo), ARLIM(umacx_hi),
-					 ARLIM(umacy_lo), ARLIM(umacy_hi),
+		            			 ARLIM(vel_lo),  ARLIM(vel_hi),
+		            			 ARLIM(umacx_lo), ARLIM(umacx_hi),
+		            			 ARLIM(umacy_lo), ARLIM(umacy_hi),
 #if (BL_SPACEDIM==3)
 
-					 ARLIM(umacz_lo), ARLIM(umacz_hi),
+			            		 ARLIM(umacz_lo), ARLIM(umacz_hi),
 #endif
-					 &getForceVerbose);
+				            	 &getForceVerbose);
 		//
 		// Average the new and old time to get Crank-Nicholson half time approximation.
-                //
-		FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-		Scal.copy(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
-		Scal.plus(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
-		Scal.mult(0.5,bx);
+    //
+		            FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
+		            Scal.copy(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
+		            Scal.plus(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
+		            Scal.mult(0.5,bx);
 		
 		if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
                 getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
@@ -2930,10 +2957,13 @@ NavierStokesBase::scalar_advection_update (Real dt,
                                      Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
             }
         }
+}
     }
     //
     // Call ScalMinMax to avoid overshoots in the scalars.
     //
+            Vector<int> state_bc;
+           
     if ( do_scalminmax && (sComp <= last_scalar) )
     {
         const int num_scalars = last_scalar - Density + 1;
@@ -2941,8 +2971,15 @@ NavierStokesBase::scalar_advection_update (Real dt,
         // Must do FillPatch here instead of MF iterator because we need the
         // boundary values in the old data (especially at inflow).
         //
+
         FillPatchIterator S_fpi(*this,S_old,1,prev_time,State_Type,Density,num_scalars);
-	MultiFab& Smf=S_fpi.get_mf();
+        MultiFab& Smf=S_fpi.get_mf();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+  Vector<int> state_bc;
 	for (MFIter mfi(Smf,true); mfi.isValid();++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -2968,6 +3005,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
                 }
             }
         }
+}
     }
 }
 
@@ -3118,9 +3156,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
     BoxArray cdataBA(N);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
     for (int i = 0; i < N; i++)
         cdataBA.set(i,interpolater->CoarseBox(fgrids[i],ratio));
     //
@@ -3136,36 +3171,33 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     // Set physical boundary conditions in cdataMF.
     //
     // tiling may not be needed here, but what the hey
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
     {
-        int         i       = mfi.index();
-        RealBox     gridloc = RealBox(fine_level.grids[i],fine_level.geom.CellSize(),fine_level.geom.ProbLo());
+       
         FArrayBox&  cdata   = cdataMF[mfi];
         const int*  clo     = cdata.loVect();
         const int*  chi     = cdata.hiVect();
-	//why use growntilebox when cdataMF has no ghost cells?
-	const Box&  bx      = mfi.growntilebox(); 
+	      const Box&  bx      = mfi.tilebox();
+        RealBox     gridloc = RealBox(bx,fine_level.geom.CellSize(),fine_level.geom.ProbLo());
         const int*  lo      = bx.loVect();
         const int*  hi      = bx.hiVect();
         const Real* xlo     = gridloc.lo();
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
         for (int n = 0; n < num_comp; n++)
         {
-            set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+          set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
 	    
-	    filcc_tile(ARLIM(lo),ARLIM(hi),
-			    cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
-			    cdomlo, cdomhi, dx_crse, xlo,
-			    &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
-
-	    // filcc(cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
-            //            cdomlo, cdomhi, dx_crse, xlo,
-            //            &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
+	        filcc_tile(ARLIM(lo),ARLIM(hi),
+			      cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
+			      cdomlo, cdomhi, dx_crse, xlo,
+			      &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
         }
     }
+    
     cdataMF.EnforcePeriodicity(cgeom.periodicity());
     //
     // Interpolate from cdataMF to fdata and update FineSync.
@@ -3389,8 +3421,6 @@ NavierStokesBase::velocity_advection (Real dt)
     else
         visc_terms.setVal(0,1);
 
-    Vector<int> bndry[BL_SPACEDIM];
-
     MultiFab divu_fp(grids,dmap,1,1);
 
     create_mac_rhs(divu_fp,1,prev_time,dt);
@@ -3398,8 +3428,6 @@ NavierStokesBase::velocity_advection (Real dt)
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1), fluxes[BL_SPACEDIM];
 
     getGradP(Gp, prev_pres_time);
-
-    FArrayBox flux[BL_SPACEDIM], tforces, S;
 
     if (do_reflux)
     {
@@ -3413,10 +3441,11 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Compute the advective forcing.
     //
-    { 
+ { 
       FillPatchIterator
-	U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
-	Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+	    U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
+	    Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+      
       MultiFab& Umf=U_fpi.get_mf();
       MultiFab& Rmf=Rho_fpi.get_mf();
 
@@ -3430,39 +3459,46 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+      Vector<int> bndry[BL_SPACEDIM];
+      FArrayBox tforces;
+      FArrayBox S;
+      FArrayBox cfluxes[BL_SPACEDIM];
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
-	const int i = U_mfi.index();
-	const Box& bx=U_mfi.tilebox();
+
+	    const Box& bx=U_mfi.tilebox();
 		
 #ifdef BOUSSINESQ
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
-	if (getForceVerbose)
-	{
-	  amrex::Print() << "---" << '\n' 
-			 << "B - velocity advection:" << '\n' 
-			 << "Calling getForce..." << '\n';
-	}
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+	    if (getForceVerbose)
+	    {
+	      amrex::Print() << "---" << '\n' 
+			   << "B - velocity advection:" << '\n' 
+			   << "Calling getForce..." << '\n';
+	    }
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 #else
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
+      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
-
-        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+      godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+      
+      D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1);)
-        
-        
-        for (int d=0; d<BL_SPACEDIM; ++d){
+         
+      for (int d=0; d<BL_SPACEDIM; ++d){
           const Box& ebx = amrex::surroundingNodes(bx,d);
-          flux[d].resize(ebx,BL_SPACEDIM+1);
-        }
+          cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+      }
         
         //
         // Loop over the velocity components.
@@ -3487,27 +3523,28 @@ NavierStokesBase::velocity_advection (Real dt)
                 tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
             }
 
-	    // WARNING: BDS does not work with tiling.
-	    // PRE_MAC and FPU do work with tiling.
+	    // WARNING: FPU argument is not used because FPU is by default in AdvectState
 	    godunov->AdvectState(bx, dx, dt, 
-                                 area[0][i], u_mac_fab0, flux[0],
-                                 area[1][i], u_mac_fab1, flux[1],
+                                 area[0][U_mfi], u_mac_fab0, cfluxes[0],
+                                 area[1][U_mfi], u_mac_fab1, cfluxes[1],
 #if (BL_SPACEDIM == 3)                       
-                                 area[2][i], u_mac_fab2, flux[2],
+                                 area[2][U_mfi], u_mac_fab2, cfluxes[2],
 #endif
                                  Umf[U_mfi], S, tforces, divufab, comp,
                                  aofsfab,comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),FPU,volume[i]);
+                                 comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
 
             if (do_reflux){
 	            for (int d = 0; d < BL_SPACEDIM; d++){
-		            fluxes[d][U_mfi].copy(flux[d],U_mfi.nodaltilebox(d),0,
-					                             U_mfi.nodaltilebox(d),comp,1);
+                const Box& ebx = U_mfi.nodaltilebox(d);
+		            fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
               }
             }
         }
       } // end of MFIter
-    } //end scope of FillPatchIter
+}
+
+ } //end scope of FillPatchIter
     
     if (do_reflux)
     {
@@ -3578,8 +3615,7 @@ void
 NavierStokesBase::velocity_advection_update (Real dt)
 {
     BL_PROFILE("NavierStokesBase::velocity_advection_update()");
-
-    FArrayBox  tforces, S;
+    
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
     MultiFab&  Aofs           = *aofs;
@@ -3589,6 +3625,11 @@ NavierStokesBase::velocity_advection_update (Real dt)
     getGradP(Gp, prev_pres_time);
     
     MultiFab& halftime = get_rho_half_time();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+    FArrayBox  tforces, S;
     for (MFIter Rhohalf_mfi(halftime,true); Rhohalf_mfi.isValid(); ++Rhohalf_mfi)
     {
         const int i = Rhohalf_mfi.index();
@@ -3596,13 +3637,13 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
 #ifdef BOUSSINESQ
         //
-	// Average the new and old time to get half time approximation.
+	      // Average the new and old time to get half time approximation.
         //
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-	FArrayBox Scal(bx,1);
-	Scal.copy(U_old[Rhohalf_mfi],bx,Tracer,bx,0,1);
-	Scal.plus(U_new[Rhohalf_mfi],bx,Tracer,0,1);
-	Scal.mult(0.5,bx);
+        FArrayBox Scal(bx,1);
+        Scal.copy(U_old[Rhohalf_mfi],bx,Tracer,bx,0,1);
+        Scal.plus(U_new[Rhohalf_mfi],bx,Tracer,0,1);
+        Scal.mult(0.5,bx);
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Scal);
 #else
 #ifdef GENGETFORCE
@@ -3610,50 +3651,50 @@ NavierStokesBase::velocity_advection_update (Real dt)
 	getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
 #elif MOREGENGETFORCE
         //
-	// Need to do some funky half-time stuff.
+        // Need to do some funky half-time stuff.
         //
 	if (getForceVerbose)
   	    amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
-	// Average the mac face velocities to get cell centred velocities.
+        // Average the mac face velocities to get cell centred velocities.
         //
-	FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
-	const int* vel_lo  = Vel.loVect();
-	const int* vel_hi  = Vel.hiVect();
-	const int* umacx_lo = u_mac[0][Rhohalf_mfi].loVect();
-	const int* umacx_hi = u_mac[0][Rhohalf_mfi].hiVect();
-	const int* umacy_lo = u_mac[1][Rhohalf_mfi].loVect();
-	const int* umacy_hi = u_mac[1][Rhohalf_mfi].hiVect();
+        FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
+        const int* vel_lo  = Vel.loVect();
+        const int* vel_hi  = Vel.hiVect();
+        const int* umacx_lo = u_mac[0][Rhohalf_mfi].loVect();
+        const int* umacx_hi = u_mac[0][Rhohalf_mfi].hiVect();
+        const int* umacy_lo = u_mac[1][Rhohalf_mfi].loVect();
+        const int* umacy_hi = u_mac[1][Rhohalf_mfi].hiVect();
 #if (BL_SPACEDIM==3)
-	const int* umacz_lo = u_mac[2][Rhohalf_mfi].loVect();
-	const int* umacz_hi = u_mac[2][Rhohalf_mfi].hiVect();
+        const int* umacz_lo = u_mac[2][Rhohalf_mfi].loVect();
+        const int* umacz_hi = u_mac[2][Rhohalf_mfi].hiVect();
 #endif
-	FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-				 u_mac[0][Rhohalf_mfi].dataPtr(),
-				 u_mac[1][Rhohalf_mfi].dataPtr(),
+        FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
+            u_mac[0][Rhohalf_mfi].dataPtr(),
+            u_mac[1][Rhohalf_mfi].dataPtr(),
 #if (BL_SPACEDIM==3)
-				 u_mac[2][Rhohalf_mfi].dataPtr(),
+            u_mac[2][Rhohalf_mfi].dataPtr(),
 #endif
-				 ARLIM(vel_lo),  ARLIM(vel_hi),
-				 ARLIM(umacx_lo), ARLIM(umacx_hi),
-				 ARLIM(umacy_lo), ARLIM(umacy_hi),
+            ARLIM(vel_lo),  ARLIM(vel_hi),
+            ARLIM(umacx_lo), ARLIM(umacx_hi),
+            ARLIM(umacy_lo), ARLIM(umacy_hi),
 #if (BL_SPACEDIM==3)
-				 ARLIM(umacz_lo), ARLIM(umacz_hi),
+            ARLIM(umacz_lo), ARLIM(umacz_hi),
 #endif
-				 &getForceVerbose);
+            &getForceVerbose);
         //
-	// Average the new and old time to get Crank-Nicholson half time approximation.
+        // Average the new and old time to get Crank-Nicholson half time approximation.
         //
-	FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-	Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
-	Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
-	Scal.mult(0.5,bx);
+        FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
+        Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
+        Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
+        Scal.mult(0.5,bx);
 	
 	if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-	getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
+        getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 #else
-	getForce(tforces,bx,0,Xvel,BL_SPACEDIM,halftime[i]);
+        getForce(tforces,bx,0,Xvel,BL_SPACEDIM,halftime[i]);
 #endif		 
 #endif		 
         //
@@ -3662,7 +3703,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (initial_iter && is_diffusive[Xvel])
             tforces.setVal(0);
 
-	const Box& sbx = Rhohalf_mfi.growntilebox();
+	      const Box& sbx = Rhohalf_mfi.growntilebox();
         S.resize(sbx,BL_SPACEDIM);
         S.copy(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
 
@@ -3684,6 +3725,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
                 U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],bx,0,d,1);
         }
     }
+}
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (U_old.contains_nan(sigma,1,0))
@@ -3726,7 +3768,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 	    visc_terms.setVal(0);
 	}
 
-        FArrayBox tforces, S;
+        
         //
         // Update U_new with viscosity.
         //
@@ -3737,6 +3779,12 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 				prev_time,State_Type,Tracer,1);
         const MultiFab& Smf = S_fpi.get_mf();
 #endif
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+  FArrayBox tforces, S;
 	for (MFIter mfi(U_old,true); mfi.isValid(); ++mfi)
         {
 	  const Box& bx = mfi.tilebox();
@@ -3782,6 +3830,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
                     U_new[mfi].divide(rho_ctime[mfi],bx,0,d,1);
             }
         }
+}
     }
 }
 
@@ -3817,7 +3866,7 @@ NavierStokesBase::volWgtSum (const std::string& name,
         const Real* dat = fab.dataPtr();
         const int*  dlo = fab.loVect();
         const int*  dhi = fab.hiVect();
-	const Box&  grdbx = grids[mfi.index()];
+        const Box&  grdbx = grids[mfi.index()];
         const int*  lo  = grdbx.loVect();
         const int*  hi  = grdbx.hiVect();
 
