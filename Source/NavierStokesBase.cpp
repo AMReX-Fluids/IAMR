@@ -1264,7 +1264,7 @@ NavierStokesBase::estTimeStep ()
     
         FArrayBox tforces;
       
-	Box bx=Rho_mfi.tilebox();
+	const Box& bx=Rho_mfi.tilebox();
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
