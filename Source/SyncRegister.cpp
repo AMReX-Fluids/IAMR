@@ -261,6 +261,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 
       for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
 	{
+	  //const Box& sync_box = mfi.tilebox();
 	  const Box& sync_box = mfi.validbox();
 
 	  Pgrids.intersections(sync_box,isects);
@@ -285,7 +286,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 	    }
 	}
     }
-    
+
     FineAdd(Sync_resid_fine,crse_geom,mult);
 }
 
@@ -339,9 +340,9 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 		    const int* chi = bndbox.hiVect();
 
 		    srcrsereg(finefab.dataPtr(),
-				   ARLIM(resid_lo),ARLIM(resid_hi),
-				   cbndfab.dataPtr(),ARLIM(clo),ARLIM(chi),
-				   clo,chi,&dir,ratio.getVect());
+			      ARLIM(resid_lo),ARLIM(resid_hi),
+			      cbndfab.dataPtr(),ARLIM(clo),ARLIM(chi),
+			      clo,chi,&dir,ratio.getVect());
 
 		    for (int j = 0; j < BL_SPACEDIM; ++j)
 		    {
