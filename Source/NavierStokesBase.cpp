@@ -1250,8 +1250,7 @@ NavierStokesBase::estTimeStep ()
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 
-    //FIXME Hard wiring for 2d; need to find a better solution
-    Print()<<"FIXME Hard wiring for 2d; need to find a better solution\n";
+    //FIXME? find a better solution for umax? gcc 5.4, OMP reduction does not take arrays
     Real umax_x,umax_y,umax_z;
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:estdt) reduction(max:umax_x,umax_y,umax_z)
@@ -1314,9 +1313,14 @@ NavierStokesBase::estTimeStep ()
 
     if (verbose)
     {
-      const int IOProc = ParallelDescriptor::IOProcessorNumber();
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-      ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
+      	u_max[0] = umax_x 
+	u_max[1] = umax_y 
+#if (BL_SPACEDIM == 3)
+	u_max[2] = umax_z 
+#endif 
+	ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
 	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
 	for (int k = 0; k < BL_SPACEDIM; k++)
@@ -4496,7 +4500,10 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 		ctemp_dat.setVal(0);
 		
 		NSPC->Increment(temp_dat,lev);
-		
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 		for (MFIter mfi(temp_dat,true); mfi.isValid(); ++mfi)
 		{
 		    const FArrayBox& ffab =  temp_dat[mfi];
