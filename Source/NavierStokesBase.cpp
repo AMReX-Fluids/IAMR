@@ -1315,10 +1315,10 @@ NavierStokesBase::estTimeStep ()
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-      	u_max[0] = umax_x 
-	u_max[1] = umax_y 
+      	u_max[0] = umax_x; 
+	u_max[1] = umax_y;
 #if (BL_SPACEDIM == 3)
-	u_max[2] = umax_z 
+	u_max[2] = umax_z;
 #endif 
 	ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
