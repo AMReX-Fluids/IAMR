@@ -103,6 +103,9 @@ MacOperator::setCoefficients (const MultiFab* area,
            bycoef.setVal(0);,
            bzcoef.setVal(0););
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
     for (MFIter rhomfi(rho,true); rhomfi.isValid(); ++rhomfi)
     {
         BL_ASSERT(ba[rhomfi.index()] == rhomfi.validbox());
@@ -178,6 +181,9 @@ MacOperator::defRHS (const MultiFab* area,
     //
     BL_ASSERT(Rhs.boxArray() == gbox[0]);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
     for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
         const Box& bx        = Rhsmfi.tilebox();
@@ -306,6 +312,9 @@ MacOperator::velUpdate (MultiFab*       Vel,
     int apply_lev = 0;
     applyBC(Phi,0,1,apply_lev);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
     for (MFIter Phimfi(Phi,true); Phimfi.isValid(); ++Phimfi)
     {
         const Box& bx = Phimfi.tilebox();
@@ -337,6 +346,10 @@ MacOperator::syncRhs (const MultiFab& Volume,
                       Real            rhs_scale,
                       const Real*     dx)
 {
+  
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
   for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
         const Box& grd       = Rhsmfi.tilebox();
