@@ -329,6 +329,7 @@ Projection::level_project (int             level,
         if (have_divu)
             divusource->mult(dt_inv,0,1,divusource->nGrow());
     }
+    // Remove this if-else.  IAMR requires proj_2==1
     else
     {
       for (MFIter U_newmfi(U_new,true); U_newmfi.isValid(); ++U_newmfi) 
@@ -1452,6 +1453,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     std::unique_ptr<MultiFab> divu (ns->getDivCond(1,time));
 
+    //fixme?? use MultiFab::Copy() here instead?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1629,6 +1631,7 @@ void
 Projection::AddPhi (MultiFab&        p,
                     MultiFab&       phi)
 {
+  //fixme??? use MultiFab::plus() here instead?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1896,7 +1899,7 @@ Projection::radDiv (int       level,
 #endif
 }
 
-//
+// Remove -- anelastic coeff is to be removed from IAMR
 // Multiply by anel_coeff if it is defined
 //
 void
@@ -2164,7 +2167,8 @@ Projection::putDown (const Vector<MultiFab*>& phi,
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
 	    
-	    // Not sure there's enough boxes here to warrant threads
+	    // Not sure there's enough here to warrant tiling, even
+	    // with maxSize call above
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
@@ -2458,7 +2462,8 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         DistributionMapping dm {phi_fine_strip_ba};
         MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
-	//Are there enough boxes here for using OMP to make sense?
+	//Are there enough boxes here for using OMP to make sense,
+	// even with maxSize() above
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
