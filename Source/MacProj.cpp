@@ -1065,15 +1065,20 @@ MacProj::mac_sync_compute (int                   level,
         FArrayBox& u_sync = Vsync[Smfi];
         FArrayBox& s_sync = Ssync[Smfi];
 
-        U.resize(bx,BL_SPACEDIM);
-        U.copy(Smf[Smfi],0,0,BL_SPACEDIM);
-        //
-        // Loop over state components and compute the sync advective component.
-        //
+	//Why copy here and not just use S?
+	// SyncAdvect doesn't even use U
+        //U.resize(bx,BL_SPACEDIM);
+        //U.copy(Smf[Smfi],0,0,BL_SPACEDIM);
         D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][Smfi];,
                FArrayBox& u_mac_fab1 = u_mac[1][Smfi];,
                FArrayBox& u_mac_fab2 = u_mac[2][Smfi];);
-
+        //
+        // Loop over state components and compute the sync advective component.
+        //
+        FArrayBox* Sp;
+	Box gbx = grow(Smfi.tilebox(),Smf.nGrow());
+	FArrayBox rhoS(gbx,BL_SPACEDIM);
+	
         for (int comp = 0; comp < NUM_STATE; comp++)
         {
             if (increment_sync.empty() || increment_sync[comp]==1)
@@ -1086,9 +1091,15 @@ MacProj::mac_sync_compute (int                   level,
 
                 if (do_mom_diff == 1 && comp < BL_SPACEDIM)
                 {
-                        S.mult(S,           bx,           bx,Density,comp,1);
-                  tforces.mult(S,tforces.box(),tforces.box(),Density,comp,1);
+		  rhoS.copy(Smf[Smfi],gbx,comp,gbx,comp,1);
+		  rhoS.mult(Smf[Smfi],gbx,gbx,Density,comp,1);
+		  Sp = &rhoS;
+		  tforces.mult(Smf[Smfi],tforces.box(),tforces.box(),Density,comp,1);
                 }
+		else
+		{
+		  Sp = &Smf[Smfi];
+		}
                 
                 for (int d=0; d<BL_SPACEDIM; ++d){
                   const Box& ebx = amrex::surroundingNodes(bx,d);
@@ -1101,7 +1112,7 @@ MacProj::mac_sync_compute (int                   level,
 #if (BL_SPACEDIM == 3)                            
                                     area[2][i], u_mac_fab2, grad_phi[2], flux[2],
 #endif
-                                    U, S, tforces, divu, comp, temp, sync_ind,
+                                    S, *Sp, tforces, divu, comp, temp, sync_ind,
                                     use_conserv_diff, comp,
                                     ns_level_bc.dataPtr(), FPU, volume[i]);
                 //
@@ -1529,11 +1540,12 @@ MacProj::test_umac_periodic (int       level,
 
             mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
 
-	    // Would need to test this OMP to make sure all is OK
-	    // need to think about pshifts and eDomain, can threads share?
+	    // not sure if tiling here makes sense
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
+// for OMP would need to declare isects, pshifts here (think eDomain is ok, but check)
+//    std::vector< std::pair<int,Box> > isects;
             for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
             {
                 Box eBox = u_mac[dim].boxArray()[mfi.index()];
@@ -1544,8 +1556,6 @@ MacProj::test_umac_periodic (int       level,
                 {
                     eBox += pshifts[iiv];
 
-		    // If loop gets OMP, then need to declare isects here
-		    //    std::vector< std::pair<int,Box> > isects;
                     u_mac[dim].boxArray().intersections(eBox,isects);
 
                     for (int i = 0, N = isects.size(); i < N; i++)

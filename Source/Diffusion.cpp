@@ -2755,6 +2755,9 @@ Diffusion::computeAlpha (MultiFab&       alpha,
     {
         MultiFab& S = navier_stokes->get_data(State_Type,time);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
         {
 	  BL_ASSERT(grids[alphamfi.index()].contains(alphamfi.tilebox())==1);

@@ -938,6 +938,12 @@ NavierStokes::MaxVal (const std::string& name,
         baf.coarsen(fine_ratio);
     }
 
+    //Add and test this OMP
+    //#ifdef _OPENMP
+    //#pragma omp parallel reduction(max:mxval,s)
+    //#endif
+    //{
+
     std::vector< std::pair<int,Box> > isects;
 
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
@@ -964,6 +970,7 @@ NavierStokes::MaxVal (const std::string& name,
 
         mxval = std::max(mxval, s);
     }
+    //} end OMP parallel
 
     ParallelDescriptor::ReduceRealMax(mxval);
 
@@ -1513,7 +1520,6 @@ NavierStokes::mac_sync ()
         // express Q as rho*q and increment sync by -(sync_for_rho)*q
         // (See Pember, et. al., LBNL-41339, Jan. 1989)
         //
-        FArrayBox delta_ssync;
 
         int iconserved = -1;
         for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
@@ -1524,6 +1530,8 @@ NavierStokes::mac_sync ()
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+	      {
+		FArrayBox delta_ssync;
                 for (MFIter Smfi(S_new,true); Smfi.isValid(); ++Smfi)
                 {
 		    const Box& bx = Smfi.tilebox();
@@ -1535,10 +1543,11 @@ NavierStokes::mac_sync ()
                     (*DeltaSsync)[Smfi].copy(delta_ssync,bx,0,bx,iconserved,1);
                     Ssync[Smfi].minus(delta_ssync,bx,0,istate-BL_SPACEDIM,1);
                 }
+		// don't think this is needed as it's going out of scope
+		//delta_ssync.clear();
+	      }
             }
         }
-
-        delta_ssync.clear();
 
         if (do_mom_diff == 1)
         {

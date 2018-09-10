@@ -6,6 +6,10 @@ A. NavierStokesBase
 B. GODUNOV
    - I did not update BDS. I don't think it will work with my tiling updates.
 
+C. Perhaps all loops with box array intersections should be looked at to see if
+   tiling is needed or if OMP alone might be better. some of these got tiled and
+   some did not
+
 My questions:
    1. Should IAMR allow refinement at the outflow boundary? Given that it was not
       working it seems that nobody uses it
@@ -14,6 +18,12 @@ My questions:
       Maybe switch poiseuille to require no refinement at outflow boundary? 
 
 
+Not sure if these should be tiled or if they should take advantage of the fact that
+there's a loop over boxArray interections and just use OMP?
+Even without tiling, there will likely be some boxes that have no overlap, but then some
+boxes have significant overlap (my simple debugging problem w/o tiling saw intersection
+BA sizes of 0 and 4).
+   SyncRegister.cpp:262:      for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
 These work but could perhaps be done a cleaner way, see comments in code
    MacOperator.cpp:106:    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
    MacOperator.cpp:309:    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
@@ -34,7 +44,7 @@ Is fix_mac_sync_rhs, subtract_avg still used/needed?
    MacProj.cpp:571:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
    ! version for closed chamber LMC, Also used if subtract_avg == 1
    ! not tested 
-   MacProj.cpp:780:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)	
+   MacProj.cpp:744:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)	
 
 
 MFIters not tiled (8/20/18): 
@@ -49,8 +59,8 @@ A. Loops requiring thought
    NavierStokesBase.cpp:3328:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
 
    ! Needs some thought because takes cc data and makes edge centered data
-   NavierStokes.cpp:2154:        for (MFIter ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
-   NavierStokes.cpp:2195:        for (MFIter ecMfi(*diffusivity[dir]); ecMfi.isValid(); ++ecMfi)
+   NavierStokes.cpp:2200:        for (MFIter ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
+   NavierStokes.cpp:2241:        for (MFIter ecMfi(*diffusivity[dir]); ecMfi.isValid(); ++ecMfi)
 
 C. Needs new problem setup to test any changes
    ! Would need inflow problem to test next 3
@@ -91,28 +101,29 @@ D. Coarse-fine box intersections.
    ! Depending on box size, tilebox size, and layout of grids, could already be
    ! operating on small enough regions without adding tiling.
    ! Test if tiling a likely win?
-   (Castro does OMP. see Castro.cpp:3425, radiation/MGFLD.cpp:740, Radiation.cpp)
+   (Castro does OMP only. see Castro.cpp:3425, radiation/MGFLD.cpp:740, Radiation.cpp)
    MacProj.cpp:535:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
    MacProj.cpp:735:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-   NavierStokes.cpp:1719:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-   ! Operates on intersection of boxes. Added OMP. Worth tiling?
-   SyncRegister.cpp:259:    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+   NavierStokes.cpp:1759:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+   !In SyncRegister::FineAdd - coarse-fine interaction.
+   ! Works on a narrow box (1 cell wide in one dim).
+   SyncRegister.cpp:315:	    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
 
 
 E. Loops operating on thin bondary regions. 
    ! Already had OMP and good without tiling b/c it already operates on a thin box 
    Projection.cpp:2928:	for (MFIter mfi(msk); mfi.isValid(); ++mfi) 
-   ! Just doing ghost cells per comment in code.  No OMP  
-   MacProj.cpp:1465:            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
+   ! Just doing ghost cells per comment in code. 
+   MacProj.cpp:1474:            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
    !! Tile? already has OMP
    !! call to HOEXTRAPTOCC which fills outside of domain cells according to comments.
    NavierStokesBase.cpp:1154:        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
-   ! 7/25 OMP added
-   ! Narrow boundary box, i think. 
-   Projection.cpp:2405:        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
-   ! 7/25 OMP added
-   ! Specific to outflow. Narrow boundary box
-   Projection.cpp:2116:            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
+   ! No tiling. only for refinement on outflow boundary
+   NavierStokesBase.cpp:2277:	     for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
+   ! Narrow boundary box, although the width is passed in as parameter (which is set = 1 in Projection.cpp)
+   Projection.cpp:2466:        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
+   ! Specific to outflow. Narrow boundary box, but width is passed in as parameter (which is set = 1 in Projection.cpp)
+   Projection.cpp:2175:            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
    ! setPhysBoundaryValues
    Projection.cpp:264:    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
    Projection.cpp:941:            for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
@@ -122,15 +133,4 @@ E. Loops operating on thin bondary regions.
    Projection.cpp:1285:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
    Projection.cpp:1344:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
    ! This operates on a thin box (1 cell wide in one dim)
-   SyncRegister.cpp:79:            for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
-   !In SyncRegister::FineAdd - coarse-fine interaction.
-   ! Works on a narrow box (1 cell wide in one dim).
-   SyncRegister.cpp:313:	    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
-
-
-
-
-
-
-
-
+   SyncRegister.cpp:76:            for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
