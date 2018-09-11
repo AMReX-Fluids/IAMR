@@ -767,7 +767,7 @@ Diffusion::diffuse_scalar_fj  (const Vector<MultiFab*>&  S_old,
         MultiFab Rho_new_fine(*Rho_new[0], amrex::make_alias, Rho_comp, 1);
         MultiFab *S_old_crse, *S_new_crse, *Rho_old_crse, *Rho_new_crse, *Alpha, *Rhs;
 
-        const IntVect ng = {1, 1, 1};
+        const IntVect ng = {D_DECL(1, 1, 1)};
         BL_ASSERT(S_old_fine.nGrow() >= 1 && S_new_fine.nGrow() >= 1);
         fj.reg_mf(S_old_fine,  "S_old_fine",  ForkJoin::Strategy::split,    ForkJoin::Intent::in,    ng);
         fj.reg_mf(S_new_fine,  "S_new_fine",  ForkJoin::Strategy::split,    ForkJoin::Intent::inout, ng);
@@ -1126,7 +1126,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                     const Box& bx   = Rhsmfi.tilebox();
 
                     const Box& rbx  = Rhs[Rhsmfi].box();
-                    const Box& sbx  = S_old[Rhsmfi].box();
+                    const Box& sbx  = (*S_old[0])[Rhsmfi].box();
                     const Box& vbox = volume[Rhsmfi].box();
  
                     rcen.resize(bx.length(0));
@@ -1139,7 +1139,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                     const int*  slo     = sbx.loVect();
                     const int*  shi     = sbx.hiVect();
                     Real*       rhs     = Rhs[Rhsmfi].dataPtr();
-                    const Real* sdat    = S_old[Rhsmfi].dataPtr(sigma);
+                    const Real* sdat    = (*S_old[0])[Rhsmfi].dataPtr(sigma);
                     const Real* rcendat = rcen.dataPtr();
                     const Real  coeff   = (1.0-be_cn_theta)*visc_coef[visc_coef_comp+icomp]*dt;
                     const Real* voli    = volume[Rhsmfi].dataPtr();
