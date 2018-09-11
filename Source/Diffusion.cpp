@@ -1191,51 +1191,17 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
         if (use_mlmg_solver)
         {
-
-          // LPInfo infonp1;
-          // infon.setMetricTerm(false);
-          // MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
-          // opnp1.setMaxOrder(max_order);
-
-          // MLMG mgnp1(opnp1);
-          // if (use_hypre) {
-          //   mgnp1.setBottomSolver(MLMG::BottomSolver::hypre);
-          //   mgnp1.setBottomVerbose(hypre_verbose);
-          // }
-          // mgnp1.setMaxFmgIter(max_fmg_iter);
-          // mgnp1.setVerbose(verbose);
-
-          // setDomainBC_msd(mlmg_lobc, mlmg_hibc, bc); // Same for all comps, by assumption
-          // opnp1.setDomainBC(mlmg_lobc, mlmg_hibc);
-
-          bool dump_solver_input = sigma==25;
-
-          std::string mgfile;
-          if (dump_solver_input) {            
-            ParmParse pp("marc");
-            pp.get("mgfile",mgfile);
-            if (ParallelDescriptor::IOProcessor())
-              if (!amrex::UtilCreateDirectory(mgfile, 0755))
-                amrex::CreateDirectoryFailed(mgfile);
-          }
-
           {
                 if (has_coarse_data) {
                     MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
                     if (rho_flag == 2) {
                         MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
                     }
-                    if (dump_solver_input) {            
-                      VisMF::Write(*Solnc,mgfile+"/Solncbc");
-                    }
                     opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
                 }
                 MultiFab::Copy(Soln,*S_new[0],sigma,0,1,ng);
                 if (rho_flag == 2) {
                     MultiFab::Divide(Soln,*Rho_new[0],Rho_comp,0,1,ng);
-                }
-                if (dump_solver_input) {            
-                  VisMF::Write(Soln,mgfile+"/Solnbc");
                 }
                 opnp1.setLevelBC(0, &Soln);
             }
@@ -1246,44 +1212,18 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                                  &rhsscale, alpha_in, alpha_in_comp+icomp, Rho_new[0], Rho_comp,
                                  geom, volume, add_hoop_stress);
                 opnp1.setScalars(scalars.first, scalars.second);
-                if (dump_solver_input) {            
-                  VisMF::Write(alpha,mgfile+"/alpha");
-                  std::ofstream ofs(std::string(mgfile+"/scalars.txt").c_str());
-                  if (ParallelDescriptor::IOProcessor()) {
-                    ofs << "first: " << scalars.first << std::endl;
-                    ofs << "second: " << scalars.second << std::endl;
-                  }
-                }
                 opnp1.setACoeffs(0, alpha);
             }
         
             {
                 computeBeta_msd(bcoeffs, betanp1, betaComp+icomp, geom, area);
                 opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
-                if (dump_solver_input) {
-                  for (int d=0; d<BL_SPACEDIM; ++d) {
-                    VisMF::Write(bcoeffs[d],Concatenate(mgfile+"/beta_",d,1));
-                  }
-                }
             }
             Rhs.mult(rhsscale,0,1);
             const Real S_tol     = visc_tol;
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
-            if (dump_solver_input) {
-              VisMF::Write(Soln,mgfile+"/Solnic");
-              VisMF::Write(Rhs,mgfile+"/Rhs");
-              std::ofstream ofs(std::string(mgfile+"/tol.txt").c_str());
-              if (ParallelDescriptor::IOProcessor()) {
-                ofs << "first: " << S_tol << std::endl;
-                ofs << "second: " << S_tol_abs << std::endl;
-              }
-            }
             mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
-
-            if (dump_solver_input) {
-              VisMF::Write(Soln,mgfile+"/SolnAns");
-            }
 
             AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
                          MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
