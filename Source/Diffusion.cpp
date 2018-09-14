@@ -65,7 +65,6 @@ int         Diffusion::tensor_max_order;
 int         Diffusion::use_tensor_cg_solve;
 bool        Diffusion::use_mg_precond_flag;
 int         Diffusion::use_mlmg_solver = 0;
-int         Diffusion::n_forkjoin_tasks = 1;
 
 Vector<Real> Diffusion::visc_coef;
 Vector<int>  Diffusion::is_diffusive;
@@ -112,7 +111,6 @@ Diffusion::Diffusion (Amr*               Parent,
         Diffusion::tensor_max_order    = 2;
         Diffusion::use_tensor_cg_solve = 0;
         Diffusion::use_mg_precond_flag = false;
-        Diffusion::n_forkjoin_tasks    = 1;
 
         int use_mg_precond = 0;
 
@@ -134,7 +132,6 @@ Diffusion::Diffusion (Amr*               Parent,
         ppdiff.query("use_hypre", use_hypre);
         ppdiff.query("hypre_verbose", hypre_verbose);
 #endif
-        ppdiff.query("n_forkjoin_tasks",n_forkjoin_tasks);
 
         use_mg_precond_flag = (use_mg_precond ? true : false);
 
@@ -217,7 +214,6 @@ Diffusion::echo_settings () const
         amrex::Print() << "   max_order           = " << max_order           << '\n';
         amrex::Print() << "   tensor_max_order    = " << tensor_max_order    << '\n';
         amrex::Print() << "   scale_abec          = " << scale_abec          << '\n';
-        amrex::Print() << "   n_forkjoin_tasks    = " << n_forkjoin_tasks    << '\n';
     
         amrex::Print() << "\n\n  From ns:\n";
         amrex::Print() << "   do_reflux           = " << do_reflux << '\n';
@@ -597,266 +593,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     }
 }
 
-static
-Vector<const MultiFab *>
-GetVecOfPtrs(const MultiFab* const* a, int scomp, int ncomp)
-{
-    Vector<const MultiFab*> r;
-    r.reserve(AMREX_SPACEDIM);
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        r.push_back(new MultiFab(*a[d], amrex::make_alias, scomp, ncomp));
-    }
-    return r;
-}
-
-static
-Vector<MultiFab *>
-GetVecOfPtrs(MultiFab* const* a, int scomp, int ncomp)
-{
-    Vector<MultiFab*> r;
-    r.reserve(AMREX_SPACEDIM);
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        r.push_back(new MultiFab(*a[d], amrex::make_alias, scomp, ncomp));
-    }
-    return r;
-}
-
-void
-diffusionFJDriver(ForkJoin&                   fj,
-                  Real                        prev_time,
-                  Real                        curr_time,
-                  Real                        be_cn_theta,
-                  int                         rho_flag,
-                  const Vector<Real>&         visc_coef,
-                  int                         visc_coef_comp,
-                  const IntVect&              cratio,
-                  const BCRec&                bc,
-                  const Geometry&             geom,
-                  bool                        add_hoop_stress,
-                  const Diffusion::SolveMode& solve_mode,
-                  bool                        add_old_time_divFlux,
-                  const amrex::Vector<int>&   is_diffusive,
-                  bool                        has_coarse_data,
-                  bool                        has_delta_rhs,
-                  bool                        has_alpha_in,
-                  bool                        has_betan,
-                  bool                        has_betanp1)
-{
-    int S_comp=0, Rho_comp=0, fluxComp=0, rhsComp=0, alpha_in_comp=0, betaComp=0, visc_comp_shifted=0;
-    
-    int nlev = (has_coarse_data ? 2 : 1);
-
-    Vector<MultiFab*> S_old(nlev,0), S_new(nlev,0), Rho_old(nlev,0), Rho_new(nlev,0);
-
-    S_old[0] = &(fj.get_mf("S_old_fine"));
-    S_new[0] = &(fj.get_mf("S_new_fine"));
-    if (nlev>1) {
-        S_old[1] = &(fj.get_mf("S_old_crse"));
-        S_new[1] = &(fj.get_mf("S_new_fine"));
-    }
-    int num_comp = S_old[0]->nComp();
-
-    if (rho_flag == 2) {
-        Rho_old[0] = &(fj.get_mf("Rho_old_fine"));
-        Rho_new[0] = &(fj.get_mf("Rho_new_fine"));
-        if (nlev>1) {
-            Rho_old[1] = &(fj.get_mf("Rho_old_crse"));
-            Rho_new[1] = &(fj.get_mf("Rho_new_fine"));
-        }
-    }
-
-    const ForkJoin::ComponentSet compSet = fj.ComponentBounds("S_old_fine");
-    int vStart = visc_coef_comp + compSet.lo;
-    Vector<Real> visc_coef_shifted(&visc_coef[vStart],&visc_coef[vStart+num_comp]);
-
-    MultiFab *rho_half, *delta_rhs=0, *alpha_in=0;
-    if (rho_flag == 1) {
-        rho_half = &(fj.get_mf("rho_half"));
-    }
-
-    Vector<MultiFab *> fluxn   = fj.get_mf_vec("fluxn");
-    Vector<MultiFab *> fluxnp1 = fj.get_mf_vec("fluxnp1");
-
-    if (has_delta_rhs) {
-        delta_rhs = &(fj.get_mf("delta_rhs"));
-    }
-
-    if (has_alpha_in) {
-        alpha_in = &(fj.get_mf("alpha_in"));
-    }
-
-    Vector<MultiFab *> betan(AMREX_SPACEDIM,0), betanp1(AMREX_SPACEDIM,0);
-    if (has_betan) {
-        betan   = fj.get_mf_vec("betan");  
-    }
-    if (has_betanp1) {
-        betanp1 = fj.get_mf_vec("betanp1");
-    }
-
-    MultiFab& volume = fj.get_mf("volume");
-    Vector<MultiFab *> area = fj.get_mf_vec("area");
-
-    Diffusion::diffuse_scalar_msd (S_old,Rho_old,S_new,Rho_new,S_comp,num_comp,Rho_comp,
-                                   prev_time,curr_time,be_cn_theta,*rho_half,rho_flag,
-                                   &(fluxn[0]),&(fluxnp1[0]),fluxComp,delta_rhs,rhsComp,
-                                   alpha_in,alpha_in_comp,&(betan[0]),&(betanp1[0]),betaComp,
-                                   visc_coef_shifted,visc_comp_shifted,
-                                   volume,&(area[0]),cratio,bc,geom,add_hoop_stress,
-                                   solve_mode,add_old_time_divFlux,is_diffusive);
-}
-
-void
-Diffusion::diffuse_scalar_fj  (const Vector<MultiFab*>&  S_old,
-                               const Vector<MultiFab*>&  Rho_old,
-                               Vector<MultiFab*>&        S_new,
-                               const Vector<MultiFab*>&  Rho_new,
-                               int                       S_comp,
-                               int                       num_comp,
-                               int                       Rho_comp,
-                               Real                      prev_time,
-                               Real                      curr_time,
-                               Real                      be_cn_theta,
-                               const MultiFab&           rho_half,
-                               int                       rho_flag,
-                               MultiFab* const*          fluxn,
-                               MultiFab* const*          fluxnp1,
-                               int                       fluxComp,
-                               MultiFab*                 delta_rhs, 
-                               int                       rhsComp,
-                               const MultiFab*           alpha_in, 
-                               int                       alpha_in_comp,
-                               const MultiFab* const*    betan, 
-                               const MultiFab* const*    betanp1,
-                               int                       betaComp,
-                               const Vector<Real>&       visc_coef,
-                               int                       visc_coef_comp,
-                               const MultiFab&           volume,
-                               const MultiFab* const*    area,
-                               const IntVect&            cratio,
-                               const BCRec&              bc,
-                               const Geometry&           geom,
-                               bool                      add_hoop_stress,
-                               const SolveMode&          solve_mode,
-                               bool                      add_old_time_divFlux,
-                               const amrex::Vector<int>& is_diffusive)
-{
-    int n_procs = ParallelDescriptor::NProcs();
-    int n_tasks_suggest = std::min(num_comp,n_procs);
-    int n_tasks = std::min(std::max(1,n_forkjoin_tasks),n_tasks_suggest);
-
-    if (n_tasks == 1)
-    {
-        diffuse_scalar_msd(S_old,Rho_old,S_new,Rho_new,S_comp,num_comp,Rho_comp,
-                           prev_time,curr_time,be_cn_theta,rho_half,rho_flag,
-                           fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,
-                           alpha_in,alpha_in_comp,betan,betanp1,betaComp,
-                           visc_coef,visc_coef_comp,
-                           volume,area,cratio,bc,geom,add_hoop_stress,
-                           solve_mode,add_old_time_divFlux,is_diffusive);
-    }
-    else
-    {
-        Print() << "Diffusion: using " << n_tasks << " fork-join tasks for "
-                << num_comp << " diffusion calls (on a total of " << n_procs << " ranks)" << std::endl;
-
-        ForkJoin fj(n_tasks);
-
-        MultiFab S_old_fine(*S_old[0], amrex::make_alias, S_comp, num_comp);
-        MultiFab S_new_fine(*S_new[0], amrex::make_alias, S_comp, num_comp);
-        MultiFab Rho_old_fine(*Rho_old[0], amrex::make_alias, Rho_comp, 1);
-        MultiFab Rho_new_fine(*Rho_new[0], amrex::make_alias, Rho_comp, 1);
-        MultiFab *S_old_crse, *S_new_crse, *Rho_old_crse, *Rho_new_crse, *Alpha, *Rhs;
-
-        const IntVect ng = {D_DECL(1, 1, 1)};
-        BL_ASSERT(S_old_fine.nGrow() >= 1 && S_new_fine.nGrow() >= 1);
-        fj.reg_mf(S_old_fine,  "S_old_fine",  ForkJoin::Strategy::split,    ForkJoin::Intent::in,    ng);
-        fj.reg_mf(S_new_fine,  "S_new_fine",  ForkJoin::Strategy::split,    ForkJoin::Intent::inout, ng);
-        if (rho_flag == 2) {
-            BL_ASSERT(Rho_old_fine.nGrow() >= 1 && Rho_new_fine.nGrow() >= 1);
-            fj.reg_mf(Rho_old_fine,"Rho_old_fine",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in, ng);
-            fj.reg_mf(Rho_new_fine,"Rho_new_fine",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in, ng);
-        }
-
-        bool has_coarse_data = S_old.size() > 1;
-        if (has_coarse_data) {
-            S_old_crse = new MultiFab(*S_old[1], amrex::make_alias, S_comp, num_comp);
-            S_new_crse = new MultiFab(*S_new[1], amrex::make_alias, S_comp, num_comp);
-            BL_ASSERT(S_old_crse->nGrow() >= 1 && S_new_crse->nGrow() >= 1);
-            fj.reg_mf(*S_old_crse,  "S_old_crse",  ForkJoin::Strategy::split,    ForkJoin::Intent::in, ng);
-            fj.reg_mf(*S_new_crse,  "S_new_crse",  ForkJoin::Strategy::split,    ForkJoin::Intent::in, ng);
-            if (rho_flag == 2) {
-                Rho_old_crse = new MultiFab(*Rho_old[1], amrex::make_alias, Rho_comp, 1);
-                Rho_new_crse = new MultiFab(*Rho_new[1], amrex::make_alias, Rho_comp, 1);
-                BL_ASSERT(Rho_old_crse->nGrow() >= 1 && Rho_new_crse->nGrow() >= 1);
-                fj.reg_mf(*Rho_old_crse,"Rho_old_crse",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in, ng);
-                fj.reg_mf(*Rho_new_crse,"Rho_new_crse",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in, ng);
-            }
-        }
-
-        if (rho_flag == 1) {
-            fj.reg_mf(rho_half,"rho_half",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in);
-        }
-
-        fj.reg_mf_vec(GetVecOfPtrs(fluxn  ,fluxComp,num_comp),"fluxn",  ForkJoin::Strategy::split,ForkJoin::Intent::inout);
-        fj.reg_mf_vec(GetVecOfPtrs(fluxnp1,fluxComp,num_comp),"fluxnp1",ForkJoin::Strategy::split,ForkJoin::Intent::inout);
-
-        bool has_delta_rhs = false;
-        if (delta_rhs != 0) {
-            BL_ASSERT(delta_rhs->nComp() >= rhsComp + num_comp);
-            Rhs = new MultiFab(*delta_rhs, amrex::make_alias, rhsComp, num_comp);
-            fj.reg_mf(*Rhs,"delta_rhs",ForkJoin::Strategy::split,ForkJoin::Intent::in);
-            has_delta_rhs = true;
-        }
-
-        bool has_alpha_in = false;
-        if (alpha_in != 0) {
-            BL_ASSERT(alpha_in->nComp() >= alpha_in_comp + num_comp);
-            Alpha = new MultiFab(*alpha_in, amrex::make_alias, alpha_in_comp, num_comp);
-            fj.reg_mf(*Alpha,"alpha_in",ForkJoin::Strategy::split,ForkJoin::Intent::in);
-            has_alpha_in = true;
-        }
-
-        int allnull, allthere;
-        checkBeta(betan,   allthere, allnull);
-        bool has_betan = false;
-        if (allthere) {
-            fj.reg_mf_vec(GetVecOfPtrs(betan,  betaComp,num_comp),"betan",  ForkJoin::Strategy::split,ForkJoin::Intent::in);
-            has_betan = true;
-        }
-
-        checkBeta(betanp1, allthere, allnull);
-        bool has_betanp1 = false;
-        if (allthere) {
-            fj.reg_mf_vec(GetVecOfPtrs(betanp1,betaComp,num_comp),"betanp1",ForkJoin::Strategy::split,ForkJoin::Intent::in);
-            has_betanp1 = true;
-        }
-
-        fj.reg_mf(volume,"volume",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in);
-        fj.reg_mf_vec(GetVecOfPtrs(area,0,1),"area",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in);
-
-        fj.fork_join(
-            [=,&bc,&geom,&visc_coef] (ForkJoin &f)
-            {
-                diffusionFJDriver(f,
-                                  prev_time,
-                                  curr_time,
-                                  be_cn_theta,
-                                  rho_flag,
-                                  visc_coef,
-                                  visc_coef_comp,
-                                  cratio,
-                                  bc,
-                                  geom,
-                                  add_hoop_stress,
-                                  solve_mode,
-                                  add_old_time_divFlux,
-                                  is_diffusive,
-                                  has_coarse_data, has_delta_rhs, has_alpha_in, has_betan, has_betanp1);
-            }
-            );
-    }
-}
-
 void
 Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                                const Vector<MultiFab*>&  Rho_old,
@@ -1191,7 +927,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
         if (use_mlmg_solver)
         {
-          {
+            {
                 if (has_coarse_data) {
                     MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
                     if (rho_flag == 2) {
@@ -1262,7 +998,6 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
             MultiGrid mg(*visc_op);
-
             mg.solve(Soln,Rhs,S_tol,S_tol_abs);
 
             //

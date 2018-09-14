@@ -25,8 +25,6 @@
 #include <AMReX_MCMultiGrid.H>
 #include <AMReX_MCCGSolver.H>
 
-#include <AMReX_ForkJoin.H>
-
 
 //
 // Useful enumeration of the different forms of the diffusion terms
@@ -78,41 +76,6 @@ public:
 			 const SolveMode&       solve_mode = ONEPASS,
                          bool                   add_old_time_divFlux = true);
     
-
-    void diffuse_scalar_fj  (const amrex::Vector<amrex::MultiFab*>& S_old,
-                             const amrex::Vector<amrex::MultiFab*>& Rho_old,
-                             amrex::Vector<amrex::MultiFab*>&       S_new,
-                             const amrex::Vector<amrex::MultiFab*>& Rho_new,
-                             int                                    S_comp,
-                             int                                    num_comp,
-                             int                                    Rho_comp,
-                             amrex::Real                            prev_time,
-                             amrex::Real                            curr_time,
-                             amrex::Real                            be_cn_theta,
-                             const amrex::MultiFab&                 rho_half,
-                             int                                    rho_flag,
-                             amrex::MultiFab* const*                fluxn,
-                             amrex::MultiFab* const*                fluxnp1,
-                             int                                    fluxComp,
-                             amrex::MultiFab*                       delta_rhs, 
-                             int                                    rhsComp,
-                             const amrex::MultiFab*                 alpha, 
-                             int                                    alphaComp,
-                             const amrex::MultiFab* const*          betan, 
-                             const amrex::MultiFab* const*          betanp1,
-                             int                                    betaComp,
-                             const amrex::Vector<amrex::Real>&      visc_coef,
-                             int                                    visc_coef_comp,
-                             const amrex::MultiFab&                 volume,
-                             const amrex::MultiFab* const*          area,
-                             const amrex::IntVect&                  cratio,
-                             const amrex::BCRec&                    bc,
-                             const amrex::Geometry&                 geom,
-                             bool                                   add_hoop_stress,
-                             const SolveMode&                       solve_mode = ONEPASS,
-                             bool                                   add_old_time_divFlux = true,
-                             const amrex::Vector<int>&              is_diffusive = amrex::Vector<int>());
-
     static void diffuse_scalar_msd (const amrex::Vector<amrex::MultiFab*>& S_old,
                              const amrex::Vector<amrex::MultiFab*>& Rho_old,
                              amrex::Vector<amrex::MultiFab*>&       S_new,
@@ -473,7 +436,6 @@ protected:
     static amrex::Vector<amrex::Real> visc_coef;       // Const coef viscosity terms
     static int         verbose;
     static amrex::Real        visc_tol;
-    static int         n_forkjoin_tasks;
 
 private:
     //
