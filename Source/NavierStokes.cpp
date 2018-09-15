@@ -617,9 +617,9 @@ NavierStokes::scalar_advection (Real dt,
 
         godunov->AdvectScalars(bx, dx, dt, 
                                D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
-                               D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                               D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+                               D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]), 0,
+                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                               D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0,
                                Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
                                (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
 
@@ -771,12 +771,17 @@ NavierStokes::scalar_diffusion_update (Real dt,
       const int visc_coef_comp = sigma;
       const int Rho_comp = Density;
       const int bc_comp  = sigma;
-            
+
+      const MultiFab *a[AMREX_SPACEDIM];
+      for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        a[d] = &(area[d]);
+      }
+
       diffusion->diffuse_scalar_msd(Sn, Sn, Snp1, Snp1, sigma, 1, Rho_comp,
                                   prev_time,curr_time,be_cn_theta,Rh,rho_flag,
                                   fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,alpha,alphaComp,
                                   cmp_diffn,cmp_diffnp1,betaComp,
-                                  visc_coef,visc_coef_comp,volume,area,crse_ratio,theBCs[bc_comp],geom,
+                                  visc_coef,visc_coef_comp,volume,a,crse_ratio,theBCs[bc_comp],geom,
                                   add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp);
     
     //
