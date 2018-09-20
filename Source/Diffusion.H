@@ -197,28 +197,27 @@ public:
                               bool		     bndry_already_filled = false);
 
     static amrex::ABecLaplacian* getViscOp_msd (amrex::Real            a,
-                                         amrex::Real            b,
-                                         amrex::Real            time,
-                                         ViscBndry&             visc_bndry,
-                                         const amrex::Vector<amrex::MultiFab*>& S,
-                                         int                    S_comp,
-                                         const amrex::Vector<amrex::MultiFab*>& Rho,
-                                         int                    Rho_comp,
-                                         const amrex::MultiFab& rho_half,
-                                         int                    rho_flag, 
-                                         amrex::Real*           rhsscale,
-                                         const amrex::MultiFab* const* beta,
-                                         int                    betaComp,
-                                         const amrex::MultiFab* alpha_in,
-                                         int                    alpha_in_comp,
-                                         amrex::MultiFab&       alpha,
-                                         std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                                         const amrex::BCRec&    bc,
-                                         const amrex::IntVect&  crat,
-                                         const amrex::Geometry& geom,
-                                         const amrex::MultiFab& volume,
-                                         const amrex::MultiFab* const* area,
-                                         bool                   use_hoop_stress);
+                                                amrex::Real            b,
+                                                ViscBndry&             visc_bndry,
+                                                const amrex::Vector<amrex::MultiFab*>& S,
+                                                int                    S_comp,
+                                                const amrex::Vector<amrex::MultiFab*>& Rho,
+                                                int                    Rho_comp,
+                                                const amrex::MultiFab& rho_half,
+                                                int                    rho_flag, 
+                                                amrex::Real*           rhsscale,
+                                                const amrex::MultiFab* const* beta,
+                                                int                    betaComp,
+                                                const amrex::MultiFab* alpha_in,
+                                                int                    alpha_in_comp,
+                                                amrex::MultiFab&       alpha,
+                                                std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                                                const amrex::BCRec&    bc,
+                                                const amrex::IntVect&  crat,
+                                                const amrex::Geometry& geom,
+                                                const amrex::MultiFab& volume,
+                                                const amrex::MultiFab* const* area,
+                                                bool                   use_hoop_stress);
 
     amrex::ABecLaplacian* getViscOp (int                    src_comp,
                               amrex::Real                   a,
@@ -245,7 +244,6 @@ public:
     static void setAlpha_msd (amrex::ABecLaplacian*  visc_op,
                        amrex::Real            a,
                        amrex::Real            b, 
-                       amrex::Real            time,
                        const amrex::MultiFab& rho_half,
                        int                    rho_flag,
                        amrex::Real*           rhsscale,
@@ -362,6 +360,31 @@ public:
                          const int                   sComp,
                          const int                   nComp);
 
+    static void setDomainBC_msd (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
+                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
+                          const amrex::BCRec& bc);
+
+    static void computeAlpha_msd (amrex::MultiFab&       alpha,
+                                  std::pair<amrex::Real,amrex::Real>& scalars,
+                                  amrex::Real            a,
+                                  amrex::Real            b,
+                                  const amrex::MultiFab& rho_half,
+                                  int                    rho_flag, 
+                                  amrex::Real*           rhsscale,
+                                  const amrex::MultiFab* alpha_in,
+                                  int                    alpha_in_comp,
+                                  const amrex::MultiFab* rho,
+                                  int                    rho_comp,
+                                  const amrex::Geometry& geom,
+                                  const amrex::MultiFab& volume,
+                                  bool                   use_hoop_stress);
+    
+    static void computeBeta_msd (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                          const amrex::MultiFab* const* beta,
+                          int                    betaComp,
+                          const amrex::Geometry& geom,
+                          const amrex::MultiFab* const* area);
+
 protected:
 
     void getTensorOp_doit (amrex::DivVis*                tensor_op,
@@ -375,10 +398,6 @@ protected:
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
 
-    static void setDomainBC_msd (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
-                          const amrex::BCRec& bc);
-
     void computeAlpha (amrex::MultiFab&       alpha,
                        std::pair<amrex::Real,amrex::Real>& scalars,
                        int                    comp,
@@ -391,30 +410,8 @@ protected:
                        int                    dataComp,
                        const amrex::MultiFab* alpha_in);
 
-    static void computeAlpha_msd (amrex::MultiFab&       alpha,
-                                  std::pair<amrex::Real,amrex::Real>& scalars,
-                                  amrex::Real            a,
-                                  amrex::Real            b,
-                                  amrex::Real            time,
-                                  const amrex::MultiFab& rho_half,
-                                  int                    rho_flag, 
-                                  amrex::Real*           rhsscale,
-                                  const amrex::MultiFab* alpha_in,
-                                  int                    alpha_in_comp,
-                                  const amrex::MultiFab* rho,
-                                  int                    rho_comp,
-                                  const amrex::Geometry& geom,
-                                  const amrex::MultiFab& volume,
-                                  bool                   use_hoop_stress);
-    
     void computeBeta (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
                       const amrex::MultiFab* const* beta, int betaComp);
-
-    static void computeBeta_msd (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                          const amrex::MultiFab* const* beta,
-                          int                    betaComp,
-                          const amrex::Geometry& geom,
-                          const amrex::MultiFab* const* area);
 
     static void Finalize ();
     //

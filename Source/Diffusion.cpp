@@ -739,7 +739,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 {
                     Real* rhsscale = 0;
                     std::pair<Real,Real> scalars;
-                    computeAlpha_msd(alpha, scalars, a, b, prev_time, rho_half, rho_flag,
+                    computeAlpha_msd(alpha, scalars, a, b, rho_half, rho_flag,
                                      rhsscale, alpha_in, alpha_in_comp+icomp, Rho_old[0], Rho_comp,
                                      geom, volume, add_hoop_stress);
                     opn.setScalars(scalars.first, scalars.second);
@@ -763,7 +763,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             {
                 ViscBndry visc_bndry_0(ba,dm,1,geom);
                 std::unique_ptr<ABecLaplacian> visc_op
-                    (getViscOp_msd(a,b,prev_time,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
+                    (getViscOp_msd(a,b,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
                                    rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
                                    alpha,bcoeffs,bc,cratio,geom,volume,area,add_hoop_stress));
                 visc_op->maxOrder(max_order);
@@ -944,7 +944,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
             {
                 std::pair<Real,Real> scalars;
-                computeAlpha_msd(alpha, scalars, a, b, curr_time, rho_half, rho_flag,
+                computeAlpha_msd(alpha, scalars, a, b, rho_half, rho_flag,
                                  &rhsscale, alpha_in, alpha_in_comp+icomp, Rho_new[0], Rho_comp,
                                  geom, volume, add_hoop_stress);
                 opnp1.setScalars(scalars.first, scalars.second);
@@ -971,7 +971,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
         {
             ViscBndry visc_bndry(ba,dm,1,geom);
             std::unique_ptr<ABecLaplacian> visc_op
-                (getViscOp_msd(a,b,curr_time,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
+                (getViscOp_msd(a,b,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
                                betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bc,
                                cratio,geom,volume,area,add_hoop_stress));
 
@@ -2243,7 +2243,6 @@ Diffusion::getBndryDataGivenS_msd (ViscBndry&               bndry,
 ABecLaplacian*
 Diffusion::getViscOp_msd (Real                                 a,
                           Real                                 b,
-                          Real                                 time,
                           ViscBndry&                           visc_bndry,
                           const Vector<MultiFab*>&             S,
                           int                                  S_comp,
@@ -2271,7 +2270,7 @@ Diffusion::getViscOp_msd (Real                                 a,
 
     visc_op->maxOrder(max_order);
 
-    setAlpha_msd(visc_op,a,b,time,rho_half,rho_flag,rhsscale,alpha_in,alpha_in_comp,
+    setAlpha_msd(visc_op,a,b,rho_half,rho_flag,rhsscale,alpha_in,alpha_in_comp,
                  Rho[0],Rho_comp,alpha,geom,volume,use_hoop_stress);
 
     setBeta_msd(visc_op,beta,betaComp,bcoeffs,geom,area);
@@ -2341,7 +2340,6 @@ void
 Diffusion::setAlpha_msd (ABecLaplacian*  visc_op,
                          Real            a,
                          Real            b,
-                         Real            time,
                          const MultiFab& rho_half,
                          int             rho_flag, 
                          Real*           rhsscale,
@@ -2357,7 +2355,7 @@ Diffusion::setAlpha_msd (ABecLaplacian*  visc_op,
     BL_ASSERT(visc_op != 0);
 
     std::pair<Real,Real> scalars;
-    computeAlpha_msd(alpha, scalars, a, b, time, rho_half, rho_flag, rhsscale, alpha_in, alpha_in_comp,
+    computeAlpha_msd(alpha, scalars, a, b, rho_half, rho_flag, rhsscale, alpha_in, alpha_in_comp,
                      rho, rho_comp, geom, volume, use_hoop_stress);
 
     visc_op->setScalars(scalars.first, scalars.second);
@@ -2472,7 +2470,6 @@ Diffusion::computeAlpha_msd (MultiFab&       alpha,
                              std::pair<Real,Real>& scalars,
                              Real            a,
                              Real            b,
-                             Real            time,
                              const MultiFab& rho_half,
                              int             rho_flag, 
                              Real*           rhsscale,
@@ -2530,23 +2527,13 @@ Diffusion::computeAlpha_msd (MultiFab&       alpha,
 
     if (rho_flag == 2 || rho_flag == 3)
     {
-	for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
-        {
-          alpha[alphamfi].mult((*rho)[alphamfi],alphamfi.tilebox(),rho_comp,0,1);
-        }
+        MultiFab::Multiply(alpha,*rho,rho_comp,0,1,0);
     }
 
     if (alpha_in != 0)
     {
         BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
-        {
-            alpha[alphamfi].mult((*alpha_in)[alphamfi],alphamfi.tilebox(),alpha_in_comp,0,1);
-        }
+        MultiFab::Multiply(alpha,*alpha_in,alpha_in_comp,0,1,0);
     }
 
     if (rhsscale != 0)
