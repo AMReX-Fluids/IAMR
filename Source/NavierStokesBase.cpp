@@ -2274,6 +2274,15 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 Box outflowBox = amrex::adjCell(crse_domain,outFace,grid_tol);
 
                 outflowBox.shift(oDir,mult*grid_tol);
+
+		//FIXME debugging
+		Print()<<"outflow box "<<outflowBox<<"\n";
+		Print()<<"geom domain "<<geom.Domain()<<"\n";
+		for (MFIter tbi(tags); tbi.isValid(); ++tbi){
+		  Print()<<"tags box "<<tags[tbi].box()<<"\n";
+		}
+		ParallelDescriptor::Barrier();
+		Abort();
                 //
                 // Only refine if there are already tagged cells in the outflow
                 // region
