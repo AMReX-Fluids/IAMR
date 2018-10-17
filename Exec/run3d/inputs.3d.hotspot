@@ -4,6 +4,7 @@
 #*******************************************************************************
 
 proj.use_mlmg_solver = 1
+mac.use_mlmg_solver = 1
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
@@ -20,6 +21,10 @@ stop_time 		= 1.0
 ns.do_tracer_ref = 0
 ns.do_vorticity_ref = 0
 ns.do_temp_ref = 1
+
+# allow refinement at outflow boundary
+ns.do_refine_outflow = 1
+ns.do_derefine_outflow = 0
 
 #*******************************************************************************
 
@@ -113,10 +118,10 @@ geometry.is_periodic =  0 0 0
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 4 4 4
+ns.lo_bc             = 5 5 2
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             = 4 4 4
+ns.hi_bc             = 5 5 5
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
