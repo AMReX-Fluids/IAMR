@@ -1251,7 +1251,7 @@ NavierStokesBase::estTimeStep ()
     getGradP(Gp, cur_pres_time);
 
     //FIXME? find a better solution for umax? gcc 5.4, OMP reduction does not take arrays
-    Real umax_x,umax_y,umax_z;
+    Real umax_x=-1.e200,umax_y=-1.e200,umax_z=-1.e200;
 #ifdef _OPENMP
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:estdt) reduction(max:umax_x,umax_y,umax_z)
 #endif
