@@ -2283,41 +2283,9 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
                     if (tags[tbi].numTags(outflowBox) > 0)
                         hasTags = true;
-
-		//FIXME debugging
-		Print()<<"...manual tags placement...\n";
-		Print()<<"LEVEL "<<level<<"\n";
-		Print()<<"outflow box "<<outflowBox<<"\n";
-		Print()<<"geom domain "<<geom.Domain()<<"\n";
-		Print()<<"tags size "<<tags.size()<<"\n";
-		ParallelDescriptor::Barrier();
-		for (MFIter tbi(tags); tbi.isValid(); ++tbi){
-		  AllPrint()<<ParallelDescriptor::MyProc()<<" tags box "<<tbi.index()<<tags[tbi].box()<<"\n";
-		}
-		ParallelDescriptor::Barrier();
-
+		ParallelAllReduce::Or(hasTags, ParallelContext::CommunicatorSub());
                 if (hasTags)
                     tags.setVal(BoxArray(&outflowBox,1),TagBox::SET);
-
-		//FIXME debugging - see what's in tags at my point
-		IntVect mypt2 {25,29,0};
-		IntVect mypt3 {12,14,0};
-		Print()<<"checking my point "<<mypt2<<"\n";
-		ParallelDescriptor::Barrier();
-		for (MFIter i(tags); i.isValid(); ++i){
-		  if (tags[i].box().contains(mypt2)){
-		    std::cout<<"tags "<<mypt2<<" "<<(tags[i](mypt2)==TagBox::SET)<<"\n";
-		    if (tags[i](mypt2)!=TagBox::SET)
-		      Abort("Outflow not fully refined");
-		  }
-		}
-		ParallelDescriptor::Barrier();
-		for (MFIter i(tags); i.isValid(); ++i){
-		  if (tags[i].box().contains(mypt3))
-		    std::cout<<"tags "<<mypt3<<" "<<(tags[i](mypt3)==TagBox::SET)<<"\n";
-		}
-		Print()<<"... Leaving manual tags placement \n\n";
-		ParallelDescriptor::Barrier();
 	    }
             else if (do_derefine_outflow)
             {
