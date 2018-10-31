@@ -2278,7 +2278,7 @@ NavierStokesBase::manual_tags_placement (TagBoxArray&    tags,
                 for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
                     if (tags[tbi].numTags(outflowBox) > 0)
                         hasTags = true;
-                
+		ParallelAllReduce::Or(hasTags, ParallelContext::CommunicatorSub());
                 if (hasTags)
                     tags.setVal(BoxArray(&outflowBox,1),TagBox::SET);
             }
