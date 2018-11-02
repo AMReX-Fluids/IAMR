@@ -1128,12 +1128,14 @@ Projection::initialPressureProject (int  c_lev)
 
         Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
+        const Geometry& geom = parent->Geom(lev);
+	// fill ghost cells... call FillBoundary (fills interior bndry)
+	// first to get reasonable data in corner cells
+	S_new.FillBoundary(Density,1,geom.periodicity());
         for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
         {
             amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
         }
-
-        const Geometry& geom = parent->Geom(lev);
 
         MultiFab::Copy(*sig[lev],
                        LevelData[lev]->get_new_data(State_Type),
@@ -1141,8 +1143,6 @@ Projection::initialPressureProject (int  c_lev)
                        0,
                        1,
                        nghost);
-
-        sig[lev]->FillBoundary(0,1,geom.periodicity());
     }
 
     //
@@ -2280,6 +2280,7 @@ Projection::set_outflow_bcs (int        which_call,
     if (which_call == INITIAL_SYNC || which_call == INITIAL_VEL)
     {
       gravity = 0;
+
       if (!LevelData[c_lev]->isStateVariable("divu", Divu_Type, Divu))
         amrex::Error("Projection::set_outflow_bcs: No divu.");
     }
@@ -2355,11 +2356,21 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     }
 
     ProjOutFlowBC projBC;
+    // These bcs just get passed into rhogbc() in both cases
+    int        lo_bc[BL_SPACEDIM];
+    int        hi_bc[BL_SPACEDIM];
+    // change from phys_bcs of Inflow, SlipWall, etc.
+    // to mathematical bcs of EXT_DIR, FOEXTRAP, etc.
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+      const int* lbc = phys_bc->lo();
+      const int* hbc = phys_bc->hi();
+
+      lo_bc[i]=scalar_bc[lbc[i]];
+      hi_bc[i]=scalar_bc[hbc[i]];
+    }
     if (which_call == INITIAL_PRESS) 
     {
-
-        const int*      lo_bc = phys_bc->lo();
-        const int*      hi_bc = phys_bc->hi();
         projBC.computeRhoG(rho,phi_fine_strip,
                            parent->Geom(lev),
                            outFacesAtThisLevel,numOutFlowFaces,gravity,
@@ -2377,11 +2388,9 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                 (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
 	} else {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-                dsdt[iface].setVal(0);
+                dsdt[iface].setVal(0.);
 	}
 
-        const int*      lo_bc = phys_bc->lo();
-        const int*      hi_bc = phys_bc->hi();
         projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
                          parent->Geom(lev),
                          outFacesAtThisLevel,
