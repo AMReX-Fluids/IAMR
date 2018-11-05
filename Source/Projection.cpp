@@ -75,6 +75,7 @@ Projection::Initialize ()
 
     pp.query("v",                   verbose);
     pp.query("Pcode",               P_code);
+    pp.query("proj_2",              proj_2);
     pp.query("proj_tol",            proj_tol);
     pp.query("sync_tol",            sync_tol);
     pp.query("proj_abs_tol",        proj_abs_tol);
@@ -1129,9 +1130,10 @@ Projection::initialPressureProject (int  c_lev)
 
         Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
-	const Geometry& geom = parent->Geom(lev);
-	// FabArray::FillBoundary fills interior ghosts
-        S_new.FillBoundary(Density,1,geom.periodicity());
+        const Geometry& geom = parent->Geom(lev);
+	// fill ghost cells... call FillBoundary (fills interior bndry)
+	// first to get reasonable data in corner cells
+	S_new.FillBoundary(Density,1,geom.periodicity());
         for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
         {
             amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
@@ -1208,6 +1210,7 @@ Projection::initialPressureProject (int  c_lev)
                        LevelData[lev]->get_old_data(Press_Type),
                        0, 0, 1, 0);
     }
+
 
 
     if (verbose) {
@@ -1897,7 +1900,7 @@ Projection::radDiv (int       level,
 #endif
 }
 
-// Remove -- anelastic coeff is to be removed from IAMR
+//
 // Multiply by anel_coeff if it is defined
 //
 void
@@ -2391,6 +2394,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     FArrayBox phi_fine_strip[2*BL_SPACEDIM];
 
     const int ngrow = 1;
+
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
         dsdt[iface].resize(state_strip[iface],1);
