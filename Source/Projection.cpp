@@ -2153,6 +2153,9 @@ Projection::putDown (const Vector<MultiFab*>& phi,
         ratio *= parent->refRatio(lev);
         const Box& domainC = parent->Geom(lev).Domain();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (int iface = 0; iface < numOutFlowFaces; iface++) 
         {
             Box phiC_strip = 
@@ -2166,9 +2169,6 @@ Projection::putDown (const Vector<MultiFab*>& phi,
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
