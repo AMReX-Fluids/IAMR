@@ -1129,12 +1129,13 @@ Projection::initialPressureProject (int  c_lev)
 
         Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
+	const Geometry& geom = parent->Geom(lev);
+	// FabArray::FillBoundary fills interior ghosts
+        S_new.FillBoundary(Density,1,geom.periodicity());
         for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
         {
             amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
         }
-
-        const Geometry& geom = parent->Geom(lev);
 
         MultiFab::Copy(*sig[lev],
                        LevelData[lev]->get_new_data(State_Type),
@@ -1142,8 +1143,6 @@ Projection::initialPressureProject (int  c_lev)
                        0,
                        1,
                        nghost);
-
-        sig[lev]->FillBoundary(0,1,geom.periodicity());
     }
 
     //
@@ -1209,7 +1208,6 @@ Projection::initialPressureProject (int  c_lev)
                        LevelData[lev]->get_old_data(Press_Type),
                        0, 0, 1, 0);
     }
-
 
 
     if (verbose) {
@@ -1920,7 +1918,6 @@ Projection::AnelCoeffMult (int       level,
 
     int mult = 1;
 
-    Print()<<"Testing anelCoefMult...\n";
     for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
@@ -1956,7 +1953,6 @@ Projection::AnelCoeffDiv (int       level,
 
     int mult = 0;
 
-        Print()<<"Testing anelCoefDiv...\n";
     for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
@@ -2160,18 +2156,16 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 amrex::surroundingNodes(amrex::bdryNode(domainC, outFaces[iface], ncStripWidth));
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
-	    // need to size like in create_umac_grown()?
-	    //ba.maxSize(32);
+	    // FIXME: this size may need adjusting 
+	    ba.maxSize(32);
 
             DistributionMapping dm{ba};
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
-	    
-	    // Not sure there's enough here to warrant tiling, even
-	    // with maxSize call above
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
@@ -2388,14 +2382,15 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     Box domain = parent->Geom(lev).Domain();
 
     const int ncStripWidth = 1;
-
+    
+    //FIXME??
+    // For big enough problems, perhaps these should be boxArrays?
     FArrayBox  rho[2*BL_SPACEDIM];
     FArrayBox dsdt[2*BL_SPACEDIM];
     FArrayBox dudt[1][2*BL_SPACEDIM];
     FArrayBox phi_fine_strip[2*BL_SPACEDIM];
 
     const int ngrow = 1;
-
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
         dsdt[iface].resize(state_strip[iface],1);
@@ -2404,8 +2399,8 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         rho[iface].resize(state_strip[iface],1);
 
         (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
-
-        Box phi_strip = 
+	
+	Box phi_strip = 
             amrex::surroundingNodes(amrex::bdryNode(domain,
                                                       outFacesAtThisLevel[iface],
                                                       ncStripWidth));
@@ -2414,11 +2409,21 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     }
 
     ProjOutFlowBC projBC;
+    // These bcs just get passed into rhogbc() in both cases
+    int        lo_bc[BL_SPACEDIM];
+    int        hi_bc[BL_SPACEDIM];
+    // change from phys_bcs of Inflow, SlipWall, etc.
+    // to mathematical bcs of EXT_DIR, FOEXTRAP, etc.
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+      const int* lbc = phys_bc->lo();
+      const int* hbc = phys_bc->hi();
+
+      lo_bc[i]=scalar_bc[lbc[i]];
+      hi_bc[i]=scalar_bc[hbc[i]];
+    }
     if (which_call == INITIAL_PRESS) 
     {
-
-        const int*      lo_bc = phys_bc->lo();
-        const int*      hi_bc = phys_bc->hi();
         projBC.computeRhoG(rho,phi_fine_strip,
                            parent->Geom(lev),
                            outFacesAtThisLevel,numOutFlowFaces,gravity,
@@ -2436,11 +2441,9 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                 (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
 	} else {
             for (int iface = 0; iface < numOutFlowFaces; iface++) 
-                dsdt[iface].setVal(0);
+                dsdt[iface].setVal(0.);
 	}
 
-        const int*      lo_bc = phys_bc->lo();
-        const int*      hi_bc = phys_bc->hi();
         projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
                          parent->Geom(lev),
                          outFacesAtThisLevel,
@@ -2457,18 +2460,18 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
         BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
-	// need to size like in create_umac_grown()?
-	//phi_fine_strip_ba.maxSize(32);
+	// FIXME: this size may need adjusting
+	phi_fine_strip_ba.maxSize(32);
         DistributionMapping dm {phi_fine_strip_ba};
         MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
-	//Are there enough boxes here for using OMP to make sense,
-	// even with maxSize() above
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
-            phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface]);
+	    const Box& bx = mfi.validbox();
+	    BL_ASSERT((phi_fine_strip[iface].box()).contains(bx));
+	      phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface],bx,0,bx,0,1);
         }
 
         phi[lev]->copy(phi_fine_strip_mf);
@@ -2476,7 +2479,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
     if (lev > c_lev) 
     {
-        putDown(phi, phi_fine_strip, c_lev, lev, outFacesAtThisLevel,
+      putDown(phi, phi_fine_strip, c_lev, lev, outFacesAtThisLevel,
                 numOutFlowFaces, ncStripWidth);
     }
 }
@@ -2910,12 +2913,12 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
+  for (MFIter mfi(msk,true); mfi.isValid(); ++mfi) {
     int i = mfi.index();
 
     FArrayBox& msk_fab = msk[mfi];
 
-    const Box& reg  = grids[i]; 
+    const Box& reg  = mfi.tilebox(); 
     msk_fab.setVal(1.0, reg, 0); 
 
     for (int idir=0; idir<BL_SPACEDIM; idir++) {
@@ -3043,23 +3046,29 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 	vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
-
+	//fixme: is it worth the overhead to have threads here?
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
 	  int i = mfi.index();
 
 	  FArrayBox& v_fab = (*vel[lev])[mfi];
 
 	  const Box& reg = grids[i];
-	  const Box& bxg1 = amrex::grow(reg, 1);
-
+	  const Box& bxg1 = amrex::grow(reg,1);
 	  BoxList bxlist(reg);
+
+	  //If tiling only need to redefine these (all the rest can stay the same):
+	  // const Box& bxg1 = mfi.growntilebox(1);
+	  // const Box& tile = mfi.tilebox();
+	  // BoxList bxlist(tile);
 
 	  if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
 	    Box bx;                // bx is the region we *protect* from zero'ing
+	    bx = amrex::adjCellLo(reg, idir);
 
 	    if (inflowCorner) {
-
-              bx = amrex::adjCellLo(reg, idir);
 
               for (int odir = 0; odir < BL_SPACEDIM; odir++) {
                  if (odir != idir)
@@ -3069,23 +3078,15 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
                     if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
               }
-
-	      // This is the old code
-              // bx = amrex::adjCellLo(bxg1, idir);
-	      // bx.shift(idir, +1);
-
-	    } else {
-	      bx = amrex::adjCellLo(reg, idir);
-	    }
+	    } 
 	    bxlist.push_back(bx);
 	  }
 
 	  if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
 	    Box bx;                // bx is the region we *protect* from zero'ing
+	    bx = amrex::adjCellHi(reg, idir);
 
 	    if (inflowCorner) {
-
-	      bx = amrex::adjCellHi(reg, idir);
 
               for (int odir = 0; odir < BL_SPACEDIM; odir++) {
                  if (odir != idir)
@@ -3095,20 +3096,13 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
                     if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
               }
-
-	      // This is the old code
-              // bx = amrex::adjCellHi(bxg1, idir);
-              // bx.shift(idir, -1);
-
-	    } else {
-	      bx = amrex::adjCellHi(reg, idir);
 	    }
 
 	    bxlist.push_back(bx);
 	  }
 
 	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist); 
- 
+
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
             Box ovlp = *it & v_fab.box();
             if (ovlp.ok()) {
