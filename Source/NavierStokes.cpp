@@ -421,22 +421,11 @@ NavierStokes::predict_velocity (Real  dt,
     {
 	visc_terms.setVal(0);
     }
-    //
-    // Set up the timestep estimation.
-    //
-    Real cflgrid,u_max[3];
-    Real cflmax = 1.0e-10;
-    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
-
-//    FArrayBox tforces;
-
-//    Vector<int> bndry[BL_SPACEDIM];
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
     getGradP(Gp, prev_pres_time);
     
-//    FArrayBox null_fab;
 
     FillPatchIterator
       U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
@@ -454,13 +443,20 @@ NavierStokes::predict_velocity (Real  dt,
 #endif
 #endif
 
+    //
+    // Set up the timestep estimation.
+    //
+    Real cflmax = 1.0e-10;
+    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
+    // seems both IAMR and Pele only use a dummy comp_cfl, so should
+    // we not bother to do the reduction??? Does amrex use it?
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(max:cflmax,comp_cfl)
 #endif
 {
+     Real cflgrid,u_max[3];
      FArrayBox tforces;
      Vector<int> bndry[BL_SPACEDIM];
-     FArrayBox null_fab;
 
      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
      {
@@ -506,7 +502,8 @@ NavierStokes::predict_velocity (Real  dt,
 }
 
     Real tempdt = std::min(change_max,cfl/cflmax);
-
+    // Don't we need to reduce comp_cfl here too?
+    // Skipping it because it's a dummy?
     ParallelDescriptor::ReduceRealMin(tempdt);
 
     return dt*tempdt;
@@ -538,7 +535,7 @@ NavierStokes::scalar_advection (Real dt,
     if (be_cn_theta != 1.0) {
         getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
     } else {
-        visc_terms.setVal(0,1);
+        visc_terms.setVal(0.0,1);
     }
 
     int nGrowF = 1;
@@ -975,7 +972,10 @@ NavierStokes::sum_integrated_quantities ()
 #if (BL_SPACEDIM==3)
     amrex::Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING= " << forcing << '\n';
+    //NOTE: FORCING_T gives only the energy being injected by the forcing
+    //      term used for generating turbulence in probtype 14, 15.
+    //      Defaults to 0 for other probtypes.
+    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
 #endif
 #endif
 }
