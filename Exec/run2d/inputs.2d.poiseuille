@@ -5,6 +5,8 @@
 # turn on tiling for testing
 fabarray.mfiter_tile_size = 8 8 8 
 
+ns.do_denminmax = 1
+
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
@@ -88,7 +90,7 @@ ns.gravity              = 1.0
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 		= probin.2d.poiseuille-inflow  
+amr.probin_file 		= probin.2d.poiseuille 
 
 #*******************************************************************************
 
