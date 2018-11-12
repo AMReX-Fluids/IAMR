@@ -193,22 +193,6 @@ protected:
     static void Finalize ();
 
     //
-    // Convert U from an Accleration like quantity to a velocity
-    // Unew = Uold + alpha*Unew
-    //
-    void UnConvertUnew (amrex::MultiFab&       Uold,
-                        amrex::Real            alpha,
-                        amrex::MultiFab&       Unew, 
-                        const amrex::BoxArray& grids );
-    //
-    // Convert U from an Accleration like quantity to a velocity
-    // Unew = Uold + alpha*Unew
-    //
-    void UnConvertUnew (amrex::FArrayBox& Uold,
-                        amrex::Real       alpha,
-                        amrex::FArrayBox& Unew,
-                        const amrex::Box& grd);
-    //
     // Convert U to an Accleration like quantity
     // Unew = (Unew - Uold)/alpha
     //

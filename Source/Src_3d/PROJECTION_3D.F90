@@ -18,41 +18,12 @@ module projection_3d_module
 
   private
 
-  public :: accel_to_vel, vel_to_accel, &
-       proj_update, anelcoeffmpy
+  public ::  vel_to_accel, &
+             proj_update, anelcoeffmpy
 
 contains
 
-       subroutine accel_to_vel( lo, hi, &
-          uold,DIMS(uold), &
-          dt, &
-          unew,DIMS(unew) )bind(C,name="accel_to_vel")
-!c
-!c     This function converts unew into a velocity via
-!c     Unew = Uold + alpha*Unew
-!c
-       implicit none
-       integer    lo(SDIM), hi(SDIM)
-       REAL_T     dt
-       integer    DIMDEC(uold),DIMDEC(unew)
-       REAL_T     uold(DIMV(uold),SDIM)
-       REAL_T     unew(DIMV(unew),SDIM)
-
-       integer i, j, k, n
-
-       do n = 1, SDIM
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   unew(i,j,k,n) = uold(i,j,k,n) + dt*unew(i,j,k,n)
-                end do
-             end do
-          end do
-       end do
-
-       end subroutine accel_to_vel
-
-      subroutine vel_to_accel( lo, hi, &
+  subroutine vel_to_accel( lo, hi, &
           unew,DIMS(unew), &
           uold,DIMS(uold), &
           dt ) bind(C,name="vel_to_accel")
