@@ -35,7 +35,7 @@ amr.max_grid_size	= 16
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 2 # maximum number of levels of refinement
+amr.max_level		= 1 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -51,7 +51,10 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-
+diffuse.v = 0
+mac.v =0
+proj.v=1
+proj.Pcode = 0
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
@@ -118,10 +121,10 @@ geometry.is_periodic =  0 0 0
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 5 5 2
+ns.lo_bc             = 5 5 5
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             = 5 5 5
+ns.hi_bc             = 5 5 2
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
