@@ -1,136 +1,90 @@
 
-A. NavierStokesBase
-   - Sync funcitons
-   - Get sums update from cache.
-
-B. GODUNOV
-   - I did not update BDS. I don't think it will work with my tiling updates.
-
-C. Perhaps all loops with box array intersections should be looked at to see if
-   tiling is needed or if OMP alone might be better. some of these got tiled and
-   some did not
-
-My questions:
-   1. Should IAMR allow refinement at the outflow boundary? Given that it was not
-      working it seems that nobody uses it
-      If keeping, need a regression test with divu and refinement at outflow
-      boundary? - easy fix is to add outflow to the hotspot test in 2d or 3d.
-      Maybe switch poiseuille to require no refinement at outflow boundary? 
-
-
-Not sure if these should be tiled or if they should take advantage of the fact that
-there's a loop over boxArray interections and just use OMP?
-Even without tiling, there will likely be some boxes that have no overlap, but then some
-boxes have significant overlap (my simple debugging problem w/o tiling saw intersection
-BA sizes of 0 and 4).
-   SyncRegister.cpp:262:      for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
-These work but could perhaps be done a cleaner way, see comments in code
+NOTES
+1. In GODUNOV - I did not update BDS. I don't think it will work with my tiling updates.
+2. For loops that deal with the intersection of coarse and fine grids, 2 have OMP only, 2 have tiling turned on.  See below, Item B under "Good without tiling." Perhaps best way is problem dependent? (Find these loops by grepping for 'intersections'.)
+3. These work but could perhaps be done a cleaner way, see comments in code
    MacOperator.cpp:106:    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
    MacOperator.cpp:309:    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
-Has OMP and tiling, but perhaps should test if tiling is a win
-   ! Zeros area of coarse grid covered by fine (operates on intersection of coarse
-   ! and fine grids).  Depending on box size,
-   ! tilebox size, and layout of grids, could already be operating on small enough
-   ! regions without adding tiling. 
-   MacProj.cpp:537:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-   ! LMC closed chamber version of above.  
-   MacProj.cpp:740:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-Is fix_mac_sync_rhs, subtract_avg still used/needed?
-   ! No regtest in IAMR hits this area of code.  More checks needed here?
-   ! Get differences of O(-14) by step 2, and same at step 50 (inputs.2d.periodic_shear_layer)
-   ! no difference with tiling off
-   ! size of fix is O(-15)
-   ! use mac.fix_mac_sync_rhs = 1
-   MacProj.cpp:571:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-   ! version for closed chamber LMC, Also used if subtract_avg == 1
-   ! not tested 
-   MacProj.cpp:744:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)	
+4. SyncRegister.cpp - OrientationIter inside OMP region? Similar loops
+   ViscBndry.cpp:102:    for (OrientationIter fi; fi; ++fi)
+   ViscBndryTensor.cpp:76:    for (OrientationIter fi; fi; ++fi)
+5. OMP for BoxList::iterator, FabSet iterator???
 
 
-MFIters not tiled (8/20/18): 
+!------Loops not finished-----------------------------------------------
 
-A. Loops requiring thought
+! complicated coarse-fine interaction; loops over interp functions.  
    !!SyncInterp functions - coarse-fine interaction. Got these wrong earlier
      // This is very similar to InterpFromCoarseLevel() in
      // amrex/Src/AmrCore/AMReX_FillPatchUtil.cpp, which does not use tiling
-     ! see more comments in file
-   NavierStokesBase.cpp:3196:    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
-   NavierStokesBase.cpp:3313:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
-   NavierStokesBase.cpp:3328:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
+     // see more comments in file
+NavierStokesBase.cpp:3251:    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
+NavierStokesBase.cpp:3368:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
+NavierStokesBase.cpp:3383:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
 
-   ! Needs some thought because takes cc data and makes edge centered data
-   NavierStokes.cpp:2200:        for (MFIter ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
-   NavierStokes.cpp:2241:        for (MFIter ecMfi(*diffusivity[dir]); ecMfi.isValid(); ++ecMfi)
+! Init from velocity file
+NavierStokes.cpp:175:            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
 
-C. Needs new problem setup to test any changes
-   ! Would need inflow problem to test next 3
-   ! This first one does a setVal on regular box, and then work on coarse/fine overlap
-   ! (so smaller boxes), and then (potentially) thin boxes. Probably should tile.
-   Projection.cpp:2848:  for (MFIter mfi(msk); mfi.isValid(); ++mfi) { 
-   ! 7/18 This one needs OMP? but no tiling b/c it already operates on a thin box 
-   Projection.cpp:2982:	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) { //This one needs inflowCorner
+! anelastic stuff - not looked at
+MacProj.cpp:1628:    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
+Projection.cpp:1921:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+Projection.cpp:1956:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
 
-G. Not necessary for a first pass with tiling?
-   ! Do later, in function test_umac_periodic(), which by default is only for DEBUG
-   MacProj.cpp:1538:            for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
-   ! Init velocity from plotfile
-   NavierStokes.cpp:175:            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
-   ! Maxval - looks like analysis stuff, can do later?
-   NavierStokes.cpp:884:    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
-   !!! For analysis stuff that should get moved out of NavierStokesBase? -- I think I have these changes stashed in git
-   NavierStokesBase.cpp:3778:    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
-   NavierStokesBase.cpp:3929:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
-   NavierStokesBase.cpp:3951:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
-   NavierStokesBase.cpp:3995:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
-   NavierStokesBase.cpp:4017:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+! Analysis stuff - getting moved out?
+NavierStokesBase.cpp:3876:    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
+NavierStokesBase.cpp:4027:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+NavierStokesBase.cpp:4049:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+NavierStokesBase.cpp:4093:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+NavierStokesBase.cpp:4115:    for (MFIter turbMfi(*turbMF), presMfi(*presMF);
+  ! maxVal - only used for mag_vort in sum_integrated quantities analysis stuff
+NavierStokes.cpp:902:    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
 
 
-Loops not getting tiled:
+!------Loops I think are good without tiling-----------------------------------------------
+
+A. Loops over thin boundary region.  No OMP
+  1.  MacProj.cpp:1549:  for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)	
+        In test_umac_periodic() which by default is only for DEBUG
+        Also, complication because inside loop is std::vector::push_back(), which isn't
+        thread safe, I think      
+  2.  NavierStokesBase.cpp:2283:  for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
+        Thin boudnary region, and likely early exit from mfiter loop
 
 
-B. To be removed:
-   ! 7/27 ASA says remove anelastic entirely - best way to do this?
-   ! Need anelastic problem to test.  straight forward
-   MacProj.cpp:1618:    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
-   Projection.cpp:1881:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
-   Projection.cpp:1917:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+B. Loops dealing with coarse-fine interaction. 2 OMP only, 2 OMP & tiling
+   OMP only
+   1. NavierStokesBase.cpp:1087:            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
+        In create_umac_grown(), boxes already divided because crse_src is coarsened from the fine ba 
+   2. NavierStokes.cpp:1757:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+        Loop over coarse-fine boxArray intersection
+      
+   OMP and tiling - these got tiled before we settled on whether to tile or not.
+   3. MacProj.cpp:537:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+   4. MacProj.cpp:740:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
+        In mac_sync_solve(), if ( solver != mlmg && mac.fix_mac_sync_rhs) (IAMR)
+	if (solver!=mlmg && (fix_mac_sync_rhs || subtract_avg)) (LMC)
+ 	Zeros area of coarse grid covered by fine, one version for IAMR and the 2nd for
+	LMC closed chamber
+  
 
-D. Coarse-fine box intersections.
-   ! 7/23 CEG Added OMP, but no tiling.
-   Castro, Nyx do not tile similar loops.
-   ! Depending on box size, tilebox size, and layout of grids, could already be
-   ! operating on small enough regions without adding tiling.
-   ! Test if tiling a likely win?
-   (Castro does OMP only. see Castro.cpp:3425, radiation/MGFLD.cpp:740, Radiation.cpp)
-   MacProj.cpp:535:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-   MacProj.cpp:735:    for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
-   NavierStokes.cpp:1759:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-   !In SyncRegister::FineAdd - coarse-fine interaction.
-   ! Works on a narrow box (1 cell wide in one dim).
-   SyncRegister.cpp:315:	    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+C. Loops/work over thin boundary regions.  All have OMP, but perhaps not all need it
+   NavierStokesBase.cpp:1115:            for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
+   NavierStokesBase.cpp:1158:        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
+   MacProj.cpp:1465:            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
+   Projection.cpp:2169:            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
+   Projection.cpp:2471:        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
+   Projection.cpp:2996:	for (MFIter mfi(msk); mfi.isValid(); ++mfi)
+   Projection.cpp:3053:	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
+   SyncRegister.cpp:87:	for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
+   SyncRegister.cpp:283:      for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+   SyncRegister.cpp:337:	    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
 
-
-E. Loops operating on thin bondary regions. 
-   ! Already had OMP and good without tiling b/c it already operates on a thin box 
-   Projection.cpp:2928:	for (MFIter mfi(msk); mfi.isValid(); ++mfi) 
-   ! Just doing ghost cells per comment in code. 
-   MacProj.cpp:1474:            for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
-   !! Tile? already has OMP
-   !! call to HOEXTRAPTOCC which fills outside of domain cells according to comments.
-   NavierStokesBase.cpp:1154:        for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
-   ! No tiling. only for refinement on outflow boundary
-   NavierStokesBase.cpp:2277:	     for (MFIter tbi(tags); !hasTags && tbi.isValid(); ++tbi)
-   ! Narrow boundary box, although the width is passed in as parameter (which is set = 1 in Projection.cpp)
-   Projection.cpp:2466:        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
-   ! Specific to outflow. Narrow boundary box, but width is passed in as parameter (which is set = 1 in Projection.cpp)
-   Projection.cpp:2175:            for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
-   ! setPhysBoundaryValues
+D. setPhysBoundaryValues() No OMP with these
    Projection.cpp:264:    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-   Projection.cpp:941:            for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
-   Projection.cpp:974:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-   Projection.cpp:999:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
-   Projection.cpp:1131:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-   Projection.cpp:1285:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
-   Projection.cpp:1344:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-   ! This operates on a thin box (1 cell wide in one dim)
-   SyncRegister.cpp:76:            for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
+   Projection.cpp:942:            for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+   Projection.cpp:975:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+   Projection.cpp:1000:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
+   Projection.cpp:1135:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+   Projection.cpp:1284:            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
+   Projection.cpp:1346:        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+

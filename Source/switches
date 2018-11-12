@@ -78,3 +78,9 @@ Access data at a single point
 	  if ((*aofs)[U_mfi].box().contains(mypt))
 	      Print()<<"(*aofs)(0,0) "<<(*aofs)[U_mfi](mypt)<<"\n";
 
+Write out a FAB for viewing with amrvis
+	std::ofstream ofs ("rho"+std::to_string(ParallelDescriptor::MyProc()),
+			   std::ofstream::out);
+	rho[iface].writeOn(ofs);
+	ParallelDescriptor::Barrier();
+	Abort();
