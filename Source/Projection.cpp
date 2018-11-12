@@ -1655,8 +1655,6 @@ Projection::incrPress (int  level,
     MultiFab& P_old = LevelData[level]->get_old_data(Press_Type);
     MultiFab& P_new = LevelData[level]->get_new_data(Press_Type);
 
-    const BoxArray& grids = LevelData[level]->boxArray();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1826,11 +1824,11 @@ Projection::radMultVel (int       level,
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
 
-    for (int n = 0; n < BL_SPACEDIM; n++) 
-    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    for (int n = 0; n < BL_SPACEDIM; n++) 
+    {
       for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
        {
            BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
@@ -2089,12 +2087,12 @@ Projection::initialVorticityProject (int c_lev)
         //
         (*u_real[lev]).mult(-1,Yvel,1);
 
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
+        for (int n = 0; n < BL_SPACEDIM; n++)
+	{
+	  for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
             {
                 const Box& box = mfi.tilebox();
                 if (add_vort_proj)
@@ -2153,9 +2151,6 @@ Projection::putDown (const Vector<MultiFab*>& phi,
         ratio *= parent->refRatio(lev);
         const Box& domainC = parent->Geom(lev).Domain();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
         for (int iface = 0; iface < numOutFlowFaces; iface++) 
         {
             Box phiC_strip = 
@@ -2169,6 +2164,9 @@ Projection::putDown (const Vector<MultiFab*>& phi,
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
@@ -2413,7 +2411,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     }
 
     ProjOutFlowBC projBC;
-    // These bcs just get passed into rhogbc() in both cases
+    // These bcs just get passed into rhogbc() for all vals of which_call
     int        lo_bc[BL_SPACEDIM];
     int        hi_bc[BL_SPACEDIM];
     // change from phys_bcs of Inflow, SlipWall, etc.
