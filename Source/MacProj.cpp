@@ -465,7 +465,6 @@ MacProj::mac_project (int             level,
 //
 // Compute the corrective pressure used in the mac_sync.
 //
-
 void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
@@ -578,15 +577,14 @@ MacProj::mac_sync_solve (int       level,
 		  const Box& bx = Rhsmfi.tilebox();
 		
 		  vol_wgted_rhs.resize(bx);
-		  vol_wgted_rhs.copy(rhsfab);
-		  vol_wgted_rhs.mult(volume[Rhsmfi]);
+		  vol_wgted_rhs.copy(rhsfab,bx,0,bx,0,1);
+		  vol_wgted_rhs.mult(volume[Rhsmfi],bx,bx,0,0,1);
 		  sum += vol_wgted_rhs.sum(0,1);
 		  vol += volume[Rhsmfi].sum(bx,0,1);
 		}
 	    }
 	    
 	    Real vals[2] = {sum,vol};
-	    
 	    ParallelDescriptor::ReduceRealSum(&vals[0],2);
 	    sum = vals[0];
             vol = vals[1];
@@ -776,21 +774,11 @@ MacProj::mac_sync_solve (int       level,
                 all_neumann = 0;
         }
 
-	//FIXME still debugging
-	// Print()<<"      rhs "<<Rhs.boxArray()<<"\n";
-	// Print()<<"      geom "<<geom.Domain()<<"\n";
-	// Print()<<"all neumann "<<all_neumann<<"\n";
         if (Rhs.boxArray().contains(geom.Domain()) && all_neumann == 1)
         {
 	    Real sum = 0.0;
 	    Real vol = 0.0;
 
-	    Print()<<"$$$$          Testing in mac_sync_solve\n";
-	    Print()<<"See comments in code";
-	    Abort();
-	    //The following tiled loop has not been tested.
-	    //If your problem lands you here, please test the following
-	    // looping with tiling/OMP on vs off
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:sum,vol)
 #endif
@@ -803,8 +791,8 @@ MacProj::mac_sync_solve (int       level,
 		  const Box& bx = Rhsmfi.tilebox();
 		
 		  vol_wgted_rhs.resize(bx);
-		  vol_wgted_rhs.copy(rhsfab);
-		  vol_wgted_rhs.mult(volume[Rhsmfi]);
+		  vol_wgted_rhs.copy(rhsfab,bx,0,bx,0,1);
+		  vol_wgted_rhs.mult(volume[Rhsmfi],bx,bx,0,0,1);
 		  sum += vol_wgted_rhs.sum(0,1);
 		  vol += volume[Rhsmfi].sum(bx,0,1);
 	      }
@@ -816,7 +804,6 @@ MacProj::mac_sync_solve (int       level,
 
             sum = vals[0];
             vol = vals[1];
-
             const Real fix = sum / vol;
 
             if (verbose) amrex::Print() << "Average correction on mac sync RHS = " << fix << '\n';
@@ -1470,13 +1457,16 @@ MacProj::set_outflow_bcs (int             level,
         // because we're copying onto the ghost cells of the FABs,
         // not the valid regions.
         //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	for ( int iface = 0; iface < nOutFlowTouched; ++iface )
 	{
             for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
 	    {
                 Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
                 if (ovlp.ok())
-                    (*mac_phi)[mfi].copy(phidat[iface],ovlp);
+		  (*mac_phi)[mfi].copy(phidat[iface],ovlp,0,ovlp,0,1);
 	    }
 	}
     }
@@ -1525,12 +1515,12 @@ MacProj::test_umac_periodic (int       level,
     if (!geom.isAnyPeriodic()) return;
 
     FArrayBox              diff;
-    Vector<IntVect>         pshifts(27);
     MultiFabCopyDescriptor mfcd;
-    std::vector<TURec>     pirm;
     MultiFabId             mfid[BL_SPACEDIM];
-
+    std::vector<TURec>     pirm;
+    Vector<IntVect>         pshifts(27);
     std::vector< std::pair<int,Box> > isects;
+
 
     for (int dim = 0; dim < BL_SPACEDIM; dim++)
     {
@@ -1540,12 +1530,16 @@ MacProj::test_umac_periodic (int       level,
 
             mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
 
-	    // not sure if tiling here makes sense
+	    // How to combine pirm into one global pirm?
+	    // don't think std::vector::push_back() is thread safe
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
-// for OMP would need to declare isects, pshifts here (think eDomain is ok, but check)
-//    std::vector< std::pair<int,Box> > isects;
+// {
+//             std::vector<TURec>     pirm;
+//             std::vector< std::pair<int,Box> > isects;
+//             Vector<IntVect>         pshifts(27);
+    
             for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
             {
                 Box eBox = u_mac[dim].boxArray()[mfi.index()];
@@ -1578,6 +1572,7 @@ MacProj::test_umac_periodic (int       level,
                     eBox -= pshifts[iiv];
                 }
             }
+	    // }// end OMP region
         }
     }
 
@@ -1617,7 +1612,6 @@ MacProj::test_umac_periodic (int       level,
     }
 }
 
-// Remove - all anelastic stuff is to be removed from IAMR
 void
 MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
 {
