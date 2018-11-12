@@ -1390,16 +1390,7 @@ Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
 
     std::unique_ptr<MultiFab> divu (ns->getDivCond(1,time));
 
-    //fixme?? use MultiFab::Copy() here instead?
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
-    {
-      const Box& bx = mfi.growntilebox();
-      
-      rhs[mfi].copy((*divu)[mfi],bx,0,bx,0,1);
-    }
+    MultiFab::Copy(rhs,*divu,0,0,1,rhs.nGrow());
 }
 
 //
@@ -1515,16 +1506,8 @@ void
 Projection::AddPhi (MultiFab&        p,
                     MultiFab&       phi)
 {
-  //fixme??? use MultiFab::plus() here instead?
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-  for (MFIter pmfi(p,true); pmfi.isValid(); ++pmfi) 
-    {
-      const Box& bx = pmfi.growntilebox();
-      
-      p[pmfi].plus(phi[pmfi],bx,0,0,1);
-    }
+
+  MultiFab::Add(p,phi,0,0,1,p.nGrow());
 }
 
 //
