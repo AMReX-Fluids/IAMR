@@ -701,13 +701,17 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
     for (int icomp=0; icomp<num_comp; ++icomp) {
 
+	amrex::Print() << "Starting diffuse_scalar_msd" << "\n";
+
         int sigma = S_comp + icomp;
 
         if (is_diffusive[icomp] == 0) {
             for (int n = 0; n < BL_SPACEDIM; n++)
             {
-                fluxn[n]->setVal(0,fluxComp+icomp,1);
-                fluxnp1[n]->setVal(0,fluxComp+icomp,1);
+                if (fluxn[n]!=0 && fluxnp1[n]!=0){ 
+                    fluxn[n]->setVal(0,fluxComp+icomp,1);
+		    fluxnp1[n]->setVal(0,fluxComp+icomp,1);
+		}
             }
             break;
         }
@@ -757,7 +761,12 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                              MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp+icomp, 1);,
                              MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp+icomp, 1););
                 std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
-                mgn.getFluxes({fp});
+                mgn.getFluxes({fp},{&Soln});
+
+// ----- stuff ADDED for consistency
+                for (int i = 0; i < BL_SPACEDIM; ++i)
+                    (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+// -----
             }
             else
             {
@@ -786,11 +795,12 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 fluxn[n]->setVal(0,fluxComp+icomp,1);
             }
             Rhs.setVal(0);
+
         }
 
         //
         // If this is a predictor step, put "explicit" updates passed via S_new
-        // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
+        // into Rhs after scaling by rho_half if reqd, so they dont get lost,
         // pull it off S_new to avoid double counting
         //   (for rho_flag == 1:
         //       S_new = S_old - dt.(U.Grad(phi)); want Rhs -= rho_half.(U.Grad(phi)),
@@ -816,12 +826,12 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                         tmpfab.mult(rho_half[Smfi],box,0,0,1);
                     if (alpha_in!=0)
                         tmpfab.mult((*alpha_in)[Smfi],box,alpha_in_comp+icomp,0,1);            
-                    (*delta_rhs)[Smfi].plus(tmpfab,box,0,rhsComp+icomp,1);
+                    Rhs[Smfi].plus(tmpfab,box,0,rhsComp+icomp,1);
                 }
             }
         }
         //
-        // Add body sources
+        // Add body sources (like chemistry contribution)
         //
         if (delta_rhs != 0)
         {
@@ -966,6 +976,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                          MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
             std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
             mgnp1.getFluxes({fp});
+
         }
         else
         {
@@ -1023,6 +1034,9 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 (*S_new[0])[Smfi].mult((*Rho_new[0])[Smfi],Smfi.tilebox(),Rho_comp,sigma,1);
             }
 	}
+
+	amrex::Print() << "Done with diffuse_scalar_msd" << "\n";
+
     }
     
     if (verbose)
@@ -1034,6 +1048,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
 	amrex::Print() << "Diffusion::diffuse_scalar() time: " << run_time << '\n';
     }
+
 }
 
 void
