@@ -3179,7 +3179,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 
-    //is this setVal really necessary? doesn't coarse data exist under all fine data? Maybe there is a concern at boundaries? Coarse box could expand beyond the extent of fine box depending on the interpolation type
+    // Coarse box could expand beyond the extent of fine box depending on the interpolation type, so initialize here
     cdataMF.setVal(0);
 
     cdataMF.copy(CrseSync, src_comp, 0, num_comp);
@@ -3224,8 +3224,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     // Note that FineSync and cdataMF will have the same distribution
     // since the length of their BoxArrays are equal.
     //
-    FArrayBox    fdata;
-    Vector<BCRec> bc_interp(num_comp);
 
     MultiFab* fine_stateMF = 0;
     if (interpolater == &protected_interp)
@@ -3233,85 +3231,77 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         fine_stateMF = &(getLevel(f_lev).get_new_data(State_Type));
     }
 
-    // Don't tile here for now...
-    // This is very similar to InterpFromCoarseLevel() in
-    // amrex/Src/AmrCore/AMReX_FillPatchUtil.cpp, which does not use tiling 
-    //
-    // Thoughts for best approach to tiling
-    // mfiter on fine box
-    // use interpolater->BoxCoarsener to get subregion of coarse box we
-    // want to work on,
-    // but then would need to worry about how the coarse fab is sized when
-    // passing to f90
-    // the f90 function already has the right parameters, but the pass
-    // through function interp (found in AmrCore/AMReX_Interpolater.cpp)
-    // does not
-    int* bc_new = new int[2*BL_SPACEDIM*(src_comp+num_comp)];
-    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        int        i     = mfi.index();
-        FArrayBox& cdata = cdataMF[mfi];
-        const int* clo   = cdata.loVect();
-        const int* chi   = cdata.hiVect();
-	// const Box&  bx      = mfi.growntilebox(); //mfi.tilebox();
-        // const int*  lo      = bx.loVect();
-        // const int*  hi      = bx.hiVect();
-	
-        fdata.resize(fgrids[i], num_comp);
-        //
-        // Set the boundary condition array for interpolation.
-        //
-        for (int n = 0; n < num_comp; n++)
-        {
-	  //set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
-            set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
-        }
+      FArrayBox    fdata;
+      Vector<BCRec> bc_interp(num_comp);
+      int* bc_new = new int[2*BL_SPACEDIM*(src_comp+num_comp)];
 
-        for (int n = 0; n < num_comp; n++)
-        {
-            for (int dir = 0; dir < BL_SPACEDIM; dir++)
-            {
-                int bc_index = (n+src_comp)*(2*BL_SPACEDIM) + dir;
-                bc_interp[n].setLo(dir,bc_new[bc_index]);
-                bc_interp[n].setHi(dir,bc_new[bc_index+BL_SPACEDIM]);
-            }
-        }
+      for (MFIter mfi(FineSync,true); mfi.isValid(); ++mfi)
+      {
+	  int        i     = mfi.index();
+	  FArrayBox& cdata = cdataMF[mfi];
+	  // cdataMF has no ghost cells
+	  const Box&  fbx     = mfi.tilebox();
+	  const int*  lo      = fbx.loVect();
+	  const int*  hi      = fbx.hiVect();
 
-//        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
+	  const Box cbx = interpolater->CoarseBox(fbx,ratio);
+	  const int* clo   = cbx.loVect();
+	  const int* chi   = cbx.hiVect();
 
-	// This does not work because the interpolater could expand the coarse box
-	// beyond the bounds of the fine box, so bx_fine would end up too large
-	// Box bx_fine=refine(bx,ratio);
-        // interpolater->interp(cdata,0,fdata,0,num_comp,bx_fine,ratio,
+	  fdata.resize(fbx, num_comp);
+	  //
+	  // Set the boundary condition array for interpolation.
+	  //
+	  for (int n = 0; n < num_comp; n++)
+	  {
+	      set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+	  }
 
-        interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
-                             cgeom,fgeom,bc_interp,src_comp,State_Type);
-//        reScaleFineSyncInterp(fdata, f_lev, num_comp);
+	  for (int n = 0; n < num_comp; n++)
+	  {
+	      for (int dir = 0; dir < BL_SPACEDIM; dir++)
+	      {
+		  int bc_index = (n+src_comp)*(2*BL_SPACEDIM) + dir;
+		  bc_interp[n].setLo(dir,bc_new[bc_index]);
+		  bc_interp[n].setHi(dir,bc_new[bc_index+BL_SPACEDIM]);
+	      }
+	  }
 
-        if (increment)
-        {
-            fdata.mult(dt_clev);
+	  //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
-            if (interpolater == &protected_interp)
-            {
-              cdata.mult(dt_clev);
-              FArrayBox& fine_state = (*fine_stateMF)[mfi];
-              interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
-                                    num_comp,fgrids[i],ratio,
-                                    cgeom,fgeom,bc_interp);
-              Real dt_clev_inv = 1./dt_clev;
-              cdata.mult(dt_clev_inv);
-            }
+	  interpolater->interp(cdata,0,fdata,0,num_comp,fbx,ratio,
+			       cgeom,fgeom,bc_interp,src_comp,State_Type);
+	  //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
+
+	  if (increment)
+	  {
+	      fdata.mult(dt_clev);
+
+	      if (interpolater == &protected_interp)
+	      {	      
+		  cdata.mult(dt_clev,cbx);
+		  FArrayBox& fine_state = (*fine_stateMF)[mfi];
+		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
+					num_comp,fbx,ratio,
+					cgeom,fgeom,bc_interp);
+		  Real dt_clev_inv = 1./dt_clev;
+		  cdata.mult(dt_clev_inv,cbx);
+	      }
             
-            FineSync[mfi].plus(fdata,0,dest_comp,num_comp);
-        }
-        else
-        {
-            FineSync[mfi].copy(fdata,0,dest_comp,num_comp);
-        }
-    }
-
+	      FineSync[mfi].plus(fdata,fbx,0,dest_comp,num_comp);
+	  }
+	  else
+	  {
+	      FineSync[mfi].copy(fdata,fbx,0,fbx,dest_comp,num_comp);
+	  }
+      }
     delete [] bc_new;
+    }
 }
 
 //
@@ -3330,9 +3320,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
 {
     BL_PROFILE("NavierStokesBase:::SyncProjInterp()");
 
-    const Geometry& fgeom   = parent->Geom(f_lev);
     const BoxArray& P_grids = P_new.boxArray();
-    const Geometry& cgeom   = parent->Geom(c_lev);
     const int       N       = P_grids.size();
 
     BoxArray crse_ba(N);
@@ -3343,19 +3331,21 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     for (int i = 0; i < N; i++)
         crse_ba.set(i,node_bilinear_interp.CoarseBox(P_grids[i],ratio));
 
+    // None  of these 3 are actually used by node_bilinear_interp()
     Vector<BCRec> bc(BL_SPACEDIM);
-    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0);
+    const Geometry& fgeom   = parent->Geom(f_lev);
+    const Geometry& cgeom   = parent->Geom(c_lev);
 
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0);
     crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
 
-    FArrayBox     fine_phi;
     NavierStokesBase& fine_lev        = getLevel(f_lev);
     const Real    cur_fine_pres_time  = fine_lev.state[Press_Type].curTime();
     const Real    prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
 
     if (state[Press_Type].descriptor()->timeType() == 
-        StateDescriptor::Point && first_crse_step_after_initial_iters)
+	StateDescriptor::Point && first_crse_step_after_initial_iters)
     {
         const Real time_since_zero  = cur_crse_pres_time - prev_crse_pres_time;
         const Real dt_to_prev_time  = prev_fine_pres_time - prev_crse_pres_time;
@@ -3363,32 +3353,49 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         const Real cur_mult_factor  = dt_to_cur_time / time_since_zero;
         const Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
 
-	// See comments above in SyncInterp() when considering tiling
-        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
-        {
-            fine_phi.resize(P_grids[mfi.index()],1);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	{
+	  FArrayBox     fine_phi;
+
+	  for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
+          {
+	    const Box&  fbx     = mfi.tilebox();
+	    
+            fine_phi.resize(fbx,1);
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type);
             fine_phi.mult(cur_mult_factor);
-            P_new[mfi].plus(fine_phi);
+            P_new[mfi].plus(fine_phi,fbx,0,0);
             fine_phi.mult(prev_mult_factor);
-            P_old[mfi].plus(fine_phi);
-        }
+            P_old[mfi].plus(fine_phi,fbx,0,0);
+	  }
+	}
     }
     else 
     {
-        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      {
+        FArrayBox     fine_phi;
+	
+	for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
         {
-            fine_phi.resize(P_grids[mfi.index()],1);
+	    const Box&  fbx     = mfi.tilebox();
+	    
+            fine_phi.resize(fbx,1);
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type);
-            P_new[mfi].plus(fine_phi);
-            P_old[mfi].plus(fine_phi);
+            P_new[mfi].plus(fine_phi,fbx,0,0);
+            P_old[mfi].plus(fine_phi,fbx,0,0);
         }
+      }
     }
 }
 
