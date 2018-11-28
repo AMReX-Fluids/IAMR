@@ -5,30 +5,16 @@ NOTES
 3. These work but could perhaps be done a cleaner way, see comments in code
    MacOperator.cpp:106:    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
    MacOperator.cpp:309:    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
-4. SyncRegister.cpp - OrientationIter inside OMP region? Similar loops
+4. I put OrientationIter inside OMP region - Seems to work 
+   SyncRegister.cpp
+   For ViscBndry, I added the OMP.  Not sure if it's needed.
    ViscBndry.cpp:102:    for (OrientationIter fi; fi; ++fi)
    ViscBndryTensor.cpp:76:    for (OrientationIter fi; fi; ++fi)
 5. OMP for BoxList::iterator, FabSet iterator???
+6. NavierStokes::predict_velocity() does comp_cfl need to be reduced? Both IAMR and Pele pass in dummy, so why not just remove?
 
 
 !------Loops not finished-----------------------------------------------
-
-! complicated coarse-fine interaction; loops over interp functions.  
-   !!SyncInterp functions - coarse-fine interaction. Got these wrong earlier
-     // This is very similar to InterpFromCoarseLevel() in
-     // amrex/Src/AmrCore/AMReX_FillPatchUtil.cpp, which does not use tiling
-     // see more comments in file
-NavierStokesBase.cpp:3251:    for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
-NavierStokesBase.cpp:3368:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
-NavierStokesBase.cpp:3383:        for (MFIter mfi(crse_phi); mfi.isValid(); ++mfi)
-
-! Init from velocity file
-NavierStokes.cpp:175:            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
-
-! anelastic stuff - not looked at
-MacProj.cpp:1628:    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
-Projection.cpp:1921:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
-Projection.cpp:1956:    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
 
 ! Analysis stuff - getting moved out?
 NavierStokesBase.cpp:3876:    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
