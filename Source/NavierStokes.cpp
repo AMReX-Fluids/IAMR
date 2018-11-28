@@ -90,15 +90,12 @@ NavierStokes::initData ()
     {
         const Box& vbx = snewmfi.tilebox();
 
-//        BL_ASSERT(grids[snewmfi.index()] == vbx);
-
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
 	Sfab.setVal(0.0,vbx);
         Pfab.setVal(0.0,snewmfi.nodaltilebox());
 
-        const int  i       = snewmfi.index();
         RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
         const int* lo      = vbx.loVect();
         const int* hi      = vbx.hiVect();
@@ -171,14 +168,19 @@ NavierStokes::initData ()
         MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
-            amrData.FillVar(tmp, level, plotnames[idX+i], 0);
-            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
-            {
+	    amrData.FillVar(tmp, level, plotnames[idX+i], 0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    for (MFIter mfi(tmp,true); mfi.isValid(); ++mfi)
+	    {
+	        const Box& bx = mfi.tilebox();
                 FArrayBox& tfab = tmp[mfi];
-  	        tfab.mult(velocity_plotfile_scale, 0, 1);
-                S_new[mfi].plus(tfab, tfab.box(), 0, Xvel+i, 1);
+  	        tfab.mult(velocity_plotfile_scale, bx, 0, 1);
+                S_new[mfi].plus(tfab, bx, 0, Xvel+i, 1);
 	    }
-            amrData.FlushGrids(idX+i);
+	    
+	    amrData.FlushGrids(idX+i);
         }
 
 	amrex::Print() << "initData: finished init from velocity_plotfile" << '\n';
@@ -1716,7 +1718,6 @@ NavierStokes::reflux ()
 #endif
         for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
-            const int        i     = Vsyncmfi.index();
             FArrayBox&       vfab  = Vsync[Vsyncmfi];
             const FArrayBox& rhfab = Rh[Vsyncmfi];
 	    const Box&       bx    = Vsyncmfi.tilebox();

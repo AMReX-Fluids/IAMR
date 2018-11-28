@@ -3242,13 +3242,9 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
       for (MFIter mfi(FineSync,true); mfi.isValid(); ++mfi)
       {
-	  int        i     = mfi.index();
 	  FArrayBox& cdata = cdataMF[mfi];
 	  // cdataMF has no ghost cells
 	  const Box&  fbx     = mfi.tilebox();
-	  const int*  lo      = fbx.loVect();
-	  const int*  hi      = fbx.hiVect();
-
 	  const Box cbx = interpolater->CoarseBox(fbx,ratio);
 	  const int* clo   = cbx.loVect();
 	  const int* chi   = cbx.hiVect();
