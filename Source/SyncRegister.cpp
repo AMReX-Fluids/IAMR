@@ -117,15 +117,15 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     {
         bndry_mask[face()].setVal(0);
     }
-
-    for (OrientationIter face_it; face_it; ++face_it)
-    {
-        FabSet& fs = bndry_mask[face_it()];
-
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    {
+        for (OrientationIter face_it; face_it; ++face_it)
 	{
+	    FabSet& fs = bndry_mask[face_it()];
+
 	    FArrayBox tmpfab;
 	    std::vector< std::pair<int,Box> > isects;	    
 	    Vector<IntVect> pshifts(26);
@@ -190,13 +190,13 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
             domlo.setRange(dir,node_domain.smallEnd(dir),1);
             domhi.setRange(dir,node_domain.bigEnd(dir),1);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (OrientationIter face_it; face_it; ++face_it)
             {
                 FabSet& fs = bndry_mask[face_it()];
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
                 for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
                 {
                     FArrayBox& fab = fs[fsi];
@@ -217,13 +217,13 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     //
     // Here convert from sum of cell contributions to 0 or 1.
     //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (OrientationIter face_it; face_it; ++face_it)
     {
         FabSet& fs = bndry_mask[face_it()];
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
         for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
         {
             FArrayBox& fab      = fs[fsi];
