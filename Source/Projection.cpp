@@ -1709,10 +1709,6 @@ Projection::radMultVel (int       level,
 #if (BL_SPACEDIM < 3)
     BL_ASSERT(radius_grow >= mf.nGrow());
 
-    int ngrow = mf.nGrow();
-
-    int nr = radius_grow;
-
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
@@ -1756,9 +1752,6 @@ Projection::radDiv (int       level,
 #if (BL_SPACEDIM < 3)
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
     BL_ASSERT(radius_grow >= mf.nGrow());
-
-    int ngrow = mf.nGrow();
-    int nr    = radius_grow;
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
