@@ -169,9 +169,9 @@ contains
 
 !c     NOTE: We used to set these to bogus_value to be sure that we didn't use them.
 !c           But now in the divu routine in the F90 solvers we need to include these
-!c           values in the stencil because they might contain inflow values, for example, 
-!c           and the only test is on the B!C for the pressure solve, which doesn't
-!c           differentiate between inflow, reflecting and symmetry.
+!c           values in the stencil because they might contain inflow values, for
+!c           example, and the only test is on the BC for the pressure solve, which 
+!c           doesn't differentiate between inflow, reflecting and symmetry.
 
       if (lo(1) .lt. domlo(1)) then
          do j = lo(2),hi(2)
@@ -247,58 +247,66 @@ contains
 
     end subroutine fort_raddiv
 
-    subroutine anelcoeffmpy(a,DIMS(grid),domlo,domhi,ng,anel_coeff,&
-         nr,bogus_value,mult) bind(C,name="anelcoeffmpy")
+    subroutine anelcoeffmpy(lo,hi,a,DIMS(a),domlo,domhi,anel_coeff,&
+         anel_lo,anel_hi,bogus_value,mult) bind(C,name="anelcoeffmpy")
 !c 
-!c     multiply A by the anelasti!c coefficient
+!c     multiply A by the anelastic coefficient
 !c
 !c 
 !c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
 !c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
-!c
+      !c-- only sets boudnary cells at top and bottom to Bogus Val,
+      !c   boundary cells on the sides are left alone
+
       implicit none
-      integer    ng,nr
-      integer    DIMDEC(grid)
+      integer    lo(SDIM),hi(SDIM)
+      integer    DIMDEC(a)
       integer    domlo(2), domhi(2)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
-                  ARG_L2(grid)-ng:ARG_H2(grid)+ng)
-      REAL_T     anel_coeff(ARG_L2(grid)-nr:ARG_H2(grid)+nr)
+      REAL_T     a(DIMV(a))
+      REAL_T     anel_coeff(anel_lo:anel_hi)
       REAL_T     bogus_value
-      integer    mult
+      integer    mult,anel_lo,anel_hi
 
       integer i, j
 
+      integer jlo,jhi
+      jlo = lo(2)
+      jhi = hi(2)
+
+      ! set the top and bottom ghost cells to bogus val
+      if (lo(2) .lt. domlo(2)) then
+         jlo = domlo(2)
+         do j = lo(2), domlo(2)-1
+         do i = lo(1),hi(1)
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+      if (hi(2) .gt. domhi(2)) then
+         jhi = domhi(2)
+         do j = domhi(2)+1, hi(2)
+         do i = lo(1),hi(1)
+           a(i,j) = bogus_value
+         end do
+         end do
+      end if
+
+      ! scale by anelastic coefficient
       if (mult .eq. 1) then
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+         do j = jlo,jhi
+         do i = lo(1),hi(1)
            a(i,j) = a(i,j) * anel_coeff(j)
          end do
          end do
       else if (mult .eq. 0) then
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+         do j = jlo,jhi
+         do i = lo(1),hi(1)
            a(i,j) = a(i,j) / anel_coeff(j)
          end do
          end do
       else 
          print *,'BOGUS MULT IN ANELCOEFFMULT ',mult
          stop
-      end if
-
-      if (ARG_L2(grid)-ng .lt. domlo(2)) then
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-         do j = ARG_L2(grid)-ng, domlo(2)-1
-           a(i,j) = bogus_value
-         end do
-         end do
-      end if
-
-      if (ARG_H2(grid)+ng .gt. domhi(2)) then
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-         do j = domhi(2)+1, ARG_H2(grid)+ng
-           a(i,j) = bogus_value
-         end do
-         end do
       end if
 
     end subroutine anelcoeffmpy

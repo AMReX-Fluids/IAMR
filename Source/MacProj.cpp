@@ -42,6 +42,7 @@ int  MacProj::do_outflow_bcs;
 int  MacProj::fix_mac_sync_rhs;
 int  MacProj::check_umac_periodicity;
 int  MacProj::use_mlmg_solver = 0;
+int  MacProj::anel_grow       = 1;
 
 namespace
 {
@@ -175,6 +176,31 @@ MacProj::install_anelastic_coefficient (int               level,
 
     if (level > anel_coeff.size()-1) anel_coeff.resize(level+1);
     anel_coeff[level] = _anel_coeff;
+}
+void
+MacProj::build_anelastic_coefficient (int      level,
+				      Real**& _anel_coeff)
+{
+  const BoxArray& grids = parent->getLevel(level).boxArray();
+  const int N = grids.size();
+  _anel_coeff = new Real*[N];
+  for (int i = 0; i < grids.size(); i++)
+  {
+    const int jlo = grids[i].smallEnd(BL_SPACEDIM-1)-anel_grow;
+    const int jhi = grids[i].bigEnd(BL_SPACEDIM-1)+anel_grow;
+    const int len = jhi - jlo + 1;
+    
+    _anel_coeff[i] = new Real[len];
+
+    // FIXME!
+    // This is just a placeholder for testing. Should create (problem
+    // dependent) build_coefficient() function in problem directory 
+    // ...Perhaps also need to worry about deleting anel_coeff
+    // Also not sure why Projection and MacProj have separate anel_coeff
+    // arrays, since they both appear to be cell centered.
+    for (int j=0; j<len; j++)
+      _anel_coeff[i][j] = 0.05*(jlo+j);    
+  }
 }
 
 // xxxxx Can we skip this if using mlmg?
@@ -1194,7 +1220,6 @@ MacProj::mac_sync_compute (int                    level,
     
       for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
       {
-        const int  i  = Syncmfi.index();
 	const Box& bx = Syncmfi.tilebox();
 
         //
@@ -1265,7 +1290,6 @@ void
 MacProj::check_div_cond (int      level,
                          MultiFab U_edge[]) const
 {
-    const BoxArray& grids = LevelData[level]->boxArray();
     const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
@@ -1619,34 +1643,40 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
 
     int mult = 1;
 
-    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
+    for (MFIter mfi(area[0],true); mfi.isValid(); ++mfi)
     {
-        const int        i      = mfi.index();
         const FArrayBox& xarea  = area[0][mfi];
         const FArrayBox& yarea  = area[1][mfi];
-
         DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
         DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
 
-	const Box& grdbx = grids[i];
-        const int* lo = grdbx.loVect();
-        const int* hi = grdbx.hiVect();
+        const Box& bx = mfi.tilebox(IntVect::Zero);
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+	
+        const int  i        = mfi.index();
+	const Box& gbx      = grids[i];
+        const int* gbxhi    = gbx.hiVect();
+	int anel_coeff_lo   = (gbx.loVect())[BL_SPACEDIM-1]-anel_grow;
+	int anel_coeff_hi   = (gbx.hiVect())[BL_SPACEDIM-1]+anel_grow;
 
-        int anel_coeff_lo = lo[BL_SPACEDIM-1]-1;
-        int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
-
+	
 #if (BL_SPACEDIM == 2)
-        fort_scalearea(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+        fort_scalearea(lo,hi,gbxhi,
+		       ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
-                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,
+		       &mult);
 
 #elif (BL_SPACEDIM == 3)
         const FArrayBox& zarea = area[2][mfi];
         DEF_CLIMITS(zarea,az_dat,azlo,azhi);
-        fort_scalearea(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+        fort_scalearea(lo,hi,gbxhi,
+		       ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                        az_dat,ARLIM(azlo),ARLIM(azhi), 
-                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,
+		       &mult);
 
 #endif
     }

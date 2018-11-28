@@ -41,6 +41,8 @@ public:
 
     void install_anelastic_coefficient (int                        level,
                                         amrex::Real                **anel_coeff);
+    void build_anelastic_coefficient (int                        level,
+				      amrex::Real**& anel_coeff);
     //
     // Compute the level projection in NavierStokes::advance.
     //
@@ -294,6 +296,7 @@ protected:
     //
     // Anelastic coefficient array.
     //
+    static int                   anel_grow;  
     amrex::Vector<amrex::Real**> anel_coeff;
 
     //

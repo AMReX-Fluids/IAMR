@@ -46,6 +46,7 @@ int  Projection::do_outflow_bcs      = 1;
 int  Projection::rho_wgt_vel_proj    = 0;
 int  Projection::make_sync_solvable  = 0;
 Real Projection::divu_minus_s_factor = 0.0;
+int  Projection::anel_grow           = 1;
 
 namespace
 {
@@ -196,6 +197,33 @@ Projection::install_anelastic_coefficient (int                   level,
   if (level > anel_coeff.size()-1) 
     anel_coeff.resize(level+1);
   anel_coeff[level] =  _anel_coeff;
+}
+
+
+void
+Projection::build_anelastic_coefficient (int      level,
+					 Real**& _anel_coeff)
+{
+  const BoxArray& grids = parent->getLevel(level).boxArray();
+  const int N = grids.size();
+  _anel_coeff = new Real*[N];
+  for (int i = 0; i < grids.size(); i++)
+  {
+    const int jlo = grids[i].smallEnd(BL_SPACEDIM-1)-anel_grow;
+    const int jhi = grids[i].bigEnd(BL_SPACEDIM-1)+anel_grow;
+    const int len = jhi - jlo + 1;
+    
+    _anel_coeff[i] = new Real[len];
+
+    // FIXME!
+    // This is just a placeholder for testing. Should create (problem
+    // dependent) build_coefficient function in problem directory
+    // ...Perhaps also need to worry about deleting anel_coeff
+    // Also not sure why Projection and MacProj have separate anel_coeff
+    // arrays, since they both appear to be cell centered.
+    for (int j=0; j<len; j++)
+      _anel_coeff[i][j] = 0.05*(jlo+j);    
+  }
 }
 
 //
@@ -1567,7 +1595,6 @@ Projection::scaleVar (int             which_call,
           anel_coeff[level] != 0) AnelCoeffMult(level,*sig,0);
     }
     
-
     //
     // Scale by radius for RZ.
     //
@@ -1774,8 +1801,6 @@ Projection::AnelCoeffMult (int       level,
 {
     BL_ASSERT(anel_coeff[level] != 0);
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
-    int ngrow = mf.nGrow();
-    int nr    = 1;
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
@@ -1785,17 +1810,22 @@ Projection::AnelCoeffMult (int       level,
 
     int mult = 1;
 
-    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
     {
-        BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
-
-        const Box& bx = mfmfi.validbox();
+        const Box& bx = mfmfi.growntilebox();
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
+	const int* datlo = mf[mfmfi].loVect();
+	const int* dathi = mf[mfmfi].hiVect();
+	//const int anel_len = std::size(anel_coeff[level][mfmfi.index()]);
+	const Box& gbx = mfmfi.validbox();
+	int anel_lo   = (gbx.loVect())[BL_SPACEDIM-1]-anel_grow;
+	int anel_hi   = (gbx.hiVect())[BL_SPACEDIM-1]+anel_grow;
 
-        anelcoeffmpy(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
-                          anel_coeff[level][mfmfi.index()],&nr,&bogus_value,&mult);
+	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
+		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
+		     &bogus_value,&mult);
     }
 }
 
@@ -1809,8 +1839,6 @@ Projection::AnelCoeffDiv (int       level,
 {
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
     BL_ASSERT(anel_coeff[level] != 0);
-    int ngrow = mf.nGrow();
-    int nr    = 1;
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
@@ -1820,17 +1848,22 @@ Projection::AnelCoeffDiv (int       level,
 
     int mult = 0;
 
-    for (MFIter mfmfi(mf); mfmfi.isValid(); ++mfmfi) 
+    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi) 
     {
-        BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
-
-        const Box& bx = mfmfi.validbox();
+        const Box& bx = mfmfi.growntilebox();
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
+	const int* datlo = mf[mfmfi].loVect();
+	const int* dathi = mf[mfmfi].hiVect();
+	const Box& gbx = mfmfi.validbox();
+	int anel_lo   = (gbx.loVect())[BL_SPACEDIM-1]-anel_grow;
+	int anel_hi   = (gbx.hiVect())[BL_SPACEDIM-1]+anel_grow;
 
-        anelcoeffmpy(dat,ARLIM(lo),ARLIM(hi),domlo,domhi,&ngrow,
-                          anel_coeff[level][mfmfi.index()],&nr,&bogus_value,&mult);
+	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
+		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
+		     &bogus_value,&mult);
+
     }
 }
 
@@ -2782,7 +2815,6 @@ Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& ge
 #pragma omp parallel
 #endif
   for (MFIter mfi(msk,true); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
 
     FArrayBox& msk_fab = msk[mfi];
 
