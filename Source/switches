@@ -3,6 +3,8 @@ godunov.ppm_type =
 		    slope_order=1, 2 (not supported by projector), or 4) DEFAULT
 		 1 (van leer slopes with quadratic limiters) or
 		 2 (interpolate and limit, use Colella 2008 limiters)
+	* =1 tested by rt
+	* =2 tested by poiseuille	
 godunov.slope_order = only used if ppm_type=0
 		    1 (compute 0th order slopes) -- no test needed, i think bc so simple
 		    2 in Godunov, but projection gives error: 2nd order not supported
@@ -12,8 +14,10 @@ godunov.use_unlimited_slopes - only used in slopes(), so needs ppm_type=0
 			       0 DEFAULT
 godunov.use_forces_in_trans = use_minion in .F files
 			    0 DEFAULT
+	* =1 tested in rt
 godunov.courner_couple = 1 DEFAULT
 		       only in 3D
+	* =0 tested in rt
 
 advection_scheme - hard coded in advection routines
 bousinesq: in GNUMakefile DEFINES += -DBOUSSINESQ
@@ -32,13 +36,14 @@ ns.do_mom_diff = 0 DEFAULT
                  1 requires predict_mom_together=1
 ns.predict_mom_together = 0 DEFAULT
 			  1 requires do_mom_diff = 1
+	* non-default tested in rt
 
 anel_coeff in Proj MacProj
 
 NOTES to self:
 1. FineAdd routines in AmrCore/AMReX_FluxRegister do not use tiling. Nor
    do they appear to work with OMP. Switching to YA would probably be
-   really nice....
+   really nice....but not ready yet
 
 BC types info table in AMReX_BC_Types.H
 bc(spatial direction, hi or lo side)

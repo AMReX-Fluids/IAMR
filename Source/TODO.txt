@@ -40,7 +40,8 @@ A. Loops over thin boundary region.  No OMP
 B. Loops dealing with coarse-fine interaction. 2 OMP only, 2 OMP & tiling
    OMP only
    1. NavierStokesBase.cpp:1087:            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
-        In create_umac_grown(), boxes already divided because crse_src is coarsened from the fine ba 
+        In create_umac_grown(), boxes already divided because crse_src is coarsened from the
+	fine ba 
    2. NavierStokes.cpp:1757:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
         Loop over coarse-fine boxArray intersection
       
