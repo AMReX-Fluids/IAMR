@@ -6,6 +6,9 @@
 # turn tiling on for testing
 fabarray.mfiter_tile_size = 8 8 8
 
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
 max_step 		= 20

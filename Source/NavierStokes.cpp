@@ -453,7 +453,7 @@ NavierStokes::predict_velocity (Real  dt,
     // seems both IAMR and Pele only use a dummy comp_cfl, so should
     // we not bother to do the reduction??? Does amrex use it?
 #ifdef _OPENMP
-#pragma omp parallel reduction(max:cflmax,comp_cfl)
+#pragma omp parallel if (!system::regtest_reduction) reduction(max:cflmax,comp_cfl)
 #endif
 {
      Real cflgrid,u_max[3];
@@ -896,7 +896,7 @@ NavierStokes::MaxVal (const std::string& name,
 
     //Add and test this OMP
     //#ifdef _OPENMP
-    //#pragma omp parallel reduction(max:mxval,s)
+    //#pragma omp parallel if (!system::regtest_reduction) reduction(max:mxval,s)
     //#endif
     //{
 

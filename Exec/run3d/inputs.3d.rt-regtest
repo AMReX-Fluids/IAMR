@@ -3,6 +3,9 @@
 # INPUTS.3D.RT for regression testing
 #*******************************************************************************
 
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
 #ns.do_scalminmax=1
 #ns.do_denminmax=1
 

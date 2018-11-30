@@ -593,7 +593,7 @@ MacProj::mac_sync_solve (int       level,
             Real vol = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sum,vol)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sum,vol)
 #endif
 	    {
 	      FArrayBox vol_wgted_rhs;
@@ -806,7 +806,7 @@ MacProj::mac_sync_solve (int       level,
 	    Real vol = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sum,vol)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sum,vol)
 #endif
 	    {
 	      FArrayBox vol_wgted_rhs;
@@ -1297,7 +1297,7 @@ MacProj::check_div_cond (int      level,
     Real sum = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sum)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sum)
 #endif
     {
       FArrayBox dmac;

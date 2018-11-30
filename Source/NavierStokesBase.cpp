@@ -2387,7 +2387,7 @@ NavierStokesBase::steadyState()
 	// iteration
 	//
 #ifdef _OPENMP
-#pragma omp parallel reduction(max:max_change)
+#pragma omp parallel if (!system::regtest_reduction) reduction(max:max_change)
 #endif
     for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
