@@ -308,150 +308,150 @@ NavierStokes::variableSetUp ()
     //
     // mod grad rho
     //
-    derive_lst.add("modgradrho",IndexType::TheCellType(),1,dermodgradrho,grow_box_by_one);
+    derive_lst.add("modgradrho",IndexType::TheCellType(),1,FORT_DERMODGRADRHO,grow_box_by_one);
     derive_lst.addComponent("modgradrho",desc_lst,State_Type,Density,1);
 
 #if (BL_SPACEDIM==3)
     //
     // u dot laplacian u
     //
-    derive_lst.add("udotlapu",IndexType::TheCellType(),1,derudotlapu,grow_box_by_one);
+    derive_lst.add("udotlapu",IndexType::TheCellType(),1,FORT_DERUDOTLAPU,grow_box_by_one);
     derive_lst.addComponent("udotlapu",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #endif
     //
     // kinetic energy
     //
-    derive_lst.add("energy",IndexType::TheCellType(),1,derkeng,the_same_box);
+    derive_lst.add("energy",IndexType::TheCellType(),1,FORT_DERKENG,the_same_box);
     derive_lst.addComponent("energy",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("energy",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 
-    derive_lst.add("mag_vel",IndexType::TheCellType(),1,dermvel,the_same_box);
+    derive_lst.add("mag_vel",IndexType::TheCellType(),1,FORT_DERMVEL,the_same_box);
     derive_lst.addComponent("mag_vel",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // magnitude of vorticity
     //
-    derive_lst.add("mag_vort",IndexType::TheCellType(),1,dermgvort,grow_box_by_one);
+    derive_lst.add("mag_vort",IndexType::TheCellType(),1,FORT_DERMGVORT,grow_box_by_one);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #if (BL_SPACEDIM == 3)
     //
     //  vorticity vector field
     //
-    derive_lst.add("vort_x",IndexType::TheCellType(),1,dervortx,grow_box_by_one);
+    derive_lst.add("vort_x",IndexType::TheCellType(),1,FORT_DERVORTX,grow_box_by_one);
     derive_lst.addComponent("vort_x",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    derive_lst.add("vort_y",IndexType::TheCellType(),1,dervorty,grow_box_by_one);
+    derive_lst.add("vort_y",IndexType::TheCellType(),1,FORT_DERVORTY,grow_box_by_one);
     derive_lst.addComponent("vort_y",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    derive_lst.add("vort_z",IndexType::TheCellType(),1,dervortz,grow_box_by_one);
+    derive_lst.add("vort_z",IndexType::TheCellType(),1,FORT_DERVORTZ,grow_box_by_one);
     derive_lst.addComponent("vort_z",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    derive_lst.add("DMagVort",IndexType::TheCellType(),1,derdmag,grow_box_by_one);
+    derive_lst.add("DMagVort",IndexType::TheCellType(),1,FORT_DERDMAG,grow_box_by_one);
     derive_lst.addComponent("DMagVort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #endif
     //
     // divergence of velocity field
     //
-    derive_lst.add("diveru",IndexType::TheCellType(),1,dermgdivu,grow_box_by_one);
+    derive_lst.add("diveru",IndexType::TheCellType(),1,FORT_DERMGDIVU,grow_box_by_one);
     derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // average pressure
     //
-    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,deravgpres,
+    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,FORT_DERAVGPRES,
                    the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in X direction
     //
-    derive_lst.add("gradpx",IndexType::TheCellType(),1,dergrdpx,the_same_box);
+    derive_lst.add("gradpx",IndexType::TheCellType(),1,FORT_DERGRDPX,the_same_box);
     derive_lst.addComponent("gradpx",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in Y direction
     //
-    derive_lst.add("gradpy",IndexType::TheCellType(),1,dergrdpy,the_same_box);
+    derive_lst.add("gradpy",IndexType::TheCellType(),1,FORT_DERGRDPY,the_same_box);
     derive_lst.addComponent("gradpy",desc_lst,Press_Type,Pressure,1);
     //
     // magnitude of pressure gradient 
     //
-    derive_lst.add("gradp",IndexType::TheCellType(),1,dergrdp,the_same_box);
+    derive_lst.add("gradp",IndexType::TheCellType(),1,FORT_DERGRDP,the_same_box);
     derive_lst.addComponent("gradp",desc_lst,Press_Type,Pressure,1);
 
 #if (BL_SPACEDIM == 3)
     //
     // pressure gradient in Z direction
     //
-    derive_lst.add("gradpz",IndexType::TheCellType(),1,dergrdpz,the_same_box);
+    derive_lst.add("gradpz",IndexType::TheCellType(),1,FORT_DERGRDPZ,the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
 #ifdef MOREGENGETFORCE
     //
     // radial velocity
     //
-    derive_lst.add("radial_velocity",IndexType::TheCellType(),1,derradvel,the_same_box);
+    derive_lst.add("radial_velocity",IndexType::TheCellType(),1,FORT_DERRADVEL,the_same_box);
     derive_lst.addComponent("radial_velocity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // azimuthal velocity
     //
-    derive_lst.add("azimuthal_velocity",IndexType::TheCellType(),1,derazivel,the_same_box);
+    derive_lst.add("azimuthal_velocity",IndexType::TheCellType(),1,FORT_DERAZIVEL,the_same_box);
     derive_lst.addComponent("azimuthal_velocity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // x_velocity in laboratory frame for rotating frame of refernce
     //
-    derive_lst.add("x_velocity_rot",IndexType::TheCellType(),1,derxvelrot,the_same_box);
+    derive_lst.add("x_velocity_rot",IndexType::TheCellType(),1,FORT_DERXVELROT,the_same_box);
     derive_lst.addComponent("x_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // y_velocity in laboratory frame for rotating frame of refernce
     //
-    derive_lst.add("y_velocity_rot",IndexType::TheCellType(),1,deryvelrot,the_same_box);
+    derive_lst.add("y_velocity_rot",IndexType::TheCellType(),1,FORT_DERYVELROT,the_same_box);
     derive_lst.addComponent("y_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // magnitude of velocity in laboratory frame for rotating frame of refernce
     //
-    derive_lst.add("mag_velocity_rot",IndexType::TheCellType(),1,dermagvelrot,the_same_box);
+    derive_lst.add("mag_velocity_rot",IndexType::TheCellType(),1,FORT_DERMAGVELROT,the_same_box);
     derive_lst.addComponent("mag_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // magnitude of vorticity in laboratory frame for rotating frame of refernce
     //
-    derive_lst.add("mag_vorticity_rot",IndexType::TheCellType(),1,dermagvortrot,grow_box_by_one);
+    derive_lst.add("mag_vorticity_rot",IndexType::TheCellType(),1,FORT_DERMAGVORTROT,grow_box_by_one);
     derive_lst.addComponent("mag_vorticity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #endif
 #if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE)||defined(MOREGENGETFORCE))
     //
     // forcing - used to calculate the rate of injection of energy in probtype 14 (HIT)
     //
-    derive_lst.add("forcing",IndexType::TheCellType(),1,derforcing,the_same_box);
+    derive_lst.add("forcing",IndexType::TheCellType(),1,FORT_DERFORCING,the_same_box);
     derive_lst.addComponent("forcing",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("forcing",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // forcex - used to put the forcing term in the plot file
     //
-    derive_lst.add("forcex",IndexType::TheCellType(),1,derforcex,the_same_box);
+    derive_lst.add("forcex",IndexType::TheCellType(),1,FORT_DERFORCEX,the_same_box);
     derive_lst.addComponent("forcex",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("forcex",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // forcey - used to put the forcing term in the plot file
     //
-    derive_lst.add("forcey",IndexType::TheCellType(),1,derforcey,the_same_box);
+    derive_lst.add("forcey",IndexType::TheCellType(),1,FORT_DERFORCEY,the_same_box);
     derive_lst.addComponent("forcey",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("forcey",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // forcez - used to put the forcing term in the plot file
     //
-    derive_lst.add("forcez",IndexType::TheCellType(),1,derforcez,the_same_box);
+    derive_lst.add("forcez",IndexType::TheCellType(),1,FORT_DERFORCEZ,the_same_box);
     derive_lst.addComponent("forcez",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("forcez",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #endif
     //
     // Turbulence Variable - for integrating on the fly
     //
-    derive_lst.add("TurbVars",IndexType::TheCellType(),16,derturbvars,grow_box_by_one);
+    derive_lst.add("TurbVars",IndexType::TheCellType(),16,FORT_DERTURBVARS,grow_box_by_one);
     derive_lst.addComponent("TurbVars",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("TurbVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // Pressure stuff for on-the-fly integration
     //
-    derive_lst.add("PresVars",IndexType::TheCellType(),4,derpresvars,the_same_box);
+    derive_lst.add("PresVars",IndexType::TheCellType(),4,FORT_DERPRESVARS,the_same_box);
     derive_lst.addComponent("PresVars",desc_lst,Press_Type,Pressure,1);
 #ifdef SUMJET
     //
     // Jet Variables - for integrating on the fly
     //
-    derive_lst.add("JetVars",IndexType::TheCellType(),27,derjetvars,grow_box_by_one);
+    derive_lst.add("JetVars",IndexType::TheCellType(),27,FORT_DERJETVARS,grow_box_by_one);
     derive_lst.addComponent("JetVars",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("JetVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     derive_lst.addComponent("JetVars",desc_lst,State_Type,Trac,1);
@@ -460,7 +460,7 @@ NavierStokes::variableSetUp ()
     //
     // Pressure stuff for the jet on-the-fly integration (note need to grow for slope reconstruction of *derivatives*)
     //
-    derive_lst.add("JetPresVars",IndexType::TheCellType(),16,derjetpresvars,grow_box_by_one);
+    derive_lst.add("JetPresVars",IndexType::TheCellType(),16,FORT_DERJETPRESVARS,grow_box_by_one);
     derive_lst.addComponent("JetPresVars",desc_lst,Press_Type,Pressure,1); 
 #endif
 //3D
@@ -471,13 +471,13 @@ NavierStokes::variableSetUp ()
     // The particle count at this level.
     //
     derive_lst.add("particle_count",IndexType::TheCellType(),1,
-                   dernull,the_same_box);
+                   FORT_DERNULL,the_same_box);
     derive_lst.addComponent("particle_count",desc_lst,State_Type,Density,1);
     //
     // The total # of particles at our level or above.
     //
     derive_lst.add("total_particle_count",IndexType::TheCellType(),1,
-                   dernull,the_same_box);
+                   FORT_DERNULL,the_same_box);
     derive_lst.addComponent("total_particle_count",desc_lst,State_Type,Density,1);
 #endif
 

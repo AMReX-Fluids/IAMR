@@ -99,9 +99,6 @@ ViscBndry::setHomogValues (const BCRec&   bc,
 {
     setBndryConds(bc, ratio);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
     for (OrientationIter fi; fi; ++fi)
     {
         const Orientation face  = fi();

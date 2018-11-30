@@ -73,9 +73,6 @@ ViscBndryTensor::setHomogValues (const Vector<BCRec>& bc,
     for (int n = 0; n < bc.size(); ++n)
         setBndryConds(bc[n], ratio, n);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
     for (OrientationIter fi; fi; ++fi)
     {
         const Orientation face  = fi();

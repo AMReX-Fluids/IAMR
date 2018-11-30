@@ -9,17 +9,16 @@ stop_time 				=  -1
 ns.stop_when_steady 	=  1
 ns.steady_tol 			=  1.0e-4
 
-amr.n_cell              =  32 16 16
+amr.n_cell              =  32 32 32
 
-amr.max_level           =  2
-ns.do_tracer_ref        =  1
+amr.max_level           =  0
 
 ns.v                    =  1
 amr.v                   =  1
 
-amr.check_int		=  1000
+amr.check_int			=  1000
 
-amr.plot_int		=  10
+amr.plot_int			=  10
 
 ns.cfl                  =  0.5  # CFL number used to set dt
 
@@ -34,14 +33,14 @@ amr.probin_file 		=  probin.3d.poiseuille
 geometry.coord_sys   	=  0
 
 geometry.prob_lo     	=  0. 0. 0.
-geometry.prob_hi     	=  2. 1. 1.
+geometry.prob_hi     	=  1. 1. 1.
 
 geometry.is_periodic 	=  0 0 0
 
 ns.gravity 				=  1.0
 
-ns.lo_bc             	=  1 5 5 
-ns.hi_bc             	=  2 5 5 
+ns.lo_bc             	=  5 5 2
+ns.hi_bc             	=  5 5 2
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall

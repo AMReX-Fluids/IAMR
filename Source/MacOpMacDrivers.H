@@ -40,8 +40,7 @@ void mac_vel_update( int init,
 #endif
                      const amrex::FArrayBox &phi,
                      const amrex::FArrayBox &rho, int rho_comp,  
-                     const amrex::Box &bx, 
-		     const amrex::Box &vbx, int level,
+                     const amrex::Box &grd, int level, int n,
                      const amrex::Real *dx, amrex::Real scale );
 
 #endif

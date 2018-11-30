@@ -1,5 +1,7 @@
 
 FEXE_headers += probdata.H PROB_NS_F.H
-F90EXE_sources += PROB_3D.F90
-F90EXE_sources += MAKE_FORCE_3D.F90 
-F90EXE_sources += NS_error_3d.F90
+FEXE_sources += PROB_3D.F 
+FEXE_sources += NS_FILL_3D.F 
+FEXE_sources += MAKE_FORCE_3D.F 
+
+fEXE_sources += NS_error_3d.f

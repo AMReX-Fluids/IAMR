@@ -2,46 +2,112 @@
 #ifndef _NAVIERSTOKES_F_H_
 #define _NAVIERSTOKES_F_H_
 
-#ifndef BL_LANG_FORT
+#ifdef BL_LANG_FORT
+#    define FORT_FILCC       filcc
+#    define FORT_GRADP       gradp
+#    define FORT_PUTDOWN     putdown
+#    define FORT_INCRMULT    incrmult
+#    define FORT_MAXVAL      maxval
+#    define FORT_SUMMASS     summass
+#    define FORT_SUMMASS_CYL summass_cyl
+#    define FORT_CEN2EDG     cen2edg
+#    define FORT_EDGE_INTERP edge_interp
+#    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     sumturb
+#ifdef SUMJET
+#    define FORT_SUMJET      sumjet
+#endif
+#endif
+#else
+#  if defined(BL_FORT_USE_UPPERCASE)
+#    define FORT_FILCC       FILCC
+#    define FORT_GRADP       GRADP
+#    define FORT_PUTDOWN     PUTDOWN
+#    define FORT_INCRMULT    INCRMULT
+#    define FORT_MAXVAL      MAXVAL
+#    define FORT_SUMMASS     SUMMASS
+#    define FORT_SUMMASS_CYL SUMMASS_CYL
+#    define FORT_CEN2EDG     CEN2EDG
+#    define FORT_EDGE_INTERP EDGE_INTERP
+#    define FORT_PC_CF_EDGE_INTERP PC_EDGE_INTERP
+#    define FORT_HOEXTRAPTOCC HOEXTRAPTOCC
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     SUMTURB
+#ifdef SUMJET
+#    define FORT_SUMJET      SUMJET
+#endif
+#endif
+#  elif defined(BL_FORT_USE_LOWERCASE)
+#    define FORT_FILCC       filcc
+#    define FORT_GRADP       gradp
+#    define FORT_PUTDOWN     putdown
+#    define FORT_INCRMULT    incrmult
+#    define FORT_MAXVAL      maxval
+#    define FORT_SUMMASS     summass
+#    define FORT_SUMMASS_CYL summass_cyl
+#    define FORT_CEN2EDG     cen2edg
+#    define FORT_EDGE_INTERP edge_interp
+#    define FORT_PC_CF_EDGE_INTERP pc_edge_interp
+#    define FORT_HOEXTRAPTOCC hoextraptocc
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     sumturb
+#ifdef SUMJET
+#    define FORT_SUMJET      sumjet
+#endif
+#endif
+#  elif defined(BL_FORT_USE_UNDERSCORE)
+#    define FORT_FILCC       filcc_
+#    define FORT_GRADP       gradp_
+#    define FORT_PUTDOWN     putdown_
+#    define FORT_INCRMULT    incrmult_
+#    define FORT_MAXVAL      maxval_
+#    define FORT_SUMMASS     summass_
+#    define FORT_SUMMASS_CYL summass_cyl_
+#    define FORT_CEN2EDG     cen2edg_
+#    define FORT_EDGE_INTERP edge_interp_
+#    define FORT_PC_CF_EDGE_INTERP pc_edge_interp_
+#    define FORT_HOEXTRAPTOCC hoextraptocc_
+#if (BL_SPACEDIM == 3)
+#    define FORT_SUMTURB     sumturb_
+#ifdef SUMJET
+#    define FORT_SUMJET      sumjet_
+#endif
+#endif
+#  endif
 
 #include <AMReX_ArrayLim.H>
-#include <AMReX_filcc_f.H>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-    void filcc (const amrex::Real * q, ARLIM_P(q_lo), ARLIM_P(q_hi),
+    void FORT_FILCC (const amrex::Real * q, ARLIM_P(q_lo), ARLIM_P(q_hi),
                      const int * domlo, const int * domhi,
                      const amrex::Real * dx_crse, const amrex::Real * xlo, 
                      const int * bc);
-    void filcc_tile (ARLIM_P(lo), ARLIM_P(hi),
-                          const amrex::Real * q, ARLIM_P(q_lo), ARLIM_P(q_hi),
-                          const int * domlo, const int * domhi,
-                          const amrex::Real * dx_crse, const amrex::Real * xlo, 
-                          const int * bc);
 #if (BL_SPACEDIM == 2)
-    void gradp (const amrex::Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
+    void FORT_GRADP (const amrex::Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
                      const amrex::Real* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
                      const int* lo, const int* hi, const amrex::Real* dx ,
                      const int* is_full);
 #else
-    void gradp (const amrex::Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
+    void FORT_GRADP (const amrex::Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
                      const amrex::Real* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
                      const int* lo, const int* hi, const amrex::Real* dx);
 #endif
     
-    void fort_putdown (amrex::Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
+    void FORT_PUTDOWN (amrex::Real* crse, ARLIM_P(crse_lo), ARLIM_P(crse_hi),
                        const amrex::Real* fine, ARLIM_P(fine_lo), ARLIM_P(fine_hi),
                        const int* lo, const int* hi,
                        const int* ratio);
     
-    void incrmult (amrex::Real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
+    void FORT_INCRMULT (amrex::Real* a, ARLIM_P(a_lo), ARLIM_P(a_hi),
                         const amrex::Real* b, ARLIM_P(b_lo), ARLIM_P(b_hi),
                         const int* lo, const int* hi,
                         const amrex::Real* alpha);
 
 #if (BL_SPACEDIM == 3)
-    void sumturb (const amrex::Real* dat, const amrex::Real* pres,
+    void FORT_SUMTURB (const amrex::Real* dat, const amrex::Real* pres,
 		       ARLIM_P(dat_lo), ARLIM_P(dat_hi),
 		       ARLIM_P(pres_lo), ARLIM_P(pres_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
@@ -49,7 +115,7 @@ extern "C" {
 		       int *ksize, int *turbVars);
 
 #if SUMJET
-    void sumjet (const amrex::Real* dat, const amrex::Real* pres,
+    void FORT_SUMJET (const amrex::Real* dat, const amrex::Real* pres,
 		      ARLIM_P(dat_lo), ARLIM_P(dat_hi),
 		      ARLIM_P(pres_lo), ARLIM_P(pres_hi),
                       ARLIM_P(grid_lo), ARLIM_P(grid_hi),
@@ -61,14 +127,14 @@ extern "C" {
 #endif
 
 #if (BL_SPACEDIM == 2)
-    void summass (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASS (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        const amrex::Real* delta, amrex::Real* mass,
                        const amrex::Real* radius,
                        const int* irlo, const int* irhi,
                        const int* rz_flag);
 
-    void summass_cyl (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASS_CYL (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                            const amrex::Real* delta, amrex::Real* mass,
                            const amrex::Real* radius,
@@ -76,35 +142,37 @@ extern "C" {
                            const int* rz_flag, const amrex::Real* plo,
                            const amrex::Real* vws_dz, const amrex::Real* vws_Rcyl);
 #else
-    void summass (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASS (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                        ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                        const amrex::Real* delta, amrex::Real* mass);
 
-    void summass_cyl (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_SUMMASS_CYL (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                            const amrex::Real* delta, const amrex::Real* plo, const amrex::Real* vws_dz,
                            const amrex::Real* vws_Rcyl, amrex::Real* mass);
 #endif
 
-    void fort_maxval (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+    void FORT_MAXVAL (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                       ARLIM_P(grid_lo), ARLIM_P(grid_hi), amrex::Real* maxval);
 
 
-    void cen2edg(const int* lo, const int* hi,
+    void FORT_CEN2EDG(const int* lo, const int* hi,
                       ARLIM_P(clo), ARLIM_P(chi), const amrex::Real* cfabdat,
                       ARLIM_P(elo), ARLIM_P(ehi), amrex::Real* efabdat,
                       const int* nc, const int* dir, const int* isharm);
 
-    void edge_interp(const int* flo, const int* fhi,
+    void FORT_EDGE_INTERP(const int* flo, const int* fhi,
                           const int* nc, const int* refRatio, const int* dir,
                           amrex::Real*       fine, ARLIM_P(flo), ARLIM_P(fhi));
     
-    void pc_edge_interp(const int* lo, const int* hi,
+    void FORT_PC_CF_EDGE_INTERP(const int* lo, const int* hi,
                                 const int* nc, const int* refRatio, const int* dir,
                                 const amrex::Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                                 amrex::Real*       fine, ARLIM_P(flo), ARLIM_P(fhi));
 
-
+    void FORT_HOEXTRAPTOCC (const amrex::Real* q, ARLIM_P(q_lo), ARLIM_P(q_hi),
+                     const int* dom_lo, const int* dom_hi,
+                     const amrex::Real* dx ,const amrex::Real* xlo);
 
 #ifdef __cplusplus
 }

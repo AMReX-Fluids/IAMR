@@ -231,7 +231,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         // the shifted coordinate system (where the last dimension is 1),
         // and replace (divu) by (divu - d/dperpdir (vel)).
         //
-        extrap_mac(
+        FORT_EXTRAP_MAC(
             ARLIM(velXlo), ARLIM(velXhi), velXPtr,
             ARLIM(velYlo), ARLIM(velYhi), velYPtr,
 #if (BL_SPACEDIM == 3)
@@ -286,11 +286,11 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                 DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
 
                 x.resize(length);
-                macphibc(x.dataPtr(), &length, divuEPtr, rhoEPtr,
+                FORT_MACPHIBC(x.dataPtr(), &length, divuEPtr, rhoEPtr,
                               redge[iface].dataPtr(), dxFiltered[iface],
                               isPeriodicFiltered[iface]);
 
-                macphi_from_x(ARLIM(philo),ARLIM(phihi),phiPtr,
+                FORT_MACPHI_FROM_X(ARLIM(philo),ARLIM(phihi),phiPtr,
                                    &length,x.dataPtr());
 #elif (BL_SPACEDIM == 3)
                 Box faceBox(ccExt[iface].box());
@@ -319,14 +319,14 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                 //
                 // Subtract the average phi.
                 //
-                //macsubtractavgphi(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
+                //FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
                 //             &r_len,redge,
                 //             lo,hi,isPeriodicFiltered[iface]);
                 //
                 // Translate the solution back to the original coordinate system.
                 //
                 int face   = int(outFaces[iface]);
-                mac_reshift_phi(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+                FORT_MAC_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
                                      ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
 #endif
             }
@@ -477,12 +477,12 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
 
 	    Vector<Real> redge_conn(length+1);
 
-            macfill_oned(&lenx,&leny,&length,faces,&numOutFlowFaces,
+            FORT_MACFILL_ONED(&lenx,&leny,&length,faces,&numOutFlowFaces,
                               ccEptr0,ccEptr1,ccEptr2,ccEptr3,
                               r0,r1,r2,r3,
                               ccE_conn.dataPtr(),redge_conn.dataPtr());
 
-            macphibc(x.dataPtr(), &length, 
+            FORT_MACPHIBC(x.dataPtr(), &length, 
                           ccE_conn.dataPtr(1), ccE_conn.dataPtr(0),
                           redge_conn.dataPtr(), dx, &per);
 
@@ -507,13 +507,13 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                 }
             }
 
-            macallphi_from_x(&lenx,&leny,&length,faces,&numOutFlowFaces,
+            FORT_MACALLPHI_FROM_X(&lenx,&leny,&length,faces,&numOutFlowFaces,
                                   phiptr0, phiptr1, phiptr2, phiptr3,
                                   x.dataPtr());
 #elif (BL_SPACEDIM == 3)
 
             int width = lenz;
-            macfill_twod(&lenx,&leny,&length,&width,faces,&numOutFlowFaces,
+            FORT_MACFILL_TWOD(&lenx,&leny,&length,&width,faces,&numOutFlowFaces,
                               ccEptr0,ccEptr1,ccEptr2,ccEptr3,ccEptr4,ccEptr5,
                               ccE_conn.dataPtr());
             ccE_conn.clear();
@@ -546,14 +546,14 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             //
             // Subtract the average phi.
             //
-            //macsubtractavgphi(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
+            //FORT_MACSUBTRACTAVGPHI(ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,
             //                   &r_len,redge,
             //                   lo,hi,isPeriodicFiltered[iface]);
             //
             // Translate the solution back to the original coordinate system.
             //
             int face   = int(outFaces[iface]);
-            mac_reshift_phi(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
+            FORT_MAC_RESHIFT_PHI(ARLIM(phiFab_lo),ARLIM(phiFab_hi),phiFabPtr,
                                  ARLIM(phi_lo),ARLIM(phi_hi),phiPtr,&face);
 #endif
         }
@@ -583,7 +583,7 @@ MacOutFlowBC::computeCoefficients (FArrayBox&   rhs,
     DEF_LIMITS(beta[1],beta1Ptr, beta1lo, beta1hi);
 
 
-    compute_maccoeff(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
+    FORT_COMPUTE_MACCOEFF(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
                           ARLIM(beta0lo),ARLIM(beta0hi),beta0Ptr,
                           ARLIM(beta1lo),ARLIM(beta1hi),beta1Ptr,
                           ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
@@ -688,7 +688,7 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
         DEF_LIMITS(newbeta[0],newbeta0Ptr,newbeta0_lo,newbeta0_hi);
         DEF_LIMITS(newbeta[1],newbeta1Ptr,newbeta1_lo,newbeta1_hi);
       
-        coarsigma(beta0Ptr,ARLIM(beta0_lo),ARLIM(beta0_hi),
+        FORT_COARSIGMA(beta0Ptr,ARLIM(beta0_lo),ARLIM(beta0_hi),
 #if (BL_SPACEDIM == 3)
                        beta1Ptr,ARLIM(beta1_lo),ARLIM(beta1_hi),
 #endif
@@ -729,7 +729,7 @@ MacOutFlowBC_MG::residual ()
     DEF_LIMITS(beta[0],beta0Ptr,beta0lo,beta0hi);
     DEF_LIMITS(beta[1],beta1Ptr,beta1lo,beta1hi);
 
-    macresid(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
+    FORT_MACRESID(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
                   ARLIM(beta0lo),ARLIM(beta0hi),beta0Ptr,
                   ARLIM(beta1lo),ARLIM(beta1hi),beta1Ptr,
                   ARLIM(philo), ARLIM(phihi),phiPtr,
@@ -757,7 +757,7 @@ MacOutFlowBC_MG::step (int nGSRB)
         DEF_LIMITS(beta[1], beta1Ptr, beta1_lo,beta1_hi);
         DEF_BOX_LIMITS(cgwork,cg_lo,cg_hi);
     
-        solvemac(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi),
+        FORT_SOLVEMAC(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi),
                       dest0Ptr,ARLIM(dest0_lo),ARLIM(dest0_hi),
                       rhsPtr, ARLIM(rhs_lo),ARLIM(rhs_hi),
                       beta0Ptr, ARLIM(beta0_lo),ARLIM(beta0_hi),
@@ -784,7 +784,7 @@ MacOutFlowBC_MG::Restrict ()
     DEF_LIMITS(*resid,residPtr,resid_lo,resid_hi);
     DEF_LIMITS(*(next->theRhs()),rescPtr,resc_lo,resc_hi);
 
-    outflowbc_restrict(residPtr, ARLIM(resid_lo),ARLIM(resid_hi), 
+    FORT_RESTRICT(residPtr, ARLIM(resid_lo),ARLIM(resid_hi), 
                   rescPtr, ARLIM(resc_lo),ARLIM(resc_hi), 
                   lo,hi,loc,hic);
 }
@@ -797,7 +797,7 @@ MacOutFlowBC_MG::interpolate ()
     DEF_LIMITS(*phi,phiPtr,phi_lo,phi_hi);
     DEF_LIMITS(*(next->thePhi()),deltacPtr,deltac_lo,deltac_hi);
 
-    fort_interpolate(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi), 
+    FORT_INTERPOLATE(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi), 
                      deltacPtr,ARLIM(deltac_lo),ARLIM(deltac_hi), 
                      lo,hi,loc,hic);
 }
@@ -811,7 +811,7 @@ MacOutFlowBC_MG::gsrb (int nstep)
     DEF_LIMITS(beta[1], beta1Ptr, beta1lo, beta1hi);
     DEF_LIMITS(*phi,phiPtr,philo,phihi);
 
-    macrelax(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
+    FORT_MACRELAX(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
                   ARLIM(beta0lo),ARLIM(beta0hi),beta0Ptr,
                   ARLIM(beta1lo),ARLIM(beta1hi),beta1Ptr,
                   ARLIM(philo),ARLIM(phihi),phiPtr,
