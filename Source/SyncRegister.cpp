@@ -62,33 +62,54 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     const int* phys_lo = phys_bc.lo();
     const int* phys_hi = phys_bc.hi();
 
-    const Box& node_domain = amrex::surroundingNodes(geom.Domain());
-
+    int outflow_dirs[BL_SPACEDIM-1]={-1};
+    int nOutflow = 0;
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        if (!geom.isPeriodic(dir))
-        {
-            Box domlo(node_domain), domhi(node_domain);
+      if (phys_lo[dir] == Outflow || phys_hi[dir] == Outflow)
+      {
+	outflow_dirs[nOutflow]=dir;
+	nOutflow++;
+      }
+    }
 
-            domlo.setRange(dir,node_domain.smallEnd(dir),1);
-            domhi.setRange(dir,node_domain.bigEnd(dir),1);
+    const Box& node_domain = amrex::surroundingNodes(geom.Domain());
 
+    if (nOutflow > 0)
+    {      
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
-            {
-                const Box& blo = mfi.validbox() & domlo;
-                const Box& bhi = mfi.validbox() & domhi;
+      for (int n = 0; n < nOutflow; n++)
+      {
+	int dir = outflow_dirs[n];
+	
+	for (MFIter mfi(rhs); mfi.isValid(); ++mfi)
+	{
+	  const Box& vbx = mfi.validbox();
+	  
+	  if (phys_lo[dir] == Outflow)
+	  {
+            Box domlo(node_domain);
+            domlo.setRange(dir,node_domain.smallEnd(dir),1);
+	    const Box& blo = vbx & domlo;
 
-                if (blo.ok() && phys_lo[dir] == Outflow)
-                    rhs[mfi].setVal(0.0,blo,0,1);
+	    if (blo.ok())
+	      rhs[mfi].setVal(0.0,blo,0,1);
+	  }
+	  if (phys_hi[dir] == Outflow)
+	  {
+	    Box domhi(node_domain);
+            domhi.setRange(dir,node_domain.bigEnd(dir),1);
+	    const Box& bhi = vbx & domhi;
 
-                if (bhi.ok() && phys_hi[dir] == Outflow) 
-                    rhs[mfi].setVal(0.0,bhi,0,1);
-            }
-        }
+	    if (bhi.ok())
+	      rhs[mfi].setVal(0.0,bhi,0,1);
+	  }
+	}
+      }
     }
+
     //
     // Set Up bndry_mask.
     //
@@ -96,15 +117,15 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     {
         bndry_mask[face()].setVal(0);
     }
-
-    for (OrientationIter face_it; face_it; ++face_it)
-    {
-        FabSet& fs = bndry_mask[face_it()];
-
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    {
+        for (OrientationIter face_it; face_it; ++face_it)
 	{
+	    FabSet& fs = bndry_mask[face_it()];
+
 	    FArrayBox tmpfab;
 	    std::vector< std::pair<int,Box> > isects;	    
 	    Vector<IntVect> pshifts(26);
@@ -152,7 +173,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 		const int* clo = tmpfab.loVect(); 
 		const int* chi = tmpfab.hiVect();
 		
-		FORT_MAKEMASK(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
+		makemask(mask_dat,ARLIM(mlo),ARLIM(mhi), cell_dat,ARLIM(clo),ARLIM(chi));
 	    }
         }
     }
@@ -169,13 +190,13 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
             domlo.setRange(dir,node_domain.smallEnd(dir),1);
             domhi.setRange(dir,node_domain.bigEnd(dir),1);
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for (OrientationIter face_it; face_it; ++face_it)
             {
                 FabSet& fs = bndry_mask[face_it()];
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
                 for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
                 {
                     FArrayBox& fab = fs[fsi];
@@ -196,13 +217,13 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
     //
     // Here convert from sum of cell contributions to 0 or 1.
     //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (OrientationIter face_it; face_it; ++face_it)
     {
         FabSet& fs = bndry_mask[face_it()];
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
         for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
         {
             FArrayBox& fab      = fs[fsi];
@@ -210,7 +231,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
             const int* mlo      = fab.loVect(); 
             const int* mhi      = fab.hiVect();
 
-            FORT_CONVERTMASK(mask_dat,ARLIM(mlo),ARLIM(mhi));
+            convertmask(mask_dat,ARLIM(mlo),ARLIM(mhi));
         }
     }
 
@@ -252,36 +273,39 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 {
     BL_PROFILE("SyncRegister::CompAdd()");
 
-    Vector<IntVect> pshifts(27);
-
-    std::vector< std::pair<int,Box> > isects;
-
-    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        const Box& sync_box = mfi.validbox();
+      Vector<IntVect> pshifts(27);
+      std::vector< std::pair<int,Box> > isects;
 
-        Pgrids.intersections(sync_box,isects);
+      for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+      {
+	  //const Box& sync_box = mfi.tilebox();
+	  const Box& sync_box = mfi.validbox();
 
-        FArrayBox& syncfab = Sync_resid_fine[mfi];
+	  Pgrids.intersections(sync_box,isects);
+	  FArrayBox& syncfab = Sync_resid_fine[mfi];
 
-        for (int ii = 0, N = isects.size(); ii < N; ii++)
-        {
-            const int  i   = isects[ii].first;
-            const Box& pbx = Pgrids[i];
+	  for (int ii = 0, N = isects.size(); ii < N; ii++)
+	  {
+	      const int  i   = isects[ii].first;
+	      const Box& pbx = Pgrids[i];
 
-            syncfab.setVal(0,isects[ii].second,0,1);
+	      syncfab.setVal(0,isects[ii].second,0,1);
+	      fine_geom.periodicShift(sync_box, pbx, pshifts);
 
-            fine_geom.periodicShift(sync_box, pbx, pshifts);
-
-            for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
-                 it != End;
-                 ++it)
-            {
-                Box isect = pbx + *it;
-                isect    &= sync_box;
-                syncfab.setVal(0,isect,0,1);
-            }
-        }
+	      for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+		   it != End;
+		   ++it)
+	      {
+		  Box isect = pbx + *it;
+		  isect    &= sync_box;
+		  syncfab.setVal(0,isect,0,1);
+	      }
+	  }
+      }
     }
 
     FineAdd(Sync_resid_fine,crse_geom,mult);
@@ -336,10 +360,10 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 		    const int* clo = bndbox.loVect();
 		    const int* chi = bndbox.hiVect();
 
-		    FORT_SRCRSEREG(finefab.dataPtr(),
-				   ARLIM(resid_lo),ARLIM(resid_hi),
-				   cbndfab.dataPtr(),ARLIM(clo),ARLIM(chi),
-				   clo,chi,&dir,ratio.getVect());
+		    srcrsereg(finefab.dataPtr(),
+			      ARLIM(resid_lo),ARLIM(resid_hi),
+			      cbndfab.dataPtr(),ARLIM(clo),ARLIM(chi),
+			      clo,chi,&dir,ratio.getVect());
 
 		    for (int j = 0; j < BL_SPACEDIM; ++j)
 		    {
@@ -350,7 +374,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 			    // for any boundary but outflow or periodic
 			    //
 			    Box domlo(crse_node_domain);
-			    domlo.setRange(j,crse_node_domain.smallEnd(j),1);			    
+			    domlo.setRange(j,crse_node_domain.smallEnd(j),1);
 			    domlo &= bndbox;			    
 			    if (domlo.ok()) {
 				cbndfab.mult(2.0,domlo,0,1);

@@ -170,6 +170,12 @@ public:
     // Get pressure gradient data via fill-patching.
     //
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
+    //
+    // Boundary condition access functions.
+    //
+    amrex::Vector<int> fetchBCArray (int State_Type, const amrex::Box& bx,
+			           int scomp, int ncomp);
+
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
@@ -211,6 +217,13 @@ protected:
                    int              num_comp,
 		   const amrex::Real       time,
                    const amrex::FArrayBox& Scal);
+    void getForce (amrex::FArrayBox&       force,
+		   const amrex::Box&      bx,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp,
+		   const amrex::Real       time,
+                   const amrex::FArrayBox& Scal);
 #else
 #ifdef MOREGENGETFORCE
     void getForce (amrex::FArrayBox&       force,
@@ -222,17 +235,49 @@ protected:
                    const amrex::FArrayBox& Vel,
                    const amrex::FArrayBox& Scal,
 		   int              scalScomp);
-#else
     void getForce (amrex::FArrayBox&       force,
+		   const amrex::Box&      bx,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp,
+		   const amrex::Real       time,
+                   const amrex::FArrayBox& Vel,
+                   const amrex::FArrayBox& Scal,
+		   int              scalScomp);
+#else
+#ifdef GENGETFORCE
+  void getForce (amrex::FArrayBox&       force,
                    int              gridno,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
-#ifdef GENGETFORCE
 		   const amrex::Real       time,
-#endif		 
                    const amrex::FArrayBox& Rho,
                    int              RComp = 0);
+  void getForce (amrex::FArrayBox&       force,
+		   const amrex::Box&      bx,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp,
+		   const amrex::Real       time,
+                   const amrex::FArrayBox& Rho,
+                   int              RComp = 0);
+#else
+  void getForce (amrex::FArrayBox&       force,
+                   int              gridno,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp,
+                   const amrex::FArrayBox& Rho,
+                   int              RComp = 0);
+  void getForce (amrex::FArrayBox&       force,
+		   const amrex::Box&      bx,
+                   int              ngrow,
+                   int              strt_comp,
+                   int              num_comp,
+                   const amrex::FArrayBox& Rho,
+                   int              RComp = 0);
+#endif		 
 #endif		 
 #endif		 
     //

@@ -3,7 +3,14 @@
 # INPUTS.3D.HOTSPOT - hot bubble rising
 #*******************************************************************************
 
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
+# test 0th order slopes
+godunov.slope_order = 1
+
 proj.use_mlmg_solver = 1
+mac.use_mlmg_solver = 1
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
@@ -21,6 +28,10 @@ ns.do_tracer_ref = 0
 ns.do_vorticity_ref = 0
 ns.do_temp_ref = 1
 
+# allow refinement at outflow boundary
+ns.do_refine_outflow = 1
+ns.do_derefine_outflow = 0
+
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
@@ -30,7 +41,7 @@ amr.max_grid_size	= 16
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 2 # maximum number of levels of refinement
+amr.max_level		= 1 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -46,7 +57,10 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-
+diffuse.v = 0
+mac.v =0
+proj.v=1
+proj.Pcode = 0
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
@@ -113,10 +127,10 @@ geometry.is_periodic =  0 0 0
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 4 4 4
+ns.lo_bc             = 5 5 5
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             = 4 4 4
+ns.hi_bc             = 5 5 2
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall

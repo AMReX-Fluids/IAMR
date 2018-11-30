@@ -6,11 +6,11 @@
 	  REAL_T  lid_vel
       integer probtype, adv_dir, axis_dir
       common /probdt1/ probtype, adv_dir, axis_dir
-      common /probdt2/  den1,den2,vel1,vel2,delta0,
-     &                  xlev1,zlev1,freq,mag
+      common /probdt2/  den1,den2,vel1,vel2,delta0, &
+                       xlev1,zlev1,freq,mag
       common /probdt3/ vorterr, adverr, denerr, temperr
-      common /probdt4/ denfact, xblob, yblob, zblob, radvort,
-     &                 radblob, velfact, randfact, bubgrad
+      common /probdt4/ denfact, xblob, yblob, zblob, radvort, &
+                      radblob, velfact, randfact, bubgrad
       common /probdt5/ rhozero, tempzero, r_d, c_d, adv_vel
       common /probdt6/ f_problo, f_probhi, turb_scale, grav_angle
 	  common /probdt7/ lid_vel

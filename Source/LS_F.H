@@ -1,76 +1,7 @@
 #ifndef _LS_F_H_
 #define _LS_F_H_
 
-#ifdef BL_LANG_FORT
-#    define FORT_PHIUPD      phiupd
-#    define FORT_LSCFL       lscfl
-#    define FORT_NARROWBAND  narrowband
-#    define FORT_RETYPIFY    retypify
-#    define FORT_FINDINTRFCE findintrfce
-#    define FORT_FASTMARCH   fastmarch
-#    define FORT_NBANDNUMIFY nbandnumify
-#    define FORT_MINE        setmine
-#    define FORT_FASTMARCH2  fastmarch2
-
-#if (BL_SPACEDIM == 3)
-#    define FORT_SUMTURB     sumturb
-#ifdef SUMJET
-#    define FORT_SUMJET      sumjet
-#endif
-#endif
-#else
-#  if defined(BL_FORT_USE_UPPERCASE)
-#    define FORT_PHIUPD      PHIUPD
-#    define FORT_INITPHI     INITPHI
-#    define FORT_LSCFL       LSCFL
-#    define FORT_NARROWBAND  NARROWBAND
-#    define FORT_RETYPIFY    RETYPIFY
-#    define FORT_FINDINTRFCE FINDINTRFCE
-#    define FORT_FASTMARCH   FASTMARCH
-#    define FORT_NBANDNUMIFY NBANDNUMIFY
-#    define FORT_MINE        SETMINE
-#    define FORT_FASTMARCH2  FASTMARCH2
-#if (BL_SPACEDIM == 3)
-#    define FORT_SUMTURB     SUMTURB
-#ifdef SUMJET
-#    define FORT_SUMJET      SUMJET
-#endif
-#endif
-#  elif defined(BL_FORT_USE_LOWERCASE)
-#    define FORT_PHIUPD      phiupd
-#    define FORT_INITPHI     initphi
-#    define FORT_LSCFL       lscfl
-#    define FORT_NARROWBAND  narrowband
-#    define FORT_RETYPIFY    retypify
-#    define FORT_FINDINTRFCE findintrfce
-#    define FORT_FASTMARCH   fastmarch
-#    define FORT_NBANDNUMIFY nbandnumify
-#    define FORT_MINE        setmine
-#    define FORT_FASTMARCH2  fastmarch2
-#if (BL_SPACEDIM == 3)
-#    define FORT_SUMTURB     sumturb
-#ifdef SUMJET
-#    define FORT_SUMJET      sumjet
-#endif
-#endif
-#  elif defined(BL_FORT_USE_UNDERSCORE)
-#    define FORT_PHIUPD      phiupd_
-#    define FORT_INITPHI     initphi_
-#    define FORT_LSCFL       lscfl_
-#    define FORT_NARROWBAND  narrowband_
-#    define FORT_RETYPIFY    retypify_
-#    define FORT_FINDINTRFCE findintrfce_
-#    define FORT_FASTMARCH   fastmarch_
-#    define FORT_NBANDNUMIFY nbandnumify_
-#    define FORT_MINE        setmine_
-#    define FORT_FASTMARCH2  fastmarch2_
-#if (BL_SPACEDIM == 3)
-#    define FORT_SUMTURB     sumturb_
-#ifdef SUMJET
-#    define FORT_SUMJET      sumjet_
-#endif
-#endif
-#  endif
+#ifndef BL_LANG_FORT
 
 #include <AMReX_ArrayLim.H>
 
