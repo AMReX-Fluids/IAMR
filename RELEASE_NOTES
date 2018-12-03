@@ -52,3 +52,7 @@ Minor documentation updates.
 11/1/18
 Fix outflow bug.
 Added shear layer test problem.
+
+12/3/18
+Some outflow boundary condition fixes
+OpenMP and tiling additions
