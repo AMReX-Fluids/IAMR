@@ -1,7 +1,10 @@
 
 NOTES
 1. In GODUNOV - I did not update BDS. I don't think it will work with my tiling updates.
-2. For loops that deal with the intersection of coarse and fine grids, 2 have OMP only, 2 have tiling turned on.  See below, Item B under "Good without tiling." Perhaps best way is problem dependent? (Find these loops by grepping for 'intersections'.)
+2. For loops that deal with the intersection of coarse and fine grids:
+   1 has OMP only because it works only on boundary cells (in create_umac_grown)
+   3 have tiling turned on for consistency, even though similar loops in Castro & Nyx are OMP only
+   For more details see below, Item B under "Good without tiling." Perhaps best way is problem dependent? 
 3. These work but could perhaps be done a cleaner way, see comments in code
    MacOperator.cpp:106:    for (MFIter rhomfi(rho); rhomfi.isValid(); ++rhomfi)
    MacOperator.cpp:309:    for (MFIter Phimfi(Phi); Phimfi.isValid(); ++Phimfi)
@@ -37,15 +40,15 @@ A. Loops over thin boundary region.  No OMP
         Thin boudnary region, and likely early exit from mfiter loop
 
 
-B. Loops dealing with coarse-fine interaction. 2 OMP only, 2 OMP & tiling
+B. Loops dealing with coarse-fine interaction. 1 OMP only, 3 OMP & tiling
    OMP only
    1. NavierStokesBase.cpp:1087:            for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
-        In create_umac_grown(), boxes already divided because crse_src is coarsened from the
-	fine ba 
-   2. NavierStokes.cpp:1757:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
-        Loop over coarse-fine boxArray intersection
+        In create_umac_grown(), only looking at boundary cells. Boxes already divided
+	because crse_src is coarsened from the fine ba, AND use BoxArray::maxSize(32)  
       
-   OMP and tiling - these got tiled before we settled on whether to tile or not.
+   OMP and tiling - Note that similar loops in Castro and Nyx use OMP only
+   2. NavierStokes.cpp:1757:    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+        Loop over coarse-fine boxArray intersection (Vsync is NOT just bndry cells)
    3. MacProj.cpp:537:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
    4. MacProj.cpp:740:            for (MFIter Rhsmfi(Rhs); Rhsmfi.isValid(); ++Rhsmfi)
         In mac_sync_solve(), if ( solver != mlmg && mac.fix_mac_sync_rhs) (IAMR)
