@@ -3159,7 +3159,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     // Note that FineSync and cdataMF will have the same distribution
     // since the length of their BoxArrays are equal.
     //
-    FArrayBox    fdata;
+    std::unique_ptr<FArrayBox> fdata;
     Vector<BCRec> bc_interp(num_comp);
 
     MultiFab* fine_stateMF = 0;
@@ -3171,11 +3171,11 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     for (MFIter mfi(cdataMF); mfi.isValid(); ++mfi)
     {
         int        i     = mfi.index();
-        FArrayBox& cdata = cdataMF[mfi];
-        const int* clo   = cdata.loVect();
-        const int* chi   = cdata.hiVect();
+        FArrayBox* cdata = cdataMF.fabPtr(mfi);
+        const int* clo   = cdata->loVect();
+        const int* chi   = cdata->hiVect();
 
-        fdata.resize(fgrids[i], num_comp);
+        fdata->resize(fgrids[i], num_comp);
         //
         // Set the boundary condition array for interpolation.
         //
@@ -3194,33 +3194,33 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
             }
         }
 
-//        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
+//        ScaleCrseSyncInterp(*cdata, c_lev, num_comp);
 
-        interpolater->interp(cdata,0,fdata,0,num_comp,fgrids[i],ratio,
+        interpolater->interp(*cdata,0,*fdata,0,num_comp,fgrids[i],ratio,
                              cgeom,fgeom,bc_interp,src_comp,State_Type);
 
-//        reScaleFineSyncInterp(fdata, f_lev, num_comp);
+//        reScaleFineSyncInterp(*fdata, f_lev, num_comp);
 
         if (increment)
         {
-            fdata.mult(dt_clev);
+            fdata->mult(dt_clev);
 
             if (interpolater == &protected_interp)
             {
-              cdata.mult(dt_clev);
-              FArrayBox& fine_state = (*fine_stateMF)[mfi];
-              interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
+              cdata->mult(dt_clev);
+              FArrayBox& fine_state = *(fine_stateMF->fabPtr(mfi));
+              interpolater->protect(*cdata,0,*fdata,0,fine_state,state_comp,
                                     num_comp,fgrids[i],ratio,
                                     cgeom,fgeom,bc_interp);
               Real dt_clev_inv = 1./dt_clev;
-              cdata.mult(dt_clev_inv);
+              cdata->mult(dt_clev_inv);
             }
             
-            FineSync[mfi].plus(fdata,0,dest_comp,num_comp);
+            FineSync[mfi].plus(*fdata,0,dest_comp,num_comp);
         }
         else
         {
-            FineSync[mfi].copy(fdata,0,dest_comp,num_comp);
+            FineSync[mfi].copy(*fdata,0,dest_comp,num_comp);
         }
     }
 
