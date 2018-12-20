@@ -3159,7 +3159,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     // Note that FineSync and cdataMF will have the same distribution
     // since the length of their BoxArrays are equal.
     //
-    std::unique_ptr<FArrayBox> fdata;
+    std::unique_ptr<FArrayBox> fdata(new FArrayBox());
     Vector<BCRec> bc_interp(num_comp);
 
     MultiFab* fine_stateMF = 0;
