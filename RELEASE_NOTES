@@ -56,3 +56,6 @@ Added shear layer test problem.
 12/3/18
 Some outflow boundary condition fixes
 OpenMP and tiling additions
+
+1/2/19
+Some GPU work
