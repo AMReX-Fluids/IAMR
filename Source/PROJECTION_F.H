@@ -46,11 +46,12 @@ extern "C" {
 		      const int* rhi, const amrex::Real* bogus_value);
 #endif
 
-    void anelcoeffmpy (amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                            const int* domlo, const int* domhi,
-                            const int* nghost,
-                            const amrex::Real* anelcoeff, const int* nr,
-                            const amrex::Real* bogus_value, const int* mult);
+    void anelcoeffmpy (const int* lo, const int* hi,
+		       amrex::Real*a, ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+		       const int* domlo, const int* domhi,
+		       const amrex::Real* anelcoeff, const int* anel_lo,
+		       const int* anel_hi,
+		       const amrex::Real* bogus_value, const int* mult);
     
     void hgc2n(const int* nghost, 
                     ARLIM_P(dat_lo), ARLIM_P(dat_hi),

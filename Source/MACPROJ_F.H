@@ -18,11 +18,12 @@ extern "C" {
                       const amrex::Real* ay, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
                       const amrex::Real* vol,ARLIM_P(vol_lo), ARLIM_P(vol_hi));
 
-    void fort_scalearea (const amrex::Real* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
+    void fort_scalearea (const int* lo, const int* hi, const int* vbxhi,
+			 const amrex::Real* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
                          const amrex::Real* ay, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
                          const amrex::Real* anel_coeff, 
                          const int* anel_coeff_lo, const int* anel_coeff_hi,
-                         const int* lo, const int* hi, const int* mult);
+                         const int* mult);
 #endif
 #if (BL_SPACEDIM == 3)
     void macdiv (amrex::Real* dmac, ARLIM_P(dlo), ARLIM_P(dhi),
@@ -35,12 +36,13 @@ extern "C" {
                       const amrex::Real* az, ARLIM_P(az_lo), ARLIM_P(az_hi),
                       const amrex::Real* vol,ARLIM_P(vol_lo), ARLIM_P(vol_hi));
 
-    void fort_scalearea (const amrex::Real* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
+    void fort_scalearea (const int* lo, const int* hi, const int* vbxhi,
+			 const amrex::Real* ax, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
                          const amrex::Real* ay, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
                          const amrex::Real* az, ARLIM_P(az_lo), ARLIM_P(az_hi),
                          const amrex::Real* anel_coeff, 
                          const int* anel_coeff_lo, const int* anel_coeff_hi,
-                         const int* lo, const int* hi, const int* mult);
+                         const int* mult);
 #endif
 
 #ifdef __cplusplus

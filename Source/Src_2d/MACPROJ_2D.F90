@@ -81,12 +81,13 @@ contains
 ! c ::          area = area / anel_coeff
 ! c :: ----------------------------------------------------------
 
-       subroutine fort_scalearea (xarea,DIMS(ax),yarea,DIMS(ay), &
+     subroutine fort_scalearea (lo,hi,vbxhi, &
+            xarea,DIMS(ax),yarea,DIMS(ay), &
             anel_coeff,anel_coeff_lo,anel_coeff_hi, &
-            lo,hi,mult) bind(C,name="fort_scalearea")
+            mult) bind(C,name="fort_scalearea")
 
        implicit none
-       integer lo(SDIM), hi(SDIM)
+       integer lo(SDIM), hi(SDIM), vbxhi(SDIM)
        integer anel_coeff_lo,anel_coeff_hi
        integer DIMDEC(ax)
        integer DIMDEC(ay)
@@ -96,16 +97,39 @@ contains
        integer mult
 
        integer i,j
+       integer lo2, hi1, hi2
+
+       ! check to see if we're at a cc box boundary
+       ! if so, we need to include 1 more point at high end because
+       ! area is nodal in one dim
+       if (hi(1) .eq. vbxhi(1)) then
+          hi1 = hi(1)+1
+       else
+          hi1=hi(1)
+       endif
+       if (hi(2) .eq. vbxhi(2)) then
+          hi2 = hi(2)+1
+       else
+          hi2=hi(2)
+       endif
+
+       ! do something different at the very bottom
+       if (lo(2) .eq. 0) then
+          lo2 = 1
+       else
+          lo2 = lo(2)
+       end if
+
 
        if (mult .eq. 1) then
 
           do j = lo(2), hi(2)
-          do i = lo(1), hi(1)+1
+          do i = lo(1), hi1
              xarea(i,j) =  xarea(i,j) * anel_coeff(j)
           end do
           end do
 
-          do j = lo(2), hi(2)+1
+          do j = lo2, hi2
           do i = lo(1), hi(1)
              yarea(i,j) =  yarea(i,j) * 0.5d0 * (anel_coeff(j)+anel_coeff(j-1))
           end do
@@ -114,20 +138,19 @@ contains
           if (lo(2) .eq. 0) then
              j = lo(2)
              do i = lo(1), hi(1)
-                yarea(i,j) =  yarea(i,j) * anel_coeff(j-1) / &
-                             (0.5d0 * (anel_coeff(j)+anel_coeff(j-1)))
+                yarea(i,j) =  yarea(i,j) * anel_coeff(j-1)
              end do
           end if
 
        else if (mult .eq. -1) then
 
           do j = lo(2), hi(2)
-          do i = lo(1), hi(1)+1
+          do i = lo(1), hi1
              xarea(i,j) =  xarea(i,j) / anel_coeff(j)
           end do
           end do
 
-          do j = lo(2), hi(2)+1
+          do j = lo2, hi2
           do i = lo(1), hi(1)
              yarea(i,j) =  yarea(i,j) / (0.5d0 * (anel_coeff(j)+anel_coeff(j-1)))
           end do
@@ -136,8 +159,7 @@ contains
           if (lo(2) .eq. 0) then
              j = lo(2)
              do i = lo(1), hi(1)
-                yarea(i,j) =  yarea(i,j) / anel_coeff(j-1) *&
-                             (0.5d0 * (anel_coeff(j)+anel_coeff(j-1)))
+                yarea(i,j) =  yarea(i,j) / anel_coeff(j-1) 
              end do
           end if
 

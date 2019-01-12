@@ -530,12 +530,17 @@ contains
       hx = dx(1)
       hy = dx(2)
 
+      if ( adv_dir .ne. 1 ) then
+         write(6,*) "initchannel requires adv_dir=1, currently adv_dir=",adv_dir
+         stop
+      end if
+
       do j = lo(2), hi(2)
          y = xlo(2) + hy*(float(j-lo(2)) + half)
          do i = lo(1), hi(1)
             vel(i,j,1) = adv_vel
             vel(i,j,2) = zero
-            scal(i,j,1) = one
+            scal(i,j,1) = denfact
 
             do n = 2,nscal-1
                scal(i,j,n) = one

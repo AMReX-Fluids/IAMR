@@ -40,3 +40,15 @@ Fixed a 3D corner coupling bug in FPU advection for conserved quantities.
 Enabled FPU advection for scalars.
 Added new test problems for regression suite.
 Various minor fixes to other test problems.
+
+8/1/18
+Release version 18.08 (August, 2018)
+Minor changes to regression test options.
+Improved work distribution in create_umac_grown
+
+9/4/18
+Minor documentation updates.
+
+11/1/18
+Fix outflow bug.
+Added shear layer test problem.

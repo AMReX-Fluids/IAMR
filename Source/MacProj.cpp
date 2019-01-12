@@ -42,6 +42,7 @@ int  MacProj::do_outflow_bcs;
 int  MacProj::fix_mac_sync_rhs;
 int  MacProj::check_umac_periodicity;
 int  MacProj::use_mlmg_solver = 0;
+int  MacProj::anel_grow       = 1;
 
 namespace
 {
@@ -175,6 +176,31 @@ MacProj::install_anelastic_coefficient (int               level,
 
     if (level > anel_coeff.size()-1) anel_coeff.resize(level+1);
     anel_coeff[level] = _anel_coeff;
+}
+void
+MacProj::build_anelastic_coefficient (int      level,
+				      Real**& _anel_coeff)
+{
+  const BoxArray& grids = parent->getLevel(level).boxArray();
+  const int N = grids.size();
+  _anel_coeff = new Real*[N];
+  for (int i = 0; i < grids.size(); i++)
+  {
+    const int jlo = grids[i].smallEnd(BL_SPACEDIM-1)-anel_grow;
+    const int jhi = grids[i].bigEnd(BL_SPACEDIM-1)+anel_grow;
+    const int len = jhi - jlo + 1;
+    
+    _anel_coeff[i] = new Real[len];
+
+    // FIXME!
+    // This is just a placeholder for testing. Should create (problem
+    // dependent) build_coefficient() function in problem directory 
+    // ...Perhaps also need to worry about deleting anel_coeff
+    // Also not sure why Projection and MacProj have separate anel_coeff
+    // arrays, since they both appear to be cell centered.
+    for (int j=0; j<len; j++)
+      _anel_coeff[i][j] = 0.05*(jlo+j);    
+  }
 }
 
 // xxxxx Can we skip this if using mlmg?
@@ -465,7 +491,6 @@ MacProj::mac_project (int             level,
 //
 // Compute the corrective pressure used in the mac_sync.
 //
-
 void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
@@ -568,7 +593,7 @@ MacProj::mac_sync_solve (int       level,
             Real vol = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sum,vol)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sum,vol)
 #endif
 	    {
 	      FArrayBox vol_wgted_rhs;
@@ -578,15 +603,14 @@ MacProj::mac_sync_solve (int       level,
 		  const Box& bx = Rhsmfi.tilebox();
 		
 		  vol_wgted_rhs.resize(bx);
-		  vol_wgted_rhs.copy(rhsfab);
-		  vol_wgted_rhs.mult(volume[Rhsmfi]);
+		  vol_wgted_rhs.copy(rhsfab,bx,0,bx,0,1);
+		  vol_wgted_rhs.mult(volume[Rhsmfi],bx,bx,0,0,1);
 		  sum += vol_wgted_rhs.sum(0,1);
 		  vol += volume[Rhsmfi].sum(bx,0,1);
 		}
 	    }
 	    
 	    Real vals[2] = {sum,vol};
-	    
 	    ParallelDescriptor::ReduceRealSum(&vals[0],2);
 	    sum = vals[0];
             vol = vals[1];
@@ -776,23 +800,13 @@ MacProj::mac_sync_solve (int       level,
                 all_neumann = 0;
         }
 
-	//FIXME still debugging
-	// Print()<<"      rhs "<<Rhs.boxArray()<<"\n";
-	// Print()<<"      geom "<<geom.Domain()<<"\n";
-	// Print()<<"all neumann "<<all_neumann<<"\n";
         if (Rhs.boxArray().contains(geom.Domain()) && all_neumann == 1)
         {
 	    Real sum = 0.0;
 	    Real vol = 0.0;
 
-	    Print()<<"$$$$          Testing in mac_sync_solve\n";
-	    Print()<<"See comments in code";
-	    Abort();
-	    //The following tiled loop has not been tested.
-	    //If your problem lands you here, please test the following
-	    // looping with tiling/OMP on vs off
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sum,vol)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sum,vol)
 #endif
 	    {
 	      FArrayBox vol_wgted_rhs;
@@ -803,8 +817,8 @@ MacProj::mac_sync_solve (int       level,
 		  const Box& bx = Rhsmfi.tilebox();
 		
 		  vol_wgted_rhs.resize(bx);
-		  vol_wgted_rhs.copy(rhsfab);
-		  vol_wgted_rhs.mult(volume[Rhsmfi]);
+		  vol_wgted_rhs.copy(rhsfab,bx,0,bx,0,1);
+		  vol_wgted_rhs.mult(volume[Rhsmfi],bx,bx,0,0,1);
 		  sum += vol_wgted_rhs.sum(0,1);
 		  vol += volume[Rhsmfi].sum(bx,0,1);
 	      }
@@ -816,7 +830,6 @@ MacProj::mac_sync_solve (int       level,
 
             sum = vals[0];
             vol = vals[1];
-
             const Real fix = sum / vol;
 
             if (verbose) amrex::Print() << "Average correction on mac sync RHS = " << fix << '\n';
@@ -1207,7 +1220,6 @@ MacProj::mac_sync_compute (int                    level,
     
       for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
       {
-        const int  i  = Syncmfi.index();
 	const Box& bx = Syncmfi.tilebox();
 
         //
@@ -1278,7 +1290,6 @@ void
 MacProj::check_div_cond (int      level,
                          MultiFab U_edge[]) const
 {
-    const BoxArray& grids = LevelData[level]->boxArray();
     const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
@@ -1286,7 +1297,7 @@ MacProj::check_div_cond (int      level,
     Real sum = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sum)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sum)
 #endif
     {
       FArrayBox dmac;
@@ -1470,13 +1481,16 @@ MacProj::set_outflow_bcs (int             level,
         // because we're copying onto the ghost cells of the FABs,
         // not the valid regions.
         //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
 	for ( int iface = 0; iface < nOutFlowTouched; ++iface )
 	{
             for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
 	    {
                 Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
                 if (ovlp.ok())
-                    (*mac_phi)[mfi].copy(phidat[iface],ovlp);
+		  (*mac_phi)[mfi].copy(phidat[iface],ovlp,0,ovlp,0,1);
 	    }
 	}
     }
@@ -1525,12 +1539,12 @@ MacProj::test_umac_periodic (int       level,
     if (!geom.isAnyPeriodic()) return;
 
     FArrayBox              diff;
-    Vector<IntVect>         pshifts(27);
     MultiFabCopyDescriptor mfcd;
-    std::vector<TURec>     pirm;
     MultiFabId             mfid[BL_SPACEDIM];
-
+    std::vector<TURec>     pirm;
+    Vector<IntVect>         pshifts(27);
     std::vector< std::pair<int,Box> > isects;
+
 
     for (int dim = 0; dim < BL_SPACEDIM; dim++)
     {
@@ -1540,12 +1554,16 @@ MacProj::test_umac_periodic (int       level,
 
             mfid[dim] = mfcd.RegisterMultiFab(&u_mac[dim]);
 
-	    // not sure if tiling here makes sense
+	    // How to combine pirm into one global pirm?
+	    // don't think std::vector::push_back() is thread safe
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
-// for OMP would need to declare isects, pshifts here (think eDomain is ok, but check)
-//    std::vector< std::pair<int,Box> > isects;
+// {
+//             std::vector<TURec>     pirm;
+//             std::vector< std::pair<int,Box> > isects;
+//             Vector<IntVect>         pshifts(27);
+    
             for (MFIter mfi(u_mac[dim]); mfi.isValid(); ++mfi)
             {
                 Box eBox = u_mac[dim].boxArray()[mfi.index()];
@@ -1578,6 +1596,7 @@ MacProj::test_umac_periodic (int       level,
                     eBox -= pshifts[iiv];
                 }
             }
+	    // }// end OMP region
         }
     }
 
@@ -1617,7 +1636,6 @@ MacProj::test_umac_periodic (int       level,
     }
 }
 
-// Remove - all anelastic stuff is to be removed from IAMR
 void
 MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
 {
@@ -1625,34 +1643,40 @@ MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
 
     int mult = 1;
 
-    for (MFIter mfi(*area); mfi.isValid(); ++mfi)
+    for (MFIter mfi(area[0],true); mfi.isValid(); ++mfi)
     {
-        const int        i      = mfi.index();
         const FArrayBox& xarea  = area[0][mfi];
         const FArrayBox& yarea  = area[1][mfi];
-
         DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
         DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
 
-	const Box& grdbx = grids[i];
-        const int* lo = grdbx.loVect();
-        const int* hi = grdbx.hiVect();
+        const Box& bx = mfi.tilebox(IntVect::Zero);
+        const int* lo = bx.loVect();
+        const int* hi = bx.hiVect();
+	
+        const int  i        = mfi.index();
+	const Box& gbx      = grids[i];
+        const int* gbxhi    = gbx.hiVect();
+	int anel_coeff_lo   = (gbx.loVect())[BL_SPACEDIM-1]-anel_grow;
+	int anel_coeff_hi   = (gbx.hiVect())[BL_SPACEDIM-1]+anel_grow;
 
-        int anel_coeff_lo = lo[BL_SPACEDIM-1]-1;
-        int anel_coeff_hi = hi[BL_SPACEDIM-1]+1;
-
+	
 #if (BL_SPACEDIM == 2)
-        fort_scalearea(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+        fort_scalearea(lo,hi,gbxhi,
+		       ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
-                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,
+		       &mult);
 
 #elif (BL_SPACEDIM == 3)
         const FArrayBox& zarea = area[2][mfi];
         DEF_CLIMITS(zarea,az_dat,azlo,azhi);
-        fort_scalearea(ax_dat,ARLIM(axlo),ARLIM(axhi), 
+        fort_scalearea(lo,hi,gbxhi,
+		       ax_dat,ARLIM(axlo),ARLIM(axhi), 
                        ay_dat,ARLIM(aylo),ARLIM(ayhi), 
                        az_dat,ARLIM(azlo),ARLIM(azhi), 
-                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,lo,hi,&mult);
+                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,
+		       &mult);
 
 #endif
     }

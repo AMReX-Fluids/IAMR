@@ -91,13 +91,14 @@ contains
 !c ::          area = area / anel_coeff
 !c :: ----------------------------------------------------------
 
-       subroutine fort_scalearea (xarea,DIMS(ax),yarea,DIMS(ay), &
+       subroutine fort_scalearea (lo,hi,vbxhi, &
+                                 xarea,DIMS(ax),yarea,DIMS(ay), &
                                  zarea,DIMS(az), &
-                                 anel_coeff,anel_coeff_lo,anel_coeff_hi,lo,hi,mult) &
+                                 anel_coeff,anel_coeff_lo,anel_coeff_hi,mult) &
                                  bind(C, name="fort_scalearea")
 
        implicit none
-       integer lo(SDIM), hi(SDIM)
+       integer lo(SDIM), hi(SDIM), vbxhi(SDIM)
        integer anel_coeff_lo,anel_coeff_hi
        integer DIMDEC(ax)
        integer DIMDEC(ay)
@@ -109,26 +110,54 @@ contains
        integer mult
 
        integer i,j,k
+       integer lo3,hi1,hi2,hi3
+
+
+       ! check to see if we're at a cc box boundary
+       ! if so, we need to include 1 more point at high end because
+       ! area is nodal in one dim
+       if (hi(1) .eq. vbxhi(1)) then
+          hi1 = hi(1)+1
+       else
+          hi1=hi(1)
+       endif
+       if (hi(2) .eq. vbxhi(2)) then
+          hi2 = hi(2)+1
+       else
+          hi2=hi(2)
+       endif
+       if (hi(3) .eq. vbxhi(3)) then
+          hi3 = hi(3)+1
+       else
+          hi3=hi(3)
+       endif
+
+       ! do something different at the very bottom
+       if (lo(3) .eq. 0) then
+          lo3 = 1
+       else
+          lo3 = lo(3)
+       end if
 
        if (mult .eq. 1) then
 
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)
-          do i = lo(1), hi(1)+1
+          do i = lo(1), hi1
              xarea(i,j,k) =  xarea(i,j,k) * anel_coeff(k)
           end do
           end do
           end do
 
           do k = lo(3), hi(3)
-          do j = lo(2), hi(2)+1
+          do j = lo(2), hi2
           do i = lo(1), hi(1)
              yarea(i,j,k) =  yarea(i,j,k) * anel_coeff(k)
           end do
           end do
           end do
 
-          do k = lo(3), hi(3)+1
+          do k = lo3, hi3
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              zarea(i,j,k) =  zarea(i,j,k) * 0.5d0 * (anel_coeff(k)+anel_coeff(k-1))
@@ -141,8 +170,7 @@ contains
 
              do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                zarea(i,j,k) =  zarea(i,j,k) * anel_coeff(k-1) / &
-                               (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
+                zarea(i,j,k) =  zarea(i,j,k) * anel_coeff(k-1) 
              end do
              end do
 
@@ -152,21 +180,21 @@ contains
 
           do k = lo(3), hi(3)
           do j = lo(2), hi(2)
-          do i = lo(1), hi(1)+1
+          do i = lo(1), hi1
              xarea(i,j,k) =  xarea(i,j,k) / anel_coeff(k)
           end do
           end do
           end do
 
           do k = lo(3), hi(3)
-          do j = lo(2), hi(2)+1
+          do j = lo(2), hi2
           do i = lo(1), hi(1)
              yarea(i,j,k) =  yarea(i,j,k) / anel_coeff(k)
           end do
           end do
           end do
 
-          do k = lo(3), hi(3)+1
+          do k = lo3, hi3
           do j = lo(2), hi(2)
           do i = lo(1), hi(1)
              zarea(i,j,k) =  zarea(i,j,k) / (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
@@ -179,8 +207,7 @@ contains
 
              do j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                zarea(i,j,k) =  zarea(i,j,k) / anel_coeff(k-1) * &
-                              (0.5d0 * (anel_coeff(k)+anel_coeff(k-1)))
+                zarea(i,j,k) =  zarea(i,j,k) / anel_coeff(k-1) 
              end do
              end do
 

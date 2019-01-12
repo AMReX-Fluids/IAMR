@@ -18,41 +18,12 @@ module projection_3d_module
 
   private
 
-  public :: accel_to_vel, vel_to_accel, &
-       proj_update, anelcoeffmpy
+  public ::  vel_to_accel, &
+             proj_update, anelcoeffmpy
 
 contains
 
-       subroutine accel_to_vel( lo, hi, &
-          uold,DIMS(uold), &
-          dt, &
-          unew,DIMS(unew) )bind(C,name="accel_to_vel")
-!c
-!c     This function converts unew into a velocity via
-!c     Unew = Uold + alpha*Unew
-!c
-       implicit none
-       integer    lo(SDIM), hi(SDIM)
-       REAL_T     dt
-       integer    DIMDEC(uold),DIMDEC(unew)
-       REAL_T     uold(DIMV(uold),SDIM)
-       REAL_T     unew(DIMV(unew),SDIM)
-
-       integer i, j, k, n
-
-       do n = 1, SDIM
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   unew(i,j,k,n) = uold(i,j,k,n) + dt*unew(i,j,k,n)
-                end do
-             end do
-          end do
-       end do
-
-       end subroutine accel_to_vel
-
-      subroutine vel_to_accel( lo, hi, &
+  subroutine vel_to_accel( lo, hi, &
           unew,DIMS(unew), &
           uold,DIMS(uold), &
           dt ) bind(C,name="vel_to_accel")
@@ -110,8 +81,8 @@ contains
 
       end subroutine proj_update
 
-      subroutine anelcoeffmpy (a,DIMS(grid),domlo,domhi,ng, &
-                               anel_coeff,nr,bogus_value,mult) &
+      subroutine anelcoeffmpy (lo,hi,a,DIMS(a),domlo,domhi, &
+                               anel_coeff,anel_lo,anel_hi,bogus_value,mult) &
                                bind(C, name="anelcoeffmpy")
 !c 
 !c     multiply A by anel_coeff
@@ -119,32 +90,57 @@ contains
 !c 
 !c     NOTE: THIS ROUTINE HAS BEEN MODIFIED SO THAT ALL VALUES
 !c           OUTSIDE THE DOMAIN ARE SET TO BOGUS VALUE
-!c
+      !c-- only sets boudnary cells at top and bottom to Bogus Val,
+      !c   boundary cells on the sides are left alone
+
       implicit none
-      integer    ng,nr
-      integer    DIMDEC(grid)
+      integer    lo(SDIM),hi(SDIM)
+      integer    DIMDEC(a)
       integer    domlo(3), domhi(3)
-      REAL_T     a(ARG_L1(grid)-ng:ARG_H1(grid)+ng, &
-                  ARG_L2(grid)-ng:ARG_H2(grid)+ng, &
-                  ARG_L3(grid)-ng:ARG_H3(grid)+ng)
-      REAL_T     anel_coeff(ARG_L3(grid)-nr:ARG_H3(grid)+nr)
+      REAL_T     a(DIMV(a))
+      REAL_T     anel_coeff(anel_lo:anel_hi)
       REAL_T     bogus_value
-      integer    mult
+      integer    mult, anel_lo, anel_hi
 
       integer i, j, k
+      integer klo,khi
+
+      klo = lo(3)
+      khi = hi(3)
+      
+      if (lo(3) .lt. domlo(3)) then
+         klo = domlo(3)
+         do k = lo(3), domlo(3)-1
+         do j = lo(2), hi(2)
+         do i = lo(1),hi(1)
+           a(i,j,k) = bogus_value
+         end do
+         end do
+         end do
+      end if
+      if (hi(3) .gt. domhi(3)) then
+         khi = domhi(3)
+         do k = domhi(3)+1, hi(3)
+         do j = lo(2), hi(2)
+         do i = lo(1),hi(1)
+           a(i,j,k) = bogus_value
+         end do
+         end do
+         end do
+      end if
 
       if (mult .eq. 1) then
-         do k = ARG_L3(grid)-ng, ARG_H3(grid)+ng
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+         do k = klo,khi
+         do j = lo(2),hi(2)
+         do i = lo(1),hi(1)
            a(i,j,k) = a(i,j,k) * anel_coeff(k)
          end do
          end do
          end do
       else if (mult .eq. 0) then
-         do k = ARG_L3(grid)-ng, ARG_H3(grid)+ng
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
+         do k = klo,khi
+         do j = lo(2),hi(2)
+         do i = lo(1),hi(1)
            a(i,j,k) = a(i,j,k) / anel_coeff(k)
          end do
          end do
@@ -152,26 +148,6 @@ contains
       else 
          print *,'BOGUS MULT IN ANELCOEFFMULT ',mult
          stop
-      end if
-
-      if (ARG_L3(grid)-ng .lt. domlo(3)) then
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do k = ARG_L3(grid)-ng, domlo(3)-1
-           a(i,j,k) = bogus_value
-         end do
-         end do
-         end do
-      end if
-
-      if (ARG_H3(grid)+ng .gt. domhi(3)) then
-         do i = ARG_L1(grid)-ng, ARG_H1(grid)+ng
-         do j = ARG_L2(grid)-ng, ARG_H2(grid)+ng
-         do k = domhi(3)+1, ARG_H3(grid)+ng
-           a(i,j,k) = bogus_value
-         end do
-         end do
-         end do
       end if
 
       end subroutine anelcoeffmpy

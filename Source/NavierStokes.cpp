@@ -90,15 +90,12 @@ NavierStokes::initData ()
     {
         const Box& vbx = snewmfi.tilebox();
 
-//        BL_ASSERT(grids[snewmfi.index()] == vbx);
-
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
 	Sfab.setVal(0.0,vbx);
         Pfab.setVal(0.0,snewmfi.nodaltilebox());
 
-        const int  i       = snewmfi.index();
         RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
         const int* lo      = vbx.loVect();
         const int* hi      = vbx.hiVect();
@@ -171,14 +168,19 @@ NavierStokes::initData ()
         MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
-            amrData.FillVar(tmp, level, plotnames[idX+i], 0);
-            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
-            {
+	    amrData.FillVar(tmp, level, plotnames[idX+i], 0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    for (MFIter mfi(tmp,true); mfi.isValid(); ++mfi)
+	    {
+	        const Box& bx = mfi.tilebox();
                 FArrayBox& tfab = tmp[mfi];
-  	        tfab.mult(velocity_plotfile_scale, 0, 1);
-                S_new[mfi].plus(tfab, tfab.box(), 0, Xvel+i, 1);
+  	        tfab.mult(velocity_plotfile_scale, bx, 0, 1);
+                S_new[mfi].plus(tfab, bx, 0, Xvel+i, 1);
 	    }
-            amrData.FlushGrids(idX+i);
+	    
+	    amrData.FlushGrids(idX+i);
         }
 
 	amrex::Print() << "initData: finished init from velocity_plotfile" << '\n';
@@ -421,22 +423,11 @@ NavierStokes::predict_velocity (Real  dt,
     {
 	visc_terms.setVal(0);
     }
-    //
-    // Set up the timestep estimation.
-    //
-    Real cflgrid,u_max[3];
-    Real cflmax = 1.0e-10;
-    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
-
-//    FArrayBox tforces;
-
-//    Vector<int> bndry[BL_SPACEDIM];
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
     getGradP(Gp, prev_pres_time);
     
-//    FArrayBox null_fab;
 
     FillPatchIterator
       U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
@@ -454,13 +445,20 @@ NavierStokes::predict_velocity (Real  dt,
 #endif
 #endif
 
+    //
+    // Set up the timestep estimation.
+    //
+    Real cflmax = 1.0e-10;
+    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
+    // seems both IAMR and Pele only use a dummy comp_cfl, so should
+    // we not bother to do the reduction??? Does amrex use it?
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!system::regtest_reduction) reduction(max:cflmax,comp_cfl)
 #endif
 {
+     Real cflgrid,u_max[3];
      FArrayBox tforces;
      Vector<int> bndry[BL_SPACEDIM];
-     FArrayBox null_fab;
 
      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
      {
@@ -506,7 +504,8 @@ NavierStokes::predict_velocity (Real  dt,
 }
 
     Real tempdt = std::min(change_max,cfl/cflmax);
-
+    // Don't we need to reduce comp_cfl here too?
+    // Skipping it because it's a dummy?
     ParallelDescriptor::ReduceRealMin(tempdt);
 
     return dt*tempdt;
@@ -538,7 +537,7 @@ NavierStokes::scalar_advection (Real dt,
     if (be_cn_theta != 1.0) {
         getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
     } else {
-        visc_terms.setVal(0,1);
+        visc_terms.setVal(0.0,1);
     }
 
     int nGrowF = 1;
@@ -897,7 +896,7 @@ NavierStokes::MaxVal (const std::string& name,
 
     //Add and test this OMP
     //#ifdef _OPENMP
-    //#pragma omp parallel reduction(max:mxval,s)
+    //#pragma omp parallel if (!system::regtest_reduction) reduction(max:mxval,s)
     //#endif
     //{
 
@@ -975,7 +974,10 @@ NavierStokes::sum_integrated_quantities ()
 #if (BL_SPACEDIM==3)
     amrex::Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING= " << forcing << '\n';
+    //NOTE: FORCING_T gives only the energy being injected by the forcing
+    //      term used for generating turbulence in probtype 14, 15.
+    //      Defaults to 0 for other probtypes.
+    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
 #endif
 #endif
 }
@@ -1716,7 +1718,6 @@ NavierStokes::reflux ()
 #endif
         for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
-            const int        i     = Vsyncmfi.index();
             FArrayBox&       vfab  = Vsync[Vsyncmfi];
             const FArrayBox& rhfab = Rh[Vsyncmfi];
 	    const Box&       bx    = Vsyncmfi.tilebox();
@@ -1754,19 +1755,19 @@ NavierStokes::reflux ()
 
     baf.coarsen(fine_ratio);
 
-    // Tile? Perhaps just OMP:
+    // fixme: Tile? Perhaps just OMP? problem dependent?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+    for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();
         FArrayBox& vfab = Vsync[Vsyncmfi];
         FArrayBox& sfab = Ssync[Vsyncmfi];
 
-        BL_ASSERT(grids[i] == Vsyncmfi.validbox());
+        BL_ASSERT(grids[i].contains(Vsyncmfi.tilebox()));
 
-	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.validbox());
+	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.tilebox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -2199,9 +2200,12 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
     //
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        for (MFIter ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
+      for (MFIter ecMfi(*viscosity[dir],true); ecMfi.isValid(); ++ecMfi)
         {
-            center_to_edge_plain((*visc_cc)[ecMfi],(*viscosity[dir])[ecMfi],0,0,1);
+	    const Box& bx=ecMfi.growntilebox();
+
+            center_to_edge_plain((*visc_cc)[ecMfi],(*viscosity[dir])[ecMfi],
+				 bx,0,0,1);
         }
     }
 }
@@ -2240,10 +2244,12 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     //
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        for (MFIter ecMfi(*diffusivity[dir]); ecMfi.isValid(); ++ecMfi)
+      for (MFIter ecMfi(*diffusivity[dir],true); ecMfi.isValid(); ++ecMfi)
         {
+	    const Box& bx=ecMfi.growntilebox();
+
             center_to_edge_plain((*diff_cc)[ecMfi],(*diffusivity[dir])[ecMfi],
-                                 diff_comp,dst_comp,ncomp);
+                                 bx,diff_comp,dst_comp,ncomp);
         }
     }
 }
@@ -2251,6 +2257,7 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
 void
 NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
                                     FArrayBox&       ecfab,
+				    const Box&       bx,
                                     int              sComp,
                                     int              dComp,
                                     int              nComp)
@@ -2265,8 +2272,7 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
     // HeatTransfer::center_to_edge_fancy().
     //
     const Box&      ccbox = ccfab.box();
-    const Box&      ecbox = ecfab.box();
-    const IndexType ixt   = ecbox.ixType();
+    const IndexType ixt   = ecfab.box().ixType();
     //
     // Get direction for interpolation to edges
     //
@@ -2278,32 +2284,20 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
     // Miscellanious checks
     //
     BL_ASSERT(!(ixt.cellCentered()) && !(ixt.nodeCentered()));
-    BL_ASSERT(amrex::grow(ccbox,-amrex::BASISV(dir)).contains(amrex::enclosedCells(ecbox)));
+    BL_ASSERT(amrex::grow(ccbox,-amrex::BASISV(dir)).contains(amrex::enclosedCells(bx)));
     BL_ASSERT(sComp+nComp <= ccfab.nComp() && dComp+nComp <= ecfab.nComp());
+
     //
     // Shift cell-centered data to edges
     //
-    Box fillBox = ccbox; 
-    for (int d = 0; d < BL_SPACEDIM; d++)
-        if (d != dir)
-            fillBox.setRange(d, ecbox.smallEnd(d), ecbox.length(d));
-    
     const int isharm = def_harm_avg_cen2edge;
-    // WARNING: HACK HERE
-    // For the tiling of PeleLM, the routine cen2edg now takes
-    // mfi.nodaltilebox(d) to build the edge_box in each direction
-    // otherwise during the tiling process, the last extra edge on one tile will
-    // be computed in the same time as the first edge on the next tile
-    // Below fillBox has been changed by ecbox
-    // This change has been barely tested in IAMR and it seems to be ok,
-    // but maybe much more investigation must be done.
     
-    cen2edg(ecbox.loVect(), ecbox.hiVect(),
-                 ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
-                 ccfab.dataPtr(sComp),
-                 ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
-                 ecfab.dataPtr(dComp),
-                 &nComp, &dir, &isharm);
+    cen2edg(bx.loVect(), bx.hiVect(),
+	    ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
+	    ccfab.dataPtr(sComp),
+	    ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
+	    ecfab.dataPtr(dComp),
+	    &nComp, &dir, &isharm);
 }
 
 
