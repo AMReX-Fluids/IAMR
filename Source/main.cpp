@@ -11,10 +11,11 @@
 
 using namespace amrex;
 
+#ifdef AMREX_USE_EB
 //skipping header file and just declaring eb2 init fn here as in CNS for now
 void initialize_EB2 (const Geometry& geom, const int required_level,
 		     const int max_level);
-
+#endif
 
 int
 main (int   argc,
