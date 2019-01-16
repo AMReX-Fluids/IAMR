@@ -1116,6 +1116,12 @@ NavierStokes::writePlotFile (const std::string& dir,
 	    for (i = 0; i < rec->numDerive(); i++)
                 os << rec->variableName(i) << '\n';
         }
+#ifdef AMREX_USE_EB
+	//add in vol frac
+	//fixme? add to derive_lst rather than just tacking on here?
+	os << "volFrac\n";
+#endif
+	
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
@@ -1273,6 +1279,16 @@ NavierStokes::writePlotFile (const std::string& dir,
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }
+
+#ifdef AMREX_USE_EB
+	// volfrac threshhold for amrvis
+	// fixme? pulled directly from CNS, might need adjustment
+        if (level == parent->finestLevel()) {
+            for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
+                os << "1.0e-6\n";
+            }
+        }
+#endif
     }
     //
     // We combine all of the multifabs -- state, derived, etc -- into one
@@ -1333,6 +1349,13 @@ NavierStokes::writePlotFile (const std::string& dir,
 	    cnt += ncomp;
 	}
     }
+
+#ifdef AMREX_USE_EB
+    // add volume fraction to plotfile
+    plotMF.setVal(0.0, cnt, 1, nGrow);
+    MultiFab::Copy(plotMF,volFrac(),0,cnt,1,nGrow);
+#endif
+    
     //
     // Use the Full pathname when naming the MultiFab.
     //

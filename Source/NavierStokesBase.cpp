@@ -806,6 +806,35 @@ NavierStokesBase::buildMetrics ()
 	area[dir].define(getEdgeBoxArray(dir),dmap,1,GEOM_GROW);
         geom.GetFaceArea(area[dir],dir);
     }
+
+#ifdef AMREX_USE_EB
+    //fixme: for now assume EB still needs old volume and area in addition to
+    //       new EB data holders
+
+    //Fixme Is this test done elsewhere?
+    // make sure dx == dy == dz
+    const Real* dx = geom.CellSize();
+    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
+        amrex::Abort("EB requires dx == dy == dz\n");
+    }
+
+    //Get pointers to EB data holders
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    volfrac = &(ebfactory.getVolFrac());
+    bndrycent = &(ebfactory.getBndryCent());
+    areafrac = ebfactory.getAreaFrac();
+    facecent = ebfactory.getFaceCent();
+
+    //fixme? assume will need this part cribbed from CNS
+    level_mask.clear();
+    level_mask.define(grids,dmap,1,1);
+    level_mask.BuildMask(geom.Domain(), geom.periodicity(), 
+                         level_mask_covered,
+                         level_mask_notcovered,
+                         level_mask_physbnd,
+                         level_mask_interior);
+
+#endif
 }
 
 void

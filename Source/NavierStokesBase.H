@@ -457,6 +457,10 @@ protected:
     static void Finalize ();
     static void read_geometry (); // Set metrics
 
+    ////////////////////////////////////////////////////////////////////////////
+    //    NavierStokesBase particle functions                                 //
+    ////////////////////////////////////////////////////////////////////////////
+
 #ifdef AMREX_PARTICLES
     static amrex::AmrTracerParticleContainer* theNSPC ();
     static void read_particle_params ();
@@ -473,6 +477,11 @@ protected:
     void ParticleDerive (const std::string& name, amrex::Real time, amrex::MultiFab& mf, int dcomp);
 #endif
 
+    ////////////////////////////////////////////////////////////////////////////
+    //    NavierStokesBase protected embedded boundary functions              //
+    ////////////////////////////////////////////////////////////////////////////
+    const amrex::MultiFab& volFrac () const { return *volfrac; }
+  
 private:
 
     void buildMetrics (); // 1-D metric arrays for RZ
@@ -528,6 +537,26 @@ protected:
 
     amrex::MultiFab volume;
     amrex::MultiFab area[BL_SPACEDIM];
+
+#ifdef AMREX_USE_EB
+    //
+    // Create holders for EB data
+    //
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
+
+  //fixme? taking a guess that i'll need this other data cribbed from CNS
+    amrex::iMultiFab level_mask;
+
+    amrex::EBFluxRegister flux_reg;
+
+    static constexpr int level_mask_interior   = 0; // valid cells
+    static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
+    static constexpr int level_mask_notcovered = 2; // ghost cells not covered
+    static constexpr int level_mask_physbnd    = 3; // outside domain
+#endif
 
     //
     // MAC edge velocities.

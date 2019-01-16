@@ -57,12 +57,12 @@ main (int   argc,
 
     Amr* amrptr = new Amr;
 #ifdef AMREX_USE_EB
-    // not sure what level of support should be default
+    // fixme? not sure what level of support should be default
     // levels explianed in user guide
     // Ann suggested we need vol and area frac, and face and area centriod => full
     AmrLevel::SetEBSupportLevel(EBSupport::full);
     // set grow cells for basic, volume, full
-    // not sure what these numbers should be
+    // fixme? not sure what these numbers should be
     // AmrLevel.cpp defaults 5, 4, 2
     // CNS::numGrow()= 5
     //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
