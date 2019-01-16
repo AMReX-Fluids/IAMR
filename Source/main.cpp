@@ -11,6 +11,11 @@
 
 using namespace amrex;
 
+//skipping header file and just declaring eb2 init fn here as in CNS for now
+void initialize_EB2 (const Geometry& geom, const int required_level,
+		     const int max_level);
+
+
 int
 main (int   argc,
       char* argv[])
@@ -50,7 +55,23 @@ main (int   argc,
     }
 
     Amr* amrptr = new Amr;
+#ifdef AMREX_USE_EB
+    // not sure what level of support should be default
+    // levels explianed in user guide
+    // Ann suggested we need vol and area frac, and face and area centriod => full
+    AmrLevel::SetEBSupportLevel(EBSupport::full);
+    // set grow cells for basic, volume, full
+    // not sure what these numbers should be
+    // AmrLevel.cpp defaults 5, 4, 2
+    // CNS::numGrow()= 5
+    //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
+    // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var? 
+    AmrLevel::SetEBMaxGrowCells(5,4,2);
 
+    initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
+		   amrptr->maxLevel())
+#endif
+		   
     amrptr->init(strt_time,stop_time);
 
     if (num_steps > 0)

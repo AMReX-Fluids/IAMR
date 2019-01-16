@@ -1,5 +1,5 @@
 
-CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp
+CEXE_sources += main.cpp SyncRegister.cpp  ViscBndry.cpp NS_init_eb2.cpp
 
 ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
   #

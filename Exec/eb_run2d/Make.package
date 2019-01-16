@@ -1,3 +1,5 @@
+USE_EB := TRUE
+include $(AMREX_HOME)/Src/EB/Make.package
 
 FEXE_headers += probdata.H
 F90EXE_sources += PROB_$(DIM)D.F90 

@@ -7,7 +7,7 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 500
+max_step 		= 0  #500
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 10000
@@ -96,11 +96,17 @@ geometry.prob_lo     =  0. 0.
 # Physical dimensions of the high end of the domain.
 geometry.prob_hi     =  1. 1. 
 
-#*******************************************************************************
-
 #Set to 1 if periodic in that direction
 geometry.is_periodic =  1 1
 
+# Embedded Boundary options
+eb2.geom_type = sphere
+eb2.sphere_radius = 0.125
+eb2.sphere_center = 0.45  0.65  0.53
+eb2.sphere_has_fluid_inside = 0
+
+# for no embedded boundary 
+#eb2.geom_type = all_regular
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
