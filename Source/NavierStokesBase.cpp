@@ -814,8 +814,10 @@ NavierStokesBase::buildMetrics ()
     //Fixme Is this test done elsewhere?
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
-    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
-        amrex::Abort("EB requires dx == dy == dz\n");
+    Print()<<"dx = "<<dx[0]<<" "<<dx[1]<<" "<<dx[2]<<" \n";
+    for (int i = 1; i < BL_SPACEDIM; i++){
+      if (std::abs(dx[i]-dx[i-1]) > 1.e-12*dx[0]) 
+        amrex::Abort("EB requires dx == dy (== dz)\n");
     }
 
     //Get pointers to EB data holders

@@ -1084,6 +1084,10 @@ NavierStokes::writePlotFile (const std::string& dir,
     }
 
     int n_data_items = plot_var_map.size() + num_derive;
+#ifdef AMREX_USE_EB
+    // add in vol frac
+    n_data_items++;
+#endif
     Real cur_time = state[State_Type].curTime();
 
     if (level == 0 && ParallelDescriptor::IOProcessor())
