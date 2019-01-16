@@ -18,6 +18,8 @@ USE_MPI     = FALSE
 USE_OMP     = FALSE
 PROFILE     = FALSE
 
+USE_EB = TRUE
+
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
 #DEFINES += -DMOREGENGETFORCE

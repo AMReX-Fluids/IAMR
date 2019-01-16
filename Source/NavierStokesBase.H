@@ -23,6 +23,11 @@
 #include <AMReX_AmrParticles.H>
 #endif
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBCellFlag.H>
+#include <AMReX_EBFluxRegister.H>
+#endif
+
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above

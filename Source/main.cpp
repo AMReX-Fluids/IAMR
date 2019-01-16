@@ -9,6 +9,11 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EB2.H>
+#include <AMReX_AmrLevel.H>
+#endif
+
 using namespace amrex;
 
 #ifdef AMREX_USE_EB
@@ -56,6 +61,7 @@ main (int   argc,
     }
 
     Amr* amrptr = new Amr;
+    //    Amr amr;
 #ifdef AMREX_USE_EB
     // fixme? not sure what level of support should be default
     // levels explianed in user guide
@@ -70,7 +76,7 @@ main (int   argc,
     AmrLevel::SetEBMaxGrowCells(5,4,2);
 
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
-		   amrptr->maxLevel())
+		   amrptr->maxLevel());
 #endif
 		   
     amrptr->init(strt_time,stop_time);

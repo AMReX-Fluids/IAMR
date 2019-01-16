@@ -24,8 +24,12 @@ ifeq ($(USE_PARTICLES),TRUE)
   Pdirs += Particle
 endif
 
+ifeq ($(USE_EB),TRUE)
+  Pdirs += EB
+endif
+
 ifeq ($(USE_HYPRE),TRUE)
-    Pdirs += Extern/HYPRE
+  Pdirs += Extern/HYPRE
 endif
 
 Ppack   += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)

@@ -9,7 +9,7 @@ using namespace amrex;
 #ifdef AMREX_USE_EB
 // called in main before Amr->init(start,stop)
 void
-NavierStokesBase::initialize_EB2 (const Geometry& geom,
+initialize_EB2 (const Geometry& geom,
 				  const int required_coarsening_level,
 				  const int max_coarsening_level)
 {
