@@ -16,11 +16,12 @@ module prob_2D_module
 
   implicit none
 
-  private
+  private :: initbubble, initspin, &
+             initviscbench, initvort, initchannel, initpervort, &
+             inithotspot, initrt, inittraceradvect, initfromrest, &
+             initNodeEBtest
 
-  public :: amrex_probinit, FORT_INITDATA, initbubble, initspin, &
-            initviscbench, initvort, initchannel, initpervort, &
-            inithotspot, initrt, inittraceradvect, initfromrest, &
+  public :: amrex_probinit, FORT_INITDATA,  &
             FORT_DENERROR, FORT_AVERAGE_EDGE_STATES, FORT_MAKEFORCE, &
             FORT_ADVERROR, FORT_ADV2ERROR, FORT_TEMPERROR, FORT_MVERROR, &
             FORT_DENFILL, FORT_ADVFILL, FORT_TEMPFILL, FORT_XVELFILL, &
@@ -241,6 +242,11 @@ contains
          call initfromrest(lo,hi,nscal, &
                        vel,scal,DIMS(state), &
                            dx,xlo,xhi)
+
+      else if (probtype .eq. 13) then
+         call initNodeEBtest(lo,hi,nscal, &
+                             vel,scal,DIMS(state), &
+                             dx,xlo,xhi)
 
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
@@ -765,6 +771,53 @@ contains
       end do
       
       end subroutine inittraceradvect
+      
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initNodeEBtest(lo,hi,nscal, &
+                                vel,scal,DIMS(state), &
+                                dx,xlo,xhi) &
+                                bind(C, name="initNodeEBtest")
+
+      integer    nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      REAL_T     dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+
+
+!c     ::::: local variables
+      integer i, j
+      REAL_T  x, y, fac
+      REAL_T  hx, hy
+      REAL_T  dist
+
+#include <probdata.H>
+
+      hx = dx(1)
+      hy = dx(2)
+
+      do j=lo(2),hi(2)
+         y = hy*(float(j) + half) - half
+         do i=lo(1),hi(1)
+            x = hx*(float(i) + half) - half
+
+            dist = sqrt((x)**2 + (y)**2)
+            fac = exp(-(dist*dist/(0.16d0*0.16d0)))
+            vel(i,j,1) = 2.0d0*dist*y/dist*fac
+            vel(i,j,2) = -2.0d0*dist*x/dist*fac
+            ! density
+            scal(i,j,1) = 1.0d0
+            ! tracer
+            scal(i,j,2) = 1.0d0*exp(-(10.0d0*dist)**2)
+
+         end do
+      end do
+      
+      end subroutine initNodeEBtest
       
 !c
 !c ::: -----------------------------------------------------------

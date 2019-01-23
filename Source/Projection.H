@@ -11,6 +11,10 @@
 #include <AMReX_FluxRegister.H>
 #include <AMReX_MultiFabUtil.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#endif
+
 class Projection 
 {
 protected:
@@ -38,7 +42,13 @@ public:
     void install_level (int                   level,
                         amrex::AmrLevel*             level_data,
                         amrex::Vector< amrex::Vector<amrex::Real> >* _radius);
+#ifdef AMREX_USE_EB
+    void install_level (int                   level,
+                        amrex::AmrLevel*             level_data,
+                        amrex::Vector< amrex::Vector<amrex::Real> >* _radius,
+			const amrex::EBFArrayBoxFactory& _ebfactory);
 
+#endif
     void install_anelastic_coefficient (int                        level,
                                         amrex::Real                **anel_coeff);
     //
@@ -303,6 +313,10 @@ protected:
     //
     amrex::Amr*             parent;
     amrex::Vector<amrex::AmrLevel*> LevelData;
+#ifdef AMREX_USE_EB
+    // pointer to eb factory on each level 
+    amrex::Vector<const amrex::EBFArrayBoxFactory*> ebfactory;
+#endif
     //
     // The array of Radii, and number of radii ghost cells.
     //

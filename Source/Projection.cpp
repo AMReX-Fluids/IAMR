@@ -17,6 +17,9 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+
 using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
@@ -150,6 +153,11 @@ Projection::Projection (Amr*   _parent,
 
     for (int lev = 0; lev <= parent->finestLevel(); lev++)
        anel_coeff[lev] = 0;
+
+#ifdef AMREX_USE_EB
+    // size the EB factory array
+    ebfactory.resize(maxlev + 1);
+#endif
 }
 
 Projection::~Projection ()
@@ -184,6 +192,35 @@ Projection::install_level (int                   level,
     LevelData[level] = level_data;
     radius[level] = _radius;
 }
+#ifdef AMREX_USE_EB
+// fixme?  maybe there's a more consise way to do this by combining with
+// non-eb fun above, but just do it this way for now
+void
+Projection::install_level (int                   level,
+                           AmrLevel*             level_data,
+                           Vector< Vector<Real> >* _radius,
+			   const EBFArrayBoxFactory& _ebfactory)
+{
+    if (verbose) amrex::Print() << "Installing projector level " << level << '\n';
+
+    int finest_level = parent->finestLevel();
+
+    if (level > LevelData.size() - 1) 
+    {
+        LevelData.resize(finest_level+1);
+        radius.resize(finest_level+1);
+    }
+
+    if (level > anel_coeff.size()-1) {
+       anel_coeff.resize(level+1);
+       anel_coeff[level] = 0;
+    }
+
+    LevelData[level] = level_data;
+    radius[level] = _radius;
+    ebfactory[level] = &_ebfactory;
+}
+#endif
 
 void
 Projection::install_anelastic_coefficient (int                   level,
@@ -465,7 +502,7 @@ Projection::level_project (int             level,
         if (is_rz == 1) {
             radMultScal(level,*divusource);
         }
-        const int nghost = 0;
+       const int nghost = 0;
         divusource->mult(-1.0,0,1,nghost);
 
 	Vector<MultiFab*> rhcc(maxlev, nullptr);
@@ -2496,6 +2533,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         if (Geometry::isPeriodic(idim))
         {
+	  //FIXME
+	  Print()<<idim<<" Periodic!!!!!\n";
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }
         else if (doing_initial_vortproj)
@@ -2538,32 +2577,75 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     LPInfo info;
-    info.setAgglomeration(agglomeration);
-    info.setConsolidation(consolidation);
-    info.setMetricTerm(false);
+    //Fixme testing
+    int max_coarsening_level = 30;
+    info.setMaxCoarseningLevel(max_coarsening_level);
+    // info.setAgglomeration(agglomeration);
+    // info.setConsolidation(consolidation);
+    // info.setMetricTerm(false);
 
+#ifdef AMREX_USE_EB
+    MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info, ebfactory);
+#else
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info);
+#endif
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction) {
         mlndlap.setRZCorrection(Geometry::IsRZ());
     }
 #endif
-    mlndlap.setGaussSeidel(use_gauss_seidel);
-    mlndlap.setHarmonicAverage(use_harmonic_average);
+    //fixme
+    // mlndlap.setGaussSeidel(use_gauss_seidel);
+    // mlndlap.setHarmonicAverage(use_harmonic_average);
 
     mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
   
     for (int ilev = 0; ilev < nlevel; ++ilev) {
+      // fixme
+      sig[c_lev+ilev]->setVal(1.0);
         mlndlap.setSigma(ilev, *sig[c_lev+ilev]);
     }
-
+    // compare to incflo::projection.cpp:74
     Vector<MultiFab> rhs(nlevel);
     for (int ilev = 0; ilev < nlevel; ++ilev)
     {
         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
+#ifdef AMREX_USE_EB
+	rhs[ilev].define(ba, mg_dmap[ilev], 1, 0, MFInfo(), *ebfactory[ilev]);
+#else
         rhs[ilev].define(ba, mg_dmap[ilev], 1, 0);
+#endif
     }
 
+    //fixme
+    Print()<<"here \n";
+
+    // this sets phi_rebase = phi[start+c_lev]
+    Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
+//     Vector<MultiFab*> phi_rebase(nlevel);
+//     //fixme - not working
+//     for (int ilev = 0; ilev < nlevel; ++ilev)
+//     {
+//         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
+//     //fixme
+//     Print()<<"here 2\n";
+
+// #ifdef AMREX_USE_EB
+//     (*phi_rebase[ilev]).define(ba, mg_dmap[ilev], 1, 1, MFInfo(), *ebfactory[ilev]);
+// 	    //fixme
+//     Print()<<"here 3\n";
+
+// 	phi_rebase[ilev]->setVal(0.0);
+// 	    //fixme
+//     Print()<<"here 4\n";
+
+// #else
+//         phi_rebase[ilev]->define(ba, mg_dmap[ilev], 1, 1);
+// 	phi_rebase[ilev]->setVal(0.0);
+// #endif
+//     }
+
+    
     Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
     Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
     rhnd_rebase.resize(nlevel,nullptr);
@@ -2571,12 +2653,21 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     // rhs = 
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
 
+    //fixme
+    VisMF::Write(rhs[0],"rhs2d");
+    amrex::WriteSingleLevelPlotfile("phi_in", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+    //
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
 
-    Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
-    Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
+    Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs),
+			       //fixme
+			       1.e-11,0.0);
+			       //rel_tol, abs_tol);
+    //fixme
+    amrex::WriteSingleLevelPlotfile("phi", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+
 
     if (test_mlmg_solver) {
         Vector<MultiFab*> vel_ptmp(f_lev+1);

@@ -9,9 +9,8 @@ using namespace amrex;
 #ifdef AMREX_USE_EB
 // called in main before Amr->init(start,stop)
 void
-initialize_EB2 (const Geometry& geom,
-				  const int required_coarsening_level,
-				  const int max_coarsening_level)
+initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
+		const int max_coarsening_level)
 {
     // read in EB parameters
     ParmParse ppeb2("eb2");
@@ -20,9 +19,10 @@ initialize_EB2 (const Geometry& geom,
 
     //Build geometry -- WIP!!!
     // seems like this is a call that can create the implicit function,
-    // GeometryShop, and Geometry all at "once"
+    // GeometryShop, and Geometry all at "once"... geom might already be init
     //AMReX_EB2::Build (const Geometry& geom, int required_coarsening_level,
     //   int max_coarsening_level, int ngrow)
+    //fixme -- not sure that 4 is the right number here, just taken from CNS
     EB2::Build(geom, max_coarsening_level, max_coarsening_level, 4);
 }
 #endif
