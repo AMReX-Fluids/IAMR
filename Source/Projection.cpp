@@ -2617,34 +2617,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 #endif
     }
 
-    //fixme
-    Print()<<"here \n";
-
     // this sets phi_rebase = phi[start+c_lev]
     Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
-//     Vector<MultiFab*> phi_rebase(nlevel);
-//     //fixme - not working
-//     for (int ilev = 0; ilev < nlevel; ++ilev)
-//     {
-//         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
-//     //fixme
-//     Print()<<"here 2\n";
-
-// #ifdef AMREX_USE_EB
-//     (*phi_rebase[ilev]).define(ba, mg_dmap[ilev], 1, 1, MFInfo(), *ebfactory[ilev]);
-// 	    //fixme
-//     Print()<<"here 3\n";
-
-// 	phi_rebase[ilev]->setVal(0.0);
-// 	    //fixme
-//     Print()<<"here 4\n";
-
-// #else
-//         phi_rebase[ilev]->define(ba, mg_dmap[ilev], 1, 1);
-// 	phi_rebase[ilev]->setVal(0.0);
-// #endif
-//     }
-
     
     Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
     Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
@@ -2660,6 +2634,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
+    mlmg.setMaxIter(1000);
 
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs),
 			       //fixme
