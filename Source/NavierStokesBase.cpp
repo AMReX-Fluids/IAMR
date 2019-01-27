@@ -222,12 +222,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         projector = new Projection(parent,&phys_bc,do_sync_proj,
                                    parent->finestLevel(),radius_grow);
     }
-#ifdef AMREX_USE_EB
-    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
-    projector->install_level(level,this,&radius,ebfactory);
-#else
     projector->install_level(level,this,&radius);
-#endif
     
     //
     // Set up the godunov box.

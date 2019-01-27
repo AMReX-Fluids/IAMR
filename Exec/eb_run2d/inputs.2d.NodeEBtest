@@ -14,9 +14,10 @@ ns.do_MLsync_proj = 0
 # verbosity
 ns.v                    = 1
 amr.v                   = 1
-proj.v = 10
-proj.Pcode = 10
-
+proj.v = 1
+proj.Pcode = 2
+mg.v = 1
+mg.verbose_linop = 10
 
 amr.n_cell 		= 128 128
 amr.max_grid_size	= 32
@@ -35,7 +36,7 @@ amr.plot_int		= 10
 # Embedded Boundary options
 eb2.geom_type = sphere
 eb2.sphere_radius = 0.125
-eb2.sphere_center = 0.7006  0.5521  0.0
+eb2.sphere_center = 0.7006  0.5521  0.0 #0.25  0.75  0.0
 eb2.sphere_has_fluid_inside = 0
 
 # for no embedded boundary 

@@ -98,6 +98,11 @@ Projection::Initialize ()
     pp.query("use_harmonic_average", use_harmonic_average);
     pp.query("test_mlmg_solver",    test_mlmg_solver);
 
+#ifdef AMREX_USE_EB
+    if (!use_mlmg_solver)
+      amrex::Error("EB requires proj.use_mlmg_solver = 1");
+#endif
+    
     if (!proj_2) 
 	amrex::Error("With new gravity and outflow stuff, must use proj_2");
 
@@ -191,36 +196,13 @@ Projection::install_level (int                   level,
 
     LevelData[level] = level_data;
     radius[level] = _radius;
-}
+
 #ifdef AMREX_USE_EB
-// fixme?  maybe there's a more consise way to do this by combining with
-// non-eb fun above, but just do it this way for now
-void
-Projection::install_level (int                   level,
-                           AmrLevel*             level_data,
-                           Vector< Vector<Real> >* _radius,
-			   const EBFArrayBoxFactory& _ebfactory)
-{
-    if (verbose) amrex::Print() << "Installing projector level " << level << '\n';
-
-    int finest_level = parent->finestLevel();
-
-    if (level > LevelData.size() - 1) 
-    {
-        LevelData.resize(finest_level+1);
-        radius.resize(finest_level+1);
-    }
-
-    if (level > anel_coeff.size()-1) {
-       anel_coeff.resize(level+1);
-       anel_coeff[level] = 0;
-    }
-
-    LevelData[level] = level_data;
-    radius[level] = _radius;
+    const auto& _ebfactory =
+      dynamic_cast<EBFArrayBoxFactory const&>(LevelData[level]->Factory());
     ebfactory[level] = &_ebfactory;
-}
 #endif
+}
 
 void
 Projection::install_anelastic_coefficient (int                   level,
@@ -952,7 +934,7 @@ Projection::initialVelocityProject (int  c_lev,
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-        LevelData[lev]->get_old_data(Press_Type).setVal(0);
+        LevelData[lev]->get_old_data(Press_Type).setVal(0.0);
     }
 
     for (lev = c_lev; lev <= f_lev; lev++) 
@@ -963,8 +945,12 @@ Projection::initialVelocityProject (int  c_lev,
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev]->boxArray();
         const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
+#ifdef AMREX_USE_EB
+	sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),*ebfactory[lev]));
+#else
         sig[lev].reset(new MultiFab(grids,dmap,1,nghost));
-
+#endif
+	
         if (rho_wgt_vel_proj) 
         {
             LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
@@ -989,7 +975,7 @@ Projection::initialVelocityProject (int  c_lev,
         }
         else 
         {
-            sig[lev]->setVal(1,nghost);
+            sig[lev]->setVal(1.,nghost);
         }
     }
 
@@ -2533,8 +2519,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         if (Geometry::isPeriodic(idim))
         {
-	  //FIXME
-	  Print()<<idim<<" Periodic!!!!!\n";
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }
         else if (doing_initial_vortproj)
@@ -2585,6 +2569,13 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     // info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
+    //fixme ??
+    // inside this linop build, fn MLLinOp::defineGrids() is supposed to
+    // agglomerate grids to get 7 mg levels (at least NodeEB does this)
+    // for some reason, here in IAMR, we only get 1 mg level
+    // even though do_agglomeration == 1 and aggable ==1
+    // between NodeEB and here: geom & grids same
+    //     ebfactory created a little differently
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info, ebfactory);
 #else
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info);
@@ -2594,15 +2585,13 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         mlndlap.setRZCorrection(Geometry::IsRZ());
     }
 #endif
-    //fixme
+    //fixme - uncomment
     // mlndlap.setGaussSeidel(use_gauss_seidel);
     // mlndlap.setHarmonicAverage(use_harmonic_average);
 
     mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
   
     for (int ilev = 0; ilev < nlevel; ++ilev) {
-      // fixme
-      sig[c_lev+ilev]->setVal(1.0);
         mlndlap.setSigma(ilev, *sig[c_lev+ilev]);
     }
     // compare to incflo::projection.cpp:74
@@ -2634,7 +2623,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
-    mlmg.setMaxIter(1000);
+    //fixme - added in to match NodeEB
+    mlmg.setMaxIter(100);
 
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs),
 			       //fixme
