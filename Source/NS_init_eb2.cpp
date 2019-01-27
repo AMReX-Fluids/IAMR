@@ -17,12 +17,13 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     std::string geom_type;
     ppeb2.get("geom_type", geom_type);
 
+    Print()<<"geom "<<geom<<"\n\n";
     //Build geometry -- WIP!!!
     // seems like this is a call that can create the implicit function,
     // GeometryShop, and Geometry all at "once"... geom might already be init
     //AMReX_EB2::Build (const Geometry& geom, int required_coarsening_level,
     //   int max_coarsening_level, int ngrow)
     //fixme -- not sure that 4 is the right number here, just taken from CNS
-    EB2::Build(geom, max_coarsening_level, max_coarsening_level, 4);
+    EB2::Build(geom, required_coarsening_level, max_coarsening_level, 4);
 }
 #endif

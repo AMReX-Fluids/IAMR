@@ -75,8 +75,10 @@ main (int   argc,
     // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var? 
     AmrLevel::SetEBMaxGrowCells(5,4,2);
 
+    //decide who should own max_coasening_level later
+    int max_coarsening_level = 30;
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
-		   amrptr->maxLevel());
+		   max_coarsening_level);
 #endif
 		   
     amrptr->init(strt_time,stop_time);
