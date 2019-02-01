@@ -485,7 +485,9 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase protected embedded boundary functions              //
     ////////////////////////////////////////////////////////////////////////////
-    const amrex::MultiFab& volFrac () const { return *volfrac; }
+#ifdef AMREX_USE_EB
+  const amrex::MultiFab& volFrac () const { return *volfrac; }
+#endif
   
 private:
 
