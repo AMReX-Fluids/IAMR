@@ -1,4 +1,4 @@
-
+#ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
 
@@ -6,7 +6,6 @@
 
 using namespace amrex;
 
-#ifdef AMREX_USE_EB
 // called in main before Amr->init(start,stop)
 void
 initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
