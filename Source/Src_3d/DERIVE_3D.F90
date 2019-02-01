@@ -13,32 +13,57 @@
 
 #define SDIM 3
 
-c     -----------------------------------------------------------
-c     This file contains functions which compute derived quantities.  
-c     All of the argument lists have the same template, shown below
-c     
-c     INPUTS/OUTPUTS:
-c     
-c     e         <= the quantity derived
-c     DIMS(e)   => index extent of e array
-c     nv        => number of components in e array (should be 1)
-c     dat       => data neded to derive e
-c     DIMS(dat) => index limits of dat array
-c     ncomp     => number of components of dat array (3)
-c     lo,hi     => subrange of e array where result is requested
-c     domlo,hi  => index extent of problem domain (cell centered)
-c     delta     => cell spacing
-c     xlo       => physical location of lower left hand
-c 	           corner of e array
-c     time      => problem evolution time
-c     bc        => array of bndry types for component values
-c                  valid only if component touches bndry
-c     -----------------------------------------------------------
+
+module derive_3d_module
+  
+  implicit none
+
+  private
+
+  public :: derpresvars, derturbvars, derjetpresvars, derjetvars, &
+            dermodgradrho, derudotlapu, derkeng, derlogs, dermvel, &
+            derdvrho, dermprho, derlgrhodust, derdmag, dermgvort, &
+            dervortx, dervorty, dervortz, dermgdivu, gradp_dir, &
+            dergrdpx, dergrdpy, dergrdpz, deravgpres, dergrdp, &
+#ifdef MOREGENGETFORCE            
+            derradvel, derazivel, derxvelrot, deryvelrot, dermagvelrot, &
+            dermagvortrot, &
+            
+#endif
+#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE))
+            derforcing, derforcex, derforcey, derforcez, &    
+#endif
+            dernull
+
+contains
+
+!c     -----------------------------------------------------------
+!c     This file contains functions which compute derived quantities.  
+!c     All of the argument lists have the same template, shown below
+!c     
+!c     INPUTS/OUTPUTS:
+!c     
+!c     e         <= the quantity derived
+!c     DIMS(e)   => index extent of e array
+!c     nv        => number of components in e array (should be 1)
+!c     dat       => data neded to derive e
+!c     DIMS(dat) => index limits of dat array
+!c     ncomp     => number of components of dat array (3)
+!c     lo,hi     => subrange of e array where result is requested
+!c     domlo,hi  => index extent of problem domain (cell centered)
+!c     delta     => cell spacing
+!c     xlo       => physical location of lower left hand
+!c 	           corner of e array
+!c     time      => problem evolution time
+!c     bc        => array of bndry types for component values
+!c                  valid only if component touches bndry
+!c     -----------------------------------------------------------
 
 #ifdef MOREGENGETFORCE
-      subroutine FORT_DERRADVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      subroutine derradvel (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level, grid_no) &
+                              bind(C, name= "derradvel")
 
       implicit none
 
@@ -64,7 +89,6 @@ c     -----------------------------------------------------------
       hx = delta(1)
       hy = delta(2)
 
-!$omp parallel do private(i,j,k,x,y,r,ux,uy)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
@@ -77,13 +101,14 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
 
-      subroutine FORT_DERAZIVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      end subroutine derradvel
+
+      subroutine derazivel  (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                             lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                             bc,level, grid_no) &
+                             bind(C, name="derazivel")
 
       implicit none
 
@@ -109,7 +134,6 @@ c     -----------------------------------------------------------
       hx = delta(1)
       hy = delta(2)
 
-!$omp parallel do private(i,j,k,x,y,r,ux,uy)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
@@ -122,13 +146,13 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derazivel
 
-      subroutine FORT_DERXVELROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      subroutine derxvelrot (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level, grid_no) &
+                              bind(C, name="derxvelrot")
 
       implicit none
 
@@ -153,7 +177,6 @@ c     -----------------------------------------------------------
 
       hy = delta(2)
 
-!$omp parallel do private(i,j,k,y)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
@@ -162,13 +185,13 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derxvelrot
 
-      subroutine FORT_DERYVELROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      subroutine deryvelrot  (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level, grid_no) &
+                              bind(C, name= "deryvelrot")
 
       implicit none
 
@@ -193,7 +216,6 @@ c     -----------------------------------------------------------
 
       hx = delta(1)
 
-!$omp parallel do private(i,j,k,x)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -202,13 +224,13 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine deryvelrot
 
-      subroutine FORT_DERMAGVELROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      subroutine dermagvelrot (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,  &
+                              bc,level, grid_no) &
+                              bind(C, name="dermagvelrot")
 
       implicit none
 
@@ -234,7 +256,6 @@ c     -----------------------------------------------------------
       hx = delta(1)
       hy = delta(2)
 
-!$omp parallel do private(i,j,k,x,y,u,v,w)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             y = xlo(2) + hy * ( dble( j-lo(2) ) + half )
@@ -247,13 +268,13 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine dermagvelrot
 
-      subroutine FORT_DERMAGVORTROT (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      subroutine dermagvortrot (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                               bc,level, grid_no) &
+                               bind(C, name="dermagvortrot")
 
       implicit none
 
@@ -287,8 +308,6 @@ c     -----------------------------------------------------------
       twoihy = 1.0d0/(two*hy)
       twoihz = 1.0d0/(two*hz)
 
-!$omp parallel do private(i,j,k,u,v,w,dudy,dudz,dvdx,dvdz)
-!$omp&private(dwdx,dwdy,wx,wy,wz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -314,21 +333,22 @@ c     -----------------------------------------------------------
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+
+      end subroutine dermagvortrot
 #endif /*MOREGENGETFORCE*/
 
 #if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE)) 
-      subroutine FORT_DERFORCING (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                            bc,level,grid_no)
-c
-c     This routine will derive the energy being injected by the
-c     forcing term used for generating turbulence in probtype 14
-c     Requires velocity field, time, and the right parameters
-c     for the forcing term, i.e. probin, *somehow*
-c
+      subroutine derforcing (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                             lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                             bc,level,grid_no) &
+                             bind(C, name="derforcing")
+!c
+!c     This routine will derive the energy being injected by the
+!c     forcing term used for generating turbulence in probtype 14
+!c     Requires velocity field, time, and the right parameters
+!c     for the forcing term, i.e. probin, *somehow*
+!c
 
       implicit none
 
@@ -371,9 +391,9 @@ c
       twicePi=two*Pi
 
       if (probtype.eq.14.or.probtype.eq.15) then
-c     Homogeneous Isotropic Turbulence or Inflow
+!c     Homogeneous Isotropic Turbulence or Inflow
 
-c     Adjust z offset for probtype 15
+!c     Adjust z offset for probtype 15
          if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
@@ -419,8 +439,6 @@ c     Adjust z offset for probtype 15
             HLz = Lz
          endif
 
-!$omp parallel do private(i,j,k,x,y,z,f1,f2,f3)
-!$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT,u,v,w)
          do k = lo(3), hi(3)
             z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -442,12 +460,12 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
-     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
-                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
-     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
-                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
-     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) &
+                                     -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) &
+                                     -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) &
+                                     -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
                               else
                                  f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                                  f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
@@ -467,12 +485,12 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
-     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
-                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
-     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
-                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
-     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) &
+                                     -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) &
+                                     -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) &
+                                     -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
                               else
                                  f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                                  f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
@@ -496,20 +514,21 @@ c     Adjust z offset for probtype 15
                end do
             end do
          end do
-!$omp end parallel do
+
       endif
-      end
+      end subroutine derforcing
 
 
-      subroutine FORT_DERFORCEX (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &     lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &     bc,level,grid_no)
-c     
-c     This routine will derive the energy being injected by the
-c     forcing term used for generating turbulence in probtype 14
-c     Requires velocity field, time, and the right parameters
-c     for the forcing term, i.e. probin, *somehow*
-c     
+      subroutine derforcex (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                            lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                            bc,level,grid_no) &
+                            bind(C, name="derforcex")
+!c     
+!c     This routine will derive the energy being injected by the
+!c     forcing term used for generating turbulence in probtype 14
+!c     Requires velocity field, time, and the right parameters
+!c     for the forcing term, i.e. probin, *somehow*
+!c     
 
       implicit none
 
@@ -551,9 +570,9 @@ c
       twicePi=two*Pi
 
       if (probtype.eq.14.or.probtype.eq.15) then
-c     Homogeneous Isotropic Turbulence or Inflow
+!c     Homogeneous Isotropic Turbulence or Inflow
 
-c     Adjust z offset for probtype 15
+!c     Adjust z offset for probtype 15
          if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
@@ -596,8 +615,6 @@ c     Adjust z offset for probtype 15
             HLz = Lz
          endif
 
-!$omp parallel do private(i,j,k,x,y,z,f1)
-!$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT)
          do k = lo(3), hi(3)
             z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -617,8 +634,8 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
-     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) &
+                                     -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
                               else
                                  f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                               endif
@@ -636,8 +653,8 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) 
-     &                                -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
+                                 f1 = f1 + xT * ( FAZ(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) &
+                                     -           FAY(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) )
                               else
                                  f1 = f1 + xT*FAX(kx,ky,kz)*cos(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                               endif
@@ -654,23 +671,23 @@ c     Adjust z offset for probtype 15
                enddo
             enddo
          enddo
-!$omp end parallel do
 
       endif
 
-      end
+      end subroutine derforcex
 
 
 
-      subroutine FORT_DERFORCEY (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &     lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &     bc,level,grid_no)
-c     
-c     This routine will derive the energy being injected by the
-c     forcing term used for generating turbulence in probtype 14
-c     Requires velocity field, time, and the right parameters
-c     for the forcing term, i.e. probin, *somehow*
-c     
+      subroutine derforcey (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+          lo,hi,domlo,domhi,delta,xlo,time,dt, &
+          bc,level,grid_no) &
+          bind(C, name="derforcey")
+!c     
+!c     This routine will derive the energy being injected by the
+!c     forcing term used for generating turbulence in probtype 14
+!c     Requires velocity field, time, and the right parameters
+!c     for the forcing term, i.e. probin, *somehow*
+!c     
 
       implicit none
 
@@ -712,9 +729,9 @@ c
       twicePi=two*Pi
 
       if (probtype.eq.14.or.probtype.eq.15) then
-c     Homogeneous Isotropic Turbulence or Inflow
+!c     Homogeneous Isotropic Turbulence or Inflow
 
-c     Adjust z offset for probtype 15
+!c     Adjust z offset for probtype 15
          if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
@@ -757,8 +774,6 @@ c     Adjust z offset for probtype 15
             HLz = Lz
          endif
 
-!$omp parallel do private(i,j,k,x,y,z,f2)
-!$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT)
          do k = lo(3), hi(3)
             z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -778,8 +793,8 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
-     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) &
+                                     -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
                               else
                                  f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                               endif
@@ -797,8 +812,8 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) 
-     &                                -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
+                                 f2 = f2 + xT * ( FAX(kx,ky,kz)*twicePi*(kzd/HLz)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) &
+                                     -           FAZ(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPZX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPZY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZZ(kx,ky,kz)) )
                               else
                                  f2 = f2 + xT*FAY(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                               endif
@@ -815,23 +830,23 @@ c     Adjust z offset for probtype 15
                enddo
             enddo
          enddo
-!$omp end parallel do
 
       endif
 
-      end
+      end subroutine derforcey
 
 
 
-      subroutine FORT_DERFORCEZ (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &     lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &     bc,level,grid_no)
-c     
-c     This routine will derive the energy being injected by the
-c     forcing term used for generating turbulence in probtype 14
-c     Requires velocity field, time, and the right parameters
-c     for the forcing term, i.e. probin, *somehow*
-c     
+      subroutine derforcez (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                            lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                            bc,level,grid_no) &
+                            bind(C, name="derforcez")
+!c     
+!c     This routine will derive the energy being injected by the
+!c     forcing term used for generating turbulence in probtype 14
+!c     Requires velocity field, time, and the right parameters
+!c     for the forcing term, i.e. probin, *somehow*
+!c     
 
       implicit none
 
@@ -874,9 +889,9 @@ c
       twicePi=two*Pi
       
       if (probtype.eq.14.or.probtype.eq.15) then
-c     Homogeneous Isotropic Turbulence or Inflow
+!c     Homogeneous Isotropic Turbulence or Inflow
          
-c     Adjust z offset for probtype 15
+!c     Adjust z offset for probtype 15
          if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
             infl_time = time + infl_time_offset
             zlo = xlo(3) - (time*adv_vel)
@@ -919,8 +934,6 @@ c     Adjust z offset for probtype 15
             HLz = Lz
          endif
 
-!$omp parallel do private(i,j,k,x,y,z,f3)
-!$omp&private(kz,kzd,ky,kyd,kx,kxd,kappa,xT)
          do k = lo(3), hi(3)
             z = zlo + hz * ( dble( k-lo(3) ) + half )
             do j = lo(2), hi(2)
@@ -940,8 +953,8 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
-     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) &
+                                     -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
                               else
                                  f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                               endif
@@ -959,8 +972,8 @@ c     Adjust z offset for probtype 15
                            if (kappa.le.kappaMax) then
                               xT = cos(FTX(kx,ky,kz)*infl_time+TAT(kx,ky,kz))
                               if (div_free_force.eq.1) then
-                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) 
-     &                                -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
+                                 f3 = f3 + xT * ( FAY(kx,ky,kz)*twicePi*(kxd/HLx)*cos(twicePi*kxd*x/HLx+FPYX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPYY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPYZ(kx,ky,kz)) &
+                                     -           FAX(kx,ky,kz)*twicePi*(kyd/HLy)*sin(twicePi*kxd*x/HLx+FPXX(kx,ky,kz)) * cos(twicePi*kyd*y/HLy+FPXY(kx,ky,kz)) * sin(twicePi*kzd*z/HLz+FPXZ(kx,ky,kz)) )
                               else
                                  f3 = f3 + xT*FAZ(kx,ky,kz)*sin(twicePi*kxd*x/HLx+FPX(kx,ky,kz)) * sin(twicePi*kyd*y/HLy+FPY(kx,ky,kz)) * cos(twicePi*kzd*z/HLz+FPZ(kx,ky,kz))
                               endif
@@ -977,21 +990,21 @@ c     Adjust z offset for probtype 15
                enddo
             enddo
          enddo
-!$omp end parallel do
 
       endif
 
-      end
+      end subroutine derforcez
 
 #endif /*defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE))*/
 
-      subroutine FORT_DERPRESVARS (e,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                            bc,level,grid_no)
-c
-c     This routine computes cell-centered pressure as average of the eight
-c     surrounding nodal values, along with the three gradients.
-c
+      subroutine derpresvars (e,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level,grid_no) &
+                              bind(C, name="derpresvars")
+!c
+!c     This routine computes cell-centered pressure as average of the eight
+!c     surrounding nodal values, along with the three gradients.
+!c
       implicit none
 
       integer DIMDEC(gp)
@@ -1014,75 +1027,64 @@ c
       dy = fourth/delta(2)
       dz = fourth/delta(3)
 
-!$omp parallel private(i,j,k)
-
-!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
             ! Average pressure
-            e(i,j,k,1) = eighth*( 
-     &            dat(i+1,j,k)     + dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   + dat(i,j+1,k)   +
-     &            dat(i+1,j,k+1)   + dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
+            e(i,j,k,1) = eighth*( &
+                 dat(i+1,j,k)     + dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   + dat(i,j+1,k)   + &
+                 dat(i+1,j,k+1)   + dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
           end do
         end do
       end do
-!$omp end do nowait
 
-!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
             ! X Gradient
-            e(i,j,k,2) = dx*(
-     &            dat(i+1,j,k)     - dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
-     &            dat(i+1,j,k+1)   - dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) )
+            e(i,j,k,2) = dx*( &
+                 dat(i+1,j,k)     - dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   - dat(i,j+1,k)   + &
+                 dat(i+1,j,k+1)   - dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) - dat(i,j+1,k+1) )
           end do
         end do
       end do
-!$omp end do nowait
 
-!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
             ! Y Gradient
-            e(i,j,k,3) = dy*(
-     &            dat(i,j+1,k)     - dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
-     &            dat(i,j+1,k+1)   - dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) )
+            e(i,j,k,3) = dy*( &
+                 dat(i,j+1,k)     - dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   - dat(i+1,j,k)   + &
+                 dat(i,j+1,k+1)   - dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j,k+1) )
           end do
         end do
       end do
-!$omp end do nowait
 
-!$omp do
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
             ! Z Gradient
-            e(i,j,k,4) = dz*(
-     &            dat(i,j,k+1)     - dat(i,j,k)     +
-     &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
-     &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) )
+            e(i,j,k,4) = dz*( &
+                 dat(i,j,k+1)     - dat(i,j,k)     + &
+                 dat(i+1,j,k+1)   - dat(i+1,j,k)   + &
+                 dat(i,j+1,k+1)   - dat(i,j+1,k)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j+1,k) )
           end do
         end do
       end do
-!$omp end do
 
-!$omp end parallel
+      end subroutine derpresvars
 
-      end
-
-      subroutine FORT_DERTURBVARS(e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                            bc,level,grid_no)
+      subroutine derturbvars (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level,grid_no) &
+                              bind(C, name="derturbvars")
 
       implicit none
 
@@ -1113,9 +1115,6 @@ c
          enddo
       enddo
 
-!$omp parallel private(i,j,k)
-
-!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1123,9 +1122,7 @@ c
             enddo
          enddo
       enddo
-!$omp end do nowait
 
-!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1133,9 +1130,7 @@ c
             enddo
          enddo
       enddo
-!$omp end do nowait
 
-!$omp do
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1143,22 +1138,19 @@ c
             enddo
          enddo
       enddo
-!$omp end do
 
-!$omp end parallel
+      end subroutine derturbvars
 
-      end
-
-#ifdef SUMJET
-      subroutine FORT_DERJETPRESVARS (e,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                                lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                                bc,level,grid_no)
-c
-c     This routine computes cell-centered pressure as average of the eight
-c     surrounding nodal values, along with the three gradients.  The gradients
-c     of each of these is also calculated for slope reconstruction in the
-c     jet diagnostics routine.
-c
+      subroutine derjetpresvars (e,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
+                                 lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                 bc,level,grid_no) &
+                                 bind(C, name="derjetpresvars")
+!c
+!c     This routine computes cell-centered pressure as average of the eight
+!c     surrounding nodal values, along with the three gradients.  The gradients
+!c     of each of these is also calculated for slope reconstruction in the
+!c     jet diagnostics routine.
+!c
       implicit none
 
       integer DIMDEC(gp)
@@ -1185,180 +1177,179 @@ c
       tdy = two*delta(2)
       tdz = two*delta(3)
 
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-c     Average pressure
-            e(i,j,k,1) = eighth*( 
-     &            dat(i+1,j,k)     + dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   + dat(i,j+1,k)   +
-     &            dat(i+1,j,k+1)   + dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
-c     X Gradient
-            e(i,j,k,2) = dx*(
-     &            dat(i+1,j,k)     - dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
-     &            dat(i+1,j,k+1)   - dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) )
-c     Y Gradient
-            e(i,j,k,3) = dy*(
-     &            dat(i,j+1,k)     - dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
-     &            dat(i,j+1,k+1)   - dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) )
-c     Z Gradient
-            e(i,j,k,4) = dz*(
-     &            dat(i,j,k+1)     - dat(i,j,k)     +
-     &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
-     &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) )
+!c     Average pressure
+            e(i,j,k,1) = eighth*( &
+                 dat(i+1,j,k)     + dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   + dat(i,j+1,k)   + &
+                 dat(i+1,j,k+1)   + dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
+!c     X Gradient
+            e(i,j,k,2) = dx*( &
+                 dat(i+1,j,k)     - dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   - dat(i,j+1,k)   + &
+                 dat(i+1,j,k+1)   - dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) - dat(i,j+1,k+1) )
+!c     Y Gradient
+            e(i,j,k,3) = dy*( &
+                 dat(i,j+1,k)     - dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   - dat(i+1,j,k)   + &
+                 dat(i,j+1,k+1)   - dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j,k+1) )
+!c     Z Gradient
+            e(i,j,k,4) = dz*( &
+                 dat(i,j,k+1)     - dat(i,j,k)     + &
+                 dat(i+1,j,k+1)   - dat(i+1,j,k)   + &
+                 dat(i,j+1,k+1)   - dat(i,j+1,k)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j+1,k) )
 
-c     Average pressure X Gradient
-            e(i,j,k,5) = (eighth*( 
-     &            dat(i+2,j,k)     + dat(i+1,j,k)   +
-     &            dat(i+2,j+1,k)   + dat(i+1,j+1,k) +
-     &            dat(i+2,j,k+1)   + dat(i+1,j,k+1) +
-     &            dat(i+2,j+1,k+1) + dat(i+1,j+1,k+1) )
-     &           -eighth*( 
-     &            dat(i,j,k)     + dat(i-1,j,k)     +
-     &            dat(i,j+1,k)   + dat(i-1,j+1,k)   +
-     &            dat(i,j,k+1)   + dat(i-1,j,k+1)   +
-     &            dat(i,j+1,k+1) + dat(i-1,j+1,k+1) ) ) / tdx
-c     X Gradient X Gradient
-            e(i,j,k,6) = (dx*(
-     &            dat(i+2,j,k)     - dat(i+1,j,k)   +
-     &            dat(i+2,j+1,k)   - dat(i+1,j+1,k) +
-     &            dat(i+2,j,k+1)   - dat(i+1,j,k+1) +
-     &            dat(i+2,j+1,k+1) - dat(i+1,j+1,k+1) )
-     &           -dx*(
-     &            dat(i,j,k)     - dat(i-1,j,k)     +
-     &            dat(i,j+1,k)   - dat(i-1,j+1,k)   +
-     &            dat(i,j,k+1)   - dat(i-1,j,k+1)   +
-     &            dat(i,j+1,k+1) - dat(i-1,j+1,k+1) ) ) / tdx
-c     Y Gradient X Gradient
-            e(i,j,k,7) = (dy*(
-     &            dat(i+1,j+1,k)   - dat(i+1,j,k)   +
-     &            dat(i+2,j+1,k)   - dat(i+2,j,k)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) +
-     &            dat(i+2,j+1,k+1) - dat(i+2,j,k+1) )
-     &           -dy*(
-     &            dat(i-1,j+1,k)   - dat(i-1,j,k)   +
-     &            dat(i,j+1,k)     - dat(i,j,k)     +
-     &            dat(i-1,j+1,k+1) - dat(i-1,j,k+1) +
-     &            dat(i,j+1,k+1)   - dat(i,j,k+1) ) ) / tdx
-c     Z Gradient X Gradient
-            e(i,j,k,8) = (dz*(
-     &            dat(i+1,j,k+1)   - dat(i+1,j,k)   +
-     &            dat(i+2,j,k+1)   - dat(i+2,j,k)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) +
-     &            dat(i+2,j+1,k+1) - dat(i+2,j+1,k) )
-     &           -dz*(
-     &            dat(i-1,j,k+1)   - dat(i-1,j,k)   +
-     &            dat(i,j,k+1)     - dat(i,j,k)     +
-     &            dat(i-1,j+1,k+1) - dat(i-1,j+1,k) +
-     &            dat(i,j+1,k+1)   - dat(i,j+1,k) ) ) / tdx
+!c     Average pressure X Gradient
+            e(i,j,k,5) = (eighth*( &
+                 dat(i+2,j,k)     + dat(i+1,j,k)   + &
+                 dat(i+2,j+1,k)   + dat(i+1,j+1,k) + &
+                 dat(i+2,j,k+1)   + dat(i+1,j,k+1) + &
+                 dat(i+2,j+1,k+1) + dat(i+1,j+1,k+1) ) &
+                -eighth*(  &
+                 dat(i,j,k)     + dat(i-1,j,k)     + &
+                 dat(i,j+1,k)   + dat(i-1,j+1,k)   + &
+                 dat(i,j,k+1)   + dat(i-1,j,k+1)   + &
+                 dat(i,j+1,k+1) + dat(i-1,j+1,k+1) ) ) / tdx
+!c     X Gradient X Gradient
+            e(i,j,k,6) = (dx*( &
+                 dat(i+2,j,k)     - dat(i+1,j,k)   + &
+                 dat(i+2,j+1,k)   - dat(i+1,j+1,k) + &
+                 dat(i+2,j,k+1)   - dat(i+1,j,k+1) + &
+                 dat(i+2,j+1,k+1) - dat(i+1,j+1,k+1) ) &
+                -dx*( &
+                 dat(i,j,k)     - dat(i-1,j,k)     + &
+                 dat(i,j+1,k)   - dat(i-1,j+1,k)   + &
+                 dat(i,j,k+1)   - dat(i-1,j,k+1)   + &
+                 dat(i,j+1,k+1) - dat(i-1,j+1,k+1) ) ) / tdx
+!c     Y Gradient X Gradient
+            e(i,j,k,7) = (dy*( &
+                 dat(i+1,j+1,k)   - dat(i+1,j,k)   + &
+                 dat(i+2,j+1,k)   - dat(i+2,j,k)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j,k+1) + &
+                 dat(i+2,j+1,k+1) - dat(i+2,j,k+1) ) &
+                -dy*( &
+                 dat(i-1,j+1,k)   - dat(i-1,j,k)   + &
+                 dat(i,j+1,k)     - dat(i,j,k)     + &
+                 dat(i-1,j+1,k+1) - dat(i-1,j,k+1) + &
+                 dat(i,j+1,k+1)   - dat(i,j,k+1) ) ) / tdx
+!c     Z Gradient X Gradient
+            e(i,j,k,8) = (dz*( &
+                 dat(i+1,j,k+1)   - dat(i+1,j,k)   + &
+                 dat(i+2,j,k+1)   - dat(i+2,j,k)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j+1,k) + &
+                 dat(i+2,j+1,k+1) - dat(i+2,j+1,k) ) &
+                -dz*( &
+                 dat(i-1,j,k+1)   - dat(i-1,j,k)   + &
+                 dat(i,j,k+1)     - dat(i,j,k)     + &
+                 dat(i-1,j+1,k+1) - dat(i-1,j+1,k) + &
+                 dat(i,j+1,k+1)   - dat(i,j+1,k) ) ) / tdx
 
-c     Average pressure Y Gradient
-            e(i,j,k,9) = ( eighth*( 
-     &            dat(i+1,j+1,k)   + dat(i,j+1,k)   +
-     &            dat(i+1,j+2,k)   + dat(i,j+2,k)   +
-     &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) +
-     &            dat(i+1,j+2,k+1) + dat(i,j+2,k+1) )
-     &           -eighth*( 
-     &            dat(i+1,j-1,k)   + dat(i,j-1,k)   +
-     &            dat(i+1,j,k)     + dat(i,j,k)     +
-     &            dat(i+1,j-1,k+1) + dat(i,j-1,k+1) +
-     &            dat(i+1,j,k+1)   + dat(i,j,k+1) ) ) / tdy
-c     X Gradient Y Gradient
-            e(i,j,k,10) = (dx*(
-     &            dat(i+1,j+1,k)   - dat(i,j+1,k)   +
-     &            dat(i+1,j+2,k)   - dat(i,j+2,k)   +
-     &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) +
-     &            dat(i+1,j+2,k+1) - dat(i,j+2,k+1) )
-     &           -dx*(
-     &            dat(i+1,j-1,k)   - dat(i,j-1,k)   +
-     &            dat(i+1,j,k)     - dat(i,j,k)     +
-     &            dat(i+1,j-1,k+1) - dat(i,j-1,k+1) +
-     &            dat(i+1,j,k+1)   - dat(i,j,k+1) ) ) / tdy
-c     Y Gradient Y Gradient
-            e(i,j,k,11) = (dy*(
-     &            dat(i,j+2,k)     - dat(i,j+1,k)   +
-     &            dat(i+1,j+2,k)   - dat(i+1,j+1,k) +
-     &            dat(i,j+2,k+1)   - dat(i,j+1,k+1) +
-     &            dat(i+1,j+2,k+1) - dat(i+1,j+1,k+1) )
-     &           -dy*(
-     &            dat(i,j,k)     - dat(i,j-1,k)     +
-     &            dat(i+1,j,k)   - dat(i+1,j-1,k)   +
-     &            dat(i,j,k+1)   - dat(i,j-1,k+1)   +
-     &            dat(i+1,j,k+1) - dat(i+1,j-1,k+1) ) ) / tdy
-c     Z Gradient Y Gradient
-            e(i,j,k,12) = (dz*(
-     &            dat(i,j+1,k+1)   - dat(i,j+1,k)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j+1,k) +
-     &            dat(i,j+2,k+1)   - dat(i,j+2,k)   +
-     &            dat(i+1,j+2,k+1) - dat(i+1,j+2,k) )
-     &           -dz*(
-     &            dat(i,j-1,k+1)   - dat(i,j-1,k)   +
-     &            dat(i+1,j-1,k+1) - dat(i+1,j-1,k) +
-     &            dat(i,j,k+1)     - dat(i,j,k)     +
-     &            dat(i+1,j,k+1)   - dat(i+1,j,k) ) ) / tdy
+!c     Average pressure Y Gradient
+            e(i,j,k,9) = ( eighth*( &
+                 dat(i+1,j+1,k)   + dat(i,j+1,k)   + &
+                 dat(i+1,j+2,k)   + dat(i,j+2,k)   + &
+                 dat(i+1,j+1,k+1) + dat(i,j+1,k+1) + &
+                 dat(i+1,j+2,k+1) + dat(i,j+2,k+1) ) &
+                -eighth*(  &
+                 dat(i+1,j-1,k)   + dat(i,j-1,k)   + &
+                 dat(i+1,j,k)     + dat(i,j,k)     + &
+                 dat(i+1,j-1,k+1) + dat(i,j-1,k+1) + &
+                 dat(i+1,j,k+1)   + dat(i,j,k+1) ) ) / tdy
+!c     X Gradient Y Gradient
+            e(i,j,k,10) = (dx*( &
+                 dat(i+1,j+1,k)   - dat(i,j+1,k)   + &
+                 dat(i+1,j+2,k)   - dat(i,j+2,k)   + &
+                 dat(i+1,j+1,k+1) - dat(i,j+1,k+1) + &
+                 dat(i+1,j+2,k+1) - dat(i,j+2,k+1) ) &
+                -dx*( &
+                 dat(i+1,j-1,k)   - dat(i,j-1,k)   + &
+                 dat(i+1,j,k)     - dat(i,j,k)     + &
+                 dat(i+1,j-1,k+1) - dat(i,j-1,k+1) + &
+                 dat(i+1,j,k+1)   - dat(i,j,k+1) ) ) / tdy
+!c     Y Gradient Y Gradient
+            e(i,j,k,11) = (dy*( &
+                 dat(i,j+2,k)     - dat(i,j+1,k)   + &
+                 dat(i+1,j+2,k)   - dat(i+1,j+1,k) + &
+                 dat(i,j+2,k+1)   - dat(i,j+1,k+1) + &
+                 dat(i+1,j+2,k+1) - dat(i+1,j+1,k+1) ) &
+                -dy*( &
+                 dat(i,j,k)     - dat(i,j-1,k)     + &
+                 dat(i+1,j,k)   - dat(i+1,j-1,k)   + &
+                 dat(i,j,k+1)   - dat(i,j-1,k+1)   + &
+                 dat(i+1,j,k+1) - dat(i+1,j-1,k+1) ) ) / tdy
+!c     Z Gradient Y Gradient
+            e(i,j,k,12) = (dz*( &
+                 dat(i,j+1,k+1)   - dat(i,j+1,k)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j+1,k) + &
+                 dat(i,j+2,k+1)   - dat(i,j+2,k)   + &
+                 dat(i+1,j+2,k+1) - dat(i+1,j+2,k) ) &
+                -dz*( &
+                 dat(i,j-1,k+1)   - dat(i,j-1,k)   + &
+                 dat(i+1,j-1,k+1) - dat(i+1,j-1,k) + &
+                 dat(i,j,k+1)     - dat(i,j,k)     + &
+                 dat(i+1,j,k+1)   - dat(i+1,j,k) ) ) / tdy
 
-c     Average pressure Z Gradient
-            e(i,j,k,13) = ( eighth*( 
-     &            dat(i+1,j,k+1)   + dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) + dat(i,j+1,k+1) +
-     &            dat(i+1,j,k+2)   + dat(i,j,k+2)   +
-     &            dat(i+1,j+1,k+2) + dat(i,j+1,k+2) )
-     &           -eighth*( 
-     &            dat(i+1,j,k-1)   + dat(i,j,k-1)   +
-     &            dat(i+1,j+1,k-1) + dat(i,j+1,k-1) +
-     &            dat(i+1,j,k)     + dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   + dat(i,j+1,k) ) ) / tdz
-c     X Gradient Z Gradient
-            e(i,j,k,14) = (dx*(
-     &            dat(i+1,j,k+1)   - dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) - dat(i,j+1,k+1) +
-     &            dat(i+1,j,k+2)   - dat(i,j,k+2)   +
-     &            dat(i+1,j+1,k+2) - dat(i,j+1,k+2) )
-     &           -dx*(
-     &            dat(i+1,j,k-1)   - dat(i,j,k-1)   +
-     &            dat(i+1,j+1,k-1) - dat(i,j+1,k-1) +
-     &            dat(i+1,j,k)     - dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   - dat(i,j+1,k) ) ) / tdz
-c     Y Gradient Z Gradient
-            e(i,j,k,15) = (dy*(
-     &            dat(i,j+1,k+1)   - dat(i,j,k+1)   +
-     &            dat(i+1,j+1,k+1) - dat(i+1,j,k+1) +
-     &            dat(i,j+1,k+2)   - dat(i,j,k+2)   +
-     &            dat(i+1,j+1,k+2) - dat(i+1,j,k+2) )
-     &           -dy*(
-     &            dat(i,j+1,k-1)   - dat(i,j,k-1)   +
-     &            dat(i+1,j+1,k-1) - dat(i+1,j,k-1) +
-     &            dat(i,j+1,k)     - dat(i,j,k)     +
-     &            dat(i+1,j+1,k)   - dat(i+1,j,k) ) ) / tdz
-c     Z Gradient Z Gradient
-            e(i,j,k,16) = (dz*(
-     &            dat(i,j,k+2)     - dat(i,j,k+1)   +
-     &            dat(i+1,j,k+2)   - dat(i+1,j,k+1) +
-     &            dat(i,j+1,k+2)   - dat(i,j+1,k+1) +
-     &            dat(i+1,j+1,k+2) - dat(i+1,j+1,k+1) )
-     &           -dz*(
-     &            dat(i,j,k)     - dat(i,j,k-1)     +
-     &            dat(i+1,j,k)   - dat(i+1,j,k-1)   +
-     &            dat(i,j+1,k)   - dat(i,j+1,k-1)   +
-     &            dat(i+1,j+1,k) - dat(i+1,j+1,k-1) ) ) / tdz
+!c     Average pressure Z Gradient
+            e(i,j,k,13) = ( eighth*(  &
+                 dat(i+1,j,k+1)   + dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) + dat(i,j+1,k+1) + &
+                 dat(i+1,j,k+2)   + dat(i,j,k+2)   + &
+                 dat(i+1,j+1,k+2) + dat(i,j+1,k+2) ) &
+                -eighth*(  &
+                 dat(i+1,j,k-1)   + dat(i,j,k-1)   + &
+                 dat(i+1,j+1,k-1) + dat(i,j+1,k-1) + &
+                 dat(i+1,j,k)     + dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   + dat(i,j+1,k) ) ) / tdz
+!c     X Gradient Z Gradient
+            e(i,j,k,14) = (dx*( &
+                 dat(i+1,j,k+1)   - dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) - dat(i,j+1,k+1) + &
+                 dat(i+1,j,k+2)   - dat(i,j,k+2)   + &
+                 dat(i+1,j+1,k+2) - dat(i,j+1,k+2) ) &
+                -dx*( &
+                 dat(i+1,j,k-1)   - dat(i,j,k-1)   + &
+                 dat(i+1,j+1,k-1) - dat(i,j+1,k-1) + &
+                 dat(i+1,j,k)     - dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   - dat(i,j+1,k) ) ) / tdz
+!c     Y Gradient Z Gradient
+            e(i,j,k,15) = (dy*( &
+                 dat(i,j+1,k+1)   - dat(i,j,k+1)   + &
+                 dat(i+1,j+1,k+1) - dat(i+1,j,k+1) + &
+                 dat(i,j+1,k+2)   - dat(i,j,k+2)   + &
+                 dat(i+1,j+1,k+2) - dat(i+1,j,k+2) ) &
+                -dy*( &
+                 dat(i,j+1,k-1)   - dat(i,j,k-1)   + &
+                 dat(i+1,j+1,k-1) - dat(i+1,j,k-1) + &
+                 dat(i,j+1,k)     - dat(i,j,k)     + &
+                 dat(i+1,j+1,k)   - dat(i+1,j,k) ) ) / tdz
+!c     Z Gradient Z Gradient
+            e(i,j,k,16) = (dz*( &
+                 dat(i,j,k+2)     - dat(i,j,k+1)   + &
+                 dat(i+1,j,k+2)   - dat(i+1,j,k+1) + &
+                 dat(i,j+1,k+2)   - dat(i,j+1,k+1) + &
+                 dat(i+1,j+1,k+2) - dat(i+1,j+1,k+1) ) &
+                -dz*( &
+                 dat(i,j,k)     - dat(i,j,k-1)     + &
+                 dat(i+1,j,k)   - dat(i+1,j,k-1)   + &
+                 dat(i,j+1,k)   - dat(i,j+1,k-1)   + &
+                 dat(i+1,j+1,k) - dat(i+1,j+1,k-1) ) ) / tdz
 
           end do
         end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derjetpresvars
 
-      subroutine FORT_DERJETVARS(e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
+      subroutine derjetvars (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                             lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                             bc,level,grid_no)&
+                             bind(C, name="derjetvars")
 
       implicit none
 
@@ -1400,7 +1391,6 @@ c     Z Gradient Z Gradient
          nvars=5
       endif
 
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1427,18 +1417,17 @@ c     Z Gradient Z Gradient
             enddo
          enddo
       enddo
-!$omp end parallel do
 
-      end
-#endif /*SUMJET*/
+      end subroutine derjetvars
 
-      subroutine FORT_DERMODGRADRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level,grid_no)
+      subroutine dermodgradrho (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level,grid_no) bind(C,name="dermodgradrho")
+                              
       implicit none
-c
-c     This routine will derive the modulus of the density gradients
-c
+!c
+!c     This routine will derive the modulus of the density gradients
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1458,7 +1447,6 @@ c
       tdy = 1.0d0/(two*delta(2))
       tdz = 1.0d0/(two*delta(3))
 
-!$omp parallel do private(i,j,k,drdx,drdy,drdz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1469,18 +1457,18 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine dermodgradrho
 
-      subroutine FORT_DERUDOTLAPU (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level,grid_no)
+      subroutine derudotlapu (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level,grid_no) &
+                              bind(C, name="derudotlapu")
       implicit none
-c
-c     This routine will derive u dot laplacian u
-c     from the velocity field.
-c
+!c
+!c     This routine will derive u dot laplacian u
+!c     from the velocity field.
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1501,38 +1489,36 @@ c
       dy2 = one/(delta(2)*delta(2))
       dz2 = one/(delta(3)*delta(3))
 
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               e(i,j,k,1) =
-     &              dat(i,j,k,1) * ( 
-     &              ( dat(i+1,j,k,1)-two*dat(i,j,k,1)+dat(i-1,j,k,1) ) * dx2 +
-     &              ( dat(i,j+1,k,1)-two*dat(i,j,k,1)+dat(i,j-1,k,1) ) * dy2 +
-     &              ( dat(i,j,k+1,1)-two*dat(i,j,k,1)+dat(i,j,k-1,1) ) * dz2 ) +
-     &              dat(i,j,k,2) * ( 
-     &              ( dat(i+1,j,k,2)-two*dat(i,j,k,2)+dat(i-1,j,k,2) ) * dx2 +
-     &              ( dat(i,j+1,k,2)-two*dat(i,j,k,2)+dat(i,j-1,k,2) ) * dy2 +
-     &              ( dat(i,j,k+1,2)-two*dat(i,j,k,2)+dat(i,j,k-1,2) ) * dz2 ) +
-     &              dat(i,j,k,3) * ( 
-     &              ( dat(i+1,j,k,3)-two*dat(i,j,k,3)+dat(i-1,j,k,3) ) * dx2 +
-     &              ( dat(i,j+1,k,3)-two*dat(i,j,k,3)+dat(i,j-1,k,3) ) * dy2 +
-     &              ( dat(i,j,k+1,3)-two*dat(i,j,k,3)+dat(i,j,k-1,3) ) * dz2 )
+               e(i,j,k,1) = &
+                   dat(i,j,k,1) * ( &
+                   ( dat(i+1,j,k,1)-two*dat(i,j,k,1)+dat(i-1,j,k,1) ) * dx2 + &
+                   ( dat(i,j+1,k,1)-two*dat(i,j,k,1)+dat(i,j-1,k,1) ) * dy2 + &
+                   ( dat(i,j,k+1,1)-two*dat(i,j,k,1)+dat(i,j,k-1,1) ) * dz2 ) + &
+                   dat(i,j,k,2) * ( & 
+                   ( dat(i+1,j,k,2)-two*dat(i,j,k,2)+dat(i-1,j,k,2) ) * dx2 + &
+                   ( dat(i,j+1,k,2)-two*dat(i,j,k,2)+dat(i,j-1,k,2) ) * dy2 + &
+                   ( dat(i,j,k+1,2)-two*dat(i,j,k,2)+dat(i,j,k-1,2) ) * dz2 ) + &
+                   dat(i,j,k,3) * ( &
+                   ( dat(i+1,j,k,3)-two*dat(i,j,k,3)+dat(i-1,j,k,3) ) * dx2 + &
+                   ( dat(i,j+1,k,3)-two*dat(i,j,k,3)+dat(i,j-1,k,3) ) * dy2 + &
+                   ( dat(i,j,k+1,3)-two*dat(i,j,k,3)+dat(i,j,k-1,3) ) * dz2 )
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derudotlapu
 
-      subroutine FORT_DERKENG (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level,grid_no)
+      subroutine derkeng (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level,grid_no) bind(C,name="derkeng")
       implicit none
-c
-c     This routine will derive kinetic energy from density
-c     and the velocity field.
-c
+!c
+!c     This routine will derive kinetic energy from density
+!c     and the velocity field.
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1548,7 +1534,6 @@ c
       integer    i,j,k
       REAL_T     rho, u, v, w
 
-!$omp parallel do private(i,j,k,rho,u,v,w)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1560,17 +1545,16 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derkeng
 
-      subroutine FORT_DERLOGS (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      subroutine derlogs (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                          lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                          bc,level, grid_no) bind(C,name="derlogs")
       implicit none
-c
-c     This routine will derive log of given scalar quantity
-c
+!c
+!c     This routine will derive log of given scalar quantity
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1589,7 +1573,6 @@ c
 
       parameter (sml = 1.0D-10)
 
-!$omp parallel do private(i,j,k,rho)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1598,18 +1581,17 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derlogs
 
-      subroutine FORT_DERMVEL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                         bc,level, grid_no)
+      subroutine dermvel (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                          lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                          bc,level, grid_no) bind(C, name="dermvel")
       implicit none
-c
-c ::: This routine will derive the magnitude of the velocity field
-c ::: from the velocity field
-c
+!c
+!c ::: This routine will derive the magnitude of the velocity field
+!c ::: from the velocity field
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1625,7 +1607,6 @@ c
       integer    i,j,k
       REAL_T     u, v, w
 
-!$omp parallel do private(i,j,k,u,v,w)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1636,17 +1617,16 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine dermvel
 
-      subroutine FORT_DERDVRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                          bc,level, grid_no)
+      subroutine derdvrho (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                           lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                           bc,level, grid_no) bind(C, name="derdvrho")
       implicit none
-c
-c ::: This routine will derive C/RHO
-c
+!c
+!c ::: This routine will derive C/RHO
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1661,7 +1641,6 @@ c
 
       integer    i,j,k
       
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1669,17 +1648,16 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derdvrho
 
-      subroutine FORT_DERMPRHO (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                          bc,level, grid_no)
+      subroutine dermprho (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                               bc,level, grid_no) bind(C, name="dermprho")
       implicit none
-c
-c ::: This routine will derive RHO*C
-c
+!c
+!c ::: This routine will derive RHO*C
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1694,7 +1672,6 @@ c
 
       integer    i,j,k
 
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1702,17 +1679,16 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine dermprho
 
-      subroutine FORT_DERLGRHODUST (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                              lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                              bc,level,grid_no)
+      subroutine derlgrhodust (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                                   lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                   bc,level,grid_no)bind(C,name="derlgrhodust")
       implicit none
-c
-c ::: This routine will derive log(RHO*C)
-c
+!c
+!c ::: This routine will derive log(RHO*C)
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(e)
       integer    DIMDEC(dat)
@@ -1730,7 +1706,6 @@ c
 
       parameter (small = 1.0D-10)
 
-!$omp parallel do private(i,j,k,dust)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1739,17 +1714,16 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine derlgrhodust
 
-      subroutine FORT_DERDMAG (dmag,DIMS(dmag),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
+      subroutine derdmag (dmag,DIMS(dmag),nv,dat,DIMS(dat),ncomp, &
+                          lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                          bc,level,grid_no) bind(C, name="derdmag")
       implicit none
-c
-c ::: John's weird diagnostic routine ...
-c
+!c
+!c ::: John's weird diagnostic routine ...
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(dmag)
       integer    DIMDEC(dat)
@@ -1773,9 +1747,9 @@ c
       logical   fixulo_x, fixvlo_x, fixwlo_x, fixuhi_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixvlo_y, fixwlo_y, fixuhi_y, fixvhi_y, fixwhi_y
       logical   fixulo_z, fixvlo_z, fixwlo_z, fixuhi_z, fixvhi_z, fixwhi_z
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j,k) dat(i,j,k,1)
 #     define V(i,j,k) dat(i,j,k,2)
 #     define W(i,j,k) dat(i,j,k,3)
@@ -1800,9 +1774,9 @@ c
 #     define WHIY bc(2,2,3)
 #     define WLOZ bc(3,1,3)
 #     define WHIZ bc(3,2,3)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       uxcen(i,j,k) = half*(U(i+1,j,k)-U(i-1,j,k))/dx
       uxlo(i,j,k)  = (U(i+1,j,k)+three*U(i,j,k)-four*U(i-1,j,k))/(three*dx)
       uxhi(i,j,k)  =-(U(i-1,j,k)+three*U(i,j,k)-four*U(i+1,j,k))/(three*dx)
@@ -1843,47 +1817,45 @@ c
       dy = delta(2)
       dz = delta(3)
 
-      fixulo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) )
-      fixuhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) )
-      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
-      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
-      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
-      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+      fixulo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (ULOX .eq. EXT_DIR .or. ULOX .eq. HOEXTRAP) )
+      fixuhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (UHIX .eq. EXT_DIR .or. UHIX .eq. HOEXTRAP) )
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
 
-      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
-      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
-      fixvlo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) )
-      fixvhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) )
-      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
-      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixvlo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (VLOY .eq. EXT_DIR .or. VLOY .eq. HOEXTRAP) )
+      fixvhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (VHIY .eq. EXT_DIR .or. VHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
 
-      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
-      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
-      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
-      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
-      fixwlo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (WLOZ .eq. EXT_DIR .or. WLOZ .eq. HOEXTRAP) )
-      fixwhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (WHIZ .eq. EXT_DIR .or. WHIZ .eq. HOEXTRAP) )
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+      fixwlo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (WLOZ .eq. EXT_DIR .or. WLOZ .eq. HOEXTRAP) )
+      fixwhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (WHIZ .eq. EXT_DIR .or. WHIZ .eq. HOEXTRAP) )
                
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -1910,21 +1882,19 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
             end do
          end do
       end do
-!$omp end parallel do
 
-c
-c     First do all the faces
-c
+
+!c
+!c     First do all the faces
+!c
       if (fixvlo_x .or. fixwlo_x.or.fixulo_x) then
          i = lo(1)
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                ux = merge(uxlo(i,j,k),uxcen(i,j,k),fixulo_x)
@@ -1950,18 +1920,15 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixvhi_x .or. fixwhi_x.or.fixuhi_x) then
          i = hi(1)
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do j = lo(2),hi(2)
                ux = merge(uxhi(i,j,k),vxcen(i,j,k),fixuhi_x)
@@ -1987,18 +1954,15 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_y .or. fixwlo_y.or.fixvlo_y) then
          j = lo(2)
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                ux = uxcen(i,j,k)
@@ -2024,18 +1988,15 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_y .or. fixwhi_y.or.fixvhi_y) then
          j = hi(2)
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do k = lo(3),hi(3)
             do i = lo(1),hi(1)
                ux = uxcen(i,j,k)
@@ -2061,18 +2022,15 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixulo_z .or. fixvlo_z.or.fixwlo_z) then
          k = lo(3)
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                ux = uxcen(i,j,k)
@@ -2098,18 +2056,15 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
             end do
          end do
-!$omp end parallel do
       end if
 
       if (fixuhi_z .or. fixvhi_z .or. fixwhi_z) then
          k = hi(3)
-!$omp parallel do private(ux,uy,uz,vx,vy,vz,wx,wy,wz)
-!$omp&private(xi1,xi2,xi3,xmag,s11,s12,s13,s22,s23,s33)
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                ux = uxcen(i,j,k)
@@ -2135,16 +2090,15 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
             end do
          end do
-!$omp end parallel do
       end if
-c
-c     Next do all the edges
-c
+!c
+!c     Next do all the edges
+!c
       if ((fixulo_x .or. fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixvlo_y .or. fixwlo_y)) then
          i = lo(1)
          j = lo(2)
@@ -2172,9 +2126,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2205,9 +2159,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2238,9 +2192,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2271,9 +2225,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2304,9 +2258,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2337,9 +2291,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2371,9 +2325,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2404,9 +2358,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2437,9 +2391,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2470,9 +2424,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2503,9 +2457,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
 
@@ -2536,16 +2490,16 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
          end do
       end if
-c
-c     Finally do all the corners
-c
-      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_y.or.fixvlo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+!c
+!c     Finally do all the corners
+!c
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_y.or.fixvlo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
          i = lo(1)
          j = lo(2)
          k = lo(3)
@@ -2572,13 +2526,13 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
-      if ((fixuhi_x.or. fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixvlo_y.or.fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+      if ((fixuhi_x.or. fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixvlo_y.or.fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
          i = hi(1)
          j = lo(2)
          k = lo(3)
@@ -2605,13 +2559,13 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
-      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or.fixvhi_y.or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or.fixvhi_y.or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
          i = lo(1)
          j = hi(2)
          k = lo(3)
@@ -2638,13 +2592,13 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
-      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y.or.fixvhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
+      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y.or.fixvhi_y .or. fixwhi_y) .and.  &
+          (fixulo_z .or. fixvlo_z.or.fixwlo_z)) then
          i = hi(1)
          j = hi(2)
          k = lo(3)
@@ -2671,13 +2625,13 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
-      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or.fixvlo_y.or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or.fixvlo_y.or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
          i = lo(1)
          j = lo(2)
          k = hi(3)
@@ -2704,13 +2658,13 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
-      if ((fixuhi_z.or.fixvhi_x .or. fixwhi_x) .and. (fixulo_y.or.fixvlo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+      if ((fixuhi_z.or.fixvhi_x .or. fixwhi_x) .and. (fixulo_y.or.fixvlo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
          i = hi(1)
          j = lo(2)
          k = hi(3)
@@ -2737,13 +2691,13 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
-      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixvhi_y.or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
+      if ((fixulo_x.or.fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixvhi_y.or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z.or.fixwhi_z)) then
          i = lo(1)
          j = hi(2)
          k = hi(3)
@@ -2770,13 +2724,13 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
-      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z.or. fixwhi_z)) then
+      if ((fixuhi_x.or.fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixvhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z.or. fixwhi_z)) then
          i = hi(1)
          j = hi(2)
          k = hi(3)
@@ -2803,9 +2757,9 @@ c
                s22 = vy
                s23 = 0.5d0*(vz+wy)
                s33 = wz
-               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13)
-     &                       + xi2*(s12*xi1+s22*xi2+xi3*s23)
-     &                       + xi3*(s13*xi1+s23*xi2+xi3*s33)
+               dmag(i,j,k,1) = xi1*(s11*xi1+s12*xi2+xi3*s13) &
+                            + xi2*(s12*xi1+s22*xi2+xi3*s23) &
+                            + xi3*(s13*xi1+s23*xi2+xi3*s33)
       end if
 
 #     undef U
@@ -2830,17 +2784,17 @@ c
 #     undef WLOZ
 #     undef WHIZ
 
-      end
+      end subroutine derdmag
 
 
-      subroutine FORT_DERMGVORT (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
+      subroutine dermgvort (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp, &
+                                lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                bc,level,grid_no) bind(C,name="dermgvort")
       implicit none
-c
-c ::: This routine will derive magnitude of vorticity from
-c ::: the velocity field
-c
+!c
+!c ::: This routine will derive magnitude of vorticity from
+!c ::: the velocity field
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(vort)
       integer    DIMDEC(dat)
@@ -2863,9 +2817,9 @@ c
       logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
       logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j,k) dat(i,j,k,1)
 #     define V(i,j,k) dat(i,j,k,2)
 #     define W(i,j,k) dat(i,j,k,3)
@@ -2884,9 +2838,9 @@ c
 #     define WHIX bc(1,2,3)
 #     define WLOY bc(2,1,3)
 #     define WHIY bc(2,2,3)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
       uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
       uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
@@ -2931,35 +2885,35 @@ c
          end do
       end do
 
-      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
-      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
-      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
-      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
 
-      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
-      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
-      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
-      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
 
-      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
-      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
-      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
-      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
-c
-c     First do all the faces
-c
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+!c
+!c     First do all the faces
+!c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
          do k = lo(3),hi(3)
@@ -3049,9 +3003,9 @@ c
             end do
          end do
       end if
-c
-c     Next do all the edges
-c
+!c
+!c     Next do all the edges
+!c
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
          i = lo(1)
          j = lo(2)
@@ -3219,11 +3173,11 @@ c
             vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
          end do
       end if
-c
-c     Finally do all the corners
-c
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+!c
+!c     Finally do all the corners
+!c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = lo(2)
          k = lo(3)
@@ -3236,8 +3190,8 @@ c
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = lo(2)
          k = lo(3)
@@ -3250,8 +3204,8 @@ c
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = hi(2)
          k = lo(3)
@@ -3264,8 +3218,8 @@ c
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = hi(2)
          k = lo(3)
@@ -3278,8 +3232,8 @@ c
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = lo(2)
          k = hi(3)
@@ -3292,8 +3246,8 @@ c
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = lo(2)
          k = hi(3)
@@ -3306,8 +3260,8 @@ c
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = hi(2)
          k = hi(3)
@@ -3320,8 +3274,8 @@ c
          vort(i,j,k,1) = vorfun(uy,uz,vx,vz,wx,wy)
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = hi(2)
          k = hi(3)
@@ -3350,11 +3304,11 @@ c
 #     undef WLOY
 #     undef WHIY
 
-      end
+      end subroutine dermgvort
 
-      subroutine FORT_DERVORTX (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
+      subroutine dervortx (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp, &
+                                lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                bc,level,grid_no) bind(C, name="dervortx")
       implicit none
 
       integer    lo(SDIM), hi(SDIM)
@@ -3376,9 +3330,9 @@ c
       logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
       logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j,k) dat(i,j,k,1)
 #     define V(i,j,k) dat(i,j,k,2)
 #     define W(i,j,k) dat(i,j,k,3)
@@ -3397,9 +3351,9 @@ c
 #     define WHIX bc(1,2,3)
 #     define WLOY bc(2,1,3)
 #     define WHIY bc(2,2,3)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       vzcen(i,j,k) = half*(V(i,j,k+1)-V(i,j,k-1))/dz
       vzlo(i,j,k)  = (V(i,j,k+1)+three*V(i,j,k)-four*V(i,j,k-1))/(three*dz)
       vzhi(i,j,k)  =-(V(i,j,k-1)+three*V(i,j,k)-four*V(i,j,k+1))/(three*dz)
@@ -3422,35 +3376,35 @@ c
          end do
       end do
 
-      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
-      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
-      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
-      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
 
-      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
-      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
-      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
-      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
 
-      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
-      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
-      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
-      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
-c
-c     First do all the faces
-c
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+!c
+!c     First do all the faces
+!c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
          do k = lo(3),hi(3)
@@ -3516,9 +3470,9 @@ c
             end do
          end do
       end if
-c
-c     Next do all the edges
-c
+!c
+!c     Next do all the edges
+!c
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
          i = lo(1)
          j = lo(2)
@@ -3638,11 +3592,11 @@ c
             vort(i,j,k,1) = wy-vz
          end do
       end if
-c
-c     Finally do all the corners
-c
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+!c
+!c     Finally do all the corners
+!c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = lo(2)
          k = lo(3)
@@ -3651,8 +3605,8 @@ c
          vort(i,j,k,1) = wy-vz
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = lo(2)
          k = lo(3)
@@ -3661,8 +3615,8 @@ c
          vort(i,j,k,1) = wy-vz
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = hi(2)
          k = lo(3)
@@ -3671,8 +3625,8 @@ c
          vort(i,j,k,1) = wy-vz
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = hi(2)
          k = lo(3)
@@ -3681,8 +3635,8 @@ c
          vort(i,j,k,1) = wy-vz
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = lo(2)
          k = hi(3)
@@ -3691,8 +3645,8 @@ c
          vort(i,j,k,1) = wy-vz
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = lo(2)
          k = hi(3)
@@ -3701,8 +3655,8 @@ c
          vort(i,j,k,1) = wy-vz
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = hi(2)
          k = hi(3)
@@ -3711,8 +3665,8 @@ c
          vort(i,j,k,1) = wy-vz
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = hi(2)
          k = hi(3)
@@ -3737,12 +3691,12 @@ c
 #     undef WLOY
 #     undef WHIY
 
-      end
+      end  subroutine dervortx
 
 
-      subroutine FORT_DERVORTY (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
+      subroutine dervorty (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp, &
+                                lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                bc,level,grid_no)bind(C, name="dervorty")
       implicit none
 
       integer    lo(SDIM), hi(SDIM)
@@ -3764,9 +3718,9 @@ c
       logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
       logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j,k) dat(i,j,k,1)
 #     define V(i,j,k) dat(i,j,k,2)
 #     define W(i,j,k) dat(i,j,k,3)
@@ -3785,9 +3739,9 @@ c
 #     define WHIX bc(1,2,3)
 #     define WLOY bc(2,1,3)
 #     define WHIY bc(2,2,3)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       uzcen(i,j,k) = half*(U(i,j,k+1)-U(i,j,k-1))/dz
       uzlo(i,j,k)  = (U(i,j,k+1)+three*U(i,j,k)-four*U(i,j,k-1))/(three*dz)
       uzhi(i,j,k)  =-(U(i,j,k-1)+three*U(i,j,k)-four*U(i,j,k+1))/(three*dz)
@@ -3800,7 +3754,6 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(uz,wx)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -3810,37 +3763,36 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
-      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
-      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
-      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
 
-      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
-      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
-      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
-      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
 
-      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
-      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
-      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
-      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
-c
-c     First do all the faces
-c
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+!c
+!c     First do all the faces
+!c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
          do k = lo(3),hi(3)
@@ -3906,9 +3858,9 @@ c
             end do
          end do
       end if
-c
-c     Next do all the edges
-c
+!c
+!c     Next do all the edges
+!c
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
          i = lo(1)
          j = lo(2)
@@ -4028,11 +3980,11 @@ c
             vort(i,j,k,1) = uz-wx
          end do
       end if
-c
-c     Finally do all the corners
-c
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+!c
+!c     Finally do all the corners
+!c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = lo(2)
          k = lo(3)
@@ -4041,8 +3993,8 @@ c
          vort(i,j,k,1) = uz-wx
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = lo(2)
          k = lo(3)
@@ -4051,8 +4003,8 @@ c
          vort(i,j,k,1) = uz-wx
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = hi(2)
          k = lo(3)
@@ -4061,8 +4013,8 @@ c
          vort(i,j,k,1) = uz-wx
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = hi(2)
          k = lo(3)
@@ -4071,8 +4023,8 @@ c
          vort(i,j,k,1) = uz-wx
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = lo(2)
          k = hi(3)
@@ -4081,8 +4033,8 @@ c
          vort(i,j,k,1) = uz-wx
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = lo(2)
          k = hi(3)
@@ -4091,8 +4043,8 @@ c
          vort(i,j,k,1) = uz-wx
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = hi(2)
          k = hi(3)
@@ -4101,8 +4053,8 @@ c
          vort(i,j,k,1) = uz-wx
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = hi(2)
          k = hi(3)
@@ -4127,12 +4079,12 @@ c
 #     undef WLOY
 #     undef WHIY
 
-      end
+      end subroutine dervorty
 
 
-      subroutine FORT_DERVORTZ (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
+      subroutine dervortz (vort,DIMS(vort),nv,dat,DIMS(dat),ncomp, &
+                                lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                bc,level,grid_no) bind(C, name="dervortz")
       implicit none
 
       integer    lo(SDIM), hi(SDIM)
@@ -4154,9 +4106,9 @@ c
       logical   fixvlo_x, fixwlo_x, fixvhi_x, fixwhi_x
       logical   fixulo_y, fixwlo_y, fixuhi_y, fixwhi_y
       logical   fixulo_z, fixvlo_z, fixuhi_z, fixvhi_z
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j,k) dat(i,j,k,1)
 #     define V(i,j,k) dat(i,j,k,2)
 #     define W(i,j,k) dat(i,j,k,3)
@@ -4175,9 +4127,9 @@ c
 #     define WHIX bc(1,2,3)
 #     define WLOY bc(2,1,3)
 #     define WHIY bc(2,2,3)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       uycen(i,j,k) = half*(U(i,j+1,k)-U(i,j-1,k))/dy
       uylo(i,j,k)  = (U(i,j+1,k)+three*U(i,j,k)-four*U(i,j-1,k))/(three*dy)
       uyhi(i,j,k)  =-(U(i,j-1,k)+three*U(i,j,k)-four*U(i,j+1,k))/(three*dy)
@@ -4190,7 +4142,6 @@ c
       dy = delta(2)
       dz = delta(3)
 
-!$omp parallel do private(vx,uy)      
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4200,37 +4151,36 @@ c
             end do
          end do
       end do
-!$omp end parallel do
 
-      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
-      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
-      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and.
-     &             (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
-      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and.
-     &             (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
+      fixvlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (VLOX .eq. EXT_DIR .or. VLOX .eq. HOEXTRAP) )
+      fixvhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (VHIX .eq. EXT_DIR .or. VHIX .eq. HOEXTRAP) )
+      fixwlo_x = ( (lo(1) .eq. domlo(1)) .and. &
+                  (WLOX .eq. EXT_DIR .or. WLOX .eq. HOEXTRAP) )
+      fixwhi_x = ( (hi(1) .eq. domhi(1)) .and. &
+                  (WHIX .eq. EXT_DIR .or. WHIX .eq. HOEXTRAP) )
 
-      fixulo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
-      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
-      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and.
-     &             (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
-      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and.
-     &             (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
+      fixulo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (ULOY .eq. EXT_DIR .or. ULOY .eq. HOEXTRAP) )
+      fixuhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (UHIY .eq. EXT_DIR .or. UHIY .eq. HOEXTRAP) )
+      fixwlo_y = ( (lo(2) .eq. domlo(2)) .and. &
+                  (WLOY .eq. EXT_DIR .or. WLOY .eq. HOEXTRAP) )
+      fixwhi_y = ( (hi(2) .eq. domhi(2)) .and. &
+                  (WHIY .eq. EXT_DIR .or. WHIY .eq. HOEXTRAP) )
 
-      fixulo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
-      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
-      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and.
-     &             (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
-      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and.
-     &             (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
-c
-c     First do all the faces
-c
+      fixulo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (ULOZ .eq. EXT_DIR .or. ULOZ .eq. HOEXTRAP) )
+      fixuhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (UHIZ .eq. EXT_DIR .or. UHIZ .eq. HOEXTRAP) )
+      fixvlo_z = ( (lo(3) .eq. domlo(3)) .and. &
+                  (VLOZ .eq. EXT_DIR .or. VLOZ .eq. HOEXTRAP) )
+      fixvhi_z = ( (hi(3) .eq. domhi(3)) .and. &
+                  (VHIZ .eq. EXT_DIR .or. VHIZ .eq. HOEXTRAP) )
+!c
+!c     First do all the faces
+!c
       if (fixvlo_x .or. fixwlo_x) then
          i = lo(1)
          do k = lo(3),hi(3)
@@ -4296,9 +4246,9 @@ c
             end do
          end do
       end if
-c
-c     Next do all the edges
-c
+!c
+!c     Next do all the edges
+!c
       if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y)) then
          i = lo(1)
          j = lo(2)
@@ -4418,11 +4368,11 @@ c
             vort(i,j,k,1) = vx-uy
          end do
       end if
-c
-c     Finally do all the corners
-c
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+!c
+!c     Finally do all the corners
+!c
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = lo(2)
          k = lo(3)
@@ -4431,8 +4381,8 @@ c
          vort(i,j,k,1) = vx-uy
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = lo(2)
          k = lo(3)
@@ -4441,8 +4391,8 @@ c
          vort(i,j,k,1) = vx-uy
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = lo(1)
          j = hi(2)
          k = lo(3)
@@ -4451,8 +4401,8 @@ c
          vort(i,j,k,1) = vx-uy
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixulo_z .or. fixvlo_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixulo_z .or. fixvlo_z)) then
          i = hi(1)
          j = hi(2)
          k = lo(3)
@@ -4461,8 +4411,8 @@ c
          vort(i,j,k,1) = vx-uy
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = lo(2)
          k = hi(3)
@@ -4471,8 +4421,8 @@ c
          vort(i,j,k,1) = vx-uy
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixulo_y .or. fixwlo_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = lo(2)
          k = hi(3)
@@ -4481,8 +4431,8 @@ c
          vort(i,j,k,1) = vx-uy
       end if
 
-      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvlo_x .or. fixwlo_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = lo(1)
          j = hi(2)
          k = hi(3)
@@ -4491,8 +4441,8 @@ c
          vort(i,j,k,1) = vx-uy
       end if
 
-      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. 
-     $     (fixuhi_z .or. fixvhi_z)) then
+      if ((fixvhi_x .or. fixwhi_x) .and. (fixuhi_y .or. fixwhi_y) .and. &
+          (fixuhi_z .or. fixvhi_z)) then
          i = hi(1)
          j = hi(2)
          k = hi(3)
@@ -4517,16 +4467,18 @@ c
 #     undef WLOY
 #     undef WHIY
 
-      end
+      end subroutine dervortz
 
 
-      subroutine FORT_DERMGDIVU (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp,
-     &                           lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                           bc,level,grid_no)
+      subroutine dermgdivu (divu,DIMS(divu),nv,dat,DIMS(dat),ncomp, &
+                                lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                bc,level,grid_no) bind(C, name="dermgdivu")
+      
+      use prob_3D_module, only : FORT_XVELFILL, FORT_YVELFILL, FORT_ZVELFILL
       implicit none
-c
-c ::: This routine will derive magnitude of the divergence of velocity
-c
+!c
+!c ::: This routine will derive magnitude of the divergence of velocity
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(divu)
       integer    DIMDEC(dat)
@@ -4544,9 +4496,9 @@ c
       REAL_T    uxcen, uxlo, uxhi
       REAL_T    vycen, vylo, vyhi
       REAL_T    wzcen, wzlo, wzhi
-c
-c     ::::: some useful macro definitions
-c
+!c
+!c     ::::: some useful macro definitions
+!c
 #     define U(i,j,k) dat(i,j,k,1)
 #     define V(i,j,k) dat(i,j,k,2)
 #     define W(i,j,k) dat(i,j,k,3)
@@ -4557,9 +4509,9 @@ c
 #     define VHIY bc(2,2,2)
 #     define WLOZ bc(3,1,2)
 #     define WHIZ bc(3,2,2)
-c
-c     ::::: statement functions that implement stencil
-c
+!c
+!c     ::::: statement functions that implement stencil
+!c
       uxcen(i,j,k) = half*(U(i+1,j,k)-U(i-1,j,k))/dx
       uxlo(i,j,k) = (eight*U(i,j,k)-six*U(i+1,j,k)+U(i+2,j,k))/(three*dx)
       uxhi(i,j,k) = (eight*U(i,j,k)-six*U(i-1,j,k)+U(i-2,j,k))/(three*dx)
@@ -4572,22 +4524,22 @@ c
       wzlo(i,j,k) = (eight*W(i,j,k)-six*W(i,j,k+1)+W(i,j,k+2))/(three*dz)
       wzhi(i,j,k) = (eight*W(i,j,k)-six*W(i,j,k-1)+W(i,j,k-2))/(three*dz)
 
-      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
-      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),2),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
-      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),3),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,3))
+      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat), &
+                        domlo,domhi,delta,xlo,time,bc(1,1,1))
+      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),2),DIMS(dat), &
+                        domlo,domhi,delta,xlo,time,bc(1,1,2))
+      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),3),DIMS(dat), &
+                        domlo,domhi,delta,xlo,time,bc(1,1,3))
 
       dx = delta(1)
       dy = delta(2)
       dz = delta(3)
-c
-c     :: at physical bndries where an edge value is prescribed,
-c     :: set the value in the outside cell so that a central
-c     :: difference formula is equivalent to the higher order
-c     :: one sided formula
-c
+!c
+!c     :: at physical bndries where an edge value is prescribed,
+!c     :: set the value in the outside cell so that a central
+!c     :: difference formula is equivalent to the higher order
+!c     :: one sided formula
+!c
       if (lo(1) .eq. domlo(1)) then
          i = lo(1)
          if (ULOX.eq.EXT_DIR) then
@@ -4685,7 +4637,6 @@ c
 	 end if
       end if
 
-!$omp parallel do private(ux,vy,wz)
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -4696,16 +4647,16 @@ c
             end do
          end do
       end do
-!$omp end parallel do
-c
-c we overwrote the ghost cells above, so set them back below
-c
-      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,1))
-      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,2))
-      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat),
-     $                   domlo,domhi,delta,xlo,time,bc(1,1,3))
+
+!c
+!c we overwrote the ghost cells above, so set them back below
+!c
+      call FORT_XVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat), &
+                        domlo,domhi,delta,xlo,time,bc(1,1,1))
+      call FORT_YVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat), &
+                        domlo,domhi,delta,xlo,time,bc(1,1,2))
+      call FORT_ZVELFILL(dat(ARG_L1(dat),ARG_L2(dat),ARG_L3(dat),1),DIMS(dat), &
+                        domlo,domhi,delta,xlo,time,bc(1,1,3))
 
 #     undef U
 #     undef V      
@@ -4717,17 +4668,18 @@ c
 #     undef WLOZ
 #     undef WHIZ
 
-      end
+      end subroutine dermgdivu
 
-      subroutine FORT_GRADP_DIR (
-     &     p,DIMS(p),
-     &     gp,DIMS(gp),
-     &     lo,hi,dir,dx)
+      subroutine gradp_dir  ( &
+          p,DIMS(p), &
+          gp,DIMS(gp), &
+          lo,hi,dir,dx) &
+          bind(C, name="gradp_dir")
 
       implicit none
-c
-c     compute a node centered pressure gradient in direction (dir)
-c
+!c
+!c     compute a node centered pressure gradient in direction (dir)
+!c
       integer    DIMDEC(p)
       integer    DIMDEC(gp)
       integer     lo(SDIM),  hi(SDIM)
@@ -4740,58 +4692,52 @@ c
       REAL_T     d
 
       d = fourth/dx
-c
-c     ::::: compute gradient on interior
-c
+!c
+!c     ::::: compute gradient on interior
+!c
       if (dir .eq. 0) then
-!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  gp(i,j,k) = d*(
-     &                 p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+
-     $                 p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))
+                  gp(i,j,k) = d*( &
+                      p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+ &
+                      p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))
                end do
             end do
          end do
-!$omp end parallel do
       else if (dir .eq. 1) then
-!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  gp(i,j,k) = d*(
-     &                 p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+
-     $                 p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))
+                  gp(i,j,k) = d*( &
+                      p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+ &
+                      p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))
                end do
             end do
          end do
-!$omp end parallel do
       else if (dir .eq. 2) then
-!$omp parallel do private(i,j,k)
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  gp(i,j,k) = d*(
-     &                 p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+
-     $                 p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
+                  gp(i,j,k) = d*( &
+                      p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+ &
+                      p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
                end do
             end do
          end do
-!$omp end parallel do
       else
 	 call bl_abort("FORT_GRADP_DIR: invalid dir = ")
       end if
 
-      end
+      end subroutine gradp_dir
 
-      subroutine FORT_DERGRDPX (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                          bc,level,grid_no)
+      subroutine dergrdpx (grdpx,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
+                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                               bc,level,grid_no) bind(C, name="dergrdpx")
       implicit none
-c
-c     This routine computes pressure gradient in x direciton
-c
+!c
+!c     This routine computes pressure gradient in x direciton
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(gp)
       integer    DIMDEC(dat)
@@ -4803,20 +4749,20 @@ c
       REAL_T     grdpx(DIMV(gp),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
-c
-      call FORT_GRADP_DIR (
-     &     dat,DIMS(dat),grdpx,DIMS(gp),
-     &     lo,hi,0,delta(1))
+!c
+      call gradp_dir ( &
+          dat,DIMS(dat),grdpx,DIMS(gp), &
+          lo,hi,0,delta(1))
 
-      end
+      end subroutine dergrdpx
 
-      subroutine FORT_DERGRDPY (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                          bc,level,grid_no)
+      subroutine dergrdpy (grdpy,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
+                               lo,hi,domlo,domhi,delta,xlo,time,dt,&
+                               bc,level,grid_no) bind(C, name="dergrdpy")
       implicit none
-c
-c     This routine computes pressure gradient in Y direciton
-c
+!c
+!c     This routine computes pressure gradient in Y direciton
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(gp)
       integer    DIMDEC(dat)
@@ -4828,20 +4774,20 @@ c
       REAL_T     grdpy(DIMV(gp),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
-c
-      call FORT_GRADP_DIR (
-     &     dat,DIMS(dat),grdpy,DIMS(gp),
-     &     lo,hi,1,delta(2))
+!c
+      call gradp_dir ( &
+          dat,DIMS(dat),grdpy,DIMS(gp), &
+          lo,hi,1,delta(2))
 
-      end
+      end subroutine dergrdpy
 
-      subroutine FORT_DERGRDPZ (grdpz,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                          lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                          bc,level,grid_no)
+      subroutine dergrdpz (grdpz,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
+                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                               bc,level,grid_no) bind(C, name="dergrdpz")
       implicit none
-c
-c     This routine computes pressure gradient in Z direciton
-c
+!c
+!c     This routine computes pressure gradient in Z direciton
+!c
       integer    lo(SDIM), hi(SDIM)
       integer    DIMDEC(gp)
       integer    DIMDEC(dat)
@@ -4853,22 +4799,22 @@ c
       REAL_T     grdpz(DIMV(gp),nv)
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
-c
-      call FORT_GRADP_DIR (
-     &     dat,DIMS(dat),grdpz,DIMS(gp),
-     &     lo,hi,2,delta(3))
+!c
+      call gradp_dir ( &
+          dat,DIMS(dat),grdpz,DIMS(gp), &
+          lo,hi,2,delta(3))
 
-      end
+      end subroutine dergrdpz
 
 
-      subroutine FORT_DERAVGPRES (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,
-     &                            lo,hi,domlo,domhi,delta,xlo,time,dt,
-     &                            bc,level,grid_no)
+      subroutine deravgpres (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
+                                 lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                                 bc,level,grid_no) bind(C, name="deravgpres")
       implicit none
-c
-c     This routine computes cell-centered pressure as average of the eight
-c       surrounding nodal values.
-c
+!c
+!c     This routine computes cell-centered pressure as average of the eight
+!c       surrounding nodal values.
+!c
       integer DIMDEC(gp)
       integer DIMDEC(dat)
       REAL_T  avgpres(DIMV(gp))
@@ -4885,31 +4831,29 @@ c
 
       integer i,j,k
 
-!$omp parallel do private(i,j,k)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-            avgpres(i,j,k) = eighth*( 
-     $                     dat(i+1,j,k)     + dat(i,j,k) 
-     $                   + dat(i+1,j+1,k)   + dat(i,j+1,k)
-     $                   + dat(i+1,j,k+1)   + dat(i,j,k+1) 
-     $                   + dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
+            avgpres(i,j,k) = eighth*( &
+                          dat(i+1,j,k)     + dat(i,j,k)  &
+                        + dat(i+1,j+1,k)   + dat(i,j+1,k) &
+                        + dat(i+1,j,k+1)   + dat(i,j,k+1)  &
+                        + dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
           end do
         end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine deravgpres
 
-c=========================================================
+!c=========================================================
 
-      subroutine FORT_DERGRDP (grdp,DIMS(gp),nv,p,DIMS(p),ncomp,
-     &                         lo,hi,domlo,domhi,dx,xlo,time,dt,
-     $                         bc,level,grid_no)
+      subroutine dergrdp (grdp,DIMS(gp),nv,p,DIMS(p),ncomp, &
+                              lo,hi,domlo,domhi,dx,xlo,time,dt, &
+                              bc,level,grid_no) bind(C, name="dergrdp")
       implicit none
-c
-c     This routine computes the magnitude of pressure gradient 
-c
+!c
+!c     This routine computes the magnitude of pressure gradient 
+!c
       integer lo(SDIM), hi(SDIM)
       integer DIMDEC(gp)
       integer DIMDEC(p)
@@ -4928,29 +4872,27 @@ c
       idy = 1.0d0 / dx(2)
       idz = 1.0d0 / dx(3)
 
-!$omp parallel do private(i,j,k,gpx,gpy,gpz)
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-            gpx = fourth * (p(i+1,j,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i,j+1,k  ,1)+
-     $                      p(i+1,j,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i,j+1,k+1,1))*idx
-            gpy = fourth * (p(i,j+1,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i+1,j,k  ,1)+
-     $                      p(i,j+1,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i+1,j,k+1,1))*idy
-            gpz = fourth * (p(i,  j,k+1,1)-p(i,  j,k,1)+p(i,  j+1,k+1,1)-p(i,  j+1,k,1)+
-     $                      p(i+1,j,k+1,1)-p(i+1,j,k,1)+p(i+1,j+1,k+1,1)-p(i+1,j+1,k,1))*idz
+            gpx = fourth * (p(i+1,j,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i,j+1,k  ,1)+ &
+                           p(i+1,j,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i,j+1,k+1,1))*idx
+            gpy = fourth * (p(i,j+1,k  ,1)-p(i,j,k  ,1)+p(i+1,j+1,k  ,1)-p(i+1,j,k  ,1)+ &
+                           p(i,j+1,k+1,1)-p(i,j,k+1,1)+p(i+1,j+1,k+1,1)-p(i+1,j,k+1,1))*idy
+            gpz = fourth * (p(i,  j,k+1,1)-p(i,  j,k,1)+p(i,  j+1,k+1,1)-p(i,  j+1,k,1)+ &
+                           p(i+1,j,k+1,1)-p(i+1,j,k,1)+p(i+1,j+1,k+1,1)-p(i+1,j+1,k,1))*idz
             grdp(i,j,k,1) = sqrt(gpx**2 + gpy**2 + gpz**2)
           end do
         end do
       end do
-!$omp end parallel do
 
-      end
+      end subroutine dergrdp
 
-c=========================================================
+!c=========================================================
 
-      subroutine FORT_DERNULL (e,DIMS(e),nv,dat,DIMS(dat),ncomp,
-     &                         lo,hi,domlo,domhi,delta,xlo,time,dt,bc,
-     $                         level,grid_no)
+      subroutine dernull (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,bc, &
+                              level,grid_no) bind(C, name="dernull")
       implicit none
       !
       ! This is a null derived routine.
@@ -4966,5 +4908,6 @@ c=========================================================
       REAL_T     dat(DIMV(dat),ncomp)
       integer    level, grid_no
 
-      end
+      end subroutine dernull
 
+end module derive_3d_module
