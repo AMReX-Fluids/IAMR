@@ -133,5 +133,3 @@ amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
 #*******************************************************************************
 
-# to get past initial velocity projection
-proj.use_mlmg_solver = 1
