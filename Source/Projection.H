@@ -345,32 +345,6 @@ protected:
                                bool doing_initial_velproj=false,
                                bool doing_initial_vortproj=false);
 
-    void doNodalProjection(int c_lev, int nlevel, 
-			   const amrex::Vector<amrex::MultiFab*>& vel, 
-                           const amrex::Vector<amrex::MultiFab*>& phi,
-                           const amrex::Vector<amrex::MultiFab*>& sig,
-			   const amrex::Vector<amrex::MultiFab*>& rhcc,
-                           const amrex::Vector<amrex::MultiFab*>& rhnd, 
-			   amrex::Real rel_tol, amrex::Real abs_tol,
-			   amrex::MultiFab* sync_resid_crse=nullptr,
-			   amrex::MultiFab* sync_resid_fine=nullptr,
-			   bool doing_initial_velproj=false);
-
-    // Mask off fine grids
-    // Possible values for msk
-    // BogusValue: outside this level
-    //          0: covered by the fine level
-    //          1: valid region not covered fine level
-    void mask_grids(amrex::MultiFab& msk, const amrex::BoxArray& grids, const amrex::Geometry& geom,
-                    const amrex::BoxArray& fineGrids, const amrex::IntVect& ref_ratio);
-    
-    // Mask off coarse grids
-    // Possible values for msk
-    // BogusValue: outside physical domain, or we don't care
-    //          0: covered by the coarse level
-    //          1: valid region 
-    void mask_grids(amrex::MultiFab& msk, const amrex::Geometry& geom);
-    
     // set velocity in ghost cells to zero except for inflow
     void set_boundary_velocity(int c_lev, int nlevel, const amrex::Vector<amrex::MultiFab*>& vel, 
                                bool doing_initial_velproj, bool inflowCorner);

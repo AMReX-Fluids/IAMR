@@ -10,10 +10,6 @@
 #include <NAVIERSTOKES_F.H>
 #include <ProjOutFlowBC.H>
 
-#include <AMReX_MGT_Solver.H>
-#include <AMReX_stencil_types.H>
-#include <mg_cpp_f.h>
-
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 
@@ -53,16 +49,12 @@ namespace
 
     bool benchmarking = false;
 
-    int hg_stencil = ND_DENSE_STENCIL;
-
-    bool use_mlmg_solver = false;
     bool rz_correction = true;
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
     bool use_gauss_seidel = true;
     bool use_harmonic_average = false;
-    bool test_mlmg_solver = false;
 }
 
 
@@ -86,35 +78,15 @@ Projection::Initialize ()
     pp.query("divu_minus_s_factor", divu_minus_s_factor);
     pp.query("make_sync_solvable",  make_sync_solvable);
 
-    pp.query("use_mlmg_solver",     use_mlmg_solver);
     pp.query("rz_correction",       rz_correction);
     pp.query("agglomeration",       agglomeration);
     pp.query("consolidation",       consolidation);
     pp.query("max_fmg_iter",        max_fmg_iter);
     pp.query("use_gauss_seidel",    use_gauss_seidel);
     pp.query("use_harmonic_average", use_harmonic_average);
-    pp.query("test_mlmg_solver",    test_mlmg_solver);
 
     if (!proj_2) 
 	amrex::Error("With new gravity and outflow stuff, must use proj_2");
-
-    std::string stencil;
-
-    if ( pp.query("stencil", stencil) )
-    {
-        if ( stencil == "cross" )
-        {
-            hg_stencil = ND_CROSS_STENCIL;
-        }
-        else if ( stencil == "full" || stencil == "dense")
-        {
-            hg_stencil = ND_DENSE_STENCIL;
-        }
-        else
-        {
-            amrex::Error("Must set proj.stencil to be cross, full or dense");
-        }
-    }
 
     amrex::ExecOnFinalize(Projection::Finalize);
 
@@ -452,13 +424,8 @@ Projection::level_project (int             level,
     if (!have_divu) 
     {
         Vector<MultiFab*> rhcc(maxlev, nullptr);
-        if (use_mlmg_solver) {
-            doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol, 
-                                  sync_resid_crse.get(), sync_resid_fine.get());
-        } else {
-            doNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol, 
+        doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol, 
                               sync_resid_crse.get(), sync_resid_fine.get());
-        }
     }
     else 
     {
@@ -470,13 +437,8 @@ Projection::level_project (int             level,
 
 	Vector<MultiFab*> rhcc(maxlev, nullptr);
 	rhcc[level] = divusource.get();
-        if (use_mlmg_solver) {
-            doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol,
-                                  sync_resid_crse.get(), sync_resid_fine.get());
-        } else {
-            doNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol,
+        doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol,
                               sync_resid_crse.get(), sync_resid_fine.get());
-        }
     }
 
     //
@@ -638,13 +600,8 @@ Projection::syncProject (int             c_lev,
         sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow));
     }
 
-    if (use_mlmg_solver) {
-        doMLMGNodalProjection(c_lev, 1, vels, phis, sigs, rhcc, {&rhnd}, sync_tol, proj_abs_tol,
-                              sync_resid_crse, sync_resid_fine.get());
-    } else {
-        doNodalProjection(c_lev, 1, vels, phis, sigs, rhcc, {&rhnd}, sync_tol, proj_abs_tol,
+    doMLMGNodalProjection(c_lev, 1, vels, phis, sigs, rhcc, {&rhnd}, sync_tol, proj_abs_tol,
                           sync_resid_crse, sync_resid_fine.get());
-    }
 
     //
     // If this sync project is not at level 0 then we need to account for
@@ -794,17 +751,10 @@ Projection::MLsyncProject (int             c_lev,
         sync_resid_fine.reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,ngrow));
     }
 
-    if (use_mlmg_solver) {
-        doMLMGNodalProjection(c_lev, 2, vel,
+    doMLMGNodalProjection(c_lev, 2, vel,
                           amrex::GetVecOfPtrs(phi),
                           sig, rhcc, {&rhnd}, sync_tol, proj_abs_tol,
                           sync_resid_crse, sync_resid_fine.get());
-    } else {
-        doNodalProjection(c_lev, 2, vel, 
-                          amrex::GetVecOfPtrs(phi),
-                          sig, rhcc, {&rhnd}, sync_tol, proj_abs_tol,
-                          sync_resid_crse, sync_resid_fine.get());
-    }
 
     //
     // If this sync project is not at levels 0-1 then we need to account for
@@ -1034,19 +984,11 @@ Projection::initialVelocityProject (int  c_lev,
     //
     if (!have_divu)
     {
-        if (use_mlmg_solver) {
-            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
-                                  amrex::GetVecOfPtrs(sig),
-                                  Vector<MultiFab*>(maxlev, nullptr),
-                                  {}, 
-                                  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
-        } else {
-            doNodalProjection(c_lev, f_lev+1, vel, phi,
+        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
                               amrex::GetVecOfPtrs(sig),
                               Vector<MultiFab*>(maxlev, nullptr),
                               {}, 
                               proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
-        }
     } 
     else 
     {
@@ -1056,20 +998,11 @@ Projection::initialVelocityProject (int  c_lev,
             rhcc[lev]->mult(-1.0,0,1,nghost);
         }
 
-        if (use_mlmg_solver) {
-            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
-                                  amrex::GetVecOfPtrs(sig),
-                                  amrex::GetVecOfPtrs(rhcc),
-                                  {},
-                                  proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
-        } else {
-            doNodalProjection(c_lev, f_lev+1, vel, phi,
+        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
                               amrex::GetVecOfPtrs(sig),
                               amrex::GetVecOfPtrs(rhcc),
                               {},
                               proj_tol, proj_abs_tol, 0, 0, doing_initial_velproj);
-        }
-
     }
 
     //
@@ -1181,17 +1114,10 @@ Projection::initialPressureProject (int  c_lev)
     // Project
     //
     Vector<MultiFab*> rhcc(maxlev, nullptr);
-    if (use_mlmg_solver) {
-        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
-                              amrex::GetVecOfPtrs(sig),
-                              rhcc, {},
-                              proj_tol, proj_abs_tol);
-    } else {
-        doNodalProjection(c_lev, f_lev+1, vel, phi,
+    doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
                           amrex::GetVecOfPtrs(sig),
                           rhcc, {},
                           proj_tol, proj_abs_tol);
-    }
 
     //
     // Unscale initial projection variables.
@@ -1398,15 +1324,9 @@ Projection::initialSyncProject (int       c_lev,
         }
     }
 
-    if (use_mlmg_solver) {
-        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi, sig,
-                              amrex::GetVecOfPtrs(rhcc),
-                              {}, proj_tol, proj_abs_tol);
-    } else {
-        doNodalProjection(c_lev, f_lev+1, vel, phi, sig,
+    doMLMGNodalProjection(c_lev, f_lev+1, vel, phi, sig,
                           amrex::GetVecOfPtrs(rhcc),
                           {}, proj_tol, proj_abs_tol);
-    }
 
     //
     // Unscale initial sync projection variables.
@@ -2007,24 +1927,14 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Project.
     //
-    if (use_mlmg_solver) {
-        doMLMGNodalProjection(c_lev, f_lev+1,
-                              amrex::GetVecOfPtrs(u_real), 
-                              amrex::GetVecOfPtrs(p_real),
-                              amrex::GetVecOfPtrs(s_real),
-                              Vector<MultiFab*>(maxlev, nullptr),
-                              amrex::GetVecOfPtrs(rhnd),
-                              proj_tol, proj_abs_tol,
-                              nullptr, nullptr, false, true);
-    } else {
-        doNodalProjection(c_lev, f_lev+1,
+    doMLMGNodalProjection(c_lev, f_lev+1,
                           amrex::GetVecOfPtrs(u_real), 
                           amrex::GetVecOfPtrs(p_real),
                           amrex::GetVecOfPtrs(s_real),
                           Vector<MultiFab*>(maxlev, nullptr),
                           amrex::GetVecOfPtrs(rhnd),
-                          proj_tol, proj_abs_tol);
-    }
+                          proj_tol, proj_abs_tol,
+                          nullptr, nullptr, false, true);
 
     //
     // Generate velocity field from potential
@@ -2447,20 +2357,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     Vector<MultiFab> vel_test(nlevel);
     Vector<MultiFab> phi_test(nlevel);
-    if (test_mlmg_solver) {
-        for (int i = 0; i < nlevel; ++i) {
-            vel_test[i].define(vel[c_lev+i]->boxArray(), vel[c_lev+i]->DistributionMap(),
-                              vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
-            MultiFab::Copy(vel_test[i], *vel[c_lev+i], 0, 0,
-                           vel[c_lev+i]->nComp(), vel[c_lev+i]->nGrow());
-
-            phi_test[i].define(phi[c_lev+i]->boxArray(), phi[c_lev+i]->DistributionMap(),
-                              phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
-
-//            MultiFab::Copy(phi_test[i], *phi[c_lev+i], 0, 0,
-//                           phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
-        }
-    }
     
     BL_ASSERT(vel[c_lev]->nGrow() == 1);
     BL_ASSERT(vel[f_lev]->nGrow() == 1);
@@ -2578,25 +2474,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs), rel_tol, abs_tol);
 
-    if (test_mlmg_solver) {
-        Vector<MultiFab*> vel_ptmp(f_lev+1);
-        Vector<MultiFab*> phi_ptmp(f_lev+1);
-        for (int i = 0; i < nlevel; ++i) {
-            vel_ptmp[c_lev+i] = &vel_test[i];
-            phi_ptmp[c_lev+i] = &phi_test[i];
-
-            MultiFab::Copy(phi_test[i], *phi[c_lev+i], 0, 0,
-                           phi[c_lev+i]->nComp(), phi[c_lev+i]->nGrow());
-        }
-        doNodalProjection(c_lev, nlevel, vel_ptmp, phi_ptmp, sig, rhcc, rhnd, rel_tol, mlmg_err*1.01,
-                          sync_resid_crse, sync_resid_fine, doing_initial_velproj);
-
-        int niters = amrex_f90mg_get_niters();
-        if (niters > 0) {
-            amrex::Print() << "WARNING!!! F90MG # iters: " << niters << "\n";
-        }
-    }
-
     if (sync_resid_fine != 0 or sync_resid_crse != 0)
     {
         set_boundary_velocity(c_lev, 1, vel, doing_initial_velproj, false);
@@ -2604,358 +2481,19 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (sync_resid_fine != 0)
     {
-        MultiFab resid_save;
         Real rmin, rmax;
-        if (test_mlmg_solver)
-        {
-            resid_save.define(sync_resid_fine->boxArray(),
-                              sync_resid_fine->DistributionMap(), 1, 0);
-            MultiFab::Copy(resid_save, *sync_resid_fine, 0, 0, 1, 0);
-            rmin = resid_save.min(0);
-            rmax = resid_save.max(0);
-        }
-
         mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev], rhcc[c_lev]);
-
-        if (test_mlmg_solver)
-        {
-            MultiFab::Subtract(resid_save, *sync_resid_fine, 0, 0, 1, 0);
-            Real dmin = resid_save.min(0);
-            Real dmax = resid_save.max(0);
-            amrex::Print() << "TEST MLMG: fine resid diff "
-                           << "(" << dmin <<", " << dmax << ") / ("
-                           << rmin << ", " << rmax << ")\n"
-                           << "                           "
-                           << "(" << dmin/(rmin+1.e-50) << ", "
-                           << dmax/(rmax+1.e-50) << ")\n";
-        }
     }
 
     if (sync_resid_crse != 0) {  // only level solve will come to here
-
-        MultiFab resid_save;
         Real rmin, rmax;
-        if (test_mlmg_solver)
-        {
-            resid_save.define(sync_resid_crse->boxArray(),
-                              sync_resid_crse->DistributionMap(), 1, 0);
-            MultiFab::Copy(resid_save, *sync_resid_crse, 0, 0, 1, 0);
-            rmin = resid_save.min(0);
-            rmax = resid_save.max(0);
-        }
-
         const BoxArray& fineGrids = parent->boxArray(c_lev+1);
         const IntVect& ref_ratio = parent->refRatio(c_lev);
         mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], rhcc[c_lev],
                                        fineGrids, ref_ratio);
-
-        if (test_mlmg_solver)
-        {
-            MultiFab::Subtract(resid_save, *sync_resid_crse, 0, 0, 1, 0);
-            Real dmin = resid_save.min(0);
-            Real dmax = resid_save.max(0);
-            amrex::Print() << "TEST MLMG: crse resid diff "
-                           << "(" << dmin <<", " << dmax << ") / ("
-                           << rmin << ", " << rmax << ")\n"
-                           << "                           "
-                           << "(" << dmin/(rmin+1.e-50) << ", "
-                           << dmax/(rmax+1.e-50) << ")\n";
-        }
     }
 
     mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
-}
-
-
-//
-// Given vel, rhs & sig, this solves Div (sig * Grad phi) = Div vel + rhs.
-// On return, vel becomes vel  - sig * Grad phi.
-//
-void Projection::doNodalProjection (int c_lev, int nlevel, 
-                                    const Vector<MultiFab*>& vel, 
-                                    const Vector<MultiFab*>& phi,
-                                    const Vector<MultiFab*>& sig,
-				    const Vector<MultiFab*>& rhcc, 
-                                    const Vector<MultiFab*>& rhnd, 
-				    Real rel_tol, Real abs_tol,
-				    MultiFab* sync_resid_crse,
-				    MultiFab* sync_resid_fine,
-                                    bool doing_initial_velproj) 
-{
-  BL_PROFILE("Projection:::doNodalProjection()");
-
-  int f_lev = c_lev + nlevel - 1;
-
-  BL_ASSERT(vel[c_lev]->nGrow() == 1);
-  BL_ASSERT(vel[f_lev]->nGrow() == 1);
-  BL_ASSERT(phi[c_lev]->nGrow() == 1);
-  BL_ASSERT(phi[f_lev]->nGrow() == 1);
-  BL_ASSERT(sig[c_lev]->nGrow() == 1);
-  BL_ASSERT(sig[f_lev]->nGrow() == 1);
-
-  BL_ASSERT(sig[c_lev]->nComp() == 1);
-  BL_ASSERT(sig[f_lev]->nComp() == 1);
-
-  if (sync_resid_crse != 0) { 
-    BL_ASSERT(nlevel == 1);
-    BL_ASSERT(c_lev < parent->finestLevel());
-  }
-
-  if (sync_resid_fine != 0) { 
-    BL_ASSERT((nlevel == 1 || nlevel == 2));
-    BL_ASSERT(c_lev > 0);
-  }
-
-  if (rhcc[c_lev]) {
-    if (rhcc[c_lev]->box(0).type() == IntVect::TheNodeVector()) {
-      amrex::Abort("Projection::doNodalProjection: rhcc cannot be nodal type");
-    }
-    BL_ASSERT(rhcc[c_lev]->nGrow() == 1);
-    BL_ASSERT(rhcc[f_lev]->nGrow() == 1);
-  }
-
-  Vector<std::unique_ptr<MultiFab> > vold(maxlev);
-  if (sync_resid_fine !=0 || sync_resid_crse != 0) {
-    vold[c_lev].reset(new MultiFab(parent->boxArray(c_lev), 
-                                   parent->DistributionMap(c_lev),
-                                   BL_SPACEDIM, 1));
-    MultiFab::Copy(*vold[c_lev], *vel[c_lev], 0, 0, BL_SPACEDIM, 1);
-
-    set_boundary_velocity(c_lev, 1,
-                          amrex::GetVecOfPtrs(vold),
-                          doing_initial_velproj, false);
-  }
-
-  set_boundary_velocity(c_lev, nlevel, vel, doing_initial_velproj, true);
-
-  int lo_inflow[3] = {0};
-  int hi_inflow[3] = {0};
-
-  const int* lo_bc = phys_bc->lo();
-  const int* hi_bc = phys_bc->hi();
-  
-  for (int idir=0; idir<BL_SPACEDIM; idir++) {
-    if (lo_bc[idir] == Inflow) {
-      lo_inflow[idir] = 1;
-    }
-    if (hi_bc[idir] == Inflow) {
-      hi_inflow[idir] = 1;
-    }
-  }
-
-  Vector<Geometry> mg_geom(nlevel);
-  for (int lev = 0; lev < nlevel; lev++) {
-    mg_geom[lev] = parent->Geom(lev+c_lev);
-  }  
-
-  int mg_bc[2*BL_SPACEDIM];
-  for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-    if ( mg_geom[0].isPeriodic(i) ) {
-      mg_bc[i*2 + 0] = 0;
-      mg_bc[i*2 + 1] = 0;
-    }
-    else {
-      mg_bc[i*2 + 0] = phys_bc->lo(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-      mg_bc[i*2 + 1] = phys_bc->hi(i)==Outflow? MGT_BC_DIR : MGT_BC_NEU;
-    }
-  }
-
-  Vector<BoxArray> mg_grids(nlevel);
-  for (int lev = 0; lev < nlevel; lev++) {
-    mg_grids[lev] = parent->boxArray(lev+c_lev);
-  }
-
-  Vector<DistributionMapping> dmap(nlevel);
-  for (int lev=0; lev < nlevel; lev++ ) {
-    dmap[lev] = LevelData[lev+c_lev]->get_new_data(State_Type).DistributionMap();
-  }
-
-  bool nodal = true;
-
-  bool have_rhcc;
-  if (rhcc[c_lev] == nullptr) {
-    have_rhcc = false;
-  }
-  else {
-    have_rhcc = false;
-    for (int lev=c_lev; lev<=f_lev; lev++) {
-      if (rhcc[lev]->norm0() != 0.0) {
-	have_rhcc = true;
-	break;
-      }
-    }
-  }
-
-  MGT_Solver mgt_solver(mg_geom, mg_bc, mg_grids, dmap, nodal, hg_stencil, have_rhcc,
-                        0, 1, P_code);
-
-  mgt_solver.set_nodal_coefficients({sig.begin()+c_lev, sig.end()});
-
-  mgt_solver.nodal_project({phi.begin()+c_lev, phi.end()}, 
-                           {vel.begin()+c_lev, vel.end()},
-                           {rhcc.begin()+c_lev, rhcc.end()}, 
-                           rhnd, rel_tol, abs_tol, &lo_inflow[0], &hi_inflow[0]);
-
-  // Must fill sync_resid_fine before sync_resid_crse because of the side effecs in the calls.
-
-  if (sync_resid_fine != 0) {
-    const BoxArray& levelGrids = mg_grids[0];
-    const DistributionMapping& levelDmap = dmap[0];
-    const Geometry& levelGeom = mg_geom[0];
-
-    MultiFab msk(levelGrids, levelDmap, 1, 1); 
-
-    mask_grids(msk, levelGeom);
-
-    sync_resid_fine->setVal(0.0, sync_resid_fine->nGrow());
-
-    int isCoarse = 0;
-    mgt_solver.fill_sync_resid(*sync_resid_fine, msk, *vold[c_lev], isCoarse);
-  }
-
-  if (sync_resid_crse != 0) {  // only level solve will come to here
-    const BoxArray& fineGrids = parent->boxArray(c_lev+1);
-    const BoxArray& levelGrids = mg_grids[0];
-    const DistributionMapping& levelDmap = dmap[0];
-    const Geometry& levelGeom = mg_geom[0];
-    IntVect ref_ratio = parent->refRatio(c_lev);
-
-    MultiFab msk(levelGrids, levelDmap, 1, 1); 
-
-    mask_grids(msk, levelGrids, levelGeom, fineGrids, ref_ratio);
-
-    sync_resid_crse->setVal(0.0, sync_resid_crse->nGrow());
-
-    int isCoarse = 1;
-    mgt_solver.fill_sync_resid(*sync_resid_crse, msk, *vold[c_lev], isCoarse);
-  }
-
-  if (verbose >= 1)
-    MGT_Solver::FlushFortranOutput();
-}
-
-
-void
-Projection::mask_grids (MultiFab& msk, const BoxArray& grids, const Geometry& geom,
-                        const BoxArray& fineGrids, const IntVect& ref_ratio)
-{
-  BL_PROFILE("Projection::mask_grids(1)");
-
-  BoxArray localfine = fineGrids;
-  localfine.coarsen(ref_ratio);
-
-  msk.setBndry(BogusValue);
-
-  const int* lo_bc = phys_bc->lo();
-  const int* hi_bc = phys_bc->hi();
-  const Box& domainBox = geom.Domain();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-  for (MFIter mfi(msk); mfi.isValid(); ++mfi) {
-    int i = mfi.index();
-
-    FArrayBox& msk_fab = msk[mfi];
-
-    const Box& reg  = grids[i]; 
-    msk_fab.setVal(1.0, reg, 0); 
-
-    for (int idir=0; idir<BL_SPACEDIM; idir++) {
-      if (lo_bc[idir] == Inflow) {
-	if (reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	  Box bx = amrex::adjCellLo(reg, idir);
-	  msk_fab.setVal(1.0, bx, 0);
-	}
-      }
-      if (hi_bc[idir] == Inflow) {
-	if (reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	  Box bx = amrex::adjCellHi(reg, idir);
-	  msk_fab.setVal(1.0, bx, 0);
-	}
-      }
-    }
-
-    std::vector< std::pair<int,Box> > isects;
-    localfine.intersections(reg,isects);
-
-    for (int ii = 0; ii < isects.size(); ii++) {
-      const Box& fbox = isects[ii].second;
-      msk_fab.setVal(0.0, fbox, 0);
-
-      for (int idir=0; idir<BL_SPACEDIM; idir++) {
-	if (lo_bc[idir] == Inflow) {
-	  if (fbox.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	    Box bx = amrex::adjCellLo(fbox, idir);
-	    msk_fab.setVal(0.0, bx, 0);
-	  }
-	}
-	if (hi_bc[idir] == Inflow) {
-	  if (fbox.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	    Box bx = amrex::adjCellHi(fbox, idir);
-	    msk_fab.setVal(0.0, bx, 0);
-	  }
-	}
-      }      
-    }
-  }
-
-  msk.FillBoundary();
-  msk.EnforcePeriodicity(geom.periodicity());
-}
-
-void Projection::mask_grids (MultiFab& msk, const Geometry& geom)
-{
-    BL_PROFILE("Projection::mask_grids(2)");
-    
-    Real fineghost = 1.0;
-    Real interior  = 1.0;
-    Real crseghost = 0.0;
-    Real physbnd   = BogusValue;
-    
-    const Box& domainBox = geom.Domain();
-    const Periodicity& period = geom.periodicity();
-    
-    msk.BuildMask(domainBox, period, fineghost, crseghost, physbnd, interior);
-    
-    const int* lo_bc = phys_bc->lo();
-    const int* hi_bc = phys_bc->hi();
-    
-    bool has_inflow = false;
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	if (lo_bc[i] == Inflow || hi_bc[i] == Inflow) {
-	    has_inflow = true;
-	    break;
-	}
-    }
-
-    if (has_inflow) {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(msk); mfi.isValid(); ++mfi)
-	{
-	    FArrayBox& msk_fab = msk[mfi];
-	    const Box& regBox = mfi.validbox();
-	    
-	    for (int idir=0; idir<BL_SPACEDIM; idir++) {
-		if (lo_bc[idir] == Inflow) {
-		    if (regBox.smallEnd(idir) == domainBox.smallEnd(idir)) {
-			const Box& bx = amrex::adjCellLo(regBox, idir);
-			msk_fab.setVal(1.0, bx, 0);
-		    }
-		}
-		if (hi_bc[idir] == Inflow) {
-		    if (regBox.bigEnd(idir) == domainBox.bigEnd(idir)) {
-			const Box& bx = amrex::adjCellHi(regBox, idir);
-			msk_fab.setVal(1.0, bx, 0);
-		    }
-		}
-	    }
-	}
-	
-	msk.EnforcePeriodicity(period);
-    }
 }
 
 // Set velocity in ghost cells to zero except for inflow
