@@ -128,4 +128,3 @@ proj.v=1
 
 mac.use_mlmg_solver = 1
 diffuse.use_mlmg_solver = 1
-proj.use_mlmg_solver = 1

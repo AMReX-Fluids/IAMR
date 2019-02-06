@@ -149,7 +149,6 @@ proj.v = 2
 proj.Pcode = 1
 proj.proj_tol = 1.e-12
 proj.proj_abs_tol = 1.e-15
-proj.stencil = full
 
 mg.v = 0
 

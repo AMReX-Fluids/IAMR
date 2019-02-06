@@ -3,7 +3,6 @@
 # INPUTS.3D.HOTSPOT - hot bubble rising
 #*******************************************************************************
 
-proj.use_mlmg_solver = 1
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
