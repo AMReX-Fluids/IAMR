@@ -768,6 +768,8 @@ NavierStokes::scalar_diffusion_update (Real dt,
       const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
       const bool add_old_time_divFlux = true;
 
+      int state_ind = sigma + BL_SPACEDIM;
+
       const int betaComp = sigma;
       const int visc_coef_comp = sigma;
       const int Rho_comp = Density;
@@ -777,23 +779,21 @@ NavierStokes::scalar_diffusion_update (Real dt,
       for (int d=0; d<AMREX_SPACEDIM; ++d) {
         a[d] = &(area[d]);
       }
-
-      int state_ind = sigma + BL_SPACEDIM;
       
       if(state_ind==Temp){
 	alpha = new MultiFab(grids,dmap,1,0);
 	alpha->setVal(THERMO_cp);
       }
 
-      diffusion->diffuse_scalar_msd(Sn, Sn, Snp1, Snp1, sigma, 1, Rho_comp,
-                                  prev_time,curr_time,be_cn_theta,Rh,rho_flag,
-                                  fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,alpha,alphaComp,
-                                  cmp_diffn,cmp_diffnp1,betaComp,
-                                  visc_coef,visc_coef_comp,volume,a,crse_ratio,theBCs[bc_comp],geom,
-                                  add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp);
+      diffusion->diffuse_scalar (Sn, Sn, Snp1, Snp1, sigma, 1, Rho_comp,
+                                 prev_time,curr_time,be_cn_theta,Rh,rho_flag,
+                                 fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,alpha,alphaComp,
+                                 cmp_diffn,cmp_diffnp1,betaComp,
+                                 visc_coef,visc_coef_comp,volume,a,crse_ratio,theBCs[bc_comp],geom,
+                                 add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp,false);
 
-     if(alpha!=0) delete alpha;
-    
+      if(alpha!=0) delete alpha;
+
     //
     // Increment the viscous flux registers
     //
@@ -1536,7 +1536,7 @@ NavierStokes::mac_sync ()
         // the source for a rate of change to S over the time step, so
         // Ssync*dt is the source to the actual sync amount.
         //
-        Ssync.mult(dt,Ssync.nGrow());
+        //Ssync.mult(dt,Ssync.nGrow());
         //
         // For all conservative variables Q (other than density)
         // express Q as rho*q and increment sync by -(sync_for_rho)*q
@@ -1618,7 +1618,7 @@ NavierStokes::mac_sync ()
 	    fluxSC = fb_SC.define(this);
 	}
 
-#if 1
+//#if 1
 // ----- stuff ADDED (for diffuse_scalar_msd)
 
 	Vector<int> diffuse_comp(1);
@@ -1652,15 +1652,17 @@ NavierStokes::mac_sync ()
 
         FluxBoxes fb_fluxn  (this);
         MultiFab** fluxn   = fb_fluxn.get();
+
+	const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
 // -----
-#endif
+//#endif
 
         for (int sigma = 0; sigma<numscal; sigma++)
         {
             const int state_ind = BL_SPACEDIM + sigma;
             const int rho_flag  = Diffusion::set_rho_flag(diffusionType[state_ind]);
 
-	    Snp1[0]->setVal(0,0,1,1);								// for diffuse_scalar_msd
+	    Snp1[0]->setVal(0,0,1,1);								 // for diffuse_scalar_msd
 
             if (is_diffusive[state_ind])
             {
@@ -1675,8 +1677,19 @@ NavierStokes::mac_sync ()
                 }
 
 #if 0
+// ----- added for consistency
+    		MultiFab *alpha_in = 0;
+//		FIXME: hard-coded value of alpha_in, for T
+                if(state_ind==Temp){
+		  alpha_in = new MultiFab(grids,dmap,1,0);
+		  alpha_in->setVal(THERMO_cp);		
+		}
+// -----
+
                 diffusion->diffuse_Ssync(Ssync,sigma,dt,be_cn_theta,
-                                         Rh,rho_flag,fluxSC,0,cmp_diffn,0,0,0);			// original
+                                         Rh,rho_flag,fluxSC,0,cmp_diffnp1,0,alpha_in,0);
+
+		if (alpha_in!=0) delete alpha_in;
 #endif
 
 #if 1
@@ -1689,12 +1702,11 @@ NavierStokes::mac_sync ()
 		const int alphaComp = 0;
 		const MultiFab* const* betan = 0;
 		int betaComp = 0;
-		int visc_coef_comp = 0;
+		int visc_coef_comp = state_ind;
 	      	const MultiFab *a[AMREX_SPACEDIM];
       		for (int d=0; d<AMREX_SPACEDIM; ++d) {
         	  a[d] = &(area[d]);
       		}
-		const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
 
       		const bool add_hoop_stress = false;
       		const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
@@ -1708,16 +1720,12 @@ NavierStokes::mac_sync ()
 		  alpha_in->setVal(THERMO_cp);		
 		}
 
-		if(sigma==1){
-		     Print() << "diffusing Tracer" << std::endl;
-		}
-
-                diffusion->diffuse_scalar_msd(Sn,Rhon,Snp1,Rhonp1,S_comp,num_comp,Rho_comp,
-					      prev_time,curr_time,be_cn_theta,Rh,rho_flag,
-					      fluxn,fluxSC,fluxComp,delta_rhs,rhsComp,alpha_in,alphaComp,
-					      betan,cmp_diffn,betaComp,
-					      visc_coef,visc_coef_comp,volume,a,crse_ratio,theBCs[sigma],geom,
-					      add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp);
+                diffusion->diffuse_scalar (Sn,Rhon,Snp1,Rhonp1,S_comp,num_comp,Rho_comp,
+					   prev_time,curr_time,be_cn_theta,Rh,rho_flag,
+					   fluxn,fluxSC,fluxComp,delta_rhs,rhsComp,alpha_in,alphaComp,
+					   cmp_diffn,cmp_diffnp1,betaComp,
+					   visc_coef,visc_coef_comp,volume,a,crse_ratio,theBCs[sigma],geom,
+					   add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp,true);
 
 		if (alpha_in!=0) delete alpha_in;
 
@@ -1737,9 +1745,6 @@ NavierStokes::mac_sync ()
                 }
             }
         }
-
-		VisMF::Write(Ssync,"Ssync_diffusescalarmsd_NOMLMG");			// if using diffuse_scalar_msd
-//		VisMF::Write(Ssync,"Ssync_diffusescalarmsd_WITHMLMG");			// if using diffuse_scalar_msd
 
         //
         // For all conservative variables Q (other than density)

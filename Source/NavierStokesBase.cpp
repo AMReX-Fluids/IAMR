@@ -501,7 +501,9 @@ NavierStokesBase::Initialize ()
         n_visc++;
     visc_coef.resize(n_visc);
     is_diffusive.resize(n_visc);
- 
+
+//    Print() << "n_scal_diff_coefs: " << n_scal_diff_coefs << std::endl;	// ADDED
+ 	
     pp.get("vel_visc_coef",visc_coef[0]);
     for (int i = 1; i < BL_SPACEDIM; i++)
       visc_coef[i] = visc_coef[0];
@@ -1166,6 +1168,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
 void
 NavierStokesBase::diffuse_scalar_setup (int sigma, int& rho_flag)
 {
+
     rho_flag = Diffusion::set_rho_flag(diffusionType[sigma]);
 }
 
@@ -3508,7 +3511,16 @@ NavierStokesBase::velocity_advection (Real dt)
       getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
+
+//      Print() << "tforces from getForce of velocity_advection: " << tforces << std::endl;	// OK
+
+//      VisMF::Write(visc_terms,"viscterms_velocityadvection");	// OK 
+//      VisMF::Write(Gp,"Gp_velocityadvection");			// NO!!!!!!!!!!!!!!!!!!1
+//      VisMF::Write(rho_ptime,"rhoptime_velocityadvection");	// OK
+
       godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+
+//      Print() << "tforces from velocity_advection: " << tforces << std::endl;	// NO
       
       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
@@ -3563,6 +3575,9 @@ NavierStokesBase::velocity_advection (Real dt)
       } // end of MFIter
 }
 
+//    VisMF::Write(Umf,"Umf_from_velocityadvection");	// OK
+//    VisMF::Write(*aofs,"Aofs_from_velocityadvection");	// NO
+
  } //end scope of FillPatchIter
     
     if (do_reflux)
@@ -3611,6 +3626,8 @@ NavierStokesBase::velocity_update (Real dt)
       }
     }
 
+//    VisMF::Write(get_new_data(State_Type),"Snew_from_velupdate00000");	// OK
+
     velocity_advection_update(dt);
 
     if (!initial_iter)
@@ -3620,11 +3637,13 @@ NavierStokesBase::velocity_update (Real dt)
 
     MultiFab&  S_new     = get_new_data(State_Type);
 
+//    VisMF::Write(S_new,"Snew_from_velupdate1111");			// OK... how is that possible??
+
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+	 amrex::Print() << "New velocity ******** " << sigma << " contains Nans" << '\n';
 	 exit(0);
        }
     }
@@ -3642,12 +3661,18 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
+
+////    VisMF::Write(U_old,"Uold_before");	// OK
+//    VisMF::Write(U_new,"Unew_before");	// OK
+//    VisMF::Write(Aofs,"Aofs_before");	// NO
+//    VisMF::Write(Gp,"Gp_before");	// NO
     
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 {
+
     FArrayBox  tforces, S;
     for (MFIter Rhohalf_mfi(halftime,true); Rhohalf_mfi.isValid(); ++Rhohalf_mfi)
     {
@@ -3736,6 +3761,9 @@ NavierStokesBase::velocity_advection_update (Real dt)
             }
         }
 
+//	Print() << S << std::endl;	// OK
+//	Print() << tforces << std::endl;	// NO
+
         godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
                                 Gp[Rhohalf_mfi],halftime[i],bx,dt);
         if (do_mom_diff == 1)
@@ -3744,6 +3772,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
                 U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],bx,0,d,1);
         }
     }
+//    Print() << "Printing U_new after Add_aofs_tf_gp..." << std::endl;
+//    VisMF::Write(U_new,"Unew_after");	// NO
 }
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
@@ -3753,6 +3783,13 @@ NavierStokesBase::velocity_advection_update (Real dt)
        }
        if (U_new.contains_nan(sigma,1,0))
        {
+         for(MFIter mfi(U_new); mfi.isValid(); ++mfi){
+             if(U_new[mfi].contains_nan(mfi.validbox(),sigma,1)){
+		FArrayBox tmp(mfi.validbox(),1);
+                tmp.copy(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
+//		Print() << tmp << std::endl;					
+		}            
+         }
 	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
        }
     }

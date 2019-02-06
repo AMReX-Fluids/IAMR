@@ -238,6 +238,7 @@ Diffusion::get_scaled_abs_tol (const MultiFab& rhs,
     return reduction * rhs.norm0();
 }
 
+#if 0
 void
 Diffusion::diffuse_scalar (Real                   dt,
                            int                    sigma,
@@ -592,41 +593,43 @@ Diffusion::diffuse_scalar (Real                   dt,
 		       << ", time: " << run_time << '\n';
     }
 }
+#endif
 
 void
-Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
-                               const Vector<MultiFab*>&  Rho_old,
-                               Vector<MultiFab*>&        S_new,
-                               const Vector<MultiFab*>&  Rho_new,
-                               int                       S_comp,
-                               int                       num_comp,
-                               int                       Rho_comp,
-                               Real                      prev_time,
-                               Real                      curr_time,
-                               Real                      be_cn_theta,
-                               const MultiFab&           rho_half,
-                               int                       rho_flag,
-                               MultiFab* const*          fluxn,
-                               MultiFab* const*          fluxnp1,
-                               int                       fluxComp,
-                               MultiFab*                 delta_rhs, 
-                               int                       rhsComp,
-                               const MultiFab*           alpha_in, 
-                               int                       alpha_in_comp,
-                               const MultiFab* const*    betan, 
-                               const MultiFab* const*    betanp1,
-                               int                       betaComp,
-                               const Vector<Real>&       visc_coef,
-                               int                       visc_coef_comp,
-                               const MultiFab&           volume,
-                               const MultiFab* const*    area,
-                               const IntVect&            cratio,
-                               const BCRec&              bc,
-                               const Geometry&           geom,
-                               bool                      add_hoop_stress,
-                               const SolveMode&          solve_mode,
-                               bool                      add_old_time_divFlux,
-                               const amrex::Vector<int>& is_diffusive)
+Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
+                           const Vector<MultiFab*>&  Rho_old,
+                           Vector<MultiFab*>&        S_new,
+                           const Vector<MultiFab*>&  Rho_new,
+                           int                       S_comp,
+                           int                       num_comp,
+                           int                       Rho_comp,
+                           Real                      prev_time,
+                           Real                      curr_time,
+                           Real                      be_cn_theta,
+                           const MultiFab&           rho_half,
+                           int                       rho_flag,
+                           MultiFab* const*          fluxn,
+                           MultiFab* const*          fluxnp1,
+                           int                       fluxComp,
+                           MultiFab*                 delta_rhs, 
+                           int                       rhsComp,
+                           const MultiFab*           alpha_in, 
+                           int                       alpha_in_comp,
+                           const MultiFab* const*    betan, 
+                           const MultiFab* const*    betanp1,
+                           int                       betaComp,
+                           const Vector<Real>&       visc_coef,
+                           int                       visc_coef_comp,
+                           const MultiFab&           volume,
+                           const MultiFab* const*    area,
+                           const IntVect&            cratio,
+                           const BCRec&              bc,
+                           const Geometry&           geom,
+                           bool                      add_hoop_stress,
+                           const SolveMode&          solve_mode,
+                           bool                      add_old_time_divFlux,
+                           const amrex::Vector<int>& is_diffusive,
+			   bool debug )
 {
     //
     // This routine expects that physical BC's have been loaded into
@@ -701,7 +704,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
     for (int icomp=0; icomp<num_comp; ++icomp) {
 
-	amrex::Print() << "Starting diffuse_scalar_msd" << "\n";
+	amrex::Print() << "Starting diffuse_scalar" << "\n";
 
         int sigma = S_comp + icomp;
 
@@ -723,7 +726,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             if (allnull)
                 b *= visc_coef[visc_coef_comp + icomp];
 
-            if (use_mlmg_solver)
+            if (use_mlmg_solver) 
             {
                 {
                     if (has_coarse_data) {
@@ -743,15 +746,15 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 {
                     Real* rhsscale = 0;
                     std::pair<Real,Real> scalars;
-                    computeAlpha_msd(alpha, scalars, a, b, rho_half, rho_flag,
-                                     rhsscale, alpha_in, alpha_in_comp+icomp, Rho_old[0], Rho_comp,
-                                     geom, volume, add_hoop_stress);
+                    computeAlpha(alpha, scalars, a, b, rho_half, rho_flag,
+                                 rhsscale, alpha_in, alpha_in_comp+icomp, Rho_old[0], Rho_comp,
+                                 geom, volume, add_hoop_stress);
                     opn.setScalars(scalars.first, scalars.second);
                     opn.setACoeffs(0, alpha);
                 }
         
                 {
-                    computeBeta_msd(bcoeffs, betan, betaComp+icomp, geom, area);
+                    computeBeta(bcoeffs, betan, betaComp+icomp, geom, area);
                     opn.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
                 }
 
@@ -763,18 +766,19 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
                 mgn.getFluxes({fp},{&Soln});
 
-// ----- stuff ADDED for consistency
                 for (int i = 0; i < BL_SPACEDIM; ++i)
                     (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
-// -----
             }
-            else
+
+                else
             {
+		amrex::Abort("Non-MLMG solver no longer supported");
+# if 0
                 ViscBndry visc_bndry_0(ba,dm,1,geom);
                 std::unique_ptr<ABecLaplacian> visc_op
-                    (getViscOp_msd(a,b,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
-                                   rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
-                                   alpha,bcoeffs,bc,cratio,geom,volume,area,add_hoop_stress));
+                    (getViscOp(a,b,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
+                               rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
+                               alpha,bcoeffs,bc,cratio,geom,volume,area,add_hoop_stress));
                 visc_op->maxOrder(max_order);
                 //
                 // Copy to single-component multifab, then apply op to rho-scaled state
@@ -786,6 +790,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp+icomp);
                 for (int i = 0; i < BL_SPACEDIM; ++i)
                     (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+#endif
             }
         }
         else
@@ -795,7 +800,6 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 fluxn[n]->setVal(0,fluxComp+icomp,1);
             }
             Rhs.setVal(0);
-
         }
 
         //
@@ -830,9 +834,11 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                 }
             }
         }
+
         //
         // Add body sources (like chemistry contribution)
         //
+
         if (delta_rhs != 0)
         {
 #ifdef _OPENMP
@@ -848,6 +854,10 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                     tmpfab.mult(dt,box,0,1);
                     tmpfab.mult(volume[mfi],box,0,0,1);
                     Rhs[mfi].plus(tmpfab,box,0,0,1);
+
+            	    if (rho_flag == 1)
+                        Rhs[mfi].mult(rho_half[mfi],box,0,0);
+
                 }
             }
         }
@@ -861,6 +871,9 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 #if (BL_SPACEDIM == 2) 
         if (add_hoop_stress)
         {
+
+	Print() << "Doing RZ coord..." << std::endl;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -911,6 +924,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+
         for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
         {
             const Box& box = mfi.tilebox();
@@ -954,21 +968,26 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
 
             {
                 std::pair<Real,Real> scalars;
-                computeAlpha_msd(alpha, scalars, a, b, rho_half, rho_flag,
-                                 &rhsscale, alpha_in, alpha_in_comp+icomp, Rho_new[0], Rho_comp,
-                                 geom, volume, add_hoop_stress);
+
+                computeAlpha(alpha, scalars, a, b, rho_half, rho_flag,
+                             &rhsscale, alpha_in, alpha_in_comp+icomp, Rho_new[0], Rho_comp,
+                             geom, volume, add_hoop_stress);
                 opnp1.setScalars(scalars.first, scalars.second);
                 opnp1.setACoeffs(0, alpha);
             }
         
             {
-                computeBeta_msd(bcoeffs, betanp1, betaComp+icomp, geom, area);
+                computeBeta(bcoeffs, betanp1, betaComp+icomp, geom, area);			
                 opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
             }
+
             Rhs.mult(rhsscale,0,1);
             const Real S_tol     = visc_tol;
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
+//	    Print() << "Tolerances are: " << S_tol << ", " << S_tol_abs << std::endl;            
+
+//            mgnp1.setVerbose(3);
             mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
             AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
@@ -976,16 +995,17 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
                          MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
             std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
             mgnp1.getFluxes({fp});
-
         }
+
         else
         {
+	    amrex::Abort("Non-MLMG solver no longer supported");
+#if 0
             ViscBndry visc_bndry(ba,dm,1,geom);
             std::unique_ptr<ABecLaplacian> visc_op
-                (getViscOp_msd(a,b,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
-                               betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bc,
-                               cratio,geom,volume,area,add_hoop_stress));
-
+                (getViscOp(a,b,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
+                           betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bc,
+                           cratio,geom,volume,area,add_hoop_stress));
             //
             // Make a good guess for Soln
             //
@@ -1009,14 +1029,27 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
             MultiGrid mg(*visc_op);
+
+	    if(debug){
+	        VisMF::Write(Rhs,"Rhs_dsmsd_NOMLMG");
+	        Print() << "Coefficients a and b are: " << a << ", " << b << std::endl;
+	    }
+
             mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+
+	    if(debug){
+	        VisMF::Write(Soln,"Soln_dsmsd_NOMLMG");
+	    }
 
             //
             // Get extensivefluxes from new-time op
             //
             bool do_applyBC = true;
             visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp+icomp);
+#endif
         }
+
+	if (debug==true) VisMF::Write(Soln,"Soln_from_ds");
 
         for (int i = 0; i < BL_SPACEDIM; ++i)
             (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
@@ -1035,7 +1068,7 @@ Diffusion::diffuse_scalar_msd (const Vector<MultiFab*>&  S_old,
             }
 	}
 
-	amrex::Print() << "Done with diffuse_scalar_msd" << "\n";
+	amrex::Print() << "Done with diffuse_scalar" << "\n";
 
     }
     
@@ -1081,6 +1114,12 @@ Diffusion::diffuse_velocity (Real                   dt,
 
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
+
+    BL_ASSERT(allthere);
+
+    if (allnull) {
+	amrex::Abort("Constant viscosity case no longer supported");
+    }
  
     BL_ASSERT( rho_flag == 1 || rho_flag == 3);
 
@@ -1089,8 +1128,10 @@ Diffusion::diffuse_velocity (Real                   dt,
         BL_ASSERT(allnull ? visc_coef[Xvel+d]>=0 : betan[d]->min(0,0) >= 0.0);
 #endif
 
+#if 0
     if (allnull)
     {
+
 	FluxBoxes fb_SCn  (navier_stokes);
 	FluxBoxes fb_SCnp1(navier_stokes);
 
@@ -1111,7 +1152,8 @@ Diffusion::diffuse_velocity (Real                   dt,
 
         for (int sigma = 0; sigma < BL_SPACEDIM; ++sigma)
         {
-            const int state_ind = Xvel + sigma;
+
+            const int state_ind = Xvel + sigma;			// original
             const int fluxComp  = 0;
             const int RHSComp   = rhsComp + sigma;
             diffuse_scalar(dt,state_ind,be_cn_theta,rho_half,rho_flag,
@@ -1138,7 +1180,10 @@ Diffusion::diffuse_velocity (Real                   dt,
                 finer->viscflux_reg->CrseInit(fluxes[d],d,0,0,BL_SPACEDIM,-dt);
         }
     }
+
     else
+#endif
+
     {
         diffuse_tensor_velocity(dt,be_cn_theta,rho_half,rho_flag,
                                 delta_rhs,rhsComp,betan,betanp1,betaComp);
@@ -1443,7 +1488,8 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
 #endif
 
     if (allnull)
-      diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag,update_fluxreg);
+      amrex::Abort("Constant viscosity case no longer supported");
+//      diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag,update_fluxreg);
     else
       diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp,update_fluxreg);
     //
@@ -1477,6 +1523,7 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
     }
 }
 
+#if 0
 void
 Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                                       Real            dt,
@@ -1694,6 +1741,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         }
     }
 }
+#endif
 
 void
 Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
@@ -1806,6 +1854,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     }
 }
 
+# if 1
 void
 Diffusion::diffuse_Ssync (MultiFab&              Ssync,
                           int                    sigma,
@@ -1837,6 +1886,9 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     MultiFab  Rhs(grids,dmap,1,0);
 
     MultiFab::Copy(Rhs,Ssync,sigma,0,1,0);
+
+    Rhs.mult(dt);
+
 
     if (verbose > 1)
     {
@@ -1924,7 +1976,11 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
             Rhs[Rhsmfi].mult(rhsscale,bx);
         }
 
+	VisMF::Write(Rhs,"Rhs_diffuseSsync_WITHMLMG");
+
         mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+
+	VisMF::Write(Soln,"Soln_diffuseSsync_WITHMLMG");
         
         int flux_allthere, flux_allnull;
         checkBeta(flux, flux_allthere, flux_allnull);
@@ -1942,6 +1998,8 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     }
     else
     {
+//	amrex::Abort("Non-MLMG solver no longer supported");
+#if 1
         std::unique_ptr<ABecLaplacian> visc_op
             (getViscOp(state_ind,a,b,rho_half,rho_flag,&rhsscale,beta,betaComp,alpha,alphaComp));
         visc_op->maxOrder(max_order);
@@ -1954,7 +2012,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
         for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
         {
             const Box& bx = Rhsmfi.tilebox();
-            Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0); 
+            Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0);
             if (rho_flag == 1)
                 Rhs[Rhsmfi].mult(rho_half[Rhsmfi],bx,0,0);
             Rhs[Rhsmfi].mult(rhsscale,bx);
@@ -1970,8 +2028,12 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
         }
         else
         {
+
             MultiGrid mg(*visc_op);
+
             mg.solve(Soln,Rhs,S_tol,S_tol_abs);
+
+	    amrex::Print() << "Doing mg solve in diffuse_Ssync..." << '\n';
         }
 
         int flux_allthere, flux_allnull;
@@ -1983,6 +2045,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
             for (int i = 0; i < BL_SPACEDIM; ++i)
                 (*flux[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
         }
+#endif
     }
 
     MultiFab::Copy(Ssync,Soln,0,sigma,1,0);
@@ -2017,6 +2080,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 		       << ", time: " << run_time << '\n';
     }
 }
+# endif
 
 void
 Diffusion::getTensorOp_doit (DivVis*                tensor_op,
@@ -2182,6 +2246,7 @@ Diffusion::getTensorOp (Real                   a,
     return tensor_op;
 }
 
+#if 1
 ABecLaplacian*
 Diffusion::getViscOp (int                    comp,
                       Real                   a,
@@ -2212,16 +2277,17 @@ Diffusion::getViscOp (int                    comp,
 
     return visc_op;
 }
+#endif
 
 void
-Diffusion::getBndryDataGivenS_msd (ViscBndry&               bndry,
-                                   const Vector<MultiFab*>& S,
-                                   int                      S_comp,
-                                   const Vector<MultiFab*>& Rho,
-                                   int                      Rho_comp,
-                                   const BCRec&             bc,
-                                   const IntVect&           crat,
-                                   int                      rho_flag)
+Diffusion::getBndryDataGivenS (ViscBndry&               bndry,
+                               const Vector<MultiFab*>& S,
+                               int                      S_comp,
+                               const Vector<MultiFab*>& Rho,
+                               int                      Rho_comp,
+                               const BCRec&             bc,
+                               const IntVect&           crat,
+                               int                      rho_flag)
 {
   const int nGrow = 1;
   const int nComp = 1;
@@ -2256,43 +2322,44 @@ Diffusion::getBndryDataGivenS_msd (ViscBndry&               bndry,
 }
 
 ABecLaplacian*
-Diffusion::getViscOp_msd (Real                                 a,
-                          Real                                 b,
-                          ViscBndry&                           visc_bndry,
-                          const Vector<MultiFab*>&             S,
-                          int                                  S_comp,
-                          const Vector<MultiFab*>&             Rho,
-                          int                                  Rho_comp,
-                          const MultiFab&                      rho_half,
-                          int                                  rho_flag, 
-                          Real*                                rhsscale,
-                          const MultiFab* const*               beta,
-                          int                                  betaComp,
-                          const MultiFab*                      alpha_in,
-                          int                                  alpha_in_comp,
-                          MultiFab&                            alpha,
-                          std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                          const BCRec&                         bc,
-                          const IntVect&                       crat,
-                          const Geometry&                      geom,
-                          const MultiFab&                      volume,
-                          const MultiFab* const*               area,
-                          bool                                 use_hoop_stress)
+Diffusion::getViscOp (Real                                 a,
+                      Real                                 b,
+                      ViscBndry&                           visc_bndry,
+                      const Vector<MultiFab*>&             S,
+                      int                                  S_comp,
+                      const Vector<MultiFab*>&             Rho,
+                      int                                  Rho_comp,
+                      const MultiFab&                      rho_half,
+                      int                                  rho_flag, 
+                      Real*                                rhsscale,
+                      const MultiFab* const*               beta,
+                      int                                  betaComp,
+                      const MultiFab*                      alpha_in,
+                      int                                  alpha_in_comp,
+                      MultiFab&                            alpha,
+                      std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                      const BCRec&                         bc,
+                      const IntVect&                       crat,
+                      const Geometry&                      geom,
+                      const MultiFab&                      volume,
+                      const MultiFab* const*               area,
+                      bool                                 use_hoop_stress)
 {
-    getBndryDataGivenS_msd(visc_bndry,S,S_comp,Rho,Rho_comp,bc,crat,rho_flag);
+    getBndryDataGivenS(visc_bndry,S,S_comp,Rho,Rho_comp,bc,crat,rho_flag);
 
     ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,geom.CellSize());
 
     visc_op->maxOrder(max_order);
 
-    setAlpha_msd(visc_op,a,b,rho_half,rho_flag,rhsscale,alpha_in,alpha_in_comp,
-                 Rho[0],Rho_comp,alpha,geom,volume,use_hoop_stress);
+    setAlpha(visc_op,a,b,rho_half,rho_flag,rhsscale,alpha_in,alpha_in_comp,
+             Rho[0],Rho_comp,alpha,geom,volume,use_hoop_stress);
 
-    setBeta_msd(visc_op,beta,betaComp,bcoeffs,geom,area);
+    setBeta(visc_op,beta,betaComp,bcoeffs,geom,area);
 
     return visc_op;
 }
 
+#if 1
 ABecLaplacian*
 Diffusion::getViscOp (int                    comp,
                       Real                   a,
@@ -2328,7 +2395,9 @@ Diffusion::getViscOp (int                    comp,
 
     return visc_op;
 }
+#endif
 
+#if 1
 void
 Diffusion::setAlpha (ABecLaplacian*  visc_op,
                      int             comp,
@@ -2350,34 +2419,36 @@ Diffusion::setAlpha (ABecLaplacian*  visc_op,
     visc_op->setScalars(scalars.first, scalars.second);
     visc_op->aCoefficients(alpha);
 }
+#endif
 
 void
-Diffusion::setAlpha_msd (ABecLaplacian*  visc_op,
-                         Real            a,
-                         Real            b,
-                         const MultiFab& rho_half,
-                         int             rho_flag, 
-                         Real*           rhsscale,
-                         const MultiFab* alpha_in,
-                         int             alpha_in_comp,
-                         const MultiFab* rho,
-                         int             rho_comp,
-                         MultiFab&       alpha,
-                         const Geometry& geom,
-                         const MultiFab& volume,
-                         bool            use_hoop_stress)
+Diffusion::setAlpha (ABecLaplacian*  visc_op,
+                     Real            a,
+                     Real            b,
+                     const MultiFab& rho_half,
+                     int             rho_flag, 
+                     Real*           rhsscale,
+                     const MultiFab* alpha_in,
+                     int             alpha_in_comp,
+                     const MultiFab* rho,
+                     int             rho_comp,
+                     MultiFab&       alpha,
+                     const Geometry& geom,
+                     const MultiFab& volume,
+                     bool            use_hoop_stress)
 {
     BL_ASSERT(visc_op != 0);
 
     std::pair<Real,Real> scalars;
-    computeAlpha_msd(alpha, scalars, a, b, rho_half, rho_flag, rhsscale, alpha_in, alpha_in_comp,
-                     rho, rho_comp, geom, volume, use_hoop_stress);
+    computeAlpha(alpha, scalars, a, b, rho_half, rho_flag, rhsscale, alpha_in, alpha_in_comp,
+                 rho, rho_comp, geom, volume, use_hoop_stress);
 
     visc_op->setScalars(scalars.first, scalars.second);
 
     visc_op->aCoefficients(alpha);
 }
 
+#if 1
 void
 Diffusion::computeAlpha (MultiFab&       alpha,
                          std::pair<Real,Real>& scalars,
@@ -2479,22 +2550,23 @@ Diffusion::computeAlpha (MultiFab&       alpha,
         scalars.second = b;
     }
 }
+#endif
 
 void
-Diffusion::computeAlpha_msd (MultiFab&       alpha,
-                             std::pair<Real,Real>& scalars,
-                             Real            a,
-                             Real            b,
-                             const MultiFab& rho_half,
-                             int             rho_flag, 
-                             Real*           rhsscale,
-                             const MultiFab* alpha_in,
-                             int             alpha_in_comp,
-                             const MultiFab* rho,
-                             int             rho_comp,
-                             const Geometry& geom,
-                             const MultiFab& volume,
-                             bool            use_hoop_stress)
+Diffusion::computeAlpha (MultiFab&       alpha,
+                         std::pair<Real,Real>& scalars,
+                         Real            a,
+                         Real            b,
+                         const MultiFab& rho_half,
+                         int             rho_flag, 
+                         Real*           rhsscale,
+                         const MultiFab* alpha_in,
+                         int             alpha_in_comp,
+                         const MultiFab* rho,
+                         int             rho_comp,
+                         const Geometry& geom,
+                         const MultiFab& volume,
+                         bool            use_hoop_stress)
 {
     int useden  = (rho_flag == 1);
 
@@ -2507,11 +2579,13 @@ Diffusion::computeAlpha_msd (MultiFab&       alpha,
     }
     else
     {
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(alpha,true); mfi.isValid(); ++mfi)
         {
+
             const Box& bx = mfi.tilebox();
 
             Vector<Real> rcen(bx.length(0));
@@ -2528,7 +2602,13 @@ Diffusion::computeAlpha_msd (MultiFab&       alpha,
             const Box&       vbox    = volume[mfi].box();
             const int*       vlo     = vbox.loVect();
             const int*       vhi     = vbox.hiVect();
+
+	    Print() << "Doing the RZ geometry - one" << std::endl;
+
             const FArrayBox& Rh      = rho_half[mfi];
+
+	    Print() << "Doing the RZ geometry - two" << std::endl;
+
             int usehoop              = (int)use_hoop_stress;
 
             DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
@@ -2583,16 +2663,16 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
 }
 
 void
-Diffusion::setBeta_msd (ABecLaplacian*         visc_op,
-                        const MultiFab* const* beta,
-                        int                    betaComp,
-                        std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                        const Geometry&        geom,
-                        const MultiFab* const* area)
+Diffusion::setBeta (ABecLaplacian*         visc_op,
+                    const MultiFab* const* beta,
+                    int                    betaComp,
+                    std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                    const Geometry&        geom,
+                    const MultiFab* const* area)
 {
     BL_ASSERT(visc_op != 0);
 
-    computeBeta_msd(bcoeffs, beta, betaComp, geom, area);
+    computeBeta(bcoeffs, beta, betaComp, geom, area);
 
     for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
@@ -2600,6 +2680,7 @@ Diffusion::setBeta_msd (ABecLaplacian*         visc_op,
     }
 }
 
+#if 1
 void
 Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                         const MultiFab* const* beta,
@@ -2643,13 +2724,14 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
         }
     }
 }
+#endif
 
 void
-Diffusion::computeBeta_msd (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                            const MultiFab* const* beta,
-                            int                    betaComp,
-                            const Geometry&        geom,
-                            const MultiFab* const* area)
+Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                        const MultiFab* const* beta,
+                        int                    betaComp,
+                        const Geometry&        geom,
+                        const MultiFab* const* area)
 {
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
@@ -2985,6 +3067,8 @@ Diffusion::getBndryData (ViscBndry& bndry,
         bndry.setBndryValues(crse_br,0,S,0,0,num_comp,crse_ratio,bc);
     }
 }
+
+#if 1
 void
 Diffusion::getBndryDataGivenS (ViscBndry& bndry,
                                MultiFab&  Rho_and_spec,
@@ -3022,6 +3106,7 @@ Diffusion::getBndryDataGivenS (ViscBndry& bndry,
         bndry.setBndryValues(crse_br,0,Rho_and_spec,src_comp,0,num_comp,crse_ratio,bc);
     }
 }
+#endif
 
 void
 Diffusion::FillBoundary (BndryRegister& bdry,
