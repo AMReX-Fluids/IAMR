@@ -184,7 +184,27 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         p_avg.define(P_grids,dmap,1,0);
     }
 
+#ifdef AMREX_USE_EB
+    //fixme? not 100% sure this is the right place
+    // does the ns struct get destroyed each regrid?... it must, all these
+    // thing that are build on grids would have to be destroyed and rebuilt
+    // with new grids, right?
+    // where to put gradp so it persists? ...
+    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
+    gradp->setVal(0.);
+
+    //FIXME???
+    // not sure about whether all these other rhos need EBFacotry too or not
+    //
+    // rho_half is passed into level_project to be used as sigma in the MLMG
+    // solve
+    rho_half.define (grids,dmap,1,1, MFInfo(), Factory());
+
+    //FIXME --- this fn is really similar to restart()... work on that later   
+#else
+    
     rho_half.define (grids,dmap,1,1);
+#endif
     rho_ptime.define(grids,dmap,1,1);
     rho_ctime.define(grids,dmap,1,1);
     rho_qtime  = 0;
@@ -223,7 +243,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
                                    parent->finestLevel(),radius_grow);
     }
     projector->install_level(level,this,&radius);
-    
+
     //
     // Set up the godunov box.
     //
@@ -809,10 +829,6 @@ NavierStokesBase::buildMetrics ()
     }
 
 #ifdef AMREX_USE_EB
-    //fixme: for now assume EB still needs old volume and area in addition to
-    //       new EB data holders
-
-    //Fixme Is this test done elsewhere?
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
     Print()<<"dx = "<<dx[0]<<" "<<dx[1]<<" "<<dx[2]<<" \n";
@@ -823,6 +839,9 @@ NavierStokesBase::buildMetrics ()
 
     //Get pointers to EB data holders
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    //
+    // FIXME make sure this just assigns the pointers adresses and doens't do
+    //       a copy
     volfrac = &(ebfactory.getVolFrac());
     bndrycent = &(ebfactory.getBndryCent());
     areafrac = ebfactory.getAreaFrac();
@@ -1439,7 +1458,6 @@ NavierStokesBase::getDsdt (int ngrow, Real time)
 
     return dsdt;
 }
-
 
 void
 NavierStokesBase::getGradP (MultiFab& gp, Real      time)
@@ -2744,6 +2762,9 @@ NavierStokesBase::restart (Amr&          papa,
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
+#ifdef AMREX_USE_EB
+    amrex::Error("Restart not working with EB yet.");
+#endif
     //
     // Build metric coefficients for RZ calculations.
     // Build volume and areas.

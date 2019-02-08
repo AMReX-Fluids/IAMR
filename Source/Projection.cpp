@@ -56,6 +56,7 @@ namespace
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
+    int max_mlmg_iter = -1;
     bool use_gauss_seidel = true;
     bool use_harmonic_average = false;
 }
@@ -87,11 +88,6 @@ Projection::Initialize ()
     pp.query("max_fmg_iter",        max_fmg_iter);
     pp.query("use_gauss_seidel",    use_gauss_seidel);
     pp.query("use_harmonic_average", use_harmonic_average);
-
-#ifdef AMREX_USE_EB
-    if (!use_mlmg_solver)
-      amrex::Error("EB requires proj.use_mlmg_solver = 1");
-#endif
     
     if (!proj_2) 
 	amrex::Error("With new gravity and outflow stuff, must use proj_2");
@@ -281,12 +277,11 @@ Projection::level_project (int             level,
     if (level != 0)
     {
 	LevelData[level]->FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
-        if (!proj_2) 
-            P_new.minus(P_old,0,1,0); // Care about nodes on box boundary
     }
 
     const int nGrow = (level == 0  ?  0  :  -1);
-
+    //
+    // MultiFab::setVal() won't work here bc nGrow could be <0
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -308,69 +303,41 @@ Projection::level_project (int             level,
     if (have_divu)
     {
         divusource.reset(ns->getDivCond(1,time+dt));
-        if (!proj_2) {
-            divuold.reset(ns->getDivCond(1,time));
-        }
     }
 
     const Real dt_inv = 1./dt;
-    if (proj_2)
-    {
-        U_new.mult(dt_inv,0,BL_SPACEDIM,1);
-        if (have_divu)
-            divusource->mult(dt_inv,0,1,divusource->nGrow());
-    }
-    else
-    {
-        for (MFIter U_newmfi(U_new); U_newmfi.isValid(); ++U_newmfi) 
-        {
-            const int i = U_newmfi.index();
+    U_new.mult(dt_inv,0,BL_SPACEDIM,1);
+    if (have_divu)
+      divusource->mult(dt_inv,0,1,divusource->nGrow());
 
-            ConvertUnew(U_new[U_newmfi],U_old[U_newmfi],dt,U_new.box(i));
-        } 
-
-        if (have_divu)
-        {
-            divusource->minus(*divuold,0,1,divusource->nGrow());
-            divusource->mult(dt_inv,0,1,divusource->nGrow());
-
-            if (divu_minus_s_factor>0.0 && divu_minus_s_factor<=1.0)
-            {
-                amrex::Error("Check this code....not recently tested");
-                //
-                // Compute relaxation terms to account for approximate projection
-                // add divu_old*divu...factor/dt to divusource.
-                //
-                const Real uoldfactor = divu_minus_s_factor*dt/parent->dtLevel(0);
-                UpdateArg1(*divusource, uoldfactor/dt, *divuold, 1, grids, 1);
-                //
-                // add U_old*divu...factor/dt to U_new
-                //
-                UpdateArg1(U_new, uoldfactor/dt, U_old, BL_SPACEDIM, grids, 1);
-            }
-        }
-    }
-
-    if (proj_2)
-    {
-        MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-        ns->getGradP(Gp, prev_pres_time);
-
+#ifdef AMREX_USE_EB
+    //fixme?  I think one gp is fine, just update as we go, but
+    // maybe revisit this later
+    const MultiFab* Gp = ns->getGradP();
+#else
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    ns->getGradP(Gp, prev_pres_time);
+#endif
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(rho_half,true); mfi.isValid(); ++mfi) 
-	{
-	    const Box& bx = mfi.growntilebox(1);
-	    FArrayBox& Gpfab = Gp[mfi];
-	    const FArrayBox& rhofab = rho_half[mfi];
-      
-	    for (int i = 0; i < BL_SPACEDIM; i++) {
-		Gpfab.divide(rhofab,bx,0,i,1);
-	    }
-      
-	    U_new[mfi].plus(Gpfab,bx,0,0,BL_SPACEDIM);
+    for (MFIter mfi(rho_half,true); mfi.isValid(); ++mfi) 
+    {
+	const Box& bx = mfi.growntilebox(1);
+	const FArrayBox& rhofab = rho_half[mfi];
+#ifdef AMREX_USE_EB
+	FArrayBox Gpfab(bx,BL_SPACEDIM);
+	Gpfab.copy((*Gp)[mfi],0,0,BL_SPACEDIM);
+#else
+	FArrayBox& Gpfab = Gp[mfi];
+#endif
+
+	for (int i = 0; i < BL_SPACEDIM; i++) {
+	  Gpfab.divide(rhofab,bx,0,i,1);
 	}
+      
+	U_new[mfi].plus(Gpfab,bx,0,0,BL_SPACEDIM);
     }
 
     //
@@ -419,12 +386,13 @@ Projection::level_project (int             level,
     Vector<MultiFab*> phi(maxlev, nullptr);
     Vector<MultiFab*> sig(maxlev, nullptr);
 
+    //fixme
     vel[level] = &U_new;
     phi[level] = &P_new;
 
     BL_ASSERT( 1 == rho_half.nGrow());
     sig[level] = &rho_half;
-
+    
     //
     // Project
     //
@@ -434,31 +402,28 @@ Projection::level_project (int             level,
         sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1));
     }
 
-    if (level > 0 && ((proj_2 && iteration == crse_dt_ratio) || !proj_2))
+    if (level > 0 && iteration == crse_dt_ratio )
     {
         const int ngrow = parent->MaxRefRatio(level-1) - 1;
         sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow));
     }
 
-    if (!have_divu) 
-    {
-        Vector<MultiFab*> rhcc(maxlev, nullptr);
-        doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol, 
-                              sync_resid_crse.get(), sync_resid_fine.get());
-    }
-    else 
+    Vector<MultiFab*> rhcc(maxlev, nullptr);
+    if (have_divu) 
     {
         if (is_rz == 1) {
             radMultScal(level,*divusource);
         }
-       const int nghost = 0;
-        divusource->mult(-1.0,0,1,nghost);
+        const int nghost = 0;
+	divusource->mult(-1.0,0,1,nghost);
 
-	Vector<MultiFab*> rhcc(maxlev, nullptr);
 	rhcc[level] = divusource.get();
-        doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol, proj_abs_tol,
-                              sync_resid_crse.get(), sync_resid_fine.get());
     }
+
+    doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol,
+			  proj_abs_tol,
+			  sync_resid_crse.get(), sync_resid_fine.get());
+
 
     //
     // Note: this must occur *after* the projection has been done
@@ -500,33 +465,9 @@ Projection::level_project (int             level,
     //
     rescaleVar(LEVEL_PROJ,&rho_half, 1, &U_new, level);
     //
-    // Put U_new back to "normal"; subtract U_old*divu...factor/dt from U_new
+    // un = dt*un
     //
-    if (!proj_2 && divu_minus_s_factor>0.0 && divu_minus_s_factor<=1.0 && have_divu) 
-    {
-        const Real uoldfactor = -divu_minus_s_factor*dt/parent->dtLevel(0);
-        UpdateArg1(U_new, uoldfactor/dt, U_old, BL_SPACEDIM, grids, 1);
-    }
-    //
-    // Convert U back to a velocity, and phi into p^n+1/2.
-    //
-    if (proj_2) 
-    {
-        //
-        // un = dt*un
-        //
-        U_new.mult(dt,0,BL_SPACEDIM,1);
-    }
-    else
-    {
-        //
-        // un = uo+dt*un
-        //
-        UnConvertUnew(U_old, dt, U_new, grids);
-    }
-
-    if (!proj_2) 
-        AddPhi(P_new, P_old);             // pn = pn + po
+    U_new.mult(dt,0,BL_SPACEDIM,1);
 
     if (verbose)
     {
@@ -896,6 +837,10 @@ Projection::initialVelocityProject (int  c_lev,
         const BoxArray& grids  = LevelData[lev]->boxArray();
         const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
 #ifdef AMREX_USE_EB
+	//fixme?
+	// unclear to me if sig really needs EB data
+	// with sig = 1, projection works without EB data
+	// need to test with non-uniform sig?
 	sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),*ebfactory[lev]));
 #else
         sig[lev].reset(new MultiFab(grids,dmap,1,nghost));
@@ -976,6 +921,10 @@ Projection::initialVelocityProject (int  c_lev,
 	    
             const BoxArray& grids     = amr_level.boxArray();
             const DistributionMapping& dmap = amr_level.DistributionMap();
+	    // for EB
+	    //  it's inclear to me if rhcc needs to be build with EB data
+	    //  since it will be added to rhs and it is rhs that goes to
+	    //  the MLMG solver.  rhs carries EB data and maybe that't enough
             rhcc[lev].reset(new MultiFab(grids,dmap,1,nghost));
             put_divu_in_cc_rhs(*rhcc[lev],lev,cur_divu_time);
         }
@@ -1036,8 +985,8 @@ Projection::initialVelocityProject (int  c_lev,
 
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
-        LevelData[lev]->get_old_data(Press_Type).setVal(0);
-        LevelData[lev]->get_new_data(Press_Type).setVal(0);
+        LevelData[lev]->get_old_data(Press_Type).setVal(0.);
+        LevelData[lev]->get_new_data(Press_Type).setVal(0.);
     }
 
     if (verbose) {
@@ -1060,6 +1009,10 @@ Projection::initialPressureProject (int  c_lev)
 		     << "  " << f_lev << '\n';
     }
 
+#ifdef AMREX_USE_EB
+    amrex::Error("Projection::initialPressureProject with EB has not been tested yet.");
+#endif
+    
     const Real strt_time = ParallelDescriptor::second();
 
     Vector<MultiFab*> vel(maxlev, nullptr);
@@ -1074,6 +1027,7 @@ Projection::initialPressureProject (int  c_lev)
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev]->boxArray();
         const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
+	//fixme?  does sig need EB data
         sig[lev].reset(new MultiFab(grids,dmap,1,nghost));
 
         AmrLevel& amr_level = parent->getLevel(lev);
@@ -1120,7 +1074,11 @@ Projection::initialPressureProject (int  c_lev)
     for (lev = c_lev; lev <= f_lev; lev++) {
         const BoxArray& grids = vel[lev]->boxArray();
         const DistributionMapping& dmap = vel[lev]->DistributionMap();
+#ifdef AMREX_USE_EB
+	raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, dmap, BL_SPACEDIM, 1,MFInfo(),*ebfactory[lev])));
+#else
         raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, dmap, BL_SPACEDIM, 1)));
+#endif
         vel[lev] = raii.back().get();
         vel[lev]->setVal(0.0    , 0            , BL_SPACEDIM-1, 1);
         vel[lev]->setVal(gravity, BL_SPACEDIM-1, 1            , 1);
@@ -1264,7 +1222,7 @@ Projection::initialSyncProject (int       c_lev,
     for (lev = c_lev; lev <= f_lev; lev++) 
     {
         MultiFab& P_old = LevelData[lev]->get_old_data(Press_Type);
-        P_old.setVal(0);
+        P_old.setVal(0.);
     }
     //
     // Set velocity bndry values to bogus values.
@@ -2457,21 +2415,15 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     LPInfo info;
-    //Fixme testing
+    //Fixme 
+    // does this max_coarsening level need to match the one in main.cpp????
     int max_coarsening_level = 30;
     info.setMaxCoarseningLevel(max_coarsening_level);
-    // info.setAgglomeration(agglomeration);
-    // info.setConsolidation(consolidation);
-    // info.setMetricTerm(false);
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
-    //fixme ??
-    // inside this linop build, fn MLLinOp::defineGrids() is supposed to
-    // agglomerate grids to get 7 mg levels (at least NodeEB does this)
-    // for some reason, here in IAMR, we only get 1 mg level
-    // even though do_agglomeration == 1 and aggable ==1
-    // between NodeEB and here: geom & grids same
-    //     ebfactory created a little differently
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info, ebfactory);
 #else
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info);
@@ -2496,7 +2448,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
 #ifdef AMREX_USE_EB
-	rhs[ilev].define(ba, mg_dmap[ilev], 1, 0, MFInfo(), *ebfactory[ilev]);
+	rhs[ilev].define(ba, mg_dmap[ilev], 1, 0, MFInfo(), *ebfactory[c_lev+ilev]);
 #else
         rhs[ilev].define(ba, mg_dmap[ilev], 1, 0);
 #endif
@@ -2509,25 +2461,67 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
     rhnd_rebase.resize(nlevel,nullptr);
     Vector<MultiFab*> rhcc_rebase{rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel};
+    //fixme
+    // VisMF::Write(*vel_rebase[0],"vel_rb");
+    // VisMF::Write(*vel[0],"vel");
+    //VisMF::Write(*rhcc_rebase[0],"rhcc");
+
     // rhs = 
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
 
     //fixme
-    VisMF::Write(rhs[0],"rhs2d");
-    amrex::WriteSingleLevelPlotfile("phi_in", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+    // VisMF::Write(rhs[0],"rhs2d");
+    // amrex::WriteSingleLevelPlotfile("phi_in", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
     //
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
-    //fixme - added in to match NodeEB
-    mlmg.setMaxIter(100);
+    if (max_mlmg_iter > 0)
+      mlmg.setMaxIter(max_mlmg_iter);
 
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs),
-			       //fixme
-			       1.e-11,0.0);
-			       //rel_tol, abs_tol);
+			       rel_tol, abs_tol);
+#ifdef AMREX_USE_EB
     //fixme
-    amrex::WriteSingleLevelPlotfile("phi", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+    //  update gradP here? or pass back fluxes and update in calling fn?
+    //  what about initial iters....
+    Vector<std::unique_ptr<MultiFab> > fluxes;
+    fluxes.resize(nlevel);
+    for (int lev = 0; lev < nlevel; lev++)
+    {
+        // mfix says:We don't need more than 1 ghost cell in fluxes so no need to make it bigger
+        fluxes[lev].reset(new MultiFab(mg_grids[lev],mg_dmap[lev],
+                                       BL_SPACEDIM, 1, MFInfo(),
+                                       *ebfactory[lev+c_lev]));
+        fluxes[lev]->setVal(1.e200);
+    }
+    // sets fluxes = sig * grad phi
+    mlmg.getFluxes( amrex::GetVecOfPtrs(fluxes));
+    // divide out sig to get fluxes = (grad phi)
+    for (int lev = 0; lev < nlevel; lev++){
+      for (int dir = 0; dir < BL_SPACEDIM; dir++){
+	MultiFab::Divide(*fluxes[lev], *sig[c_lev+lev], 0, dir, 1,
+			 fluxes[lev]->nGrow());
+      }
+    }
+    // update grad p += grad phi
+    Vector < NavierStokesBase* > ns;
+    ns.resize(nlevel);
+    Vector < MultiFab* > Gp;
+    Gp.resize(nlevel);
+    for (int lev = 0; lev < nlevel; lev++){    
+      ns[lev] = dynamic_cast<NavierStokesBase*>(&parent->getLevel(lev+c_lev));
+      //fixme is this assert needed?
+      BL_ASSERT(!(ns[lev]==0));
+      Gp[lev] = ns[lev]->getGradP();
+      MultiFab::Add(*Gp[lev],*fluxes[lev], 0, 0, BL_SPACEDIM,
+		    fluxes[lev]->nGrow());
+    }
+    
+#endif
+    //fixme
+    //    amrex::WriteSingleLevelPlotfile("phi", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+
 
 
     if (sync_resid_fine != 0 or sync_resid_crse != 0)

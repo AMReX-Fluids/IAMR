@@ -175,7 +175,10 @@ public:
     // Get pressure gradient data via fill-patching.
     //
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
-
+#ifdef AMREX_USE_EB
+  amrex::MultiFab* getGradP() { return gradp.get(); }
+#endif
+  
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
     ////////////////////////////////////////////////////////////////////////////
@@ -547,12 +550,15 @@ protected:
 
 #ifdef AMREX_USE_EB
     //
-    // Create holders for EB data
+    // Create pointers to EB data
     //
     const amrex::MultiFab* volfrac;
     const amrex::MultiCutFab* bndrycent;
     std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
     std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
+  
+    // Pressure gradients
+    std::unique_ptr<amrex::MultiFab> gradp ;
 
   //fixme? taking a guess that i'll need this other data cribbed from CNS
     amrex::iMultiFab level_mask;
