@@ -2,6 +2,10 @@
 #ifndef _GODUNOV_CLASS_H_
 #define _GODUNOV_CLASS_H_ 
 
+#ifdef AMREX_USE_EB
+#include <AMReX_MultiCutFab.H>
+#endif
+
 //
 // A useful enumeration of the forms for the advective terms
 //
@@ -318,8 +322,26 @@ public:      // public access functions
                       const amrex::FArrayBox& divu,    int d_ind,
                       const amrex::FArrayBox& rho,     int r_ind,
                       int        iconserv) const; 
-    
-    //================ for debugging purposes this is made public
+
+  //
+  // EB functions
+  //  
+#ifdef AMREX_USE_EB
+void ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
+		       const amrex_real*  dx, amrex_real dt,
+		       D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
+			      amrex::FArrayBox&  wmac),
+		       D_DECL(const amrex::Vector<int>& ubc,
+			      const amrex::Vector<int>& vbc,
+			      const amrex::Vector<int>& wbc),
+		       amrex::FArrayBox&  U,
+		       amrex::FArrayBox&  tforces,
+		       const int nghost, const amrex::Box& domain,
+		       amrex::Array<const amrex::MultiCutFab*, BL_SPACEDIM> areafrac,
+		       amrex::Array<const amrex::MultiCutFab*, BL_SPACEDIM> facecent);
+#endif
+
+  //================ for debugging purposes this is made public
     // internal FABS
     amrex::FArrayBox work; // work space for the Godunov Box
     amrex::FArrayBox uad;  // work space for advective transverse velocities
@@ -376,6 +398,9 @@ protected:   // protected data members
     static int  ppm_type;
     static int  corner_couple;
 
+#ifdef AMREX_USE_EB
+  // pointers to EB data
+#endif
 };
 
 #endif

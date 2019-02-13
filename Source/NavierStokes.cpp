@@ -280,16 +280,24 @@ NavierStokes::advance (Real time,
     // Compute traced states for normal comp of velocity at half time level.
     //
     Real dummy   = 0.0;
+    // Predict the edge velocities and put in u_mac 
     Real dt_test = predict_velocity(dt,dummy);
     //
     // Do MAC projection and update edge velocities.
     //
     if (do_mac_proj) 
     {
+#ifdef AMREX_USE_EB
+        MultiFab mac_rhs(grids,dmap,1,0,MFInfo(),Factory());
+        create_mac_rhs(mac_rhs,0,time,dt);
+        MultiFab& S_old = get_old_data(State_Type);
+        mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
+#else
         MultiFab mac_rhs(grids,dmap,1,0);
         create_mac_rhs(mac_rhs,0,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
         mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
+#endif
     }
     //
     // Advect velocities.
@@ -395,6 +403,7 @@ NavierStokes::predict_velocity (Real  dt,
     BL_PROFILE("NavierStokes::predict_velocity()");
 
     if (verbose) amrex::Print() << "... predict edge velocities\n";
+
     //
     // Get simulation parameters.
     //
@@ -402,6 +411,107 @@ NavierStokes::predict_velocity (Real  dt,
     const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
     const Real  prev_pres_time = state[Press_Type].prevTime();
+
+#ifdef AMREX_USE_EB
+    //
+    //For now, import simple adv scheme from incflo
+    //
+
+    MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
+    if (be_cn_theta != 1.0)
+    {
+      getViscTerms(visc_terms,Xvel,nComp,prev_time);
+    }
+    else
+    {
+	visc_terms.setVal(0.);
+    }
+
+    const Box& domain = geom.Domain();
+    //
+    // nghost from incflo.  5 seems like overkill...
+    //FIXME - this needs to be carried elsewhere for other fns to access
+    // 
+    const int nghost = 5;
+    
+    FillPatchIterator
+      U_fpi(*this,visc_terms,nghost,prev_time,State_Type,Xvel,BL_SPACEDIM);
+    MultiFab& Umf=U_fpi.get_mf();
+
+    //
+    // Set up the timestep estimation.
+    //
+    Real cflmax = 1.0e-10;
+    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
+    // seems both IAMR and Pele only use a dummy comp_cfl, so should
+    // we not bother to do the reduction??? Does amrex use it?
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(max:cflmax,comp_cfl)
+#endif
+{
+    Real cflgrid,u_max[3];
+    FArrayBox tforces;
+    Vector<int> bndry[BL_SPACEDIM];
+    
+    for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+    {
+      const Box& bx=U_mfi.tilebox();
+      FArrayBox& Ufab = Umf[U_mfi];
+      
+      //
+      // No gravity or external forcing terms yet
+      //
+      // So no Sum up forcing terms 
+      //
+      
+      // TODO:
+      // Compute max cfl by
+      // Estimate the extrema of cell-centered us and rho.
+      // Use later for dt
+      //
+      
+      //     
+      // TODO: need some sort of BC conversion fn to get BCs in right form for
+      //       incflo convection
+      //  GODUNOV uses mathematical bcs like reflect_odd
+      //  incflo convection uses phys bcs like slip wall
+      // for now, just doing period, so just make sure I don't trip the bcs
+      //
+      //  FIXME -- THIS IS PROBABLY WRONG FOR ANTYHING BUT PERIODIC!!!
+      //
+      // get BCs for tilebox
+      D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	     bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+      //
+      // Compute Umac
+      //  1. set up BCs, FillPatch vel
+      //  2. compute slopes
+      //  3. trace state to cell edges
+      //
+
+      godunov->ExtrapVelToFaces(U_mfi, dx, dt,
+				D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+				D_DECL(bndry[0],        bndry[1],        bndry[2]),
+				Ufab, tforces, nghost, domain,
+				areafrac, facecent);
+      VisMF::Write(u_mac[0], "umacx");
+      VisMF::Write(u_mac[1], "umacy");
+      VisMF::Write(u_mac[2], "umacz");
+    }
+ }
+    // FIXME --- don't forget to return dt!
+    //  make computeDt() ?
+    //Real tempdt = std::min(change_max,cfl/cflmax);
+    //ParallelDescriptor::ReduceRealMin(tempdt);
+ Real tempdt = 1.;
+ return dt*tempdt;
+
+#else
+    /////////////////////
+    // Do the original //
+    /////////////////////
     //
     // Compute viscous terms at level n.
     // Ensure reasonable values in 1 grow cell.  Here, do extrap for
@@ -508,6 +618,7 @@ NavierStokes::predict_velocity (Real  dt,
     ParallelDescriptor::ReduceRealMin(tempdt);
 
     return dt*tempdt;
+#endif
 }
 
 //

@@ -12,6 +12,13 @@
 
 #include <algorithm>
 
+#ifdef AMREX_USE_EB
+#include <convection_F.H>
+#include <AMReX_MultiCutFab.H>
+#include <AMReX_EBCellFlag.H>
+#include <AMReX_EBFArrayBox.H>
+#endif
+
 #define GEOM_GROW 1
 #define XVEL 0
 #define YVEL 1
@@ -1725,3 +1732,199 @@ Godunov::how_many(const Vector<AdvectionForm>& advectionType,
 
     return counter;
 }
+
+#ifdef AMREX_USE_EB
+//
+// Compute upwinded FC velocities by extrapolating CC values in space and time
+void
+Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
+                           const amrex_real*  dx, amrex_real dt,
+                           D_DECL(FArrayBox&  umac, FArrayBox&  vmac, FArrayBox&  wmac),
+                           D_DECL(const Vector<int>& ubc, const Vector<int>& vbc, const Vector<int>& wbc),
+                           amrex::FArrayBox&  U,
+                           amrex::FArrayBox&  tforces,
+			   const int nghost, const Box& domain,
+			   Array<const amrex::MultiCutFab*, BL_SPACEDIM> areafrac,
+			   Array<const amrex::MultiCutFab*, BL_SPACEDIM> facecent)
+{
+  //
+  // Old sequence in fortran fn:
+  //  Compute slopes
+  //  trace state to cell edges
+  //  enforce bcs
+  //  upwind to get edge state
+  //
+
+  // 
+  // By computing the slopes and extrapolating to faces in the same
+  // loop, we end up having to compute the slopes on the tile edges
+  // twice instead of being able to store the val an reuse
+  // I'm also just computing the slopes on the box grown in all dirs,
+  // when really, xslopes only needs to grown in x-dir, etc.
+  //
+  // Also, compute slopes() computes way more slopes than needed for this..
+  //
+
+  // Tilebox
+  const Box& bx = mfi.tilebox();
+  const Box& ubx = mfi.tilebox(IntVect::TheDimensionVector(0));
+  const Box& vbx = mfi.tilebox(IntVect::TheDimensionVector(1));
+  // FIXME -- need to go through and edit for 2d case
+  const Box& wbx = mfi.tilebox(IntVect::TheDimensionVector(2));
+  
+  // this is to check efficiently if this tile contains any eb stuff
+  const EBFArrayBox& vel_in_fab = static_cast<EBFArrayBox const&>(U);
+  const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
+  
+  if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+  {
+      // If tile is completely covered by EB geometry, set 
+      // to some very large number so we know if
+      // we accidentaly use these covered vals later in calc
+      umac.setVal(1.2345e30, ubx, 0, 1);
+      vmac.setVal(1.2345e30, vbx, 0, 1);
+      wmac.setVal(1.2345e30, wbx, 0, 1);
+  }
+  else
+  {
+      // make holder for slopes
+      // think regular fab will be okay in either case
+    //
+    // FIXME compute_slopes also computes transverse slopes, which are
+    //       not needed here ...
+    // FIXME not sure how many ghost cells are really needed.  
+    //   do it this way for now, to get going
+    const Box& gbx = grow(bx,1);
+    D_TERM(FArrayBox xslopes(gbx,BL_SPACEDIM);,
+	   FArrayBox yslopes(gbx,BL_SPACEDIM);,
+	   FArrayBox zslopes(gbx,BL_SPACEDIM););
+
+      // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
+      if(flags.getType(amrex::grow(bx, 1)) == FabType::regular)
+      {
+	// compute slopes
+	compute_slopes(BL_TO_FORTRAN_BOX(gbx),
+		       BL_TO_FORTRAN_ANYD(U),
+		       D_DECL(xslopes.dataPtr(),
+			      yslopes.dataPtr(),
+			      zslopes.dataPtr()),
+		       BL_TO_FORTRAN_BOX(xslopes.box()),
+		       domain.loVect(), domain.hiVect(),
+		       D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+		       // old bcs
+		       // bc_ilo[lev]->dataPtr(), bc_ihi[lev]->dataPtr(),
+		       // bc_jlo[lev]->dataPtr(), bc_jhi[lev]->dataPtr(),
+		       // bc_klo[lev]->dataPtr(), bc_khi[lev]->dataPtr(),
+		       &nghost);
+
+	// Do I need to do something like this???
+	//	xslopes[lev]->FillBoundary(geom[lev].periodicity());
+
+	// U was properly FillPatched in calling fn (predict_velocity())
+	
+	// Compute estates
+	  compute_velocity_at_faces(BL_TO_FORTRAN_BOX(bx),
+				    BL_TO_FORTRAN_ANYD(U),
+				    D_DECL(BL_TO_FORTRAN_ANYD(umac),
+					   BL_TO_FORTRAN_ANYD(vmac),
+					   BL_TO_FORTRAN_ANYD(wmac)),
+				    D_DECL(xslopes.dataPtr(),
+					   yslopes.dataPtr(),
+					   zslopes.dataPtr()),
+				    BL_TO_FORTRAN_BOX(xslopes.box()),
+				    D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+				    // old bcs
+				    // bc_ilo[lev]->dataPtr(),
+				    // bc_ihi[lev]->dataPtr(),
+				    // bc_jlo[lev]->dataPtr(),
+				    // bc_jhi[lev]->dataPtr(),
+				    // bc_klo[lev]->dataPtr(),
+				    // bc_khi[lev]->dataPtr(),
+				    &nghost,
+				    domain.loVect(),
+				    domain.hiVect());
+      }
+      else
+      {
+	// Use EB routines
+	
+	// compute slopes
+	compute_slopes_eb(BL_TO_FORTRAN_BOX(gbx),
+			  BL_TO_FORTRAN_ANYD(U),
+			  D_DECL(xslopes.dataPtr(),
+				 yslopes.dataPtr(),
+				 zslopes.dataPtr()),
+			  BL_TO_FORTRAN_BOX(xslopes.box()),
+			  BL_TO_FORTRAN_ANYD(flags),
+			  domain.loVect(), domain.hiVect(),
+			  D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+			  // old bcs
+			  // bc_ilo[lev]->dataPtr(), bc_ihi[lev]->dataPtr(),
+			  // bc_jlo[lev]->dataPtr(), bc_jhi[lev]->dataPtr(),
+			  // bc_klo[lev]->dataPtr(), bc_khi[lev]->dataPtr(),
+			  &nghost);
+
+	// Do I need to do something like this???
+	//	xslopes[lev]->FillBoundary(geom[lev].periodicity());
+
+	// U was properly FillPatched in calling fn (predict_velocity())
+	
+	// Compute estates	
+	compute_velocity_at_x_faces_eb(BL_TO_FORTRAN_BOX(ubx),
+					 BL_TO_FORTRAN_ANYD(umac),
+					 BL_TO_FORTRAN_ANYD(U),
+					 BL_TO_FORTRAN_ANYD(xslopes),
+					 BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
+					 BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+					 BL_TO_FORTRAN_ANYD(flags),
+					 ubc.dataPtr(),
+					 // old bcs
+					 // bc_ilo[lev]->dataPtr(),
+					 // bc_ihi[lev]->dataPtr(),
+					 &nghost,
+					 domain.loVect(),
+					 domain.hiVect());
+
+	  compute_velocity_at_y_faces_eb(BL_TO_FORTRAN_BOX(vbx),
+					 BL_TO_FORTRAN_ANYD(vmac),
+					 BL_TO_FORTRAN_ANYD(U),
+					 BL_TO_FORTRAN_ANYD(yslopes),
+					 BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
+					 BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+					 BL_TO_FORTRAN_ANYD(flags),
+					 vbc.dataPtr(),
+					 // old bcs
+					 // bc_jlo[lev]->dataPtr(),
+					 // bc_jhi[lev]->dataPtr(),
+					 &nghost,
+					 domain.loVect(),
+					 domain.hiVect());
+#if (AMREX_SPACEDIM == 3)
+	  compute_velocity_at_z_faces_eb(BL_TO_FORTRAN_BOX(wbx),
+					 BL_TO_FORTRAN_ANYD(wmac),
+					 BL_TO_FORTRAN_ANYD(U),
+					 BL_TO_FORTRAN_ANYD(zslopes),
+					 BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
+					 BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+					 BL_TO_FORTRAN_ANYD(flags),
+					 wbc.dataPtr(),
+					 // old bcs
+					 // bc_klo[lev]->dataPtr(),
+					 // bc_khi[lev]->dataPtr(),
+					 &nghost,
+					 domain.loVect(),
+					 domain.hiVect());
+#endif
+      }
+  }
+//   extrap_vel_to_faces(box.loVect(),box.hiVect(),
+//                       BL_TO_FORTRAN_ANYD(U),
+//                       ubc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,0),BL_TO_FORTRAN_ANYD(umac),
+//                       vbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,1),BL_TO_FORTRAN_ANYD(vmac),
+// #if (AMREX_SPACEDIM == 3)
+//                       wbc.dataPtr(),BL_TO_FORTRAN_N_ANYD(tforces,2),BL_TO_FORTRAN_ANYD(wmac),
+//                       &corner_couple,
+// #endif
+//                       &dt, dx, &use_forces_in_trans, &ppm_type);
+}
+#endif

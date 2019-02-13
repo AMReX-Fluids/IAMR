@@ -178,6 +178,12 @@ public:
 #ifdef AMREX_USE_EB
   amrex::MultiFab* getGradP() { return gradp.get(); }
 #endif
+    //
+    // Boundary condition access functions.
+    //
+    amrex::Vector<int> fetchBCArray (int State_Type, const amrex::Box& bx,
+				     int scomp, int ncomp);
+
   
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //

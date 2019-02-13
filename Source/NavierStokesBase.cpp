@@ -4472,3 +4472,25 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 }
 
 #endif  // AMREX_PARTICLES
+
+// Boundary condition access function.
+Vector<int>
+NavierStokesBase::fetchBCArray (int State_Type, const Box& bx, int scomp, int ncomp)
+{
+    Vector<int> bc(2*BL_SPACEDIM*ncomp);
+    BCRec bcr;
+    const StateDescriptor* stDesc;
+    const Box& domain = geom.Domain();
+    
+    for (int n = 0; n < ncomp; n++)
+    {
+      stDesc=state[State_Type].descriptor();
+      setBC(bx,domain,stDesc->getBC(scomp+n),bcr);      
+
+      const int* b_rec = bcr.vect();
+      for (int m = 0; m < 2*BL_SPACEDIM; m++)
+	bc[2*BL_SPACEDIM*n + m] = b_rec[m];
+    }
+
+    return bc;
+}

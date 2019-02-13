@@ -34,6 +34,11 @@ ifndef ATMOS_MACOP
   FEXE_headers += MACOPERATOR_F.H
 endif
 
+# EB stuff
+FEXE_headers += convection_F.H
+F90EXE_sources += convection_param.F90
+#
+
 CEXE_sources += NavierStokesBase.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
 CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokesBase.H FluxBoxes.H
 

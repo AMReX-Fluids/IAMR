@@ -11,3 +11,6 @@ ifndef ATMOS_MACOP
 endif
 
 F90EXE_sources += IAMR_MLMG_$(DIM)d.F90 ARRAYLIM_$(DIM)D.F90 DERIVE_$(DIM)D.F90
+
+# for EB
+F90EXE_sources += convection_mod_3d.F90 convection_eb_mod_3d.F90 slopes_mod_3d.F90
