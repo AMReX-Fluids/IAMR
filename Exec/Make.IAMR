@@ -32,6 +32,18 @@ ifeq ($(USE_HYPRE),TRUE)
   Pdirs += Extern/HYPRE
 endif
 
+ifeq ($(USE_ALGOIM),TRUE)
+    ALGOIM_HOME ?= /home/candace/CCSE/algoim
+    BLITZ_HOME  ?= /home/candace/CCSE/blitz
+    INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/Algoim
+    INCLUDE_LOCATIONS += $(ALGOIM_HOME)/src
+    INCLUDE_LOCATIONS += $(BLITZ_HOME)
+    VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/Algoim
+    VPATH_LOCATIONS   += $(ALGOIM_HOME)/src
+    DEFINES += -DUSE_ALGOIM
+    Pdirs += Extern/Algoim
+endif
+
 Ppack   += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
