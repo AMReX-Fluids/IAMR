@@ -11,8 +11,8 @@ TOP = ../..
 DIM        = 3
 COMP	   = gnu
 DEBUG	   = FALSE
-USE_MPI    = FALSE
-USE_OPENMP = FALSE
+USE_MPI    = TRUE
+USE_OMP    = TRUE
 
 PRECISION = DOUBLE
 

@@ -3,17 +3,35 @@
 # INPUTS.2D.BUBBLE
 #*******************************************************************************
 
+#godunov.ppm_type=0
+#godunov.slope_order=2
+#godunov.use_forces_in_trans=1
+
+#ns.velocity_plotfile=plt00005
+
+#ns.do_mom_diff=1
+#ns.predict_mom_together=1
+
+ns.do_denminmax=0
+#ns.init_iter=0
+ns.variable_vel_visc = 0
+ns.variable_scal_diff = 0
+ns.sum_interval = 0
+
+fabarray.mfiter_tile_size = 8 8 8 
+
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 50
+max_step 		= 0
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
 # Use the tracer for the refinement criterion
 ns.do_tracer_ref = 1
+ns.do_vorticity_ref = 1
 
 #*******************************************************************************
 
@@ -25,7 +43,8 @@ amr.max_grid_size	= 16
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 1 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
+#amr.max_level		= 0 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -71,16 +90,19 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 
 # Viscosity coefficient 
 ns.vel_visc_coef        = 0.001
+#ns.vel_visc_coef        = 0
 
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.0
+ns.scal_diff_coefs      = 0.001
+#ns.scal_diff_coefs      = 0.
 
 #*******************************************************************************
 
 # Forcing term defaults to  rho * abs(gravity) "down"
-ns.gravity              = -9.8  
+ns.gravity              = -9.8
+#ns.gravity              = 0
 
 #*******************************************************************************
 
@@ -120,7 +142,8 @@ ns.hi_bc             = 4 4
 #*******************************************************************************
 
 # For solver reasons, use multigrid iterations as the bottom solve.
-# mg.usecg = 1
+ mg.usecg = 1
+ mg.maxiter=1000
 
 #*******************************************************************************
 

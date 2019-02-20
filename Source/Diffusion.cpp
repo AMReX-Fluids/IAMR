@@ -410,10 +410,10 @@ Diffusion::diffuse_scalar (Real                   dt,
 		const int*  vlo     = vbox.loVect();
 		const int*  vhi     = vbox.hiVect();
 
-		FORT_HOOPRHS(ARLIM(lo),ARLIM(hi),
-			     rhs, ARLIM(rlo), ARLIM(rhi), 
-			     sdat, ARLIM(slo), ARLIM(shi),
-			     rcendat, &coeff, voli, ARLIM(vlo),ARLIM(vhi));
+		hooprhs(ARLIM(lo),ARLIM(hi),
+			rhs, ARLIM(rlo), ARLIM(rhi), 
+			sdat, ARLIM(slo), ARLIM(shi),
+			rcendat, &coeff, voli, ARLIM(vlo),ARLIM(vhi));
 	    }
 	}
     }
@@ -615,7 +615,7 @@ Diffusion::diffuse_velocity (Real                   dt,
                              const MultiFab* const* betanp1,
                              int                    betaComp)
 {
-    if (verbose) amrex::Print() << "... Diffusion::diffuse_velocity() lev: " << level << std::endl;
+  if (verbose) amrex::Print() << "... Diffusion::diffuse_velocity() lev: " << level << std::endl;
 
     const Real strt_time = ParallelDescriptor::second();
 
@@ -849,14 +849,14 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                 const int*       betay_hi  = betay.hiVect();
                 const Real*      betay_dat = betay.dataPtr(betaComp);
 
-                FORT_TENSOR_HOOPRHS(&fort_xvel_comp,
-				    ARLIM(lo), ARLIM(hi),
-				    rhs, ARLIM(rlo), ARLIM(rhi), 
-                                    sdat, ARLIM(slo), ARLIM(shi),
-                                    rcendat, &coeff, 
-                                    voli, ARLIM(vlo), ARLIM(vhi),
-                                    betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                                    betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
+                tensor_hooprhs(&fort_xvel_comp,
+			       ARLIM(lo), ARLIM(hi),
+			       rhs, ARLIM(rlo), ARLIM(rhi), 
+			       sdat, ARLIM(slo), ARLIM(shi),
+			       rcendat, &coeff, 
+			       voli, ARLIM(vlo), ARLIM(vhi),
+			       betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
+			       betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
             }
         }
 #endif
@@ -1193,14 +1193,14 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                 DEF_CLIMITS(yarea,yarea_dat,yarea_lo,yarea_hi);
 
 #if (BL_SPACEDIM == 2)
-                FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
-                                   xbx.loVect(), xbx.hiVect(),
-                                   ybx.loVect(), ybx.hiVect(),
-                                   xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
-                                   yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
-                                   xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
-                                   yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
-                                   dx,&mult);
+                viscsyncflux (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
+			      xbx.loVect(), xbx.hiVect(),
+			      ybx.loVect(), ybx.hiVect(),
+			      xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
+			      yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
+			      xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
+			      yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
+			      dx,&mult);
 #endif
 #if (BL_SPACEDIM == 3)
 		const Box& zbx = Vsyncmfi.nodaltilebox(2);
@@ -1211,17 +1211,17 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
                 const FArrayBox& zarea = area[2][Vsyncmfi];
                 DEF_CLIMITS(zarea,zarea_dat,zarea_lo,zarea_hi);
 
-                FORT_VISCSYNCFLUX (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
-                                   xbx.loVect(), xbx.hiVect(),
-                                   ybx.loVect(), ybx.hiVect(),
-                                   zbx.loVect(), zbx.hiVect(),
-                                   xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
-                                   yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
-                                   zflux_dat,ARLIM(zflux_lo),ARLIM(zflux_hi),
-                                   xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
-                                   yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
-                                   zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
-                                   dx,&mult);
+                viscsyncflux (u_sync.dataPtr(comp), ARLIM(ulo), ARLIM(uhi),
+			      xbx.loVect(), xbx.hiVect(),
+			      ybx.loVect(), ybx.hiVect(),
+			      zbx.loVect(), zbx.hiVect(),
+			      xflux_dat,ARLIM(xflux_lo),ARLIM(xflux_hi),
+			      yflux_dat,ARLIM(yflux_lo),ARLIM(yflux_hi),
+			      zflux_dat,ARLIM(zflux_lo),ARLIM(zflux_hi),
+			      xarea_dat,ARLIM(xarea_lo),ARLIM(xarea_hi),
+			      yarea_dat,ARLIM(yarea_lo),ARLIM(yarea_hi),
+			      zarea_dat,ARLIM(zarea_lo),ARLIM(zarea_hi),
+			      dx,&mult);
 #endif
 	    }
 
@@ -1337,31 +1337,11 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
         for (int d =0; d <BL_SPACEDIM; d++)
             tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
 	if (update_fluxreg)
-	{
-	  FArrayBox flux;
-	  for (int sigma = Xvel; sigma < BL_SPACEDIM+Xvel; sigma++)
-	  {
-            for (MFIter mfi(*(tensorflux[0])); mfi.isValid(); ++mfi)
-            {
-	      const int i    = mfi.index();
-	      const Box& grd = amrex::enclosedCells(mfi.validbox());
-
-	      BL_ASSERT(grd==grids[mfi.index()]);
-	      
-	      for (int k = 0; k < BL_SPACEDIM; k++)
-              {
-		Box flux_bx(grd);
-		flux_bx.surroundingNodes(k);
-		flux.resize(flux_bx,1);
-		flux.copy((*(tensorflux[k]))[mfi],sigma,0,1);
-		viscflux_reg->FineAdd(flux,k,i,0,sigma,1,dt*dt);
-	      }
-            }
-	  }
+	{	  
+	  for (int k = 0; k < BL_SPACEDIM; k++)
+	    viscflux_reg->FineAdd(*(tensorflux[k]),k,Xvel,Xvel,
+	  			  BL_SPACEDIM,dt*dt);
 	}
     }
 }
@@ -1646,16 +1626,16 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
             const int*  betaz_hi    = betaz.hiVect();
 #endif
 
-            FORT_SET_TENSOR_ALPHA(alpha_dat, ARLIM(alo), ARLIM(ahi),
-                                  lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
-                                  voli, ARLIM(vlo), ARLIM(vhi),
-                                  rho_dat,ARLIM(rlo),ARLIM(rhi),
-                                  betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                                  betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),
+            set_tensor_alpha(alpha_dat, ARLIM(alo), ARLIM(ahi),
+			     lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
+			     voli, ARLIM(vlo), ARLIM(vhi),
+			     rho_dat,ARLIM(rlo),ARLIM(rhi),
+			     betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
+			     betay_dat,ARLIM(betay_lo),ARLIM(betay_hi),
 #if (BL_SPACEDIM == 3)
-                                  betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
+			     betaz_dat,ARLIM(betaz_lo),ARLIM(betaz_hi),
 #endif
-                                  &isrz);
+			     &isrz);
         }
     }
     tensor_op->setScalars(a,b);
@@ -1663,19 +1643,23 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
 
     alpha.clear();
 
-    FArrayBox bcoeffs;
-
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-        for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-        {
-            const int gridno = bcoeffsmfi.index();
-	    bcoeffs.resize(area[n][bcoeffsmfi].box(), 1);
-	    bcoeffs.copy(area[n][bcoeffsmfi]);
-            bcoeffs.mult(dx[n]);
-            bcoeffs.mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
-            tensor_op->bCoefficients(bcoeffs,n,gridno); // not thread safe
-        }
+        MultiFab bcoeffs(area[n].boxArray(),area[n].DistributionMap(),1,0);
+	
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+	{
+	    const Box& bx = bcoeffsmfi.tilebox();
+	      
+	    bcoeffs[bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
+	    bcoeffs[bcoeffsmfi].mult(dx[n],bx);
+	    bcoeffs[bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+	}
+	
+	tensor_op->bCoefficients(bcoeffs,n); // not thread safe?
     }
 }
 
@@ -1881,7 +1865,7 @@ Diffusion::computeAlpha (MultiFab&       alpha,
 
             DEF_CLIMITS(Rh,rho_dat,rlo,rhi);
 
-            FORT_SETALPHA(dat, ARLIM(alo), ARLIM(ahi),
+            fort_setalpha(dat, ARLIM(alo), ARLIM(ahi),
                           lo, hi, rcendat, ARLIM(lo), ARLIM(hi), &b,
                           voli, ARLIM(vlo), ARLIM(vhi),
                           rho_dat,ARLIM(rlo),ARLIM(rhi),&usehoop,&useden);
@@ -1892,10 +1876,13 @@ Diffusion::computeAlpha (MultiFab&       alpha,
     {
         MultiFab& S = navier_stokes->get_data(State_Type,time);
 
-        for (MFIter alphamfi(alpha); alphamfi.isValid(); ++alphamfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter alphamfi(alpha,true); alphamfi.isValid(); ++alphamfi)
         {
-            BL_ASSERT(grids[alphamfi.index()] == alphamfi.validbox());
-            alpha[alphamfi].mult(S[alphamfi],alphamfi.validbox(),Density,0,1);
+	  BL_ASSERT(grids[alphamfi.index()].contains(alphamfi.tilebox())==1);
+	    alpha[alphamfi].mult(S[alphamfi],alphamfi.tilebox(),Density,0,1);
         }
     }
 
@@ -1960,26 +1947,28 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
 
     const Real* dx = navier_stokes->Geom().CellSize();
 
-    for (int n = 0; n < BL_SPACEDIM; n++)
-    {
-	MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
-    }
-
     if (allnull)
     {
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            bcoeffs[n].mult(dx[n]);
+	    MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
+	    bcoeffs[n].mult(dx[n]);
         }
     }
     else
     {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
-            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+	    for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
-                bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
-                bcoeffs[n][bcoeffsmfi].mult(dx[n]);
+ 	        const Box& bx = bcoeffsmfi.tilebox();
+	      
+ 		bcoeffs[n][bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
+		bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+		bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
             }
         }
     }
@@ -2082,10 +2071,10 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
                 Real*       sdat    = s_tmp[visc_tmpmfi].dataPtr();
                 const Real* rcendat = rcen.dataPtr();
                 const Real  mu      = visc_coef[comp];
-                FORT_HOOPSRC(ARLIM(lo), ARLIM(hi),
-                             vdat, ARLIM(vlo), ARLIM(vhi),
-                             sdat, ARLIM(slo), ARLIM(shi),
-                             rcendat, &mu);
+                hoopsrc(ARLIM(lo), ARLIM(hi),
+			vdat, ARLIM(vlo), ARLIM(vhi),
+			sdat, ARLIM(slo), ARLIM(shi),
+			rcendat, &mu);
             }
         }
 #endif
@@ -2152,14 +2141,20 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
 	    MultiFab bcoeffs(area[n].boxArray(),area[n].DistributionMap(),1,0);
-	    MultiFab::Copy(bcoeffs, area[n], 0, 0, 1, 0);
-            for (MFIter bcoeffsmfi(*beta[n]); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+	    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
-                const int gridno = bcoeffsmfi.index();
-                bcoeffs[bcoeffsmfi].mult(dx[n]);
-                bcoeffs[bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],betaComp,0,1);
-                tensor_op.bCoefficients(bcoeffs[bcoeffsmfi],n,gridno); // not thread safe
+	        const Box& bx = bcoeffsmfi.tilebox();
+	      
+		bcoeffs[bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
+                bcoeffs[bcoeffsmfi].mult(dx[n],bx);
+                bcoeffs[bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
             }
+	    
+	    tensor_op.bCoefficients(bcoeffs,n); // not thread safe?
         }
 
         MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
@@ -2211,12 +2206,12 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                 const int*       betay_lo  = betay.loVect();
                 const int*       betay_hi  = betay.hiVect();
 
-                FORT_TENSOR_HOOPSRC(&fort_xvel_comp,ARLIM(lo), ARLIM(hi),
-                                    vdat, ARLIM(vlo), ARLIM(vhi),
-                                    sdat, ARLIM(slo), ARLIM(shi),
-                                    rcendat, 
-                                    betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-                                    betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
+                tensor_hoopsrc(&fort_xvel_comp,ARLIM(lo), ARLIM(hi),
+			       vdat, ARLIM(vlo), ARLIM(vhi),
+			       sdat, ARLIM(slo), ARLIM(shi),
+			       rcendat, 
+			       betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
+			       betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
             }
         }
 #endif
@@ -2478,11 +2473,11 @@ Diffusion::compute_divmusi (Real      time,
             FArrayBox& divu = (*divu_fp)[divmusimfi];
             const Box& box  = divmusimfi.tilebox();
 
-            FORT_DIV_MU_SI(box.loVect(), box.hiVect(), dx, &mu,
-                           ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
-                           divu.dataPtr(),
-                           ARLIM(fab.loVect()),  ARLIM(fab.hiVect()),
-                           fab.dataPtr());
+            div_mu_si(box.loVect(), box.hiVect(), dx, &mu,
+		      ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
+		      divu.dataPtr(),
+		      ARLIM(fab.loVect()),  ARLIM(fab.hiVect()),
+		      fab.dataPtr());
         }
     }
     else
@@ -2521,16 +2516,16 @@ Diffusion::compute_divmusi (Real                   time,
         DEF_CLIMITS((*beta[2])[divmusimfi],betaz,betazlo,betazhi);
 #endif
 
-        FORT_DIV_VARMU_SI(box.loVect(),box.hiVect(), dx,
-                          ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
-                          divu.dataPtr(),
-                          ARLIM(betaxlo), ARLIM(betaxhi), betax,
-                          ARLIM(betaylo), ARLIM(betayhi), betay,
+        div_varmu_si(box.loVect(),box.hiVect(), dx,
+		     ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
+		     divu.dataPtr(),
+		     ARLIM(betaxlo), ARLIM(betaxhi), betax,
+		     ARLIM(betaylo), ARLIM(betayhi), betay,
 #if (BL_SPACEDIM==3)
-                          ARLIM(betazlo), ARLIM(betazhi), betaz,
+		     ARLIM(betazlo), ARLIM(betazhi), betaz,
 #endif
-                          ARLIM(divmusi[divmusimfi].loVect()), ARLIM(divmusi[divmusimfi].hiVect()),
-                          divmusi[divmusimfi].dataPtr());
+		     ARLIM(divmusi[divmusimfi].loVect()), ARLIM(divmusi[divmusimfi].hiVect()),
+		     divmusi[divmusimfi].dataPtr());
     }
 }
 
@@ -2559,6 +2554,9 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
             rho_flag = 2;
             break;
 
+	    //NOTE: rho_flag = 3 is used in a different context for
+	    //      do_mom_diff==1
+	    
         default:
             amrex::Print() << "compDiffusionType = " << compDiffusionType << '\n';
             amrex::Abort("An unknown NavierStokesBase::DiffusionForm was used in set_rho_flag");

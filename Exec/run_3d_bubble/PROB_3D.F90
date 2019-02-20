@@ -1,3 +1,4 @@
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -9,33 +10,203 @@
 #include <PROB_NS_F.H>
 #include <AMReX_ArrayLim.H>
 
+#ifdef BL_DO_FLCT
+#include <infl_frc.H>
+#endif
+
 #define SDIM 3
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: rho      <=  density array
-c ::: DIMS(rho) => index extent of rho array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+module prob_3d_module
 
-      subroutine FORT_DENFILL (rho,DIMS(rho),domlo,domhi,dx,
-     &                         xlo,time,bc )
+  implicit none
+
+  private
+
+  public :: amrex_probinit, FORT_INITDATA, &
+            FORT_DENFILL, FORT_ADVFILL, FORT_XVELFILL, &
+            FORT_YVELFILL, FORT_ZVELFILL, FORT_VELFILL,&
+            FORT_PRESFILL, FORT_DIVUFILL, FORT_DSDTFILL
+
+contains
+  
+!::: -----------------------------------------------------------
+!::: This routine is called at problem initialization time
+!::: and when restarting from a checkpoint file.
+!::: The purpose is (1) to specify the initial time value
+!::: (not all problems start at time=0.0) and (2) to read
+!::: problem specifi!data from a namelist or other inputcdm
+!::: files and possibly store them or derived information
+!::: in FORTRAN common blocks for later use.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: init      => TRUE if called at start of problem run
+!:::              FALSE if called from restart
+!::: name      => name of "probin" file
+!::: namlen    => length of name
+!::: strttime <=  start problem with this time variable
+!::: 
+!::: -----------------------------------------------------------
+      subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
+      implicit none
+      integer init,namlen
+      integer name(namlen)
+      integer untin, i
+      REAL_T  problo(SDIM), probhi(SDIM)
+
+      
+#include <probdata.H>
+
+      INTEGER dimFile(3)
+      integer nCompFile
+      REAL_T dxFile(3)
+
+      REAL_T  twicePi, kxd, kyd, kzd
+      REAL_T  thetaTmp, phiTmp
+      REAL_T  cosThetaTmp, cosPhiTmp
+      REAL_T  sinThetaTmp, sinPhiTmp
+      REAL_T  px, py, pz, mp2, Ekh
+      integer kx, ky, kz, mode_count, reduced_mode_count
+      integer modx, mody, modz, xstep, ystep, zstep
+      integer iseed
+
+      REAL_T  Lx, Ly, Lz, Lmin
+      REAL_T  kappa, kappaMax, freqMin, freqMax, freqDiff, pdk
+
+      namelist /fortin/ adverr, xblob, yblob, zblob
+
+      integer maxlen, isioproc, ierr
+      parameter (maxlen=256)
+
+      character probin*(maxlen)
+
+      integer j, k, m, n
+
+      call bl_pd_is_ioproc(isioproc)
+
+      if (namlen .gt. maxlen) call bl_error('probin file name too long')
+
+      do i = 1, namlen
+         probin(i:i) = char(name(i))
+      end do
+      
+      untin = 9
+      if (namlen .eq. 0) then
+         open(untin,file='probin',form='formatted',status='old')
+      else
+         open(untin,file=probin(1:namlen),form='formatted',status='old')
+      end if
+
+      read(untin,fortin)
+      close(unit=untin)
+
+    end subroutine amrex_probinit
+
+!::: -----------------------------------------------------------
+!::: This routine is called at problem setup time and is used
+!::: to initialize data on each grid.  The velocity field you
+!::: provide does not have to be divergence free and the pressure
+!::: field need not be set.  A subsequent projection iteration
+!::: will define aa divergence free velocity field along with a
+!::: consistant pressure.
+!::: 
+!::: NOTE:  all arrays have one cell of ghost zones surrounding
+!:::        the grid interior.  Values in these cells need not
+!:::        be set here.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: level     => amr level of grid
+!::: time      => time at which to init data             
+!::: lo,hi     => index limits of grid interior (cell centered)
+!::: nscal     => number of scalar quantities.  You should know
+!:::		   this already!
+!::: vel      <=  Velocity array
+!::: scal     <=  Scalar array
+!::: press    <=  Pressure array
+!::: dx     => cell size
+!::: xlo,xhi   => physical locations of lower left and upper
+!:::              right hand corner of grid.  (does not include
+!:::		   ghost region).
+!::: -----------------------------------------------------------
+      subroutine FORT_INITDATA(level,time,lo,hi,nscal,&
+     	 	               vel,scal,DIMS(state),press,DIMS(press),&
+                              dx,xlo,xhi) bind(c,name="FORT_INITDATA")
+      implicit none
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+     
+!c
+!    ::::: local variables
+!c
+      integer i, j, k, n
+      REAL_T  x, y, z
+      REAL_T  hx, hy, hz
+      REAL_T  dist
+      REAL_T  x_vel, y_vel, z_vel
+
+#include <probdata.H>
+
+      hx = dx(1)
+      hy = dx(2)
+      hz = dx(3)
+
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz*(float(k-lo(3)) + half)
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+               vel(i,j,k,1) = 0.d0
+               vel(i,j,k,2) = 0.d0
+               vel(i,j,k,3) = 0.d0
+  
+!             This is density  
+               scal(i,j,k,1) = 1.d0
+
+!             This is the scalar that defines the bubble 
+               do n = 2,nscal
+                  scal(i,j,k,2) = 0.5d0 * (1.d0 - tanh((dist-1.d0)/0.05d0))
+               end do                  
+   	    end do
+         end do
+      end do
+
+    end subroutine FORT_INITDATA
+    
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: rho      <=  density array
+!::: DIMS(rho) => index extent of rho array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
+
+      subroutine FORT_DENFILL (rho,DIMS(rho),domlo,domhi,dx, &
+                              xlo,time,bc) bind(c,name="FORT_DENFILL")
       implicit none
 
       integer    DIMDEC(rho)
@@ -46,33 +217,33 @@ c ::: -----------------------------------------------------------
 
       call filcc(rho,DIMS(rho),domlo,domhi,dx,xlo,bc)
 
-      end
+    end subroutine FORT_DENFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: adv      <=  advected quantity array
-c ::: DIMS(adv) => index extent of adv array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of adv array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: adv      <=  advected quantity array
+!::: DIMS(adv) => index extent of adv array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of adv array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
 
-      subroutine FORT_ADVFILL (adv,DIMS(adv),domlo,domhi,dx,
-     &                         xlo,time,bc )
+      subroutine FORT_ADVFILL (adv,DIMS(adv),domlo,domhi,dx,&
+                              xlo,time,bc) bind(c,name="FORT_ADVFILL")
       implicit none
 
       integer    DIMDEC(adv)
@@ -83,32 +254,33 @@ c ::: -----------------------------------------------------------
 
       call filcc(adv,DIMS(adv),domlo,domhi,dx,xlo,bc)
 
-      end
+    end subroutine FORT_ADVFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: u        <=  x velocity array
-c ::: DIMS(u)   => index extent of u array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: u        <=  x velocity array
+!::: DIMS(u)   => index extent of u array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
 
-      subroutine FORT_XVELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc)
+    subroutine FORT_XVELFILL (u,DIMS(u),domlo,domhi,dx,xlo,&
+                              time,bc) bind(c,name="FORT_XVELFILL")
       implicit none
       integer    DIMDEC(u)
       integer    domlo(SDIM), domhi(SDIM)
@@ -117,33 +289,34 @@ c ::: -----------------------------------------------------------
       integer    bc(SDIM,2)
 
       call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
+      
+    end subroutine FORT_XVELFILL
 
-      end
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: v        <=  y velocity array
+!::: DIMS(v)   => index extent of v array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: v        <=  y velocity array
-c ::: DIMS(v)   => index extent of v array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_YVELFILL (v,DIMS(v),domlo,domhi,dx,xlo,time,bc)
+    subroutine FORT_YVELFILL (v,DIMS(v),domlo,domhi,dx,xlo,&
+                              time,bc)bind(c,name="FORT_YVELFILL")
       implicit none
       integer    DIMDEC(v)
       integer    domlo(SDIM), domhi(SDIM)
@@ -154,32 +327,33 @@ c ::: -----------------------------------------------------------
 
       call filcc(v,DIMS(v),domlo,domhi,dx,xlo,bc)
 
-      end
+    end subroutine FORT_YVELFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: w        <=  z velocity array
-c ::: DIMS(w)   => index extent of v array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: w        <=  z velocity array
+!::: DIMS(w)   => index extent of v array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
 
-      subroutine FORT_ZVELFILL (w,DIMS(w),domlo,domhi,dx,xlo,time,bc)
+    subroutine FORT_ZVELFILL (w,DIMS(w),domlo,domhi,dx,xlo,&
+                              time,bc) bind(c,name="FORT_ZVELFILL")
       implicit none
       integer    DIMDEC(w)
       integer    domlo(SDIM), domhi(SDIM)
@@ -189,32 +363,33 @@ c ::: -----------------------------------------------------------
 
       call filcc(w,DIMS(w),domlo,domhi,dx,xlo,bc)
 
-      end
+    end subroutine FORT_ZVELFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: u        <=  full velocity array
-c ::: DIMS(u)   => index extent of v array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi,comp)
-c ::: -----------------------------------------------------------
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: u        <=  full velocity array
+!::: DIMS(u)   => index extent of v array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi,comp)
+!::: -----------------------------------------------------------
 
-      subroutine FORT_VELFILL (u,DIMS(u),domlo,domhi,dx,xlo,time,bc)
+    subroutine FORT_VELFILL (u,DIMS(u),domlo,domhi,dx,xlo,&
+                             time,bc) bind(c,name="FORT_VELFILL")
       implicit none
       integer    DIMDEC(u)
       integer    domlo(SDIM), domhi(SDIM)
@@ -225,32 +400,33 @@ c ::: -----------------------------------------------------------
 
       call filcc(u,DIMS(u),domlo,domhi,dx,xlo,bc)
 
-      end
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: divu     <=  divergence of velocity array
-c ::: DIMS(divu)=> index extent of divu array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+    end subroutine FORT_VELFILL
 
-      subroutine FORT_DIVUFILL (divu,DIMS(divu),domlo,domhi,dx,
-     &                          xlo,time,bc)
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: divu     <=  divergence of velocity array
+!::: DIMS(divu)=> index extent of divu array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
+
+      subroutine FORT_DIVUFILL (divu,DIMS(divu),domlo,domhi,dx,&
+                                xlo,time,bc) bind(c,name="FORT_DIVUFILL")
       implicit none
 
       integer    DIMDEC(divu)
@@ -261,33 +437,33 @@ c ::: -----------------------------------------------------------
 
       call filcc(divu,DIMS(divu),domlo,domhi,dx,xlo,bc)
 
-      end
+    end subroutine FORT_DIVUFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: dsdt     <=  dsdt array
-c ::: DIMS(dsdt)=> index extent of dsdt array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: dsdt     <=  dsdt array
+!::: DIMS(dsdt)=> index extent of dsdt array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
 
-      subroutine FORT_DSDTFILL (dsdt,DIMS(dsdt),domlo,domhi,dx,
-     &                          xlo,time,bc)
+      subroutine FORT_DSDTFILL (dsdt,DIMS(dsdt),domlo,domhi,dx,&
+                                xlo,time,bc) bind(c,name="FORT_DSDTFILL")
       implicit none
 
       integer    DIMDEC(dsdt)
@@ -298,33 +474,33 @@ c ::: -----------------------------------------------------------
 
       call filcc(dsdt,DIMS(dsdt),domlo,domhi,dx,xlo,bc)
 
-      end
+    end subroutine FORT_DSDTFILL
 
-c ::: -----------------------------------------------------------
-c ::: This routine is called during a filpatch operation when
-c ::: the patch to be filled falls outside the interior
-c ::: of the problem domain.  You are requested to supply the
-c ::: data outside the problem interior in such a way that the
-c ::: data is consistant with the types of the boundary conditions
-c ::: you specified in the C++ code.  
-c ::: 
-c ::: NOTE:  you can assume all interior cells have been filled
-c :::        with valid data.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: p        <=  pressure array
-c ::: lo,hi     => index extent of p array
-c ::: domlo,hi  => index extent of problem domain
-c ::: dx        => cell spacing
-c ::: xlo       => physical location of lower left hand
-c :::	           corner of rho array
-c ::: time      => problem evolution time
-c ::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
-c ::: -----------------------------------------------------------
+!::: -----------------------------------------------------------
+!::: This routine is called during a filpatch operation when
+!::: the patch to be filled falls outside the interior
+!::: of the problem domain.  You are requested to supply the
+!::: data outside the problem interior in such a way that the
+!::: data is consistant with the types of the boundary conditions
+!::: you specified in the C++ code.  
+!::: 
+!::: NOTE:  you can assume all interior cells have been filled
+!:::        with valid data.
+!::: 
+!::: INPUTS/OUTPUTS:
+!::: 
+!::: p        <=  pressure array
+!::: lo,hi     => index extent of p array
+!::: domlo,hi  => index extent of problem domain
+!::: dx        => cell spacing
+!::: xlo       => physical location of lower left hand
+!:::	           corner of rho array
+!::: time      => problem evolution time
+!::: bc	=> array of boundary flags bc(BL_SPACEDIM,lo:hi)
+!::: -----------------------------------------------------------
 
-      subroutine FORT_PRESFILL (p,DIMS(p),domlo,domhi,dx,
-     &                          xlo,time,bc)
+      subroutine FORT_PRESFILL (p,DIMS(p),domlo,domhi,dx,&
+                                xlo,time,bc) bind(c,name="FORT_PRESFILL")
       implicit none
 
       integer    DIMDEC(p)
@@ -362,9 +538,9 @@ c ::: -----------------------------------------------------------
       Klo = max(ARG_L3(p),domlo(3))
       khi = min(ARG_H3(p),domhi(3))
 
-c*****************************************************************************
-c SETTING XLO 
-c*****************************************************************************
+!c*****************************************************************************
+!SETTING XLO 
+!c*****************************************************************************
 
       if (fix_xlo) then
          do i = ARG_L1(p), domlo(1)-1
@@ -601,9 +777,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING XHI
-c*****************************************************************************
+!c*****************************************************************************
+!SETTING XHI
+!c*****************************************************************************
 
       if (fix_xhi) then
          do i = domhi(1)+1, ARG_H1(p)
@@ -840,9 +1016,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING YLO
-c*****************************************************************************
+!c*****************************************************************************
+!SETTING YLO
+!c*****************************************************************************
 
       if (fix_ylo) then
          do j = ARG_L2(p), domlo(2)-1
@@ -990,9 +1166,9 @@ c*****************************************************************************
 
       end if            
  
-c*****************************************************************************
-c SETTING YHI
-c*****************************************************************************
+!c*****************************************************************************
+!SETTING YHI
+!c*****************************************************************************
 
       if (fix_yhi) then
          do j = domhi(2)+1, ARG_H2(p)
@@ -1139,9 +1315,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING ZLO
-c*****************************************************************************
+!c*****************************************************************************
+!SETTING ZLO
+!c*****************************************************************************
 
       if (fix_zlo) then
          do k = ARG_L3(p), domlo(3)-1
@@ -1232,9 +1408,9 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
-c SETTING ZHI
-c*****************************************************************************
+!c*****************************************************************************
+!SETTING ZHI
+!c*****************************************************************************
 
       if (fix_zhi) then
          do k = domhi(3)+1, ARG_H3(p)
@@ -1326,6 +1502,8 @@ c*****************************************************************************
 
       end if            
 
-c*****************************************************************************
+!c*****************************************************************************
 
-      end
+    end subroutine FORT_PRESFILL
+
+  end module prob_3d_module

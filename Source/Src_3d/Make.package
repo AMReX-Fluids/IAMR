@@ -1,16 +1,18 @@
 
-FEXE_sources += SYNCREG_$(DIM)D.F PROJOUTFLOWBC_$(DIM)D.F MACOUTFLOWBC_$(DIM)D.F
+F90EXE_sources += SYNCREG_$(DIM)D.F90 PROJOUTFLOWBC_$(DIM)D.F90 MACOUTFLOWBC_$(DIM)D.F90
 
-FEXE_sources += GODUNOV_$(DIM)D.F \
-                NAVIERSTOKES_$(DIM)D.F PROJECTION_$(DIM)D.F \
-                MACPROJ_$(DIM)D.F DIFFUSION_$(DIM)D.F       \
-                SLABSTAT_NS_$(DIM)D.F
+F90EXE_sources += DERIVE_$(DIM)D.F90 GODUNOV_$(DIM)D.F90 \
+                NAVIERSTOKES_$(DIM)D.F90 PROJECTION_$(DIM)D.F90 \
+                MACPROJ_$(DIM)D.F90 DIFFUSION_$(DIM)D.F90       \
+                SLABSTAT_NS_$(DIM)D.F90
 
 ifndef ATMOS_MACOP
-  FEXE_sources += MACOPERATOR_$(DIM)D.F
+  F90EXE_sources += MACOPERATOR_$(DIM)D.F90
 endif
 
 F90EXE_sources += IAMR_MLMG_$(DIM)d.F90 ARRAYLIM_$(DIM)D.F90 DERIVE_$(DIM)D.F90
 
 # for EB
+ifeq ($(USE_EB),TRUE)
 F90EXE_sources += convection_mod_3d.F90 convection_eb_mod_3d.F90 slopes_mod_3d.F90
+endif

@@ -19,12 +19,28 @@
 #define sixteenth  .0625d0
 #endif
 
-      subroutine FORT_EXTRAP_PROJ(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho,
-     &                            DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &                            DIMS(rhoExt),rhoExt,lo,hi,face, zeroIt)
+module projoutflowbc_3d_module
+  
+  implicit none
+
+  private 
+
+  public  :: extrap_proj, compute_coeff, hgrelax, hgsubtractavgphi, &
+             hgresid, setprojbc, hg_shift_phi, hg_reshift_phi, solvehg, &
+             makeprojdgphi, coarsig, fort_restrict, interp, &
+             rhogbc, fill_twod, allphi_from_x, macsubtractavgphi, subtractavg, &
+             setmacbc
+
+contains
+
+      subroutine extrap_proj(DIMS(u),u,DIMS(divu),divu,DIMS(rho),rho, &
+                             DIMS(uExt),uExt,DIMS(divuExt),divuExt, &
+                             DIMS(rhoExt),rhoExt,lo,hi,face, zeroIt) &
+                             bind(C,name="extrap_proj")
+                             
       implicit none
 
-c    compute divu_ave twice due to precision problems
+!c    compute divu_ave twice due to precision problems
 
       integer DIMDEC(u)
       integer DIMDEC(divu)
@@ -42,7 +58,7 @@ c    compute divu_ave twice due to precision problems
       REAL_T   rhoExt(DIMV(rhoExt))
       integer  zeroIt
 
-c local variables
+!c local variables
       integer ics,ice,jcs,jce,kcs,kce
       integer ife,jfe,kfe
       integer if,jf,kf
@@ -219,7 +235,7 @@ c local variables
          end do
       endif
 
-c  check to see if we should zero phi
+!c  check to see if we should zero phi
       max_pert = max_pert/(ABS(divu_ave1+divu_ave2)+small_pert)
       if ((max_divu.eq.zero) .or. (max_pert.le.small_pert)) zeroIt = 1
 #undef XLO
@@ -228,12 +244,13 @@ c  check to see if we should zero phi
 #undef XHI
 #undef YHI
 #undef ZHI
-      end
+      end subroutine extrap_proj
 
-      subroutine FORT_COMPUTE_COEFF(DIMS(rhs),rhs,DIMS(beta),beta,
-     &                              DIMS(uExt),uExt,DIMS(divuExt),divuExt,
-     &                              DIMS(rhoExt),rhoExt,
-     &                              lo,hi,h,isPeriodic)
+      subroutine compute_coeff(DIMS(rhs),rhs,DIMS(beta),beta, &
+                               DIMS(uExt),uExt,DIMS(divuExt),divuExt, &
+                               DIMS(rhoExt),rhoExt, &
+                               lo,hi,h,isPeriodic) &
+                               bind(C, name="compute_coeff")
       implicit none
       integer DIMDEC(rhs)
       integer DIMDEC(beta)
@@ -274,13 +291,13 @@ c  check to see if we should zero phi
 
       do j=jns+1,jne-1
          do i=ins+1,ine-1
-            rhs(i,j) = half*
-     @           (hxm1 * (uExt(i,j-1,1) - uExt(i-1,j-1,1) +
-     @                    uExt(i,j  ,1) - uExt(i-1,j  ,1)) +
-     @            hym1 * (uExt(i-1,j,2) - uExt(i-1,j-1,2) +
-     @                    uExt(i  ,j,2) - uExt(i,j-1  ,2))) 
-     &           - fourth * ( divuExt(i-1,j  ) + divuExt(i-1,j-1) +
-     &                        divuExt(i  ,j-1) + divuExt(i  ,j  ) ) 
+            rhs(i,j) = half* &
+                (hxm1 * (uExt(i,j-1,1) - uExt(i-1,j-1,1) + &
+                         uExt(i,j  ,1) - uExt(i-1,j  ,1)) + &
+                 hym1 * (uExt(i-1,j,2) - uExt(i-1,j-1,2) + &
+                         uExt(i  ,j,2) - uExt(i,j-1  ,2)))  &
+                - fourth * ( divuExt(i-1,j  ) + divuExt(i-1,j-1) + &
+                             divuExt(i  ,j-1) + divuExt(i  ,j  ) ) 
          enddo
       enddo
 
@@ -290,17 +307,16 @@ c  check to see if we should zero phi
             beta(ice+1,j) = beta(ics,j)
          enddo 
          do j = jns+1,jne-1
-            rhs(ins,j) = half*
-     @           (hxm1 * (uExt(ics,j-1,1) - uExt(ice,j-1,1) +
-     @                    uExt(ics,j  ,1) - uExt(ice,j,1  )) +
-     @            hym1 * (uExt(ice,j  ,2) - uExt(ice,j-1,2) +
-     @                    uExt(ics,j  ,2) - uExt(ics,j-1,2))) 
-     &           - fourth * ( divuExt(ice,j  ) + divuExt(ice,j-1) +
-     &                        divuExt(ics,j-1) + divuExt(ics  ,j  ) ) 
+            rhs(ins,j) = half* &
+                (hxm1 * (uExt(ics,j-1,1) - uExt(ice,j-1,1) + &
+                         uExt(ics,j  ,1) - uExt(ice,j,1  )) + &
+                 hym1 * (uExt(ice,j  ,2) - uExt(ice,j-1,2) + &
+                         uExt(ics,j  ,2) - uExt(ics,j-1,2)))  &
+                - fourth * ( divuExt(ice,j  ) + divuExt(ice,j-1) + &
+                             divuExt(ics,j-1) + divuExt(ics  ,j  ) ) 
 
             rhs(ine,j) = rhs(ins,j)
-
-            
+   
          enddo
       else
          do j=jcs,jce
@@ -309,16 +325,16 @@ c  check to see if we should zero phi
          enddo
          do j = jns+1,jne-1
             i = ins
-            rhs(i,j) = half*
-     @           (hxm1 * (uExt(i,j-1,1) + uExt(i,j  ,1) ) +
-     @            hym1 * (uExt(i  ,j,2) - uExt(i,j-1,2))) 
-     &           - fourth * (divuExt(i,j-1) + divuExt(i,j) ) 
+            rhs(i,j) = half* &
+                (hxm1 * (uExt(i,j-1,1) + uExt(i,j  ,1) ) + &
+                 hym1 * (uExt(i  ,j,2) - uExt(i,j-1,2)))  &
+                - fourth * (divuExt(i,j-1) + divuExt(i,j) ) 
 
             i = ine
-            rhs(i,j) = half*
-     @           (hxm1 * (- uExt(i-1,j-1,1) - uExt(i-1,j  ,1)) +
-     @            hym1 * (  uExt(i-1,j  ,2) - uExt(i-1,j-1,2))) 
-     &        - fourth * ( divuExt(i-1,j  ) + divuExt(i-1,j-1) ) 
+            rhs(i,j) = half* &
+                (hxm1 * (- uExt(i-1,j-1,1) - uExt(i-1,j  ,1)) + &
+                 hym1 * (  uExt(i-1,j  ,2) - uExt(i-1,j-1,2)))  &
+             - fourth * ( divuExt(i-1,j  ) + divuExt(i-1,j-1) ) 
 
          enddo
       endif
@@ -329,13 +345,13 @@ c  check to see if we should zero phi
             beta(i,jce+1) = beta(i,jcs)
          enddo
          do i = ins+1,ine-1
-            rhs(i,jns) = half*
-     @           (hxm1 * (uExt(i  ,jce,1) - uExt(i-1,jce,1) +
-     @                    uExt(i  ,jcs,1) - uExt(i-1,jcs,1))+
-     @            hym1 * (uExt(i-1,jcs,2) - uExt(i-1,jce,2) +
-     @                    uExt(i  ,jcs,2) - uExt(i  ,jce,2))) 
-     &           - fourth * ( divuExt(i-1,jcs) + divuExt(i-1,jce) +
-     &                        divuExt(i  ,jce) + divuExt(i  ,jcs) ) 
+            rhs(i,jns) = half* &
+                (hxm1 * (uExt(i  ,jce,1) - uExt(i-1,jce,1) + &
+                         uExt(i  ,jcs,1) - uExt(i-1,jcs,1))+ &
+                 hym1 * (uExt(i-1,jcs,2) - uExt(i-1,jce,2) + &
+                         uExt(i  ,jcs,2) - uExt(i  ,jce,2)))  &
+                - fourth * ( divuExt(i-1,jcs) + divuExt(i-1,jce) + &
+                             divuExt(i  ,jce) + divuExt(i  ,jcs) ) 
 
             rhs(i,jne) = rhs(i,jns)
          enddo
@@ -346,16 +362,16 @@ c  check to see if we should zero phi
          enddo
          do i = ins+1,ine-1
             j = jns
-            rhs(i,j) = half*
-     @           (hxm1 * (uExt(i,j  ,1) - uExt(i-1,j  ,1)) +
-     @            hym1 * (uExt(i-1,j,2) + uExt(i  ,j,2) )) 
-     &           - fourth * ( divuExt(i-1,j) + divuExt(i,j) )
+            rhs(i,j) = half* &
+                (hxm1 * (uExt(i,j  ,1) - uExt(i-1,j  ,1)) + &
+                 hym1 * (uExt(i-1,j,2) + uExt(i  ,j,2) ))  &
+                - fourth * ( divuExt(i-1,j) + divuExt(i,j) )
 
             j = jne
-            rhs(i,j) = half*
-     @           (hxm1 * ( uExt(i  ,j-1,1) - uExt(i-1,j-1,1)) +
-     @            hym1 * (-uExt(i-1,j-1,2) - uExt(i  ,j-1,2))) 
-     &           - fourth * ( divuExt(i-1,j-1) + divuExt(i  ,j-1)) 
+            rhs(i,j) = half* &
+                (hxm1 * ( uExt(i  ,j-1,1) - uExt(i-1,j-1,1)) + &
+                 hym1 * (-uExt(i-1,j-1,2) - uExt(i  ,j-1,2)))  &
+                - fourth * ( divuExt(i-1,j-1) + divuExt(i  ,j-1)) 
          enddo
       endif
 
@@ -366,13 +382,13 @@ c  check to see if we should zero phi
          beta(ice+1,jcs-1) = beta(ics,jce)
          beta(ice+1,jce+1) = beta(ics,jcs)
 
-         rhs(ins,jns) = half*
-     @        (hxm1 * (uExt(ics,jce,1) - uExt(ice,jce,1) +
-     @                 uExt(ics,jcs,1) - uExt(ice,jcs,1)) +
-     @         hym1 * (uExt(ice,jcs,2) - uExt(ice,jce,2) +
-     @                 uExt(ics,jcs,2) - uExt(ics,jce,2))) 
-     &        - fourth * (divuExt(ice,jcs) + divuExt(ice,jce) +
-     &                    divuExt(ics,jce) + divuExt(ics,jcs) ) 
+         rhs(ins,jns) = half* &
+             (hxm1 * (uExt(ics,jce,1) - uExt(ice,jce,1) + &
+                      uExt(ics,jcs,1) - uExt(ice,jcs,1)) + &
+              hym1 * (uExt(ice,jcs,2) - uExt(ice,jce,2) + &
+                      uExt(ics,jcs,2) - uExt(ics,jce,2)))  &
+             - fourth * (divuExt(ice,jcs) + divuExt(ice,jce) + &
+                         divuExt(ics,jce) + divuExt(ics,jcs) ) 
 
          rhs(ins,jne) = rhs(ins,jns) 
          rhs(ine,jns) = rhs(ins,jns) 
@@ -385,15 +401,15 @@ c  check to see if we should zero phi
          beta(ice+1,jcs-1) = beta(ics,jcs-1)
          beta(ice+1,jce+1) = beta(ics,jce+1)
 
-         rhs(ins,jns) = half*
-     @        (hxm1 * (uExt(ics,jcs,1) - uExt(ice,jcs,1  )) +
-     @         hym1 * (uExt(ice,jcs,2) + uExt(ics,jcs,2) )) 
-     &        - fourth * ( divuExt(ice,jcs) + divuExt(ics,jcs) ) 
+         rhs(ins,jns) = half* &
+             (hxm1 * (uExt(ics,jcs,1) - uExt(ice,jcs,1  )) + &
+              hym1 * (uExt(ice,jcs,2) + uExt(ics,jcs,2) )) &
+             - fourth * ( divuExt(ice,jcs) + divuExt(ics,jcs) ) 
          
-         rhs(ins,jne) = half*
-     @        (hxm1 * (  uExt(ics,jce,1) - uExt(ice,jce,1) ) +
-     @         hym1 * (- uExt(ice,jce,2) - uExt(ics,jce,2))) 
-     &        - fourth * ( divuExt(ice,jce) + divuExt(ics,jce)) 
+         rhs(ins,jne) = half* &
+             (hxm1 * (  uExt(ics,jce,1) - uExt(ice,jce,1) ) + &
+              hym1 * (- uExt(ice,jce,2) - uExt(ics,jce,2)))  &
+             - fourth * ( divuExt(ice,jce) + divuExt(ics,jce)) 
          
          rhs(ine,jns) = rhs(ins,jns)
          rhs(ine,jne) = rhs(ins,jne)
@@ -405,15 +421,15 @@ c  check to see if we should zero phi
          beta(ice+1,jcs-1) = beta(ice+1,jce)
          beta(ice+1,jce+1) = beta(ice+1,jcs)
 
-         rhs(ins,jns) = half*
-     @        (hxm1 * (uExt(ics,jce,1) + uExt(ics,jcs,1))+
-     @         hym1 * (uExt(ics,jcs,2) - uExt(ics,jce,2))) 
-     &      - fourth * ( divuExt(ics,jce) + divuExt(ics,jcs) ) 
+         rhs(ins,jns) = half* &
+             (hxm1 * (uExt(ics,jce,1) + uExt(ics,jcs,1))+ &
+              hym1 * (uExt(ics,jcs,2) - uExt(ics,jce,2))) &
+           - fourth * ( divuExt(ics,jce) + divuExt(ics,jcs) ) 
          
-         rhs(ine,jns) = half*
-     @        (hxm1 * (uExt(ice,jce,1) - uExt(ice,jcs,1))+
-     @         hym1 * (uExt(ice,jcs,2) - uExt(ice,jce,2))) 
-     &        - fourth * ( divuExt(ice,jcs) + divuExt(ice,jce)) 
+         rhs(ine,jns) = half* &
+             (hxm1 * (uExt(ice,jce,1) - uExt(ice,jcs,1))+ &
+              hym1 * (uExt(ice,jcs,2) - uExt(ice,jce,2)))  &
+             - fourth * ( divuExt(ice,jcs) + divuExt(ice,jce)) 
          
          rhs(ins,jne) = rhs(ins,jns)
          rhs(ine,jne) = rhs(ine,jns)
@@ -427,28 +443,28 @@ c  check to see if we should zero phi
 
          i = ins
          j = jns
-         rhs(i,j) = half* (hxm1 * (uExt(i,j,1) ) + hym1 * (uExt(i,j,2) )) 
-     &        - fourth * ( divuExt(i,j) )
+         rhs(i,j) = half* (hxm1 * (uExt(i,j,1) ) + hym1 * (uExt(i,j,2) )) &
+             - fourth * ( divuExt(i,j) )
 
          
          i = ine
          j = jns
-         rhs(i,j) = half* (hxm1 * (-uExt(i-1,j,1))+ hym1 * (uExt(i-1,j,2))) 
-     &        - fourth * ( divuExt(i-1,j))
+         rhs(i,j) = half* (hxm1 * (-uExt(i-1,j,1))+ hym1 * (uExt(i-1,j,2))) &
+             - fourth * ( divuExt(i-1,j))
          
          i = ins
          j = jne
-         rhs(i,j) = half* (hxm1 * (uExt(i,j-1,1) ) + hym1 * (-uExt(i,j-1,2))) 
-     &        - fourth * (divuExt(i  ,j-1)) 
+         rhs(i,j) = half* (hxm1 * (uExt(i,j-1,1) ) + hym1 * (-uExt(i,j-1,2))) &
+             - fourth * (divuExt(i  ,j-1)) 
 
          i = ine
          j = jne
-         rhs(i,j) = half*(hxm1 *(-uExt(i-1,j-1,1)) + hym1 *(-uExt(i-1,j-1,2))) 
-     &        - fourth * ( divuExt(i-1,j-1)) 
+         rhs(i,j) = half*(hxm1 *(-uExt(i-1,j-1,1)) + hym1 *(-uExt(i-1,j-1,2))) &
+             - fourth * ( divuExt(i-1,j-1)) 
 
       endif
 
-c  double rhs at edges
+!c  double rhs at edges
       if (isPeriodic(1) .ne. 1) then
          do j=jns,jne
             rhs(ins,j) = rhs(ins,j) * two
@@ -463,7 +479,7 @@ c  double rhs at edges
       endif
  
 
-      end
+      end subroutine compute_coeff
 
 #define DGXY_5PT    half * (hxsqinv * \
            ((beta(i-1,j-1) + beta(i-1,j)) * (phi(i-1,j) - phi(i,j)) + \
@@ -473,8 +489,10 @@ c  double rhs at edges
             (beta(i-1,j  ) + beta(i,j  )) *(phi(i,j+1) - phi(i,j))))
 
 
-      subroutine FORT_HGRELAX(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,
-     &                        DIMS(dgphi),dgphi,lo,hi,h,isPeriodic,niter)
+      subroutine hgrelax(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi, &
+                         DIMS(dgphi),dgphi,lo,hi,h,isPeriodic,niter)&
+                         bind(C,name="hgrelax")
+           
       implicit none
       integer DIMDEC(beta)
       integer DIMDEC(rhs)
@@ -504,7 +522,7 @@ c  double rhs at edges
       hxsqinv = one/(h(1)*h(1))
       hysqinv = one/(h(2)*h(2))
 
-      if (h(2). gt. 1.5D0*h(1)) then
+      if (h(2) .gt. 1.5D0*h(1)) then
          call bl_abort("line solve for proj_bc not yet implemented")
       elseif (h(1) .gt. 1.5D0*h(2)) then
          call bl_abort("line solve for proj_bc not yet implemented")
@@ -520,16 +538,16 @@ c  double rhs at edges
                do i=ins+iinc,ine,2
 
                   dgphi(i,j) = DGXY_5PT
-                  lam =  (hxsqinv +hysqinv) * (beta(i-1,j-1) + beta(i-1,j) +
-     @                              beta(i  ,j-1) + beta(i  ,j))
-c double dgphi at edges
-                  if ((i .eq. lo(1) .or. i .eq. hi(1)+1) 
-     &                 .and. isPeriodic(1) .ne. 1) then
+                  lam =  (hxsqinv +hysqinv) * (beta(i-1,j-1) + beta(i-1,j) + &
+                                   beta(i  ,j-1) + beta(i  ,j))
+!c double dgphi at edges
+                  if ((i .eq. lo(1) .or. i .eq. hi(1)+1) &
+                      .and. isPeriodic(1) .ne. 1) then
                      dgphi(i,j) = dgphi(i,j)*two
                      lam = lam* two
                   endif
-                  if ((j .eq. lo(2) .or. j .eq. hi(2)+1) 
-     &                 .and. isPeriodic(2) .ne. 1) then
+                  if ((j .eq. lo(2) .or. j .eq. hi(2)+1) &
+                      .and. isPeriodic(2) .ne. 1) then
                      dgphi(i,j) = dgphi(i,j)*two
                      lam = lam*two
                   endif
@@ -542,9 +560,11 @@ c double dgphi at edges
 
       call setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
 
-      end
+      end subroutine hgrelax
       
-      subroutine FORT_HGSUBTRACTAVGPHI(DIMS(phi),phi,lo,hi,isPeriodic)
+      subroutine hgsubtractavgphi(DIMS(phi),phi,lo,hi,isPeriodic) &
+                                  bind(C,name="hgsubtractavgphi")
+                                  
       implicit none
       integer DIMDEC(phi)
       REAL_T phi(DIM12(phi))
@@ -579,11 +599,11 @@ c double dgphi at edges
 
       call setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
    
-      end
+      end subroutine hgsubtractavgphi
 
-      subroutine FORT_HGRESID(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi,
-     &                   DIMS(resid),resid,DIMS(dgphi),dgphi,
-     &                   lo,hi,h,isPeriodic,maxnorm)
+      subroutine hgresid(DIMS(rhs),rhs,DIMS(beta),beta,DIMS(phi),phi, &
+                         DIMS(resid),resid,DIMS(dgphi),dgphi, &
+                         lo,hi,h,isPeriodic,maxnorm) bind(C,name="hgresid")
 
       implicit none
       integer DIMDEC(beta)
@@ -610,15 +630,15 @@ c double dgphi at edges
       setSingularPoint = .false.
       maxnorm = zero
 
-      call makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),beta,DIMS(beta),
-     &                   lo,hi,h,isPeriodic,setSingularPoint)
+      call makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),beta,DIMS(beta), &
+                        lo,hi,h,isPeriodic,setSingularPoint)
       do j=lo(2),hi(2)+1
         do i=lo(1),hi(1)+1
            resid(i,j) = rhs(i,j)-dgphi(i,j)
            maxnorm = max(maxnorm,ABS(resid(i,j)))         
         enddo
       enddo
-      end
+      end subroutine hgresid
 
       subroutine setprojbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
       implicit none
@@ -637,8 +657,8 @@ c double dgphi at edges
       jne = hi(2)+1
 
 
-      if (isPeriodic(1) .NE. 1 .AND. isPeriodic(2) .NE. 1 
-     &     .AND. setSingularPoint) then
+      if (isPeriodic(1) .NE. 1 .AND. isPeriodic(2) .NE. 1 &
+          .AND. setSingularPoint) then
          phi(ine,jne) = zero
       endif
 
@@ -668,9 +688,10 @@ c double dgphi at edges
          enddo
       endif
 
-      end
+      end subroutine setprojbc
 
-      subroutine FORT_HG_SHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+      subroutine hg_shift_phi(DIMS(out),out,DIMS(in),in,face)&
+                   bind(C,name="hg_shift_phi")
       implicit none
       integer face
       integer DIMDEC(in)
@@ -716,9 +737,11 @@ c double dgphi at edges
 #undef XHI
 #undef YHI
 #undef ZHI
-      end
+      end subroutine hg_shift_phi
 
-      subroutine FORT_HG_RESHIFT_PHI(DIMS(out),out,DIMS(in),in,face)
+      subroutine hg_reshift_phi(DIMS(out),out,DIMS(in),in,face)&
+         bind(C,name="hg_reshift_phi")
+         
       implicit none
       integer face
       integer DIMDEC(in)
@@ -759,14 +782,15 @@ c double dgphi at edges
 #undef YHI
 #undef ZHI
 
-      end
+      end subroutine hg_reshift_phi
 
       
-      subroutine FORT_SOLVEHG(p,DIMS(p),dest0,DIMS(dest0),
-     &     source,DIMS(source),sigma,DIMS(sigma),
-     &     cen,DIMS(cen),r,DIMS(r),w,DIMS(w),
-     &     z,DIMS(z),x,DIMS(x),
-     $     lo,hi,h,isPeriodic,maxiter,tol,abs_tol,max_jump,norm)
+      subroutine solvehg(p,DIMS(p),dest0,DIMS(dest0), &
+          source,DIMS(source),sigma,DIMS(sigma), &
+          cen,DIMS(cen),r,DIMS(r),w,DIMS(w), &
+          z,DIMS(z),x,DIMS(x), &
+          lo,hi,h,isPeriodic,maxiter,tol,abs_tol,max_jump,norm) &
+          bind(C,name="solvehg")
       
       implicit none
 
@@ -796,7 +820,7 @@ c double dgphi at edges
       REAL_T tol
       REAL_T abs_tol,max_jump
 
-c     Local variables
+!c     Local variables
       REAL_T factor
       REAL_T  alpha,beta, rho, rho_old
       logical testx,testy
@@ -826,8 +850,8 @@ c     Local variables
       enddo
 
       call setprojbc(DIMS(dest0),dest0,lo,hi,isPeriodic,setSingularPoint)
-      call makeprojdgphi(dest0,DIMS(dest0),w,DIMS(w),sigma,DIMS(sigma),
-     &        lo,hi,h,isPeriodic,setSingularPoint)
+      call makeprojdgphi(dest0,DIMS(dest0),w,DIMS(w),sigma,DIMS(sigma), &
+             lo,hi,h,isPeriodic,setSingularPoint)
 
       do j = jstart, jend 
         do i = istart, iend 
@@ -835,8 +859,8 @@ c     Local variables
         enddo
       enddo
 
-c note that all of this factor stuff is due to the problem being doubled
-c at edges -- both the rhs and the operator.
+!c note that all of this factor stuff is due to the problem being doubled
+!c at edges -- both the rhs and the operator.
       rho = zero
       norm0 = zero
       do j = jstart, jend 
@@ -882,8 +906,8 @@ c at edges -- both the rhs and the operator.
       enddo
 
       call setprojbc(DIMS(p),p,lo,hi,isPeriodic,setSingularPoint)
-      call makeprojdgphi(p,DIMS(p),w,DIMS(w),sigma,DIMS(sigma),
-     &      lo,hi,h,isPeriodic,setSingularPoint)
+      call makeprojdgphi(p,DIMS(p),w,DIMS(w),sigma,DIMS(sigma), &
+           lo,hi,h,isPeriodic,setSingularPoint)
 
       alpha = zero
       do j = jstart, jend 
@@ -923,7 +947,7 @@ c at edges -- both the rhs and the operator.
       enddo
 
       iter = iter+1
-c      write(6,*) iter,norm
+!c      write(6,*) iter,norm
 
       if (iter .gt. maxiter .or. norm .gt. max_jump*norm0) then
 
@@ -960,11 +984,11 @@ c      write(6,*) iter,norm
       enddo
       
       return
-      end
+      end subroutine solvehg
 
-      subroutine makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi),
-     &                     beta,DIMS(beta),
-     &                     lo,hi,h,isPeriodic,setSingularPoint)
+      subroutine makeprojdgphi(phi,DIMS(phi),dgphi,DIMS(dgphi), &
+                          beta,DIMS(beta), &
+                          lo,hi,h,isPeriodic,setSingularPoint)
 
       implicit none
 
@@ -979,7 +1003,7 @@ c      write(6,*) iter,norm
       REAL_T h(SDIM)
       logical setSingularPoint
 
-c     Local variables
+!c     Local variables
       REAL_T hxsqinv, hysqinv
       integer is,ie,js,je
       integer i,j
@@ -1019,7 +1043,7 @@ c     Local variables
         enddo
       enddo
 
-c double dgphi at edges
+!c double dgphi at edges
       if (isPeriodic(1) .ne. 1) then
          do j=js,je+1
             dgphi(is,j) = dgphi(is,j) * two
@@ -1033,22 +1057,22 @@ c double dgphi at edges
          enddo
       endif
 
-      if (setSingularPoint .and. 
-     &     isPeriodic(1) .NE. 1 .and. isPeriodic(2) .NE. 1) then
+      if (setSingularPoint .and.  &
+          isPeriodic(1) .NE. 1 .and. isPeriodic(2) .NE. 1) then
          dgphi(hi(1)+1,hi(2)+1) = zero
       endif
 
       return
-      end
+      end subroutine makeprojdgphi
 
 
-c *************************************************************************
-c ** COARSIG **
-c ** Coarsening of the sig coefficients
-c *************************************************************************
+!c *************************************************************************
+!c ** COARSIG **
+!c ** Coarsening of the sig coefficients
+!c *************************************************************************
 
-      subroutine FORT_COARSIG(sigma,DIMS(sigma),sigmac,DIMS(sigmac),
-     &                        lo,hi,loc,hic,isPeriodic)
+      subroutine coarsig(sigma,DIMS(sigma),sigmac,DIMS(sigmac), &
+                        lo,hi,loc,hic,isPeriodic) bind(C,name="coarsig")
 
       implicit none
 
@@ -1060,7 +1084,7 @@ c *************************************************************************
       REAL_T sigmac(DIM12(sigmac))
       integer isPeriodic(SDIM)
 
-c     Local variables
+!c     Local variables
       integer i ,j
       integer i2,j2
 
@@ -1068,8 +1092,8 @@ c     Local variables
         do i = loc(1),hic(1) 
           i2 = 2*(i-loc(1))+lo(1)
           j2 = 2*(j-loc(2))+lo(2)
-          sigmac(i,j) = (sigma(i2  ,j2) + sigma(i2  ,j2+1)+ 
-     $                   sigma(i2+1,j2) + sigma(i2+1,j2+1))*fourth
+          sigmac(i,j) = (sigma(i2  ,j2) + sigma(i2  ,j2+1)+ &
+                        sigma(i2+1,j2) + sigma(i2+1,j2+1))*fourth
         enddo
       enddo
 
@@ -1101,15 +1125,15 @@ c     Local variables
       endif
 
       return
-      end
+      end subroutine coarsig
 
-c *************************************************************************
-c ** RESTRICT **
-c ** Conservative restriction of the residual
-c *************************************************************************
+!c *************************************************************************
+!c ** RESTRICT **
+!c ** Conservative restriction of the residual
+!c *************************************************************************
 
-      subroutine FORT_RESTRICT(res,DIMS(res),resc,DIMS(resc),
-     &                        lo,hi,loc,hic,isPeriodic)
+      subroutine fort_restrict(res,DIMS(res),resc,DIMS(resc), &
+                       lo,hi,loc,hic,isPeriodic)bind(C,name="fort_restrict")
 
       implicit none
 
@@ -1121,7 +1145,7 @@ c *************************************************************************
       REAL_T  resc(DIM12(resc))
       integer isPeriodic(SDIM)
 
-c     Local variables
+!c     Local variables
       integer i,j,ii,jj
       integer istart,iend
       integer jstart,jend
@@ -1153,30 +1177,27 @@ c     Local variables
           ii = 2*(i-loc(1))+lo(1)
           jj = 2*(j-loc(2))+lo(2)
 
-          resc(i,j) = fourth*res(ii  ,jj) + 
-     $               eighth*(res(ii+1,jj  ) + res(ii-1,jj  ) + 
-     $                       res(ii  ,jj+1) + res(ii  ,jj-1) ) +
-     $            sixteenth*(res(ii+1,jj+1) + res(ii+1,jj-1) + 
-     $                       res(ii-1,jj+1) + res(ii-1,jj-1) )
+          resc(i,j) = fourth*res(ii  ,jj) +  &
+                    eighth*(res(ii+1,jj  ) + res(ii-1,jj  ) +  &
+                            res(ii  ,jj+1) + res(ii  ,jj-1) ) + &
+                 sixteenth*(res(ii+1,jj+1) + res(ii+1,jj-1) +  &
+                            res(ii-1,jj+1) + res(ii-1,jj-1) )
         enddo
       enddo
 
-c  the top version is what we use when we double the problem at edges
-c  the bottom version (commented out) is what we would use if we did not 
-c      double the problem at edges.
+!c  the top version is what we use when we double the problem at edges
+!c  the bottom version (commented out) is what we would use if we did not 
+!c      double the problem at edges.
       if (isPeriodic(1) .NE. 1) then
         i = loc(1)
         ii = 2*(i-loc(1))+lo(1)
 
         do j = jstart,jend
           jj = 2*(j-loc(2))+lo(2)
-          resc(i,j) = fourth*(res(ii,jj  ) + res(ii+1,jj  )) + 
-     $                eighth*(res(ii,jj-1) + res(ii+1,jj-1)+
-     $                        res(ii,jj+1) + res(ii+1,jj+1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii+1,jj  ) + 
-cnd     $                       res(ii  ,jj+1) + res(ii  ,jj-1) ) +
-cnd     $            sixteenth*(res(ii+1,jj+1) + res(ii+1,jj-1))
+          resc(i,j) = fourth*(res(ii,jj  ) + res(ii+1,jj  )) + &
+                     eighth*(res(ii,jj-1) + res(ii+1,jj-1)+ &
+                             res(ii,jj+1) + res(ii+1,jj+1) )
+
         enddo
 
         i = hic(1)+1
@@ -1184,13 +1205,10 @@ cnd     $            sixteenth*(res(ii+1,jj+1) + res(ii+1,jj-1))
 
         do j = jstart,jend
           jj = 2*(j-loc(2))+lo(2)
-          resc(i,j) = fourth*(res(ii,jj  ) + res(ii-1,jj  )) + 
-     $                eighth*(res(ii,jj-1) + res(ii-1,jj-1)+
-     $                        res(ii,jj+1) + res(ii-1,jj+1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii-1,jj  ) + 
-cnd     $                       res(ii  ,jj+1) + res(ii  ,jj-1) ) +
-cnd     $            sixteenth*(res(ii-1,jj+1) + res(ii-1,jj-1) )
+          resc(i,j) = fourth*(res(ii,jj  ) + res(ii-1,jj  )) + &
+                     eighth*(res(ii,jj-1) + res(ii-1,jj-1)+ &
+                             res(ii,jj+1) + res(ii-1,jj+1) )
+
         enddo
 
 
@@ -1202,13 +1220,9 @@ cnd     $            sixteenth*(res(ii-1,jj+1) + res(ii-1,jj-1) )
 
         do i = istart,iend
           ii = 2*(i-loc(1))+lo(1)
-          resc(i,j) = fourth*(res(ii  ,jj) + res(ii  ,jj+1)) + 
-     $                eighth*(res(ii+1,jj) + res(ii+1,jj+1)+
-     $                        res(ii-1,jj) + res(ii-1,jj+1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii+1,jj  ) + res(ii-1,jj  ) + 
-cnd     $                       res(ii  ,jj+1)) +
-cnd     $            sixteenth*(res(ii+1,jj+1) + res(ii-1,jj+1))
+          resc(i,j) = fourth*(res(ii  ,jj) + res(ii  ,jj+1)) + &
+                     eighth*(res(ii+1,jj) + res(ii+1,jj+1)+ &
+                             res(ii-1,jj) + res(ii-1,jj+1) )
         enddo
 
         j = hic(2)+1
@@ -1216,13 +1230,9 @@ cnd     $            sixteenth*(res(ii+1,jj+1) + res(ii-1,jj+1))
 
         do i = istart,iend
           ii = 2*(i-loc(1))+lo(1)
-          resc(i,j) = fourth*(res(ii  ,jj) + res(ii  ,jj-1)) + 
-     $                eighth*(res(ii+1,jj) + res(ii+1,jj-1)+
-     $                        res(ii-1,jj) + res(ii-1,jj-1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii+1,jj  ) + res(ii-1,jj  ) + 
-cnd     $                       res(ii  ,jj-1) ) +
-cnd     $            sixteenth*(res(ii+1,jj-1) + res(ii-1,jj-1) )
+          resc(i,j) = fourth*(res(ii  ,jj) + res(ii  ,jj-1)) + &
+                     eighth*(res(ii+1,jj) + res(ii+1,jj-1)+ &
+                             res(ii-1,jj) + res(ii-1,jj-1) )
         enddo
       endif
 
@@ -1231,57 +1241,46 @@ cnd     $            sixteenth*(res(ii+1,jj-1) + res(ii-1,jj-1) )
         j = loc(2)
         ii = 2*(i-loc(1))+lo(1)
         jj = 2*(j-loc(2))+lo(2)
-        resc(i,j) = fourth*(res(ii,jj  ) + res(ii+1,jj  ) +
-     $                      res(ii,jj+1) + res(ii+1,jj+1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii+1,jj  ) + res(ii  ,jj+1)) +
-cnd     $            sixteenth*(res(ii+1,jj+1))
+        resc(i,j) = fourth*(res(ii,jj  ) + res(ii+1,jj  ) + &
+                           res(ii,jj+1) + res(ii+1,jj+1) )
 
         i = hic(1)+1
         j = hic(2)+1
         ii = 2*(i-loc(1))+lo(1)
         jj = 2*(j-loc(2))+lo(2)
-        resc(i,j) = fourth*(res(ii,jj  ) + res(ii-1,jj  ) +
-     $                      res(ii,jj-1) + res(ii-1,jj-1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii-1,jj  ) + res(ii  ,jj-1) ) +
-cnd     $            sixteenth*(res(ii-1,jj-1) )
+        resc(i,j) = fourth*(res(ii,jj  ) + res(ii-1,jj  ) + &
+                           res(ii,jj-1) + res(ii-1,jj-1) )
 
         i = loc(1)
         j = hic(2)+1
         ii = 2*(i-loc(1))+lo(1)
         jj = 2*(j-loc(2))+lo(2)
 
-        resc(i,j) = fourth*(res(ii,jj  ) + res(ii+1,jj  ) +
-     $                      res(ii,jj-1) + res(ii+1,jj-1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii+1,jj  ) + res(ii  ,jj-1) ) +
-cnd     $            sixteenth*(res(ii+1,jj-1) )
+        resc(i,j) = fourth*(res(ii,jj  ) + res(ii+1,jj  ) + &
+                           res(ii,jj-1) + res(ii+1,jj-1) )
 
         i = hic(1)+1
         j = loc(2)
         ii = 2*(i-loc(1))+lo(1)
         jj = 2*(j-loc(2))+lo(2)
 
-        resc(i,j) = fourth*(res(ii,jj  ) + res(ii-1,jj  ) +
-     $                      res(ii,jj+1) + res(ii-1,jj+1) )
-cnd          resc(i,j) = fourth*res(ii  ,jj) + 
-cnd     $               eighth*(res(ii-1,jj  ) + res(ii  ,jj+1)) +
-cnd     $            sixteenth*(res(ii-1,jj+1))
+        resc(i,j) = fourth*(res(ii,jj  ) + res(ii-1,jj  ) + &
+                           res(ii,jj+1) + res(ii-1,jj+1) )
 
       endif
 
       return
-      end
+      end subroutine fort_restrict
 
 
-c *************************************************************************
-c ** INTERP **
-c ** Simple bilinear interpolation
-c *************************************************************************
+!c *************************************************************************
+!c ** INTERP **
+!c ** Simple bilinear interpolation
+!c *************************************************************************
 
-      subroutine FORT_INTERP(phi,DIMS(phi),temp,DIMS(temp),deltac,DIMS(deltac),
-     &                       sigma,DIMS(sigma),lo,hi,loc,hic,isPeriodic)
+      subroutine interp(phi,DIMS(phi),temp,DIMS(temp),deltac,DIMS(deltac),&
+                        sigma,DIMS(sigma),lo,hi,loc,hic,isPeriodic)&
+                         bind(C,name="interp")
 
       implicit none
 
@@ -1297,7 +1296,7 @@ c *************************************************************************
       REAL_T   temp(DIM12(temp))
       integer isPeriodic(SDIM)
 
-c     Local variables
+!c     Local variables
       integer ii,jj,ic,jc
       integer is,ie,js,je,isc,iec,jsc,jec
 
@@ -1336,8 +1335,8 @@ c     Local variables
         do ic = isc, iec 
           ii = 2*(ic-isc)+is
           jj = 2*(jc-jsc)+js
-          temp(ii+1,jj+1) = fourth*(deltac(ic,jc  ) + deltac(ic+1,jc  ) + 
-     $                             deltac(ic,jc+1) + deltac(ic+1,jc+1) )
+          temp(ii+1,jj+1) = fourth*(deltac(ic,jc  ) + deltac(ic+1,jc  ) +  &
+                                  deltac(ic,jc+1) + deltac(ic+1,jc+1) )
         enddo
       enddo
 
@@ -1348,14 +1347,15 @@ c     Local variables
       enddo
 
       return
-      end
+      end subroutine interp
 
-      subroutine FORT_RHOGBC(rho,DIMS(rho),phi,DIMS(phi),
-     &                       face,gravity,dx,domlo,domhi,lo_bc,hi_bc)
-c
-c    Compute the contribution of gravity to the boundary conditions
-c      for phi at outflow faces only.
-c
+      subroutine rhogbc(rho,DIMS(rho),phi,DIMS(phi), &
+                        face,gravity,dx,domlo,domhi,lo_bc,hi_bc) &
+                        bind(C, name="rhogbc")
+!c
+!c    Compute the contribution of gravity to the boundary conditions
+!c      for phi at outflow faces only.
+!c
       implicit none
 
       integer DIMDEC(rho)
@@ -1370,7 +1370,7 @@ c
       REAL_T  dx(3)
       REAL_T  gravity
       
-c     Local variables
+!c     Local variables
       integer i,j,k
       REAL_T rhog
       REAL_T rho_i,rho_ip1,rho_im1
@@ -1384,15 +1384,16 @@ c     Local variables
 #define YHI 4
 #define ZHI 5
 
-      if (face .eq. ZLO .or. face .eq. ZHI) 
-     $   call bl_abort('SHOULDNT BE IN RHOGBC WITH FACE IN Z-DIR')
+      if (face .eq. ZLO .or. face .eq. ZHI) &
+        call bl_abort('SHOULDNT BE IN RHOGBC WITH FACE IN Z-DIR')
 
-c     Ok to only use low index of phi because phi is only one
-c        node wide in direction of face.
+!c     Ok to only use low index of phi because phi is only one
+!c        node wide in direction of face.
 
       if (face .eq. XLO) then
 
         i = ARG_L1(phi)
+
         do j = ARG_L2(phi)+1,ARG_H2(phi)-1
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
@@ -1405,7 +1406,7 @@ c        node wide in direction of face.
         end do
 
         j = ARG_L2(phi)
-        rhog = zero
+
         if (j .eq. domlo(2) .and. lo_bc(2) .eq. EXT_DIR) then
           rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
@@ -1415,7 +1416,7 @@ c        node wide in direction of face.
             rhog = rhog - gravity * rhoExt * dx(3)
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
-        else if (j .eq. domlo(2) .and. lo_bc(2) .eq. HOEXTRAP ) then 
+         else if (j .eq. domlo(2) .and. lo_bc(2) .eq. HOEXTRAP ) then 
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = half*(three*rho(i  ,j,k) - rho(i  ,j+1,k))
             rho_ip1 = half*(three*rho(i+1,j,k) - rho(i+1,j+1,k))
@@ -1432,6 +1433,7 @@ c        node wide in direction of face.
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
         else
+          rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = half * (rho(i  ,j,k) + rho(i  ,j-1,k))
             rho_ip1 = half * (rho(i+1,j,k) + rho(i+1,j-1,k))
@@ -1468,6 +1470,7 @@ c        node wide in direction of face.
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
         else
+          rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = half * (rho(i  ,j,k) + rho(i  ,j-1,k))
             rho_ip1 = half * (rho(i+1,j,k) + rho(i+1,j-1,k))
@@ -1519,6 +1522,7 @@ c        node wide in direction of face.
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
         else
+          rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_i   = half * (rho(i-1,j,k) + rho(i-1,j-1,k))
             rho_im1 = half * (rho(i-2,j,k) + rho(i-2,j-1,k))
@@ -1607,6 +1611,7 @@ c        node wide in direction of face.
             phi(i,j,k) = phi(i,j,k) + rhog
           end do
         else
+          rhog = zero
           do k = ARG_H3(phi)-1,ARG_L3(phi),-1
             rho_j   = half * (rho(i,j  ,k) + rho(i-1,j  ,k))
             rho_jp1 = half * (rho(i,j+1,k) + rho(i-1,j+1,k))
@@ -1751,15 +1756,16 @@ c        node wide in direction of face.
 #undef YHI
 #undef ZHI
 
-      end
+      end subroutine rhogbc
 
-c *************************************************************************
-c ** FILL_TWOD **
-c *************************************************************************
+!c *************************************************************************
+!c ** FILL_TWOD **
+!c *************************************************************************
 
-      subroutine FORT_FILL_TWOD(lenx,leny,lenz,length,width,
-     $                          faces,numOutFlowFaces,
-     $                          cc0,cc1,cc2,cc3,cc4,cc5,conn)
+      subroutine fill_twod(lenx,leny,lenz,length,width, &
+                           faces,numOutFlowFaces, &
+                           cc0,cc1,cc2,cc3,cc4,cc5,conn) &
+                           bind(C, name="fill_twod")
 
       implicit none
       integer lenx,leny,lenz
@@ -1785,7 +1791,7 @@ c *************************************************************************
 #define YHI 4
 #define ZHI 5
 
-c     Want to find the single non-outflow face.
+!c     Want to find the single non-outflow face.
       xlo_outflow = 0
       ylo_outflow = 0
       zlo_outflow = 0
@@ -1802,24 +1808,24 @@ c     Want to find the single non-outflow face.
         if (faces(i) .eq. ZHI) zhi_outflow = 1
       enddo
 
-c     Possible combinations of faces to come in here:
-c       cc0 cc1 cc2 cc3 cc4 cc5
-c       XLO YLO 
-c       XLO             YHI 
-c           YLO     XHI 
-c           YLO     YHI 
-c       XLO YLO     XHI
-c       XLO         XHI YHI
-c       XLO YLO     YHI
-c           YLO     XHI YHI
-c       XLO YLO     XHI YHI
+!c     Possible combinations of faces to come in here:
+!c       cc0 cc1 cc2 cc3 cc4 cc5
+!c       XLO YLO 
+!c       XLO             YHI 
+!c           YLO     XHI 
+!c           YLO     YHI 
+!c       XLO YLO     XHI
+!c       XLO         XHI YHI
+!c       XLO YLO     YHI
+!c           YLO     XHI YHI
+!c       XLO YLO     XHI YHI
 
-c     We must remember here that the cc* arrays have already been
-c       ordered so that the 3nd dimension is one cell wide.
+!c     We must remember here that the cc* arrays have already been
+!c       ordered so that the 3nd dimension is one cell wide.
 
       ifinal = 0
-      if (numOutFlowFaces .eq. 4 .or. 
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+      if (numOutFlowFaces .eq. 4 .or. &
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
           do k = 1,lenz
           do i = 1,leny
             conn(i,k,1) = cc0(i,k,1)
@@ -1831,8 +1837,8 @@ c       ordered so that the 3nd dimension is one cell wide.
           ifinal = leny
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
           do k = 1,lenz
           do i = 1,lenx
             conn(ifinal+i,k,1) = cc4(i,k,1)
@@ -1868,8 +1874,8 @@ c       ordered so that the 3nd dimension is one cell wide.
           ifinal = ifinal + lenx
       endif
 
-      if (numOutFlowFaces .lt. 4 .and.
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+      if (numOutFlowFaces .lt. 4 .and. &
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
           do k = 1,lenz
           do i = 1,leny
             conn(ifinal+i,k,1) = cc0(i,k,1)
@@ -1881,8 +1887,8 @@ c       ordered so that the 3nd dimension is one cell wide.
           ifinal = ifinal + leny
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
           do k = 1,lenz
           do i = 1,lenx
             conn(ifinal+i,k,1) = cc4(i,k,1)
@@ -1903,15 +1909,16 @@ c       ordered so that the 3nd dimension is one cell wide.
 #undef YHI
 #undef ZHI
 
-      end
+      end subroutine fill_twod
 
-c *************************************************************************
-c ** ALLPHI_FROM_X **
-c *************************************************************************
+!c *************************************************************************
+!c ** ALLPHI_FROM_X **
+!c *************************************************************************
 
-      subroutine FORT_ALLPHI_FROM_X(lenx,leny,lenz,length,width,
-     $                              faces,numOutFlowFaces,
-     $                              phi0,phi1,phi2,phi3,phi4,phi5,x,DIMS(x))
+      subroutine allphi_from_x(lenx,leny,lenz,length,width, &
+                                   faces,numOutFlowFaces, &
+                                   phi0,phi1,phi2,phi3,phi4,phi5,x,DIMS(x)) &
+                                   bind(C,name="allphi_from_x")
 
       implicit none
       integer DIMDEC(x)
@@ -1937,7 +1944,7 @@ c *************************************************************************
 #define YHI 4
 #define ZHI 5
 
-c     Want to find the single non-outflow face.
+!c     Want to find the single non-outflow face.
       xlo_outflow = 0
       ylo_outflow = 0
       zlo_outflow = 0
@@ -1954,25 +1961,25 @@ c     Want to find the single non-outflow face.
         if (faces(i) .eq. ZHI) zhi_outflow = 1
       enddo
 
-c     Possible combinations of faces to come in here:
-c       phi0 phi1 phi2 phi3 phi4 phi5
-c       XLO  YLO 
-c       XLO                 YHI 
-c            YLO       XHI 
-c            YLO            YHI 
-c       XLO  YLO       XHI
-c       XLO            XHI  YHI
-c       XLO  YLO            YHI
-c            YLO       XHI  YHI
-c       XLO  YLO       XHI  YHI
+!c     Possible combinations of faces to come in here:
+!c       phi0 phi1 phi2 phi3 phi4 phi5
+!c       XLO  YLO 
+!c       XLO                 YHI 
+!c            YLO       XHI 
+!c            YLO            YHI 
+!c       XLO  YLO       XHI
+!c       XLO            XHI  YHI
+!c       XLO  YLO            YHI
+!c            YLO       XHI  YHI
+!c       XLO  YLO       XHI  YHI
 
 
-c     We know that the faces are ordered: XLO,XHI,YLO,YHI
+!c     We know that the faces are ordered: XLO,XHI,YLO,YHI
       
       ifinal = 0
 
-      if (numOutFlowFaces .eq. 4 .or. 
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
+      if (numOutFlowFaces .eq. 4 .or. &
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 0) ) then
         do k = 0,lenz
         do j = 0,leny
           phi0(j,k) = x(j,k,ARG_L3(x))
@@ -1981,8 +1988,8 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
         ifinal = leny
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         .not. (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
         do k = 0,lenz
         do i = 0,lenx
           phi4(i,k) = x(i+ifinal,k,ARG_L3(x))
@@ -2018,8 +2025,8 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
         ifinal = ifinal+lenx
       endif
 
-      if (numOutFlowFaces .lt. 4 .and.
-     $    (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
+      if (numOutFlowFaces .lt. 4 .and. &
+         (xlo_outflow .eq. 1 .and. ylo_outflow .eq. 1) ) then
         do k = 0,lenz
         do j = 0,leny
           phi0(j,k) = x(j+ifinal,k,ARG_L3(x))
@@ -2028,8 +2035,8 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
         ifinal = ifinal+leny
       endif
 
-      if (yhi_outflow .eq. 1 .and. 
-     $    (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
+      if (yhi_outflow .eq. 1 .and. &
+         (numOutFlowFaces .eq. 3 .and. xhi_outflow .eq. 0) ) then
         do k = 0,lenz
         do i = 0,lenx
           phi4(i,k) = x(i+ifinal,k,ARG_L3(x))
@@ -2044,4 +2051,176 @@ c     We know that the faces are ordered: XLO,XHI,YLO,YHI
 #undef XHI
 #undef YHI
 #undef ZHI
-      end
+      end subroutine allphi_from_x
+
+
+      subroutine setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
+      
+      implicit none
+      integer DIMDEC(phi)
+      REAL_T phi(DIM12(phi))
+      integer lo(SDIM),hi(SDIM)
+      integer isPeriodic(SDIM)
+      logical setSingularPoint
+      
+      integer ics,ice,jcs,jce
+      integer i,j
+
+      ics = lo(1)
+      ice = hi(1)
+      jcs = lo(2)
+      jce = hi(2)
+
+      if (isPeriodic(1) .NE. 1 .AND. isPeriodic(2) .NE. 1 .AND. setSingularPoint) then
+         phi(ice,jce) = zero
+      endif
+
+      if (isPeriodic(1) .eq. 1) then
+         do j=jcs,jce
+            phi(ics-1,j) = phi(ice,j)
+            phi(ice+1,j) = phi(ics,j)
+         enddo
+      else
+         do j=jcs,jce
+            phi(ics-1,j) = phi(ics,j)
+            phi(ice+1,j) = phi(ice,j)
+         enddo
+      endif
+      
+      if (isPeriodic(2) .eq. 1) then
+         do i=ics,ice
+            phi(i,jcs-1) = phi(i,jce)
+            phi(i,jce+1) = phi(i,jcs)
+         enddo
+      else
+         do i=ics,ice
+            phi(i,jcs-1) = phi(i,jcs)
+            phi(i,jce+1) = phi(i,jce)
+         enddo
+      endif
+
+      end subroutine setmacbc
+
+     subroutine macsubtractavgphi(DIMS(phi),phi,lo,hi,isPeriodic)&
+                                   bind(C,name="macsubtractavgphi")
+      
+      
+      implicit none
+      integer DIMDEC(phi)
+      REAL_T phi(DIM12(phi))
+      integer lo(SDIM),hi(SDIM)
+      integer isPeriodic(SDIM)
+
+      REAL_T phitot,vtot
+      integer ics,ice,jcs,jce
+      integer i,j
+      logical setSingularPoint
+
+      ics = lo(1)
+      ice = hi(1)
+      jcs = lo(2)
+      jce = hi(2)
+      setSingularPoint = .false.
+
+      phitot = zero
+      vtot   = zero
+
+      do j=jcs,jce
+      do i=ics,ice
+         phitot = phitot+phi(i,j)
+         vtot = vtot + one
+      enddo
+      enddo
+      phitot = phitot/vtot
+
+      do j=jcs,jce
+      do i=ics,ice
+         phi(i,j) = phi(i,j) - phitot
+      enddo
+      enddo
+
+      call setmacbc(DIMS(phi),phi,lo,hi,isPeriodic,setSingularPoint)
+
+      end  subroutine macsubtractavgphi
+
+     subroutine subtractavg(DIMS(divu),divu,lo,hi,divu_ave,face)
+      implicit none
+      integer DIMDEC(divu)
+      integer lo(SDIM),hi(SDIM)
+      REAL_T divu_ave
+      REAL_T divu(DIMV(divu))
+      integer face
+
+      integer i,j,k
+      REAL_T vtot
+
+#define XLO 0
+#define YLO 1
+#define ZLO 2
+#define XHI 3
+#define YHI 4
+#define ZHI 5
+      
+      
+      divu_ave = zero
+      vtot = zero
+
+      if (face .eq. XLO .or. face .eq. XHI) then
+         i = lo(1)
+         do k = lo(3),hi(3)
+            do j=lo(2),hi(2)
+               vtot = vtot+one
+               divu_ave = divu_ave+divu(j,k,i)
+            enddo
+         enddo
+         divu_ave = divu_ave/vtot
+         do k = lo(3),hi(3)
+            do j=lo(2),hi(2)
+               divu(j,k,i) = divu(j,k,i) - divu_ave
+            enddo
+         enddo
+      elseif (face .eq. YLO .or. face .eq. YHI) then
+         j = lo(2)
+         do k = lo(3),hi(3)
+            do i=lo(1),hi(1)
+               vtot = vtot+one
+               divu_ave = divu_ave+divu(i,k,j)
+            enddo
+         enddo
+         divu_ave = divu_ave/vtot
+         do k = lo(3),hi(3)
+            do i=lo(1),hi(1)
+               divu(i,k,j) = divu(i,k,j) - divu_ave
+            enddo
+         enddo
+      elseif(face .eq. ZLO .or. face .eq. ZHI) then
+         k = lo(3)
+         do j=lo(2),hi(2)
+            do i=lo(1),hi(1)
+               vtot = vtot+one
+               divu_ave = divu_ave+divu(i,j,k)
+            enddo
+         enddo
+         divu_ave = divu_ave/vtot
+         do j=lo(2),hi(2)
+            do i=lo(1),hi(1)
+               divu(i,j,k) = divu(i,j,k) - divu_ave
+            enddo
+         enddo
+      else 
+         print*, "bad length"
+      endif
+
+#undef XLO
+#undef YLO
+#undef ZLO
+#undef XHI
+#undef YHI
+#undef ZHI
+
+      
+      end subroutine subtractavg
+
+
+      
+end module projoutflowbc_3d_module
