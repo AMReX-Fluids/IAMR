@@ -421,7 +421,7 @@ NavierStokes::predict_velocity (Real  dt,
     //
     //For now, import simple adv scheme from incflo
     //
-
+    //FIXME? does this really need EB? YES
     MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
     if (be_cn_theta != 1.0)
     {
@@ -499,8 +499,7 @@ NavierStokes::predict_velocity (Real  dt,
       godunov->ExtrapVelToFaces(U_mfi, dx, dt,
 				D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
 				D_DECL(bndry[0],        bndry[1],        bndry[2]),
-				Ufab, tforces, nghost, domain,
-				areafrac, facecent);
+				Ufab, tforces, nghost, domain);
       VisMF::Write(u_mac[0], "umacx");
       VisMF::Write(u_mac[1], "umacy");
       VisMF::Write(u_mac[2], "umacz");

@@ -4,6 +4,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_MultiCutFab.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
 //
@@ -26,7 +27,11 @@ public:      // public access functions
     // =============================================================
 
     // construct the advection object
-    Godunov( int max_size = 512 );
+    Godunov( int max_size = 512
+#ifdef AMREX_USE_EB
+	     , const amrex::EBFArrayBoxFactory* _ebf=nullptr
+#endif
+	     );
 
     // destruct the advection object
     ~Godunov();
@@ -265,9 +270,7 @@ void ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
 			      const amrex::Vector<int>& wbc),
 		       amrex::FArrayBox&  U,
 		       amrex::FArrayBox&  tforces,
-		       const int nghost, const amrex::Box& domain,
-		       amrex::Array<const amrex::MultiCutFab*, BL_SPACEDIM> areafrac,
-		       amrex::Array<const amrex::MultiCutFab*, BL_SPACEDIM> facecent);
+		       const int nghost, const amrex::Box& domain);
 #endif
 
   //================ for debugging purposes this is made public
@@ -325,6 +328,9 @@ protected:   // protected data members
 
 #ifdef AMREX_USE_EB
   // pointers to EB data
+  const amrex::EBFArrayBoxFactory* ebfactory;
+  std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+  std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
 #endif
 };
 

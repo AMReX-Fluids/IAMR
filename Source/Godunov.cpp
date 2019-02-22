@@ -17,6 +17,7 @@
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EBFArrayBox.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
 #define GEOM_GROW 1
@@ -96,9 +97,20 @@ Godunov::Finalize ()
 //
 // Construct the Godunov Object.
 //
-Godunov::Godunov (int max_size)
+Godunov::Godunov (int max_size
+#ifdef AMREX_USE_EB
+		  , const EBFArrayBoxFactory* _ebf
+#endif
+		  )
 {
     Initialize();
+#ifdef AMREX_USE_EB
+    //fixme test for nullptr here?
+    // set pointers to EB data
+    ebfactory = _ebf;
+    areafrac = ebfactory->getAreaFrac();
+    facecent = ebfactory->getFaceCent();
+#endif
 }
 
 Godunov::~Godunov ()
@@ -1064,9 +1076,7 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
                            D_DECL(const Vector<int>& ubc, const Vector<int>& vbc, const Vector<int>& wbc),
                            amrex::FArrayBox&  U,
                            amrex::FArrayBox&  tforces,
-			   const int nghost, const Box& domain,
-			   Array<const amrex::MultiCutFab*, BL_SPACEDIM> areafrac,
-			   Array<const amrex::MultiCutFab*, BL_SPACEDIM> facecent)
+			   const int nghost, const Box& domain)
 {
   //
   // Old sequence in fortran fn:

@@ -582,7 +582,17 @@ private:
     //
     amrex::Real initialTimeStep ();
     //
-    void SetGodunov () { if (godunov == 0) godunov = new Godunov(); };
+    void SetGodunov () {
+#ifdef AMREX_USE_EB
+      if (godunov == 0){
+	const auto* ebf_ptr =
+	  &dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+	godunov = new Godunov(512, ebf_ptr);
+      }
+#else
+      if (godunov == 0) godunov = new Godunov();
+#endif
+    };
 
 //
 // Data
