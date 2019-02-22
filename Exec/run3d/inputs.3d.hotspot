@@ -9,6 +9,7 @@ system.regtest_reduction = 1
 # test 0th order slopes
 godunov.slope_order = 1
 
+mac.use_mlmg_solver = 1
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
