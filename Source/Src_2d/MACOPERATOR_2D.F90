@@ -1,4 +1,5 @@
 
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -24,7 +25,7 @@ contains
 
 !c :: ----------------------------------------------------------
 !c :: MACCOEF
-!c ::             Compute the coefficents for MA!C solve
+!c ::             Compute the coefficents for MAC solve
 !c ::
 !c :: INPUTS / OUTPUTS:
 !c ::  cx,cy       <=  edge coef arrays

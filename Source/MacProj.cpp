@@ -1202,7 +1202,7 @@ MacProj::mac_sync_compute (int                    level,
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
 
-    Godunov godunov(512);
+    Godunov godunov;
     MultiFab fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
       const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);

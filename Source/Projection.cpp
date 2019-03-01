@@ -2479,6 +2479,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     //fixme
     // VisMF::Write(*vel_rebase[0],"vel_rb");
     // VisMF::Write(*vel[0],"vel");
+    // FIXME rhcc is probably null wo divu!
     //VisMF::Write(*rhcc_rebase[0],"rhcc");
 
     // rhs = 
