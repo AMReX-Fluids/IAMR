@@ -65,15 +65,15 @@ contains
    subroutine compute_slopes ( lo, hi, vel, vlo, vhi, &
                               xslopes, yslopes, zslopes, slo, shi, &
                               domlo, domhi, &
-                              ubc,vbc,wbc, &
+                              ubc,vbc,wbc) bind(C) !, &
                               ! bc_ilo_type, bc_ihi_type, &
                               ! bc_jlo_type, bc_jhi_type, &
                               ! bc_klo_type, bc_khi_type, &
-                              ng ) bind(C)
+                              !ng ) bind(C)
 
       ! Loop bounds
       integer(c_int), intent(in   ) :: lo(3), hi(3)
-      integer(c_int), intent(in   ) :: ng
+!      integer(c_int), intent(in   ) :: ng
 
       ! Array bounds
       integer(c_int), intent(in   ) :: vlo(3), vhi(3)
@@ -295,17 +295,17 @@ contains
                                  xslopes, yslopes, zslopes, slo, shi, &
                                  flags, flo, fhi, &
                                  domlo, domhi, &
-                                 ubc,vbc,wbc, &
+                                 ubc,vbc,wbc) bind(C) !, &
                                  ! bc_ilo_type, bc_ihi_type, &
                                  ! bc_jlo_type, bc_jhi_type, &
                                  ! bc_klo_type, bc_khi_type, &
-                                 ng ) bind(C)
+                                 ! ng ) bind(C)
 
       use amrex_ebcellflag_module, only: is_covered_cell
 
       ! Loop bounds
       integer(c_int), intent(in   ) :: lo(3), hi(3)
-      integer(c_int), intent(in   ) :: ng
+!      integer(c_int), intent(in   ) :: ng
 
       ! Array bounds
       integer(c_int), intent(in   ) :: vlo(3), vhi(3)

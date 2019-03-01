@@ -14,11 +14,11 @@ extern "C"
 	     amrex::Real* zslopes),
       const int* slo, const int* shi, 
       const int* domlo, const int* domhi,
-      D_DECL(const int* ubc, const int* vbc, const int* wbc),
+      D_DECL(const int* ubc, const int* vbc, const int* wbc));
       // const int* bc_ilo_type, const int* bc_ihi_type, 
       // const int* bc_jlo_type, const int* bc_jhi_type,
       // const int* bc_klo_type, const int* bc_khi_type,
-      const int* nghost );
+      // const int* nghost );
 
    void compute_slopes_eb (
       const int* lo, const int* hi,
@@ -28,11 +28,11 @@ extern "C"
       const int* slo, const int* shi,
       const void* flags, const int* flo, const int* fhi,
       const int* domlo, const int* domhi,
-      D_DECL(const int* ubc, const int* vbc, const int* wbc),
+      D_DECL(const int* ubc, const int* vbc, const int* wbc));
       // const int* bc_ilo_type, const int* bc_ihi_type, 
       // const int* bc_jlo_type, const int* bc_jhi_type,
       // const int* bc_klo_type, const int* bc_khi_type,
-      const int* nghost );
+      // const int* nghost );
 
    void compute_velocity_at_faces (
       const int* lo, const int* hi,
@@ -49,7 +49,7 @@ extern "C"
       // const int* bc_ilo_type, const int* bc_ihi_type, 
       // const int* bc_jlo_type, const int* bc_jhi_type,
       // const int* bc_klo_type, const int* bc_khi_type,
-      const int* ng, 
+      // const int* ng, 
       const int* domlo, const int* domhi );
 
    void compute_velocity_at_x_faces_eb (
@@ -62,7 +62,7 @@ extern "C"
       const void*        flags,     const int* flo,   const int* fhi,
       const int* ubc,
       //      const int* bc_ilo_type,       const int* bc_ihi_type, 
-      const int* ng, 
+      //      const int* ng, 
       const int* domlo, const int* domhi );
 
    void compute_velocity_at_y_faces_eb (
@@ -75,7 +75,7 @@ extern "C"
       const void*        flags,     const int* flo,   const int* fhi,
       const int* vbc,
       //const int* bc_jlo_type,       const int* bc_jhi_type, 
-      const int* ng, 
+      //      const int* ng, 
       const int* domlo, const int* domhi );
 
    void compute_velocity_at_z_faces_eb (
@@ -88,7 +88,7 @@ extern "C"
       const void*        flags,     const int* flo,   const int* fhi,
       const int* wbc,
       //      const int* bc_klo_type,       const int* bc_khi_type, 
-      const int* ng, 
+      //      const int* ng, 
       const int* domlo, const int* domhi );   
 
 

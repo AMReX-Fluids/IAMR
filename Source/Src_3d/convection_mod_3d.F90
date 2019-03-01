@@ -23,8 +23,8 @@ contains
   subroutine compute_velocity_at_faces ( lo, hi, vel, vello, velhi, &
        u, ulo, uhi, v, vlo, vhi, w, wlo, whi, &
        xslopes, yslopes, zslopes, slo, shi, ubc, vbc, wbc, &
-      ! bc_ilo, bc_ihi, bc_jlo, bc_jhi, bc_klo, bc_khi,
-       ng, domlo, domhi ) bind(C)
+      ! bc_ilo, bc_ihi, bc_jlo, bc_jhi, bc_klo, bc_khi,ng, &
+       domlo, domhi ) bind(C)
 
       ! Tile bounds
       integer(c_int),  intent(in   ) :: lo(3),  hi(3)
@@ -40,7 +40,7 @@ contains
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
 
       ! Nghost
-      integer(c_int),  intent(in   ) :: ng
+!      integer(c_int),  intent(in   ) :: ng
 
       ! Velocity Array
       real(ar),        intent(in   ) ::                            &

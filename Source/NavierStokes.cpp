@@ -291,15 +291,14 @@ NavierStokes::advance (Real time,
     //
     if (do_mac_proj) 
     {
-#ifdef AMREX_USE_EB
         MultiFab mac_rhs(grids,dmap,1,0,MFInfo(),Factory());
+	MultiFab& S_old = get_old_data(State_Type);
+#ifdef AMREX_USE_EB
+	// FIXME - pick up here
         create_mac_rhs(mac_rhs,0,time,dt);
-        MultiFab& S_old = get_old_data(State_Type);
         mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
 #else
-        MultiFab mac_rhs(grids,dmap,1,0);
         create_mac_rhs(mac_rhs,0,time,dt);
-        MultiFab& S_old = get_old_data(State_Type);
         mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
 #endif
     }
@@ -417,130 +416,58 @@ NavierStokes::predict_velocity (Real  dt,
     const Real  prev_time      = state[State_Type].prevTime();
     const Real  prev_pres_time = state[Press_Type].prevTime();
 
-#ifdef AMREX_USE_EB
-    //
-    //For now, import simple adv scheme from incflo
-    //
     //FIXME? does this really need EB? YES
     MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
     if (be_cn_theta != 1.0)
-    {
-      getViscTerms(visc_terms,Xvel,nComp,prev_time);
-    }
+        getViscTerms(visc_terms,Xvel,nComp,prev_time);
     else
-    {
 	visc_terms.setVal(0.);
-    }
 
-    const Box& domain = geom.Domain();
-    //
-    // nghost from incflo.  5 seems like overkill...
-    //FIXME - this needs to be carried elsewhere for other fns to access
-    // 
-    const int nghost = 5;
-    
-    FillPatchIterator
-      U_fpi(*this,visc_terms,nghost,prev_time,State_Type,Xvel,BL_SPACEDIM);
-    MultiFab& Umf=U_fpi.get_mf();
-
-    //
-    // Set up the timestep estimation.
-    //
-    Real cflmax = 1.0e-10;
-    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
-    // seems both IAMR and Pele only use a dummy comp_cfl, so should
-    // we not bother to do the reduction??? Does amrex use it?
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:cflmax,comp_cfl)
-#endif
-{
-    Real cflgrid,u_max[3];
-    FArrayBox tforces;
-    Vector<int> bndry[BL_SPACEDIM];
-    
-    for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-    {
-      const Box& bx=U_mfi.tilebox();
-      FArrayBox& Ufab = Umf[U_mfi];
-      
-      //
-      // No gravity or external forcing terms yet
-      //
-      // So no Sum up forcing terms 
-      //
-      
-      // TODO:
-      // Compute max cfl by
-      // Estimate the extrema of cell-centered us and rho.
-      // Use later for dt
-      //
-      
-      //     
-      // TODO: need some sort of BC conversion fn to get BCs in right form for
-      //       incflo convection
-      //  GODUNOV uses mathematical bcs like reflect_odd
-      //  incflo convection uses phys bcs like slip wall
-      // for now, just doing period, so just make sure I don't trip the bcs
-      //
-      //  FIXME -- THIS IS PROBABLY WRONG FOR ANTYHING BUT PERIODIC!!!
-      //
-      // get BCs for tilebox
-      D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-	     bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-      //
-      // Compute Umac
-      //  1. set up BCs, FillPatch vel
-      //  2. compute slopes
-      //  3. trace state to cell edges
-      //
-
-      godunov->ExtrapVelToFaces(U_mfi, dx, dt,
-				D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-				D_DECL(bndry[0],        bndry[1],        bndry[2]),
-				Ufab, tforces, nghost, domain);
-      VisMF::Write(u_mac[0], "umacx");
-      VisMF::Write(u_mac[1], "umacy");
-      VisMF::Write(u_mac[2], "umacz");
-    }
- }
-    // FIXME --- don't forget to return dt!
-    //  make computeDt() ?
-    //Real tempdt = std::min(change_max,cfl/cflmax);
-    //ParallelDescriptor::ReduceRealMin(tempdt);
- Real tempdt = 1.;
- return dt*tempdt;
-
-#else
-    /////////////////////
-    // Do the original //
-    /////////////////////
     //
     // Compute viscous terms at level n.
     // Ensure reasonable values in 1 grow cell.  Here, do extrap for
     // c-f/phys boundary, since we have no interpolator fn, also,
     // preserve extrap for corners at periodic/non-periodic intersections.
     //
-    MultiFab visc_terms(grids,dmap,nComp,1);
-
-    if (be_cn_theta != 1.0)
-    {
-	getViscTerms(visc_terms,Xvel,nComp,prev_time);
-    }
-    else
-    {
-	visc_terms.setVal(0);
-    }
-
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-
-    getGradP(Gp, prev_pres_time);
-    
-
     FillPatchIterator
       U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
+
+#ifdef AMREX_USE_EB
+    // already carrying filled gradp MF
+    // fixme ghost cell situation???
+
+    VisMF::Write(Umf, "U");
+    const Box& domain = geom.Domain();
+    // Compute slopes and store for use in computing UgradU
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+    Vector<int> bndry[BL_SPACEDIM];
+    for (MFIter mfi(Umf, true); mfi.isValid(); ++mfi)
+    {
+       Box bx=mfi.tilebox();
+       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	     bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+      godunov->ComputeVelocitySlopes(mfi, Umf,
+				     D_DECL(bndry[0], bndry[1], bndry[2]),
+				     domain);
+    }
+    //
+    // need to fill ghost cells for slopes here. 
+    // vel advection term ugradu uses these slopes (does not recompute in incflo
+    //  scheme) needs 4 ghost cells (comments say 5, but I only see use of 4 max)
+    // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
+    //  only allows for periodic for now
+    //
+ } 
+#else
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    getGradP(Gp, prev_pres_time);
+#endif
 
 #ifdef BOUSSINESQ
     FillPatchIterator
@@ -593,32 +520,62 @@ NavierStokes::predict_velocity (Real  dt,
         //
         // Test velocities, rho and cfl.
         //
+	// FIXME?
+	// This works assuming EB covered cells are set to ZERO.
+	// during some computations, EB covered cells are set to a huge val.
+	// Can I assume that by the end, EB covered is ZERO?
         cflgrid  = godunov->test_u_rho(Ufab,rho_ptime[U_mfi],bx,dx,dt,u_max);
+
         cflmax   = std::max(cflgrid,cflmax);
         comp_cfl = std::max(cflgrid,comp_cfl);
         //
         // Compute the total forcing.
         //
-        godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
+	// FIXME think this would work fine with EB, just pass gradp
+        //godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
 
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
+#ifdef AMREX_USE_EB
+	//
+	//  trace state to cell edges
+	//
+	// For now, import simple adv scheme from incflo
+	//
+	// FIXME 
+	//  GODUNOV uses mathematical bcs like reflect_odd
+	//  incflo convection uses phys bcs like slip wall
+	// for now, just doing periodic, so just make sure I don't trip the bcs
+	//
+	godunov->ExtrapVelToFaces(U_mfi, dx, dt,
+				  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+				  D_DECL(bndry[0],        bndry[1],        bndry[2]),
+				  Ufab, tforces, domain);
+#else
+	// non-EB
+	//  1. compute slopes
+	//  2. trace state to cell edges
         godunov->ExtrapVelToFaces(bx, dx, dt,
                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                   Ufab, tforces);
-    }
+#endif
+     }
 }
 
-    Real tempdt = std::min(change_max,cfl/cflmax);
-    // Don't we need to reduce comp_cfl here too?
-    // Skipping it because it's a dummy?
-    ParallelDescriptor::ReduceRealMin(tempdt);
+//FIXME
+	VisMF::Write(u_mac[0], "umacx");
+	VisMF::Write(u_mac[1], "umacy");
+	VisMF::Write(u_mac[2], "umacz");
 
-    return dt*tempdt;
-#endif
+   Real tempdt = std::min(change_max,cfl/cflmax);
+   // Don't we need to reduce comp_cfl here too?
+   // Skipping it because it's a dummy?
+   ParallelDescriptor::ReduceRealMin(tempdt);
+
+   return dt*tempdt;
 }
 
 //

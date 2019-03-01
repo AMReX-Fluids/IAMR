@@ -27,11 +27,15 @@ public:      // public access functions
     // =============================================================
 
     // construct the advection object
-    Godunov( int max_size = 512
 #ifdef AMREX_USE_EB
-	     , const amrex::EBFArrayBoxFactory* _ebf=nullptr
+    Godunov(const amrex::EBFArrayBoxFactory& _ebf,
+	    const amrex::BoxArray& grids,
+	    const amrex::DistributionMapping& dmap,
+	    int max_size = 512);
 #endif
-	     );
+  // fixme -- eventually need to take this one away for EB
+    Godunov(int max_size = 512);
+
 
     // destruct the advection object
     ~Godunov();
@@ -261,7 +265,14 @@ public:      // public access functions
   // EB functions
   //  
 #ifdef AMREX_USE_EB
-void ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
+  void slopes_FillBoundary(const amrex::Periodicity& prdcty);
+  void ComputeVelocitySlopes(const amrex::MFIter&  mfi, //not sure how to pass
+			     amrex::MultiFab& Sborder,
+			     D_DECL(const amrex::Vector<int>& ubc,
+				    const amrex::Vector<int>& vbc,
+				    const amrex::Vector<int>& wbc),
+			     const amrex::Box& domain);
+  void ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
 		       const amrex_real*  dx, amrex_real dt,
 		       D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
 			      amrex::FArrayBox&  wmac),
@@ -270,7 +281,7 @@ void ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
 			      const amrex::Vector<int>& wbc),
 		       amrex::FArrayBox&  U,
 		       amrex::FArrayBox&  tforces,
-		       const int nghost, const amrex::Box& domain);
+		       const amrex::Box& domain);
 #endif
 
   //================ for debugging purposes this is made public
@@ -331,6 +342,11 @@ protected:   // protected data members
   const amrex::EBFArrayBoxFactory* ebfactory;
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
+  // store vel slopes
+  // FIXME - store scalar slopes??? I don't think this makes sense
+  std::unique_ptr<amrex::MultiFab> xslopes;
+  std::unique_ptr<amrex::MultiFab> yslopes;
+  std::unique_ptr<amrex::MultiFab> zslopes;
 #endif
 };
 

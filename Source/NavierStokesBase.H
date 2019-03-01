@@ -585,9 +585,9 @@ private:
     void SetGodunov () {
 #ifdef AMREX_USE_EB
       if (godunov == 0){
-	const auto* ebf_ptr =
-	  &dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
-	godunov = new Godunov(512, ebf_ptr);
+ 	auto& ebf =
+	  dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+	godunov = new Godunov(ebf, grids, dmap);
       }
 #else
       if (godunov == 0) godunov = new Godunov();

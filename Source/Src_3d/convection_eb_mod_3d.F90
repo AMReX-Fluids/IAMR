@@ -24,8 +24,8 @@ contains
         slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, &
         ubc, &
-        !bc_ilo, bc_ihi, 
-        ng, domlo, domhi ) bind(C)
+        !bc_ilo, bc_ihi, ng, &
+        domlo, domhi ) bind(C)
 
       use convection_mod 
 
@@ -44,7 +44,7 @@ contains
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
 
       ! Nghost
-      integer(c_int),  intent(in   ) :: ng
+!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
@@ -104,8 +104,8 @@ contains
    subroutine compute_velocity_at_y_faces_eb ( lo, hi, v, vlo, vhi,  &
         vel, vello, velhi, slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, vbc, &
-        !bc_jlo, bc_jhi, 
-        ng, domlo, domhi ) bind(C)
+        !bc_jlo, bc_jhi, ng, &
+        domlo, domhi ) bind(C)
 
       use convection_mod 
 
@@ -124,7 +124,7 @@ contains
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
 
       ! Nghost
-      integer(c_int),  intent(in   ) :: ng
+!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
@@ -183,8 +183,8 @@ contains
    subroutine compute_velocity_at_z_faces_eb ( lo, hi, w, wlo, whi,  &
         vel, vello, velhi, slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, wbc, &
-        !bc_klo, bc_khi
-        ng, domlo, domhi ) bind(C)
+        !bc_klo, bc_khi, ng, &
+        domlo, domhi ) bind(C)
 
       use convection_mod 
 
@@ -203,7 +203,7 @@ contains
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
 
       ! Nghost
-      integer(c_int),  intent(in   ) :: ng
+!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
