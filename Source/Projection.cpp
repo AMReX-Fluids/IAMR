@@ -341,7 +341,7 @@ Projection::level_project (int             level,
 #ifdef AMREX_USE_EB
     //fixme?  I think one gp is fine, just update as we go, but
     // maybe revisit this later
-    const MultiFab* Gp = ns->getGradP();
+    const MultiFab& Gp = ns->getGradP();
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     ns->getGradP(Gp, prev_pres_time);
@@ -356,7 +356,7 @@ Projection::level_project (int             level,
 	const FArrayBox& rhofab = rho_half[mfi];
 #ifdef AMREX_USE_EB
 	FArrayBox Gpfab(bx,BL_SPACEDIM);
-	Gpfab.copy((*Gp)[mfi],0,0,BL_SPACEDIM);
+	Gpfab.copy((Gp)[mfi],0,0,BL_SPACEDIM);
 #else
 	FArrayBox& Gpfab = Gp[mfi];
 #endif
@@ -1014,6 +1014,13 @@ Projection::initialVelocityProject (int  c_lev,
     {
         LevelData[lev]->get_old_data(Press_Type).setVal(0.);
         LevelData[lev]->get_new_data(Press_Type).setVal(0.);
+#ifdef AMREX_USE_EB
+	// for now keep updating gradp in MLMGNodalProjection
+	//    so need to reset to zero here ...
+	NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+	MultiFab& Gp = ns->getGradP();
+	Gp.setVal(0.);
+#endif
     }
 
     if (verbose) {
@@ -2501,6 +2508,11 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     //fixme
     //  update gradP here? or pass back fluxes and update in calling fn?
     //  what about initial iters....
+    // probably either need to pass fluxes, or some switch to say whether to
+    // actually update gradp or not
+    // mfix passes fluxes
+    // IAMR seems to do it so things get updated but then reset in calling fn
+    Print()<<"$$$ Updating gradp ...\n";
     Vector<std::unique_ptr<MultiFab> > fluxes;
     fluxes.resize(nlevel);
     for (int lev = 0; lev < nlevel; lev++)
@@ -2511,7 +2523,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                                        *ebfactory[lev+c_lev]));
         fluxes[lev]->setVal(1.e200);
     }
-    // sets fluxes = sig * grad phi
+    // computes fluxes = sig * grad phi
     mlmg.getFluxes( amrex::GetVecOfPtrs(fluxes));
     // divide out sig to get fluxes = (grad phi)
     for (int lev = 0; lev < nlevel; lev++){
@@ -2526,10 +2538,11 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     Vector < MultiFab* > Gp;
     Gp.resize(nlevel);
     for (int lev = 0; lev < nlevel; lev++){    
-      ns[lev] = dynamic_cast<NavierStokesBase*>(&parent->getLevel(lev+c_lev));
+      ns[lev] = dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
       //fixme is this assert needed?
       BL_ASSERT(!(ns[lev]==0));
-      Gp[lev] = ns[lev]->getGradP();
+      Gp[lev] = &(ns[lev]->getGradP());
+      // FIXME need to check on the sign of fluxes
       MultiFab::Add(*Gp[lev],*fluxes[lev], 0, 0, BL_SPACEDIM,
 		    fluxes[lev]->nGrow());
     }

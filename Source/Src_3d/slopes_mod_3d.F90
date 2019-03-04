@@ -49,7 +49,7 @@ module slopes_mod
 
    use amrex_fort_module, only: ar => amrex_real
    use iso_c_binding ,    only: c_int
-   use convection_param,  only: zero, half, one, &
+   use param,             only: zero, half, one, &
                                 minf_, nsw_, fsw_, psw_
 
    implicit none
@@ -350,9 +350,10 @@ contains
                   ! is zero, thus I have just to nullify the correct one sided
                   ! slope in case of neighbor covered cell
                   if ( is_covered_cell(flags(i,j,k)) ) then
-                     xslopes(i,j,k,n) = huge(one)
-                     yslopes(i,j,k,n) = huge(one)
-                     zslopes(i,j,k,n) = huge(one)
+                     !FIXME
+                     xslopes(i,j,k,n) = .111111111111111111111 !huge(one)
+                     yslopes(i,j,k,n) = .111111111111111111111 !huge(one)
+                     zslopes(i,j,k,n) = .111111111111111111111 !huge(one)
                   else
                      ! X direction
                      du_l = two*(vel(i  ,j,k,n) - vel(i-1,j,k,n))

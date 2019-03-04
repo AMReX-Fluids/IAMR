@@ -302,6 +302,7 @@ NavierStokes::advance (Real time,
         mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
 #endif
     }
+
     //
     // Advect velocities.
     //
@@ -434,8 +435,10 @@ NavierStokes::predict_velocity (Real  dt,
     MultiFab& Umf=U_fpi.get_mf();
 
 #ifdef AMREX_USE_EB
-    // already carrying filled gradp MF
+    // Create reference here for now, even though not using any forcing terms
+    // in velocity extrapolation yet, because will want to use forcing terms later.
     // fixme ghost cell situation???
+    MultiFab& Gp = *gradp;
 
     VisMF::Write(Umf, "U");
     const Box& domain = geom.Domain();
@@ -463,12 +466,16 @@ NavierStokes::predict_velocity (Real  dt,
     // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
     //  only allows for periodic for now
     //
+    godunov->slopes_FillBoundary(geom.periodicity());
  } 
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
 #endif
 
+    //fixme
+    VisMF::Write(Gp,"gradp");
+    
 #ifdef BOUSSINESQ
     FillPatchIterator
       S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
@@ -531,8 +538,7 @@ NavierStokes::predict_velocity (Real  dt,
         //
         // Compute the total forcing.
         //
-	// FIXME think this would work fine with EB, just pass gradp
-        //godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
+        godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
 
         D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
@@ -549,7 +555,8 @@ NavierStokes::predict_velocity (Real  dt,
 	//  incflo convection uses phys bcs like slip wall
 	// for now, just doing periodic, so just make sure I don't trip the bcs
 	//
-	godunov->ExtrapVelToFaces(U_mfi, dx, dt,
+	godunov->ExtrapVelToFaces(U_mfi,
+				  //dx, dt,  // these are not used yet
 				  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
 				  D_DECL(bndry[0],        bndry[1],        bndry[2]),
 				  Ufab, tforces, domain);
@@ -566,9 +573,9 @@ NavierStokes::predict_velocity (Real  dt,
 }
 
 //FIXME
-	VisMF::Write(u_mac[0], "umacx");
-	VisMF::Write(u_mac[1], "umacy");
-	VisMF::Write(u_mac[2], "umacz");
+// VisMF::Write(u_mac[0], "umacx");
+// VisMF::Write(u_mac[1], "umacy");
+// VisMF::Write(u_mac[2], "umacz"));
 
    Real tempdt = std::min(change_max,cfl/cflmax);
    // Don't we need to reduce comp_cfl here too?

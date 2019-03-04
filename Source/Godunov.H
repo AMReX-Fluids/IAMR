@@ -266,22 +266,33 @@ public:      // public access functions
   //  
 #ifdef AMREX_USE_EB
   void slopes_FillBoundary(const amrex::Periodicity& prdcty);
-  void ComputeVelocitySlopes(const amrex::MFIter&  mfi, //not sure how to pass
+  void ComputeVelocitySlopes(const amrex::MFIter&  mfi,
 			     amrex::MultiFab& Sborder,
 			     D_DECL(const amrex::Vector<int>& ubc,
 				    const amrex::Vector<int>& vbc,
 				    const amrex::Vector<int>& wbc),
 			     const amrex::Box& domain);
-  void ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
-		       const amrex_real*  dx, amrex_real dt,
-		       D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
-			      amrex::FArrayBox&  wmac),
-		       D_DECL(const amrex::Vector<int>& ubc,
-			      const amrex::Vector<int>& vbc,
-			      const amrex::Vector<int>& wbc),
-		       amrex::FArrayBox&  U,
-		       amrex::FArrayBox&  tforces,
-		       const amrex::Box& domain);
+  void ExtrapVelToFaces (const amrex::MFIter&  mfi,
+			 //const amrex_real*  dx, amrex_real dt,
+			 D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
+				amrex::FArrayBox&  wmac),
+			 D_DECL(const amrex::Vector<int>& ubc,
+				const amrex::Vector<int>& vbc,
+				const amrex::Vector<int>& wbc),
+			 amrex::FArrayBox&  U,
+			 amrex::FArrayBox&  tforces,
+			 const amrex::Box& domain);
+  void AdvectVel (const amrex::MFIter&  mfi,
+		  amrex::MultiFab& U, amrex::MultiFab& aofs,
+		  D_DECL(amrex::MultiFab&  uedge, amrex::MultiFab&  vedge,
+			 amrex::MultiFab&  wedge),
+		  D_DECL(const amrex::Vector<int>& ubc,
+			 const amrex::Vector<int>& vbc,
+			 const amrex::Vector<int>& wbc),
+		  const amrex::Box& domain,
+		  const amrex::Real* dx,
+		  int nghost);
+
 #endif
 
   //================ for debugging purposes this is made public
@@ -340,6 +351,8 @@ protected:   // protected data members
 #ifdef AMREX_USE_EB
   // pointers to EB data
   const amrex::EBFArrayBoxFactory* ebfactory;
+  const amrex::MultiFab* volfrac;
+  const amrex::MultiCutFab* bndrycent;
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
   // store vel slopes

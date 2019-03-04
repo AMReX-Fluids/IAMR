@@ -1,5 +1,5 @@
 
-module convection_param
+module param
 
   use amrex_fort_module, only : rt => amrex_real
 
@@ -21,4 +21,4 @@ module convection_param
    real(rt), parameter :: two  = 2.0d0
    real(rt), parameter :: my_huge  = 1.0d20
    
- end module convection_param
+ end module param

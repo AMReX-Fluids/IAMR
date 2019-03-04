@@ -11,7 +11,7 @@ module convection_mod
 
    use amrex_fort_module, only: ar => amrex_real
    use iso_c_binding ,    only: c_int
-   use convection_param, only: zero, half, one, &
+   use param,             only: zero, half, one, &
                                minf_, nsw_, fsw_, psw_, pinf_, pout_
 
    implicit none
@@ -143,9 +143,10 @@ contains
                              w, wlo, whi, &
                              xslopes, yslopes, zslopes, slo, shi, &
                              domlo, domhi, &
-                             bc_ilo_type, bc_ihi_type, &
-                             bc_jlo_type, bc_jhi_type, &
-                             bc_klo_type, bc_khi_type, dx, ng) bind(C)
+                             ! bc_ilo_type, bc_ihi_type, &
+                             ! bc_jlo_type, bc_jhi_type, &
+                             ! bc_klo_type, bc_khi_type, &
+                             dx, ng) bind(C)
 
       ! Tile bounds
       integer(c_int),  intent(in   ) :: lo(3),  hi(3)
@@ -176,7 +177,8 @@ contains
            & ugradu(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),3)
 
       ! BC types
-      integer(c_int), intent(in   ) ::  &
+      !integer(c_int), intent(in   ) ::  &
+      integer(c_int) ::  &
            & bc_ilo_type(domlo(2)-ng:domhi(2)+ng,domlo(3)-ng:domhi(3)+ng,2), &
            & bc_ihi_type(domlo(2)-ng:domhi(2)+ng,domlo(3)-ng:domhi(3)+ng,2), &
            & bc_jlo_type(domlo(1)-ng:domhi(1)+ng,domlo(3)-ng:domhi(3)+ng,2), &
@@ -194,6 +196,16 @@ contains
       real(ar)                       :: divumac
       integer, parameter             :: bc_list(6) = [MINF_, NSW_, FSW_, PSW_, PINF_, POUT_]
 
+
+      ! FIXME only period for now, so hack bc arrays
+      bc_ilo_type = -1 
+      bc_ihi_type = -1  
+      bc_jlo_type = -1 
+      bc_jhi_type = -1 
+      bc_klo_type = -1 
+      bc_khi_type = -1 
+      
+      
       idx = one / dx(1)
       idy = one / dx(2)
       idz = one / dx(3)

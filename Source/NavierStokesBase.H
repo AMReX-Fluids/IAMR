@@ -176,7 +176,7 @@ public:
     //
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
 #ifdef AMREX_USE_EB
-  amrex::MultiFab* getGradP() { return gradp.get(); }
+  amrex::MultiFab& getGradP() { return *gradp; }
 #endif
     //
     // Boundary condition access functions.

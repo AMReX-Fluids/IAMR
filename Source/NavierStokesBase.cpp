@@ -193,18 +193,14 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
     gradp->setVal(0.);
 
-    //FIXME???
-    // not sure about whether all these other rhos need EBFacotry too or not
+    //FIXME --- this fn is really similar to restart()... work on that later   
+#endif
     //
     // rho_half is passed into level_project to be used as sigma in the MLMG
     // solve
     rho_half.define (grids,dmap,1,1, MFInfo(), Factory());
-
-    //FIXME --- this fn is really similar to restart()... work on that later   
-#else
-    
-    rho_half.define (grids,dmap,1,1);
-#endif
+    //FIXME???
+    // not sure about whether all these other rhos need EBFacotry too or not
     rho_ptime.define(grids,dmap,1,1);
     rho_ctime.define(grids,dmap,1,1);
     rho_qtime  = 0;
@@ -644,8 +640,13 @@ NavierStokesBase::advance_setup (Real time,
     BL_PROFILE("NavierStokesBase::advance_setup()");
 
     const int finest_level = parent->finestLevel();
-    
+
+#ifdef AMREX_USE_EB
+    // just cribbing from incflo
+    umac_n_grow = 5;
+#else
     umac_n_grow = 1;
+#endif
     
 #ifdef AMREX_PARTICLES
     if (ncycle >= 1)
@@ -1063,7 +1064,7 @@ NavierStokesBase::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
     }
     else
     {
-        rhs.setVal(0);
+        rhs.setVal(0.);
     }
 
     if (have_dsdt)
@@ -3491,27 +3492,48 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Compute viscosity components.
     //
-    MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1);
+#ifdef AMREX_USE_EB
+    //fixme?  I think one gp is fine, just update as we go, but
+    // maybe revisit this later
+    const MultiFab& Gp = getGradP();
 
+    //fixme
+    // not sure the right place to do this, but need to ensure all u_mac's
+    // ghost cells are filled.
+    // only periodic for now, but later may need create_umac_grown()
+    for ( int i=0; i<BL_SPACEDIM; i++)
+      u_mac[i].FillBoundary(geom.periodicity());
+
+    //fixme
+    //    aofs->setVal(0.);
+
+#else
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    getGradP(Gp, prev_pres_time);
+#endif
+
+    //fixme
+    //VisMF::Write(Gp,"gradpVA");
+    
+    MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
     if (be_cn_theta != 1.0)
         getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
     else
-        visc_terms.setVal(0,1);
+        visc_terms.setVal(0.,1);
 
+    //FIXME? right now, only working with constraint divu = 0, but later
+    // divu_fp may get FillPatch'ed in create_mac_rhs(), so may need EBFactory
     MultiFab divu_fp(grids,dmap,1,1);
-
     create_mac_rhs(divu_fp,1,prev_time,dt);
 
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1), fluxes[BL_SPACEDIM];
-
-    getGradP(Gp, prev_pres_time);
+    MultiFab fluxes[BL_SPACEDIM];
 
     if (do_reflux)
     {
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
-            fluxes[i].define(ba, dmap, BL_SPACEDIM, 0);
+            fluxes[i].define(ba, dmap, BL_SPACEDIM, 0, MFInfo(),Factory());
         }
     }
     
@@ -3541,6 +3563,7 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
 {
       Vector<int> bndry[BL_SPACEDIM];
+      // FIXME - need to think about if some of these should be EBFabs?
       FArrayBox tforces;
       FArrayBox S;
       FArrayBox cfluxes[BL_SPACEDIM];
@@ -3569,8 +3592,8 @@ NavierStokesBase::velocity_advection (Real dt)
       godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
       
       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-               bndry[2] = fetchBCArray(State_Type,bx,2,1);)
+	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	     bndry[2] = fetchBCArray(State_Type,bx,2,1);)
          
       for (int d=0; d<BL_SPACEDIM; ++d){
           const Box& ebx = amrex::surroundingNodes(bx,d);
@@ -3590,6 +3613,36 @@ NavierStokesBase::velocity_advection (Real dt)
                FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
                FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
 
+	// FIXME? not sure which is better here, looping over comps like
+	//   orig IAMR or doing all comps together like incflo
+#ifdef AMREX_USE_EB
+	// Figure out fluxes for the multi-level sync later...
+
+	// this uses slopes saved from the computation of umac (i.e.
+	//   predict_velocity)
+	// aofs = -ugradu
+	godunov->AdvectVel(U_mfi, Umf, *aofs,
+			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+			   D_DECL(bndry[0], bndry[1], bndry[2]),
+			   geom.Domain(),
+			   geom.CellSize(),Godunov::hypgrow());	
+
+
+ // FIXME
+ // Print()<<"Wrting aofs ..\n";
+ // VisMF::Write(*aofs,"aofs");
+
+	if (do_reflux){
+	     //FIXME make AdvectVel pass fluxes first
+	     for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+	     {
+	       for (int d = 0; d < BL_SPACEDIM; d++){
+		 const Box& ebx = U_mfi.nodaltilebox(d);
+		 fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+	       }
+	     }
+	   }
+#else // not eb
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
             int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
@@ -3612,17 +3665,19 @@ NavierStokesBase::velocity_advection (Real dt)
                                  comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
 
             if (do_reflux){
-	            for (int d = 0; d < BL_SPACEDIM; d++){
+	      for (int d = 0; d < BL_SPACEDIM; d++){
                 const Box& ebx = U_mfi.nodaltilebox(d);
-		            fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+		fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
               }
             }
         }
+#endif //end if USE_EB
       } // end of MFIter
-}
+ } // end OMP region
 
  } //end scope of FillPatchIter
-    
+
+ 
     if (do_reflux)
     {
         if (level > 0 )
