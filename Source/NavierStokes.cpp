@@ -83,21 +83,20 @@ NavierStokes::initData ()
     MultiFab&   S_new    = get_new_data(State_Type);
     MultiFab&   P_new    = get_new_data(Press_Type);
     const Real  cur_time = state[State_Type].curTime();
-
-    for (MFIter snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter snewmfi(S_new,true); snewmfi.isValid(); ++snewmfi)
     {
-        const Box& vbx = snewmfi.validbox();
-
-        BL_ASSERT(grids[snewmfi.index()] == vbx);
+        const Box& vbx = snewmfi.tilebox();
 
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
-	Sfab.setVal(0.0);
-        Pfab.setVal(0.0);
+	Sfab.setVal(0.0,vbx);
+        Pfab.setVal(0.0,snewmfi.nodaltilebox());
 
-        const int  i       = snewmfi.index();
-        RealBox    gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
+        RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
         const int* lo      = vbx.loVect();
         const int* hi      = vbx.hiVect();
         const int* s_lo    = Sfab.loVect();
@@ -169,14 +168,19 @@ NavierStokes::initData ()
         MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
-            amrData.FillVar(tmp, level, plotnames[idX+i], 0);
-            for (MFIter mfi(tmp); mfi.isValid(); ++mfi)
-            {
+	    amrData.FillVar(tmp, level, plotnames[idX+i], 0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    for (MFIter mfi(tmp,true); mfi.isValid(); ++mfi)
+	    {
+	        const Box& bx = mfi.tilebox();
                 FArrayBox& tfab = tmp[mfi];
-  	        tfab.mult(velocity_plotfile_scale, 0, 1);
-                S_new[mfi].plus(tfab, tfab.box(), 0, Xvel+i, 1);
+  	        tfab.mult(velocity_plotfile_scale, bx, 0, 1);
+                S_new[mfi].plus(tfab, bx, 0, Xvel+i, 1);
 	    }
-            amrData.FlushGrids(idX+i);
+	    
+	    amrData.FlushGrids(idX+i);
         }
 
 	amrex::Print() << "initData: finished init from velocity_plotfile" << '\n';
@@ -192,15 +196,15 @@ NavierStokes::initData ()
     {
         const Real dt       = 1.0;
         const Real dtin     = -1.0; // Dummy value denotes initialization.
-        const Real cur_time = state[Divu_Type].curTime();
+        const Real curTime = state[Divu_Type].curTime();
         MultiFab&  Divu_new = get_new_data(Divu_Type);
 
-        state[State_Type].setTimeLevel(cur_time,dt,dt);
+        state[State_Type].setTimeLevel(curTime,dt,dt);
 
 	if (variable_scal_diff)
 	  //Make sure something reasonable is in diffn_cc
 	  calcDiffusivity(cur_time);
-	
+
         calc_divu(cur_time,dtin,Divu_new);
 
         if (have_dsdt)
@@ -228,7 +232,7 @@ NavierStokes::initData ()
 // This function ensures that the multifab registers and boundary
 // flux registers needed for syncing the composite grid
 //
-//     u_mac, umacG, Vsync, Ssync, rhoavg, fr_adv, fr_visc
+//     u_mac, Vsync, Ssync, rhoavg, fr_adv, fr_visc
 //
 // are initialized to zero.  In general these quantities
 // along with the pressure sync registers (sync_reg) and
@@ -296,6 +300,7 @@ NavierStokes::advance (Real time,
     //
     if (do_mom_diff == 0) 
         velocity_advection(dt);
+
     //
     // Advect scalars.
     //
@@ -418,93 +423,89 @@ NavierStokes::predict_velocity (Real  dt,
     {
 	visc_terms.setVal(0);
     }
-    //
-    // Set up the timestep estimation.
-    //
-    Real cflgrid,u_max[3];
-    Real cflmax = 1.0e-10;
-    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
-
-    FArrayBox tforces;
-
-    Vector<int> bndry[BL_SPACEDIM];
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
 
     getGradP(Gp, prev_pres_time);
     
-    FArrayBox null_fab;
 
-    for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),
-                                 prev_time,State_Type,Xvel,BL_SPACEDIM)
+    FillPatchIterator
+      U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+    MultiFab& Umf=U_fpi.get_mf();
+
 #ifdef BOUSSINESQ
-             ,S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
-	 S_fpi.isValid() && U_fpi.isValid();
-	 ++S_fpi, ++U_fpi
+    FillPatchIterator
+      S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
+    MultiFab& Smf=S_fpi.get_mf();
 #else
 #ifdef MOREGENGETFORCE
-	     , S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-	 S_fpi.isValid() && U_fpi.isValid();
-	 ++S_fpi, ++U_fpi
-#else
-         ; U_fpi.isValid();
-	 ++U_fpi
+     FillPatchIterator
+       S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+      MultiFab& Smf=S_fpi.get_mf();
 #endif
 #endif
-	)
-    {
-        const int i = U_fpi.index();
+
+    //
+    // Set up the timestep estimation.
+    //
+    Real cflmax = 1.0e-10;
+    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
+    // seems both IAMR and Pele only use a dummy comp_cfl, so should
+    // we not bother to do the reduction??? Does amrex use it?
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(max:cflmax,comp_cfl)
+#endif
+{
+     Real cflgrid,u_max[3];
+     FArrayBox tforces;
+     Vector<int> bndry[BL_SPACEDIM];
+
+     for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+     {
+       Box bx=U_mfi.tilebox();
+       FArrayBox& Ufab = Umf[U_mfi];
 
 #ifdef BOUSSINESQ
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
 	if (getForceVerbose) {
 	  amrex::Print() << "---" << '\n' 
 			 << "A - Predict velocity:" << '\n'
 			 << " Calling getForce..." << '\n';
 	}
-        getForce(tforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 #else
-	getForce(tforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
+	getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
         //
         // Test velocities, rho and cfl.
         //
-        cflgrid  = godunov->test_u_rho(U_fpi(),rho_ptime[U_fpi],grids[i],dx,dt,u_max);
+        cflgrid  = godunov->test_u_rho(Ufab,rho_ptime[U_mfi],bx,dx,dt,u_max);
         cflmax   = std::max(cflgrid,cflmax);
         comp_cfl = std::max(cflgrid,comp_cfl);
         //
         // Compute the total forcing.
         //
-        godunov->Sum_tf_gp_visc(tforces,visc_terms[U_fpi],Gp[U_fpi],rho_ptime[U_fpi]);
+        godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
 
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
-               bndry[1] = getBCArray(State_Type,i,1,1);,
-               bndry[2] = getBCArray(State_Type,i,2,1);)
+        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+               bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-        godunov->Setup(grids[i], dx, dt, 1,
-                       null_fab, bndry[0].dataPtr(),
-                       null_fab, bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                         
-                       null_fab, bndry[2].dataPtr(),
-#endif
-                       U_fpi(), rho_ptime[U_fpi], tforces);
-
-        godunov->ComputeUmac(grids[i], dx, dt, 
-                             u_mac[0][U_fpi], bndry[0].dataPtr(),
-                             u_mac[1][U_fpi], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)
-                             u_mac[2][U_fpi], bndry[2].dataPtr(),
-#endif
-                             U_fpi(), tforces);
+        godunov->ExtrapVelToFaces(bx, dx, dt,
+                                  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                                  D_DECL(bndry[0],        bndry[1],        bndry[2]),
+                                  Ufab, tforces);
     }
+}
 
     Real tempdt = std::min(change_max,cfl/cflmax);
-
+    // Don't we need to reduce comp_cfl here too?
+    // Skipping it because it's a dummy?
     ParallelDescriptor::ReduceRealMin(tempdt);
 
     return dt*tempdt;
@@ -528,7 +529,6 @@ NavierStokes::scalar_advection (Real dt,
     const int   num_scalars    = lscalar - fscalar + 1;
     const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
-    const Real  prev_pres_time = state[Press_Type].prevTime();
     //
     // Get the viscous terms.
     //
@@ -537,184 +537,117 @@ NavierStokes::scalar_advection (Real dt,
     if (be_cn_theta != 1.0) {
         getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
     } else {
-        visc_terms.setVal(0,1);
+        visc_terms.setVal(0.0,1);
     }
-    //
-    // Set up the grid loop.
-    //
-    FArrayBox flux[BL_SPACEDIM], tforces, tvelforces;
 
-    MultiFab Gp, vel_visc_terms, fluxes[BL_SPACEDIM];
-
-    MultiFab* divu_fp = getDivCond(1,prev_time);
-    MultiFab* dsdt    = getDsdt(1,prev_time);
-    for (MFIter dsdtmfi(*dsdt); dsdtmfi.isValid(); ++dsdtmfi)
-    {
-        FArrayBox& dsdtfab = (*dsdt)[dsdtmfi];
-        dsdtfab.mult(.5*dt);
-        (*divu_fp)[dsdtmfi].plus(dsdtfab);
-    }
+    int nGrowF = 1;
+    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
+    MultiFab* dsdt    = getDsdt(nGrowF,prev_time);
+    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nGrowF);
     delete dsdt;
 
-    if (do_reflux && level < parent->finestLevel())
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-        {
-            const BoxArray& ba = getEdgeBoxArray(i);
-            fluxes[i].define(ba, dmap, num_scalars, 0);
-        }
+    MultiFab fluxes[BL_SPACEDIM];
+    //MultiFab edgstate[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++) {
+      const BoxArray& ba = getEdgeBoxArray(i);
+      fluxes[i].define(ba, dmap, num_scalars, 0);
+      //edgstate[i].define(ba, dmap, num_scalars, 0);
     }
 
-    const int use_forces_in_trans = godunov->useForcesInTrans();
-
-    if (use_forces_in_trans)
-    {
-        Gp.define(grids,dmap,BL_SPACEDIM,1);
-
-        vel_visc_terms.define(grids,dmap,BL_SPACEDIM,1);
-
-        getGradP(Gp, prev_pres_time);
-
-        if (be_cn_theta != 1.0)
-            getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
-        else
-            vel_visc_terms.setVal(0,1);
-    }
-    Vector<int> state_bc, bndry[BL_SPACEDIM];
     //
     // Compute the advective forcing.
     //
-    for (FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
+
+  {
+      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+      FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
+      const MultiFab& Umf=U_fpi.get_mf();
+      const MultiFab& Smf=S_fpi.get_mf();
+      
 #ifdef BOUSSINESQ
-             Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1),
+      FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
+      const MultiFab& Scalmf=Scal_fpi.get_mf();
 #endif
-             S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
-         U_fpi.isValid() && S_fpi.isValid();
-         ++U_fpi, ++S_fpi)
-    {
-        const int i = U_fpi.index();
+      
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    { 
+
+      Vector<int> state_bc;
+      FArrayBox tforces;
+      FArrayBox cfluxes[BL_SPACEDIM];
+      FArrayBox edgstate[BL_SPACEDIM];
+     
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      {
+	    const Box bx = U_mfi.tilebox();
 
 #ifdef BOUSSINESQ
-        getForce(tforces,i,1,fscalar,num_scalars,prev_time,Scal_fpi());
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,i,1,fscalar,num_scalars,prev_time,rho_ptime[U_fpi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
-	if (getForceVerbose) {
-	  amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
-			 << " Calling getForce..." << '\n';
-	}
-        getForce(tforces,i,1,fscalar,num_scalars,prev_time,U_fpi(),S_fpi(),0);
+	      if (getForceVerbose) {
+	        amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+			    << " Calling getForce..." << '\n';
+	      }
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 #else
-        getForce(tforces,i,1,fscalar,num_scalars,rho_ptime[U_fpi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[U_mfi]);
 #endif		 
 #endif		 
-        
-        if (use_forces_in_trans)
+
+        for (int d=0; d<BL_SPACEDIM; ++d)
         {
-#ifdef BOUSSINESQ
-        getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,S_fpi());
-#else
-#ifdef GENGETFORCE
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_fpi]);
-#elif MOREGENGETFORCE
-	    if (getForceVerbose) {
-	      amrex::Print() << "---" << '\n' 
-			     << "D - scalar advection (use_forces_in_trans):" << '\n' 
-			     << " Calling getForce..." << '\n';
-	    }
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,prev_time,U_fpi(),S_fpi(),0);
-#else
-            getForce(tvelforces,i,1,Xvel,BL_SPACEDIM,rho_ptime[U_fpi]);
-#endif		 
-#endif
-            godunov->Sum_tf_gp_visc(tvelforces,vel_visc_terms[U_fpi],Gp[U_fpi],rho_ptime[U_fpi]);
+          const Box& ebx = amrex::surroundingNodes(bx,d);
+          cfluxes[d].resize(ebx,num_scalars);
+          edgstate[d].resize(ebx,num_scalars);
         }
 
-        D_TERM(bndry[0] = getBCArray(State_Type,i,0,1);,
-               bndry[1] = getBCArray(State_Type,i,1,1);,
-               bndry[2] = getBCArray(State_Type,i,2,1);)
-
-        godunov->Setup(grids[i], dx, dt, 0,
-                       flux[0], bndry[0].dataPtr(),
-                       flux[1], bndry[1].dataPtr(),
-#if (BL_SPACEDIM == 3)                         
-                       flux[2], bndry[2].dataPtr(),
-#endif
-                       U_fpi(),rho_ptime[U_fpi],tvelforces);
-
-        //
-        // Loop over the scalar components.
-        //
-        FArrayBox& divufab = (*divu_fp)[U_fpi];
-        FArrayBox& aofsfab = (*aofs)[U_fpi];
-        FArrayBox& rhopfab = rho_ptime[U_fpi];
-        FArrayBox& Ufab    = U_fpi();
-        FArrayBox& Sfab    = S_fpi();
-
-        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_fpi];,
-               FArrayBox& u_mac_fab1 = u_mac[1][U_fpi];,
-               FArrayBox& u_mac_fab2 = u_mac[2][U_fpi];);
-
-        for (int comp = 0 ; comp < num_scalars ; comp++)
-        {
-            int state_ind = fscalar + comp;
-            //
-            // Compute total forcing.
-            //
-            int use_conserv_diff = (advectionType[state_ind] == Conservative) ? true : false;
-
-            //AdvectionScheme adv_scheme = FPU;
-            AdvectionScheme adv_scheme = PRE_MAC;
-
-            if (adv_scheme == PRE_MAC)
-            {
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_fpi],
-                                          comp,divufab,rhopfab,use_conserv_diff);
-            }
-            else
-            {
-                FArrayBox junkDivu(tforces.box(),1);
-                junkDivu.setVal(0);
-                godunov->Sum_tf_divu_visc(Sfab,tforces,comp,1,visc_terms[U_fpi],
-                                          comp,junkDivu,rhopfab,use_conserv_diff);
-            }
-            //
-            // Advect scalar.
-            //
-            state_bc = getBCArray(State_Type,i,state_ind,1);
-
-            godunov->AdvectState(grids[i], dx, dt, 
-                                 area[0][i], u_mac_fab0, flux[0],
-                                 area[1][i], u_mac_fab1, flux[1],
-#if (BL_SPACEDIM == 3)                        
-                                 area[2][i], u_mac_fab2, flux[2],
-#endif
-                                 Ufab,Sfab,tforces,divufab,comp,
-                                 aofsfab,state_ind,use_conserv_diff,
-                                 state_ind,state_bc.dataPtr(),adv_scheme,volume[i]);
-            if (do_reflux)
-            {
-                if (level < parent->finestLevel())
-                {
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                        fluxes[d][U_fpi].copy(flux[d],0,comp,1);
-                }
-                if (level > 0)
-                {
-                    for (int d = 0; d < BL_SPACEDIM; d++)
-                        advflux_reg->FineAdd(flux[d],d,i,0,state_ind,1,dt);
-                }
-            }
+        for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
+          int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
+          godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
+                                    (*divu_fp)[U_mfi],0,rho_ptime[U_mfi],0,use_conserv_diff);
         }
+
+        state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+
+        godunov->AdvectScalars(bx, dx, dt, 
+                               D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
+                               D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                               D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+                               Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
+                               (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
+
+                               
+        for (int d=0; d<BL_SPACEDIM; ++d)
+        {
+          const Box& ebx = U_mfi.nodaltilebox(d);
+          (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+        }
+      }
     }
+}
 
     delete divu_fp;
 
-    if (do_reflux && level < parent->finestLevel())
+    if (do_reflux)
     {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-            getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,fscalar,num_scalars,-dt);
+      if (level > 0 )
+	{
+	  //Print()<<"doing FineAdd..\n";
+	  for (int d = 0; d < BL_SPACEDIM; d++)
+	    advflux_reg->FineAdd(fluxes[d],d,0,fscalar,num_scalars,dt);
+	}
+      if (level < parent->finestLevel())
+	{
+	  //Print()<<"doing CrseInit..\n";
+	  for (int i = 0; i < BL_SPACEDIM; i++)
+	    getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,fscalar,num_scalars,-dt);
+	}
     }
 }
 
@@ -811,30 +744,27 @@ NavierStokes::scalar_diffusion_update (Real dt,
             //
             if (do_reflux)
             {
-                FArrayBox fluxtot;
-
                 for (int d = 0; d < BL_SPACEDIM; d++)
                 {
                     MultiFab fluxes;
 
-                    if (level < parent->finestLevel()) {
-                        fluxes.define(fluxSCn[d]->boxArray(), fluxSCn[d]->DistributionMap(), 1, 0);
+		    fluxes.define(fluxSCn[d]->boxArray(), fluxSCn[d]->DistributionMap(), 1, 0);
+
+		    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif	      
+                    for (MFIter fmfi(*fluxSCn[d],true); fmfi.isValid(); ++fmfi)
+		    {
+                        const Box& ebox = fmfi.tilebox();
+
+                        fluxes[fmfi].copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,1);
+                        fluxes[fmfi].plus((*fluxSCnp1[d])[fmfi],ebox,ebox,0,0,1);
                     }
-
-                    for (MFIter fmfi(*fluxSCn[d]); fmfi.isValid(); ++fmfi)
-                    {
-                        const Box& ebox = (*fluxSCn[d])[fmfi].box();
-
-                        fluxtot.resize(ebox,1);
-                        fluxtot.copy((*fluxSCn[d])[fmfi],ebox,0,ebox,0,1);
-                        fluxtot.plus((*fluxSCnp1[d])[fmfi],ebox,0,0,1);
-
-                        if (level < parent->finestLevel())
-                            fluxes[fmfi].copy(fluxtot);
-
-                        if (level > 0)
-                            getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt);
-                    }
+		    }
+		    
+		    if (level > 0)
+		      getViscFluxReg().FineAdd(fluxes,d,0,sigma,1,dt);
 
                     if (level < parent->finestLevel())
                         getLevel(level+1).getViscFluxReg().CrseInit(fluxes,d,0,sigma,1,-dt);
@@ -932,12 +862,10 @@ NavierStokes::diffuse_velocity_setup (Real       dt,
         if (!variable_vel_visc)
         {
             diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
-            divmusi.mult((1./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
-            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
-
+	    MultiFab::Saxpy(*delta_rhs,(1./3.)*(1.0-be_cn_theta),divmusi,0,0,BL_SPACEDIM,0);
+	    
             diffusion->compute_divmusi(time+dt,visc_coef[Xvel],divmusi);
-            divmusi.mult((1./3.)*be_cn_theta,0,BL_SPACEDIM,0);
-            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+	    MultiFab::Saxpy(*delta_rhs,(1./3.)*be_cn_theta,divmusi,0,0,BL_SPACEDIM,0);
         }
         else
         {
@@ -966,6 +894,12 @@ NavierStokes::MaxVal (const std::string& name,
         baf.coarsen(fine_ratio);
     }
 
+    //Add and test this OMP
+    //#ifdef _OPENMP
+    //#pragma omp parallel if (!system::regtest_reduction) reduction(max:mxval,s)
+    //#endif
+    //{
+
     std::vector< std::pair<int,Box> > isects;
 
     for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
@@ -988,10 +922,11 @@ NavierStokes::MaxVal (const std::string& name,
         const int*  lo  = bx.loVect();
         const int*  hi  = bx.hiVect();
 
-        FORT_MAXVAL(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
+        fort_maxval(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
 
         mxval = std::max(mxval, s);
     }
+    //} end OMP parallel
 
     ParallelDescriptor::ReduceRealMax(mxval);
 
@@ -1008,8 +943,12 @@ NavierStokes::sum_integrated_quantities ()
     // Real trac = 0.0;
     Real energy = 0.0;
     Real mgvort = 0.0;
+#if (BL_SPACEDIM==3)
     Real udotlapu = 0.0;
+#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     Real forcing = 0.0;
+#endif
+#endif
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -1035,7 +974,10 @@ NavierStokes::sum_integrated_quantities ()
 #if (BL_SPACEDIM==3)
     amrex::Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING= " << forcing << '\n';
+    //NOTE: FORCING_T gives only the energy being injected by the forcing
+    //      term used for generating turbulence in probtype 14, 15.
+    //      Defaults to 0 for other probtypes.
+    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
 #endif
 #endif
 }
@@ -1232,14 +1174,14 @@ NavierStokes::writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string Level = amrex::Concatenate("Level_", level, 1);
+    std::string LevelStr = amrex::Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
     std::string FullPath = dir;
     if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
         FullPath += '/';
-    FullPath += Level;
+    FullPath += LevelStr;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -1269,7 +1211,7 @@ NavierStokes::writePlotFile (const std::string& dir,
         //
         if (n_data_items > 0)
         {
-            std::string PathNameInHeader = Level;
+            std::string PathNameInHeader = LevelStr;
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }
@@ -1537,7 +1479,6 @@ NavierStokes::mac_sync ()
         // express Q as rho*q and increment sync by -(sync_for_rho)*q
         // (See Pember, et. al., LBNL-41339, Jan. 1989)
         //
-        FArrayBox delta_ssync;
 
         int iconserved = -1;
         for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
@@ -1545,33 +1486,39 @@ NavierStokes::mac_sync ()
             if (istate != Density && advectionType[istate] == Conservative)
             {
                 iconserved++;
-
-                for (MFIter Smfi(S_new); Smfi.isValid(); ++Smfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	      {
+		FArrayBox delta_ssync;
+                for (MFIter Smfi(S_new,true); Smfi.isValid(); ++Smfi)
                 {
-                    const int  i   = Smfi.index();
-                    const Box& grd = grids[i];
-
-                    delta_ssync.resize(grd,1);
-                    delta_ssync.copy(S_new[Smfi], grd, istate, grd, 0, 1);
-                    delta_ssync.divide(S_new[Smfi], grd, Density, 0, 1);
-                    delta_ssync.mult(Ssync[Smfi],grd,Density-BL_SPACEDIM,0,1);
-                    (*DeltaSsync)[Smfi].copy(delta_ssync,grd,0,grd,iconserved,1);
-                    Ssync[Smfi].minus(delta_ssync,grd,0,istate-BL_SPACEDIM,1);
+		    const Box& bx = Smfi.tilebox();
+		    
+                    delta_ssync.resize(bx,1);
+                    delta_ssync.copy(S_new[Smfi], bx, istate, bx, 0, 1);
+                    delta_ssync.divide(S_new[Smfi], bx, Density, 0, 1);
+                    delta_ssync.mult(Ssync[Smfi],bx,Density-BL_SPACEDIM,0,1);
+                    (*DeltaSsync)[Smfi].copy(delta_ssync,bx,0,bx,iconserved,1);
+                    Ssync[Smfi].minus(delta_ssync,bx,0,istate-BL_SPACEDIM,1);
                 }
+		// don't think this is needed as it's going out of scope
+		//delta_ssync.clear();
+	      }
             }
         }
 
-        delta_ssync.clear();
-
         if (do_mom_diff == 1)
         {
-            for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
             {
-                const int        i      = Vsyncmfi.index();
-                FArrayBox&       vfab   = Vsync[Vsyncmfi];
+	        FArrayBox&       vfab   = Vsync[Vsyncmfi];
                 const FArrayBox& rhofab = rho_ctime[Vsyncmfi];
-                const Box&       bx     = rho_ctime.box(i);
-
+		const Box&       bx     = Vsyncmfi.tilebox();
+		
                 D_TERM(vfab.divide(rhofab,bx,0,Xvel,1);,
                        vfab.divide(rhofab,bx,0,Yvel,1);,
                        vfab.divide(rhofab,bx,0,Zvel,1););
@@ -1652,11 +1599,13 @@ NavierStokes::mac_sync ()
             if (istate != Density && advectionType[istate] == Conservative)
             {
                 iconserved++;
-
-                for (MFIter SsyncMfi(Ssync); SsyncMfi.isValid(); ++SsyncMfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                for (MFIter SsyncMfi(Ssync,true); SsyncMfi.isValid(); ++SsyncMfi)
                 {
-                    const int i = SsyncMfi.index();
-                    Ssync[SsyncMfi].plus((*DeltaSsync)[SsyncMfi], grids[i],
+		    const Box& bx = SsyncMfi.tilebox();
+                    Ssync[SsyncMfi].plus((*DeltaSsync)[SsyncMfi], bx,
                                      iconserved, istate-BL_SPACEDIM, 1);
                 }
             }
@@ -1666,9 +1615,12 @@ NavierStokes::mac_sync ()
         //
         for (int sigma  = 0; sigma < numscal; sigma++)
         {
-            for (MFIter S_newmfi(S_new); S_newmfi.isValid(); ++S_newmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    for (MFIter S_newmfi(S_new,true); S_newmfi.isValid(); ++S_newmfi)
             {
-                S_new[S_newmfi].plus(Ssync[S_newmfi],S_newmfi.validbox(),
+                S_new[S_newmfi].plus(Ssync[S_newmfi],S_newmfi.tilebox(),
                                      sigma,BL_SPACEDIM+sigma,1);
             }
         }
@@ -1709,8 +1661,13 @@ NavierStokes::mac_sync ()
                        numscal,1,mult,sync_bc.dataPtr());
 
             MultiFab& S_new = fine_lev.get_new_data(State_Type);
-            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-                S_new[mfi].plus(sync_incr[mfi],fine_grids[mfi.index()],0,Density,numscal);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi){
+	      const Box& bx = mfi.tilebox();	      
+	      S_new[mfi].plus(sync_incr[mfi],bx,0,Density,numscal);
+	    }
 
             fine_lev.make_rho_curr_time();
             fine_lev.incrRhoAvg(sync_incr,Density-BL_SPACEDIM,1.0);
@@ -1756,13 +1713,15 @@ NavierStokes::reflux ()
 
     if (do_mom_diff == 0)
     {
-        for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
         {
-            const int        i     = Vsyncmfi.index();
             FArrayBox&       vfab  = Vsync[Vsyncmfi];
             const FArrayBox& rhfab = Rh[Vsyncmfi];
-            const Box&       bx    = Rh.box(i);
-
+	    const Box&       bx    = Vsyncmfi.tilebox();
+	    
             D_TERM(vfab.divide(rhfab,bx,0,Xvel,1);,
                    vfab.divide(rhfab,bx,0,Yvel,1);,
                    vfab.divide(rhfab,bx,0,Zvel,1););
@@ -1774,12 +1733,13 @@ NavierStokes::reflux ()
         if (advectionType[istate] == NonConservative)
         {
             const int sigma = istate -  BL_SPACEDIM;
-
-            for (MFIter Ssyncmfi(Ssync); Ssyncmfi.isValid(); ++Ssyncmfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter Ssyncmfi(Ssync,true); Ssyncmfi.isValid(); ++Ssyncmfi)
             {
-                const int i = Ssyncmfi.index();
-
-                Ssync[Ssyncmfi].divide(Rh[Ssyncmfi],Rh.box(i),0,sigma,1);
+		const Box& bx = Ssyncmfi.tilebox();
+                Ssync[Ssyncmfi].divide(Rh[Ssyncmfi],bx,0,sigma,1);
             }
         }
     }
@@ -1795,8 +1755,10 @@ NavierStokes::reflux ()
 
     baf.coarsen(fine_ratio);
 
-    std::vector< std::pair<int,Box> > isects;
-
+    // Tile? Perhaps just OMP:
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();
@@ -1805,7 +1767,7 @@ NavierStokes::reflux ()
 
         BL_ASSERT(grids[i] == Vsyncmfi.validbox());
 
-        baf.intersections(Vsyncmfi.validbox(),isects);
+	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.validbox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
@@ -1876,12 +1838,14 @@ NavierStokes::avgDown ()
     BoxArray crse_P_fine_BA = P_fgrids; crse_P_fine_BA.coarsen(fine_ratio);
 
     MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0);
-
-    for (MFIter mfi(P_fine); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crse_P_fine,true); mfi.isValid(); ++mfi)
     {
-        const int i = mfi.index();
-
-        injectDown(crse_P_fine_BA[i],crse_P_fine[mfi],P_fine[mfi],fine_ratio);
+	const Box& bx = mfi.tilebox(); 
+	
+	injectDown(bx,crse_P_fine[mfi],P_fine[mfi],fine_ratio);
     }
     P_crse.copy(crse_P_fine, parent->Geom(level).periodicity());
 
@@ -1938,17 +1902,17 @@ NavierStokes::calc_divu (Real      time,
 
             const MultiFab&   rhotime = get_rho(time);
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
-            MFIter            rho_mfi(rhotime);
-
-            for ( ;
-                  rho_mfi.isValid() && temp_fpi.isValid();
-                  ++rho_mfi, ++temp_fpi)
+	    const MultiFab& tmf = temp_fpi.get_mf();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for ( MFIter rho_mfi(rhotime,true); rho_mfi.isValid(); ++rho_mfi)
             {
-                const int  i       = rho_mfi.index();
                 FArrayBox& divufab = divu[rho_mfi];
+		const Box& bx = rho_mfi.tilebox();
 
-                divufab.divide(rhotime[rho_mfi],divu.box(i),0,0,1);
-                divufab.divide(temp_fpi(),divu.box(i),0,0,1);
+                divufab.divide(rhotime[rho_mfi],bx,0,0,1);
+                divufab.divide(tmf[rho_mfi],bx,0,0,1);
             }
             Real THERMO_cp_inv = 1.0 / 1004.6;
             divu.mult(THERMO_cp_inv);
@@ -1973,10 +1937,12 @@ NavierStokes::calc_dsdt (Real      time,
         {
             MultiFab& Divu_new = get_new_data(Divu_Type);
             MultiFab& Divu_old = get_old_data(Divu_Type);
-
-            for (MFIter mfi(dsdt); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(dsdt,true); mfi.isValid(); ++mfi)
             {
-                const Box& vbx     = mfi.validbox();
+                const Box& vbx     = mfi.tilebox();
                 FArrayBox& dsdtfab = dsdt[mfi];
                 dsdtfab.copy(Divu_new[mfi],vbx,0,vbx,0,1);
                 dsdtfab.minus(Divu_old[mfi],vbx,0,0,1);
@@ -2234,9 +2200,12 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
     //
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        for (MFIter ecMfi(*viscosity[dir]); ecMfi.isValid(); ++ecMfi)
+      for (MFIter ecMfi(*viscosity[dir],true); ecMfi.isValid(); ++ecMfi)
         {
-            center_to_edge_plain((*visc_cc)[ecMfi],(*viscosity[dir])[ecMfi],0,0,1);
+	    const Box& bx=ecMfi.growntilebox();
+
+            center_to_edge_plain((*visc_cc)[ecMfi],(*viscosity[dir])[ecMfi],
+				 bx,0,0,1);
         }
     }
 }
@@ -2275,10 +2244,12 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     //
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        for (MFIter ecMfi(*diffusivity[dir]); ecMfi.isValid(); ++ecMfi)
+      for (MFIter ecMfi(*diffusivity[dir],true); ecMfi.isValid(); ++ecMfi)
         {
+	    const Box& bx=ecMfi.growntilebox();
+
             center_to_edge_plain((*diff_cc)[ecMfi],(*diffusivity[dir])[ecMfi],
-                                 diff_comp,dst_comp,ncomp);
+                                 bx,diff_comp,dst_comp,ncomp);
         }
     }
 }
@@ -2286,6 +2257,7 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
 void
 NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
                                     FArrayBox&       ecfab,
+				    const Box&       bx,
                                     int              sComp,
                                     int              dComp,
                                     int              nComp)
@@ -2300,8 +2272,7 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
     // HeatTransfer::center_to_edge_fancy().
     //
     const Box&      ccbox = ccfab.box();
-    const Box&      ecbox = ecfab.box();
-    const IndexType ixt   = ecbox.ixType();
+    const IndexType ixt   = ecfab.box().ixType();
     //
     // Get direction for interpolation to edges
     //
@@ -2313,22 +2284,20 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
     // Miscellanious checks
     //
     BL_ASSERT(!(ixt.cellCentered()) && !(ixt.nodeCentered()));
-    BL_ASSERT(amrex::grow(ccbox,-amrex::BASISV(dir)).contains(amrex::enclosedCells(ecbox)));
+    BL_ASSERT(amrex::grow(ccbox,-amrex::BASISV(dir)).contains(amrex::enclosedCells(bx)));
     BL_ASSERT(sComp+nComp <= ccfab.nComp() && dComp+nComp <= ecfab.nComp());
+
     //
     // Shift cell-centered data to edges
     //
-    Box fillBox = ccbox; 
-    for (int d = 0; d < BL_SPACEDIM; d++)
-        if (d != dir)
-            fillBox.setRange(d, ecbox.smallEnd(d), ecbox.length(d));
-    
     const int isharm = def_harm_avg_cen2edge;
-    FORT_CEN2EDG(fillBox.loVect(), fillBox.hiVect(),
-                 ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
-                 ccfab.dataPtr(sComp),
-                 ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
-                 ecfab.dataPtr(dComp),
-                 &nComp, &dir, &isharm);
+    
+    cen2edg(bx.loVect(), bx.hiVect(),
+	    ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
+	    ccfab.dataPtr(sComp),
+	    ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
+	    ecfab.dataPtr(dComp),
+	    &nComp, &dir, &isharm);
 }
+
 
