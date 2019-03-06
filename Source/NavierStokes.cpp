@@ -1755,19 +1755,19 @@ NavierStokes::reflux ()
 
     baf.coarsen(fine_ratio);
 
-    // Tile? Perhaps just OMP:
+    // fixme: Tile? Perhaps just OMP? problem dependent?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter Vsyncmfi(Vsync); Vsyncmfi.isValid(); ++Vsyncmfi)
+    for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
     {
         const int i     = Vsyncmfi.index();
         FArrayBox& vfab = Vsync[Vsyncmfi];
         FArrayBox& sfab = Ssync[Vsyncmfi];
 
-        BL_ASSERT(grids[i] == Vsyncmfi.validbox());
+        BL_ASSERT(grids[i].contains(Vsyncmfi.tilebox()));
 
-	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.validbox());
+	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.tilebox());
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
