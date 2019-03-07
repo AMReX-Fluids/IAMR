@@ -138,3 +138,6 @@ ns.hi_bc             = 4 4
 amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
 #*******************************************************************************
+
+amr.blocking_factor = 8
+amr.grid_eff = 0.95
