@@ -474,7 +474,7 @@ NavierStokes::predict_velocity (Real  dt,
 #endif
 
     //fixme
-    VisMF::Write(Gp,"gradp");
+    VisMF::Write(Gp,"gradpPV");
     
 #ifdef BOUSSINESQ
     FillPatchIterator
@@ -606,7 +606,7 @@ NavierStokes::scalar_advection (Real dt,
     //
     // Get the viscous terms.
     //
-    MultiFab visc_terms(grids,dmap,num_scalars,1);
+    MultiFab visc_terms(grids,dmap,num_scalars,1,MFInfo(),Factory());
 
     if (be_cn_theta != 1.0) {
         getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
@@ -633,6 +633,9 @@ NavierStokes::scalar_advection (Real dt,
     //
 
   {
+    // FIXME
+    // I think Umf is only used for MOREGENGETFORCE,
+    // so why are we FillPatch'ing it for everyone???
       FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
       FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
       const MultiFab& Umf=U_fpi.get_mf();
@@ -642,7 +645,65 @@ NavierStokes::scalar_advection (Real dt,
       FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
       const MultiFab& Scalmf=Scal_fpi.get_mf();
 #endif
+
+
+#ifdef AMREX_USE_EB
+      //
+      // compute slopes for construction of edge states
+      //
+      std::unique_ptr<amrex::MultiFab> xslps;
+      std::unique_ptr<amrex::MultiFab> yslps;
+      std::unique_ptr<amrex::MultiFab> zslps;
+      //Slopes in x-direction
+      xslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
+			       MFInfo(), Factory()));
+      xslps->setVal(0.);
+      // Slopes in y-direction
+      yslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
+			       MFInfo(), Factory()));
+      yslps->setVal(0.);
+      // Slopes in z-direction
+      zslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
+			       MFInfo(), Factory()));
+      zslps->setVal(0.);
+
       
+      VisMF::Write(Smf, "S");
+    const Box& domain = geom.Domain();
+    // Compute slopes for use in computing aofs
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+    Vector<int> bndry[BL_SPACEDIM];
+    for (MFIter mfi(Smf, true); mfi.isValid(); ++mfi)
+    {
+       Box bx=mfi.tilebox();
+       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	     bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+       godunov->ComputeScalarSlopes(mfi, Smf, num_scalars,
+				    D_DECL(xslps, yslps, zslps),
+				    D_DECL(bndry[0], bndry[1], bndry[2]),
+				    domain);
+    }
+    //
+    // need to fill ghost cells for slopes here. 
+    // vel advection term ugradu uses these slopes (does not recompute in incflo
+    //  scheme) needs 4 ghost cells (comments say 5, but I only see use of
+    //  4 max) ... maybe shift to edge-based accounts for that 5th?
+    // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
+    //  only allows for periodic for now
+    //
+    D_TERM(xslps->FillBoundary(geom.periodicity());,
+	   yslps->FillBoundary(geom.periodicity());,
+	   zslps->FillBoundary(geom.periodicity()););
+ } 
+#else
+
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -685,9 +746,33 @@ NavierStokes::scalar_advection (Real dt,
           godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
                                     (*divu_fp)[U_mfi],0,rho_ptime[U_mfi],0,use_conserv_diff);
         }
+	
 
-        state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+#ifdef AMREX_USE_EB
+	//
+	// TODO eventually want this to take multiple scalars
+	//
+	Vector<int> bndry[BL_SPACEDIM];
+	D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+	       bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	       bndry[2] = fetchBCArray(State_Type,bx,2,1););
+	
+	int acomp = fscalar;
+	for ( int i=0; i<num_scalars; i++){
+	  godunov->AdvectScalar(U_mfi, Smf, i,
+				*aofs, acomp,
+				D_DECL(xslps, yslps, zslps),
+				D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+				D_DECL(bndry[0], bndry[1], bndry[2]),
+				geom.Domain(),
+				geom.CellSize(),Godunov::hypgrow());	
+	  acomp++;
+	}
 
+#else
+	
+	state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+		
         godunov->AdvectScalars(bx, dx, dt, 
                                D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
                                D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
@@ -695,8 +780,9 @@ NavierStokes::scalar_advection (Real dt,
                                D_DECL(edgstate[0],edgstate[1],edgstate[2]),
                                Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
                                (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
-
+#endif
                                
+	//fixme: only need this copy if do_reflux
         for (int d=0; d<BL_SPACEDIM; ++d)
         {
           const Box& ebx = U_mfi.nodaltilebox(d);

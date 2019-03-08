@@ -62,7 +62,7 @@ contains
    !
    ! Compute slopes
    !
-   subroutine compute_slopes ( lo, hi, vel, vlo, vhi, &
+   subroutine compute_slopes ( lo, hi, nc, vel, vlo, vhi, &
                               xslopes, yslopes, zslopes, slo, shi, &
                               domlo, domhi, &
                               ubc,vbc,wbc) bind(C) !, &
@@ -73,7 +73,7 @@ contains
 
       ! Loop bounds
       integer(c_int), intent(in   ) :: lo(3), hi(3)
-!      integer(c_int), intent(in   ) :: ng
+      integer(c_int), intent(in   ) :: nc !,ng
 
       ! Array bounds
       integer(c_int), intent(in   ) :: vlo(3), vhi(3)
@@ -94,19 +94,19 @@ contains
 
       ! Arrays
       real(ar),       intent(in   ) ::                      &
-           & vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
+           & vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),nc)
 
       real(ar),       intent(  out) ::                             &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3), &
-           & zslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3)
+           & xslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
+           & yslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
+           & zslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc)
 
       ! Local variables
       integer                       :: i, j, k, n
       real(ar)                      :: du_l, du_c, du_r
       real(ar),    parameter        :: two = 2.0_ar, three2nds = 1.5_ar
 
-      do n = 1, 3
+      do n = 1, nc
       do k = lo(3), hi(3)
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -291,7 +291,7 @@ contains
    !
    ! Compute slopes - EB version
    !
-   subroutine compute_slopes_eb ( lo, hi, vel, vlo, vhi, &
+   subroutine compute_slopes_eb ( lo, hi, nc, vel, vlo, vhi, &
                                  xslopes, yslopes, zslopes, slo, shi, &
                                  flags, flo, fhi, &
                                  domlo, domhi, &
@@ -305,7 +305,7 @@ contains
 
       ! Loop bounds
       integer(c_int), intent(in   ) :: lo(3), hi(3)
-!      integer(c_int), intent(in   ) :: ng
+      integer(c_int), intent(in   ) :: nc !,ng
 
       ! Array bounds
       integer(c_int), intent(in   ) :: vlo(3), vhi(3)
@@ -326,15 +326,15 @@ contains
 
       ! Arrays
       real(ar),       intent(in   ) ::                      &
-           & vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
+           & vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),nc)
 
       integer(c_int), intent(in   ) ::                      &
            & flags(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
 
       real(ar),       intent(  out) ::                             &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3), &
-           & zslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3)
+           & xslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
+           & yslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
+           & zslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc)
 
       ! Local variables
       integer                       :: i, j, k, n
@@ -342,7 +342,7 @@ contains
       real(ar),    parameter        :: two = 2.0_ar, three2nds = 1.5_ar
 
       
-      do n = 1, 3
+      do n = 1, nc
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)

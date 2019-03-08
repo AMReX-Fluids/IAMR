@@ -43,11 +43,11 @@ contains
                              vfrac,   vflo, vfhi, &
                              bcent,    blo,  bhi, &
                              domlo, domhi,        &
-                             dx, ng, eta,          &
+                             dx, ng, nc, eta,          &
                              do_explicit_diffusion ) bind(C)
 
      ! use bc ! from incflo/src/boundary_conditions
-     ! contains lots of stuff; divop only needs cyclic?
+     ! bc module contains lots of stuff; divop only needs cyclic?
       use eb_interpolation_mod, only: interp_to_face_centroid
       !use eb_wallflux_mod,      only: compute_diff_wallflux
 
@@ -73,16 +73,16 @@ contains
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
 
       ! Number of ghost cells
-      integer(c_int),  intent(in   ) :: ng
+      integer(c_int),  intent(in   ) :: nc, ng
 
       ! Grid
       real(ar),        intent(in   ) :: dx(3)
 
       ! Arrays
       real(ar),        intent(in   ) ::                       &
-           & fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),3), &
-           & fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),3), &
-           & fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),3), &
+           & fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nc), &
+           & fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nc), &
+           & fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nc), &
            & afrac_x(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3)), &
            & afrac_y(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3)), &
            & afrac_z(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3)), &
@@ -90,7 +90,7 @@ contains
            & cent_y(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2),&
            & cent_z(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2),&
            & vfrac(vflo(1):vfhi(1),vflo(2):vfhi(2),vflo(3):vfhi(3)),   &
-           &   vel(vllo(1):vlhi(1),vllo(2):vlhi(2),vllo(3):vlhi(3),3), &
+           &   vel(vllo(1):vlhi(1),vllo(2):vlhi(2),vllo(3):vlhi(3),nc), &
            & bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3)
 
       ! Optional arrays (only for viscous calculations)
@@ -98,7 +98,7 @@ contains
            &     eta(vflo(1):vfhi(1),vflo(2):vfhi(2),vflo(3):vfhi(3))
 
       real(ar),        intent(inout) ::                           &
-           & div(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),3)
+           & div(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
 
       ! BC types
       integer(c_int), intent(in   ) ::  &
@@ -116,7 +116,7 @@ contains
            &  delm(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2,lo(3)-2:hi(3)+2), &
            &  mask(lo(1)-2:hi(1)+2,lo(2)-2:hi(2)+2,lo(3)-2:hi(3)+2)
 
-      ! FIXME -- pulled this out of bc_mod for now
+      ! FIXME -- pulled this out of bc_mod.f90 for now
       ! Flags for periodic boundary conditions
       logical :: cyclic_x = .true.
       logical :: cyclic_y = .true.
@@ -135,6 +135,10 @@ contains
       ! Check number of ghost cells
       if (ng < 5) call amrex_abort( "compute_divop(): ng must be >= 5")
 
+      !check number of components
+      if ( .NOT.(nc.eq.1 .OR. nc.eq.3) ) &
+         call amrex_abort("compute_divop(): must have either nc==1 (for scalar) or nc==3 (for velocity).")
+      
       ! Check if we are computing divergence for viscous term
       if ( present(eta) ) then
          is_viscous = .true.
@@ -185,7 +189,7 @@ contains
       !
       ! We use the EB algorithmm to compute the divergence at cell centers
       !
-      ncomp_loop: do n = 1, 3
+      ncomp_loop: do n = 1, nc
 
          !
          ! Step 1: compute conservative divergence on stencil (lo-2,hi+2)
