@@ -10,14 +10,14 @@
       REAL_T  FPXZ(0:32,0:32,0:32), FPYZ(0:32,0:32,0:32), FPZZ(0:32,0:32,0:32)
       integer nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz
       integer spectrum_type, forcing_type, use_rho_in_forcing, do_mode_division, div_free_force, forcing_twice_wavelength, moderate_zero_modes
-      common /forcedti/nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz,
-     &                 spectrum_type, forcing_type,use_rho_in_forcing, do_mode_division, div_free_force, forcing_twice_wavelength, moderate_zero_modes
-      common /forcedt/ force_scale, forcing_epsilon, 
-     &                 forcing_xlength, forcing_ylength, forcing_zlength,
-     &                 forcing_time_scale_min, forcing_time_scale_max,
-     &                 AXY, BXY, CXY, DXY, PXY, QXY, RXY,
-     &                 AZX, BZX, CZX, DZX, PZX, QZX, RZX,
-     &                 AYZ, BYZ, CYZ, DYZ, PYZ, QYZ, RYZ,
-     &                 FTX, FTY, FTZ, TAT, TAP,
-     &                 FPX, FPY, FPZ, FAX, FAY, FAZ,
-     &                 FPXX, FPYX, FPZX, FPXY, FPYY, FPZY, FPXZ, FPYZ, FPZZ
+      common /forcedti/nmodes, nxmodes, nymodes, nzmodes, mode_start, hack_lz, &
+                      spectrum_type, forcing_type,use_rho_in_forcing, do_mode_division, div_free_force, forcing_twice_wavelength, moderate_zero_modes
+      common /forcedt/ force_scale, forcing_epsilon,  &
+                      forcing_xlength, forcing_ylength, forcing_zlength,&
+                      forcing_time_scale_min, forcing_time_scale_max,&
+                      AXY, BXY, CXY, DXY, PXY, QXY, RXY,&
+                      AZX, BZX, CZX, DZX, PZX, QZX, RZX,&
+                      AYZ, BYZ, CYZ, DYZ, PYZ, QYZ, RYZ,&
+                      FTX, FTY, FTZ, TAT, TAP,&
+                      FPX, FPY, FPZ, FAX, FAY, FAZ,&
+                      FPXX, FPYX, FPZX, FPXY, FPYY, FPZY, FPXZ, FPYZ, FPZZ

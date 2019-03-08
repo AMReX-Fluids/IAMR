@@ -3,8 +3,6 @@
 # INPUTS.2D.HOTSPOT
 #*******************************************************************************
 
-proj.use_mlmg_solver = 1
-
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
@@ -138,7 +136,8 @@ ns.hi_bc             = 4 4
 #*******************************************************************************
 
 # Factor by which grids must be coarsenable.
-amr.blocking_factor     = 4
+amr.blocking_factor     = 8
+amr.grid_eff = 0.95
 
 #*******************************************************************************
 

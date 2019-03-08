@@ -12,12 +12,16 @@ PRECISION   = DOUBLE
 
 DIM         = 2
 COMP        = gnu
-DEBUG       = TRUE
-USE_MPI     = FALSE
+
+DEBUG       = FALSE
+USE_MPI     = TRUE
 USE_OMP     = FALSE
+PROFILE     = FALSE
 
 # This allows GetForce to call a Fortran routine
 #DEFINES += -DGENGETFORCE
+#DEFINES += -DMOREGENGETFORCE
+#DEFINES += -DBOUSSINESQ
 
 EBASE = amr
 

@@ -263,7 +263,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         // Extrapolate the velocities, divu, and rho to the outflow edge in
         // the shifted coordinate system (where the last dimension is 1).
         //
-        FORT_EXTRAP_PROJ(ARLIM(vello),  ARLIM(velhi), velPtr,
+        extrap_proj(ARLIM(vello),  ARLIM(velhi), velPtr,
                          ARLIM(divulo), ARLIM(divuhi), divuPtr,
                          ARLIM(rholo),  ARLIM(rhohi),rhoPtr,
 #if (BL_SPACEDIM == 2)
@@ -389,7 +389,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             if ( (numOutFlowFaces == 1) || 
                  (numRegions == 2) ) per = isPeriodicFiltered[ireg][0];
 
-            FORT_FILL_ONED(&lenx,&leny,&length,faces2,&numOutFlowFacesInRegion,
+            fill_oned(&lenx,&leny,&length,faces2,&numOutFlowFacesInRegion,
                            ccEptr0, ccEptr1, ccEptr2, ccEptr3,
                            r0,r1,r2,r3,
                            ccE_conn.dataPtr(),s.dataPtr(),&per,
@@ -397,7 +397,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 
             if (numOutFlowFaces == 2*BL_SPACEDIM) per = 1;
 
-            FORT_HGPHIBC(dx,
+            hgphibc(dx,
                          ccE_conn.dataPtr(0),
                          s.dataPtr(),
                          x.dataPtr(),
@@ -421,7 +421,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                 }
             }
 
-            FORT_ALLPHI_FROM_X(&lenx,&leny,&length,faces2,&numOutFlowFaces,
+            allphi_from_x(&lenx,&leny,&length,faces2,&numOutFlowFaces,
                                phiptr0, phiptr1, phiptr2, phiptr3,
                                x.dataPtr());
 #else
@@ -498,7 +498,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             FArrayBox phiFiltered(nodal_connected_region,1);
             phiFiltered.setVal(0.);
 
-            FORT_FILL_TWOD(&lenx,&leny,&lenz,&length,&width,
+            fill_twod(&lenx,&leny,&lenz,&length,&width,
                            faces2,&numOutFlowFaces,
                            ccEptr0, ccEptr1, ccEptr2, ccEptr3, ccEptr4, ccEptr5,
                            ccE_conn.dataPtr());
@@ -553,7 +553,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                                         phiptr5 = phiMF[i].dataPtr();
                                     }
             }
-            FORT_ALLPHI_FROM_X(&lenx,&leny,&lenz,&length,&width,faces2,&numOutFlowFaces,
+            allphi_from_x(&lenx,&leny,&lenz,&length,&width,faces2,&numOutFlowFaces,
                                phiptr0, phiptr1, phiptr2, phiptr3, phiptr4, phiptr5,
                                phi.dataPtr(),ARLIM(phi_lo),ARLIM(phi_hi));
 #endif
@@ -572,7 +572,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
             DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
             if (outDir != (BL_SPACEDIM-1))
-                FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+                rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
                             phiPtr,ARLIM(philo),ARLIM(phihi),
                             &face,&gravity,dx,domlo,domhi,
                             lo_bc,hi_bc);
@@ -597,19 +597,22 @@ ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
 
-    for (int iface = 0; iface < numOutFlowFaces; iface++) {
+    if (std::fabs(gravity) > 0.)
+    {
+      for (int iface = 0; iface < numOutFlowFaces; iface++) {
 
-      int face          = int(outFaces[iface]);
-      int outDir        = outFaces[iface].coordDir();
-
-      DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
-      DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
-
-      if (outDir != (BL_SPACEDIM-1) && std::fabs(gravity) > 0.0)
-        FORT_RHOGBC(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
-                    phiPtr,ARLIM(philo),ARLIM(phihi),
-                    &face,&gravity,dx,domlo,domhi,
-                    lo_bc,hi_bc);
+	int face          = int(outFaces[iface]);
+	int outDir        = outFaces[iface].coordDir();
+	
+	DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
+	DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
+	
+	if (outDir != (BL_SPACEDIM-1))
+	  rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+		 phiPtr,ARLIM(philo),ARLIM(phihi),
+		 &face,&gravity,dx,domlo,domhi,
+		 lo_bc,hi_bc);
+      }
     }
 }
 
@@ -637,7 +640,7 @@ ProjOutFlowBC::computeCoefficients (FArrayBox&   rhs,
     Real* divuEPtr = ccExt.dataPtr(1);
     Real*    uEPtr = ccExt.dataPtr(2);
 
-    FORT_COMPUTE_COEFF(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
+    compute_coeff(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
                        ARLIM(betalo),ARLIM(betahi),betaPtr,
                        ARLIM(ccElo),ARLIM(ccEhi),uEPtr,
                        ARLIM(ccElo),ARLIM(ccEhi),divuEPtr,
@@ -742,7 +745,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
         DEF_LIMITS(*beta,betaPtr,beta_lo,beta_hi);
         DEF_LIMITS(*newbeta,newbetaPtr,newbeta_lo,newbeta_hi);
 
-        FORT_COARSIG(betaPtr,ARLIM(beta_lo),ARLIM(beta_hi),
+        coarsig(betaPtr,ARLIM(beta_lo),ARLIM(beta_hi),
                      newbetaPtr,ARLIM(newbeta_lo),ARLIM(newbeta_hi),
                      dom_lo,dom_hi,new_lo,new_hi,isPeriodic);
 
@@ -770,7 +773,7 @@ ProjOutFlowBC_MG::residual ()
 
     resid->setVal(0);
 
-    FORT_HGRESID (ARLIM(rhslo), ARLIM(rhshi),  rhsPtr,
+    hgresid (ARLIM(rhslo), ARLIM(rhshi),  rhsPtr,
                   ARLIM(betalo), ARLIM(betahi),  betaPtr,
                   ARLIM(philo), ARLIM(phihi),  phiPtr,
                   ARLIM(residlo), ARLIM(residhi),  residPtr,
@@ -797,7 +800,7 @@ ProjOutFlowBC_MG::step (int nGSRB)
         DEF_LIMITS(*beta, betaPtr, beta_lo,beta_hi); 
         DEF_BOX_LIMITS(cgwork,cg_lo,cg_hi);
 
-        FORT_SOLVEHG(phiPtr,ARLIM(phi_lo),ARLIM(phi_hi),
+        solvehg(phiPtr,ARLIM(phi_lo),ARLIM(phi_hi),
                      dest0Ptr, ARLIM(dest0_lo),ARLIM(dest0_hi),
                      rhsPtr,ARLIM(rhs_lo),ARLIM(rhs_hi),
                      betaPtr, ARLIM(beta_lo),ARLIM(beta_hi),
@@ -825,7 +828,7 @@ ProjOutFlowBC_MG::Restrict ()
 
     next->theRhs()->setVal(0);
   
-    FORT_RESTRICT(residPtr,ARLIM(resid_lo),ARLIM(resid_hi), 
+    fort_restrict(residPtr,ARLIM(resid_lo),ARLIM(resid_hi), 
                   rescPtr, ARLIM(resc_lo),ARLIM(resc_hi),
                   lo,hi,loc,hic,isPeriodic);
 }
@@ -844,7 +847,7 @@ ProjOutFlowBC_MG::interpolate ()
     DEF_LIMITS(*(next->thePhi()),deltacPtr,deltac_lo,deltac_hi);
     DEF_LIMITS(*beta,betaPtr,beta_lo,beta_hi);
 
-    FORT_INTERP(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi),
+    interp(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi),
                 tempPtr, ARLIM(temp_lo),ARLIM(temp_hi), 
                 deltacPtr, ARLIM(deltac_lo),ARLIM(deltac_hi), 
                 betaPtr, ARLIM(beta_lo),ARLIM(beta_hi), 
@@ -862,7 +865,7 @@ ProjOutFlowBC_MG::gsrb (int nstep)
     DEF_LIMITS(*rhs, rhsPtr, rhslo,rhshi);
     DEF_LIMITS(dgphi,dgphiPtr,dglo,dghi);
 
-    FORT_HGRELAX(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
+    hgrelax(ARLIM(rhslo),ARLIM(rhshi),rhsPtr,
                  ARLIM(betalo),ARLIM(betahi),betaPtr,
                  ARLIM(philo),ARLIM(phihi),phiPtr,
                  ARLIM(dglo),ARLIM(dghi),dgphiPtr,
