@@ -378,9 +378,9 @@ contains
                ! Return the negative
                ! ****************************************************
 
-               ugradu(i,j,k,1) = -ugradu(i,j,k,1)
-               ugradu(i,j,k,2) = -ugradu(i,j,k,2)
-               ugradu(i,j,k,3) = -ugradu(i,j,k,3)
+               !ugradu(i,j,k,1) = -ugradu(i,j,k,1)
+               !ugradu(i,j,k,2) = -ugradu(i,j,k,2)
+               !ugradu(i,j,k,3) = -ugradu(i,j,k,3)
 
             end do
          end do
@@ -578,7 +578,7 @@ contains
                ! Return the negative
                ! ****************************************************
 
-               divuc(i,j,k,1) = -divuc(i,j,k,1)
+               !divuc(i,j,k,1) = -divuc(i,j,k,1)
 
             end do
          end do

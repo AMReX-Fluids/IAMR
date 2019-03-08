@@ -1452,7 +1452,7 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi, //not sure how to pass
 //
 // Use mac velocity and stored slopes to compute the advection term for
 // the velocity update
-// aofs = -ugradu
+// aofs = ugradu  NOT -ugradu like incflo
 //
 void
 Godunov::AdvectVel (const amrex::MFIter&  mfi,
@@ -1471,9 +1471,6 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
   
   // Tilebox
   Box bx = mfi.tilebox();
-  //FIXME
-  Print()<<"bx "<<bx<<"\n";
-
   
   // this is to check efficiently if this tile contains any eb stuff
   const EBFArrayBox& vel_in_fab =
@@ -1493,7 +1490,6 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
       // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
       if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
       {
-	// returns -ugradu
 	compute_ugradu(BL_TO_FORTRAN_BOX(bx),
 		       BL_TO_FORTRAN_ANYD(aofs[mfi]),
 		       BL_TO_FORTRAN_ANYD(U[mfi]),
@@ -1518,7 +1514,6 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
       else
       {
 	// Use EB routines
-	// returns -ugradu
 	compute_ugradu_eb(BL_TO_FORTRAN_BOX(bx),
 			  BL_TO_FORTRAN_ANYD(aofs[mfi]),
 			  BL_TO_FORTRAN_ANYD(U[mfi]),
@@ -1554,7 +1549,7 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 //
 // Use mac velocity and slopes to compute the advection term for
 // the scalar update
-// aofs = -div uc
+// aofs = div uc   NOT minus div uc like mfix
 //
 void
 Godunov::AdvectScalar (const amrex::MFIter&  mfi,
@@ -1577,9 +1572,6 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
   
   // Tilebox
   Box bx = mfi.tilebox();
-  //FIXME
-  Print()<<"bx "<<bx<<"\n";
-
   
   // this is to check efficiently if this tile contains any eb stuff
   const EBFArrayBox& vel_in_fab =
@@ -1599,7 +1591,6 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
       // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
       if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
       {
-	// returns -ugradu
 	compute_divuc(BL_TO_FORTRAN_BOX(bx),
 		       BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
 		       BL_TO_FORTRAN_N_ANYD(S[mfi],scomp),
@@ -1624,7 +1615,6 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
       else
       {
 	// Use EB routines
-	// returns -ugradu
 	compute_divuc_eb(BL_TO_FORTRAN_BOX(bx),
 			  BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
 			  BL_TO_FORTRAN_N_ANYD(S[mfi],scomp),

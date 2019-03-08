@@ -490,19 +490,19 @@ contains
       end block divop
 
       ! Return the negative
-      block
-         integer :: i,j,k,n
+      ! block
+      !    integer :: i,j,k,n
 
-         do n = 1, 3
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     ugradu(i,j,k,n) = - ugradu(i,j,k,n)
-                  end do
-               end do
-            end do
-         end do
-      end block
+      !    do n = 1, 3
+      !       do k = lo(3), hi(3)
+      !          do j = lo(2), hi(2)
+      !             do i = lo(1), hi(1)
+      !                ugradu(i,j,k,n) = - ugradu(i,j,k,n)
+      !             end do
+      !          end do
+      !       end do
+      !    end do
+      ! end block
 
    end subroutine compute_ugradu_eb
 
@@ -737,19 +737,19 @@ contains
       end block divop
 
       ! Return the negative
-      block
-         integer :: i,j,k,n
+      ! block
+      !    integer :: i,j,k,n
 
-         do n = 1, nc
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     divuc(i,j,k,n) = - divuc(i,j,k,n)
-                  end do
-               end do
-            end do
-         end do
-      end block
+      !    do n = 1, nc
+      !       do k = lo(3), hi(3)
+      !          do j = lo(2), hi(2)
+      !             do i = lo(1), hi(1)
+      !                divuc(i,j,k,n) = - divuc(i,j,k,n)
+      !             end do
+      !          end do
+      !       end do
+      !    end do
+      ! end block
 
     end subroutine compute_divuc_eb
 
