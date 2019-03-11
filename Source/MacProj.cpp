@@ -1348,7 +1348,7 @@ MacProj::check_div_cond (int      level,
         sum += dmac.sum(0);
       }
     }
-    
+
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();

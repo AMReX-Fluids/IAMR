@@ -7,7 +7,7 @@
 fabarray.mfiter_tile_size = 8 8 8
 
 # test 2nd order slopes
-godunov.slope_order = 2
+#godunov.slope_order = 2
 
 # make omp reduction more consistent for regression testing
 system.regtest_reduction = 1
@@ -139,3 +139,5 @@ amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
 #*******************************************************************************
 
+amr.blocking_factor = 8
+amr.grid_eff = 0.95

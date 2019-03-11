@@ -82,7 +82,7 @@ amr.regrid_int			= 1
 # Refinement ratio as a function of level
 amr.ref_ratio		 	= 2 2 2 2
 # Factor by which grids must be coarsenable.
-amr.blocking_factor  	= 4
+amr.blocking_factor  	= 8
 # Grid effiency
 amr.grid_eff 		   	= 0.75
 

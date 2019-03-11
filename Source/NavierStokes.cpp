@@ -408,7 +408,6 @@ NavierStokes::predict_velocity (Real  dt,
     BL_PROFILE("NavierStokes::predict_velocity()");
 
     if (verbose) amrex::Print() << "... predict edge velocities\n";
-
     //
     // Get simulation parameters.
     //
@@ -532,7 +531,6 @@ NavierStokes::predict_velocity (Real  dt,
 	// during some computations, EB covered cells are set to a huge val.
 	// Can I assume that by the end, EB covered is ZERO?
         cflgrid  = godunov->test_u_rho(Ufab,rho_ptime[U_mfi],bx,dx,dt,u_max);
-
         cflmax   = std::max(cflgrid,cflmax);
         comp_cfl = std::max(cflgrid,comp_cfl);
         //

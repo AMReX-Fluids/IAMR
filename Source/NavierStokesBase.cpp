@@ -3007,7 +3007,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 					 ARLIM(umacx_lo), ARLIM(umacx_hi),
 					 ARLIM(umacy_lo), ARLIM(umacy_hi),
 #if (BL_SPACEDIM==3)
-					 
+
 					 ARLIM(umacz_lo), ARLIM(umacz_hi),
 #endif
 					 &getForceVerbose);

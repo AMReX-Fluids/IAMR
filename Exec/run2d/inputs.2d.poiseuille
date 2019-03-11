@@ -35,9 +35,6 @@ ns.do_tracer_ref = 1
 mg.v = 0
 proj.Pcode = 0
 proj.v = 0
-#proj.use_mlmg_solver = 1
-#mac.use_mlmg_solver = 1
-#diffuse.use_mlmg_solver = 1
 diffuse.v = 0
 
 

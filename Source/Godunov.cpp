@@ -81,7 +81,7 @@ Godunov::Initialize ()
 
 #ifdef AMREX_USE_EB
     //
-    // nghost from incflo.  5 seems like overkill...
+    // nghost from incflo.
     // 
     hyp_grow = 5;
 #endif
@@ -217,6 +217,10 @@ Godunov::AdvectScalars(const Box&  box,
 #if (AMREX_SPACEDIM == 3)
     zflx.copy(zstate);
 #endif
+    //
+    // C component indices starts from 0, Fortran from 1
+    //
+    //int fort_ind = state_ind+1;  
 
     // Convert face states to face fluxes (return in place) and compute flux divergence
     for (int i=0; i<num_scalars; ++i) { // FIXME: Loop required because conserv_diff flag only scalar
