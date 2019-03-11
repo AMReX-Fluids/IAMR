@@ -3216,6 +3216,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 		     &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
         }
       }
+      delete [] bc_new;
     }
     
     cdataMF.EnforcePeriodicity(cgeom.periodicity());
