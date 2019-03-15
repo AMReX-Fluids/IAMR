@@ -89,7 +89,11 @@ MacProj::Initialize ()
     pp.query("umac_periodic_test_Tol", umac_periodic_test_Tol);
 
     pp.query("use_mlmg_solver", use_mlmg_solver);
-
+#ifdef AMREX_USE_EB
+    if (!use_mlmg_solver)
+      amrex::Abort("MacProj:: EB requires use_mlmg_solver = 1");
+#endif
+    
     amrex::ExecOnFinalize(MacProj::Finalize);
 
     initialized = true;
@@ -403,7 +407,8 @@ MacProj::mac_project (int             level,
     // Initialize the rhs with divu.
     //
     const Real rhs_scale = 2.0/dt;
-    MultiFab Rhs(grids,dmap,1,0);
+    // fixme? RHS must need factory
+    MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
 
     Rhs.copy(divu);
 
@@ -418,6 +423,16 @@ MacProj::mac_project (int             level,
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
+    //
+    // solve
+    //
+#ifdef AMREX_USE_EB
+    MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
+    eb_mac_level_solve(parent, cphi, *phys_bc, level, Density,
+		       mac_tol, mac_abs_tol,
+		       rhs_scale, area, volume, S, Rhs, u_mac, mac_phi,
+		       verbose);
+#else
     if (the_solver == the_mlmg_solver)
     {
         MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
@@ -430,7 +445,8 @@ MacProj::mac_project (int             level,
                          dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                          area, volume, S, Rhs, u_mac, mac_phi, verbose);
     }
-
+#endif
+    
     Rhs.clear();
     //
     // Test that u_mac is divergence free

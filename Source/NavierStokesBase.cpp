@@ -686,7 +686,7 @@ NavierStokesBase::advance_setup (Real time,
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
 	    const BoxArray& edgeba = getEdgeBoxArray(dir);
-            u_mac[dir].define(edgeba,dmap,1,umac_n_grow);
+            u_mac[dir].define(edgeba,dmap,1,umac_n_grow,MFInfo(),Factory());
             u_mac[dir].setVal(1.e40);
         }
     }
