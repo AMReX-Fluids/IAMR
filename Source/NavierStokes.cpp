@@ -83,6 +83,7 @@ NavierStokes::initData ()
     MultiFab&   S_new    = get_new_data(State_Type);
     MultiFab&   P_new    = get_new_data(Press_Type);
     const Real  cur_time = state[State_Type].curTime();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -111,6 +112,7 @@ NavierStokes::initData ()
                        Pfab.dataPtr(),
                        ARLIM(p_lo), ARLIM(p_hi),
                        dx,gridloc.lo(),gridloc.hi() );
+
     }
 
 #ifdef BL_USE_VELOCITY
@@ -294,7 +296,7 @@ NavierStokes::advance (Real time,
         MultiFab mac_rhs(grids,dmap,1,0,MFInfo(),Factory());
 	MultiFab& S_old = get_old_data(State_Type);
 #ifdef AMREX_USE_EB
-	// FIXME - pick up here
+	// rhs composed of divu and dSdt terms
         create_mac_rhs(mac_rhs,0,time,dt);
         mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
 #else
@@ -665,8 +667,6 @@ NavierStokes::scalar_advection (Real dt,
 			       MFInfo(), Factory()));
       zslps->setVal(0.);
 
-      
-      VisMF::Write(Smf, "S");
     const Box& domain = geom.Domain();
     // Compute slopes for use in computing aofs
 #ifdef _OPENMP
@@ -686,18 +686,16 @@ NavierStokes::scalar_advection (Real dt,
 				    D_DECL(bndry[0], bndry[1], bndry[2]),
 				    domain);
     }
-    //
-    // need to fill ghost cells for slopes here. 
-    // vel advection term ugradu uses these slopes (does not recompute in incflo
-    //  scheme) needs 4 ghost cells (comments say 5, but I only see use of
-    //  4 max) ... maybe shift to edge-based accounts for that 5th?
-    // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-    //  only allows for periodic for now
-    //
-    D_TERM(xslps->FillBoundary(geom.periodicity());,
-	   yslps->FillBoundary(geom.periodicity());,
-	   zslps->FillBoundary(geom.periodicity()););
- } 
+ }
+//
+// need to fill ghost cells for slopes here. 
+// non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
+//  only allows for periodic for now
+//
+ D_TERM(xslps->FillBoundary(geom.periodicity());,
+	yslps->FillBoundary(geom.periodicity());,
+	zslps->FillBoundary(geom.periodicity()););
+  
 #else
 
 #endif
@@ -1456,8 +1454,11 @@ NavierStokes::writePlotFile (const std::string& dir,
 
 #ifdef AMREX_USE_EB
     // add volume fraction to plotfile
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    const amrex::MultiFab& volfrac = ebfactory.getVolFrac();
+
     plotMF.setVal(0.0, cnt, 1, nGrow);
-    MultiFab::Copy(plotMF,volFrac(),0,cnt,1,nGrow);
+    MultiFab::Copy(plotMF,volfrac,0,cnt,1,nGrow);
 #endif
     
     //

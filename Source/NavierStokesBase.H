@@ -532,9 +532,6 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase protected embedded boundary functions              //
     ////////////////////////////////////////////////////////////////////////////
-#ifdef AMREX_USE_EB
-  const amrex::MultiFab& volFrac () const { return *volfrac; }
-#endif
   
 private:
 
@@ -603,26 +600,19 @@ protected:
     amrex::MultiFab area[BL_SPACEDIM];
 
 #ifdef AMREX_USE_EB
-    //
-    // Create pointers to EB data
-    //
-    const amrex::MultiFab* volfrac;
-    const amrex::MultiCutFab* bndrycent;
-    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
-    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
   
     // Pressure gradients
     std::unique_ptr<amrex::MultiFab> gradp ;
 
   //fixme? taking a guess that i'll need this other data cribbed from CNS
-    amrex::iMultiFab level_mask;
+    // amrex::iMultiFab level_mask;
 
-    amrex::EBFluxRegister flux_reg;
+    // amrex::EBFluxRegister flux_reg;
 
-    static constexpr int level_mask_interior   = 0; // valid cells
-    static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
-    static constexpr int level_mask_notcovered = 2; // ghost cells not covered
-    static constexpr int level_mask_physbnd    = 3; // outside domain
+    // static constexpr int level_mask_interior   = 0; // valid cells
+    // static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
+    // static constexpr int level_mask_notcovered = 2; // ghost cells not covered
+    // static constexpr int level_mask_physbnd    = 3; // outside domain
 #endif
 
     //

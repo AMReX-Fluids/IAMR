@@ -351,9 +351,9 @@ contains
                   ! slope in case of neighbor covered cell
                   if ( is_covered_cell(flags(i,j,k)) ) then
                      !FIXME
-                     xslopes(i,j,k,n) = .111111111111111111111 !huge(one)
-                     yslopes(i,j,k,n) = .111111111111111111111 !huge(one)
-                     zslopes(i,j,k,n) = .111111111111111111111 !huge(one)
+                     xslopes(i,j,k,n) = huge(one)
+                     yslopes(i,j,k,n) = huge(one)
+                     zslopes(i,j,k,n) = huge(one)
                   else
                      ! X direction
                      du_l = two*(vel(i  ,j,k,n) - vel(i-1,j,k,n))

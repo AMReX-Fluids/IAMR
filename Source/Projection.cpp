@@ -1014,13 +1014,14 @@ Projection::initialVelocityProject (int  c_lev,
     {
         LevelData[lev]->get_old_data(Press_Type).setVal(0.);
         LevelData[lev]->get_new_data(Press_Type).setVal(0.);
-#ifdef AMREX_USE_EB
-	// for now keep updating gradp in MLMGNodalProjection
-	//    so need to reset to zero here ...
-	NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-	MultiFab& Gp = ns->getGradP();
-	Gp.setVal(0.);
-#endif
+// #ifdef AMREX_USE_EB
+// 	// for now keep updating gradp in MLMGNodalProjection
+// 	//    so need to reset to zero here ...
+	// I think we want to keep this update
+// 	NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+// 	MultiFab& Gp = ns->getGradP();
+// 	Gp.setVal(0.);
+// #endif
     }
 
     if (verbose) {
@@ -2455,9 +2456,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         mlndlap.setRZCorrection(Geometry::IsRZ());
     }
 #endif
-    //fixme - uncomment
-    // mlndlap.setGaussSeidel(use_gauss_seidel);
-    // mlndlap.setHarmonicAverage(use_harmonic_average);
+    mlndlap.setGaussSeidel(use_gauss_seidel);
+    mlndlap.setHarmonicAverage(use_harmonic_average);
 
     mlndlap.setDomainBC(mlmg_lobc, mlmg_hibc);
   

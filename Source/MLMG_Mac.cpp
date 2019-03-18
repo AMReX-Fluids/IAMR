@@ -79,16 +79,6 @@ static void compute_mac_coefficient (std::array<MultiFab,AMREX_SPACEDIM>& bcoefs
 					  const MultiFab& rho, int rho_comp, Real scale)
 {
   BL_PROFILE("MacProjection::compute_mac_coefficient_eb");
-
-  auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(rho.Factory()));
-  if (factory) {
-    Print()<<"rho is EBFArrayBoxFactory\n";
-  } else {
-    Print()<<" rho FabFactory<FArrayBox> \n";
-  }
-
-  //fixme
-  VisMF::Write(rho,"rho");
   
 #ifdef _OPENMP
 #pragma omp parallel
@@ -337,13 +327,6 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     // Set up b coef
     // no need to set A coef because it's zero     
     //
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>
-      (&((parent->getLevel(level)).Factory()));
-  if (factory) {
-    Print()<<"this is EBFArrayBoxFactory\n";
-  } else {
-    Print()<<" regular FabFactory<FArrayBox> \n";
-  }
     Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM>> bcoefs;
     bcoefs.resize(1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -352,7 +335,7 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
 	  amrex::convert(ba,IntVect::TheDimensionVector(idim));
         bcoefs[0][idim].reset(new  MultiFab(nba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory()));
     }
-    // FIXME need to figure this out for EB
+    // set to huge val if covered, do normal geometric average otherwise
     compute_mac_coefficient_eb(bcoefs[0], S, Density, 1.0/rhs_scale);
     // make sure BCs are filled
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -364,24 +347,13 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
       a_umac[0][idim]= &(u_mac[idim]);
 
-    const auto ufactory = dynamic_cast<EBFArrayBoxFactory const*>(&((a_umac[0])[0]->Factory()));
-  if (ufactory) {
-    Print()<<"umac is EBFArrayBoxFactory\n";
-  } else {
-    Print()<<" umac regular FabFactory<FArrayBox> \n";
-  }
-    
-    //Fixme -- find right place to set convered
-    //EB_set_covered_faces( a_umac[0], 0.0 );
-    VisMF::Write(*(a_umac[0])[0],"umacx");
     //
     // Create MacProjection object
     // make sure u_mac already has bndry properly filled
     MacProjector macproj( a_umac, GetVecOfArrOfPtrsConst(bcoefs), {geom});
     //
-    // Comment out some things that are now in amrex::MacProjector
-    // will need to set these things after creating MacProjector object
-    // will also need to deal with BCs 
+    // Need to figure out how to access some switches now buried in
+    //   amrex::MacProjector
     //   MacProjector owns MLLinOp* m_linop
     //   linop owns LPInfo info
     //   MacProjector owns MLEBABecLap m_eb_abeclap
@@ -390,11 +362,9 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     // info.setAgglomeration(agglomeration);
     // info.setConsolidation(consolidation);
 
-    //FIXME figure out these settings later
     // MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
     //mlabec.setMaxOrder(max_order);
 
-    // FIXME - should check on this 
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
     set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
