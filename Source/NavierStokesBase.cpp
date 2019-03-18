@@ -186,10 +186,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
 #ifdef AMREX_USE_EB
     //fixme? not 100% sure this is the right place
-    // does the ns struct get destroyed each regrid?... it must, all these
-    // thing that are build on grids would have to be destroyed and rebuilt
-    // with new grids, right?
-    // where to put gradp so it persists? ...
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
     gradp->setVal(0.);
 
@@ -838,24 +834,14 @@ NavierStokesBase::buildMetrics ()
         amrex::Abort("EB requires dx == dy (== dz)\n");
     }
 
-    //Get pointers to EB data holders
-    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
-    //
-    // FIXME make sure this just assigns the pointers adresses and doens't do
-    //       a copy
-    volfrac = &(ebfactory.getVolFrac());
-    bndrycent = &(ebfactory.getBndryCent());
-    areafrac = ebfactory.getAreaFrac();
-    facecent = ebfactory.getFaceCent();
-
     //fixme? assume will need this part cribbed from CNS
-    level_mask.clear();
-    level_mask.define(grids,dmap,1,1);
-    level_mask.BuildMask(geom.Domain(), geom.periodicity(), 
-                         level_mask_covered,
-                         level_mask_notcovered,
-                         level_mask_physbnd,
-                         level_mask_interior);
+    // level_mask.clear();
+    // level_mask.define(grids,dmap,1,1);
+    // level_mask.BuildMask(geom.Domain(), geom.periodicity(), 
+    //                      level_mask_covered,
+    //                      level_mask_notcovered,
+    //                      level_mask_physbnd,
+    //                      level_mask_interior);
 
 #endif
 }
@@ -2791,7 +2777,7 @@ NavierStokesBase::restart (Amr&          papa,
     AmrLevel::restart(papa,is,bReadSpecial);
 
 #ifdef AMREX_USE_EB
-    amrex::Error("Restart not working with EB yet.");
+    amrex::Warning("Restart not tested with EB yet.");
 #endif
     //
     // Build metric coefficients for RZ calculations.
@@ -2818,6 +2804,17 @@ NavierStokesBase::restart (Amr&          papa,
     mac_projector->install_level(level,this);
 
     const BoxArray& P_grids = state[Press_Type].boxArray();
+#ifdef AMREX_USE_EB
+    //fixme? not 100% sure this is the right place
+    // note --- this fn is really similar to constructor
+    //  need to make sure gradp is getting properly filled for this restart case?
+    //  incflo style advection does not use Gp in tracing states to edges,
+    //  don't think Gp is needed until the vel update after the projection
+    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
+    gradp->setVal(0.);
+
+#endif
+
     //
     // Alloc space for density and temporary pressure variables.
     //
@@ -2826,7 +2823,8 @@ NavierStokesBase::restart (Amr&          papa,
         rho_avg.define(grids,dmap,1,1);
         p_avg.define(P_grids,dmap,1,0);
     }
-    rho_half.define (grids,dmap,1,1);
+    //FIXME see similar stuff in constructor
+    rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
     rho_ptime.define(grids,dmap,1,1);
     rho_ctime.define(grids,dmap,1,1);
     rho_qtime  = 0;
@@ -3514,7 +3512,7 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
 
     //fixme
-    //VisMF::Write(Gp,"gradpVA");
+    VisMF::Write(Gp,"gradpVA");
     
     MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
     if (be_cn_theta != 1.0)
@@ -3621,7 +3619,8 @@ NavierStokesBase::velocity_advection (Real dt)
 
 	// this uses slopes saved from the computation of umac (i.e.
 	//   predict_velocity)
-	// aofs = -ugradu
+	// aofs = ugradu
+	// incflo advection scheme doesn't include terms like gradp here
 	godunov->AdvectVel(U_mfi, Umf, *aofs,
 			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
 			   D_DECL(bndry[0], bndry[1], bndry[2]),
@@ -3753,9 +3752,21 @@ NavierStokesBase::velocity_advection_update (Real dt)
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
 
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-    getGradP(Gp, prev_pres_time);
-
+#ifdef AMREX_USE_EB
+    MultiFab* Gp;
+      if (do_mom_diff == 1){
+	//need to make a copy of gradp
+	Gp->define(grids,dmap,BL_SPACEDIM,1);
+	Copy(*Gp,getGradP(),0,0,3,0);
+      }
+      else{
+	Gp = &(getGradP());
+      }
+#else
+    MultiFab* Gp(grids,dmap,BL_SPACEDIM,1);
+    getGradP(*Gp, prev_pres_time);
+#endif
+    
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
 #pragma omp parallel
@@ -3835,6 +3846,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (initial_iter && is_diffusive[Xvel])
             tforces.setVal(0);
 
+	//why is this on a grown box?
 	const Box& sbx = Rhohalf_mfi.growntilebox();
         S.resize(sbx,BL_SPACEDIM);
         S.copy(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
@@ -3843,14 +3855,14 @@ NavierStokesBase::velocity_advection_update (Real dt)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                Gp[Rhohalf_mfi].mult(halftime[i],bx,0,d,1);
+	        (*Gp)[Rhohalf_mfi].mult(halftime[i],bx,0,d,1);
                 tforces.mult(halftime[i],bx,0,d,1);
                 S.mult(rho_ptime[Rhohalf_mfi],bx,0,d,1);
             }
         }
 
         godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
-                                Gp[Rhohalf_mfi],halftime[i],bx,dt);
+                                (*Gp)[Rhohalf_mfi],halftime[i],bx,dt);
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
