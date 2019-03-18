@@ -5,9 +5,9 @@
 
 # for getting things started with eb skip some steps
 ns.init_iter = 0
-ns.do_mac_proj = 0
+ns.do_mac_proj = 1
 # to turn off initial projections set to 0
-ns.do_init_proj = 0
+ns.do_init_proj = 1
 # even if do_sync_proj = 0, might still do an initialSyncProj to get pressure
 ns.do_sync_proj = 0
 ns.do_MLsync_proj = 0
@@ -24,12 +24,17 @@ proj.v = 1
 proj.Pcode = 2
 mg.v = 1
 mg.verbose_linop = 10
+mac.v = 10
+macop.v = 10
 
-amr.n_cell 		= 32 32 32  #128 128 128
-amr.max_grid_size	= 32
+amr.n_cell 		= 128 128 128 # 32 32 32  #
+amr.max_grid_size	= 64 # 32
+#amr.n_cell 		=  32 32 32  #
+#amr.max_grid_size	=  16
 amr.max_level		= 0 # maximum number of levels of refinement
 amr.regrid_int		= 2 
 amr.ref_ratio		= 2 2
+ns.do_tracer_ref = 1
 
 max_step 		= 1  #500
 stop_time 		= 10000
