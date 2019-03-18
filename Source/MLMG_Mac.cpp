@@ -402,28 +402,20 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
       u_mac[i].FillBoundary(geom.periodicity());
 
     // FIXME Get this working
-    // if (verbose)
-    // {
-    //   EB_computeDivergence(divu,GetArrOfConstPtrs(u_mac),geom);
+    if (verbose)
+    {
+      MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
+      EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac[0]),geom);
       
-    //   Print() << "  * On level "<< lev
-    // 	      << " max(abs(divu)) = " << norm0(divu) << "\n";
-    // } 
+      MultiFab tmp(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
+      MultiFab::Copy( tmp, divu, 0, 0, 1, 0 );
+      EB_set_covered( tmp, 0.0 );
+
+      Print() << "  * On level "<< level
+    	      << " max(abs(divu)) = " << divu.norm0() << "\n";
+    } 
 
 }
 
-//
-// Norm 0 for EB Multifab
-//
-// Real norm0 (const Vector<std::unique_ptr<MultiFab>>& mf, int lev)
-// {
-//   MultiFab mf_tmp( mf[lev]->boxArray(), mf[lev]->DistributionMap(), mf[lev]->nComp(),
-// 		   0,  MFInfo(), *(*m_ebfactory)[lev]);
-  
-//    MultiFab::Copy( mf_tmp, *mf[lev], 0, 0, 1, 0 );
-//    EB_set_covered( mf_tmp, 0.0 );
-  
-//    return mf_tmp.norm0(0);
-// }
 
 #endif
