@@ -3753,18 +3753,22 @@ NavierStokesBase::velocity_advection_update (Real dt)
     const Real prev_pres_time = state[Press_Type].prevTime();
 
 #ifdef AMREX_USE_EB
-    MultiFab* Gp;
-      if (do_mom_diff == 1){
-	//need to make a copy of gradp
-	Gp->define(grids,dmap,BL_SPACEDIM,1);
-	Copy(*Gp,getGradP(),0,0,3,0);
-      }
-      else{
-	Gp = &(getGradP());
-      }
+    MultiFab& Gp=*gradp;
+    if (do_mom_diff == 1)
+      amrex::Abort("NavierStokesBase::velocity_advection_update(): do_mom_diff==1 not currently working with EB.");
+    // Changing Gp to a point causes memory problems for non-EB (and maybe EB too)...
+    // MultiFab* Gp;
+      // if (do_mom_diff == 1){
+      // 	//need to make a copy of gradp
+      // 	Gp->define(grids,dmap,BL_SPACEDIM,1);
+      // 	Copy(*Gp,*gradp,0,0,3,0);
+      // }
+      // else{
+      // 	Gp = gradp.get();
+      // }
 #else
-    MultiFab* Gp(grids,dmap,BL_SPACEDIM,1);
-    getGradP(*Gp, prev_pres_time);
+      MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+      getGradP(Gp, prev_pres_time);
 #endif
     
     MultiFab& halftime = get_rho_half_time();
@@ -3855,14 +3859,14 @@ NavierStokesBase::velocity_advection_update (Real dt)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-	        (*Gp)[Rhohalf_mfi].mult(halftime[i],bx,0,d,1);
+	        Gp[Rhohalf_mfi].mult(halftime[i],bx,0,d,1);
                 tforces.mult(halftime[i],bx,0,d,1);
                 S.mult(rho_ptime[Rhohalf_mfi],bx,0,d,1);
             }
         }
 
         godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
-                                (*Gp)[Rhohalf_mfi],halftime[i],bx,dt);
+                                Gp[Rhohalf_mfi],halftime[i],bx,dt);
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
