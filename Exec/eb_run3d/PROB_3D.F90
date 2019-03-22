@@ -969,9 +969,9 @@ contains
 !c :::		   ghost region).
 !c ::: -----------------------------------------------------------
       subroutine FORT_INITDATA(level,time,lo,hi,nscal, &
-     	 	                      vel,scal,DIMS(state),press,DIMS(press), &
-                              dx,xlo,xhi) &
-                              bind(C, name="FORT_INITDATA")
+                               vel,scal,DIMS(state),press,DIMS(press), &
+                               dx,xlo,xhi) &
+                               bind(C, name="FORT_INITDATA")
                               
       implicit none
       integer    level, nscal
@@ -1178,7 +1178,7 @@ contains
 
 !c     ::::: local variables
       integer i, j, k
-      REAL_T  x, y, fac
+      REAL_T  x, y, y2, fac
       REAL_T  hx, hy
       REAL_T  dist
 
@@ -1190,9 +1190,10 @@ contains
       do k = lo(3),hi(3)
       do j=lo(2),hi(2)
          y = hy*(float(j) + half) - half
+         y2 = hy*(float(j) + half) - yblob
+         
          do i=lo(1),hi(1)
             x = hx*(float(i) + half) - half
-
             dist = sqrt((x)**2 + (y)**2)
             fac = exp(-(dist*dist/(0.16d0*0.16d0)))
             vel(i,j,k,1) = 2.0d0*dist*y/dist*fac
@@ -1201,7 +1202,9 @@ contains
             ! density
             scal(i,j,k,1) = 1.0d0
             ! tracer
-            scal(i,j,k,2) = 1.0d0*exp(-(10.0d0*dist)**2)
+            x = hx*(float(i) + half) - xblob
+            dist = sqrt((x)**2 + (y2)**2)
+            scal(i,j,k,2) = 1.0d0*exp(-(6.0d0*dist)**2)
 
          end do
       end do
@@ -4586,6 +4589,16 @@ contains
         end do
         
       else if (probtype .eq. 25) then
+ 
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
+              end do
+           end do
+        end do
+        
+      else if (probtype .eq. 31) then
  
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)

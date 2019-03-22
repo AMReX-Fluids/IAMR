@@ -791,7 +791,7 @@ contains
 
 !c     ::::: local variables
       integer i, j
-      REAL_T  x, y, fac
+      REAL_T  x, y, y2, fac
       REAL_T  hx, hy
       REAL_T  dist
 
@@ -804,7 +804,8 @@ contains
          y = hy*(float(j) + half) - half
          do i=lo(1),hi(1)
             x = hx*(float(i) + half) - half
-
+            y2 = hy*(float(j) + half) - yblob
+            
             dist = sqrt((x)**2 + (y)**2)
             fac = exp(-(dist*dist/(0.16d0*0.16d0)))
             vel(i,j,1) = 2.0d0*dist*y/dist*fac
@@ -812,7 +813,9 @@ contains
             ! density
             scal(i,j,1) = 1.0d0
             ! tracer
-            scal(i,j,2) = 1.0d0*exp(-(10.0d0*dist)**2)
+            x = hx*(float(i) + half) - xblob
+            dist = sqrt((x)**2 + (y2)**2)
+            scal(i,j,2) = 1.0d0*exp(-(6.0d0*dist)**2)
 
          end do
       end do
@@ -1312,6 +1315,15 @@ contains
 
 !c     probtype = RT
       else if (probtype .eq. 8) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+!c     probtype = NodeEB
+      else if (probtype .eq. 13) then
 
         do j = lo(2), hi(2)
            do i = lo(1), hi(1)
