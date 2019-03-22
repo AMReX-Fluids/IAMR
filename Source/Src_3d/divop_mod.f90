@@ -48,7 +48,6 @@ contains
 
      ! use bc ! from incflo/src/boundary_conditions
      ! bc module contains lots of stuff; divop only needs cyclic?
-      use eb_interpolation_mod, only: interp_to_face_centroid
       !use eb_wallflux_mod,      only: compute_diff_wallflux
 
       ! Tile bounds (cell centered)
@@ -216,6 +215,7 @@ contains
 
                         ! interp_to_face_centroid returns the proper flux multiplied
                         ! by the face area
+!                              ivar = ivar * afrac(i,j,k)
                         fxp = interp_to_face_centroid( i+1, j, k, 1, fx, fxlo, n,  &
                              & afrac_x, axlo, cent_x, cxlo, nbr )
 
@@ -377,4 +377,52 @@ contains
 
    end subroutine compute_divop
 
-end module divop_mod
+   !
+   ! Returns the flux at the face centroid ALREADY multiplied by the face area
+   !
+   function interp_to_face_centroid ( i, j, k, dir, var, vlo,  n,  &
+                                     afrac, alo, cent, clo, nbr )  result(ivar)
+
+     use amrex_eb_util_module, only: amrex_eb_interpolate_to_face_centroid_per_cell
+
+           ! Face indeces: these must be consistent with a staggered indexing
+      ! and therefore consistent with the value of dir
+      integer(c_int),  intent(in   ) :: i, j, k
+
+      ! Direction of staggering (1=x, 2=y, 3=z): this specify how (i,j,k) must
+      ! be interpreted, i.e. which staggered numbering the indexing refer to
+      integer(c_int),  intent(in   ) :: dir
+
+      ! The component to interpolate
+      integer(c_int),  intent(in   ) :: n
+
+      ! Array Bounds ( only start index )
+      integer(c_int),  intent(in   ) :: vlo(3), alo(3), clo(3)
+
+      ! Arrays
+      real(ar),        intent(in   ) ::           &
+           &   var(vlo(1):, vlo(2):, vlo(3):,1:), &
+           & afrac(alo(1):, alo(2):, alo(3):),    &
+           &  cent(clo(1):, clo(2):, clo(3):,1:)
+
+      ! Neighbors information
+      integer(c_int),  intent(in   ) :: nbr(-1:1,-1:1,-1:1)
+
+      ! Output: the interpolated value
+      real(ar)                       :: ivar
+
+      ! Local variables
+      real(ar)                       :: fracx, fracy, fracz
+
+
+      ivar = amrex_eb_interpolate_to_face_centroid_per_cell( &
+           i, j, k, dir, var, vlo,  n, afrac, alo, cent, clo, nbr )
+      
+      !
+      ! Return the flux multiplied by the face area
+      !
+      ivar = ivar * afrac(i,j,k)
+
+    end function interp_to_face_centroid
+
+  end module divop_mod
