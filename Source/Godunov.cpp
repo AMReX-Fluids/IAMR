@@ -1516,7 +1516,7 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
       // If tile is completely covered by EB geometry, set slopes
       // value to some very large number so we know if
       // we accidentaly use these covered slopes later in calculations
-      aofs[mfi].setVal(1.2345e300, bx, 0, BL_SPACEDIM);
+      aofs[mfi].setVal(1.2345e300, bx, acomp, 1);
   }
   else
   {
