@@ -17,5 +17,5 @@ ifeq ($(USE_EB),TRUE)
 F90EXE_sources += convection_mod_3d.F90 convection_eb_mod_3d.F90 \
 	       slopes_mod_3d.F90
 
-f90EXE_sources += divop_mod.f90 eb_interpolation_mod.f90 
+f90EXE_sources += divop_mod.f90
 endif
