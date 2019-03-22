@@ -380,9 +380,9 @@ protected:   // protected data members
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
   // store vel slopes -- maybe would make more sense for NS to own these?
   // FIXME - store scalar slopes??? I don't think this makes sense
-  std::unique_ptr<amrex::MultiFab> xslopes;
-  std::unique_ptr<amrex::MultiFab> yslopes;
-  std::unique_ptr<amrex::MultiFab> zslopes;
+  std::unique_ptr<amrex::MultiFab> m_xslopes;
+  std::unique_ptr<amrex::MultiFab> m_yslopes;
+  std::unique_ptr<amrex::MultiFab> m_zslopes;
 #endif
 };
 
