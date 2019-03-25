@@ -97,9 +97,9 @@ static void compute_mac_coefficient (std::array<MultiFab,AMREX_SPACEDIM>& bcoefs
 
       if (flags.getType(amrex::grow(mfi.tilebox(),0)) == FabType::covered )
       {
-         bcoefs[0]->setVal( 1.2345e300, xbx, 0, 1);
-         bcoefs[1]->setVal( 1.2345e300, ybx, 0, 1);
-         bcoefs[2]->setVal( 1.2345e300, zbx, 0, 1);
+	D_TERM(bcoefs[0]->setVal( 1.2345e300, xbx, 0, 1);,
+	       bcoefs[1]->setVal( 1.2345e300, ybx, 0, 1);,
+	       bcoefs[2]->setVal( 1.2345e300, zbx, 0, 1));
       }
       else
       {
@@ -114,9 +114,9 @@ static void compute_mac_coefficient (std::array<MultiFab,AMREX_SPACEDIM>& bcoefs
       }
     }
     //fixme
-    VisMF::Write(*(bcoefs[0]),"bx");
-    VisMF::Write(*(bcoefs[1]),"by");
-    VisMF::Write(*(bcoefs[2]),"bz");
+    // VisMF::Write(*(bcoefs[0]),"bx");
+    // VisMF::Write(*(bcoefs[1]),"by");
+    // VisMF::Write(*(bcoefs[2]),"bz");
 }
 #endif
   
