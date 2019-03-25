@@ -22,6 +22,10 @@
 #include <AMReX_AmrData.H>
 #endif
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBMultiFabUtil.H>
+#endif
+
 #include <AMReX_buildInfo.H>
 
 using namespace amrex;
@@ -441,7 +445,7 @@ NavierStokes::predict_velocity (Real  dt,
     // fixme ghost cell situation???
     MultiFab& Gp = *gradp;
 
-    VisMF::Write(Umf, "U");
+    //VisMF::Write(Umf, "U");
     const Box& domain = geom.Domain();
     // Compute slopes and store for use in computing UgradU
 #ifdef _OPENMP
@@ -453,8 +457,8 @@ NavierStokes::predict_velocity (Real  dt,
     {
        Box bx=mfi.tilebox();
        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-	     bndry[2] = fetchBCArray(State_Type,bx,2,1););
+	      bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	      bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
       godunov->ComputeVelocitySlopes(mfi, Umf,
 				     D_DECL(bndry[0], bndry[1], bndry[2]),
@@ -475,7 +479,7 @@ NavierStokes::predict_velocity (Real  dt,
 #endif
 
     //fixme
-    VisMF::Write(Gp,"gradpPV");
+    //VisMF::Write(Gp,"gradpPV");
     
 #ifdef BOUSSINESQ
     FillPatchIterator
@@ -1220,7 +1224,6 @@ NavierStokes::writePlotFile (const std::string& dir,
         }
 #ifdef AMREX_USE_EB
 	//add in vol frac
-	//fixme? add to derive_lst rather than just tacking on here?
 	os << "volFrac\n";
 #endif
 	
@@ -1400,7 +1403,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     int       cnt   = 0;
     int       ncomp = 1;
     const int nGrow = 0;
-    MultiFab  plotMF(grids,dmap,n_data_items,nGrow);
+    MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
     MultiFab* this_dat = 0;
     //
     // Cull data from state variables -- use no ghost cells.
@@ -1459,6 +1462,9 @@ NavierStokes::writePlotFile (const std::string& dir,
 
     plotMF.setVal(0.0, cnt, 1, nGrow);
     MultiFab::Copy(plotMF,volfrac,0,cnt,1,nGrow);
+
+    // set covered values for ease of viewing
+    EB_set_covered(plotMF, 0.0);
 #endif
     
     //
