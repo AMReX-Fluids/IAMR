@@ -1664,6 +1664,11 @@ contains
       hy = dx(2)
       hz = dx(3)
 
+      if ( adv_dir .ne. 1 ) then
+         write(6,*) "initchannel requires adv_dir=1, currently adv_dir=",adv_dir
+         stop
+      end if
+
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
          do j = lo(2), hi(2)
@@ -1672,7 +1677,7 @@ contains
                vel(i,j,k,1) = adv_vel
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = zero
-               scal(i,j,k,1) = one
+               scal(i,j,k,1) = denfact
 
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
@@ -5071,6 +5076,7 @@ contains
 
 #include <probdata.H>
 
+      ! filcc fills bc_types foextrap, hoextrap, reflect_odd and reflect_even
       call filcc(rho,DIMS(rho),domlo,domhi,dx,xlo,bc)
 
       lo(1) = ARG_L1(rho)
@@ -5158,7 +5164,7 @@ contains
          enddo
       endif
 
-      else
+      else ! not probtype 8, all other probtypes
 
 
       if (bc(1,1).eq.EXT_DIR.and.ARG_L1(rho).lt.domlo(1)) then

@@ -31,10 +31,6 @@ endif
 Ppack   += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
-include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package 
-include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
-
 ifeq ($(USE_VELOCITY), TRUE)
   DEFINES += -DBL_NOLINEVALUES -DBL_USE_VELOCITY -DBL_PARALLEL_IO
   include $(AMREX_HOME)/Src/Extern/amrdata/Make.package

@@ -41,6 +41,8 @@ public:
 
     void install_anelastic_coefficient (int                        level,
                                         amrex::Real                **anel_coeff);
+    void build_anelastic_coefficient (int                        level,
+				      amrex::Real**& anel_coeff);
     //
     // Compute the level projection in NavierStokes::advance.
     //
@@ -193,22 +195,6 @@ protected:
     static void Finalize ();
 
     //
-    // Convert U from an Accleration like quantity to a velocity
-    // Unew = Uold + alpha*Unew
-    //
-    void UnConvertUnew (amrex::MultiFab&       Uold,
-                        amrex::Real            alpha,
-                        amrex::MultiFab&       Unew, 
-                        const amrex::BoxArray& grids );
-    //
-    // Convert U from an Accleration like quantity to a velocity
-    // Unew = Uold + alpha*Unew
-    //
-    void UnConvertUnew (amrex::FArrayBox& Uold,
-                        amrex::Real       alpha,
-                        amrex::FArrayBox& Unew,
-                        const amrex::Box& grd);
-    //
     // Convert U to an Accleration like quantity
     // Unew = (Unew - Uold)/alpha
     //
@@ -310,6 +296,7 @@ protected:
     //
     // Anelastic coefficient array.
     //
+    static int                   anel_grow;  
     amrex::Vector<amrex::Real**> anel_coeff;
 
     //
@@ -344,32 +331,6 @@ protected:
                                bool doing_initial_velproj=false,
                                bool doing_initial_vortproj=false);
 
-    void doNodalProjection(int c_lev, int nlevel, 
-			   const amrex::Vector<amrex::MultiFab*>& vel, 
-                           const amrex::Vector<amrex::MultiFab*>& phi,
-                           const amrex::Vector<amrex::MultiFab*>& sig,
-			   const amrex::Vector<amrex::MultiFab*>& rhcc,
-                           const amrex::Vector<amrex::MultiFab*>& rhnd, 
-			   amrex::Real rel_tol, amrex::Real abs_tol,
-			   amrex::MultiFab* sync_resid_crse=nullptr,
-			   amrex::MultiFab* sync_resid_fine=nullptr,
-			   bool doing_initial_velproj=false);
-
-    // Mask off fine grids
-    // Possible values for msk
-    // BogusValue: outside this level
-    //          0: covered by the fine level
-    //          1: valid region not covered fine level
-    void mask_grids(amrex::MultiFab& msk, const amrex::BoxArray& grids, const amrex::Geometry& geom,
-                    const amrex::BoxArray& fineGrids, const amrex::IntVect& ref_ratio);
-    
-    // Mask off coarse grids
-    // Possible values for msk
-    // BogusValue: outside physical domain, or we don't care
-    //          0: covered by the coarse level
-    //          1: valid region 
-    void mask_grids(amrex::MultiFab& msk, const amrex::Geometry& geom);
-    
     // set velocity in ghost cells to zero except for inflow
     void set_boundary_velocity(int c_lev, int nlevel, const amrex::Vector<amrex::MultiFab*>& vel, 
                                bool doing_initial_velproj, bool inflowCorner);

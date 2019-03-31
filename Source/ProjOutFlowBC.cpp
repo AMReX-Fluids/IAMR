@@ -597,19 +597,22 @@ ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
     const int* domlo  = domain.loVect();
     const int* domhi  = domain.hiVect();
 
-    for (int iface = 0; iface < numOutFlowFaces; iface++) {
+    if (std::fabs(gravity) > 0.)
+    {
+      for (int iface = 0; iface < numOutFlowFaces; iface++) {
 
-      int face          = int(outFaces[iface]);
-      int outDir        = outFaces[iface].coordDir();
-
-      DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
-      DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
-
-      if (outDir != (BL_SPACEDIM-1) && std::fabs(gravity) > 0.0)
-        rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
-                    phiPtr,ARLIM(philo),ARLIM(phihi),
-                    &face,&gravity,dx,domlo,domhi,
-                    lo_bc,hi_bc);
+	int face          = int(outFaces[iface]);
+	int outDir        = outFaces[iface].coordDir();
+	
+	DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
+	DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
+	
+	if (outDir != (BL_SPACEDIM-1))
+	  rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+		 phiPtr,ARLIM(philo),ARLIM(phihi),
+		 &face,&gravity,dx,domlo,domhi,
+		 lo_bc,hi_bc);
+      }
     }
 }
 

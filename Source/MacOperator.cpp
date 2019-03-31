@@ -8,8 +8,6 @@
 #include <AMReX_MultiGrid.H>
 #include <AMReX_ParmParse.H>
 
-#include <AMReX_FMultiGrid.H>
-
 using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
