@@ -628,8 +628,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            bool                      add_hoop_stress,
                            const SolveMode&          solve_mode,
                            bool                      add_old_time_divFlux,
-                           const amrex::Vector<int>& is_diffusive,
-			   bool debug )
+                           const amrex::Vector<int>& is_diffusive)
 {
     //
     // This routine expects that physical BC's have been loaded into
@@ -704,7 +703,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     for (int icomp=0; icomp<num_comp; ++icomp) {
 
-	amrex::Print() << "Starting diffuse_scalar" << "\n";
+        if (verbose) amrex::Print() << "Starting diffuse_scalar" << "\n";
 
         int sigma = S_comp + icomp;
 
@@ -872,7 +871,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         if (add_hoop_stress)
         {
 
-	Print() << "Doing RZ coord..." << std::endl;
+            if (verbose) Print() << "Doing RZ coord..." << std::endl;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1030,16 +1029,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
             MultiGrid mg(*visc_op);
 
-	    if(debug){
-	        VisMF::Write(Rhs,"Rhs_dsmsd_NOMLMG");
-	        Print() << "Coefficients a and b are: " << a << ", " << b << std::endl;
-	    }
-
             mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-
-	    if(debug){
-	        VisMF::Write(Soln,"Soln_dsmsd_NOMLMG");
-	    }
 
             //
             // Get extensivefluxes from new-time op
@@ -1048,8 +1038,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp+icomp);
 #endif
         }
-
-	if (debug==true) VisMF::Write(Soln,"Soln_from_ds");
 
         for (int i = 0; i < BL_SPACEDIM; ++i)
             (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
@@ -1068,7 +1056,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             }
 	}
 
-	amrex::Print() << "Done with diffuse_scalar" << "\n";
+	if (verbose) amrex::Print() << "Done with diffuse_scalar" << "\n";
 
     }
     

@@ -110,8 +110,7 @@ public:
                                 bool                                   add_hoop_stress,
                                 const SolveMode&                       solve_mode = ONEPASS,
                                 bool                                   add_old_time_divFlux = true,
-                                const amrex::Vector<int>&              is_diffusive = amrex::Vector<int>(),
-			        bool debug = false);
+                                const amrex::Vector<int>&              is_diffusive = amrex::Vector<int>());
 
     void diffuse_velocity (amrex::Real                   dt,
                            amrex::Real                   be_cn_theta,
