@@ -789,7 +789,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                  fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,alpha,alphaComp,
                                  cmp_diffn,cmp_diffnp1,betaComp,
                                  visc_coef,visc_coef_comp,volume,a,crse_ratio,theBCs[bc_comp],geom,
-                                 add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp,false);
+                                 add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp);
 
       if(alpha!=0) delete alpha;
 
@@ -1727,7 +1727,7 @@ NavierStokes::mac_sync ()
 					   fluxn,fluxSC,fluxComp,delta_rhs,rhsComp,alpha_in,alphaComp,
 					   cmp_diffn,cmp_diffnp1,betaComp,
 					   visc_coef,visc_coef_comp,volume,a,crse_ratio,theBCs[sigma],geom,
-					   add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp,true);
+					   add_hoop_stress,solve_mode,add_old_time_divFlux,diffuse_comp);
 
 		if (alpha_in!=0) delete alpha_in;
 
