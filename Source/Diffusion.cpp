@@ -1962,12 +1962,8 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
             Rhs[Rhsmfi].mult(rhsscale,bx);
         }
 
-	VisMF::Write(Rhs,"Rhs_diffuseSsync_WITHMLMG");
-
         mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
-	VisMF::Write(Soln,"Soln_diffuseSsync_WITHMLMG");
-        
         int flux_allthere, flux_allnull;
         checkBeta(flux, flux_allthere, flux_allnull);
         if (flux_allthere)
