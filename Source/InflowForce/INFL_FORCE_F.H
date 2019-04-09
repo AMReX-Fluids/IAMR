@@ -1,5 +1,5 @@
-c
-c ::: Inflow Forcing Common Blocks :::
-c
+!
+! ::: Inflow Forcing Common Blocks :::
+!
 #include <infl_force.fi>
 
