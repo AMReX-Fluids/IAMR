@@ -1,6 +1,6 @@
-c
-c ::: Inflow Forcing Common Blocks :::
-c
+!
+! ::: Inflow Forcing Common Blocks :::
+!
       integer, parameter :: infl_periodic_type = 1
       integer, parameter :: infl_swirl_type    = 2
 
@@ -10,8 +10,8 @@ c
       character flct_file*(256)
       double precision, pointer :: fluct_times(:)
 
-      common /InflFrc_Comms/ convVel, strmwse_dir, numInflPlanesStore,
-     &     nCompInflow, forceLo, forceHi
+      common /InflFrc_Comms/ convVel, strmwse_dir, numInflPlanesStore, &
+          nCompInflow, forceLo, forceHi
 
       common /InflFrc_File/ flct_file
 

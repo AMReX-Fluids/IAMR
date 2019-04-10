@@ -1,9 +1,9 @@
-c
-c ::: CPP defines to generalize the inflow forcing :::
-c
+!
+! ::: CPP defines to generalize the inflow forcing :::
+!
       INTEGER COMP_FLCTFILE
       PARAMETER (COMP_FLCTFILE=3)
       INTEGER FLCT_XVEL,FLCT_YVEL,FLCT_ZVEL
-      PARAMETER (FLCT_XVEL=1,
-     &           FLCT_YVEL=2,
-     &           FLCT_ZVEL=3)
+      PARAMETER (FLCT_XVEL=1, &
+               FLCT_YVEL=2, &
+               FLCT_ZVEL=3)
