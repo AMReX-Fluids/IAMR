@@ -299,7 +299,8 @@ protected:
     amrex::Amr*             parent;
     amrex::Vector<amrex::AmrLevel*> LevelData;
 #ifdef AMREX_USE_EB
-    // pointer to eb factory on each level 
+    // pointer to eb factory on each level
+    // could potentially do away with this and use LevelData to get ebFactory...
     amrex::Vector<const amrex::EBFArrayBoxFactory*> ebfactory;
 #endif
     //
@@ -340,14 +341,15 @@ protected:
                                const amrex::Vector<amrex::MultiFab*>& rhcc,
                                const amrex::Vector<amrex::MultiFab*>& rhnd, 
                                amrex::Real rel_tol, amrex::Real abs_tol,
+			       bool proj2,
                                amrex::MultiFab* sync_resid_crse=nullptr,
                                amrex::MultiFab* sync_resid_fine=nullptr,
-                               bool doing_initial_velproj=false,
                                bool doing_initial_vortproj=false);
 
     // set velocity in ghost cells to zero except for inflow
-    void set_boundary_velocity(int c_lev, int nlevel, const amrex::Vector<amrex::MultiFab*>& vel, 
-                               bool doing_initial_velproj, bool inflowCorner);
+    void set_boundary_velocity(int c_lev, int nlevel,
+			       const amrex::Vector<amrex::MultiFab*>& vel, 
+                               bool inflowCorner);
 
 };
 #endif
