@@ -13,46 +13,46 @@
 
 #define SDIM 3
 
-c ::: -----------------------------------------------------------
-c ::: This routine does the interpolation of the inflow data
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: time              =>  Time at which to fill the data
-c ::: xlo               =>  Lower physical location of the inflDat array
-c ::: dx                =>  Grid spacing in the inflDat array
-c ::: storePnt          =>  Interpolation point in the strmwse_dir direction
-c ::: fillComp          =>  Component from the storDat array to use
-c ::: timePnt           =>  Physical time corresponding to the storePnt point
-c :::                         in the data in storDat
-c ::: dtFile            =>  Time step in the array storDat
-c ::: nCompStorDat      =>  Number of components in the storDat array
-c ::: FF_DIMS(storDat)  =>  Dimensions of storDat
-c ::: storDat           =>  Array to fill
-c ::: DIMS(inflDat)     =>  Dimensions of the inflDat array
-c ::: inflDat          <=   Array to fill by interpolating from the storDat 
-c :::                         array
-c ::: -----------------------------------------------------------
-c :::
-c ::: NOTE:  When x, y and z are calculated for each i, j, and k index
-c :::        in this routine, they are calculated based on formulaes
-c :::        of the form,
-c :::            x = probLo(1) + dx(1) * (DBLE(i) + half)
-c :::        rather than on the more common form,
-c :::            x = xlo(1) + dx(1) * (DBLE(i - lo(1)) + half)
-c :::        In other words, they are calculated based on the origin
-c :::        of the problem domain rather than the origin of the FAB
-c :::        we are working on.  This forces the physical location for
-c :::        some specified index to be identically the same no matter
-c :::        which FAB we are working on.  Seems like a moot point, but
-c :::        it isn't when we do an integer shift to force points outside 
-c :::        of the domain in periodic directions.
-c :::
-c :::        For instance if we have a domain from 0->63 in a periodic 
-c :::        direction and pass in a FAB to fill with indices from -1 to 5,
-c :::        the -1 index is integer shifted over to an index of 63 to do
-c :::        the interpolation for the forcing.
-c :::
+! ::: -----------------------------------------------------------
+! ::: This routine does the interpolation of the inflow data
+! ::: 
+! ::: INPUTS/OUTPUTS:
+! ::: 
+! ::: time              =>  Time at which to fill the data
+! ::: xlo               =>  Lower physical location of the inflDat array
+! ::: dx                =>  Grid spacing in the inflDat array
+! ::: storePnt          =>  Interpolation point in the strmwse_dir direction
+! ::: fillComp          =>  Component from the storDat array to use
+! ::: timePnt           =>  Physical time corresponding to the storePnt point
+! :::                         in the data in storDat
+! ::: dtFile            =>  Time step in the array storDat
+! ::: nCompStorDat      =>  Number of components in the storDat array
+! ::: FF_DIMS(storDat)  =>  Dimensions of storDat
+! ::: storDat           =>  Array to fill
+! ::: DIMS(inflDat)     =>  Dimensions of the inflDat array
+! ::: inflDat          <=   Array to fill by interpolating from the storDat 
+! :::                         array
+! ::: -----------------------------------------------------------
+! :::
+! ::: NOTE:  When x, y and z are calculated for each i, j, and k index
+! :::        in this routine, they are calculated based on formulaes
+! :::        of the form,
+! :::            x = probLo(1) + dx(1) * (DBLE(i) + half)
+! :::        rather than on the more common form,
+! :::            x = xlo(1) + dx(1) * (DBLE(i - lo(1)) + half)
+! :::        In other words, they are calculated based on the origin
+! :::        of the problem domain rather than the origin of the FAB
+! :::        we are working on.  This forces the physical location for
+! :::        some specified index to be identically the same no matter
+! :::        which FAB we are working on.  Seems like a moot point, but
+! :::        it isn't when we do an integer shift to force points outside 
+! :::        of the domain in periodic directions.
+! :::
+! :::        For instance if we have a domain from 0->63 in a periodic 
+! :::        direction and pass in a FAB to fill with indices from -1 to 5,
+! :::        the -1 index is integer shifted over to an index of 63 to do
+! :::        the interpolation for the forcing.
+! :::
       subroutine INTRP_DATA(time, dx, storePnt, fillComp, filePnt,
      $     timePnt, dtFile, dxFile, xloFile, xhiFile, nCompStorDat, 
      $     FF_DIMS(storDat), storDat,
@@ -106,15 +106,15 @@ c :::
       ctm1 = (time - timePnt) * (time - tp1) / (tm1 - timePnt) / (tm1 - tp1)
       ct0  = (time - tm1) * (time - tp1) / (timePnt - tm1) / (timePnt - tp1)
       ctp1 = (time - tm1) * (time - timePnt) / (tp1 - tm1) / (tp1 - timePnt)
-c
-c     ----------------------------------------------
-c     :::: Interpolate to fill the inflow array ::::
-c     ----------------------------------------------
-c
+!
+!     ----------------------------------------------
+!     :::: Interpolate to fill the inflow array ::::
+!     ----------------------------------------------
+!
       if (strmwse_dir .eq. FLCT_XVEL) then
-c
-c     :::: Streamwise X-direction ::::
-c
+!
+!     :::: Streamwise X-direction ::::
+!
       do k = lo(3), hi(3)
         kzcalc = k
         if (bc(3,1) .eq. INT_DIR .and. k .lt. 0) then
@@ -198,9 +198,9 @@ c
       enddo
       
       elseif (strmwse_dir .eq. FLCT_YVEL) then
-c
-c     :::: Streamwise Y-direction ::::
-c
+!
+!     :::: Streamwise Y-direction ::::
+!
       do k = lo(3), hi(3)
         kzcalc = k
         if (bc(3,1) .eq. INT_DIR .and. k .lt. 0) then
@@ -284,11 +284,11 @@ c
       enddo
       
       elseif (strmwse_dir .eq. FLCT_ZVEL) then
-c
-c     :::: Streamwise Z-direction ::::
-c
-c      write (*,*) "dx,lo,hi(1):",dxFile(1),xloFile(1),xhiFile(1)
-c      write (*,*) "dx,lo,hi(2):",dxFile(2),xloFile(2),xhiFile(2)
+!
+!     :::: Streamwise Z-direction ::::
+!
+!      write (*,*) "dx,lo,hi(1):",dxFile(1),xloFile(1),xhiFile(1)
+!      write (*,*) "dx,lo,hi(2):",dxFile(2),xloFile(2),xhiFile(2)
       lengthFile1 = (xhiFile(1)-xloFile(1))-dxFile(1)*two
       lengthFile2 = (xhiFile(2)-xloFile(2))-dxFile(2)*two
       do j = lo(2), hi(2)

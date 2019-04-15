@@ -87,7 +87,6 @@ NavierStokes::initData ()
     MultiFab&   S_new    = get_new_data(State_Type);
     MultiFab&   P_new    = get_new_data(Press_Type);
     const Real  cur_time = state[State_Type].curTime();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -116,7 +115,6 @@ NavierStokes::initData ()
                        Pfab.dataPtr(),
                        ARLIM(p_lo), ARLIM(p_hi),
                        dx,gridloc.lo(),gridloc.hi() );
-
     }
 
 #ifdef BL_USE_VELOCITY
@@ -299,6 +297,7 @@ NavierStokes::advance (Real time,
     {
         MultiFab mac_rhs(grids,dmap,1,0,MFInfo(),Factory());
 	MultiFab& S_old = get_old_data(State_Type);
+// not sure why this ifdef is here...
 #ifdef AMREX_USE_EB
 	// rhs composed of divu and dSdt terms
         create_mac_rhs(mac_rhs,0,time,dt);
@@ -308,7 +307,6 @@ NavierStokes::advance (Real time,
         mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
 #endif
     }
-
     //
     // Advect velocities.
     //
@@ -637,17 +635,15 @@ NavierStokes::scalar_advection (Real dt,
     //
 
   {
-    // FIXME
-    // I think Umf is only used for MOREGENGETFORCE,
-    // so why are we FillPatch'ing it for everyone???
-      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
       FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
-      const MultiFab& Umf=U_fpi.get_mf();
       const MultiFab& Smf=S_fpi.get_mf();
       
 #ifdef BOUSSINESQ
       FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
       const MultiFab& Scalmf=Scal_fpi.get_mf();
+#elif MOREGENGETFORCE
+      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+      const MultiFab& Umf=U_fpi.get_mf();
 #endif
 
 
@@ -714,23 +710,23 @@ NavierStokes::scalar_advection (Real dt,
       FArrayBox cfluxes[BL_SPACEDIM];
       FArrayBox edgstate[BL_SPACEDIM];
      
-      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
       {
-	    const Box bx = U_mfi.tilebox();
+	    const Box bx = S_mfi.tilebox();
 
 #ifdef BOUSSINESQ
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[S_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[S_mfi]);
 #elif MOREGENGETFORCE
 	      if (getForceVerbose) {
 	        amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
 			    << " Calling getForce..." << '\n';
 	      }
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
 #else
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[U_mfi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[S_mfi]);
 #endif		 
 #endif		 
 
@@ -743,10 +739,9 @@ NavierStokes::scalar_advection (Real dt,
 
         for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
           int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
-          godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
-                                    (*divu_fp)[U_mfi],0,rho_ptime[U_mfi],0,use_conserv_diff);
+          godunov->Sum_tf_divu_visc(Smf[S_mfi],i,tforces,i,1,visc_terms[S_mfi],i,
+                                    (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
         }
-	
 
 #ifdef AMREX_USE_EB
 	//
@@ -759,7 +754,7 @@ NavierStokes::scalar_advection (Real dt,
 	
 	int acomp = fscalar;
 	for ( int i=0; i<num_scalars; i++){
-	  godunov->AdvectScalar(U_mfi, Smf, i,
+	  godunov->AdvectScalar(S_mfi, Smf, i,
 				*aofs, acomp,
 				D_DECL(xslps, yslps, zslps),
 				D_DECL(u_mac[0],u_mac[1],u_mac[2]),
@@ -774,19 +769,19 @@ NavierStokes::scalar_advection (Real dt,
 	state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
 		
         godunov->AdvectScalars(bx, dx, dt, 
-                               D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
-                               D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                               D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
+                               D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]),
                                D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-                               Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
-                               (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
+                               Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
+                               (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
 #endif
                                
 	//fixme: only need this copy if do_reflux
         for (int d=0; d<BL_SPACEDIM; ++d)
         {
-          const Box& ebx = U_mfi.nodaltilebox(d);
-          (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+          const Box& ebx = S_mfi.nodaltilebox(d);
+          (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
         }
       }
     }

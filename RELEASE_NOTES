@@ -59,3 +59,8 @@ OpenMP and tiling additions
 
 1/2/19
 Some GPU work
+
+4/8/19
+Various problem fixes
+Various problem tweaks involving regridding
+Other minor fixes

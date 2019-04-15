@@ -1,7 +1,7 @@
 
-c
-c ::: Array dimension definitions which are always 3-d
-c
+!
+! ::: Array dimension definitions which are always 3-d
+!
 
 #if __STDC__==1
 
