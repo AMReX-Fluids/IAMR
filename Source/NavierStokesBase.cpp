@@ -1284,9 +1284,14 @@ NavierStokesBase::estTimeStep ()
 
     Real u_max[BL_SPACEDIM] = {0};
 
+#ifdef AMREX_USE_EB
+    // Nodal Projection sets EB covered cells to zero, so no need to do it here
+    MultiFab& Gp = getGradP();
+#else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
-
+#endif
+    
     //FIXME? find a better solution for umax? gcc 5.4, OMP reduction does not take arrays
     Real umax_x=-1.e200,umax_y=-1.e200,umax_z=-1.e200;
 #ifdef _OPENMP
