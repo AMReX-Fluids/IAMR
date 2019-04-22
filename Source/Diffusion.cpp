@@ -1,3 +1,6 @@
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+//
 
 #include <AMReX_ParmParse.H>
 
@@ -637,7 +640,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     // on the valid region (i.e., on the valid region the new state is the old
     // state + dt*Div(explicit_fluxes), e.g.)
     //
-    
+
+  if (verbose) amrex::Print() << "Starting diffuse_scalar" << "\n";
+  
     bool has_coarse_data = S_old.size() > 1;
     
     const Real strt_time = ParallelDescriptor::second();
@@ -673,21 +678,38 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
 
+    // why bother making this time n operator for purely implicit cases?
     LPInfo infon;
     infon.setAgglomeration(agglomeration);
     infon.setConsolidation(consolidation);
     infon.setMetricTerm(false);
+    //fixme? not in dev
     infon.setMaxCoarseningLevel(0);
+
     MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
     opn.setMaxOrder(max_order);
     MLMG mgn(opn);
+    //why not set these switches for time n too???
+    if (use_hypre) {
+      mgn.setBottomSolver(MLMG::BottomSolver::hypre);
+      mgn.setBottomVerbose(hypre_verbose);
+    }
+    mgn.setMaxFmgIter(max_fmg_iter);
+    mgn.setVerbose(verbose);
 
     LPInfo infonp1;
-    infon.setMetricTerm(false);
+    // why not set these additional options like for time n
+    infonp1.setAgglomeration(agglomeration);
+    infonp1.setConsolidation(consolidation);
+    // fixme: was infon a second time. this probably needs to be np1
+    // changing to np1 gets agreement with dev for single level
+    infonp1.setMetricTerm(false);
+    
     MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
     opnp1.setMaxOrder(max_order);
 
     MLMG mgnp1(opnp1);
+    //why not set these switches for time n too???
     if (use_hypre) {
       mgnp1.setBottomSolver(MLMG::BottomSolver::hypre);
       mgnp1.setBottomVerbose(hypre_verbose);
@@ -701,7 +723,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     for (int icomp=0; icomp<num_comp; ++icomp) {
 
-        if (verbose) amrex::Print() << "Starting diffuse_scalar" << "\n";
+      if (verbose)
+	amrex::Print() << "diffusing scalar "<<icomp+1<<" of "<<num_comp << "\n";
 
         int sigma = S_comp + icomp;
 
@@ -725,7 +748,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
             if (use_mlmg_solver) 
             {
-                {
+	      if(verbose)
+		Print()<<"Adding old time diff ....\n";
+	      {
                     if (has_coarse_data) {
                         MultiFab::Copy(*Solnc,*S_old[1],sigma,0,1,ng);
                         if (rho_flag == 2) {
@@ -838,6 +863,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
         if (delta_rhs != 0)
         {
+	  //fixme
+	  Print()<<"Diffuse scalar... adding body sources... \n";
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -949,15 +976,21 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         if (use_mlmg_solver)
         {
             {
-                if (has_coarse_data) {
-                    MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
+	      //Fixme???
+	      // dev fillPatch'es S_new (both levels) before passing to op
+	      // I *think* it's now assumed that S_new has been FillPatch'ed before passing?
+	      if (has_coarse_data) {
+		MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
+		// auto& crse_ns = *(coarser->navier_stokes);
+		// AmrLevel::FillPatch(crse_ns,*Solnc,ng,cur_time,State_Type,sigma,1);
                     if (rho_flag == 2) {
                         MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
                     }
                     opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
                 }
-                MultiFab::Copy(Soln,*S_new[0],sigma,0,1,ng);
-                if (rho_flag == 2) {
+	      MultiFab::Copy(Soln,*S_new[0],sigma,0,1,ng);
+	      // AmrLevel::FillPatch(*navier_stokes,*S_new[0],ng,cur_time,State_Type,sigma,1);
+	        if (rho_flag == 2) {
                     MultiFab::Divide(Soln,*Rho_new[0],Rho_comp,0,1,ng);
                 }
                 opnp1.setLevelBC(0, &Soln);
@@ -967,14 +1000,17 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                 std::pair<Real,Real> scalars;
 
                 computeAlpha(alpha, scalars, a, b, rho_half, rho_flag,
-                             &rhsscale, alpha_in, alpha_in_comp+icomp, Rho_new[0], Rho_comp,
+                             &rhsscale, alpha_in, alpha_in_comp+icomp,
+			     Rho_new[0], Rho_comp,
                              geom, volume, add_hoop_stress);
                 opnp1.setScalars(scalars.first, scalars.second);
                 opnp1.setACoeffs(0, alpha);
+		//fixme
+		//Print()<<"diffuse_scalar op coeffs "<<scalars.first<<" "<<scalars.second<<"\n";
             }
         
             {
-                computeBeta(bcoeffs, betanp1, betaComp+icomp, geom, area);			
+                computeBeta(bcoeffs, betanp1, betaComp+icomp, geom, area);
                 opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
             }
 
@@ -982,11 +1018,66 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             const Real S_tol     = visc_tol;
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
-//	    Print() << "Tolerances are: " << S_tol << ", " << S_tol_abs << std::endl;            
+	    //fixme
+	  //   static int count=0;
+	  //   count++;
+	  //   amrex::WriteSingleLevelPlotfile("alpha_"+std::to_string(count),alpha, {"a"},geom, 0.0, 0);
+	  // {
+	  //   // read in result MF from unaltered version of code
+	  //   std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b0_"+std::to_string(count);
+	  //   std::cout << "Reading " << name2 << std::endl;
+	  //   MultiFab mf2(bcoeffs[0].boxArray(),dm,bcoeffs[0].nComp(),bcoeffs[0].nGrow());
+	  //   VisMF::Read(mf2, name2);
+	  //   MultiFab mfdiff(mf2.boxArray(), dm, mf2.nComp(), mf2.nGrow());
+	  //   // Diff local MF and MF from unaltered code 
+	  //   MultiFab::Copy(mfdiff, bcoeffs[0], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
+	  //   mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
 
-//            mgnp1.setVerbose(3);
-            mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+	  //   for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	  //     std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+	  // 		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+	  //     if (mfdiff.nComp() > 1) {
+	  // 	std::cout << " for component " << icomp;
+	  //     }
+	  //     std::cout << "." << std::endl;
+	  //   }
+	  //   // write out difference MF for viewing: amrvis -mf 
+	  //   std::cout << "Writing mfdiff" << std::endl;
+	  //   VisMF::Write(mfdiff, "bdiff"+std::to_string(count));
+	  // }
 
+	  // {
+	  //   // read in result MF from unaltered version of code
+	  //   std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b1_"+std::to_string(count);
+	  //   std::cout << "Reading " << name2 << std::endl;
+	  //   MultiFab mf2(bcoeffs[1].boxArray(),dm,bcoeffs[1].nComp(),bcoeffs[1].nGrow());
+	  //   VisMF::Read(mf2, name2);
+	  //   MultiFab mfdiff(mf2.boxArray(), dm, mf2.nComp(), mf2.nGrow());
+	  //   // Diff local MF and MF from unaltered code 
+	  //   MultiFab::Copy(mfdiff, bcoeffs[1], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
+	  //   mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+	  //   for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	  //     std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+	  // 		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+	  //     if (mfdiff.nComp() > 1) {
+	  // 	std::cout << " for component " << icomp;
+	  //     }
+	  //     std::cout << "." << std::endl;
+	  //   }
+	  //   // write out difference MF for viewing: amrvis -mf 
+	  //   std::cout << "Writing mfdiff" << std::endl;
+	  //   VisMF::Write(mfdiff, "b1diff"+std::to_string(count));
+	  // }
+	  //   amrex::WriteSingleLevelPlotfile("rhs_"+std::to_string(count),Rhs, {"a"},geom, 0.0, 0);
+	  //   amrex::WriteSingleLevelPlotfile("soln_"+std::to_string(count),Soln, {"soln"},geom, 0.0, 0);
+	  //   Print() << "Tolerances are: " << S_tol << ", " << S_tol_abs << std::endl;
+	  //   mgnp1.setVerbose(3);
+	    //
+	    
+	    mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+	    
+	    //	    amrex::WriteSingleLevelPlotfile("solnB_"+std::to_string(count),Soln, {"soln"},geom, 0.0, 0);
             AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
                          MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
                          MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
@@ -1044,7 +1135,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         // Copy into state variable at new time, without bc's
         //
         MultiFab::Copy(*S_new[0],Soln,0,sigma,1,0);
+        //static int count2=0; count2++; 
+    //amrex::WriteSingleLevelPlotfile("snew"+std::to_string(count2), *S_new[0], {"vx","vy","density","tracer"},geom, 0.0, 0);
 
+	
         if (rho_flag == 2) {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1057,7 +1151,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	if (verbose) amrex::Print() << "Done with diffuse_scalar" << "\n";
 
     }
-    
+
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -1101,12 +1195,12 @@ Diffusion::diffuse_velocity (Real                   dt,
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
 
+    if (allnull) {
+	amrex::Abort("Diffusion::diffuse_velocity(): Constant viscosity case no longer supported");
+    }
+
     BL_ASSERT(allthere);
 
-    if (allnull) {
-	amrex::Abort("Constant viscosity case no longer supported");
-    }
- 
     BL_ASSERT( rho_flag == 1 || rho_flag == 3);
 
 #ifdef AMREX_DEBUG
@@ -2730,6 +2824,12 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
     }
     else
     {
+      //fixme
+      //Print()<<"BETACOMP "<<betaComp<<"\n";
+      //  for (int n = 0; n < BL_SPACEDIM; n++)
+      //  {
+ 	//  Print()<<"dim "<<n<<", num comp = "<<beta[n]->nComp()<<"\n";
+	//}
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
