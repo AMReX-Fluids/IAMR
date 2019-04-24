@@ -2597,6 +2597,13 @@ NavierStokesBase::post_init_state ()
         // Do projection to establish initially hydrostatic pressure field.
         //
         projector->initialPressureProject(0);
+
+    // make sure there's not NANs in pressure field
+    if(!do_init_proj){
+      MultiFab& press=get_old_data(Press_Type);
+      press.setVal(0.);
+    }
+
 }
 
 //
