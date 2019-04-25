@@ -596,8 +596,15 @@ contains
 
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-               vel(i,j,1) = tanh(30.*(.25-abs(y-.5)))
-               vel(i,j,2) = .05*sin(two*Pi*x)
+                              if (adv_dir .eq. 1) then
+                  ! shear layer in y-dir
+                  vel(i,j,1) = -.05*sin(Pi*y)
+                  vel(i,j,2) = tanh(30.*(.5-abs(x)))
+               else
+                  ! shear layer in x-dir
+                  vel(i,j,1) = tanh(30.*(.5-abs(y)))
+                  vel(i,j,2) = .05*sin(Pi*x)
+               end if
 
                scal(i,j,1) = one
                do n = 2,nscal-1
@@ -635,6 +642,7 @@ contains
       REAL_T  hx, hy
       REAL_T  x_vel, y_vel
       REAL_T  dist
+      REAL_T  spx, cpx, spy, cpy
 
 #include <probdata.H>
 
@@ -654,11 +662,21 @@ contains
 
       do j = lo(2), hi(2)
          y = xlo(2) + hy*(float(j-lo(2)) + half)
+         spy = sin(Pi*y)
+         cpy = cos(Pi*y)
+
          do i = lo(1), hi(1)
             x = xlo(1) + hx*(float(i-lo(1)) + half)
+            spx = sin(half*Pi*x)
+            cpx = cos(half*Pi*x)
+            
             dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-            vel(i,j,1) = x_vel
-            vel(i,j,2) = y_vel
+
+            !vel(i,j,1) = x_vel
+            !vel(i,j,2) = y_vel
+            vel(i,j,1) = x_vel - velfact*two*spy*cpy*spx**2
+            vel(i,j,2) = y_vel + velfact*two*spx*cpx*spy**2
+
             scal(i,j,1) = one/denfact + (one - one/denfact) &
                 *half*(one + tanh(40.*(dist - radblob)))
             scal(i,j,2) = merge(one,zero,dist.lt.radblob)
