@@ -1429,9 +1429,16 @@ contains
             do i = lo(1), hi(1)
 
                x = xlo(1) + hx*(float(i-lo(1)) + half)
-
-               vel(i,j,k,1) = tanh(30.*(.25-abs(y-.5)))
-               vel(i,j,k,2) = .05*sin(two*Pi*x)
+               
+               if (adv_dir .eq. 1) then
+                  ! shear layer in y-dir
+                  vel(i,j,k,1) = -.05*sin(Pi*y)
+                  vel(i,j,k,2) = tanh(30.*(.5-abs(x)))
+               else
+                  ! shear layer in x-dir
+                  vel(i,j,k,1) = tanh(30.*(.5-abs(y)))
+                  vel(i,j,k,2) = .05*sin(Pi*x)
+               end if
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = one
@@ -7095,6 +7102,19 @@ contains
 !c     perforated plate with radial pattern, no flow on boundaries (to enable periodic ok)
 #if 1
       jetVel = adv_vel/(1.0 - holeBLfac)      
+
+! FIXME : from compiler
+!PROB_3D.F90:7106:0:
+!
+!          cent(n) = 0.5d0 * (domnlo(n) + domnhi(n))
+! 
+!Warning: iteration 2 invokes undefined behavior [-Waggressive-loop-optimizations]
+!PROB_3D.F90:7105:0:
+!
+!       do n=1,3
+! 
+!note: within this loop
+!
       do n=1,3
          cent(n) = 0.5d0 * (domnlo(n) + domnhi(n))
       enddo
