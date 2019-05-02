@@ -653,7 +653,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     Real dt = curr_time - prev_time;
     const int ng = 1;
-    BL_ASSERT(S_new[0]->nGrow()>0 && S_old[0]->nGrow()>0);
+    BL_ASSERT(S_new[0]->nGrow()>0); // && S_old[0]->nGrow()>0);
     const BoxArray& ba = S_new[0]->boxArray();
     const DistributionMapping& dm = S_new[0]->DistributionMap();
     const DistributionMapping* dmc = (has_coarse_data ? &(S_new[1]->DistributionMap()) : 0);
@@ -672,7 +672,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     }
     auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
     if (has_coarse_data) {
-        Solnc->define(*bac, *dmc, 1, ng);
+      Solnc->define(*bac, *dmc, 1, ng);
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -684,17 +684,19 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     infon.setConsolidation(consolidation);
     infon.setMetricTerm(false);
     //fixme? not in dev
+    //the coarsenings are unnecessary, and potentially expensive.
     infon.setMaxCoarseningLevel(0);
 
     MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
     opn.setMaxOrder(max_order);
     MLMG mgn(opn);
     //why not set these switches for time n too???
-    if (use_hypre) {
-      mgn.setBottomSolver(MLMG::BottomSolver::hypre);
-      mgn.setBottomVerbose(hypre_verbose);
-    }
-    mgn.setMaxFmgIter(max_fmg_iter);
+    // ans from MArc: Solver options and coarsened versions of operator not required for time-n version ABec op.  The solver options are irrelevant, and the coarsenings are unnecessary, and potentially expensive.
+    // if (use_hypre) {
+    //   mgn.setBottomSolver(MLMG::BottomSolver::hypre);
+    //   mgn.setBottomVerbose(hypre_verbose);
+    // }
+    // mgn.setMaxFmgIter(max_fmg_iter);
     mgn.setVerbose(verbose);
 
     LPInfo infonp1;
@@ -709,7 +711,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     opnp1.setMaxOrder(max_order);
 
     MLMG mgnp1(opnp1);
-    //why not set these switches for time n too???
     if (use_hypre) {
       mgnp1.setBottomSolver(MLMG::BottomSolver::hypre);
       mgnp1.setBottomVerbose(hypre_verbose);
@@ -725,6 +726,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
       if (verbose)
 	amrex::Print() << "diffusing scalar "<<icomp+1<<" of "<<num_comp << "\n";
+	amrex::Print() << "rho flag "<<rho_flag << "\n";
 
         int sigma = S_comp + icomp;
 
@@ -753,6 +755,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	      {
                     if (has_coarse_data) {
                         MultiFab::Copy(*Solnc,*S_old[1],sigma,0,1,ng);
+			// fixme? need to address other rho_flags too?
                         if (rho_flag == 2) {
                             MultiFab::Divide(*Solnc,*Rho_old[1],Rho_comp,0,1,ng);
                         }
@@ -961,6 +964,25 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                 Soln[mfi].mult((*alpha_in)[mfi],box,alpha_in_comp+icomp,0,1);
             Rhs[mfi].plus(Soln[mfi],box,0,0,1);
         }
+            
+	//move this here?
+	// //Fixme???
+	      // // dev fillPatch'es S_new (both levels) before passing to op
+	      // // It's now assumed that S_new has been FillPatch'ed before passing
+	      // // CHECK ON THIS...
+	      // if (has_coarse_data) {
+	      // 	MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
+	      // 	static int count2=0; count2++;
+	      // 	VisMF::Write(*Solnc,"solnc"+std::to_string(count2));
+	      // 	// auto& crse_ns = *(coarser->navier_stokes);
+	      // 	// AmrLevel::FillPatch(crse_ns,*Solnc,ng,cur_time,State_Type,sigma,1);
+	      // 	if (rho_flag == 1)
+	      // 	  Solnc->mult(rho_half[mfi],0,0,1);
+	      // 	if (rho_flag == 2) {
+	      // 	  MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
+	      // 	}
+	      // 	opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
+	      // }
 
         //
         // Construct viscous operator with bndry data at time N+1.
@@ -978,16 +1000,23 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             {
 	      //Fixme???
 	      // dev fillPatch'es S_new (both levels) before passing to op
-	      // I *think* it's now assumed that S_new has been FillPatch'ed before passing?
+	      // It's now assumed that S_new has been FillPatch'ed before passing
+	      // CHECK ON THIS...
 	      if (has_coarse_data) {
 		MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
+		static int count2=0; count2++;
+		VisMF::Write(*Solnc,"solnc"+std::to_string(count2));
 		// auto& crse_ns = *(coarser->navier_stokes);
 		// AmrLevel::FillPatch(crse_ns,*Solnc,ng,cur_time,State_Type,sigma,1);
-                    if (rho_flag == 2) {
-                        MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
-                    }
-                    opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
-                }
+		// if (rho_flag == 1)
+		//   // need rho_half coarse!
+		//   Multiply(*Solnc,rho_half,0,0,1,ng);
+		if (rho_flag == 2) {
+		  MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,ng);
+		}
+		// what about rho_flag ==3 ?
+		opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
+	      }
 	      MultiFab::Copy(Soln,*S_new[0],sigma,0,1,ng);
 	      // AmrLevel::FillPatch(*navier_stokes,*S_new[0],ng,cur_time,State_Type,sigma,1);
 	        if (rho_flag == 2) {
@@ -1006,25 +1035,35 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                 opnp1.setScalars(scalars.first, scalars.second);
                 opnp1.setACoeffs(0, alpha);
 		//fixme
-		//Print()<<"diffuse_scalar op coeffs "<<scalars.first<<" "<<scalars.second<<"\n";
+		Print()<<"diffuse_scalar op coeffs "<<scalars.first<<" "<<scalars.second<<"\n";
             }
         
             {
                 computeBeta(bcoeffs, betanp1, betaComp+icomp, geom, area);
                 opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
             }
-
-            Rhs.mult(rhsscale,0,1);
+	    // rhsscale =1. above
+            //Rhs.mult(rhsscale,0,1);
             const Real S_tol     = visc_tol;
             const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
 	    //fixme
-	  //   static int count=0;
-	  //   count++;
-	  //   amrex::WriteSingleLevelPlotfile("alpha_"+std::to_string(count),alpha, {"a"},geom, 0.0, 0);
-	  // {
+	    static int count=0;
+	    count++;
+	    amrex::WriteSingleLevelPlotfile("alpha_"+std::to_string(count),alpha, {"a"},geom, 0.0, 0);
+	    if (alpha_in != 0)
+	      amrex::WriteSingleLevelPlotfile("alpha_in_"+std::to_string(count),*alpha_in, {"a"},geom, 0.0, 0);
+	    else
+	      Print()<<"No alpha ...\n";
+
+	  //   if (count>20){
 	  //   // read in result MF from unaltered version of code
-	  //   std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b0_"+std::to_string(count);
+	  //   std::string name2;
+	  //   // if (count>20)
+	  //   //   name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b0_"+std::to_string(count);
+	  //   // else
+	  //     name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b0S_"+std::to_string(count-20);
+	    
 	  //   std::cout << "Reading " << name2 << std::endl;
 	  //   MultiFab mf2(bcoeffs[0].boxArray(),dm,bcoeffs[0].nComp(),bcoeffs[0].nGrow());
 	  //   VisMF::Read(mf2, name2);
@@ -1046,9 +1085,14 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	  //   VisMF::Write(mfdiff, "bdiff"+std::to_string(count));
 	  // }
 
-	  // {
+	  //   if(count>20){
 	  //   // read in result MF from unaltered version of code
-	  //   std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b1_"+std::to_string(count);
+	  //   std::string name2;
+	  //   // if (count<15)
+	  //   //   name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b1_"+std::to_string(count);
+	  //   // else
+	  //     name2="/home/candace/CCSE/IAMR_dev/Exec/run2d/b1S_"+std::to_string(count-20);
+	    
 	  //   std::cout << "Reading " << name2 << std::endl;
 	  //   MultiFab mf2(bcoeffs[1].boxArray(),dm,bcoeffs[1].nComp(),bcoeffs[1].nGrow());
 	  //   VisMF::Read(mf2, name2);
@@ -1069,20 +1113,23 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	  //   std::cout << "Writing mfdiff" << std::endl;
 	  //   VisMF::Write(mfdiff, "b1diff"+std::to_string(count));
 	  // }
-	  //   amrex::WriteSingleLevelPlotfile("rhs_"+std::to_string(count),Rhs, {"a"},geom, 0.0, 0);
-	  //   amrex::WriteSingleLevelPlotfile("soln_"+std::to_string(count),Soln, {"soln"},geom, 0.0, 0);
-	  //   Print() << "Tolerances are: " << S_tol << ", " << S_tol_abs << std::endl;
-	  //   mgnp1.setVerbose(3);
-	    //
+	    amrex::WriteSingleLevelPlotfile("rhs_"+std::to_string(count),Rhs, {"a"},geom, 0.0, 0);
+	    amrex::WriteSingleLevelPlotfile("soln_"+std::to_string(count),Soln, {"soln"},geom, 0.0, 0);
+	    Print() << "Tolerances are: " << S_tol << ", " << S_tol_abs << std::endl;
+	    mgnp1.setVerbose(3);
+	    
 	    
 	    mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
-	    
-	    //	    amrex::WriteSingleLevelPlotfile("solnB_"+std::to_string(count),Soln, {"soln"},geom, 0.0, 0);
+
+	    //
+	     amrex::WriteSingleLevelPlotfile("solnB_"+std::to_string(count),Soln, {"soln"},geom, 0.0, 0);
+	    //
             AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
                          MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
                          MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
             std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
             mgnp1.getFluxes({fp});
+
         }
 
         else
