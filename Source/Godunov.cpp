@@ -125,15 +125,16 @@ Godunov::Godunov (const EBFArrayBoxFactory& _ebf,
     facecent = ebfactory->getFaceCent();
 
     //Slopes in x-direction
-    m_xslopes.reset(new MultiFab(grids, dmap, 3, hyp_grow, MFInfo(), *ebfactory));
+    m_xslopes.reset(new MultiFab(grids, dmap, AMREX_SPACEDIM, hyp_grow, MFInfo(), *ebfactory));
     m_xslopes->setVal(0.);
     // Slopes in y-direction
-    m_yslopes.reset(new MultiFab(grids, dmap, 3, hyp_grow, MFInfo(), *ebfactory));
+    m_yslopes.reset(new MultiFab(grids, dmap, AMREX_SPACEDIM, hyp_grow, MFInfo(), *ebfactory));
     m_yslopes->setVal(0.);
+#if (AMREX_SPACEDIM > 2)
     // Slopes in z-direction
-    m_zslopes.reset(new MultiFab(grids, dmap, 3, hyp_grow, MFInfo(), *ebfactory));
+    m_zslopes.reset(new MultiFab(grids, dmap, AMREX_SPACEDIM, hyp_grow, MFInfo(), *ebfactory));
     m_zslopes->setVal(0.);
-
+#endif
 }
 #endif
 Godunov::Godunov (int max_size)
@@ -1131,9 +1132,9 @@ void Godunov::ComputeVelocitySlopes(const amrex::MFIter& mfi,
       // If tile is completely covered by EB geometry, set slopes
       // value to some very large number so we know if
       // we accidentaly use these covered slopes later in calculations
-      D_TERM(m_xslopes->setVal(1.2345e300, bx, 0, 3);,
-	     m_yslopes->setVal(1.2345e300, bx, 0, 3);,
-	     m_zslopes->setVal(1.2345e300, bx, 0, 3););
+      D_TERM(m_xslopes->setVal(1.2345e300, bx, 0, AMREX_SPACEDIM);,
+	     m_yslopes->setVal(1.2345e300, bx, 0, AMREX_SPACEDIM);,
+	     m_zslopes->setVal(1.2345e300, bx, 0, AMREX_SPACEDIM););
     }
 	else
 	{
@@ -1202,9 +1203,9 @@ void Godunov::ComputeScalarSlopes(const amrex::MFIter& mfi,
       // If tile is completely covered by EB geometry, set slopes
       // value to some very large number so we know if
       // we accidentaly use these covered slopes later in calculations
-      D_TERM(xslopes->setVal(1.2345e300, bx, 0, 3);,
-	     yslopes->setVal(1.2345e300, bx, 0, 3);,
-	     zslopes->setVal(1.2345e300, bx, 0, 3););
+      D_TERM(xslopes->setVal(1.2345e300, bx, 0, ncomp);,
+	     yslopes->setVal(1.2345e300, bx, 0, ncomp);,
+	     zslopes->setVal(1.2345e300, bx, 0, ncomp););
     }
     else
     {
