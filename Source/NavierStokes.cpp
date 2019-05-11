@@ -462,6 +462,7 @@ NavierStokes::predict_velocity (Real  dt,
 				     D_DECL(bndry[0], bndry[1], bndry[2]),
 				     domain);
     }
+ }
     //
     // need to fill ghost cells for slopes here. 
     // vel advection term ugradu uses these slopes (does not recompute in incflo
@@ -470,7 +471,7 @@ NavierStokes::predict_velocity (Real  dt,
     //  only allows for periodic for now
     //
     godunov->slopes_FillBoundary(geom.periodicity());
- } 
+  
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
