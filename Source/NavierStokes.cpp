@@ -1553,9 +1553,9 @@ NavierStokes::mac_sync ()
                                         do_mom_diff);
 	//fixme
 	amrex::Print() << "Doing reflux on level "<<level<<"...\n" << std::endl;
-	static int count=0;
-	count++;
-	amrex::WriteSingleLevelPlotfile("SsyncA_"+std::to_string(count),Ssync, {"0","1","2","3"},geom, 0.0, 0);
+	// static int count=0;
+	// count++;
+	// amrex::WriteSingleLevelPlotfile("SsyncA_"+std::to_string(count),Ssync, {"0","1","2","3"},geom, 0.0, 0);
 		//
         //
         // The following used to be done in mac_sync_compute.  Ssync is
@@ -1668,9 +1668,11 @@ NavierStokes::mac_sync ()
 	const bool add_old_time_divFlux = false;
 
 	const int nlev = (level ==0 ? 1 : 2);
-  	Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
-
-	auto Snc = std::unique_ptr<MultiFab>(new MultiFab());
+	// Sn does not get used for this sync solve....
+  	//Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
+	Vector<MultiFab*> Sn(0), Snp1(nlev,0);
+	
+	//auto Snc = std::unique_ptr<MultiFab>(new MultiFab());
 	auto Snp1c = std::unique_ptr<MultiFab>(new MultiFab());
 	//fixme - maybe only want to do this FP if there's diffusive sclars..
 	// only done for runs with 3 or more total levels.  NOT executed
@@ -1678,8 +1680,8 @@ NavierStokes::mac_sync ()
 	if (level > 0) {
 	  auto& crselev = getLevel(level-1);
 	  // Sn never used in this mac sync
-          Snc->define(crselev.boxArray(), crselev.DistributionMap(), 1, ng);
-          FillPatch(crselev,*Snc  ,ng,prev_time,State_Type,Density,1);
+          //Snc->define(crselev.boxArray(), crselev.DistributionMap(), 1, ng);
+          //FillPatch(crselev,*Snc  ,ng,prev_time,State_Type,Density,1);
 	  
           Snp1c->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng);
 	  // fixme don;t think we need to FP everything, just scalars, rihgt?
@@ -1692,8 +1694,10 @@ NavierStokes::mac_sync ()
 
 	// not used in this case, leave as zero...
   	//Sn[0]   = &(get_old_data(State_Type));
-	Sn[0]   = &(get_new_data(State_Type));
-	VisMF::Write(*Sn[0],"sn0");
+	//Sn[0]   = &(get_new_data(State_Type));
+	//VisMF::Write(*Sn[0],"sn0");
+	//amrex::WriteSingleLevelPlotfile("Snew",*Sn[0], {"0","1","2","3","4","5"},geom, 0.0, 0);
+	
 	// fixme?  Sn gets all state comps and Snp1 only gets 1 comp???
 	// use numstate here? --- see above, Sn never used for this case
         MultiFab dSsync(grids,dmap,NUM_STATE,1);
@@ -1756,10 +1760,11 @@ NavierStokes::mac_sync ()
 	      Snp1[0]->setVal(0.,state_ind,1,1);   // for diffuse_scalar_msd
 	      //Snp1[0]->setVal(0.,0,1,1);   // for diffuse_scalar_msd
 	      if (nlev>1 && Snp1[1] == 0) {
-		Print()<<"Filling coarse data for diff solve ...\n";
-		// Sn never used for this case
-		//Sn[1]   =  Snc.get() ;
-		Snp1[1] =  Snp1c.get() ;
+		Print()<<"Not using coarse data as in dev ....\n";
+		// Print()<<"Filling coarse data for diff solve ...\n";
+		// // Sn never used for this case
+		// //Sn[1]   =  Snc.get() ;
+		// Snp1[1] =  Snp1c.get() ;
 
 		// MultiFab rhc(grids,dmap,1,1);
 		// MultiFab::LinComb(rhc,0.5,*Snp1c,Density,0.5,*Snc,0,0,1,1);
@@ -1775,8 +1780,8 @@ NavierStokes::mac_sync ()
 		// or try copy... can't define a 1 comp MF, have problems
 		// with ProjOutflowBC
 		//MultiFab::Copy(*Snp1[1],*Snp1c,state_ind,0,1,1);
-		//VisMF::Write(*Snp1[1],"Snp1");
-		VisMF::Write(*Snp1c,"Snp1c");
+		// VisMF::Write(*Snp1[1],"Snp1");
+		// VisMF::Write(*Snp1c,"Snp1c");
 
 		//FIXME do we need to get a Rhonp1[1] here too???
 		
@@ -1858,7 +1863,8 @@ NavierStokes::mac_sync ()
 		
 		MultiFab::Copy(Ssync,*Snp1[0],state_ind,sigma,1,0);
 		//		MultiFab::Copy(Ssync,*Snp1[0],0,sigma,1,0);
-
+		// if (sigma ==2 )
+		//    Abort("sigma = 2");
 #endif
                 //
                 // Increment the viscous flux registers
@@ -1877,8 +1883,8 @@ NavierStokes::mac_sync ()
 	    }
         }
 	//fixme
-	Print()<<"Sssync size "<<Ssync.nComp()<<"\n";
-	amrex::WriteSingleLevelPlotfile("SsyncB_"+std::to_string(count),Ssync, {"0","1","2","3"},geom, 0.0, 0);
+	// Print()<<"Sssync size "<<Ssync.nComp()<<"\n";
+	// amrex::WriteSingleLevelPlotfile("SsyncB_"+std::to_string(count),Ssync, {"0","1","2","3"},geom, 0.0, 0);
 	//Abort("Ending after writing SsyncB");
 	//
 
