@@ -1165,7 +1165,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
         }
         // call FillBoundary to make sure that fine/fine grow cells are valid
 	u_mac[n].FillBoundary(geom.periodicity());
-        u_mac[n].EnforcePeriodicity(geom.periodicity());
     }
 }
 
