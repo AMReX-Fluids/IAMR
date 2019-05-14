@@ -443,34 +443,35 @@ NavierStokes::predict_velocity (Real  dt,
     // fixme ghost cell situation???
     MultiFab& Gp = *gradp;
 
-//    //VisMF::Write(Umf, "U");
-//    const Box& domain = geom.Domain();
-//    // Compute slopes and store for use in computing UgradU
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
-//{
-//    Vector<int> bndry[BL_SPACEDIM];
-//    for (MFIter mfi(Umf, true); mfi.isValid(); ++mfi)
-//    {
-//       Box bx=mfi.tilebox();
-//       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-//	      bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-//	      bndry[2] = fetchBCArray(State_Type,bx,2,1););
-//
-//      godunov->ComputeVelocitySlopes(mfi, Umf,
-//				     D_DECL(bndry[0], bndry[1], bndry[2]),
-//				     domain);
-//    }
-//    //
-//    // need to fill ghost cells for slopes here. 
-//    // vel advection term ugradu uses these slopes (does not recompute in incflo
-//    //  scheme) needs 4 ghost cells (comments say 5, but I only see use of 4 max)
-//    // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-//    //  only allows for periodic for now
-//    //
-//    godunov->slopes_FillBoundary(geom.periodicity());
-// } 
+    //VisMF::Write(Umf, "U");
+    const Box& domain = geom.Domain();
+    // Compute slopes and store for use in computing UgradU
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+    Vector<int> bndry[BL_SPACEDIM];
+    for (MFIter mfi(Umf, true); mfi.isValid(); ++mfi)
+    {
+       Box bx=mfi.tilebox();
+       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+	      bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	      bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+      godunov->ComputeVelocitySlopes(mfi, Umf,
+				     D_DECL(bndry[0], bndry[1], bndry[2]),
+				     domain);
+    }
+ }
+    //
+    // need to fill ghost cells for slopes here. 
+    // vel advection term ugradu uses these slopes (does not recompute in incflo
+    //  scheme) needs 4 ghost cells (comments say 5, but I only see use of 4 max)
+    // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
+    //  only allows for periodic for now
+    //
+    godunov->slopes_FillBoundary(geom.periodicity());
+  
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
@@ -546,23 +547,23 @@ NavierStokes::predict_velocity (Real  dt,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-//#ifdef AMREX_USE_EB
-//	//
-//	//  trace state to cell edges
-//	//
-//	// For now, import simple adv scheme from incflo
-//	//
-//	// FIXME 
-//	//  GODUNOV uses mathematical bcs like reflect_odd
-//	//  incflo convection uses phys bcs like slip wall
-//	// for now, just doing periodic, so just make sure I don't trip the bcs
-//	//
-//	godunov->ExtrapVelToFaces(U_mfi,
-//				  //dx, dt,  // these are not used yet
-//				  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-//				  D_DECL(bndry[0],        bndry[1],        bndry[2]),
-//				  Ufab, tforces, domain);
-//#else
+#ifdef AMREX_USE_EB
+	//
+	//  trace state to cell edges
+	//
+	// For now, import simple adv scheme from incflo
+	//
+	// FIXME 
+	//  GODUNOV uses mathematical bcs like reflect_odd
+	//  incflo convection uses phys bcs like slip wall
+	// for now, just doing periodic, so just make sure I don't trip the bcs
+	//
+	godunov->ExtrapVelToFaces(U_mfi,
+				  //dx, dt,  // these are not used yet
+				  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+				  D_DECL(bndry[0],        bndry[1],        bndry[2]),
+				  Ufab, tforces, domain);
+#else
 	// non-EB
 	//  1. compute slopes
 	//  2. trace state to cell edges
@@ -570,7 +571,7 @@ NavierStokes::predict_velocity (Real  dt,
                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                   Ufab, tforces);
-//#endif
+#endif
      }
 }
 
@@ -647,58 +648,58 @@ NavierStokes::scalar_advection (Real dt,
 #endif
 
 
-//#ifdef AMREX_USE_EB
-//      //
-//      // compute slopes for construction of edge states
-//      //
-//      std::unique_ptr<amrex::MultiFab> xslps;
-//      std::unique_ptr<amrex::MultiFab> yslps;
-//      std::unique_ptr<amrex::MultiFab> zslps;
-//      //Slopes in x-direction
-//      xslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
-//			       MFInfo(), Factory()));
-//      xslps->setVal(0.);
-//      // Slopes in y-direction
-//      yslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
-//			       MFInfo(), Factory()));
-//      yslps->setVal(0.);
-//      // Slopes in z-direction
-//      zslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
-//			       MFInfo(), Factory()));
-//      zslps->setVal(0.);
+#ifdef AMREX_USE_EB
+      //
+      // compute slopes for construction of edge states
+      //
+      std::unique_ptr<amrex::MultiFab> xslps;
+      std::unique_ptr<amrex::MultiFab> yslps;
+      std::unique_ptr<amrex::MultiFab> zslps;
+      //Slopes in x-direction
+      xslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
+			       MFInfo(), Factory()));
+      xslps->setVal(0.);
+      // Slopes in y-direction
+      yslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
+			       MFInfo(), Factory()));
+      yslps->setVal(0.);
+      // Slopes in z-direction
+      zslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
+			       MFInfo(), Factory()));
+      zslps->setVal(0.);
+
+    const Box& domain = geom.Domain();
+    // Compute slopes for use in computing aofs
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+{
+    Vector<int> bndry[BL_SPACEDIM];
+    for (MFIter mfi(Smf, true); mfi.isValid(); ++mfi)
+    {
+       Box bx=mfi.tilebox();
+       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	     bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+       godunov->ComputeScalarSlopes(mfi, Smf, num_scalars,
+				    D_DECL(xslps, yslps, zslps),
+				    D_DECL(bndry[0], bndry[1], bndry[2]),
+				    domain);
+    }
+ }
 //
-//    const Box& domain = geom.Domain();
-//    // Compute slopes for use in computing aofs
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
-//{
-//    Vector<int> bndry[BL_SPACEDIM];
-//    for (MFIter mfi(Smf, true); mfi.isValid(); ++mfi)
-//    {
-//       Box bx=mfi.tilebox();
-//       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-//	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-//	     bndry[2] = fetchBCArray(State_Type,bx,2,1););
+// need to fill ghost cells for slopes here. 
+// non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
+//  only allows for periodic for now
 //
-//       godunov->ComputeScalarSlopes(mfi, Smf, num_scalars,
-//				    D_DECL(xslps, yslps, zslps),
-//				    D_DECL(bndry[0], bndry[1], bndry[2]),
-//				    domain);
-//    }
-// }
-////
-//// need to fill ghost cells for slopes here. 
-//// non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-////  only allows for periodic for now
-////
-// D_TERM(xslps->FillBoundary(geom.periodicity());,
-//	yslps->FillBoundary(geom.periodicity());,
-//	zslps->FillBoundary(geom.periodicity()););
-//  
-//#else
-//
-//#endif
+ D_TERM(xslps->FillBoundary(geom.periodicity());,
+	yslps->FillBoundary(geom.periodicity());,
+	zslps->FillBoundary(geom.periodicity()););
+  
+#else
+
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -743,28 +744,28 @@ NavierStokes::scalar_advection (Real dt,
                                     (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
         }
 
-//#ifdef AMREX_USE_EB
-//	//
-//	// TODO eventually want this to take multiple scalars
-//	//
-//	Vector<int> bndry[BL_SPACEDIM];
-//	D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-//	       bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-//	       bndry[2] = fetchBCArray(State_Type,bx,2,1););
-//	
-//	int acomp = fscalar;
-//	for ( int i=0; i<num_scalars; i++){
-//	  godunov->AdvectScalar(S_mfi, Smf, i,
-//				*aofs, acomp,
-//				D_DECL(xslps, yslps, zslps),
-//				D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-//				D_DECL(bndry[0], bndry[1], bndry[2]),
-//				geom.Domain(),
-//				geom.CellSize(),Godunov::hypgrow());	
-//	  acomp++;
-//	}
-//
-//#else
+#ifdef AMREX_USE_EB
+	//
+	// TODO eventually want this to take multiple scalars
+	//
+	Vector<int> bndry[BL_SPACEDIM];
+	D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+	       bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+	       bndry[2] = fetchBCArray(State_Type,bx,2,1););
+	
+	int acomp = fscalar;
+	for ( int i=0; i<num_scalars; i++){
+	  godunov->AdvectScalar(S_mfi, Smf, i,
+				*aofs, acomp,
+				D_DECL(xslps, yslps, zslps),
+				D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+				D_DECL(bndry[0], bndry[1], bndry[2]),
+				geom.Domain(),
+				geom.CellSize(),Godunov::hypgrow());	
+	  acomp++;
+	}
+
+#else
 	
 	state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
 		
@@ -775,7 +776,7 @@ NavierStokes::scalar_advection (Real dt,
                                D_DECL(edgstate[0],edgstate[1],edgstate[2]),
                                Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
                                (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
-//#endif
+#endif
                                
 	//fixme: only need this copy if do_reflux
         for (int d=0; d<BL_SPACEDIM; ++d)
