@@ -1177,12 +1177,19 @@ NavierStokesBase::create_umac_grown (int nGrow)
     const Real* xlo = geom.ProbLo(); //these aren't actually used by the FORT method
     const Real* dx  = geom.CellSize();
 
+    Box domain_box = geom.Domain();
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+        if (geom.isPeriodic(idim)) {
+            domain_box.grow(idim,nGrow);
+        }
+    }
+
     for (int n = 0; n < BL_SPACEDIM; ++n)
     {
-        Box dm = geom.Domain();
+        Box dm = domain_box;
         dm.surroundingNodes(n);
-        const int*  dlo  = dm.loVect();
-        const int*  dhi  = dm.hiVect();
+        const int*  lo  = dm.loVect();
+        const int*  hi  = dm.hiVect();
 
         //
         // HOEXTRAPTOCC isn't threaded.  OMP over calls to it.
@@ -1194,12 +1201,10 @@ NavierStokesBase::create_umac_grown (int nGrow)
         for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
         {
             FArrayBox& fab = u_mac[n][mfi];
-            amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),dlo,dhi,dx,xlo);
+            amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),lo,hi,dx,xlo);
         }
-        
-    	  // call FillBoundary to make sure that fine/fine grow cells are valid
-	      u_mac[n].FillBoundary(geom.periodicity());
-
+        // call FillBoundary to make sure that fine/fine grow cells are valid
+	u_mac[n].FillBoundary(geom.periodicity());
     }
 }
 
