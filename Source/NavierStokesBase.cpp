@@ -10,6 +10,9 @@
 #include <PROB_NS_F.H>
 #endif
 
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+
 using namespace amrex;
 
 Godunov*    NavierStokesBase::godunov       = 0;
@@ -637,12 +640,12 @@ NavierStokesBase::advance_setup (Real time,
 
     const int finest_level = parent->finestLevel();
 
-#ifdef AMREX_USE_EB
-    // just cribbing from incflo
-    umac_n_grow = 5;
-#else
+//#ifdef AMREX_USE_EB
+//    // just cribbing from incflo
+//    umac_n_grow = 5;
+//#else
     umac_n_grow = 1;
-#endif
+//#endif
     
 #ifdef AMREX_PARTICLES
     if (ncycle >= 1)
@@ -1178,12 +1181,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
     {
         Box dm = geom.Domain();
         dm.surroundingNodes(n);
-        const int*  lo  = dm.loVect();
-        const int*  hi  = dm.hiVect();
-
-	// call FillBoundary to make sure that fine/fine grow cells are valid
-	// before FORT_HOEXTRAPTOCC is called 
-	u_mac[n].FillBoundary(geom.periodicity());
+        const int*  dlo  = dm.loVect();
+        const int*  dhi  = dm.hiVect();
 
         //
         // HOEXTRAPTOCC isn't threaded.  OMP over calls to it.
@@ -1195,8 +1194,12 @@ NavierStokesBase::create_umac_grown (int nGrow)
         for (MFIter mfi(u_mac[n]); mfi.isValid(); ++mfi)
         {
             FArrayBox& fab = u_mac[n][mfi];
-            amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),lo,hi,dx,xlo);
+            amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),dlo,dhi,dx,xlo);
         }
+        
+    	  // call FillBoundary to make sure that fine/fine grow cells are valid
+	      u_mac[n].FillBoundary(geom.periodicity());
+
     }
 }
 
@@ -1282,15 +1285,26 @@ NavierStokesBase::estTimeStep ()
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   U_new         = get_new_data(State_Type);
 
-    Real u_max[BL_SPACEDIM] = {0};
 
+//VisMF::Write(U_new,"U_new_before_estTime");
+
+    Real u_max[BL_SPACEDIM] = {0};
+std::cout << "WE CALL HERE ESTTIMESTEP " << cur_pres_time  << std::endl;
 #ifdef AMREX_USE_EB
     // Nodal Projection sets EB covered cells to zero, so no need to do it here
     MultiFab& Gp = getGradP();
+//MultiFab& Gp = ns->getGradP();
+Gp.FillBoundary(geom.periodicity());
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 #endif
+    
+    static int count=0;
+       count++;
+            amrex::WriteSingleLevelPlotfile("Gp_in_estTimeStep"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+
+    
     
     //FIXME? find a better solution for umax? gcc 5.4, OMP reduction does not take arrays
     Real umax_x=-1.e200,umax_y=-1.e200,umax_z=-1.e200;
@@ -1976,6 +1990,9 @@ NavierStokesBase::level_projector (Real dt,
     MultiFab& P_old = get_old_data(Press_Type);
     MultiFab& P_new = get_new_data(Press_Type);
 
+    VisMF::Write(U_old,"uold_in_levelproj");
+    VisMF::Write(U_new,"unew_in_levelproj");
+
     SyncRegister* crse_ptr = 0;
 
     if (level < parent->finestLevel() && do_sync_proj)
@@ -2274,7 +2291,7 @@ NavierStokesBase::mac_project (Real      time,
     const Real strt_time = ParallelDescriptor::second();
 
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,increment_vel_register);
-    
+
     create_umac_grown(ngrow);
 
     if (verbose)
@@ -2289,6 +2306,10 @@ NavierStokesBase::mac_project (Real      time,
 		       << ", time: " << run_time << '\n';
     }
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::mac_project()");
+    
+VisMF::Write(u_mac[0],"umac_macproj_out_x");
+VisMF::Write(u_mac[1],"umac_macproj_out_y");
+    
 }
 
 void
@@ -2816,16 +2837,16 @@ NavierStokesBase::restart (Amr&          papa,
     mac_projector->install_level(level,this);
 
     const BoxArray& P_grids = state[Press_Type].boxArray();
-#ifdef AMREX_USE_EB
-    //fixme? not 100% sure this is the right place
-    // note --- this fn is really similar to constructor
-    //  need to make sure gradp is getting properly filled for this restart case?
-    //  incflo style advection does not use Gp in tracing states to edges,
-    //  don't think Gp is needed until the vel update after the projection
-    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    gradp->setVal(0.);
-
-#endif
+//#ifdef AMREX_USE_EB
+//    //fixme? not 100% sure this is the right place
+//    // note --- this fn is really similar to constructor
+//    //  need to make sure gradp is getting properly filled for this restart case?
+//    //  incflo style advection does not use Gp in tracing states to edges,
+//    //  don't think Gp is needed until the vel update after the projection
+//    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
+//    gradp->setVal(0.);
+//
+//#endif
 
     //
     // Alloc space for density and temporary pressure variables.
@@ -3506,12 +3527,18 @@ NavierStokesBase::velocity_advection (Real dt)
 #ifdef AMREX_USE_EB
     //fixme?  I think one gp is fine, just update as we go, but
     // maybe revisit this later
-    const MultiFab& Gp = getGradP();
+    //const MultiFab& Gp = getGradP();
+MultiFab& Gp = *gradp;
+     Gp.FillBoundary(geom.periodicity());
 
     //fixme
     // not sure the right place to do this, but need to ensure all u_mac's
     // ghost cells are filled.
     // only periodic for now, but later may need create_umac_grown()
+    
+    // E.M note: in PeleLM, filling u_mac ghost cells here lead to a wrong solution at boundaries
+    // commenting the 2 lines below provide 0 errors in PeleLM
+    
     for ( int i=0; i<BL_SPACEDIM; i++)
       u_mac[i].FillBoundary(geom.periodicity());
 
@@ -3524,7 +3551,14 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
 
     //fixme
-    VisMF::Write(Gp,"gradpVA");
+    //VisMF::Write(Gp,"gradpVA");
+    
+    static int count=0;
+       count++;
+            amrex::WriteSingleLevelPlotfile("Gp_in_VA"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+
+VisMF::Write(*aofs,"aofs_in_VA");
+    
     
     MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
     if (be_cn_theta != 1.0)
@@ -3534,7 +3568,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
     //FIXME? right now, only working with constraint divu = 0, but later
     // divu_fp may get FillPatch'ed in create_mac_rhs(), so may need EBFactory
-    MultiFab divu_fp(grids,dmap,1,1);
+    MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
     create_mac_rhs(divu_fp,1,prev_time,dt);
 
     MultiFab fluxes[BL_SPACEDIM];
@@ -3555,7 +3589,7 @@ NavierStokesBase::velocity_advection (Real dt)
       FillPatchIterator
 	    U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
 	    Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
-      
+
       MultiFab& Umf=U_fpi.get_mf();
       MultiFab& Rmf=Rho_fpi.get_mf();
 
@@ -3578,7 +3612,7 @@ NavierStokesBase::velocity_advection (Real dt)
       FArrayBox tforces;
       FArrayBox S;
       FArrayBox cfluxes[BL_SPACEDIM];
-      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      for (MFIter U_mfi(Umf,false); U_mfi.isValid(); ++U_mfi)
       {
 
 	    const Box& bx=U_mfi.tilebox();
@@ -3610,7 +3644,7 @@ NavierStokesBase::velocity_advection (Real dt)
           const Box& ebx = amrex::surroundingNodes(bx,d);
           cfluxes[d].resize(ebx,BL_SPACEDIM+1);
       }
-        
+
         //
         // Loop over the velocity components.
         //
@@ -3626,35 +3660,35 @@ NavierStokesBase::velocity_advection (Real dt)
 
 	// FIXME? not sure which is better here, looping over comps like
 	//   orig IAMR or doing all comps together like incflo
-#ifdef AMREX_USE_EB
-	// Figure out fluxes for the multi-level sync later...
-
-	// this uses slopes saved from the computation of umac (i.e.
-	//   predict_velocity)
-	// aofs = ugradu
-	// incflo advection scheme doesn't include terms like gradp here
-	godunov->AdvectVel(U_mfi, Umf, *aofs,
-			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-			   D_DECL(bndry[0], bndry[1], bndry[2]),
-			   geom.Domain(),
-			   geom.CellSize(),Godunov::hypgrow());	
-
-
- // FIXME
- // Print()<<"Wrting aofs ..\n";
- // VisMF::Write(*aofs,"aofs");
-
-	if (do_reflux){
-	     //FIXME make AdvectVel pass fluxes first
-	     for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
-	     {
-	       for (int d = 0; d < BL_SPACEDIM; d++){
-		 const Box& ebx = U_mfi.nodaltilebox(d);
-		 fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
-	       }
-	     }
-	   }
-#else // not eb
+//#ifdef AMREX_USE_EB
+//	// Figure out fluxes for the multi-level sync later...
+//
+//	// this uses slopes saved from the computation of umac (i.e.
+//	//   predict_velocity)
+//	// aofs = ugradu
+//	// incflo advection scheme doesn't include terms like gradp here
+//	godunov->AdvectVel(U_mfi, Umf, *aofs,
+//			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+//			   D_DECL(bndry[0], bndry[1], bndry[2]),
+//			   geom.Domain(),
+//			   geom.CellSize(),Godunov::hypgrow());	
+//
+//
+// // FIXME
+// // Print()<<"Wrting aofs ..\n";
+// // VisMF::Write(*aofs,"aofs");
+//
+//	if (do_reflux){
+//	     //FIXME make AdvectVel pass fluxes first
+//	     for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+//	     {
+//	       for (int d = 0; d < BL_SPACEDIM; d++){
+//		 const Box& ebx = U_mfi.nodaltilebox(d);
+//		 fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+//	       }
+//	     }
+//	   }
+//#else // not eb
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
             int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
@@ -3664,7 +3698,8 @@ NavierStokesBase::velocity_advection (Real dt)
                 S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
                 tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
             }
-
+std::cout << "IN velocity_advection before AdvectState, comp = " << comp << std::endl;
+//amrex::Print() << u_mac_fab1;
 	    // WARNING: FPU argument is not used because FPU is by default in AdvectState
 	    godunov->AdvectState(bx, dx, dt, 
                                  area[0][U_mfi], u_mac_fab0, cfluxes[0],
@@ -3683,12 +3718,13 @@ NavierStokesBase::velocity_advection (Real dt)
               }
             }
         }
-#endif //end if USE_EB
+//#endif //end if USE_EB
       } // end of MFIter
  } // end OMP region
 
  } //end scope of FillPatchIter
 
+ VisMF::Write(*aofs,"aofs_after_AdvectState");
  
     if (do_reflux)
     {
@@ -3737,13 +3773,14 @@ NavierStokesBase::velocity_update (Real dt)
     }
 
     velocity_advection_update(dt);
-
+    
     if (!initial_iter)
         velocity_diffusion_update(dt);
     else
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
+
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
@@ -3766,6 +3803,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
 #ifdef AMREX_USE_EB
     MultiFab& Gp=*gradp;
+Gp.FillBoundary(geom.periodicity());
     if (do_mom_diff == 1)
       amrex::Abort("NavierStokesBase::velocity_advection_update(): do_mom_diff==1 not currently working with EB.");
     // Changing Gp to a point causes memory problems for non-EB (and maybe EB too)...
@@ -3782,6 +3820,14 @@ NavierStokesBase::velocity_advection_update (Real dt)
       MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
       getGradP(Gp, prev_pres_time);
 #endif
+    
+    //VisMF::Write(U_new,"Unew_in_VAU");
+    //VisMF::Write(U_old,"Uold_in_VAU");
+    
+    static int count=0;
+       count++;
+            amrex::WriteSingleLevelPlotfile("Gp_in_VAU"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+
     
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
@@ -3876,7 +3922,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
                 S.mult(rho_ptime[Rhohalf_mfi],bx,0,d,1);
             }
         }
-
+// Here aofs changes
+//VisMF::Write(Aofs,"aofs_in_VAU");
         godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
                                 Gp[Rhohalf_mfi],halftime[i],bx,dt);
         if (do_mom_diff == 1)
@@ -3916,7 +3963,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 
         MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
         getGradP(Gp, prev_pres_time);
-
+std::cout << "AHAH AHAH AHAH" << std::endl;
 	MultiFab visc_terms(grids,dmap,nComp,1);
 
 	if (be_cn_theta != 1.0)

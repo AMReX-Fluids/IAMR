@@ -1,0 +1,150 @@
+
+#*******************************************************************************
+# INPUTS.2D.HOTSPOT for regression testing
+#*******************************************************************************
+
+#proj.proj_tol=1.e-8
+#proj.proj_abs_tol=1.e-12
+
+ns.init_iter=1
+ns.do_init_proj = 1
+
+mac.use_mlmg_solver = 1
+
+# turn tiling on for testing
+fabarray.mfiter_tile_size = 8 8 8
+
+# test 2nd order slopes
+#godunov.slope_order = 2
+
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 2
+
+#*******************************************************************************
+
+# Turn heat diffusion on
+ns.do_temp=1
+ns.temp_cond_coef=1.e-8
+
+# What to use for the refinement criterion
+ns.do_tracer_ref = 0
+ns.do_density_ref = 0
+ns.do_vorticity_ref = 0
+ns.do_temp_ref = 1
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 32 32
+#amr.n_cell 		= 16 32 
+#amr.n_cell 		= 64 128
+amr.max_grid_size	= 32
+
+#*******************************************************************************
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level		= 0 # maximum number of levels of refinement
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 2 
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2 2 2
+
+#*******************************************************************************
+
+# Sets the "NavierStokes" code to be verbose
+ns.v                    = 1
+
+#*******************************************************************************
+
+# Sets the "amr" code to be verbose
+amr.v                   = 1
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.check_int		= 1
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 1
+
+#*******************************************************************************
+
+# CFL number to be used in calculating the time step : dt = dx / max(velocity)
+ns.cfl                  = 0.5  # CFL number used to set dt
+
+#*******************************************************************************
+
+# Factor by which the first time is shrunk relative to CFL constraint
+ns.init_shrink          = 0.3  # factor which multiplies the very first time step
+
+#*******************************************************************************
+
+# Viscosity coefficient 
+#ns.variable_vel_visc = 1
+ns.vel_visc_coef        = 0. #0.001
+
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+#ns.variable_scal_diff = 1
+ns.scal_diff_coefs      = 0 #0.001
+
+#*******************************************************************************
+
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity              = -9.8 #0
+
+#*******************************************************************************
+
+# Name of the file which specifies problem-specific parameters (defaults to "probin")
+amr.probin_file 	= probin.2d.hotspot
+
+#*******************************************************************************
+
+# Embedded Boundary options
+eb2.geom_type    =  all_regular
+#eb2.geom_type     = sphere
+#eb2.sphere_radius = 0.25
+#eb2.sphere_center =  0.0  0.0
+#eb2.sphere_has_fluid_inside = 0
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
+geometry.coord_sys   =  0
+
+# Physical dimensions of the low & high ends of the domain.
+geometry.prob_lo     =  -1. -1. 
+geometry.prob_hi     =  1. 1.
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  1 1
+
+# Boundary conditions on the low, high end of the domain.
+ns.lo_bc             = 0 0 #3 4  
+ns.hi_bc             = 0 0 #4 4  
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Add vorticity to the variables in the plot files.
+amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
+
+#*******************************************************************************
+
+amr.blocking_factor = 8
+amr.grid_eff = 0.95

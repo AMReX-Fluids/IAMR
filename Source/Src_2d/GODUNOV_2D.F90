@@ -329,7 +329,7 @@ contains
          sm,wklo,wkhi,&
          sp,wklo,wkhi,&
          bc, dt, dx, state_ind, nc, use_forces_in_trans, iconserv, ppm_type)
-
+!write(*,*) "TOTO",xstate !prpoblem in xstate 2nd component
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
@@ -1232,6 +1232,9 @@ contains
                      lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
                      sty = merge(stylo(j),styhi(j),(stylo(j)+styhi(j)) .ge. 0.0d0)
                      ystate(i,j,L)=merge(0.d0,sty,lty)
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG IN ESTATE_PREMAC',i,j,n,L,ystate(i,j,L)
+!endif
                   end do
                else
                   do j=jmin,jmax+1
@@ -1368,9 +1371,16 @@ contains
             do i = imin,  imax+1
                xlo(i,j) = s(i-1,j,L) + (half - dthx*uedge(i,j))*sx(i-1,j)
                xhi(i,j) = s(i,  j,L) - (half + dthx*uedge(i,j))*sx(i,  j)
+
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG COMPUTE XLO ',i,j,xlo(i,j),s(i-1,j,L),uedge(i,j),sx(i-1,j)
+!endif
+!OK HERE
+
             end do
          end do
       end if
+
 
       if(use_minion.eq.1)then
          do j = jmin-1,jmax+1
@@ -1416,6 +1426,11 @@ contains
             do i = imin-1,imax+1
                ylo(i,j) = s(i,j-1,L) + (half - dthy*vedge(i,j))*sy(i,j-1)
                yhi(i,j) = s(i,j  ,L) - (half + dthy*vedge(i,j))*sy(i,j)
+
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG COMPUTE YLO ',i,j,ylo(i,j),s(i,j-1,L),vedge(i,j),sy(i,j-1)
+!endif
+!VEDGE NOT CORRECT IN FIRST GHOST CELL
             end do
          end do
       end if
@@ -1451,6 +1466,9 @@ contains
             ylo(i,j) = fv*sty + (one - fv)*half*(yhi(i,j)+ylo(i,j))
          end do
       end do
+
+!PROBLEM VEDGE AND YLO NOT CORRECT IN GHOST CELL
+
 !c
 !c     compute the xedge states
 !c
@@ -1463,7 +1481,9 @@ contains
                   st = -(vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy&
                       + s(i,j,L)*(vedge(i,j+1)-vedge(i,j))/hy&
                       - s(i,j,L)*divu(i,j)
-
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG ST iconserv ',st,vedge(i,j+1),vedge(i,j),s(i,j,L),divu(i,j),ylo(i,j+1),ylo(i,j)
+!endif
                else
 
                   if (vedge(i,j)*vedge(i,j+1).le.0.d0) then
@@ -1474,25 +1494,38 @@ contains
                         inc = 0
                      endif
                      tr = vbar*(s(i,j+inc,L)-s(i,j+inc-1,L))/hy
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG ST 1 noconserv ',tr,vedge(i,j+1),vedge(i,j),vbar,s(i,j+inc,L),s(i,j+inc-1,L)
+!endif  
                   else
                      tr = half*(vedge(i,j+1) + vedge(i,j)) *&
                          (  ylo(i,j+1) - ylo(i,j)  ) / hy
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG ST 2 noconserv ',i,j,tr,vedge(i,j+1),vedge(i,j),ylo(i,j+1),ylo(i,j)
+!endif
                   endif
 
                   st =  -tr
 
                endif
-
+!PROBLEM IN ST IN FIRST CELL
                if (ppm_type .gt. 0) then
                   stxlo(i+1)= Ipx(i,j)&
                       + dth*(st + tf(i,j,L))
                   stxhi(i  )= Imx(i,j)&
                       + dth*(st + tf(i,j,L))
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) "DEBUG STXLO ",i,j,L,stxlo(i+1),Ipx(i,j),st,tf(i,j,L)
+!endif
                else
                   stxlo(i+1)= s(i,j,L) + (half-dthx*uedge(i+1,j))*sx(i,j)&
                       + dth*(st + tf(i,j,L))
                   stxhi(i  )= s(i,j,L) - (half+dthx*uedge(i  ,j))*sx(i,j)&
                       + dth*(st + tf(i,j,L))
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) "DEBUG STXLO ",i,j,L,stxlo(i+1),uedge(i+1,j),sx(i,j),st,tf(i,j,L)
+!endif
+
                end if
 
             end do
@@ -1545,6 +1578,9 @@ contains
             end if
 
             do i = imin, imax+1
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) "DEBUG IN ESTATE_FPU ",i,j,L,stxlo(i),stxhi(i),uedge(i,j)
+!endif
                xstate(i,j,L) = merge(stxlo(i),stxhi(i),uedge(i,j) .ge. 0.0d0)
                xstate(i,j,L) = merge(half*(stxlo(i)+stxhi(i)),xstate(i,j,L)&
                    ,abs(uedge(i,j)).lt.eps)
@@ -3245,6 +3281,7 @@ contains
 !c
 !c     if nonconservative initialize the advective tendency as -U*grad(S)
 !c
+
       if ( iconserv .ne. 1 ) then
          do j = jmin,jmax
             do i = imin,imax
@@ -3257,6 +3294,11 @@ contains
                aofs(i,j) =&
                    - divux*half*(xflux(i+1,j) + xflux(i,j))&
                    - divuy*half*(yflux(i,j+1) + yflux(i,j))
+
+if ((i < 4) .and.((j > 14).and.(j < 18))) then
+write(*,*)  'in adv_forcing ', i,j,divux,divuy,aofs(i,j),xflux(i,j),yflux(i,j)
+endif
+
             end do
          end do
       end if
@@ -3290,6 +3332,9 @@ contains
                aofs(i,j) = (&
                    xflux(i+1,j) - xflux(i,j) +&
                    yflux(i,j+1) - yflux(i,j))/vol(i,j)
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*)  'in adv_forcing ', i,j,xflux(i,j),yflux(i,j),aofs(i,j)
+!endif
             end do
          end do
       end if
@@ -4476,10 +4521,20 @@ contains
       do n = 1, SDIM
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
+
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG IN SUM_TF_GP ',i,j,n,gp(i,j,n),tforces(i,j,n),visc(i,j,n),rho(i,j)
+!endif
+
                tforces(i,j,n) = (&
                    tforces(i,j,n)&
                    +  visc(i,j,n)&
                    -    gp(i,j,n))/rho(i,j)
+
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG IN SUM_TF_GP ',i,j,n,gp(i,j,n),tforces(i,j,n),visc(i,j,n),rho(i,j)
+!endif
+
             end do
          end do
       end do
@@ -4682,6 +4737,12 @@ contains
       do n = 1, SDIM
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
+            
+!  if ((i < 2) .and.((j > 14).and.(j < 18))) then
+!write(*,*) 'DEBUG IN update_aofs_tf_gp ',i,j,n,gp(i,j,n),rho(i,j),tforces(i,j,n),aofs(i,j,n),u(i,j,n)
+!endif
+
+            
                un(i,j,n) = u(i,j,n) &
                    - dt*   aofs(i,j,n)&
                    + dt*tforces(i,j,n)/rho(i,j)&

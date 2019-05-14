@@ -584,7 +584,7 @@ private:
       if (godunov == 0){
  	auto& ebf =
 	  dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
-	godunov = new Godunov(ebf, grids, dmap);
+          godunov = new Godunov(ebf, grids, dmap);
       }
 #else
       if (godunov == 0) godunov = new Godunov();

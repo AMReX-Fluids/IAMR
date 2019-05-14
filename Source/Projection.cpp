@@ -258,7 +258,7 @@ Projection::level_project (int             level,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real strt_time = ParallelDescriptor::second();
-
+VisMF::Write(U_new,"Unew");
     //
     // old time velocity has bndry values already
     // must gen valid bndry data for new time velocity.
@@ -338,15 +338,27 @@ Projection::level_project (int             level,
     if (have_divu)
       divusource->mult(dt_inv,0,1,divusource->nGrow());
 
+      
 #ifdef AMREX_USE_EB
     //fixme?  I think one gp is fine, just update as we go, but
     // maybe revisit this later
-    const MultiFab& Gp = ns->getGradP();
+    MultiFab& Gp = ns->getGradP();
+    Gp.FillBoundary(geom.periodicity());
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     ns->getGradP(Gp, prev_pres_time);
 #endif
-    
+
+
+//amrex::Print() << "Gp \n" << Gp[0];
+
+
+static int count=0;
+       count++;
+            amrex::WriteSingleLevelPlotfile("Gp_in_Proj"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+            amrex::WriteSingleLevelPlotfile("Pressure_in_Proj"+std::to_string(count), P_old, {"press"}, parent->Geom(0), 0.0, 0);
+
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -354,9 +366,11 @@ Projection::level_project (int             level,
     {
 	const Box& bx = mfi.growntilebox(1);
 	const FArrayBox& rhofab = rho_half[mfi];
+  
 #ifdef AMREX_USE_EB
 	FArrayBox Gpfab(bx,BL_SPACEDIM);
 	Gpfab.copy((Gp)[mfi],0,0,BL_SPACEDIM);
+//Gpfab.FillBoundary(geom.periodicity());
 #else
 	FArrayBox& Gpfab = Gp[mfi];
 #endif
@@ -392,6 +406,8 @@ Projection::level_project (int             level,
         set_outflow_bcs(LEVEL_PROJ,phi,Vel_ML,Divu_ML,Rho_ML,level,level,have_divu);
     }
 
+    //VisMF::Write(U_new,"Unew");
+    
     //
     // Scale the projection variables.
     //
@@ -2347,7 +2363,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                                         bool doing_initial_vortproj)
 {
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
-
+std::cout << "WE ARE IN doMLMGNodalProjection" << std::endl;
     int f_lev = c_lev + nlevel - 1;
 
     Vector<MultiFab> vel_test(nlevel);
@@ -2436,7 +2452,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
     info.setMetricTerm(false);
-
+    
 #ifdef AMREX_USE_EB
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info, ebfactory);
 #else
@@ -2480,21 +2496,26 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
     rhnd_rebase.resize(nlevel,nullptr);
     Vector<MultiFab*> rhcc_rebase{rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel};
     //fixme
-    // VisMF::Write(*vel_rebase[0],"vel_rb");
-    // VisMF::Write(*vel[0],"vel");
-    // if (rhcc_rebase[0])
-    //   VisMF::Write(*rhcc_rebase[0],"rhcc");
-    // else
-    //   Print()<<"No rhcc\n";
+    std::cout << "PLOTTING VEL MF" << std::endl;
+     VisMF::Write(*vel_rebase[0],"vel_rebase_in");
+     VisMF::Write(*vel[0],"vel");
+     if (rhcc_rebase[0])
+       VisMF::Write(*rhcc_rebase[0],"rhcc");
+     else
+       Print()<<"No rhcc\n";
     
     // rhs =
     // calls FillBoundary on vel
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
-
+std::cout << "WE PLOT PHI_IN AND RHS" << std::endl;
     //fixme
-     // VisMF::Write(rhs[0],"rhs2d");
-     // amrex::WriteSingleLevelPlotfile("phi_in", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
-    //
+    static int count=0;
+       count++;
+      VisMF::Write(rhs[0],"rhs2d");
+      amrex::WriteSingleLevelPlotfile("phi_in"+std::to_string(count), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+      amrex::WriteSingleLevelPlotfile("RHS"+std::to_string(count), rhs[0], {"rhs"}, mg_geom[0], 0.0, 0);
+    
+    
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
@@ -2503,6 +2524,7 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs),
 			       rel_tol, abs_tol);
+    
 #ifdef AMREX_USE_EB
     // Update gradP here rather than passing fluxes (like mfix)
     // proj2 determines how gradP is updated:
@@ -2516,7 +2538,8 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
         fluxes[lev].reset(new MultiFab(mg_grids[lev],mg_dmap[lev],
                                        BL_SPACEDIM, 1, MFInfo(),
                                        *ebfactory[lev+c_lev]));
-        fluxes[lev]->setVal(1.e200);
+    //    fluxes[lev]->setVal(1.e200);
+fluxes[lev]->setVal(0.);
     }
     // computes fluxes = sig * grad phi
     mlmg.getFluxes( amrex::GetVecOfPtrs(fluxes));
@@ -2533,11 +2556,13 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
     ns.resize(nlevel);
     Vector < MultiFab* > Gp;
     Gp.resize(nlevel);
+
     for (int lev = 0; lev < nlevel; lev++){    
       ns[lev] = dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
       //fixme is this assert needed?
       BL_ASSERT(!(ns[lev]==0));
       Gp[lev] = &(ns[lev]->getGradP());
+
       if ( proj2 ) {
 	MultiFab::Copy(*Gp[lev],*fluxes[lev], 0, 0, BL_SPACEDIM,
 		       fluxes[lev]->nGrow());
@@ -2548,15 +2573,22 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 			   fluxes[lev]->nGrow());
       }
 
-      // static int count=0;
-      // count++;
-      //      amrex::WriteSingleLevelPlotfile("Gp"+std::to_string(count), *Gp[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
-
+       static int count=0;
+       count++;
+            amrex::WriteSingleLevelPlotfile("Gp"+std::to_string(count), *Gp[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
+            amrex::WriteSingleLevelPlotfile("Fluxes"+std::to_string(count), *fluxes[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
+//            amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count), *sig[lev+c_lev], {"sigma"}, mg_geom[0], 0.0, 0);
     }
     
 #endif
     //fixme
     //amrex::WriteSingleLevelPlotfile("phi", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+
+       static int count3=0;
+       count3++;
+            amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count3), *sig[0], {"sigma"}, mg_geom[0], 0.0, 0);
+            amrex::WriteSingleLevelPlotfile("phi"+std::to_string(count3), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+
 
     if (sync_resid_fine != 0 or sync_resid_crse != 0)
     {
@@ -2578,6 +2610,13 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
     }
 
     mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
+    
+        static int count2=0;
+       count2++;
+      VisMF::Write(rhs[0],"rhs2d");
+      amrex::WriteSingleLevelPlotfile("phi_out"+std::to_string(count2), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+      VisMF::Write(*vel_rebase[0],"vel_rebase_out");
+    
 }
 
 // Set velocity in ghost cells to zero except for inflow

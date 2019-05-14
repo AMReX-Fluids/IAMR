@@ -21,8 +21,8 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 //fixme - for debugging only
-#include <AMReX_VisMF.H>
 #endif
+#include <AMReX_VisMF.H>
 
 #define GEOM_GROW 1
 #define XVEL 0
@@ -79,12 +79,12 @@ Godunov::Initialize ()
 	hyp_grow = 4;
     }
 
-#ifdef AMREX_USE_EB
+//#ifdef AMREX_USE_EB
     //
     // nghost from incflo.
     // 
-    hyp_grow = 5;
-#endif
+//    hyp_grow = 5;
+//#endif
 
 #if (BL_SPACEDIM==2)
     BL_ASSERT(slope_order==1 || slope_order==2 || slope_order==4);
@@ -110,8 +110,8 @@ Godunov::Finalize ()
 //
 #ifdef AMREX_USE_EB
 Godunov::Godunov (const EBFArrayBoxFactory& _ebf,
-		  const BoxArray& grids,
-		  const DistributionMapping& dmap,
+                  const BoxArray& grids,
+                  const DistributionMapping& dmap,
 		  //		  , const *MFInfo info
 		  int max_size)
 {
@@ -123,7 +123,7 @@ Godunov::Godunov (const EBFArrayBoxFactory& _ebf,
     bndrycent = &(ebfactory->getBndryCent());
     areafrac = ebfactory->getAreaFrac();
     facecent = ebfactory->getFaceCent();
-
+//
     //Slopes in x-direction
     m_xslopes.reset(new MultiFab(grids, dmap, 3, hyp_grow, MFInfo(), *ebfactory));
     m_xslopes->setVal(0.);
@@ -194,7 +194,7 @@ Godunov::AdvectScalars(const Box&  box,
     for (int i=0; i<num_scalars; ++i) {
         use_conserv_diff[i] = (advectionType[state_ind+i] == Conservative) ? 1 : 0;
     }
-
+std::cout << "IN ADVECT SCALARS" << std::endl;
     // Extrapolate to cell faces (store result in flux container)
     const int state_fidx = first_scalar + 1;
     extrap_state_to_faces(box.loVect(),box.hiVect(),
@@ -214,6 +214,7 @@ Godunov::AdvectScalars(const Box&  box,
     // So here we make a copy to keep separated fluxes and edge state
     xflx.copy(xstate);
     yflx.copy(ystate);
+
 #if (AMREX_SPACEDIM == 3)
     zflx.copy(zstate);
 #endif
@@ -271,6 +272,8 @@ Godunov::AdvectState (const Box&  box,
        
     const int state_fidx = state_ind+1;
     const int nc = 1;
+
+std::cout << "COMING FROM ADVECT STATE 1" << std::endl;
     
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
@@ -284,13 +287,16 @@ Godunov::AdvectState (const Box&  box,
 #endif
                           &dt, dx, bc, &state_fidx,
                           &use_forces_in_trans, &ppm_type, &iconserv);
-    
-    
+
+std::cout << "AFTER extrap_state_to_faces in ADVECT STATE 1" << std::endl;
+//amrex::Print() << vedge;
     ComputeAofs (box,
                  D_DECL(areax,areay,areaz),D_DECL(0,0,0),
                  D_DECL(uedge,vedge,wedge),D_DECL(0,0,0),
                  D_DECL(xflux,yflux,zflux),D_DECL(0,0,0),
                  vol,0,aofs,aofs_ind,iconserv);
+
+std::cout << "AFTER COMPUTE AOFS in ADVECT STATE 1" << std::endl;
 }
 
 //
@@ -414,7 +420,7 @@ Godunov::SyncAdvect (const Box&  box,
     const int state_fidx = state_ind+1;
     const int nc = 1;
 
-    
+std::cout << "IN SYNC ADVECT" << std::endl;    
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
                           BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
@@ -939,7 +945,7 @@ Godunov::Sum_tf_gp_visc (FArrayBox&       tforces,
     const Real *VIdat = visc.dataPtr(Vcomp);
     const Real *GPdat = gp.dataPtr(Gcomp);
     const Real *RHdat = rho.dataPtr(Rcomp);
-     
+//     amrex::Print() << gp;
     fort_sum_tf_gp_visc(TFdat, ARLIM(tlo), ARLIM(thi),
                         VIdat, ARLIM(vlo), ARLIM(vhi),
                         GPdat, ARLIM(glo), ARLIM(ghi),
@@ -1098,485 +1104,485 @@ Godunov::how_many(const Vector<AdvectionForm>& advectionType,
     return counter;
 }
 
-#ifdef AMREX_USE_EB
-void Godunov::slopes_FillBoundary(const amrex::Periodicity& prdcty)
-{
-  D_TERM(m_xslopes->FillBoundary(prdcty);,
-	 m_yslopes->FillBoundary(prdcty);,
-	 m_zslopes->FillBoundary(prdcty););
-}
+//#ifdef AMREX_USE_EB
+//void Godunov::slopes_FillBoundary(const amrex::Periodicity& prdcty)
+//{
+//  D_TERM(m_xslopes->FillBoundary(prdcty);,
+//	 m_yslopes->FillBoundary(prdcty);,
+//	 m_zslopes->FillBoundary(prdcty););
+//}
+////
+//// Compute the slopes of each velocity component in the
+//// three directions.
+////
+//void Godunov::ComputeVelocitySlopes(const amrex::MFIter& mfi,
+//				    const MultiFab& Sborder,
+//				    D_DECL(const Vector<int>& ubc,
+//					   const Vector<int>& vbc,
+//					   const Vector<int>& wbc),
+//				    const Box& domain)
+//{
+//    BL_PROFILE("Godunov::ComputeVelocitySlopes");
 //
-// Compute the slopes of each velocity component in the
-// three directions.
+//    // Tilebox
+//    Box bx = mfi.tilebox();
+//    const int nc = BL_SPACEDIM;
+//	
+//    // this is to check efficiently if this tile contains any eb stuff
+//    const EBFArrayBox& vel_in_fab = static_cast<EBFArrayBox const&>(Sborder[mfi]);
+//    const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
+//    
+//    if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+//    {
+//      // If tile is completely covered by EB geometry, set slopes
+//      // value to some very large number so we know if
+//      // we accidentaly use these covered slopes later in calculations
+//      D_TERM(m_xslopes->setVal(1.2345e300, bx, 0, 3);,
+//	     m_yslopes->setVal(1.2345e300, bx, 0, 3);,
+//	     m_zslopes->setVal(1.2345e300, bx, 0, 3););
+//    }
+//	else
+//	{
+//	    // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
+//	    if(flags.getType(amrex::grow(bx, 1)) == FabType::regular)
+//	    {
+//	      compute_slopes(BL_TO_FORTRAN_BOX(bx), &nc,
+//			     BL_TO_FORTRAN_ANYD(Sborder[mfi]),
+//			     D_DECL((*m_xslopes)[mfi].dataPtr(),
+//				    (*m_yslopes)[mfi].dataPtr(),
+//				    (*m_zslopes)[mfi].dataPtr()),
+//			     BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
+//			     domain.loVect(), domain.hiVect(),
+//			     D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
+//			     // bc_ilo->dataPtr(), bc_ihi->dataPtr(),
+//			     // bc_jlo->dataPtr(), bc_jhi->dataPtr(),
+//			     // bc_klo->dataPtr(), bc_khi->dataPtr(),
+//			     // &nghost);
+//	    }
+//	    else
+//	    {
+//	      compute_slopes_eb(BL_TO_FORTRAN_BOX(bx), &nc,
+//				  BL_TO_FORTRAN_ANYD(Sborder[mfi]),
+//				  D_DECL((*m_xslopes)[mfi].dataPtr(),
+//					 (*m_yslopes)[mfi].dataPtr(),
+//					 (*m_zslopes)[mfi].dataPtr()),
+//				  BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
+//				  BL_TO_FORTRAN_ANYD(flags),
+//                                  domain.loVect(), domain.hiVect(),
+//				  D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
+//                                  // bc_ilo->dataPtr(), bc_ihi->dataPtr(),
+//                                  // bc_jlo->dataPtr(), bc_jhi->dataPtr(),
+//                                  // bc_klo->dataPtr(), bc_khi->dataPtr(),
+//				  // &nghost);
+//	    }
+//	}
+//	//FIXME
+//	// amrex::VisMF::Write((*m_xslopes),"xslp");
+//	// amrex::VisMF::Write((*m_yslopes),"yslp");
+//	// amrex::VisMF::Write((*m_zslopes),"zslp");
+//	
 //
-void Godunov::ComputeVelocitySlopes(const amrex::MFIter& mfi,
-				    const MultiFab& Sborder,
-				    D_DECL(const Vector<int>& ubc,
-					   const Vector<int>& vbc,
-					   const Vector<int>& wbc),
-				    const Box& domain)
-{
-    BL_PROFILE("Godunov::ComputeVelocitySlopes");
-
-    // Tilebox
-    Box bx = mfi.tilebox();
-    const int nc = BL_SPACEDIM;
-	
-    // this is to check efficiently if this tile contains any eb stuff
-    const EBFArrayBox& vel_in_fab = static_cast<EBFArrayBox const&>(Sborder[mfi]);
-    const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
-    
-    if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
-    {
-      // If tile is completely covered by EB geometry, set slopes
-      // value to some very large number so we know if
-      // we accidentaly use these covered slopes later in calculations
-      D_TERM(m_xslopes->setVal(1.2345e300, bx, 0, 3);,
-	     m_yslopes->setVal(1.2345e300, bx, 0, 3);,
-	     m_zslopes->setVal(1.2345e300, bx, 0, 3););
-    }
-	else
-	{
-	    // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
-	    if(flags.getType(amrex::grow(bx, 1)) == FabType::regular)
-	    {
-	      compute_slopes(BL_TO_FORTRAN_BOX(bx), &nc,
-			     BL_TO_FORTRAN_ANYD(Sborder[mfi]),
-			     D_DECL((*m_xslopes)[mfi].dataPtr(),
-				    (*m_yslopes)[mfi].dataPtr(),
-				    (*m_zslopes)[mfi].dataPtr()),
-			     BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
-			     domain.loVect(), domain.hiVect(),
-			     D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
-			     // bc_ilo->dataPtr(), bc_ihi->dataPtr(),
-			     // bc_jlo->dataPtr(), bc_jhi->dataPtr(),
-			     // bc_klo->dataPtr(), bc_khi->dataPtr(),
-			     // &nghost);
-	    }
-	    else
-	    {
-	      compute_slopes_eb(BL_TO_FORTRAN_BOX(bx), &nc,
-				  BL_TO_FORTRAN_ANYD(Sborder[mfi]),
-				  D_DECL((*m_xslopes)[mfi].dataPtr(),
-					 (*m_yslopes)[mfi].dataPtr(),
-					 (*m_zslopes)[mfi].dataPtr()),
-				  BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
-				  BL_TO_FORTRAN_ANYD(flags),
-                                  domain.loVect(), domain.hiVect(),
-				  D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
-                                  // bc_ilo->dataPtr(), bc_ihi->dataPtr(),
-                                  // bc_jlo->dataPtr(), bc_jhi->dataPtr(),
-                                  // bc_klo->dataPtr(), bc_khi->dataPtr(),
-				  // &nghost);
-	    }
-	}
-	//FIXME
-	// amrex::VisMF::Write((*m_xslopes),"xslp");
-	// amrex::VisMF::Write((*m_yslopes),"yslp");
-	// amrex::VisMF::Write((*m_zslopes),"zslp");
-	
-
-}
-
-void Godunov::ComputeScalarSlopes(const amrex::MFIter& mfi,
-				  const MultiFab& Sborder, const int& ncomp,
-				  D_DECL(std::unique_ptr<amrex::MultiFab>& xslopes,
-					 std::unique_ptr<amrex::MultiFab>& yslopes,
-					 std::unique_ptr<amrex::MultiFab>& zslopes),
-				  D_DECL(const Vector<int>& ubc,
-					 const Vector<int>& vbc,
-					 const Vector<int>& wbc),
-				  const Box& domain)
-{
-    BL_PROFILE("Godunov::ComputeScalarSlopes");
-
-    // Tilebox
-    Box bx = mfi.tilebox();
-    
-    // this is to check efficiently if this tile contains any eb stuff
-    const EBFArrayBox& vel_in_fab = static_cast<EBFArrayBox const&>(Sborder[mfi]);
-    const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
-    
-    if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
-    {
-      // If tile is completely covered by EB geometry, set slopes
-      // value to some very large number so we know if
-      // we accidentaly use these covered slopes later in calculations
-      D_TERM(xslopes->setVal(1.2345e300, bx, 0, 3);,
-	     yslopes->setVal(1.2345e300, bx, 0, 3);,
-	     zslopes->setVal(1.2345e300, bx, 0, 3););
-    }
-    else
-    {
-      // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
-      if(flags.getType(amrex::grow(bx, 1)) == FabType::regular)
-      {
-	compute_slopes(BL_TO_FORTRAN_BOX(bx), &ncomp,
-		       BL_TO_FORTRAN_ANYD(Sborder[mfi]),
-		       D_DECL((*xslopes)[mfi].dataPtr(),
-			      (*yslopes)[mfi].dataPtr(),
-			      (*zslopes)[mfi].dataPtr()),
-		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
-		       domain.loVect(), domain.hiVect(),
-		       D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
-	// bc_ilo->dataPtr(), bc_ihi->dataPtr(),
-	// bc_jlo->dataPtr(), bc_jhi->dataPtr(),
-	// bc_klo->dataPtr(), bc_khi->dataPtr(),
-	// &nghost);
-      }
-      else
-      {
-	compute_slopes_eb(BL_TO_FORTRAN_BOX(bx), &ncomp,
-			  BL_TO_FORTRAN_ANYD(Sborder[mfi]),
-			  D_DECL((*xslopes)[mfi].dataPtr(),
-				 (*yslopes)[mfi].dataPtr(),
-				 (*zslopes)[mfi].dataPtr()),
-			  BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
-			  BL_TO_FORTRAN_ANYD(flags),
-			  domain.loVect(), domain.hiVect(),
-			  D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
-                                  // bc_ilo->dataPtr(), bc_ihi->dataPtr(),
-                                  // bc_jlo->dataPtr(), bc_jhi->dataPtr(),
-                                  // bc_klo->dataPtr(), bc_khi->dataPtr(),
-				  // &nghost);
-      }
-    }
-}
-
+//}
 //
-// Compute upwinded FC velocities by extrapolating CC values in space and time
+//void Godunov::ComputeScalarSlopes(const amrex::MFIter& mfi,
+//				  const MultiFab& Sborder, const int& ncomp,
+//				  D_DECL(std::unique_ptr<amrex::MultiFab>& xslopes,
+//					 std::unique_ptr<amrex::MultiFab>& yslopes,
+//					 std::unique_ptr<amrex::MultiFab>& zslopes),
+//				  D_DECL(const Vector<int>& ubc,
+//					 const Vector<int>& vbc,
+//					 const Vector<int>& wbc),
+//				  const Box& domain)
+//{
+//    BL_PROFILE("Godunov::ComputeScalarSlopes");
 //
-void
-Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi, 
-			   // not used yet
-                           //const amrex_real*  dx, amrex_real dt,
-			   // FIXME these come from EB aware MFs so
-			   // are they all Fabs or EBfabs or could be either???
-                           D_DECL(FArrayBox&  umac, FArrayBox&  vmac,
-				  FArrayBox&  wmac),
-                           D_DECL(const Vector<int>& ubc, const Vector<int>& vbc,
-				  const Vector<int>& wbc),
-                           const amrex::FArrayBox&  U,
-                           const amrex::FArrayBox&  tforces,
-			   const Box& domain)
-{
-  //
-  // Old sequence in fortran fn:
-  //  Compute slopes 
-  //  trace state to cell edges
-  //  enforce bcs
-  //  upwind to get edge state
-  //
-
-  // Tilebox
-  const Box& bx = mfi.tilebox();
-  D_TERM(const Box& ubx = mfi.tilebox(IntVect::TheDimensionVector(0));,
-	 const Box& vbx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-	 const Box& wbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
-
-  // this is to check efficiently if this tile contains any eb stuff
-  const EBFArrayBox& vel_in_fab = static_cast<EBFArrayBox const&>(U);
-  const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
-  
-  if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
-  {
-      // If tile is completely covered by EB geometry, set 
-      // to some very large number so we know if
-      // we accidentaly use these covered vals later in calc
-    D_TERM(umac.setVal(1.2345e30, ubx, 0, 1);,
-	   vmac.setVal(1.2345e30, vbx, 0, 1);,
-	   wmac.setVal(1.2345e30, wbx, 0, 1););
-  }
-  else
-  {
-
-      // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
-      if(flags.getType(amrex::grow(bx, 1)) == FabType::regular)
-      {	
-	// Compute estates
-	  compute_velocity_at_faces(BL_TO_FORTRAN_BOX(bx),
-				    BL_TO_FORTRAN_ANYD(U),
-				    D_DECL(BL_TO_FORTRAN_ANYD(umac),
-					   BL_TO_FORTRAN_ANYD(vmac),
-					   BL_TO_FORTRAN_ANYD(wmac)),
-				    D_DECL((*m_xslopes)[mfi].dataPtr(),
-					   (*m_yslopes)[mfi].dataPtr(),
-					   (*m_zslopes)[mfi].dataPtr()),
-				    BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
-				    D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-				    // old bcs
-				    // bc_ilo[lev]->dataPtr(),
-				    // bc_ihi[lev]->dataPtr(),
-				    // bc_jlo[lev]->dataPtr(),
-				    // bc_jhi[lev]->dataPtr(),
-				    // bc_klo[lev]->dataPtr(),
-				    // bc_khi[lev]->dataPtr(),
-				    //&nghost,
-				    domain.loVect(),
-				    domain.hiVect());
-      }
-      else
-      {
-	// Use EB routines
-	
-	// Compute estates	
-	compute_velocity_at_x_faces_eb(BL_TO_FORTRAN_BOX(ubx),
-				       BL_TO_FORTRAN_ANYD(umac),
-				       BL_TO_FORTRAN_ANYD(U),
- 				       BL_TO_FORTRAN_ANYD((*m_xslopes)[mfi]),
-				       BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-				       BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
-				       BL_TO_FORTRAN_ANYD(flags),
-				       ubc.dataPtr(),
-				       // old bcs
-				       // bc_ilo[lev]->dataPtr(),
-				       // bc_ihi[lev]->dataPtr(),
-				       //&nghost,
-				       domain.loVect(),
-				       domain.hiVect());
-
-	  compute_velocity_at_y_faces_eb(BL_TO_FORTRAN_BOX(vbx),
-					 BL_TO_FORTRAN_ANYD(vmac),
-					 BL_TO_FORTRAN_ANYD(U),
-					 BL_TO_FORTRAN_ANYD((*m_yslopes)[mfi]),
-					 BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-					 BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
-					 BL_TO_FORTRAN_ANYD(flags),
-					 vbc.dataPtr(),
-					 // old bcs
-					 // bc_jlo[lev]->dataPtr(),
-					 // bc_jhi[lev]->dataPtr(),
-					 //&nghost,
-					 domain.loVect(),
-					 domain.hiVect());
-#if (AMREX_SPACEDIM == 3)
-	  compute_velocity_at_z_faces_eb(BL_TO_FORTRAN_BOX(wbx),
-					 BL_TO_FORTRAN_ANYD(wmac),
-					 BL_TO_FORTRAN_ANYD(U),
-					 BL_TO_FORTRAN_ANYD((*m_zslopes)[mfi]),
-					 BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
-					 BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
-					 BL_TO_FORTRAN_ANYD(flags),
-					 wbc.dataPtr(),
-					 // old bcs
-					 // bc_klo[lev]->dataPtr(),
-					 // bc_khi[lev]->dataPtr(),
-					 //&nghost,
-					 domain.loVect(),
-					 domain.hiVect());
-#endif
-      }
-  }
-}
-
-
+//    // Tilebox
+//    Box bx = mfi.tilebox();
+//    
+//    // this is to check efficiently if this tile contains any eb stuff
+//    const EBFArrayBox& vel_in_fab = static_cast<EBFArrayBox const&>(Sborder[mfi]);
+//    const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
+//    
+//    if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+//    {
+//      // If tile is completely covered by EB geometry, set slopes
+//      // value to some very large number so we know if
+//      // we accidentaly use these covered slopes later in calculations
+//      D_TERM(xslopes->setVal(1.2345e300, bx, 0, 3);,
+//	     yslopes->setVal(1.2345e300, bx, 0, 3);,
+//	     zslopes->setVal(1.2345e300, bx, 0, 3););
+//    }
+//    else
+//    {
+//      // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
+//      if(flags.getType(amrex::grow(bx, 1)) == FabType::regular)
+//      {
+//	compute_slopes(BL_TO_FORTRAN_BOX(bx), &ncomp,
+//		       BL_TO_FORTRAN_ANYD(Sborder[mfi]),
+//		       D_DECL((*xslopes)[mfi].dataPtr(),
+//			      (*yslopes)[mfi].dataPtr(),
+//			      (*zslopes)[mfi].dataPtr()),
+//		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
+//		       domain.loVect(), domain.hiVect(),
+//		       D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
+//	// bc_ilo->dataPtr(), bc_ihi->dataPtr(),
+//	// bc_jlo->dataPtr(), bc_jhi->dataPtr(),
+//	// bc_klo->dataPtr(), bc_khi->dataPtr(),
+//	// &nghost);
+//      }
+//      else
+//      {
+//	compute_slopes_eb(BL_TO_FORTRAN_BOX(bx), &ncomp,
+//			  BL_TO_FORTRAN_ANYD(Sborder[mfi]),
+//			  D_DECL((*xslopes)[mfi].dataPtr(),
+//				 (*yslopes)[mfi].dataPtr(),
+//				 (*zslopes)[mfi].dataPtr()),
+//			  BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
+//			  BL_TO_FORTRAN_ANYD(flags),
+//			  domain.loVect(), domain.hiVect(),
+//			  D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
+//                                  // bc_ilo->dataPtr(), bc_ihi->dataPtr(),
+//                                  // bc_jlo->dataPtr(), bc_jhi->dataPtr(),
+//                                  // bc_klo->dataPtr(), bc_khi->dataPtr(),
+//				  // &nghost);
+//      }
+//    }
+//}
 //
-// Use mac velocity and stored slopes to compute the advection term for
-// the velocity update
-// aofs = ugradu  NOT -ugradu like incflo
+////
+//// Compute upwinded FC velocities by extrapolating CC values in space and time
+////
+//void
+//Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi, 
+//			   // not used yet
+//                           //const amrex_real*  dx, amrex_real dt,
+//			   // FIXME these come from EB aware MFs so
+//			   // are they all Fabs or EBfabs or could be either???
+//                           D_DECL(FArrayBox&  umac, FArrayBox&  vmac,
+//				  FArrayBox&  wmac),
+//                           D_DECL(const Vector<int>& ubc, const Vector<int>& vbc,
+//				  const Vector<int>& wbc),
+//                           const amrex::FArrayBox&  U,
+//                           const amrex::FArrayBox&  tforces,
+//			   const Box& domain)
+//{
+//  //
+//  // Old sequence in fortran fn:
+//  //  Compute slopes 
+//  //  trace state to cell edges
+//  //  enforce bcs
+//  //  upwind to get edge state
+//  //
 //
-void
-Godunov::AdvectVel (const amrex::MFIter&  mfi,
-		    const MultiFab& U, MultiFab& aofs,
-		    D_DECL(const MultiFab&  uedge, const MultiFab&  vedge,
-			   const MultiFab&  wedge),
-		    D_DECL(const Vector<int>& ubc,
-			   const Vector<int>& vbc,
-			   const Vector<int>& wbc),
-		    const Box& domain,
-		    const amrex::Real* dx,
-		    int nghost)
-{
-  // worry about fluxes later
-  //
-  
-  // Tilebox
-  Box bx = mfi.tilebox();
-  const int ncomp = AMREX_SPACEDIM;
-  
-  // this is to check efficiently if this tile contains any eb stuff
-  const EBFArrayBox& vel_in_fab =
-    static_cast<EBFArrayBox const&>(U[mfi]);
-  const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
-
-
-  if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
-  {
-      // If tile is completely covered by EB geometry, set slopes
-      // value to some very large number so we know if
-      // we accidentaly use these covered slopes later in calculations
-      aofs[mfi].setVal(1.2345e300, bx, 0, ncomp);
-  }
-  else
-  {
-      // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
-      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
-      {
-	compute_ugradu(BL_TO_FORTRAN_BOX(bx),
-		       BL_TO_FORTRAN_ANYD(aofs[mfi]),
-		       BL_TO_FORTRAN_ANYD(U[mfi]),
-		       D_DECL(BL_TO_FORTRAN_ANYD(uedge[mfi]),
-			      BL_TO_FORTRAN_ANYD(vedge[mfi]),
-			      BL_TO_FORTRAN_ANYD(wedge[mfi])),
-		       D_DECL((*m_xslopes)[mfi].dataPtr(),
-			      (*m_yslopes)[mfi].dataPtr(),
-			      (*m_zslopes)[mfi].dataPtr()),
-		       BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
-		       domain.loVect(),domain.hiVect(),
-		       //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-		       // old bcs
-		       // bc_ilo[lev]->dataPtr(),
-		       // bc_ihi[lev]->dataPtr(),
-		       // bc_jlo[lev]->dataPtr(),
-		       // bc_jhi[lev]->dataPtr(),
-		       // bc_klo[lev]->dataPtr(),
-		       // bc_khi[lev]->dataPtr(),
-		       dx,&nghost);
-      }
-      else
-      {
-	// Use EB routines
-	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
-			BL_TO_FORTRAN_ANYD(aofs[mfi]),
-			BL_TO_FORTRAN_ANYD(U[mfi]),
-
-			BL_TO_FORTRAN_ANYD(uedge[mfi]),
-			BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
-			(*m_xslopes)[mfi].dataPtr(),
-			BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
-
-			BL_TO_FORTRAN_ANYD(vedge[mfi]),
-			BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
-			(*m_yslopes)[mfi].dataPtr(),
-#if (AMREX_SPACEDIM ==3)
-			BL_TO_FORTRAN_ANYD(wedge[mfi]),
-			BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
-			(*m_zslopes)[mfi].dataPtr(),
-#endif
-			BL_TO_FORTRAN_ANYD(flags),
-			BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
-			BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
-	                domain.loVect(),domain.hiVect(),
-			  //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-			    // bc_ilo[lev]->dataPtr(),
-			    // bc_ihi[lev]->dataPtr(),
-			    // bc_jlo[lev]->dataPtr(),
-			    // bc_jhi[lev]->dataPtr(),
-			    // bc_klo[lev]->dataPtr(),
-			    // bc_khi[lev]->dataPtr(),
-			dx, &ncomp, &nghost);
-      }
-  }        
-}
-
+//  // Tilebox
+//  const Box& bx = mfi.tilebox();
+//  D_TERM(const Box& ubx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+//	 const Box& vbx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+//	 const Box& wbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
 //
-// Use mac velocity and slopes to compute the advection term for
-// the scalar update
-// aofs = div uc   NOT minus div uc like mfix
+//  // this is to check efficiently if this tile contains any eb stuff
+//  const EBFArrayBox& vel_in_fab = static_cast<EBFArrayBox const&>(U);
+//  const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
+//  
+//  if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+//  {
+//      // If tile is completely covered by EB geometry, set 
+//      // to some very large number so we know if
+//      // we accidentaly use these covered vals later in calc
+//    D_TERM(umac.setVal(1.2345e30, ubx, 0, 1);,
+//	   vmac.setVal(1.2345e30, vbx, 0, 1);,
+//	   wmac.setVal(1.2345e30, wbx, 0, 1););
+//  }
+//  else
+//  {
 //
-void
-Godunov::AdvectScalar (const amrex::MFIter&  mfi,
-		       const MultiFab& S, const int& scomp,
-		       MultiFab& aofs, const int& acomp,
-		       D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
-			      const std::unique_ptr<amrex::MultiFab>& yslopes,
-			      const std::unique_ptr<amrex::MultiFab>& zslopes),
-		       D_DECL(const MultiFab&  uedge, const MultiFab&  vedge,
-			      const MultiFab&  wedge),
-		       D_DECL(const Vector<int>& ubc,
-			      const Vector<int>& vbc,
-			      const Vector<int>& wbc),
-		       const Box& domain,
-		       const amrex::Real* dx,
-		       int nghost)
-{
-  // worry about fluxes later
-  //
-  
-  // Tilebox
-  Box bx = mfi.tilebox();
-  // fixme? for now
-  const int ncomp = 1;
-  
-  // this is to check efficiently if this tile contains any eb stuff
-  const EBFArrayBox& vel_in_fab =
-    static_cast<EBFArrayBox const&>(S[mfi]);
-  const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
-
-
-  if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
-  {
-      // If tile is completely covered by EB geometry, set slopes
-      // value to some very large number so we know if
-      // we accidentaly use these covered slopes later in calculations
-      aofs[mfi].setVal(1.2345e300, bx, acomp, ncomp);
-  }
-  else
-  {
-      // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
-      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
-      {
-	compute_divuc(BL_TO_FORTRAN_BOX(bx),
-		       BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
-		       BL_TO_FORTRAN_N_ANYD(S[mfi],scomp),
-		       D_DECL(BL_TO_FORTRAN_ANYD(uedge[mfi]),
-			      BL_TO_FORTRAN_ANYD(vedge[mfi]),
-			      BL_TO_FORTRAN_ANYD(wedge[mfi])),
-		       D_DECL((*xslopes)[mfi].dataPtr(scomp),
-			      (*yslopes)[mfi].dataPtr(scomp),
-			      (*zslopes)[mfi].dataPtr(scomp)),
-		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
-		       domain.loVect(),domain.hiVect(),
-		       //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-		       // old bcs
-		       // bc_ilo[lev]->dataPtr(),
-		       // bc_ihi[lev]->dataPtr(),
-		       // bc_jlo[lev]->dataPtr(),
-		       // bc_jhi[lev]->dataPtr(),
-		       // bc_klo[lev]->dataPtr(),
-		       // bc_khi[lev]->dataPtr(),
-		       dx,&nghost);
-      }
-      else
-      {
-	// Use EB routines
-	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
-			BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
-			BL_TO_FORTRAN_N_ANYD(S[mfi],scomp),
-
-			BL_TO_FORTRAN_ANYD(uedge[mfi]),
-			BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
-			(*xslopes)[mfi].dataPtr(scomp),
-			BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),			
-
-			BL_TO_FORTRAN_ANYD(vedge[mfi]),
-			BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
-			(*yslopes)[mfi].dataPtr(scomp),
-#if(AMREX_SPACEDIM ==3)
-			BL_TO_FORTRAN_ANYD(wedge[mfi]),
-			BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
-			(*zslopes)[mfi].dataPtr(scomp),
-#endif
-			BL_TO_FORTRAN_ANYD(flags),
-			BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
-			BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
-			domain.loVect(),domain.hiVect(),
-			  //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-			    // bc_ilo[lev]->dataPtr(),
-			    // bc_ihi[lev]->dataPtr(),
-			    // bc_jlo[lev]->dataPtr(),
-			    // bc_jhi[lev]->dataPtr(),
-			    // bc_klo[lev]->dataPtr(),
-			    // bc_khi[lev]->dataPtr(),
-			dx, &ncomp, &nghost);
-      }
-  }        
-}
-
-#endif
+//      // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
+//      if(flags.getType(amrex::grow(bx, 1)) == FabType::regular)
+//      {	
+//	// Compute estates
+//	  compute_velocity_at_faces(BL_TO_FORTRAN_BOX(bx),
+//				    BL_TO_FORTRAN_ANYD(U),
+//				    D_DECL(BL_TO_FORTRAN_ANYD(umac),
+//					   BL_TO_FORTRAN_ANYD(vmac),
+//					   BL_TO_FORTRAN_ANYD(wmac)),
+//				    D_DECL((*m_xslopes)[mfi].dataPtr(),
+//					   (*m_yslopes)[mfi].dataPtr(),
+//					   (*m_zslopes)[mfi].dataPtr()),
+//				    BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
+//				    D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+//				    // old bcs
+//				    // bc_ilo[lev]->dataPtr(),
+//				    // bc_ihi[lev]->dataPtr(),
+//				    // bc_jlo[lev]->dataPtr(),
+//				    // bc_jhi[lev]->dataPtr(),
+//				    // bc_klo[lev]->dataPtr(),
+//				    // bc_khi[lev]->dataPtr(),
+//				    //&nghost,
+//				    domain.loVect(),
+//				    domain.hiVect());
+//      }
+//      else
+//      {
+//	// Use EB routines
+//	
+//	// Compute estates	
+//	compute_velocity_at_x_faces_eb(BL_TO_FORTRAN_BOX(ubx),
+//				       BL_TO_FORTRAN_ANYD(umac),
+//				       BL_TO_FORTRAN_ANYD(U),
+// 				       BL_TO_FORTRAN_ANYD((*m_xslopes)[mfi]),
+//				       BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
+//				       BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+//				       BL_TO_FORTRAN_ANYD(flags),
+//				       ubc.dataPtr(),
+//				       // old bcs
+//				       // bc_ilo[lev]->dataPtr(),
+//				       // bc_ihi[lev]->dataPtr(),
+//				       //&nghost,
+//				       domain.loVect(),
+//				       domain.hiVect());
+//
+//	  compute_velocity_at_y_faces_eb(BL_TO_FORTRAN_BOX(vbx),
+//					 BL_TO_FORTRAN_ANYD(vmac),
+//					 BL_TO_FORTRAN_ANYD(U),
+//					 BL_TO_FORTRAN_ANYD((*m_yslopes)[mfi]),
+//					 BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
+//					 BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+//					 BL_TO_FORTRAN_ANYD(flags),
+//					 vbc.dataPtr(),
+//					 // old bcs
+//					 // bc_jlo[lev]->dataPtr(),
+//					 // bc_jhi[lev]->dataPtr(),
+//					 //&nghost,
+//					 domain.loVect(),
+//					 domain.hiVect());
+//#if (AMREX_SPACEDIM == 3)
+//	  compute_velocity_at_z_faces_eb(BL_TO_FORTRAN_BOX(wbx),
+//					 BL_TO_FORTRAN_ANYD(wmac),
+//					 BL_TO_FORTRAN_ANYD(U),
+//					 BL_TO_FORTRAN_ANYD((*m_zslopes)[mfi]),
+//					 BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
+//					 BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+//					 BL_TO_FORTRAN_ANYD(flags),
+//					 wbc.dataPtr(),
+//					 // old bcs
+//					 // bc_klo[lev]->dataPtr(),
+//					 // bc_khi[lev]->dataPtr(),
+//					 //&nghost,
+//					 domain.loVect(),
+//					 domain.hiVect());
+//#endif
+//      }
+//  }
+//}
+//
+//
+////
+//// Use mac velocity and stored slopes to compute the advection term for
+//// the velocity update
+//// aofs = ugradu  NOT -ugradu like incflo
+////
+//void
+//Godunov::AdvectVel (const amrex::MFIter&  mfi,
+//		    const MultiFab& U, MultiFab& aofs,
+//		    D_DECL(const MultiFab&  uedge, const MultiFab&  vedge,
+//			   const MultiFab&  wedge),
+//		    D_DECL(const Vector<int>& ubc,
+//			   const Vector<int>& vbc,
+//			   const Vector<int>& wbc),
+//		    const Box& domain,
+//		    const amrex::Real* dx,
+//		    int nghost)
+//{
+//  // worry about fluxes later
+//  //
+//  
+//  // Tilebox
+//  Box bx = mfi.tilebox();
+//  const int ncomp = AMREX_SPACEDIM;
+//  
+//  // this is to check efficiently if this tile contains any eb stuff
+//  const EBFArrayBox& vel_in_fab =
+//    static_cast<EBFArrayBox const&>(U[mfi]);
+//  const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
+//
+//
+//  if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+//  {
+//      // If tile is completely covered by EB geometry, set slopes
+//      // value to some very large number so we know if
+//      // we accidentaly use these covered slopes later in calculations
+//      aofs[mfi].setVal(1.2345e300, bx, 0, ncomp);
+//  }
+//  else
+//  {
+//      // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+//      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+//      {
+//	compute_ugradu(BL_TO_FORTRAN_BOX(bx),
+//		       BL_TO_FORTRAN_ANYD(aofs[mfi]),
+//		       BL_TO_FORTRAN_ANYD(U[mfi]),
+//		       D_DECL(BL_TO_FORTRAN_ANYD(uedge[mfi]),
+//			      BL_TO_FORTRAN_ANYD(vedge[mfi]),
+//			      BL_TO_FORTRAN_ANYD(wedge[mfi])),
+//		       D_DECL((*m_xslopes)[mfi].dataPtr(),
+//			      (*m_yslopes)[mfi].dataPtr(),
+//			      (*m_zslopes)[mfi].dataPtr()),
+//		       BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
+//		       domain.loVect(),domain.hiVect(),
+//		       //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+//		       // old bcs
+//		       // bc_ilo[lev]->dataPtr(),
+//		       // bc_ihi[lev]->dataPtr(),
+//		       // bc_jlo[lev]->dataPtr(),
+//		       // bc_jhi[lev]->dataPtr(),
+//		       // bc_klo[lev]->dataPtr(),
+//		       // bc_khi[lev]->dataPtr(),
+//		       dx,&nghost);
+//      }
+//      else
+//      {
+//	// Use EB routines
+//	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
+//			BL_TO_FORTRAN_ANYD(aofs[mfi]),
+//			BL_TO_FORTRAN_ANYD(U[mfi]),
+//
+//			BL_TO_FORTRAN_ANYD(uedge[mfi]),
+//			BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
+//			BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+//			(*m_xslopes)[mfi].dataPtr(),
+//			BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
+//
+//			BL_TO_FORTRAN_ANYD(vedge[mfi]),
+//			BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
+//			BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+//			(*m_yslopes)[mfi].dataPtr(),
+//#if (AMREX_SPACEDIM ==3)
+//			BL_TO_FORTRAN_ANYD(wedge[mfi]),
+//			BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
+//			BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+//			(*m_zslopes)[mfi].dataPtr(),
+//#endif
+//			BL_TO_FORTRAN_ANYD(flags),
+//			BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
+//			BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
+//	                domain.loVect(),domain.hiVect(),
+//			  //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+//			    // bc_ilo[lev]->dataPtr(),
+//			    // bc_ihi[lev]->dataPtr(),
+//			    // bc_jlo[lev]->dataPtr(),
+//			    // bc_jhi[lev]->dataPtr(),
+//			    // bc_klo[lev]->dataPtr(),
+//			    // bc_khi[lev]->dataPtr(),
+//			dx, &ncomp, &nghost);
+//      }
+//  }        
+//}
+//
+////
+//// Use mac velocity and slopes to compute the advection term for
+//// the scalar update
+//// aofs = div uc   NOT minus div uc like mfix
+////
+//void
+//Godunov::AdvectScalar (const amrex::MFIter&  mfi,
+//		       const MultiFab& S, const int& scomp,
+//		       MultiFab& aofs, const int& acomp,
+//		       D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
+//			      const std::unique_ptr<amrex::MultiFab>& yslopes,
+//			      const std::unique_ptr<amrex::MultiFab>& zslopes),
+//		       D_DECL(const MultiFab&  uedge, const MultiFab&  vedge,
+//			      const MultiFab&  wedge),
+//		       D_DECL(const Vector<int>& ubc,
+//			      const Vector<int>& vbc,
+//			      const Vector<int>& wbc),
+//		       const Box& domain,
+//		       const amrex::Real* dx,
+//		       int nghost)
+//{
+//  // worry about fluxes later
+//  //
+//  
+//  // Tilebox
+//  Box bx = mfi.tilebox();
+//  // fixme? for now
+//  const int ncomp = 1;
+//  
+//  // this is to check efficiently if this tile contains any eb stuff
+//  const EBFArrayBox& vel_in_fab =
+//    static_cast<EBFArrayBox const&>(S[mfi]);
+//  const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
+//
+//
+//  if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+//  {
+//      // If tile is completely covered by EB geometry, set slopes
+//      // value to some very large number so we know if
+//      // we accidentaly use these covered slopes later in calculations
+//      aofs[mfi].setVal(1.2345e300, bx, acomp, ncomp);
+//  }
+//  else
+//  {
+//      // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+//      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+//      {
+//	compute_divuc(BL_TO_FORTRAN_BOX(bx),
+//		       BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
+//		       BL_TO_FORTRAN_N_ANYD(S[mfi],scomp),
+//		       D_DECL(BL_TO_FORTRAN_ANYD(uedge[mfi]),
+//			      BL_TO_FORTRAN_ANYD(vedge[mfi]),
+//			      BL_TO_FORTRAN_ANYD(wedge[mfi])),
+//		       D_DECL((*xslopes)[mfi].dataPtr(scomp),
+//			      (*yslopes)[mfi].dataPtr(scomp),
+//			      (*zslopes)[mfi].dataPtr(scomp)),
+//		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
+//		       domain.loVect(),domain.hiVect(),
+//		       //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+//		       // old bcs
+//		       // bc_ilo[lev]->dataPtr(),
+//		       // bc_ihi[lev]->dataPtr(),
+//		       // bc_jlo[lev]->dataPtr(),
+//		       // bc_jhi[lev]->dataPtr(),
+//		       // bc_klo[lev]->dataPtr(),
+//		       // bc_khi[lev]->dataPtr(),
+//		       dx,&nghost);
+//      }
+//      else
+//      {
+//	// Use EB routines
+//	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
+//			BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
+//			BL_TO_FORTRAN_N_ANYD(S[mfi],scomp),
+//
+//			BL_TO_FORTRAN_ANYD(uedge[mfi]),
+//			BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
+//			BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+//			(*xslopes)[mfi].dataPtr(scomp),
+//			BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),			
+//
+//			BL_TO_FORTRAN_ANYD(vedge[mfi]),
+//			BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
+//			BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+//			(*yslopes)[mfi].dataPtr(scomp),
+//#if(AMREX_SPACEDIM ==3)
+//			BL_TO_FORTRAN_ANYD(wedge[mfi]),
+//			BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
+//			BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+//			(*zslopes)[mfi].dataPtr(scomp),
+//#endif
+//			BL_TO_FORTRAN_ANYD(flags),
+//			BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
+//			BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
+//			domain.loVect(),domain.hiVect(),
+//			  //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
+//			    // bc_ilo[lev]->dataPtr(),
+//			    // bc_ihi[lev]->dataPtr(),
+//			    // bc_jlo[lev]->dataPtr(),
+//			    // bc_jhi[lev]->dataPtr(),
+//			    // bc_klo[lev]->dataPtr(),
+//			    // bc_khi[lev]->dataPtr(),
+//			dx, &ncomp, &nghost);
+//      }
+//  }        
+//}
+//
+//#endif

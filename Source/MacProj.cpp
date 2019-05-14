@@ -10,6 +10,9 @@
 #include <MACPROJ_F.H>
 #include <MacOutFlowBC.H>
 
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+
 using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
@@ -408,7 +411,11 @@ MacProj::mac_project (int             level,
     //
     const Real rhs_scale = 2.0/dt;
     // fixme? RHS must need factory
+#ifdef AMREX_USE_EB
     MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
+#else
+    MultiFab Rhs(grids,dmap,1,0);
+#endif
 
     Rhs.copy(divu);
 
@@ -423,16 +430,17 @@ MacProj::mac_project (int             level,
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
+
     //
     // solve
     //
-#ifdef AMREX_USE_EB
-    MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
-    eb_mac_level_solve(parent, cphi, *phys_bc, level, Density,
-		       mac_tol, mac_abs_tol,
-		       rhs_scale, area, volume, S, Rhs, u_mac, mac_phi,
-		       verbose);
-#else
+//#ifdef AMREX_USE_EB
+//    MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
+//    eb_mac_level_solve(parent, cphi, *phys_bc, level, Density,
+//		       mac_tol, mac_abs_tol,
+//		       rhs_scale, area, volume, S, Rhs, u_mac, mac_phi,
+//		       verbose);
+//#else
     if (the_solver == the_mlmg_solver)
     {
         MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
@@ -445,8 +453,17 @@ MacProj::mac_project (int             level,
                          dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                          area, volume, S, Rhs, u_mac, mac_phi, verbose);
     }
-#endif
+//#endif
     
+//amrex::Print() << u_mac;
+
+
+
+    static int count=0;
+       count++;
+            amrex::WriteSingleLevelPlotfile("RHS_MACPROJ"+std::to_string(count), Rhs, {"rhs"}, parent->Geom(0), 0.0, 0);
+
+
     Rhs.clear();
     //
     // Test that u_mac is divergence free
@@ -502,6 +519,7 @@ MacProj::mac_project (int             level,
 
     if (check_umac_periodicity)
         test_umac_periodic(level,u_mac);
+
 }
 
 //
