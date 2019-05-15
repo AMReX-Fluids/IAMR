@@ -195,7 +195,7 @@ Godunov::AdvectScalars(const Box&  box,
     for (int i=0; i<num_scalars; ++i) {
         use_conserv_diff[i] = (advectionType[state_ind+i] == Conservative) ? 1 : 0;
     }
-std::cout << "IN ADVECT SCALARS" << std::endl;
+
     // Extrapolate to cell faces (store result in flux container)
     const int state_fidx = first_scalar + 1;
     extrap_state_to_faces(box.loVect(),box.hiVect(),
@@ -215,7 +215,6 @@ std::cout << "IN ADVECT SCALARS" << std::endl;
     // So here we make a copy to keep separated fluxes and edge state
     xflx.copy(xstate);
     yflx.copy(ystate);
-
 #if (AMREX_SPACEDIM == 3)
     zflx.copy(zstate);
 #endif
@@ -273,8 +272,6 @@ Godunov::AdvectState (const Box&  box,
        
     const int state_fidx = state_ind+1;
     const int nc = 1;
-
-std::cout << "COMING FROM ADVECT STATE 1" << std::endl;
     
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
@@ -289,15 +286,12 @@ std::cout << "COMING FROM ADVECT STATE 1" << std::endl;
                           &dt, dx, bc, &state_fidx,
                           &use_forces_in_trans, &ppm_type, &iconserv);
 
-std::cout << "AFTER extrap_state_to_faces in ADVECT STATE 1" << std::endl;
-//amrex::Print() << vedge;
     ComputeAofs (box,
                  D_DECL(areax,areay,areaz),D_DECL(0,0,0),
                  D_DECL(uedge,vedge,wedge),D_DECL(0,0,0),
                  D_DECL(xflux,yflux,zflux),D_DECL(0,0,0),
                  vol,0,aofs,aofs_ind,iconserv);
 
-std::cout << "AFTER COMPUTE AOFS in ADVECT STATE 1" << std::endl;
 }
 
 //
@@ -420,8 +414,7 @@ Godunov::SyncAdvect (const Box&  box,
     
     const int state_fidx = state_ind+1;
     const int nc = 1;
-
-std::cout << "IN SYNC ADVECT" << std::endl;    
+ 
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
                           BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
@@ -946,7 +939,7 @@ Godunov::Sum_tf_gp_visc (FArrayBox&       tforces,
     const Real *VIdat = visc.dataPtr(Vcomp);
     const Real *GPdat = gp.dataPtr(Gcomp);
     const Real *RHdat = rho.dataPtr(Rcomp);
-//     amrex::Print() << gp;
+
     fort_sum_tf_gp_visc(TFdat, ARLIM(tlo), ARLIM(thi),
                         VIdat, ARLIM(vlo), ARLIM(vhi),
                         GPdat, ARLIM(glo), ARLIM(ghi),

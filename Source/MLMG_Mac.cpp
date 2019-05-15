@@ -214,8 +214,6 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     const Real* dxinv = geom.InvCellSize();
     compute_mac_rhs(Rhs, u_mac, area, volume, dxinv);
 
-     //CHECK HERE THAT U_MAC y-component is ok   
-
     mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
 
     auto& fluxes = bcoefs;

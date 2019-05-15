@@ -458,10 +458,10 @@ MacProj::mac_project (int             level,
 //amrex::Print() << u_mac;
 
 
-
-    static int count=0;
-       count++;
-            amrex::WriteSingleLevelPlotfile("RHS_MACPROJ"+std::to_string(count), Rhs, {"rhs"}, parent->Geom(0), 0.0, 0);
+// EM_DEBUG
+    //static int count=0;
+    //   count++;
+    //        amrex::WriteSingleLevelPlotfile("RHS_MACPROJ"+std::to_string(count), Rhs, {"rhs"}, parent->Geom(0), 0.0, 0);
 
 
     Rhs.clear();

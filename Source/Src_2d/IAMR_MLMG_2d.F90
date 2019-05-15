@@ -49,11 +49,12 @@ contains
        do i = lo(1), hi(1)
           divu = (ax(i+1,j)*ux(i+1,j) - ax(i,j)*ux(i,j)   &
                +  ay(i,j+1)*uy(i,j+1) - ay(i,j)*uy(i,j)) / vol(i,j)
-               
+
+! EM_DEBUG               
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG IN iamr_mac_rhs ',i,j,divu,rhs(i,j),ax(i+1,j),ux(i+1,j),ay(i,j+1),uy(i,j+1),vol(i,j)
 !endif
-!        OK HERE       
+     
           rhs(i,j) = rhs(i,j) - divu
        end do
     end do

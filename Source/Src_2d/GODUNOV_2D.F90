@@ -1470,8 +1470,6 @@ contains
          end do
       end do
 
-!PROBLEM VEDGE AND YLO NOT CORRECT IN GHOST CELL
-
 !c
 !c     compute the xedge states
 !c
@@ -1485,7 +1483,6 @@ contains
                       + s(i,j,L)*(vedge(i,j+1)-vedge(i,j))/hy&
                       - s(i,j,L)*divu(i,j)
                else
-
                   if (vedge(i,j)*vedge(i,j+1).le.0.d0) then
                      vbar = 0.5d0*(vedge(i,j)+vedge(i,j+1))
                      if (vbar.lt.0.d0) then
@@ -1512,7 +1509,6 @@ contains
                   stxhi(i  )= s(i,j,L) - (half+dthx*uedge(i  ,j))*sx(i,j)&
                       + dth*(st + tf(i,j,L))
                end if
-
             end do
 
             if (bc(1,1,L).eq.EXT_DIR .and. uedge(imin,j).ge.0.d0) then

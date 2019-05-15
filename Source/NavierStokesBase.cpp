@@ -3615,7 +3615,7 @@ MultiFab& Gp = *gradp;
       FArrayBox tforces;
       FArrayBox S;
       FArrayBox cfluxes[BL_SPACEDIM];
-      for (MFIter U_mfi(Umf,false); U_mfi.isValid(); ++U_mfi)
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
 
 	    const Box& bx=U_mfi.tilebox();
@@ -3821,13 +3821,13 @@ Gp.FillBoundary(geom.periodicity());
       MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
       getGradP(Gp, prev_pres_time);
 #endif
-    
+
+// EM_DEBUG    
     //VisMF::Write(U_new,"Unew_in_VAU");
     //VisMF::Write(U_old,"Uold_in_VAU");
-    
-    static int count=0;
-       count++;
-            amrex::WriteSingleLevelPlotfile("Gp_in_VAU"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+    //static int count=0;
+    //   count++;
+    //        amrex::WriteSingleLevelPlotfile("Gp_in_VAU"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
 
     
     MultiFab& halftime = get_rho_half_time();
@@ -3964,7 +3964,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 
         MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
         getGradP(Gp, prev_pres_time);
-std::cout << "AHAH AHAH AHAH" << std::endl;
+
 	MultiFab visc_terms(grids,dmap,nComp,1);
 
 	if (be_cn_theta != 1.0)
