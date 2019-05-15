@@ -175,6 +175,7 @@ public:
     // Get pressure gradient data via fill-patching.
     //
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
+    
 #ifdef AMREX_USE_EB
   amrex::MultiFab& getGradP() { return *gradp; }
 #endif

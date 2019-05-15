@@ -329,7 +329,7 @@ contains
          sm,wklo,wkhi,&
          sp,wklo,wkhi,&
          bc, dt, dx, state_ind, nc, use_forces_in_trans, iconserv, ppm_type)
-!write(*,*) "TOTO",xstate !prpoblem in xstate 2nd component
+
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
@@ -1232,6 +1232,8 @@ contains
                      lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
                      sty = merge(stylo(j),styhi(j),(stylo(j)+styhi(j)) .ge. 0.0d0)
                      ystate(i,j,L)=merge(0.d0,sty,lty)
+
+! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG IN ESTATE_PREMAC',i,j,n,L,ystate(i,j,L)
 !endif
@@ -1372,10 +1374,10 @@ contains
                xlo(i,j) = s(i-1,j,L) + (half - dthx*uedge(i,j))*sx(i-1,j)
                xhi(i,j) = s(i,  j,L) - (half + dthx*uedge(i,j))*sx(i,  j)
 
+! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG COMPUTE XLO ',i,j,xlo(i,j),s(i-1,j,L),uedge(i,j),sx(i-1,j)
 !endif
-!OK HERE
 
             end do
          end do
@@ -1427,10 +1429,11 @@ contains
                ylo(i,j) = s(i,j-1,L) + (half - dthy*vedge(i,j))*sy(i,j-1)
                yhi(i,j) = s(i,j  ,L) - (half + dthy*vedge(i,j))*sy(i,j)
 
+! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG COMPUTE YLO ',i,j,ylo(i,j),s(i,j-1,L),vedge(i,j),sy(i,j-1)
 !endif
-!VEDGE NOT CORRECT IN FIRST GHOST CELL
+
             end do
          end do
       end if
@@ -1481,9 +1484,6 @@ contains
                   st = -(vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy&
                       + s(i,j,L)*(vedge(i,j+1)-vedge(i,j))/hy&
                       - s(i,j,L)*divu(i,j)
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
-!write(*,*) 'DEBUG ST iconserv ',st,vedge(i,j+1),vedge(i,j),s(i,j,L),divu(i,j),ylo(i,j+1),ylo(i,j)
-!endif
                else
 
                   if (vedge(i,j)*vedge(i,j+1).le.0.d0) then
@@ -1493,39 +1493,24 @@ contains
                      else
                         inc = 0
                      endif
-                     tr = vbar*(s(i,j+inc,L)-s(i,j+inc-1,L))/hy
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
-!write(*,*) 'DEBUG ST 1 noconserv ',tr,vedge(i,j+1),vedge(i,j),vbar,s(i,j+inc,L),s(i,j+inc-1,L)
-!endif  
+                     tr = vbar*(s(i,j+inc,L)-s(i,j+inc-1,L))/hy 
                   else
                      tr = half*(vedge(i,j+1) + vedge(i,j)) *&
                          (  ylo(i,j+1) - ylo(i,j)  ) / hy
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
-!write(*,*) 'DEBUG ST 2 noconserv ',i,j,tr,vedge(i,j+1),vedge(i,j),ylo(i,j+1),ylo(i,j)
-!endif
                   endif
-
                   st =  -tr
-
                endif
-!PROBLEM IN ST IN FIRST CELL
+
                if (ppm_type .gt. 0) then
                   stxlo(i+1)= Ipx(i,j)&
                       + dth*(st + tf(i,j,L))
                   stxhi(i  )= Imx(i,j)&
                       + dth*(st + tf(i,j,L))
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
-!write(*,*) "DEBUG STXLO ",i,j,L,stxlo(i+1),Ipx(i,j),st,tf(i,j,L)
-!endif
                else
                   stxlo(i+1)= s(i,j,L) + (half-dthx*uedge(i+1,j))*sx(i,j)&
                       + dth*(st + tf(i,j,L))
                   stxhi(i  )= s(i,j,L) - (half+dthx*uedge(i  ,j))*sx(i,j)&
                       + dth*(st + tf(i,j,L))
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
-!write(*,*) "DEBUG STXLO ",i,j,L,stxlo(i+1),uedge(i+1,j),sx(i,j),st,tf(i,j,L)
-!endif
-
                end if
 
             end do
@@ -1578,6 +1563,7 @@ contains
             end if
 
             do i = imin, imax+1
+! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) "DEBUG IN ESTATE_FPU ",i,j,L,stxlo(i),stxhi(i),uedge(i,j)
 !endif
@@ -3295,9 +3281,10 @@ contains
                    - divux*half*(xflux(i+1,j) + xflux(i,j))&
                    - divuy*half*(yflux(i,j+1) + yflux(i,j))
 
-if ((i < 4) .and.((j > 14).and.(j < 18))) then
-write(*,*)  'in adv_forcing ', i,j,divux,divuy,aofs(i,j),xflux(i,j),yflux(i,j)
-endif
+! EM_DEBUG    
+!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!write(*,*)  'in adv_forcing ', i,j,divux,divuy,aofs(i,j),xflux(i,j),yflux(i,j)
+!endif
 
             end do
          end do
@@ -3332,6 +3319,8 @@ endif
                aofs(i,j) = (&
                    xflux(i+1,j) - xflux(i,j) +&
                    yflux(i,j+1) - yflux(i,j))/vol(i,j)
+
+! EM_DEBUG    
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*)  'in adv_forcing ', i,j,xflux(i,j),yflux(i,j),aofs(i,j)
 !endif
@@ -4522,6 +4511,7 @@ endif
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
 
+! EM_DEBUG    
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG IN SUM_TF_GP ',i,j,n,gp(i,j,n),tforces(i,j,n),visc(i,j,n),rho(i,j)
 !endif
@@ -4531,6 +4521,7 @@ endif
                    +  visc(i,j,n)&
                    -    gp(i,j,n))/rho(i,j)
 
+! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG IN SUM_TF_GP ',i,j,n,gp(i,j,n),tforces(i,j,n),visc(i,j,n),rho(i,j)
 !endif
@@ -4737,7 +4728,8 @@ endif
       do n = 1, SDIM
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-            
+
+! EM_DEBUG            
 !  if ((i < 2) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG IN update_aofs_tf_gp ',i,j,n,gp(i,j,n),rho(i,j),tforces(i,j,n),aofs(i,j,n),u(i,j,n)
 !endif

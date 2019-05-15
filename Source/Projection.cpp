@@ -258,7 +258,7 @@ Projection::level_project (int             level,
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real strt_time = ParallelDescriptor::second();
-VisMF::Write(U_new,"Unew");
+
     //
     // old time velocity has bndry values already
     // must gen valid bndry data for new time velocity.
@@ -352,11 +352,11 @@ VisMF::Write(U_new,"Unew");
 
 //amrex::Print() << "Gp \n" << Gp[0];
 
-
-static int count=0;
-       count++;
-            amrex::WriteSingleLevelPlotfile("Gp_in_Proj"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
-            amrex::WriteSingleLevelPlotfile("Pressure_in_Proj"+std::to_string(count), P_old, {"press"}, parent->Geom(0), 0.0, 0);
+// EM_DEBUG
+//static int count=0;
+//       count++;
+//            amrex::WriteSingleLevelPlotfile("Gp_in_Proj"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+//            amrex::WriteSingleLevelPlotfile("Pressure_in_Proj"+std::to_string(count), P_old, {"press"}, parent->Geom(0), 0.0, 0);
 
 
 #ifdef _OPENMP
@@ -406,8 +406,6 @@ static int count=0;
         set_outflow_bcs(LEVEL_PROJ,phi,Vel_ML,Divu_ML,Rho_ML,level,level,have_divu);
     }
 
-    //VisMF::Write(U_new,"Unew");
-    
     //
     // Scale the projection variables.
     //
@@ -418,8 +416,8 @@ static int count=0;
     // *after* everything has been done to them.
     //
     if (geom.isAnyPeriodic()) {
-	U_new.FillBoundary(0, BL_SPACEDIM, geom.periodicity());
-	rho_half.FillBoundary(0, 1, geom.periodicity());
+	    U_new.FillBoundary(0, BL_SPACEDIM, geom.periodicity());
+	    rho_half.FillBoundary(0, 1, geom.periodicity());
     }
     //
     // Add the contribution from the un-projected V to syncregisters.
@@ -458,9 +456,9 @@ static int count=0;
             radMultScal(level,*divusource);
         }
         const int nghost = 0;
-	divusource->mult(-1.0,0,1,nghost);
+	      divusource->mult(-1.0,0,1,nghost);
 
-	rhcc[level] = divusource.get();
+	      rhcc[level] = divusource.get();
     }
 
     bool proj2 = true;
@@ -2363,7 +2361,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                                         bool doing_initial_vortproj)
 {
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
-std::cout << "WE ARE IN doMLMGNodalProjection" << std::endl;
+
     int f_lev = c_lev + nlevel - 1;
 
     Vector<MultiFab> vel_test(nlevel);
@@ -2482,7 +2480,7 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
     {
         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
 #ifdef AMREX_USE_EB
-	rhs[ilev].define(ba, mg_dmap[ilev], 1, 0, MFInfo(), *ebfactory[c_lev+ilev]);
+	      rhs[ilev].define(ba, mg_dmap[ilev], 1, 0, MFInfo(), *ebfactory[c_lev+ilev]);
 #else
         rhs[ilev].define(ba, mg_dmap[ilev], 1, 0);
 #endif
@@ -2495,27 +2493,32 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
     Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
     rhnd_rebase.resize(nlevel,nullptr);
     Vector<MultiFab*> rhcc_rebase{rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel};
-    //fixme
-    std::cout << "PLOTTING VEL MF" << std::endl;
-     VisMF::Write(*vel_rebase[0],"vel_rebase_in");
-     VisMF::Write(*vel[0],"vel");
-     if (rhcc_rebase[0])
-       VisMF::Write(*rhcc_rebase[0],"rhcc");
-     else
-       Print()<<"No rhcc\n";
+
+
+// EM_DEBUG
+    //std::cout << "PLOTTING VEL MF" << std::endl;
+    // VisMF::Write(*vel_rebase[0],"vel_rebase_in");
+    // VisMF::Write(*vel[0],"vel_in");
+    // //VisMF::Write(*rhnd_rebase[0],"rhcc");
+    // if (rhcc_rebase[0])
+    //   VisMF::Write(*rhcc_rebase[0],"rhcc_in");
+    // else
+    //   Print()<<"No rhcc\n";
     
-    // rhs =
     // calls FillBoundary on vel
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
-std::cout << "WE PLOT PHI_IN AND RHS" << std::endl;
-    //fixme
-    static int count=0;
-       count++;
-      VisMF::Write(rhs[0],"rhs2d");
-      amrex::WriteSingleLevelPlotfile("phi_in"+std::to_string(count), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
-      amrex::WriteSingleLevelPlotfile("RHS"+std::to_string(count), rhs[0], {"rhs"}, mg_geom[0], 0.0, 0);
-    
-    
+
+// EM_DEBUG
+    //static int count=0;
+    //   count++;
+    //  VisMF::Write(rhs[0],"rhs2d_in");
+    //  amrex::WriteSingleLevelPlotfile("phi_in"+std::to_string(count), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+    //  amrex::WriteSingleLevelPlotfile("RHS"+std::to_string(count), rhs[0], {"rhs"}, mg_geom[0], 0.0, 0);
+
+   //mlndlap.setMaxOrder(1);
+   //std::cout << "mlndlap.getMaxOrder " << mlndlap.getMaxOrder() << std::endl;;
+   // 
+   // 
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
@@ -2524,6 +2527,12 @@ std::cout << "WE PLOT PHI_IN AND RHS" << std::endl;
 
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs),
 			       rel_tol, abs_tol);
+
+// EM_DEBUG    
+    //static int count2=0;
+    //   count2++;
+    //        amrex::WriteSingleLevelPlotfile("phi_out"+std::to_string(count2), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+
     
 #ifdef AMREX_USE_EB
     // Update gradP here rather than passing fluxes (like mfix)
@@ -2573,28 +2582,29 @@ fluxes[lev]->setVal(0.);
 			   fluxes[lev]->nGrow());
       }
 
-       static int count=0;
-       count++;
-            amrex::WriteSingleLevelPlotfile("Gp"+std::to_string(count), *Gp[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
-            amrex::WriteSingleLevelPlotfile("Fluxes"+std::to_string(count), *fluxes[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
-//            amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count), *sig[lev+c_lev], {"sigma"}, mg_geom[0], 0.0, 0);
+// EM_DEBUG
+       //static int count3=0;
+       //count3++;
+       //     amrex::WriteSingleLevelPlotfile("Gp"+std::to_string(count3), *Gp[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
+       //     amrex::WriteSingleLevelPlotfile("Fluxes"+std::to_string(count3), *fluxes[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
+//            amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count3), *sig[lev+c_lev], {"sigma"}, mg_geom[0], 0.0, 0);
+
+
     }
     
 #endif
     //fixme
     //amrex::WriteSingleLevelPlotfile("phi", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
-
-       static int count3=0;
-       count3++;
-            amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count3), *sig[0], {"sigma"}, mg_geom[0], 0.0, 0);
-            amrex::WriteSingleLevelPlotfile("phi"+std::to_string(count3), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
-
+// EM_DEBUG
+       //static int count4=0;
+       //count4++;
+       //     amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count4), *sig[0], {"sigma"}, mg_geom[0], 0.0, 0);
 
     if (sync_resid_fine != 0 or sync_resid_crse != 0)
     {
         set_boundary_velocity(c_lev, 1, vel, false);
     }
-
+//std::cout << "SYNC RESID FINE " << sync_resid_fine << " and COARSE " << sync_resid_crse << std::endl;
     if (sync_resid_fine != 0)
     {
         Real rmin, rmax;
@@ -2611,12 +2621,10 @@ fluxes[lev]->setVal(0.);
 
     mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
     
-        static int count2=0;
-       count2++;
-      VisMF::Write(rhs[0],"rhs2d");
-      amrex::WriteSingleLevelPlotfile("phi_out"+std::to_string(count2), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
-      VisMF::Write(*vel_rebase[0],"vel_rebase_out");
-    
+// EM_DEBUG
+      //VisMF::Write(rhs[0],"rhs2d_after_UV");
+      //VisMF::Write(*vel_rebase[0],"vel_rebase_out");
+      //
 }
 
 // Set velocity in ghost cells to zero except for inflow

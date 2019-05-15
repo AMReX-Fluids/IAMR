@@ -1204,7 +1204,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
             amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),lo,hi,dx,xlo);
         }
         // call FillBoundary to make sure that fine/fine grow cells are valid
-	u_mac[n].FillBoundary(geom.periodicity());
+	      u_mac[n].FillBoundary(geom.periodicity());
     }
 }
 
@@ -1291,10 +1291,8 @@ NavierStokesBase::estTimeStep ()
     MultiFab&   U_new         = get_new_data(State_Type);
 
 
-//VisMF::Write(U_new,"U_new_before_estTime");
-
     Real u_max[BL_SPACEDIM] = {0};
-std::cout << "WE CALL HERE ESTTIMESTEP " << cur_pres_time  << std::endl;
+
 #ifdef AMREX_USE_EB
     // Nodal Projection sets EB covered cells to zero, so no need to do it here
     MultiFab& Gp = getGradP();
@@ -1305,11 +1303,12 @@ Gp.FillBoundary(geom.periodicity());
     getGradP(Gp, cur_pres_time);
 #endif
     
-    static int count=0;
-       count++;
-            amrex::WriteSingleLevelPlotfile("Gp_in_estTimeStep"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
-
-    
+// EM_DEBUG    
+    //static int count=0;
+    //   count++;
+    //        amrex::WriteSingleLevelPlotfile("Gp_in_estTimeStep"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+    //
+    //
     
     //FIXME? find a better solution for umax? gcc 5.4, OMP reduction does not take arrays
     Real umax_x=-1.e200,umax_y=-1.e200,umax_z=-1.e200;
@@ -1995,9 +1994,6 @@ NavierStokesBase::level_projector (Real dt,
     MultiFab& P_old = get_old_data(Press_Type);
     MultiFab& P_new = get_new_data(Press_Type);
 
-    VisMF::Write(U_old,"uold_in_levelproj");
-    VisMF::Write(U_new,"unew_in_levelproj");
-
     SyncRegister* crse_ptr = 0;
 
     if (level < parent->finestLevel() && do_sync_proj)
@@ -2311,9 +2307,10 @@ NavierStokesBase::mac_project (Real      time,
 		       << ", time: " << run_time << '\n';
     }
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::mac_project()");
-    
-VisMF::Write(u_mac[0],"umac_macproj_out_x");
-VisMF::Write(u_mac[1],"umac_macproj_out_y");
+
+// EM_DEBUG    
+//VisMF::Write(u_mac[0],"umac_macproj_out_x");
+//VisMF::Write(u_mac[1],"umac_macproj_out_y");
     
 }
 
@@ -3557,12 +3554,13 @@ MultiFab& Gp = *gradp;
 
     //fixme
     //VisMF::Write(Gp,"gradpVA");
-    
-    static int count=0;
-       count++;
-            amrex::WriteSingleLevelPlotfile("Gp_in_VA"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
 
-VisMF::Write(*aofs,"aofs_in_VA");
+// EM_DEBUG    
+//    static int count=0;
+//       count++;
+//            amrex::WriteSingleLevelPlotfile("Gp_in_VA"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
+//
+//VisMF::Write(*aofs,"aofs_in_VA");
     
     
     MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
@@ -3703,8 +3701,7 @@ VisMF::Write(*aofs,"aofs_in_VA");
                 S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
                 tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
             }
-std::cout << "IN velocity_advection before AdvectState, comp = " << comp << std::endl;
-//amrex::Print() << u_mac_fab1;
+
 	    // WARNING: FPU argument is not used because FPU is by default in AdvectState
 	    godunov->AdvectState(bx, dx, dt, 
                                  area[0][U_mfi], u_mac_fab0, cfluxes[0],
@@ -3729,7 +3726,6 @@ std::cout << "IN velocity_advection before AdvectState, comp = " << comp << std:
 
  } //end scope of FillPatchIter
 
- VisMF::Write(*aofs,"aofs_after_AdvectState");
  
     if (do_reflux)
     {
