@@ -368,7 +368,7 @@ MacProj::mac_project (int             level,
     int the_solver = (use_mlmg_solver) ? the_mlmg_solver : 0;
     if (use_cg_solve)
     {
-	the_solver = 1;
+      the_solver = 1;
     }
 
     std::unique_ptr<MacBndry> mac_bndry;
@@ -430,17 +430,20 @@ MacProj::mac_project (int             level,
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
+// EM_DEBUG
+    //static int count1=0;
+    //   count1++;
+    //        amrex::WriteSingleLevelPlotfile("RHS_MACPROJ_in"+std::to_string(count1), Rhs, {"rhs"}, parent->Geom(0), 0.0, 0);
+
 
     //
     // solve
     //
-//#ifdef AMREX_USE_EB
-//    MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
-//    eb_mac_level_solve(parent, cphi, *phys_bc, level, Density,
-//		       mac_tol, mac_abs_tol,
-//		       rhs_scale, area, volume, S, Rhs, u_mac, mac_phi,
-//		       verbose);
-//#else
+#ifdef AMREX_USE_EB
+    MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
+    eb_mac_level_solve(parent, cphi, *phys_bc, level, Density, mac_tol, mac_abs_tol,
+                       rhs_scale, area, volume, S, Rhs, u_mac, mac_phi, verbose);
+#else
     if (the_solver == the_mlmg_solver)
     {
         MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
@@ -453,7 +456,7 @@ MacProj::mac_project (int             level,
                          dx, dt, mac_tol, mac_abs_tol, rhs_scale, 
                          area, volume, S, Rhs, u_mac, mac_phi, verbose);
     }
-//#endif
+#endif
     
 //amrex::Print() << u_mac;
 
@@ -461,7 +464,7 @@ MacProj::mac_project (int             level,
 // EM_DEBUG
     //static int count=0;
     //   count++;
-    //        amrex::WriteSingleLevelPlotfile("RHS_MACPROJ"+std::to_string(count), Rhs, {"rhs"}, parent->Geom(0), 0.0, 0);
+    //        amrex::WriteSingleLevelPlotfile("RHS_MACPROJ_out"+std::to_string(count), Rhs, {"rhs"}, parent->Geom(0), 0.0, 0);
 
 
     Rhs.clear();

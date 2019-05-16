@@ -74,51 +74,51 @@ static void compute_mac_coefficient (std::array<MultiFab,AMREX_SPACEDIM>& bcoefs
     }
 }
 
-//#ifdef AMREX_USE_EB
-//  static void compute_mac_coefficient_eb (std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM>& bcoefs, 
-//					  const MultiFab& rho, int rho_comp, Real scale)
-//{
-//  BL_PROFILE("MacProjection::compute_mac_coefficient_eb");
-//  
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
-//    for (MFIter mfi(rho,true); mfi.isValid(); ++mfi)
-//    {
-//      // Boxes for staggered components
-//      AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
-//		   const Box& ybx = mfi.nodaltilebox(1);,
-//		   const Box& zbx = mfi.nodaltilebox(2););
-//      
-//      // this is to check efficiently if this tile contains any eb stuff
-//      // need cc fab with ebfactory...
-//      const EBFArrayBox&  ffab = static_cast<EBFArrayBox const&>(rho[mfi]);
-//      const EBCellFlagFab&  flags = ffab.getEBCellFlagFab();
-//
-//      if (flags.getType(amrex::grow(mfi.tilebox(),0)) == FabType::covered )
-//      {
-//	D_TERM(bcoefs[0]->setVal( 1.2345e300, xbx, 0, 1);,
-//	       bcoefs[1]->setVal( 1.2345e300, ybx, 0, 1);,
-//	       bcoefs[2]->setVal( 1.2345e300, zbx, 0, 1));
-//      }
-//      else
-//      {
-//          iamr_mac_coef(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
-//				     BL_TO_FORTRAN_BOX(ybx),
-//				     BL_TO_FORTRAN_BOX(zbx)),
-//			AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*(bcoefs[0]))[mfi]),
-//				     BL_TO_FORTRAN_ANYD((*(bcoefs[1]))[mfi]),
-//				     BL_TO_FORTRAN_ANYD((*(bcoefs[2]))[mfi])),
-//			BL_TO_FORTRAN_N_ANYD(rho[mfi],rho_comp),
-//			&scale);
-//      }
-//    }
-//    //fixme
-//    // VisMF::Write(*(bcoefs[0]),"bx");
-//    // VisMF::Write(*(bcoefs[1]),"by");
-//    // VisMF::Write(*(bcoefs[2]),"bz");
-//}
-//#endif
+#ifdef AMREX_USE_EB
+  static void compute_mac_coefficient_eb (std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM>& bcoefs, 
+					  const MultiFab& rho, int rho_comp, Real scale)
+{
+  BL_PROFILE("MacProjection::compute_mac_coefficient_eb");
+  
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(rho,true); mfi.isValid(); ++mfi)
+    {
+      // Boxes for staggered components
+      AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+		   const Box& ybx = mfi.nodaltilebox(1);,
+		   const Box& zbx = mfi.nodaltilebox(2););
+      
+      // this is to check efficiently if this tile contains any eb stuff
+      // need cc fab with ebfactory...
+      const EBFArrayBox&  ffab = static_cast<EBFArrayBox const&>(rho[mfi]);
+      const EBCellFlagFab&  flags = ffab.getEBCellFlagFab();
+
+      if (flags.getType(amrex::grow(mfi.tilebox(),0)) == FabType::covered )
+      {
+	D_TERM(bcoefs[0]->setVal( 1.2345e300, xbx, 0, 1);,
+	       bcoefs[1]->setVal( 1.2345e300, ybx, 0, 1);,
+	       bcoefs[2]->setVal( 1.2345e300, zbx, 0, 1));
+      }
+      else
+      {
+          iamr_mac_coef(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
+				     BL_TO_FORTRAN_BOX(ybx),
+				     BL_TO_FORTRAN_BOX(zbx)),
+			AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*(bcoefs[0]))[mfi]),
+				     BL_TO_FORTRAN_ANYD((*(bcoefs[1]))[mfi]),
+				     BL_TO_FORTRAN_ANYD((*(bcoefs[2]))[mfi])),
+			BL_TO_FORTRAN_N_ANYD(rho[mfi],rho_comp),
+			&scale);
+      }
+    }
+    //fixme
+    // VisMF::Write(*(bcoefs[0]),"bx");
+    // VisMF::Write(*(bcoefs[1]),"by");
+    // VisMF::Write(*(bcoefs[2]),"bz");
+}
+#endif
   
 static void compute_mac_rhs (MultiFab& rhs, const MultiFab* umac,
                              const MultiFab* area, const MultiFab& volume, const Real* dxinv)
@@ -291,131 +291,132 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 }
 
 //
-// EB funcitons
+// EB functions
 //
-//#ifdef AMREX_USE_EB
-//void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
-//				  const BCRec& phys_bc,
-//			 int level, int Density,
-//			 Real mac_tol, Real mac_abs_tol, Real rhs_scale,
-//			 const MultiFab *area, const MultiFab &volume,
-//			 const MultiFab &S, MultiFab &Rhs,
-//			 MultiFab *u_mac, MultiFab *mac_phi, int verbose)
-//{
-//    if (!initialized) 
-//    {
-//        ParmParse ppmacop("macop");
-//        ppmacop.query("max_order", max_order);
-//        
-//        ParmParse ppmac("mac");
-//        ppmac.query("agglomeration", agglomeration);
-//        ppmac.query("consolidation", consolidation);
-//        ppmac.query("max_fmg_iter", max_fmg_iter);
-//#ifdef AMREX_USE_HYPRE
-//        ppmac.query("use_hypre", use_hypre);
-//        ppmac.query("hypre_verbose", hypre_verbose);
-//#endif
-// 
-//        initialized = true;
-//    }
-//    
-//    const Geometry& geom = parent->Geom(level);
-//    const BoxArray& ba = Rhs.boxArray();
-//    const DistributionMapping& dm = Rhs.DistributionMap();
-//
-//    //
-//    // Set up b coef
-//    // no need to set A coef because it's zero     
-//    //
-//    Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM>> bcoefs;
-//    bcoefs.resize(1);
-//    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-//    {
-//        const BoxArray& nba =
-//	  amrex::convert(ba,IntVect::TheDimensionVector(idim));
-//        bcoefs[0][idim].reset(new  MultiFab(nba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory()));
-//    }
-//    // set to huge val if covered, do normal geometric average otherwise
-//    compute_mac_coefficient_eb(bcoefs[0], S, Density, 1.0/rhs_scale);
-//    // make sure BCs are filled
-//    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-//      bcoefs[0][idim]->FillBoundary( geom.periodicity() );
-//    
-//    // create right containers for MacProjector
-//    Vector<Array<MultiFab*,AMREX_SPACEDIM>>  a_umac;
-//    a_umac.resize(1);
-//    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-//      a_umac[0][idim]= &(u_mac[idim]);
-//
-//    //
-//    // Create MacProjection object
-//    // make sure u_mac already has bndry properly filled
-//    MacProjector macproj( a_umac, GetVecOfArrOfPtrsConst(bcoefs), {geom});
-//    //
-//    // Need to figure out how to access some switches now buried in
-//    //   amrex::MacProjector
-//    //   MacProjector owns MLLinOp* m_linop
-//    //   linop owns LPInfo info
-//    //   MacProjector owns MLEBABecLap m_eb_abeclap
-//    
-//    // LPInfo info;
-//    // info.setAgglomeration(agglomeration);
-//    // info.setConsolidation(consolidation);
-//
-//    // MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
-//    //mlabec.setMaxOrder(max_order);
-//
-//    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
-//    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
-//    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
-//
-//    macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
-//    // if (level > 0) {
-//    //     mlabec.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
-//    // }
-//    // mlabec.setLevelBC(0, mac_phi);
-//    macproj.setVerbose(verbose);
-//    
-//    if (use_hypre) {
-//      macproj.setBottomSolver(MLMG::BottomSolver::hypre);
-//      //macproj.getMLMG().setBottomVerbose(hypre_verbose);
-//      macproj.setVerbose(hypre_verbose);
-//    }
-//    // macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
-//    // macproj.getMLMG().setVerbose(verbose);
-//
-//    // not 100% sure whether to give initial guess or not
-//    bool steady_state=false;
-//    if (steady_state)
-//    {
-//      // Solve using m_phi as an initial guess
-//      macproj.project({mac_phi}, mac_tol,mac_abs_tol);
-//    } 
-//    else 
-//    {
-//      // Solve with initial guess of zero
-//      macproj.project(mac_tol,mac_abs_tol);
-//    }
-//
-//    // set mac velocity bcs here?
-//    for (int i=0; i<BL_SPACEDIM; ++i)
-//      u_mac[i].FillBoundary(geom.periodicity());
-//
-//    // FIXME Get this working
-//    if (verbose)
-//    {
-//      MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
-//      EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac[0]),geom);
-//      
-//      MultiFab tmp(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
-//      MultiFab::Copy( tmp, divu, 0, 0, 1, 0 );
-//      EB_set_covered( tmp, 0.0 );
-//
-//      Print() << "  * On level "<< level
-//    	      << " max(abs(divu)) = " << divu.norm0() << "\n";
-//    } 
-//
-//}
-//
-//
-//#endif
+#ifdef AMREX_USE_EB
+void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
+				  const BCRec& phys_bc,
+			 int level, int Density,
+			 Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+			 const MultiFab *area, const MultiFab &volume,
+			 const MultiFab &S, MultiFab &Rhs,
+			 MultiFab *u_mac, MultiFab *mac_phi, int verbose)
+{
+    if (!initialized) 
+    {
+        ParmParse ppmacop("macop");
+        ppmacop.query("max_order", max_order);
+        
+        ParmParse ppmac("mac");
+        ppmac.query("agglomeration", agglomeration);
+        ppmac.query("consolidation", consolidation);
+        ppmac.query("max_fmg_iter", max_fmg_iter);
+#ifdef AMREX_USE_HYPRE
+        ppmac.query("use_hypre", use_hypre);
+        ppmac.query("hypre_verbose", hypre_verbose);
+#endif
+ 
+        initialized = true;
+    }
+    
+    const Geometry& geom = parent->Geom(level);
+    const BoxArray& ba = Rhs.boxArray();
+    const DistributionMapping& dm = Rhs.DistributionMap();
+
+    //
+    // Set up b coef
+    // no need to set A coef because it's zero     
+    //
+    Vector<Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM>> bcoefs;
+    bcoefs.resize(1);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        const BoxArray& nba =
+	  amrex::convert(ba,IntVect::TheDimensionVector(idim));
+        bcoefs[0][idim].reset(new  MultiFab(nba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory()));
+    }
+    // set to huge val if covered, do normal geometric average otherwise
+    compute_mac_coefficient_eb(bcoefs[0], S, Density, 1.0/rhs_scale);
+    // make sure BCs are filled
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      bcoefs[0][idim]->FillBoundary( geom.periodicity() );
+    
+    // create right containers for MacProjector
+    Vector<Array<MultiFab*,AMREX_SPACEDIM>>  a_umac;
+    a_umac.resize(1);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      a_umac[0][idim]= &(u_mac[idim]);
+
+    //
+    // Create MacProjection object
+    // make sure u_mac already has bndry properly filled
+
+    MacProjector macproj( a_umac, GetVecOfArrOfPtrsConst(bcoefs), {geom}, {&Rhs}); 
+    //
+    // Need to figure out how to access some switches now buried in
+    //   amrex::MacProjector
+    //   MacProjector owns MLLinOp* m_linop
+    //   linop owns LPInfo info
+    //   MacProjector owns MLEBABecLap m_eb_abeclap
+    
+    // LPInfo info;
+    // info.setAgglomeration(agglomeration);
+    // info.setConsolidation(consolidation);
+
+    // MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
+    //mlabec.setMaxOrder(max_order);
+
+    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
+    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
+
+    macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
+    // if (level > 0) {
+    //     mlabec.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
+    // }
+    // mlabec.setLevelBC(0, mac_phi);
+    macproj.setVerbose(verbose);
+    
+    if (use_hypre) {
+      macproj.setBottomSolver(MLMG::BottomSolver::hypre);
+      //macproj.getMLMG().setBottomVerbose(hypre_verbose);
+      macproj.setVerbose(hypre_verbose);
+    }
+    // macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
+    // macproj.getMLMG().setVerbose(verbose);
+
+    // not 100% sure whether to give initial guess or not
+    bool steady_state=false;
+    if (steady_state)
+    {
+      // Solve using m_phi as an initial guess
+      macproj.project({mac_phi}, mac_tol,mac_abs_tol);
+    } 
+    else 
+    {
+      // Solve with initial guess of zero
+      macproj.project(mac_tol,mac_abs_tol);
+    }
+
+    // set mac velocity bcs here?
+    for (int i=0; i<BL_SPACEDIM; ++i)
+      u_mac[i].FillBoundary(geom.periodicity());
+
+    // FIXME Get this working
+    if (verbose)
+    {
+      MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
+      EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac[0]),geom);
+      
+      MultiFab tmp(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
+      MultiFab::Copy( tmp, divu, 0, 0, 1, 0 );
+      EB_set_covered( tmp, 0.0 );
+
+      Print() << "  * On level "<< level
+    	      << " max(abs(divu)) = " << divu.norm0() << "\n";
+    } 
+
+}
+
+
+#endif

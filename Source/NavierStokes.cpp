@@ -578,7 +578,7 @@ NavierStokes::predict_velocity (Real  dt,
 //FIXME
 // VisMF::Write(u_mac[0], "umacx");
 // VisMF::Write(u_mac[1], "umacy");
-// VisMF::Write(u_mac[2], "umacz"));
+// VisMF::Write(u_mac[2], "umacz");
 
    Real tempdt = std::min(change_max,cfl/cflmax);
    // Don't we need to reduce comp_cfl here too?

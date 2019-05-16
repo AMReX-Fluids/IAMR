@@ -2293,6 +2293,10 @@ NavierStokesBase::mac_project (Real      time,
 
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,increment_vel_register);
 
+    // EM_DEBUG    
+//VisMF::Write(u_mac[0],"umac_macproj_out_x");
+//VisMF::Write(u_mac[1],"umac_macproj_out_y");
+    
     create_umac_grown(ngrow);
 
     if (verbose)
@@ -2308,9 +2312,7 @@ NavierStokesBase::mac_project (Real      time,
     }
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::mac_project()");
 
-// EM_DEBUG    
-//VisMF::Write(u_mac[0],"umac_macproj_out_x");
-//VisMF::Write(u_mac[1],"umac_macproj_out_y");
+
     
 }
 
