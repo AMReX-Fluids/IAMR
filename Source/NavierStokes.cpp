@@ -16,6 +16,7 @@
 #include <NAVIERSTOKES_F.H>
 #include <AMReX_BLProfiler.H>
 #include <PROB_NS_F.H>
+#include <NS_util.H>
 
 #ifdef BL_USE_VELOCITY
 #include <AMReX_DataServices.H>
@@ -283,8 +284,7 @@ NavierStokes::advance (Real time,
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
-    Real dummy   = 0.0;
-    Real dt_test = predict_velocity(dt,dummy);
+    Real dt_test = predict_velocity(dt);
     //
     // Do MAC projection and update edge velocities.
     //
@@ -394,8 +394,7 @@ NavierStokes::advance (Real time,
 //
 
 Real
-NavierStokes::predict_velocity (Real  dt,
-                                Real& comp_cfl)
+NavierStokes::predict_velocity (Real  dt)
 {
     BL_PROFILE("NavierStokes::predict_velocity()");
 
@@ -425,45 +424,42 @@ NavierStokes::predict_velocity (Real  dt,
     }
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-
     getGradP(Gp, prev_pres_time);
     
-
-    FillPatchIterator
-      U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+    FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
 
 #ifdef BOUSSINESQ
-    FillPatchIterator
-      S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
+    FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
     MultiFab& Smf=S_fpi.get_mf();
 #else
 #ifdef MOREGENGETFORCE
-     FillPatchIterator
-       S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-      MultiFab& Smf=S_fpi.get_mf();
+    FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+    MultiFab& Smf=S_fpi.get_mf();
 #endif
 #endif
 
     //
-    // Set up the timestep estimation.
+    // Compute "grid cfl number" based on cell-centered time-n velocities
     //
-    Real cflmax = 1.0e-10;
-    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
-    // seems both IAMR and Pele only use a dummy comp_cfl, so should
-    // we not bother to do the reduction??? Does amrex use it?
+    auto umax = VectorMaxAbs({&Umf},FabArrayBase::mfiter_tile_size,0,BL_SPACEDIM,Umf.nGrow());
+    Real cflmax = dt*umax[0]/dx[0];
+    for (int d=1; d<BL_SPACEDIM; ++d) {
+      cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
+    }
+    Real tempdt = std::min(change_max,cfl/cflmax);
+
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:cflmax,comp_cfl)
+#pragma omp parallel
 #endif
-{
-     Real cflgrid,u_max[3];
-     FArrayBox tforces;
-     Vector<int> bndry[BL_SPACEDIM];
+    {
+      FArrayBox tforces;
+      Vector<int> bndry[BL_SPACEDIM];
 
-     for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-     {
-       Box bx=U_mfi.tilebox();
-       FArrayBox& Ufab = Umf[U_mfi];
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      {
+        Box bx=U_mfi.tilebox();
+        FArrayBox& Ufab = Umf[U_mfi];
 
 #ifdef BOUSSINESQ
         getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
@@ -471,22 +467,14 @@ NavierStokes::predict_velocity (Real  dt,
 #ifdef GENGETFORCE
         getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
-	if (getForceVerbose) {
-	  amrex::Print() << "---" << '\n' 
-			 << "A - Predict velocity:" << '\n'
-			 << " Calling getForce..." << '\n';
-	}
+        if (getForceVerbose) {
+          Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
+        }
         getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 #else
-	getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
-        //
-        // Test velocities, rho and cfl.
-        //
-        cflgrid  = godunov->test_u_rho(Ufab,rho_ptime[U_mfi],bx,dx,dt,u_max);
-        cflmax   = std::max(cflgrid,cflmax);
-        comp_cfl = std::max(cflgrid,comp_cfl);
         //
         // Compute the total forcing.
         //
@@ -500,13 +488,8 @@ NavierStokes::predict_velocity (Real  dt,
                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                   Ufab, tforces);
+      }
     }
-}
-
-    Real tempdt = std::min(change_max,cfl/cflmax);
-    // Don't we need to reduce comp_cfl here too?
-    // Skipping it because it's a dummy?
-    ParallelDescriptor::ReduceRealMin(tempdt);
 
     return dt*tempdt;
 }

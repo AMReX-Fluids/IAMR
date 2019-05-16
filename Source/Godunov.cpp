@@ -585,43 +585,6 @@ Godunov::maxchng_velmag (FArrayBox&  U_old,
 }
 
 //
-// Estimate the extrema of cell-centered us and rho.
-//
-
-Real
-Godunov::test_u_rho (FArrayBox&  U,
-                     FArrayBox&  rho, 
-                     const Box&  grd,
-                     const Real* dx,
-                     const Real  dt,
-                     const Real* u_max)
-{
-    BL_ASSERT(U.nComp()   >= BL_SPACEDIM);
-    BL_ASSERT(rho.nComp() == 1          );
-    
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
-    const int *vlo = U.loVect();
-    const int *vhi = U.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    const Real *rh = rho.dataPtr();
-    D_TERM(const Real *u  = U.dataPtr(XVEL);,
-           const Real *v  = U.dataPtr(YVEL);,
-           const Real *w  = U.dataPtr(ZVEL););
-
-    Real cflmax = 0;
-    fort_test_u_rho(u,  ARLIM(vlo), ARLIM(vhi),
-                    v,  ARLIM(vlo), ARLIM(vhi),
-#if (BL_SPACEDIM == 3)                          
-                    w,  ARLIM(vlo), ARLIM(vhi),
-#endif
-                    rh, ARLIM(rlo), ARLIM(rhi),
-                    lo, hi, &dt, dx, &cflmax, u_max, &verbose);
-    return cflmax;
-}
-
-//
 // Estimate the extrema of umac edge velocities and rho.
 //
 

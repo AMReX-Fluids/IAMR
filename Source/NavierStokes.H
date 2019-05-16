@@ -192,10 +192,10 @@ private:
 			  amrex::Vector<int>&  nc_save,
 			  amrex::Vector<amrex::Real>& dt_save);
     //
-    // Compute divergent mac velocities, estimate best timestep
-    // from t^n data, and compile cfl number.
+    // Predict face velocities (before projection), estimate current cfl
+    // from t^n cell-centered velocities (plus cfl and change_max)
     //
-    amrex::Real predict_velocity (amrex::Real dt, amrex::Real& comp_cfl);
+    amrex::Real predict_velocity (amrex::Real dt);
     //
     // Advect scalars.
     //
