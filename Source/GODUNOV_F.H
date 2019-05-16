@@ -10,16 +10,6 @@
 extern "C"
 {
 #endif
-   void fort_test_u_rho(const amrex::Real* u,  ARLIM_P(vlo), ARLIM_P(vhi),
-			const amrex::Real* v,  ARLIM_P(vlo), ARLIM_P(vhi),
-#if (BL_SPACEDIM == 3)                          
-			const amrex::Real* w,  ARLIM_P(vlo), ARLIM_P(vhi),
-#endif
-			const amrex::Real* rh, ARLIM_P(rlo), ARLIM_P(rhi),
-			const int* lo, const int* hi, const amrex::Real* dt, 
-			const amrex::Real* dx, amrex::Real* cflmax, 
-			const amrex::Real* u_max, int* verbose);
-   
    void fort_test_umac_rho(const amrex::Real* um, ARLIM_P(ulo), ARLIM_P(uhi),
 			   const amrex::Real* vm, ARLIM_P(vlo), ARLIM_P(vhi),
 #if (BL_SPACEDIM == 3)                            

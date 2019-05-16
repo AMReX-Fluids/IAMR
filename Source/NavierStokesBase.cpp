@@ -1068,10 +1068,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // This DM won't be put into the cache.
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
-            MultiFab crse_src, fine_src;
-
-            crse_src.define(crse_src_ba, dm, 1, 0);
-            fine_src.define(fine_src_ba, dm, 1, 0);
+            MultiFab crse_src(crse_src_ba, dm, 1, 0);
+            MultiFab fine_src(fine_src_ba, dm, 1, 0);
 
             crse_src.setVal(1.e200);
             fine_src.setVal(1.e200);
