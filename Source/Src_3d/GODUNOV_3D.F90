@@ -1261,7 +1261,38 @@ contains
          corner_couple, &
          bc, dt, dx, n, nc, velpred, use_minion, ppm_type)
          
-
+      ! Here is what this routine does
+      ! 1. Trace values of state from cell-centers to faces using cell-centered velocities
+      !     and excluding transverse corrections.  This produces data in xlo,xho.  Enforce
+      !     boundary conditions on faces, then resolve the upwind value from xlo,xhi using
+      !     uad and put this into xedge.  If uad is small, xedge=(xlo+xhi)/2
+      ! 1a. Repeat for yedge and zedge
+      ! 2A. If "new" corner coupling
+      !    xylo = xlo - dt/3 * vad_avg * grady(state)
+      !       where vad_avg = (vad_{j} + vad_{j+1})/2, and grady is gradient in y using yedge values
+      !    xyhi = xhi - dt/3 * vad_avg * grady(state)
+      !    Apply BCs
+      !    Upwind with uad, answer into xylo
+      !    Do the same with xzlo, xzhi based on wad, apply BCs, and upwind into xzlo
+      !    Repeat the other way...that is yxlo = ylo - dt/3 * uad_avg * gradx(state), etc, and zx, zy
+      !
+      !    Now, compute stxlo,stxhi as traced states with transverse corrections computed using
+      !       the mixed terms computed above, and the corresponding ad velocities
+      !    
+      !    Finally, result xstate is upwinded between stxlo,stxhi using UFACE, where
+      !      if velpred!=1:
+      !          UFACE = uedge
+      !      else
+      !          UFACE = stxlo + stxhi
+      ! 2B. As in 2A, but no corner corrections. The transverse terms are simple extensions
+      !       to 2D form, with one twist....
+      !      vbar = (vad_{j} + vad_{j+1})/2
+      !      if (vbar < 0)
+      !         grady = (s_{j+1} - s_{j})/dy
+      !      else
+      !         grady = (s_{j} - s_{j-1})/dy
+      !      Then corresponding transverse correction is - vbar*grady*dt/2
+      !
       implicit none
 
       integer, intent(in) :: velpred, use_minion, ppm_type, bc(SDIM,2), n, nc
