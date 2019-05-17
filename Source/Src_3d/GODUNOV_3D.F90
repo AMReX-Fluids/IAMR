@@ -224,7 +224,7 @@ contains
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
          xedge,wklo,wkhi,&
-         umac,umac_lo,umac_hi,&
+         uad,uwlo,uwhi,& ! Unused uedge since velpred = 1
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
@@ -235,7 +235,7 @@ contains
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
          yedge,wklo,wkhi,&
-         vmac,vmac_lo,vmac_hi,&
+         vad,vwlo,vwhi,& ! Unused uedge since velpred = 1
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
@@ -246,7 +246,7 @@ contains
          sz,wklo,wkhi,&
          wad,wwlo,wwhi,&
          zedge,wklo,wkhi,&
-         wmac,wmac_lo,wmac_hi,&
+         wad,wwlo,wwhi,& ! Unused uedge since velpred = 1
          wmac,wmac_lo,wmac_hi,&
          Imz,wklo,wkhi,&
          Ipz,wklo,wkhi,&
@@ -279,7 +279,7 @@ contains
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
          xedge,wklo,wkhi,&
-         umac,umac_lo,umac_hi,&
+         uad,uwlo,uwhi,& ! Unused uedge since velpred = 1
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
@@ -290,7 +290,7 @@ contains
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
          yedge,wklo,wkhi,&
-         vmac,vmac_lo,vmac_hi,&
+         vad,vwlo,vwhi,& ! Unused uedge since velpred = 1
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
@@ -301,7 +301,7 @@ contains
          sz,wklo,wkhi,&
          wad,wwlo,wwhi,&
          zedge,wklo,wkhi,&
-         wmac,wmac_lo,wmac_hi,&
+         wad,wwlo,wwhi,& ! Unused uedge since velpred = 1
          wmac,wmac_lo,wmac_hi,&
          Imz,wklo,wkhi,&
          Ipz,wklo,wkhi,&
@@ -334,7 +334,7 @@ contains
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
          xedge,wklo,wkhi,&
-         umac,umac_lo,umac_hi,&
+         uad,uwlo,uwhi,& ! Unused uedge since velpred = 1
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
@@ -345,7 +345,7 @@ contains
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
          yedge,wklo,wkhi,&
-         vmac,vmac_lo,vmac_hi,&
+         vad,vwlo,vwhi,& ! Unused uedge since velpred = 1
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
@@ -356,7 +356,7 @@ contains
          sz,wklo,wkhi,&
          wad,wwlo,wwhi,&
          zedge,wklo,wkhi,&
-         wmac,wmac_lo,wmac_hi,&
+         wad,wwlo,wwhi,& ! Unused uedge since velpred = 1
          wmac,wmac_lo,wmac_hi,&
          Imz,wklo,wkhi,&
          Ipz,wklo,wkhi,&
