@@ -141,8 +141,8 @@ NavierStokes::initData ()
 
     if (!velocity_plotfile.empty())
     {
-        amrex::Print() << "initData: reading data from: " << velocity_plotfile << " (" 
-		       << velocity_plotfile_xvel_name << ")" << '\n';
+        Print() << "initData: reading data from: " << velocity_plotfile << " (" 
+                << velocity_plotfile_xvel_name << ")" << '\n';
 
         DataServices::SetBatchMode();
         Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -162,9 +162,9 @@ NavierStokes::initData ()
             if (plotnames[i] == velocity_plotfile_xvel_name) idX = i;
 
         if (idX == -1)
-	  amrex::Abort("Could not find velocity fields in supplied velocity_plotfile");
+	  Abort("Could not find velocity fields in supplied velocity_plotfile");
 	else
-	  amrex::Print() << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
+	  Print() << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
 
         MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -184,7 +184,7 @@ NavierStokes::initData ()
 	    amrData.FlushGrids(idX+i);
         }
 
-	amrex::Print() << "initData: finished init from velocity_plotfile" << '\n';
+	Print() << "initData: finished init from velocity_plotfile" << '\n';
     }
 #endif /*BL_USE_VELOCITY*/
 
@@ -276,7 +276,7 @@ NavierStokes::advance (Real time,
     BL_PROFILE("NavierStokes::advance()");
 
     if (verbose) {
-      amrex::Print() << "Advancing grids at level " << level
+      Print() << "Advancing grids at level " << level
 		     << " : starting time = "       << time
 		     << " with dt = "               << dt << '\n';
     }
@@ -327,7 +327,7 @@ NavierStokes::advance (Real time,
 	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
         {
 	    int iScal = first_scalar+scalarUpdateOrder[iComp];
-	    amrex::Print() << "... ... updating " << desc_lst[0].name(iScal) << '\n';
+	    Print() << "... ... updating " << desc_lst[0].name(iScal) << '\n';
 	    scalar_update(dt,iScal,iScal);
 	}
     }
@@ -398,7 +398,7 @@ NavierStokes::predict_velocity (Real  dt)
 {
     BL_PROFILE("NavierStokes::predict_velocity()");
 
-    if (verbose) amrex::Print() << "... predict edge velocities\n";
+    if (verbose) Print() << "... predict edge velocities\n";
     //
     // Get simulation parameters.
     //
@@ -505,7 +505,7 @@ NavierStokes::scalar_advection (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_advection()");
 
-    if (verbose) amrex::Print() << "... advect scalars\n";
+    if (verbose) Print() << "... advect scalars\n";
     //
     // Get simulation parameters.
     //
@@ -574,7 +574,7 @@ NavierStokes::scalar_advection (Real dt,
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[S_mfi]);
 #elif MOREGENGETFORCE
 	      if (getForceVerbose) {
-	        amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+	        Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
 			    << " Calling getForce..." << '\n';
 	      }
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
@@ -585,7 +585,7 @@ NavierStokes::scalar_advection (Real dt,
 
         for (int d=0; d<BL_SPACEDIM; ++d)
         {
-          const Box& ebx = amrex::surroundingNodes(bx,d);
+          const Box& ebx = surroundingNodes(bx,d);
           cfluxes[d].resize(ebx,num_scalars);
           edgstate[d].resize(ebx,num_scalars);
         }
@@ -653,7 +653,7 @@ NavierStokes::scalar_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_update()");
 
-    if (verbose) amrex::Print() << "... update scalars\n";
+    if (verbose) Print() << "... update scalars\n";
 
     scalar_advection_update(dt, first_scalar, last_scalar);
 
@@ -669,7 +669,7 @@ NavierStokes::scalar_update (Real dt,
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-	 amrex::Print() << "New scalar " << sigma << " contains Nans" << '\n';
+	 Print() << "New scalar " << sigma << " contains Nans" << '\n';
 	 exit(0);
        }
     }
@@ -809,7 +809,7 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "NavierStokes:velocity_diffusion_update(): lev: " << level
+	Print() << "NavierStokes:velocity_diffusion_update(): lev: " << level
 		       << ", time: " << run_time << '\n';
     }
 }
@@ -949,19 +949,19 @@ NavierStokes::sum_integrated_quantities ()
 #endif
     }
 
-    amrex::Print() << '\n';
-    // amrex::Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
-    // amrex::Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';
+    Print() << '\n';
+    // Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
+    // Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';
 #if (BL_SPACEDIM==3)
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     //NOTE: FORCING_T gives only the energy being injected by the forcing
     //      term used for generating turbulence in probtype 14, 15.
     //      Defaults to 0 for other probtypes.
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
 #endif
 #endif
 }
@@ -1020,7 +1020,7 @@ NavierStokes::writePlotFile (const std::string& dir,
         os << thePlotFileType() << '\n';
 
         if (n_data_items == 0)
-            amrex::Error("Must specify at least one valid data item to plot");
+            Error("Must specify at least one valid data item to plot");
 
         os << n_data_items << '\n';
 
@@ -1158,7 +1158,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string LevelStr = amrex::Concatenate("Level_", level, 1);
+    std::string LevelStr = Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -1170,8 +1170,8 @@ NavierStokes::writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!amrex::UtilCreateDirectory(FullPath, 0755))
-            amrex::CreateDirectoryFailed(FullPath);
+        if (!UtilCreateDirectory(FullPath, 0755))
+            CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -1776,7 +1776,7 @@ NavierStokes::avgDown (int comp)
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
-    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+    average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
                          comp, 1, fine_ratio);
 
     if (comp == Density) 
@@ -1807,7 +1807,7 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+    average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
                          0, S_crse.nComp(), fine_ratio);
 
     //   
@@ -1842,7 +1842,7 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        amrex::average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
+        average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
                              0, 1, fine_ratio);
     }
     if (have_dsdt)
@@ -1850,7 +1850,7 @@ NavierStokes::avgDown ()
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        amrex::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
+        average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
                              0, 1, fine_ratio);
     }
     //
@@ -1951,8 +1951,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 #ifdef AMREX_DEBUG
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
-      amrex::Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
-      amrex::Error("must call NavierStokes::getViscTerms with all three velocity components");
+      Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
+      Error("must call NavierStokes::getViscTerms with all three velocity components");
     }
 #endif
     // 
@@ -2101,7 +2101,7 @@ NavierStokes::calcViscosity (const Real time,
         }
         else
         {
-            amrex::Abort("NavierStokes::calcViscosity() : must have velocity visc_coef >= 0.0");
+            Abort("NavierStokes::calcViscosity() : must have velocity visc_coef >= 0.0");
         }
     }
 }
@@ -2152,7 +2152,7 @@ NavierStokes::calcDiffusivity (const Real time)
             }
             else
             {
-                amrex::Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
+                Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
             }
         }
     }
@@ -2268,7 +2268,7 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
     // Miscellanious checks
     //
     BL_ASSERT(!(ixt.cellCentered()) && !(ixt.nodeCentered()));
-    BL_ASSERT(amrex::grow(ccbox,-amrex::BASISV(dir)).contains(amrex::enclosedCells(bx)));
+    BL_ASSERT(grow(ccbox,-BASISV(dir)).contains(enclosedCells(bx)));
     BL_ASSERT(sComp+nComp <= ccfab.nComp() && dComp+nComp <= ecfab.nComp());
 
     //
