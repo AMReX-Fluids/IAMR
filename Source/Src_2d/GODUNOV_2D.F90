@@ -772,6 +772,21 @@ contains
          sp,sp_lo,sp_hi,&
          bc, dt, dx, n, nc, velpred, use_minion, ppm_type)
 
+      ! Here is what this routine does
+      ! 1. Trace values of state from cell-centers to faces using cell-centered velocities
+      !     and excluding transverse corrections.  This produces data in xlo,xho.  Enforce
+      !     boundary conditions on faces, then resolve the upwind value from xlo,xhi using
+      !     uad and put this into xlo.  If uad is small, xlo=(xlo+xhi)/2
+      ! 1a. Repeat for ylo
+      ! 2. The transverse correction is - vbar * grady, where vbar=(vad_{j+1}+vad_{j})/2
+      !      and grady is computed with the ylo values.  Results into stxlo,stxhi, and
+      !      upwinded into xstate using UFACE, where 
+      !      if velpred!=1:
+      !          UFACE = uedge
+      !      else
+      !          UFACE = stxlo + stxhi
+      ! 2a. Repeat for transverse corrections to get stylo,styhi, and resolve into ystate
+      !
       implicit none
 
       integer, intent(in) :: velpred, use_minion, ppm_type, bc(SDIM,2), n, nc
