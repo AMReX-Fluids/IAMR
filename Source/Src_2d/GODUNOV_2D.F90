@@ -158,7 +158,7 @@ contains
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
-         umac,umac_lo,umac_hi,&
+         uad,uwlo,uwhi,&  ! Unused since velpred = 1
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
@@ -168,7 +168,7 @@ contains
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
-         vmac,vmac_lo,vmac_hi,&
+         vad,vwlo,vwhi,&  ! Unused since velpred = 1
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
@@ -187,7 +187,7 @@ contains
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
-         umac,umac_lo,umac_hi,&
+         uad,uwlo,uwhi,& ! Unused since velpred = 1
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
@@ -197,7 +197,7 @@ contains
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
-         vmac,vmac_lo,vmac_hi,&
+         vad,vwlo,vwhi,& ! Unused since velpred = 1
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
