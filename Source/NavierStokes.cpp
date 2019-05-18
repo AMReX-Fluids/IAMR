@@ -293,7 +293,7 @@ NavierStokes::advance (Real time,
         MultiFab mac_rhs(grids,dmap,1,0);
         create_mac_rhs(mac_rhs,0,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
-        mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
+        mac_project(time,dt,S_old,&mac_rhs,,umac_n_grow,true);
     }
     //
     // Advect velocities.

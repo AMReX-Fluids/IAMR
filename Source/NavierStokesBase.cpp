@@ -2216,7 +2216,6 @@ NavierStokesBase::mac_project (Real      time,
 			       Real      dt,
 			       MultiFab& Sold, 
 			       MultiFab* divu,
-			       int       have_divu,
 			       int       ngrow,
 			       bool      increment_vel_register)
 {
