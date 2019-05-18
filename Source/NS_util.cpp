@@ -1,5 +1,6 @@
 #include <NS_util.H>
 
+#include <limits>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -10,236 +11,181 @@ namespace amrex {
   Useful functions to get min, max and maxabs vectors over a range of components in a vector of MultiFabs,
   and to do so with a single reduction call. Note: these are extremely messy.  There is probably a nicer
   way to do this...maybe someone will volunteer to make these better?
- */
+*/
   
-Vector<Real>
-VectorMax(const Vector<const MultiFab *>& mfs,
-          const IntVect&                  tilesize,
-          int                             sComp,
-          int                             nComp,
-          int                             nGrow)
-{
-  int nThreads = 1;
-#ifdef _OPENMP
-#pragma omp parallel
-  nThreads = omp_get_num_threads();
-#endif
 
-  Vector<Vector<Real>> gMax(nComp,Vector<Real>(nThreads,-1));
-  Vector<Vector<int>> first(nComp,Vector<int>(nThreads,1)); // A flag per thread/comp to avoid initializing with an arbitrary number
+// User-defined reductions in OpenMP:
+//
+// MyType:
+// The non-native type which will be reduced using an OpenMP user-defined
+// reduction (UDR).
+//
+// The 'combiner' portion of the UDR. The first arg contains the result from an
+// arbitrary number of reductions of the array which have already occured; this
+// corresponds to the special variable 'omp_out' which is defined by OpenMP.
+// The second arg is a new element to combine in the reduction; this
+// corresponds to the special variable 'omp_in' which is defined by OpenMP.
+// 
+// The 'initializer' portion of the UDR. This is executed prior to the
+// 'combiner'. Since we are computing a max, and since we have chosen that all
+// of the values are positive, we start with a negative number to guarantee
+// that this will be less than any value in the array being reduced.
 
-  // Write each thread value into array over [comp][thread]
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+  struct MyType {
+    Real val;
+  };
+
+  void MyType_max_func(MyType *reduced_t, MyType *t_new) {
+    reduced_t->val = reduced_t->val > t_new->val ? reduced_t->val : t_new->val;
+    return;
+  }
+
+  void MyType_max_init(MyType *t) {
+    t->val = std::numeric_limits<Real>::lowest();
+    return;
+  }
+
+// This is the UDR 'declaration'. Note the usage of the three special OpenMP
+// variables 'omp_out', 'omp_in', and 'omp_priv'.
+#pragma omp declare reduction(my_max_func: MyType:                      \
+                              MyType_max_func(&omp_out,&omp_in))        \
+  initializer(MyType_max_init(&omp_priv))
+
+  Vector<Real>
+  VectorMax(const Vector<const MultiFab *>& mfs,
+            const IntVect&                  tilesize,
+            int                             sComp,
+            int                             nComp,
+            int                             nGrow)
   {
-    int threadID = omp_get_thread_num();
-    
+    Vector<Real> gMax(nComp);
+
     for (int i=0; i<mfs.size(); ++i) {
 
       const MultiFab& mf = *mfs[i];
     
       AMREX_ALWAYS_ASSERT(mf.nComp() >= sComp + nComp);
-      AMREX_ALWAYS_ASSERT(mf.nGrow() >= nGrow);
 
-      for (MFIter mfi(mf,tilesize); mfi.isValid(); ++mfi) {
+      for (int n=0; n<nComp; ++n) {
 
-        const Box& box = mfi.growntilebox(nGrow);
+        MyType the_max;
+        the_max.val = std::numeric_limits<Real>::lowest();
+#ifdef _OPENMP
+#pragma omp parallel reduction(my_max_func: the_max)
+#endif
+        for (MFIter mfi(mf,tilesize); mfi.isValid(); ++mfi) {
+
+          const Box& bx = mfi.growntilebox(nGrow);
         
-        for (int n=0; n<nComp; ++n) {
+          auto my_max = mf[mfi].max(bx,sComp+n);
 
-          auto my_max = mf[mfi].max(box,sComp+n);
-
-          auto& the_max = gMax[n][threadID];
-
-          if (first[n][threadID]==1) {
-            the_max = my_max;
-            first[n][threadID] = 0;
-          } else {
-            the_max = std::max(my_max, the_max);
-          }
-
+          the_max.val = std::max(my_max, the_max.val);
         }
+
+        gMax[n] = the_max.val;
       }
     }
+
+    // MPI reduce max
+    ParallelDescriptor::ReduceRealMax(&(gMax[0]),nComp);
+
+    return gMax;
   }
 
-  // Find max of each comp over thread array
-  Vector<int> gFirst(nComp,1); // A flag per comp to avoid initializing final answers with an arbitrary number
-  Vector<Real> globalMax(nComp);
-  for (int n=0; n<nComp; ++n) {
-    for (int i=0; i<nThreads; ++i) {
-      if (first[n][i] != 1) {
-        if (gFirst[n] == 1) {
-          globalMax[n] = gMax[n][i];
-          gFirst[n] = 0;
-        }
-        else
-        {
-          globalMax[n] = std::max(globalMax[n],gMax[n][i]);
-        }
-      }
-    }
-    AMREX_ALWAYS_ASSERT(gFirst[n] != 1); // This means that we never picked up a useful number
-  }
-
-  // MPI reduce max
-  ParallelDescriptor::ReduceRealMax(&(globalMax[0]),globalMax.size());
-
-  return globalMax;
-}
-
-Vector<Real>
-VectorMin(const Vector<const MultiFab *>& mfs,
-          const IntVect&                  tilesize,
-          int                             sComp,
-          int                             nComp,
-          int                             nGrow)
-{
-  int nThreads = 1;
-#ifdef _OPENMP
-#pragma omp parallel
-  nThreads = omp_get_num_threads();
-#endif
-
-  Vector<Vector<Real>> gMin(nComp,Vector<Real>(nThreads,-1));
-  Vector<Vector<int>> first(nComp,Vector<int>(nThreads,1));
-
-  // Write each thread value into array over [comp][thread]
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+  Vector<Real>
+  VectorMaxAbs(const Vector<const MultiFab *>& mfs,
+               const IntVect&                  tilesize,
+               int                             sComp,
+               int                             nComp,
+               int                             nGrow)
   {
-    int threadID = omp_get_thread_num();
-    
+    Vector<Real> gMaxabs(nComp);
+
     for (int i=0; i<mfs.size(); ++i) {
 
       const MultiFab& mf = *mfs[i];
     
       AMREX_ALWAYS_ASSERT(mf.nComp() >= sComp + nComp);
-      AMREX_ALWAYS_ASSERT(mf.nGrow() >= nGrow);
 
-      for (MFIter mfi(mf,tilesize); mfi.isValid(); ++mfi) {
+      for (int n=0; n<nComp; ++n) {
 
-        const Box& box = mfi.growntilebox(nGrow);
+        MyType the_maxabs;
+        the_maxabs.val = std::numeric_limits<Real>::lowest();
+#ifdef _OPENMP
+#pragma omp parallel reduction(my_max_func: the_maxabs)
+#endif
+        for (MFIter mfi(mf,tilesize); mfi.isValid(); ++mfi) {
+
+          const Box& bx = mfi.growntilebox(nGrow);
         
-        for (int n=0; n<nComp; ++n) {
+          auto my_maxabs = mf[mfi].maxabs(bx,sComp+n);
 
-          auto my_min = mf[mfi].min(box,sComp+n);
-
-          auto& the_min = gMin[n][threadID];
-
-          if (first[n][threadID]==1) {
-            the_min = my_min;
-            first[n][threadID] = 0;
-          } else {
-            the_min = std::min(my_min, the_min);
-          }
+          the_maxabs.val = std::max(my_maxabs, the_maxabs.val);
         }
+
+        gMaxabs[n] = the_maxabs.val;
       }
     }
+
+    // MPI reduce maxabs
+    ParallelDescriptor::ReduceRealMax(&(gMaxabs[0]),nComp);
+
+    return gMaxabs;
   }
 
-  // Find min of each comp over thread array
-  Vector<int> gFirst(nComp,1);
-  Vector<Real> globalMin(nComp);
-  for (int n=0; n<nComp; ++n) {
-    for (int i=0; i<nThreads; ++i) {
-      if (first[n][i] != 1) {
-        if (gFirst[n] == 1) {
-          globalMin[n] = gMin[n][i];
-          gFirst[n] = 0;
-        }
-        else
-        {
-          globalMin[n] = std::min(globalMin[n],gMin[n][i]);
-        }
-      }
-    }
-    AMREX_ALWAYS_ASSERT(gFirst[n] != 1); // This means that we never picked up a useful number
+
+  void MyType_min_func(MyType *reduced_t, MyType *t_new) {
+    reduced_t->val = reduced_t->val < t_new->val ? reduced_t->val : t_new->val;
+    return;
   }
 
-  // MPI reduce min
-  ParallelDescriptor::ReduceRealMin(&(globalMin[0]),globalMin.size());
+  void MyType_min_init(MyType *t) {
+    t->val = std::numeric_limits<Real>::max();
+    return;
+  }
 
-  return globalMin;
-}
+#pragma omp declare reduction(my_min_func: MyType:                      \
+                              MyType_min_func(&omp_out,&omp_in))        \
+  initializer(MyType_min_init(&omp_priv))
 
-Vector<Real>
-VectorMaxAbs(const Vector<const MultiFab *>& mfs,
-             const IntVect&                  tilesize,
-             int                             sComp,
-             int                             nComp,
-             int                             nGrow)
-{
-  int nThreads = 1;
-#ifdef _OPENMP
-#pragma omp parallel
-  nThreads = omp_get_num_threads();
-#endif
-
-  Vector<Vector<Real>> gMax(nComp,Vector<Real>(nThreads,-1));
-  Vector<Vector<int>> first(nComp,Vector<int>(nThreads,1));
-
-  // Write each thread value into array over [comp][thread]
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+  Vector<Real>
+  VectorMin(const Vector<const MultiFab *>& mfs,
+            const IntVect&                  tilesize,
+            int                             sComp,
+            int                             nComp,
+            int                             nGrow)
   {
-    int threadID = omp_get_thread_num();
-    
+    Vector<Real> gMin(nComp);
+
     for (int i=0; i<mfs.size(); ++i) {
 
       const MultiFab& mf = *mfs[i];
     
       AMREX_ALWAYS_ASSERT(mf.nComp() >= sComp + nComp);
-      AMREX_ALWAYS_ASSERT(mf.nGrow() >= nGrow);
 
-      for (MFIter mfi(mf,tilesize); mfi.isValid(); ++mfi) {
+      for (int n=0; n<nComp; ++n) {
 
-        const Box& box = mfi.growntilebox(nGrow);
+        MyType the_min;
+        the_min.val = std::numeric_limits<Real>::max();
+#ifdef _OPENMP
+#pragma omp parallel reduction(my_min_func: the_min)
+#endif
+        for (MFIter mfi(mf,tilesize); mfi.isValid(); ++mfi) {
+
+          const Box& bx = mfi.growntilebox(nGrow);
         
-        for (int n=0; n<nComp; ++n) {
+          auto my_min = mf[mfi].min(bx,sComp+n);
 
-          auto my_max = mf[mfi].maxabs(box,sComp+n);
-
-          auto& the_max = gMax[n][threadID];
-
-          if (first[n][threadID]==1) {
-            the_max = my_max;
-            first[n][threadID] = 0;
-          } else {
-            the_max = std::max(my_max, the_max);
-          }
-
+          the_min.val = std::min(my_min, the_min.val);
         }
+
+        gMin[n] = the_min.val;
       }
     }
+
+    // MPI reduce min
+    ParallelDescriptor::ReduceRealMin(&(gMin[0]),nComp);
+
+    return gMin;
   }
-
-  // Find max of each comp over thread array
-  Vector<int> gFirst(nComp,1);
-  Vector<Real> globalMax(nComp);
-  for (int n=0; n<nComp; ++n) {
-    for (int i=0; i<nThreads; ++i) {
-      if (first[n][i] != 1) {
-        if (gFirst[n] == 1) {
-          globalMax[n] = gMax[n][i];
-          gFirst[n] = 0;
-        }
-        else
-        {
-          globalMax[n] = std::max(globalMax[n],gMax[n][i]);
-        }
-      }
-    }
-    AMREX_ALWAYS_ASSERT(gFirst[n] != 1); // This means that we never picked up a useful number
-  }
-
-  // MPI reduce max
-  ParallelDescriptor::ReduceRealMax(&(globalMax[0]),globalMax.size());
-
-  return globalMax;
-}
-
 }
