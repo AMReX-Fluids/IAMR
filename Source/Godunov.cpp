@@ -112,7 +112,7 @@ Godunov::ExtrapVelToFaces (const amrex::Box&  box,
                            amrex_real         dt,
                            D_DECL(      FArrayBox&  umac,       FArrayBox&  vmac,       FArrayBox&  wmac),
                            D_DECL(const Vector<int>& ubc, const Vector<int>& vbc, const Vector<int>& wbc),
-                           amrex::FArrayBox&  U,
+                           const amrex::FArrayBox&  U,
                            amrex::FArrayBox&  tforces)
 {
   extrap_vel_to_faces(box.loVect(),box.hiVect(),
