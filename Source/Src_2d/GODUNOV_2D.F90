@@ -3349,6 +3349,7 @@ contains
       real(rt) :: dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
       real(rt) :: sgn, s6, amax, delam, delap, sigmam, sigmap
       real(rt) :: dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
+      real(rt), PARAMETER :: C = 1.25d0
 
 !c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !c     x-direction
