@@ -293,7 +293,7 @@ NavierStokes::advance (Real time,
         MultiFab mac_rhs(grids,dmap,1,0);
         create_mac_rhs(mac_rhs,0,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
-        mac_project(time,dt,S_old,&mac_rhs,,umac_n_grow,true);
+        mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
     }
     //
     // Advect velocities.
@@ -429,6 +429,21 @@ NavierStokes::predict_velocity (Real  dt)
     FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
 
+    // Floor small values of states to be extrapolated
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(Umf,true); mfi.isValid(); ++mfi)
+    {
+      Box gbx=mfi.growntilebox(Godunov::hypgrow());
+      auto fab = Umf.array(mfi);
+      AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
+      {
+        auto& val = fab(i,j,k,n);
+        val = std::abs(val) > 1.e-20 ? val : 0;
+      });
+    }
+
 #ifdef BOUSSINESQ
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
     MultiFab& Smf=S_fpi.get_mf();
@@ -543,8 +558,23 @@ NavierStokes::scalar_advection (Real dt,
 
   {
       FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
-      const MultiFab& Smf=S_fpi.get_mf();
+      MultiFab& Smf=S_fpi.get_mf();
       
+  // Floor small values of states to be extrapolated
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
+      {
+        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        auto fab = Smf.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( gbx, num_scalars, i, j, k, n,
+        {
+          auto& val = fab(i,j,k,n);
+          val = std::abs(val) > 1.e-20 ? val : 0;
+        });
+      }
+
 #ifdef BOUSSINESQ
       FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
       const MultiFab& Scalmf=Scal_fpi.get_mf();

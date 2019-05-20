@@ -54,7 +54,7 @@ contains
                                           tfx_lo, tfx_hi, tfy_lo, tfy_hi, tfz_lo, tfz_hi, &
                                           umac_lo, umac_hi, vmac_lo, vmac_hi, wmac_lo, wmac_hi
 
-    real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),u_lo(3):u_hi(3),3) ! get floored
+    real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),u_lo(3):u_hi(3),3)
     real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2),tfx_lo(3):tfx_hi(3))
     real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2),umac_lo(3):umac_hi(3)) ! result
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2),tfy_lo(3):tfy_hi(3))
@@ -441,7 +441,7 @@ contains
                               divu_lo,divu_hi,xstate_lo,xstate_hi,ystate_lo,ystate_hi,zstate_lo,zstate_hi, &
                               umac_lo,umac_hi,vmac_lo,vmac_hi,wmac_lo,wmac_hi
   
-    real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc) ! gets floored
+    real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc)
     real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),tf_lo(3):tf_hi(3),nc)
     real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2),divu_lo(3):divu_hi(3))
     real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2),umac_lo(3):umac_hi(3))
@@ -892,7 +892,7 @@ contains
            tfx_lo,tfx_hi,tfy_lo,tfy_hi,tfz_lo,tfz_hi
           
 
-      real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),u_lo(3):u_hi(3)) ! gets floored!
+      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),u_lo(3):u_hi(3))
       real(rt), intent(inout) :: ulo(ulo_lo(1):ulo_hi(1),ulo_lo(2):ulo_hi(2),ulo_lo(3):ulo_hi(3))
       real(rt), intent(inout) :: uhi(uhi_lo(1):uhi_hi(1),uhi_lo(2):uhi_hi(2),uhi_lo(3):uhi_hi(3))
       real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2),sx_lo(3):sx_hi(3))
@@ -901,7 +901,7 @@ contains
       real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2),sedgex_lo(3):sedgex_hi(3))
       real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2),tfx_lo(3):tfx_hi(3))
 
-      real(rt), intent(inout) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3))
+      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3))
       real(rt), intent(inout) :: vlo(vlo_lo(1):vlo_hi(1),vlo_lo(2):vlo_hi(2),vlo_lo(3):vlo_hi(3))
       real(rt), intent(inout) :: vhi(vhi_lo(1):vhi_hi(1),vhi_lo(2):vhi_hi(2),vhi_lo(3):vhi_hi(3))
       real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2),sy_lo(3):sy_hi(3))
@@ -910,7 +910,7 @@ contains
       real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2),sedgey_lo(3):sedgey_hi(3))
       real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2),tfy_lo(3):tfy_hi(3))
 
-      real(rt), intent(inout) :: w(w_lo(1):w_hi(1),w_lo(2):w_hi(2),w_lo(3):w_hi(3))
+      real(rt), intent(in) :: w(w_lo(1):w_hi(1),w_lo(2):w_hi(2),w_lo(3):w_hi(3))
       real(rt), intent(inout) :: wlo(wlo_lo(1):wlo_hi(1),wlo_lo(2):wlo_hi(2),wlo_lo(3):wlo_hi(3))
       real(rt), intent(inout) :: whi(whi_lo(1):whi_hi(1),whi_lo(2):whi_hi(2),whi_lo(3):whi_hi(3))
       real(rt), intent(inout) :: sz(sz_lo(1):sz_hi(1),sz_lo(2):sz_hi(2),sz_lo(3):sz_hi(3))
@@ -1312,7 +1312,7 @@ contains
                                            xyhi_lo,xyhi_hi,xzhi_lo,xzhi_hi,yxhi_lo,yxhi_hi, &
                                            yzhi_lo,yzhi_hi,zxhi_lo,zxhi_hi,zyhi_lo,zyhi_hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc) ! gets floored
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc)
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),tf_lo(3):tf_hi(3),nc)
       real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),u_lo(3):u_hi(3))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2),xlo_lo(3):xlo_hi(3))
@@ -2706,7 +2706,7 @@ contains
                                            xyhi_lo,xyhi_hi,xzhi_lo,xzhi_hi,yxhi_lo,yxhi_hi, &
                                            yzhi_lo,yzhi_hi,zxhi_lo,zxhi_hi,zyhi_lo,zyhi_hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc) ! gets floored
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc)
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),tf_lo(3):tf_hi(3),nc)
       real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2),divu_lo(3):divu_hi(3))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2),xlo_lo(3):xlo_hi(3))
@@ -4419,7 +4419,7 @@ contains
       integer :: dir
       integer, intent(in) :: bc(SDIM,2)
       integer, dimension(3), intent(in) :: lo,hi,s_lo,s_hi,slx_lo,slx_hi,sly_lo,sly_hi,slz_lo,slz_hi
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3)) ! Applies a floor!
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
       real(rt), intent(inout) :: slx(slx_lo(1):slx_hi(1),slx_lo(2):slx_hi(2),slx_lo(3):slx_hi(3))
       real(rt), intent(inout) :: sly(sly_lo(1):sly_hi(1),sly_lo(2):sly_hi(2),sly_lo(3):sly_hi(3))
       real(rt), intent(inout) :: slz(slz_lo(1):slz_hi(1),slz_lo(2):slz_hi(2),slz_lo(3):slz_hi(3))
@@ -4472,13 +4472,13 @@ contains
 !c     Added to prevent underflow for small s values.
 !c
 
-      do k = lo(3)-ng, hi(3)+ng
-         do j = lo(2)-ng, hi(2)+ng
-            do i = lo(1)-ng, hi(1)+ng
-               s(i,j,k) = merge(s(i,j,k), zero, abs(s(i,j,k)).gt.1.0D-20)
-            end do
-         end do
-      end do
+!      do k = lo(3)-ng, hi(3)+ng
+!         do j = lo(2)-ng, hi(2)+ng
+!            do i = lo(1)-ng, hi(1)+ng
+!               s(i,j,k) = merge(s(i,j,k), zero, abs(s(i,j,k)).gt.1.0D-20)
+!            end do
+!         end do
+!      end do
 
 !c
 !c     COMPUTE 0TH order slopes
