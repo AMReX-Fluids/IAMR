@@ -109,15 +109,17 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
 {
     BL_ASSERT(numOutFlowFaces <= 2*BL_SPACEDIM);
 
+    int i,iface;
+
     int faces[2*BL_SPACEDIM];
-    for (int i = 0; i < numOutFlowFaces; i++)
+    for (i = 0; i < numOutFlowFaces; i++)
         faces[i] = int(outFaces[i]);
 
     const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();
 
     int zeroIt[2*BL_SPACEDIM];
-    for (int i = 0; i < numOutFlowFaces; i++)
+    for (i = 0; i < numOutFlowFaces; i++)
         zeroIt[i] = 0;
 
 #if (BL_SPACEDIM == 2)
@@ -134,7 +136,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
     int isPeriodicFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
     Real dxFiltered[2*BL_SPACEDIM][BL_SPACEDIM];
 
-    for (int iface = 0; iface < numOutFlowFaces; iface++)
+    for (iface = 0; iface < numOutFlowFaces; iface++)
     {
         const int   outDir = outFaces[iface].coordDir();
         //
@@ -189,23 +191,23 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         {
             if (faces[iface] == 0)
             {
-                for (int i=0;i<r_len;i++)
+                for (i=0;i<r_len;i++)
                     redge[iface][i] = geom.ProbLo()[0];
             }
             else if (faces[iface] == 2)
             {
-                for (int i=0;i<r_len;i++)
+                for (i=0;i<r_len;i++)
                     redge[iface][i] = geom.ProbHi()[0];
             }
             else if (faces[iface] == 1 || faces[iface]== 3)
             {
-                for (int i=0;i<r_len;i++)
+                for (i=0;i<r_len;i++)
                     redge[iface][i] = geom.ProbLo()[0] +i*dx[0];
             }
         }
         else
         {
-            for (int i = 0; i < r_len; i++)
+            for (i = 0; i < r_len; i++)
                 redge[iface][i] = 1.;
         }
 #endif
@@ -264,7 +266,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
     {
 	Vector<Real> x;
 
-        for (int iface = 0; iface < numOutFlowFaces; iface++)
+        for (iface = 0; iface < numOutFlowFaces; iface++)
         {
             zeroIt[iface] = 1; // HACK HACK
 
@@ -340,14 +342,14 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         // connected region.
         //
         int zeroAll = 1;
-        for (int i = 0; i < numOutFlowFaces; i++)
+        for (i = 0; i < numOutFlowFaces; i++)
             if (zeroIt[i] == 0) zeroAll = 0;
 
         zeroAll = 1;  // HACK HACK
 
         if (zeroAll)
         {
-            for (int i = 0; i < numOutFlowFaces; i++ )
+            for ( i = 0; i < numOutFlowFaces; i++ )
                 phiMF[i].setVal(0);
         }
         else
@@ -368,7 +370,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
             //
             Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
-            for (int i=0; i < numOutFlowFaces; i++)
+            for (i=0; i < numOutFlowFaces; i++)
             {
                 if (faces[i] == 0)
                 {
@@ -393,7 +395,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             }
 
             Real *r0,*r1,*r2,*r3;
-            for (int i=0; i < numOutFlowFaces; i++)
+            for (i=0; i < numOutFlowFaces; i++)
             {
                 if (faces[i] == 0)
                 {
@@ -420,7 +422,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             int lenz = domain.length(2);
 
             Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
-            for (int i=0; i < numOutFlowFaces; i++)
+            for (i=0; i < numOutFlowFaces; i++)
             {
                 if (faces[i] == 0)
                 {

@@ -31,7 +31,7 @@ extern "C"
    
    
    void extrap_vel_to_faces(const int* lo, const int* hi,
-                            amrex::Real* u_dat, const int* u_lo, const int* u_hi,
+                            const amrex::Real* u_dat, const int* u_lo, const int* u_hi,
                             const int* ubc,
                             const amrex::Real* tfx_dat, const int* tfx_lo, const int* tfx_hi,
                             amrex::Real*       umac_dat, const int* umac_lo, const int* umac_hi,

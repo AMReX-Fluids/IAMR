@@ -32,7 +32,7 @@ public:      // public access functions
                            amrex_real         dt,
                            D_DECL(      amrex::FArrayBox&  umac,       amrex::FArrayBox&  vmac,       amrex::FArrayBox&  wmac),
                            D_DECL(const amrex::Vector<int>& ubc, const amrex::Vector<int>& vbc, const amrex::Vector<int>& wbc),
-                           amrex::FArrayBox&  U,
+                           const amrex::FArrayBox&  U,
                            amrex::FArrayBox&  tforces);
 
     void AdvectScalars(const amrex::Box&  box,

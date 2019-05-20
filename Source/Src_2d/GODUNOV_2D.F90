@@ -46,7 +46,7 @@ contains
     integer,  intent(in), dimension(2) :: lo,hi,u_lo,u_hi,&
          tfx_lo,tfx_hi,tfy_lo,tfy_hi,umac_lo,umac_hi,vmac_lo,vmac_hi
 
-    real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),2) ! get floored
+    real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),2)
     real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
     real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2)) ! result
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2))
@@ -242,7 +242,7 @@ contains
     integer, dimension(2), intent(in) :: lo,hi,s_lo,s_hi,tf_lo,tf_hi,&
          divu_lo,divu_hi,xstate_lo,xstate_hi,ystate_lo,ystate_hi,umac_lo,umac_hi,vmac_lo,vmac_hi
 
-    real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
+    real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc)
     real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
     real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2))
     real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
@@ -568,7 +568,7 @@ contains
            Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,tfx_lo,tfx_hi,tfy_lo,tfy_hi
 
-      real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2)) ! gets floored!
+      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
       real(rt), intent(inout) :: ulo(ulo_lo(1):ulo_hi(1),ulo_lo(2):ulo_hi(2))
       real(rt), intent(inout) :: uhi(uhi_lo(1):uhi_hi(1),uhi_lo(2):uhi_hi(2))
       real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
@@ -577,7 +577,7 @@ contains
       real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
       real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
 
-      real(rt), intent(inout) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
+      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
       real(rt), intent(inout) :: vlo(vlo_lo(1):vlo_hi(1),vlo_lo(2):vlo_hi(2))
       real(rt), intent(inout) :: vhi(vhi_lo(1):vhi_hi(1),vhi_lo(2):vhi_hi(2))
       real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
@@ -799,7 +799,7 @@ contains
            vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc)
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
       real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
@@ -1225,7 +1225,7 @@ contains
            vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc)
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
       real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
@@ -1812,7 +1812,7 @@ contains
 
       integer, intent(in) :: bc(SDIM,2)
       integer, dimension(2), intent(in) :: lo,hi,s_lo,s_hi,slx_lo,slx_hi,sly_lo,sly_hi
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2)) ! Applies a floor!
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
       real(rt), intent(inout) :: slx(slx_lo(1):slx_hi(1),slx_lo(2):slx_hi(2))
       real(rt), intent(inout) :: sly(sly_lo(1):sly_hi(1),sly_lo(2):sly_hi(2))
       real(rt) :: slxscr(lo(1)-2:hi(1)+2,4)
@@ -1858,11 +1858,11 @@ contains
 !c
 !c ::: ::::: added to prevent underflow for small s values
 !c
-      do j = lo(2)-ng, hi(2)+ng
-        do i = lo(1)-ng, hi(1)+ng
-           s(i,j) = merge(s(i,j), 0.d0, abs(s(i,j)).gt.1.0D-20)
-       end do
-      end do
+!      do j = lo(2)-ng, hi(2)+ng
+!        do i = lo(1)-ng, hi(1)+ng
+!           s(i,j) = merge(s(i,j), 0.d0, abs(s(i,j)).gt.1.0D-20)
+!       end do
+!      end do
 !c
 !c     COMPUTE 0TH order slopes
 !c
@@ -3346,7 +3346,7 @@ contains
 
       logical extremum, bigp, bigm
 
-      real(rt) :: dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
+      real(rt) :: dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
       real(rt) :: sgn, s6, amax, delam, delap, sigmam, sigmap
       real(rt) :: dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
       real(rt), PARAMETER :: C = 1.25d0
