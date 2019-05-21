@@ -264,59 +264,59 @@ public:      // public access functions
   //
   // EB functions
   //  
-//#ifdef AMREX_USE_EB
-//  void slopes_FillBoundary(const amrex::Periodicity& prdcty);
-//  void ComputeVelocitySlopes(const amrex::MFIter&  mfi,
-//			     const amrex::MultiFab& Sborder,
-//			     D_DECL(const amrex::Vector<int>& ubc,
-//				    const amrex::Vector<int>& vbc,
-//				    const amrex::Vector<int>& wbc),
-//			     const amrex::Box& domain);
-//  void ComputeScalarSlopes(const amrex::MFIter& mfi,
-//			   const amrex::MultiFab& Sborder, const int& ncomp,
-//			   D_DECL(std::unique_ptr<amrex::MultiFab>& xslopes,
-//				  std::unique_ptr<amrex::MultiFab>& yslopes,
-//				  std::unique_ptr<amrex::MultiFab>& zslopes),
-//			   D_DECL(const amrex::Vector<int>& ubc,
-//				  const amrex::Vector<int>& vbc,
-//				  const amrex::Vector<int>& wbc),
-//			   const amrex::Box& domain);
-//  void ExtrapVelToFaces (const amrex::MFIter&  mfi,
-//			 //const amrex_real*  dx, amrex_real dt,
-//			 D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
-//				amrex::FArrayBox&  wmac),
-//			 D_DECL(const amrex::Vector<int>& ubc,
-//				const amrex::Vector<int>& vbc,
-//				const amrex::Vector<int>& wbc),
-//			 const amrex::FArrayBox&  U,
-//			 const amrex::FArrayBox&  tforces,
-//			 const amrex::Box& domain);
-//  void AdvectVel (const amrex::MFIter&  mfi,
-//		  const amrex::MultiFab& U, amrex::MultiFab& aofs,
-//		  D_DECL(const amrex::MultiFab&  uedge, const amrex::MultiFab&  vedge,
-//			 const amrex::MultiFab&  wedge),
-//		  D_DECL(const amrex::Vector<int>& ubc,
-//			 const amrex::Vector<int>& vbc,
-//			 const amrex::Vector<int>& wbc),
-//		  const amrex::Box& domain,
-//		  const amrex::Real* dx,
-//		  int nghost);
-//  void AdvectScalar (const amrex::MFIter&  mfi,
-//		     const amrex::MultiFab& S, const int& scomp,
-//		     amrex::MultiFab& aofs, const int& acomp,
-//		     D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
-//			    const std::unique_ptr<amrex::MultiFab>& yslopes,
-//			    const std::unique_ptr<amrex::MultiFab>& zslopes),
-//		     D_DECL(const amrex::MultiFab&  uedge, const amrex::MultiFab&  vedge,
-//			    const amrex::MultiFab&  wedge),
-//		     D_DECL(const amrex::Vector<int>& ubc,
-//			    const amrex::Vector<int>& vbc,
-//			    const amrex::Vector<int>& wbc),
-//		     const amrex::Box& domain,
-//		     const amrex::Real* dx,
-//		     int nghost);
-//
-//#endif
+#ifdef AMREX_USE_EB
+  void slopes_FillBoundary(const amrex::Periodicity& prdcty);
+  void ComputeVelocitySlopes(const amrex::MFIter&  mfi,
+			     const amrex::MultiFab& Sborder,
+			     D_DECL(const amrex::Vector<int>& ubc,
+				    const amrex::Vector<int>& vbc,
+				    const amrex::Vector<int>& wbc),
+			     const amrex::Box& domain);
+  void ComputeScalarSlopes(const amrex::MFIter& mfi,
+			   const amrex::MultiFab& Sborder, const int& ncomp,
+			   D_DECL(std::unique_ptr<amrex::MultiFab>& xslopes,
+				  std::unique_ptr<amrex::MultiFab>& yslopes,
+				  std::unique_ptr<amrex::MultiFab>& zslopes),
+			   D_DECL(const amrex::Vector<int>& ubc,
+				  const amrex::Vector<int>& vbc,
+				  const amrex::Vector<int>& wbc),
+			   const amrex::Box& domain);
+  void ExtrapVelToFaces (const amrex::MFIter&  mfi,
+			 //const amrex_real*  dx, amrex_real dt,
+			 D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
+				amrex::FArrayBox&  wmac),
+			 D_DECL(const amrex::Vector<int>& ubc,
+				const amrex::Vector<int>& vbc,
+				const amrex::Vector<int>& wbc),
+			 const amrex::FArrayBox&  U,
+			 const amrex::FArrayBox&  tforces,
+			 const amrex::Box& domain);
+  void AdvectVel (const amrex::MFIter&  mfi,
+		  const amrex::MultiFab& U, amrex::MultiFab& aofs,
+		  D_DECL(const amrex::MultiFab&  uedge, const amrex::MultiFab&  vedge,
+			 const amrex::MultiFab&  wedge),
+		  D_DECL(const amrex::Vector<int>& ubc,
+			 const amrex::Vector<int>& vbc,
+			 const amrex::Vector<int>& wbc),
+		  const amrex::Box& domain,
+		  const amrex::Real* dx,
+		  int nghost);
+  void AdvectScalar (const amrex::MFIter&  mfi,
+		     const amrex::MultiFab& S, const int& scomp,
+		     amrex::MultiFab& aofs, const int& acomp,
+		     D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
+			    const std::unique_ptr<amrex::MultiFab>& yslopes,
+			    const std::unique_ptr<amrex::MultiFab>& zslopes),
+		     D_DECL(const amrex::MultiFab&  uedge, const amrex::MultiFab&  vedge,
+			    const amrex::MultiFab&  wedge),
+		     D_DECL(const amrex::Vector<int>& ubc,
+			    const amrex::Vector<int>& vbc,
+			    const amrex::Vector<int>& wbc),
+		     const amrex::Box& domain,
+		     const amrex::Real* dx,
+		     int nghost);
+
+#endif
 
   //================ for debugging purposes this is made public
     // internal FABS

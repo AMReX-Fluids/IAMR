@@ -36,12 +36,12 @@ extern "C"
 
    void compute_velocity_at_faces (
       const int* lo, const int* hi,
+      const amrex::Real* vel   ,  const int* vello, const int* velhi, 
       const amrex::Real* u_mac, const int* ulo, const int* uhi, 
       const amrex::Real* v_mac, const int* vlo, const int* vhi,
 #if (AMREX_SPACEDIM == 3)
       const amrex::Real* w_mac, const int* wlo, const int* whi,
 #endif
-      const amrex::Real* vel   ,  const int* vello, const int* velhi, 
       D_DECL(const amrex::Real* xslopes, const amrex::Real* yslopes, 
 	     const amrex::Real* zslopes),
       const int* slo, const int* shi, 

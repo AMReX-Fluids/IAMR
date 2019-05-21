@@ -83,6 +83,7 @@ contains
                upls     = vel(i  ,j,1) - half * xslopes(i  ,j,1)
                umns     = vel(i-1,j,1) + half * xslopes(i-1,j,1)
                u(i,j) = upwind_normal( umns, upls )
+               !write(*,*) 'DEBUG UMAC ',i,j,u(i,j),vel(i  ,j,1),xslopes(i  ,j,1),vel(i-1,j,1),xslopes(i-1,j,1)
             end if
          end do
       end do
@@ -99,6 +100,7 @@ contains
                vpls     = vel(i,j  ,2) - half * yslopes(i,j  ,2)
                vmns     = vel(i,j-1,2) + half * yslopes(i,j-1,2)
                v(i,j) = upwind_normal( vmns, vpls )
+               !write(*,*) 'DEBUG VMAC ',i,j,v(i,j)
             end if
          end do
       end do

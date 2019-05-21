@@ -3665,35 +3665,35 @@ MultiFab& Gp = *gradp;
 
 	// FIXME? not sure which is better here, looping over comps like
 	//   orig IAMR or doing all comps together like incflo
-//#ifdef AMREX_USE_EB
-//	// Figure out fluxes for the multi-level sync later...
-//
-//	// this uses slopes saved from the computation of umac (i.e.
-//	//   predict_velocity)
-//	// aofs = ugradu
-//	// incflo advection scheme doesn't include terms like gradp here
-//	godunov->AdvectVel(U_mfi, Umf, *aofs,
-//			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-//			   D_DECL(bndry[0], bndry[1], bndry[2]),
-//			   geom.Domain(),
-//			   geom.CellSize(),Godunov::hypgrow());	
-//
-//
-// // FIXME
-// // Print()<<"Wrting aofs ..\n";
-// // VisMF::Write(*aofs,"aofs");
-//
-//	if (do_reflux){
-//	     //FIXME make AdvectVel pass fluxes first
-//	     for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
-//	     {
-//	       for (int d = 0; d < BL_SPACEDIM; d++){
-//		 const Box& ebx = U_mfi.nodaltilebox(d);
-//		 fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
-//	       }
-//	     }
-//	   }
-//#else // not eb
+#ifdef AMREX_USE_EB
+	// Figure out fluxes for the multi-level sync later...
+
+	// this uses slopes saved from the computation of umac (i.e.
+	//   predict_velocity)
+	// aofs = ugradu
+	// incflo advection scheme doesn't include terms like gradp here
+	godunov->AdvectVel(U_mfi, Umf, *aofs,
+			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+			   D_DECL(bndry[0], bndry[1], bndry[2]),
+			   geom.Domain(),
+			   geom.CellSize(),Godunov::hypgrow());	
+
+
+ // FIXME
+ // Print()<<"Wrting aofs ..\n";
+ // VisMF::Write(*aofs,"aofs");
+
+	if (do_reflux){
+	     //FIXME make AdvectVel pass fluxes first
+	     for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+	     {
+	       for (int d = 0; d < BL_SPACEDIM; d++){
+		 const Box& ebx = U_mfi.nodaltilebox(d);
+		 fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+	       }
+	     }
+	   }
+#else // not eb
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
             int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
@@ -3722,7 +3722,7 @@ MultiFab& Gp = *gradp;
               }
             }
         }
-//#endif //end if USE_EB
+#endif //end if USE_EB
       } // end of MFIter
  } // end OMP region
 
