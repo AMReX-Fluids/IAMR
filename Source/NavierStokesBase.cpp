@@ -351,14 +351,14 @@ NavierStokesBase::Initialize ()
     // Check phys_bc against possible periodic geometry
     // if periodic, must have internal BC marked.
     //
-    if (Geometry::isAnyPeriodic())
+    if (DefaultGeometry().isAnyPeriodic())
     {
         //
         // Do idiot check.  Periodic means interior in those directions.
         //
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            if (Geometry::isPeriodic(dir))
+            if (DefaultGeometry().isPeriodic(dir))
             {
                 if (lo_bc[dir] != Interior)
                 {
@@ -384,7 +384,7 @@ NavierStokesBase::Initialize ()
         //
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            if (!Geometry::isPeriodic(dir))
+            if (!DefaultGeometry().isPeriodic(dir))
             {
               if (lo_bc[dir] == Interior)
               {
@@ -3901,7 +3901,7 @@ NavierStokesBase::volWgtSum (const std::string& name,
         const int*  hi  = grdbx.hiVect();
 
 #if (BL_SPACEDIM == 2)
-        int   rz_flag = Geometry::IsRZ() ? 1 : 0;
+        int   rz_flag = Geom().IsRZ() ? 1 : 0;
         Real* rad     = &radius[mfi.index()][0];
         int   irlo    = lo[0]-radius_grow;
         int   irhi    = hi[0]+radius_grow;
