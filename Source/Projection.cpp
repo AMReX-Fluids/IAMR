@@ -422,7 +422,7 @@ Projection::level_project (int             level,
     //
     // Add the contribution from the un-projected V to syncregisters.
     //
-    int is_rz = (Geometry::IsRZ() ? 1 : 0);
+    int is_rz = (geom.IsRZ() ? 1 : 0);
 
     Vector<MultiFab*> vel(maxlev, nullptr);
     Vector<MultiFab*> phi(maxlev, nullptr);
@@ -720,7 +720,7 @@ Projection::MLsyncProject (int             c_lev,
     scaleVar(SYNC_PROJ,&rho_crse, 0, &Vsync,   c_lev  );
     scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
 
-    if (Geometry::IsRZ()) {
+    if (crse_geom.IsRZ()) {
        radMultScal(c_lev  ,cc_rhs_crse);
        radMultScal(c_lev+1,cc_rhs_fine);
     }
@@ -1006,7 +1006,7 @@ Projection::initialVelocityProject (int  c_lev,
     {
         for (lev = c_lev; lev <= f_lev; lev++) 
         {
-            if (Geometry::IsRZ()) radMultScal(lev,*rhcc[lev]); 
+            if (parent->Geom(0).IsRZ()) radMultScal(lev,*rhcc[lev]); 
             rhcc[lev]->mult(-1.0,0,1,nghost);
         }
 
@@ -1312,7 +1312,7 @@ Projection::initialSyncProject (int       c_lev,
     {
         scaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
 
-        if (have_divu && Geometry::IsRZ()) 
+        if (have_divu && parent->Geom(0).IsRZ()) 
           radMultScal(lev,*(rhcc[lev]));
     }
 
@@ -1572,7 +1572,7 @@ Projection::scaleVar (int             which_call,
     //
     // Scale by radius for RZ.
     //
-    if (Geometry::IsRZ()) 
+    if (parent->Geom(0).IsRZ()) 
     {
         if (sig != 0)
             radMultScal(level,*sig);
@@ -1615,7 +1615,7 @@ Projection::rescaleVar (int             which_call,
     //
     // Divide by radius to rescale for RZ coordinates.
     //
-    if (Geometry::IsRZ()) 
+    if (parent->Geom(0).IsRZ()) 
     {
         if (sig != 0)
             radDiv(level,*sig,0);
@@ -2399,7 +2399,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (Geometry::isPeriodic(idim))
+        if (parent->Geom(0).isPeriodic(idim))
         {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }
@@ -2463,7 +2463,7 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction) {
-        mlndlap.setRZCorrection(Geometry::IsRZ());
+        mlndlap.setRZCorrection(parent->Geom(0).IsRZ());
     }
 #endif
     mlndlap.setGaussSeidel(use_gauss_seidel);

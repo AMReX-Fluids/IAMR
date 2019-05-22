@@ -215,7 +215,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         //
         // Here we know the ordering of faces is XLO,YLO,XHI,YHI.
         //
-        if (Geometry::IsRZ())
+        if (geom.IsRZ())
         {
             if (faces[iface] == 0)
             {
