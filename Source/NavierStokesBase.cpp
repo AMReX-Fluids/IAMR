@@ -3727,7 +3727,6 @@ MultiFab& Gp = *gradp;
  } // end OMP region
 
  } //end scope of FillPatchIter
-
  
     if (do_reflux)
     {

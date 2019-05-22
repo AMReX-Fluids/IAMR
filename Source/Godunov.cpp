@@ -1143,8 +1143,8 @@ void Godunov::ComputeVelocitySlopes(const amrex::MFIter& mfi,
 	      compute_slopes(BL_TO_FORTRAN_BOX(bx), &nc,
 			     BL_TO_FORTRAN_ANYD(Sborder[mfi]),
 			     D_DECL((*m_xslopes)[mfi].dataPtr(),
-				    (*m_yslopes)[mfi].dataPtr(),
-				    (*m_zslopes)[mfi].dataPtr()),
+				          (*m_yslopes)[mfi].dataPtr(),
+				          (*m_zslopes)[mfi].dataPtr()),
 			     BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
 			     domain.loVect(), domain.hiVect(),
 			     D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
@@ -1158,11 +1158,11 @@ void Godunov::ComputeVelocitySlopes(const amrex::MFIter& mfi,
 	      compute_slopes_eb(BL_TO_FORTRAN_BOX(bx), &nc,
 				  BL_TO_FORTRAN_ANYD(Sborder[mfi]),
 				  D_DECL((*m_xslopes)[mfi].dataPtr(),
-					 (*m_yslopes)[mfi].dataPtr(),
-					 (*m_zslopes)[mfi].dataPtr()),
+                 (*m_yslopes)[mfi].dataPtr(),
+                 (*m_zslopes)[mfi].dataPtr()),
 				  BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
 				  BL_TO_FORTRAN_ANYD(flags),
-                                  domain.loVect(), domain.hiVect(),
+          domain.loVect(), domain.hiVect(),
 				  D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
                                   // bc_ilo->dataPtr(), bc_ihi->dataPtr(),
                                   // bc_jlo->dataPtr(), bc_jhi->dataPtr(),
@@ -1253,12 +1253,12 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi,
 			   // FIXME these come from EB aware MFs so
 			   // are they all Fabs or EBfabs or could be either???
                            D_DECL(FArrayBox&  umac, FArrayBox&  vmac,
-				  FArrayBox&  wmac),
+                           FArrayBox&  wmac),
                            D_DECL(const Vector<int>& ubc, const Vector<int>& vbc,
-				  const Vector<int>& wbc),
+                           const Vector<int>& wbc),
                            const amrex::FArrayBox&  U,
                            const amrex::FArrayBox&  tforces,
-			   const Box& domain)
+                           const Box& domain)
 {
   //
   // Old sequence in fortran fn:

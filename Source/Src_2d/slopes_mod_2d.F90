@@ -101,7 +101,7 @@ contains
       integer                       :: i, j, n
       real(ar)                      :: du_l, du_c, du_r
       real(ar),    parameter        :: two = 2.0_ar, three2nds = 1.5_ar
-
+!write(*,*) 'DEBUG SLOPES START nc= ',nc
       do n = 1, nc
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -117,7 +117,9 @@ contains
                du_r = two*(vel(i,j+1,n) - vel(i,j  ,n))
                du_c = half * ( vel(i,j+1,n) - vel(i,j-1,n) )
                yslopes(i,j,n) = mc_limiter ( du_l, du_c, du_r )
-
+!if (n == 1) then
+!write(*,*) 'DEBUG SLOPES ',i,j,n,xslopes(i,j,n),yslopes(i,j,n)
+!endif
             end do
          end do
       end do

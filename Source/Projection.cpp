@@ -2459,7 +2459,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
-mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+//mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction) {
