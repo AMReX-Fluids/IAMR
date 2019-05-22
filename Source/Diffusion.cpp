@@ -377,7 +377,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     // is eliminated by setting a = 0.
     //
 #if (BL_SPACEDIM == 2) 
-    if (sigma == Xvel && Geometry::IsRZ())
+    if (sigma == Xvel && parent->Geom(0).IsRZ())
     {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -809,7 +809,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         }
 
 #if (BL_SPACEDIM == 2) 
-        if (Geometry::IsRZ())
+        if (parent->Geom(0).IsRZ())
         {
             int fort_xvel_comp = Xvel+1;
 
@@ -1572,7 +1572,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
     int allthere;
     checkBeta(beta, allthere);
 
-    int       isrz       = Geometry::IsRZ();
+    int       isrz       = parent->Geom(0).IsRZ();
     const int nghost     = 1;
     const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
 
@@ -1828,7 +1828,7 @@ Diffusion::computeAlpha (MultiFab&       alpha,
 
     const MultiFab& volume = navier_stokes->Volume(); 
 
-    int usehoop = (comp == Xvel && (Geometry::IsRZ()));
+    int usehoop = (comp == Xvel && (parent->Geom(0).IsRZ()));
     int useden  = (rho_flag == 1);
 
     if (!usehoop)
@@ -2043,7 +2043,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         }
 
 #if (BL_SPACEDIM == 2)
-        if (comp == Xvel && Geometry::IsRZ())
+        if (comp == Xvel && parent->Geom(0).IsRZ())
         {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2168,7 +2168,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	}
 
 #if (BL_SPACEDIM == 2)
-        if (Geometry::IsRZ())
+        if (parent->Geom(0).IsRZ())
         {
             int fort_xvel_comp = Xvel+1;
 
@@ -2620,7 +2620,7 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
     const BCRec& bc = navier_stokes->get_desc_lst()[State_Type].getBC(src_comp);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (Geometry::isPeriodic(idim))
+        if (parent->Geom(0).isPeriodic(idim))
         {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }
