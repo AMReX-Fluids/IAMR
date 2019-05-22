@@ -32,7 +32,7 @@ public:      // public access functions
                            amrex_real         dt,
                            D_DECL(      amrex::FArrayBox&  umac,       amrex::FArrayBox&  vmac,       amrex::FArrayBox&  wmac),
                            D_DECL(const amrex::Vector<int>& ubc, const amrex::Vector<int>& vbc, const amrex::Vector<int>& wbc),
-                           amrex::FArrayBox&  U,
+                           const amrex::FArrayBox&  U,
                            amrex::FArrayBox&  tforces);
 
     void AdvectScalars(const amrex::Box&  box,
@@ -149,11 +149,6 @@ public:      // public access functions
 
 	// find the largest change in velocity magnitude since last iteration
     amrex::Real maxchng_velmag( amrex::FArrayBox &U_old, amrex::FArrayBox &U_new, const amrex::Box &grd );
-
-    // test the cell centered Courant number 
-    amrex::Real test_u_rho( amrex::FArrayBox &U, amrex::FArrayBox &Rho, const amrex::Box &grd,
-                     const amrex::Real *dx, const amrex::Real dt,
-                     const amrex::Real *u_max );
 
     // test the mac edge velocity Courant numbers 
     amrex::Real test_umac_rho( amrex::FArrayBox &umac,
