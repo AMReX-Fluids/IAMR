@@ -640,12 +640,12 @@ NavierStokesBase::advance_setup (Real time,
 
     const int finest_level = parent->finestLevel();
 
-//#ifdef AMREX_USE_EB
-//    // just cribbing from incflo
-//    umac_n_grow = 5;
-//#else
+#ifdef AMREX_USE_EB
+   // just cribbing from incflo
+   umac_n_grow = 5;
+#else
     umac_n_grow = 1;
-//#endif
+#endif
     
 #ifdef AMREX_PARTICLES
     if (ncycle >= 1)
@@ -1108,10 +1108,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // This DM won't be put into the cache.
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
-            MultiFab crse_src, fine_src;
-
-            crse_src.define(crse_src_ba, dm, 1, 0);
-            fine_src.define(fine_src_ba, dm, 1, 0);
+            MultiFab crse_src(crse_src_ba, dm, 1, 0);
+            MultiFab fine_src(fine_src_ba, dm, 1, 0);
 
             crse_src.setVal(1.e200);
             fine_src.setVal(1.e200);
@@ -2278,7 +2276,6 @@ NavierStokesBase::mac_project (Real      time,
 			       Real      dt,
 			       MultiFab& Sold, 
 			       MultiFab* divu,
-			       int       have_divu,
 			       int       ngrow,
 			       bool      increment_vel_register)
 {
