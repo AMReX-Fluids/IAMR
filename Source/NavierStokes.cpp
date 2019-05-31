@@ -757,7 +757,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
     MultiFab *delta_rhs = 0;
     MultiFab *alpha = 0;
     const int rhsComp = 0, alphaComp = 0, fluxComp  = 0;
-    const int num_comps = 1;
     
     FluxBoxes fb_fluxn  (this);
     FluxBoxes fb_fluxnp1(this);
@@ -792,8 +791,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
 	const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
 	const bool add_old_time_divFlux = true;
 
-	int state_ind = sigma + BL_SPACEDIM;
-
 	const int betaComp = 0;
 	const int visc_coef_comp = sigma;
 	const int Rho_comp = Density;
@@ -803,15 +800,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
 	for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	  a[d] = &(area[d]);
 	}
-
-	// fixme -- don;t believe this ever gets hit because state_ind
-	// is computed wrong...
-	// if(state_ind==Temp){
-	//   Print()<<"Using hard coded cp \n";
-	//   Abort("thermo cp");
-	//   alpha = new MultiFab(grids,dmap,1,0);
-	//   alpha->setVal(THERMO_cp);
-	// }
 
 	diffusion->diffuse_scalar (Sn, Sn, Snp1, Snp1, sigma, 1, Rho_comp,
 				   prev_time,curr_time,be_cn_theta,Rh,rho_flag,
@@ -1535,8 +1523,6 @@ NavierStokes::mac_sync ()
     BL_PROFILE_REGION_START("R::NavierStokes::mac_sync()");
     BL_PROFILE("NavierStokes::mac_sync()");
 
-    amrex::Print() << "Doing mac_sync...\n" << std::endl;
-
     const int  numscal        = NUM_STATE - BL_SPACEDIM;
     const Real prev_time      = state[State_Type].prevTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
@@ -1565,24 +1551,6 @@ NavierStokes::mac_sync ()
                                         NUM_STATE,be_cn_theta, 
                                         modify_reflux_normal_vel,
                                         do_mom_diff);
-	//fixme
-	amrex::Print() << "Doing reflux on level "<<level<<"...\n" << std::endl;
-	// static int count=0;
-	// count++;
-	// amrex::WriteSingleLevelPlotfile("SsyncA_"+std::to_string(count),Ssync, {"0","1","2","3"},geom, 0.0, 0);
-		//
-        //
-        // The following used to be done in mac_sync_compute.  Ssync is
-        // the source for a rate of change to S over the time step, so
-        // Ssync*dt is the source to the actual sync amount.
-        //
-	//fixme?? this is not commented in dev
-	// seems like density still needs this factor of dt for hotspot...
-	// for 3d euler, tracer needs it too, but then hotspot's tracer will be off...
-	//trying if (not diffusive) ...
-	////Ssync.mult(dt,Ssync.nGrow());
-
-
         //
         // For all conservative variables Q (other than density)
         // express Q as rho*q and increment sync by -(sync_for_rho)*q
@@ -1616,9 +1584,6 @@ NavierStokes::mac_sync ()
 	      }
             }
         }
-	      //fixme
-	      Print()<<"num conserved "<<iconserved<<"\n";
-
 
         if (do_mom_diff == 1)
         {
@@ -1681,74 +1646,37 @@ NavierStokes::mac_sync ()
 	const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
 	const bool add_old_time_divFlux = false;
 
-	const int nlev = (level ==0 ? 1 : 2);
-	// Sn does not get used for this sync solve....
-  	//Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
+	// no coarse data used because want Dirchlet BCs = 0 for sync
+	const int nlev = 1; //(level ==0 ? 1 : 2);
+	// Sn does not get used for this sync solve.
 	Vector<MultiFab*> Sn(0), Snp1(nlev,0);
 	
-	//auto Snc = std::unique_ptr<MultiFab>(new MultiFab());
 	auto Snp1c = std::unique_ptr<MultiFab>(new MultiFab());
 	//fixme - maybe only want to do this FP if there's diffusive sclars..
 	// only done for runs with 3 or more total levels.  NOT executed
 	// for 2 total levels case
 	if (level > 0) {
 	  auto& crselev = getLevel(level-1);
-	  // Sn never used in this mac sync
-          //Snc->define(crselev.boxArray(), crselev.DistributionMap(), 1, ng);
-          //FillPatch(crselev,*Snc  ,ng,prev_time,State_Type,Density,1);
 	  
           Snp1c->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng);
 	  // fixme don;t think we need to FP everything, just scalars, rihgt?
 	  // and maybe not even density?
           FillPatch(crselev,*Snp1c,ng,curr_time,State_Type,0,NUM_STATE);
 
-	  // this confuses ProjOutflowBC
+	  // trying to do things one comp at a time confuses ProjOutflowBC
 	  //Snp1[1]->define(crselev.boxArray(), crselev.DistributionMap(), 1, 1);
 	}
 
-	// not used in this case, leave as zero...
-  	//Sn[0]   = &(get_old_data(State_Type));
-	//Sn[0]   = &(get_new_data(State_Type));
-	//VisMF::Write(*Sn[0],"sn0");
-	//amrex::WriteSingleLevelPlotfile("Snew",*Sn[0], {"0","1","2","3","4","5"},geom, 0.0, 0);
 	
 	// fixme?  Sn gets all state comps and Snp1 only gets 1 comp???
 	// use numstate here? --- see above, Sn never used for this case
         MultiFab dSsync(grids,dmap,NUM_STATE,1);
-	// old way
-	//	MultiFab dSsync(grids,dmap,1,1);
-	// Diffusion now assumes Snew is FillPatch'ed before getting passed in
-	// FIXME probably need to FillPatch here...
-	// AmrLevel::FillPatch(*navier_stokes,*S_new[0],ng,cur_time,State_Type,sigma,1);
-	// but then it's setVal(0.) below.... confused
+	// Snp1[0].setVal(0.) below
 	Snp1[0] = &dSsync;
 	
-	//fixme? filling coarse data was here...
-	
-	//fixme
-	// Print()<<"Sn ncomp "<<Sn[0]->nComp()<<"\n";
-	// Print()<<"Snp1 ncomp "<<Snp1[0]->nComp()<<"\n";
-	// Print()<<"numstate "<<NUM_STATE<<"\n";
-	// if (nlev >1) {
-	//   Print()<<"Sn ncomp "<<Sn[1]->nComp()<<"\n";
-	//   Print()<<"Snp1 ncomp "<<Snp1[1]->nComp()<<"\n";
-	// }
-
   	Vector<MultiFab*> Rhon(nlev,0), Rhonp1(nlev,0);
 	Rhonp1[0] = &(get_new_data(State_Type));
 	int Rho_comp = Density;
-
-	//Print()<<"rho ng "<<Rhonp1[0]->nGrow()<<"\n";
-	// fixme -- Rho needs ghosts filled?
-	// MultiFab tmp(grids, dmap, 1,1);
-	// FillPatch(*this,tmp,ng,curr_time,State_Type,Density,1);
-	// Rhonp1[0] = &tmp;
-	// int Rho_comp = 0;
-	// //Copy(tmp,*Snp1[0],Density,0,1,1);
-	// //Copy(tmp,*Rhonp1[0],Density,0,1,1);
-	// //Subtract(tmp,*Rhonp1[0],Density,0,1,1);
-	//  Print()<<"Writing tmp ... \n";
-	 //VisMF::Write(*Rhonp1[0],"tmp");
 	  
         FluxBoxes fb_fluxn  (this);
         MultiFab** fluxn   = fb_fluxn.get();
@@ -1764,41 +1692,13 @@ NavierStokes::mac_sync ()
             const int state_ind = BL_SPACEDIM + sigma;
             const int rho_flag  = Diffusion::set_rho_flag(diffusionType[state_ind]);
 
-	    Print()<<"scalar "<<sigma<<"\n";
-	    Print()<<"BCs "<<theBCs[state_ind]<<"\n";
-	    Print()<<"rho_flag "<<rho_flag<<"\n";
             if (is_diffusive[state_ind])
             {
-	      Print()<<"is diffusive "<<state_ind<<"\n";
-	      //fixme? suspicious that sComp is always 0....
-	      Snp1[0]->setVal(0.,state_ind,1,1);   // for diffuse_scalar_msd
+ 	      Snp1[0]->setVal(0.,state_ind,1,ng);   
 	      //Snp1[0]->setVal(0.,0,1,1);   // for diffuse_scalar_msd
 	      if (nlev>1 && Snp1[1] == 0) {
+		// FIXME? need Snp1[1].setVal(0., ...) ???
 		Print()<<"Not using coarse data as in dev ....\n";
-		// Print()<<"Filling coarse data for diff solve ...\n";
-		// // Sn never used for this case
-		// //Sn[1]   =  Snc.get() ;
-		// Snp1[1] =  Snp1c.get() ;
-
-		// MultiFab rhc(grids,dmap,1,1);
-		// MultiFab::LinComb(rhc,0.5,*Snp1c,Density,0.5,*Snc,0,0,1,1);
-		// if (rho_flag ==1 )
-		//   Multiply(*Snp1[1],rhc,0,Density,1,1);
-
-		// this alias doesn't work because Diffusion::diffuse_scalar()
-		// tries to use the Sc multifab to define a Solnc
-		// however, the boxarray doesn't match up with the distMap
-		// see AMReX_FabArrayBase.cpp::182
-		//MultiFab Sc(*Snp1c, amrex::make_alias, state_ind,1);
-		//Snp1[1]=&Sc;
-		// or try copy... can't define a 1 comp MF, have problems
-		// with ProjOutflowBC
-		//MultiFab::Copy(*Snp1[1],*Snp1c,state_ind,0,1,1);
-		// VisMF::Write(*Snp1[1],"Snp1");
-		// VisMF::Write(*Snp1c,"Snp1c");
-
-		//FIXME do we need to get a Rhonp1[1] here too???
-		
 	      }
 
 	      FluxBoxes fb_diffnp1; // not used: , fb_diffn;
@@ -1813,30 +1713,10 @@ NavierStokes::mac_sync ()
                     getDiffusivity(cmp_diffnp1, diffTime, BL_SPACEDIM+sigma,0,1);
                 }
 
-// #if 0
-// // ----- added for consistency
-//     		MultiFab *alpha_in = 0;
-// //		FIXME: hard-coded value of alpha_in, for T
-//                 if(state_ind==Temp){
-// 		  alpha_in = new MultiFab(grids,dmap,1,0);
-// 		  alpha_in->setVal(THERMO_cp);		
-// 		}
-// // -----
-
-//                 diffusion->diffuse_Ssync(Ssync,sigma,dt,be_cn_theta,
-//                                          Rh,rho_flag,fluxSC,0,cmp_diffnp1,0,alpha_in,0);
-
-// 		if (alpha_in!=0) delete alpha_in;
-// #endif
 
 #if 1
-		  //fixme? trying
-		  ////Ssync.mult(1./dt,sigma,1,Ssync.nGrow());
-		  //
-		//int S_comp = 0;
 		int S_comp = state_ind;
     		const int num_comp = 1;
-		// fixme? is this right, or need to match up with state?
     		const int fluxComp  = 0;
                 MultiFab *delta_rhs = &Ssync;
 		int rhsComp = sigma;
@@ -1853,13 +1733,6 @@ NavierStokes::mac_sync ()
 
 		diffuse_comp[0] = is_diffusive[BL_SPACEDIM+sigma];
 
-//		FIXME: hard-coded value of alpha_in, for T	
-	// using this lead to disagreement with dev for single & 2 lev
-                if(state_ind==Temp && 0){
-		  alpha_in = new MultiFab(grids,dmap,1,0);
-		  alpha_in->setVal(THERMO_cp );		
-		}
-		
                 diffusion->diffuse_scalar (Sn,Rhon,Snp1,Rhonp1,
 					   S_comp,num_comp,Rho_comp,
 					   prev_time,curr_time,be_cn_theta,
@@ -1877,8 +1750,6 @@ NavierStokes::mac_sync ()
 		
 		MultiFab::Copy(Ssync,*Snp1[0],state_ind,sigma,1,0);
 		//		MultiFab::Copy(Ssync,*Snp1[0],0,sigma,1,0);
-		// if (sigma ==2 )
-		//    Abort("sigma = 2");
 #endif
                 //
                 // Increment the viscous flux registers
@@ -1893,14 +1764,14 @@ NavierStokes::mac_sync ()
             }
 	    else // state component not diffusive
 	    {
+	      //
+	      // The following used to be done in mac_sync_compute.  Ssync is
+	      // the source for a rate of change to S over the time step, so
+	      // Ssync*dt is the source to the actual sync amount.
+	      //
 	      Ssync.mult(dt,sigma,1,Ssync.nGrow());
 	    }
         }
-	//fixme
-	// Print()<<"Sssync size "<<Ssync.nComp()<<"\n";
-	// amrex::WriteSingleLevelPlotfile("SsyncB_"+std::to_string(count),Ssync, {"0","1","2","3"},geom, 0.0, 0);
-	//Abort("Ending after writing SsyncB");
-	//
 
         //
         // For all conservative variables Q (other than density)
@@ -1928,11 +1799,6 @@ NavierStokes::mac_sync ()
         // Add the sync correction to the state.
         //
 	//fixme -- check this with conservatively advected tracer...
-		// static int count=0;
-		// count++;
-	//Print()<<" num conserved "<<iconserved<<"\n";
-	//amrex::WriteSingleLevelPlotfile("SsyncC_"+std::to_string(count),Ssync, {"0","1","2"},geom, 0.0, 0);
-	    //
 
         for (int sigma  = 0; sigma < numscal; sigma++)
         {
@@ -1981,15 +1847,13 @@ NavierStokes::mac_sync ()
             SyncInterp(Ssync,level,sync_incr,lev,ratio,0,0,
                        numscal,1,mult,sync_bc.dataPtr());
 
-	    //fixme? this is a shadow declaration. Comeback and make sure this is doing
-	    // what's desired
-            MultiFab& S_new = fine_lev.get_new_data(State_Type);
+            MultiFab& Sf_new = fine_lev.get_new_data(State_Type);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi){
+            for (MFIter mfi(Sf_new,true); mfi.isValid(); ++mfi){
 	      const Box& bx = mfi.tilebox();	      
-	      S_new[mfi].plus(sync_incr[mfi],bx,0,Density,numscal);
+	      Sf_new[mfi].plus(sync_incr[mfi],bx,0,Density,numscal);
 	    }
 
             fine_lev.make_rho_curr_time();
