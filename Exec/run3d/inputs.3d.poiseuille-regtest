@@ -1,3 +1,7 @@
+diffuse.use_mlmg_solver = 1
+mac.use_mlmg_solver = 1
+proj.use_mlmg_solver = 1
+
 #*******************************************************************************
 # INPUTS.3D.POISEUILLE for regression testing
 #*******************************************************************************
@@ -35,7 +39,7 @@ ns.cfl                  =  0.5  # CFL number used to set dt
 ns.init_shrink          =  0.3  # factor which multiplies the very first time step
 ns.init_iter          	=  3    # number of initial iterations
 
-ns.variable_vel_visc    =  0
+ns.variable_vel_visc    =  1
 ns.vel_visc_coef        =  1.0
 ns.variable_scal_diff   =  0
 ns.scal_diff_coefs      =  0.001
