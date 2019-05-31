@@ -338,7 +338,6 @@ protected:
                       amrex::Real      dt,
                       amrex::MultiFab& S_old, 
                       amrex::MultiFab* divu,
-                      int       have_divu,
                       int       ngrow,
                       bool      increment_vel_register);
     //

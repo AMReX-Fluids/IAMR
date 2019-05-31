@@ -381,7 +381,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     // is eliminated by setting a = 0.
     //
 #if (BL_SPACEDIM == 2) 
-    if (sigma == Xvel && Geometry::IsRZ())
+    if (sigma == Xvel && parent->Geom(0).IsRZ())
     {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -653,6 +653,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     Real dt = curr_time - prev_time;
     const int ng = 1;
+// FIXME - if be_cn_theta==1, should it be okay to pass nullptr for S_old???
     BL_ASSERT(S_new[0]->nGrow()>0); // && S_old[0]->nGrow()>0);
     const BoxArray& ba = S_new[0]->boxArray();
     const DistributionMapping& dm = S_new[0]->DistributionMap();
@@ -724,9 +725,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     for (int icomp=0; icomp<num_comp; ++icomp) {
 
-      if (verbose)
-	amrex::Print() << "diffusing scalar "<<icomp+1<<" of "<<num_comp << "\n";
-	amrex::Print() << "rho flag "<<rho_flag << "\n";
+        if (verbose){
+       	  amrex::Print() << "diffusing scalar "<<icomp+1<<" of "<<num_comp << "\n";
+	  amrex::Print() << "rho flag "<<rho_flag << "\n";
+        }
 
         int sigma = S_comp + icomp;
 
@@ -1129,7 +1131,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                          MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
             std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
             mgnp1.getFluxes({fp});
-
         }
 
         else
@@ -1441,7 +1442,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         }
 
 #if (BL_SPACEDIM == 2) 
-        if (Geometry::IsRZ())
+        if (parent->Geom(0).IsRZ())
         {
             int fort_xvel_comp = Xvel+1;
 
@@ -2219,7 +2220,7 @@ Diffusion::getTensorOp_doit (DivVis*                tensor_op,
     int allthere;
     checkBeta(beta, allthere);
 
-    int       isrz       = Geometry::IsRZ();
+    int       isrz       = parent->Geom(0).IsRZ();
     const int nghost     = 1;
     const int nCompAlpha = BL_SPACEDIM == 2  ?  2  :  1;
 
@@ -2589,7 +2590,7 @@ Diffusion::computeAlpha (MultiFab&       alpha,
 
     const MultiFab& volume = navier_stokes->Volume(); 
 
-    int usehoop = (comp == Xvel && (Geometry::IsRZ()));
+    int usehoop = (comp == Xvel && (parent->Geom(0).IsRZ()));
     int useden  = (rho_flag == 1);
 
     if (!usehoop)
@@ -2963,7 +2964,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         }
 
 #if (BL_SPACEDIM == 2)
-        if (comp == Xvel && Geometry::IsRZ())
+        if (comp == Xvel && parent->Geom(0).IsRZ())
         {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -3088,7 +3089,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	}
 
 #if (BL_SPACEDIM == 2)
-        if (Geometry::IsRZ())
+        if (parent->Geom(0).IsRZ())
         {
             int fort_xvel_comp = Xvel+1;
 
@@ -3544,7 +3545,7 @@ Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (Geometry::isPeriodic(idim))
+        if (parent->Geom(0).isPeriodic(idim))
         {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }
@@ -3598,9 +3599,11 @@ Diffusion::setDomainBC_msd (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                             std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                             const BCRec& bc)
 {
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (Geometry::isPeriodic(idim))
+      // fixme??? not sure DefaultGeometry really returns what's desired: parent->Geom(0)
+      if (DefaultGeometry().isPeriodic(idim))
         {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }

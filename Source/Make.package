@@ -44,6 +44,6 @@ FEXE_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H PROJECTION_F.H \
                             SLABSTAT_NS_F.H
 FEXE_headers += NS_error_F.H
 
-CEXE_sources += MLMG_Mac.cpp
-CEXE_headers += IAMR_MLMG_F.H MACPROJ_F.H 
+CEXE_sources += MLMG_Mac.cpp NS_util.cpp
+CEXE_headers += IAMR_MLMG_F.H MACPROJ_F.H NS_util.H
 

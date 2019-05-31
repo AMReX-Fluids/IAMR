@@ -19,6 +19,7 @@
 #include <NAVIERSTOKES_F.H>
 #include <AMReX_BLProfiler.H>
 #include <PROB_NS_F.H>
+#include <NS_util.H>
 
 #ifdef BL_USE_VELOCITY
 #include <AMReX_DataServices.H>
@@ -144,8 +145,8 @@ NavierStokes::initData ()
 
     if (!velocity_plotfile.empty())
     {
-        amrex::Print() << "initData: reading data from: " << velocity_plotfile << " (" 
-		       << velocity_plotfile_xvel_name << ")" << '\n';
+        Print() << "initData: reading data from: " << velocity_plotfile << " (" 
+                << velocity_plotfile_xvel_name << ")" << '\n';
 
         DataServices::SetBatchMode();
         Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -165,9 +166,9 @@ NavierStokes::initData ()
             if (plotnames[i] == velocity_plotfile_xvel_name) idX = i;
 
         if (idX == -1)
-	  amrex::Abort("Could not find velocity fields in supplied velocity_plotfile");
+	  Abort("Could not find velocity fields in supplied velocity_plotfile");
 	else
-	  amrex::Print() << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
+	  Print() << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
 
         MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
@@ -187,7 +188,7 @@ NavierStokes::initData ()
 	    amrData.FlushGrids(idX+i);
         }
 
-	amrex::Print() << "initData: finished init from velocity_plotfile" << '\n';
+	Print() << "initData: finished init from velocity_plotfile" << '\n';
     }
 #endif /*BL_USE_VELOCITY*/
 
@@ -279,7 +280,7 @@ NavierStokes::advance (Real time,
     BL_PROFILE("NavierStokes::advance()");
 
     if (verbose) {
-      amrex::Print() << "Advancing grids at level " << level
+      Print() << "Advancing grids at level " << level
 		     << " : starting time = "       << time
 		     << " with dt = "               << dt << '\n';
     }
@@ -287,8 +288,7 @@ NavierStokes::advance (Real time,
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
-    Real dummy   = 0.0;
-    Real dt_test = predict_velocity(dt,dummy);
+    Real dt_test = predict_velocity(dt);
     //
     // Do MAC projection and update edge velocities.
     //
@@ -297,7 +297,7 @@ NavierStokes::advance (Real time,
         MultiFab mac_rhs(grids,dmap,1,0);
         create_mac_rhs(mac_rhs,0,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
-        mac_project(time,dt,S_old,&mac_rhs,have_divu,umac_n_grow,true);
+        mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
     }
     //
     // Advect velocities.
@@ -331,7 +331,7 @@ NavierStokes::advance (Real time,
 	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
         {
 	    int iScal = first_scalar+scalarUpdateOrder[iComp];
-	    amrex::Print() << "... ... updating " << desc_lst[0].name(iScal) << '\n';
+	    Print() << "... ... updating " << desc_lst[0].name(iScal) << '\n';
 	    scalar_update(dt,iScal,iScal);
 	}
     }
@@ -398,12 +398,11 @@ NavierStokes::advance (Real time,
 //
 
 Real
-NavierStokes::predict_velocity (Real  dt,
-                                Real& comp_cfl)
+NavierStokes::predict_velocity (Real  dt)
 {
     BL_PROFILE("NavierStokes::predict_velocity()");
 
-    if (verbose) amrex::Print() << "... predict edge velocities\n";
+    if (verbose) Print() << "... predict edge velocities\n";
     //
     // Get simulation parameters.
     //
@@ -429,45 +428,57 @@ NavierStokes::predict_velocity (Real  dt,
     }
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-
     getGradP(Gp, prev_pres_time);
     
-
-    FillPatchIterator
-      U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+    FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
 
+    // Floor small values of states to be extrapolated
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(Umf,true); mfi.isValid(); ++mfi)
+    {
+      Box gbx=mfi.growntilebox(Godunov::hypgrow());
+      auto fab = Umf.array(mfi);
+      AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
+      {
+        auto& val = fab(i,j,k,n);
+        val = std::abs(val) > 1.e-20 ? val : 0;
+      });
+    }
+
 #ifdef BOUSSINESQ
-    FillPatchIterator
-      S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
+    FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
     MultiFab& Smf=S_fpi.get_mf();
 #else
 #ifdef MOREGENGETFORCE
-     FillPatchIterator
-       S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-      MultiFab& Smf=S_fpi.get_mf();
+    FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+    MultiFab& Smf=S_fpi.get_mf();
 #endif
 #endif
 
     //
-    // Set up the timestep estimation.
+    // Compute "grid cfl number" based on cell-centered time-n velocities
     //
-    Real cflmax = 1.0e-10;
-    comp_cfl    = (level == 0) ? cflmax : comp_cfl;
-    // seems both IAMR and Pele only use a dummy comp_cfl, so should
-    // we not bother to do the reduction??? Does amrex use it?
+    auto umax = VectorMaxAbs({&Umf},FabArrayBase::mfiter_tile_size,0,BL_SPACEDIM,Umf.nGrow());
+    Real cflmax = dt*umax[0]/dx[0];
+    for (int d=1; d<BL_SPACEDIM; ++d) {
+      cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
+    }
+    Real tempdt = std::min(change_max,cfl/cflmax);
+
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:cflmax,comp_cfl)
+#pragma omp parallel
 #endif
-{
-     Real cflgrid,u_max[3];
-     FArrayBox tforces;
-     Vector<int> bndry[BL_SPACEDIM];
+    {
+      FArrayBox tforces;
+      Vector<int> bndry[BL_SPACEDIM];
 
-     for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-     {
-       Box bx=U_mfi.tilebox();
-       FArrayBox& Ufab = Umf[U_mfi];
+      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      {
+        Box bx=U_mfi.tilebox();
+        FArrayBox& Ufab = Umf[U_mfi];
 
 #ifdef BOUSSINESQ
         getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
@@ -475,22 +486,14 @@ NavierStokes::predict_velocity (Real  dt,
 #ifdef GENGETFORCE
         getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
 #elif MOREGENGETFORCE
-	if (getForceVerbose) {
-	  amrex::Print() << "---" << '\n' 
-			 << "A - Predict velocity:" << '\n'
-			 << " Calling getForce..." << '\n';
-	}
+        if (getForceVerbose) {
+          Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
+        }
         getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 #else
-	getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
+        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
 #endif		 
 #endif
-        //
-        // Test velocities, rho and cfl.
-        //
-        cflgrid  = godunov->test_u_rho(Ufab,rho_ptime[U_mfi],bx,dx,dt,u_max);
-        cflmax   = std::max(cflgrid,cflmax);
-        comp_cfl = std::max(cflgrid,comp_cfl);
         //
         // Compute the total forcing.
         //
@@ -504,13 +507,8 @@ NavierStokes::predict_velocity (Real  dt,
                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                   Ufab, tforces);
+      }
     }
-}
-
-    Real tempdt = std::min(change_max,cfl/cflmax);
-    // Don't we need to reduce comp_cfl here too?
-    // Skipping it because it's a dummy?
-    ParallelDescriptor::ReduceRealMin(tempdt);
 
     return dt*tempdt;
 }
@@ -526,7 +524,7 @@ NavierStokes::scalar_advection (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_advection()");
 
-    if (verbose) amrex::Print() << "... advect scalars\n";
+    if (verbose) Print() << "... advect scalars\n";
     //
     // Get simulation parameters.
     //
@@ -563,14 +561,30 @@ NavierStokes::scalar_advection (Real dt,
     //
 
   {
-      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
       FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
-      const MultiFab& Umf=U_fpi.get_mf();
-      const MultiFab& Smf=S_fpi.get_mf();
+      MultiFab& Smf=S_fpi.get_mf();
       
+  // Floor small values of states to be extrapolated
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
+      {
+        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        auto fab = Smf.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( gbx, num_scalars, i, j, k, n,
+        {
+          auto& val = fab(i,j,k,n);
+          val = std::abs(val) > 1.e-20 ? val : 0;
+        });
+      }
+
 #ifdef BOUSSINESQ
       FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
       const MultiFab& Scalmf=Scal_fpi.get_mf();
+#elif MOREGENGETFORCE
+      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+      const MultiFab& Umf=U_fpi.get_mf();
 #endif
       
 #ifdef _OPENMP
@@ -583,54 +597,54 @@ NavierStokes::scalar_advection (Real dt,
       FArrayBox cfluxes[BL_SPACEDIM];
       FArrayBox edgstate[BL_SPACEDIM];
      
-      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+      for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
       {
-	    const Box bx = U_mfi.tilebox();
+	    const Box bx = S_mfi.tilebox();
 
 #ifdef BOUSSINESQ
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[U_mfi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[S_mfi]);
 #else
 #ifdef GENGETFORCE
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[U_mfi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[S_mfi]);
 #elif MOREGENGETFORCE
 	      if (getForceVerbose) {
-	        amrex::Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
+	        Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
 			    << " Calling getForce..." << '\n';
 	      }
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
 #else
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[U_mfi]);
+        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[S_mfi]);
 #endif		 
 #endif		 
 
         for (int d=0; d<BL_SPACEDIM; ++d)
         {
-          const Box& ebx = amrex::surroundingNodes(bx,d);
+          const Box& ebx = surroundingNodes(bx,d);
           cfluxes[d].resize(ebx,num_scalars);
           edgstate[d].resize(ebx,num_scalars);
         }
 
         for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
           int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
-          godunov->Sum_tf_divu_visc(Smf[U_mfi],i,tforces,i,1,visc_terms[U_mfi],i,
-                                    (*divu_fp)[U_mfi],0,rho_ptime[U_mfi],0,use_conserv_diff);
+          godunov->Sum_tf_divu_visc(Smf[S_mfi],i,tforces,i,1,visc_terms[S_mfi],i,
+                                    (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
         }
 
         state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
 
         godunov->AdvectScalars(bx, dx, dt, 
-                               D_DECL(  area[0][U_mfi],  area[1][U_mfi],  area[2][U_mfi]),
-                               D_DECL( u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]), 0,
-                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                               D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0,
-                               Smf[U_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[U_mfi], 0,
-                               (*aofs)[U_mfi], fscalar, advectionType, state_bc, FPU, volume[U_mfi]);
+                               D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
+                               D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]),
+                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                               D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+                               Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
+                               (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
 
                                
         for (int d=0; d<BL_SPACEDIM; ++d)
         {
-          const Box& ebx = U_mfi.nodaltilebox(d);
-          (fluxes[d])[U_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+          const Box& ebx = S_mfi.nodaltilebox(d);
+          (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
         }
       }
     }
@@ -673,7 +687,7 @@ NavierStokes::scalar_update (Real dt,
 {
     BL_PROFILE("NavierStokes::scalar_update()");
 
-    if (verbose) amrex::Print() << "... update scalars\n";
+    if (verbose) Print() << "... update scalars\n";
 
     scalar_advection_update(dt, first_scalar, last_scalar);
 
@@ -689,7 +703,7 @@ NavierStokes::scalar_update (Real dt,
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-	 amrex::Print() << "New scalar " << sigma << " contains Nans" << '\n';
+	 Print() << "New scalar " << sigma << " contains Nans" << '\n';
 	 exit(0);
        }
     }
@@ -904,7 +918,7 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "NavierStokes:velocity_diffusion_update(): lev: " << level
+	Print() << "NavierStokes:velocity_diffusion_update(): lev: " << level
 		       << ", time: " << run_time << '\n';
     }
 }
@@ -1044,19 +1058,19 @@ NavierStokes::sum_integrated_quantities ()
 #endif
     }
 
-    amrex::Print() << '\n';
-    // amrex::Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
-    // amrex::Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';
+    Print() << '\n';
+    // Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
+    // Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';
 #if (BL_SPACEDIM==3)
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
 #if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     //NOTE: FORCING_T gives only the energy being injected by the forcing
     //      term used for generating turbulence in probtype 14, 15.
     //      Defaults to 0 for other probtypes.
-    amrex::Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
 #endif
 #endif
 }
@@ -1115,7 +1129,7 @@ NavierStokes::writePlotFile (const std::string& dir,
         os << thePlotFileType() << '\n';
 
         if (n_data_items == 0)
-            amrex::Error("Must specify at least one valid data item to plot");
+            Error("Must specify at least one valid data item to plot");
 
         os << n_data_items << '\n';
 
@@ -1142,10 +1156,10 @@ NavierStokes::writePlotFile (const std::string& dir,
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
         for (i = 0; i < BL_SPACEDIM; i++)
-            os << Geometry::ProbLo(i) << ' ';
+            os << Geom().ProbLo(i) << ' ';
         os << '\n';
         for (i = 0; i < BL_SPACEDIM; i++)
-            os << Geometry::ProbHi(i) << ' ';
+            os << Geom().ProbHi(i) << ' ';
         os << '\n';
         for (i = 0; i < f_lev; i++)
             os << parent->refRatio(i)[0] << ' ';
@@ -1162,7 +1176,7 @@ NavierStokes::writePlotFile (const std::string& dir,
                 os << parent->Geom(i).CellSize()[k] << ' ';
             os << '\n';
         }
-        os << (int) Geometry::Coord() << '\n';
+        os << (int) Geom().Coord() << '\n';
         os << "0\n"; // Write bndry data.
 
 
@@ -1253,7 +1267,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     //
     static const std::string BaseName = "/Cell";
 
-    std::string LevelStr = amrex::Concatenate("Level_", level, 1);
+    std::string LevelStr = Concatenate("Level_", level, 1);
     //
     // Now for the full pathname of that directory.
     //
@@ -1265,8 +1279,8 @@ NavierStokes::writePlotFile (const std::string& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!amrex::UtilCreateDirectory(FullPath, 0755))
-            amrex::CreateDirectoryFailed(FullPath);
+        if (!UtilCreateDirectory(FullPath, 0755))
+            CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -2101,7 +2115,7 @@ NavierStokes::avgDown (int comp)
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
-    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+    average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
                          comp, 1, fine_ratio);
 
     if (comp == Density) 
@@ -2132,7 +2146,7 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+    average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
                          0, S_crse.nComp(), fine_ratio);
 
     //   
@@ -2167,7 +2181,7 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        amrex::average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
+        average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
                              0, 1, fine_ratio);
     }
     if (have_dsdt)
@@ -2175,7 +2189,7 @@ NavierStokes::avgDown ()
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        amrex::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
+        average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
                              0, 1, fine_ratio);
     }
     //
@@ -2276,8 +2290,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 #ifdef AMREX_DEBUG
     if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
     {
-      amrex::Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
-      amrex::Error("must call NavierStokes::getViscTerms with all three velocity components");
+      Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
+      Error("must call NavierStokes::getViscTerms with all three velocity components");
     }
 #endif
     // 
@@ -2426,7 +2440,7 @@ NavierStokes::calcViscosity (const Real time,
         }
         else
         {
-            amrex::Abort("NavierStokes::calcViscosity() : must have velocity visc_coef >= 0.0");
+            Abort("NavierStokes::calcViscosity() : must have velocity visc_coef >= 0.0");
         }
     }
 }
@@ -2477,7 +2491,7 @@ NavierStokes::calcDiffusivity (const Real time)
             }
             else
             {
-                amrex::Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
+                Abort("NavierStokes::calcDiffusivity() : must have scalar diff_coefs >= 0.0");
             }
         }
     }
@@ -2593,7 +2607,7 @@ NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
     // Miscellanious checks
     //
     BL_ASSERT(!(ixt.cellCentered()) && !(ixt.nodeCentered()));
-    BL_ASSERT(amrex::grow(ccbox,-amrex::BASISV(dir)).contains(amrex::enclosedCells(bx)));
+    BL_ASSERT(grow(ccbox,-BASISV(dir)).contains(enclosedCells(bx)));
     BL_ASSERT(sComp+nComp <= ccfab.nComp() && dComp+nComp <= ecfab.nComp());
 
     //

@@ -112,7 +112,7 @@ Godunov::ExtrapVelToFaces (const amrex::Box&  box,
                            amrex_real         dt,
                            D_DECL(      FArrayBox&  umac,       FArrayBox&  vmac,       FArrayBox&  wmac),
                            D_DECL(const Vector<int>& ubc, const Vector<int>& vbc, const Vector<int>& wbc),
-                           amrex::FArrayBox&  U,
+                           const amrex::FArrayBox&  U,
                            amrex::FArrayBox&  tforces)
 {
   extrap_vel_to_faces(box.loVect(),box.hiVect(),
@@ -131,9 +131,9 @@ Godunov::AdvectScalars(const Box&  box,
                        const Real* dx,
                        Real        dt,
                        D_DECL(const FArrayBox&   Ax, const FArrayBox&   Ay, const FArrayBox&   Az),
-                       D_DECL(const FArrayBox& umac, const FArrayBox& vmac, const FArrayBox& wmac),   int vcomp,
-                       D_DECL(      FArrayBox& xflx,       FArrayBox& yflx,       FArrayBox& zflx),   int flxcomp,
-                       D_DECL(      FArrayBox& xstate,     FArrayBox& ystate,     FArrayBox& zstate), int ecomp,
+                       D_DECL(const FArrayBox& umac, const FArrayBox& vmac, const FArrayBox& wmac),
+                       D_DECL(      FArrayBox& xflx,       FArrayBox& yflx,       FArrayBox& zflx),
+                       D_DECL(      FArrayBox& xstate,     FArrayBox& ystate,     FArrayBox& zstate),
                        const FArrayBox& Sfab,   int first_scalar, int num_scalars,
                        const FArrayBox& Forces, int fcomp, 
                        const FArrayBox& Divu,   int ducomp, 
@@ -154,10 +154,10 @@ Godunov::AdvectScalars(const Box&  box,
                           BL_TO_FORTRAN_N_ANYD(Sfab,first_scalar), &num_scalars,
                           BL_TO_FORTRAN_N_ANYD(Forces,fcomp),
                           BL_TO_FORTRAN_N_ANYD(Divu,ducomp),
-                          BL_TO_FORTRAN_N_ANYD(umac,vcomp),     BL_TO_FORTRAN_N_ANYD(xstate,ecomp),
-                          BL_TO_FORTRAN_N_ANYD(vmac,vcomp),     BL_TO_FORTRAN_N_ANYD(ystate,ecomp),
+                          BL_TO_FORTRAN_ANYD(umac),     BL_TO_FORTRAN_ANYD(xstate),
+                          BL_TO_FORTRAN_ANYD(vmac),     BL_TO_FORTRAN_ANYD(ystate),
 #if (AMREX_SPACEDIM == 3)
-                          BL_TO_FORTRAN_N_ANYD(wmac,vcomp),     BL_TO_FORTRAN_N_ANYD(zstate,ecomp),
+                          BL_TO_FORTRAN_ANYD(wmac),     BL_TO_FORTRAN_ANYD(zstate),
                           &corner_couple,
 #endif
                           &dt, dx, &(state_bc[0]), &state_fidx, 
@@ -165,18 +165,18 @@ Godunov::AdvectScalars(const Box&  box,
 
     // ComputeAofs erase the edge state values to write the fluxes
     // So here we make a copy to keep separated fluxes and edge state
-    xflx.copy(xstate,ecomp,flxcomp,num_scalars);
-    yflx.copy(ystate,ecomp,flxcomp,num_scalars);
+    xflx.copy(xstate);
+    yflx.copy(ystate);
 #if (AMREX_SPACEDIM == 3)
-    zflx.copy(zstate,ecomp,flxcomp,num_scalars);
+    zflx.copy(zstate);
 #endif
 
     // Convert face states to face fluxes (return in place) and compute flux divergence
     for (int i=0; i<num_scalars; ++i) { // FIXME: Loop required because conserv_diff flag only scalar
         ComputeAofs (box,
                      D_DECL(Ax,  Ay,  Az),  D_DECL(0,0,0),
-                     D_DECL(umac,vmac,wmac),D_DECL(vcomp,vcomp,vcomp),
-                     D_DECL(xflx,yflx,zflx),D_DECL(flxcomp+i,flxcomp+i,flxcomp+i),
+                     D_DECL(umac,vmac,wmac),D_DECL(0,0,0),
+                     D_DECL(xflx,yflx,zflx),D_DECL(i,i,i),
                      V,0,aofs,state_ind+i,use_conserv_diff[i]);
     }
 }
@@ -553,7 +553,6 @@ Godunov::estdt (FArrayBox&  U,
                tfdat, ARLIM(tlo), ARLIM(thi),
                rdat,  ARLIM(rlo), ARLIM(rhi),
                lo, hi, &dt, dx, &cfl, u_max);
-
     return dt;
 }
 
@@ -583,43 +582,6 @@ Godunov::maxchng_velmag (FArrayBox&  U_old,
                	   Undat, ARLIM(un_lo), ARLIM(un_hi),
                	   lo, hi, &max_change);
     return max_change;
-}
-
-//
-// Estimate the extrema of cell-centered us and rho.
-//
-
-Real
-Godunov::test_u_rho (FArrayBox&  U,
-                     FArrayBox&  rho, 
-                     const Box&  grd,
-                     const Real* dx,
-                     const Real  dt,
-                     const Real* u_max)
-{
-    BL_ASSERT(U.nComp()   >= BL_SPACEDIM);
-    BL_ASSERT(rho.nComp() == 1          );
-    
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
-    const int *vlo = U.loVect();
-    const int *vhi = U.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    const Real *rh = rho.dataPtr();
-    D_TERM(const Real *u  = U.dataPtr(XVEL);,
-           const Real *v  = U.dataPtr(YVEL);,
-           const Real *w  = U.dataPtr(ZVEL););
-
-    Real cflmax = 0;
-    fort_test_u_rho(u,  ARLIM(vlo), ARLIM(vhi),
-                    v,  ARLIM(vlo), ARLIM(vhi),
-#if (BL_SPACEDIM == 3)                          
-                    w,  ARLIM(vlo), ARLIM(vhi),
-#endif
-                    rh, ARLIM(rlo), ARLIM(rhi),
-                    lo, hi, &dt, dx, &cflmax, u_max, &verbose);
-    return cflmax;
 }
 
 //

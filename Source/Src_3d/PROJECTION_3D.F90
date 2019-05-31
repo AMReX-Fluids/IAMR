@@ -98,9 +98,9 @@ contains
       integer    DIMDEC(a)
       integer    domlo(3), domhi(3)
       REAL_T     a(DIMV(a))
+      integer    mult, anel_lo, anel_hi
       REAL_T     anel_coeff(anel_lo:anel_hi)
       REAL_T     bogus_value
-      integer    mult, anel_lo, anel_hi
 
       integer i, j, k
       integer klo,khi

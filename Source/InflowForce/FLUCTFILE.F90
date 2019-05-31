@@ -19,17 +19,17 @@
 
       end
 
-c ::: -----------------------------------------------------------
-c ::: This routine sets the values for the lo() and hi() arrays
-c ::: from the ARG_L1, ARG_H1, ... macros.  This is done since
-c ::: it is more convenient to use the lo() and hi() arrays.
-c :::
-c ::: INPUTS/OUTPUTS:
-c :::
-c ::: DIMS(holder)  => index extent of place holder array
-c ::: lo(3)        <=  lower index limits
-c ::: hi(3)        <=  upper index limits
-c ::: -----------------------------------------------------------
+! ::: -----------------------------------------------------------
+! ::: This routine sets the values for the lo() and hi() arrays
+! ::: from the ARG_L1, ARG_H1, ... macros.  This is done since
+! ::: it is more convenient to use the lo() and hi() arrays.
+! :::
+! ::: INPUTS/OUTPUTS:
+! :::
+! ::: DIMS(holder)  => index extent of place holder array
+! ::: lo(3)        <=  lower index limits
+! ::: hi(3)        <=  upper index limits
+! ::: -----------------------------------------------------------
 
       subroutine FF_SET_LOHI(FF_DIMS(holder), lo, hi)
 
@@ -47,17 +47,17 @@ c ::: -----------------------------------------------------------
 
       end
 
-c ::: -----------------------------------------------------------
-c ::: This routine sets the values for the ARG_L1, ARG_H1, ... macros
-c ::: from the lo() and hi() arrays.  This is done since
-c ::: it is more convenient to use the macros to dimension arrays.
-c :::
-c ::: INPUTS/OUTPUTS:
-c :::
-c ::: FF_DIMS(holder) <=  index extent of place holder array
-c ::: lo(3)            => lower index limits
-c ::: hi(3)            => upper index limits
-c ::: -----------------------------------------------------------
+! ::: -----------------------------------------------------------
+! ::: This routine sets the values for the ARG_L1, ARG_H1, ... macros
+! ::: from the lo() and hi() arrays.  This is done since
+! ::: it is more convenient to use the macros to dimension arrays.
+! :::
+! ::: INPUTS/OUTPUTS:
+! :::
+! ::: FF_DIMS(holder) <=  index extent of place holder array
+! ::: lo(3)            => lower index limits
+! ::: hi(3)            => upper index limits
+! ::: -----------------------------------------------------------
 
       subroutine FF_SET_ARGS(FF_DIMS(holder), lo, hi)
 
@@ -74,20 +74,20 @@ c ::: -----------------------------------------------------------
       FF_ARG_H3(holder) = hi(3)
 
       end
-c
-c ::: -----------------------------------------------------------
-c ::: This routine reads the information from the header of a
-c ::: inflow/initial conditions fluctuations file.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: iunit      => Fortran unit for the input fluctuations file
-c ::: nCmpFile   => Number of components in the file
-c ::: dimFile    => Dimensions from the fluctuations file
-c ::: probSizeFile  => Domain size from the fluctuations file
-c ::: dxFile     => Grid spacing from the fluctuations file
-c ::: -----------------------------------------------------------
-c
+!
+! ::: -----------------------------------------------------------
+! ::: This routine reads the information from the header of a
+! ::: inflow/initial conditions fluctuations file.
+! ::: 
+! ::: INPUTS/OUTPUTS:
+! ::: 
+! ::: iunit      => Fortran unit for the input fluctuations file
+! ::: nCmpFile   => Number of components in the file
+! ::: dimFile    => Dimensions from the fluctuations file
+! ::: probSizeFile  => Domain size from the fluctuations file
+! ::: dxFile     => Grid spacing from the fluctuations file
+! ::: -----------------------------------------------------------
+!
       subroutine RD_SCL_FLCTHD(iunit, nCmpFile, dimFile, probSizeFile, dxFile)
 
       implicit none
@@ -168,24 +168,24 @@ c
       endif
 
       end
-c
-c ::: -----------------------------------------------------------
-c ::: This routine reads a record of data from an inflow/initial
-c ::: conditions fluctuations file.
-c ::: 
-c ::: INPUTS/OUTPUTS:
-c ::: 
-c ::: iunit         => Fortran unit for the input fluctuations file
-c ::: dimFile       => Dimensions from the header of the fluctuations
-c ::: arrLo, arrHi  => Range of the array to fill.  This must satisfy
-c :::                    rdLgth(1) = arrHi(1) - arrLo(1) + 1
-c :::                    dimFile(1) >= fileLo(1) + rdLgth(1) - 1
-c ::: fileLo         => Offset into the array in the file indicating the
-c :::                    first point to be read.
-c ::: FF_DIMS(dat)  => Dimensions of the array dat
-c ::: dat          <=  Array to fill
-c ::: -----------------------------------------------------------
-c
+!
+! ::: -----------------------------------------------------------
+! ::: This routine reads a record of data from an inflow/initial
+! ::: conditions fluctuations file.
+! ::: 
+! ::: INPUTS/OUTPUTS:
+! ::: 
+! ::: iunit         => Fortran unit for the input fluctuations file
+! ::: dimFile       => Dimensions from the header of the fluctuations
+! ::: arrLo, arrHi  => Range of the array to fill.  This must satisfy
+! :::                    rdLgth(1) = arrHi(1) - arrLo(1) + 1
+! :::                    dimFile(1) >= fileLo(1) + rdLgth(1) - 1
+! ::: fileLo         => Offset into the array in the file indicating the
+! :::                    first point to be read.
+! ::: FF_DIMS(dat)  => Dimensions of the array dat
+! ::: dat          <=  Array to fill
+! ::: -----------------------------------------------------------
+!
       SUBROUTINE RD_FLCTREC(lo, hi, fileLo, FF_DIMS(dat), dat, ncomp)
 
       implicit none
@@ -197,9 +197,9 @@ c
 #include <INFL_FORCE_F.H>
 
       call bl_pd_myproc(proc)
-c
-c     Build integer version of flct_file name passable to C++
-c
+!
+!     Build integer version of flct_file name passable to C++
+!
       n = len(trim(flct_file))
 
       do i = 1, n
@@ -211,9 +211,9 @@ c
       else
          isswirltype = 0
       end if
-c
-c     Read the Necessary Data
-c
+!
+!     Read the Necessary Data
+!
       plane = fileLo(3)
       do k = lo(3), hi(3)
          call getplane(iflctfile(1), n, dat(lo(1),lo(2),k), plane, ncomp, isswirltype)

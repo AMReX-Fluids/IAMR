@@ -23,7 +23,7 @@ module godunov_2d_module
 
   private 
 
-  public :: extrap_vel_to_faces, fort_estdt, fort_maxchng_velmag,fort_test_u_rho, &
+  public :: extrap_vel_to_faces, fort_estdt, fort_maxchng_velmag, &
        fort_test_umac_rho, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax,&
        fort_sum_tf_gp,fort_sum_tf_gp_visc,fort_sum_tf_divu,&
@@ -46,7 +46,7 @@ contains
     integer,  intent(in), dimension(2) :: lo,hi,u_lo,u_hi,&
          tfx_lo,tfx_hi,tfy_lo,tfy_hi,umac_lo,umac_hi,vmac_lo,vmac_hi
 
-    real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),2) ! get floored
+    real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),2)
     real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
     real(rt), intent(inout) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2)) ! result
     real(rt), intent(in) :: tfy(tfy_lo(1):tfy_hi(1),tfy_lo(2):tfy_hi(2))
@@ -158,7 +158,7 @@ contains
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
-         umac,umac_lo,umac_hi,&
+         uad,uwlo,uwhi,&  ! Unused since velpred = 1
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
@@ -168,7 +168,7 @@ contains
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
-         vmac,vmac_lo,vmac_hi,&
+         vad,vwlo,vwhi,&  ! Unused since velpred = 1
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
@@ -187,7 +187,7 @@ contains
          xhi,wklo,wkhi,&
          sx,wklo,wkhi,&
          uad,uwlo,uwhi,&
-         umac,umac_lo,umac_hi,&
+         uad,uwlo,uwhi,& ! Unused since velpred = 1
          umac,umac_lo,umac_hi,&
          Imx,wklo,wkhi,&
          Ipx,wklo,wkhi,&
@@ -197,7 +197,7 @@ contains
          yhi,wklo,wkhi,&
          sy,wklo,wkhi,&
          vad,vwlo,vwhi,&
-         vmac,vmac_lo,vmac_hi,&
+         vad,vwlo,vwhi,& ! Unused since velpred = 1
          vmac,vmac_lo,vmac_hi,&
          Imy,wklo,wkhi,&
          Ipy,wklo,wkhi,&
@@ -242,7 +242,7 @@ contains
     integer, dimension(2), intent(in) :: lo,hi,s_lo,s_hi,tf_lo,tf_hi,&
          divu_lo,divu_hi,xstate_lo,xstate_hi,ystate_lo,ystate_hi,umac_lo,umac_hi,vmac_lo,vmac_hi
 
-    real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
+    real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc)
     real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
     real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2))
     real(rt), intent(in) :: umac(umac_lo(1):umac_hi(1),umac_lo(2):umac_hi(2))
@@ -458,79 +458,6 @@ contains
 
     end subroutine fort_maxchng_velmag
 
-    subroutine fort_test_u_rho(&
-          u,DIMS(u),&
-          v,DIMS(v),&
-          rho,DIMS(rho),&
-          lo,hi,dt,dx,cflmax,u_max,verbose ) bind(C,name="fort_test_u_rho")
-! c
-! c     This subroutine computes the extrema of the density
-! c     and velocities at cell centers
-! c
-      implicit none
-      integer DIMDEC(u)
-      integer DIMDEC(v)
-      integer DIMDEC(rho)
-      REAL_T  u(DIMV(u))
-      REAL_T  v(DIMV(v))
-      REAL_T  rho(DIMV(rho))
-      integer lo(SDIM)
-      integer hi(SDIM)
-      REAL_T  dt
-      REAL_T  dx(SDIM)
-      REAL_T  cflmax
-      REAL_T  u_max(SDIM)
-      integer verbose
-!c
-      REAL_T  hx, hy
-      REAL_T  umax, vmax, rhomax
-      REAL_T  umin, vmin, rhomin
-      integer imin, imax, jmin, jmax
-      integer i, j
-
-      hx   = dx(1)
-      hy   = dx(2)
-      imin = lo(1)
-      imax = hi(1)
-      jmin = lo(2)
-      jmax = hi(2)
-      umax = -1.d200
-      vmax = -1.d200
-      umin =  1.d200
-      vmin =  1.d200
-      rhomax = -1.d200
-      rhomin =  1.d200
-
-      do j = jmin, jmax
-         do i = imin, imax
-            umax = max(umax,u(i,j))
-            umin = min(umin,u(i,j))
-            vmax = max(vmax,v(i,j))
-            vmin = min(vmin,v(i,j))
-            rhomax = max(rhomax,rho(i,j))
-            rhomin = min(rhomin,rho(i,j))
-         end do
-      end do
-
-      u_max(1) = max(abs(umax), abs(umin))
-      u_max(2) = max(abs(vmax), abs(vmin))
-      cflmax   = dt*max(u_max(1)/hx,u_max(2)/hy)
-
-      if(verbose.eq.1)then
-        write(6,1000) umax,umin,u_max(1) 
-        write(6,1001) vmax,vmin,u_max(2) 
-        write(6,1002) rhomax,rhomin
-#ifndef	BL_NO_FLUSH
-!c        call flush(6)
-#endif
-      end if
-
- 1000 format(' U  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1001 format(' V  MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1002 format('RHO MAX/MIN      ',e21.14,2x,e21.14)
-
-    end subroutine fort_test_u_rho
-
       subroutine fort_test_umac_rho(&
           umac,DIMS(umac),&
           vmac,DIMS(vmac),&
@@ -641,7 +568,7 @@ contains
            Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,tfx_lo,tfx_hi,tfy_lo,tfy_hi
 
-      real(rt), intent(inout) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2)) ! gets floored!
+      real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
       real(rt), intent(inout) :: ulo(ulo_lo(1):ulo_hi(1),ulo_lo(2):ulo_hi(2))
       real(rt), intent(inout) :: uhi(uhi_lo(1):uhi_hi(1),uhi_lo(2):uhi_hi(2))
       real(rt), intent(inout) :: sx(sx_lo(1):sx_hi(1),sx_lo(2):sx_hi(2))
@@ -650,7 +577,7 @@ contains
       real(rt), intent(inout) :: sedgex(sedgex_lo(1):sedgex_hi(1),sedgex_lo(2):sedgex_hi(2))
       real(rt), intent(in) :: tfx(tfx_lo(1):tfx_hi(1),tfx_lo(2):tfx_hi(2))
 
-      real(rt), intent(inout) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
+      real(rt), intent(in) :: v(v_lo(1):v_hi(1),v_lo(2):v_hi(2))
       real(rt), intent(inout) :: vlo(vlo_lo(1):vlo_hi(1),vlo_lo(2):vlo_hi(2))
       real(rt), intent(inout) :: vhi(vhi_lo(1):vhi_hi(1),vhi_lo(2):vhi_hi(2))
       real(rt), intent(inout) :: sy(sy_lo(1):sy_hi(1),sy_lo(2):sy_hi(2))
@@ -845,6 +772,21 @@ contains
          sp,sp_lo,sp_hi,&
          bc, dt, dx, n, nc, velpred, use_minion, ppm_type)
 
+      ! Here is what this routine does
+      ! 1. Trace values of state from cell-centers to faces using cell-centered velocities
+      !     and excluding transverse corrections.  This produces data in xlo,xho.  Enforce
+      !     boundary conditions on faces, then resolve the upwind value from xlo,xhi using
+      !     uad and put this into xlo.  If uad is small, xlo=(xlo+xhi)/2
+      ! 1a. Repeat for ylo
+      ! 2. The transverse correction is - vbar * grady, where vbar=(vad_{j+1}+vad_{j})/2
+      !      and grady is computed with the ylo values.  Results into stxlo,stxhi, and
+      !      upwinded into xstate using UFACE, where 
+      !      if velpred!=1:
+      !          UFACE = uedge
+      !      else
+      !          UFACE = stxlo + stxhi
+      ! 2a. Repeat for transverse corrections to get stylo,styhi, and resolve into ystate
+      !
       implicit none
 
       integer, intent(in) :: velpred, use_minion, ppm_type, bc(SDIM,2), n, nc
@@ -857,7 +799,7 @@ contains
            vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc)
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
       real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
@@ -1283,7 +1225,7 @@ contains
            vedge_lo,vedge_hi,ystate_lo,ystate_hi,Imy_lo,Imy_hi,Ipy_lo,Ipy_hi,sedgey_lo,sedgey_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
 
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc) ! gets floored
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),nc)
       real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),nc)
       real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2))
@@ -1870,7 +1812,7 @@ contains
 
       integer, intent(in) :: bc(SDIM,2)
       integer, dimension(2), intent(in) :: lo,hi,s_lo,s_hi,slx_lo,slx_hi,sly_lo,sly_hi
-      real(rt), intent(inout) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2)) ! Applies a floor!
+      real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2))
       real(rt), intent(inout) :: slx(slx_lo(1):slx_hi(1),slx_lo(2):slx_hi(2))
       real(rt), intent(inout) :: sly(sly_lo(1):sly_hi(1),sly_lo(2):sly_hi(2))
       real(rt) :: slxscr(lo(1)-2:hi(1)+2,4)
@@ -1916,11 +1858,11 @@ contains
 !c
 !c ::: ::::: added to prevent underflow for small s values
 !c
-      do j = lo(2)-ng, hi(2)+ng
-        do i = lo(1)-ng, hi(1)+ng
-           s(i,j) = merge(s(i,j), 0.d0, abs(s(i,j)).gt.1.0D-20)
-       end do
-      end do
+!      do j = lo(2)-ng, hi(2)+ng
+!        do i = lo(1)-ng, hi(1)+ng
+!           s(i,j) = merge(s(i,j), 0.d0, abs(s(i,j)).gt.1.0D-20)
+!       end do
+!      end do
 !c
 !c     COMPUTE 0TH order slopes
 !c
@@ -3404,9 +3346,10 @@ contains
 
       logical extremum, bigp, bigm
 
-      real(rt) :: dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, C, alphap, alpham
+      real(rt) :: dsl, dsr, dsc, D2, D2C, D2L, D2R, D2LIM, alphap, alpham
       real(rt) :: sgn, s6, amax, delam, delap, sigmam, sigmap
       real(rt) :: dafacem, dafacep, dabarm, dabarp, dafacemin, dabarmin, dachkm, dachkp
+      real(rt), PARAMETER :: C = 1.25d0
 
 !c     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !c     x-direction
