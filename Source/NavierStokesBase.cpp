@@ -3287,7 +3287,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 		  FArrayBox& fine_state = (*fine_stateMF)[mfi];
 		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
 					num_comp,fbx,ratio,
-					cgeom,fgeom,bc_interp);
+					cgeom,fgeom,bc_interp, RunOn::Cpu);
 		  Real dt_clev_inv = 1./dt_clev;
 		  cdata.mult(dt_clev_inv,cbx);
 	      }
