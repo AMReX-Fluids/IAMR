@@ -3358,7 +3358,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 	  //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
 	  interpolater->interp(cdata,0,fdata,0,num_comp,fbx,ratio,
-			       cgeom,fgeom,bc_interp,src_comp,State_Type);
+			       cgeom,fgeom,bc_interp,src_comp,State_Type, RunOn::Cpu);
 	  //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
 	  if (increment)
@@ -3371,7 +3371,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 		  FArrayBox& fine_state = (*fine_stateMF)[mfi];
 		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
 					num_comp,fbx,ratio,
-					cgeom,fgeom,bc_interp);
+					cgeom,fgeom,bc_interp, RunOn::Cpu);
 		  Real dt_clev_inv = 1./dt_clev;
 		  cdata.mult(dt_clev_inv,cbx);
 	      }
@@ -3450,7 +3450,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type);
+                                        0,Press_Type, RunOn::Cpu);
             fine_phi.mult(cur_mult_factor);
             P_new[mfi].plus(fine_phi,fbx,0,0);
             fine_phi.mult(prev_mult_factor);
@@ -3474,7 +3474,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type);
+                                        0,Press_Type, RunOn::Cpu);
             P_new[mfi].plus(fine_phi,fbx,0,0);
             P_old[mfi].plus(fine_phi,fbx,0,0);
         }
