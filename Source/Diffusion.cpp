@@ -14,8 +14,12 @@
 #include <iomanip>
 #include <array>
 
-#include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
+//#ifdef AMREX_USE_EB
+#include <AMReX_MLEBABecLap.H>
+//#else
+#include <AMReX_MLABecLaplacian.H>
+//#endif
 
 using namespace amrex;
 
@@ -62,7 +66,7 @@ int         Diffusion::use_cg_solve;
 int         Diffusion::tensor_max_order;
 int         Diffusion::use_tensor_cg_solve;
 bool        Diffusion::use_mg_precond_flag;
-int         Diffusion::use_mlmg_solver = 0;
+int         Diffusion::use_mlmg_solver = 1;
 
 Vector<Real> Diffusion::visc_coef;
 Vector<int>  Diffusion::is_diffusive;
@@ -109,7 +113,13 @@ Diffusion::Diffusion (Amr*               Parent,
         Diffusion::tensor_max_order    = 2;
         Diffusion::use_tensor_cg_solve = 0;
         Diffusion::use_mg_precond_flag = false;
-
+#ifdef AMREX_USE_EB
+	// value lifted from mfix (which used to say 5 was needed)
+	// FIXME - need to do something else to make sure this ng is
+	//  consistent across classes? Perhaps this should copied from
+	//  a var owned by NS?
+	Diffusion::eb_ngrow = 4;
+#endif
         int use_mg_precond = 0;
 
         ParmParse ppdiff("diffuse");
@@ -152,6 +162,11 @@ Diffusion::Diffusion (Amr*               Parent,
         if (n_visc > NUM_STATE)
             amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
 
+#ifdef AMREX_USE_EB
+	if (use_mlmg_solver != 1)
+	    amrex::Abort("Diffusion::Diffusion(): EB requires use_mlmg_solver==1.\n");
+#endif
+	
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
 
@@ -278,44 +293,206 @@ Diffusion::diffuse_scalar (Real                   dt,
     checkBeta(betan, allthere, allnull);
     checkBeta(betanp1, allthere, allnull);
 
+    // FIXME -- nned to check on ghost cells of all MFs passed in
+    //
+    //FIXME - check that parameters betan betanp1, alpha are EB aware
+    // only acoeff and bcoeff need to be EB aware; they're what goes to MLMG
+    // what about fluxes?
+    //
+    
     BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==grids));
     //
     // At this point, S_old has bndry at time N, S_new has bndry at time N+1
     //
+    // CEG - looking back through code suggests this is not true for IAMR
+    //  right now. Need to fix in calling functions...
     MultiFab& S_old = navier_stokes->get_old_data(State_Type);
     MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
+    //fixme --- These have ng = 1, even with USE_EB
+    Print()<<"Snew nghost = "<<S_new.nGrow()<<"\n";
+    Print()<<"Sold nghost = "<<S_old.nGrow()<<"\n";
+    
+#ifdef AMREX_USE_EB
+    // not sure if this is really necessary, but it's a safe choice, might
+    // just be more expensive. Originally, Rhs had no ghost cells. 
+    const int ng = eb_ngrow;
+    const int ng_rhs = eb_ngrow;
+#else
+    const int ng = 1;
+    const int ng_rhs = 0;
+#endif
     //
     // Set up Rhs.
     //
-    MultiFab Rhs(grids,dmap,1,0),Soln(grids,dmap,1,1);
+    // fixme? why not the same num ghost cells for Rhs and Soln...
+    MultiFab Rhs(grids,dmap,1,ng_rhs,MFInfo(),navier_stokes->Factory()),
+      Soln(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
 
-    if (add_old_time_divFlux)
+    
+    if (add_old_time_divFlux && be_cn_theta!=1)
     {
         Real a = 0.0;
         Real b = -(1.0-be_cn_theta)*dt;
         if (allnull)
-            b *= visc_coef[sigma];
-        ViscBndry visc_bndry_0;
-        const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
-        std::unique_ptr<ABecLaplacian> visc_op
+    	  b *= visc_coef[sigma];
+	
+    	if (use_mlmg_solver) 
+        {
+    	  if(verbose)
+    	    Print()<<"Adding old time diff ....\n";
+
+	  LPInfo info;
+	  info.setAgglomeration(agglomeration);
+	  info.setConsolidation(consolidation);
+	  info.setMetricTerm(false);
+	  info.setMaxCoarseningLevel(0);
+
+#ifdef AMREX_USE_EB
+	  // create the right data holder for passing to MLEBABecLap
+	  amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
+	  //ebf.resize(1);
+	  ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
+
+	  MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
+#else
+	  MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
+#endif
+	  // default max_order=2
+	  // mfix says:
+	  // It is essential that we set MaxOrder of the solver to 2
+	  // if we want to use the standard sol(i)-sol(i-1) approximation
+	  // for the gradient at Dirichlet boundaries.
+	  // The solver's default order is 3 and this uses three points for the
+	  // gradient at a Dirichlet boundary.
+	  mlabec.setMaxOrder(max_order);
+	  
+	  std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+	  std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+	  setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
+        
+	  mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+
+	  const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
+	  {	    
+            MultiFab crsedata;
+	    
+            if (level > 0) {
+	        auto& crse_ns = *(coarser->navier_stokes);
+                crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
+                AmrLevel::FillPatch(crse_ns,crsedata,ng,prev_time,State_Type,sigma,1);
+                if (rho_flag == 2) {
+		  //FIXME - rhotime is not likely to have enough ghost cells for EB
+		  // navier_stokes seems to only carry ng=1, even with EB
+		  // change navier_stokes or use FP??? Trying FP for now
+		  //   even though this introduces unnecessary FP for non_EB. fix later
+		  //const MultiFab& rhotime = crse_ns.get_rho(prev_time);
+		  MultiFab rhotime;
+		  rhotime.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
+		  AmrLevel::FillPatch(crse_ns,rhotime,ng,prev_time,State_Type,Density,1);  
+		  MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+                }
+                mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
+            }
+            //MultiFab S(grids,dmap,1,ng);
+            AmrLevel::FillPatch(*navier_stokes,Soln,ng,prev_time,State_Type,sigma,1);
+            if (rho_flag == 2) {
+	      // see comment above in if (level > 0 )
+	      //const MultiFab& rhotime = navier_stokes->get_rho(prev_time);
+	      MultiFab rhotime;
+	      rhotime.define(navier_stokes->boxArray(), navier_stokes->DistributionMap(), 1, ng);
+	      AmrLevel::FillPatch(*navier_stokes,rhotime,ng,prev_time,State_Type,Density,1);  
+	      MultiFab::Divide(Soln,rhotime,0,0,1,ng);
+            }
+	    // fixme? Do we need/want to set EB covered??
+	    // mfix does this
+	    //EB_set_covered(Soln, 0, 1, ng, covered_val);
+	    //Soln.FillBoundary (geom.periodicity());
+            mlabec.setLevelBC(0, &Soln);
+	  }
+
+	  {
+	    Real rhsscale = 0.0;
+            MultiFab acoef;
+            std::pair<Real,Real> scalars;
+            computeAlpha(acoef, scalars, sigma, a, b, prev_time, rho_half,
+			 rho_flag, &rhsscale, alphaComp, alpha);
+            mlabec.setScalars(scalars.first, scalars.second);
+            mlabec.setACoeffs(0, acoef);
+	  }
+
+	  {
+            std::array<MultiFab,BL_SPACEDIM> bcoeffs;
+            computeBeta(bcoeffs, betan, betaComp);
+            mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+	  }
+
+	  // Do we need something like this cribbed from mfix???
+	  // This sets the coefficient on the wall and defines it as a homogeneous
+	  // Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
+	  // matches what's in bcoeff
+	  //mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
+
+	  MLMG mgn(mlabec);
+	  mgn.setVerbose(verbose);
+
+    	  mgn.apply({&Rhs},{&Soln});
+	  
+    	  AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp, 1);,
+    		       MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp, 1);,
+    		       MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp, 1););
+    	  std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
+    	  mgn.getFluxes({fp},{&Soln});
+
+#ifdef AMREX_USE_EB
+	  // now dx, areas, and vol are not constant.
+	  // create routine 
+	  // if (flags ...)
+	  //   do regular
+	  // else
+	  //   use areaFrac, etc
+	  // end
+#else
+    	  for (int i = 0; i < BL_SPACEDIM; ++i)
+    	    (*fluxn[i]).mult(-b/(dt * navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
+#endif
+    	}	
+    	else
+    	{
+	  // Soon...
+    	  //amrex::Abort("Non-MLMG solver no longer supported");
+	  ViscBndry visc_bndry_0;
+	  const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
+	  std::unique_ptr<ABecLaplacian> visc_op
 	    (getViscOp(sigma,a,b,prev_time,visc_bndry_0,rho_half,rho_flag,0,betan,betaComp,0,0));
-        visc_op->maxOrder(max_order);
-        //
-        // Copy to single-component multifab, then apply op to rho-scaled state
-        //
-        MultiFab::Copy(Soln,S_old,sigma,0,1,0);
-        if (rho_flag == 2)
+	  visc_op->maxOrder(max_order);
+	  //
+	  // Copy to single-component multifab, then apply op to rho-scaled state
+	  //
+	  MultiFab::Copy(Soln,S_old,sigma,0,1,0);
+	  if (rho_flag == 2)
 	    MultiFab::Divide(Soln, S_old, Density, 0, 1, 0);
-        visc_op->apply(Rhs,Soln);
-        visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp);
-        for (int i = 0; i < BL_SPACEDIM; ++i)
+	  visc_op->apply(Rhs,Soln);
+	  visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp);
+	  for (int i = 0; i < BL_SPACEDIM; ++i)
             (*fluxn[i]).mult(-b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
+
+    	}
     }
     else
     {
-        Rhs.setVal(0);
+      for (int n = 0; n < BL_SPACEDIM; n++)
+    	{
+    	  fluxn[n]->setVal(0.,fluxComp,1);
+    	}
+      Rhs.setVal(0.);
     }
+
+    // FIXME
+    // All these additions to Rhs below assume nghost = 0
+    // but EB needs nghost = 4 (at least this is what mfix does)
+    // initial guess for Soln also needs ghost cells
+    
     //
     // If this is a predictor step, put "explicit" updates passed via S_new
     // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
@@ -424,6 +601,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     //  (Note: here S_new holds S_old, but also maybe an explicit increment
     //         from advection if solve_mode != PREDICTOR)
     //
+    // fixme??? does Soln need ghost cells here?
     MultiFab::Copy(Soln,S_new,sigma,0,1,0);
 
 #ifdef _OPENMP
@@ -468,12 +646,25 @@ Diffusion::diffuse_scalar (Real                   dt,
 
     if (use_mlmg_solver)
     {
+      // fixme?
+      // make sure state/vel ghost cells are properly filled
+      // I think a FillPatch is required
+      
         LPInfo info;
         info.setAgglomeration(agglomeration);
         info.setConsolidation(consolidation);
         info.setMetricTerm(false);
+#ifdef AMREX_USE_EB
+	// create the right data holder for passing to ABecLap
+	amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
+	//ebf.resize(1);
+	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
 
+	MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
+#else
         MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
+#endif
+	// default max_order = 2
         mlabec.setMaxOrder(max_order);
 
         std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -482,25 +673,29 @@ Diffusion::diffuse_scalar (Real                   dt,
         
         mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
         {
-            const int ng = 1;
             MultiFab crsedata;
             if (level > 0) {
                 auto& crse_ns = *(coarser->navier_stokes);
-                crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
+                crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,
+				MFInfo(),navier_stokes->Factory());
                 AmrLevel::FillPatch(crse_ns,crsedata,ng,cur_time,State_Type,sigma,1);
                 if (rho_flag == 2) {
                     const MultiFab& rhotime = crse_ns.get_rho(cur_time);
-                    MultiFab::Divide(crsedata,rhotime,0,0,1,1);
+                    MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
                 }
                 mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
             }
-            MultiFab S(grids,dmap,1,ng);
+            MultiFab S(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
             AmrLevel::FillPatch(*navier_stokes,S,ng,cur_time,State_Type,sigma,1);
             if (rho_flag == 2) {
                 const MultiFab& rhotime = navier_stokes->get_rho(cur_time);
-                MultiFab::Divide(S,rhotime,0,0,1,1);
+                MultiFab::Divide(S,rhotime,0,0,1,ng);
             }
-            mlabec.setLevelBC(0, &S);
+	    // fixme? Do we need/want to set EB covered??
+	    // mfix does this
+	    //EB_set_covered(S, 0, 1, ng, covered_val);
+	    //S.FillBoundary (geom.periodicity());
+	    mlabec.setLevelBC(0, &S);
         }
 
         {
@@ -518,6 +713,12 @@ Diffusion::diffuse_scalar (Real                   dt,
             mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
         }
 
+	// Do we need something like this cribbed from mfix???
+	// This sets the coefficient on the wall and defines it as a homogeneous
+	// Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
+	// matches what's in bcoeff
+	//mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
+
         MLMG mlmg(mlabec);
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -526,9 +727,13 @@ Diffusion::diffuse_scalar (Real                   dt,
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
 
-        Rhs.mult(rhsscale,0,1);
-        const Real S_tol     = visc_tol;
+        Rhs.mult(rhsscale,0,1,ng_rhs);
+	const Real S_tol     = visc_tol;
         const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
+
+	// do we need this? --- Seems no, since ng=0 in copy to S_new below
+	// This ensures that ghost cells of sol are correctly filled when returned from the solver
+	//mlmg.setFinalFillBC(true);
 
         mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
@@ -720,6 +925,62 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
     int allnull, allthere;
     checkBetas(betan, betanp1, allthere, allnull);
+
+    // Genaric usage from weiqun to test new MLEBTensorOp
+#if 0
+{
+   LPInfo info;
+   info.setAgglomeration(agglomeration);
+   info.setConsolidation(consolidation);
+   info.setMaxCoarseningLevel(max_coarsening_level);
+
+   const Real tol_rel = 1.e-11;
+   const Real tol_abs = 0.0;
+
+   MLEBTensorOp ebtensorop({geom}, {grids}, {dmap}, info, {factory.get()});
+
+   ebtensorop.setMaxOrder(linop_maxorder);
+
+   Array<LinOpBCType,AMREX_SPACEDIM> v_lo_bc{AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                                          LinOpBCType::Neumann,
+                                                          LinOpBCType::Neumann)};
+   Array<LinOpBCType,AMREX_SPACEDIM> v_hi_bc{AMREX_D_DECL(LinOpBCType::Neumann,
+                                                          LinOpBCType::Neumann,
+                                                          LinOpBCType::Neumann)};
+
+   ebtensorop.setDomainBC({AMREX_D_DECL(v_lo_bc,v_lo_bc,v_lo_bc)},
+                          {AMREX_D_DECL(v_hi_bc,v_hi_bc,v_hi_bc)});
+
+   ebtensorop.setLevelBC(0, &solution);
+
+   ebtensorop.setACoeffs(0, acoef);
+
+   Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+   for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+   {
+       const BoxArray& ba = amrex::convert(bcoef.boxArray(),
+                                           IntVect::TheDimensionVector(idim));
+       face_bcoef[idim].define(ba, bcoef.DistributionMap(), 1, 0);
+   }
+   amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
+                                     bcoef, geom);
+   ebtensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+   ebtensorop.setEBShearViscosity(0, bcoef);
+   // not usually needed for gasses
+   // ebtensorop.setBulkViscosity(0, .);
+   // ebtensorop.setEBBulkViscosity(0, .);
+
+   MLMG mlmg(ebtensorop);
+   mlmg.setMaxIter(max_iter);
+   mlmg.setMaxFmgIter(max_fmg_iter);
+   mlmg.setVerbose(verbose);
+   mlmg.setBottomVerbose(bottom_verbose);
+
+//    solution.setVal(0.0);
+   mlmg.solve({&solution}, {&rhs}, tol_rel, tol_abs);
+}
+#endif
+ 
     //
     // U_new now contains the inviscid update of U.
     // This is part of the RHS for the viscous solve.
@@ -1824,7 +2085,9 @@ Diffusion::computeAlpha (MultiFab&       alpha,
                          int             dataComp,
                          const MultiFab* alpha_in)
 {
-    alpha.define(grids, dmap, 1, 1);
+    int ng = 1;
+
+    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
 
     const MultiFab& volume = navier_stokes->Volume(); 
 
@@ -1913,6 +2176,62 @@ Diffusion::computeAlpha (MultiFab&       alpha,
     }
 }
 
+#if 0
+//#ifdef AMREX_USE_EB
+void
+Diffusion::computeAlpha_eb (MultiFab&       alpha,
+                         std::pair<Real,Real>& scalars,
+                         int             comp,
+                         Real            a,
+                         Real            b,
+                         Real            time,
+                         const MultiFab& rho,
+                         int             rho_flag, 
+                         Real*           rhsscale,
+                         int             dataComp,
+                         const MultiFab* alpha_in)
+{
+  //fixme? do we want to assume everything passed in has good data in enough ghost cells
+  //  or do we want take ng=0 and then fill alpha's ghost cells after?
+    int ng = eb_ngrow;
+
+    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
+    
+    if ( rho_flag == 1 ) {
+      MultiFab::Copy(alpha,rho,0,0,1,ng);
+    }
+    else if (rho_flag == 2 || rho_flag == 3) {
+      MultiFab& S = navier_stokes->get_data(State_Type,time);
+      // fixme? original didn't copy any ghost cells...
+      MultiFab::Copy(alpha,S,Density,0,1,ng);
+    }
+    else {
+      alpha.setVal(1.0);
+    }
+      
+    
+    if (alpha_in != 0)
+    {
+        BL_ASSERT(dataComp >= 0 && dataComp < alpha.nComp());
+	// fixme? again original did not use any ghost cells
+	MultiFab::Multiply(alpha,*alpha_in,data_comp,0,1,ng);
+    }
+
+    if (rhsscale != 0)
+    {
+        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
+
+        scalars.first = a*(*rhsscale);
+        scalars.second = b*(*rhsscale);
+    }
+    else
+    {
+        scalars.first = a;
+        scalars.second = b;
+    }
+}
+#endif
+
 void
 Diffusion::setBeta (ABecLaplacian*         visc_op,
                     const MultiFab* const* beta,
@@ -1935,11 +2254,17 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                         const MultiFab* const* beta,
                         int                    betaComp)
 {
-    const MultiFab* area = navier_stokes->Area(); 
+#ifdef AMREX_USE_EB
+  int ng = eb_ngrow;
+#else
+  int ng = 0;
+#endif
+
+  const MultiFab* area = navier_stokes->Area(); 
 
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-	bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+      bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,ng,MFInfo(),navier_stokes->Factory());
     }
 
     int allnull, allthere;
@@ -2326,8 +2651,13 @@ Diffusion::FillBoundary (BndryRegister& bdry,
     // Need one grow cell filled for linear solvers.
     // We assume filPatch gets this right, where possible.
     //
+#ifdef AMREX_USE_EB
+  //fixme?  guessing this is needed
+    const int     nGrow = eb_ngrow;
+#else
     const int     nGrow = 1;
-
+#endif
+    
     const MultiFab& rhotime = navier_stokes->get_rho(time);
 
     MultiFab S(navier_stokes->boxArray(),
@@ -2367,7 +2697,12 @@ Diffusion::getTensorBndryData (ViscBndryTensor& bndry,
 
     bndry.define(grids,dmap,nDer,navier_stokes->Geom());
 
-    const int nGrow = 1;
+#ifdef AMREX_USE_EB
+  //fixme?  guessing this is needed
+    const int     nGrow = eb_ngrow;
+#else
+    const int     nGrow = 1;
+#endif
 
     MultiFab S(grids,dmap,num_comp,nGrow);
 
