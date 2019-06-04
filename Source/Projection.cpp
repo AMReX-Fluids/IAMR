@@ -456,9 +456,9 @@ Projection::level_project (int             level,
             radMultScal(level,*divusource);
         }
         const int nghost = 0;
-	      divusource->mult(-1.0,0,1,nghost);
+	divusource->mult(-1.0,0,1,nghost);
 
-	      rhcc[level] = divusource.get();
+	rhcc[level] = divusource.get();
     }
 
     bool proj2 = true;
@@ -2367,8 +2367,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     Vector<MultiFab> vel_test(nlevel);
     Vector<MultiFab> phi_test(nlevel);
     
-    BL_ASSERT(vel[c_lev]->nGrow() == 1);
-    BL_ASSERT(vel[f_lev]->nGrow() == 1);
+    BL_ASSERT(vel[c_lev]->nGrow() >= 1);
+    BL_ASSERT(vel[f_lev]->nGrow() >= 1);
     BL_ASSERT(phi[c_lev]->nGrow() == 1);
     BL_ASSERT(phi[f_lev]->nGrow() == 1);
     BL_ASSERT(sig[c_lev]->nGrow() == 1);

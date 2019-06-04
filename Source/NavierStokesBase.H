@@ -718,6 +718,11 @@ protected:
     static amrex::Real       gravity;
     static int        NUM_SCALARS;      // number of non-velocity components
     static int        NUM_STATE;        // total number of state variables
+#ifdef AMREX_USE_EB
+    static const int  NUM_GROW=5;         // number of ghost cells
+#else
+    static const int  NUM_GROW=1;         // number of ghost cells
+#endif
     //
     // Controls over how the convective and diffusive terms are calculated
     // for each state variable.
@@ -800,6 +805,7 @@ protected:
     //
     // static integer constants
     //
+  // FIXME?  do these need to be adjusted for EB??? see NUM_GROW above
     static const int GEOM_GROW  = 1;
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
