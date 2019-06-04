@@ -634,9 +634,9 @@ NavierStokes::scalar_advection (Real dt,
 
         godunov->AdvectScalars(bx, dx, dt, 
                                D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
-                               D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]),
-                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                               D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+                               D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
+                               D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
+                               D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
                                Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
                                (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
 
