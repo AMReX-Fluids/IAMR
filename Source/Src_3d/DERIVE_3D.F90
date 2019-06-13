@@ -20,7 +20,10 @@ module derive_3d_module
 
   private
 
-  public :: derpresvars, derturbvars, derjetpresvars, derjetvars, &
+  public :: derpresvars, derturbvars, &
+#ifdef SUMJET
+            derjetpresvars, derjetvars, &
+#endif
             dermodgradrho, derudotlapu, derkeng, derlogs, dermvel, &
             derdvrho, dermprho, derlgrhodust, derdmag, dermgvort, &
             dervortx, dervorty, dervortz, dermgdivu, gradp_dir, &
@@ -1141,6 +1144,8 @@ contains
 
       end subroutine derturbvars
 
+#ifdef SUMJET
+
       subroutine derjetpresvars (e,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
                                  lo,hi,domlo,domhi,delta,xlo,time,dt, &
                                  bc,level,grid_no) &
@@ -1419,6 +1424,8 @@ contains
       enddo
 
       end subroutine derjetvars
+
+#endif
 
       subroutine dermodgradrho (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
