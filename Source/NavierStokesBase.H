@@ -30,7 +30,7 @@
 // Determine what you want in the state -- Divu, Dsdt -- in
 // NavierStokes::variableSetUp in NS_setup.cpp.
 //
-enum StateType {State_Type=0, Press_Type};
+enum StateType {State_Type=0, Press_Type, TimeAverage_Type};
 
 //
 // Note: enumerated value NUM_STATE_TYPE no longer defined
@@ -718,6 +718,7 @@ protected:
     static int  do_tracer2_ref;
     static int  do_vorticity_ref;
     static int  do_temp_ref;
+    static int  do_liquid_ref;
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
     static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin

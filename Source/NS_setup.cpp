@@ -283,6 +283,18 @@ NavierStokes::variableSetUp ()
     desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,BndryFunc(FORT_PRESFILL));
 #endif
 
+    //
+    // ---- time-averaged variables --
+    //
+    int num_time_averaged = 2;
+    desc_lst.addDescriptor(TimeAverage_Type,IndexType::TheCellType(),
+                          StateDescriptor::Point,1,num_time_averaged,
+                          &cell_cons_interp);
+
+    set_scalar_bc(bc,phys_bc);
+    desc_lst.setComponent(TimeAverage_Type,0,"time_averaged_comp_1",bc,BndryFunc(FORT_DENFILL));
+    desc_lst.setComponent(TimeAverage_Type,1,"time_averaged_comp_2",bc,BndryFunc(FORT_DENFILL));
+
     if (do_temp)
     {
 	// stick Divu_Type on the end of the descriptor list
@@ -480,6 +492,13 @@ NavierStokes::variableSetUp ()
                    dernull,the_same_box);
     derive_lst.addComponent("total_particle_count",desc_lst,State_Type,Density,1);
 #endif
+
+    // 
+    // Liquid water content  
+    // 
+    derive_lst.add("liquid_water",IndexType::TheCellType(),1,derliquid,the_same_box);
+    derive_lst.addComponent("liquid_water",desc_lst,State_Type,Trac,1);
+    derive_lst.addComponent("liquid_water",desc_lst,State_Type,Trac2,1);
 
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************

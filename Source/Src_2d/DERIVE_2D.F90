@@ -818,6 +818,53 @@ contains
 
 !c=========================================================
 
+      subroutine derliquid (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
+                              lo,hi,domlo,domhi,delta,xlo,time,dt,bc,&
+                              level,grid_no) bind(C,name="derliquid")
+      implicit none
+      !
+      ! This is a null derived routine.
+      !
+      integer    lo(2), hi(2)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(2), domhi(2)
+      integer    nv, ncomp
+      integer    bc(2,2,ncomp)
+      REAL_T     delta(2), xlo(2), time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+      integer    j,k
+      REAL_T     D,M,hz,hn,z,tmp
+#include <probdata.H>
+      hz     = delta(2)
+!      hn     = one/rb_bv
+      do k = lo(2), hi(2)
+!         z = xlo(2) + hz * ( dble( k-lo(2) ) + half )
+         z = xlo(2) + hz * ( dble( k -lo(2)) + half )
+         do j = lo(1), hi(1)
+            D = dat(j,k,1)
+            M = dat(j,k,2)
+!            tmp = M - D + rb_bv * z
+!            e(j,k,1) = max(zero, hn*tmp)
+!            if (abs(z) > 0.5) then
+!                if (abs(z) > 0.75) then 
+!                   e(j,k,1) = -1.0
+!                else
+!                   e(j,k,1) = 0.0
+!                endif
+!            else
+                e(j,k,1) = abs(z)
+
+!            endif
+         end do
+      end do
+
+    end subroutine derliquid
+
+!c=========================================================
+
       subroutine dernull (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                               lo,hi,domlo,domhi,delta,xlo,time,dt,bc,&
                               level,grid_no) bind(C,name="dernull")

@@ -73,6 +73,7 @@ int         NavierStokesBase::do_tracer_ref             = 0;
 int         NavierStokesBase::do_tracer2_ref            = 0;
 int         NavierStokesBase::do_vorticity_ref          = 0;
 int         NavierStokesBase::do_temp_ref               = 0;
+int         NavierStokesBase::do_liquid_ref             = 0;
 int         NavierStokesBase::do_scalar_update_in_order = 0; 
 Vector<int>  NavierStokesBase::scalarUpdateOrder;
 int         NavierStokesBase::getForceVerbose           = 0;
@@ -442,6 +443,7 @@ NavierStokesBase::Initialize ()
     pp.query("do_tracer2_ref",           do_tracer2_ref   );
     pp.query("do_vorticity_ref",         do_vorticity_ref );
     pp.query("do_temp_ref",              do_temp_ref      );
+    pp.query("do_liquid_ref",            do_liquid_ref    );
  
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
@@ -2650,6 +2652,44 @@ NavierStokesBase::post_timestep (int crse_iteration)
     }
 #endif
 #endif
+    //  
+    // Time averaged output 
+    //
+    if (parent->plotInt() > 1)
+    {
+       // create the TimeAverge_Type variable 
+       MultiFab& TA_new = get_new_data(TimeAverage_Type);
+       MultiFab& TA_old = get_old_data(TimeAverage_Type);
+
+       // state variables 
+       MultiFab& S_new = get_new_data(State_Type);
+       MultiFab::Copy(TA_new,S_new,Density,0,1,0);
+
+       // derived variables              
+       int dcomp = 1;  // first component of Time_Average
+       const Real cur_time = state[State_Type].curTime();
+       AmrLevel::derive("liquid_water",cur_time,TA_new,dcomp);
+
+
+       if ((parent->levelSteps(0)%parent->plotInt() == 1))
+       {
+          // Initialize TA with the variables
+          MultiFab::Copy(TA_old,TA_new,0,0,2,0);
+       }
+       else
+       {
+          // Otherwise add to TA
+          MultiFab::Saxpy(TA_old,1.0,TA_new,0,0,2,0);
+          MultiFab::Copy(TA_new,TA_old,0,0,2,0);
+       }
+
+       // If at the final step, divide by the number of steps over which we are averaging. 
+       if ((parent->levelSteps(0)%parent->plotInt() == 0))
+       {
+          Real one_over_scalar = 1.0 / (Real) parent->plotInt() ;
+          TA_new.mult(one_over_scalar,0,2,0);
+       }
+    }
 
     if (level > 0) incrPAvg();
 

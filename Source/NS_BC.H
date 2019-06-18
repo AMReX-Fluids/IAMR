@@ -15,7 +15,7 @@ static int tang_vel_bc[] =
 
 static int scalar_bc[] =
 {
-    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
+    INT_DIR, EXT_DIR, FOEXTRAP, REFLECT_EVEN, EXT_DIR, FOEXTRAP
 };
 
 static int press_bc[] =
