@@ -80,7 +80,7 @@ ns.vel_visc_coef        = 0.001
 ns.do_trac2             = 1
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001 0.001 
+ns.scal_diff_coefs      = 0.1 0.1 
 
 
 #*******************************************************************************
@@ -109,10 +109,10 @@ geometry.is_periodic =  1 0
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 0 4
+ns.lo_bc             = 0 5
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             = 0 4
+ns.hi_bc             = 0 5
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall

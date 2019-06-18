@@ -701,7 +701,7 @@ contains
       hy = dx(2)
 
       L_x = 2.0d0
-      ed = 1.d0/sqrt(2.d0*0.001d0/rb_omega)
+      ed = one/sqrt(0.002d0/rb_omega)
       dem = one/(cos(two*ed) + cosh(two*ed))
 
       do j = lo(2), hi(2)
@@ -1097,15 +1097,16 @@ contains
             enddo
 !c     else to zero
          else
-            ed = 1.d0/sqrt(2.d0*0.001d0/rb_omega)
+            ed = 1.d0/sqrt(0.002d0/rb_omega)
             dem = one/(cos(two*ed) + cosh(two*ed))
             do j = jlo, jhi
                y = xlo(2)+ hy*(float(j-jlo) + half)
                do i = ilo, ihi
                   yp = ed*(one+y)
                   ym = ed*(one-y)
-                  uavg = one - dem*(cos(yp)*cosh(ym)+cosh(yp)*cos(ym))
-                  force(i,j,nYvel) = max(scal(i,j,nTrac2Scal),scal(i,j,nTracScal) - rb_bv*y)
+                  uavg = - dem*(cos(yp)*cosh(ym)+cosh(yp)*cos(ym))
+!                  force(i,j,nYvel) = max(scal(i,j,nTrac2Scal),scal(i,j,nTracScal) - rb_bv*y)
+                  force(i,j,nYvel) = zero
                   force(i,j,nXvel) = -scal(i,j,nRhoScal)*rb_omega*uavg
                enddo
             enddo
@@ -1655,7 +1656,7 @@ contains
       if (level .eq. 0 ) then
       do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-              tag(i,j) = merge(set,tag(i,j),abs(liquid(i,j,1)).gt. 0.5)
+              tag(i,j) = merge(set,tag(i,j),abs(liquid(i,j,1)).gt. 0.6)
           end do
       end do
       endif
@@ -1663,7 +1664,7 @@ contains
       if (level .eq. 1 ) then
       do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-              tag(i,j) = merge(set,tag(i,j),abs(liquid(i,j,1)).gt. .74)
+              tag(i,j) = merge(set,tag(i,j),abs(liquid(i,j,1)).gt. .8)
           end do
       end do
       endif

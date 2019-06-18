@@ -1,5 +1,5 @@
 #AMREX_HOME defines the directory in which we will find the BoxLib directory
-AMREX_HOME ?= ../../../amrex
+AMREX_HOME = ../../../amrex
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..
@@ -14,14 +14,12 @@ DIM         = 2
 COMP        = gnu
 
 DEBUG       = FALSE
-USE_MPI     = TRUE
+USE_MPI     = FALSE
 USE_OMP     = FALSE
 PROFILE     = FALSE
 
 # This allows GetForce to call a Fortran routine
-#DEFINES += -DGENGETFORCE
-#DEFINES += -DMOREGENGETFORCE
-#DEFINES += -DBOUSSINESQ
+DEFINES += -DMOREGENGETFORCE
 
 EBASE = amr
 
