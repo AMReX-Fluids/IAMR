@@ -313,7 +313,7 @@ contains
 
       endif
 
-      if ( probtype .eq. 10 ) then
+      if ( probtype .eq. 10 .or. probtype .eq. 31) then
          if ( rt_max_freq .lt. rt_nfreq ) then
             stop 'RT_INIT broken: 1'
          end if
@@ -3559,7 +3559,6 @@ contains
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
-
       do j = lo(2), hi(2)
          y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
          do i = lo(1), hi(1)
