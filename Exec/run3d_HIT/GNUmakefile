@@ -49,6 +49,9 @@ ifeq (${USE_VELOCITY}, TRUE)
   AMRVIS_DIR = $(AMREX_HOME)/Src/Extern/amrdata
 endif
 
+# This is for the time-dependent turbulence forcing term
+DEFINES += -DDO_IAMR_FORCE
+
 Bpack   := ./Make.package
 Blocs   := .
 

@@ -28,12 +28,9 @@ module derive_3d_module
             derdvrho, dermprho, derlgrhodust, derdmag, dermgvort, &
             dervortx, dervorty, dervortz, dermgdivu, gradp_dir, &
             dergrdpx, dergrdpy, dergrdpz, deravgpres, dergrdp, &
-#ifdef MOREGENGETFORCE            
             derradvel, derazivel, derxvelrot, deryvelrot, dermagvelrot, &
             dermagvortrot, &
-            
-#endif
-#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE))
+#if defined(DO_IAMR_FORCE) 
             derforcing, derforcex, derforcey, derforcez, &    
 #endif
             dernull
@@ -62,7 +59,6 @@ contains
 !c                  valid only if component touches bndry
 !c     -----------------------------------------------------------
 
-#ifdef MOREGENGETFORCE
       subroutine derradvel (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
                               bc,level, grid_no) &
@@ -339,9 +335,8 @@ contains
 
 
       end subroutine dermagvortrot
-#endif /*MOREGENGETFORCE*/
 
-#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE)) 
+#if defined(DO_IAMR_FORCE) 
       subroutine derforcing (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
                              bc,level,grid_no) &
@@ -998,7 +993,7 @@ contains
 
       end subroutine derforcez
 
-#endif /*defined(DO_IAMR_FORCE) && (defined(GENGETFORCE) || defined(MOREGENGETFORCE))*/
+#endif /*defined(DO_IAMR_FORCE) */
 
       subroutine derpresvars (e,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
