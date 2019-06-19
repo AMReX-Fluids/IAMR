@@ -2690,7 +2690,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
           TA_new.mult(one_over_scalar,0,2,0);
        }
     }
-
     if (level > 0) incrPAvg();
 
     old_intersect_new          = grids;

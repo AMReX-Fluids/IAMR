@@ -4895,6 +4895,50 @@ contains
 
       end subroutine dergrdp
 
+
+!c=========================================================
+
+      subroutine derliquid (liquid,DIMS(liquid),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,dx,xlo,time,dt, &
+                              bc,level,grid_no) bind(C, name="derliquid")
+      implicit none
+!c
+!c     This routine computes the magnitude of liquid water content of moist Rayleigh-Benard Problem
+!c
+      integer lo(SDIM), hi(SDIM)
+      integer DIMDEC(liquid)
+      integer DIMDEC(dat)
+      integer domlo(SDIM), domhi(SDIM)
+      integer nv, ncomp
+      integer bc(SDIM,2,ncomp)
+      REAL_T  dx(SDIM), xlo(SDIM), time, dt
+      REAL_T  liquid(DIMV(liquid),nv)
+      REAL_T  dat(DIMV(dat),ncomp)
+      integer level, grid_no
+
+      REAL_T  D,M,hz,hn,z,tmp   
+      integer    i,j,k
+
+#include <probdata.H>
+
+      hz     = dx(3)
+      hn     = one/rb_bv
+!$omp parallel do private(i,j,k,z,D,M)
+      do k = lo(3), hi(3)
+         z = xlo(3) + hz * ( dble( k-lo(3) ) + half )
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               D = dat(i,j,k,1)
+               M = dat(i,j,k,2)
+               tmp = M - D + rb_bv * z
+               liquid(i,j,k,1) = max(zero, hn*tmp)
+            end do
+         end do
+      end do
+!$omp end parallel do
+
+      end subroutine derliquid
+
 !c=========================================================
 
       subroutine dernull (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &

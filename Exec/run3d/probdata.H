@@ -1,4 +1,4 @@
-      REAL_T  denerr, vorterr, adverr, temperr, randfact, bubgrad
+      REAL_T  denerr, vorterr, adverr, temperr, liquiderr, randfact, bubgrad
       REAL_T  denfact, xblob, yblob, zblob, radblob, velfact 
       REAL_T  rhozero, rhograd, tempzero, r_d, c_d, adv_vel, slot_vel, radvort
       REAL_T  den1,den2,vel1,vel2,delta0,xlev1,zlev1,amag,freq(10),mag(10)
@@ -11,12 +11,13 @@
       REAL_T  density_pert, interface_height, wavelength_min, wavelength_max, tracer_height
       REAL_T  jet_sponge_scale, jet_sponge_height, jet_sponge_radius
       REAL_T  phi1(10), phi2(10)
+      REAL_T  rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
       integer probtype, adv_dir, axis_dir, vb_unifdir, blrandseed, plane_jet, do_jet_sponge
       integer ref_type
       common /probdt1/ probtype, adv_dir, axis_dir, ref_type
       common /probdt2/ den1,den2,vel1,vel2,delta0, &
                       xlev1,zlev1,freq,mag, amag, injection_time, override_turb_force
-      common /probdt3/ vorterr, adverr, denerr, temperr, ref_centre, ref_radius
+      common /probdt3/ vorterr, adverr, denerr, temperr, liquiderr, ref_centre, ref_radius
       common /probdt4/ denfact, xblob, yblob, zblob, radvort, &
                       radblob, velfact, randfact, bubgrad
       common /probdt5/ rhozero,rhograd,tempzero,r_d,c_d,adv_vel,slot_vel
@@ -27,7 +28,7 @@
                        do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
       common /probdt11/ thermal_expansion, heating_coeff, heating_centre, heating_radius
       common /probdt12/ density_pert, interface_height, wavelength_min, wavelength_max, tracer_height, phi1, phi2
-
+      common /probdt31/ rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
 
       integer max_eul_freq
       parameter (max_eul_freq = 2)	
