@@ -6,9 +6,7 @@
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 
-#ifdef MOREGENGETFORCE
-#include <PROB_NS_F.H>
-#endif
+#include <PROB_NS_F.H> 
 
 using namespace amrex;
 
@@ -448,7 +446,6 @@ NavierStokesBase::Initialize ()
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
-#ifdef MOREGENGETFORCE
     pp.query("getForceVerbose",          getForceVerbose  );
     pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
     if (do_scalar_update_in_order) {
@@ -456,7 +453,6 @@ NavierStokesBase::Initialize ()
 	scalarUpdateOrder.resize(n_scalar_update_order_vals);
 	int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
     }
-#endif
 
     // Don't let init_shrink be greater than 1
     if (init_shrink > 1.0)
@@ -1272,28 +1268,14 @@ NavierStokesBase::estTimeStep ()
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
-#ifdef BOUSSINESQ
-        const Real cur_time = state[State_Type].curTime();
-        // HACK HACK HACK 
-        // THIS CALL IS BROKEN 
-        // getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
-        tforces.resize(amrex::grow(bx,n_grow),BL_SPACEDIM);
-        tforces.setVal(0.);
-#else
-#ifdef GENGETFORCE
-        const Real cur_time = state[State_Type].curTime();
-        getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,rho_ctime[Rho_mfi]);
-#elif MOREGENGETFORCE
+
         const Real cur_time = state[State_Type].curTime();
 	if (getForceVerbose)
 	  amrex::Print() << "---" << '\n' 
 			 << "H - est Time Step:" << '\n' 
 			 << "Calling getForce..." << '\n';
         getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
-#else
-        getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,rho_ctime[Rho_mfi]);
-#endif		 
-#endif		 
+
         tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
         //
         // Estimate the maximum allowable timestep from the Godunov box.
@@ -2955,18 +2937,6 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
-#ifdef BOUSSINESQ
-	        const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-	        FArrayBox Scal(amrex::grow(bx,0),1);
-	        Scal.copy(S_old[Rho_mfi],bx,Tracer,bx,0,1);
-	        Scal.plus(S_new[Rho_mfi],bx,Tracer,0,1);
-	        Scal.mult(0.5,bx);
-                getForce(tforces,bx,0,sigma,1,halftime,Scal);
-#else
-#ifdef GENGETFORCE
-                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-                getForce(tforces,bx,0,sigma,1,halftime,rho_halftime[Rho_mfi]);
-#elif MOREGENGETFORCE
 		// Need to do some funky half-time stuff
 		if (getForceVerbose)
   		    amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
@@ -3008,10 +2978,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 		
 		if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
                 getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
-#else
-                getForce(tforces,bx,0,sigma,1,rho_halftime[Rho_mfi]);
-#endif		 
-#endif		 
+
                 godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                      Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
             }
@@ -3515,15 +3482,8 @@ NavierStokesBase::velocity_advection (Real dt)
       MultiFab& Umf=U_fpi.get_mf();
       MultiFab& Rmf=Rho_fpi.get_mf();
 
-#ifdef BOUSSINESQ
-      FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
-      MultiFab& Smf=S_fpi.get_mf();
-#else
-#ifdef MOREGENGETFORCE
       FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
       MultiFab& Smf=S_fpi.get_mf();
-#endif
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -3538,12 +3498,6 @@ NavierStokesBase::velocity_advection (Real dt)
 
 	    const Box& bx=U_mfi.tilebox();
 		
-#ifdef BOUSSINESQ
-      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
-#else
-#ifdef GENGETFORCE
-      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
-#elif MOREGENGETFORCE
 	    if (getForceVerbose)
 	    {
 	      amrex::Print() << "---" << '\n' 
@@ -3551,10 +3505,7 @@ NavierStokesBase::velocity_advection (Real dt)
 			   << "Calling getForce..." << '\n';
 	    }
       getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
-#else
-      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
-#endif		 
-#endif
+
       godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
       
       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
@@ -3701,21 +3652,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
         const int i = Rhohalf_mfi.index();
         const Box& bx = Rhohalf_mfi.tilebox();
 
-#ifdef BOUSSINESQ
-        //
-	      // Average the new and old time to get half time approximation.
-        //
-        const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-        FArrayBox Scal(bx,1);
-        Scal.copy(U_old[Rhohalf_mfi],bx,Tracer,bx,0,1);
-        Scal.plus(U_new[Rhohalf_mfi],bx,Tracer,0,1);
-        Scal.mult(0.5,bx);
-        getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Scal);
-#else
-#ifdef GENGETFORCE
-        const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-	getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
-#elif MOREGENGETFORCE
         //
         // Need to do some funky half-time stuff.
         //
@@ -3759,10 +3695,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 	if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
-#else
-        getForce(tforces,bx,0,Xvel,BL_SPACEDIM,halftime[i]);
-#endif		 
-#endif		 
+
         //
         // Do following only at initial iteration--per JBB.
         //
@@ -3855,12 +3788,6 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         {
 	  const Box& bx = mfi.tilebox();
 	    
-#ifdef BOUSSINESQ
-            getForce(tforces,bx,0,Xvel,BL_SPACEDIM,prev_time,Smf[mfi]);
-#else
-#ifdef GENGETFORCE
-            getForce(tforces,bx,0,Xvel,BL_SPACEDIM,prev_time,rho_ptime[mfi]);
-#elif MOREGENGETFORCE
 	    if (getForceVerbose)
 	    {
 	      amrex::Print() << "---" << '\n' 
@@ -3868,10 +3795,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 			     << "Calling getForce..." << '\n';
 	    }
             getForce(tforces,bx,0,Xvel,BL_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
-#else
-            getForce(tforces,bx,0,Xvel,BL_SPACEDIM,rho_ptime[mfi]);
-#endif		 
-#endif		 
+
             godunov->Sum_tf_gp_visc(tforces,visc_terms[mfi],Gp[mfi],Rh[mfi]);
 
 	    const Box& gbx = mfi.growntilebox(); 
