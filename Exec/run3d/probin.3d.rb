@@ -9,7 +9,7 @@
   rt_nfreq   = 10
   rt_graddenerr = 1e+6
 
-  vorterr    = 1000.
+  liquiderr    = 0.
 
   rb_rho = 1.
   rb_d0 = 0.

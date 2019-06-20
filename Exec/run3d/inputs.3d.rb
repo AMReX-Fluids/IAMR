@@ -9,9 +9,9 @@ stop_time 		= 500.0
 
 amr.n_cell              = 128 128 32
 
-amr.max_level           = 0
+amr.max_level           = 1
 
-ns.do_vorticity_ref     = 0
+ns.do_liquid_ref        = 1
 
 amr.regrid_int		= 2 
 
@@ -49,7 +49,7 @@ geometry.is_periodic =  1 1 0
 
 ns.gravity = 0.0
 
-ns.lo_bc             = 0 0 4
+ns.lo_bc             = 0 0 5
 ns.hi_bc             = 0 0 4
 
 # 0 = Interior/Periodic  3 = Symmetry
@@ -63,6 +63,6 @@ amr.ref_ratio           = 2 2 2 2
 #ns.turb_interval        = 10
 #ns.liquid_interval      = 1
 
-amr.derive_plot_vars    = energy liquid_water
+amr.derive_plot_vars    = energy liquid_water mag_vort
 
 

@@ -7,7 +7,7 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 100
+max_step 		= 20
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1000
@@ -31,6 +31,7 @@ amr.max_level		= 2 # maximum number of levels of refinement
 
 # Interval (in number of level l timesteps) between regridding
 amr.regrid_int		= 2 
+amr.regrid_file         = fixed_grids_rt
 
 #*******************************************************************************
 
@@ -61,7 +62,7 @@ amr.plot_int		= 100
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
 ns.cfl                  = 0.9  # CFL number used to set dt
-
+ns.fixed_dt             = 0.05
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint

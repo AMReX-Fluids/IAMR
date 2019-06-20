@@ -17,7 +17,7 @@ ns.do_MLsync_proj = 1
 #**********************************
 
 # MUST SET ONE OR BOTH OF THESE.  
-max_step =         1   # maximum (integer) number of time steps
+max_step =         100   # maximum (integer) number of time steps
 stop_time =        2.0 # maximum (real) time (in same units as dt)
 
 amr.n_cell =      16 16 # indices of the domain at level 0

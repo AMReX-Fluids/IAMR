@@ -5181,6 +5181,8 @@ contains
 
 !c      write (*,*) "MVERROR: probtype ",probtype," on level ",level
 
+      if (level .eq. 0) then
+
          do k = lo(3), hi(3)
            do j = lo(2), hi(2)
               do i = lo(1), hi(1)
@@ -5188,6 +5190,7 @@ contains
               end do
            end do
          end do
+       endif
 
       end subroutine FORT_LWCERROR
 !c ::: -----------------------------------------------------------
