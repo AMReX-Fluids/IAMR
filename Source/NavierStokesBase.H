@@ -209,32 +209,6 @@ protected:
     //
     // Get the forcing term.
     //
-#ifdef BOUSSINESQ
-    void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Scal);
-    void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Scal);
-#else
-#ifdef MOREGENGETFORCE
-    void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Vel,
-                   const amrex::FArrayBox& Scal,
-		   int              scalScomp);
     void getForce (amrex::FArrayBox&       force,
 		   const amrex::Box&      bx,
                    int              ngrow,
@@ -244,42 +218,6 @@ protected:
                    const amrex::FArrayBox& Vel,
                    const amrex::FArrayBox& Scal,
 		   int              scalScomp);
-#else
-#ifdef GENGETFORCE
-  void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-  void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-#else
-  void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-  void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-#endif		 
-#endif		 
-#endif		 
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);

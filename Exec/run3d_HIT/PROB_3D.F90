@@ -38,10 +38,9 @@ module prob_3D_module
             initflow, initjet, initinjection, initroundjet, &
             initcoriolis, initheating, initgravitycurrent, &
             initrayleightaylor, initraneul, initdenadvect, &
-            initshearlayer, initiwpctm, initrb, & 
-            FORT_AVERAGE_EDGE_STATES, FORT_MAKEFORCE, FORT_DSDTFILL, &
+            initshearlayer, initiwpctm, FORT_AVERAGE_EDGE_STATES, &
+            FORT_MAKEFORCE, FORT_DSDTFILL, &
             FORT_ADVERROR, FORT_ADV2ERROR, FORT_TEMPERROR, FORT_MVERROR, &
-            FORT_LWCERROR, &
             FORT_DENFILL, FORT_ADVFILL, FORT_TEMPFILL, FORT_XVELFILL, &
             FORT_YVELFILL, FORT_ZVELFILL, FORT_PRESFILL, FORT_DIVUFILL
 
@@ -101,7 +100,7 @@ contains
       REAL_T  Lx, Ly, Lz, Lmin
       REAL_T  kappa, kappaMax, freqMin, freqMax, freqDiff, pdk
 
-      namelist /fortin/ denerr, vorterr, adverr, temperr, liquiderr, &
+      namelist /fortin/ denerr, vorterr, adverr, temperr, &
      			denfact, xblob, yblob, zblob, radblob,  &
                        velfact, probtype, randfact, bubgrad, &
      			rhozero, rhograd, tempzero, c_d, r_d,  &
@@ -149,9 +148,6 @@ contains
       namelist /fortin/ tInflowFact_l, tInflowFact_r, InflowFact_l, InflowFact_r
       namelist /fortin/ do_inlet_ref, inlet_ref_height
       namelist /fortin/ lid_vel
-
-      namelist /fortin/ rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
-
 !c
 !c      Build "probin" filename -- the name of file containing fortin namelist.
 !c
@@ -313,7 +309,7 @@ contains
 
       endif
 
-      if ( probtype .eq. 10 .or. probtype .eq. 31) then
+      if ( probtype .eq. 10 ) then
          if ( rt_max_freq .lt. rt_nfreq ) then
             stop 'RT_INIT broken: 1'
          end if
@@ -1135,10 +1131,6 @@ contains
              dx,xlo,xhi)
       else if (probtype .eq. 29 .or. probtype .eq. 30) then
          call initfromrest(level,time,lo,hi,nscal, &
-             vel,scal,DIMS(state),press,DIMS(press), &
-             dx,xlo,xhi)
-      else if (probtype .eq. 31) then
-         call initrb(level,time,lo,hi,nscal, &
              vel,scal,DIMS(state),press,DIMS(press), &
              dx,xlo,xhi)
       else
@@ -3523,70 +3515,6 @@ contains
       enddo
 
       end subroutine initiwpctm
-!c
-!c ::: -----------------------------------------------------------
-!c
-      subroutine initrb(level,time,lo,hi,nscal, &
-                            vel,scal,DIMS(state),press,DIMS(press), &
-                           dx,xlo,xhi)
-      implicit none
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
-
-!c
-!c     ::::: local variables
-!c
-      integer i, j, k, n, m, do_trac2
-      REAL_T  x, y, z
-      REAL_T  hx, hy, hz
-      REAL_T  pert,ztemp,kt,dem,zp,zm,Ev
-
-#include <probdata.H>
-
-      call bl_ns_dotrac2(do_trac2)
-
-      hx = dx(1)
-      hy = dx(2)
-      hz = dx(3)
-      do j = lo(2), hi(2)
-         y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
-         do i = lo(1), hi(1)
-            x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
-            pert = 0.d0
-            do n = 1, rt_nfreq
-               do m = 1, rt_nfreq
-                  pert = pert + rt_ranampl(n,m) &
-                       * sin(2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1) ) &
-                       * sin(2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2) )
-               end do
-            end do
-            ztemp = rt_splitx - pert*rt_pertamp/dble(rt_nfreq**2)
-
-            do k = lo(3), hi(3)
-               z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
-               zp = kt*(one+z)
-               zm = kt*(one-z)
-               scal(i,j,k,1) = rb_rho
-               vel(i,j,k,1) = zero
-               vel(i,j,k,2) = zero
-               vel(i,j,k,3) = zero
-               scal(i,j,k,2) = rb_d0 + (rb_dh - rb_d0) * z - ztemp*(cos(z*rt_pi*.5d0))
-               if (do_trac2 .eq. 1) then
-                  scal(i,j,k,3) = rb_m0 + (rb_mh - rb_m0) * z + ztemp*(cos(z*rt_pi*.5d0))
-               endif
-            end do
-         end do
-      end do
-
-      end subroutine initrb
-
 !c     
 !c     
 !c     ::: -----------------------------------------------------------
@@ -3663,14 +3591,14 @@ contains
 !c     This routine add the forcing terms to the momentum equation
 !c
       subroutine FORT_MAKEFORCE(time,force, &
-                                vel, &
-                                scal, &
-                                DIMS(force), &
-                                DIMS(vel), &
-                                DIMS(scal), &
-                                dx,xlo,xhi,gravity,scomp,ncomp, &
-                                nscal,getForceVerbose &
-                                )bind(C, name="FORT_MAKEFORCE")
+                               vel, &
+                               scal, &
+                               DIMS(force), &
+                               DIMS(vel), &
+                               DIMS(scal), &
+                               dx,xlo,xhi,gravity,scomp,ncomp, &
+                               nscal,getForceVerbose &
+     )bind(C, name="FORT_MAKEFORCE")
 
       implicit none
 
@@ -4032,40 +3960,7 @@ contains
                      force(i,j,k,nZvel) = scal(i,j,k,nRhoScal)*cga
                   enddo
                enddo
-            enddo 
-         elseif (probtype .eq. 31) then 
-!c     Rayleigh-Benard 
-            if (do_trac2 .eq. 1) then
-            ! Moist Rayleigh-Benard
-               do k = klo, khi
-                  z = xlo(3) + hz*(float(k-klo) + half)
-                  do j = jlo, jhi
-                     y = xlo(2) + hy*(float(j-jlo) + half)
-                     do i = ilo, ihi
-                        x = xlo(1) + hx*(float(i-ilo) + half)
-
-                        force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*rb_omega*vel(i,j,k,nYvel)
-                        force(i,j,k,nYvel) = -scal(i,j,k,nRhoScal)*rb_omega*vel(i,j,k,nXvel)
-                        force(i,j,k,nZvel) = max(scal(i,j,k,nTrac2Scal), scal(i,j,k,nTracScal) - rb_bv*z)
-                     enddo
-                  enddo
-               enddo
-            else
-            !  standard Rayleigh-Benard
-               do k = klo, khi
-                  z = xlo(3) + hz*(float(k-klo) + half)
-                  do j = jlo, jhi
-                     y = xlo(2) + hy*(float(j-jlo) + half)
-                     do i = ilo, ihi
-                        x = xlo(1) + hx*(float(i-ilo) + half)
-                        force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*rb_omega*vel(i,j,k,nYvel)
-                        force(i,j,k,nYvel) =-scal(i,j,k,nRhoScal)*rb_omega*vel(i,j,k,nXvel)
-                        force(i,j,k,nZvel) = scal(i,j,k,nTracScal)
-
-                     enddo
-                  enddo
-               enddo
-             endif
+            enddo
 !c     Default to gravity...
          elseif (abs(gravity).gt.0.0001) then
             do k = klo, khi
@@ -5089,62 +4984,7 @@ contains
       end if
 
       end subroutine FORT_MVERROR
-!c ::: -----------------------------------------------------------
-!c ::: This routine will tag high error cells based on the 
-!c ::: magnitude of liquid water content
-!c ::: 
-!c ::: INPUTS/OUTPUTS:
-!c ::: 
-!c ::: tag         <=  integer tag array
-!c ::: DIMS(tag)   => index extent of tag array
-!c ::: set         => integer value to tag cell for refinement
-!c ::: clear       => integer value to untag cell
-!c ::: vort        => liquid array
-!c ::: DIMS(liquid)=> index extent of liquid array
-!c ::: nvar        => number of components in rho array (should be 1)
-!c ::: lo,hi       => index extent of grid
-!c ::: domlo,hi    => index extent of problem domain
-!c ::: dx          => cell spacing
-!c ::: xlo         => physical location of lower left hand
-!c :::                corner of tag array
-!c ::: problo      => phys loc of lower left corner of prob domain
-!c ::: time        => problem evolution time
-!c ::: -----------------------------------------------------------
-      subroutine FORT_LWCERROR (tag,DIMS(tag),set,clear, &
-                               liquid,DIMS(liquid),lo,hi,nvar, &
-                               domlo,domhi,dx,xlo, &
-                               problo,time,level) &
-                               bind(C, name="FORT_LWCERROR")
-      implicit none
 
-      integer   DIMDEC(tag)
-      integer   DIMDEC(liquid)
-      integer   lo(SDIM), hi(SDIM)
-      integer   nvar, set, clear, level
-      integer   domlo(SDIM), domhi(SDIM)
-      REAL_T    dx(SDIM), xlo(SDIM), problo(SDIM), time
-      integer   tag(DIMV(tag))
-      REAL_T    liquid(DIMV(liquid),nvar)
-
-      REAL_T    x, y, z, dist
-      integer   i, j, k, ztag
-
-#include <probdata.H>
-
-!c      write (*,*) "MVERROR: probtype ",probtype," on level ",level
-
-      if (level .eq. 0) then
-
-         do k = lo(3), hi(3)
-           do j = lo(2), hi(2)
-              do i = lo(1), hi(1)
-                 tag(i,j,k) = merge(set,tag(i,j,k),dx(1)*abs(liquid(i,j,k,1)).gt.liquiderr)
-              end do
-           end do
-         end do
-       endif
-
-      end subroutine FORT_LWCERROR
 !c ::: -----------------------------------------------------------
 !c ::: This routine is called during a filpatch operation when
 !c ::: the patch to be filled falls outside the interior
@@ -5267,14 +5107,14 @@ contains
       endif
 
       if (bc(3,2).eq.EXT_DIR.and.hi(2).gt.domhi(2)) then
-            do k = domhi(3)+1, hi(3)
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                      rho(i,j,k) = den1
-                  enddo
-               enddo
-            enddo
-         endif 
+           do k = domhi(3)+1, hi(3)
+              do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+                rho(i,j,k) = den1
+              enddo
+              enddo
+         enddo
+      endif
 
       else ! not probtype 8, all other probtypes
 
@@ -5398,14 +5238,6 @@ contains
                  end do
               end do
            end do
-        else if (probtype .eq. 31) then
-           do k = ARG_L3(rho), domlo(3)-1
-              do j = ARG_L2(rho), ARG_H2(rho)
-                 do i = ARG_L1(rho), ARG_H1(rho)
-                    rho(i,j,k) = rb_rho
-                 end do
-              end do
-           end do
         else
            do k = ARG_L3(rho), domlo(3)-1
               do j = ARG_L2(rho), ARG_H2(rho)
@@ -5423,15 +5255,6 @@ contains
                do j = ARG_L2(rho), ARG_H2(rho)
                   do i = ARG_L1(rho), ARG_H1(rho)
                      rho(i,j,k) = rhozero
-                  enddo
-               enddo
-            enddo
-         else if (probtype .eq. 31 ) then
-
-            do k = domhi(3)+1, ARG_H3(rho)
-               do j = ARG_L2(rho), ARG_H2(rho)
-                  do i = ARG_L1(rho), ARG_H1(rho)
-                     rho(i,j,k) = rb_rho
                   enddo
                enddo
             enddo
@@ -5674,15 +5497,7 @@ contains
                      adv(i,j,k) = half*(one-tanh(two*(r-jet_width)/delta0))
                   enddo
                enddo
-            enddo 
-         else if (probtype .eq. 31) then
-            do k = ARG_L3(adv), domlo(3)-1
-               do j = ARG_L2(adv), ARG_H2(adv)
-                  do i = ARG_L1(adv), ARG_H1(adv)
-                     adv(i,j,k) = rb_d0
-                  end do
-               end do
-            end do
+            enddo
          else 
             do k = ARG_L3(adv), domlo(3)-1
                do j = ARG_L2(adv), ARG_H2(adv)
@@ -5695,26 +5510,13 @@ contains
       endif
 
       if (bc(3,2).eq.EXT_DIR.and.ARG_H3(adv).gt.domhi(3)) then
-         if (probtype .eq. 31) then
-
-            do k = domhi(3)+1, ARG_H3(adv)
-               do j = ARG_L2(adv), ARG_H2(adv)
-                  do i = ARG_L1(adv), ARG_H1(adv)
-                     adv(i,j,k) = rb_dh
-                  end do
+         do k = domhi(3)+1, ARG_H3(adv)
+            do j = ARG_L2(adv), ARG_H2(adv)
+               do i = ARG_L1(adv), ARG_H1(adv)
+                  adv(i,j,k) = zero
                end do
             end do
-
-         else 
-            do k = domhi(3)+1, ARG_H3(adv)
-               do j = ARG_L2(adv), ARG_H2(adv)
-                  do i = ARG_L1(adv), ARG_H1(adv)
-                     adv(i,j,k) = zero
-                  end do
-               end do
-            end do
-
-         end if 
+         end do
       end if
 
       endif
@@ -5807,14 +5609,6 @@ contains
                   enddo
                enddo
             enddo
-         else if (probtype .eq. 31) then
-            do k = ARG_L3(adv), domlo(3)-1
-               do j = ARG_L2(adv), ARG_H2(adv)
-                  do i = ARG_L1(adv), ARG_H1(adv)
-                     adv(i,j,k) = rb_m0
-                  end do
-               end do
-            end do
          else 
             do k = ARG_L3(adv), domlo(3)-1
                do j = ARG_L2(adv), ARG_H2(adv)
@@ -5842,14 +5636,6 @@ contains
                   enddo
                enddo
             enddo
-         else if (probtype .eq. 31) then
-            do k = domhi(3)+1, ARG_H3(adv)
-               do j = ARG_L2(adv), ARG_H2(adv)
-                  do i = ARG_L1(adv), ARG_H1(adv)
-                     adv(i,j,k) = rb_mh
-                  end do
-               end do
-            end do
          else
             do k = domhi(3)+1, ARG_H3(adv)
                do j = ARG_L2(adv), ARG_H2(adv)

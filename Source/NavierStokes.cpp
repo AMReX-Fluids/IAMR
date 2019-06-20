@@ -321,7 +321,6 @@ NavierStokes::advance (Real time,
     //
     // Add the advective and other terms to get scalars at t^{n+1}.
     //
-#ifdef MOREGENGETFORCE
     if (do_scalar_update_in_order)
     {
 	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
@@ -335,9 +334,6 @@ NavierStokes::advance (Real time,
     {
 	scalar_update(dt,first_scalar+1,last_scalar);
     }
-#else
-    scalar_update(dt,first_scalar+1,last_scalar);
-#endif
     //
     // S appears in rhs of the velocity update, so we better do it now.
     //
@@ -444,15 +440,8 @@ NavierStokes::predict_velocity (Real  dt)
       });
     }
 
-#ifdef BOUSSINESQ
-    FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
-    MultiFab& Smf=S_fpi.get_mf();
-#else
-#ifdef MOREGENGETFORCE
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
     MultiFab& Smf=S_fpi.get_mf();
-#endif
-#endif
 
     //
     // Compute "grid cfl number" based on cell-centered time-n velocities
@@ -476,20 +465,11 @@ NavierStokes::predict_velocity (Real  dt)
         Box bx=U_mfi.tilebox();
         FArrayBox& Ufab = Umf[U_mfi];
 
-#ifdef BOUSSINESQ
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
-#else
-#ifdef GENGETFORCE
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
-#elif MOREGENGETFORCE
         if (getForceVerbose) {
           Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
         }
         getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
-#else
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
-#endif		 
-#endif
+
         //
         // Compute the total forcing.
         //
@@ -575,13 +555,8 @@ NavierStokes::scalar_advection (Real dt,
         });
       }
 
-#ifdef BOUSSINESQ
-      FillPatchIterator Scal_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Tracer,1);
-      const MultiFab& Scalmf=Scal_fpi.get_mf();
-#elif MOREGENGETFORCE
       FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
       const MultiFab& Umf=U_fpi.get_mf();
-#endif
       
 #ifdef _OPENMP
 #pragma omp parallel
@@ -597,21 +572,11 @@ NavierStokes::scalar_advection (Real dt,
       {
 	    const Box bx = S_mfi.tilebox();
 
-#ifdef BOUSSINESQ
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Scalmf[S_mfi]);
-#else
-#ifdef GENGETFORCE
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,rho_ptime[S_mfi]);
-#elif MOREGENGETFORCE
 	      if (getForceVerbose) {
 	        Print() << "---" << '\n' << "C - scalar advection:" << '\n' 
 			    << " Calling getForce..." << '\n';
 	      }
         getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
-#else
-        getForce(tforces,bx,nGrowF,fscalar,num_scalars,rho_ptime[S_mfi]);
-#endif		 
-#endif		 
 
         for (int d=0; d<BL_SPACEDIM; ++d)
         {
@@ -957,11 +922,9 @@ NavierStokes::sum_integrated_quantities ()
     // Real trac = 0.0;
     Real energy = 0.0;
     Real mgvort = 0.0;
+    Real forcing = 0.0;
 #if (BL_SPACEDIM==3)
     Real udotlapu = 0.0;
-#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
-    Real forcing = 0.0;
-#endif
 #endif
 
     for (int lev = 0; lev <= finest_level; lev++)
@@ -971,11 +934,9 @@ NavierStokes::sum_integrated_quantities ()
         // trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
         mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
+        forcing += ns_level.volWgtSum("forcing",time);
 #if (BL_SPACEDIM==3)
         udotlapu += ns_level.volWgtSum("udotlapu",time);
-#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
-	forcing += ns_level.volWgtSum("forcing",time);
-#endif
 #endif
     }
 
@@ -985,14 +946,12 @@ NavierStokes::sum_integrated_quantities ()
     Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';
-#if (BL_SPACEDIM==3)
-    Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
-#if defined(GENGETFORCE) || defined(MOREGENGETFORCE)
     //NOTE: FORCING_T gives only the energy being injected by the forcing
     //      term used for generating turbulence in probtype 14, 15.
     //      Defaults to 0 for other probtypes.
     Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
-#endif
+#if (BL_SPACEDIM==3)
+    Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
 #endif
 }
 

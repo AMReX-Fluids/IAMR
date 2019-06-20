@@ -23,11 +23,6 @@ godunov.courner_couple = 1 DEFAULT
 
 advection_scheme - hard coded in advection routines
 
-bousinesq: in GNUMakefile add: DEFINES += -DBOUSSINESQ
-GENGETFORCE   		       DEFINES += -DGENGETFORCE
-MOREGENGETFORCE                DEFINES += -DMOREGENGETFORCE
-	* MOREGENGETFORCE used in 3d builds, basic/default getForce() used for 2d
-	
 ns.do_denminmax do_scalminmax //explicitly adjust scalars/rho to avoid over/undershoot
 
 velocity restart

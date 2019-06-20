@@ -18,9 +18,6 @@ USE_MPI     = FALSE
 USE_OMP     = FALSE
 PROFILE     = FALSE
 
-# This allows GetForce to call a Fortran routine
-DEFINES += -DMOREGENGETFORCE
-
 EBASE = amr
 
 Bpack   := ./Make.package
