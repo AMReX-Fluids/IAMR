@@ -11,7 +11,7 @@
       REAL_T  density_pert, interface_height, wavelength_min, wavelength_max, tracer_height
       REAL_T  jet_sponge_scale, jet_sponge_height, jet_sponge_radius
       REAL_T  phi1(10), phi2(10)
-      REAL_T  rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
+      REAL_T  rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega, rb_pertamp
       integer probtype, adv_dir, axis_dir, vb_unifdir, blrandseed, plane_jet, do_jet_sponge
       integer ref_type
       common /probdt1/ probtype, adv_dir, axis_dir, ref_type
@@ -28,7 +28,6 @@
                        do_jet_sponge, jet_sponge_scale, jet_sponge_height, jet_sponge_radius
       common /probdt11/ thermal_expansion, heating_coeff, heating_centre, heating_radius
       common /probdt12/ density_pert, interface_height, wavelength_min, wavelength_max, tracer_height, phi1, phi2
-      common /probdt31/ rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
 
       integer max_eul_freq
       parameter (max_eul_freq = 2)	
@@ -47,10 +46,14 @@
       REAL_T rt_pertamp
       REAL_T rt_graddenerr
       integer rt_nfreq
+      integer rb_nfreq
       common /probdt8/ rt_splitx, rt_xfrontw, rt_den_1, rt_den_2
       common /probdt8/ rt_ranampl, rt_ranphse, rt_pertamp
       common /probdt8_i/ rt_nfreq
       common /probdt8/ rt_graddenerr
+
+      common /probdt31/ rb_pertamp,rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
+      common /probdt31_i/ rb_nfreq
 
       REAL_T rt_PI
       parameter (rt_PI = 3.1415926535897932385)

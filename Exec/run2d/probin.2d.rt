@@ -8,5 +8,5 @@
   rb_m0 = 0.
   rb_mh = 0.
   rb_bv = 0.
-  rb_omega = 0.1
+  rb_omega = 0.01
 /

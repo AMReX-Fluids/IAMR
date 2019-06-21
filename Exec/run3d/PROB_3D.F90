@@ -150,7 +150,7 @@ contains
       namelist /fortin/ do_inlet_ref, inlet_ref_height
       namelist /fortin/ lid_vel
 
-      namelist /fortin/ rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
+      namelist /fortin/ rb_nfreq,rb_pertamp,rb_rho,rb_d0,rb_dh,rb_m0,rb_mh,rb_bv,rb_omega
 
 !c
 !c      Build "probin" filename -- the name of file containing fortin namelist.
@@ -3546,28 +3546,35 @@ contains
       integer i, j, k, n, m, do_trac2
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  pert,ztemp,kt,dem,zp,zm,Ev
-
+      REAL_T  pert,kt,dem,zp,zm,Ev
+      REAL_T  L_x, L_y
+      REAL_T  pi,perty,pertx
 #include <probdata.H>
 
       call bl_ns_dotrac2(do_trac2)
+      pi = 4.d0*atan2(1.d0,1.d0)
+      L_x = f_probhi(1) - f_problo(1) 
+      L_y = f_probhi(2) - f_problo(2)
+
+!C Rayliegh-Benard initial perturbation 
+      call blutilinitrand(19470228)
 
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
       do j = lo(2), hi(2)
          y = xlo(2) + hy*(dble(j-lo(2)) + 0.5d0)
+
+!c compute y perturbation  
+         perty = normal_random_variable(rb_nfreq,L_y,y,rb_pertamp)
+
          do i = lo(1), hi(1)
             x = xlo(1) + hx*(dble(i-lo(1)) + 0.5d0)
-            pert = 0.d0
-            do n = 1, rt_nfreq
-               do m = 1, rt_nfreq
-                  pert = pert + rt_ranampl(n,m) &
-                       * sin(2.0D0*rt_PI*dble(n)*x/f_probhi(1) + rt_ranphse(n,m,1) ) &
-                       * sin(2.0D0*rt_PI*dble(m)*y/f_probhi(2) + rt_ranphse(n,m,2) )
-               end do
-            end do
-            ztemp = rt_splitx - pert*rt_pertamp/dble(rt_nfreq**2)
+
+!c compute x perturbation
+            pertx = normal_random_variable(rb_nfreq,L_x,x,rb_pertamp)
+
+            pert = pertx*perty
 
             do k = lo(3), hi(3)
                z = xlo(3) + hz*(dble(k-lo(3)) + 0.5d0)
@@ -3577,15 +3584,43 @@ contains
                vel(i,j,k,1) = zero
                vel(i,j,k,2) = zero
                vel(i,j,k,3) = zero
-               scal(i,j,k,2) = rb_d0 + (rb_dh - rb_d0) * z - ztemp*(cos(z*rt_pi*.5d0))
+               scal(i,j,k,2) = rb_d0 + (rb_dh - rb_d0) * z - pert*(cos(z*pi*.5d0))
                if (do_trac2 .eq. 1) then
-                  scal(i,j,k,3) = rb_m0 + (rb_mh - rb_m0) * z + ztemp*(cos(z*rt_pi*.5d0))
+                  scal(i,j,k,3) = rb_m0 + (rb_mh - rb_m0) * z + pert*(cos(z*pi*.5d0))
                endif
             end do
          end do
       end do
 
       end subroutine initrb
+
+! function for nomarl random variable using Box-Muller transformation with mean zero, and given variance
+      REAL_T function normal_random_variable(nfreq,L,x,var)
+      implicit none
+! input variables 
+      integer nfreq
+      REAL_T L, x, var
+! local variables 
+      integer m
+      REAL_T twopi,freq,amp,an,bn,rn1,rn2
+
+      twopi = 8.d0*atan2(1.d0,1.d0)
+      amp = sqrt(L/dble(nfreq))/twopi*var 
+     
+      normal_random_variable = 0.d0
+      do m = 1, nfreq
+         freq = (m - nfreq/2) * twopi/L * x
+         call blutilrand(rn1)
+         call blutilrand(rn2)
+         an = cos(freq) * sqrt(-two * log(rn1)) * cos(twopi*rn2)
+         call blutilrand(rn1)
+         call blutilrand(rn2)
+         bn = sin(freq) * sqrt(-two * log(rn1)) * cos(twopi*rn2)
+         normal_random_variable = normal_random_variable + amp*(an - bn)
+      end do
+
+
+      end function normal_random_variable
 
 !c     
 !c     
