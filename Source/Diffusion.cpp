@@ -706,7 +706,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     //Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
     //VisMF::Write(f_old[2],"fluxz_"+std::to_string(count));
     //
-
+    //amrex::Abort("Check old time diff fluxes \n ");
     
     //
     // If this is a predictor step, put "explicit" updates passed via S_new
@@ -769,9 +769,74 @@ Diffusion::diffuse_scalar (Real                   dt,
     }
     //fixme
     // check input
-    amrex::WriteSingleLevelPlotfile("rhsA", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    //MultiFab::Multiply(Rhs,volume,0,0,1,0);
+    Print()<<"solve mode "<< (solve_mode==PREDICTOR)<<"\n";
+    Print()<<"delta rhs "<< (delta_rhs !=0 )<<"\n";
+    amrex::WriteSingleLevelPlotfile("rhsA_"+std::to_string(count), Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    //  amrex::Abort("check rhsA");
     //
 
+
+    //  ///////////////////////////////////////
+    // fixme --- RZ not working yet. Something's wrong related to hoop stress.
+    //   With a = 0, Soln out of mlmg.solve() matches dev
+    //   BUT, comments below say hoop stess is missing and must be added 
+    //   so, it appears that IAMR and MLMG disagree on the computation of
+    //      b del dot (beta grad S_old) 
+    //
+    //     // Add hoop stress for x-velocity in r-z coordinates
+//     // Note: we have to add hoop stress explicitly because the hoop
+//     // stress which is added through the operator in getViscOp
+//     // is eliminated by setting a = 0.
+//     //
+#if (BL_SPACEDIM == 2) 
+    if (sigma == Xvel && parent->Geom(0).IsRZ())
+    {
+      //amrex::Abort("r-z still under development. \n");
+
+      // this should not be needed if using MLMG metric terms, right?
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+// 	{
+// 	    Vector<Real> rcen;
+
+// 	    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
+// 	    {
+// 		const Box& bx   = Rhsmfi.tilebox();
+		
+// 		const Box& rbx  = Rhsmfi.validbox();
+// 		const Box& sbx  = S_old[Rhsmfi].box();
+// 		const Box& vbox = volume[Rhsmfi].box();
+		
+// 		rcen.resize(bx.length(0));
+// 		navier_stokes->Geom().GetCellLoc(rcen, bx, 0);
+		
+// 		const int*  lo      = bx.loVect();
+// 		const int*  hi      = bx.hiVect();
+// 		const int*  rlo     = rbx.loVect();
+// 		const int*  rhi     = rbx.hiVect();
+// 		const int*  slo     = sbx.loVect();
+// 		const int*  shi     = sbx.hiVect();
+// 		Real*       rhs     = Rhs[Rhsmfi].dataPtr();
+// 		const Real* sdat    = S_old[Rhsmfi].dataPtr(sigma);
+// 		const Real* rcendat = rcen.dataPtr();
+// 		const Real  coeff   = (1.0-be_cn_theta)*visc_coef[sigma]*dt;
+// 		const Real* voli    = volume[Rhsmfi].dataPtr();
+// 		const int*  vlo     = vbox.loVect();
+// 		const int*  vhi     = vbox.hiVect();
+
+// 		hooprhs(ARLIM(lo),ARLIM(hi),
+// 			rhs, ARLIM(rlo), ARLIM(rhi), 
+// 			sdat, ARLIM(slo), ARLIM(shi),
+// 			rcendat, &coeff, voli, ARLIM(vlo),ARLIM(vhi));
+// 	    }
+// 	}
+     }
+ #endif
+    /////////////////////
+
+    
     //
     // Increment Rhs with S_old*V (or S_old*V*rho_half if rho_flag==1
     //                             or S_old*V*rho_old  if rho_flag==3)
@@ -799,8 +864,9 @@ Diffusion::diffuse_scalar (Real                   dt,
 
     //fixme
     // check input
-    //MultiFab::Multiply(Rhs,volume,0,0,1,0);
-    amrex::WriteSingleLevelPlotfile("rhsB", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    // MultiFab::Multiply(Rhs,volume,0,0,1,0);
+    // amrex::WriteSingleLevelPlotfile("rhsB", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    //  amrex::Abort("check rhsB");
     //
 
     //
@@ -853,7 +919,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
         
     mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
-    // if the whole eq got mult by vol, why not bcs????
     {
       MultiFab crsedata;
       if (level > 0) {
@@ -925,7 +990,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     // MultiFab::Multiply(Soln,volume,0,0,1,0);
     amrex::WriteSingleLevelPlotfile("soln2", Soln, {"soln"},navier_stokes->Geom(), 0.0, 0);
     amrex::WriteSingleLevelPlotfile("rhs2", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
-    //    amrex::Abort();
     //
 
 
@@ -976,7 +1040,7 @@ Diffusion::diffuse_scalar (Real                   dt,
         {		
 	  for (int i = 0; i < BL_SPACEDIM; ++i)
 	  {
-	    (*fluxnp1[i])[mfi].mult(-b/dt,fluxComp,1);
+	    (*fluxnp1[i])[mfi].mult(b/dt,fluxComp,1);
 	    (*fluxnp1[i])[mfi].mult(area[i][mfi],0,fluxComp,1);
 	  }
 	}
@@ -985,7 +1049,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 	  // Use EB routines
 	  for (int i = 0; i < BL_SPACEDIM; ++i)
 	  {
-	    (*fluxnp1[i])[mfi].mult(-b/dt,fluxComp,1);
+	    (*fluxnp1[i])[mfi].mult(b/dt,fluxComp,1);
 	    (*fluxnp1[i])[mfi].mult(area[i][mfi],0,fluxComp,1);
 	    (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp,1);
 	  }
@@ -1001,6 +1065,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     }
 #endif
 
+    VisMF::Write(*fluxnp1[0],"f1_"+std::to_string(count));
     {
       //fixme
       name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/flux0_"+std::to_string(count);
@@ -1031,6 +1096,8 @@ Diffusion::diffuse_scalar (Real                   dt,
     }
     // write out difference MF for viewing: amrvis -mf 
     std::cout << "Writing mfdiff" << std::endl;
+    mf2.plus(1.e-55,0,1,0);
+    MultiFab::Divide(mfdiff,mf2,0,0,1,0);
     VisMF::Write(mfdiff, "fdiff0_"+std::to_string(count));
     }
 
@@ -1064,8 +1131,12 @@ Diffusion::diffuse_scalar (Real                   dt,
     }
     // write out difference MF for viewing: amrvis -mf 
     std::cout << "Writing mfdiff" << std::endl;
+    mf2.plus(1.e-55,0,1,0);
+    MultiFab::Divide(mfdiff,mf2,0,0,1,0);
     VisMF::Write(mfdiff, "fdiff1_"+std::to_string(count));
     }
+    // if (sigma==Xvel)
+    //   amrex::Abort("check inputs");
     //amrex::Abort("check \n");
 
 
@@ -1982,7 +2053,8 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
         {
 	    const Box& bx = Rhsmfi.tilebox();
-            Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0); 
+	    // remove vol scaling for EB
+            //Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0); 
             Rhs[Rhsmfi].mult(rho[Rhsmfi],bx,0,0); 
         }
         //
@@ -2003,7 +2075,9 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
             LPInfo info;
             info.setAgglomeration(agglomeration);
             info.setConsolidation(consolidation);
-            info.setMetricTerm(false);
+	    // FIXME - need to test with RZ problem
+	    // let MLMG do metric terms
+            //info.setMetricTerm(false);
 
             MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
             mlabec.setMaxOrder(max_order);
@@ -2049,6 +2123,7 @@ Diffusion::diffuse_Vsync_constant_mu (MultiFab&       Vsync,
         }
         else
         {
+	  amrex::Abort("Only MLMG solver supported. Use diffuse.use_mlmg_solver=1 ");
             std::unique_ptr<ABecLaplacian> visc_op
                 (getViscOp(comp,a,b,rho,rho_flag,&rhsscale,0,0,0,0));
 
@@ -2339,7 +2414,9 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
         LPInfo info;
         info.setAgglomeration(agglomeration);
         info.setConsolidation(consolidation);
-        info.setMetricTerm(false);
+	// FIXME - need to test with RZ problem
+	// let MLMG handle the metric terms
+        //info.setMetricTerm(false);
         
         MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
         mlabec.setMaxOrder(max_order);
@@ -2384,7 +2461,8 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
         for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
             {
             const Box& bx = Rhsmfi.tilebox();
-            Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0); 
+	    // No volume scaling for EB
+            //Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0); 
             if (rho_flag == 1) {
                 Rhs[Rhsmfi].mult(rho_half[Rhsmfi],bx,0,0);
             }
@@ -2402,13 +2480,20 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
                          MultiFab flxz(*flux[2], amrex::make_alias, fluxComp, 1););
             std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
             mlmg.getFluxes({fp});
+
+	    const MultiFab* area   = navier_stokes->Area();
+	    int nghost = 0; //fluxnp1[0]->nGrow(); // this = 0
             for (int i = 0; i < BL_SPACEDIM; ++i) {
-                (*flux[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
+	      // area weight fluxes
+	      (*flux[i]).mult(b/dt,fluxComp,1,nghost);
+	      MultiFab::Multiply(*flux[i],area[i],0,fluxComp,1,nghost);	      
+	      //(*flux[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
             }
         }
     }
     else
     {
+      amrex::Abort("Only MLMG solver supported. Use diffuse.use_mlmg_solver = 1 ");
         std::unique_ptr<ABecLaplacian> visc_op
             (getViscOp(state_ind,a,b,rho_half,rho_flag,&rhsscale,beta,betaComp,alpha,alphaComp));
         visc_op->maxOrder(max_order);
@@ -3021,7 +3106,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-#if 1
+#if 0
     // old way with volume weighted beta
     if (is_diffusive[comp])
     {
