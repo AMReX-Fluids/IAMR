@@ -501,6 +501,11 @@ NavierStokesBase::Initialize ()
     pp.query("variable_vel_visc",variable_vel_visc);
     pp.query("variable_scal_diff",variable_scal_diff);
 
+#ifdef AMREX_USE_EB
+    if (variable_scal_diff || variable_vel_visc )
+      amrex::Abort("NavierStokesBase::Initialize(): EB tensor diffusion still under development.\n Must use variable_vel_visc=0, variable_scal_diff=0 for now.");
+#endif
+    
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
     const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
@@ -642,6 +647,7 @@ NavierStokesBase::advance_setup (Real time,
 
 #ifdef AMREX_USE_EB
    // just cribbing from incflo
+    // note mfix now uses 4...
    umac_n_grow = 5;
 #else
     umac_n_grow = 1;
@@ -693,6 +699,7 @@ NavierStokesBase::advance_setup (Real time,
     // Alloc MultiFab to hold advective update terms.
     //
     BL_ASSERT(aofs == 0);
+    // NOTE: nghost=0 for aofs appears to work. mfix also uses no ghost cells.  
     aofs = new MultiFab(grids,dmap,NUM_STATE,0);
     //
     // Set rho_avg.

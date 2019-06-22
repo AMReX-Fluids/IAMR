@@ -1,3 +1,6 @@
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+//
 
 #include <AMReX_ParmParse.H>
 
@@ -15,11 +18,13 @@
 #include <array>
 
 #include <AMReX_MLMG.H>
-//#ifdef AMREX_USE_EB
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFArrayBox.H>
 #include <AMReX_MLEBABecLap.H>
-//#else
+#endif
 #include <AMReX_MLABecLaplacian.H>
-//#endif
+
+
 
 using namespace amrex;
 
@@ -251,6 +256,847 @@ Diffusion::get_scaled_abs_tol (const MultiFab& rhs,
     return reduction * rhs.norm0();
 }
 
+#if 1
+//#ifdef AMREX_USE_EB
+void
+Diffusion::diffuse_scalar (Real                   dt,
+                           int                    sigma,
+                           Real                   be_cn_theta,
+                           const MultiFab&        rho_half,
+                           int                    rho_flag,
+                           MultiFab* const*       fluxn,
+                           MultiFab* const*       fluxnp1,
+                           int                    fluxComp,
+                           MultiFab*              delta_rhs, 
+                           int                    rhsComp,
+                           const MultiFab*        alpha, 
+                           int                    alphaComp,
+                           const MultiFab* const* betan, 
+                           const MultiFab* const* betanp1,
+                           int                    betaComp,
+                           const SolveMode&       solve_mode,
+                           bool                   add_old_time_divFlux)
+{
+    //
+    // This routine expects that physical BC's have been loaded into
+    // the grow cells of the old and new state at this level.  If rho_flag==2,
+    // the values there are rho.phi, where phi is the quantity being diffused.
+    // Values in these cells will be preserved.  Also, if there are any
+    // explicit update terms, these have already incremented the new state
+    // on the valid region (i.e., on the valid region the new state is the old
+    // state + dt*Div(explicit_fluxes), e.g.)
+    //
+    
+    if (verbose)
+      amrex::Print() << "... Diffusion::diffuse_scalar(): " 
+                     << navier_stokes->get_desc_lst()[State_Type].name(sigma) 
+                     << " lev: " << level << '\n';
+
+    const Real strt_time = ParallelDescriptor::second();
+
+    int allnull, allthere;
+    checkBeta(betan, allthere, allnull);
+    checkBeta(betanp1, allthere, allnull);
+
+    // FIXME -- nned to check on ghost cells of all MFs passed in
+    //
+    //FIXME - check that parameters betan betanp1, alpha are EB aware
+    // only acoeff and bcoeff need to be EB aware; they're what goes to MLMG
+    // what about fluxes?
+    //
+    
+    BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==grids));
+    //
+    // At this point, S_old has bndry at time N, S_new has bndry at time N+1
+    //
+    // CEG - looking back through code suggests this is not true for IAMR
+    //  right now. Need to fix in calling functions...
+    MultiFab& S_old = navier_stokes->get_old_data(State_Type);
+    MultiFab& S_new = navier_stokes->get_new_data(State_Type);
+
+    //Print()<<"Sold ngrow "<<S_old.nGrow()<<"\n";
+    
+    // Talking with weiqun, thinks no ghost cells are actually needed for MLMG, only
+    // Note for cell-centered solver, you need to cal setLevelBC.  That needs to have
+    // one ghost cell if there is Dirichlet BC.
+    // Trying out ng = 0 ... get failed assertion from setLevelBC bc Soln is used a
+    //   temporary for that
+    // const int ng = eb_ngrow;
+    // const int ng_rhs = eb_ngrow;
+    const int ng = 1;
+    const int ng_rhs = 0;
+
+    //
+    // Set up Rhs.
+    //
+    MultiFab Rhs(grids,dmap,1,ng_rhs,MFInfo(),navier_stokes->Factory()),
+      Soln(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
+    
+    if (add_old_time_divFlux && be_cn_theta!=1)
+    {
+        Real a = 0.0;
+        Real b = -(1.0-be_cn_theta)*dt;
+        if (allnull)
+    	  b *= visc_coef[sigma];
+
+	if(verbose)
+	  Print()<<"Adding old time diff ....\n";
+
+	LPInfo info;
+	info.setAgglomeration(agglomeration);
+	info.setConsolidation(consolidation);
+	info.setMaxCoarseningLevel(0);
+	// let MLMG take care of r-z 
+	//info.setMetricTerm(false);
+
+#ifdef AMREX_USE_EB
+	// create the right data holder for passing to MLEBABecLap
+	amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
+	//ebf.resize(1);
+	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
+	
+	MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
+#else	  
+	MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
+#endif
+	// default max_order=2
+	// mfix says:
+	// It is essential that we set MaxOrder of the solver to 2
+	// if we want to use the standard sol(i)-sol(i-1) approximation
+	// for the gradient at Dirichlet boundaries.
+	// The solver's default order is 3 and this uses three points for the
+	// gradient at a Dirichlet boundary.
+	mlabec.setMaxOrder(max_order);
+	
+	std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+	std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+	setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
+	
+	mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+
+	const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
+	{	    
+	  MultiFab crsedata;
+	    
+	  if (level > 0) {
+	    auto& crse_ns = *(coarser->navier_stokes);
+	    crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
+	    AmrLevel::FillPatch(crse_ns,crsedata,ng,prev_time,State_Type,sigma,1);
+	    if (rho_flag == 2) {
+	      const MultiFab& rhotime = crse_ns.get_rho(prev_time);
+	      MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+	    }
+	    mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
+	  }
+	  //MultiFab S(grids,dmap,1,ng);
+	  AmrLevel::FillPatch(*navier_stokes,Soln,ng,prev_time,State_Type,sigma,1);
+	  if (rho_flag == 2) {
+	    const MultiFab& rhotime = navier_stokes->get_rho(prev_time);
+	    MultiFab::Divide(Soln,rhotime,0,0,1,ng);
+	  }
+	  // fixme? Do we need/want this???
+	  // mfix does this
+	  //EB_set_covered(Soln, 0, 1, ng, covered_val);
+	  //Soln.FillBoundary (geom.periodicity());
+	  mlabec.setLevelBC(0, &Soln);
+	}
+
+	{
+	  // Real rhsscale = 0.0;
+	  // MultiFab acoef;
+	  // std::pair<Real,Real> scalars;
+	  // computeAlpha(acoef, scalars, sigma, a, b, prev_time, rho_half,
+	  // 	       rho_flag, &rhsscale, alphaComp, alpha);
+	  mlabec.setScalars(a, b);
+	  // not needed since a = 0.0
+	  //mlabec.setACoeffs(0, acoef);
+	}
+
+	{
+	  std::array<MultiFab,BL_SPACEDIM> bcoeffs;
+	  computeBeta(bcoeffs, betan, betaComp);
+	  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+	}
+
+	// Do we need something like this cribbed from mfix???
+	// This sets the coefficient on the wall and defines it as a homogeneous
+	// Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
+	// matches what's in bcoeff
+	//mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
+
+	MLMG mgn(mlabec);
+	mgn.setVerbose(verbose);
+	
+	mgn.apply({&Rhs},{&Soln});
+
+	AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp, 1);,
+		     MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp, 1);,
+		     MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp, 1););
+	std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
+	mgn.getFluxes({fp},{&Soln});
+
+	const MultiFab* area   = navier_stokes->Area();
+	int nghost = 0;
+#ifdef AMREX_USE_EB
+	// now dx, areas, and vol are not constant.
+	std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
+	// fixme? Could use areaFrac-> ToMultiFab instead... won't work for r-z
+	//MultiFab ToMultiFab (Real regular_value, Real covered_value) const;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
+	{  
+	    Box bx = mfi.tilebox();
+
+	    // need face-centered tilebox for each direction
+	    D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+		   const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+		   const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+	    
+	    // this is to check efficiently if this tile contains any eb stuff
+	    const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
+	    const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
+
+	    if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+	    {
+	      // If tile is completely covered by EB geometry, set slopes
+	      // value to some very large number so we know if
+	      // we accidentaly use these covered slopes later in calculations
+	      //
+	      // FIXME -- need right flux comp[
+	      D_TERM(fluxn[0]->setVal(1.2345e30, xbx, fluxComp, 1);,
+		     fluxn[1]->setVal(1.2345e30, ybx, fluxComp, 1);,
+		     fluxn[2]->setVal(1.2345e30, zbx, fluxComp, 1););
+	    }
+	    else
+	    {
+	      // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+	      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+	      {		
+		for (int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		  (*fluxn[i])[mfi].mult(-b/dt,fluxComp,1);
+		  (*fluxn[i])[mfi].mult(area[i][mfi],0,fluxComp,1);
+		}
+	      }
+	      else
+	      {
+		// Use EB routines
+		for (int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		  (*fluxn[i])[mfi].mult(-b/dt,fluxComp,1);
+		  (*fluxn[i])[mfi].mult(area[i][mfi],0,fluxComp,1);
+		  (*fluxn[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp,1);
+		}
+	      }
+	    }        
+	}
+#else // non-EB
+	for (int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	  // FIXME?  keep non EB doing things old way, or change to this?
+	  Print()<<"new area weighting...\n";
+	  MultiFab::Multiply(*fluxn[i],area[i],0,fluxComp,1,nghost);
+	  (*fluxn[i]).mult(-b/dt,fluxComp,1,nghost);
+	  //(*fluxn[i]).mult(-b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,nghost);
+	}
+#endif
+    }	
+    else
+    {
+      for (int n = 0; n < BL_SPACEDIM; n++)
+	fluxn[n]->setVal(0.,fluxComp,1);
+
+      Rhs.setVal(0.);
+    }
+
+    // ///// old way for comparison
+    // MultiFab f_old[AMREX_SPACEDIM];
+    // if (add_old_time_divFlux)
+    // {
+    //     Real a = 0.0;
+    //     Real b = -(1.0-be_cn_theta)*dt;
+    //     if (allnull)
+    //         b *= visc_coef[sigma];
+    //     ViscBndry visc_bndry_0;
+    //     const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
+    //     std::unique_ptr<ABecLaplacian> visc_op
+    // 	    (getViscOp(sigma,a,b,prev_time,visc_bndry_0,rho_half,rho_flag,0,betan,betaComp,0,0));
+    // 	// from getviscop()
+    // // const Real* dx = navier_stokes->Geom().CellSize();
+
+    // // if (!bndry_already_filled)
+    // //     getBndryData(visc_bndry,comp,1,time,rho_flag);
+
+    // // ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
+
+    // // visc_op->maxOrder(max_order);
+
+    // // setAlpha(visc_op,comp,a,b,time,rho_half,rho_flag,rhsscale,alphaComp,alpha_in);
+
+    // // setBeta(visc_op,beta,betaComp);
+
+    // // return visc_op;
+    // // //
+
+    //     for (int i = 0; i < AMREX_SPACEDIM; ++i)
+    // 	  (f_old[i]).define(fluxn[i]->boxArray(),fluxn[i]->DistributionMap(),1,0);
+    
+    //     visc_op->maxOrder(max_order);
+    //     //
+    //     // Copy to single-component multifab, then apply op to rho-scaled state
+    //     //
+    //     MultiFab::Copy(Soln,S_old,sigma,0,1,0);
+    //     if (rho_flag == 2)
+    // 	    MultiFab::Divide(Soln, S_old, Density, 0, 1, 0);
+	
+    //     visc_op->apply(Rhs,Soln);
+    // 	//fixme
+    // 	// check input
+    // 	amrex::WriteSingleLevelPlotfile("soln2", Soln, {"soln"},navier_stokes->Geom(), 0.0, 0);
+    // 	amrex::WriteSingleLevelPlotfile("rhs", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    // 	//
+
+
+    //     visc_op->compFlux(D_DECL(f_old[0],f_old[1],f_old[2]),Soln,false,LinOp::Inhomogeneous_BC,0,0);
+
+    // 	// fixme
+    // 	//const MultiFab& volume = navier_stokes->Volume(); 
+    // 	//
+    // 	for (int i = 0; i < BL_SPACEDIM; ++i)
+    // 	  (f_old[i]).mult(-b/(dt*navier_stokes->Geom().CellSize()[i]),0,1,0);
+
+    // 	//
+    // 	Print()<<"Comparing old flux with new flux... \n";
+    // 	Print()<<" f_old ghost "<<f_old[0].nGrow();
+    // 	Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
+    // 	for (int i = 0; i < BL_SPACEDIM; ++i){
+    // 	//   MultiFab::Divide(f_old[i],*fluxn[i],fluxComp,0,1,0);
+    // 	//   VisMF::Write(f_old[i],"VTdiff2"+std::to_string(i));
+    // 	// }
+	
+    // 	  MultiFab::Subtract(f_old[i],*fluxn[i], fluxComp, 0, f_old[i].nComp(), f_old[i].nGrow());
+	  
+    // 	  for (int icomp = 0; icomp < f_old[i].nComp(); ++icomp) {
+    // 	    std::cout << "Min and max of the diff are " << f_old[i].min(icomp,f_old[i].nGrow())
+    // 		      << " and " << f_old[i].max(icomp,f_old[i].nGrow());
+    // 	    if (f_old[i].nComp() > 1) {
+    // 	      std::cout << " for component " << icomp;
+    // 	    }
+    // 	    std::cout << "." << std::endl;
+    // 	  }
+    // 	  for (int icomp = 0; icomp < f_old[i].nComp(); ++icomp) {
+    // 	    std::cout << "Min and max of the diff are wo ghosts " << f_old[i].min(icomp,0)		      << " and " << f_old[i].max(icomp,0);
+    // 	    if (f_old[i].nComp() > 1) {
+    // 	      std::cout << " for component " << icomp;
+    // 	    }
+    // 	    std::cout << "." << std::endl;
+    // 	  }
+    // 	      // // write out difference MF for viewing: amrvis -mf 
+    // 	  std::cout << "Writing mfdiff" << std::endl;
+    // 	  VisMF::Write(f_old[i], "diff"+std::to_string(i));
+
+    // 	}
+    //  }
+   
+    // My visc op matches development
+        // fixme: check fluxes
+    static int count=0; count++;
+    std::string name2;    
+    {
+    // Diff local MF and MF from unaltered code 
+    name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/fluxx_"+std::to_string(count);	    
+    MultiFab mf2(fluxn[0]->boxArray(),dmap,fluxn[0]->nComp(),fluxn[0]->nGrow());
+    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+    std::cout << "Reading " << name2 << std::endl;
+    VisMF::Read(mf2, name2);
+    MultiFab::Copy(mfdiff, *fluxn[0], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
+    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+    
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
+    		<< " and " << mfdiff.max(icomp,0);
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+        // write out difference MF for viewing: amrvis -mf 
+    std::cout << "Writing mfdiff" << std::endl;
+    VisMF::Write(mfdiff, "xdiff"+std::to_string(count));
+
+    }
+    {
+    // Diff local MF and MF from unaltered code 
+    name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/fluxy_"+std::to_string(count);	    
+    MultiFab mf2(fluxn[1]->boxArray(),dmap,fluxn[1]->nComp(),fluxn[1]->nGrow());
+    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+    std::cout << "Reading " << name2 << std::endl;
+    VisMF::Read(mf2, name2);
+    MultiFab::Copy(mfdiff, *fluxn[1], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
+    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+    
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
+    		<< " and " << mfdiff.max(icomp,0);
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+        // write out difference MF for viewing: amrvis -mf 
+    std::cout << "Writing mfdiff" << std::endl;
+    VisMF::Write(mfdiff, "ydiff"+std::to_string(count));
+
+    }
+    // {
+    // // Diff local MF and MF from unaltered code 
+    // name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run3d/fluxz_"+std::to_string(count);	    
+    // MultiFab mf2(f_old[2].boxArray(),dmap,f_old[2].nComp(),f_old[2].nGrow());
+    // MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+    // std::cout << "Reading " << name2 << std::endl;
+    // VisMF::Read(mf2, name2);
+    // MultiFab::Copy(mfdiff, f_old[2], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
+    // mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+    
+    // for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+    //   std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+    // 		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+    //   if (mfdiff.nComp() > 1) {
+    // 	std::cout << " for component " << icomp;
+    //   }
+    //   std::cout << "." << std::endl;
+    // }
+    // for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+    //   std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
+    // 		<< " and " << mfdiff.max(icomp,0);
+    //   if (mfdiff.nComp() > 1) {
+    // 	std::cout << " for component " << icomp;
+    //   }
+    //   std::cout << "." << std::endl;
+    // }
+    //     // write out difference MF for viewing: amrvis -mf 
+    // std::cout << "Writing mfdiff" << std::endl;
+    // VisMF::Write(mfdiff, "zdiff"+std::to_string(count));
+
+    // }
+    //fixme
+    //static int count=0; count++;
+    //Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
+    //VisMF::Write(f_old[0],"fluxx_"+std::to_string(count));
+    //Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
+    //VisMF::Write(f_old[1],"fluxy_"+std::to_string(count));
+    //Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
+    //VisMF::Write(f_old[2],"fluxz_"+std::to_string(count));
+    //
+
+    
+    //
+    // If this is a predictor step, put "explicit" updates passed via S_new
+    // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
+    // pull it off S_new to avoid double counting
+    //   (for rho_flag == 1:
+    //       S_new = S_old - dt.(U.Grad(phi)); want Rhs -= rho_half.(U.Grad(phi)),
+    //    else
+    //       S_new = S_old - dt.Div(U.Phi),   want Rhs -= Div(U.Phi) )
+    //
+    if (solve_mode == PREDICTOR)
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox tmpfab;
+        for (MFIter Smfi(S_new, true); Smfi.isValid(); ++Smfi)
+        {
+            const Box& box = Smfi.tilebox();
+            tmpfab.resize(box,1);
+            tmpfab.copy(S_new[Smfi],box,sigma,box,0,1);
+            tmpfab.minus(S_old[Smfi],box,sigma,0,1);
+            S_new[Smfi].minus(tmpfab,box,0,sigma,1); // Remove this term from S_new
+	    tmpfab.mult(1.0/dt,box,0,1);
+            if (rho_flag == 1)
+                tmpfab.mult(rho_half[Smfi],box,0,0,1);
+            if (alpha!=0)
+                tmpfab.mult((*alpha)[Smfi],box,alphaComp,0,1);            
+            (*delta_rhs)[Smfi].plus(tmpfab,box,0,rhsComp,1);
+        }
+    }
+    }
+    //fixme
+    const MultiFab& volume = navier_stokes->Volume(); 
+    //
+
+    //
+    // Add body sources
+    //
+    if (delta_rhs != 0)
+    {
+      if (verbose)
+	Print()<<"Adding body forces ... \n";
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox tmpfab;
+        for (MFIter mfi(*delta_rhs,true); mfi.isValid(); ++mfi)
+        {
+            const Box& box = mfi.tilebox();
+            tmpfab.resize(box,1);
+            tmpfab.copy((*delta_rhs)[mfi],box,rhsComp,box,0,1);
+            tmpfab.mult(dt,box,0,1);
+            //tmpfab.mult(volume[mfi],box,0,0,1);
+            Rhs[mfi].plus(tmpfab,box,0,0,1);
+        }
+    }
+    }
+    //fixme
+    // check input
+    amrex::WriteSingleLevelPlotfile("rhsA", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    //
+
+    //
+    // Increment Rhs with S_old*V (or S_old*V*rho_half if rho_flag==1
+    //                             or S_old*V*rho_old  if rho_flag==3)
+    //  (Note: here S_new holds S_old, but also maybe an explicit increment
+    //         from advection if solve_mode != PREDICTOR)
+    //
+    // fixme??? does Soln need ghost cells here? -- No
+    MultiFab::Copy(Soln,S_new,sigma,0,1,0);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.tilebox();
+        //Soln[mfi].mult(volume[mfi],box,0,0,1);
+        if (rho_flag == 1)
+            Soln[mfi].mult(rho_half[mfi],box,0,0,1);
+        if (rho_flag == 3)
+            Soln[mfi].mult((navier_stokes->rho_ptime)[mfi],box,0,0,1);
+        if (alpha!=0)
+            Soln[mfi].mult((*alpha)[mfi],box,alphaComp,0,1);
+        Rhs[mfi].plus(Soln[mfi],box,0,0,1);
+    }
+
+    //fixme
+    // check input
+    //MultiFab::Multiply(Rhs,volume,0,0,1,0);
+    amrex::WriteSingleLevelPlotfile("rhsB", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    //
+
+    //
+    // Make a good guess for Soln
+    //
+    MultiFab::Copy(Soln,S_new,sigma,0,1,0);
+    if (rho_flag == 2) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter Smfi(Soln,true); Smfi.isValid(); ++Smfi) {
+            Soln[Smfi].divide(S_new[Smfi],Smfi.tilebox(),Density,0,1);
+        }
+    }
+    //
+    // Construct viscous operator with bndry data at time N+1.
+    //
+    Real a = 1.0;
+    Real b = be_cn_theta*dt;
+    if (allnull) {
+        b *= visc_coef[sigma];
+    }
+
+    const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
+    Real       rhsscale = 1.0;
+
+    // fixme?
+    // make sure state/vel ghost cells are properly filled
+    // I think a FillPatch is required
+      
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    //info.setMetricTerm(false);
+#ifdef AMREX_USE_EB
+    // create the right data holder for passing to ABecLap
+    amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
+    //ebf.resize(1);
+    ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
+    
+    MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
+#else
+    MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
+#endif
+    // default max_order = 2
+    mlabec.setMaxOrder(max_order);
+
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
+        
+    mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+    // if the whole eq got mult by vol, why not bcs????
+    {
+      MultiFab crsedata;
+      if (level > 0) {
+	auto& crse_ns = *(coarser->navier_stokes);
+	crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,
+			MFInfo(),navier_stokes->Factory());
+	AmrLevel::FillPatch(crse_ns,crsedata,ng,cur_time,State_Type,sigma,1);
+	if (rho_flag == 2) {
+	  const MultiFab& rhotime = crse_ns.get_rho(cur_time);
+	  MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+	}
+	mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
+      }
+      MultiFab S(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
+      AmrLevel::FillPatch(*navier_stokes,S,ng,cur_time,State_Type,sigma,1);
+      if (rho_flag == 2) {
+	const MultiFab& rhotime = navier_stokes->get_rho(cur_time);
+	MultiFab::Divide(S,rhotime,0,0,1,ng);
+      }
+      // fixme? Do we need/want to set EB covered??
+      // mfix does this
+      //EB_set_covered(S, 0, 1, ng, covered_val);
+      //S.FillBoundary (geom.periodicity());
+      mlabec.setLevelBC(0, &S);
+    }
+
+    {
+      MultiFab acoef;
+      std::pair<Real,Real> scalars;
+      computeAlpha(acoef, scalars, sigma, a, b, cur_time, rho_half, rho_flag,
+		   &rhsscale, alphaComp, alpha);
+      mlabec.setScalars(scalars.first, scalars.second);
+      mlabec.setACoeffs(0, acoef);
+    }
+        
+    {
+      std::array<MultiFab,BL_SPACEDIM> bcoeffs;
+      computeBeta(bcoeffs, betanp1, betaComp);
+      mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+    }
+
+    // Do we need something like this cribbed from mfix???
+    // This sets the coefficient on the wall and defines it as a homogeneous
+    // Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
+    // matches what's in bcoeff
+    //mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
+
+    MLMG mlmg(mlabec);
+    if (use_hypre) {
+      mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+      mlmg.setBottomVerbose(hypre_verbose);
+    }
+    mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(verbose);
+
+    Rhs.mult(rhsscale,0,1,ng_rhs);
+    const Real S_tol     = visc_tol;
+    const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
+
+    // do we need this? --- Seems no, since ng=0 in copy to S_new below
+    // This ensures that ghost cells of sol are correctly filled when returned from the solver
+    //mlmg.setFinalFillBC(true);
+
+    mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+
+        //fixme
+    // check input
+    // MultiFab::Multiply(Rhs,volume,0,0,1,0);
+    // MultiFab::Multiply(Soln,volume,0,0,1,0);
+    amrex::WriteSingleLevelPlotfile("soln2", Soln, {"soln"},navier_stokes->Geom(), 0.0, 0);
+    amrex::WriteSingleLevelPlotfile("rhs2", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
+    //    amrex::Abort();
+    //
+
+
+    
+    AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp, 1);,
+		 MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp, 1);,
+		 MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp, 1););
+    std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
+    mlmg.getFluxes({fp});
+
+    // fixme --- check eb here
+    const MultiFab* area   = navier_stokes->Area();
+    int nghost = fluxnp1[0]->nGrow(); // this = 0
+#ifdef AMREX_USE_EB
+    // now dx, areas, and vol are not constant.
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
+    // fixme? Could use areaFrac-> ToMultiFab instead... won't work for r-z
+    //MultiFab ToMultiFab (Real regular_value, Real covered_value) const;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
+    {  
+      Box bx = mfi.tilebox();
+
+      // need face-centered tilebox for each direction
+      D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+	     const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+	     const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+      
+      // this is to check efficiently if this tile contains any eb stuff
+      const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
+      const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
+      
+      if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+      {
+	// If tile is completely covered by EB geometry, set slopes
+	// value to some very large number so we know if
+	// we accidentaly use these covered slopes later in calculations
+	D_TERM(fluxnp1[0]->setVal(1.2345e30, xbx, fluxComp, 1);,
+	       fluxnp1[1]->setVal(1.2345e30, ybx, fluxComp, 1);,
+	       fluxnp1[2]->setVal(1.2345e30, zbx, fluxComp, 1););
+      }
+      else
+      {
+	// No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+	if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+        {		
+	  for (int i = 0; i < BL_SPACEDIM; ++i)
+	  {
+	    (*fluxnp1[i])[mfi].mult(-b/dt,fluxComp,1);
+	    (*fluxnp1[i])[mfi].mult(area[i][mfi],0,fluxComp,1);
+	  }
+	}
+	else
+	{
+	  // Use EB routines
+	  for (int i = 0; i < BL_SPACEDIM; ++i)
+	  {
+	    (*fluxnp1[i])[mfi].mult(-b/dt,fluxComp,1);
+	    (*fluxnp1[i])[mfi].mult(area[i][mfi],0,fluxComp,1);
+	    (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp,1);
+	  }
+	}
+      }        
+    }
+#else
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+      // fixme? new way to test EB
+      (*fluxnp1[i]).mult(b/dt,fluxComp,1,nghost);
+      MultiFab::Multiply(*fluxnp1[i],area[i],0,fluxComp,1,nghost);
+    }
+#endif
+
+    {
+      //fixme
+      name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/flux0_"+std::to_string(count);
+	    
+    std::cout << "Reading " << name2 << std::endl;
+    MultiFab mf2(fluxnp1[0]->boxArray(),dmap,fluxnp1[0]->nComp(),fluxnp1[0]->nGrow());
+    VisMF::Read(mf2, name2);
+    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+    // Diff local MF and MF from unaltered code 
+    MultiFab::Copy(mfdiff, *fluxnp1[0], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
+    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+    
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
+    		<< " and " << mfdiff.max(icomp,0);
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+    // write out difference MF for viewing: amrvis -mf 
+    std::cout << "Writing mfdiff" << std::endl;
+    VisMF::Write(mfdiff, "fdiff0_"+std::to_string(count));
+    }
+
+    {
+      //fixme
+      name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/flux1_"+std::to_string(count);
+	    
+    std::cout << "Reading " << name2 << std::endl;
+    MultiFab mf2(fluxnp1[1]->boxArray(),dmap,fluxnp1[1]->nComp(),fluxnp1[1]->nGrow());
+    VisMF::Read(mf2, name2);
+    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+    // Diff local MF and MF from unaltered code 
+    MultiFab::Copy(mfdiff, *fluxnp1[1], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
+    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+    
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
+    		<< " and " << mfdiff.max(icomp,0);
+      if (mfdiff.nComp() > 1) {
+    	std::cout << " for component " << icomp;
+      }
+      std::cout << "." << std::endl;
+    }
+    // write out difference MF for viewing: amrvis -mf 
+    std::cout << "Writing mfdiff" << std::endl;
+    VisMF::Write(mfdiff, "fdiff1_"+std::to_string(count));
+    }
+    //amrex::Abort("check \n");
+
+
+
+    //
+    // Copy into state variable at new time, without bc's
+    //
+    MultiFab::Copy(S_new,Soln,0,sigma,1,0);
+    
+    if (rho_flag == 2) {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter Smfi(S_new,true); Smfi.isValid(); ++Smfi) {
+            S_new[Smfi].mult(S_new[Smfi],Smfi.tilebox(),Density,sigma,1);
+	}
+    }
+
+    if (verbose)
+    {
+        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+        Real      run_time = ParallelDescriptor::second() - strt_time;
+
+        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+	amrex::Print() << "Diffusion::diffuse_scalar(): lev: " << level
+		       << ", time: " << run_time << '\n';
+    }
+}
+#else
+
 void
 Diffusion::diffuse_scalar (Real                   dt,
                            int                    sigma,
@@ -293,206 +1139,44 @@ Diffusion::diffuse_scalar (Real                   dt,
     checkBeta(betan, allthere, allnull);
     checkBeta(betanp1, allthere, allnull);
 
-    // FIXME -- nned to check on ghost cells of all MFs passed in
-    //
-    //FIXME - check that parameters betan betanp1, alpha are EB aware
-    // only acoeff and bcoeff need to be EB aware; they're what goes to MLMG
-    // what about fluxes?
-    //
-    
     BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==grids));
     //
     // At this point, S_old has bndry at time N, S_new has bndry at time N+1
     //
-    // CEG - looking back through code suggests this is not true for IAMR
-    //  right now. Need to fix in calling functions...
     MultiFab& S_old = navier_stokes->get_old_data(State_Type);
     MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
-    //fixme --- These have ng = 1, even with USE_EB
-    Print()<<"Snew nghost = "<<S_new.nGrow()<<"\n";
-    Print()<<"Sold nghost = "<<S_old.nGrow()<<"\n";
-    
-#ifdef AMREX_USE_EB
-    // not sure if this is really necessary, but it's a safe choice, might
-    // just be more expensive. Originally, Rhs had no ghost cells. 
-    const int ng = eb_ngrow;
-    const int ng_rhs = eb_ngrow;
-#else
-    const int ng = 1;
-    const int ng_rhs = 0;
-#endif
     //
     // Set up Rhs.
     //
-    // fixme? why not the same num ghost cells for Rhs and Soln...
-    MultiFab Rhs(grids,dmap,1,ng_rhs,MFInfo(),navier_stokes->Factory()),
-      Soln(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
+    MultiFab Rhs(grids,dmap,1,0),Soln(grids,dmap,1,1);
 
-    
-    if (add_old_time_divFlux && be_cn_theta!=1)
+    if (add_old_time_divFlux)
     {
         Real a = 0.0;
         Real b = -(1.0-be_cn_theta)*dt;
         if (allnull)
-    	  b *= visc_coef[sigma];
-	
-    	if (use_mlmg_solver) 
-        {
-    	  if(verbose)
-    	    Print()<<"Adding old time diff ....\n";
-
-	  LPInfo info;
-	  info.setAgglomeration(agglomeration);
-	  info.setConsolidation(consolidation);
-	  info.setMetricTerm(false);
-	  info.setMaxCoarseningLevel(0);
-
-#ifdef AMREX_USE_EB
-	  // create the right data holder for passing to MLEBABecLap
-	  amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
-	  //ebf.resize(1);
-	  ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
-
-	  MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
-#else
-	  MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
-#endif
-	  // default max_order=2
-	  // mfix says:
-	  // It is essential that we set MaxOrder of the solver to 2
-	  // if we want to use the standard sol(i)-sol(i-1) approximation
-	  // for the gradient at Dirichlet boundaries.
-	  // The solver's default order is 3 and this uses three points for the
-	  // gradient at a Dirichlet boundary.
-	  mlabec.setMaxOrder(max_order);
-	  
-	  std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
-	  std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
-	  setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
-        
-	  mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
-
-	  const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
-	  {	    
-            MultiFab crsedata;
-	    
-            if (level > 0) {
-	        auto& crse_ns = *(coarser->navier_stokes);
-                crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
-                AmrLevel::FillPatch(crse_ns,crsedata,ng,prev_time,State_Type,sigma,1);
-                if (rho_flag == 2) {
-		  //FIXME - rhotime is not likely to have enough ghost cells for EB
-		  // navier_stokes seems to only carry ng=1, even with EB
-		  // change navier_stokes or use FP??? Trying FP for now
-		  //   even though this introduces unnecessary FP for non_EB. fix later
-		  //const MultiFab& rhotime = crse_ns.get_rho(prev_time);
-		  MultiFab rhotime;
-		  rhotime.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
-		  AmrLevel::FillPatch(crse_ns,rhotime,ng,prev_time,State_Type,Density,1);  
-		  MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
-                }
-                mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
-            }
-            //MultiFab S(grids,dmap,1,ng);
-            AmrLevel::FillPatch(*navier_stokes,Soln,ng,prev_time,State_Type,sigma,1);
-            if (rho_flag == 2) {
-	      // see comment above in if (level > 0 )
-	      //const MultiFab& rhotime = navier_stokes->get_rho(prev_time);
-	      MultiFab rhotime;
-	      rhotime.define(navier_stokes->boxArray(), navier_stokes->DistributionMap(), 1, ng);
-	      AmrLevel::FillPatch(*navier_stokes,rhotime,ng,prev_time,State_Type,Density,1);  
-	      MultiFab::Divide(Soln,rhotime,0,0,1,ng);
-            }
-	    // fixme? Do we need/want to set EB covered??
-	    // mfix does this
-	    //EB_set_covered(Soln, 0, 1, ng, covered_val);
-	    //Soln.FillBoundary (geom.periodicity());
-            mlabec.setLevelBC(0, &Soln);
-	  }
-
-	  {
-	    Real rhsscale = 0.0;
-            MultiFab acoef;
-            std::pair<Real,Real> scalars;
-            computeAlpha(acoef, scalars, sigma, a, b, prev_time, rho_half,
-			 rho_flag, &rhsscale, alphaComp, alpha);
-            mlabec.setScalars(scalars.first, scalars.second);
-            mlabec.setACoeffs(0, acoef);
-	  }
-
-	  {
-            std::array<MultiFab,BL_SPACEDIM> bcoeffs;
-            computeBeta(bcoeffs, betan, betaComp);
-            mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
-	  }
-
-	  // Do we need something like this cribbed from mfix???
-	  // This sets the coefficient on the wall and defines it as a homogeneous
-	  // Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
-	  // matches what's in bcoeff
-	  //mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
-
-	  MLMG mgn(mlabec);
-	  mgn.setVerbose(verbose);
-
-    	  mgn.apply({&Rhs},{&Soln});
-	  
-    	  AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp, 1);,
-    		       MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp, 1);,
-    		       MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp, 1););
-    	  std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
-    	  mgn.getFluxes({fp},{&Soln});
-
-#ifdef AMREX_USE_EB
-	  // now dx, areas, and vol are not constant.
-	  // create routine 
-	  // if (flags ...)
-	  //   do regular
-	  // else
-	  //   use areaFrac, etc
-	  // end
-#else
-    	  for (int i = 0; i < BL_SPACEDIM; ++i)
-    	    (*fluxn[i]).mult(-b/(dt * navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
-#endif
-    	}	
-    	else
-    	{
-	  // Soon...
-    	  //amrex::Abort("Non-MLMG solver no longer supported");
-	  ViscBndry visc_bndry_0;
-	  const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
-	  std::unique_ptr<ABecLaplacian> visc_op
+            b *= visc_coef[sigma];
+        ViscBndry visc_bndry_0;
+        const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
+        std::unique_ptr<ABecLaplacian> visc_op
 	    (getViscOp(sigma,a,b,prev_time,visc_bndry_0,rho_half,rho_flag,0,betan,betaComp,0,0));
-	  visc_op->maxOrder(max_order);
-	  //
-	  // Copy to single-component multifab, then apply op to rho-scaled state
-	  //
-	  MultiFab::Copy(Soln,S_old,sigma,0,1,0);
-	  if (rho_flag == 2)
+        visc_op->maxOrder(max_order);
+        //
+        // Copy to single-component multifab, then apply op to rho-scaled state
+        //
+        MultiFab::Copy(Soln,S_old,sigma,0,1,0);
+        if (rho_flag == 2)
 	    MultiFab::Divide(Soln, S_old, Density, 0, 1, 0);
-	  visc_op->apply(Rhs,Soln);
-	  visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp);
-	  for (int i = 0; i < BL_SPACEDIM; ++i)
+        visc_op->apply(Rhs,Soln);
+        visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp);
+        for (int i = 0; i < BL_SPACEDIM; ++i)
             (*fluxn[i]).mult(-b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
-
-    	}
     }
     else
     {
-      for (int n = 0; n < BL_SPACEDIM; n++)
-    	{
-    	  fluxn[n]->setVal(0.,fluxComp,1);
-    	}
-      Rhs.setVal(0.);
+        Rhs.setVal(0);
     }
-
-    // FIXME
-    // All these additions to Rhs below assume nghost = 0
-    // but EB needs nghost = 4 (at least this is what mfix does)
-    // initial guess for Soln also needs ghost cells
-    
     //
     // If this is a predictor step, put "explicit" updates passed via S_new
     // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
@@ -601,7 +1285,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     //  (Note: here S_new holds S_old, but also maybe an explicit increment
     //         from advection if solve_mode != PREDICTOR)
     //
-    // fixme??? does Soln need ghost cells here?
     MultiFab::Copy(Soln,S_new,sigma,0,1,0);
 
 #ifdef _OPENMP
@@ -646,25 +1329,12 @@ Diffusion::diffuse_scalar (Real                   dt,
 
     if (use_mlmg_solver)
     {
-      // fixme?
-      // make sure state/vel ghost cells are properly filled
-      // I think a FillPatch is required
-      
         LPInfo info;
         info.setAgglomeration(agglomeration);
         info.setConsolidation(consolidation);
         info.setMetricTerm(false);
-#ifdef AMREX_USE_EB
-	// create the right data holder for passing to ABecLap
-	amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
-	//ebf.resize(1);
-	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
 
-	MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
-#else
         MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
-#endif
-	// default max_order = 2
         mlabec.setMaxOrder(max_order);
 
         std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -673,29 +1343,25 @@ Diffusion::diffuse_scalar (Real                   dt,
         
         mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
         {
+            const int ng = 1;
             MultiFab crsedata;
             if (level > 0) {
                 auto& crse_ns = *(coarser->navier_stokes);
-                crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,
-				MFInfo(),navier_stokes->Factory());
+                crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
                 AmrLevel::FillPatch(crse_ns,crsedata,ng,cur_time,State_Type,sigma,1);
                 if (rho_flag == 2) {
                     const MultiFab& rhotime = crse_ns.get_rho(cur_time);
-                    MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+                    MultiFab::Divide(crsedata,rhotime,0,0,1,1);
                 }
                 mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
             }
-            MultiFab S(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
+            MultiFab S(grids,dmap,1,ng);
             AmrLevel::FillPatch(*navier_stokes,S,ng,cur_time,State_Type,sigma,1);
             if (rho_flag == 2) {
                 const MultiFab& rhotime = navier_stokes->get_rho(cur_time);
-                MultiFab::Divide(S,rhotime,0,0,1,ng);
+                MultiFab::Divide(S,rhotime,0,0,1,1);
             }
-	    // fixme? Do we need/want to set EB covered??
-	    // mfix does this
-	    //EB_set_covered(S, 0, 1, ng, covered_val);
-	    //S.FillBoundary (geom.periodicity());
-	    mlabec.setLevelBC(0, &S);
+            mlabec.setLevelBC(0, &S);
         }
 
         {
@@ -713,12 +1379,6 @@ Diffusion::diffuse_scalar (Real                   dt,
             mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
         }
 
-	// Do we need something like this cribbed from mfix???
-	// This sets the coefficient on the wall and defines it as a homogeneous
-	// Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
-	// matches what's in bcoeff
-	//mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
-
         MLMG mlmg(mlabec);
         if (use_hypre) {
             mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
@@ -727,13 +1387,9 @@ Diffusion::diffuse_scalar (Real                   dt,
         mlmg.setMaxFmgIter(max_fmg_iter);
         mlmg.setVerbose(verbose);
 
-        Rhs.mult(rhsscale,0,1,ng_rhs);
-	const Real S_tol     = visc_tol;
+        Rhs.mult(rhsscale,0,1);
+        const Real S_tol     = visc_tol;
         const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
-
-	// do we need this? --- Seems no, since ng=0 in copy to S_new below
-	// This ensures that ghost cells of sol are correctly filled when returned from the solver
-	//mlmg.setFinalFillBC(true);
 
         mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
@@ -795,6 +1451,16 @@ Diffusion::diffuse_scalar (Real                   dt,
 		       << ", time: " << run_time << '\n';
     }
 }
+#endif
+
+#if 0
+//#ifdef AMREX_USE_EB
+void
+Diffusion::EB_areaScaling(Real mfac, )
+{
+  
+}
+#endif
 
 void
 Diffusion::diffuse_velocity (Real                   dt,
@@ -2085,6 +2751,35 @@ Diffusion::computeAlpha (MultiFab&       alpha,
                          int             dataComp,
                          const MultiFab* alpha_in)
 {
+#if 1
+  //#ifdef AMREX_USE_EB
+  //fixme? do we want to assume everything passed in has good data in enough ghost cells
+  //  or do we want take ng=0 and then fill alpha's ghost cells after?
+  //    int ng = eb_ngrow;
+  // Don't think alpha needs any grow cells... see ng comments in diffuse scalar
+    int ng = 0;
+    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
+      
+    if (alpha_in != 0){
+        BL_ASSERT(dataComp >= 0 && dataComp < alpha.nComp());
+	// fixme? again original did not use any ghost cells
+	MultiFab::Copy(alpha,*alpha_in,dataComp,0,1,ng);
+    }
+    else{
+      alpha.setVal(1.0);
+    }
+
+    if ( rho_flag == 1 ) {
+      MultiFab::Multiply(alpha,rho,0,0,1,ng);
+    }
+    else if (rho_flag == 2 || rho_flag == 3) {
+      MultiFab& S = navier_stokes->get_data(State_Type,time);
+      // original didn't copy any ghost cells...
+      MultiFab::Multiply(alpha,S,Density,0,1,ng);
+    }
+  
+#else
+
     int ng = 1;
 
     alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
@@ -2096,10 +2791,10 @@ Diffusion::computeAlpha (MultiFab&       alpha,
 
     if (!usehoop)
     {
-	MultiFab::Copy(alpha, volume, 0, 0, 1, 1);
+	MultiFab::Copy(alpha, volume, 0, 0, 1, ng);
 
         if (useden) 
-            MultiFab::Multiply(alpha,rho,0,0,1,1);
+            MultiFab::Multiply(alpha,rho,0,0,1,ng);
     }
     else
     {
@@ -2162,75 +2857,21 @@ Diffusion::computeAlpha (MultiFab&       alpha,
         }
     }
 
-    if (rhsscale != 0)
-    {
-        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
-
-        scalars.first = a*(*rhsscale);
-        scalars.second = b*(*rhsscale);
-    }
-    else
-    {
-        scalars.first = a;
-        scalars.second = b;
-    }
-}
-
-#if 0
-//#ifdef AMREX_USE_EB
-void
-Diffusion::computeAlpha_eb (MultiFab&       alpha,
-                         std::pair<Real,Real>& scalars,
-                         int             comp,
-                         Real            a,
-                         Real            b,
-                         Real            time,
-                         const MultiFab& rho,
-                         int             rho_flag, 
-                         Real*           rhsscale,
-                         int             dataComp,
-                         const MultiFab* alpha_in)
-{
-  //fixme? do we want to assume everything passed in has good data in enough ghost cells
-  //  or do we want take ng=0 and then fill alpha's ghost cells after?
-    int ng = eb_ngrow;
-
-    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
-    
-    if ( rho_flag == 1 ) {
-      MultiFab::Copy(alpha,rho,0,0,1,ng);
-    }
-    else if (rho_flag == 2 || rho_flag == 3) {
-      MultiFab& S = navier_stokes->get_data(State_Type,time);
-      // fixme? original didn't copy any ghost cells...
-      MultiFab::Copy(alpha,S,Density,0,1,ng);
-    }
-    else {
-      alpha.setVal(1.0);
-    }
-      
-    
-    if (alpha_in != 0)
-    {
-        BL_ASSERT(dataComp >= 0 && dataComp < alpha.nComp());
-	// fixme? again original did not use any ghost cells
-	MultiFab::Multiply(alpha,*alpha_in,data_comp,0,1,ng);
-    }
-
-    if (rhsscale != 0)
-    {
-        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
-
-        scalars.first = a*(*rhsscale);
-        scalars.second = b*(*rhsscale);
-    }
-    else
-    {
-        scalars.first = a;
-        scalars.second = b;
-    }
-}
 #endif
+    
+    if (rhsscale != 0)
+    {
+        *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
+
+        scalars.first = a*(*rhsscale);
+        scalars.second = b*(*rhsscale);
+    }
+    else
+    {
+        scalars.first = a;
+        scalars.second = b;
+    }
+}
 
 void
 Diffusion::setBeta (ABecLaplacian*         visc_op,
@@ -2241,26 +2882,11 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
 
     std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
 
-    computeBeta(bcoeffs, beta, betaComp);
-
-    for (int n = 0; n < AMREX_SPACEDIM; n++)
-    {
-        visc_op->bCoefficients(bcoeffs[n],n);
-    }
-}
-
-void
-Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                        const MultiFab* const* beta,
-                        int                    betaComp)
-{
-#ifdef AMREX_USE_EB
-  int ng = eb_ngrow;
-#else
-  int ng = 0;
-#endif
-
-  const MultiFab* area = navier_stokes->Area(); 
+    //    computeBeta(bcoeffs, beta, betaComp);
+    // do things old way
+    int ng = 0;
+  
+    const MultiFab* area = navier_stokes->Area(); 
 
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
@@ -2271,7 +2897,7 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
     checkBeta(beta, allthere, allnull);
 
     const Real* dx = navier_stokes->Geom().CellSize();
-
+    
     if (allnull)
     {
         for (int n = 0; n < BL_SPACEDIM; n++)
@@ -2297,6 +2923,74 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
             }
         }
     }
+    //
+
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
+    {
+        visc_op->bCoefficients(bcoeffs[n],n);
+    }
+}
+
+void
+Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                        const MultiFab* const* beta,
+                        int                    betaComp)
+{
+    int ng = 0;
+  
+    const MultiFab* area = navier_stokes->Area(); 
+
+    for (int n = 0; n < BL_SPACEDIM; n++)
+    {
+      bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,ng,MFInfo(),navier_stokes->Factory());
+    }
+
+    int allnull, allthere;
+    checkBeta(beta, allthere, allnull);
+
+#if 1
+    //#ifdef AMREX_USE_EB
+    if (allnull)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)
+	  bcoeffs[n].setVal(1.0);
+    }
+    else
+    {
+      // fixme? this copy could be probably avoided...
+        for (int n = 0; n < BL_SPACEDIM; n++)
+	  MultiFab::Copy(bcoeffs[n],*beta[n],0,0,1,0);
+    }
+
+#else
+    const Real* dx = navier_stokes->Geom().CellSize();
+    
+    if (allnull)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+	    MultiFab::Copy(bcoeffs[n], area[n], 0, 0, 1, 0);
+	    bcoeffs[n].mult(dx[n]);
+        }
+    }
+    else
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (int n = 0; n < BL_SPACEDIM; n++)
+        {
+	    for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
+            {
+ 	        const Box& bx = bcoeffsmfi.tilebox();
+	      
+ 		bcoeffs[n][bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
+		bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+		bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
+            }
+        }
+    }
+#endif
 }
 
 void
@@ -2327,6 +3021,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
+#if 1
+    // old way with volume weighted beta
     if (is_diffusive[comp])
     {
         MultiFab visc_tmp(grids,dmap,1,1), s_tmp(grids,dmap,1,1);
@@ -2344,6 +3040,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         visc_op.setScalars(a,b);
         visc_op.maxOrder(max_order);
 
+	// setBeta still puts in vol factor
         setBeta(&visc_op,beta,betaComp);
         //
         // Copy to single component multifab for operator classes.
@@ -2405,6 +3102,122 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 #endif
 
         MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
+    }
+    else {
+      int ngrow = visc_terms.nGrow();
+      visc_terms.setVal(0.0,comp-src_comp,1,ngrow);
+    }
+#endif
+
+    // mlmg way ...
+    if (is_diffusive[comp])
+    {
+      // fixme for EB? again guessing 
+        int ng = 1;
+	// should try visc_tmp.nGrow = 0
+        MultiFab visc_tmp(grids,dmap,1,ng), s_tmp(grids,dmap,1,ng);
+        //
+        // Set up operator and apply to compute viscous terms.
+        //
+        const Real a = 0.0;
+        const Real b = allnull ? -visc_coef[comp] : -1.0;
+
+	LPInfo info;
+	info.setAgglomeration(agglomeration);
+	info.setConsolidation(consolidation);
+	info.setMaxCoarseningLevel(0);
+	// let MLMG take care of r-z 
+	//info.setMetricTerm(false);
+
+#ifdef AMREX_USE_EB
+	// create the right data holder for passing to MLEBABecLap
+	amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
+	//ebf.resize(1);
+	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
+	
+	MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
+#else	  
+	MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
+#endif
+	// default max_order=2
+	// mfix says:
+	// It is essential that we set MaxOrder of the solver to 2
+	// if we want to use the standard sol(i)-sol(i-1) approximation
+	// for the gradient at Dirichlet boundaries.
+	// The solver's default order is 3 and this uses three points for the
+	// gradient at a Dirichlet boundary.
+	mlabec.setMaxOrder(max_order);
+	
+	{
+	  // set BCs
+
+	  std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+	  std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+	  setDomainBC(mlmg_lobc, mlmg_hibc, comp);
+	  
+	  mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
+  
+	  MultiFab crsedata;
+	    
+	  if (level > 0) {
+	    auto& crse_ns = *(coarser->navier_stokes);
+	    crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng);
+	    AmrLevel::FillPatch(crse_ns,crsedata,ng,time,State_Type,comp,1);
+	    if (rho_flag == 2) {
+	      // We want to evaluate (div beta grad) S, not rho*S.
+	      const MultiFab& rhotime = crse_ns.get_rho(time);
+	      MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+	    }
+	    mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
+	  }
+	  
+	  AmrLevel::FillPatch(*navier_stokes,s_tmp,ng,time,State_Type,comp,1);
+	  if (rho_flag == 2) {
+	    const MultiFab& rhotime = navier_stokes->get_rho(time);
+	    MultiFab::Divide(s_tmp,rhotime,0,0,1,ng);
+	  }
+	  // fixme? Do we need/want this???
+	  // mfix does this
+	  //EB_set_covered(s_tmp, 0, 1, ng, covered_val);
+	  //s_tmp.FillBoundary (geom.periodicity());
+	  mlabec.setLevelBC(0, &s_tmp);
+	}
+	
+	mlabec.setScalars(a,b);
+	// mlabec.setACoeffs() not needed since a = 0.0 
+
+	{
+	  std::array<MultiFab,BL_SPACEDIM> bcoeffs;
+	  computeBeta(bcoeffs, beta, betaComp);
+	  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+	}
+
+	// Do we need something like this cribbed from mfix???
+	// This sets the coefficient on the wall and defines it as a homogeneous
+	// Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
+	// matches what's in bcoeff
+	//mlabec.setEBHomogDirichlet ( 0, (*mu_g[lev]) );
+
+	MLMG mgn(mlabec);
+	mgn.setVerbose(verbose);
+
+	mgn.apply({&visc_tmp},{&s_tmp});
+
+	//fixme
+	// // compare to old method...
+	// VisMF::Write(visc_terms,"VT");
+	// VisMF::Write(visc_tmp,"VTtmp");
+        // MultiFab diff(grids,dmap,1,1);
+	// MultiFab::Copy(diff,visc_tmp,0,0,1,0);
+	// MultiFab::Subtract(diff,visc_terms,comp-src_comp,0,1,0);
+	// VisMF::Write(diff,"VTdiff");
+	// std::cout << "Min and max of the diff are " << diff.min(0,0) <<" "
+	// 	  <<diff.max(0,0)<<"\n";
+	// MultiFab::Copy(diff,visc_tmp,0,0,1,0);
+	// MultiFab::Divide(diff,visc_terms,comp-src_comp,0,1,0);
+	// VisMF::Write(diff,"VTdiff2");
+	///
+	MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
     }
     else {
       int ngrow = visc_terms.nGrow();
