@@ -67,3 +67,10 @@ Other minor fixes
 
 5/1/19
 Minor compiler settings fixes
+
+6/3/19
+Bug fix in filling u_mac ghost cells
+Fix create_umac_grown for periodic cases
+Misc code cleanup; extra arguments, extraenous calls, compiler quieting
+Parallel reduction cleanup
+Various changes to be consistent with AMReX interfaces

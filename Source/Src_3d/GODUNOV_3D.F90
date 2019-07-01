@@ -4444,20 +4444,17 @@ contains
       ng = lo(1) - s_lo(1)
       if (slope_order .eq.1) then
          if (ng .lt. 1) then
-            call bl_abort('FORT_SLOPES: too few bndry cells for  &
-     first order')
+            call bl_abort("FORT_SLOPES: too few bndry cells for first order")
          endif
          ng = 1
       else if (slope_order .eq. 2) then
          if (ng .lt. 2) then
-            call bl_abort("SLOPE_2D: not enough bndry cells for &
-     2nd order")
+            call bl_abort("SLOPE_2D: not enough bndry cells for 2nd order")
          endif
          ng = 2
       else
          if (ng .lt. 3) then
-            call bl_abort("SLOPE_2D: not enough bndry cells for &
-     4th order")
+            call bl_abort("SLOPE_2D: not enough bndry cells for 4th order")
          end if
          ng = 3
       endif

@@ -388,7 +388,6 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("gradpz",IndexType::TheCellType(),1,dergrdpz,the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
-#ifdef MOREGENGETFORCE
     //
     // radial velocity
     //
@@ -419,8 +418,7 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("mag_vorticity_rot",IndexType::TheCellType(),1,dermagvortrot,grow_box_by_one);
     derive_lst.addComponent("mag_vorticity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-#endif
-#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE)||defined(MOREGENGETFORCE))
+#if defined(DO_IAMR_FORCE)
     //
     // forcing - used to calculate the rate of injection of energy in probtype 14 (HIT)
     //

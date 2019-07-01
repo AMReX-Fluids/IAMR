@@ -71,16 +71,6 @@
                          const int* dom_lo, const int* dom_hi,
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
-#ifdef BOUSSINESQ
-     void FORT_MAKEFORCE (amrex::Real* force,
-			  const amrex::Real* scal,
-                          ARLIM_P(f_lo), ARLIM_P(f_hi),
-                          ARLIM_P(s_lo), ARLIM_P(s_hi),
-                          const amrex::Real* dx,
-                          const amrex::Real* xlo, const amrex::Real* xhi,
-			  const int* scomp, const int* ncomp);
-#else
-#ifdef MOREGENGETFORCE
 
      void FORT_AVERAGE_EDGE_STATES(const amrex::Real* Vel,
 				   const amrex::Real* umacx,
@@ -108,17 +98,7 @@
 			  const amrex::Real* gravity,
 			  const int* scomp, const int* ncomp, const int* nscal,
 			  const int* getForceVerbose);
-#endif
-#ifdef GENGETFORCE
-     void FORT_MAKEFORCE (const amrex::Real* time, amrex::Real* force, const amrex::Real* rho,
-                          ARLIM_P(i_lo), ARLIM_P(i_hi),
-                          ARLIM_P(s_lo), ARLIM_P(s_hi),
-                          const amrex::Real* dx,
-                          const amrex::Real* xlo, const amrex::Real* xhi,
-			  const amrex::Real* gravity,
-			  const int* scomp, const int* ncomp);
-#endif
-#endif
+
 #ifdef __cplusplus
   }
 #endif
