@@ -22,11 +22,6 @@ PROFILE     = FALSE
 USE_VELOCITY = FALSE
 
 USE_EB = TRUE
-ifeq ($(DIM),3)
-USE_ALGOIM = TRUE
-else
-USE_ALGOIM = FALSE
-endif
 
 EBASE = amr
 
