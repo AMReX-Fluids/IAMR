@@ -3727,18 +3727,11 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 	{
 	    visc_terms.setVal(0);
 	}
-
         
         //
         // Update U_new with viscosity.
         //
         MultiFab& Rh = get_rho_half_time();
-
-#ifdef BOUSSINESQ
-        FillPatchIterator S_fpi(*this,get_old_data(State_Type),0,
-				prev_time,State_Type,Tracer,1);
-        const MultiFab& Smf = S_fpi.get_mf();
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
