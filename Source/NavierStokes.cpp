@@ -44,6 +44,8 @@ NavierStokes::Initialize ()
     if (initialized) return;
 
     NavierStokesBase::Initialize();
+    
+    NavierStokesBase::Initialize_specific();
 
     amrex::ExecOnFinalize(NavierStokes::Finalize);
 
@@ -922,7 +924,9 @@ NavierStokes::sum_integrated_quantities ()
     // Real trac = 0.0;
     Real energy = 0.0;
     Real mgvort = 0.0;
+#if defined(DO_IAMR_FORCE)
     Real forcing = 0.0;
+#endif
 #if (BL_SPACEDIM==3)
     Real udotlapu = 0.0;
 #endif
@@ -934,7 +938,9 @@ NavierStokes::sum_integrated_quantities ()
         // trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
         mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
+#if defined(DO_IAMR_FORCE)
         forcing += ns_level.volWgtSum("forcing",time);
+#endif
 #if (BL_SPACEDIM==3)
         udotlapu += ns_level.volWgtSum("udotlapu",time);
 #endif
@@ -946,10 +952,12 @@ NavierStokes::sum_integrated_quantities ()
     Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';
+#if defined(DO_IAMR_FORCE)
     //NOTE: FORCING_T gives only the energy being injected by the forcing
     //      term used for generating turbulence in probtype 14, 15.
     //      Defaults to 0 for other probtypes.
     Print().SetPrecision(12) << "TIME= " << time << " FORCING_T= " << forcing << '\n';
+#endif
 #if (BL_SPACEDIM==3)
     Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
 #endif
