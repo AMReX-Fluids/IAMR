@@ -683,11 +683,14 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     MLMG mgn(opn);
 
     LPInfo infonp1;
-    infon.setMetricTerm(false);
+    infonp1.setAgglomeration(agglomeration);
+    infonp1.setConsolidation(consolidation);
+    infonp1.setMetricTerm(false);
+    infonp1.setMaxCoarseningLevel(0);
     MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
     opnp1.setMaxOrder(max_order);
-
     MLMG mgnp1(opnp1);
+
     if (use_hypre) {
       mgnp1.setBottomSolver(MLMG::BottomSolver::hypre);
       mgnp1.setBottomVerbose(hypre_verbose);
