@@ -443,7 +443,8 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
 
     static void variableCleanUp (); // Cleanup data descriptors at end of run.
-    static void Initialize ();   // Read input file
+    static void Initialize ();   // Read input file common to IAMR and PeleLM
+    static void Initialize_specific ();   // Read input file specific to IAMR
     static void Finalize ();
     static void read_geometry (); // Set metrics
 

@@ -48,6 +48,8 @@ NavierStokes::Initialize ()
     if (initialized) return;
 
     NavierStokesBase::Initialize();
+    
+    NavierStokesBase::Initialize_specific();
 
     amrex::ExecOnFinalize(NavierStokes::Finalize);
 
