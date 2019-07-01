@@ -314,8 +314,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     MultiFab& S_old = navier_stokes->get_old_data(State_Type);
     MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
-    //Print()<<"Sold ngrow "<<S_old.nGrow()<<"\n";
-    
     // Talking with weiqun, thinks no ghost cells are actually needed for MLMG, only
     // Note for cell-centered solver, you need to cal setLevelBC.  That needs to have
     // one ghost cell if there is Dirichlet BC.
@@ -402,11 +400,6 @@ Diffusion::diffuse_scalar (Real                   dt,
 	}
 
 	{
-	  // Real rhsscale = 0.0;
-	  // MultiFab acoef;
-	  // std::pair<Real,Real> scalars;
-	  // computeAlpha(acoef, scalars, sigma, a, b, prev_time, rho_half,
-	  // 	       rho_flag, &rhsscale, alphaComp, alpha);
 	  mlabec.setScalars(a, b);
 	  // not needed since a = 0.0
 	  //mlabec.setACoeffs(0, acoef);
@@ -495,7 +488,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 #else // non-EB
 	for (int i = 0; i < BL_SPACEDIM; ++i)
 	{
-	  // FIXME?  keep non EB doing things old way, or change to this?
+	  // FIXME?  keep non-EB doing things old way, or change?
 	  Print()<<"new area weighting...\n";
 	  MultiFab::Multiply(*fluxn[i],area[i],0,fluxComp,1,nghost);
 	  (*fluxn[i]).mult(-b/dt,fluxComp,1,nghost);
@@ -510,273 +503,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 
       Rhs.setVal(0.);
     }
-
-    // ///// old way for comparison
-    // MultiFab f_old[AMREX_SPACEDIM];
-    // if (add_old_time_divFlux)
-    // {
-    //     Real a = 0.0;
-    //     Real b = -(1.0-be_cn_theta)*dt;
-    //     if (allnull)
-    //         b *= visc_coef[sigma];
-    //     ViscBndry visc_bndry_0;
-    //     const Real prev_time   = navier_stokes->get_state_data(State_Type).prevTime();
-    //     std::unique_ptr<ABecLaplacian> visc_op
-    // 	    (getViscOp(sigma,a,b,prev_time,visc_bndry_0,rho_half,rho_flag,0,betan,betaComp,0,0));
-    // 	// from getviscop()
-    // // const Real* dx = navier_stokes->Geom().CellSize();
-
-    // // if (!bndry_already_filled)
-    // //     getBndryData(visc_bndry,comp,1,time,rho_flag);
-
-    // // ABecLaplacian* visc_op = new ABecLaplacian(visc_bndry,dx);
-
-    // // visc_op->maxOrder(max_order);
-
-    // // setAlpha(visc_op,comp,a,b,time,rho_half,rho_flag,rhsscale,alphaComp,alpha_in);
-
-    // // setBeta(visc_op,beta,betaComp);
-
-    // // return visc_op;
-    // // //
-
-    //     for (int i = 0; i < AMREX_SPACEDIM; ++i)
-    // 	  (f_old[i]).define(fluxn[i]->boxArray(),fluxn[i]->DistributionMap(),1,0);
-    
-    //     visc_op->maxOrder(max_order);
-    //     //
-    //     // Copy to single-component multifab, then apply op to rho-scaled state
-    //     //
-    //     MultiFab::Copy(Soln,S_old,sigma,0,1,0);
-    //     if (rho_flag == 2)
-    // 	    MultiFab::Divide(Soln, S_old, Density, 0, 1, 0);
-	
-    //     visc_op->apply(Rhs,Soln);
-    // 	//fixme
-    // 	// check input
-    // 	amrex::WriteSingleLevelPlotfile("soln2", Soln, {"soln"},navier_stokes->Geom(), 0.0, 0);
-    // 	amrex::WriteSingleLevelPlotfile("rhs", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
-    // 	//
-
-
-    //     visc_op->compFlux(D_DECL(f_old[0],f_old[1],f_old[2]),Soln,false,LinOp::Inhomogeneous_BC,0,0);
-
-    // 	// fixme
-    // 	//const MultiFab& volume = navier_stokes->Volume(); 
-    // 	//
-    // 	for (int i = 0; i < BL_SPACEDIM; ++i)
-    // 	  (f_old[i]).mult(-b/(dt*navier_stokes->Geom().CellSize()[i]),0,1,0);
-
-    // 	//
-    // 	Print()<<"Comparing old flux with new flux... \n";
-    // 	Print()<<" f_old ghost "<<f_old[0].nGrow();
-    // 	Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
-    // 	for (int i = 0; i < BL_SPACEDIM; ++i){
-    // 	//   MultiFab::Divide(f_old[i],*fluxn[i],fluxComp,0,1,0);
-    // 	//   VisMF::Write(f_old[i],"VTdiff2"+std::to_string(i));
-    // 	// }
-	
-    // 	  MultiFab::Subtract(f_old[i],*fluxn[i], fluxComp, 0, f_old[i].nComp(), f_old[i].nGrow());
-	  
-    // 	  for (int icomp = 0; icomp < f_old[i].nComp(); ++icomp) {
-    // 	    std::cout << "Min and max of the diff are " << f_old[i].min(icomp,f_old[i].nGrow())
-    // 		      << " and " << f_old[i].max(icomp,f_old[i].nGrow());
-    // 	    if (f_old[i].nComp() > 1) {
-    // 	      std::cout << " for component " << icomp;
-    // 	    }
-    // 	    std::cout << "." << std::endl;
-    // 	  }
-    // 	  for (int icomp = 0; icomp < f_old[i].nComp(); ++icomp) {
-    // 	    std::cout << "Min and max of the diff are wo ghosts " << f_old[i].min(icomp,0)		      << " and " << f_old[i].max(icomp,0);
-    // 	    if (f_old[i].nComp() > 1) {
-    // 	      std::cout << " for component " << icomp;
-    // 	    }
-    // 	    std::cout << "." << std::endl;
-    // 	  }
-    // 	      // // write out difference MF for viewing: amrvis -mf 
-    // 	  std::cout << "Writing mfdiff" << std::endl;
-    // 	  VisMF::Write(f_old[i], "diff"+std::to_string(i));
-
-    // 	}
-    //  }
-   
-    // My visc op matches development
-        // fixme: check fluxes
-    static int count=0; count++;
-    std::string name2;    
-    {
-    // Diff local MF and MF from unaltered code 
-    name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/fluxx_"+std::to_string(count);	    
-    MultiFab mf2(fluxn[0]->boxArray(),dmap,fluxn[0]->nComp(),fluxn[0]->nGrow());
-    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
-    std::cout << "Reading " << name2 << std::endl;
-    VisMF::Read(mf2, name2);
-    MultiFab::Copy(mfdiff, *fluxn[0], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
-    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-    
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
-    		<< " and " << mfdiff.max(icomp,0);
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-        // write out difference MF for viewing: amrvis -mf 
-    std::cout << "Writing mfdiff" << std::endl;
-    VisMF::Write(mfdiff, "xdiff"+std::to_string(count));
-
-    }
-    {
-    // Diff local MF and MF from unaltered code 
-    name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/fluxy_"+std::to_string(count);	    
-    MultiFab mf2(fluxn[1]->boxArray(),dmap,fluxn[1]->nComp(),fluxn[1]->nGrow());
-    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
-    std::cout << "Reading " << name2 << std::endl;
-    VisMF::Read(mf2, name2);
-    MultiFab::Copy(mfdiff, *fluxn[1], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
-    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-    
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
-    		<< " and " << mfdiff.max(icomp,0);
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-        // write out difference MF for viewing: amrvis -mf 
-    std::cout << "Writing mfdiff" << std::endl;
-    VisMF::Write(mfdiff, "ydiff"+std::to_string(count));
-
-    }
-    // {
-    // // Diff local MF and MF from unaltered code 
-    // name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run3d/fluxz_"+std::to_string(count);	    
-    // MultiFab mf2(f_old[2].boxArray(),dmap,f_old[2].nComp(),f_old[2].nGrow());
-    // MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
-    // std::cout << "Reading " << name2 << std::endl;
-    // VisMF::Read(mf2, name2);
-    // MultiFab::Copy(mfdiff, f_old[2], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
-    // mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-    
-    // for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-    //   std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-    // 		<< " and " << mfdiff.max(icomp,mf2.nGrow());
-    //   if (mfdiff.nComp() > 1) {
-    // 	std::cout << " for component " << icomp;
-    //   }
-    //   std::cout << "." << std::endl;
-    // }
-    // for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-    //   std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
-    // 		<< " and " << mfdiff.max(icomp,0);
-    //   if (mfdiff.nComp() > 1) {
-    // 	std::cout << " for component " << icomp;
-    //   }
-    //   std::cout << "." << std::endl;
-    // }
-    //     // write out difference MF for viewing: amrvis -mf 
-    // std::cout << "Writing mfdiff" << std::endl;
-    // VisMF::Write(mfdiff, "zdiff"+std::to_string(count));
-
-    // }
-    //fixme
-    //static int count=0; count++;
-    //Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
-    //VisMF::Write(f_old[0],"fluxx_"+std::to_string(count));
-    //Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
-    //VisMF::Write(f_old[1],"fluxy_"+std::to_string(count));
-    //Print()<<" flunx ghost "<<fluxn[0]->nGrow()<<"\n";
-    //VisMF::Write(f_old[2],"fluxz_"+std::to_string(count));
-    //
-    //amrex::Abort("Check old time diff fluxes \n ");
-    
-    //
-    // If this is a predictor step, put "explicit" updates passed via S_new
-    // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
-    // pull it off S_new to avoid double counting
-    //   (for rho_flag == 1:
-    //       S_new = S_old - dt.(U.Grad(phi)); want Rhs -= rho_half.(U.Grad(phi)),
-    //    else
-    //       S_new = S_old - dt.Div(U.Phi),   want Rhs -= Div(U.Phi) )
-    //
-    if (solve_mode == PREDICTOR)
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        FArrayBox tmpfab;
-        for (MFIter Smfi(S_new, true); Smfi.isValid(); ++Smfi)
-        {
-            const Box& box = Smfi.tilebox();
-            tmpfab.resize(box,1);
-            tmpfab.copy(S_new[Smfi],box,sigma,box,0,1);
-            tmpfab.minus(S_old[Smfi],box,sigma,0,1);
-            S_new[Smfi].minus(tmpfab,box,0,sigma,1); // Remove this term from S_new
-	    tmpfab.mult(1.0/dt,box,0,1);
-            if (rho_flag == 1)
-                tmpfab.mult(rho_half[Smfi],box,0,0,1);
-            if (alpha!=0)
-                tmpfab.mult((*alpha)[Smfi],box,alphaComp,0,1);            
-            (*delta_rhs)[Smfi].plus(tmpfab,box,0,rhsComp,1);
-        }
-    }
-    }
-    //fixme
-    const MultiFab& volume = navier_stokes->Volume(); 
-    //
-
-    //
-    // Add body sources
-    //
-    if (delta_rhs != 0)
-    {
-      if (verbose)
-	Print()<<"Adding body forces ... \n";
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        FArrayBox tmpfab;
-        for (MFIter mfi(*delta_rhs,true); mfi.isValid(); ++mfi)
-        {
-            const Box& box = mfi.tilebox();
-            tmpfab.resize(box,1);
-            tmpfab.copy((*delta_rhs)[mfi],box,rhsComp,box,0,1);
-            tmpfab.mult(dt,box,0,1);
-            //tmpfab.mult(volume[mfi],box,0,0,1);
-            Rhs[mfi].plus(tmpfab,box,0,0,1);
-        }
-    }
-    }
-    //fixme
-    // check input
-    //MultiFab::Multiply(Rhs,volume,0,0,1,0);
-    Print()<<"solve mode "<< (solve_mode==PREDICTOR)<<"\n";
-    Print()<<"delta rhs "<< (delta_rhs !=0 )<<"\n";
-    amrex::WriteSingleLevelPlotfile("rhsA_"+std::to_string(count), Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
-    //  amrex::Abort("check rhsA");
-    //
-
-
+    // why is this not part of if(add_old_time_divFlux) above???
     //  ///////////////////////////////////////
     // fixme --- RZ not working yet. Something's wrong related to hoop stress.
     //   With a = 0, Soln out of mlmg.solve() matches dev
@@ -836,6 +563,64 @@ Diffusion::diffuse_scalar (Real                   dt,
  #endif
     /////////////////////
 
+    //
+    // If this is a predictor step, put "explicit" updates passed via S_new
+    // into delta_rhs after scaling by rho_half if reqd, so they dont get lost,
+    // pull it off S_new to avoid double counting
+    //   (for rho_flag == 1:
+    //       S_new = S_old - dt.(U.Grad(phi)); want Rhs -= rho_half.(U.Grad(phi)),
+    //    else
+    //       S_new = S_old - dt.Div(U.Phi),   want Rhs -= Div(U.Phi) )
+    //
+    if (solve_mode == PREDICTOR)
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox tmpfab;
+        for (MFIter Smfi(S_new, true); Smfi.isValid(); ++Smfi)
+        {
+            const Box& box = Smfi.tilebox();
+            tmpfab.resize(box,1);
+            tmpfab.copy(S_new[Smfi],box,sigma,box,0,1);
+            tmpfab.minus(S_old[Smfi],box,sigma,0,1);
+            S_new[Smfi].minus(tmpfab,box,0,sigma,1); // Remove this term from S_new
+	    tmpfab.mult(1.0/dt,box,0,1);
+            if (rho_flag == 1)
+                tmpfab.mult(rho_half[Smfi],box,0,0,1);
+            if (alpha!=0)
+                tmpfab.mult((*alpha)[Smfi],box,alphaComp,0,1);            
+            (*delta_rhs)[Smfi].plus(tmpfab,box,0,rhsComp,1);
+        }
+    }
+    }
+
+    //
+    // Add body sources
+    //
+    if (delta_rhs != 0)
+    {
+      if (verbose)
+	Print()<<"Adding body forces ... \n";
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox tmpfab;
+        for (MFIter mfi(*delta_rhs,true); mfi.isValid(); ++mfi)
+        {
+            const Box& box = mfi.tilebox();
+            tmpfab.resize(box,1);
+            tmpfab.copy((*delta_rhs)[mfi],box,rhsComp,box,0,1);
+            tmpfab.mult(dt,box,0,1);
+            //tmpfab.mult(volume[mfi],box,0,0,1);
+            Rhs[mfi].plus(tmpfab,box,0,0,1);
+        }
+    }
+    }
+
+
     
     //
     // Increment Rhs with S_old*V (or S_old*V*rho_half if rho_flag==1
@@ -861,13 +646,6 @@ Diffusion::diffuse_scalar (Real                   dt,
             Soln[mfi].mult((*alpha)[mfi],box,alphaComp,0,1);
         Rhs[mfi].plus(Soln[mfi],box,0,0,1);
     }
-
-    //fixme
-    // check input
-    // MultiFab::Multiply(Rhs,volume,0,0,1,0);
-    // amrex::WriteSingleLevelPlotfile("rhsB", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
-    //  amrex::Abort("check rhsB");
-    //
 
     //
     // Make a good guess for Soln
@@ -983,16 +761,6 @@ Diffusion::diffuse_scalar (Real                   dt,
     //mlmg.setFinalFillBC(true);
 
     mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
-
-        //fixme
-    // check input
-    // MultiFab::Multiply(Rhs,volume,0,0,1,0);
-    // MultiFab::Multiply(Soln,volume,0,0,1,0);
-    amrex::WriteSingleLevelPlotfile("soln2", Soln, {"soln"},navier_stokes->Geom(), 0.0, 0);
-    amrex::WriteSingleLevelPlotfile("rhs2", Rhs, {"rhs"},navier_stokes->Geom(), 0.0, 0);
-    //
-
-
     
     AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp, 1);,
 		 MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp, 1);,
@@ -1064,82 +832,6 @@ Diffusion::diffuse_scalar (Real                   dt,
       MultiFab::Multiply(*fluxnp1[i],area[i],0,fluxComp,1,nghost);
     }
 #endif
-
-    VisMF::Write(*fluxnp1[0],"f1_"+std::to_string(count));
-    {
-      //fixme
-      name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/flux0_"+std::to_string(count);
-	    
-    std::cout << "Reading " << name2 << std::endl;
-    MultiFab mf2(fluxnp1[0]->boxArray(),dmap,fluxnp1[0]->nComp(),fluxnp1[0]->nGrow());
-    VisMF::Read(mf2, name2);
-    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
-    // Diff local MF and MF from unaltered code 
-    MultiFab::Copy(mfdiff, *fluxnp1[0], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
-    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-    
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
-    		<< " and " << mfdiff.max(icomp,0);
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-    // write out difference MF for viewing: amrvis -mf 
-    std::cout << "Writing mfdiff" << std::endl;
-    mf2.plus(1.e-55,0,1,0);
-    MultiFab::Divide(mfdiff,mf2,0,0,1,0);
-    VisMF::Write(mfdiff, "fdiff0_"+std::to_string(count));
-    }
-
-    {
-      //fixme
-      name2="/home/candace/CCSE/clean_checkout/IAMR/Exec/run2d/flux1_"+std::to_string(count);
-	    
-    std::cout << "Reading " << name2 << std::endl;
-    MultiFab mf2(fluxnp1[1]->boxArray(),dmap,fluxnp1[1]->nComp(),fluxnp1[1]->nGrow());
-    VisMF::Read(mf2, name2);
-    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
-    // Diff local MF and MF from unaltered code 
-    MultiFab::Copy(mfdiff, *fluxnp1[1], 0, 0, mfdiff.nComp(),mfdiff.nGrow());
-    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-    
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-    		<< " and " << mfdiff.max(icomp,mf2.nGrow());
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-      std::cout << "Min and max of the diff are wo ghosts " << mfdiff.min(icomp,0) 
-    		<< " and " << mfdiff.max(icomp,0);
-      if (mfdiff.nComp() > 1) {
-    	std::cout << " for component " << icomp;
-      }
-      std::cout << "." << std::endl;
-    }
-    // write out difference MF for viewing: amrvis -mf 
-    std::cout << "Writing mfdiff" << std::endl;
-    mf2.plus(1.e-55,0,1,0);
-    MultiFab::Divide(mfdiff,mf2,0,0,1,0);
-    VisMF::Write(mfdiff, "fdiff1_"+std::to_string(count));
-    }
-    // if (sigma==Xvel)
-    //   amrex::Abort("check inputs");
-    //amrex::Abort("check \n");
-
-
 
     //
     // Copy into state variable at new time, without bc's
