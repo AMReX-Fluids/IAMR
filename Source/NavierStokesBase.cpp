@@ -6,7 +6,7 @@
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 
-#include <PROB_NS_F.H> 
+#include <PROB_NS_F.H>
 
 using namespace amrex;
 
@@ -3666,7 +3666,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
         Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
         Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
-        Scal.mult(0.5,bx);
+        Scal.mult(0.5,bx,0,NUM_SCALARS);
 	
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
