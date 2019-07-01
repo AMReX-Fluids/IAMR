@@ -3668,7 +3668,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
         Scal.mult(0.5,bx);
 	
-	if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
+        if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 
@@ -3678,7 +3678,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (initial_iter && is_diffusive[Xvel])
             tforces.setVal(0);
 
-	const Box& sbx = Rhohalf_mfi.growntilebox();
+	      const Box& sbx = Rhohalf_mfi.growntilebox();
         S.resize(sbx,BL_SPACEDIM);
         S.copy(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
 
