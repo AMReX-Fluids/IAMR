@@ -336,11 +336,6 @@ private:
     static int         use_tensor_cg_solve;
     static int         max_order;
     static int         tensor_max_order;
-
-#ifdef AMREX_USE_EB
-  int eb_ngrow;
-#endif
-
 };
 
 #endif
