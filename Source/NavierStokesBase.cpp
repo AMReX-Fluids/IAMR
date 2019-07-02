@@ -350,6 +350,145 @@ NavierStokesBase::Initialize ()
 
     pp.query("v",verbose);
 
+    
+    //
+    // Get timestepping parameters.
+    //
+    pp.get("cfl",cfl);
+    pp.query("init_iter",init_iter);
+    pp.query("init_shrink",init_shrink);
+    pp.query("dt_cutoff",dt_cutoff);
+    pp.query("change_max",change_max);
+    pp.query("fixed_dt",fixed_dt);
+    pp.query("stop_when_steady",stop_when_steady);
+    pp.query("steady_tol",steady_tol);
+    pp.query("sum_interval",sum_interval);
+    pp.query("turb_interval",turb_interval);
+    pp.query("jet_interval",jet_interval);
+    pp.query("jet_interval_split",jet_interval_split);
+    pp.query("gravity",gravity);
+    //
+    // Get run options.
+    //
+    pp.query("do_temp",                  do_temp          );
+    pp.query("do_trac2",                 do_trac2         );
+    pp.query("do_cons_trac",             do_cons_trac     );
+    pp.query("do_cons_trac2",            do_cons_trac2    );
+    int initial_do_sync_proj =           do_sync_proj;
+    pp.query("do_sync_proj",             do_sync_proj     );
+    pp.query("do_MLsync_proj",           do_MLsync_proj   );
+    pp.query("do_reflux",                do_reflux        );
+    pp.query("modify_reflux_normal_vel", modify_reflux_normal_vel);
+    pp.query("do_init_vort_proj",        do_init_vort_proj);
+    pp.query("do_init_proj",             do_init_proj     );
+    pp.query("do_mac_proj",              do_mac_proj      );
+    pp.query("do_divu_sync",             do_divu_sync     );
+    pp.query("do_denminmax",             do_denminmax     );
+    pp.query("do_scalminmax",            do_scalminmax    );
+    pp.query("do_density_ref",           do_density_ref   );
+    pp.query("do_tracer_ref",            do_tracer_ref    );
+    pp.query("do_tracer2_ref",           do_tracer2_ref   );
+    pp.query("do_vorticity_ref",         do_vorticity_ref );
+    pp.query("do_temp_ref",              do_temp_ref      );
+    
+    pp.query("visc_tol",visc_tol);
+    pp.query("visc_abs_tol",visc_abs_tol);
+ 
+    if (modify_reflux_normal_vel)
+        amrex::Abort("modify_reflux_normal_vel is no longer supported");
+
+    pp.query("getForceVerbose",          getForceVerbose  );
+    pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
+    if (do_scalar_update_in_order) {
+	    const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
+	    scalarUpdateOrder.resize(n_scalar_update_order_vals);
+	    int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
+    }
+
+    // Don't let init_shrink be greater than 1
+    if (init_shrink > 1.0)
+        amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
+
+    //
+    // Make sure we don't use divu_sync.
+    //
+    if (do_divu_sync)
+        amrex::Error("do_divu_sync == 1 is not supported");
+    //
+    // This test ensures that if the user toggles do_sync_proj,
+    // the user has knowledge that do_MLsync_proj is meaningless.
+    //
+    if (do_MLsync_proj && !do_sync_proj && initial_do_sync_proj != do_sync_proj)
+    {
+        amrex::Print() << "Mismatched options for NavierStokesBase\n"
+		       << "do_MLsync_proj and do_sync_proj are inconsistent\n";
+
+        amrex::Abort("NavierStokesBase::Initialize()");
+    }
+
+    
+    pp.query("divu_relax_factor",divu_relax_factor);
+    pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
+    pp.query("be_cn_theta",be_cn_theta);
+    if (be_cn_theta > 1.0 || be_cn_theta < .5)
+        amrex::Abort("NavierStokesBase::Initialize(): Must have be_cn_theta <= 1.0 && >= .5");
+    //
+    // Set parameters dealing with how grids are treated at outflow boundaries.
+    //
+    pp.query("do_refine_outflow",do_refine_outflow);
+    pp.query("do_derefine_outflow",do_derefine_outflow);
+    if (do_derefine_outflow == 1 && do_refine_outflow == 1)
+      amrex::Abort("NavierStokesBase::Initialize(): Cannot have both do_refine_outflow==1 and do_derefine_outflow==1");
+
+    pp.query("Nbuf_outflow",Nbuf_outflow);
+    BL_ASSERT(Nbuf_outflow >= 0);
+    BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
+
+    //
+    // Check whether we are doing running statistics.
+    //
+    pp.query("do_running_statistics",do_running_statistics);
+
+    // If dx,dy,dz,Rcyl<0 (default) the volWgtSum is computed over the entire domain
+    pp.query("volWgtSum_sub_origin_x",volWgtSum_sub_origin_x);
+    pp.query("volWgtSum_sub_origin_y",volWgtSum_sub_origin_y);
+    pp.query("volWgtSum_sub_origin_z",volWgtSum_sub_origin_z);
+    pp.query("volWgtSum_sub_Rcyl",volWgtSum_sub_Rcyl);
+    pp.query("volWgtSum_sub_dx",volWgtSum_sub_dx);
+    pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
+    pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
+
+    //
+    // Are we going to do velocity or momentum update?
+    //
+    pp.query("do_mom_diff",do_mom_diff);
+    pp.query("predict_mom_together",predict_mom_together);
+
+    if (do_mom_diff == 0 && predict_mom_together == 1)
+    {
+      amrex::Print() << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1\n";
+      exit(0);
+    }
+
+    pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
+
+#ifdef AMREX_PARTICLES
+    read_particle_params ();
+#endif
+
+    amrex::ExecOnFinalize(NavierStokesBase::Finalize);
+
+    initialized = true;
+}
+
+// The following Initialize_specific is dedicated to read and set data
+// only specific for IAMR, because it conflicts with PeleLM.
+// PeleLM calls NavierStokesBase::Initialize() and its own PelelM::Initialize_specific ()
+void
+NavierStokesBase::Initialize_specific ()
+{
+    ParmParse pp("ns");
+    
     Vector<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
     pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
     pp.getarr("hi_bc",hi_bc,0,BL_SPACEDIM);
@@ -416,84 +555,12 @@ NavierStokesBase::Initialize ()
             }
         }
     }
-    //
-    // Get timestepping parameters.
-    //
-    pp.get("cfl",cfl);
-    pp.query("init_iter",init_iter);
-    pp.query("init_shrink",init_shrink);
-    pp.query("dt_cutoff",dt_cutoff);
-    pp.query("change_max",change_max);
-    pp.query("fixed_dt",fixed_dt);
-    pp.query("stop_when_steady",stop_when_steady);
-    pp.query("steady_tol",steady_tol);
-    pp.query("sum_interval",sum_interval);
-    pp.query("turb_interval",turb_interval);
-    pp.query("jet_interval",jet_interval);
-    pp.query("jet_interval_split",jet_interval_split);
-    pp.query("gravity",gravity);
-    //
-    // Get run options.
-    //
-    pp.query("do_temp",                  do_temp          );
-    pp.query("do_trac2",                 do_trac2         );
-    pp.query("do_cons_trac",             do_cons_trac     );
-    pp.query("do_cons_trac2",            do_cons_trac2    );
-    int initial_do_sync_proj =           do_sync_proj;
-    pp.query("do_sync_proj",             do_sync_proj     );
-    pp.query("do_MLsync_proj",           do_MLsync_proj   );
-    pp.query("do_reflux",                do_reflux        );
-    pp.query("modify_reflux_normal_vel", modify_reflux_normal_vel);
-    pp.query("do_init_vort_proj",        do_init_vort_proj);
-    pp.query("do_init_proj",             do_init_proj     );
-    pp.query("do_mac_proj",              do_mac_proj      );
-    pp.query("do_divu_sync",             do_divu_sync     );
-    pp.query("do_denminmax",             do_denminmax     );
-    pp.query("do_scalminmax",            do_scalminmax    );
-    pp.query("do_density_ref",           do_density_ref   );
-    pp.query("do_tracer_ref",            do_tracer_ref    );
-    pp.query("do_tracer2_ref",           do_tracer2_ref   );
-    pp.query("do_vorticity_ref",         do_vorticity_ref );
-    pp.query("do_temp_ref",              do_temp_ref      );
- 
-    if (modify_reflux_normal_vel)
-        amrex::Abort("modify_reflux_normal_vel is no longer supported");
-
-    pp.query("getForceVerbose",          getForceVerbose  );
-    pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
-    if (do_scalar_update_in_order) {
-	const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
-	scalarUpdateOrder.resize(n_scalar_update_order_vals);
-	int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
-    }
-
-    // Don't let init_shrink be greater than 1
-    if (init_shrink > 1.0)
-        amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
-
-    //
-    // Make sure we don't use divu_sync.
-    //
-    if (do_divu_sync)
-        amrex::Error("do_divu_sync == 1 is not supported");
-    //
-    // This test ensures that if the user toggles do_sync_proj,
-    // the user has knowledge that do_MLsync_proj is meaningless.
-    //
-    if (do_MLsync_proj && !do_sync_proj && initial_do_sync_proj != do_sync_proj)
-    {
-        amrex::Print() << "Mismatched options for NavierStokesBase\n"
-		       << "do_MLsync_proj and do_sync_proj are inconsistent\n";
-
-        amrex::Abort("NavierStokesBase::Initialize()");
-    }
+    
     //
     // Read viscous/diffusive parameters and array of viscous/diffusive coeffs.
     // NOTE: at this point, we dont know number of state variables
     //       so just read all values listed.
     //
-    pp.query("visc_tol",visc_tol);
-    pp.query("visc_abs_tol",visc_abs_tol);
     pp.query("variable_vel_visc",variable_vel_visc);
     pp.query("variable_scal_diff",variable_scal_diff);
 
@@ -536,7 +603,7 @@ NavierStokesBase::Initialize ()
     // Will need to add more lines when more variables are added
     Tracer = Density+1;
     if (do_trac2)
-	Tracer2 = Density+2;
+	    Tracer2 = Density+2;
 
     for (int i = 0; i < n_scal_diff_coefs; i++)
     {
@@ -547,63 +614,11 @@ NavierStokesBase::Initialize ()
     //
     if (do_temp)
     {
-	Temp = ++scalId;
-	pp.get("temp_cond_coef",visc_coef[Temp]);
-    }
-    
-    pp.query("divu_relax_factor",divu_relax_factor);
-    pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
-    pp.query("be_cn_theta",be_cn_theta);
-    if (be_cn_theta > 1.0 || be_cn_theta < .5)
-        amrex::Abort("NavierStokesBase::Initialize(): Must have be_cn_theta <= 1.0 && >= .5");
-    //
-    // Set parameters dealing with how grids are treated at outflow boundaries.
-    //
-    pp.query("do_refine_outflow",do_refine_outflow);
-    pp.query("do_derefine_outflow",do_derefine_outflow);
-    if (do_derefine_outflow == 1 && do_refine_outflow == 1)
-      amrex::Abort("NavierStokesBase::Initialize(): Cannot have both do_refine_outflow==1 and do_derefine_outflow==1");
-
-    pp.query("Nbuf_outflow",Nbuf_outflow);
-    BL_ASSERT(Nbuf_outflow >= 0);
-    BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
-
-    //
-    // Check whether we are doing running statistics.
-    //
-    pp.query("do_running_statistics",do_running_statistics);
-
-    // If dx,dy,dz,Rcyl<0 (default) the volWgtSum is computed over the entire domain
-    pp.query("volWgtSum_sub_origin_x",volWgtSum_sub_origin_x);
-    pp.query("volWgtSum_sub_origin_y",volWgtSum_sub_origin_y);
-    pp.query("volWgtSum_sub_origin_z",volWgtSum_sub_origin_z);
-    pp.query("volWgtSum_sub_Rcyl",volWgtSum_sub_Rcyl);
-    pp.query("volWgtSum_sub_dx",volWgtSum_sub_dx);
-    pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
-    pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
-
-    //
-    // Are we going to do velocity or momentum update?
-    //
-    pp.query("do_mom_diff",do_mom_diff);
-    pp.query("predict_mom_together",predict_mom_together);
-
-    if (do_mom_diff == 0 && predict_mom_together == 1)
-    {
-      amrex::Print() << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1\n";
-      exit(0);
-    }
-
-    pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
-
-#ifdef AMREX_PARTICLES
-    read_particle_params ();
-#endif
-
-    amrex::ExecOnFinalize(NavierStokesBase::Finalize);
-
-    initialized = true;
+	    Temp = ++scalId;
+	    pp.get("temp_cond_coef",visc_coef[Temp]);
+    }    
 }
+
 
 void
 NavierStokesBase::Finalize ()
@@ -3827,9 +3842,9 @@ Gp.FillBoundary(geom.periodicity());
         FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
         Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
         Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
-        Scal.mult(0.5,bx);
+        Scal.mult(0.5,bx,0,NUM_SCALARS);
 	
-	if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
+        if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 
@@ -3840,7 +3855,7 @@ Gp.FillBoundary(geom.periodicity());
             tforces.setVal(0);
 
 	//why is this on a grown box?
-	const Box& sbx = Rhohalf_mfi.growntilebox();
+	   const Box& sbx = Rhohalf_mfi.growntilebox();
         S.resize(sbx,BL_SPACEDIM);
         S.copy(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
 
@@ -3904,18 +3919,11 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 	{
 	    visc_terms.setVal(0);
 	}
-
         
         //
         // Update U_new with viscosity.
         //
         MultiFab& Rh = get_rho_half_time();
-
-#ifdef BOUSSINESQ
-        FillPatchIterator S_fpi(*this,get_old_data(State_Type),0,
-				prev_time,State_Type,Tracer,1);
-        const MultiFab& Smf = S_fpi.get_mf();
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
