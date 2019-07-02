@@ -217,32 +217,6 @@ protected:
     //
     // Get the forcing term.
     //
-#ifdef BOUSSINESQ
-    void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Scal);
-    void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Scal);
-#else
-#ifdef MOREGENGETFORCE
-    void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Vel,
-                   const amrex::FArrayBox& Scal,
-		   int              scalScomp);
     void getForce (amrex::FArrayBox&       force,
 		   const amrex::Box&      bx,
                    int              ngrow,
@@ -252,42 +226,6 @@ protected:
                    const amrex::FArrayBox& Vel,
                    const amrex::FArrayBox& Scal,
 		   int              scalScomp);
-#else
-#ifdef GENGETFORCE
-  void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-  void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-		   const amrex::Real       time,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-#else
-  void getForce (amrex::FArrayBox&       force,
-                   int              gridno,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-  void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-                   const amrex::FArrayBox& Rho,
-                   int              RComp = 0);
-#endif		 
-#endif		 
-#endif		 
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
@@ -346,7 +284,6 @@ protected:
                       amrex::Real      dt,
                       amrex::MultiFab& S_old, 
                       amrex::MultiFab* divu,
-                      int       have_divu,
                       int       ngrow,
                       bool      increment_vel_register);
     //
@@ -719,6 +656,11 @@ protected:
     static amrex::Real       gravity;
     static int        NUM_SCALARS;      // number of non-velocity components
     static int        NUM_STATE;        // total number of state variables
+#ifdef AMREX_USE_EB
+    static const int  NUM_GROW=5;         // number of ghost cells
+#else
+    static const int  NUM_GROW=1;         // number of ghost cells
+#endif
     //
     // Controls over how the convective and diffusive terms are calculated
     // for each state variable.
@@ -801,6 +743,7 @@ protected:
     //
     // static integer constants
     //
+  // FIXME?  do these need to be adjusted for EB??? see NUM_GROW above
     static const int GEOM_GROW  = 1;
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;

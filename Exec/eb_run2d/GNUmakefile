@@ -20,11 +20,6 @@ PROFILE     = FALSE
 
 USE_EB = TRUE
 
-# This allows GetForce to call a Fortran routine
-#DEFINES += -DGENGETFORCE
-#DEFINES += -DMOREGENGETFORCE
-#DEFINES += -DBOUSSINESQ
-
 USE_VELOCITY = FALSE
 
 EBASE = amr

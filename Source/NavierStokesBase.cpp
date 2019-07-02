@@ -6,9 +6,7 @@
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 
-#ifdef MOREGENGETFORCE
 #include <PROB_NS_F.H>
-#endif
 
 //fixme, for writesingle level plotfile
 #include<AMReX_PlotFileUtil.H>
@@ -461,7 +459,6 @@ NavierStokesBase::Initialize ()
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
-#ifdef MOREGENGETFORCE
     pp.query("getForceVerbose",          getForceVerbose  );
     pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
     if (do_scalar_update_in_order) {
@@ -469,7 +466,6 @@ NavierStokesBase::Initialize ()
 	scalarUpdateOrder.resize(n_scalar_update_order_vals);
 	int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
     }
-#endif
 
     // Don't let init_shrink be greater than 1
     if (init_shrink > 1.0)
@@ -501,6 +497,11 @@ NavierStokesBase::Initialize ()
     pp.query("variable_vel_visc",variable_vel_visc);
     pp.query("variable_scal_diff",variable_scal_diff);
 
+#ifdef AMREX_USE_EB
+    if (variable_scal_diff || variable_vel_visc )
+      amrex::Abort("NavierStokesBase::Initialize(): EB tensor diffusion still under development.\n Must use variable_vel_visc=0, variable_scal_diff=0 for now.");
+#endif
+    
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
     const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
@@ -640,12 +641,13 @@ NavierStokesBase::advance_setup (Real time,
 
     const int finest_level = parent->finestLevel();
 
-//#ifdef AMREX_USE_EB
-//    // just cribbing from incflo
-//    umac_n_grow = 5;
-//#else
+#ifdef AMREX_USE_EB
+   // just cribbing from incflo
+    // note mfix now uses 4...
+   umac_n_grow = 5;
+#else
     umac_n_grow = 1;
-//#endif
+#endif
     
 #ifdef AMREX_PARTICLES
     if (ncycle >= 1)
@@ -693,6 +695,7 @@ NavierStokesBase::advance_setup (Real time,
     // Alloc MultiFab to hold advective update terms.
     //
     BL_ASSERT(aofs == 0);
+    // NOTE: nghost=0 for aofs appears to work. mfix also uses no ghost cells.  
     aofs = new MultiFab(grids,dmap,NUM_STATE,0);
     //
     // Set rho_avg.
@@ -1108,10 +1111,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // This DM won't be put into the cache.
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
-            MultiFab crse_src, fine_src;
-
-            crse_src.define(crse_src_ba, dm, 1, 0);
-            fine_src.define(fine_src_ba, dm, 1, 0);
+            MultiFab crse_src(crse_src_ba, dm, 1, 0);
+            MultiFab fine_src(fine_src_ba, dm, 1, 0);
 
             crse_src.setVal(1.e200);
             fine_src.setVal(1.e200);
@@ -1204,7 +1205,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
             amrex_hoextraptocc(BL_TO_FORTRAN_ANYD(fab),lo,hi,dx,xlo);
         }
         // call FillBoundary to make sure that fine/fine grow cells are valid
-	      u_mac[n].FillBoundary(geom.periodicity());
+	u_mac[n].FillBoundary(geom.periodicity());
     }
 }
 
@@ -1290,7 +1291,6 @@ NavierStokesBase::estTimeStep ()
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   U_new         = get_new_data(State_Type);
 
-
     Real u_max[BL_SPACEDIM] = {0};
 
 #ifdef AMREX_USE_EB
@@ -1327,28 +1327,14 @@ Gp.FillBoundary(geom.periodicity());
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
-#ifdef BOUSSINESQ
-        const Real cur_time = state[State_Type].curTime();
-        // HACK HACK HACK 
-        // THIS CALL IS BROKEN 
-        // getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[i]);
-        tforces.resize(amrex::grow(bx,n_grow),BL_SPACEDIM);
-        tforces.setVal(0.);
-#else
-#ifdef GENGETFORCE
-        const Real cur_time = state[State_Type].curTime();
-        getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,rho_ctime[Rho_mfi]);
-#elif MOREGENGETFORCE
+
         const Real cur_time = state[State_Type].curTime();
 	if (getForceVerbose)
 	  amrex::Print() << "---" << '\n' 
 			 << "H - est Time Step:" << '\n' 
 			 << "Calling getForce..." << '\n';
         getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
-#else
-        getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,rho_ctime[Rho_mfi]);
-#endif		 
-#endif		 
+
         tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
         //
         // Estimate the maximum allowable timestep from the Godunov box.
@@ -2278,7 +2264,6 @@ NavierStokesBase::mac_project (Real      time,
 			       Real      dt,
 			       MultiFab& Sold, 
 			       MultiFab* divu,
-			       int       have_divu,
 			       int       ngrow,
 			       bool      increment_vel_register)
 {
@@ -2292,10 +2277,6 @@ NavierStokesBase::mac_project (Real      time,
     const Real strt_time = ParallelDescriptor::second();
 
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,increment_vel_register);
-
-    // EM_DEBUG    
-//VisMF::Write(u_mac[0],"umac_macproj_out_x");
-//VisMF::Write(u_mac[1],"umac_macproj_out_y");
     
     create_umac_grown(ngrow);
 
@@ -2311,9 +2292,6 @@ NavierStokesBase::mac_project (Real      time,
 		       << ", time: " << run_time << '\n';
     }
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::mac_project()");
-
-
-    
 }
 
 void
@@ -3003,18 +2981,6 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
-#ifdef BOUSSINESQ
-	        const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-	        FArrayBox Scal(amrex::grow(bx,0),1);
-	        Scal.copy(S_old[Rho_mfi],bx,Tracer,bx,0,1);
-	        Scal.plus(S_new[Rho_mfi],bx,Tracer,0,1);
-	        Scal.mult(0.5,bx);
-                getForce(tforces,bx,0,sigma,1,halftime,Scal);
-#else
-#ifdef GENGETFORCE
-                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-                getForce(tforces,bx,0,sigma,1,halftime,rho_halftime[Rho_mfi]);
-#elif MOREGENGETFORCE
 		// Need to do some funky half-time stuff
 		if (getForceVerbose)
   		    amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
@@ -3042,7 +3008,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 					 ARLIM(umacx_lo), ARLIM(umacx_hi),
 					 ARLIM(umacy_lo), ARLIM(umacy_hi),
 #if (BL_SPACEDIM==3)
-
+					 
 					 ARLIM(umacz_lo), ARLIM(umacz_hi),
 #endif
 					 &getForceVerbose);
@@ -3056,10 +3022,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 		
 		if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
                 getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
-#else
-                getForce(tforces,bx,0,sigma,1,rho_halftime[Rho_mfi]);
-#endif		 
-#endif		 
+
                 godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                      Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
             }
@@ -3361,7 +3324,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 	  //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
 	  interpolater->interp(cdata,0,fdata,0,num_comp,fbx,ratio,
-			       cgeom,fgeom,bc_interp,src_comp,State_Type);
+			       cgeom,fgeom,bc_interp,src_comp,State_Type, RunOn::Cpu);
 	  //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
 	  if (increment)
@@ -3374,7 +3337,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 		  FArrayBox& fine_state = (*fine_stateMF)[mfi];
 		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
 					num_comp,fbx,ratio,
-					cgeom,fgeom,bc_interp);
+					cgeom,fgeom,bc_interp, RunOn::Cpu);
 		  Real dt_clev_inv = 1./dt_clev;
 		  cdata.mult(dt_clev_inv,cbx);
 	      }
@@ -3453,7 +3416,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type);
+                                        0,Press_Type, RunOn::Cpu);
             fine_phi.mult(cur_mult_factor);
             P_new[mfi].plus(fine_phi,fbx,0,0);
             fine_phi.mult(prev_mult_factor);
@@ -3477,7 +3440,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type);
+                                        0,Press_Type, RunOn::Cpu);
             P_new[mfi].plus(fine_phi,fbx,0,0);
             P_old[mfi].plus(fine_phi,fbx,0,0);
         }
@@ -3594,19 +3557,12 @@ MultiFab& Gp = *gradp;
       FillPatchIterator
 	    U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
 	    Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
-
+      
       MultiFab& Umf=U_fpi.get_mf();
       MultiFab& Rmf=Rho_fpi.get_mf();
 
-#ifdef BOUSSINESQ
-      FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Tracer,1);
-      MultiFab& Smf=S_fpi.get_mf();
-#else
-#ifdef MOREGENGETFORCE
       FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
       MultiFab& Smf=S_fpi.get_mf();
-#endif
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -3622,12 +3578,6 @@ MultiFab& Gp = *gradp;
 
 	    const Box& bx=U_mfi.tilebox();
 		
-#ifdef BOUSSINESQ
-      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[U_mfi]);
-#else
-#ifdef GENGETFORCE
-      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,rho_ptime[U_mfi]);
-#elif MOREGENGETFORCE
 	    if (getForceVerbose)
 	    {
 	      amrex::Print() << "---" << '\n' 
@@ -3635,10 +3585,7 @@ MultiFab& Gp = *gradp;
 			   << "Calling getForce..." << '\n';
 	    }
       getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
-#else
-      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,rho_ptime[U_mfi]);
-#endif		 
-#endif
+
       godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
       
       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
@@ -3649,7 +3596,7 @@ MultiFab& Gp = *gradp;
           const Box& ebx = amrex::surroundingNodes(bx,d);
           cfluxes[d].resize(ebx,BL_SPACEDIM+1);
       }
-
+        
         //
         // Loop over the velocity components.
         //
@@ -3727,7 +3674,7 @@ MultiFab& Gp = *gradp;
  } // end OMP region
 
  } //end scope of FillPatchIter
- 
+
     if (do_reflux)
     {
         if (level > 0 )
@@ -3775,7 +3722,7 @@ NavierStokesBase::velocity_update (Real dt)
     }
 
     velocity_advection_update(dt);
-    
+
     if (!initial_iter)
         velocity_diffusion_update(dt);
     else
@@ -3842,21 +3789,6 @@ Gp.FillBoundary(geom.periodicity());
         const int i = Rhohalf_mfi.index();
         const Box& bx = Rhohalf_mfi.tilebox();
 
-#ifdef BOUSSINESQ
-        //
-	// Average the new and old time to get half time approximation.
-        //
-        const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-        FArrayBox Scal(bx,1);
-        Scal.copy(U_old[Rhohalf_mfi],bx,Tracer,bx,0,1);
-        Scal.plus(U_new[Rhohalf_mfi],bx,Tracer,0,1);
-        Scal.mult(0.5,bx);
-        getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Scal);
-#else
-#ifdef GENGETFORCE
-        const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-	getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,halftime[i]);
-#elif MOREGENGETFORCE
         //
         // Need to do some funky half-time stuff.
         //
@@ -3900,10 +3832,7 @@ Gp.FillBoundary(geom.periodicity());
 	if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
-#else
-        getForce(tforces,bx,0,Xvel,BL_SPACEDIM,halftime[i]);
-#endif		 
-#endif		 
+
         //
         // Do following only at initial iteration--per JBB.
         //
@@ -3919,13 +3848,12 @@ Gp.FillBoundary(geom.periodicity());
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-	        Gp[Rhohalf_mfi].mult(halftime[i],bx,0,d,1);
+                Gp[Rhohalf_mfi].mult(halftime[i],bx,0,d,1);
                 tforces.mult(halftime[i],bx,0,d,1);
                 S.mult(rho_ptime[Rhohalf_mfi],bx,0,d,1);
             }
         }
-// Here aofs changes
-//VisMF::Write(Aofs,"aofs_in_VAU");
+
         godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
                                 Gp[Rhohalf_mfi],halftime[i],bx,dt);
         if (do_mom_diff == 1)
@@ -3998,12 +3926,6 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         {
 	  const Box& bx = mfi.tilebox();
 	    
-#ifdef BOUSSINESQ
-            getForce(tforces,bx,0,Xvel,BL_SPACEDIM,prev_time,Smf[mfi]);
-#else
-#ifdef GENGETFORCE
-            getForce(tforces,bx,0,Xvel,BL_SPACEDIM,prev_time,rho_ptime[mfi]);
-#elif MOREGENGETFORCE
 	    if (getForceVerbose)
 	    {
 	      amrex::Print() << "---" << '\n' 
@@ -4011,10 +3933,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 			     << "Calling getForce..." << '\n';
 	    }
             getForce(tforces,bx,0,Xvel,BL_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
-#else
-            getForce(tforces,bx,0,Xvel,BL_SPACEDIM,rho_ptime[mfi]);
-#endif		 
-#endif		 
+
             godunov->Sum_tf_gp_visc(tforces,visc_terms[mfi],Gp[mfi],Rh[mfi]);
 
 	    const Box& gbx = mfi.growntilebox(); 

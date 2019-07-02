@@ -969,9 +969,9 @@ contains
 !c :::		   ghost region).
 !c ::: -----------------------------------------------------------
       subroutine FORT_INITDATA(level,time,lo,hi,nscal, &
-                               vel,scal,DIMS(state),press,DIMS(press), &
-                               dx,xlo,xhi) &
-                               bind(C, name="FORT_INITDATA")
+     	 	                      vel,scal,DIMS(state),press,DIMS(press), &
+                              dx,xlo,xhi) &
+                              bind(C, name="FORT_INITDATA")
                               
       implicit none
       integer    level, nscal
@@ -1133,10 +1133,6 @@ contains
          call initfromrest(level,time,lo,hi,nscal, &
              vel,scal,DIMS(state),press,DIMS(press), &
              dx,xlo,xhi)
-      else if (probtype .eq. 31) then
-         call initNodeEBtest(level,time,lo,hi,nscal, &
-             vel,scal,DIMS(state),press,DIMS(press), &
-             dx,xlo,xhi)
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
       end if
@@ -1157,62 +1153,7 @@ contains
       else
          zblend1 = 0.5D0*(1.0D0 + TANH((x-rad)/trn))
       end if
-    end function zblend1
-
-!c
-!c ::: -----------------------------------------------------------
-!c
-      subroutine initNodeEBtest(level,time,lo,hi,nscal, &
-                             vel,scal,DIMS(state),press,DIMS(press), &
-                             dx,xlo,xhi)
-
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T     scal(DIMV(state),nscal)
-      REAL_T     press(DIMV(press))
-
-!c     ::::: local variables
-      integer i, j, k
-      REAL_T  x, y, y2, fac
-      REAL_T  hx, hy
-      REAL_T  dist
-
-#include <probdata.H>
-
-      hx = dx(1)
-      hy = dx(2)
-
-      do k = lo(3),hi(3)
-      do j=lo(2),hi(2)
-         y = hy*(float(j) + half) - half
-         y2 = hy*(float(j) + half) - yblob
-         
-         do i=lo(1),hi(1)
-            x = hx*(float(i) + half) - half
-            dist = sqrt((x)**2 + (y)**2)
-            fac = exp(-(dist*dist/(0.16d0*0.16d0)))
-            vel(i,j,k,1) = 2.0d0*dist*y/dist*fac
-            vel(i,j,k,2) = -2.0d0*dist*x/dist*fac
-            vel(i,j,k,3) = 0.d0
-            ! density
-            scal(i,j,k,1) = 1.0d0
-            ! tracer
-            x = hx*(float(i) + half) - xblob
-            dist = sqrt((x)**2 + (y2)**2)
-            scal(i,j,k,2) = 1.0d0*exp(-(6.0d0*dist)**2)
-
-         end do
-      end do
-      end do
-      
-    end subroutine initNodeEBtest
-      
-
+      end
 !c
 !c ::: -----------------------------------------------------------
 !c ::: Initialise system from rest. Introduced for the lid-driven cavity
@@ -1429,16 +1370,9 @@ contains
             do i = lo(1), hi(1)
 
                x = xlo(1) + hx*(float(i-lo(1)) + half)
-               
-               if (adv_dir .eq. 1) then
-                  ! shear layer in y-dir
-                  vel(i,j,k,1) = -.05*sin(Pi*y)
-                  vel(i,j,k,2) = tanh(30.*(.5-abs(x)))
-               else
-                  ! shear layer in x-dir
-                  vel(i,j,k,1) = tanh(30.*(.5-abs(y)))
-                  vel(i,j,k,2) = .05*sin(Pi*x)
-               end if
+
+               vel(i,j,k,1) = tanh(30.*(.25-abs(y-.5)))
+               vel(i,j,k,2) = .05*sin(two*Pi*x)
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = one
@@ -3657,14 +3591,14 @@ contains
 !c     This routine add the forcing terms to the momentum equation
 !c
       subroutine FORT_MAKEFORCE(time,force, &
-                                vel, &
-                                scal, &
-                                DIMS(force), &
-                                DIMS(vel), &
-                                DIMS(scal), &
-                                dx,xlo,xhi,gravity,scomp,ncomp, &
-                                nscal,getForceVerbose &
-                                )bind(C, name="FORT_MAKEFORCE")
+                               vel, &
+                               scal, &
+                               DIMS(force), &
+                               DIMS(vel), &
+                               DIMS(scal), &
+                               dx,xlo,xhi,gravity,scomp,ncomp, &
+                               nscal,getForceVerbose &
+     )bind(C, name="FORT_MAKEFORCE")
 
       implicit none
 
@@ -4548,16 +4482,6 @@ contains
         end do
         
       else if (probtype .eq. 25) then
- 
-        do k = lo(3), hi(3)
-           do j = lo(2), hi(2)
-              do i = lo(1), hi(1)
-                 tag(i,j,k) = merge(set,tag(i,j,k),adv(i,j,k,1).gt.adverr)
-              end do
-           end do
-        end do
-        
-      else if (probtype .eq. 31) then
  
         do k = lo(3), hi(3)
            do j = lo(2), hi(2)
@@ -7054,19 +6978,6 @@ contains
 !c     perforated plate with radial pattern, no flow on boundaries (to enable periodic ok)
 #if 1
       jetVel = adv_vel/(1.0 - holeBLfac)      
-
-! FIXME : from compiler
-!PROB_3D.F90:7106:0:
-!
-!          cent(n) = 0.5d0 * (domnlo(n) + domnhi(n))
-! 
-!Warning: iteration 2 invokes undefined behavior [-Waggressive-loop-optimizations]
-!PROB_3D.F90:7105:0:
-!
-!       do n=1,3
-! 
-!note: within this loop
-!
       do n=1,3
          cent(n) = 0.5d0 * (domnlo(n) + domnhi(n))
       enddo

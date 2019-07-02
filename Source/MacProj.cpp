@@ -1077,17 +1077,8 @@ MacProj::mac_sync_compute (int                   level,
         //
         Rho.copy(S,Density,0,1);
 
-#ifdef BOUSSINESQ
-        ns_level.getForce(tforces,bx,1,0,NUM_STATE,prev_time,Smf[Smfi]);
-#else
-#ifdef GENGETFORCE
-        ns_level.getForce(tforces,bx,1,0,NUM_STATE,prev_time,Rho);
-#elif MOREGENGETFORCE
         ns_level.getForce(tforces,bx,1,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
-#else
-        ns_level.getForce(tforces,bx,1,0,NUM_STATE,Rho);
-#endif		 
-#endif		 
+
         //
         // Compute total forcing terms.
         //
@@ -1096,17 +1087,7 @@ MacProj::mac_sync_compute (int                   level,
                                   scal_visc_terms[Smfi], 0, divu, 0, Rho, 0, 1);
         if (use_forces_in_trans)
         {
-#ifdef BOUSSINESQ
-            ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi]);
-#else
-#ifdef GENGETFORCE
-            ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Rho);
-#elif MOREGENGETFORCE
             ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi],Smf[Smfi],Density);
-#else
-            ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,Rho);
-#endif		 
-#endif		 
 	    godunov->Sum_tf_gp_visc(tvelforces,0,vel_visc_terms[Smfi],0,Gp[Smfi],0,Rho,0);
         }
         //

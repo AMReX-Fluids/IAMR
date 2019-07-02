@@ -920,19 +920,13 @@ contains
 !c     This routine add the forcing terms to the momentum equation
 !c
       subroutine FORT_MAKEFORCE(time,force, &
-#ifdef MOREGENGETFORCE
                                vel, &
-#endif
                                scal, &
                                DIMS(force), &
-#ifdef MOREGENGETFORCE
                                DIMS(vel), &
-#endif
                                DIMS(scal), &
-                               dx,xlo,xhi,gravity,scomp,ncomp &
-#ifdef MOREGENGETFORCE
-     ,                         nscal,getForceVerbose &
-#endif
+                               dx,xlo,xhi,gravity,scomp,ncomp, &
+                               nscal,getForceVerbose &
      )bind(C, name="FORT_MAKEFORCE")
 
       implicit none
@@ -944,14 +938,10 @@ contains
       REAL_T     xlo(SDIM), xhi(SDIM)
       REAL_T     force  (DIMV(force),scomp:scomp+ncomp-1)
       REAL_T     gravity
-#ifdef MOREGENGETFORCE
       integer    DIMDEC(vel)
       integer    getForceVerbose, nscal
       REAL_T     vel    (DIMV(vel),0:SDIM-1)
       REAL_T     scal   (DIMV(scal),0:nscal-1)
-#else
-      REAL_T     scal   (DIMV(scal),0:0)
-#endif
 
 #include <probdata.H>
 
@@ -969,14 +959,13 @@ contains
       integer nXvel, nYvel, nRho, nTrac, nTrac2
       integer nRhoScal, nTracScal, nTrac2Scal
 
-#ifdef MOREGENGETFORCE
       REAL_T  velmin(0:SDIM-1)
       REAL_T  velmax(0:SDIM-1)
       REAL_T  scalmin(0:nscal-1)
       REAL_T  scalmax(0:nscal-1)
       REAL_T  forcemin(scomp:scomp+ncomp-1)
       REAL_T  forcemax(scomp:scomp+ncomp-1)
-#endif
+
       hx = dx(1)
       hy = dx(2)
 
@@ -996,7 +985,6 @@ contains
       nTracScal  = nTrac-SDIM
       nTrac2Scal = nTrac2-SDIM
 
-#ifdef MOREGENGETFORCE
       if (getForceVerbose.gt.0) then
          call bl_pd_is_ioproc(isioproc)
          if (isioproc .eq. 1) then
@@ -1053,7 +1041,6 @@ contains
             enddo
          endif
       endif
-#endif
 
 !c     
 !c     Here's where the forcing actually gets done
@@ -1129,7 +1116,6 @@ contains
          enddo
       endif
 
-#ifdef MOREGENGETFORCE
       if (getForceVerbose.gt.0 .and. isioproc .eq. 1) then
          do n = scomp,scomp+ncomp-1
             forcemin(n) = 1.d234
@@ -1148,7 +1134,7 @@ contains
             write (6,*) "forcemax (",n,") = ",forcemax(n)
          enddo
       endif
-#endif      
+
       end subroutine FORT_MAKEFORCE
 !c ::: -----------------------------------------------------------
 !c ::: This routine will tag high error cells based on the 

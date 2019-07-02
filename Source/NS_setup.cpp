@@ -179,9 +179,19 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE VELOCITY VARIABLES  ********************
     //
+    // FIXME? - cribbed from CNS
+#ifdef AMREX_USE_EB
+    bool state_data_extrap = false;
+    bool store_in_checkpoint = true;
+    desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
+    			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
+    			   &eb_cell_cons_interp,state_data_extrap,store_in_checkpoint);
+#else
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
                            StateDescriptor::Point,1,NUM_STATE,
                            &cell_cons_interp);
+#endif
+    
     set_x_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
 
@@ -378,7 +388,6 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("gradpz",IndexType::TheCellType(),1,dergrdpz,the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
-#ifdef MOREGENGETFORCE
     //
     // radial velocity
     //
@@ -409,8 +418,7 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("mag_vorticity_rot",IndexType::TheCellType(),1,dermagvortrot,grow_box_by_one);
     derive_lst.addComponent("mag_vorticity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-#endif
-#if defined(DO_IAMR_FORCE) && (defined(GENGETFORCE)||defined(MOREGENGETFORCE))
+#if defined(DO_IAMR_FORCE)
     //
     // forcing - used to calculate the rate of injection of energy in probtype 14 (HIT)
     //

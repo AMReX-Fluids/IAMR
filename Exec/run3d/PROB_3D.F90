@@ -2783,11 +2783,7 @@ contains
                      do ii = 1, nn
                         xx = x + hxx*(float(ii) - half)
                         if (sqrt((xx-0.25)*(xx-0.25)+yy*yy+(zz+0.25)*(zz+0.25)).lt.0.1) then
-#ifdef MOREGENGETFORCE
                            scal(i,j,k,2) = scal(i,j,k,2) + ds
-#else
-                           scal(i,j,k,1) = scal(i,j,k,1) - ds
-#endif
                         endif
                         if (sqrt((xx+0.25)*(xx+0.25)+yy*yy+(zz+0.25)*(zz+0.25)).lt.0.1) then
                            scal(i,j,k,3) = scal(i,j,k,3) + ds
@@ -3595,20 +3591,14 @@ contains
 !c     This routine add the forcing terms to the momentum equation
 !c
       subroutine FORT_MAKEFORCE(time,force, &
-#ifdef MOREGENGETFORCE
-     &                          vel, &
-#endif
-     &                          scal, &
-     &                          DIMS(force), &
-#ifdef MOREGENGETFORCE
-     &                          DIMS(vel), &
-#endif
-     &                          DIMS(scal), &
-     &                          dx,xlo,xhi,gravity,scomp,ncomp &
-#ifdef MOREGENGETFORCE
-     &,                         nscal,getForceVerbose &
-#endif
-     &)bind(C, name="FORT_MAKEFORCE")
+                                vel, &
+                                scal, &
+                                DIMS(force), &
+                                DIMS(vel), &
+                                DIMS(scal), &
+                                dx,xlo,xhi,gravity,scomp,ncomp, &
+                                nscal,getForceVerbose &
+                                )bind(C, name="FORT_MAKEFORCE")
 
       implicit none
 
@@ -3619,14 +3609,10 @@ contains
       REAL_T     xlo(SDIM), xhi(SDIM)
       REAL_T     force  (DIMV(force),scomp:scomp+ncomp-1)
       REAL_T     gravity
-#ifdef MOREGENGETFORCE
       integer    DIMDEC(vel)
       integer    nscal, getForceVerbose
       REAL_T     vel    (DIMV(vel),0:SDIM-1)
       REAL_T     scal   (DIMV(scal),0:nscal-1)
-#else
-      REAL_T     scal   (DIMV(scal),0:0)
-#endif
 
       REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
       REAL_T     kappa, kappaMax
@@ -3657,7 +3643,6 @@ contains
       integer isioproc, do_trac2
       integer nXvel, nYvel, nZvel, nRho, nTrac, nTrac2, nRhoScal, nTracScal, nTrac2Scal
 
-#ifdef MOREGENGETFORCE
       REAL_T  velmin(0:SDIM-1)
       REAL_T  velmax(0:SDIM-1)
       REAL_T  scalmin(0:nscal-1)
@@ -3665,7 +3650,6 @@ contains
       REAL_T  forcemin(scomp:scomp+ncomp-1)
       REAL_T  forcemax(scomp:scomp+ncomp-1)
       REAL_T  tmpMin, tmpMax
-#endif
 
       call bl_ns_dotrac2(do_trac2)
 
@@ -3692,7 +3676,6 @@ contains
       nTracScal  = nTrac-SDIM
       nTrac2Scal = nTrac2-SDIM
 
-#ifdef MOREGENGETFORCE
       if (getForceVerbose.gt.0) then
          call bl_pd_is_ioproc(isioproc)
          if (isioproc.eq.1) then
@@ -3758,7 +3741,6 @@ contains
             enddo
          endif
       endif
-#endif
 
 !c
 !c     Here's where the forcing actually gets done
@@ -3778,11 +3760,9 @@ contains
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nZvel) = zero
-#ifdef MOREGENGETFORCE
                      if (do_trac2.eq.1) then
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
-#endif
                   enddo
                enddo
             enddo
@@ -3797,7 +3777,6 @@ contains
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
-#ifdef MOREGENGETFORCE
                      if (do_trac2.eq.1) then
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
@@ -3814,7 +3793,6 @@ contains
                            force(i,j,k,nZvel) = force(i,j,k,nZvel) - jet_sponge_scale*vel(i,j,k,2)*scal(i,j,k,nRhoScal)
                         endif
                      endif
-#endif
                   enddo
                enddo
             enddo
@@ -3954,7 +3932,6 @@ contains
             enddo
 #endif
          else if (probtype.eq.19) then
-#ifdef MOREGENGETFORCE
 !c     Coriolis
             do k = klo, khi
                z = xlo(3) + hz*(float(k-klo) + half)
@@ -3971,17 +3948,6 @@ contains
                   enddo
                enddo
             enddo
-#else
-            do k = klo, khi
-               do j = jlo, jhi
-                  do i = ilo, ihi
-                     force(i,j,k,nXvel) = zero
-                     force(i,j,k,nYvel) = zero
-                     force(i,j,k,nXvel) = zero
-                  enddo
-               enddo
-            enddo
-#endif
          else if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
 !c     Angled gravity
             sga =  gravity * sin(Pi*grav_angle/180.)
@@ -4057,11 +4023,7 @@ contains
                   do k = klo, khi
                      do j = jlo, jhi
                         do i = ilo, ihi
-#ifdef MOREGENGETFORCE
                            force(i,j,k,n) = heating_coeff * scal(i,j,k,nTracScal)
-#else
-                           force(i,j,k,n) = zero
-#endif
                         enddo
                      enddo
                   enddo
@@ -4071,15 +4033,11 @@ contains
                      z = xlo(3) + hz*(float(k-klo) + half)
                      do j = jlo, jhi
                         do i = ilo, ihi
-#ifdef MOREGENGETFORCE
                            if (abs(z-heating_centre).lt.heating_radius) then 
                               force(i,j,k,n) = heating_coeff * scal(i,j,k,nTracScal)
                            else
                               force(i,j,k,n) = zero
                            endif
-#else
-                           force(i,j,k,n) = zero
-#endif
                         enddo
                      enddo
                   enddo
@@ -4089,15 +4047,11 @@ contains
                      z = xlo(3) + hz*(float(k-klo) + half)
                      do j = jlo, jhi
                         do i = ilo, ihi
-#ifdef MOREGENGETFORCE
                            if (abs(z-heating_centre).lt.heating_radius) then 
                               force(i,j,k,n) = heating_coeff
                            else
                               force(i,j,k,n) = zero
                            endif
-#else
-                           force(i,j,k,n) = zero
-#endif
                         enddo
                      enddo
                   enddo
@@ -4126,7 +4080,6 @@ contains
          enddo
       endif
       
-#ifdef MOREGENGETFORCE
       if (getForceVerbose.gt.0 .and. isioproc.eq.1) then
          do n = scomp,scomp+ncomp-1
             forcemin(n) = 1.d234
@@ -4147,7 +4100,6 @@ contains
             write (6,*) "forcemax (",n,") = ",forcemax(n)
          enddo
       endif
-#endif
 
       end subroutine FORT_MAKEFORCE
 
