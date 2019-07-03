@@ -21,6 +21,7 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_MLEBABecLap.H>
+#include <AMReX_EBMultiFabUtil.H>
 #endif
 #include <AMReX_MLABecLaplacian.H>
 
@@ -298,7 +299,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     checkBeta(betan, allthere, allnull);
     checkBeta(betanp1, allthere, allnull);
 
-    // FIXME -- nned to check on ghost cells of all MFs passed in
+    // FIXME -- need to check on ghost cells of all MFs passed in
     //
     //FIXME - check that parameters betan betanp1, alpha are EB aware
     // only acoeff and bcoeff need to be EB aware; they're what goes to MLMG
@@ -315,7 +316,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
     // Talking with weiqun, thinks no ghost cells are actually needed for MLMG, only
-    // Note for cell-centered solver, you need to cal setLevelBC.  That needs to have
+    // Note for cell-centered solver, you need to call setLevelBC.  That needs to have
     // one ghost cell if there is Dirichlet BC.
     // Trying out ng = 0 ... get failed assertion from setLevelBC bc Soln is used a
     //   temporary for that
@@ -386,16 +387,16 @@ Diffusion::diffuse_scalar (Real                   dt,
 	    }
 	    mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
 	  }
-	  //MultiFab S(grids,dmap,1,ng);
+	  
 	  AmrLevel::FillPatch(*navier_stokes,Soln,ng,prev_time,State_Type,sigma,1);
 	  if (rho_flag == 2) {
 	    const MultiFab& rhotime = navier_stokes->get_rho(prev_time);
 	    MultiFab::Divide(Soln,rhotime,0,0,1,ng);
 	  }
-	  // fixme? Do we need/want this???
-	  // mfix does this
-	  //EB_set_covered(Soln, 0, 1, ng, covered_val);
-	  //Soln.FillBoundary (geom.periodicity());
+	  // fixme? Do we need/want next 2 lines? mfix does this
+	  EB_set_covered(Soln, 0, 1, ng, 1.2345e30);
+	  Soln.FillBoundary ((navier_stokes->Geom()).periodicity());
+	  ///
 	  mlabec.setLevelBC(0, &Soln);
 	}
 
@@ -411,7 +412,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 	  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
 	}
 
-	// Do we need something like this cribbed from mfix???
+	// We probably need something like this cribbed from mfix???
 	// This sets the coefficient on the wall and defines it as a homogeneous
 	// Dirichlet bc for the solve. mu_g is the viscosity at cc in mfix
 	// matches what's in bcoeff
@@ -433,8 +434,6 @@ Diffusion::diffuse_scalar (Real                   dt,
 #ifdef AMREX_USE_EB
 	// now dx, areas, and vol are not constant.
 	std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
-	// fixme? Could use areaFrac-> ToMultiFab instead... won't work for r-z
-	//MultiFab ToMultiFab (Real regular_value, Real covered_value) const;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -451,13 +450,11 @@ Diffusion::diffuse_scalar (Real                   dt,
 	    const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
 	    const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
 
-	    if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+	    if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
 	    {
-	      // If tile is completely covered by EB geometry, set slopes
+	      // If tile is completely covered by EB geometry, set 
 	      // value to some very large number so we know if
-	      // we accidentaly use these covered slopes later in calculations
-	      //
-	      // FIXME -- need right flux comp[
+	      // we accidentaly use these covered vals later in calculations
 	      D_TERM(fluxn[0]->setVal(1.2345e30, xbx, fluxComp, 1);,
 		     fluxn[1]->setVal(1.2345e30, ybx, fluxComp, 1);,
 		     fluxn[2]->setVal(1.2345e30, zbx, fluxComp, 1););
@@ -519,7 +516,7 @@ Diffusion::diffuse_scalar (Real                   dt,
 #if (BL_SPACEDIM == 2) 
     if (sigma == Xvel && parent->Geom(0).IsRZ())
     {
-      //amrex::Abort("r-z still under development. \n");
+      amrex::Abort("r-z still under development. \n");
 
       // this should not be needed if using MLMG metric terms, right?
 // #ifdef _OPENMP
@@ -678,6 +675,7 @@ Diffusion::diffuse_scalar (Real                   dt,
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    // default is true, see AMReX_MLLinOp.H
     //info.setMetricTerm(false);
 #ifdef AMREX_USE_EB
     // create the right data holder for passing to ABecLap
@@ -716,10 +714,10 @@ Diffusion::diffuse_scalar (Real                   dt,
 	const MultiFab& rhotime = navier_stokes->get_rho(cur_time);
 	MultiFab::Divide(S,rhotime,0,0,1,ng);
       }
-      // fixme? Do we need/want to set EB covered??
-      // mfix does this
-      //EB_set_covered(S, 0, 1, ng, covered_val);
-      //S.FillBoundary (geom.periodicity());
+      // fixme? Do we need/want next 2 lines? mfix does this
+      EB_set_covered(S, 0, 1, ng, 1.2345e30);
+      S.FillBoundary ((navier_stokes->Geom()).periodicity());
+      ///
       mlabec.setLevelBC(0, &S);
     }
 
@@ -768,14 +766,11 @@ Diffusion::diffuse_scalar (Real                   dt,
     std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
     mlmg.getFluxes({fp});
 
-    // fixme --- check eb here
     const MultiFab* area   = navier_stokes->Area();
     int nghost = fluxnp1[0]->nGrow(); // this = 0
 #ifdef AMREX_USE_EB
     // now dx, areas, and vol are not constant.
     std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
-    // fixme? Could use areaFrac-> ToMultiFab instead... won't work for r-z
-    //MultiFab ToMultiFab (Real regular_value, Real covered_value) const;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -792,11 +787,11 @@ Diffusion::diffuse_scalar (Real                   dt,
       const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
       const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
       
-      if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
+      if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
       {
-	// If tile is completely covered by EB geometry, set slopes
+	// If tile is completely covered by EB geometry, set 
 	// value to some very large number so we know if
-	// we accidentaly use these covered slopes later in calculations
+	// we accidentaly use these covered vals later in calculations
 	D_TERM(fluxnp1[0]->setVal(1.2345e30, xbx, fluxComp, 1);,
 	       fluxnp1[1]->setVal(1.2345e30, ybx, fluxComp, 1);,
 	       fluxnp1[2]->setVal(1.2345e30, zbx, fluxComp, 1););
