@@ -25,8 +25,6 @@ amr.v                   =  1
 proj.v 			=  1
 proj.Pcode = 0
 
-proj.use_mlmg_solver = 1
-
 amr.check_int		=  1000
 amr.plot_int		=  10
 

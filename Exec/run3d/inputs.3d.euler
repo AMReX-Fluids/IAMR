@@ -87,10 +87,6 @@ proj.sync_tol = 1.e-8
 
 mg.v = 1
 
-mac.use_mlmg_solver = 1
-diffuse.use_mlmg_solver = 1
-
-
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
