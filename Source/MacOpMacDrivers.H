@@ -10,26 +10,6 @@
 //====================================================================
 
 
-// Driver function for a MAC solve
-void mac_level_driver( amrex::Amr* parent, const amrex::MacBndry &mac_bndry, const amrex::BCRec& phys_bc,
-                       const amrex::BoxArray &grids,
-                       int use_cg_solve, int level, int Density,
-                       const amrex::Real *dx, amrex::Real dt,
-                       amrex::Real mac_tol, amrex::Real mac_abs_tol, amrex::Real rhs_scale,
-                       const amrex::MultiFab *area,  const amrex::MultiFab &volume,
-                       amrex::MultiFab &S,     amrex::MultiFab &Rhs,
-                       amrex::MultiFab *u_mac, amrex::MultiFab *mac_phi, int verbose);
-
-// Driver function for a sync MAC solve
-void mac_sync_driver( amrex::Amr* parent, const amrex::MacBndry &mac_bndry, const amrex::BCRec& phys_bc,
-                      const amrex::BoxArray &grids,
-                      int use_cg_solve, int level, 
-                      const amrex::Real *dx, amrex::Real dt,
-                      amrex::Real mac_sync_tol, amrex::Real mac_abs_tol, amrex::Real rhs_scale,
-                      const amrex::MultiFab *area,  const amrex::MultiFab &volume,
-                      amrex::MultiFab &Rhs,   amrex::MultiFab &rho_half,
-                      amrex::MultiFab *mac_sync_phi, int verbose);
-
 // Apply the mac pressure gradient to a velocity field 
 // "init" means that velocities are initialized here
 void mac_vel_update( int init,
