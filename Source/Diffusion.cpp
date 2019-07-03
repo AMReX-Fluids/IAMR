@@ -62,7 +62,7 @@ int         Diffusion::use_cg_solve;
 int         Diffusion::tensor_max_order;
 int         Diffusion::use_tensor_cg_solve;
 bool        Diffusion::use_mg_precond_flag;
-int         Diffusion::use_mlmg_solver = 0;
+int         Diffusion::use_mlmg_solver = 1;
 
 Vector<Real> Diffusion::visc_coef;
 Vector<int>  Diffusion::is_diffusive;

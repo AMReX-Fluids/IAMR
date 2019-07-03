@@ -41,7 +41,7 @@ bool MacProj::use_cg_solve;
 int  MacProj::do_outflow_bcs;
 int  MacProj::fix_mac_sync_rhs;
 int  MacProj::check_umac_periodicity;
-int  MacProj::use_mlmg_solver = 0;
+int  MacProj::use_mlmg_solver = 1;
 int  MacProj::anel_grow       = 1;
 
 namespace
