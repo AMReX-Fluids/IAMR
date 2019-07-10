@@ -3510,7 +3510,7 @@ NavierStokesBase::velocity_advection (Real dt)
     //fixme?  I think one gp is fine, just update as we go, but
     // maybe revisit this later
     //const MultiFab& Gp = getGradP();
-MultiFab& Gp = *gradp;
+     MultiFab& Gp = *gradp;
      Gp.FillBoundary(geom.periodicity());
 
     //fixme
@@ -3588,6 +3588,7 @@ MultiFab& Gp = *gradp;
       FArrayBox tforces;
       FArrayBox S;
       FArrayBox cfluxes[BL_SPACEDIM];
+      FArrayBox edgstate[BL_SPACEDIM];
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
 
@@ -3610,6 +3611,7 @@ MultiFab& Gp = *gradp;
       for (int d=0; d<BL_SPACEDIM; ++d){
           const Box& ebx = amrex::surroundingNodes(bx,d);
           cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+          edgstate[d].resize(ebx,BL_SPACEDIM+1);
       }
         
         //
@@ -3635,7 +3637,9 @@ MultiFab& Gp = *gradp;
 	// aofs = ugradu
 	// incflo advection scheme doesn't include terms like gradp here
 	godunov->AdvectVel(U_mfi, Umf, *aofs,
-			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+			   D_DECL(u_mac[0][U_mfi],u_mac[1][U_mfi],u_mac[2][U_mfi]),
+                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                           D_DECL(edgstate[0],edgstate[1],edgstate[2]),
 			   D_DECL(bndry[0], bndry[1], bndry[2]),
 			   geom.Domain(),
 			   geom.CellSize(),Godunov::hypgrow());	

@@ -126,10 +126,6 @@ contains
       ! Check number of ghost cells
       if (ng < 5) call amrex_abort( "compute_divop(): ng must be >= 5")
 
-      !check number of components
-      if ( .NOT.(nc.eq.1 .OR. nc.eq.SDIM) ) &
-           call amrex_abort("compute_divop(): must have either nc==1 (for scalar) or nc==3 (for velocity).")
-
       ! Check if we are computing divergence for viscous term
       if ( present(eta) ) then
          is_viscous = .true.

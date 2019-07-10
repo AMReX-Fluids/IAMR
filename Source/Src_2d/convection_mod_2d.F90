@@ -293,14 +293,18 @@ contains
                             vel, vello, velhi, &
                             u, ulo, uhi, &
                             v, vlo, vhi, &
+                            xflx, xflxlo, xflxhi, &
+                            yflx, yflxlo, yflxhi, &
+                            xstate, xstatelo, xstatehi, &
+                            ystate, ystatelo, ystatehi, &
                             xslopes, yslopes, slo, shi, &
                             domlo, domhi, &
                             ! bc_ilo_type, bc_ihi_type, &
                             ! bc_jlo_type, bc_jhi_type, &
-                            dx, ng) bind(C)
+                            dx, ng, nc) bind(C)
 
       ! Tile bounds
-      integer(c_int),  intent(in   ) :: lo(SDIM),  hi(SDIM)
+      integer(c_int),  intent(in   ) :: lo(SDIM),  hi(SDIM), nc
 
       ! Array Bounds
       integer(c_int),  intent(in   ) :: slo(SDIM), shi(SDIM)
@@ -308,12 +312,16 @@ contains
       integer(c_int),  intent(in   ) :: vello(SDIM), velhi(SDIM)
       integer(c_int),  intent(in   ) :: ulo(SDIM), uhi(SDIM)
       integer(c_int),  intent(in   ) :: vlo(SDIM), vhi(SDIM)
+      integer(c_int),  intent(in   ) :: xflxlo(SDIM), xflxhi(SDIM)
+      integer(c_int),  intent(in   ) :: yflxlo(SDIM), yflxhi(SDIM)
+      integer(c_int),  intent(in   ) :: xstatelo(SDIM), xstatehi(SDIM)
+      integer(c_int),  intent(in   ) :: ystatelo(SDIM), ystatehi(SDIM)
       integer(c_int),  intent(in   ) :: domlo(SDIM), domhi(SDIM), ng
 
       ! Grid
       real(ar),        intent(in   ) :: dx(SDIM)
 
-      integer(c_int),     parameter  :: nc = 1
+      !integer(c_int),     parameter  :: nc = 1
       ! Velocity Array
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),nc), &
@@ -323,7 +331,11 @@ contains
            & v(vlo(1):vhi(1),vlo(2):vhi(2))
 
       real(ar),        intent(  out) ::                           &
-           & divuc(glo(1):ghi(1),glo(2):ghi(2),nc)
+           & divuc(glo(1):ghi(1),glo(2):ghi(2),nc), &
+           & xflx(xflxlo(1):xflxhi(1),xflxlo(2):xflxhi(2),nc), &
+           & yflx(yflxlo(1):yflxhi(1),yflxlo(2):yflxhi(2),nc), &
+           & xstate(xstatelo(1):xstatehi(1),xstatelo(2):xstatehi(2),nc), &
+           & ystate(ystatelo(1):ystatehi(1),ystatelo(2):ystatehi(2),nc)
 
       ! BC types
       !integer(c_int), intent(in   ) ::  &
@@ -334,7 +346,7 @@ contains
            & bc_jhi_type(domlo(1)-ng:domhi(1)+ng,2)
 
       ! Local variables
-      integer(c_int)                 :: i, j
+      integer(c_int)                 :: i, j, n
       real(ar)                       :: idx, idy
       real(ar)                       :: upls, umns, vpls, vmns
       real(ar)                       :: u_e, u_w, u_s, u_n
@@ -352,6 +364,8 @@ contains
       
       idx = one / dx(1)
       idy = one / dx(2)
+
+      do n =1,nc
       
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
@@ -363,10 +377,10 @@ contains
             ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
             ! In the case of PINF, POUT          we are using the upwind value
             if (i.eq.domlo(1) .and. any(bc_ilo_type(j,1) == bc_list ) ) then
-               u_w =  vel(i-1,j,1)
+               u_w =  vel(i-1,j,n)
             else
-               upls  = vel(i  ,j,1) - half * xslopes(i  ,j,1)
-               umns  = vel(i-1,j,1) + half * xslopes(i-1,j,1)
+               upls  = vel(i  ,j,n) - half * xslopes(i  ,j,n)
+               umns  = vel(i-1,j,n) + half * xslopes(i-1,j,n)
 
                u_w   = upwind( umns, upls, u(i,j) )
             endif
@@ -378,10 +392,10 @@ contains
             ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
             ! In the case of PINF, POUT          we are using the upwind value
             if (i.eq.domhi(1) .and. any(bc_ihi_type(j,1) == bc_list ) ) then
-               u_e =  vel(i+1,j,1)
+               u_e =  vel(i+1,j,n)
             else
-               upls  = vel(i+1,j,1) - half * xslopes(i+1,j,1)
-               umns  = vel(i  ,j,1) + half * xslopes(i  ,j,1)
+               upls  = vel(i+1,j,n) - half * xslopes(i+1,j,n)
+               umns  = vel(i  ,j,n) + half * xslopes(i  ,j,n)
 
                u_e   = upwind( umns, upls, u(i+1,j) )
             endif
@@ -393,10 +407,10 @@ contains
             ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
             ! In the case of PINF, POUT          we are using the upwind value
             if (j.eq.domlo(2) .and. any(bc_jlo_type(i,1) == bc_list ) ) then
-               u_s =  vel(i,j-1,1)
+               u_s =  vel(i,j-1,n)
             else
-               upls  = vel(i,j  ,1) - half * yslopes(i,j  ,1)
-               umns  = vel(i,j-1,1) + half * yslopes(i,j-1,1)
+               upls  = vel(i,j  ,n) - half * yslopes(i,j  ,n)
+               umns  = vel(i,j-1,n) + half * yslopes(i,j-1,n)
 
                u_s   = upwind( umns, upls, v(i,j) )
             endif
@@ -408,10 +422,10 @@ contains
             ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
             ! In the case of PINF, POUT          we are using the upwind value
             if (j.eq.domhi(2) .and.  any(bc_jhi_type(i,1) == bc_list ) ) then
-               u_n =  vel(i,j+1,1)
+               u_n =  vel(i,j+1,n)
             else
-               upls  = vel(i,j+1,1) - half * yslopes(i,j+1,1)
-               umns  = vel(i,j  ,1) + half * yslopes(i,j  ,1)
+               upls  = vel(i,j+1,n) - half * yslopes(i,j+1,n)
+               umns  = vel(i,j  ,n) + half * yslopes(i,j  ,n)
 
                u_n   = upwind( umns, upls, v(i,j+1) )
             endif
@@ -421,10 +435,21 @@ contains
             !   divuc =  div(u^MAC c_edge) 
             ! ****************************************************
             
-
-            divuc(i,j,1) = (u(i+1,j) * u_e - u(i,j) * u_w) * idx + &
+            divuc(i,j,n) = (u(i+1,j) * u_e - u(i,j) * u_w) * idx + &
                            (v(i,j+1) * u_n - v(i,j) * u_s) * idy
                                
+                               
+            xstate(i,j,n)   = u_w
+            xstate(i+1,j,n) = u_e
+            ystate(i,j,n)   = u_s
+            ystate(i,j+1,n) = u_n
+            
+            xflx(i,j,n)   = u(i,j)   * u_w / idx
+            xflx(i+1,j,n) = u(i+1,j) * u_e / idx
+            yflx(i,j,n)   = v(i,j)   * u_s / idy
+            yflx(i,j+1,n) = v(i,j+1) * u_n / idy
+            
+            !write(*,*) 'DBUG TOTO',i,j,xstate(i,j),xstate(i+1,j),ystate(i,j),ystate(i,j+1)
 
             ! ****************************************************
             ! Return the negative
@@ -433,6 +458,9 @@ contains
             !divuc(i,j,1) = -divuc(i,j,1)
 
          end do
+      end do
+      
+      
       end do
 
    end subroutine compute_divuc

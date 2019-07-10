@@ -69,7 +69,7 @@ contains
       integer(c_int)                 :: i, j
       integer, parameter             :: bc_list(6) = [MINF_, NSW_, FSW_, PSW_, PINF_, POUT_]
       real(ar)                       :: upls, umns
-
+      
       ! First we compute the face centered MAC velocity
       ! We need 1 layer of ghosts cells in y and z for interpolation (see next step)
       do j = lo(2)-1, hi(2)+1
@@ -184,10 +184,14 @@ contains
                                  aofs, glo, ghi, &
                                  vel, vello, velhi, &
                                  u, ulo, uhi, &
+                                 xflx, xflxlo, xflxhi, &
+                                 xstate, xstatelo, xstatehi, &
                                  afrac_x, axlo, axhi, &
                                  cent_x,  cxlo, cxhi, &
                                  xslopes, slo, shi, &                        
                                  v, vlo, vhi, &
+                                 yflx, yflxlo, yflxhi, &
+                                 ystate, ystatelo, ystatehi, &
                                  afrac_y, aylo, ayhi, &
                                  cent_y,  cylo, cyhi, &
                                  yslopes, &
@@ -210,6 +214,10 @@ contains
       integer(c_int),  intent(in   ) :: vello(SDIM), velhi(SDIM)
       integer(c_int),  intent(in   ) :: ulo(SDIM), uhi(SDIM)
       integer(c_int),  intent(in   ) :: vlo(SDIM), vhi(SDIM)
+      integer(c_int),  intent(in   ) :: xflxlo(SDIM), xflxhi(SDIM)
+      integer(c_int),  intent(in   ) :: yflxlo(SDIM), yflxhi(SDIM)
+      integer(c_int),  intent(in   ) :: xstatelo(SDIM), xstatehi(SDIM)
+      integer(c_int),  intent(in   ) :: ystatelo(SDIM), ystatehi(SDIM)
       integer(c_int),  intent(in   ) :: axlo(SDIM), axhi(SDIM)
       integer(c_int),  intent(in   ) :: aylo(SDIM), ayhi(SDIM)
       integer(c_int),  intent(in   ) :: cxlo(SDIM), cxhi(SDIM)
@@ -237,7 +245,11 @@ contains
            & bcent(blo(1):bhi(1),blo(2):bhi(2),SDIM)
 
       real(ar),        intent(  out) ::                           &
-           & aofs(glo(1):ghi(1),glo(2):ghi(2),nc)
+           & aofs(glo(1):ghi(1),glo(2):ghi(2),nc), &
+           & xflx(xflxlo(1):xflxhi(1),xflxlo(2):xflxhi(2),nc), &
+           & yflx(yflxlo(1):yflxhi(1),yflxlo(2):yflxhi(2),nc), &
+           & xstate(xstatelo(1):xstatehi(1),xstatelo(2):xstatehi(2),nc), &
+           & ystate(ystatelo(1):ystatehi(1),ystatelo(2):ystatehi(2),nc)
 
       integer(c_int), intent(in   ) ::  &
            & flags(flo(1):fhi(1),flo(2):fhi(2))
@@ -254,8 +266,8 @@ contains
       ! Temporary array to handle convective fluxes at the cell faces (staggered)
       ! Just reserve space for the tile + 3 ghost layers
       integer, parameter :: nh = 3 ! Number of Halo layers
-      real(ar) :: fx(lo(1)-nh:hi(1)+nh+1,lo(2)-nh:hi(2)+nh    ,SDIM)
-      real(ar) :: fy(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh+1  ,SDIM)
+      real(ar) :: fx(lo(1)-nh:hi(1)+nh+1,lo(2)-nh:hi(2)+nh    ,nc)
+      real(ar) :: fy(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh+1  ,nc)
 
       ! Check number of ghost cells
       if (ng < 5) call amrex_abort( "compute_divop(): ng must be >= 5")
@@ -300,6 +312,11 @@ contains
                   u_face = my_huge
                end if
                fx(i,j,n) = u(i,j) * u_face
+               if (((i >= xflxlo(1)).and.(i <= xflxhi(1))).and.((j >= xflxlo(2)).and.(j <= xflxhi(2)))) then
+                 xstate(i,j,n)   = u_face
+                 xflx(i,j,n)     = fx(i,j,n) * dx(1)
+               endif
+
             end do
          end do
 
@@ -323,6 +340,12 @@ contains
                   v_face = my_huge
                end if
                fy(i,j,n) = v(i,j) * v_face
+
+               if (((i >= yflxlo(1)).and.(i <= yflxhi(1))).and.((j >= yflxlo(2)).and.(j <= yflxhi(2)))) then 
+                 ystate(i,j,n)   = v_face
+                 yflx(i,j,n)     = fy(i,j,n)  * dx(2)
+               endif
+
             end do
          end do
          
