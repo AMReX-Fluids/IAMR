@@ -1562,8 +1562,8 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
 			    // bc_khi[lev]->dataPtr(),
 			dx, &scomp, &nghost);
       }
-amrex::Print() << xstate;
-
+//amrex::Print() << xstate;
+amrex::Print()<<aofs[mfi];
   }        
 }
 

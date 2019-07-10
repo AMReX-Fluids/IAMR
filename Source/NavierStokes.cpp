@@ -731,17 +731,19 @@ NavierStokes::scalar_advection (Real dt,
 	       bndry[1] = fetchBCArray(State_Type,bx,1,1);,
 	       bndry[2] = fetchBCArray(State_Type,bx,2,1););
 	
-	int acomp = fscalar;
-	for ( int i=0; i<num_scalars; i++){
-	  godunov->AdvectScalar(S_mfi, Smf, i,
-				*aofs, acomp,
+//	int acomp = fscalar;
+//	for ( int i=0; i<num_scalars; i++){
+	  godunov->AdvectScalar(S_mfi, Smf, 0, num_scalars,
+				*aofs, fscalar,
 				D_DECL(xslps, yslps, zslps),
-				D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+				D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
+                                D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                                D_DECL(edgstate[0],edgstate[1],edgstate[2]),
 				D_DECL(bndry[0], bndry[1], bndry[2]),
 				geom.Domain(),
 				geom.CellSize(),Godunov::hypgrow());	
-	  acomp++;
-	}
+//	  acomp++;
+//	}
 
 #else
 	
