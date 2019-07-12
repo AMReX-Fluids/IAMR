@@ -711,7 +711,7 @@ NavierStokesBase::advance_setup (Real time,
     //
     BL_ASSERT(aofs == 0);
     // NOTE: nghost=0 for aofs appears to work. mfix also uses no ghost cells.  
-    aofs = new MultiFab(grids,dmap,NUM_STATE,0);
+    aofs = new MultiFab(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
     //
     // Set rho_avg.
     //
@@ -3771,7 +3771,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
 #ifdef AMREX_USE_EB
     MultiFab& Gp=*gradp;
-Gp.FillBoundary(geom.periodicity());
+    Gp.FillBoundary(geom.periodicity());
     if (do_mom_diff == 1)
       amrex::Abort("NavierStokesBase::velocity_advection_update(): do_mom_diff==1 not currently working with EB.");
     // Changing Gp to a point causes memory problems for non-EB (and maybe EB too)...
@@ -3882,6 +3882,7 @@ Gp.FillBoundary(geom.periodicity());
         }
     }
 }
+
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (U_old.contains_nan(sigma,1,0))

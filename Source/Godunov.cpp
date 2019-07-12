@@ -1365,7 +1365,7 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
     static_cast<EBFArrayBox const&>(U[mfi]);
   const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
 
-
+//amrex::Print()<<aofs[mfi];
   if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
   {
       // If tile is completely covered by EB geometry, set slopes
@@ -1441,6 +1441,7 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 			    // bc_khi[lev]->dataPtr(),
 			dx, &ncomp, &nghost);
       }
+//amrex::Print()<<aofs[mfi];
   }        
 }
 
@@ -1471,8 +1472,6 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
   
   // Tilebox
   Box bx = mfi.tilebox();
-  // fixme? for now
-  const int ncomp = 1;
   
   // this is to check efficiently if this tile contains any eb stuff
   const EBFArrayBox& vel_in_fab =
@@ -1485,7 +1484,7 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
       // If tile is completely covered by EB geometry, set slopes
       // value to some very large number so we know if
       // we accidentaly use these covered slopes later in calculations
-      aofs[mfi].setVal(1.2345e300, bx, acomp, ncomp);
+      aofs[mfi].setVal(1.2345e300, bx, acomp, scomp);
   }
   else
   {
@@ -1563,7 +1562,7 @@ Godunov::AdvectScalar (const amrex::MFIter&  mfi,
 			dx, &scomp, &nghost);
       }
 //amrex::Print() << xstate;
-amrex::Print()<<aofs[mfi];
+//amrex::Print()<<aofs[mfi];
   }        
 }
 

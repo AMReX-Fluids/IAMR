@@ -188,7 +188,7 @@ contains
 
                  if (is_covered_cell(flags(i,j))) then
 
-                    divc(i,j) = my_huge
+                    divc(i,j) = 0.0d0 !my_huge
 
                  else if (is_single_valued_cell(flags(i,j))) then
 
