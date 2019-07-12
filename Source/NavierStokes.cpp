@@ -723,27 +723,21 @@ NavierStokes::scalar_advection (Real dt,
         }
 
 #ifdef AMREX_USE_EB
-	//
-	// TODO eventually want this to take multiple scalars
-	//
-	Vector<int> bndry[BL_SPACEDIM];
-	D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-	       bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-	       bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+        Vector<int> bndry[BL_SPACEDIM];
+        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+               bndry[2] = fetchBCArray(State_Type,bx,2,1););
 	
-//	int acomp = fscalar;
-//	for ( int i=0; i<num_scalars; i++){
-	  godunov->AdvectScalar(S_mfi, Smf, 0, num_scalars,
-				*aofs, fscalar,
-				D_DECL(xslps, yslps, zslps),
-				D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
+       godunov->AdvectScalars_EB(S_mfi, Smf, 0, num_scalars,
+                                 *aofs, fscalar,
+                                D_DECL(xslps, yslps, zslps),
+                                D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
                                 D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                 D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-				D_DECL(bndry[0], bndry[1], bndry[2]),
-				geom.Domain(),
-				geom.CellSize(),Godunov::hypgrow());	
-//	  acomp++;
-//	}
+                                D_DECL(bndry[0], bndry[1], bndry[2]),
+                                geom.Domain(),
+                                geom.CellSize(),Godunov::hypgrow());	
 
 #else
 	

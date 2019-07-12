@@ -1451,7 +1451,7 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 // aofs = div uc   NOT minus div uc like mfix
 //
 void
-Godunov::AdvectScalar (const amrex::MFIter&  mfi,
+Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 		       const MultiFab& S, int first_scal, int scomp,
 		       MultiFab& aofs, int acomp,
 		       D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,

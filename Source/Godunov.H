@@ -299,7 +299,7 @@ public:      // public access functions
 		  const amrex::Box& domain,
 		  const amrex::Real* dx,
 		  int nghost);
-  void AdvectScalar (const amrex::MFIter&  mfi,
+  void AdvectScalars_EB (const amrex::MFIter&  mfi,
 		     const amrex::MultiFab& S, int first_scal, int scomp,
 		     amrex::MultiFab& aofs, int acomp,
 		     D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
