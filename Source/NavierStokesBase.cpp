@@ -1652,7 +1652,7 @@ NavierStokesBase::getState (int  ngrow,
 
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),
                                 state[state_idx].DistributionMap(),
-                                ncomp,ngrow,MFInfo(),amr_level->Factory());
+                                ncomp,ngrow,MFInfo(),Factory());
     FillPatch(*this,*mf,ngrow,time,state_idx,scomp,ncomp,0);
 
     return mf;
