@@ -10,12 +10,9 @@ TOP = ../..
 
 DIM        = 3
 COMP	   = gnu
-DEBUG	   = TRUE
+DEBUG	   = FALSE
 USE_MPI    = TRUE
 USE_OMP    = TRUE
-
-#TEST=TRUE
-#USE_ASSERTION=TRUE
 
 PRECISION = DOUBLE
 
@@ -48,6 +45,9 @@ ifeq (${USE_VELOCITY}, TRUE)
   #AMRVIS_DIR defines the directory in which we will find pAmrvis (e.g. DataServices, AmrData and FABUTIL)
   AMRVIS_DIR = $(AMREX_HOME)/Src/Extern/amrdata
 endif
+
+# This is for the time-dependent turbulence forcing term
+DEFINES += -DDO_IAMR_FORCE
 
 Bpack   := ./Make.package
 Blocs   := .

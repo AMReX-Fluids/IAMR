@@ -1,0 +1,14 @@
+
+FEXE_headers += probdata.H PROB_F.H
+F90EXE_sources += PROB_$(DIM)D.F90
+
+ifeq (${USE_SWIRL_DATA}, TRUE)
+  fEXE_sources += vswirl.f
+endif
+
+ifeq ($(USE_VELOCITY), TRUE)
+  CEXE_headers += DataServices.H AmrData.H XYPlotDataList.H AmrvisConstants.H
+  CEXE_sources += DataServices.cpp AmrData.cpp
+  FEXE_sources += FABUTIL_$(DIM)D.F
+endif
+

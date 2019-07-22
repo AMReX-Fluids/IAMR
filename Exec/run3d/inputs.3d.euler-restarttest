@@ -129,5 +129,3 @@ amr.derive_plot_vars    =  mag_vort x_velocity y_velocity density tracer modgrad
 #*******************************************************************************
 proj.v=1
 
-mac.use_mlmg_solver = 1
-diffuse.use_mlmg_solver = 1

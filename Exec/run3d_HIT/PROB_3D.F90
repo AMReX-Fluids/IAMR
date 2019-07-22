@@ -1955,15 +1955,14 @@ contains
       integer i, j, k, n
       REAL_T  x, y, z
       REAL_T  hx, hy, hz
-      REAL_T  dist, tpi
+      REAL_T  dist, pi
 
 #include <probdata.H>
 
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
-
-      tpi = 8.d0*atan(1.d0)
+      pi = 4.d0*atan2(1.d0,1.d0)
 
       do k = lo(3), hi(3)
          z = xlo(3) + hz*(float(k-lo(3)) + half)
@@ -1972,28 +1971,30 @@ contains
 	    do i = lo(1), hi(1)
                x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-               vel(i,j,k,1) =  velfact*sin(tpi * x)*cos(tpi * y)*cos(tpi * z)
-               vel(i,j,k,2) = -velfact*cos(tpi * x)*sin(tpi * y)*cos(tpi * z)
+               vel(i,j,k,1) =  velfact*sin(x)*cos(y)*cos(z)
+               vel(i,j,k,2) = -velfact*cos(x)*sin(y)*cos(z)
+
+!c               vel(i,j,k,1) = sin(x-pi*0.5d0)*cos(y-pi)*cos(z-pi*0.5d0)
+!c               vel(i,j,k,2) = -cos(x-pi*0.5d0)*sin(y-pi)*cos(z-pi*0.5d0)
                vel(i,j,k,3) = zero
 
                scal(i,j,k,1) = denfact
-
-               ! This is the theoretical pressure perturbation from p_0
+!c     This is the theoretical pressure perturbation from p_0
                scal(i,j,k,2) = (denfact*velfact*velfact/16.d0)*(two+cos(two*z))*(cos(two*x)+cos(two*y))
                do n = 2,nscal-1
                   scal(i,j,k,n) = one
                end do
                   
-!  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
-! 	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
+!c 	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+!c	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
 	    end do
          end do
       end do
 
       end subroutine taylorgreen
-! 
-!  ::: -----------------------------------------------------------
-! 
+!c
+!c ::: -----------------------------------------------------------
+!c
       subroutine swirl(level,time,lo,hi,nscal, &
      	 	       vel,scal,DIMS(state),press,DIMS(press), &
                       dx,xlo,xhi)
@@ -3590,14 +3591,14 @@ contains
 !c     This routine add the forcing terms to the momentum equation
 !c
       subroutine FORT_MAKEFORCE(time,force, &
-                                vel, &
-                                scal, &
-                                DIMS(force), &
-                                DIMS(vel), &
-                                DIMS(scal), &
-                                dx,xlo,xhi,gravity,scomp,ncomp, &
-                                nscal,getForceVerbose &
-                                )bind(C, name="FORT_MAKEFORCE")
+                               vel, &
+                               scal, &
+                               DIMS(force), &
+                               DIMS(vel), &
+                               DIMS(scal), &
+                               dx,xlo,xhi,gravity,scomp,ncomp, &
+                               nscal,getForceVerbose &
+     )bind(C, name="FORT_MAKEFORCE")
 
       implicit none
 

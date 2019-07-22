@@ -1,0 +1,19 @@
+  &fortin
+
+  probtype = 14
+  vorterr  = .4
+
+  forcing_type           = 8
+  spectrum_type          = 2
+  mode_start             = 1
+  nmodes                 = 4
+  turb_scale             = 1.0e2
+  force_scale            = 3.0d10
+  forcing_time_scale_min = 1.0
+  forcing_time_scale_max = 2.0
+  forcing_time_scale_min = 1.0e-5
+  forcing_time_scale_max = 2.0e-5
+  do_mode_division       = 0
+
+
+ /

@@ -67,3 +67,21 @@ Other minor fixes
 
 5/1/19
 Minor compiler settings fixes
+
+6/3/19
+Bug fix in filling u_mac ghost cells
+Fix create_umac_grown for periodic cases
+Misc code cleanup; extra arguments, extraenous calls, compiler quieting
+Parallel reduction cleanup
+Various changes to be consistent with AMReX interfaces
+
+7/3/19
+Bug fix SUMJET, these routines were compiled even if SUMJET was not defined
+Reducing the dependency of PeleLM to IAMR
+Putting back HIT test case
+Getting rid of GENGETFORCE, MOREGENGETFORCE, etc.. now FORT_MAKEFORCE is always compiled 
+     with the most general interface that was previously called by MOREGENGETFORCE
+Input parameters are now read in two separate routines: Initialize() and Initialize_specific()
+     in order to reduce dependency of PeleLM to IAMR
+Bug fix NavierStokesBase::velocity_advection_update()
+MLMG solver is now the only one implemented and used for Diffusion and MacProj
