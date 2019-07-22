@@ -1271,21 +1271,25 @@ NavierStokesBase::estTimeStep ()
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:estdt) reduction(max:umax_x,umax_y,umax_z)
 #endif
 {
+    FArrayBox tforces;
     Real gr_max[BL_SPACEDIM];
     FArrayBox tforces;
 
     for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
-	const Box& bx=Rho_mfi.tilebox();
+        const Box& bx=Rho_mfi.tilebox();
+
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
 
         const Real cur_time = state[State_Type].curTime();
-	if (getForceVerbose)
-	  amrex::Print() << "---" << '\n' 
-			 << "H - est Time Step:" << '\n' 
-			 << "Calling getForce..." << '\n';
+        
+        if (getForceVerbose)
+        amrex::Print() << "---" << '\n' 
+        << "H - est Time Step:" << '\n' 
+        << "Calling getForce..." << '\n';
+        
         getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
 
         tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
@@ -1299,12 +1303,12 @@ NavierStokesBase::estTimeStep ()
         // {
 	//     u_max[k] = std::max(u_max[k],gr_max[k]);
 	// }
-	umax_x = std::max(umax_x,gr_max[0]);
-	umax_y = std::max(umax_y,gr_max[1]);
+        umax_x = std::max(umax_x,gr_max[0]);
+        umax_y = std::max(umax_y,gr_max[1]);
 #if (BL_SPACEDIM == 3)
-	umax_z = std::max(umax_z,gr_max[2]);
+        umax_z = std::max(umax_z,gr_max[2]);
 #endif 
-	estdt = std::min(estdt,dt);
+        estdt = std::min(estdt,dt);
     }
 }
 
@@ -1314,18 +1318,18 @@ NavierStokesBase::estTimeStep ()
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-      	u_max[0] = umax_x; 
-	u_max[1] = umax_y;
+        u_max[0] = umax_x; 
+        u_max[1] = umax_y;
 #if (BL_SPACEDIM == 3)
-	u_max[2] = umax_z;
+        u_max[2] = umax_z;
 #endif 
+        ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
-	ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
-	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
-	for (int k = 0; k < BL_SPACEDIM; k++)
-	  amrex::Print() << u_max[k] << "  ";
-	amrex::Print() << '\n';
+	      amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
+	      for (int k = 0; k < BL_SPACEDIM; k++)
+	       amrex::Print() << u_max[k] << "  ";
+	       amrex::Print() << '\n';
     }
 
     return estdt;
