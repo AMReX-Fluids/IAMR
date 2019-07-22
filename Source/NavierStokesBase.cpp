@@ -1273,7 +1273,6 @@ NavierStokesBase::estTimeStep ()
 {
     FArrayBox tforces;
     Real gr_max[BL_SPACEDIM];
-    FArrayBox tforces;
 
     for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
