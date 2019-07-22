@@ -57,27 +57,7 @@ public:
 
     static amrex::Real get_scaled_abs_tol (const amrex::MultiFab& rhs,
                              amrex::Real            reduction);
-
-#if 0
-    void diffuse_scalar (amrex::Real                   dt,
-			 int                    sigma,
-			 amrex::Real                   be_cn_theta,
-			 const amrex::MultiFab&        rho_half,
-			 int                    rho_flag,
-			 amrex::MultiFab* const*       fluxn,
-			 amrex::MultiFab* const*       fluxnp1,
-			 int                    fluxComp,
-			 amrex::MultiFab*              delta_rhs, 
-                         int                    rhsComp,
-			 const amrex::MultiFab*        alpha, 
-                         int                    alphaComp,
-			 const amrex::MultiFab* const* betan, 
-			 const amrex::MultiFab* const* betanp1,
-                         int                    betaComp,
-			 const SolveMode&       solve_mode = ONEPASS,
-                         bool                   add_old_time_divFlux = true);
-#endif
-    
+   
     static void diffuse_scalar (const amrex::Vector<amrex::MultiFab*>& S_old,
                                 const amrex::Vector<amrex::MultiFab*>& Rho_old,
                                 amrex::Vector<amrex::MultiFab*>&       S_new,
@@ -150,19 +130,11 @@ public:
                         amrex::Real                   dt,
                         amrex::Real                   be_cn_theta,
                         const amrex::MultiFab&        rho_half,
-                        int                    rho_flag,
-                        const amrex::MultiFab* const* beta,
-                        int                    betaComp = 0,
-			bool                   update_fluxreg = true);
+                        int                           rho_flag,
+                        const amrex::MultiFab*        const* beta,
+                        int                           betaComp = 0,
+                        bool                          update_fluxreg = true);
 
-#if 0
-    void diffuse_Vsync_constant_mu (amrex::MultiFab&       Vsync,
-                                    amrex::Real            dt,
-                                    amrex::Real            be_cn_theta,
-                                    const amrex::MultiFab& rho_half,
-                                    int             rho_flag,
-				    bool            update_fluxreg);
-#endif
 
     void diffuse_tensor_Vsync (amrex::MultiFab&              Vsync,
                                amrex::Real                   dt,
@@ -171,24 +143,24 @@ public:
                                int                    rho_flag,
                                const amrex::MultiFab* const* beta,
                                int                    betaComp,
-			       bool                   update_fluxreg);
+			                         bool                   update_fluxreg);
 
-#if 1
+
     void diffuse_Ssync (amrex::MultiFab&              Ssync,
                         int                    sigma,
                         amrex::Real                   dt,
                         amrex::Real                   be_cn_theta,
                         const amrex::MultiFab&        rho_half,
                         int                    rho_flag,
-			amrex::MultiFab* const*       flux,
-			int                    fluxComp,
+                        amrex::MultiFab* const*       flux,
+			                  int                    fluxComp,
                         const amrex::MultiFab* const* beta,
                         int                    betaComp,
-			const amrex::MultiFab*        alpha,
+			                  const amrex::MultiFab*        alpha,
                         int                    alphaComp);
-#endif
 
-#if 1
+
+
     amrex::ABecLaplacian* getViscOp (int                    src_comp,
                               amrex::Real                   a,
                               amrex::Real                   b, 
@@ -198,11 +170,10 @@ public:
                               int                    rho_flag,
                               amrex::Real*                  rhsscale,
                               const amrex::MultiFab* const* beta,
-			      int                    betaComp,
+			                        int                    betaComp,
                               const amrex::MultiFab*        alpha_in,
-			      int                    alphaComp,
+			                        int                    alphaComp,
                               bool		     bndry_already_filled = false);
-#endif
 
     static amrex::ABecLaplacian* getViscOp (amrex::Real            a,
                                             amrex::Real            b,
@@ -227,20 +198,20 @@ public:
                                             const amrex::MultiFab* const* area,
                                             bool                   use_hoop_stress);
 
-#if 1
-    amrex::ABecLaplacian* getViscOp (int                    src_comp,
-                              amrex::Real                   a,
-                              amrex::Real                   b,
-                              const amrex::MultiFab&        rho_half,
-                              int                    rho_flag,
-                              amrex::Real*                  rhsscale,
-                              const amrex::MultiFab* const* beta,
-			      int                    betaComp,
-                              const amrex::MultiFab*        alpha_in,
-			      int                    alphaComp);
-#endif
 
-#if 1
+    amrex::ABecLaplacian* getViscOp (int                    src_comp,
+                                     amrex::Real                   a,
+                                     amrex::Real                   b,
+                                     const amrex::MultiFab&        rho_half,
+                                     int                    rho_flag,
+                                     amrex::Real*                  rhsscale,
+                                     const amrex::MultiFab* const* beta,
+			                               int                    betaComp,
+                                     const amrex::MultiFab*        alpha_in,
+			                               int                    alphaComp);
+
+
+
     void setAlpha (amrex::ABecLaplacian*  visc_op,
                    int             src_comp,
                    amrex::Real            a,
@@ -251,7 +222,7 @@ public:
                    amrex::Real*                  rhsscale,
                    int                    dataComp,
                    const amrex::MultiFab* alpha_in);
-#endif
+
 
     static void setAlpha (amrex::ABecLaplacian*  visc_op,
                           amrex::Real            a,
@@ -314,15 +285,13 @@ public:
                        amrex::Real               time,
                        int                rho_flag);
 
-#if 1
     void getBndryDataGivenS (ViscBndry&         bndry,
                              amrex::MultiFab&          S,
                              amrex::MultiFab&          S_crse,
                              int                state_ind,
                              int                src_comp,
                              int                num_comp);
-#endif
-    
+
     static void getBndryDataGivenS(ViscBndry& bndry,
                                    const amrex::Vector<amrex::MultiFab*>& S,
                                    int        S_comp,
@@ -374,7 +343,7 @@ public:
                          const int                   sComp,
                          const int                   nComp);
 
-    static void setDomainBC_msd (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
+    static void setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                           std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                           const amrex::BCRec& bc);
 
@@ -412,7 +381,7 @@ protected:
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
 
-#if 1
+
     void computeAlpha (amrex::MultiFab&       alpha,
                        std::pair<amrex::Real,amrex::Real>& scalars,
                        int                    comp,
@@ -424,7 +393,7 @@ protected:
                        amrex::Real*           rhsscale,
                        int                    dataComp,
                        const amrex::MultiFab* alpha_in);
-#endif
+
 
     void computeBeta (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
                       const amrex::MultiFab* const* beta, int betaComp);
