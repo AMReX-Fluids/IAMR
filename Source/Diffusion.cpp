@@ -719,8 +719,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             if (allnull)
                 b *= visc_coef[visc_coef_comp + icomp];
 
-            if (use_mlmg_solver) 
-            {
 	      if(verbose)
 		Print()<<"Adding old time diff ....\n";
 	      {
@@ -764,30 +762,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
                 for (int i = 0; i < BL_SPACEDIM; ++i)
                     (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
-            }
-
-                else
-            {
-		amrex::Abort("Non-MLMG solver no longer supported");
-# if 0
-                ViscBndry visc_bndry_0(ba,dm,1,geom);
-                std::unique_ptr<ABecLaplacian> visc_op
-                    (getViscOp(a,b,visc_bndry_0,S_old,sigma,Rho_old,Rho_comp,
-                               rho_half,rho_flag,0,betan,betaComp+icomp,alpha_in,alpha_in_comp+icomp,
-                               alpha,bcoeffs,bc,cratio,geom,volume,area,add_hoop_stress));
-                visc_op->maxOrder(max_order);
-                //
-                // Copy to single-component multifab, then apply op to rho-scaled state
-                //
-                MultiFab::Copy(Soln,*S_old[0],sigma,0,1,0);
-                if (rho_flag == 2)
-                    MultiFab::Divide(Soln, *Rho_old[0], Rho_comp, 0, 1, 0);
-                visc_op->apply(Rhs,Soln);
-                visc_op->compFlux(D_DECL(*fluxn[0],*fluxn[1],*fluxn[2]),Soln,false,LinOp::Inhomogeneous_BC,0,fluxComp+icomp);
-                for (int i = 0; i < BL_SPACEDIM; ++i)
-                    (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
-#endif
-            }
+            
         }
         else
         {
@@ -950,8 +925,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
         Real rhsscale = 1.0;
 
-        if (use_mlmg_solver)
-        {
             {
 	        if (has_coarse_data) {
 		  MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,ng);
@@ -998,50 +971,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                          MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
             std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
             mgnp1.getFluxes({fp});
-        }
-
-        else
-        {
-	    amrex::Abort("Non-MLMG solver no longer supported");
-#if 0
-            ViscBndry visc_bndry(ba,dm,1,geom);
-            std::unique_ptr<ABecLaplacian> visc_op
-                (getViscOp(a,b,visc_bndry,S_new,sigma,Rho_new,Rho_comp,rho_half,rho_flag,0,
-                           betanp1,betaComp+icomp,alpha_in,alpha_in_comp+icomp,alpha,bcoeffs,bc,
-                           cratio,geom,volume,area,add_hoop_stress));
-            //
-            // Make a good guess for Soln
-            //
-            MultiFab::Copy(Soln,*S_new[0],sigma,0,1,0);
-            if (rho_flag == 2) {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-                for (MFIter Smfi(Soln,true); Smfi.isValid(); ++Smfi) {
-                    Soln[Smfi].divide((*Rho_new[0])[Smfi],Smfi.tilebox(),Rho_comp,0,1);
-                }
-            }
-
-            Rhs.mult(rhsscale,0,1);
-            visc_op->maxOrder(max_order);
-
-            //
-            // Construct solver and call it.
-            //
-            const Real S_tol     = visc_tol;
-            const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
-
-            MultiGrid mg(*visc_op);
-
-            mg.solve(Soln,Rhs,S_tol,S_tol_abs);
-
-            //
-            // Get extensivefluxes from new-time op
-            //
-            bool do_applyBC = true;
-            visc_op->compFlux(D_DECL(*fluxnp1[0],*fluxnp1[1],*fluxnp1[2]),Soln,do_applyBC,LinOp::Inhomogeneous_BC,0,fluxComp+icomp);
-#endif
-        }
+        
 
         for (int i = 0; i < BL_SPACEDIM; ++i)
             (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
