@@ -363,7 +363,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   // FIXME -- need to check on DefaultGeometry().getPeriodicity() in setDomainBC_msd()
   opn.setDomainBC(mlmg_lobc, mlmg_hibc);
   opnp1.setDomainBC(mlmg_lobc, mlmg_hibc);
-
+ 
   for (int icomp=0; icomp<num_comp; ++icomp)
   {
     if (verbose)

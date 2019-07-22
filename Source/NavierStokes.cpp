@@ -208,9 +208,9 @@ NavierStokes::initData ()
 
         state[State_Type].setTimeLevel(curTime,dt,dt);
 
-	if (variable_scal_diff)
+	      if (variable_scal_diff)
 	  //Make sure something reasonable is in diffn_cc
-	  calcDiffusivity(cur_time);
+	        calcDiffusivity(cur_time);
 
         calc_divu(cur_time,dtin,Divu_new);
 
@@ -2203,15 +2203,15 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 
                 if (variable_scal_diff)
                 {
-		    cmp_diffn = fb.define(this);
-                    getDiffusivity(cmp_diffn, time, icomp, 0, 1);
+		              cmp_diffn = fb.define(this);
+                  getDiffusivity(cmp_diffn, time, icomp, 0, 1);
                 }
 
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,
                                         time,rho_flag,cmp_diffn,0);
             }
 	    else {
-		visc_terms.setVal(0.0,icomp-src_comp,1,nGrow);
+		    visc_terms.setVal(0.0,icomp-src_comp,1,nGrow);
 	    }
 		
         }
@@ -2221,8 +2221,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     //    
     if (diffusive && nGrow > 0)
     {
-	visc_terms.FillBoundary(0, ncomp, geom.periodicity());
-	Extrapolater::FirstOrderExtrap(visc_terms, geom, 0, ncomp);
+	    visc_terms.FillBoundary(0, ncomp, geom.periodicity());
+	    Extrapolater::FirstOrderExtrap(visc_terms, geom, 0, ncomp);
     }
 }
 
