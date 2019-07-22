@@ -838,7 +838,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
 		fluxes[fmfi].copy(fluxtot);
 	      
 	      if (level > 0)
-		getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt);
+		getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt,RunOn::Cpu);
 	    }
             
 	    if (level < parent->finestLevel())
