@@ -21,6 +21,7 @@ module prob_2D_module
   public :: amrex_probinit, FORT_INITDATA, initbubble, initspin, &
             initviscbench, initvort, initchannel, initpervort, &
             inithotspot, initrt, inittraceradvect, initfromrest, &
+            init_taylorgreen, &
             FORT_DENERROR, FORT_AVERAGE_EDGE_STATES, FORT_MAKEFORCE, &
             FORT_ADVERROR, FORT_ADV2ERROR, FORT_TEMPERROR, FORT_MVERROR, &
             FORT_DENFILL, FORT_ADVFILL, FORT_TEMPFILL, FORT_XVELFILL, &
@@ -242,6 +243,11 @@ contains
                        vel,scal,DIMS(state), &
                            dx,xlo,xhi)
 
+      else if (probtype .eq. 13) then
+         call init_taylorgreen(level,time,lo,hi,nscal, &
+                vel,scal,DIMS(state),press,DIMS(press), &
+                    dx,xlo,xhi)
+      
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
          stop
@@ -802,6 +808,63 @@ contains
       end do
       
       end subroutine initfromrest
+
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine init_taylorgreen(level,time,lo,hi,nscal, &
+                                  vel,scal,DIMS(state),press,DIMS(press), &
+                                  dx,xlo,xhi) &
+                                  bind(C, name="init_taylorgreen")
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+!c
+!c     ::::: local variables
+!c
+      integer i, j, n
+      REAL_T  x, y
+      REAL_T  hx, hy
+      REAL_T  dist, tpi
+
+#include <probdata.H>
+
+      hx = dx(1)
+      hy = dx(2)
+
+      tpi = 8.d0*atan(1.d0)
+
+      do j = lo(2), hi(2)
+        y = xlo(2) + hy*(float(j-lo(2)) + half)
+        do i = lo(1), hi(1)
+          x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+          vel(i,j,1) =  velfact*sin(tpi * x)*cos(tpi * y)
+          vel(i,j,2) = -velfact*cos(tpi * x)*sin(tpi * y)
+
+          scal(i,j,1) = denfact
+
+          ! This is the theoretical pressure perturbation from p_0
+          scal(i,j,2) = (denfact*velfact*velfact/4.d0)*(cos(two*x)+cos(two*y))
+          do n = 2,nscal-1
+            scal(i,j,n) = one
+           end do
+
+!              dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+!              scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
+        end do
+      end do
+
+      end subroutine init_taylorgreen
+
       
 !c ::: -----------------------------------------------------------
 !c ::: This routine will tag high error cells based on the 
