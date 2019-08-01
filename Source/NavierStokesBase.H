@@ -676,8 +676,6 @@ protected:
     static amrex::Real        visc_tol;
     static amrex::Real        visc_abs_tol;
     static amrex::Real        be_cn_theta;
-    static int         variable_vel_visc;  // variable viscosity flag
-    static int         variable_scal_diff; // variable scalar diffusion flag
     //
     // Internal switches.
     //

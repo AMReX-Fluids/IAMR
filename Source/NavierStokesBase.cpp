@@ -48,8 +48,6 @@ Vector<Real> NavierStokesBase::visc_coef;
 Real        NavierStokesBase::visc_tol           = 1.0e-10;
 Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
-int         NavierStokesBase::variable_vel_visc  = 1;
-int         NavierStokesBase::variable_scal_diff = 0;
 
 int         NavierStokesBase::Tracer                    = -1;
 int         NavierStokesBase::Tracer2                   = -1;
@@ -249,21 +247,11 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = 0;
-    viscnp1_cc = 0;
-    if (variable_vel_visc) 
-    {
-        viscn_cc   = new MultiFab(grids, dmap, 1, 1);
-        viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
-    }
+    viscn_cc   = new MultiFab(grids, dmap, 1, 1);
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
 
-    diffn_cc   = 0;
-    diffnp1_cc = 0;
-    if (variable_scal_diff) 
-    {
-        diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-        diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-    }
+    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
     //
     // Set up the mac projector.
     //
@@ -290,17 +278,11 @@ NavierStokesBase::~NavierStokesBase ()
     // Remove the arrays for variable viscosity and diffusivity
     // and delete the Diffusion object
     //
-    if (variable_vel_visc)
-    {
-        delete viscn_cc;
-        delete viscnp1_cc;
-    }
+    delete viscn_cc;
+    delete viscnp1_cc;
 
-    if (variable_scal_diff)
-    {
-        delete diffn_cc;
-        delete diffnp1_cc;
-    }
+    delete diffn_cc;
+    delete diffnp1_cc;
 
     delete diffusion;
 }
@@ -561,9 +543,7 @@ NavierStokesBase::Initialize_specific ()
     // NOTE: at this point, we dont know number of state variables
     //       so just read all values listed.
     //
-    pp.query("variable_vel_visc",variable_vel_visc);
-    pp.query("variable_scal_diff",variable_scal_diff);
-    
+
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
     const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
@@ -777,18 +757,12 @@ NavierStokesBase::advance_setup (Real time,
     //
     const Real prev_time = state[State_Type].prevTime();
 
-    if (variable_vel_visc)
-    {
-        calcViscosity(prev_time,dt,iteration,ncycle);
-	      MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
-    }
+    calcViscosity(prev_time,dt,iteration,ncycle);
+    MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
 
-    if (variable_scal_diff)
-    {
-        const int num_diff = NUM_STATE-BL_SPACEDIM-1;
-        calcDiffusivity(prev_time);
-	      MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
-    }
+    const int num_diff = NUM_STATE-BL_SPACEDIM-1;
+    calcDiffusivity(prev_time);
+    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
 }
 
 //
@@ -2886,21 +2860,11 @@ NavierStokesBase::restart (Amr&          papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = 0;
-    viscnp1_cc = 0;
-    if (variable_vel_visc)
-    {
-        viscn_cc   = new MultiFab(grids, dmap, 1, 1);
-        viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
-    }
+    viscn_cc   = new MultiFab(grids, dmap, 1, 1);
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
 
-    diffn_cc   = 0;
-    diffnp1_cc = 0;
-    if (variable_scal_diff)
-    {
-        diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-        diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-    }
+    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
 
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
