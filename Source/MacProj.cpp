@@ -1091,7 +1091,7 @@ MacProj::check_div_cond (int      level,
         DEF_CLIMITS(vol,vol_dat,vlo,vhi);
 
 #if (BL_SPACEDIM == 2)
-        macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
+        macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),bx.loVect(),bx.hiVect(),
                     ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                     uy_dat,ARLIM(uylo),ARLIM(uyhi),
                     ax_dat,ARLIM(axlo),ARLIM(axhi), 
@@ -1105,7 +1105,7 @@ MacProj::check_div_cond (int      level,
         const FArrayBox& zarea = area[2][U_edge0mfi];
         DEF_CLIMITS(zarea,az_dat,azlo,azhi);
 
-        macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),dlo,dhi,
+        macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),bx.loVect(),bx.hiVect(),
                     ux_dat,ARLIM(uxlo),ARLIM(uxhi),
                     uy_dat,ARLIM(uylo),ARLIM(uyhi),
                     uz_dat,ARLIM(uzlo),ARLIM(uzhi),
@@ -1114,6 +1114,7 @@ MacProj::check_div_cond (int      level,
                     az_dat,ARLIM(azlo),ARLIM(azhi),
                     vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
+
         sum += dmac.sum(0);
       }
     }
