@@ -14,8 +14,6 @@
 
 ns.do_denminmax=0
 #ns.init_iter=0
-ns.variable_vel_visc = 0
-ns.variable_scal_diff = 0
 ns.sum_interval = 0
 
 fabarray.mfiter_tile_size = 8 8 8 

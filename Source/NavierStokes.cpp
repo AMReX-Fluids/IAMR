@@ -208,9 +208,8 @@ NavierStokes::initData ()
 
         state[State_Type].setTimeLevel(curTime,dt,dt);
 
-	      if (variable_scal_diff)
-	  //Make sure something reasonable is in diffn_cc
-	        calcDiffusivity(cur_time);
+        //Make sure something reasonable is in diffn_cc
+        calcDiffusivity(cur_time);
 
         calc_divu(cur_time,dtin,Divu_new);
 
@@ -739,19 +738,16 @@ NavierStokes::scalar_diffusion_update (Real dt,
       // fixme -- still need to check this if() with non-diffusive problem
       if (is_diffusive[sigma])
       {
-	      if (variable_scal_diff)
+        if (be_cn_theta != 1)
         {
-	        if (be_cn_theta != 1)
-          {
-	         cmp_diffn = fb_diffn.define(this); 
-	         getDiffusivity(cmp_diffn, prev_time, sigma, 0, 1);
-	        }
+          cmp_diffn = fb_diffn.define(this); 
+          getDiffusivity(cmp_diffn, prev_time, sigma, 0, 1);
+        }
 
-	        cmp_diffnp1 = fb_diffnp1.define(this);
-	        getDiffusivity(cmp_diffnp1, curr_time, sigma, 0, 1);
-	      }
+        cmp_diffnp1 = fb_diffnp1.define(this);
+        getDiffusivity(cmp_diffnp1, curr_time, sigma, 0, 1);
 
-	      diffuse_comp[0] = is_diffusive[sigma];
+        diffuse_comp[0] = is_diffusive[sigma];
         const int rho_flag = Diffusion::set_rho_flag(diffusionType[sigma]);
     
         const bool add_hoop_stress = false; // Only true if sigma == Xvel && Geometry::IsRZ())
@@ -851,16 +847,13 @@ NavierStokes::velocity_diffusion_update (Real dt)
         MultiFab** loc_viscnp1 = 0;
 	FluxBoxes fb_viscn, fb_viscnp1;
 
-        if (variable_vel_visc)
-        {
-            Real viscTime = state[State_Type].prevTime();
-	    loc_viscn = fb_viscn.define(this);
-            getViscosity(loc_viscn, viscTime);
+        Real viscTime = state[State_Type].prevTime();
+        loc_viscn = fb_viscn.define(this);
+        getViscosity(loc_viscn, viscTime);
 
-            viscTime = state[State_Type].curTime();
-	    loc_viscnp1 = fb_viscnp1.define(this);
-            getViscosity(loc_viscnp1, viscTime);
-        }
+        viscTime = state[State_Type].curTime();
+        loc_viscnp1 = fb_viscnp1.define(this);
+        getViscosity(loc_viscnp1, viscTime);
 
         diffuse_velocity_setup(dt, delta_rhs, loc_viscn, loc_viscnp1);
 
@@ -897,8 +890,12 @@ NavierStokes::diffuse_velocity_setup (Real       dt,
         // The scalar and tensor solvers incorporate the relevant pieces of
         //  of Div(tau), provided the flow is divergence-free.  However, if
         //  Div(U) =/= 0, there is an additional piece not accounted for,
-        //  which is of the form A.Div(U).  For constant viscosity, Div(tau)_i
-        //  = Lapacian(U_i) + mu/3 d[Div(U)]/dx_i.  For mu not constant,
+        //  which is of the form A.Div(U).  
+        // 
+        // Now we only use the tensor solver.
+        // For history, before for constant viscosity, Div(tau)_i
+        //  = Lapacian(U_i) + mu/3 d[Div(U)]/dx_i. 
+        // Now because  mu not constant,
         //  Div(tau)_i = d[ mu(du_i/dx_j + du_j/dx_i) ]/dx_i - 2mu/3 d[Div(U)]/dx_i
         //
         // As a convenience, we treat this additional term as a "source" in
@@ -911,24 +908,13 @@ NavierStokes::diffuse_velocity_setup (Real       dt,
 
         MultiFab divmusi(grids,dmap,BL_SPACEDIM,0);
 
-        if (!variable_vel_visc)
-        {
-            diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
-	          MultiFab::Saxpy(*delta_rhs,(1./3.)*(1.0-be_cn_theta),divmusi,0,0,BL_SPACEDIM,0);
-	    
-            diffusion->compute_divmusi(time+dt,visc_coef[Xvel],divmusi);
-	          MultiFab::Saxpy(*delta_rhs,(1./3.)*be_cn_theta,divmusi,0,0,BL_SPACEDIM,0);
-        }
-        else
-        {
-            diffusion->compute_divmusi(time,viscn,divmusi);
-            divmusi.mult((-2./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
-            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
+        diffusion->compute_divmusi(time,viscn,divmusi);
+        divmusi.mult((-2./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
+                      (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
 
-            diffusion->compute_divmusi(time+dt,viscnp1,divmusi);
-            divmusi.mult((-2./3.)*be_cn_theta,0,BL_SPACEDIM,0);
-            (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
-        }
+        diffusion->compute_divmusi(time+dt,viscnp1,divmusi);
+        divmusi.mult((-2./3.)*be_cn_theta,0,BL_SPACEDIM,0);
+                (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
     }
 }
 
@@ -1583,12 +1569,9 @@ NavierStokes::mac_sync ()
         MultiFab** loc_viscn = 0;
         FluxBoxes fb_viscn;
 
-        if (variable_vel_visc)
-        {
-          Real viscTime = state[State_Type].prevTime();
-		      loc_viscn = fb_viscn.define(this);
-          getViscosity(loc_viscn, viscTime);
-        }
+        Real viscTime = state[State_Type].prevTime();
+        loc_viscn = fb_viscn.define(this);
+        getViscosity(loc_viscn, viscTime);
 
         diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
       }
@@ -1634,7 +1617,7 @@ NavierStokes::mac_sync ()
 
         // trying to do things one comp at a time confuses ProjOutflowBC
         //Snp1[1]->define(crselev.boxArray(), crselev.DistributionMap(), 1, 1);
-	    }
+      }
 
 	
       // fixme?  Sn gets all state comps and Snp1 only gets 1 comp???
@@ -1661,82 +1644,79 @@ NavierStokes::mac_sync ()
 
         if (is_diffusive[state_ind])
         {
- 	        Snp1[0]->setVal(0.,state_ind,1,ng);   
-	        //Snp1[0]->setVal(0.,0,1,1);   // for diffuse_scalar_msd
-	        if (nlev>1 && Snp1[1] == 0) {
-		        // FIXME? need Snp1[1].setVal(0., ...) ???
-		        Print()<<"Not using coarse data as in dev ....\n";
-	        }
+        Snp1[0]->setVal(0.,state_ind,1,ng);   
+        //Snp1[0]->setVal(0.,0,1,1);   // for diffuse_scalar_msd
+        if (nlev>1 && Snp1[1] == 0) {
+          // FIXME? need Snp1[1].setVal(0., ...) ???
+          Print()<<"Not using coarse data as in dev ....\n";
+        }
 
-	        FluxBoxes fb_diffnp1; // not used: , fb_diffn;
-	        MultiFab** cmp_diffnp1=0, **cmp_diffn=0;
+        FluxBoxes fb_diffnp1; // not used: , fb_diffn;
+        MultiFab** cmp_diffnp1=0, **cmp_diffn=0;
 
-          if (variable_scal_diff)
-          {
-		        // fixme?? note that dev uses prevTime() here
-		        //  Real diffTime = state[State_Type].prevTime();
-		        Real diffTime = state[State_Type].curTime();
-		        cmp_diffnp1 = fb_diffnp1.define(this);
-            getDiffusivity(cmp_diffnp1, diffTime, BL_SPACEDIM+sigma,0,1);
-          }
+        // fixme?? note that dev uses prevTime() here
+        //  Real diffTime = state[State_Type].prevTime();
+        Real diffTime = state[State_Type].curTime();
+        cmp_diffnp1 = fb_diffnp1.define(this);
+        getDiffusivity(cmp_diffnp1, diffTime, BL_SPACEDIM+sigma,0,1);
 
-		      int S_comp = state_ind;
-    	  	const int num_comp = 1;
-      		const int fluxComp  = 0;
-          MultiFab *delta_rhs = &Ssync;
-		      int rhsComp = sigma;
-      		MultiFab *alpha_in = 0;
-  	      const int alphaComp = 0;
-		      // not used
-		      //const MultiFab* const* betan = 0;
-		      int betaComp = 0;
-		      int visc_coef_comp = state_ind;
-	        const MultiFab *a[AMREX_SPACEDIM];
-        	for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        int S_comp = state_ind;
+ 	const int num_comp = 1;
+	const int fluxComp  = 0;
+        MultiFab *delta_rhs = &Ssync;
+        int rhsComp = sigma;
+        MultiFab *alpha_in = 0;
+        const int alphaComp = 0;
+        // not used
+        //const MultiFab* const* betan = 0;
+        int betaComp = 0;
+        int visc_coef_comp = state_ind;
+        const MultiFab *a[AMREX_SPACEDIM];
+       	for (int d=0; d<AMREX_SPACEDIM; ++d) {
             a[d] = &(area[d]);
-        	}
+       	}
 
-		      diffuse_comp[0] = is_diffusive[BL_SPACEDIM+sigma];
+        diffuse_comp[0] = is_diffusive[BL_SPACEDIM+sigma];
 
-          diffusion->diffuse_scalar (Sn,Rhon,Snp1,Rhonp1,
-			  	                           S_comp,num_comp,Rho_comp,
-                                     prev_time,curr_time,be_cn_theta,
-                                     Rh,rho_flag,
-                                     fluxn,fluxSC,fluxComp,
-                                     delta_rhs,rhsComp,
-                                     alpha_in,alphaComp,
-                                     cmp_diffn,cmp_diffnp1,betaComp,
-                                     visc_coef,visc_coef_comp,volume,a,
-                                     crse_ratio,theBCs[state_ind],geom,
-                                     add_hoop_stress,solve_mode,
-                                     add_old_time_divFlux,diffuse_comp);
+        diffusion->diffuse_scalar (Sn,Rhon,Snp1,Rhonp1,
+ 	                           S_comp,num_comp,Rho_comp,
+                                   prev_time,curr_time,be_cn_theta,
+                                   Rh,rho_flag,
+                                   fluxn,fluxSC,fluxComp,
+                                   delta_rhs,rhsComp,
+                                   alpha_in,alphaComp,
+                                   cmp_diffn,cmp_diffnp1,betaComp,
+                                   visc_coef,visc_coef_comp,volume,a,
+                                   crse_ratio,theBCs[state_ind],geom,
+                                   add_hoop_stress,solve_mode,
+                                   add_old_time_divFlux,diffuse_comp);
 
-		      if (alpha_in!=0) delete alpha_in;
+        if (alpha_in!=0) delete alpha_in;
 	  	
-		      MultiFab::Copy(Ssync,*Snp1[0],state_ind,sigma,1,0);
-		      //	MultiFab::Copy(Ssync,*Snp1[0],0,sigma,1,0);
+        MultiFab::Copy(Ssync,*Snp1[0],state_ind,sigma,1,0);
+ //	MultiFab::Copy(Ssync,*Snp1[0],0,sigma,1,0);
 
-          //
-          // Increment the viscous flux registers
-          //
-          if (level > 0)
+        //
+        // Increment the viscous flux registers
+        //
+        if (level > 0)
+        {
+          for (int d = 0; d < BL_SPACEDIM; d++)
           {
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-              getViscFluxReg().FineAdd(*fluxSC[d],d,0,state_ind,1,dt);
-            }
+             getViscFluxReg().FineAdd(*fluxSC[d],d,0,state_ind,1,dt);
           }
         }
-	      else // state component not diffusive
-	      {
-	      //
-	      // The following used to be done in mac_sync_compute.  Ssync is
-	      // the source for a rate of change to S over the time step, so
-	      // Ssync*dt is the source to the actual sync amount.
-	      //
-	        Ssync.mult(dt,sigma,1,Ssync.nGrow());
-	      }
       }
+      else // state component not diffusive
+      {
+      //
+      // The following used to be done in mac_sync_compute.  Ssync is
+      // the source for a rate of change to S over the time step, so
+      // Ssync*dt is the source to the actual sync amount.
+      //
+        Ssync.mult(dt,sigma,1,Ssync.nGrow());
+      }
+    }
 
       //
       // For all conservative variables Q (other than density)
@@ -2143,22 +2123,11 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 	FluxBoxes fb;
         MultiFab** viscosity = 0;
 
-        if (variable_vel_visc)
-        {
-	    viscosity = fb.define(this);
-            getViscosity(viscosity, time);
+        viscosity = fb.define(this);
+        getViscosity(viscosity, time);
 
-            diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
-        }
-        else
-        {
-            for (int icomp = Xvel; icomp < BL_SPACEDIM; icomp++)
-            {
-                int rho_flag = Diffusion::set_rho_flag(diffusionType[icomp]);
+        diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
 
-                diffusion->getViscTerms(visc_terms,src_comp,icomp,time,rho_flag,0,0);
-            }
-        }
         //
         // Add Div(u) term if desired, if this is velocity, and if Div(u) 
         // is nonzero.  If const-visc, term is mu.Div(u)/3, else 
@@ -2168,16 +2137,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         {
             MultiFab divmusi(grids,dmap,BL_SPACEDIM,1);
 
-            if (variable_vel_visc)
-            {
-                diffusion->compute_divmusi(time,viscosity,divmusi);
-                divmusi.mult((-2./3.),0,BL_SPACEDIM,0);
-            }
-            else
-            {
-                diffusion->compute_divmusi(time,visc_coef[Xvel],divmusi);
-                divmusi.mult((1./3.),0,BL_SPACEDIM,0);
-            }
+            diffusion->compute_divmusi(time,viscosity,divmusi);
+            divmusi.mult((-2./3.),0,BL_SPACEDIM,0);
 
             visc_terms.plus(divmusi,Xvel,BL_SPACEDIM,0);
         }
@@ -2201,17 +2162,14 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 		FluxBoxes fb;
                 MultiFab** cmp_diffn = 0;
 
-                if (variable_scal_diff)
-                {
-		              cmp_diffn = fb.define(this);
-                  getDiffusivity(cmp_diffn, time, icomp, 0, 1);
-                }
+                cmp_diffn = fb.define(this);
+                getDiffusivity(cmp_diffn, time, icomp, 0, 1);
 
                 diffusion->getViscTerms(visc_terms,src_comp,icomp,
                                         time,rho_flag,cmp_diffn,0);
             }
 	    else {
-		    visc_terms.setVal(0.0,icomp-src_comp,1,nGrow);
+	        visc_terms.setVal(0.0,icomp-src_comp,1,nGrow);
 	    }
 		
         }
