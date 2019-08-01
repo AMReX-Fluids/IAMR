@@ -48,7 +48,7 @@ Vector<Real> NavierStokesBase::visc_coef;
 Real        NavierStokesBase::visc_tol           = 1.0e-10;
 Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
-int         NavierStokesBase::variable_vel_visc  = 0;
+int         NavierStokesBase::variable_vel_visc  = 1;
 int         NavierStokesBase::variable_scal_diff = 0;
 
 int         NavierStokesBase::Tracer                    = -1;
