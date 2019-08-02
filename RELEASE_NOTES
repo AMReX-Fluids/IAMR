@@ -85,3 +85,8 @@ Input parameters are now read in two separate routines: Initialize() and Initial
      in order to reduce dependency of PeleLM to IAMR
 Bug fix NavierStokesBase::velocity_advection_update()
 MLMG solver is now the only one implemented and used for Diffusion and MacProj
+
+8/1/19
+Cleaned up GNUMakeFiles
+Minor modification to Taylor Green test problem setup
+Fixed a tiling bug in diffusion_rearrangement
