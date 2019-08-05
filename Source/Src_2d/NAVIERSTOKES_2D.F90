@@ -50,9 +50,13 @@ contains
 
         do j = lo(2), hi(2)
         do i = lo(1), hi(1)
-          gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
-          gp(i,j,2) = ddy*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
-        end do
+              !    gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
+      !    gp(i,j,2) = ddy*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
+        
+   ! Below is the same "stencil" as the compute fluxes in AMReX     
+          gp(i,j,1) = ddx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
+          gp(i,j,2) = ddy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
+end do
         end do
       else
         do j = lo(2), hi(2)
