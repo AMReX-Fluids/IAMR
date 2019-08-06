@@ -311,7 +311,7 @@ public:      // public access functions
          const amrex::Vector<int>& state_bc,
 		     const amrex::Box& domain,
 		     const amrex::Real* dx,
-		     int nghost);
+		     int nghost, int known_edgestate);
 
 #endif
 

@@ -1463,7 +1463,7 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
            const amrex::Vector<int>& state_bc,
 		       const Box& domain,
 		       const amrex::Real* dx,
-		       int nghost)
+		       int nghost, int known_edgestate)
 {
   // worry about fluxes later
   //
@@ -1506,7 +1506,7 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 			      (*zslopes)[mfi].dataPtr(first_scal)),
 		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
 		       domain.loVect(),domain.hiVect(),
-		       dx,&nghost, &num_scalars);
+		       dx,&nghost, &num_scalars, &known_edgestate);
   //amrex::Print() << xstate;
       }
       else

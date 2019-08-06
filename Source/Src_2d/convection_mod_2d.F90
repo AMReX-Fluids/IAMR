@@ -299,10 +299,10 @@ contains
                             ystate, ystatelo, ystatehi, &
                             xslopes, yslopes, slo, shi, &
                             domlo, domhi, &
-                            dx, ng, nc) bind(C)
+                            dx, ng, nc, known_edgestate) bind(C)
 
       ! Tile bounds
-      integer(c_int),  intent(in   ) :: lo(SDIM),  hi(SDIM), nc
+      integer(c_int),  intent(in   ) :: lo(SDIM),  hi(SDIM), nc, known_edgestate
 
       ! Array Bounds
       integer(c_int),  intent(in   ) :: slo(SDIM), shi(SDIM)
@@ -330,10 +330,12 @@ contains
       real(ar),        intent(  out) ::                           &
            & divuc(glo(1):ghi(1),glo(2):ghi(2),nc), &
            & xflx(xflxlo(1):xflxhi(1),xflxlo(2):xflxhi(2),nc), &
-           & yflx(yflxlo(1):yflxhi(1),yflxlo(2):yflxhi(2),nc), &
+           & yflx(yflxlo(1):yflxhi(1),yflxlo(2):yflxhi(2),nc)
+
+      real(ar),        intent(inout) ::                           &
            & xstate(xstatelo(1):xstatehi(1),xstatelo(2):xstatehi(2),nc), &
            & ystate(ystatelo(1):ystatehi(1),ystatelo(2):ystatehi(2),nc)
-
+           
       ! BC types
       !integer(c_int), intent(in   ) ::  &
       integer(c_int) ::  &
@@ -366,11 +368,15 @@ contains
       write(*,*) 'DEBUG in divuc xflx ' ,lbound(xflx),ubound(xflx)
       write(*,*) 'DEBUG in divuc yflx ' ,lbound(yflx),ubound(yflx)
       
+      write(*,*) 'DEBUG in divuc lo, hi ', lo, hi
+      
       do n =1,nc
       
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
+      do j = lo(2)-3, hi(2)+3
+         do i = lo(1)-3, hi(1)+3
 
+         if (known_edgestate == 0) then
+         
             ! ****************************************************
             ! West face
             ! ****************************************************
@@ -430,25 +436,33 @@ contains
 
                u_n   = upwind( umns, upls, v(i,j+1) )
             endif
+            
+            ! Saving state at edges
+
+            xstate(i,j,n)   = u_w
+            xstate(i+1,j,n) = u_e
+            ystate(i,j,n)   = u_s
+            ystate(i,j+1,n) = u_n
+            
+          endif
 
             ! ****************************************************
             ! Define convective terms -- conservatively
             !   divuc =  div(u^MAC c_edge) 
             ! ****************************************************
             
-            divuc(i,j,n) = (u(i+1,j) * u_e - u(i,j) * u_w) * idx + &
-                           (v(i,j+1) * u_n - v(i,j) * u_s) * idy
-                               
-                               
-            xstate(i,j,n)   = u_w
-            xstate(i+1,j,n) = u_e
-            ystate(i,j,n)   = u_s
-            ystate(i,j+1,n) = u_n
+            ! Saving fluxes at edges
+            xflx(i,j,n)   = u(i,j)   * xstate(i,j,n) / idx
+            xflx(i+1,j,n) = u(i+1,j) * xstate(i+1,j,n) / idx
+            yflx(i,j,n)   = v(i,j)   * ystate(i,j,n) / idy
+            yflx(i,j+1,n) = v(i,j+1) * ystate(i,j+1,n) / idy
             
-            xflx(i,j,n)   = u(i,j)   * u_w / idx
-            xflx(i+1,j,n) = u(i+1,j) * u_e / idx
-            yflx(i,j,n)   = v(i,j)   * u_s / idy
-            yflx(i,j+1,n) = v(i,j+1) * u_n / idy
+            if ((i >= lo(1)) .and. (i <= hi(1)) .and. (j >= lo(2)) .and. (j <= hi(2))) then
+              divuc(i,j,n) = (u(i+1,j) * xstate(i+1,j,n) - u(i,j) * xstate(i,j,n)) * idx + &
+                             (v(i,j+1) * ystate(i,j+1,n) - v(i,j) * ystate(i,j,n)) * idy
+            endif                           
+                               
+
             
             !write(*,*) 'DBUG TOTO',i,j,xstate(i,j),xstate(i+1,j),ystate(i,j),ystate(i,j+1)
 
