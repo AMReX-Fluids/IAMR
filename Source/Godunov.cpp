@@ -1459,10 +1459,8 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 			      const std::unique_ptr<amrex::MultiFab>& zslopes),
 		       D_DECL(const FArrayBox& uedge, const FArrayBox& vedge, const FArrayBox& wedge),
 		       D_DECL(      FArrayBox& xflx,        FArrayBox& yflx,        FArrayBox& zflx),
-                       D_DECL(      FArrayBox& xstate,      FArrayBox& ystate,      FArrayBox& zstate),
-                       D_DECL(const Vector<int>& ubc,
-			      const Vector<int>& vbc,
-			      const Vector<int>& wbc),
+           D_DECL(      FArrayBox& xstate,      FArrayBox& ystate,      FArrayBox& zstate),
+           const amrex::Vector<int>& state_bc,
 		       const Box& domain,
 		       const amrex::Real* dx,
 		       int nghost)
@@ -1508,14 +1506,6 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 			      (*zslopes)[mfi].dataPtr(first_scal)),
 		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
 		       domain.loVect(),domain.hiVect(),
-		       //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-		       // old bcs
-		       // bc_ilo[lev]->dataPtr(),
-		       // bc_ihi[lev]->dataPtr(),
-		       // bc_jlo[lev]->dataPtr(),
-		       // bc_jhi[lev]->dataPtr(),
-		       // bc_klo[lev]->dataPtr(),
-		       // bc_khi[lev]->dataPtr(),
 		       dx,&nghost, &num_scalars);
   //amrex::Print() << xstate;
       }
@@ -1552,13 +1542,6 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 			BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
 			BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
 			domain.loVect(),domain.hiVect(),
-			  //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-			    // bc_ilo[lev]->dataPtr(),
-			    // bc_ihi[lev]->dataPtr(),
-			    // bc_jlo[lev]->dataPtr(),
-			    // bc_jhi[lev]->dataPtr(),
-			    // bc_klo[lev]->dataPtr(),
-			    // bc_khi[lev]->dataPtr(),
 			dx, &num_scalars, &nghost);
       }
 //amrex::Print() << xstate;

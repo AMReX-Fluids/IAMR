@@ -307,10 +307,8 @@ public:      // public access functions
 			    const std::unique_ptr<amrex::MultiFab>& zslopes),
 		     D_DECL(const amrex::FArrayBox& uedge, const amrex::FArrayBox& vedge, const amrex::FArrayBox& wedge),
 		     D_DECL(      amrex::FArrayBox& xflx,        amrex::FArrayBox& yflx,        amrex::FArrayBox& zflx),
-                     D_DECL(      amrex::FArrayBox& xstate,      amrex::FArrayBox& ystate,      amrex::FArrayBox& zstate),
-                     D_DECL(const amrex::Vector<int>& ubc,
-			    const amrex::Vector<int>& vbc,
-			    const amrex::Vector<int>& wbc),
+         D_DECL(      amrex::FArrayBox& xstate,      amrex::FArrayBox& ystate,      amrex::FArrayBox& zstate),
+         const amrex::Vector<int>& state_bc,
 		     const amrex::Box& domain,
 		     const amrex::Real* dx,
 		     int nghost);

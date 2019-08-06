@@ -299,8 +299,6 @@ contains
                             ystate, ystatelo, ystatehi, &
                             xslopes, yslopes, slo, shi, &
                             domlo, domhi, &
-                            ! bc_ilo_type, bc_ihi_type, &
-                            ! bc_jlo_type, bc_jhi_type, &
                             dx, ng, nc) bind(C)
 
       ! Tile bounds
@@ -321,7 +319,6 @@ contains
       ! Grid
       real(ar),        intent(in   ) :: dx(SDIM)
 
-      !integer(c_int),     parameter  :: nc = 1
       ! Velocity Array
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),nc), &
@@ -365,6 +362,10 @@ contains
       idx = one / dx(1)
       idy = one / dx(2)
 
+      
+      write(*,*) 'DEBUG in divuc xflx ' ,lbound(xflx),ubound(xflx)
+      write(*,*) 'DEBUG in divuc yflx ' ,lbound(yflx),ubound(yflx)
+      
       do n =1,nc
       
       do j = lo(2), hi(2)

@@ -199,8 +199,6 @@ contains
                                  vfrac,   vflo, vfhi, &
                                  bcent,    blo,  bhi, &
                                  domlo, domhi, &
-                                 !bc_ilo, bc_ihi, &
-                                 !bc_jlo, bc_jhi, &
                                  dx, nc, ng ) bind(C)
 
       use divop_mod, only: compute_divop
