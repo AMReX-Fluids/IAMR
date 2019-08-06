@@ -301,7 +301,7 @@ public:      // public access functions
 		  int nghost);
   void AdvectScalars_EB (const amrex::MFIter&  mfi,
 		     const amrex::MultiFab& S, int first_scal, int scomp,
-		     amrex::MultiFab& aofs, int acomp,
+		     amrex::MultiFab& aofs, int acomp, int flxcomp,
 		     D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
 			    const std::unique_ptr<amrex::MultiFab>& yslopes,
 			    const std::unique_ptr<amrex::MultiFab>& zslopes),

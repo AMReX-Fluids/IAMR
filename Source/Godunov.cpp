@@ -1452,8 +1452,8 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 //
 void
 Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
-		       const MultiFab& S, int first_scal, int scomp,
-		       MultiFab& aofs, int acomp,
+		       const MultiFab& S, int first_scal, int num_scalars,
+		       MultiFab& aofs, int state_ind, int flxcomp,
 		       D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
 			      const std::unique_ptr<amrex::MultiFab>& yslopes,
 			      const std::unique_ptr<amrex::MultiFab>& zslopes),
@@ -1484,7 +1484,7 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
       // If tile is completely covered by EB geometry, set slopes
       // value to some very large number so we know if
       // we accidentaly use these covered slopes later in calculations
-      aofs[mfi].setVal(1.2345e300, bx, acomp, scomp);
+      aofs[mfi].setVal(1.2345e300, bx, state_ind, num_scalars);
   }
   else
   {
@@ -1492,20 +1492,20 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
       if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
       {
 	compute_divuc(BL_TO_FORTRAN_BOX(bx),
-		       BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
+		       BL_TO_FORTRAN_N_ANYD(aofs[mfi],state_ind),
 		       BL_TO_FORTRAN_N_ANYD(S[mfi],first_scal),
 		       D_DECL(BL_TO_FORTRAN_ANYD(uedge),
 			      BL_TO_FORTRAN_ANYD(vedge),
 			      BL_TO_FORTRAN_ANYD(wedge)),
-                       D_DECL(BL_TO_FORTRAN_ANYD(xflx),
-			      BL_TO_FORTRAN_ANYD(yflx),
-			      BL_TO_FORTRAN_ANYD(zflx)),
-                       D_DECL(BL_TO_FORTRAN_ANYD(xstate),
-			      BL_TO_FORTRAN_ANYD(ystate),
-			      BL_TO_FORTRAN_ANYD(zstate)),
-		       D_DECL((*xslopes)[mfi].dataPtr(),
-			      (*yslopes)[mfi].dataPtr(),
-			      (*zslopes)[mfi].dataPtr()),
+           D_DECL(BL_TO_FORTRAN_N_ANYD(xflx,flxcomp),
+			      BL_TO_FORTRAN_N_ANYD(yflx,flxcomp),
+			      BL_TO_FORTRAN_N_ANYD(zflx,flxcomp)),
+           D_DECL(BL_TO_FORTRAN_N_ANYD(xstate,flxcomp),
+			      BL_TO_FORTRAN_N_ANYD(ystate,flxcomp),
+			      BL_TO_FORTRAN_N_ANYD(zstate,flxcomp)),
+		       D_DECL((*xslopes)[mfi].dataPtr(first_scal),
+			      (*yslopes)[mfi].dataPtr(first_scal),
+			      (*zslopes)[mfi].dataPtr(first_scal)),
 		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
 		       domain.loVect(),domain.hiVect(),
 		       //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
@@ -1516,34 +1516,34 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 		       // bc_jhi[lev]->dataPtr(),
 		       // bc_klo[lev]->dataPtr(),
 		       // bc_khi[lev]->dataPtr(),
-		       dx,&nghost, &scomp);
+		       dx,&nghost, &num_scalars);
   //amrex::Print() << xstate;
       }
       else
       {
 //	// Use EB routines
 	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
-			BL_TO_FORTRAN_N_ANYD(aofs[mfi],acomp),
+			BL_TO_FORTRAN_N_ANYD(aofs[mfi],state_ind),
 			BL_TO_FORTRAN_N_ANYD(S[mfi],first_scal),
 
 			BL_TO_FORTRAN_ANYD(uedge),
-                        BL_TO_FORTRAN_ANYD(xflx),
-                        BL_TO_FORTRAN_ANYD(xstate),
+      BL_TO_FORTRAN_ANYD(xflx),
+      BL_TO_FORTRAN_ANYD(xstate),
 			BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
 			BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
 			(*xslopes)[mfi].dataPtr(),
 			BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),			
 
 			BL_TO_FORTRAN_ANYD(vedge),
-                        BL_TO_FORTRAN_ANYD(yflx),
-                        BL_TO_FORTRAN_ANYD(ystate),
+      BL_TO_FORTRAN_ANYD(yflx),
+      BL_TO_FORTRAN_ANYD(ystate),
 			BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
 			BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
 			(*yslopes)[mfi].dataPtr(),
 #if(AMREX_SPACEDIM ==3)
 			BL_TO_FORTRAN_ANYD(wedge),
-                        BL_TO_FORTRAN_ANYD(zflx),
-                        BL_TO_FORTRAN_ANYD(zstate),
+      BL_TO_FORTRAN_ANYD(zflx),
+      BL_TO_FORTRAN_ANYD(zstate),
 			BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
 			BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
 			(*zslopes)[mfi].dataPtr(),
@@ -1559,7 +1559,7 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 			    // bc_jhi[lev]->dataPtr(),
 			    // bc_klo[lev]->dataPtr(),
 			    // bc_khi[lev]->dataPtr(),
-			dx, &scomp, &nghost);
+			dx, &num_scalars, &nghost);
       }
 //amrex::Print() << xstate;
 //amrex::Print()<<aofs[mfi];
