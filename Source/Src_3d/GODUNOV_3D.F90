@@ -139,18 +139,18 @@ contains
     if (ppm_type .eq. 0) then
        eblo = lo
        ebhi = lo
-       call amrex_allocate(Imx,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Ipx,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Imy,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Ipy,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Imz,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Ipz,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(sm,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(sp,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sedgez,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(dsvl,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
+       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
     else
     !if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
@@ -527,18 +527,18 @@ contains
     if (ppm_type .eq. 0) then
        eblo = lo
        ebhi = lo
-       call amrex_allocate(Imx,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Ipx,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Imy,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Ipy,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Imz,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(Ipz,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(sm,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(sp,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(sedgez,eblo(1),ebzhi(1),eblo(2),ebzhi(2),eblo(3),ebzhi(3))
-       call amrex_allocate(dsvl,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
+       call amrex_allocate(sedgez,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
     else
        !if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
