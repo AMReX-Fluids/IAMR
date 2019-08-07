@@ -147,9 +147,9 @@ contains
        call amrex_allocate(Ipz,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sm,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sp,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2),eblo(3),ebxhi(3))
-       call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2),eblo(3),ebyhi(3))
-       call amrex_allocate(sedgez,eblo(1),ebzhi(1),eblo(2),ebzhi(2),eblo(3),ebzhi(3))
+       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgez,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(dsvl,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
     else
     !if (ppm_type .gt. 0) then
@@ -535,8 +535,8 @@ contains
        call amrex_allocate(Ipz,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sm,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sp,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
-       call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2),eblo(3),ebxhi(3))
-       call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2),eblo(3),ebyhi(3))
+       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
        call amrex_allocate(sedgez,eblo(1),ebzhi(1),eblo(2),ebzhi(2),eblo(3),ebzhi(3))
        call amrex_allocate(dsvl,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
     else
