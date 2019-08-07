@@ -1,11 +1,19 @@
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+//
 
 #include <AMReX_ParmParse.H>
 
 #include <Diffusion.H>
 #include <NavierStokesBase.H>
 
+//fixme -- remove once MLTensorOp working
 #include <AMReX_MultiGrid.H>
 #include <AMReX_CGSolver.H>
+#include <AMReX_MLNodeLaplacian.H>
+#include <fstream>
+//
+#include <AMReX_MLTensorOp.H>
 
 #include <DIFFUSION_F.H>
 
@@ -694,90 +702,189 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     // U_new now contains the inviscid update of U.
     // This is part of the RHS for the viscous solve.
     //
-    MultiFab Rhs(grids,dmap,BL_SPACEDIM,0);
-
+    const int soln_ng = 1;
+    MultiFab Rhs(grids,dmap,BL_SPACEDIM,0, MFInfo(),navier_stokes->Factory());
+    MultiFab Soln(grids,dmap,BL_SPACEDIM,soln_ng,MFInfo(),navier_stokes->Factory());
     MultiFab** tensorflux_old;
     FluxBoxes fb_old;
-  {
+
     //
     // Set up Rhs.
     //
-    const int soln_old_grow = 1;
-    MultiFab Soln_old(grids,dmap,BL_SPACEDIM,soln_old_grow);
-    const Real a = 0.0;
-    Real       b = -(1.0-be_cn_theta)*dt;
-    if (allnull)
-    b *= visc_coef[Xvel];
-    ViscBndryTensor visc_bndry;
-    const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ptime;
-        
-	  {
-      std::unique_ptr<DivVis> tensor_op
-		  (getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp));
-	    tensor_op->maxOrder(tensor_max_order);
-	    //
-	    // Copy to single-component multifab.  Use Soln as a temporary here.
-	    //
-	    MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
-	     
-	    tensor_op->apply(Rhs,Soln_old);
-	    
-	    if (do_reflux && (level<finest_level || level>0))
-	    {
-        tensorflux_old = fb_old.define(navier_stokes, BL_SPACEDIM);
-        tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
-                   *(tensorflux_old[1]),
-                   *(tensorflux_old[2])),Soln_old);
-        for (int d = 0; d < BL_SPACEDIM; d++)
-		      tensorflux_old[d]->mult(-b/(dt*navier_stokes->Geom().CellSize()[d]),0);
-      }
-    }
-      
-    Soln_old.clear();
-
-    //
-    // Complete Rhs by adding body sources.
-    //
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
+    if ( be_cn_theta != 1)
     {
-      const Box& bx     = Rhsmfi.tilebox();
-      FArrayBox& rhsfab = Rhs[Rhsmfi];
-      FArrayBox& Ufab   = U_new[Rhsmfi];
-
       //
-      // Scale inviscid part by volume.
-      //
-      for (int comp = 0; comp < BL_SPACEDIM; comp++)
-      {
-        const int sigma = Xvel + comp;
+      // Compute time n viscous terms
+      //     
+      const Real a = 0.0;
+      Real       b = -(1.0-be_cn_theta)*dt;
 
-        Ufab.mult(volume[Rhsmfi],bx,0,sigma,1);
-        //
-        // Multiply by density at time nph (if rho_flag==1)
-        //                     or time n   (if rho_flag==3).
-        //
-        if (rho_flag == 1)
-          Ufab.mult(rho_half[Rhsmfi],bx,0,sigma,1);
-        if (rho_flag == 3)
-          Ufab.mult((navier_stokes->rho_ptime)[Rhsmfi],bx,0,sigma,1);
-        //
-        // Add to Rhs which contained operator applied to U_old.
-        //
-        rhsfab.plus(Ufab,bx,sigma,comp,1);
+      // FIXME not sure why this is here. this is the tensor solve so allnull seems
+      // like it should be an error...
+      if (allnull)
+	b *= visc_coef[Xvel];
+      
+      // MLMG tensor solver
+      {	
+	LPInfo info;
+	info.setAgglomeration(agglomeration);
+	info.setConsolidation(consolidation);
+	info.setMaxCoarseningLevel(0);
+	info.setMetricTerm(false);
+	
+	MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
+	
+	tensorop.setMaxOrder(tensor_max_order);
+	
+	// create right container
+	Array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc[AMREX_SPACEDIM];
+	Array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc[AMREX_SPACEDIM];
+	// fill it
+	for (int i=0; i<AMREX_SPACEDIM; i++)
+	  setDomainBC(mlmg_lobc[i], mlmg_hibc[i], Xvel+i);
+	// pass to op
+	tensorop.setDomainBC({AMREX_D_DECL(mlmg_lobc[0],mlmg_lobc[1],mlmg_lobc[2])},
+			     {AMREX_D_DECL(mlmg_hibc[0],mlmg_hibc[1],mlmg_hibc[2])});
+	
+	// set coarse-fine BCs
+	{	    
+	  MultiFab crsedata;
+	  int ng = soln_ng;
+	  
+	  if (level > 0) {
+	    auto& crse_ns = *(coarser->navier_stokes);
+	    crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(),
+			    AMREX_SPACEDIM, ng);
+	    AmrLevel::FillPatch(crse_ns, crsedata, ng, prev_time, State_Type, Xvel,
+				AMREX_SPACEDIM);
+	    // FIXME? old tensor solve did not check for this rho_flag...
+	    //  
+	    // if (rho_flag == 2) {
+	    // 	const MultiFab& rhotime = crse_ns.get_rho(prev_time);
+	    // 	MultiFab::Divide(crsedata,rhotime,0,0,1,ng);
+	    // }
+	    
+	    tensorop.setCoarseFineBC(&crsedata, crse_ratio[0]);
+	  }
+	    
+	  AmrLevel::FillPatch(*navier_stokes,Soln,ng,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+	  // Again, original didn't care about rho_flag==2
+	  // if (rho_flag == 2) {
+	  //   const MultiFab& rhotime = navier_stokes->get_rho(prev_time);
+	  //   MultiFab::Divide(Soln,rhotime,0,0,1,ng);
+	  // }
+	  
+	  // fixme? Do we need/want next 2 lines? mfix does this
+	  // seems like this ought be to have been done in FillPatch...
+	  // EB_set_covered(Soln, 0, AMREX_SPACEDIM, ng, 1.2345e30);
+	  //Soln.FillBoundary ((navier_stokes->Geom()).periodicity());
+	  ///
 
-        if (delta_rhs != 0)
-        {
-          FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
-          deltafab.mult(dt,bx,comp+rhsComp,1);
-          deltafab.mult(volume[Rhsmfi],bx,0,comp+rhsComp,1);
-          rhsfab.plus(deltafab,bx,comp+rhsComp,comp,1);
-        }
+	  tensorop.setLevelBC(0, &Soln);
+	  
+	  // FIXME check divergence of vel
+	  // MLNodeLaplacian mllap({navier_stokes->Geom()}, {grids}, {dmap}, info);
+	  // mllap.setDomainBC(mlmg_lobc[0], mlmg_hibc[0]);
+	  // Rhs2.setVal(0.);
+	  // mllap.compDivergence({&Rhs2}, {&Soln});
+	  // amrex::WriteSingleLevelPlotfile("div_"+std::to_string(count), Rhs2, {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);
+	  //
+	}
+
+	tensorop.setScalars(a, b);
+	
+	Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+	computeBeta(face_bcoef,betan,betaComp);
+	
+	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+	//ebtensorop.setEBShearViscosity(0, bcoef);
+	// not usually needed for gasses
+	// ebtensorop.setBulkViscosity(0, .);
+	// ebtensorop.setEBBulkViscosity(0, .);
+	
+	// FIXME??? Hack to compare MLMG to old way
+	// remove the "divmusi" terms by setting kappa = (2/3) mu
+	//
+	// => not a good idea. poor numerical stability properties (very noisy)
+	//  
+	// Print()<<"WARNING: Hack to get rid of divU terms ...\n";
+	// Array<MultiFab,AMREX_SPACEDIM> kappa;
+	// Real twothirds = 2.0/3.0;
+	// for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+	// {
+	//   kappa[idim].define(betan[idim]->boxArray(), betan[idim]->DistributionMap(), 1, 0);
+	//   MultiFab::Copy(kappa[idim], *betan[idim], 0, 0, 1, 0);
+	//   kappa[idim].mult(twothirds);
+	// }
+	// tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
+	  
+	MLMG mlmg(tensorop);
+	// FIXME -- consider making new parameters max_iter and bottom_verbose
+	//mlmg.setMaxIter(max_iter);
+	mlmg.setMaxFmgIter(max_fmg_iter);
+	mlmg.setVerbose(10);
+	mlmg.setBottomVerbose(10);
+	//mlmg.setBottomVerbose(bottom_verbose);
+	  
+	mlmg.apply({&Rhs}, {&Soln});
+
+	// FIXME flux not working
+	if (do_reflux && (level<finest_level || level>0))
+	{
+	  Print()<<"Doing reflux ...\n";
+	  
+	  tensorflux_old = fb_old.define(navier_stokes, AMREX_SPACEDIM);
+	  // tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
+	  // 			       *(tensorflux_old[1]),
+	  // 			       *(tensorflux_old[2])),Soln_old);
+	  std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(tensorflux_old[0], tensorflux_old[1], tensorflux_old[2])};
+	  // Think this currently would just give inherited flux from MLABecLap
+	  mlmg.getFluxes({fp},{&Soln});
+	  for (int d = 0; d < BL_SPACEDIM; d++)
+	    tensorflux_old[d]->mult(-b/(dt*navier_stokes->Geom().CellSize()[d]),0);
+	}
+	
       }
-    }
 
+# if 0
+      // Old Tensor solve
+    {
+      const int soln_old_grow = 1;
+      MultiFab Soln_old(grids,dmap,BL_SPACEDIM,soln_old_grow);
+      const Real a = 0.0;
+      Real       b = -(1.0-be_cn_theta)*dt;
+      if (allnull)
+	b *= visc_coef[Xvel];
+      ViscBndryTensor visc_bndry;
+      
+      const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ptime;
+      
+      {
+	std::unique_ptr<DivVis> tensor_op
+	  (getTensorOp(a,b,prev_time,visc_bndry,rho,betan,betaComp));
+	tensor_op->maxOrder(tensor_max_order);
+	//
+	// Copy to single-component multifab.  Use Soln as a temporary here.
+	//
+	MultiFab::Copy(Soln_old,U_old,Xvel,0,BL_SPACEDIM,0);
+	
+	tensor_op->apply(Rhs,Soln_old);
+	
+	if (do_reflux && (level<finest_level || level>0))
+	{
+	  tensorflux_old = fb_old.define(navier_stokes, BL_SPACEDIM);
+	  tensor_op->compFlux(D_DECL(*(tensorflux_old[0]),
+				     *(tensorflux_old[1]),
+				     *(tensorflux_old[2])),Soln_old);
+	  for (int d = 0; d < BL_SPACEDIM; d++)
+	    tensorflux_old[d]->mult(-b/(dt*navier_stokes->Geom().CellSize()[d]),0);
+	}
+      }
+      
+      Soln_old.clear();
+    }
+#endif
+    
 #if (BL_SPACEDIM == 2) 
     if (parent->Geom(0).IsRZ())
     {
@@ -831,7 +938,184 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     }
 #endif
   }
-  
+    
+    //
+    // Complete Rhs by adding body sources.
+    //
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
+    {
+      const Box& bx     = Rhsmfi.tilebox();
+      FArrayBox& rhsfab = Rhs[Rhsmfi];
+      FArrayBox& Ufab   = U_new[Rhsmfi];
+
+      //
+      // Scale inviscid part by volume.
+      //
+      for (int comp = 0; comp < BL_SPACEDIM; comp++)
+      {
+        const int sigma = Xvel + comp;
+
+        Ufab.mult(volume[Rhsmfi],bx,0,sigma,1);
+        //
+        // Multiply by density at time nph (if rho_flag==1)
+        //                     or time n   (if rho_flag==3).
+        //
+        if (rho_flag == 1)
+          Ufab.mult(rho_half[Rhsmfi],bx,0,sigma,1);
+        if (rho_flag == 3)
+          Ufab.mult((navier_stokes->rho_ptime)[Rhsmfi],bx,0,sigma,1);
+        //
+        // Add to Rhs which contained operator applied to U_old.
+        //
+        rhsfab.plus(Ufab,bx,sigma,comp,1);
+
+        if (delta_rhs != 0)
+        {
+          FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
+          deltafab.mult(dt,bx,comp+rhsComp,1);
+          deltafab.mult(volume[Rhsmfi],bx,0,comp+rhsComp,1);
+          rhsfab.plus(deltafab,bx,comp+rhsComp,comp,1);
+        }
+      }
+    }
+
+    //
+    // Construct viscous operator at time N+1.
+    //
+    const Real a = 1.0;
+    Real       b = be_cn_theta*dt;
+    // FIXME?
+    if (allnull)
+        b *= visc_coef[Xvel];
+
+    // MLMG solution
+    {
+      // genaric tol suggestion for MLMG
+      const Real tol_rel = 1.e-11;
+      const Real tol_abs = 0.0;
+      // cribbing from scalar
+      //const Real tol_rel = visc_tol;
+      //const Real tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
+      
+      LPInfo info;
+      info.setAgglomeration(agglomeration);
+      info.setConsolidation(consolidation);
+      //fixme??
+      info.setMetricTerm(false);
+      info.setMaxCoarseningLevel(100);
+
+      MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
+      
+      tensorop.setMaxOrder(tensor_max_order);
+
+      // create right container
+      Array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc[AMREX_SPACEDIM];
+      Array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc[AMREX_SPACEDIM];
+      // fill it
+      for (int i=0; i<AMREX_SPACEDIM; i++)
+	setDomainBC(mlmg_lobc[i], mlmg_hibc[i], Xvel+i);
+      // pass to op
+      tensorop.setDomainBC({AMREX_D_DECL(mlmg_lobc[0],mlmg_lobc[1],mlmg_lobc[2])},
+			   {AMREX_D_DECL(mlmg_hibc[0],mlmg_hibc[1],mlmg_hibc[2])});
+
+      // set up level BCs
+      {
+	MultiFab crsedata;
+	int ng = soln_ng;
+	
+	if (level > 0) {
+	  auto& crse_ns = *(coarser->navier_stokes);
+	  crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), AMREX_SPACEDIM,
+			  ng, MFInfo(),navier_stokes->Factory());
+	  AmrLevel::FillPatch(crse_ns, crsedata, ng, cur_time, State_Type, Xvel,
+			      AMREX_SPACEDIM);
+	  tensorop.setCoarseFineBC(&crsedata, crse_ratio[0]);
+	}
+	    
+	AmrLevel::FillPatch(*navier_stokes,Soln,ng,cur_time,State_Type,Xvel,AMREX_SPACEDIM);
+	
+	tensorop.setLevelBC(0, &Soln);
+      }
+
+      {
+	MultiFab acoef;
+	std::pair<Real,Real> scalars;
+	Real rhsscale = 1.0;
+	const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
+	computeAlpha(acoef, scalars, Xvel, a, b, cur_time, rho, 1,
+		     &rhsscale, 0, NULL);
+	tensorop.setScalars(scalars.first, scalars.second);
+	tensorop.setACoeffs(0, acoef);
+      }
+      
+      {
+	Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+	computeBeta(face_bcoef,betan,betaComp);
+	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+	// ebtensorop.setEBShearViscosity(0, bcoef);
+	// not usually needed for gasses
+	// ebtensorop.setBulkViscosity(0, .);
+	// ebtensorop.setEBBulkViscosity(0, .);
+      }
+	  
+      MLMG mlmg(tensorop);
+      //fixme?
+      //mlmg.setMaxIter(max_iter);
+      mlmg.setMaxFmgIter(max_fmg_iter);
+      mlmg.setVerbose(verbose);
+      //mlmg.setBottomVerbose(bottom_verbose);
+      
+      // ensures ghost cells of sol are correctly filled when returned from solver
+      //fixme?? isn't FillPatch ususally the way to do it?
+      // would need not not copy ghost cells to U_new below
+      mlmg.setFinalFillBC(true);
+
+      //    solution.setVal(0.0);
+      mlmg.solve({&Soln}, {&Rhs}, tol_rel, tol_abs);
+      
+      //
+      // Copy into state variable at new time.
+      //
+      MultiFab::Copy(U_new,Soln,0,Xvel,AMREX_SPACEDIM,soln_ng);
+
+      //
+      // Modify diffusive fluxes here.
+      //
+      if (do_reflux && (level < finest_level || level > 0))
+      {
+	amrex::Abort("Multi-level tensor solve still under development.");
+	
+	FluxBoxes fb(navier_stokes, BL_SPACEDIM);
+	MultiFab** tensorflux = fb.get();
+#if 0
+	tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
+#endif
+	for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+	  tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
+	  tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,0);
+	}       
+
+	if (level > 0)
+        {
+	  for (int k = 0; k < BL_SPACEDIM; k++)
+	    viscflux_reg->FineAdd(*(tensorflux[k]),k,Xvel,Xvel,BL_SPACEDIM,dt);
+	}
+
+	if (level < finest_level)
+        {
+	  for (int d = 0; d < BL_SPACEDIM; d++)
+	    finer->viscflux_reg->CrseInit(*tensorflux[d],d,0,Xvel,BL_SPACEDIM,-dt);
+	}
+      }
+    }
+    
+#if 0
+    // Old tensor solve
+   
     const int soln_grow = 1;
     MultiFab Soln(grids,dmap,BL_SPACEDIM,soln_grow);
     Soln.setVal(0);
@@ -866,13 +1150,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     U_new.setVal(BL_SAFE_BOGUS,Xvel,n_comp,n_ghost);
     n_ghost = 0;
     U_new.copy(Soln,0,Xvel,n_comp);
-    //
-    // Construct viscous operator with bndry data at time N+1.
-    //
-    const Real a = 1.0;
-    Real       b = be_cn_theta*dt;
-    if (allnull)
-        b *= visc_coef[Xvel];
        
     ViscBndryTensor visc_bndry;
     const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
@@ -931,6 +1208,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         finer->viscflux_reg->CrseInit(*tensorflux[d],d,0,Xvel,BL_SPACEDIM,-dt);
        }
     }
+#endif
 }
 
 void
