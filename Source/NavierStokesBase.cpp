@@ -3584,9 +3584,13 @@ NavierStokesBase::velocity_advection (Real dt)
 	     bndry[2] = fetchBCArray(State_Type,bx,2,1);)
          
       for (int d=0; d<BL_SPACEDIM; ++d){
-          const Box& ebx = amrex::surroundingNodes(bx,d);
-          cfluxes[d].resize(ebx,BL_SPACEDIM+1);
-          edgstate[d].resize(ebx,BL_SPACEDIM+1);
+#ifdef AMREX_USE_EB        
+        const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
+#else
+        const Box& ebx = amrex::surroundingNodes(bx,d);
+#endif
+        cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+        edgstate[d].resize(ebx,BL_SPACEDIM+1);
       }
         
         //

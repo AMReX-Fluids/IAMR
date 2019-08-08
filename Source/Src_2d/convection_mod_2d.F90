@@ -292,12 +292,13 @@ contains
                             divuc, glo, ghi, &
                             vel, vello, velhi, &
                             u, ulo, uhi, &
-                            v, vlo, vhi, &
                             xflx, xflxlo, xflxhi, &
-                            yflx, yflxlo, yflxhi, &
                             xstate, xstatelo, xstatehi, &
+                            xslopes, sxlo, sxhi, &
+                            v, vlo, vhi, &
+                            yflx, yflxlo, yflxhi, &
                             ystate, ystatelo, ystatehi, &
-                            xslopes, yslopes, slo, shi, &
+                            yslopes, sylo, syhi, &
                             domlo, domhi, &
                             dx, ng, nc, known_edgestate) bind(C)
 
@@ -305,7 +306,8 @@ contains
       integer(c_int),  intent(in   ) :: lo(SDIM),  hi(SDIM), nc, known_edgestate
 
       ! Array Bounds
-      integer(c_int),  intent(in   ) :: slo(SDIM), shi(SDIM)
+      integer(c_int),  intent(in   ) :: sxlo(SDIM), sxhi(SDIM)
+      integer(c_int),  intent(in   ) :: sylo(SDIM), syhi(SDIM)
       integer(c_int),  intent(in   ) :: glo(SDIM), ghi(SDIM)
       integer(c_int),  intent(in   ) :: vello(SDIM), velhi(SDIM)
       integer(c_int),  intent(in   ) :: ulo(SDIM), uhi(SDIM)
@@ -322,8 +324,8 @@ contains
       ! Velocity Array
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),nc), &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),nc), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),nc), &
+           & xslopes(sxlo(1):sxhi(1),sxlo(2):sxhi(2),nc), &
+           & yslopes(sylo(1):syhi(1),sylo(2):syhi(2),nc), &
            & u(ulo(1):uhi(1),ulo(2):uhi(2)), &
            & v(vlo(1):vhi(1),vlo(2):vhi(2))
 
@@ -364,12 +366,6 @@ contains
       idx = one / dx(1)
       idy = one / dx(2)
 
-      
-      write(*,*) 'DEBUG in divuc xflx ' ,lbound(xflx),ubound(xflx)
-      write(*,*) 'DEBUG in divuc yflx ' ,lbound(yflx),ubound(yflx)
-      
-      write(*,*) 'DEBUG in divuc lo, hi ', lo, hi
-      
       do n =1,nc
       
       do j = lo(2)-3, hi(2)+3
@@ -462,16 +458,6 @@ contains
                              (v(i,j+1) * ystate(i,j+1,n) - v(i,j) * ystate(i,j,n)) * idy
             endif                           
                                
-
-            
-            !write(*,*) 'DBUG TOTO',i,j,xstate(i,j),xstate(i+1,j),ystate(i,j),ystate(i,j+1)
-
-            ! ****************************************************
-            ! Return the negative
-            ! ****************************************************
-
-            !divuc(i,j,1) = -divuc(i,j,1)
-
          end do
       end do
       

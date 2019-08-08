@@ -1143,9 +1143,9 @@ void Godunov::ComputeVelocitySlopes(const amrex::MFIter& mfi,
 
 void Godunov::ComputeScalarSlopes(const amrex::MFIter& mfi,
 				  const MultiFab& Sborder, const int& ncomp,
-				  D_DECL(std::unique_ptr<amrex::MultiFab>& xslopes,
-					 std::unique_ptr<amrex::MultiFab>& yslopes,
-					 std::unique_ptr<amrex::MultiFab>& zslopes),
+				  D_DECL(MultiFab& xslopes,
+					 MultiFab& yslopes,
+					 MultiFab& zslopes),
 				  D_DECL(const Vector<int>& ubc,
 					 const Vector<int>& vbc,
 					 const Vector<int>& wbc),
@@ -1165,9 +1165,9 @@ void Godunov::ComputeScalarSlopes(const amrex::MFIter& mfi,
       // If tile is completely covered by EB geometry, set slopes
       // value to some very large number so we know if
       // we accidentaly use these covered slopes later in calculations
-      D_TERM(xslopes->setVal(1.2345e300, bx, 0, ncomp);,
-	     yslopes->setVal(1.2345e300, bx, 0, ncomp);,
-	     zslopes->setVal(1.2345e300, bx, 0, ncomp););
+      D_TERM(xslopes.setVal(1.2345e300, bx, 0, ncomp);,
+	     yslopes.setVal(1.2345e300, bx, 0, ncomp);,
+	     zslopes.setVal(1.2345e300, bx, 0, ncomp););
     }
     else
     {
@@ -1176,10 +1176,10 @@ void Godunov::ComputeScalarSlopes(const amrex::MFIter& mfi,
       {
 	compute_slopes(BL_TO_FORTRAN_BOX(bx), &ncomp,
 		       BL_TO_FORTRAN_ANYD(Sborder[mfi]),
-		       D_DECL((*xslopes)[mfi].dataPtr(),
-			      (*yslopes)[mfi].dataPtr(),
-			      (*zslopes)[mfi].dataPtr()),
-		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
+		       D_DECL(xslopes[mfi].dataPtr(),
+			      yslopes[mfi].dataPtr(),
+			      zslopes[mfi].dataPtr()),
+		       BL_TO_FORTRAN_BOX(xslopes[mfi].box()),
 		       domain.loVect(), domain.hiVect(),
 		       D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
 	// bc_ilo->dataPtr(), bc_ihi->dataPtr(),
@@ -1191,10 +1191,10 @@ void Godunov::ComputeScalarSlopes(const amrex::MFIter& mfi,
       {
 	compute_slopes_eb(BL_TO_FORTRAN_BOX(bx), &ncomp,
 			  BL_TO_FORTRAN_ANYD(Sborder[mfi]),
-			  D_DECL((*xslopes)[mfi].dataPtr(),
-				 (*yslopes)[mfi].dataPtr(),
-				 (*zslopes)[mfi].dataPtr()),
-			  BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
+			  D_DECL(xslopes[mfi].dataPtr(),
+				 yslopes[mfi].dataPtr(),
+				 zslopes[mfi].dataPtr()),
+			  BL_TO_FORTRAN_BOX(xslopes[mfi].box()),
 			  BL_TO_FORTRAN_ANYD(flags),
 			  domain.loVect(), domain.hiVect(),
 			  D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()));
@@ -1389,41 +1389,35 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 			      (*m_zslopes)[mfi].dataPtr()),
 		       BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
 		       domain.loVect(),domain.hiVect(),
-		       //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-		       // old bcs
-		       // bc_ilo[lev]->dataPtr(),
-		       // bc_ihi[lev]->dataPtr(),
-		       // bc_jlo[lev]->dataPtr(),
-		       // bc_jhi[lev]->dataPtr(),
-		       // bc_klo[lev]->dataPtr(),
-		       // bc_khi[lev]->dataPtr(),
 		       dx,&nghost);
       }
       else
       {
 	// Use EB routines
+  int known_edgestate = 0;
+  
 	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
-			BL_TO_FORTRAN_ANYD(aofs[mfi]),
-			BL_TO_FORTRAN_ANYD(U[mfi]),
+      BL_TO_FORTRAN_ANYD(aofs[mfi]),
+      BL_TO_FORTRAN_ANYD(U[mfi]),
 
-			BL_TO_FORTRAN_ANYD(uedge),
-                        BL_TO_FORTRAN_ANYD(xflx),
-                        BL_TO_FORTRAN_ANYD(xstate),
-			BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
-			(*m_xslopes)[mfi].dataPtr(),
-			BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
+      BL_TO_FORTRAN_ANYD(uedge),
+      BL_TO_FORTRAN_ANYD(xflx),
+      BL_TO_FORTRAN_ANYD(xstate),
+      BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
+      BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+      (*m_xslopes)[mfi].dataPtr(),
+      BL_TO_FORTRAN_BOX((*m_xslopes)[mfi].box()),
 
-			BL_TO_FORTRAN_ANYD(vedge),
-                        BL_TO_FORTRAN_ANYD(yflx),
-                        BL_TO_FORTRAN_ANYD(ystate),
-			BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
-			(*m_yslopes)[mfi].dataPtr(),
+      BL_TO_FORTRAN_ANYD(vedge),
+      BL_TO_FORTRAN_ANYD(yflx),
+      BL_TO_FORTRAN_ANYD(ystate),
+      BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
+      BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+      (*m_yslopes)[mfi].dataPtr(),
 #if (AMREX_SPACEDIM ==3)
-			BL_TO_FORTRAN_ANYD(wedge),
-                        BL_TO_FORTRAN_ANYD(zflx),
-                        BL_TO_FORTRAN_ANYD(zstate),
+      BL_TO_FORTRAN_ANYD(wedge),
+      BL_TO_FORTRAN_ANYD(zflx),
+      BL_TO_FORTRAN_ANYD(zstate),
 			BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
 			BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
 			(*m_zslopes)[mfi].dataPtr(),
@@ -1431,15 +1425,8 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 			BL_TO_FORTRAN_ANYD(flags),
 			BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
 			BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
-	                domain.loVect(),domain.hiVect(),
-			  //D_DECL(ubc.dataPtr(),vbc.dataPtr(),wbc.dataPtr()),
-			    // bc_ilo[lev]->dataPtr(),
-			    // bc_ihi[lev]->dataPtr(),
-			    // bc_jlo[lev]->dataPtr(),
-			    // bc_jhi[lev]->dataPtr(),
-			    // bc_klo[lev]->dataPtr(),
-			    // bc_khi[lev]->dataPtr(),
-			dx, &ncomp, &nghost);
+	    domain.loVect(),domain.hiVect(),
+			dx, &ncomp, &nghost, &known_edgestate);
       }
 //amrex::Print()<<aofs[mfi];
   }        
@@ -1454,9 +1441,9 @@ void
 Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 		       const MultiFab& S, int first_scal, int num_scalars,
 		       MultiFab& aofs, int state_ind, int flxcomp,
-		       D_DECL(const std::unique_ptr<amrex::MultiFab>& xslopes,
-			      const std::unique_ptr<amrex::MultiFab>& yslopes,
-			      const std::unique_ptr<amrex::MultiFab>& zslopes),
+		       const MultiFab& xslopes,
+			      const MultiFab& yslopes,
+			      const MultiFab& zslopes,
 		       D_DECL(const FArrayBox& uedge, const FArrayBox& vedge, const FArrayBox& wedge),
 		       D_DECL(      FArrayBox& xflx,        FArrayBox& yflx,        FArrayBox& zflx),
            D_DECL(      FArrayBox& xstate,      FArrayBox& ystate,      FArrayBox& zstate),
@@ -1465,8 +1452,6 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 		       const amrex::Real* dx,
 		       int nghost, int known_edgestate)
 {
-  // worry about fluxes later
-  //
   
   // Tilebox
   Box bx = mfi.tilebox();
@@ -1475,7 +1460,6 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
   const EBFArrayBox& vel_in_fab =
     static_cast<EBFArrayBox const&>(S[mfi]);
   const EBCellFlagFab& flags = vel_in_fab.getEBCellFlagFab();
-
 
   if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
   {
@@ -1489,63 +1473,63 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
       // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
       if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
       {
-	compute_divuc(BL_TO_FORTRAN_BOX(bx),
-		       BL_TO_FORTRAN_N_ANYD(aofs[mfi],state_ind),
-		       BL_TO_FORTRAN_N_ANYD(S[mfi],first_scal),
-		       D_DECL(BL_TO_FORTRAN_ANYD(uedge),
-			      BL_TO_FORTRAN_ANYD(vedge),
-			      BL_TO_FORTRAN_ANYD(wedge)),
-           D_DECL(BL_TO_FORTRAN_N_ANYD(xflx,flxcomp),
-			      BL_TO_FORTRAN_N_ANYD(yflx,flxcomp),
-			      BL_TO_FORTRAN_N_ANYD(zflx,flxcomp)),
-           D_DECL(BL_TO_FORTRAN_N_ANYD(xstate,flxcomp),
-			      BL_TO_FORTRAN_N_ANYD(ystate,flxcomp),
-			      BL_TO_FORTRAN_N_ANYD(zstate,flxcomp)),
-		       D_DECL((*xslopes)[mfi].dataPtr(first_scal),
-			      (*yslopes)[mfi].dataPtr(first_scal),
-			      (*zslopes)[mfi].dataPtr(first_scal)),
-		       BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),
-		       domain.loVect(),domain.hiVect(),
-		       dx,&nghost, &num_scalars, &known_edgestate);
-  //amrex::Print() << xstate;
+        compute_divuc(BL_TO_FORTRAN_BOX(bx),
+                      BL_TO_FORTRAN_N_ANYD(aofs[mfi],state_ind),
+                      BL_TO_FORTRAN_N_ANYD(S[mfi],first_scal),
+                      BL_TO_FORTRAN_ANYD(uedge),
+                      BL_TO_FORTRAN_N_ANYD(xflx,flxcomp),
+                      BL_TO_FORTRAN_N_ANYD(xstate,flxcomp),
+                      BL_TO_FORTRAN_N_ANYD(xslopes[mfi],flxcomp),
+
+                      BL_TO_FORTRAN_ANYD(vedge),
+                      BL_TO_FORTRAN_N_ANYD(yflx,flxcomp),
+                      BL_TO_FORTRAN_N_ANYD(ystate,flxcomp),
+                      BL_TO_FORTRAN_N_ANYD(yslopes[mfi],flxcomp),
+
+#if(AMREX_SPACEDIM ==3)
+                      BL_TO_FORTRAN_ANYD(wedge),
+                      BL_TO_FORTRAN_N_ANYD(zflx,flxcomp),
+                      BL_TO_FORTRAN_N_ANYD(zstate,flxcomp),                      
+                      BL_TO_FORTRAN_N_ANYD(zslopes[mfi],flxcomp),
+#endif
+
+                      domain.loVect(),domain.hiVect(),
+                      dx,&nghost, &num_scalars, &known_edgestate);
       }
       else
       {
 //	// Use EB routines
-	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
-			BL_TO_FORTRAN_N_ANYD(aofs[mfi],state_ind),
-			BL_TO_FORTRAN_N_ANYD(S[mfi],first_scal),
+        compute_aofs_eb_scal(BL_TO_FORTRAN_BOX(bx),
+                             BL_TO_FORTRAN_N_ANYD(aofs[mfi],state_ind),
+                             BL_TO_FORTRAN_N_ANYD(S[mfi],first_scal),
 
-			BL_TO_FORTRAN_ANYD(uedge),
-      BL_TO_FORTRAN_ANYD(xflx),
-      BL_TO_FORTRAN_ANYD(xstate),
-			BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
-			(*xslopes)[mfi].dataPtr(),
-			BL_TO_FORTRAN_BOX((*xslopes)[mfi].box()),			
+                             BL_TO_FORTRAN_ANYD(uedge),
+                             BL_TO_FORTRAN_N_ANYD(xflx,flxcomp),
+                             BL_TO_FORTRAN_N_ANYD(xstate,flxcomp),
+                             BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
+                             BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+                             BL_TO_FORTRAN_N_ANYD(xslopes[mfi],flxcomp),
 
-			BL_TO_FORTRAN_ANYD(vedge),
-      BL_TO_FORTRAN_ANYD(yflx),
-      BL_TO_FORTRAN_ANYD(ystate),
-			BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
-			(*yslopes)[mfi].dataPtr(),
+                             BL_TO_FORTRAN_ANYD(vedge),
+                             BL_TO_FORTRAN_N_ANYD(yflx,flxcomp),
+                             BL_TO_FORTRAN_N_ANYD(ystate,flxcomp),
+                             BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
+                             BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+                             BL_TO_FORTRAN_N_ANYD(yslopes[mfi],flxcomp),
 #if(AMREX_SPACEDIM ==3)
-			BL_TO_FORTRAN_ANYD(wedge),
-      BL_TO_FORTRAN_ANYD(zflx),
-      BL_TO_FORTRAN_ANYD(zstate),
-			BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
-			BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
-			(*zslopes)[mfi].dataPtr(),
+                             BL_TO_FORTRAN_ANYD(wedge),
+                             BL_TO_FORTRAN_N_ANYD(zflx,flxcomp),
+                             BL_TO_FORTRAN_N_ANYD(zstate,flxcomp),
+                             BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
+                             BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+                             BL_TO_FORTRAN_N_ANYD(zslopes[mfi],flxcomp),
 #endif
-			BL_TO_FORTRAN_ANYD(flags),
-			BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
-			BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
-			domain.loVect(),domain.hiVect(),
-			dx, &num_scalars, &nghost);
+                             BL_TO_FORTRAN_ANYD(flags),
+                             BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
+                             BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
+                             domain.loVect(),domain.hiVect(),
+                             dx, &num_scalars, &nghost, &known_edgestate);
       }
-//amrex::Print() << xstate;
-//amrex::Print()<<aofs[mfi];
   }        
 }
 

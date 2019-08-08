@@ -501,6 +501,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             const Box& box = mfi.tilebox();
             tmpfab.resize(box,1);
             tmpfab.copy((*delta_rhs)[mfi],box,rhsComp+icomp,box,0,1);
+            
             tmpfab.mult(dt,box,0,1);
             tmpfab.mult(volume[mfi],box,0,0,1);
             Rhs[mfi].plus(tmpfab,box,0,0,1);
@@ -511,7 +512,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
           }
        }
      }
-
+//amrex::Print() << Rhs[0];
      //
      // Add hoop stress for x-velocity in r-z coordinates
      // Note: we have to add hoop stress explicitly because the hoop
@@ -585,7 +586,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
          Soln[mfi].mult((*alpha_in)[mfi],box,alpha_in_comp+icomp,0,1);
        Rhs[mfi].plus(Soln[mfi],box,0,0,1);
      }
-            
+
 	   //Fixme???
 	   // dev fillPatch'es S_new (both levels) before passing to MLMG op
 	   // It's now assumed that S_new has been FillPatch'ed before passing to diffuse_scalar
@@ -661,7 +662,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
      // Copy into state variable at new time, without bc's
      //
      MultiFab::Copy(*S_new[0],Soln,0,sigma,1,0);
-	
+
      if (rho_flag == 2) {
 #ifdef _OPENMP
 #pragma omp parallel
