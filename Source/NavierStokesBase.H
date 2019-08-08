@@ -552,6 +552,11 @@ protected:
     // static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
     // static constexpr int level_mask_notcovered = 2; // ghost cells not covered
     // static constexpr int level_mask_physbnd    = 3; // outside domain
+    
+    amrex::MultiFab m_xslopes;
+    amrex::MultiFab m_yslopes;
+    amrex::MultiFab m_zslopes;
+    
 #endif
 
     //

@@ -152,6 +152,12 @@ NavierStokesBase::NavierStokesBase ()
     aofs         = 0;
     diffusion    = 0;
 
+#ifdef AMREX_USE_EB    
+    m_xslopes    = 0;
+    m_yslopes    = 0;
+    m_zslopes    = 0;
+#endif
+    
     if (!additional_state_types_initialized)
         init_additional_state_types();
 }
@@ -225,6 +231,13 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     u_mac   = 0;
     aofs    = 0;
+    
+//#ifdef AMREX_USE_EB    
+//    m_xslopes    = 0;
+//    m_yslopes    = 0;
+//    m_zslopes    = 0;
+//#endif
+    
     //
     // Set up the level projector.
     //
@@ -271,6 +284,12 @@ NavierStokesBase::~NavierStokesBase ()
     delete advflux_reg;
     delete viscflux_reg;
     delete [] u_mac;
+    
+//#ifdef AMREX_USE_EB    
+//    delete [] m_xslopes;
+//    delete [] m_yslopes;
+//    delete [] m_zslopes;
+//#endif
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
@@ -687,6 +706,22 @@ NavierStokesBase::advance_setup (Real time,
     BL_ASSERT(aofs == 0);
     // NOTE: nghost=0 for aofs appears to work. mfix also uses no ghost cells.  
     aofs = new MultiFab(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
+
+#ifdef AMREX_USE_EB    
+        //Slopes in x-direction
+    m_xslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+   m_xslopes.setVal(0.);
+    // Slopes in y-direction
+    m_yslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_yslopes.setVal(0.);
+#if (AMREX_SPACEDIM > 2)
+    // Slopes in z-direction
+    m_zslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_zslopes.setVal(0.);
+#endif
+#endif 
+    //amrex::Print() << m_xslopes[0];
+    
     //
     // Set rho_avg.
     //
@@ -3617,9 +3652,10 @@ NavierStokesBase::velocity_advection (Real dt)
 	// incflo advection scheme doesn't include terms like gradp here
 	godunov->AdvectVel(U_mfi, Umf, *aofs,
 			   D_DECL(u_mac[0][U_mfi],u_mac[1][U_mfi],u_mac[2][U_mfi]),
-                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                           D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+         D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+         D_DECL(edgstate[0],edgstate[1],edgstate[2]),
 			   D_DECL(bndry[0], bndry[1], bndry[2]),
+         D_DECL(m_xslopes, m_yslopes, m_zslopes),
 			   geom.Domain(),
 			   geom.CellSize(),Godunov::hypgrow());	
 

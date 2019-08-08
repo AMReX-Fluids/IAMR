@@ -479,6 +479,7 @@ NavierStokes::predict_velocity (Real  dt)
 	      bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
       godunov->ComputeVelocitySlopes(mfi, Umf,
+             m_xslopes, m_yslopes, m_zslopes,
 				     D_DECL(bndry[0], bndry[1], bndry[2]),
 				     domain);
     }
