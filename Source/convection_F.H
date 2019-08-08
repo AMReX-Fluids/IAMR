@@ -92,26 +92,22 @@ extern "C"
       const int* domlo, const int* domhi );   
 
   void compute_ugradu (
-	const int* lo, const int* hi,
-	amrex::Real* rhs, const int* rlo, const int* rhi, 
-	const amrex::Real* vel   ,  const int* vello, const int* velhi,
-	const amrex::Real* u, const int* ulo, const int* uhi,
-	const amrex::Real* v, const int* vlo, const int* vhi,
+	      const int* lo, const int* hi,
+	      amrex::Real* rhs, const int* rlo, const int* rhi, 
+        const amrex::Real* vel   ,  const int* vello, const int* velhi,
+        const amrex::Real* u, const int* ulo, const int* uhi,
+        const amrex::Real* xslopes, const int* sxlo, const int* sxhi,
+        const amrex::Real* v, const int* vlo, const int* vhi,
+        const amrex::Real* yslopes, const int* sylo, const int* syhi,
 #if (AMREX_SPACEDIM ==3)
-	const amrex::Real* w, const int* wlo, const int* whi,
+        const amrex::Real* w, const int* wlo, const int* whi,
+        const amrex::Real* zslopes, const int* szlo, const int* szhi,
 #endif
-	D_DECL(const amrex::Real* xslopes, const amrex::Real* yslopes, 
-	       const amrex::Real* zslopes),
-	const int* slo, const int* shi, 
-	const int* domlo, const int* domhi,
-	// const int* bc_ilo_type, const int* bc_ihi_type, 
-	// const int* bc_jlo_type, const int* bc_jhi_type,
-	// const int* bc_klo_type, const int* bc_khi_type,
-	const amrex::Real* dx, const int* ng
+        const int* domlo, const int* domhi,
+        const amrex::Real* dx, const int* ng
         );
 
-
-   void compute_aofs_eb_scal (
+   void compute_aofs_eb (
         const int* lo, const int* hi,
         amrex::Real* afos, const int* glo, const int* ghi,
         const amrex::Real* vel   ,  const int* vello, const int* velhi,
@@ -121,7 +117,6 @@ extern "C"
         const amrex::Real* afrac_x,const int*  axlo,const int*  axhi,
         const amrex::Real* cent_x,const int*   cxlo,const int*  cxhi,
         const amrex::Real* xslopes, const int* sxlo, const int* sxhi,
-        // const int* bc_ilo_type, const int* bc_ihi_type,
 
         const amrex::Real* v, const int* vlo, const int* vhi,
         const amrex::Real* yflx, const int* yflxlo, const int* yflxhi,
@@ -129,7 +124,6 @@ extern "C"
         const amrex::Real* afrac_y,const int*  aylo,const int*  ayhi,
         const amrex::Real* cent_y,const int*   cylo,const int*  cyhi,
         const amrex::Real* yslopes, const int* sylo, const int* syhi,
-        // const int* bc_jlo_type, const int* bc_jhi_type,
 
 #if (AMREX_SPACEDIM ==3)
         const amrex::Real* w, const int* wlo, const int* whi,
@@ -138,49 +132,12 @@ extern "C"
         const amrex::Real* afrac_z,const int*  azlo,const int*  azhi,
         const amrex::Real* cent_z,const int*   czlo,const int*  czhi,
         const amrex::Real* zslopes, const int* szlo, const int* szhi,
-        // const int* bc_klo_type, const int* bc_khi_type,
 #endif
         const void* flags, const int*  flo, const int*   fhi,
         const amrex::Real* vfrac, const int* vflo, const int*  vfhi,
         const amrex::Real* bcent, const int* blo, const int*  bhi,
         const int* domlo, const int* domhi,
         const amrex::Real* dx, const int* nc, const int* ng, const int* known_edgestate
-      );
-
-   void compute_aofs_eb (
-	const int* lo, const int* hi,
-	amrex::Real* afos, const int* glo, const int* ghi, 
-	const amrex::Real* vel   ,  const int* vello, const int* velhi,
-	const amrex::Real* u, const int* ulo, const int* uhi,
-        const amrex::Real* xflx, const int* xflxlo, const int* xflxhi,
-        const amrex::Real* xstate, const int* xstatelo, const int* xstatehi,
-        const amrex::Real* afrac_x,const int*  axlo,const int*  axhi,
-        const amrex::Real* cent_x,const int*   cxlo,const int*  cxhi,
-	const amrex::Real* xslopes, const int* slo, const int* shi, 	
-	// const int* bc_ilo_type, const int* bc_ihi_type,
-	
-	const amrex::Real* v, const int* vlo, const int* vhi,	
-        const amrex::Real* yflx, const int* yflxlo, const int* yflxhi,
-        const amrex::Real* ystate, const int* ystatelo, const int* ystatehi,
-        const amrex::Real* afrac_y,const int*  aylo,const int*  ayhi,
-        const amrex::Real* cent_y,const int*   cylo,const int*  cyhi,
-	const amrex::Real* yslopes,  	
-	// const int* bc_jlo_type, const int* bc_jhi_type,
-	
-#if (AMREX_SPACEDIM ==3)
-	const amrex::Real* w, const int* wlo, const int* whi,
-        const amrex::Real* zflx, const int* zflxlo, const int* zflxhi,
-        const amrex::Real* zstate, const int* zstatelo, const int* zstatehi,
-	const amrex::Real* afrac_z,const int*  azlo,const int*  azhi, 
-	const amrex::Real* cent_z,const int*   czlo,const int*  czhi, 
-	const amrex::Real* zslopes, 
-	// const int* bc_klo_type, const int* bc_khi_type,
-#endif
-        const void* flags, const int*  flo, const int*   fhi, 
-        const amrex::Real* vfrac, const int* vflo, const int*  vfhi, 
-        const amrex::Real* bcent, const int* blo, const int*  bhi, 
-	const int* domlo, const int* domhi,
-	const amrex::Real* dx, const int* nc, const int* ng, const int* known_edgestate
       );
 
     void compute_divuc (
@@ -203,7 +160,6 @@ extern "C"
          const amrex::Real* zstate, const int* zstatelo, const int* zstatehi,
          const amrex::Real* zslopes, const int* szlo, const int* szhi,
 #endif
-
          const int* domlo, const int* domhi,
          const amrex::Real* dx, const int* ng, const int* nc,  const int* known_edgestate
          );

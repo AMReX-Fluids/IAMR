@@ -65,10 +65,7 @@ contains
    subroutine compute_slopes ( lo, hi, nc, vel, vlo, vhi, &
                               xslopes, yslopes, slo, shi, &
                               domlo, domhi, &
-                              ubc,vbc) bind(C) !, &
-                              ! bc_ilo_type, bc_ihi_type, &
-                              ! bc_jlo_type, bc_jhi_type, &
-                              !ng ) bind(C)
+                              ubc,vbc) bind(C)
 
       ! Loop bounds
       integer(c_int), intent(in   ) :: lo(SDIM), hi(SDIM)
@@ -117,9 +114,7 @@ contains
                du_r = two*(vel(i,j+1,n) - vel(i,j  ,n))
                du_c = half * ( vel(i,j+1,n) - vel(i,j-1,n) )
                yslopes(i,j,n) = mc_limiter ( du_l, du_c, du_r )
-!if (n == 1) then
-!write(*,*) 'DEBUG SLOPES ',i,j,n,xslopes(i,j,n),yslopes(i,j,n)
-!endif
+
             end do
          end do
       end do
@@ -229,17 +224,13 @@ contains
                                  xslopes, yslopes, slo, shi, &
                                  flags, flo, fhi, &
                                  domlo, domhi, &
-                                 ubc,vbc) bind(C) !, &
-                                 ! bc_ilo_type, bc_ihi_type, &
-                                 ! bc_jlo_type, bc_jhi_type, &
-                                 ! bc_klo_type, bc_khi_type, &
-                                 ! ng ) bind(C)
+                                 ubc,vbc) bind(C) 
 
       use amrex_ebcellflag_module, only: is_covered_cell
 
       ! Loop bounds
       integer(c_int), intent(in   ) :: lo(SDIM), hi(SDIM)
-      integer(c_int), intent(in   ) :: nc !,ng
+      integer(c_int), intent(in   ) :: nc
 
       ! Array bounds
       integer(c_int), intent(in   ) :: vlo(SDIM), vhi(SDIM)

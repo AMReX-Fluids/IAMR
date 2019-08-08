@@ -231,13 +231,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     u_mac   = 0;
     aofs    = 0;
-    
-//#ifdef AMREX_USE_EB    
-//    m_xslopes    = 0;
-//    m_yslopes    = 0;
-//    m_zslopes    = 0;
-//#endif
-    
+        
     //
     // Set up the level projector.
     //
@@ -284,12 +278,6 @@ NavierStokesBase::~NavierStokesBase ()
     delete advflux_reg;
     delete viscflux_reg;
     delete [] u_mac;
-    
-//#ifdef AMREX_USE_EB    
-//    delete [] m_xslopes;
-//    delete [] m_yslopes;
-//    delete [] m_zslopes;
-//#endif
     
     if (mac_projector != 0)
         mac_projector->cleanup(level);
@@ -708,9 +696,9 @@ NavierStokesBase::advance_setup (Real time,
     aofs = new MultiFab(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
 
 #ifdef AMREX_USE_EB    
-        //Slopes in x-direction
+    //Slopes in x-direction
     m_xslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
-   m_xslopes.setVal(0.);
+    m_xslopes.setVal(0.);
     // Slopes in y-direction
     m_yslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
     m_yslopes.setVal(0.);
@@ -720,7 +708,6 @@ NavierStokesBase::advance_setup (Real time,
     m_zslopes.setVal(0.);
 #endif
 #endif 
-    //amrex::Print() << m_xslopes[0];
     
     //
     // Set rho_avg.
@@ -3659,11 +3646,6 @@ NavierStokesBase::velocity_advection (Real dt)
 			   geom.Domain(),
 			   geom.CellSize(),Godunov::hypgrow());	
 
-
- // FIXME
- // Print()<<"Wrting aofs ..\n";
- // VisMF::Write(*aofs,"aofs");
-
 	if (do_reflux){
 	     //FIXME make AdvectVel pass fluxes first
 	     for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
@@ -3706,9 +3688,6 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif //end if USE_EB
       } // end of MFIter
  } // end OMP region
-
-//    VisMF::Write(Umf,"Umf_from_velocityadvection");	// OK
-//    VisMF::Write(*aofs,"Aofs_from_velocityadvection");	// NO
 
  } //end scope of FillPatchIter
 
@@ -3811,13 +3790,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
       getGradP(Gp, prev_pres_time);
 #endif
 
-// EM_DEBUG    
-    //VisMF::Write(U_new,"Unew_in_VAU");
-    //VisMF::Write(U_old,"Uold_in_VAU");
-    //static int count=0;
-    //   count++;
-    //        amrex::WriteSingleLevelPlotfile("Gp_in_VAU"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
-    
+
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
 #pragma omp parallel
@@ -3895,9 +3868,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
             }
         }
 
-//	Print() << S << std::endl;	// OK
-//	Print() << tforces << std::endl;	// NO
-
         godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
                                 Gp[Rhohalf_mfi],halftime[i],bx,dt);
         if (do_mom_diff == 1)
@@ -3906,8 +3876,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
                 U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],bx,0,d,1);
         }
     }
-//    Print() << "Printing U_new after Add_aofs_tf_gp..." << std::endl;
-//    VisMF::Write(U_new,"Unew_after");	// NO
 }
 
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
@@ -3920,9 +3888,9 @@ NavierStokesBase::velocity_advection_update (Real dt)
        {
          for(MFIter mfi(U_new); mfi.isValid(); ++mfi){
              if(U_new[mfi].contains_nan(mfi.validbox(),sigma,1)){
-		FArrayBox tmp(mfi.validbox(),1);
+		            FArrayBox tmp(mfi.validbox(),1);
                 tmp.copy(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
-//		Print() << tmp << std::endl;					
+				
 		}            
          }
 	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
@@ -3983,7 +3951,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 
             godunov->Sum_tf_gp_visc(tforces,visc_terms[mfi],Gp[mfi],Rh[mfi]);
 
-	    const Box& gbx = mfi.growntilebox(); 
+            const Box& gbx = mfi.growntilebox(); 
             S.resize(gbx,BL_SPACEDIM);
             S.copy(U_old[mfi],gbx,0,gbx,0,BL_SPACEDIM);
 

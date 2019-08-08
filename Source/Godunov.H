@@ -260,42 +260,39 @@ public:      // public access functions
   // EB functions
   //  
 #ifdef AMREX_USE_EB
-  //void slopes_FillBoundary( const amrex::MultiFab& m_xslopes,
-  //                const amrex::MultiFab& m_yslopes,
-  //                const amrex::MultiFab& m_zslopes,, const amrex::Periodicity& prdcty);
+
   void ComputeVelocitySlopes(const amrex::MFIter&  mfi,
-			     const amrex::MultiFab& Sborder,
-           D_DECL(amrex::MultiFab& m_xslopes,
-				  amrex::MultiFab& m_yslopes,
-				  amrex::MultiFab& m_zslopes),
-			     D_DECL(const amrex::Vector<int>& ubc,
-				    const amrex::Vector<int>& vbc,
-				    const amrex::Vector<int>& wbc),
-			     const amrex::Box& domain);
+                             const amrex::MultiFab& Sborder,
+                             D_DECL(amrex::MultiFab& m_xslopes,
+                                    amrex::MultiFab& m_yslopes,
+                                    amrex::MultiFab& m_zslopes),
+                             D_DECL(const amrex::Vector<int>& ubc,
+                                    const amrex::Vector<int>& vbc,
+                                    const amrex::Vector<int>& wbc),
+                             const amrex::Box& domain);
   
   void ComputeScalarSlopes(const amrex::MFIter& mfi,
-			   const amrex::MultiFab& Sborder, const int& ncomp,
-			   D_DECL(amrex::MultiFab& xslopes,
-				  amrex::MultiFab& yslopes,
-				  amrex::MultiFab& zslopes),
-			   D_DECL(const amrex::Vector<int>& ubc,
-				  const amrex::Vector<int>& vbc,
-				  const amrex::Vector<int>& wbc),
-			   const amrex::Box& domain);
+                           const amrex::MultiFab& Sborder, const int& ncomp,
+                           D_DECL(amrex::MultiFab& xslopes,
+                                  amrex::MultiFab& yslopes,
+                                  amrex::MultiFab& zslopes),
+                           D_DECL(const amrex::Vector<int>& ubc,
+                                  const amrex::Vector<int>& vbc,
+                                  const amrex::Vector<int>& wbc),
+                                  const amrex::Box& domain);
   
   void ExtrapVelToFaces (const amrex::MFIter&  mfi,
-			 //const amrex_real*  dx, amrex_real dt,
-			 D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
-				amrex::FArrayBox&  wmac),
-			 D_DECL(const amrex::Vector<int>& ubc,
-				const amrex::Vector<int>& vbc,
-				const amrex::Vector<int>& wbc),
-       D_DECL(amrex::MultiFab& m_xslopes,
-				  amrex::MultiFab& m_yslopes,
-				  amrex::MultiFab& m_zslopes),
-			 const amrex::FArrayBox&  U,
-			 const amrex::FArrayBox&  tforces,
-			 const amrex::Box& domain);
+                         D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
+                                amrex::FArrayBox&  wmac),
+                         D_DECL(const amrex::Vector<int>& ubc,
+                                const amrex::Vector<int>& vbc,
+                                const amrex::Vector<int>& wbc),
+                         D_DECL(amrex::MultiFab& m_xslopes,
+                                amrex::MultiFab& m_yslopes,
+                                amrex::MultiFab& m_zslopes),
+                         const amrex::FArrayBox&  U,
+                         const amrex::FArrayBox&  tforces,
+                         const amrex::Box& domain);
   
   void AdvectVel (const amrex::MFIter&  mfi,
                   const amrex::MultiFab& U, amrex::MultiFab& aofs,
@@ -321,9 +318,9 @@ public:      // public access functions
   void AdvectScalars_EB (const amrex::MFIter&  mfi,
                          const amrex::MultiFab& S, int first_scal, int scomp,
                          amrex::MultiFab& aofs, int acomp, int flxcomp,
-                         const amrex::MultiFab& xslopes,
+                         D_DECL(const amrex::MultiFab& xslopes,
                          const amrex::MultiFab& yslopes,
-                         const amrex::MultiFab& zslopes,
+                         const amrex::MultiFab& zslopes),
                          D_DECL(const amrex::FArrayBox& uedge,
                                 const amrex::FArrayBox& vedge,
                                 const amrex::FArrayBox& wedge),
@@ -400,11 +397,7 @@ protected:   // protected data members
   const amrex::MultiCutFab* bndrycent;
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
-  // store vel slopes -- maybe would make more sense for NS to own these?
-  // FIXME - store scalar slopes??? I don't think this makes sense
-  //static amrex::MultiFab m_xslopes;
-  //static amrex::MultiFab m_yslopes;
-  //static amrex::MultiFab m_zslopes;
+
 #endif
 };
 

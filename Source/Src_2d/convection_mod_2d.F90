@@ -116,8 +116,9 @@ contains
                              ugradu, glo, ghi, &
                              vel, vello, velhi, &
                              u, ulo, uhi, &
+                             xslopes, sxlo, sxhi, &
                              v, vlo, vhi, &
-                             xslopes, yslopes, slo, shi, &
+                             yslopes, sylo, syhi, &
                              domlo, domhi, &
                              ! bc_ilo_type, bc_ihi_type, &
                              ! bc_jlo_type, bc_jhi_type, &
@@ -127,7 +128,8 @@ contains
       integer(c_int),  intent(in   ) :: lo(SDIM),  hi(SDIM)
 
       ! Array Bounds
-      integer(c_int),  intent(in   ) :: slo(SDIM), shi(SDIM)
+      integer(c_int),  intent(in   ) :: sxlo(SDIM), sxhi(SDIM)
+      integer(c_int),  intent(in   ) :: sylo(SDIM), syhi(SDIM)
       integer(c_int),  intent(in   ) :: glo(SDIM), ghi(SDIM)
       integer(c_int),  intent(in   ) :: vello(SDIM), velhi(SDIM)
       integer(c_int),  intent(in   ) :: ulo(SDIM), uhi(SDIM)
@@ -140,8 +142,8 @@ contains
       ! Velocity Array
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),SDIM)    , &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),SDIM), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),SDIM), &
+           & xslopes(sxlo(1):sxhi(1),sxlo(2):sxhi(2),SDIM), &
+           & yslopes(sylo(1):syhi(1),sylo(2):syhi(2),SDIM), &
            & u(ulo(1):uhi(1),ulo(2):uhi(2)), &
            & v(vlo(1):vhi(1),vlo(2):vhi(2))
 

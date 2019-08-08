@@ -479,7 +479,7 @@ NavierStokes::predict_velocity (Real  dt)
 	      bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
       godunov->ComputeVelocitySlopes(mfi, Umf,
-             m_xslopes, m_yslopes, m_zslopes,
+             D_DECL(m_xslopes, m_yslopes, m_zslopes),
 				     D_DECL(bndry[0], bndry[1], bndry[2]),
 				     domain);
     }
@@ -491,7 +491,9 @@ NavierStokes::predict_velocity (Real  dt)
     // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
     //  only allows for periodic for now
     //
-    godunov->slopes_FillBoundary(geom.periodicity());
+    m_xslopes.FillBoundary(geom.periodicity());
+	  m_yslopes.FillBoundary(geom.periodicity());
+	  m_zslopes.FillBoundary(geom.periodicity());
   
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
@@ -553,9 +555,9 @@ NavierStokes::predict_velocity (Real  dt)
 	// for now, just doing periodic, so just make sure I don't trip the bcs
 	//
 	godunov->ExtrapVelToFaces(U_mfi,
-				  //dx, dt,  // these are not used yet
 				  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
 				  D_DECL(bndry[0],        bndry[1],        bndry[2]),
+          D_DECL(m_xslopes, m_yslopes, m_zslopes),
 				  Ufab, tforces, domain);
 #else
 	// non-EB
@@ -647,21 +649,15 @@ NavierStokes::scalar_advection (Real dt,
       //
       // compute slopes for construction of edge states
       //
-      std::unique_ptr<amrex::MultiFab> xslps;
-      std::unique_ptr<amrex::MultiFab> yslps;
-      std::unique_ptr<amrex::MultiFab> zslps;
       //Slopes in x-direction
-      xslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
-			       MFInfo(), Factory()));
-      xslps->setVal(0.);
+      MultiFab xslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+      xslps.setVal(0.);
       // Slopes in y-direction
-      yslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
-			       MFInfo(), Factory()));
-      yslps->setVal(0.);
+      MultiFab yslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+      yslps.setVal(0.);
       // Slopes in z-direction
-      zslps.reset(new MultiFab(grids, dmap, num_scalars, Godunov::hypgrow(),
-			       MFInfo(), Factory()));
-      zslps->setVal(0.);
+      MultiFab zslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+      zslps.setVal(0.);
 
     const Box& domain = geom.Domain();
     // Compute slopes for use in computing aofs
@@ -689,9 +685,9 @@ NavierStokes::scalar_advection (Real dt,
 // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
 //  only allows for periodic for now
 //
- D_TERM(xslps->FillBoundary(geom.periodicity());,
-	yslps->FillBoundary(geom.periodicity());,
-	zslps->FillBoundary(geom.periodicity()););
+ D_TERM(xslps.FillBoundary(geom.periodicity());,
+	      yslps.FillBoundary(geom.periodicity());,
+	      zslps.FillBoundary(geom.periodicity()););
   
 #else
 
@@ -719,7 +715,11 @@ NavierStokes::scalar_advection (Real dt,
 
         for (int d=0; d<BL_SPACEDIM; ++d)
         {
-          const Box& ebx = surroundingNodes(bx,d);
+#ifdef AMREX_USE_EB        
+          const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
+#else
+          const Box& ebx = amrex::surroundingNodes(bx,d);
+#endif
           cfluxes[d].resize(ebx,num_scalars);
           edgstate[d].resize(ebx,num_scalars);
         }
@@ -730,27 +730,22 @@ NavierStokes::scalar_advection (Real dt,
                                     (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
         }
 
+      	state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);  
+        
 #ifdef AMREX_USE_EB
 
-        Vector<int> bndry[BL_SPACEDIM];
-        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-               bndry[2] = fetchBCArray(State_Type,bx,2,1););
-	
        godunov->AdvectScalars_EB(S_mfi, Smf, 0, num_scalars,
-                                 *aofs, fscalar,
+                                 *aofs, fscalar, 0,
                                 D_DECL(xslps, yslps, zslps),
                                 D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
                                 D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                 D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-                                D_DECL(bndry[0], bndry[1], bndry[2]),
+                                state_bc,
                                 geom.Domain(),
-                                geom.CellSize(),Godunov::hypgrow());	
+                                geom.CellSize(),Godunov::hypgrow(), 0);	
 
 #else
-	
-	state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
-		
+
         godunov->AdvectScalars(bx, dx, dt, 
                                D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
                                D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
