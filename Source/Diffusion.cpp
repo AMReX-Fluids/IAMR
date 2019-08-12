@@ -17,8 +17,15 @@
 #include <iomanip>
 #include <array>
 
-#include <AMReX_MLABecLaplacian.H>
+
 #include <AMReX_MLMG.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFArrayBox.H>
+#include <AMReX_MLEBABecLap.H>
+#include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_EBFabFactory.H>
+#endif
+#include <AMReX_MLABecLaplacian.H>
 
 using namespace amrex;
 
@@ -303,18 +310,23 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==ba));
   BL_ASSERT(volume.DistributionMap() == dm);
  
-  MultiFab Rhs(ba,dm,1,0),Soln(ba,dm,1,ng);
-  MultiFab alpha(ba,dm,1,0);
+ // Below is another way to bring the factory information 
+ //const auto& ebfactory = S_old[0]->Factory();
+ 
+  MultiFab Rhs(ba,dm,1,0,MFInfo(),navier_stokes->Factory());
+  MultiFab Soln(ba,dm,1,ng,MFInfo(),navier_stokes->Factory());
+  MultiFab alpha(ba,dm,1,0,MFInfo(),navier_stokes->Factory());
+
   std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
   for (int n = 0; n < BL_SPACEDIM; n++)
   {
     BL_ASSERT(area[n]->DistributionMap() == dm); 
-    bcoeffs[n].define(area[n]->boxArray(),dm,1,0);
+    bcoeffs[n].define(area[n]->boxArray(),dm,1,0,MFInfo(),navier_stokes->Factory());
   }
   auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
   if (has_coarse_data)
   {
-    Solnc->define(*bac, *dmc, 1, ng);
+    Solnc->define(*bac, *dmc, 1, ng, MFInfo(), navier_stokes->Factory());
   }
 
   std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -328,8 +340,19 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   //fixme? not in dev
   //the coarsenings are unnecessary, and potentially expensive.
   infon.setMaxCoarseningLevel(0);
-
+  
+#ifdef AMREX_USE_EB
+	// create the right data holder for passing to MLEBABecLap
+	amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
+	//ebf.resize(1);
+	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
+	
+	MLEBABecLap opn({geom}, {ba}, {dm}, infon, ebf);
+#else	  
+	//MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
   MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
+#endif  
+   
   opn.setMaxOrder(max_order);
   MLMG mgn(opn);
   //why not set these switches for time n too???
@@ -346,8 +369,13 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   infonp1.setAgglomeration(agglomeration);
   infonp1.setConsolidation(consolidation);
   infonp1.setMetricTerm(false);
-    
+      
+#ifdef AMREX_USE_EB
+	MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, ebf);
+#else	  
   MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
+#endif
+  
   opnp1.setMaxOrder(max_order);
 
   MLMG mgnp1(opnp1);

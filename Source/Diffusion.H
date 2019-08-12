@@ -58,7 +58,7 @@ public:
     static amrex::Real get_scaled_abs_tol (const amrex::MultiFab& rhs,
                              amrex::Real            reduction);
    
-    static void diffuse_scalar (const amrex::Vector<amrex::MultiFab*>& S_old,
+    void diffuse_scalar (const amrex::Vector<amrex::MultiFab*>& S_old,
                                 const amrex::Vector<amrex::MultiFab*>& Rho_old,
                                 amrex::Vector<amrex::MultiFab*>&       S_new,
                                 const amrex::Vector<amrex::MultiFab*>& Rho_new,
