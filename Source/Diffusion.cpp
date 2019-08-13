@@ -371,7 +371,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   infonp1.setMetricTerm(false);
       
 #ifdef AMREX_USE_EB
-	MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, ebf);
+  MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, ebf);
 #else	  
   MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
 #endif
@@ -467,9 +467,70 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                    std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
       mgn.getFluxes({fp},{&Soln});
 
-      for (int i = 0; i < BL_SPACEDIM; ++i)
+  
+  // This shadows the area value passed through the routine, but does the one from PeleLM is correct?    
+	//const MultiFab* area   = navier_stokes->Area();
+  
+	int nghost = 0;
+#ifdef AMREX_USE_EB
+	// now dx, areas, and vol are not constant.
+	std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
+	{  
+	    Box bx = mfi.tilebox();
+
+	    // need face-centered tilebox for each direction
+	    D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+		   const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+		   const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+	    
+	    // this is to check efficiently if this tile contains any eb stuff
+	    const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
+	    const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
+
+	    if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
+	    {
+	      // If tile is completely covered by EB geometry, set 
+	      // value to some very large number so we know if
+	      // we accidentaly use these covered vals later in calculations
+	      D_TERM(fluxn[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
+		     fluxn[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
+		     fluxn[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
+	    }
+	    else
+	    {
+	      // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+	      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+	      {		
+		for (int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		  (*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
+		  (*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+		}
+	      }
+	      else
+	      {
+		// Use EB routines
+		for (int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		  (*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
+		  (*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+		  (*fluxn[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
+		}
+	      }
+	    }        
+	}
+#else // non-EB
+      
+      for (int i = 0; i < BL_SPACEDIM; ++i){
+//      MultiFab::Multiply(*fluxn[i],(*area[i]),0,fluxComp+icomp,1,nghost);
+//	  (*fluxn[i]).mult(-b/dt,fluxComp+icomp,1,nghost);
          (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
-            
+      }
+#endif            
     }
     else
     {
@@ -682,10 +743,71 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                   std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
      mgnp1.getFluxes({fp});
         
+    // This shadows the area passed through the routine
+    //const MultiFab* area   = navier_stokes->Area();
+    int nghost = fluxnp1[0]->nGrow(); // this = 0
+#ifdef AMREX_USE_EB
+    // now dx, areas, and vol are not constant.
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
+    {  
+      Box bx = mfi.tilebox();
 
-     for (int i = 0; i < BL_SPACEDIM; ++i)
-            (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
-
+      // need face-centered tilebox for each direction
+      D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+	     const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+	     const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+      
+      // this is to check efficiently if this tile contains any eb stuff
+      const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
+      const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
+      
+      if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
+      {
+	// If tile is completely covered by EB geometry, set 
+	// value to some very large number so we know if
+	// we accidentaly use these covered vals later in calculations
+	D_TERM(fluxnp1[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
+	       fluxnp1[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
+	       fluxnp1[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
+      }
+      else
+      {
+	// No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+	if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+        {		
+	  for (int i = 0; i < BL_SPACEDIM; ++i)
+	  {
+	    //(*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
+      (*fluxnp1[i])[mfi].mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1);
+	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+	  }
+	}
+	else
+	{
+	  // Use EB routines
+	  for (int i = 0; i < BL_SPACEDIM; ++i)
+	  {
+	    (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
+	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+	    (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
+	  }
+	}
+      }        
+    }
+#else
+// Non-EB here
+     for (int i = 0; i < BL_SPACEDIM; ++i){
+//amrex::Print() << "DEBUG CELLSIZE " << geom.CellSize()[i] << "\n";
+           (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+//       (*fluxnp1[i]).mult(b/dt,fluxComp+icomp,1,nghost);
+//       MultiFab::Multiply(*fluxnp1[i],(*area[i]),0,fluxComp+icomp,1,nghost);
+     }
+#endif
+//VisMF::Write(*area[1],"area");
      //
      // Copy into state variable at new time, without bc's
      //
@@ -1855,12 +1977,43 @@ Diffusion::computeAlpha (MultiFab&       alpha,
                          const MultiFab& volume,
                          bool            use_hoop_stress)
 {
+
+#ifdef AMREX_USE_EB
+  //fixme? do we want to assume everything passed in has good data in enough ghost cells
+  //  or do we want take ng=0 and then fill alpha's ghost cells after?
+  //    int ng = eb_ngrow;
+  // Don't think alpha needs any grow cells... see ng comments in diffuse scalar
+    int ng = 0;
+//    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
+      
+    if (alpha_in != 0){
+        BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
+	// fixme? again original did not use any ghost cells
+	MultiFab::Copy(alpha,*alpha_in,alpha_in_comp,0,1,ng);
+    }
+    else{
+      alpha.setVal(1.0);
+    }
+
+    if ( rho_flag == 1 ) {
+      MultiFab::Multiply(alpha,*rho,0,0,1,ng);
+    }
+    else if (rho_flag == 2 || rho_flag == 3) {
+//      MultiFab& S = navier_stokes->get_data(State_Type,time);
+      // original didn't copy any ghost cells...
+//      MultiFab::Multiply(alpha,S,Density,0,1,ng);
+    MultiFab::Multiply(alpha,*rho,rho_comp,0,1,0);
+    }
+  
+#else
+
+
     int useden  = (rho_flag == 1);
 
     if (!use_hoop_stress)
     {
 	MultiFab::Copy(alpha, volume, 0, 0, 1, 0);
-
+// we could just put here a alpha.setVal(1.0); for the EB rather than all the stuff above
         if (useden) 
             MultiFab::Multiply(alpha,rho_half,0,0,1,0);
     }
@@ -1917,6 +2070,8 @@ Diffusion::computeAlpha (MultiFab&       alpha,
         BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
         MultiFab::Multiply(alpha,*alpha_in,alpha_in_comp,0,1,0);
     }
+
+#endif
 
     if (rhsscale != 0)
     {
@@ -2018,8 +2173,39 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                         const Geometry&        geom,
                         const MultiFab* const* area)
 {
+
+    int ng = 0;
+  
+  //  const MultiFab* area = navier_stokes->Area(); 
+
+//    for (int n = 0; n < BL_SPACEDIM; n++)
+//    {
+//      bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,ng,MFInfo(),navier_stokes->Factory());
+//    }
+
+
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
+
+#ifdef AMREX_USE_EB
+const Real* dx = geom.CellSize();
+    if (allnull)
+    {
+        for (int n = 0; n < BL_SPACEDIM; n++){
+	  bcoeffs[n].setVal(1.0);
+bcoeffs[n].mult(dx[n]);
+}
+    }
+    else
+    {
+      // fixme? this copy could be probably avoided...
+        for (int n = 0; n < BL_SPACEDIM; n++){
+	  MultiFab::Copy(bcoeffs[n],*beta[n],0,0,1,0);
+bcoeffs[n].mult(dx[n]);
+}
+    }
+
+#else
 
     const Real* dx = geom.CellSize();
 
@@ -2054,6 +2240,9 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
             }
         }
     }
+
+#endif
+
 }
 
 void
