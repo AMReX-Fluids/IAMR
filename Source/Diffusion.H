@@ -367,7 +367,7 @@ public:
                              int                    betaComp,
                              const amrex::Geometry& geom,
                              const amrex::MultiFab* const* area);
-
+    
 protected:
 
     void getTensorOp_doit (amrex::DivVis*                tensor_op,

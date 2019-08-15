@@ -443,7 +443,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         }
         opn.setLevelBC(0, &Soln);
       }
-
+      amrex::Print() << "COMPUTING ALPHA FOR N" << std::endl; 
       {
         Real* rhsscale = 0;
         std::pair<Real,Real> scalars;
@@ -453,13 +453,22 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         opn.setScalars(scalars.first, scalars.second);
         opn.setACoeffs(0, alpha);
       }
-        
+      amrex::Print() << "COMPUTING BETA FOR N" << std::endl;  
       {
         computeBeta(bcoeffs, betan, betaComp+icomp, geom, area);
         opn.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
       }
 
+//amrex::Print() << "DEBUG volume " << volume << std::endl; 
+      
       mgn.apply({&Rhs},{&Soln});
+      
+//static int count0=0;
+//count0++;
+//amrex::WriteSingleLevelPlotfile("Soln_n"+std::to_string(count0), Soln, {"Soln"}, geom, 0.0, 0);
+//amrex::WriteSingleLevelPlotfile("Rhs_n"+std::to_string(count0), Rhs, {"Rhs"}, geom, 0.0, 0);
+//VisMF::Write(bcoeffs(0),"bcoeffs");
+//VisMF::Write(volume,"volume");
 
       AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp+icomp, 1);,
                    MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp+icomp, 1);,
@@ -467,7 +476,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                    std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
       mgn.getFluxes({fp},{&Soln});
 
-  
+  //amrex::WriteSingleLevelPlotfile("fp_n"+std::to_string(count0), *fp[0], {"fp_x"}, geom, 0.0, 0);
+  //amrex::WriteSingleLevelPlotfile("fp_n"+std::to_string(count0), *fp[1], {"fp_y"}, geom, 0.0, 0);
+
   // This shadows the area value passed through the routine, but does the one from PeleLM is correct?    
 	//const MultiFab* area   = navier_stokes->Area();
   
@@ -526,11 +537,14 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 #else // non-EB
       
       for (int i = 0; i < BL_SPACEDIM; ++i){
-//      MultiFab::Multiply(*fluxn[i],(*area[i]),0,fluxComp+icomp,1,nghost);
-//	  (*fluxn[i]).mult(-b/dt,fluxComp+icomp,1,nghost);
-         (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+      MultiFab::Multiply(*fluxn[i],(*area[i]),0,fluxComp+icomp,1,nghost);
+	  (*fluxn[i]).mult(-b/dt,fluxComp+icomp,1,nghost);
+//         (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
       }
-#endif            
+#endif      
+
+
+      
     }
     else
     {
@@ -540,6 +554,14 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       }
       Rhs.setVal(0);
     }
+//VisMF::Write(*fluxn[0],"fluxn_after_solve_0");
+//VisMF::Write(*fluxn[1],"fluxn_after_solve_1");
+//static int count1=0;
+//count1++;
+//amrex::WriteSingleLevelPlotfile("Flux_n_x"+std::to_string(count1), *fluxn[0], {"flux_x"}, geom, 0.0, 0);
+//amrex::WriteSingleLevelPlotfile("Flux_n_y"+std::to_string(count1), *fluxn[1], {"flux_y"}, geom, 0.0, 0);
+
+
 
     //
     // If this is a predictor step, put "explicit" updates passed via S_new
@@ -592,7 +614,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             tmpfab.copy((*delta_rhs)[mfi],box,rhsComp+icomp,box,0,1);
             
             tmpfab.mult(dt,box,0,1);
-            tmpfab.mult(volume[mfi],box,0,0,1);
+#ifdef AMREX_USE_EB
+#else
+       //     tmpfab.mult(volume[mfi],box,0,0,1);
+#endif
             Rhs[mfi].plus(tmpfab,box,0,0,1);
 
             if (rho_flag == 1)
@@ -666,7 +691,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
      for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
      {
        const Box& box = mfi.tilebox();
-       Soln[mfi].mult(volume[mfi],box,0,0,1);
+#ifdef AMREX_USE_EB
+#else
+   //    Soln[mfi].mult(volume[mfi],box,0,0,1);
+#endif
        if (rho_flag == 1)
          Soln[mfi].mult(rho_half[mfi],box,0,0,1);
        if (rho_flag == 3)
@@ -712,7 +740,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
        }
        opnp1.setLevelBC(0, &Soln);
      }
-
+     amrex::Print() << "COMPUTING ALPHA FOR NP 1" << std::endl; 
      {
        std::pair<Real,Real> scalars;
 
@@ -723,7 +751,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
        opnp1.setScalars(scalars.first, scalars.second);
        opnp1.setACoeffs(0, alpha);
      }
-        
+     amrex::Print() << "COMPUTING BETA FOR NP 1" << std::endl;   
      {
        computeBeta(bcoeffs, betanp1, betaComp+icomp, geom, area);
        opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
@@ -736,6 +764,11 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	   //mgnp1.setVerbose(3);
 	    	    
 	   mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+     
+     static int count110=0;
+count110++;
+amrex::WriteSingleLevelPlotfile("Soln_n"+std::to_string(count110), Soln, {"Soln"}, geom, 0.0, 0);
+amrex::WriteSingleLevelPlotfile("Rhs_n"+std::to_string(count110), Rhs, {"Rhs"}, geom, 0.0, 0);
 
      AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
                   MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
@@ -747,6 +780,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     //const MultiFab* area   = navier_stokes->Area();
     int nghost = fluxnp1[0]->nGrow(); // this = 0
 #ifdef AMREX_USE_EB
+amrex::Print() << "WE SOLVE FLUXNP1 USING EB" << std::endl;
     // now dx, areas, and vol are not constant.
     std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
 #ifdef _OPENMP
@@ -781,8 +815,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         {		
 	  for (int i = 0; i < BL_SPACEDIM; ++i)
 	  {
-	    //(*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
-      (*fluxnp1[i])[mfi].mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1);
+	    (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
 	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
 	  }
 	}
@@ -800,14 +833,31 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     }
 #else
 // Non-EB here
+amrex::Print() << "WE SOLVE FLUXNP1 USING NON-EB" << std::endl;
      for (int i = 0; i < BL_SPACEDIM; ++i){
 //amrex::Print() << "DEBUG CELLSIZE " << geom.CellSize()[i] << "\n";
-           (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
-//       (*fluxnp1[i]).mult(b/dt,fluxComp+icomp,1,nghost);
-//       MultiFab::Multiply(*fluxnp1[i],(*area[i]),0,fluxComp+icomp,1,nghost);
+//           (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+       MultiFab::Multiply(*fluxnp1[i],(*area[i]),0,fluxComp+icomp,1,nghost);
+       (*fluxnp1[i]).mult(b/dt,fluxComp+icomp,1,nghost);
      }
 #endif
-//VisMF::Write(*area[1],"area");
+
+//for (int i = 0; i < BL_SPACEDIM; ++i){
+//amrex::Print() << "DEBUG CELLSIZE " << geom.CellSize()[i] << "\n";
+//}
+//VisMF::Write(*area[0],"area");
+//VisMF::Write(volume,"volume");
+//
+//VisMF::Write(*fluxnp1[0],"fluxnp1_after_solve_0");
+//VisMF::Write(*fluxnp1[1],"fluxnp1_after_solve_1");
+//amrex::Print() << "DEBUG fluxComp icomp" << fluxComp << " " << icomp << std::endl;
+//
+//static int count2=0;
+//count2++;
+//amrex::WriteSingleLevelPlotfile("Flux_np1_x"+std::to_string(count2), *fluxnp1[0], {"flux_x"}, geom, 0.0, 0);
+//amrex::WriteSingleLevelPlotfile("Flux_np1_y"+std::to_string(count2), *fluxnp1[1], {"flux_y"}, geom, 0.0, 0);
+
+
      //
      // Copy into state variable at new time, without bc's
      //
@@ -1961,6 +2011,7 @@ Diffusion::computeAlpha (MultiFab&       alpha,
     }
 }
 
+
 void
 Diffusion::computeAlpha (MultiFab&       alpha,
                          std::pair<Real,Real>& scalars,
@@ -1978,34 +2029,34 @@ Diffusion::computeAlpha (MultiFab&       alpha,
                          bool            use_hoop_stress)
 {
 
-#ifdef AMREX_USE_EB
+//#ifdef AMREX_USE_EB
   //fixme? do we want to assume everything passed in has good data in enough ghost cells
   //  or do we want take ng=0 and then fill alpha's ghost cells after?
   //    int ng = eb_ngrow;
   // Don't think alpha needs any grow cells... see ng comments in diffuse scalar
-    int ng = 0;
-//    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
-      
-    if (alpha_in != 0){
-        BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
-	// fixme? again original did not use any ghost cells
-	MultiFab::Copy(alpha,*alpha_in,alpha_in_comp,0,1,ng);
-    }
-    else{
-      alpha.setVal(1.0);
-    }
-
-    if ( rho_flag == 1 ) {
-      MultiFab::Multiply(alpha,*rho,0,0,1,ng);
-    }
-    else if (rho_flag == 2 || rho_flag == 3) {
-//      MultiFab& S = navier_stokes->get_data(State_Type,time);
-      // original didn't copy any ghost cells...
-//      MultiFab::Multiply(alpha,S,Density,0,1,ng);
-    MultiFab::Multiply(alpha,*rho,rho_comp,0,1,0);
-    }
+//    int ng = 0;
+////    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
+//      
+//    if (alpha_in != 0){
+//      BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
+//	// fixme? again original did not use any ghost cells
+//	MultiFab::Copy(alpha,*alpha_in,alpha_in_comp,0,1,ng);
+//    }
+//    else{
+//      alpha.setVal(1.0);
+//    }
+//
+//    if ( rho_flag == 1 ) {
+//      MultiFab::Multiply(alpha,*rho,0,0,1,ng);
+//    }
+//    else if (rho_flag == 2 || rho_flag == 3) {
+////      MultiFab& S = navier_stokes->get_data(State_Type,time);
+//      // original didn't copy any ghost cells...
+////      MultiFab::Multiply(alpha,S,Density,0,1,ng);
+//    MultiFab::Multiply(alpha,*rho,rho_comp,0,1,0);
+//    }
   
-#else
+//#else
 
 
     int useden  = (rho_flag == 1);
@@ -2013,6 +2064,7 @@ Diffusion::computeAlpha (MultiFab&       alpha,
     if (!use_hoop_stress)
     {
 	MultiFab::Copy(alpha, volume, 0, 0, 1, 0);
+alpha.setVal(1.0);
 // we could just put here a alpha.setVal(1.0); for the EB rather than all the stuff above
         if (useden) 
             MultiFab::Multiply(alpha,rho_half,0,0,1,0);
@@ -2071,7 +2123,12 @@ Diffusion::computeAlpha (MultiFab&       alpha,
         MultiFab::Multiply(alpha,*alpha_in,alpha_in_comp,0,1,0);
     }
 
-#endif
+//#endif
+//VisMF::Write(alpha,"alpha");
+//static int count5=0;
+//count5++;
+//amrex::WriteSingleLevelPlotfile("alpha_n"+std::to_string(count5), alpha, {"alpha"}, geom, 0.0, 0);
+
 
     if (rhsscale != 0)
     {
@@ -2166,6 +2223,7 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
     }
 }
 
+
 void
 Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                         const MultiFab* const* beta,
@@ -2176,36 +2234,28 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
 
     int ng = 0;
   
-  //  const MultiFab* area = navier_stokes->Area(); 
-
-//    for (int n = 0; n < BL_SPACEDIM; n++)
-//    {
-//      bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,ng,MFInfo(),navier_stokes->Factory());
-//    }
-
-
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-#ifdef AMREX_USE_EB
-const Real* dx = geom.CellSize();
-    if (allnull)
-    {
-        for (int n = 0; n < BL_SPACEDIM; n++){
-	  bcoeffs[n].setVal(1.0);
-bcoeffs[n].mult(dx[n]);
-}
-    }
-    else
-    {
-      // fixme? this copy could be probably avoided...
-        for (int n = 0; n < BL_SPACEDIM; n++){
-	  MultiFab::Copy(bcoeffs[n],*beta[n],0,0,1,0);
-bcoeffs[n].mult(dx[n]);
-}
-    }
+//#ifdef AMREX_USE_EB
+//const Real* dx = geom.CellSize();
+//    if (allnull)
+//    {
+//        for (int n = 0; n < BL_SPACEDIM; n++){
+//	  bcoeffs[n].setVal(1.0);
+//bcoeffs[n].mult(dx[n]);
+//}
+//    }
+//    else
+//    {
+//      // fixme? this copy could be probably avoided...
+//        for (int n = 0; n < BL_SPACEDIM; n++){
+//	  MultiFab::Copy(bcoeffs[n],*beta[n],0,0,1,0);
+//bcoeffs[n].mult(dx[n]);
+//}
+//    }
 
-#else
+//#else
 
     const Real* dx = geom.CellSize();
 
@@ -2214,8 +2264,13 @@ bcoeffs[n].mult(dx[n]);
         for (int n = 0; n < BL_SPACEDIM; n++)
         {
 	    MultiFab::Copy(bcoeffs[n], *area[n], 0, 0, 1, 0);
+#ifdef AMREX_USE_EB
+bcoeffs[n].setVal(1.0);
+#else
 	    bcoeffs[n].mult(dx[n]);
+#endif
         }
+        amrex::Print() << "WE ARE ALL NULL "  << std::endl; 
     }
     else
     {
@@ -2225,6 +2280,7 @@ bcoeffs[n].mult(dx[n]);
       //  {
  	//  Print()<<"dim "<<n<<", num comp = "<<beta[n]->nComp()<<"\n";
 	//}
+  amrex::Print() << "WE ARE NOT ALL NULL "  << std::endl; 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2233,15 +2289,18 @@ bcoeffs[n].mult(dx[n]);
 	    for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
             {
  	        const Box& bx = bcoeffsmfi.tilebox();
-	      
+	   //amrex::Print() << "DEBUG DX " << dx[n]  << std::endl; 
  		bcoeffs[n][bcoeffsmfi].copy((*area[n])[bcoeffsmfi],bx,0,bx,0,1);
+bcoeffs[n][bcoeffsmfi].setVal(1.0,bx);
 		bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
-		bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
+	//	bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
+  //amrex::Print() << "DEBUG BETA n " << n  << std::endl;
+  //amrex::Print() << bcoeffs[n][bcoeffsmfi] << std::endl;
             }
         }
     }
 
-#endif
+//#endif
 
 }
 
