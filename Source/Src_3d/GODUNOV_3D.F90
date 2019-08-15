@@ -134,7 +134,25 @@ contains
     call amrex_allocate(vad,vwlo(1),vwhi(1),vwlo(2),vwhi(2),vwlo(3),vwhi(3))
     call amrex_allocate(wad,wwlo(1),wwhi(1),wwlo(2),wwhi(2),wwlo(3),wwhi(3))
 
-    if (ppm_type .gt. 0) then
+    ! Note: Intel unhappy to pass pointers through subroutines if not allocated
+    !     We just allocate something small (and still promise not to use it)
+    if (ppm_type .eq. 0) then
+       eblo = lo
+       ebhi = lo
+       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgez,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
+    else
+    !if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
           eblo = lo - 2
           ebhi = hi + 2
@@ -407,7 +425,7 @@ contains
     call amrex_deallocate(uad)
     call amrex_deallocate(vad)
     call amrex_deallocate(wad)
-    if (ppm_type .gt. 0) then
+    !if (ppm_type .gt. 0) then
        call amrex_deallocate(Imx)
        call amrex_deallocate(Ipx)
        call amrex_deallocate(Imy)
@@ -420,7 +438,7 @@ contains
        call amrex_deallocate(sedgey)
        call amrex_deallocate(sedgez)
        call amrex_deallocate(dsvl)
-    endif
+    !endif
 
   end subroutine extrap_vel_to_faces
 
@@ -504,7 +522,25 @@ contains
     call amrex_allocate(zxhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
 
-    if (ppm_type .gt. 0) then
+    ! Note: Intel unhappy to pass pointers through subroutines if not allocated
+    !     We just allocate something small (and still promise not to use it)
+    if (ppm_type .eq. 0) then
+       eblo = lo
+       ebhi = lo
+       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Imz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(Ipz,   eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(sedgez,eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))
+       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2),eblo(3),ebhi(3))       
+    else
+       !if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
           eblo = lo - 2
           ebhi = hi + 2
@@ -610,7 +646,7 @@ contains
     call amrex_deallocate(zlo)
     call amrex_deallocate(zhi)
     call amrex_deallocate(sz)
-    if (ppm_type .gt. 0) then
+    !if (ppm_type .gt. 0) then
        call amrex_deallocate(Imx)
        call amrex_deallocate(Ipx)
        call amrex_deallocate(Imy)
@@ -623,7 +659,7 @@ contains
        call amrex_deallocate(sedgey)
        call amrex_deallocate(sedgez)
        call amrex_deallocate(dsvl)
-    endif
+    !endif
   
   end subroutine extrap_state_to_faces
 
