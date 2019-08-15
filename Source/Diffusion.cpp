@@ -290,6 +290,21 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
   if (verbose) amrex::Print() << "Starting diffuse_scalar" << "\n";
   
+#if (BL_SPACEDIM == 3)
+  // Here we ensure that R-Z related routines cannot be called in 3D
+  if (add_hoop_stress){
+    amrex::Abort("in diffuse_scalar: add_hoop_stress for R-Z geometry called in 3D !");
+  }
+#endif
+
+#ifdef AMREX_USE_EB
+  // Here we ensure that R-Z cannot work with EB (for now)
+  if (add_hoop_stress){
+    amrex::Abort("in diffuse_scalar: add_hoop_stress for R-Z geometry not yet working with EB support !");
+  }
+#endif
+
+  
   bool has_coarse_data = S_old.size() > 1;
     
   const Real strt_time = ParallelDescriptor::second();
@@ -443,7 +458,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         }
         opn.setLevelBC(0, &Soln);
       }
-      amrex::Print() << "COMPUTING ALPHA FOR N" << std::endl; 
+
       {
         Real* rhsscale = 0;
         std::pair<Real,Real> scalars;
@@ -453,98 +468,90 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         opn.setScalars(scalars.first, scalars.second);
         opn.setACoeffs(0, alpha);
       }
-      amrex::Print() << "COMPUTING BETA FOR N" << std::endl;  
+
       {
-        computeBeta(bcoeffs, betan, betaComp+icomp, geom, area);
+        computeBeta(bcoeffs, betan, betaComp+icomp, geom, area, add_hoop_stress);
         opn.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
       }
-
-//amrex::Print() << "DEBUG volume " << volume << std::endl; 
       
       mgn.apply({&Rhs},{&Soln});
-      
-//static int count0=0;
-//count0++;
-//amrex::WriteSingleLevelPlotfile("Soln_n"+std::to_string(count0), Soln, {"Soln"}, geom, 0.0, 0);
-//amrex::WriteSingleLevelPlotfile("Rhs_n"+std::to_string(count0), Rhs, {"Rhs"}, geom, 0.0, 0);
-//VisMF::Write(bcoeffs(0),"bcoeffs");
-//VisMF::Write(volume,"volume");
 
       AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp+icomp, 1);,
                    MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp+icomp, 1);,
                    MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp+icomp, 1););
                    std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
       mgn.getFluxes({fp},{&Soln});
-
-  //amrex::WriteSingleLevelPlotfile("fp_n"+std::to_string(count0), *fp[0], {"fp_x"}, geom, 0.0, 0);
-  //amrex::WriteSingleLevelPlotfile("fp_n"+std::to_string(count0), *fp[1], {"fp_y"}, geom, 0.0, 0);
-
-  // This shadows the area value passed through the routine, but does the one from PeleLM is correct?    
-	//const MultiFab* area   = navier_stokes->Area();
   
-	int nghost = 0;
+	    int nghost = 0;
 #ifdef AMREX_USE_EB
-	// now dx, areas, and vol are not constant.
-	std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
+      // now dx, areas, and vol are not constant.
+      std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
-	{  
-	    Box bx = mfi.tilebox();
+      for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
+      {  
+        Box bx = mfi.tilebox();
 
-	    // need face-centered tilebox for each direction
-	    D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
-		   const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-		   const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+        // need face-centered tilebox for each direction
+        D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+               const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+               const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
 	    
-	    // this is to check efficiently if this tile contains any eb stuff
-	    const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
-	    const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
+        // this is to check efficiently if this tile contains any eb stuff
+        const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
+        const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
 
-	    if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
-	    {
-	      // If tile is completely covered by EB geometry, set 
-	      // value to some very large number so we know if
-	      // we accidentaly use these covered vals later in calculations
-	      D_TERM(fluxn[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
-		     fluxn[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
-		     fluxn[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
+        if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
+        {
+          // If tile is completely covered by EB geometry, set 
+          // value to some very large number so we know if
+          // we accidentaly use these covered vals later in calculations
+	        D_TERM(fluxn[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
+		             fluxn[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
+		             fluxn[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
+        }
+        else
+        {
+        // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+          if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+          {		
+            for (int i = 0; i < BL_SPACEDIM; ++i)
+            {
+              (*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
+              (*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+            }
+          }
+          else
+          {
+          // Use EB routines
+            for (int i = 0; i < BL_SPACEDIM; ++i)
+            {
+              (*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
+              (*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+              (*fluxn[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
+            }
+          }  
+	      }        
 	    }
-	    else
-	    {
-	      // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
-	      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
-	      {		
-		for (int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		  (*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
-		  (*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
-		}
-	      }
-	      else
-	      {
-		// Use EB routines
-		for (int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		  (*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
-		  (*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
-		  (*fluxn[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
-		}
-	      }
-	    }        
-	}
 #else // non-EB
       
-      for (int i = 0; i < BL_SPACEDIM; ++i){
-      MultiFab::Multiply(*fluxn[i],(*area[i]),0,fluxComp+icomp,1,nghost);
-	  (*fluxn[i]).mult(-b/dt,fluxComp+icomp,1,nghost);
-//         (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+      for (int i = 0; i < BL_SPACEDIM; ++i)
+      {
+        // Here we keep the weighting by the volume for non-EB && R-Z case
+        // The flag has already been checked for only 2D at the begining of the routine
+        if (add_hoop_stress)
+        {    
+          (*fluxn[i]).mult(-b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+        }
+        else // Generic case for non-EB and 2D or 3D Cartesian
+        {
+          MultiFab::Multiply(*fluxn[i],(*area[i]),0,fluxComp+icomp,1,nghost);
+	        (*fluxn[i]).mult(-b/dt,fluxComp+icomp,1,nghost);
+        }
       }
-#endif      
+#endif
 
-
-      
     }
     else
     {
@@ -554,14 +561,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       }
       Rhs.setVal(0);
     }
-//VisMF::Write(*fluxn[0],"fluxn_after_solve_0");
-//VisMF::Write(*fluxn[1],"fluxn_after_solve_1");
-//static int count1=0;
-//count1++;
-//amrex::WriteSingleLevelPlotfile("Flux_n_x"+std::to_string(count1), *fluxn[0], {"flux_x"}, geom, 0.0, 0);
-//amrex::WriteSingleLevelPlotfile("Flux_n_y"+std::to_string(count1), *fluxn[1], {"flux_y"}, geom, 0.0, 0);
-
-
 
     //
     // If this is a predictor step, put "explicit" updates passed via S_new
@@ -614,19 +613,20 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
             tmpfab.copy((*delta_rhs)[mfi],box,rhsComp+icomp,box,0,1);
             
             tmpfab.mult(dt,box,0,1);
-#ifdef AMREX_USE_EB
-#else
-       //     tmpfab.mult(volume[mfi],box,0,0,1);
+#if (BL_SPACEDIM == 2)
+        // Here we keep the weighting by the volume for non-EB && R-Z case 
+            if (add_hoop_stress){
+              tmpfab.mult(volume[mfi],box,0,0,1);
+            }
 #endif
             Rhs[mfi].plus(tmpfab,box,0,0,1);
 
             if (rho_flag == 1)
               Rhs[mfi].mult(rho_half[mfi],box,0,0);
-
           }
        }
      }
-//amrex::Print() << Rhs[0];
+
      //
      // Add hoop stress for x-velocity in r-z coordinates
      // Note: we have to add hoop stress explicitly because the hoop
@@ -691,9 +691,12 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
      for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
      {
        const Box& box = mfi.tilebox();
-#ifdef AMREX_USE_EB
-#else
-   //    Soln[mfi].mult(volume[mfi],box,0,0,1);
+#if (BL_SPACEDIM == 2)
+       // Here we keep the weighting by the volume for non-EB && R-Z case 
+       if (add_hoop_stress)
+       {    
+         Soln[mfi].mult(volume[mfi],box,0,0,1);
+       }
 #endif
        if (rho_flag == 1)
          Soln[mfi].mult(rho_half[mfi],box,0,0,1);
@@ -740,7 +743,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
        }
        opnp1.setLevelBC(0, &Soln);
      }
-     amrex::Print() << "COMPUTING ALPHA FOR NP 1" << std::endl; 
+
      {
        std::pair<Real,Real> scalars;
 
@@ -751,9 +754,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
        opnp1.setScalars(scalars.first, scalars.second);
        opnp1.setACoeffs(0, alpha);
      }
-     amrex::Print() << "COMPUTING BETA FOR NP 1" << std::endl;   
+ 
      {
-       computeBeta(bcoeffs, betanp1, betaComp+icomp, geom, area);
+       computeBeta(bcoeffs, betanp1, betaComp+icomp, geom, area, add_hoop_stress);
        opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
      }
 	   // rhsscale =1. above
@@ -765,11 +768,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	    	    
 	   mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
      
-     static int count110=0;
-count110++;
-amrex::WriteSingleLevelPlotfile("Soln_n"+std::to_string(count110), Soln, {"Soln"}, geom, 0.0, 0);
-amrex::WriteSingleLevelPlotfile("Rhs_n"+std::to_string(count110), Rhs, {"Rhs"}, geom, 0.0, 0);
-
      AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
                   MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
                   MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
@@ -779,8 +777,8 @@ amrex::WriteSingleLevelPlotfile("Rhs_n"+std::to_string(count110), Rhs, {"Rhs"}, 
     // This shadows the area passed through the routine
     //const MultiFab* area   = navier_stokes->Area();
     int nghost = fluxnp1[0]->nGrow(); // this = 0
+    
 #ifdef AMREX_USE_EB
-amrex::Print() << "WE SOLVE FLUXNP1 USING EB" << std::endl;
     // now dx, areas, and vol are not constant.
     std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
 #ifdef _OPENMP
@@ -792,8 +790,8 @@ amrex::Print() << "WE SOLVE FLUXNP1 USING EB" << std::endl;
 
       // need face-centered tilebox for each direction
       D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
-	     const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-	     const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+             const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+             const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
       
       // this is to check efficiently if this tile contains any eb stuff
       const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
@@ -804,59 +802,50 @@ amrex::Print() << "WE SOLVE FLUXNP1 USING EB" << std::endl;
 	// If tile is completely covered by EB geometry, set 
 	// value to some very large number so we know if
 	// we accidentaly use these covered vals later in calculations
-	D_TERM(fluxnp1[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
-	       fluxnp1[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
-	       fluxnp1[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
+      D_TERM(fluxnp1[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
+             fluxnp1[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
+             fluxnp1[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
       }
       else
       {
 	// No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
-	if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
+	      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
         {		
-	  for (int i = 0; i < BL_SPACEDIM; ++i)
-	  {
-	    (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
-	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
-	  }
-	}
-	else
-	{
-	  // Use EB routines
-	  for (int i = 0; i < BL_SPACEDIM; ++i)
-	  {
-	    (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
-	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
-	    (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
-	  }
-	}
+	        for (int i = 0; i < BL_SPACEDIM; ++i)
+	        {
+	          (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
+	          (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+	        }
+	      }
+        else
+        {
+        // Use EB routines
+          for (int i = 0; i < BL_SPACEDIM; ++i)
+          {
+            (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
+            (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+            (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
+          }
+        }
       }        
     }
 #else
-// Non-EB here
-amrex::Print() << "WE SOLVE FLUXNP1 USING NON-EB" << std::endl;
-     for (int i = 0; i < BL_SPACEDIM; ++i){
-//amrex::Print() << "DEBUG CELLSIZE " << geom.CellSize()[i] << "\n";
-//           (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
-       MultiFab::Multiply(*fluxnp1[i],(*area[i]),0,fluxComp+icomp,1,nghost);
-       (*fluxnp1[i]).mult(b/dt,fluxComp+icomp,1,nghost);
-     }
+    // Non-EB here
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+      // Here we keep the weighting by the volume for non-EB && R-Z case
+      // The flag has already been checked for only 2D at the begining of the routine
+      if (add_hoop_stress)
+      {    
+        (*fluxnp1[i]).mult(b/(dt * geom.CellSize()[i]),fluxComp+icomp,1,0);
+      }
+      else // Generic case for non-EB and 2D or 3D Cartesian
+      {
+        MultiFab::Multiply(*fluxnp1[i],(*area[i]),0,fluxComp+icomp,1,nghost);
+	      (*fluxnp1[i]).mult(b/dt,fluxComp+icomp,1,nghost);
+      }      
+    }
 #endif
-
-//for (int i = 0; i < BL_SPACEDIM; ++i){
-//amrex::Print() << "DEBUG CELLSIZE " << geom.CellSize()[i] << "\n";
-//}
-//VisMF::Write(*area[0],"area");
-//VisMF::Write(volume,"volume");
-//
-//VisMF::Write(*fluxnp1[0],"fluxnp1_after_solve_0");
-//VisMF::Write(*fluxnp1[1],"fluxnp1_after_solve_1");
-//amrex::Print() << "DEBUG fluxComp icomp" << fluxComp << " " << icomp << std::endl;
-//
-//static int count2=0;
-//count2++;
-//amrex::WriteSingleLevelPlotfile("Flux_np1_x"+std::to_string(count2), *fluxnp1[0], {"flux_x"}, geom, 0.0, 0);
-//amrex::WriteSingleLevelPlotfile("Flux_np1_y"+std::to_string(count2), *fluxnp1[1], {"flux_y"}, geom, 0.0, 0);
-
 
      //
      // Copy into state variable at new time, without bc's
@@ -1819,7 +1808,7 @@ Diffusion::getViscOp (Real                                 a,
     setAlpha(visc_op,a,b,rho_half,rho_flag,rhsscale,alpha_in,alpha_in_comp,
              Rho[0],Rho_comp,alpha,geom,volume,use_hoop_stress);
 
-    setBeta(visc_op,beta,betaComp,bcoeffs,geom,area);
+    setBeta(visc_op,beta,betaComp,bcoeffs,geom,area,use_hoop_stress);
 
     return visc_op;
 }
@@ -2029,45 +2018,14 @@ Diffusion::computeAlpha (MultiFab&       alpha,
                          bool            use_hoop_stress)
 {
 
-//#ifdef AMREX_USE_EB
-  //fixme? do we want to assume everything passed in has good data in enough ghost cells
-  //  or do we want take ng=0 and then fill alpha's ghost cells after?
-  //    int ng = eb_ngrow;
-  // Don't think alpha needs any grow cells... see ng comments in diffuse scalar
-//    int ng = 0;
-////    alpha.define(grids, dmap, 1, ng, MFInfo(), navier_stokes->Factory());
-//      
-//    if (alpha_in != 0){
-//      BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
-//	// fixme? again original did not use any ghost cells
-//	MultiFab::Copy(alpha,*alpha_in,alpha_in_comp,0,1,ng);
-//    }
-//    else{
-//      alpha.setVal(1.0);
-//    }
-//
-//    if ( rho_flag == 1 ) {
-//      MultiFab::Multiply(alpha,*rho,0,0,1,ng);
-//    }
-//    else if (rho_flag == 2 || rho_flag == 3) {
-////      MultiFab& S = navier_stokes->get_data(State_Type,time);
-//      // original didn't copy any ghost cells...
-////      MultiFab::Multiply(alpha,S,Density,0,1,ng);
-//    MultiFab::Multiply(alpha,*rho,rho_comp,0,1,0);
-//    }
-  
-//#else
-
-
     int useden  = (rho_flag == 1);
 
     if (!use_hoop_stress)
     {
-	MultiFab::Copy(alpha, volume, 0, 0, 1, 0);
-alpha.setVal(1.0);
-// we could just put here a alpha.setVal(1.0); for the EB rather than all the stuff above
-        if (useden) 
-            MultiFab::Multiply(alpha,rho_half,0,0,1,0);
+	  MultiFab::Copy(alpha, volume, 0, 0, 1, 0);
+    alpha.setVal(1.0); // Here we reset to 1. to remove the volume scaling
+    if (useden) 
+      MultiFab::Multiply(alpha,rho_half,0,0,1,0);
     }
     else
     {
@@ -2123,13 +2081,6 @@ alpha.setVal(1.0);
         MultiFab::Multiply(alpha,*alpha_in,alpha_in_comp,0,1,0);
     }
 
-//#endif
-//VisMF::Write(alpha,"alpha");
-//static int count5=0;
-//count5++;
-//amrex::WriteSingleLevelPlotfile("alpha_n"+std::to_string(count5), alpha, {"alpha"}, geom, 0.0, 0);
-
-
     if (rhsscale != 0)
     {
         *rhsscale = scale_abec ? 1.0/alpha.max(0) : 1.0;
@@ -2167,11 +2118,12 @@ Diffusion::setBeta (ABecLaplacian*         visc_op,
                     int                    betaComp,
                     std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                     const Geometry&        geom,
-                    const MultiFab* const* area)
+                    const MultiFab* const* area,
+                    bool            use_hoop_stress)
 {
     BL_ASSERT(visc_op != 0);
 
-    computeBeta(bcoeffs, beta, betaComp, geom, area);
+    computeBeta(bcoeffs, beta, betaComp, geom, area, use_hoop_stress);
 
     for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
@@ -2229,7 +2181,8 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                         const MultiFab* const* beta,
                         int                    betaComp,
                         const Geometry&        geom,
-                        const MultiFab* const* area)
+                        const MultiFab* const* area,
+                        bool            use_hoop_stress)
 {
 
     int ng = 0;
@@ -2237,40 +2190,22 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
-//#ifdef AMREX_USE_EB
-//const Real* dx = geom.CellSize();
-//    if (allnull)
-//    {
-//        for (int n = 0; n < BL_SPACEDIM; n++){
-//	  bcoeffs[n].setVal(1.0);
-//bcoeffs[n].mult(dx[n]);
-//}
-//    }
-//    else
-//    {
-//      // fixme? this copy could be probably avoided...
-//        for (int n = 0; n < BL_SPACEDIM; n++){
-//	  MultiFab::Copy(bcoeffs[n],*beta[n],0,0,1,0);
-//bcoeffs[n].mult(dx[n]);
-//}
-//    }
-
-//#else
-
     const Real* dx = geom.CellSize();
 
     if (allnull)
     {
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
-	    MultiFab::Copy(bcoeffs[n], *area[n], 0, 0, 1, 0);
-#ifdef AMREX_USE_EB
-bcoeffs[n].setVal(1.0);
-#else
-	    bcoeffs[n].mult(dx[n]);
-#endif
+      for (int n = 0; n < BL_SPACEDIM; n++)
+      {
+	      MultiFab::Copy(bcoeffs[n], *area[n], 0, 0, 1, 0);
+
+        if (use_hoop_stress){
+          bcoeffs[n].mult(dx[n]);
         }
-        amrex::Print() << "WE ARE ALL NULL "  << std::endl; 
+        else
+        {      
+          bcoeffs[n].setVal(1.0);
+        }
+	    }
     }
     else
     {
@@ -2280,28 +2215,29 @@ bcoeffs[n].setVal(1.0);
       //  {
  	//  Print()<<"dim "<<n<<", num comp = "<<beta[n]->nComp()<<"\n";
 	//}
-  amrex::Print() << "WE ARE NOT ALL NULL "  << std::endl; 
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (int n = 0; n < BL_SPACEDIM; n++)
+      for (int n = 0; n < BL_SPACEDIM; n++)
+      {
+	      for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
         {
-	    for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-            {
  	        const Box& bx = bcoeffsmfi.tilebox();
-	   //amrex::Print() << "DEBUG DX " << dx[n]  << std::endl; 
- 		bcoeffs[n][bcoeffsmfi].copy((*area[n])[bcoeffsmfi],bx,0,bx,0,1);
-bcoeffs[n][bcoeffsmfi].setVal(1.0,bx);
-		bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
-	//	bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
-  //amrex::Print() << "DEBUG BETA n " << n  << std::endl;
-  //amrex::Print() << bcoeffs[n][bcoeffsmfi] << std::endl;
-            }
+ 		      bcoeffs[n][bcoeffsmfi].copy((*area[n])[bcoeffsmfi],bx,0,bx,0,1);
+    
+          if (use_hoop_stress){
+            bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+		        bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
+          }
+          else
+          {
+            bcoeffs[n][bcoeffsmfi].setVal(1.0,bx);
+		        bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+          }
         }
+      }
     }
-
-//#endif
-
 }
 
 void

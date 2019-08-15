@@ -104,7 +104,7 @@ NavierStokes::initData ()
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
-	Sfab.setVal(0.0,vbx);
+        Sfab.setVal(0.0,vbx);
         Pfab.setVal(0.0,snewmfi.nodaltilebox());
 
         RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
@@ -137,8 +137,6 @@ NavierStokes::initData ()
     // likely to core dump.
     //
     ParmParse pp("ns");
-
-
 
     std::string velocity_plotfile;
     pp.query("velocity_plotfile", velocity_plotfile);
@@ -187,7 +185,7 @@ NavierStokes::initData ()
 	    {
 	        const Box& bx = mfi.tilebox();
                 FArrayBox& tfab = tmp[mfi];
-  	        tfab.mult(velocity_plotfile_scale, bx, 0, 1);
+                tfab.mult(velocity_plotfile_scale, bx, 0, 1);
                 S_new[mfi].plus(tfab, bx, 0, Xvel+i, 1);
 	    }
 	    

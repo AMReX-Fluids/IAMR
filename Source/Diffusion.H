@@ -248,7 +248,8 @@ public:
                          int                           betaComp,
                          std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
                          const amrex::Geometry&        geom,
-                         const amrex::MultiFab* const* area);
+                         const amrex::MultiFab* const* area,
+                         bool                   use_hoop_stress);
 
     amrex::DivVis* getTensorOp (amrex::Real                   a,
                          amrex::Real                   b, 
@@ -366,7 +367,8 @@ public:
                              const amrex::MultiFab* const* beta,
                              int                    betaComp,
                              const amrex::Geometry& geom,
-                             const amrex::MultiFab* const* area);
+                             const amrex::MultiFab* const* area,
+                             bool                   use_hoop_stress);
     
 protected:
 
