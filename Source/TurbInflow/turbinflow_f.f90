@@ -35,9 +35,8 @@ module turbinflow_module
      end subroutine getplane
   end interface
 
-!$omp threadprivate(turbinflow_initialized,lenfname,iturbfile,npboxcells,pboxlo,dx,dxinv)
-!$omp threadprivate(plane_time,sdata,szlo,szhi,isswirltype,units_conversion)
-
+!$omp threadprivate(turbinflow_initialized,plane_time,sdata,szlo,szhi,izlo,izhi)
+  
 contains
 
   subroutine init_turbinflow(turbfile, is_cgs)
@@ -50,6 +49,7 @@ contains
     real(kind=amrex_real) :: probsize(3), pboxsize(3), z
     integer :: is_periodic(3)
 
+    !$omp critical
     if (present(is_cgs)) then
        if (is_cgs) then
           units_conversion = 100.d0
@@ -108,7 +108,8 @@ contains
     !                                  0 <= z <= pboxsize(3)
     pboxlo(1:2) = -0.5d0*pboxsize(1:2)
     pboxlo(3) = 0.d0
-
+    !$omp end critical
+    
     call amrex_allocate(sdata,1,npts(1),1,npts(2),1,nplane,1,turb_ncomp)
 
     if (isswirltype .eq. 0) then

@@ -100,7 +100,7 @@ getplane (int* filename, int* len, Real* data, int* plane, int* ncomp, int* issw
     if (!ifs.good())
         amrex::FileOpenFailed(dat);
 
-    const long start = offset[tid][turb_ncomp*(*plane - 1) + (*ncomp-1)];
+    const long start = offset[tid][(*ncomp - 1)*kmax + (*plane - 1)];
 
     ifs.seekg(start, std::ios::beg);
 
