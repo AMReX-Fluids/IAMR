@@ -519,16 +519,25 @@ private:
     amrex::Real initialTimeStep ();
     //
     void SetGodunov () {
-#ifdef AMREX_USE_EB
-      if (godunov == 0){
- 	auto& ebf =
-	  dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
-          godunov = new Godunov(ebf, grids, dmap);
-      }
-#else
-      if (godunov == 0) godunov = new Godunov();
-#endif
+
+    if (godunov == 0) godunov = new Godunov();
+
     };
+    
+#ifdef AMREX_USE_EB
+
+    void init_eb (const amrex::Geometry& level_geom, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
+
+    void initialize_eb2_structs();
+    
+    
+    
+    static bool      no_eb_in_domain;
+    
+    
+    amrex::FabArray<amrex::BaseFab<int>> ebmask;
+
+#endif    
 
 //
 // Data
@@ -539,6 +548,11 @@ protected:
     amrex::MultiFab area[BL_SPACEDIM];
 
 #ifdef AMREX_USE_EB
+
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> facecent;
   
     // Pressure gradients
     std::unique_ptr<amrex::MultiFab> gradp ;

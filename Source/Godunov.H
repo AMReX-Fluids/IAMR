@@ -27,13 +27,6 @@ public:      // public access functions
     // =============================================================
 
     // construct the advection object
-#ifdef AMREX_USE_EB
-    Godunov(const amrex::EBFArrayBoxFactory& _ebf,
-	    const amrex::BoxArray& grids,
-            const amrex::DistributionMapping& dmap,
-	    int max_size = 512);
-#endif
-  // fixme -- eventually need to take this one away for EB
     Godunov(int max_size = 512);
 
 
@@ -292,6 +285,12 @@ public:      // public access functions
                                 amrex::MultiFab& m_zslopes),
                          const amrex::FArrayBox&  U,
                          const amrex::FArrayBox&  tforces,
+                         D_DECL(const amrex::MultiCutFab& x_areafrac,
+				                        const amrex::MultiCutFab& y_areafrac,
+				                        const amrex::MultiCutFab& z_areafrac),
+                         D_DECL(const amrex::MultiCutFab& x_facecent,
+				                        const amrex::MultiCutFab& y_facecent,
+				                        const amrex::MultiCutFab& z_facecent),
                          const amrex::Box& domain);
   
   void AdvectVel (const amrex::MFIter&  mfi,
@@ -311,6 +310,14 @@ public:      // public access functions
                   D_DECL(amrex::MultiFab& m_xslopes,
 				                 amrex::MultiFab& m_yslopes,
 				                 amrex::MultiFab& m_zslopes),
+                  const amrex::MultiFab& volfrac,
+                  const amrex::MultiCutFab& bndrycent,
+                  D_DECL(const amrex::MultiCutFab& x_areafrac,
+				                 const amrex::MultiCutFab& y_areafrac,
+				                 const amrex::MultiCutFab& z_areafrac),
+                  D_DECL(const amrex::MultiCutFab& x_facecent,
+				                 const amrex::MultiCutFab& y_facecent,
+				                 const amrex::MultiCutFab& z_facecent),
                   const amrex::Box& domain,
                   const amrex::Real* dx,
                   int nghost);
@@ -330,7 +337,15 @@ public:      // public access functions
                          D_DECL(      amrex::FArrayBox& xstate,
                                       amrex::FArrayBox& ystate,
                                       amrex::FArrayBox& zstate),
-                         const amrex::Vector<int>& state_bc,
+                         const amrex::MultiFab& volfrac,
+                         const amrex::MultiCutFab& bndrycent,
+                         D_DECL(const amrex::MultiCutFab& x_areafrac,
+				                        const amrex::MultiCutFab& y_areafrac,
+				                        const amrex::MultiCutFab& z_areafrac),
+                         D_DECL(const amrex::MultiCutFab& x_facecent,
+				                        const amrex::MultiCutFab& y_facecent,
+				                        const amrex::MultiCutFab& z_facecent),
+                                const amrex::Vector<int>& state_bc,
 		                     const amrex::Box& domain,
 		                     const amrex::Real* dx,
 		                     int nghost, int known_edgestate);
@@ -390,15 +405,6 @@ protected:   // protected data members
     static int  ppm_type;
     static int  corner_couple;
 
-#ifdef AMREX_USE_EB
-  // pointers to EB data
-  const amrex::EBFArrayBoxFactory* ebfactory;
-  const amrex::MultiFab* volfrac;
-  const amrex::MultiCutFab* bndrycent;
-  std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
-  std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
-
-#endif
 };
 
 #endif

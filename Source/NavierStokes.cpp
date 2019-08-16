@@ -556,7 +556,11 @@ NavierStokes::predict_velocity (Real  dt)
 				  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
 				  D_DECL(bndry[0],        bndry[1],        bndry[2]),
           D_DECL(m_xslopes, m_yslopes, m_zslopes),
-				  Ufab, tforces, domain);
+				  Ufab, tforces,
+          D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+          D_DECL(*facecent[0], *facecent[1], *facecent[2]),
+          domain);
+  
 #else
 	// non-EB
 	//  1. compute slopes
@@ -738,6 +742,9 @@ NavierStokes::scalar_advection (Real dt,
                                 D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
                                 D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                 D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+                                *volfrac, *bndrycent,
+                                D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+                                D_DECL(*facecent[0], *facecent[1], *facecent[2]),
                                 state_bc,
                                 geom.Domain(),
                                 geom.CellSize(),Godunov::hypgrow(), 0);	
@@ -1482,11 +1489,8 @@ NavierStokes::writePlotFile (const std::string& dir,
 
 #ifdef AMREX_USE_EB
     // add volume fraction to plotfile
-    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
-    const amrex::MultiFab& volfrac = ebfactory.getVolFrac();
-
     plotMF.setVal(0.0, cnt, 1, nGrow);
-    MultiFab::Copy(plotMF,volfrac,0,cnt,1,nGrow);
+    MultiFab::Copy(plotMF,*volfrac,0,cnt,1,nGrow);
 
     // set covered values for ease of viewing
     EB_set_covered(plotMF, 0.0);

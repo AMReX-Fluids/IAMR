@@ -108,24 +108,6 @@ Godunov::Finalize ()
 //
 // Construct the Godunov Object.
 //
-#ifdef AMREX_USE_EB
-Godunov::Godunov (const EBFArrayBoxFactory& _ebf,
-                  const BoxArray& grids,
-                  const DistributionMapping& dmap,
-		  //		  , const *MFInfo info
-		  int max_size)
-{
-    Initialize();
-    
-    // set pointers to EB data
-    ebfactory = &_ebf;
-    volfrac = &(ebfactory->getVolFrac());
-    bndrycent = &(ebfactory->getBndryCent());
-    areafrac = ebfactory->getAreaFrac();
-    facecent = ebfactory->getFaceCent();
-
-}
-#endif
 Godunov::Godunov (int max_size)
 {
   Initialize();
@@ -1187,6 +1169,12 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi,
                                   MultiFab& m_zslopes),
                            const amrex::FArrayBox&  U,
                            const amrex::FArrayBox&  tforces,
+                           D_DECL(const amrex::MultiCutFab& x_areafrac,
+				                          const amrex::MultiCutFab& y_areafrac,
+				                          const amrex::MultiCutFab& z_areafrac),
+                           D_DECL(const amrex::MultiCutFab& x_facecent,
+				                          const amrex::MultiCutFab& y_facecent,
+				                          const amrex::MultiCutFab& z_facecent),
                            const Box& domain)
 {
   //
@@ -1244,8 +1232,8 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi,
                                  BL_TO_FORTRAN_ANYD(umac),
                                  BL_TO_FORTRAN_ANYD(U),
                                  BL_TO_FORTRAN_ANYD(m_xslopes[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+                                 BL_TO_FORTRAN_ANYD(x_areafrac[mfi]),
+                                 BL_TO_FORTRAN_ANYD(x_facecent[mfi]),
                                  BL_TO_FORTRAN_ANYD(flags),
                                  ubc.dataPtr(),
                                  domain.loVect(), domain.hiVect());
@@ -1254,8 +1242,8 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi,
                                  BL_TO_FORTRAN_ANYD(vmac),
                                  BL_TO_FORTRAN_ANYD(U),
                                  BL_TO_FORTRAN_ANYD(m_yslopes[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+                                 BL_TO_FORTRAN_ANYD(y_areafrac[mfi]),
+                                 BL_TO_FORTRAN_ANYD(y_facecent[mfi]),
                                  BL_TO_FORTRAN_ANYD(flags),
                                  vbc.dataPtr(),
                                  domain.loVect(), domain.hiVect());
@@ -1265,8 +1253,8 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi,
                                  BL_TO_FORTRAN_ANYD(wmac),
                                  BL_TO_FORTRAN_ANYD(U),
                                  BL_TO_FORTRAN_ANYD(m_zslopes[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
-                                 BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+                                 BL_TO_FORTRAN_ANYD(z_areafrac[mfi]),
+                                 BL_TO_FORTRAN_ANYD(z_facecent[mfi]),
                                  BL_TO_FORTRAN_ANYD(flags),
                                  wbc.dataPtr(),
                                  domain.loVect(), domain.hiVect());
@@ -1294,6 +1282,14 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
                     D_DECL(MultiFab& m_xslopes,
                            MultiFab& m_yslopes,
                            MultiFab& m_zslopes),
+                    const MultiFab& volfrac,
+                    const MultiCutFab& bndrycent,
+                    D_DECL(const amrex::MultiCutFab& x_areafrac,
+				                 const amrex::MultiCutFab& y_areafrac,
+				                 const amrex::MultiCutFab& z_areafrac),
+                    D_DECL(const amrex::MultiCutFab& x_facecent,
+				                 const amrex::MultiCutFab& y_facecent,
+				                 const amrex::MultiCutFab& z_facecent),
                     const Box& domain,
                     const amrex::Real* dx,
                     int nghost)
@@ -1347,27 +1343,27 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
                              BL_TO_FORTRAN_ANYD(uedge),
                              BL_TO_FORTRAN_ANYD(xflx),
                              BL_TO_FORTRAN_ANYD(xstate),
-                             BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-                             BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+                             BL_TO_FORTRAN_ANYD(x_areafrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(x_facecent[mfi]),
                              BL_TO_FORTRAN_ANYD(m_xslopes[mfi]),
 
                              BL_TO_FORTRAN_ANYD(vedge),
                              BL_TO_FORTRAN_ANYD(yflx),
                              BL_TO_FORTRAN_ANYD(ystate),
-                             BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-                             BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+                             BL_TO_FORTRAN_ANYD(y_areafrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(y_facecent[mfi]),
                              BL_TO_FORTRAN_ANYD(m_yslopes[mfi]),
 #if(AMREX_SPACEDIM ==3)
                              BL_TO_FORTRAN_ANYD(wedge),
                              BL_TO_FORTRAN_ANYD(zflx),
                              BL_TO_FORTRAN_ANYD(zstate),
-                             BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
-                             BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+                             BL_TO_FORTRAN_ANYD(z_areafrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(z_facecent[mfi]),
                              BL_TO_FORTRAN_ANYD(m_zslopes[mfi]),
 #endif
                              BL_TO_FORTRAN_ANYD(flags),
-                             BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
-                             BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
+                             BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
                              domain.loVect(),domain.hiVect(),
                              dx, &ncomp, &nghost, &known_edgestate);
       }
@@ -1390,6 +1386,14 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
 		       D_DECL(const FArrayBox& uedge, const FArrayBox& vedge, const FArrayBox& wedge),
 		       D_DECL(      FArrayBox& xflx,        FArrayBox& yflx,        FArrayBox& zflx),
            D_DECL(      FArrayBox& xstate,      FArrayBox& ystate,      FArrayBox& zstate),
+           const MultiFab& volfrac,
+           const MultiCutFab& bndrycent,
+           D_DECL(const amrex::MultiCutFab& x_areafrac,
+				          const amrex::MultiCutFab& y_areafrac,
+				          const amrex::MultiCutFab& z_areafrac),
+           D_DECL(const amrex::MultiCutFab& x_facecent,
+				          const amrex::MultiCutFab& y_facecent,
+				          const amrex::MultiCutFab& z_facecent),
            const amrex::Vector<int>& state_bc,
 		       const Box& domain,
 		       const amrex::Real* dx,
@@ -1449,27 +1453,27 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
                              BL_TO_FORTRAN_ANYD(uedge),
                              BL_TO_FORTRAN_N_ANYD(xflx,flxcomp),
                              BL_TO_FORTRAN_N_ANYD(xstate,flxcomp),
-                             BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
-                             BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+                             BL_TO_FORTRAN_ANYD(x_areafrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(x_facecent[mfi]),
                              BL_TO_FORTRAN_N_ANYD(xslopes[mfi],flxcomp),
 
                              BL_TO_FORTRAN_ANYD(vedge),
                              BL_TO_FORTRAN_N_ANYD(yflx,flxcomp),
                              BL_TO_FORTRAN_N_ANYD(ystate,flxcomp),
-                             BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
-                             BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+                             BL_TO_FORTRAN_ANYD(y_areafrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(y_facecent[mfi]),
                              BL_TO_FORTRAN_N_ANYD(yslopes[mfi],flxcomp),
 #if(AMREX_SPACEDIM ==3)
                              BL_TO_FORTRAN_ANYD(wedge),
                              BL_TO_FORTRAN_N_ANYD(zflx,flxcomp),
                              BL_TO_FORTRAN_N_ANYD(zstate,flxcomp),
-                             BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
-                             BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
+                             BL_TO_FORTRAN_ANYD(z_areafrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(z_facecent[mfi]),
                              BL_TO_FORTRAN_N_ANYD(zslopes[mfi],flxcomp),
 #endif
                              BL_TO_FORTRAN_ANYD(flags),
-                             BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
-                             BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
+                             BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                             BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
                              domain.loVect(),domain.hiVect(),
                              dx, &num_scalars, &nghost, &known_edgestate);
       }

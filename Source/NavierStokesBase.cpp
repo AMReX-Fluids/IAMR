@@ -102,6 +102,10 @@ int  NavierStokesBase::do_mom_diff            = 0;
 int  NavierStokesBase::predict_mom_together   = 0;
 bool NavierStokesBase::def_harm_avg_cen2edge  = false;
 
+#ifdef AMREX_USE_EB
+bool         NavierStokesBase::no_eb_in_domain     = true;
+#endif
+
 namespace
 {
     bool initialized = false;
@@ -190,6 +194,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     }
 
 #ifdef AMREX_USE_EB
+
+    init_eb(level_geom, bl, dm);
+
     //fixme? not 100% sure this is the right place
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
     gradp->setVal(0.);
@@ -3643,6 +3650,9 @@ NavierStokesBase::velocity_advection (Real dt)
          D_DECL(edgstate[0],edgstate[1],edgstate[2]),
 			   D_DECL(bndry[0], bndry[1], bndry[2]),
          D_DECL(m_xslopes, m_yslopes, m_zslopes),
+         *volfrac, *bndrycent,
+         D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+         D_DECL(*facecent[0], *facecent[1], *facecent[2]),
 			   geom.Domain(),
 			   geom.CellSize(),Godunov::hypgrow());	
 

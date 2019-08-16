@@ -17,6 +17,8 @@
 #include <iomanip>
 #include <array>
 
+#include <fstream>
+#include <iostream>
 
 #include <AMReX_MLMG.H>
 #ifdef AMREX_USE_EB
@@ -741,6 +743,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
        {
          MultiFab::Divide(Soln,*Rho_new[0],Rho_comp,0,1,ng);
        }
+       //EB_set_covered(Soln, 0, AMREX_SPACEDIM, ng, 1.);
        opnp1.setLevelBC(0, &Soln);
      }
 
@@ -765,14 +768,29 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
      const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
 	   //mgnp1.setVerbose(3);
-	    	    
+//      static int count110=0;
+//     count110++;
+
+//amrex::WriteSingleLevelPlotfile("Soln_before_solve"+std::to_string(count110), Soln, {"Sol"}, geom, 0.0, 0);
+//	    	    
 	   mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
      
+//amrex::WriteSingleLevelPlotfile("Soln_after_solve"+std::to_string(count110), Soln, {"Sol"}, geom, 0.0, 0);
+//amrex::WriteSingleLevelPlotfile("Rhs"+std::to_string(count110), Rhs, {"Rhs"}, geom, 0.0, 0);
+//     
      AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
                   MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
                   MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
                   std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
      mgnp1.getFluxes({fp});
+       
+//   amrex::WriteSingleLevelPlotfile("fp_x"+std::to_string(count110), *fp[0], {"fp_x"}, geom, 0.0, 0);
+//  amrex::WriteSingleLevelPlotfile("fp_y"+std::to_string(count110), *fp[1], {"fp_y"}, geom, 0.0, 0);
+//       
+//VisMF::Write(*area[0],"area");
+//
+//VisMF::Write(volume,"volume");
+
         
     // This shadows the area passed through the routine
     //const MultiFab* area   = navier_stokes->Area();
@@ -781,6 +799,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 #ifdef AMREX_USE_EB
     // now dx, areas, and vol are not constant.
     std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -799,6 +818,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       
       if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
       {
+        amrex::Print() << "DEBUG EB ARE COVERED \n";
 	// If tile is completely covered by EB geometry, set 
 	// value to some very large number so we know if
 	// we accidentaly use these covered vals later in calculations
@@ -810,7 +830,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       {
 	// No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
 	      if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
-        {		
+        {
+          amrex::Print() << "DEBUG EB ARE REGULAR \n";
 	        for (int i = 0; i < BL_SPACEDIM; ++i)
 	        {
 	          (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
@@ -819,12 +840,17 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	      }
         else
         {
+          amrex::Print() << "DEBUG EB ARE HYBRID \n";
         // Use EB routines
           for (int i = 0; i < BL_SPACEDIM; ++i)
           {
+            //amrex::Print() << (*areafrac[i])[mfi];
+            //amrex::Print() << (*fluxnp1[i])[mfi];
             (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
             (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
             (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
+            
+            
           }
         }
       }        
@@ -846,6 +872,14 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       }      
     }
 #endif
+
+
+//static int count2=0;
+//count2++;
+//amrex::WriteSingleLevelPlotfile("Flux_np1_x"+std::to_string(count110), *fluxnp1[0], {"flux_x"}, geom, 0.0, 0);
+//amrex::WriteSingleLevelPlotfile("Flux_np1_y"+std::to_string(count110), *fluxnp1[1], {"flux_y"}, geom, 0.0, 0);
+//
+
 
      //
      // Copy into state variable at new time, without bc's
@@ -2234,6 +2268,8 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
           {
             bcoeffs[n][bcoeffsmfi].setVal(1.0,bx);
 		        bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
+  //          amrex::Print() << "DEBUG BETA n " << n  << std::endl;
+  //amrex::Print() << bcoeffs[n][bcoeffsmfi] << std::endl;
           }
         }
       }
