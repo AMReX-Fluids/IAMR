@@ -328,22 +328,22 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   BL_ASSERT(volume.DistributionMap() == dm);
  
  // Below is another way to bring the factory information 
- //const auto& ebfactory = S_old[0]->Factory();
+ const auto& ebfactory = S_old[0]->Factory();
  
-  MultiFab Rhs(ba,dm,1,0,MFInfo(),navier_stokes->Factory());
-  MultiFab Soln(ba,dm,1,ng,MFInfo(),navier_stokes->Factory());
-  MultiFab alpha(ba,dm,1,0,MFInfo(),navier_stokes->Factory());
+  MultiFab Rhs(ba,dm,1,0,MFInfo(),ebfactory);
+  MultiFab Soln(ba,dm,1,ng,MFInfo(),ebfactory);
+  MultiFab alpha(ba,dm,1,0,MFInfo(),ebfactory);
 
   std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
   for (int n = 0; n < BL_SPACEDIM; n++)
   {
     BL_ASSERT(area[n]->DistributionMap() == dm); 
-    bcoeffs[n].define(area[n]->boxArray(),dm,1,0,MFInfo(),navier_stokes->Factory());
+    bcoeffs[n].define(area[n]->boxArray(),dm,1,0,MFInfo(),ebfactory);
   }
   auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
   if (has_coarse_data)
   {
-    Solnc->define(*bac, *dmc, 1, ng, MFInfo(), navier_stokes->Factory());
+    Solnc->define(*bac, *dmc, 1, ng, MFInfo(), ebfactory);
   }
 
   std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -362,11 +362,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	// create the right data holder for passing to MLEBABecLap
 	amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
 	//ebf.resize(1);
-	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
+	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(ebfactory));
 	
 	MLEBABecLap opn({geom}, {ba}, {dm}, infon, ebf);
 #else	  
-	//MLABecLaplacian mlabec({navier_stokes->Geom()},{grids},{dmap},info);
   MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
 #endif  
    
