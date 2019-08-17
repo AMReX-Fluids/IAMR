@@ -5,6 +5,7 @@
 
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
+#include <NAVIERSTOKESBASE_F.H>
 
 #include <PROB_NS_F.H>
 
@@ -103,7 +104,10 @@ int  NavierStokesBase::predict_mom_together   = 0;
 bool NavierStokesBase::def_harm_avg_cen2edge  = false;
 
 #ifdef AMREX_USE_EB
+bool         NavierStokesBase::eb_initialized      = false;
 bool         NavierStokesBase::no_eb_in_domain     = true;
+bool         NavierStokesBase::body_state_set      = false;
+std::vector<Real> NavierStokesBase::body_state;
 #endif
 
 namespace
@@ -192,17 +196,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         rho_avg.define(grids,dmap,1,1);
         p_avg.define(P_grids,dmap,1,0);
     }
-
-#ifdef AMREX_USE_EB
-
-    init_eb(level_geom, bl, dm);
-
-    //fixme? not 100% sure this is the right place
-    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    gradp->setVal(0.);
-
-    //FIXME --- this fn is really similar to restart()... work on that later   
-#endif
     //
     // rho_half is passed into level_project to be used as sigma in the MLMG
     // solve
@@ -218,6 +211,19 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     // Build volume and areas.
     //
     buildMetrics();
+    
+    
+#ifdef AMREX_USE_EB
+
+    init_eb(level_geom, bl, dm);
+
+    //fixme? not 100% sure this is the right place
+    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
+    gradp->setVal(0.);
+
+    //FIXME --- this fn is really similar to restart()... work on that later   
+#endif
+
     //
     // Set up reflux registers.
     //
@@ -853,6 +859,13 @@ NavierStokesBase::buildMetrics ()
         amrex::Abort("EB requires dx == dy (== dz)\n");
     }
 
+    vfrac.clear();
+    vfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    MultiFab::Copy(vfrac, ebfactory.getVolFrac(), 0, 0, 1, NUM_GROW);
+    areafrac = ebfactory.getAreaFrac();
+
+    
     //fixme? assume will need this part cribbed from CNS
     // level_mask.clear();
     // level_mask.define(grids,dmap,1,1);

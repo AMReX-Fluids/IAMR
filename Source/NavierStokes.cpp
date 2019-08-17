@@ -123,6 +123,10 @@ NavierStokes::initData ()
                        ARLIM(p_lo), ARLIM(p_hi),
                        dx,gridloc.lo(),gridloc.hi() );
     }
+    
+#ifdef AMREX_USE_EB
+  set_body_state(S_new);
+#endif
 
 #ifdef BL_USE_VELOCITY
     //

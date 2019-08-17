@@ -529,13 +529,17 @@ private:
     void init_eb (const amrex::Geometry& level_geom, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
 
     void initialize_eb2_structs();
+    void define_body_state();
     
     
-    
+    static bool ebInitialized();
+    static bool eb_initialized;
+    static bool body_state_set;
     static bool      no_eb_in_domain;
-    
-    
+    static std::vector<amrex::Real> body_state;
+        
     amrex::FabArray<amrex::BaseFab<int>> ebmask;
+    amrex::MultiFab vfrac;
 
 #endif    
 
@@ -548,6 +552,8 @@ protected:
     amrex::MultiFab area[BL_SPACEDIM];
 
 #ifdef AMREX_USE_EB
+
+    void set_body_state(amrex::MultiFab& S);
 
     const amrex::MultiFab* volfrac;
     const amrex::MultiCutFab* bndrycent;
