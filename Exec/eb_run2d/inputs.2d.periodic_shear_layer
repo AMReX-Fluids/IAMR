@@ -38,7 +38,7 @@ ns.vel_visc_coef     	= 0.0 #0.001
 # Forcing term defaults to  rho * abs(gravity) "down"
 ns.gravity           	= 0.0
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs   	= 0.0
+ns.scal_diff_coefs   	= 0.10
 
 #*******************************************************************************
 # GRID AND GEOMETRY

@@ -557,13 +557,13 @@ NavierStokes::predict_velocity (Real  dt)
 	// for now, just doing periodic, so just make sure I don't trip the bcs
 	//
 	godunov->ExtrapVelToFaces(U_mfi,
-				  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-				  D_DECL(bndry[0],        bndry[1],        bndry[2]),
-          D_DECL(m_xslopes, m_yslopes, m_zslopes),
-				  Ufab, tforces,
-          D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
-          D_DECL(*facecent[0], *facecent[1], *facecent[2]),
-          domain);
+                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
+                                   D_DECL(m_xslopes, m_yslopes, m_zslopes),
+                                   Ufab, tforces,
+                                   D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+                                   D_DECL(*facecent[0], *facecent[1], *facecent[2]),
+                                   domain);
   
 #else
 	// non-EB
@@ -823,6 +823,9 @@ NavierStokes::scalar_update (Real dt,
       scalar_diffusion_update(dt, first_scalar, last_scalar);
 
     MultiFab&  S_new     = get_new_data(State_Type);
+//#ifdef AMREX_USE_EB
+//  set_body_state(S_new);
+//#endif
     for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     {
        if (S_new.contains_nan(sigma,1,0))
@@ -932,7 +935,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                    theBCs[bc_comp],geom,
                                    add_hoop_stress,solve_mode,add_old_time_divFlux,
                                    diffuse_comp);
-
+                                   
         if(alpha!=0) delete alpha;
 
         //
@@ -1497,7 +1500,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     MultiFab::Copy(plotMF,*volfrac,0,cnt,1,nGrow);
 
     // set covered values for ease of viewing
-    EB_set_covered(plotMF, 0.0);
+    //EB_set_covered(plotMF, 0.0);
 #endif
     
     //
