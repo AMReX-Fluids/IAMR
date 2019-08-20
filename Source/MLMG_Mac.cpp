@@ -351,7 +351,7 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     // Create MacProjection object
     // make sure u_mac already has bndry properly filled
 
-    MacProjector macproj( a_umac, GetVecOfArrOfPtrsConst(bcoefs), {geom}, {&Rhs}); 
+    MacProjector macproj( a_umac, GetVecOfArrOfPtrsConst(bcoefs), {geom}, {}, {&Rhs}); 
     //
     // Need to figure out how to access some switches now buried in
     //   amrex::MacProjector
