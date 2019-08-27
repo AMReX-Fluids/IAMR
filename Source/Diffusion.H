@@ -110,11 +110,25 @@ public:
                            const amrex::MultiFab* const* betan, 
                            const amrex::MultiFab* const* betanp1);
 
-    void diffuse_velocity_constant_mu (amrex::Real            dt,
-                                       amrex::Real            be_cn_theta,
-                                       const amrex::MultiFab& rho_half,
-                                       amrex::MultiFab*       delta_rhs,
-                                       int             rhsComp);
+    
+    void diffuse_velocity_constant_mu (amrex::Real                   dt,
+                                       int                    sigma,
+                                       amrex::Real                   be_cn_theta,
+                                       const amrex::MultiFab&        rho_half,
+                                       int                    rho_flag,
+                                       amrex::MultiFab* const*       fluxn,
+                                       amrex::MultiFab* const*       fluxnp1,
+                                       int                    fluxComp,
+                                       amrex::MultiFab*              delta_rhs, 
+                                       int                    rhsComp,
+                                       const amrex::MultiFab*        alpha, 
+                                       int                    alphaComp,
+                                       const amrex::MultiFab* const* betan, 
+                                       const amrex::MultiFab* const* betanp1,
+                                       int                    betaComp,
+                                       const SolveMode&       solve_mode = ONEPASS,
+                                       bool                   add_old_time_divFlux = true);
+    
 
     void diffuse_tensor_velocity (amrex::Real                   dt,
                                   amrex::Real                   be_cn_theta,
@@ -398,6 +412,9 @@ protected:
 
 
     void computeBeta (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
+                      const amrex::MultiFab* const* beta, int betaComp);
+
+    void computeBeta_null (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
                       const amrex::MultiFab* const* beta, int betaComp);
 
     static void Finalize ();

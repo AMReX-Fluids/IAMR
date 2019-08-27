@@ -26,7 +26,7 @@ Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;    
 Real NavierStokesBase::fixed_dt           = -1.0;      
 bool NavierStokesBase::stop_when_steady   = false;
-Real NavierStokesBase::steady_tol 		  = 1.0e-10;
+Real NavierStokesBase::steady_tol         = 1.0e-10;
 int  NavierStokesBase::initial_iter       = false;  
 int  NavierStokesBase::initial_step       = false;  
 Real NavierStokesBase::dt_cutoff          = 0.0;     
@@ -49,6 +49,7 @@ Vector<Real> NavierStokesBase::visc_coef;
 Real        NavierStokesBase::visc_tol           = 1.0e-10;
 Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
+int         NavierStokesBase::variable_vel_visc  = 1;
 
 int         NavierStokesBase::Tracer                    = -1;
 int         NavierStokesBase::Tracer2                   = -1;
@@ -269,7 +270,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     viscn_cc   = new MultiFab(grids, dmap, 1, 1);
     viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
-
+  
     diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
     diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
     //
@@ -395,6 +396,8 @@ NavierStokesBase::Initialize ()
     
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
+    
+    pp.query("variable_vel_visc",variable_vel_visc);
  
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
@@ -791,9 +794,8 @@ NavierStokesBase::advance_setup (Real time,
     //         have something reasonable.
     //
     const Real prev_time = state[State_Type].prevTime();
-
     calcViscosity(prev_time,dt,iteration,ncycle);
-    MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
+	  MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
 
     const int num_diff = NUM_STATE-BL_SPACEDIM-1;
     calcDiffusivity(prev_time);
