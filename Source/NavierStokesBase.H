@@ -538,7 +538,6 @@ private:
     static bool      no_eb_in_domain;
     static std::vector<amrex::Real> body_state;
         
-    amrex::FabArray<amrex::BaseFab<int>> ebmask;
     amrex::MultiFab vfrac;
 
 #endif    
@@ -552,11 +551,13 @@ protected:
     amrex::MultiFab area[BL_SPACEDIM];
 
 #ifdef AMREX_USE_EB
-
+        
     void set_body_state(amrex::MultiFab& S);
 
     const amrex::MultiFab* volfrac;
     const amrex::MultiCutFab* bndrycent;
+    amrex::FabArray<amrex::BaseFab<int>> ebmask;
+    
     std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> areafrac;
     std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> facecent;
   

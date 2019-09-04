@@ -182,6 +182,8 @@ Godunov::AdvectScalars(const Box&  box,
                           &dt, dx, &(state_bc[0]), &state_fidx, 
                           &use_forces_in_trans, &ppm_type, &(use_conserv_diff[0]));
 
+    //amrex::Print() << ystate;
+                          
     // ComputeAofs erase the edge state values to write the fluxes
     // So here we make a copy to keep separated fluxes and edge state
     xflx.copy(xstate,ecomp,flxcomp,num_scalars);

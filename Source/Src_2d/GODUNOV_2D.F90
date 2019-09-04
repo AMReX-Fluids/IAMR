@@ -3250,7 +3250,7 @@ contains
                    - divuy*half*(yflux(i,j+1) + yflux(i,j))
 
 ! EM_DEBUG    
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!if ((i < 4) .and. (j==0)) then
 !write(*,*)  'in adv_forcing ', i,j,divux,divuy,aofs(i,j),xflux(i,j),yflux(i,j)
 !endif
 
@@ -3263,11 +3263,18 @@ contains
       do j = jmin,jmax
          do i = imin,imax+1
             xflux(i,j) = xflux(i,j)*uedge(i,j)*areax(i,j)
+!if ((i < 4) .and. (j == 0)) then
+!write(*,*)  'in adv_forcing xflux', i,j,xflux(i,j)
+!endif
          end do
       end do
       do j = jmin,jmax+1
          do i = imin,imax
+!if ((i < 4) .and. (j == 0)) then
+!write(*,*)  'in adv_forcing yflux', i,j,yflux(i,j),vedge(i,j),areay(i,j)
+!endif
             yflux(i,j) = yflux(i,j)*vedge(i,j)*areay(i,j)
+
          end do
       end do
 !c     
@@ -3289,7 +3296,7 @@ contains
                    yflux(i,j+1) - yflux(i,j))/vol(i,j)
 
 ! EM_DEBUG    
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!if ((i < 4) .and. (j == 0)) then
 !write(*,*)  'in adv_forcing ', i,j,xflux(i,j),yflux(i,j),aofs(i,j)
 !endif
             end do

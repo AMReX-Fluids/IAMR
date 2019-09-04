@@ -976,6 +976,7 @@ Diffusion::diffuse_velocity (Real                   dt,
         const int state_ind = Xvel + sigma;
         const int fluxComp  = 0;
         const int RHSComp   = rhsComp + sigma;
+
         diffuse_velocity_constant_mu(dt,state_ind,be_cn_theta,rho_half,rho_flag,
                        fluxSCn,fluxSCnp1,fluxComp,delta_rhs,RHSComp,0,0,betan,betanp1,betaComp);
 
@@ -3135,7 +3136,7 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
     // state + dt*Div(explicit_fluxes), e.g.)
     //
     
-    if (verbose)
+    //if (verbose)
       amrex::Print() << "... Diffusion::diffuse_scalar(): " 
                      << navier_stokes->get_desc_lst()[State_Type].name(sigma) 
                      << " lev: " << level << '\n';
@@ -3148,6 +3149,7 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
     
     //VisMF::Write(*betan[0],"betan");
     //VisMF::Write(*betanp1[0],"betanp1");
+    
     
     // if (!navier_stokes->variable_vel_visc)
     //{
@@ -3192,6 +3194,9 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
     
     if (add_old_time_divFlux && be_cn_theta!=1)
     {
+      
+      Print()<<"DEBUG WE ARE IN THIS PART 1 ....\n";
+      
         Real a = 0.0;
         Real b = -(1.0-be_cn_theta)*dt;
         if (allnull)
@@ -3246,15 +3251,19 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
 	    }
 	    mlabec.setCoarseFineBC(&crsedata, crse_ratio[0]);
 	  }
-	  
+//Soln.setVal(0.);
+
 	  AmrLevel::FillPatch(*navier_stokes,Soln,ng,prev_time,State_Type,sigma,1);
+    	      //amrex::Print() << "\n DEBUG Soln \n";
+    //amrex::Print() << Soln[0];
+    
 	  if (rho_flag == 2) {
 	    const MultiFab& rhotime = navier_stokes->get_rho(prev_time);
 	    MultiFab::Divide(Soln,rhotime,0,0,1,ng);
 	  }
 	  // fixme? Do we need/want next 2 lines? mfix does this
 	  //EB_set_covered(Soln, 0, 1, ng, 1.2345e30);
-	  //Soln.FillBoundary ((navier_stokes->Geom()).periodicity());
+	  Soln.FillBoundary ((navier_stokes->Geom()).periodicity());
 	  ///
 	  mlabec.setLevelBC(0, &Soln);
 	}
@@ -3279,8 +3288,14 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
 
 	MLMG mgn(mlabec);
 	mgn.setVerbose(verbose);
-	
+
+    
 	mgn.apply({&Rhs},{&Soln});
+  
+  //	    amrex::Print() << "\n DEBUG RHS \n";
+  //  amrex::Print() << Rhs[0];
+    //amrex::Print() << "\n DEBUG Soln \n";
+    //amrex::Print() << Soln[0];
 
 	AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp, 1);,
 		     MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp, 1);,
@@ -3451,7 +3466,8 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
         }
     }
     }
-
+    //amrex::Print() << "\n DEBUG RHS \n";
+    //amrex::Print() << Rhs[0];
     //
     // Add body sources
     //
@@ -3476,7 +3492,8 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
     }
     }
 
-
+    //amrex::Print() << "\n DEBUG RHS \n";
+    //amrex::Print() << Rhs[0];
     
     //
     // Increment Rhs with S_old*V (or S_old*V*rho_half if rho_flag==1
@@ -3502,6 +3519,10 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
             Soln[mfi].mult((*alpha)[mfi],box,alphaComp,0,1);
         Rhs[mfi].plus(Soln[mfi],box,0,0,1);
     }
+    //amrex::Print() << "\n DEBUG RHS \n";
+    //amrex::Print() << Rhs[0];
+    //amrex::Print() << "\n DEBUG Soln \n";
+    //amrex::Print() << Soln[0];
 
     //
     // Make a good guess for Soln
@@ -3553,7 +3574,7 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     setDomainBC(mlmg_lobc, mlmg_hibc, sigma);
-        
+            
     mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
     {
       MultiFab crsedata;
@@ -3576,7 +3597,7 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
       }
       // fixme? Do we need/want next 2 lines? mfix does this
       //EB_set_covered(S, 0, 1, ng, 1.2345e30);
-      //S.FillBoundary ((navier_stokes->Geom()).periodicity());
+      S.FillBoundary ((navier_stokes->Geom()).periodicity());
       ///
       mlabec.setLevelBC(0, &S);
     }
@@ -3618,6 +3639,8 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
     // This ensures that ghost cells of sol are correctly filled when returned from the solver
     //mlmg.setFinalFillBC(true);
 
+
+    
     mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
     
     AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp, 1);,
@@ -3691,6 +3714,8 @@ Diffusion::diffuse_velocity_constant_mu (Real                   dt,
     //
     // Copy into state variable at new time, without bc's
     //
+    //amrex::Print() << "\n DEBUG SOLN \n";
+    //amrex::Print() << Soln[0];
     MultiFab::Copy(S_new,Soln,0,sigma,1,0);
     
     if (rho_flag == 2) {
