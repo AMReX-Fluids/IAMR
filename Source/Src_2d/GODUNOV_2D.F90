@@ -447,8 +447,6 @@ contains
         dt  = min(dt,sqrt(two*dx(2)/tforce2))
       end if
 
-      if (dt .eq. dt_start) dt = min(dx(1),dx(2))
-
       dt = dt*cfl
 
     end subroutine fort_estdt
