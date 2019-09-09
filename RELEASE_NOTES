@@ -90,3 +90,7 @@ MLMG solver is now the only one implemented and used for Diffusion and MacProj
 Cleaned up GNUMakeFiles
 Minor modification to Taylor Green test problem setup
 Fixed a tiling bug in diffusion_rearrangement
+
+9/3/19
+Minor bugfixes only, some to satisfy compiler warnings, some for thread safety,
+some for ghost cell filling when needed
