@@ -730,8 +730,6 @@ contains
       if (tforce2 .gt. small) dt = min(dt,sqrt(two*dx(2)/tforce2))
       if (tforce3 .gt. small) dt = min(dt,sqrt(two*dx(3)/tforce3))
 
-      if (dt .eq. dt_start) dt = min(dx(1),dx(2),dx(3))
-
       dt = dt*cfl
 
       end subroutine fort_estdt
