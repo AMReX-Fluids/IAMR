@@ -519,16 +519,28 @@ private:
     amrex::Real initialTimeStep ();
     //
     void SetGodunov () {
-#ifdef AMREX_USE_EB
-      if (godunov == 0){
- 	auto& ebf =
-	  dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
-          godunov = new Godunov(ebf, grids, dmap);
-      }
-#else
-      if (godunov == 0) godunov = new Godunov();
-#endif
+
+    if (godunov == 0) godunov = new Godunov();
+
     };
+    
+#ifdef AMREX_USE_EB
+
+    void init_eb (const amrex::Geometry& level_geom, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
+
+    void initialize_eb2_structs();
+    void define_body_state();
+    
+    
+    static bool ebInitialized();
+    static bool eb_initialized;
+    static bool body_state_set;
+    static bool      no_eb_in_domain;
+    static std::vector<amrex::Real> body_state;
+        
+    amrex::MultiFab vfrac;
+
+#endif    
 
 //
 // Data
@@ -539,6 +551,15 @@ protected:
     amrex::MultiFab area[BL_SPACEDIM];
 
 #ifdef AMREX_USE_EB
+        
+    void set_body_state(amrex::MultiFab& S);
+
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    amrex::FabArray<amrex::BaseFab<int>> ebmask;
+    
+    std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> facecent;
   
     // Pressure gradients
     std::unique_ptr<amrex::MultiFab> gradp ;
@@ -552,6 +573,11 @@ protected:
     // static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
     // static constexpr int level_mask_notcovered = 2; // ghost cells not covered
     // static constexpr int level_mask_physbnd    = 3; // outside domain
+    
+    amrex::MultiFab m_xslopes;
+    amrex::MultiFab m_yslopes;
+    amrex::MultiFab m_zslopes;
+    
 #endif
 
     //
@@ -677,7 +703,6 @@ protected:
     static amrex::Real        visc_abs_tol;
     static amrex::Real        be_cn_theta;
     static int         variable_vel_visc;  // variable viscosity flag
-    static int         variable_scal_diff; // variable scalar diffusion flag
     //
     // Internal switches.
     //

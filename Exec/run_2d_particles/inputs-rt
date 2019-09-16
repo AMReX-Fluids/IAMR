@@ -1,3 +1,7 @@
+diffuse.use_mlmg_solver = 1
+mac.use_mlmg_solver = 1
+proj.use_mlmg_solver = 1
+
 # for regression testing
 
 #*******************************************************************************
@@ -85,7 +89,7 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 
 # Viscosity coefficient 
 ns.vel_visc_coef        = 0.001
-
+ns.variable_vel_visc = 1
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar

@@ -6,7 +6,10 @@
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 
-#include <PROB_NS_F.H> 
+#include <PROB_NS_F.H>
+
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -22,7 +25,7 @@ Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;    
 Real NavierStokesBase::fixed_dt           = -1.0;      
 bool NavierStokesBase::stop_when_steady   = false;
-Real NavierStokesBase::steady_tol 		  = 1.0e-10;
+Real NavierStokesBase::steady_tol         = 1.0e-10;
 int  NavierStokesBase::initial_iter       = false;  
 int  NavierStokesBase::initial_step       = false;  
 Real NavierStokesBase::dt_cutoff          = 0.0;     
@@ -45,8 +48,8 @@ Vector<Real> NavierStokesBase::visc_coef;
 Real        NavierStokesBase::visc_tol           = 1.0e-10;
 Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
-int         NavierStokesBase::variable_vel_visc  = 0;
-int         NavierStokesBase::variable_scal_diff = 0;
+int         NavierStokesBase::variable_vel_visc  = 1;
+//int         NavierStokesBase::variable_scal_diff = 0;
 
 int         NavierStokesBase::Tracer                    = -1;
 int         NavierStokesBase::Tracer2                   = -1;
@@ -101,6 +104,13 @@ int  NavierStokesBase::do_mom_diff            = 0;
 int  NavierStokesBase::predict_mom_together   = 0;
 bool NavierStokesBase::def_harm_avg_cen2edge  = false;
 
+#ifdef AMREX_USE_EB
+bool         NavierStokesBase::eb_initialized      = false;
+bool         NavierStokesBase::no_eb_in_domain     = true;
+bool         NavierStokesBase::body_state_set      = false;
+std::vector<Real> NavierStokesBase::body_state;
+#endif
+
 namespace
 {
     bool initialized = false;
@@ -151,6 +161,12 @@ NavierStokesBase::NavierStokesBase ()
     aofs         = 0;
     diffusion    = 0;
 
+#ifdef AMREX_USE_EB    
+    m_xslopes    = 0;
+    m_yslopes    = 0;
+    m_zslopes    = 0;
+#endif
+    
     if (!additional_state_types_initialized)
         init_additional_state_types();
 }
@@ -204,6 +220,19 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     // Build volume and areas.
     //
     buildMetrics();
+    
+    
+#ifdef AMREX_USE_EB
+
+    init_eb(level_geom, bl, dm);
+
+    //fixme? not 100% sure this is the right place
+    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
+    gradp->setVal(0.);
+
+    //FIXME --- this fn is really similar to restart()... work on that later   
+#endif
+
     //
     // Set up reflux registers.
     //
@@ -246,21 +275,11 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = 0;
-    viscnp1_cc = 0;
-    if (variable_vel_visc) 
-    {
-        viscn_cc   = new MultiFab(grids, dmap, 1, 1);
-        viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
-    }
-
-    diffn_cc   = 0;
-    diffnp1_cc = 0;
-    if (variable_scal_diff) 
-    {
-        diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-        diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-    }
+    viscn_cc   = new MultiFab(grids, dmap, 1, 1);
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
+  
+    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
     //
     // Set up the mac projector.
     //
@@ -287,17 +306,11 @@ NavierStokesBase::~NavierStokesBase ()
     // Remove the arrays for variable viscosity and diffusivity
     // and delete the Diffusion object
     //
-    if (variable_vel_visc)
-    {
-        delete viscn_cc;
-        delete viscnp1_cc;
-    }
+    delete viscn_cc;
+    delete viscnp1_cc;
 
-    if (variable_scal_diff)
-    {
-        delete diffn_cc;
-        delete diffnp1_cc;
-    }
+    delete diffn_cc;
+    delete diffnp1_cc;
 
     delete diffusion;
 }
@@ -347,7 +360,7 @@ NavierStokesBase::Initialize ()
 
     pp.query("v",verbose);
 
-
+    
     //
     // Get timestepping parameters.
     //
@@ -390,6 +403,8 @@ NavierStokesBase::Initialize ()
     
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
+    
+    pp.query("variable_vel_visc",variable_vel_visc);
  
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
@@ -397,9 +412,9 @@ NavierStokesBase::Initialize ()
     pp.query("getForceVerbose",          getForceVerbose  );
     pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
     if (do_scalar_update_in_order) {
-	const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
-	scalarUpdateOrder.resize(n_scalar_update_order_vals);
-	int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
+	    const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
+	    scalarUpdateOrder.resize(n_scalar_update_order_vals);
+	    int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
     }
 
     // Don't let init_shrink be greater than 1
@@ -423,7 +438,55 @@ NavierStokesBase::Initialize ()
         amrex::Abort("NavierStokesBase::Initialize()");
     }
     
-    
+    const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
+    const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
+    const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
+
+    if (n_vel_visc_coef != 1)
+        amrex::Abort("NavierStokesBase::Initialize(): Only one vel_visc_coef allowed");
+
+    if (do_temp && n_temp_cond_coef != 1)
+        amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
+
+    int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
+    if (do_temp)
+        n_visc++;
+    visc_coef.resize(n_visc);
+    is_diffusive.resize(n_visc);
+ 
+    pp.get("vel_visc_coef",visc_coef[0]);
+    for (int i = 1; i < BL_SPACEDIM; i++)
+      visc_coef[i] = visc_coef[0];
+    //
+    // Here we set the coefficient for density, which does not diffuse.
+    //
+    visc_coef[Density] = -1;
+    //
+    // Set the coefficients for the scalars, but temperature.
+    //
+    Vector<Real> scal_diff_coefs(n_scal_diff_coefs);
+    pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
+
+    int scalId = Density;
+
+    // Will need to add more lines when more variables are added
+    Tracer = Density+1;
+    if (do_trac2)
+	Tracer2 = Density+2;
+
+    for (int i = 0; i < n_scal_diff_coefs; i++)
+    {
+        visc_coef[++scalId] = scal_diff_coefs[i];
+    }
+    //
+    // Set the coefficient for temperature.
+    //
+    if (do_temp)
+    {
+	Temp = ++scalId;
+	pp.get("temp_cond_coef",visc_coef[Temp]);
+    }
+  
     pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     pp.query("be_cn_theta",be_cn_theta);
@@ -558,9 +621,6 @@ NavierStokesBase::Initialize_specific ()
     // NOTE: at this point, we dont know number of state variables
     //       so just read all values listed.
     //
-    pp.query("variable_vel_visc",variable_vel_visc);
-    pp.query("variable_scal_diff",variable_scal_diff);
-
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
     const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
@@ -703,7 +763,22 @@ NavierStokesBase::advance_setup (Real time,
     //
     BL_ASSERT(aofs == 0);
     // NOTE: nghost=0 for aofs appears to work. mfix also uses no ghost cells.  
-    aofs = new MultiFab(grids,dmap,NUM_STATE,0);
+    aofs = new MultiFab(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
+
+#ifdef AMREX_USE_EB    
+    //Slopes in x-direction
+    m_xslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_xslopes.setVal(0.);
+    // Slopes in y-direction
+    m_yslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_yslopes.setVal(0.);
+#if (AMREX_SPACEDIM > 2)
+    // Slopes in z-direction
+    m_zslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_zslopes.setVal(0.);
+#endif
+#endif 
+    
     //
     // Set rho_avg.
     //
@@ -773,19 +848,12 @@ NavierStokesBase::advance_setup (Real time,
     //         have something reasonable.
     //
     const Real prev_time = state[State_Type].prevTime();
+    calcViscosity(prev_time,dt,iteration,ncycle);
+	  MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
 
-    if (variable_vel_visc)
-    {
-        calcViscosity(prev_time,dt,iteration,ncycle);
-	MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
-    }
-
-    if (variable_scal_diff)
-    {
-        const int num_diff = NUM_STATE-BL_SPACEDIM-1;
-        calcDiffusivity(prev_time);
-	MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
-    }
+    const int num_diff = NUM_STATE-BL_SPACEDIM-1;
+    calcDiffusivity(prev_time);
+    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
 }
 
 //
@@ -847,6 +915,13 @@ NavierStokesBase::buildMetrics ()
         amrex::Abort("EB requires dx == dy (== dz)\n");
     }
 
+    vfrac.clear();
+    vfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    MultiFab::Copy(vfrac, ebfactory.getVolFrac(), 0, 0, 1, NUM_GROW);
+    areafrac = ebfactory.getAreaFrac();
+
+    
     //fixme? assume will need this part cribbed from CNS
     // level_mask.clear();
     // level_mask.define(grids,dmap,1,1);
@@ -1323,23 +1398,24 @@ Gp.FillBoundary(geom.periodicity());
 #pragma omp parallel if (!system::regtest_reduction) reduction(min:estdt) reduction(max:umax_x,umax_y,umax_z)
 #endif
 {
+    FArrayBox tforces;
     Real gr_max[BL_SPACEDIM];
 
     for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
-    
-        FArrayBox tforces;
-      
-	const Box& bx=Rho_mfi.tilebox();
+        const Box& bx=Rho_mfi.tilebox();
+
         //
         // Get the velocity forcing.  For some reason no viscous forcing.
         //
 
         const Real cur_time = state[State_Type].curTime();
-	if (getForceVerbose)
-	  amrex::Print() << "---" << '\n' 
-			 << "H - est Time Step:" << '\n' 
-			 << "Calling getForce..." << '\n';
+        
+        if (getForceVerbose)
+        amrex::Print() << "---" << '\n' 
+        << "H - est Time Step:" << '\n' 
+        << "Calling getForce..." << '\n';
+        
         getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
 
         tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
@@ -1644,7 +1720,7 @@ NavierStokesBase::getState (int  ngrow,
 
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),
                                 state[state_idx].DistributionMap(),
-                                ncomp,ngrow, MFInfo(), Factory());
+                                ncomp,ngrow,MFInfo(),Factory());
     FillPatch(*this,*mf,ngrow,time,state_idx,scomp,ncomp,0);
 
     return mf;
@@ -1690,15 +1766,16 @@ NavierStokesBase::initRhoAvg (Real alpha)
 {
     const MultiFab& S_new = get_new_data(State_Type);
 
-    // 3/03/18 - this setVal appears to be unnecessary, comment it out
-    // note: rho_avg has 1 ghost cell
-    //rho_avg.setVal(0);
+    // Set to a ridiculous number just for debugging -- shouldn't need this otherwise
+    rho_avg.setVal(1.e200);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter rho_avgmfi(rho_avg,true); rho_avgmfi.isValid(); ++rho_avgmfi)
     {
-    	const Box& bx = rho_avgmfi.growntilebox();
+//  	const Box& bx = rho_avgmfi.growntilebox();
+    	const Box& bx = rho_avgmfi.tilebox();
         FArrayBox& rhoavgfab = rho_avg[rho_avgmfi];
 	  
     	rhoavgfab.copy(S_new[rho_avgmfi],bx,Density,bx,0,1);
@@ -2880,21 +2957,11 @@ NavierStokesBase::restart (Amr&          papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = 0;
-    viscnp1_cc = 0;
-    if (variable_vel_visc)
-    {
-        viscn_cc   = new MultiFab(grids, dmap, 1, 1);
-        viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
-    }
+    viscn_cc   = new MultiFab(grids, dmap, 1, 1);
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
 
-    diffn_cc   = 0;
-    diffnp1_cc = 0;
-    if (variable_scal_diff)
-    {
-        diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-        diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-    }
+    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
 
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
@@ -3331,7 +3398,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 	  //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
 	  interpolater->interp(cdata,0,fdata,0,num_comp,fbx,ratio,
-			       cgeom,fgeom,bc_interp,src_comp,State_Type, RunOn::Cpu);
+			       cgeom,fgeom,bc_interp,src_comp,State_Type,RunOn::Cpu);
 	  //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
 	  if (increment)
@@ -3344,7 +3411,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 		  FArrayBox& fine_state = (*fine_stateMF)[mfi];
 		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
 					num_comp,fbx,ratio,
-					cgeom,fgeom,bc_interp, RunOn::Cpu);
+					cgeom,fgeom,bc_interp,RunOn::Cpu);
 		  Real dt_clev_inv = 1./dt_clev;
 		  cdata.mult(dt_clev_inv,cbx);
 	      }
@@ -3423,7 +3490,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type, RunOn::Cpu);
+                                        0,Press_Type,RunOn::Cpu);
             fine_phi.mult(cur_mult_factor);
             P_new[mfi].plus(fine_phi,fbx,0,0);
             fine_phi.mult(prev_mult_factor);
@@ -3447,7 +3514,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             fine_phi.setVal(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type, RunOn::Cpu);
+                                        0,Press_Type,RunOn::Cpu);
             P_new[mfi].plus(fine_phi,fbx,0,0);
             P_old[mfi].plus(fine_phi,fbx,0,0);
         }
@@ -3502,7 +3569,7 @@ NavierStokesBase::velocity_advection (Real dt)
     //fixme?  I think one gp is fine, just update as we go, but
     // maybe revisit this later
     //const MultiFab& Gp = getGradP();
-MultiFab& Gp = *gradp;
+     MultiFab& Gp = *gradp;
      Gp.FillBoundary(geom.periodicity());
 
     //fixme
@@ -3580,6 +3647,7 @@ MultiFab& Gp = *gradp;
       FArrayBox tforces;
       FArrayBox S;
       FArrayBox cfluxes[BL_SPACEDIM];
+      FArrayBox edgstate[BL_SPACEDIM];
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
 
@@ -3593,15 +3661,29 @@ MultiFab& Gp = *gradp;
 	    }
       getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
+
+//      Print() << "tforces from getForce of velocity_advection: " << tforces << std::endl;	// OK
+
+//      VisMF::Write(visc_terms,"viscterms_velocityadvection");	// OK 
+//      VisMF::Write(Gp,"Gp_velocityadvection");			// NO!!!!!!!!!!!!!!!!!!1
+//      VisMF::Write(rho_ptime,"rhoptime_velocityadvection");	// OK
+
       godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+
+//      Print() << "tforces from velocity_advection: " << tforces << std::endl;	// NO
       
       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
 	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
 	     bndry[2] = fetchBCArray(State_Type,bx,2,1);)
          
       for (int d=0; d<BL_SPACEDIM; ++d){
-          const Box& ebx = amrex::surroundingNodes(bx,d);
-          cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+#ifdef AMREX_USE_EB        
+        const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
+#else
+        const Box& ebx = amrex::surroundingNodes(bx,d);
+#endif
+        cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+        edgstate[d].resize(ebx,BL_SPACEDIM+1);
       }
         
         //
@@ -3627,15 +3709,16 @@ MultiFab& Gp = *gradp;
 	// aofs = ugradu
 	// incflo advection scheme doesn't include terms like gradp here
 	godunov->AdvectVel(U_mfi, Umf, *aofs,
-			   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+			   D_DECL(u_mac[0][U_mfi],u_mac[1][U_mfi],u_mac[2][U_mfi]),
+         D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+         D_DECL(edgstate[0],edgstate[1],edgstate[2]),
 			   D_DECL(bndry[0], bndry[1], bndry[2]),
+         D_DECL(m_xslopes, m_yslopes, m_zslopes),
+         *volfrac, *bndrycent,
+         D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+         D_DECL(*facecent[0], *facecent[1], *facecent[2]),
 			   geom.Domain(),
 			   geom.CellSize(),Godunov::hypgrow());	
-
-
- // FIXME
- // Print()<<"Wrting aofs ..\n";
- // VisMF::Write(*aofs,"aofs");
 
 	if (do_reflux){
 	     //FIXME make AdvectVel pass fluxes first
@@ -3681,7 +3764,7 @@ MultiFab& Gp = *gradp;
  } // end OMP region
 
  } //end scope of FillPatchIter
-    
+
     if (do_reflux)
     {
         if (level > 0 )
@@ -3759,7 +3842,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
 #ifdef AMREX_USE_EB
     MultiFab& Gp=*gradp;
-Gp.FillBoundary(geom.periodicity());
+    Gp.FillBoundary(geom.periodicity());
     if (do_mom_diff == 1)
       amrex::Abort("NavierStokesBase::velocity_advection_update(): do_mom_diff==1 not currently working with EB.");
     // Changing Gp to a point causes memory problems for non-EB (and maybe EB too)...
@@ -3834,9 +3917,9 @@ Gp.FillBoundary(geom.periodicity());
         FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
         Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
         Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
-        Scal.mult(0.5,bx);
+        Scal.mult(0.5,bx,0,NUM_SCALARS);
 	
-	if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
+        if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
 
@@ -3878,6 +3961,13 @@ Gp.FillBoundary(geom.periodicity());
        }
        if (U_new.contains_nan(sigma,1,0))
        {
+         for(MFIter mfi(U_new); mfi.isValid(); ++mfi){
+             if(U_new[mfi].contains_nan(mfi.validbox(),sigma,1)){
+		            FArrayBox tmp(mfi.validbox(),1);
+                tmp.copy(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
+				
+		}            
+         }
 	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
        }
     }

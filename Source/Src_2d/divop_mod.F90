@@ -126,10 +126,6 @@ contains
       ! Check number of ghost cells
       if (ng < 5) call amrex_abort( "compute_divop(): ng must be >= 5")
 
-      !check number of components
-      if ( .NOT.(nc.eq.1 .OR. nc.eq.SDIM) ) &
-           call amrex_abort("compute_divop(): must have either nc==1 (for scalar) or nc==3 (for velocity).")
-
       ! Check if we are computing divergence for viscous term
       if ( present(eta) ) then
          is_viscous = .true.
@@ -192,7 +188,7 @@ contains
 
                  if (is_covered_cell(flags(i,j))) then
 
-                    divc(i,j) = my_huge
+                    divc(i,j) = 0.0d0 !my_huge
 
                  else if (is_single_valued_cell(flags(i,j))) then
 
@@ -214,6 +210,8 @@ contains
 
                     divc(i,j) = ( ( fxp - fxm ) * idx + &
                          &        ( fyp - fym ) * idy ) / vfrac(i,j)
+  !write(*,*) 'DEBUG in DIVOP ',i,j,  divc(i,j),fxp,fxm,fyp , fym
+      
 
                     ! Add viscous wall fluxes (compute three components only
                     ! during the first pass, i.e. for n=1
@@ -237,7 +235,9 @@ contains
                  else
 
                     divc(i,j) = (   fx(i+1,j  ,n) - fx(i,j,n) ) * idx  &
-                         &      + ( fy(i  ,j+1,n) - fy(i,j,n) ) * idy 
+                         &      + ( fy(i  ,j+1,n) - fy(i,j,n) ) * idy
+                         
+   !write(*,*) 'DEBUG in DIVOP ',i,j,  divc(i,j),fx(i+1,j  ,n) , fx(i,j,n),fy(i  ,j+1,n) , fy(i,j,n)
 
                  end if
 
@@ -273,10 +273,12 @@ contains
                     end do
                     divnc = divnc / vtot
                     optmp(i,j) = (one - vfrac(i,j)) * ( divnc - divc(i,j) )
+                    !write(*,*) 'DEBUG in DIVOP ',i,j,vfrac(i,j) , divnc, divc(i,j)
                     delm(i,j) = - vfrac(i,j) * optmp(i,j)
                  else
                     delm(i,j) = zero
                  end if
+                 
               end do
            end do
 
@@ -328,6 +330,7 @@ contains
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                div(i,j,n) = divc(i,j) + optmp(i,j)
+               !write(*,*) 'DEBUG in DIVOP ',i,j,divc(i,j),optmp(i,j)
             end do
          end do
 

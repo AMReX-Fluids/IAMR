@@ -24,7 +24,6 @@ contains
         slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, &
         ubc, &
-        !bc_ilo, bc_ihi, ng, &
         domlo, domhi ) bind(C)
 
       use convection_mod 
@@ -42,9 +41,6 @@ contains
 
       ! Domain bounds
       integer(c_int),  intent(in   ) :: domlo(SDIM), domhi(SDIM)
-
-      ! Nghost
-!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
@@ -69,7 +65,7 @@ contains
       integer(c_int)                 :: i, j
       integer, parameter             :: bc_list(6) = [MINF_, NSW_, FSW_, PSW_, PINF_, POUT_]
       real(ar)                       :: upls, umns
-
+      
       ! First we compute the face centered MAC velocity
       ! We need 1 layer of ghosts cells in y and z for interpolation (see next step)
       do j = lo(2)-1, hi(2)+1
@@ -102,7 +98,6 @@ contains
    subroutine compute_velocity_at_y_faces_eb ( lo, hi, v, vlo, vhi,  &
         vel, vello, velhi, slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, vbc, &
-        !bc_jlo, bc_jhi, ng, &
         domlo, domhi ) bind(C)
 
       use convection_mod 
@@ -120,9 +115,6 @@ contains
 
       ! Domain bounds
       integer(c_int),  intent(in   ) :: domlo(SDIM), domhi(SDIM)
-
-      ! Nghost
-!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
@@ -184,20 +176,22 @@ contains
                                  aofs, glo, ghi, &
                                  vel, vello, velhi, &
                                  u, ulo, uhi, &
+                                 xflx, xflxlo, xflxhi, &
+                                 xstate, xstatelo, xstatehi, &
                                  afrac_x, axlo, axhi, &
                                  cent_x,  cxlo, cxhi, &
-                                 xslopes, slo, shi, &                        
+                                 xslopes, sxlo, sxhi, &                        
                                  v, vlo, vhi, &
+                                 yflx, yflxlo, yflxhi, &
+                                 ystate, ystatelo, ystatehi, &
                                  afrac_y, aylo, ayhi, &
                                  cent_y,  cylo, cyhi, &
-                                 yslopes, &
+                                 yslopes, sylo, syhi, &
                                  flags,    flo,  fhi, &
                                  vfrac,   vflo, vfhi, &
                                  bcent,    blo,  bhi, &
                                  domlo, domhi, &
-                                 !bc_ilo, bc_ihi, &
-                                 !bc_jlo, bc_jhi, &
-                                 dx, nc, ng ) bind(C)
+                                 dx, nc, ng, known_edgestate ) bind(C)
 
       use divop_mod, only: compute_divop
 
@@ -205,11 +199,16 @@ contains
       integer(c_int),  intent(in   ) :: lo(SDIM),  hi(SDIM)
 
       ! Array Bounds
-      integer(c_int),  intent(in   ) :: slo(SDIM), shi(SDIM)
+      integer(c_int),  intent(in   ) :: sxlo(SDIM), sxhi(SDIM)
+      integer(c_int),  intent(in   ) :: sylo(SDIM), syhi(SDIM)
       integer(c_int),  intent(in   ) :: glo(SDIM), ghi(SDIM)
       integer(c_int),  intent(in   ) :: vello(SDIM), velhi(SDIM)
       integer(c_int),  intent(in   ) :: ulo(SDIM), uhi(SDIM)
       integer(c_int),  intent(in   ) :: vlo(SDIM), vhi(SDIM)
+      integer(c_int),  intent(in   ) :: xflxlo(SDIM), xflxhi(SDIM)
+      integer(c_int),  intent(in   ) :: yflxlo(SDIM), yflxhi(SDIM)
+      integer(c_int),  intent(in   ) :: xstatelo(SDIM), xstatehi(SDIM)
+      integer(c_int),  intent(in   ) :: ystatelo(SDIM), ystatehi(SDIM)
       integer(c_int),  intent(in   ) :: axlo(SDIM), axhi(SDIM)
       integer(c_int),  intent(in   ) :: aylo(SDIM), ayhi(SDIM)
       integer(c_int),  intent(in   ) :: cxlo(SDIM), cxhi(SDIM)
@@ -217,7 +216,8 @@ contains
       integer(c_int),  intent(in   ) ::  flo(SDIM),  fhi(SDIM)
       integer(c_int),  intent(in   ) :: vflo(SDIM), vfhi(SDIM)
       integer(c_int),  intent(in   ) ::  blo(SDIM),  bhi(SDIM)
-      integer(c_int),  intent(in   ) :: domlo(SDIM), domhi(SDIM), nc, ng
+      integer(c_int),  intent(in   ) :: domlo(SDIM), domhi(SDIM)
+      integer(c_int),  intent(in   ) :: nc, ng, known_edgestate
 
       ! Grid
       real(ar),        intent(in   ) :: dx(SDIM)
@@ -225,8 +225,8 @@ contains
       ! Arrays
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),nc)    , &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),nc), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),nc), &
+           & xslopes(sxlo(1):sxhi(1),sxlo(2):sxhi(2),nc), &
+           & yslopes(sylo(1):syhi(1),sylo(2):syhi(2),nc), &
            & u(ulo(1):uhi(1),ulo(2):uhi(2)), &
            & v(vlo(1):vhi(1),vlo(2):vhi(2)), &
            & afrac_x(axlo(1):axhi(1),axlo(2):axhi(2)),       &
@@ -237,8 +237,14 @@ contains
            & bcent(blo(1):bhi(1),blo(2):bhi(2),SDIM)
 
       real(ar),        intent(  out) ::                           &
-           & aofs(glo(1):ghi(1),glo(2):ghi(2),nc)
+           & aofs(glo(1):ghi(1),glo(2):ghi(2),nc), &
+           & xflx(xflxlo(1):xflxhi(1),xflxlo(2):xflxhi(2),nc), &
+           & yflx(yflxlo(1):yflxhi(1),yflxlo(2):yflxhi(2),nc)
 
+      real(ar),        intent(inout) ::                           &
+           & xstate(xstatelo(1):xstatehi(1),xstatelo(2):xstatehi(2),nc), &
+           & ystate(ystatelo(1):ystatehi(1),ystatelo(2):ystatehi(2),nc)
+      
       integer(c_int), intent(in   ) ::  &
            & flags(flo(1):fhi(1),flo(2):fhi(2))
       
@@ -254,8 +260,8 @@ contains
       ! Temporary array to handle convective fluxes at the cell faces (staggered)
       ! Just reserve space for the tile + 3 ghost layers
       integer, parameter :: nh = 3 ! Number of Halo layers
-      real(ar) :: fx(lo(1)-nh:hi(1)+nh+1,lo(2)-nh:hi(2)+nh    ,SDIM)
-      real(ar) :: fy(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh+1  ,SDIM)
+      real(ar) :: fx(lo(1)-nh:hi(1)+nh+1,lo(2)-nh:hi(2)+nh    ,nc)
+      real(ar) :: fy(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh+1  ,nc)
 
       ! Check number of ghost cells
       if (ng < 5) call amrex_abort( "compute_divop(): ng must be >= 5")
@@ -277,6 +283,9 @@ contains
       bc_jlo = -1 
       bc_jhi = -1 
 
+      
+!      write(*,*) 'DEBUG IN  conv_eb ',lbound(xslopes),ubound(xslopes)
+!      write(*,*) 'DEBUG conv eb',lo,hi,nh,nc
       do n = 1, nc
 
          !
@@ -285,6 +294,13 @@ contains
 
          do j = lo(2)-nh, hi(2)+nh
             do i = lo(1)-nh, hi(1)+nh+1
+            
+  !  write(*,*) 'DEBUG conv eb ',i,j,n,xslopes(i  ,j,n)
+
+            
+            !write(*,*) 'DEBUG conv eb ',i,j,n,vel(i  ,j,n)
+            if (known_edgestate == 0) then
+            
                if ( afrac_x(i,j) > zero ) then
                   if ( i <= domlo(1) .and. any(bc_ilo(j,1) == bc_list) ) then
                      u_face =  vel(domlo(1)-1,j,n)
@@ -293,13 +309,22 @@ contains
                   else
                      upls  = vel(i  ,j,n) - half * xslopes(i  ,j,n)
                      umns  = vel(i-1,j,n) + half * xslopes(i-1,j,n)
-
+                     
                      u_face = upwind( umns, upls, u(i,j) )
                   end if
                else
                   u_face = my_huge
+                  !write(*,*) 'DEBUG conv eb ',i,j,n,u_face,afrac_x(i,j)
                end if
-               fx(i,j,n) = u(i,j) * u_face
+               
+               xstate(i,j,n)   = u_face
+            
+            end if
+            !write(*,*) 'DEBUG conv eb ',i,j,n,u(i,j) , xstate(i,j,n)
+               fx(i,j,n) = u(i,j) * xstate(i,j,n)
+               xflx(i,j,n)     = fx(i,j,n) * dx(1)
+
+
             end do
          end do
 
@@ -308,6 +333,9 @@ contains
          !
          do j = lo(2)-nh, hi(2)+nh+1
             do i = lo(1)-nh, hi(1)+nh
+            
+            if (known_edgestate == 0) then
+            
                if ( afrac_y(i,j) > zero ) then
                   if ( j <= domlo(2) .and. any(bc_jlo(i,1) == bc_list) ) then
                      v_face =  vel(i,domlo(2)-1,n)
@@ -322,7 +350,14 @@ contains
                else
                   v_face = my_huge
                end if
-               fy(i,j,n) = v(i,j) * v_face
+            
+               ystate(i,j,n)   = v_face
+            
+             end if   
+            
+               fy(i,j,n) = v(i,j) * ystate(i,j,n)
+               yflx(i,j,n)     = fy(i,j,n)  * dx(2)
+
             end do
          end do
          
@@ -357,20 +392,6 @@ contains
                             dx, ng, nc )
       end block divop
 
-      ! Return the negative
-      ! block
-      !    integer :: i,j,k,n
-
-      !    do n = 1, 3
-      !       do k = lo(3), hi(3)
-      !          do j = lo(2), hi(2)
-      !             do i = lo(1), hi(1)
-      !                aofs(i,j,k,n) = - aofs(i,j,k,n)
-      !             end do
-      !          end do
-      !       end do
-      !    end do
-      ! end block
 
    end subroutine compute_aofs_eb
 

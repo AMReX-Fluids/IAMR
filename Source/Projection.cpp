@@ -53,7 +53,7 @@ namespace
 
     bool benchmarking = false;
 
-    bool rz_correction = true;
+    bool rz_correction = false;
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
@@ -2459,7 +2459,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
-mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+//mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction) {
@@ -2497,11 +2497,11 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 
 // EM_DEBUG
     //std::cout << "PLOTTING VEL MF" << std::endl;
-    // VisMF::Write(*vel_rebase[0],"vel_rebase_in");
+     //VisMF::Write(*vel_rebase[0],"vel_rebase_in");
     // VisMF::Write(*vel[0],"vel_in");
-    // //VisMF::Write(*rhnd_rebase[0],"rhcc");
+     //VisMF::Write(*rhnd_rebase[0],"rhcc");
     // if (rhcc_rebase[0])
-    //   VisMF::Write(*rhcc_rebase[0],"rhcc_in");
+       //VisMF::Write(*rhcc_rebase[0],"rhcc_in");
     // else
     //   Print()<<"No rhcc\n";
     
@@ -2524,7 +2524,7 @@ mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
     mlmg.setVerbose(P_code);
     if (max_mlmg_iter > 0)
       mlmg.setMaxIter(max_mlmg_iter);
-
+std::cout << "DEBUG TOLERANCE ERROR " << rel_tol << " " << abs_tol << std::endl;
     Real mlmg_err = mlmg.solve(phi_rebase, amrex::GetVecOfConstPtrs(rhs),
 			       rel_tol, abs_tol);
 

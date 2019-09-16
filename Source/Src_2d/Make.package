@@ -17,7 +17,7 @@ F90EXE_sources += GODUNOV_$(DIM)D.F90 \
                 NAVIERSTOKES_$(DIM)D.F90 PROJECTION_$(DIM)D.F90 \
                 DIFFUSION_$(DIM)D.F90 SLABSTAT_NS_$(DIM)D.F90 \
 		IAMR_MLMG_$(DIM)d.F90 MACPROJ_$(DIM)D.F90 \
-                ARRAYLIM_$(DIM)D.F90
+                ARRAYLIM_$(DIM)D.F90 NavierStokesBase_$(DIM)D.F90
 
 ifndef ATMOS_MACOP
   F90EXE_sources += MACOPERATOR_$(DIM)D.F90
@@ -26,5 +26,8 @@ endif
 # for EB
 ifeq ($(USE_EB),TRUE)
 F90EXE_sources += convection_mod_2d.F90 convection_eb_mod_2d.F90 \
-	       slopes_mod_2d.F90 divop_mod.F90 
+	       slopes_mod_2d.F90 divop_mod.F90
+
+F90EXE_sources += AMReX_EBMultiFabUtil_2d.F90
+
 endif

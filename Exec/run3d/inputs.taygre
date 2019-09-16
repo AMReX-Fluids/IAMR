@@ -74,8 +74,9 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 0.0
+#ns.vel_visc_coef        = 0.0
 ns.vel_visc_coef        = 1.e-4
+ns.variable_vel_visc = 1
 
 #*******************************************************************************
 
@@ -95,10 +96,10 @@ geometry.coord_sys   =  0
 #*******************************************************************************
 
 # Physical dimensions of the low end of the domain.
-geometry.prob_lo     =  0. 0. 0.
+geometry.prob_lo     =  0.0 0.0 0.0
 
 # Physical dimensions of the high end of the domain.
-geometry.prob_hi     =  6.28318530718 6.28318530718 6.28318530718
+geometry.prob_hi     =  1.0 1.0 1.0
 
 #*******************************************************************************
 
@@ -134,5 +135,3 @@ proj.sync_tol = 1.e-8
 
 mg.v = 1
 
-mac.use_mlmg_solver = 1
-diffuse.use_mlmg_solver = 1

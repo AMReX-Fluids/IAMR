@@ -91,7 +91,22 @@ contains
     call amrex_allocate(uad,uwlo(1),uwhi(1),uwlo(2),uwhi(2))
     call amrex_allocate(vad,vwlo(1),vwhi(1),vwlo(2),vwhi(2))
 
-    if (ppm_type .gt. 0) then
+    ! Note: Intel unhappy to pass pointers through subroutines if not allocated
+    !     We just allocate something small (and still promise not to use it)
+    if (ppm_type .eq. 0) then
+       eblo = lo
+       ebhi = lo
+       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2))       
+    else
+    !if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
           eblo = lo - 2
           ebhi = hi + 2
@@ -215,7 +230,7 @@ contains
     call amrex_deallocate(sy)
     call amrex_deallocate(uad)
     call amrex_deallocate(vad)
-    if (ppm_type .gt. 0) then
+    !if (ppm_type .gt. 0) then
        call amrex_deallocate(Imx)
        call amrex_deallocate(Ipx)
        call amrex_deallocate(Imy)
@@ -225,7 +240,7 @@ contains
        call amrex_deallocate(sedgex)
        call amrex_deallocate(sedgey)
        call amrex_deallocate(dsvl)
-    endif
+    !endif
 
   end subroutine extrap_vel_to_faces
 
@@ -279,7 +294,22 @@ contains
     call amrex_allocate(yhi,wklo(1),wkhi(1),wklo(2),wkhi(2))
     call amrex_allocate(sy,wklo(1),wkhi(1),wklo(2),wkhi(2))
 
-    if (ppm_type .gt. 0) then
+    ! Note: Intel unhappy to pass pointers through subroutines if not allocated
+    !     We just allocate something small (and still promise not to use it)
+    if (ppm_type .eq. 0) then
+       eblo = lo
+       ebhi = lo
+       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2))
+       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2))       
+    else
+       !if (ppm_type .gt. 0) then
        if (ppm_type .eq. 2) then
           eblo = lo - 2
           ebhi = hi + 2
@@ -336,7 +366,7 @@ contains
     call amrex_deallocate(ylo)
     call amrex_deallocate(yhi)
     call amrex_deallocate(sy)
-    if (ppm_type .gt. 0) then
+    !if (ppm_type .gt. 0) then
        call amrex_deallocate(Imx)
        call amrex_deallocate(Ipx)
        call amrex_deallocate(Imy)
@@ -346,7 +376,7 @@ contains
        call amrex_deallocate(sedgex)
        call amrex_deallocate(sedgey)
        call amrex_deallocate(dsvl)
-    endif
+    !endif
 
   end subroutine extrap_state_to_faces
 
@@ -416,8 +446,6 @@ contains
       if (tforce2 .gt. small) then
         dt  = min(dt,sqrt(two*dx(2)/tforce2))
       end if
-
-      if (dt .eq. dt_start) dt = min(dx(1),dx(2))
 
       dt = dt*cfl
 
@@ -3220,7 +3248,7 @@ contains
                    - divuy*half*(yflux(i,j+1) + yflux(i,j))
 
 ! EM_DEBUG    
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!if ((i < 4) .and. (j==0)) then
 !write(*,*)  'in adv_forcing ', i,j,divux,divuy,aofs(i,j),xflux(i,j),yflux(i,j)
 !endif
 
@@ -3233,11 +3261,18 @@ contains
       do j = jmin,jmax
          do i = imin,imax+1
             xflux(i,j) = xflux(i,j)*uedge(i,j)*areax(i,j)
+!if ((i < 4) .and. (j == 0)) then
+!write(*,*)  'in adv_forcing xflux', i,j,xflux(i,j)
+!endif
          end do
       end do
       do j = jmin,jmax+1
          do i = imin,imax
+!if ((i < 4) .and. (j == 0)) then
+!write(*,*)  'in adv_forcing yflux', i,j,yflux(i,j),vedge(i,j),areay(i,j)
+!endif
             yflux(i,j) = yflux(i,j)*vedge(i,j)*areay(i,j)
+
          end do
       end do
 !c     
@@ -3259,7 +3294,7 @@ contains
                    yflux(i,j+1) - yflux(i,j))/vol(i,j)
 
 ! EM_DEBUG    
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
+!if ((i < 4) .and. (j == 0)) then
 !write(*,*)  'in adv_forcing ', i,j,xflux(i,j),yflux(i,j),aofs(i,j)
 !endif
             end do
