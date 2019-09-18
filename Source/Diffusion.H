@@ -149,6 +149,14 @@ public:
                         int                           betaComp = 0,
                         bool                          update_fluxreg = true);
 
+  /* may want to bring this or something like it back later
+      void diffuse_Vsync_constant_mu (amrex::MultiFab&       Vsync,
+                                    amrex::Real            dt,
+                                    amrex::Real            be_cn_theta,
+                                    const amrex::MultiFab& rho_half,
+                                    int             rho_flag,
+				    bool            update_fluxreg);
+  */
 
     void diffuse_tensor_Vsync (amrex::MultiFab&              Vsync,
                                amrex::Real                   dt,
