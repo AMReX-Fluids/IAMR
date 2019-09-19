@@ -25,9 +25,9 @@ module derive_3d_module
             derjetpresvars, derjetvars, &
 #endif
             dermodgradrho, derudotlapu, derkeng, derlogs, dermvel, &
-            derdvrho, dermprho, derlgrhodust, derdmag, dermgvort, &
+            derlgrhodust, derdmag, dermgvort, &
             dervortx, dervorty, dervortz, dermgdivu, gradp_dir, &
-            dergrdpx, dergrdpy, dergrdpz, deravgpres, dergrdp, &
+            dergrdpx, dergrdpy, dergrdpz, dergrdp, &
             derradvel, derazivel, derxvelrot, deryvelrot, dermagvelrot, &
             dermagvortrot, &
 #if defined(DO_IAMR_FORCE) 
@@ -1621,68 +1621,6 @@ contains
       end do
 
       end subroutine dermvel
-
-      subroutine derdvrho (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
-                           lo,hi,domlo,domhi,delta,xlo,time,dt, &
-                           bc,level, grid_no) bind(C, name="derdvrho")
-      implicit none
-!c
-!c ::: This routine will derive C/RHO
-!c
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(e)
-      integer    DIMDEC(dat)
-      integer    domlo(SDIM), domhi(SDIM)
-      integer    nv, ncomp
-      integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM)
-      REAL_T     time, dt
-      REAL_T     e(DIMV(e),nv)
-      REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
-
-      integer    i,j,k
-      
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               e(i,j,k,1) = dat(i,j,k,2)/dat(i,j,k,1)
-            end do
-         end do
-      end do
-
-      end subroutine derdvrho
-
-      subroutine dermprho (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
-                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
-                               bc,level, grid_no) bind(C, name="dermprho")
-      implicit none
-!c
-!c ::: This routine will derive RHO*C
-!c
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(e)
-      integer    DIMDEC(dat)
-      integer    domlo(SDIM), domhi(SDIM)
-      integer    nv, ncomp
-      integer    bc(SDIM,2,ncomp)
-      REAL_T     delta(SDIM), xlo(SDIM)
-      REAL_T     time, dt
-      REAL_T     e(DIMV(e),nv)
-      REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
-
-      integer    i,j,k
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               e(i,j,k,1) = dat(i,j,k,2)*dat(i,j,k,1)
-            end do
-         end do
-      end do
-
-      end subroutine dermprho
 
       subroutine derlgrhodust (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
                                    lo,hi,domlo,domhi,delta,xlo,time,dt, &
@@ -4807,45 +4745,6 @@ contains
           lo,hi,2,delta(3))
 
       end subroutine dergrdpz
-
-
-      subroutine deravgpres (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp, &
-                                 lo,hi,domlo,domhi,delta,xlo,time,dt, &
-                                 bc,level,grid_no) bind(C, name="deravgpres")
-      implicit none
-!c
-!c     This routine computes cell-centered pressure as average of the eight
-!c       surrounding nodal values.
-!c
-      integer DIMDEC(gp)
-      integer DIMDEC(dat)
-      REAL_T  avgpres(DIMV(gp))
-      REAL_T  dat(DIMV(dat))
-      integer nv, ncomp
-      integer lo(SDIM), hi(SDIM)
-      integer domlo(SDIM), domhi(SDIM)
-      REAL_T  delta(SDIM)
-      REAL_T  xlo(SDIM)
-      REAL_T  time, dt
-      integer bc(SDIM,2,ncomp)
-      integer level
-      integer grid_no
-
-      integer i,j,k
-
-      do k = lo(3), hi(3)
-        do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-            avgpres(i,j,k) = eighth*( &
-                          dat(i+1,j,k)     + dat(i,j,k)  &
-                        + dat(i+1,j+1,k)   + dat(i,j+1,k) &
-                        + dat(i+1,j,k+1)   + dat(i,j,k+1)  &
-                        + dat(i+1,j+1,k+1) + dat(i,j+1,k+1) )
-          end do
-        end do
-      end do
-
-      end subroutine deravgpres
 
 !c=========================================================
 

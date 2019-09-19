@@ -27,8 +27,8 @@ module derive_2d_module
   private
 
   public dermodgradrho, derkeng,derlogs, dermvel, &
-       derdvrho, dermprho, derlgrhodust,dermgvort, &
-       dermgvort2,dermgdivu, deravgpres, &
+       derlgrhodust,dermgvort, &
+       dermgvort2,dermgdivu, &
        dergrdpx,dergrdpy, dergrdp, dernull
 
 contains
@@ -184,62 +184,6 @@ contains
       end do
 
     end subroutine dermvel
-
-      subroutine derdvrho (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
-                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no)bind(C,name="derdvrho")
-      implicit none
-!c
-!c ::: This routine will derive C/RHO
-!c
-      integer    lo(2), hi(2)
-      integer    DIMDEC(e)
-      integer    DIMDEC(dat)
-      integer    domlo(2), domhi(2)
-      integer    nv, ncomp
-      integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time, dt
-      REAL_T     e(DIMV(e),nv)
-      REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
-
-      integer    i,j
-
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-	    e(i,j,1) = dat(i,j,2)/dat(i,j,1)
-	 end do
-      end do
-
-    end subroutine derdvrho
-
-      subroutine dermprho (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
-                              lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                              bc,level,grid_no) bind(C,name="dermprho")
-      implicit none
-!c
-!c ::: This routine will derive RHO*C
-!c
-      integer    lo(2), hi(2)
-      integer    DIMDEC(e)
-      integer    DIMDEC(dat)
-      integer    domlo(2), domhi(2)
-      integer    nv, ncomp
-      integer    bc(2,2,ncomp)
-      REAL_T     delta(2), xlo(2), time, dt
-      REAL_T     e(DIMV(e),nv)
-      REAL_T     dat(DIMV(dat),ncomp)
-      integer    level, grid_no
-
-      integer    i,j
-
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-	    e(i,j,1) = dat(i,j,2)*dat(i,j,1)
-	 end do
-      end do
-
-    end subroutine dermprho
 
       subroutine derlgrhodust (e,DIMS(e),nv,dat,DIMS(dat),ncomp,&
                                    lo,hi,domlo,domhi,delta,xlo,time,dt,&
@@ -698,39 +642,6 @@ contains
       end if
 
     end subroutine gradp_dir
-
-      subroutine deravgpres (avgpres,DIMS(gp),nv,dat,DIMS(dat),ncomp,&
-                                 lo,hi,domlo,domhi,delta,xlo,time,dt,&
-                                 bc,level,grid_no) bind(C,name="deravgpres")
-      implicit none
-!c
-!c     This routine computes cell-centered pressure as average of the four
-!c       surrounding nodal values.
-!c
-      integer DIMDEC(gp)
-      integer DIMDEC(dat)
-      REAL_T  avgpres(DIMV(gp))
-      REAL_T  dat(DIMV(dat))
-      integer nv, ncomp
-      integer lo(2), hi(2)
-      integer domlo(2), domhi(2)
-      REAL_T  delta(2)
-      REAL_T  xlo(2)
-      REAL_T  time, dt
-      integer bc(2,2,ncomp)
-      integer level
-      integer grid_no
-
-      integer i,j
-
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            avgpres(i,j) = fourth*( dat(i+1,j  )+dat(i,j  ) +&
-                                   dat(i+1,j+1)+dat(i,j+1) )
-         end do
-      end do
-
-    end subroutine deravgpres
 
 !c=========================================================
 
