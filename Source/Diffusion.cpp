@@ -13,7 +13,6 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <fstream>
 //
-#include <AMReX_MLTensorOp.H>
 
 #include <DIFFUSION_F.H>
 
@@ -28,10 +27,12 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_MLEBABecLap.H>
+#include <AMReX_MLEBTensorOp.H>
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFabFactory.H>
 #else
 #include <AMReX_MLABecLaplacian.H>
+#include <AMReX_MLTensorOp.H>
 #endif
 
 using namespace amrex;
@@ -1139,8 +1140,13 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	info.setConsolidation(consolidation);
 	info.setMaxCoarseningLevel(0);
 	info.setMetricTerm(false);
-	
+
+#ifdef AMREX_USE_EB
+	const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+	MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+#else
 	MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
+#endif
 	
 	tensorop.setMaxOrder(tensor_max_order);
 	
@@ -1232,6 +1238,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
 	if (do_reflux && (level<finest_level || level>0))
 	{
+	  //not updated for EB yet
+#ifdef AMREX_USE_EB
+	  amrex::Abort("Multilevel EB velocity diffusion still under development");
+#endif
+	  
 	  tensorflux_old = fb_old.define(navier_stokes, AMREX_SPACEDIM);
 	  //fixme --- after debugging go back to fluxbox fb_old
 	  //tensorflux_old = new MultiFab*[BL_SPACEDIM];
@@ -1468,7 +1479,12 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       info.setMetricTerm(false);
       info.setMaxCoarseningLevel(100);
 
+#ifdef AMREX_USE_EB
+      const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+      MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+#else
       MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
+#endif
       
       tensorop.setMaxOrder(tensor_max_order);
 
@@ -1579,7 +1595,10 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       // Modify diffusive fluxes here.
       //
       if (do_reflux && (level < finest_level || level > 0))
-      {	
+      {
+#ifdef AMREX_USE_EB
+	amrex::Abort("Multilevel EB velocity diffusion still under development");
+#endif
 	//Print()<<"Doing reflux ...\n";
 	  
 	FluxBoxes fb(navier_stokes, BL_SPACEDIM);
@@ -2093,7 +2112,12 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
       info.setMetricTerm(false);
       //info.setMaxCoarseningLevel(100);
 
+#ifdef AMREX_USE_EB
+      const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+      MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+#else
       MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
+#endif
       
       tensorop.setMaxOrder(tensor_max_order);
 
@@ -2334,7 +2358,12 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     info.setConsolidation(consolidation);
     info.setMetricTerm(false);
        
+#ifdef AMREX_USE_EB
+      const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+      MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+#else
     MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
+#endif
     mlabec.setMaxOrder(max_order);
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -3483,8 +3512,12 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	info.setMaxCoarseningLevel(0);
 	info.setMetricTerm(false);
 	
+#ifdef AMREX_USE_EB
+      const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+      MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+#else
 	MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
-	
+#endif	
 	tensorop.setMaxOrder(tensor_max_order);
 	
 	// create right container
