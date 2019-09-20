@@ -1598,7 +1598,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	// put this in MFIter loop when EB-izing
 	for (int d = 0; d < BL_SPACEDIM; d++){
 	  for (int i = 0; i < BL_SPACEDIM; ++i){
-	      // we've done away with velocity weighting in A,B
+	      // we've done away with vol weighting in A,B
 	      MultiFab::Multiply(*tensorflux[d],area[d],0,i,1,flux_ng);
 	  }
 	  tensorflux[d]->mult(b/dt,0,AMREX_SPACEDIM,flux_ng);
@@ -2023,11 +2023,20 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     if (verbose) amrex::Print() << "Diffusion::diffuse_tensor_Vsync ...\n";
 
     const MultiFab& volume = navier_stokes->Volume(); 
+    const MultiFab* area   = navier_stokes->Area();
+    // need for computeBeta. Don't see Why computeBeta defines area in this way
+    // or why it even bothers to pass area when it's also passing geom
+    const MultiFab *ap[AMREX_SPACEDIM];
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+	ap[d] = &(area[d]);
+    }
 
     MultiFab Rhs(grids,dmap,BL_SPACEDIM,0);
 
     MultiFab::Copy(Rhs,Vsync,0,0,BL_SPACEDIM,0);
-
+    // SSync has mult by dt here. Needed here too?
+    
     if (verbose > 1)
     {
         Real r_norm = Rhs.norm0();
@@ -2048,7 +2057,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
-            rhs.mult(volume[Rhsmfi],bx,0,comp,1); 
+	  // remove vol scaling
+	  //rhs.mult(volume[Rhsmfi],bx,0,comp,1); 
             if (rho_flag == 1)
                 rhs.mult(rho,bx,0,comp,1); 
             if (rho_flag == 3)
@@ -2081,7 +2091,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
       info.setConsolidation(consolidation);
       //fixme??
       info.setMetricTerm(false);
-      info.setMaxCoarseningLevel(100);
+      //info.setMaxCoarseningLevel(100);
 
       MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
       
@@ -2105,17 +2115,33 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
       
       {
 	MultiFab acoef;
+	// fixme ghostcells?
+	acoef.define(grids, dmap, 1, 1, MFInfo(), navier_stokes->Factory());
 	std::pair<Real,Real> scalars;
-	const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
-	computeAlpha(acoef, scalars, Xvel, a, b, cur_time, rho, rho_flag,
-		     &rhsscale, 0, nullptr);
+	// const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
+	// computeAlpha(acoef, scalars, Xvel, a, b, cur_time, rho, rho_flag,
+	// 	     &rhsscale, 0, nullptr);
+	//FIXME - not sure about rho vs rho_half in computeAlpha
+	// check for RZ 
+	computeAlpha(acoef, scalars, a, b, rho,
+		     rho_flag, &rhsscale, nullptr, 0, 
+		     &rho, 0, 
+		     navier_stokes->Geom(),volume,parent->Geom(0).IsRZ());
+
 	tensorop.setScalars(scalars.first, scalars.second);
 	tensorop.setACoeffs(0, acoef);
       }
       
       {
 	Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-	computeBeta(face_bcoef, nullptr, 0);
+	for (int n = 0; n < BL_SPACEDIM; n++)
+	{
+	  face_bcoef[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+	}
+	computeBeta(face_bcoef,nullptr,0,navier_stokes->Geom(),ap,
+		    parent->Geom(0).IsRZ());
+	//	computeBeta(face_bcoef, nullptr, 0);
+	
 	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
 	// ebtensorop.setEBShearViscosity(0, bcoef);
 	// not usually needed for gasses
@@ -2212,14 +2238,21 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
         tensor_op->compFlux(D_DECL(*(tensorflux[0]), *(tensorflux[1]), *(tensorflux[2])),Soln);
 #endif
 
-	//
+	// FIXME update these comments...
         // The extra factor of dt comes from the fact that Vsync looks
         // like dV/dt, not just an increment to V.
         //
         // This is to remove the dx scaling in the coeffs
         //
-        for (int d =0; d <BL_SPACEDIM; d++)
-            tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
+	int flux_ng = tensorflux[0]->nGrow();
+        for (int d =0; d <BL_SPACEDIM; d++){
+	  //tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
+	  for (int i = 0; i < BL_SPACEDIM; ++i){
+	    // we've done away with vol weighting in A,B
+	    MultiFab::Multiply(*tensorflux[d],area[d],0,i,1,flux_ng);
+	  }
+	  tensorflux[d]->mult(b/dt,0,AMREX_SPACEDIM,flux_ng);
+	}
 
 	if (update_fluxreg)
 	{	  
@@ -2246,7 +2279,9 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 {
     const MultiFab& volume = navier_stokes->Volume(); 
     const int state_ind    = sigma + BL_SPACEDIM;
-
+    //
+    // Fixme!! this solve still has volume scaling...
+    //
     if (verbose)
     {
         amrex::Print() << "Diffusion::diffuse_Ssync lev: " << level << " "
