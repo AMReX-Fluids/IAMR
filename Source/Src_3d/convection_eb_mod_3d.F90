@@ -24,7 +24,6 @@ contains
         slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, &
         ubc, &
-        !bc_ilo, bc_ihi, ng, &
         domlo, domhi ) bind(C)
 
       use convection_mod 
@@ -42,9 +41,6 @@ contains
 
       ! Domain bounds
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
-
-      ! Nghost
-!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
@@ -104,7 +100,6 @@ contains
    subroutine compute_velocity_at_y_faces_eb ( lo, hi, v, vlo, vhi,  &
         vel, vello, velhi, slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, vbc, &
-        !bc_jlo, bc_jhi, ng, &
         domlo, domhi ) bind(C)
 
       use convection_mod 
@@ -122,9 +117,6 @@ contains
 
       ! Domain bounds
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
-
-      ! Nghost
-!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
@@ -183,7 +175,6 @@ contains
    subroutine compute_velocity_at_z_faces_eb ( lo, hi, w, wlo, whi,  &
         vel, vello, velhi, slopes, slo, shi, areafrac, alo, ahi,     &
         cent, clo, chi, flags, flo, fhi, wbc, &
-        !bc_klo, bc_khi, ng, &
         domlo, domhi ) bind(C)
 
       use convection_mod 
@@ -201,9 +192,6 @@ contains
 
       ! Domain bounds
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
-
-      ! Nghost
-!      integer(c_int),  intent(in   ) :: ng
 
       ! Arrays
       real(ar),        intent(in   ) ::                                     &
@@ -269,25 +257,28 @@ contains
                                 aofs, glo, ghi, &
                                 vel, vello, velhi, &
                                 u, ulo, uhi, &
+                                xflx, xflxlo, xflxhi, &
+                                xstate, xstatelo, xstatehi, &
                                 afrac_x, axlo, axhi, &
                                 cent_x,  cxlo, cxhi, &
-                                xslopes, slo, shi, &                    
-                                !bc_ilo, bc_ihi, &
+                                xslopes, sxlo, sxhi, &                        
                                 v, vlo, vhi, &
+                                yflx, yflxlo, yflxhi, &
+                                ystate, ystatelo, ystatehi, &
                                 afrac_y, aylo, ayhi, &
                                 cent_y,  cylo, cyhi, &
-                                yslopes, &
-                                !bc_jlo, bc_jhi, &
+                                yslopes, sylo, syhi, &
                                 w, wlo, whi, &
+                                zflx, zflxlo, zflxhi, &
+                                zstate, zstatelo, zstatehi, &
                                 afrac_z, azlo, azhi, &
                                 cent_z,  czlo, czhi, &
-                                zslopes, &
+                                zslopes, szlo, szhi, &
                                 flags,    flo,  fhi, &
                                 vfrac,   vflo, vfhi, &
                                 bcent,    blo,  bhi, &
                                 domlo, domhi, &
-                                !bc_klo, bc_khi, &
-                                dx, nc, ng ) bind(C)
+                                dx, nc, ng, known_edgestate ) bind(C)
 
       use divop_mod, only: compute_divop
 
@@ -295,12 +286,20 @@ contains
       integer(c_int),  intent(in   ) :: lo(3),  hi(3)
 
       ! Array Bounds
-      integer(c_int),  intent(in   ) :: slo(3), shi(3)
+      integer(c_int),  intent(in   ) :: sxlo(3), sxhi(3)
+      integer(c_int),  intent(in   ) :: sylo(3), syhi(3)
+      integer(c_int),  intent(in   ) :: szlo(3), szhi(3)
       integer(c_int),  intent(in   ) :: glo(3), ghi(3)
       integer(c_int),  intent(in   ) :: vello(3), velhi(3)
       integer(c_int),  intent(in   ) :: ulo(3), uhi(3)
       integer(c_int),  intent(in   ) :: vlo(3), vhi(3)
       integer(c_int),  intent(in   ) :: wlo(3), whi(3)
+      integer(c_int),  intent(in   ) :: xflxlo(3), xflxhi(3)
+      integer(c_int),  intent(in   ) :: yflxlo(3), yflxhi(3)
+      integer(c_int),  intent(in   ) :: zflxlo(3), zflxhi(3)
+      integer(c_int),  intent(in   ) :: xstatelo(3), xstatehi(3)
+      integer(c_int),  intent(in   ) :: ystatelo(3), ystatehi(3)
+      integer(c_int),  intent(in   ) :: zstatelo(3), zstatehi(3)
       integer(c_int),  intent(in   ) :: axlo(3), axhi(3)
       integer(c_int),  intent(in   ) :: aylo(3), ayhi(3)
       integer(c_int),  intent(in   ) :: azlo(3), azhi(3)
@@ -310,7 +309,8 @@ contains
       integer(c_int),  intent(in   ) ::  flo(3),  fhi(3)
       integer(c_int),  intent(in   ) :: vflo(3), vfhi(3)
       integer(c_int),  intent(in   ) ::  blo(3),  bhi(3)
-      integer(c_int),  intent(in   ) :: domlo(3), domhi(3), nc, ng
+      integer(c_int),  intent(in   ) :: domlo(3), domhi(3)
+      integer(c_int),  intent(in   ) :: nc, ng, known_edgestate
 
       ! Grid
       real(ar),        intent(in   ) :: dx(3)
@@ -318,9 +318,9 @@ contains
       ! Arrays
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),vello(3):velhi(3),nc)    , &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
-           & zslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
+           & xslopes(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3),nc), &
+           & yslopes(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3),nc), &
+           & zslopes(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3),nc), &
            & u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3)), &
            & v(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3)), &
            & w(wlo(1):whi(1),wlo(2):whi(2),wlo(3):whi(3)), &
@@ -334,8 +334,16 @@ contains
            & bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3)
 
       real(ar),        intent(  out) ::                           &
-           & aofs(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nc)
+           & aofs(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nc), &
+           & xflx(xflxlo(1):xflxhi(1),xflxlo(2):xflxhi(2),xflxlo(3):xflxhi(3),nc), &
+           & yflx(yflxlo(1):yflxhi(1),yflxlo(2):yflxhi(2),yflxlo(3):yflxhi(3),nc), &
+           & zflx(zflxlo(1):zflxhi(1),zflxlo(2):zflxhi(2),zflxlo(3):zflxhi(3),nc)
 
+      real(ar),        intent(inout) ::                           &
+           & xstate(xstatelo(1):xstatehi(1),xstatelo(2):xstatehi(2),xstatelo(3):xstatehi(3),nc), &
+           & ystate(ystatelo(1):ystatehi(1),ystatelo(2):ystatehi(2),ystatelo(3):ystatehi(3),nc), &
+           & zstate(zstatelo(1):zstatehi(1),zstatelo(2):zstatehi(2),zstatelo(3):zstatehi(3),nc)
+      
       integer(c_int), intent(in   ) ::  &
            & flags(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
       
@@ -353,9 +361,9 @@ contains
       ! Temporary array to handle convective fluxes at the cell faces (staggered)
       ! Just reserve space for the tile + 3 ghost layers
       integer, parameter :: nh = 3 ! Number of Halo layers
-      real(ar) :: fx(lo(1)-nh:hi(1)+nh+1,lo(2)-nh:hi(2)+nh  ,lo(3)-nh:hi(3)+nh  ,3)
-      real(ar) :: fy(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh+1,lo(3)-nh:hi(3)+nh  ,3)
-      real(ar) :: fz(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh  ,lo(3)-nh:hi(3)+nh+1,3)
+      real(ar) :: fx(lo(1)-nh:hi(1)+nh+1,lo(2)-nh:hi(2)+nh  ,lo(3)-nh:hi(3)+nh  ,nc)
+      real(ar) :: fy(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh+1,lo(3)-nh:hi(3)+nh  ,nc)
+      real(ar) :: fz(lo(1)-nh:hi(1)+nh  ,lo(2)-nh:hi(2)+nh  ,lo(3)-nh:hi(3)+nh+1,nc)
 
       ! Check number of ghost cells
       if (ng < 5) call amrex_abort( "compute_divop(): ng must be >= 5")
@@ -387,6 +395,9 @@ contains
             do k = lo(3)-nh, hi(3)+nh
                do j = lo(2)-nh, hi(2)+nh
                   do i = lo(1)-nh, hi(1)+nh+1
+                  
+                   if (known_edgestate == 0) then
+                  
                      if ( afrac_x(i,j,k) > zero ) then
                         if ( i <= domlo(1) .and. any(bc_ilo(j,k,1) == bc_list) ) then
                            u_face =  vel(domlo(1)-1,j,k,n)
@@ -401,7 +412,14 @@ contains
                      else
                         u_face = my_huge
                      end if
-                     fx(i,j,k,n) = u(i,j,k) * u_face
+                     
+                     xstate(i,j,k,n)   = u_face
+                     
+                    end if
+                    
+                     fx(i,j,k,n) = u(i,j,k) * xstate(i,j,k,n)
+                     xflx(i,j,k,n)     = fx(i,j,k,n) * dx(1)
+                     
                   end do
                end do
             end do
@@ -412,6 +430,9 @@ contains
             do k = lo(3)-nh, hi(3)+nh
                do j = lo(2)-nh, hi(2)+nh+1
                   do i = lo(1)-nh, hi(1)+nh
+                  
+                  if (known_edgestate == 0) then
+                  
                      if ( afrac_y(i,j,k) > zero ) then
                         if ( j <= domlo(2) .and. any(bc_jlo(i,k,1) == bc_list) ) then
                            v_face =  vel(i,domlo(2)-1,k,n)
@@ -426,7 +447,15 @@ contains
                      else
                         v_face = my_huge
                      end if
-                     fy(i,j,k,n) = v(i,j,k) * v_face
+                     
+                     ystate(i,j,k,n)   = v_face
+            
+                     end if
+                     
+                     
+                     fy(i,j,k,n) = v(i,j,k) * ystate(i,j,k,n)
+                     yflx(i,j,k,n)     = fy(i,j,k,n)  * dx(2)
+                      
                   end do
                end do
             end do
@@ -437,6 +466,9 @@ contains
             do k = lo(3)-nh, hi(3)+nh+1
                do j = lo(2)-nh, hi(2)+nh
                   do i = lo(1)-nh, hi(1)+nh
+                  
+                  if (known_edgestate == 0) then
+                  
                      if ( afrac_z(i,j,k) > zero ) then
                         if ( k <= domlo(3) .and. any(bc_klo(i,j,1) == bc_list) ) then
                            w_face =  vel(i,j,domlo(3)-1,n)
@@ -451,7 +483,14 @@ contains
                      else
                         w_face = my_huge
                      end if
-                     fz(i,j,k,n) = w(i,j,k) * w_face
+                     
+                     zstate(i,j,k,n)   = w_face
+                     
+                     end if
+                     
+                     fz(i,j,k,n) = w(i,j,k) * zstate(i,j,k,n)
+                     zflx(i,j,k,n)     = fz(i,j,k,n)  * dx(3)
+                     
                   end do
                end do
             end do
@@ -490,23 +529,6 @@ contains
                             domlo, domhi, &
                             dx, ng, nc )
       end block divop
-
-      ! IAMR takes aofs, incflo/mfix take the negative
-      !
-      ! Return the negative
-      ! block
-      !    integer :: i,j,k,n
-
-      !    do n = 1, nc
-      !       do k = lo(3), hi(3)
-      !          do j = lo(2), hi(2)
-      !             do i = lo(1), hi(1)
-      !                aofs(i,j,k,n) = - aofs(i,j,k,n)
-      !             end do
-      !          end do
-      !       end do
-      !    end do
-      ! end block
 
     end subroutine compute_aofs_eb
 

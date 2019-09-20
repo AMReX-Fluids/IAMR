@@ -19,7 +19,8 @@ ifndef ATMOS_MACOP
   F90EXE_sources += MACOPERATOR_$(DIM)D.F90
 endif
 
-F90EXE_sources += IAMR_MLMG_$(DIM)d.F90 ARRAYLIM_$(DIM)D.F90 DERIVE_$(DIM)D.F90
+F90EXE_sources += IAMR_MLMG_$(DIM)d.F90 ARRAYLIM_$(DIM)D.F90 DERIVE_$(DIM)D.F90 \
+                  NavierStokesBase_$(DIM)D.F90
 
 # for EB
 ifeq ($(USE_EB),TRUE)
