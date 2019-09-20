@@ -5,7 +5,6 @@
 
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
-#include <NAVIERSTOKESBASE_F.H>
 
 #include <PROB_NS_F.H>
 
@@ -50,6 +49,7 @@ Real        NavierStokesBase::visc_tol           = 1.0e-10;
 Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
 int         NavierStokesBase::variable_vel_visc  = 1;
+//int         NavierStokesBase::variable_scal_diff = 0;
 
 int         NavierStokesBase::Tracer                    = -1;
 int         NavierStokesBase::Tracer2                   = -1;
@@ -197,6 +197,14 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         rho_avg.define(grids,dmap,1,1);
         p_avg.define(P_grids,dmap,1,0);
     }
+
+#ifdef AMREX_USE_EB
+    //fixme? not 100% sure this is the right place
+    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
+    gradp->setVal(0.);
+
+    //FIXME --- this fn is really similar to restart()... work on that later   
+#endif
     //
     // rho_half is passed into level_project to be used as sigma in the MLMG
     // solve
@@ -245,7 +253,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     u_mac   = 0;
     aofs    = 0;
-        
     //
     // Set up the level projector.
     //
@@ -430,8 +437,56 @@ NavierStokesBase::Initialize ()
 
         amrex::Abort("NavierStokesBase::Initialize()");
     }
-
     
+    const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
+    const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
+    const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
+
+    if (n_vel_visc_coef != 1)
+        amrex::Abort("NavierStokesBase::Initialize(): Only one vel_visc_coef allowed");
+
+    if (do_temp && n_temp_cond_coef != 1)
+        amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
+
+    int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
+    if (do_temp)
+        n_visc++;
+    visc_coef.resize(n_visc);
+    is_diffusive.resize(n_visc);
+ 
+    pp.get("vel_visc_coef",visc_coef[0]);
+    for (int i = 1; i < BL_SPACEDIM; i++)
+      visc_coef[i] = visc_coef[0];
+    //
+    // Here we set the coefficient for density, which does not diffuse.
+    //
+    visc_coef[Density] = -1;
+    //
+    // Set the coefficients for the scalars, but temperature.
+    //
+    Vector<Real> scal_diff_coefs(n_scal_diff_coefs);
+    pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
+
+    int scalId = Density;
+
+    // Will need to add more lines when more variables are added
+    Tracer = Density+1;
+    if (do_trac2)
+	Tracer2 = Density+2;
+
+    for (int i = 0; i < n_scal_diff_coefs; i++)
+    {
+        visc_coef[++scalId] = scal_diff_coefs[i];
+    }
+    //
+    // Set the coefficient for temperature.
+    //
+    if (do_temp)
+    {
+	Temp = ++scalId;
+	pp.get("temp_cond_coef",visc_coef[Temp]);
+    }
+  
     pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     pp.query("be_cn_theta",be_cn_theta);
@@ -566,7 +621,6 @@ NavierStokesBase::Initialize_specific ()
     // NOTE: at this point, we dont know number of state variables
     //       so just read all values listed.
     //
-
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
     const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
@@ -1240,7 +1294,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
 void
 NavierStokesBase::diffuse_scalar_setup (int sigma, int& rho_flag)
 {
-
     rho_flag = Diffusion::set_rho_flag(diffusionType[sigma]);
 }
 
@@ -1376,12 +1429,12 @@ Gp.FillBoundary(geom.periodicity());
         // {
 	//     u_max[k] = std::max(u_max[k],gr_max[k]);
 	// }
-        umax_x = std::max(umax_x,gr_max[0]);
-        umax_y = std::max(umax_y,gr_max[1]);
+	umax_x = std::max(umax_x,gr_max[0]);
+	umax_y = std::max(umax_y,gr_max[1]);
 #if (BL_SPACEDIM == 3)
-        umax_z = std::max(umax_z,gr_max[2]);
+	umax_z = std::max(umax_z,gr_max[2]);
 #endif 
-        estdt = std::min(estdt,dt);
+	estdt = std::min(estdt,dt);
     }
 }
 
@@ -1391,18 +1444,17 @@ Gp.FillBoundary(geom.periodicity());
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-        u_max[0] = umax_x; 
-        u_max[1] = umax_y;
+      	u_max[0] = umax_x; 
+	u_max[1] = umax_y;
 #if (BL_SPACEDIM == 3)
-        u_max[2] = umax_z;
+	u_max[2] = umax_z;
 #endif 
-        ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
+	ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
-
-	      amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
-	      for (int k = 0; k < BL_SPACEDIM; k++)
-	       amrex::Print() << u_max[k] << "  ";
-	       amrex::Print() << '\n';
+	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
+	for (int k = 0; k < BL_SPACEDIM; k++)
+	  amrex::Print() << u_max[k] << "  ";
+	amrex::Print() << '\n';
     }
 
     return estdt;
@@ -3347,7 +3399,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 	  interpolater->interp(cdata,0,fdata,0,num_comp,fbx,ratio,
 			       cgeom,fgeom,bc_interp,src_comp,State_Type,RunOn::Cpu);
-
 	  //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
 	  if (increment)
@@ -3361,7 +3412,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
 					num_comp,fbx,ratio,
 					cgeom,fgeom,bc_interp,RunOn::Cpu);
-
 		  Real dt_clev_inv = 1./dt_clev;
 		  cdata.mult(dt_clev_inv,cbx);
 	      }
@@ -3441,7 +3491,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type,RunOn::Cpu);
-
             fine_phi.mult(cur_mult_factor);
             P_new[mfi].plus(fine_phi,fbx,0,0);
             fine_phi.mult(prev_mult_factor);
@@ -3466,7 +3515,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type,RunOn::Cpu);
-
             P_new[mfi].plus(fine_phi,fbx,0,0);
             P_old[mfi].plus(fine_phi,fbx,0,0);
         }
@@ -3763,8 +3811,6 @@ NavierStokesBase::velocity_update (Real dt)
       }
     }
 
-//    VisMF::Write(get_new_data(State_Type),"Snew_from_velupdate00000");	// OK
-
     velocity_advection_update(dt);
 
     if (!initial_iter)
@@ -3773,8 +3819,6 @@ NavierStokesBase::velocity_update (Real dt)
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
-
-//    VisMF::Write(S_new,"Snew_from_velupdate1111");			// OK... how is that possible??
 
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
@@ -3816,13 +3860,19 @@ NavierStokesBase::velocity_advection_update (Real dt)
       getGradP(Gp, prev_pres_time);
 #endif
 
+// EM_DEBUG    
+    //VisMF::Write(U_new,"Unew_in_VAU");
+    //VisMF::Write(U_old,"Uold_in_VAU");
+    //static int count=0;
+    //   count++;
+    //        amrex::WriteSingleLevelPlotfile("Gp_in_VAU"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
 
+    
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 {
-
     FArrayBox  tforces, S;
     for (MFIter Rhohalf_mfi(halftime,true); Rhohalf_mfi.isValid(); ++Rhohalf_mfi)
     {
@@ -3880,7 +3930,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
             tforces.setVal(0);
 
 	//why is this on a grown box?
-	   const Box& sbx = Rhohalf_mfi.growntilebox();
+	const Box& sbx = Rhohalf_mfi.growntilebox();
         S.resize(sbx,BL_SPACEDIM);
         S.copy(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
 
@@ -3903,7 +3953,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
         }
     }
 }
-
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
        if (U_old.contains_nan(sigma,1,0))
@@ -3977,7 +4026,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 
             godunov->Sum_tf_gp_visc(tforces,visc_terms[mfi],Gp[mfi],Rh[mfi]);
 
-            const Box& gbx = mfi.growntilebox(); 
+	    const Box& gbx = mfi.growntilebox(); 
             S.resize(gbx,BL_SPACEDIM);
             S.copy(U_old[mfi],gbx,0,gbx,0,BL_SPACEDIM);
 
