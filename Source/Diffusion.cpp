@@ -1205,6 +1205,12 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 		    parent->Geom(0).IsRZ());
 	
 	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+#ifdef AMREX_USE_EB
+	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
+	EB_average_face_to_cellcenter(cc_bcoef, 0,
+				      amrex::GetArrOfConstPtrs(face_bcoef));
+	tensorop.setEBShearViscosity(0, cc_bcoef);
+#endif
 	//ebtensorop.setEBShearViscosity(0, bcoef);
 	// not usually needed for gasses
 	// ebtensorop.setBulkViscosity(0, .);
@@ -1562,6 +1568,12 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	computeBeta(face_bcoef,betan,betaComp,navier_stokes->Geom(),ap,
 		    parent->Geom(0).IsRZ());
 	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+#ifdef AMREX_USE_EB
+	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
+	EB_average_face_to_cellcenter(cc_bcoef, 0,
+				      amrex::GetArrOfConstPtrs(face_bcoef));
+	tensorop.setEBShearViscosity(0, cc_bcoef);
+#endif
 	// ebtensorop.setEBShearViscosity(0, bcoef);
 	// not usually needed for gasses
 	// ebtensorop.setBulkViscosity(0, .);
@@ -2167,6 +2179,12 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 	//	computeBeta(face_bcoef, nullptr, 0);
 	
 	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+#ifdef AMREX_USE_EB
+	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
+	EB_average_face_to_cellcenter(cc_bcoef, 0,
+				      amrex::GetArrOfConstPtrs(face_bcoef));
+	tensorop.setEBShearViscosity(0, cc_bcoef);
+#endif
 	// ebtensorop.setEBShearViscosity(0, bcoef);
 	// not usually needed for gasses
 	// ebtensorop.setBulkViscosity(0, .);
@@ -3460,6 +3478,13 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 {
     const MultiFab& volume = navier_stokes->Volume(); 
     const MultiFab* area   = navier_stokes->Area();
+    // need for computeBeta. Don't see Why computeBeta defines area in this way
+    // or why it even bothers to pass area when it's also passing geom
+    const MultiFab *ap[AMREX_SPACEDIM];
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+	ap[d] = &(area[d]);
+    }
 
     int allthere;
     checkBeta(beta, allthere);
@@ -3565,10 +3590,23 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	tensorop.setScalars(a, b);
 	
 	Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-	computeBeta(face_bcoef,beta,betaComp);
+	for (int n = 0; n < BL_SPACEDIM; n++)
+	{
+	  face_bcoef[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+	}
+	computeBeta(face_bcoef,beta,betaComp,navier_stokes->Geom(),ap,
+		    parent->Geom(0).IsRZ());
+	//computeBeta(face_bcoef,beta,betaComp);
 	
 	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
-	//ebtensorop.setEBShearViscosity(0, bcoef);
+#ifdef AMREX_USE_EB
+	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
+	EB_average_face_to_cellcenter(cc_bcoef, 0,
+				      amrex::GetArrOfConstPtrs(face_bcoef));
+	//EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
+	//const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);
+	tensorop.setEBShearViscosity(0, cc_bcoef);
+#endif
 	// not usually needed for gasses
 	// ebtensorop.setBulkViscosity(0, .);
 	// ebtensorop.setEBBulkViscosity(0, .);
