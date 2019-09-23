@@ -328,7 +328,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   BL_ASSERT(volume.DistributionMap() == dm);
  
  // Below is another way to bring the factory information 
- const auto& ebfactory = S_old[0]->Factory();
+ const auto& ebfactory = S_new[0]->Factory();
  
   MultiFab Rhs(ba,dm,1,0,MFInfo(),ebfactory);
   MultiFab Soln(ba,dm,1,ng,MFInfo(),ebfactory);
