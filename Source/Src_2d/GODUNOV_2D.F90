@@ -93,44 +93,29 @@ contains
 
     ! Note: Intel unhappy to pass pointers through subroutines if not allocated
     !     We just allocate something small (and still promise not to use it)
-    if (ppm_type .eq. 0) then
-       eblo = lo
-       ebhi = lo
-       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2))       
+    if (ppm_type .eq. 2) then
+      eblo = lo - 2
+      ebhi = hi + 2
     else
-    !if (ppm_type .gt. 0) then
-       if (ppm_type .eq. 2) then
-          eblo = lo - 2
-          ebhi = hi + 2
-       else
-          eblo = lo - 1
-          ebhi = hi + 1
-       endif
-
-       ebxhi = ebhi
-       ebxhi(1) = ebxhi(1) + 1
-       ebyhi = ebhi
-       ebyhi(2) = ebyhi(2) + 1
-       call amrex_allocate(Imx,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(Ipx,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(Imy,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(Ipy,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(sm,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(sp,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2))
-       call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2))
-       g2lo = lo - 2
-       g2hi = hi + 2
-       call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2))
+      eblo = lo - 1
+      ebhi = hi + 1
     endif
+
+    ebxhi = ebhi
+    ebxhi(1) = ebxhi(1) + 1
+    ebyhi = ebhi
+    ebyhi(2) = ebyhi(2) + 1
+    call amrex_allocate(Imx,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(Ipx,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(Imy,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(Ipy,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(sm,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(sp,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2))
+    call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2))
+    g2lo = lo - 2
+    g2hi = hi + 2
+    call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2))
 
     ! get velocities that resolve upwind directions on faces used to compute transverse derivatives (uad,vad)
     ! Note that this is done only in this "pre-mac" situation, to get velocities on faces that will be projected.
@@ -230,17 +215,15 @@ contains
     call amrex_deallocate(sy)
     call amrex_deallocate(uad)
     call amrex_deallocate(vad)
-    !if (ppm_type .gt. 0) then
-       call amrex_deallocate(Imx)
-       call amrex_deallocate(Ipx)
-       call amrex_deallocate(Imy)
-       call amrex_deallocate(Ipy)
-       call amrex_deallocate(sm)
-       call amrex_deallocate(sp)
-       call amrex_deallocate(sedgex)
-       call amrex_deallocate(sedgey)
-       call amrex_deallocate(dsvl)
-    !endif
+    call amrex_deallocate(Imx)
+    call amrex_deallocate(Ipx)
+    call amrex_deallocate(Imy)
+    call amrex_deallocate(Ipy)
+    call amrex_deallocate(sm)
+    call amrex_deallocate(sp)
+    call amrex_deallocate(sedgex)
+    call amrex_deallocate(sedgey)
+    call amrex_deallocate(dsvl)
 
   end subroutine extrap_vel_to_faces
 
@@ -296,44 +279,29 @@ contains
 
     ! Note: Intel unhappy to pass pointers through subroutines if not allocated
     !     We just allocate something small (and still promise not to use it)
-    if (ppm_type .eq. 0) then
-       eblo = lo
-       ebhi = lo
-       call amrex_allocate(Imx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(Ipx,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(Imy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(Ipy,   eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sm,    eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sp,    eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sedgex,eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(sedgey,eblo(1),ebhi(1),eblo(2),ebhi(2))
-       call amrex_allocate(dsvl,  eblo(1),ebhi(1),eblo(2),ebhi(2))       
+    if (ppm_type .eq. 2) then
+      eblo = lo - 2
+      ebhi = hi + 2
     else
-       !if (ppm_type .gt. 0) then
-       if (ppm_type .eq. 2) then
-          eblo = lo - 2
-          ebhi = hi + 2
-       else
-          eblo = lo - 1
-          ebhi = hi + 1
-       endif
-
-       ebxhi = ebhi
-       ebxhi(1) = ebxhi(1) + 1
-       ebyhi = ebhi
-       ebyhi(2) = ebyhi(2) + 1
-       call amrex_allocate(Imx,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(Ipx,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(Imy,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(Ipy,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(sm,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(sp,wklo(1),wkhi(1),wklo(2),wkhi(2))
-       call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2))
-       call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2))
-       g2lo = lo - 2
-       g2hi = hi + 2
-       call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2))
+      eblo = lo - 1
+      ebhi = hi + 1
     endif
+
+    ebxhi = ebhi
+    ebxhi(1) = ebxhi(1) + 1
+    ebyhi = ebhi
+    ebyhi(2) = ebyhi(2) + 1
+    call amrex_allocate(Imx,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(Ipx,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(Imy,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(Ipy,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(sm,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(sp,wklo(1),wkhi(1),wklo(2),wkhi(2))
+    call amrex_allocate(sedgex,eblo(1),ebxhi(1),eblo(2),ebxhi(2))
+    call amrex_allocate(sedgey,eblo(1),ebyhi(1),eblo(2),ebyhi(2))
+    g2lo = lo - 2
+    g2hi = hi + 2
+    call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2))
 
     call estate_fpu(lo,hi,&
          s,s_lo,s_hi,&
@@ -366,17 +334,15 @@ contains
     call amrex_deallocate(ylo)
     call amrex_deallocate(yhi)
     call amrex_deallocate(sy)
-    !if (ppm_type .gt. 0) then
-       call amrex_deallocate(Imx)
-       call amrex_deallocate(Ipx)
-       call amrex_deallocate(Imy)
-       call amrex_deallocate(Ipy)
-       call amrex_deallocate(sm)
-       call amrex_deallocate(sp)
-       call amrex_deallocate(sedgex)
-       call amrex_deallocate(sedgey)
-       call amrex_deallocate(dsvl)
-    !endif
+    call amrex_deallocate(Imx)
+    call amrex_deallocate(Ipx)
+    call amrex_deallocate(Imy)
+    call amrex_deallocate(Ipy)
+    call amrex_deallocate(sm)
+    call amrex_deallocate(sp)
+    call amrex_deallocate(sedgex)
+    call amrex_deallocate(sedgey)
+    call amrex_deallocate(dsvl)
 
   end subroutine extrap_state_to_faces
 
