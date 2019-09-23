@@ -619,9 +619,9 @@ contains
                   .and. (j >= lo(2)) .and. (j <= hi(2)) &
                   .and. (k >= lo(3)) .and. (k <= hi(3))) then
                   
-               divuc(i,j,k,1) = (u(i+1,j,k) * u_e - u(i,j,k) * u_w) * idx + &
-                                (v(i,j+1,k) * u_n - v(i,j,k) * u_s) * idy + &
-                                (w(i,j,k+1) * u_t - w(i,j,k) * u_b) * idz
+               divuc(i,j,k,n) = (u(i+1,j,k) * xstate(i+1,j,k,n) - u(i,j,k) * xstate(i,j,k,n)) * idx + &
+                                (v(i,j+1,k) * ystate(i,j+1,k,n) - v(i,j,k) * ystate(i,j,k,n)) * idy + &
+                                (w(i,j,k+1) * zstate(i,j,k+1,n) - w(i,j,k) * zstate(i,j,k,n)) * idz
                       
                 endif
                                
