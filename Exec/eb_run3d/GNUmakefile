@@ -14,7 +14,7 @@ DIM         = 3
 COMP        = gnu
 
 DEBUG       = TRUE
-USE_MPI     = FALSE
+USE_MPI     = TRUE
 USE_OMP     = FALSE
 PROFILE     = FALSE
 

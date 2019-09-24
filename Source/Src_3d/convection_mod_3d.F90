@@ -139,9 +139,11 @@ contains
                              ugradu, glo, ghi, &
                              vel, vello, velhi, &
                              u, ulo, uhi, &
+                             xslopes, sxlo, sxhi, &
                              v, vlo, vhi, &
+                             yslopes, sylo, syhi, &
                              w, wlo, whi, &
-                             xslopes, yslopes, zslopes, slo, shi, &
+                             zslopes, szlo, szhi, &
                              domlo, domhi, &
                              ! bc_ilo_type, bc_ihi_type, &
                              ! bc_jlo_type, bc_jhi_type, &
@@ -152,7 +154,9 @@ contains
       integer(c_int),  intent(in   ) :: lo(3),  hi(3)
 
       ! Array Bounds
-      integer(c_int),  intent(in   ) :: slo(3), shi(3)
+      integer(c_int),  intent(in   ) :: sxlo(3), sxhi(3)
+      integer(c_int),  intent(in   ) :: sylo(3), syhi(3)
+      integer(c_int),  intent(in   ) :: szlo(3), szhi(3)
       integer(c_int),  intent(in   ) :: glo(3), ghi(3)
       integer(c_int),  intent(in   ) :: vello(3), velhi(3)
       integer(c_int),  intent(in   ) :: ulo(3), uhi(3)
@@ -166,9 +170,9 @@ contains
       ! Velocity Array
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),vello(3):velhi(3),3)    , &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3), &
-           & zslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),3), &
+           & xslopes(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3),3), &
+           & yslopes(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3),3), &
+           & zslopes(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3),3), &
            & u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3)), &
            & v(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3)), &
            & w(wlo(1):whi(1),wlo(2):whi(2),wlo(3):whi(3))
@@ -397,43 +401,63 @@ contains
                             divuc, glo, ghi, &
                             vel, vello, velhi, &
                             u, ulo, uhi, &
+                            xflx, xflxlo, xflxhi, &
+                            xstate, xstatelo, xstatehi, &
+                            xslopes, sxlo, sxhi, &
                             v, vlo, vhi, &
+                            yflx, yflxlo, yflxhi, &
+                            ystate, ystatelo, ystatehi, &
+                            yslopes, sylo, syhi, &
                             w, wlo, whi, &
-                            xslopes, yslopes, zslopes, slo, shi, &
+                            zflx, zflxlo, zflxhi, &
+                            zstate, zstatelo, zstatehi, &
+                            zslopes, szlo, szhi, &
                             domlo, domhi, &
-                            ! bc_ilo_type, bc_ihi_type, &
-                            ! bc_jlo_type, bc_jhi_type, &
-                            ! bc_klo_type, bc_khi_type, &
-                            dx, ng) bind(C)
+                            dx, ng, nc, known_edgestate) bind(C)
 
       ! Tile bounds
-      integer(c_int),  intent(in   ) :: lo(3),  hi(3)
+      integer(c_int),  intent(in   ) :: lo(3),  hi(3), nc, known_edgestate
 
       ! Array Bounds
-      integer(c_int),  intent(in   ) :: slo(3), shi(3)
+      integer(c_int),  intent(in   ) :: sxlo(3), sxhi(3)
+      integer(c_int),  intent(in   ) :: sylo(3), syhi(3)
+      integer(c_int),  intent(in   ) :: szlo(3), szhi(3)
       integer(c_int),  intent(in   ) :: glo(3), ghi(3)
       integer(c_int),  intent(in   ) :: vello(3), velhi(3)
       integer(c_int),  intent(in   ) :: ulo(3), uhi(3)
       integer(c_int),  intent(in   ) :: vlo(3), vhi(3)
       integer(c_int),  intent(in   ) :: wlo(3), whi(3)
+      integer(c_int),  intent(in   ) :: xflxlo(3), xflxhi(3)
+      integer(c_int),  intent(in   ) :: yflxlo(3), yflxhi(3)
+      integer(c_int),  intent(in   ) :: zflxlo(3), zflxhi(3)
+      integer(c_int),  intent(in   ) :: xstatelo(3), xstatehi(3)
+      integer(c_int),  intent(in   ) :: ystatelo(3), ystatehi(3)
+      integer(c_int),  intent(in   ) :: zstatelo(3), zstatehi(3)
       integer(c_int),  intent(in   ) :: domlo(3), domhi(3), ng
 
       ! Grid
       real(ar),        intent(in   ) :: dx(3)
 
-      integer(c_int),     parameter  :: nc = 1
       ! Velocity Array
       real(ar),        intent(in   ) ::                            &
            & vel(vello(1):velhi(1),vello(2):velhi(2),vello(3):velhi(3),nc), &
-           & xslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
-           & yslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
-           & zslopes(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),nc), &
+           & xslopes(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3),nc), &
+           & yslopes(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3),nc), &
+           & zslopes(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3),nc), &
            & u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3)), &
            & v(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3)), &
            & w(wlo(1):whi(1),wlo(2):whi(2),wlo(3):whi(3))
 
       real(ar),        intent(  out) ::                           &
-           & divuc(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nc)
+           & divuc(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nc), &
+           & xflx(xflxlo(1):xflxhi(1),xflxlo(2):xflxhi(2),xflxlo(3):xflxhi(3),nc), &
+           & yflx(yflxlo(1):yflxhi(1),yflxlo(2):yflxhi(2),yflxlo(3):yflxhi(3),nc), &
+           & zflx(zflxlo(1):zflxhi(1),zflxlo(2):zflxhi(2),zflxlo(3):zflxhi(3),nc)
+
+      real(ar),        intent(inout) ::                           &
+           & xstate(xstatelo(1):xstatehi(1),xstatelo(2):xstatehi(2),xstatelo(3):xstatehi(3),nc), &
+           & ystate(ystatelo(1):ystatehi(1),ystatelo(2):ystatehi(2),ystatelo(3):ystatehi(3),nc), &
+           & zstate(zstatelo(1):zstatehi(1),zstatelo(2):zstatehi(2),zstatelo(3):zstatehi(3),nc)
 
       ! BC types
       !integer(c_int), intent(in   ) ::  &
@@ -446,7 +470,7 @@ contains
            & bc_khi_type(domlo(1)-ng:domhi(1)+ng,domlo(2)-ng:domhi(2)+ng,2)
 
       ! Local variables
-      integer(c_int)                 :: i, j, k
+      integer(c_int)                 :: i, j, k, n
       real(ar)                       :: idx, idy, idz
       real(ar)                       :: upls, umns, vpls, vmns, wpls, wmns
       real(ar)                       :: u_e, u_w, u_s, u_n, u_b, u_t
@@ -469,9 +493,13 @@ contains
       idy = one / dx(2)
       idz = one / dx(3)
 
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
+      do n =1,nc
+      
+      do k = lo(3)-3, hi(3)+3
+         do j = lo(2)-3, hi(2)+3
+            do i = lo(1)-3, hi(1)+3
+            
+               if (known_edgestate == 0) then
 
                ! ****************************************************
                ! West face
@@ -480,10 +508,10 @@ contains
                ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
                ! In the case of PINF, POUT          we are using the upwind value
                if (i.eq.domlo(1) .and. any(bc_ilo_type(j,k,1) == bc_list ) ) then
-                  u_w =  vel(i-1,j,k,1)
+                  u_w =  vel(i-1,j,k,n)
                else
-                  upls  = vel(i  ,j,k,1) - half * xslopes(i  ,j,k,1)
-                  umns  = vel(i-1,j,k,1) + half * xslopes(i-1,j,k,1)
+                  upls  = vel(i  ,j,k,n) - half * xslopes(i  ,j,k,n)
+                  umns  = vel(i-1,j,k,n) + half * xslopes(i-1,j,k,n)
 
                   u_w   = upwind( umns, upls, u(i,j,k) )
                endif
@@ -495,10 +523,10 @@ contains
                ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
                ! In the case of PINF, POUT          we are using the upwind value
                if (i.eq.domhi(1) .and. any(bc_ihi_type(j,k,1) == bc_list ) ) then
-                  u_e =  vel(i+1,j,k,1)
+                  u_e =  vel(i+1,j,k,n)
                else
-                  upls  = vel(i+1,j,k,1) - half * xslopes(i+1,j,k,1)
-                  umns  = vel(i  ,j,k,1) + half * xslopes(i  ,j,k,1)
+                  upls  = vel(i+1,j,k,n) - half * xslopes(i+1,j,k,n)
+                  umns  = vel(i  ,j,k,n) + half * xslopes(i  ,j,k,n)
 
                   u_e   = upwind( umns, upls, u(i+1,j,k) )
                endif
@@ -510,10 +538,10 @@ contains
                ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
                ! In the case of PINF, POUT          we are using the upwind value
                if (j.eq.domlo(2) .and. any(bc_jlo_type(i,k,1) == bc_list ) ) then
-                  u_s =  vel(i,j-1,k,1)
+                  u_s =  vel(i,j-1,k,n)
                else
-                  upls  = vel(i,j  ,k,1) - half * yslopes(i,j  ,k,1)
-                  umns  = vel(i,j-1,k,1) + half * yslopes(i,j-1,k,1)
+                  upls  = vel(i,j  ,k,n) - half * yslopes(i,j  ,k,n)
+                  umns  = vel(i,j-1,k,n) + half * yslopes(i,j-1,k,n)
 
                   u_s   = upwind( umns, upls, v(i,j,k) )
                endif
@@ -525,10 +553,10 @@ contains
                ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
                ! In the case of PINF, POUT          we are using the upwind value
                if (j.eq.domhi(2) .and.  any(bc_jhi_type(i,k,1) == bc_list ) ) then
-                  u_n =  vel(i,j+1,k,1)
+                  u_n =  vel(i,j+1,k,n)
                else
-                  upls  = vel(i,j+1,k,1) - half * yslopes(i,j+1,k,1)
-                  umns  = vel(i,j  ,k,1) + half * yslopes(i,j  ,k,1)
+                  upls  = vel(i,j+1,k,n) - half * yslopes(i,j+1,k,n)
+                  umns  = vel(i,j  ,k,n) + half * yslopes(i,j  ,k,n)
 
                   u_n   = upwind( umns, upls, v(i,j+1,k) )
                endif
@@ -540,10 +568,10 @@ contains
                ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
                ! In the case of PINF, POUT          we are using the upwind value
                if (k.eq.domlo(3) .and. any( bc_klo_type(i,j,1) == bc_list ) ) then
-                  u_b =  vel(i,j,k-1,1)
+                  u_b =  vel(i,j,k-1,n)
                else
-                  upls  = vel(i,j,k  ,1) - half * zslopes(i,j,k  ,1)
-                  umns  = vel(i,j,k-1,1) + half * zslopes(i,j,k-1,1)
+                  upls  = vel(i,j,k  ,n) - half * zslopes(i,j,k  ,n)
+                  umns  = vel(i,j,k-1,n) + half * zslopes(i,j,k-1,n)
 
                   u_b   = upwind( umns, upls, w(i,j,k) )
                endif
@@ -555,34 +583,53 @@ contains
                ! In the case of MINF, NSW, FSW, PSW we are using the prescribed Dirichlet value
                ! In the case of PINF, POUT          we are using the upwind value
                if (k.eq.domhi(3) .and. any( bc_khi_type(i,j,1) == bc_list ) ) then
-                  u_t =  vel(i,j,k+1,1)
+                  u_t =  vel(i,j,k+1,n)
                else
-                  upls  = vel(i,j,k+1,1) - half * zslopes(i,j,k+1,1)
-                  umns  = vel(i,j,k  ,1) + half * zslopes(i,j,k  ,1)
+                  upls  = vel(i,j,k+1,n) - half * zslopes(i,j,k+1,n)
+                  umns  = vel(i,j,k  ,n) + half * zslopes(i,j,k  ,n)
 
                   u_t   = upwind( umns, upls, w(i,j,k+1) )
                endif
+               
+               ! Saving state at edges
+
+               xstate(i,j,k,n)   = u_w
+               xstate(i+1,j,k,n) = u_e
+               ystate(i,j,k,n)   = u_s
+               ystate(i,j+1,k,n) = u_n
+               zstate(i,j,k,n)   = u_b
+               zstate(i,j,k+1,n) = u_t
+            
+             endif
 
                ! ****************************************************
                ! Define convective terms -- conservatively
                !   divuc =  div(u^MAC c_edge) 
                ! ****************************************************
 
+               ! Saving fluxes at edges
+               xflx(i,j,k,n)   = u(i,j,k)   * xstate(i,j,k,n) / idx
+               xflx(i+1,j,k,n) = u(i+1,j,k) * xstate(i+1,j,k,n) / idx
+               yflx(i,j,k,n)   = v(i,j,k)   * ystate(i,j,k,n) / idy
+               yflx(i,j+1,k,n) = v(i,j+1,k) * ystate(i,j+1,k,n) / idy
+               zflx(i,j,k,n)   = w(i,j,k)   * zstate(i,j,k,n) / idz
+               zflx(i,j,k+1,n) = w(i,j,k+1) * zstate(i,j,k+1,n) / idz
 
-               divuc(i,j,k,1) = (u(i+1,j,k) * u_e - u(i,j,k) * u_w) * idx + &
-                                (v(i,j+1,k) * u_n - v(i,j,k) * u_s) * idy + &
-                                (w(i,j,k+1) * u_t - w(i,j,k) * u_b) * idz 
+                if ((i >= lo(1)) .and. (i <= hi(1)) &
+                  .and. (j >= lo(2)) .and. (j <= hi(2)) &
+                  .and. (k >= lo(3)) .and. (k <= hi(3))) then
+                  
+               divuc(i,j,k,n) = (u(i+1,j,k) * xstate(i+1,j,k,n) - u(i,j,k) * xstate(i,j,k,n)) * idx + &
+                                (v(i,j+1,k) * ystate(i,j+1,k,n) - v(i,j,k) * ystate(i,j,k,n)) * idy + &
+                                (w(i,j,k+1) * zstate(i,j,k+1,n) - w(i,j,k) * zstate(i,j,k,n)) * idz
+                      
+                endif
                                
-
-               ! ****************************************************
-               ! Return the negative
-               ! ****************************************************
-
-               !divuc(i,j,k,1) = -divuc(i,j,k,1)
 
             end do
          end do
       end do
+    end do
 
    end subroutine compute_divuc
 

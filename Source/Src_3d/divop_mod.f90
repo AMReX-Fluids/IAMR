@@ -134,10 +134,6 @@ contains
       ! Check number of ghost cells
       if (ng < 5) call amrex_abort( "compute_divop(): ng must be >= 5")
 
-      !check number of components
-      if ( .NOT.(nc.eq.1 .OR. nc.eq.3) ) &
-         call amrex_abort("compute_divop(): must have either nc==1 (for scalar) or nc==3 (for velocity).")
-      
       ! Check if we are computing divergence for viscous term
       if ( present(eta) ) then
          is_viscous = .true.
@@ -207,7 +203,7 @@ contains
 
                      if (is_covered_cell(flags(i,j,k))) then
 
-                        divc(i,j,k) = my_huge
+                        divc(i,j,k) = 0.0d0 !my_huge
 
                      else if (is_single_valued_cell(flags(i,j,k))) then
 

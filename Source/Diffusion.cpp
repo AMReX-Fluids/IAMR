@@ -370,9 +370,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     
   BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==ba));
   BL_ASSERT(volume.DistributionMap() == dm);
- 
+
   const auto& ebfactory = S_new[0]->Factory();
- 
+
   MultiFab Rhs(ba,dm,1,0,MFInfo(),ebfactory);
   MultiFab Soln(ba,dm,1,ng,MFInfo(),ebfactory);
   MultiFab alpha(ba,dm,1,0,MFInfo(),ebfactory);
