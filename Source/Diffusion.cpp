@@ -333,7 +333,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     // what about fluxes?
     //
     
-    bool has_coarse_data = S_new.size() > 1;
+    bool has_coarse_data = S_old.size() > 1;
 
     const Real strt_time = ParallelDescriptor::second();
 
@@ -371,7 +371,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==ba));
     BL_ASSERT(volume.DistributionMap() == dm);
     
-    const auto& ebfactory = S_new[0]->Factory();
+ // Below is another way to bring the factory information 
+ const auto& ebfactory = S_old[0]->Factory();
     
     MultiFab Rhs(ba,dm,1,0,MFInfo(),ebfactory);
     MultiFab Soln(ba,dm,1,ng,MFInfo(),ebfactory);
@@ -519,7 +520,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   
 	int nghost = 0;
 #ifdef AMREX_USE_EB
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -806,7 +806,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       int nghost = fluxnp1[0]->nGrow(); // this = 0
       
 #ifdef AMREX_USE_EB
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1165,7 +1164,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	Real twothirds = 2.0/3.0;
 	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	{
-	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0);
+	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
 	  MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
 	  kappa[idim].mult(twothirds);
 	}
@@ -1410,7 +1409,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         }
       }
     }
-
+    
     //
     // Construct viscous operator at time N+1.
     //
@@ -1527,7 +1526,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	Real twothirds = 2.0/3.0;
 	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	{
-	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0);
+	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
 	  MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
 	  kappa[idim].mult(twothirds);
 	}
@@ -1564,9 +1563,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       // Copy into state variable at new time.
       //
       MultiFab::Copy(U_new,Soln,0,Xvel,AMREX_SPACEDIM,soln_ng);
-    //FIXME check soln
-      // static int count = 0; count++;
-      // amrex::WriteSingleLevelPlotfile("ds_"+std::to_string(count), U_new, {AMREX_D_DECL("x","y","z"),"den","trac"},navier_stokes->Geom(), 0.0, 0);
+      //FIXME check soln
+       static int count = 0; count++;
+       amrex::WriteSingleLevelPlotfile("ds_"+std::to_string(count), U_new, {AMREX_D_DECL("x","y","z"),"den","trac"},navier_stokes->Geom(), 0.0, 0);
 
       //
       // Modify diffusive fluxes here.
@@ -2152,7 +2151,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 	Real twothirds = 2.0/3.0;
 	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	{
-	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0);
+	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
 	  MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
 	  kappa[idim].mult(twothirds);
 	}
@@ -3245,7 +3244,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     // LinOp classes cannot handle multcomponent MultiFabs yet,
     // construct the components one at a time and copy to visc_terms.
     //
-#if 1
+#if 0
     // old way with volume weighted beta
     if (is_diffusive[comp])
     {
@@ -3470,7 +3469,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
     const int src_comp = Xvel;
     const int ncomp    = visc_terms.nComp();
-
+    
     if (ncomp < BL_SPACEDIM)
         amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
     //
@@ -3586,7 +3585,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	Real twothirds = 2.0/3.0;
 	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	{
-	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0);
+	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
 	  MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
 	  kappa[idim].mult(twothirds);
 	}
@@ -3613,93 +3612,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	  
 	mlmg.apply({&visc_tmp}, {&s_tmp});
       }
-	
-#if 0
-	// old tensor solver
-        ViscBndryTensor visc_bndry;
-        getTensorBndryData(visc_bndry,time);
-
-        DivVis tensor_op(visc_bndry,dx);
-        tensor_op.maxOrder(tensor_max_order);
-        tensor_op.setScalars(a,b);
-
-        tensor_op.ZeroACoefficients();
-
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
-	    MultiFab bcoeffs(area[n].boxArray(),area[n].DistributionMap(),1,0);
-	    
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-            for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-            {
-	        const Box& bx = bcoeffsmfi.tilebox();
-	      
-		bcoeffs[bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
-                bcoeffs[bcoeffsmfi].mult(dx[n],bx);
-                bcoeffs[bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
-            }
-	    
-	    tensor_op.bCoefficients(bcoeffs,n); // not thread safe?
-        }
-
-        //MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
-
-        MultiFab vt(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
-	vt.setVal(0.);
-        tensor_op.apply(vt,s_tmp);
-
-	//compare visc terms...
-	static int count = 0; count++;
-	// amrex::WriteSingleLevelPlotfile("vto_"+std::to_string(count), vt, {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);
-	// amrex::WriteSingleLevelPlotfile("vtn_"+std::to_string(count), visc_tmp, {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);	
-	// MultiFab::Subtract(vt,visc_terms,0,0,AMREX_SPACEDIM,0);
-	// //amrex::WriteSingleLevelPlotfile("vtd_"+std::to_string(count), vt, {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);
-	// VisMF::Write(vt,"vtdiff");
-
-    // fixme -- compare 
-    // MultiFab** tmp = new MultiFab*[1]; 
-    // int dir = 0;
-    // if (count >= 2) //for (int dir = 0; dir < 1; dir++)
-    // {
-    //   tmp[dir] = new MultiFab(grids,dmap,AMREX_SPACEDIM,0);
-    //   MultiFab::Copy(*tmp[dir],vt,0,0,AMREX_SPACEDIM,0);
-    //   MultiFab::Subtract(*tmp[dir],visc_tmp,0,0,AMREX_SPACEDIM,0);
-    //   VisMF::Write(*tmp[dir],"tmp"+std::to_string(count));
-
-    //   Vector<Real> nrm0,nrm1,nrm2;
-    // 	  Real n0=0.,n1=0.,n2=0.;
-    // 	  nrm0 = tmp[dir]->norm0({AMREX_D_DECL(0,1,2)});
-    // 	  nrm1 = tmp[dir]->norm1({AMREX_D_DECL(0,1,2)});
-    // 	  nrm2 = tmp[dir]->norm2({AMREX_D_DECL(0,1,2)});
-    // 	  for (int i = 0; i<AMREX_SPACEDIM; i++){
-    // 	    n0=max(nrm0[i],n0);
-    // 	    n1+=nrm1[i];
-    // 	    n2+=nrm2[i];
-    // 	  }
-    // 	  n1*=pow(navier_stokes->Geom().CellSize()[0],AMREX_SPACEDIM)/AMREX_SPACEDIM;
-    // 	  n2*=pow(navier_stokes->Geom().CellSize()[0],AMREX_SPACEDIM)/AMREX_SPACEDIM;
-    // 	  Print()<<(navier_stokes->Geom().Domain().hiVect())[0]+1<<" "
-    // 	  	  <<navier_stokes->Geom().CellSize()[0]<<" "
-    // 	  	  <<n0<<" "<<n1<<" "<<n2<<" \n";
-    // 	  std::ofstream datafile;
-    // 	  datafile.open("vtDiff"+std::to_string(dir)+".txt", std::ofstream::out | std::ofstream::app);
-    // 	  datafile<<(navier_stokes->Geom().Domain().hiVect())[0]+1<<" "
-    // 	  	  <<navier_stokes->Geom().CellSize()[0]<<" "
-    // 	  	  <<n0<<" "<<n1<<" "<<n2<<" \n";
-    // 	  datafile.close();
-
-    // }
-
-#endif
-
-	//
-        // Must divide by volume.
-        //
-	for (int n = 0; n < BL_SPACEDIM; ++n) {
-	    MultiFab::Divide(visc_tmp, volume, 0, n, 1, 0);
-	}
 
 #if (BL_SPACEDIM == 2)
         if (parent->Geom(0).IsRZ())
