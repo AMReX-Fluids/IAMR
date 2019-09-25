@@ -302,7 +302,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     if (verbose)
       amrex::Print() << "... Diffusion::diffuse_scalar(): \n" 
 		     << " lev: " << level << '\n';
-  
+
 #if (BL_SPACEDIM == 3)
     // Here we ensure that R-Z related routines cannot be called in 3D
     if (add_hoop_stress){
@@ -495,13 +495,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	}
 
 	{
-	  Real* rhsscale = 0;
-	  std::pair<Real,Real> scalars;
-	  computeAlpha(alpha, scalars, a, b, rho_half, rho_flag,
-		       rhsscale, alpha_in, alpha_in_comp+icomp, Rho_old[0], Rho_comp,
-		       geom, volume, add_hoop_stress);
-	  opn.setScalars(scalars.first, scalars.second);
-	  opn.setACoeffs(0, alpha);
+	  opn.setScalars(a,b);
+	  // not needed bc a=0
+	  //opn.setACoeffs(0, alpha);
 	}
 
 	{
@@ -705,6 +701,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	}
       }
 #endif
+       
       //
       // Increment Rhs with S_old*V (or S_old*V*rho_half if rho_flag==1
       //                             or S_old*V*rho_old  if rho_flag==3)
@@ -712,7 +709,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       //         from advection if solve_mode != PREDICTOR)
       //
       MultiFab::Copy(Soln,*S_new[0],sigma,0,1,0);
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -740,7 +736,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       // dev fillPatch'es S_new (both levels) before passing to MLMG op
       // It's now assumed that S_new has been FillPatch'ed before passing to diffuse_scalar
       // CHECK THAT THIS IS ACTUALLY DONE...
-      
+
       //
       // Construct viscous operator with bndry data at time N+1.
       //
@@ -3348,12 +3344,11 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	info.setConsolidation(consolidation);
 	info.setMaxCoarseningLevel(0);
 	// let MLMG take care of r-z 
-	//info.setMetricTerm(false);
+	info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
 	// create the right data holder for passing to MLEBABecLap
 	amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
-	//ebf.resize(1);
 	ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
 	
 	MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, ebf);
@@ -3408,8 +3403,20 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	// mlabec.setACoeffs() not needed since a = 0.0 
 
 	{
+	  const MultiFab* area   = navier_stokes->Area();
+	  const MultiFab *ap[AMREX_SPACEDIM];
+	  for (int d=0; d<AMREX_SPACEDIM; ++d)
+	  {
+	    ap[d] = &(area[d]);
+	  }
 	  std::array<MultiFab,BL_SPACEDIM> bcoeffs;
-	  computeBeta(bcoeffs, beta, betaComp);
+	  for (int n = 0; n < BL_SPACEDIM; n++)
+	  {
+	    bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
+	  }
+	  computeBeta(bcoeffs,beta,betaComp,navier_stokes->Geom(),ap,
+		      parent->Geom(0).IsRZ());
+	  //computeBeta(bcoeffs, beta, betaComp);
 	  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
 	}
 
