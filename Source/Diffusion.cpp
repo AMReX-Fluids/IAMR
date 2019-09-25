@@ -300,7 +300,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     //
     
     if (verbose)
-      amrex::Print() << "... Diffusion::diffuse_scalar(): " 
+      amrex::Print() << "... Diffusion::diffuse_scalar(): \n" 
 		     << " lev: " << level << '\n';
   
 #if (BL_SPACEDIM == 3)
@@ -333,7 +333,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     // what about fluxes?
     //
     
-    bool has_coarse_data = S_old.size() > 1;
+    bool has_coarse_data = S_new.size() > 1;
 
     const Real strt_time = ParallelDescriptor::second();
 
@@ -371,8 +371,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==ba));
     BL_ASSERT(volume.DistributionMap() == dm);
     
- // Below is another way to bring the factory information 
- const auto& ebfactory = S_old[0]->Factory();
+    const auto& ebfactory = S_new[0]->Factory();
     
     MultiFab Rhs(ba,dm,1,0,MFInfo(),ebfactory);
     MultiFab Soln(ba,dm,1,ng,MFInfo(),ebfactory);
@@ -474,7 +473,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	  b *= visc_coef[visc_coef_comp + icomp];
 
 	if(verbose)
-	  Print()<<"Adding old time diff ....\n";
+	  Print()<<"Adding old time diff ...\n";
         
 	{
 	  if (has_coarse_data)
