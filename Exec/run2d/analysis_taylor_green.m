@@ -10,11 +10,11 @@ close all
 i = 50;
 
 
-nu=1e-4;
+nu=1e-2;
 
 %%%%  User input parameters  %%%%
 % Number of solution
-nb_solutfile = '01072'
+nb_solutfile = '00083'
 
 % Retrieving the time of the simulation
 cmd_stringcat = strcat("./ftime.gnu.ex plt",nb_solutfile)
@@ -111,7 +111,7 @@ for l=1:nlev
 
 %    contour(x,y,z,zmin:zdelta:zmax);
     
-    x_vel_theo=sin(2*pi*x).*cos(2*pi*y)*exp(-2 *nu* time);
+    x_vel_theo=sin(x).*cos(y)*exp(-2 *nu* time);
 
     contour(x,y,x_vel_theo-z);
     
@@ -127,6 +127,6 @@ figure(2)
 plot(z(:,nx/2),'r*')
 hold on
 plot(x_vel_theo(:,nx/2))
-
+legend('PeleLM', 'Theo')
 
 l2norm=sqrt((sum((z(:,nx/2)-x_vel_theo(:,nx/2)).**2))/nx)

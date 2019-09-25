@@ -847,8 +847,8 @@ contains
         do i = lo(1), hi(1)
           x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-          vel(i,j,1) =  velfact*sin(tpi * x)*cos(tpi * y)
-          vel(i,j,2) = -velfact*cos(tpi * x)*sin(tpi * y)
+          vel(i,j,1) =  velfact*sin(x)*cos(y)
+          vel(i,j,2) = -velfact*cos(x)*sin(y)
 
           scal(i,j,1) = denfact
 
