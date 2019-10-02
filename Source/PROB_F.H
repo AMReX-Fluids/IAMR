@@ -74,32 +74,23 @@
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
 
-     void FORT_AVERAGE_EDGE_STATES(const amrex::Real* Vel,
-				   const amrex::Real* umacx,
-				   const amrex::Real* umacy,
-#if (BL_SPACEDIM==3)
-				   const amrex::Real* umacz,
+     void FORT_AVERAGE_EDGE_STATES(      BL_FORT_FAB_ARG_ANYD(Vel),
+                                   const BL_FORT_FAB_ARG_ANYD(umacx),
+                                   const BL_FORT_FAB_ARG_ANYD(umacy),
+#if (AMREX_SPACEDIM==3)
+                                   const BL_FORT_FAB_ARG_ANYD(umacz),
 #endif
-				   ARLIM_P(vel_lo),  ARLIM_P(vel_hi),
-				   ARLIM_P(umacx_lo), ARLIM_P(umacx_hi),
-				   ARLIM_P(umacy_lo), ARLIM_P(umacy_hi),
-#if (BL_SPACEDIM==3)
-				   ARLIM_P(umacz_lo), ARLIM_P(umacz_hi),
-#endif
-				   const int* getForceVerbose);
+                                   const int* getForceVerbose);
 
      void FORT_MAKEFORCE (const amrex::Real* time,
-			  amrex::Real* force,
-			  const amrex::Real* vel,
-			  const amrex::Real* scal,
-                          ARLIM_P(f_lo), ARLIM_P(f_hi),
-                          ARLIM_P(v_lo), ARLIM_P(v_hi),
-                          ARLIM_P(s_lo), ARLIM_P(s_hi),
+                                BL_FORT_FAB_ARG_ANYD(force),
+                          const BL_FORT_FAB_ARG_ANYD(vel),
+                          const BL_FORT_FAB_ARG_ANYD(scal),
                           const amrex::Real* dx,
                           const amrex::Real* xlo, const amrex::Real* xhi,
-			  const amrex::Real* gravity,
-			  const int* scomp, const int* ncomp, const int* nscal,
-			  const int* getForceVerbose);
+                          const amrex::Real* gravity,
+                          const int* scomp, const int* ncomp, const int* nscal,
+                          const int* getForceVerbose);
 
 #ifdef __cplusplus
   }
