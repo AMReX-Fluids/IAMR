@@ -69,7 +69,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
    const int   nscal    = NUM_SCALARS;
 
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
       amrex::Print() << "NavierStokesBase::getForce(): Force Domain:" << std::endl;
       amrex::Print() << "(" << f_lo[0] << "," << f_lo[1] << "," << f_lo[2] << ") - "
                      << "(" << f_hi[0] << "," << f_hi[1] << "," << f_hi[2] << ")" << std::endl;
@@ -91,22 +91,22 @@ NavierStokesBase::getForce (FArrayBox&       force,
                      << "(" << s_hi[0] << "," << s_hi[1] << ")" << std::endl;
 #endif
 
-      Vector<Real> velmin(BL_SPACEDIM), velmax(BL_SPACEDIM);
+      Vector<Real> velmin(AMREX_SPACEDIM), velmax(AMREX_SPACEDIM);
       Vector<Real> scalmin(NUM_SCALARS), scalmax(NUM_SCALARS);
-      for (int n=0; n<BL_SPACEDIM; n++) {
+      for (int n=0; n<AMREX_SPACEDIM; n++) {
           velmin[n]= 1.e234;
           velmax[n]=-1.e234;
       }
       int ix = v_hi[0]-v_lo[0]+1;
       int jx = v_hi[1]-v_lo[1]+1;
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
       int kx = v_hi[2]-v_lo[2]+1;
       for (int k=0; k<kx; k++) {
 #endif
          for (int j=0; j<jx; j++) {
             for (int i=0; i<ix; i++) {
-               for (int n=0; n<BL_SPACEDIM; n++) {
-#if (BL_SPACEDIM == 3)
+               for (int n=0; n<AMREX_SPACEDIM; n++) {
+#if (AMREX_SPACEDIM == 3)
                   int cell = ((n*kx+k)*jx+j)*ix+i;
 #else
                   int cell = (n*jx+j)*ix+i;
@@ -117,10 +117,10 @@ NavierStokesBase::getForce (FArrayBox&       force,
                }
             }
          }
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
       }
 #endif
-      for (int n=0; n<BL_SPACEDIM; n++) 
+      for (int n=0; n<AMREX_SPACEDIM; n++) 
          amrex::Print() << "Vel  " << n << " min/max " 
                         << velmin[n] << " / " << velmax[n] << std::endl;
 
@@ -130,14 +130,14 @@ NavierStokesBase::getForce (FArrayBox&       force,
       }
       ix = s_hi[0]-s_lo[0]+1;
       jx = s_hi[1]-s_lo[1]+1;
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
       kx = s_hi[2]-s_lo[2]+1;
       for (int k=0; k<kx; k++) {
 #endif
          for (int j=0; j<jx; j++) {
             for (int i=0; i<ix; i++) {
                for (int n=0; n<NUM_SCALARS; n++) {
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                   int cell = ((n*kx+k)*jx+j)*ix+i;
 #else
                   int cell = (n*jx+j)*ix+i;
@@ -148,7 +148,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
                }
             }
          }
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
       }
 #endif
       for (int n=0; n<NUM_SCALARS; n++) 
@@ -178,14 +178,14 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
       int ix = f_hi[0]-f_lo[0]+1;
       int jx = f_hi[1]-f_lo[1]+1;
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
       int kx = f_hi[2]-f_lo[2]+1;
       for (int k=0; k<kx; k++) {
 #endif
          for (int j=0; j<jx; j++) {
             for (int i=0; i<ix; i++) {
                for (int n=0; n<ncomp; n++) {
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                   int cell = ((n*kx+k)*jx+j)*ix+i;
 #else
                   int cell = (n*jx+j)*ix+i;
@@ -196,7 +196,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
                }
             }
          }
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
       }
 #endif
       for (int n=0; n<ncomp; n++) 
