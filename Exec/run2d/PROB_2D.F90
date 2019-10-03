@@ -971,9 +971,11 @@ contains
 
       hx = dx(1)
       hy = dx(2)
+#if ( AMREX_SPACEDIM == 3 )
       hz = dx(3)
+#endif
 
-!c     Assumes components are in the following order
+!     Assumes components are in the following order
       nXvel = 0
       nYvel = 1
       nZvel = SDIM-1
@@ -1022,10 +1024,10 @@ contains
                      enddo
                      ! Scalars
                      do n = 0, nscal-1
-                        if (scal(i,j,k,n).gt.scalmax(n)) then
+                        if (scal(i,j,k,n)>scalmax(n)) then
                            scalmax(n)=scal(i,j,k,n)
                         endif
-                        if (scal(i,j,k,n).lt.scalmin(n)) then
+                        if (scal(i,j,k,n)<scalmin(n)) then
                            scalmin(n)=scal(i,j,k,n)
                         endif
                      enddo
