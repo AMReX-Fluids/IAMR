@@ -1061,7 +1061,12 @@ contains
                do j = f_lo(2), f_hi(2)
                   do i = f_lo(1), f_hi(1)
                      force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*sga
+#if ( AMREX_SPACEDIM == 2 )
                      force(i,j,k,nYvel) = scal(i,j,k,nRhoScal)*cga
+#elif ( AMREX_SPACEDIM == 3 )
+                     force(i,j,k,nYvel) = zero
+                     force(i,j,k,nZvel) = scal(i,j,k,nRhoScal)*cga
+#endif
                   enddo
                enddo
             enddo
