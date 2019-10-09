@@ -390,12 +390,12 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     if (steady_state)
     {
       // Solve using m_phi as an initial guess
-      macproj.project({mac_phi}, mac_tol,mac_abs_tol);
+      macproj.project({mac_phi}, mac_tol,mac_abs_tol,MLMG::Location::FaceCenter);
     } 
     else 
     {
       // Solve with initial guess of zero
-      macproj.project(mac_tol,mac_abs_tol);
+      macproj.project(mac_tol,mac_abs_tol,MLMG::Location::FaceCenter);
     }
 
     // set mac velocity bcs here?
@@ -406,7 +406,7 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     if (verbose)
     {
       MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
-      EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac[0]),geom);
+      EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac[0]),geom,false);
       
       MultiFab tmp(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
       MultiFab::Copy( tmp, divu, 0, 0, 1, 0 );
