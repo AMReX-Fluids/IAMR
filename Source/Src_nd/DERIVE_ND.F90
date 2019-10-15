@@ -685,6 +685,7 @@ contains
       REAL_T  :: uxcen, uxlo, uxhi
       REAL_T  :: vycen, vylo, vyhi
       REAL_T  :: wzcen, wzlo, wzhi
+      integer :: bc_dumm(2,2,1)
       integer :: i, j, k
 
 !
@@ -721,10 +722,12 @@ contains
 #endif
 
 #if ( AMREX_SPACEDIM == 2 )
+      bc_dumm(1:2,1:2,1) = bc(1:2,1:2,1)
       call FORT_XVELFILL (dat(:,:,1,1), d_lo(1), d_lo(2), d_hi(1), d_hi(2), & 
-                          domlo, domhi, delta, xlo, time, bc(1,1,1))
+                          domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
+      bc_dumm(1:2,1:2,1) = bc(1:2,1:2,2)
       call FORT_YVELFILL (dat(:,:,1,2), d_lo(1), d_lo(2), d_hi(1), d_hi(2), &
-                          domlo, domhi, delta, xlo, time, bc(1,1,2))
+                          domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
 #elif ( AMREX_SPACEDIM == 3 )
       call FORT_XVELFILL (dat(:,:,:,1), d_lo(1), d_lo(2), d_lo(3), d_hi(1), d_hi(2), d_hi(3), & 
                           domlo, domhi, delta, xlo, time, bc(1,1,1))
@@ -869,10 +872,12 @@ contains
 ! we overwrote the ghost cells above, so set them back below
 !
 #if ( AMREX_SPACEDIM == 2 )
+      bc_dumm(1:2,1:2,1) = bc(1:2,1:2,1)
       call FORT_XVELFILL (dat(:,:,1,1), d_lo(1), d_lo(2), d_hi(1), d_hi(2), & 
-                          domlo, domhi, delta, xlo, time, bc(1,1,1))
+                          domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
+      bc_dumm(1:2,1:2,1) = bc(1:2,1:2,2)
       call FORT_YVELFILL (dat(:,:,1,2), d_lo(1), d_lo(2), d_hi(1), d_hi(2), &
-                          domlo, domhi, delta, xlo, time, bc(1,1,2))
+                          domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
 #elif ( AMREX_SPACEDIM == 3 )
       call FORT_XVELFILL (dat(:,:,:,1), d_lo(1), d_lo(2), d_lo(3), d_hi(1), d_hi(2), d_hi(3), & 
                           domlo, domhi, delta, xlo, time, bc(1,1,1))
