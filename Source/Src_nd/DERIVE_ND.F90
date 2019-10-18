@@ -723,10 +723,10 @@ contains
 
 #if ( AMREX_SPACEDIM == 2 )
       bc_dumm(1:2,1:2,1) = bc(1:2,1:2,1)
-      call FORT_XVELFILL (dat(:,:,0,1), d_lo(1), d_lo(2), d_hi(1), d_hi(2), & 
+      call FORT_XVELFILL (dat(:,:,d_lo(3),1), d_lo(1), d_lo(2), d_hi(1), d_hi(2), & 
                           domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
       bc_dumm(1:2,1:2,1) = bc(1:2,1:2,2)
-      call FORT_YVELFILL (dat(:,:,0,2), d_lo(1), d_lo(2), d_hi(1), d_hi(2), &
+      call FORT_YVELFILL (dat(:,:,d_lo(3),2), d_lo(1), d_lo(2), d_hi(1), d_hi(2), &
                           domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
 #elif ( AMREX_SPACEDIM == 3 )
       call FORT_XVELFILL (dat(:,:,:,1), d_lo(1), d_lo(2), d_lo(3), d_hi(1), d_hi(2), d_hi(3), & 
@@ -873,10 +873,10 @@ contains
 !
 #if ( AMREX_SPACEDIM == 2 )
       bc_dumm(1:2,1:2,1) = bc(1:2,1:2,1)
-      call FORT_XVELFILL (dat(:,:,0,1), d_lo(1), d_lo(2), d_hi(1), d_hi(2), & 
+      call FORT_XVELFILL (dat(:,:,d_lo(3),1), d_lo(1), d_lo(2), d_hi(1), d_hi(2), & 
                           domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
       bc_dumm(1:2,1:2,1) = bc(1:2,1:2,2)
-      call FORT_YVELFILL (dat(:,:,0,2), d_lo(1), d_lo(2), d_hi(1), d_hi(2), &
+      call FORT_YVELFILL (dat(:,:,d_lo(3),2), d_lo(1), d_lo(2), d_hi(1), d_hi(2), &
                           domlo, domhi, delta, xlo, time, bc_dumm(1,1,1))
 #elif ( AMREX_SPACEDIM == 3 )
       call FORT_XVELFILL (dat(:,:,:,1), d_lo(1), d_lo(2), d_lo(3), d_hi(1), d_hi(2), d_hi(3), & 
