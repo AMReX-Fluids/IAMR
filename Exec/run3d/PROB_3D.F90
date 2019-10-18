@@ -3519,136 +3519,127 @@ contains
 !c     ::: -----------------------------------------------------------
 !c     
 !c     This routine averages the mac face velocities for makeforce at half time
-!c
-      subroutine FORT_AVERAGE_EDGE_STATES(vel,umacx,umacy,umacz, &
-                                         DIMS(vel),DIMS(umacx),DIMS(umacy),DIMS(umacz),&
-                                         getForceVerbose)&
-                                         bind(C, name="FORT_AVERAGE_EDGE_STATES")
+
+   subroutine FORT_AVERAGE_EDGE_STATES( vel, v_lo, v_hi,&
+                                        umacx, ux_lo, ux_hi,&
+                                        umacy, uy_lo, uy_hi,&
+#if ( AMREX_SPACEDIM == 3 )
+                                        umacz, uz_lo, uz_hi,&
+#endif
+                                        getForceVerbose)&
+                                        bind(C, name="FORT_AVERAGE_EDGE_STATES")
 
       implicit none
 
-      integer    DIMDEC(vel)
-      integer    DIMDEC(umacx)
-      integer    DIMDEC(umacy)
-      integer    DIMDEC(umacz)
-      integer    getForceVerbose
-      REAL_T     vel  (DIMV(vel),SDIM)
-      REAL_T     umacx(DIMV(umacx))
-      REAL_T     umacy(DIMV(umacy))
-      REAL_T     umacz(DIMV(umacz))
+      integer :: v_lo(3), v_hi(3)
+      integer :: ux_lo(3), ux_hi(3)
+      integer :: uy_lo(3), uy_hi(3)
+#if ( AMREX_SPACEDIM == 3 )
+      integer :: uz_lo(3), uz_hi(3)
+#endif
+      integer :: getForceVerbose
+      REAL_T, dimension(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3), SDIM) :: vel
+      REAL_T, dimension(ux_lo(1):ux_hi(1),ux_lo(2):ux_hi(2),ux_lo(3):ux_hi(3)) :: umacx
+      REAL_T, dimension(uy_lo(1):uy_hi(1),uy_lo(2):uy_hi(2),uy_lo(3):uy_hi(3)) :: umacy
+#if ( AMREX_SPACEDIM == 3 )
+      REAL_T, dimension(uz_lo(1):uz_hi(1),uz_lo(2):uz_hi(2),uz_lo(3):uz_hi(3)) :: umacz
+#endif
 
-      integer i,j,k,n
-      integer ilo,jlo,klo
-      integer ihi,jhi,khi
+      REAL_T  :: velmin(3)
+      REAL_T  :: velmax(3)
+      integer :: isioproc
 
-      integer isioproc
+      integer :: i, j, k, n
 
-      REAL_T  velmin(3)
-      REAL_T  velmax(3)
-
-      do n = 1, 3
+      do n = 1, SDIM
          velmin(n) = 1.d234
          velmax(n) = -1.d234
       enddo
 
-      ilo = vel_l1
-      jlo = vel_l2
-      klo = vel_l3
-      ihi = vel_h1
-      jhi = vel_h2
-      khi = vel_h3
-
-      do k = klo, khi
-         do j = jlo, jhi
-            do i = ilo, ihi
+      do k = v_lo(3), v_hi(3)
+         do j = v_lo(2), v_hi(2)
+            do i = v_lo(1), v_hi(1)
                vel(i,j,k,1) = half*(umacx(i,j,k)+umacx(i+1,j,k))
                vel(i,j,k,2) = half*(umacy(i,j,k)+umacy(i,j+1,k))
+#if ( AMREX_SPACEDIM == 3 )
                vel(i,j,k,3) = half*(umacz(i,j,k)+umacz(i,j,k+1))
-               do n=1, 3
-                  velmin(n)=min(velmin(n),vel(i,j,k,n))
-                  velmax(n)=max(velmax(n),vel(i,j,k,n))
+#endif
+               do n = 1, SDIM
+                  velmin(n) = min(velmin(n),vel(i,j,k,n))
+                  velmax(n) = max(velmax(n),vel(i,j,k,n))
                enddo
             enddo
          enddo
       enddo
-      
+
       if (getForceVerbose.gt.0) then
          call bl_pd_is_ioproc(isioproc)
          if (isioproc.eq.1) then
-            do n = 1, 3
+            do n = 1, SDIM
                write (6,*) "mac velmin (",n,") = ",velmin(n)
                write (6,*) "mac velmax (",n,") = ",velmax(n)
             enddo
          endif
       endif
 
-      end subroutine FORT_AVERAGE_EDGE_STATES
+   end subroutine FORT_AVERAGE_EDGE_STATES
+
+!c
 !c
 !c
 !c ::: -----------------------------------------------------------
 !c
 !c     This routine add the forcing terms to the momentum equation
 !c
-      subroutine FORT_MAKEFORCE(time,force, &
-                                vel, &
-                                scal, &
-                                DIMS(force), &
-                                DIMS(vel), &
-                                DIMS(scal), &
-                                dx,xlo,xhi,gravity,scomp,ncomp, &
-                                nscal,getForceVerbose &
-                                )bind(C, name="FORT_MAKEFORCE")
+   subroutine FORT_MAKEFORCE( time, &
+                              force, f_lo, f_hi,&
+                              vel, v_lo, v_hi,&
+                              scal, s_lo, s_hi,&
+                              dx, xlo, xhi, gravity, scomp, ncomp, &
+                              nscal, getForceVerbose ) &
+                              bind(C, name="FORT_MAKEFORCE")
 
       implicit none
 
-      integer    DIMDEC(force)
-      integer    DIMDEC(scal)
-      integer    scomp, ncomp
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     force  (DIMV(force),scomp:scomp+ncomp-1)
-      REAL_T     gravity
-      integer    DIMDEC(vel)
-      integer    nscal, getForceVerbose
-      REAL_T     vel    (DIMV(vel),0:SDIM-1)
-      REAL_T     scal   (DIMV(scal),0:nscal-1)
-
-      REAL_T     Lx, Ly, Lz, Lmin, HLx, HLy, HLz
-      REAL_T     kappa, kappaMax
+! In/Out
+      integer :: f_lo(3), f_hi(3)
+      integer :: v_lo(3), v_hi(3)
+      integer :: s_lo(3), s_hi(3)
+      integer :: scomp, ncomp
+      integer :: nscal, getForceVerbose
+      REAL_T  :: time, dx(3)
+      REAL_T  :: xlo(3), xhi(3)
+      REAL_T  :: gravity
+      REAL_T, dimension(f_lo(1):f_hi(1),f_lo(2):f_hi(2),f_lo(3):f_hi(3),scomp:scomp+ncomp-1) :: force
+      REAL_T, dimension(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3),0:SDIM-1) :: vel
+      REAL_T, dimension(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),0:nscal-1) :: scal
 
 #include <probdata.H>
-
 #ifdef DO_IAMR_FORCE
 #include <forcedata.H>
 #endif
 
-!c
-!c     ::::: local variables
-!c
-      integer i, j, k, n
-      integer ilo, jlo, klo
-      integer ihi, jhi, khi
-      integer a2, a3, a4, a5
-      REAL_T  x, y, z
-      REAL_T  hx, hy, hz
-      REAL_T  sga, cga
-      REAL_T  f1, f2, f3
-      REAL_T  twicePi
-      REAL_T  infl_time
-      REAL_T  kxd, kyd, kzd
-      REAL_T  xt, yt, zt
-      REAL_T  zlo
-      integer kx, ky, kz, mode_count, xstep, ystep, zstep, count
-      integer isioproc, do_trac2
-      integer nXvel, nYvel, nZvel, nRho, nTrac, nTrac2, nRhoScal, nTracScal, nTrac2Scal
-
-      REAL_T  velmin(0:SDIM-1)
-      REAL_T  velmax(0:SDIM-1)
-      REAL_T  scalmin(0:nscal-1)
-      REAL_T  scalmax(0:nscal-1)
-      REAL_T  forcemin(scomp:scomp+ncomp-1)
-      REAL_T  forcemax(scomp:scomp+ncomp-1)
-      REAL_T  tmpMin, tmpMax
+! Local
+      REAL_T  :: velmin(0:SDIM-1)
+      REAL_T  :: velmax(0:SDIM-1)
+      REAL_T  :: scalmin(0:nscal-1)
+      REAL_T  :: scalmax(0:nscal-1)
+      REAL_T  :: forcemin(scomp:scomp+ncomp-1)
+      REAL_T  :: forcemax(scomp:scomp+ncomp-1)
+      REAL_T  :: x, y, z
+      REAL_T  :: hx, hy, hz
+      REAL_T  :: sga, cga
+      REAL_T  :: f1, f2, f3
+      REAL_T  :: Lx, Ly, Lz, Lmin, HLx, HLy, HLz
+      REAL_T  :: kappa, kappaMax
+      REAL_T  :: tmpMin, tmpMax
+      REAL_T  :: twicePi, infl_time, kxd, kyd, kzd, xt, yt, zt, zlo
+      integer :: kx, ky, kz, mode_count, xstep, ystep, zstep
+      integer :: isioproc, count, do_trac2
+      integer :: nXvel, nYvel, nZvel, nRho, nTrac, nTrac2
+      integer :: nRhoScal, nTracScal, nTrac2Scal
+      integer :: a2, a3, a4, a5
+      integer :: i, j, k, n
 
       call bl_ns_dotrac2(do_trac2)
 
@@ -3656,28 +3647,22 @@ contains
       hy = dx(2)
       hz = dx(3)
 
-      ilo = force_l1
-      jlo = force_l2
-      klo = force_l3
-      ihi = force_h1
-      jhi = force_h2
-      khi = force_h3
 
-!c     Assumes components are in the following order
+!     Assumes components are in the following order
       nXvel  = 0
       nYvel  = 1
-      nZvel  = 2
-      nRho   = 3
-      nTrac  = 4
-      nTrac2 = 5
+      nZvel  = SDIM-1
+      nRho   = SDIM
+      nTrac  = SDIM+1
+      nTrac2 = SDIM+2
 
       nRhoScal   = nRho-SDIM
       nTracScal  = nTrac-SDIM
       nTrac2Scal = nTrac2-SDIM
 
-      if (getForceVerbose.gt.0) then
+      if ( getForceVerbose > 0 ) then
          call bl_pd_is_ioproc(isioproc)
-         if (isioproc.eq.1) then
+         if ( isioproc == 1 ) then
 
             write (6,*) "In MAKEFORCE"
             
@@ -3697,11 +3682,12 @@ contains
             enddo
 
             count = 0
-!c     Get min/max
-            do k = klo, khi
-               do j = jlo, jhi
-                  do i = ilo, ihi
-!c     Velocities
+            ! Get min/max
+            do k = f_lo(3), f_hi(3)
+               do j = f_lo(2), f_hi(2)
+                  do i = f_lo(1), f_hi(1)
+
+                     ! Velocities
                      do n = 0, SDIM-1
                         if (vel(i,j,k,n).gt.velmax(n)) then
                            velmax(n)=vel(i,j,k,n)
@@ -3710,11 +3696,13 @@ contains
                            velmin(n)=vel(i,j,k,n)
                         endif
                      enddo
-!c     Scalars
+
+                     ! Scalars
                      if (scal(i,j,k,0).lt.0.001) then
                         count=count+1
 !c                        write (*,*) i,j,k,scal(i,j,k,n)
                      endif
+
                      do n = 0, nscal-1
                         if (scal(i,j,k,n).gt.scalmax(n)) then
                            scalmax(n)=scal(i,j,k,n)
@@ -3741,71 +3729,69 @@ contains
          endif
       endif
 
-!c
-!c     Here's where the forcing actually gets done
-!c
+!
+!     Here's where the forcing actually gets done
+!
       
-      if (scomp.eq.0) then
-!c
-!c     Do velocity forcing
-!c
-         if (probtype.eq.20) then 
-            do k = klo, khi
-               z = xlo(3) + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
+      if ( scomp == 0 ) then
+         ! Do velocity forcing
+         if ( probtype == 20 ) then 
+            do k = f_lo(3), f_hi(3)
+               z = xlo(3) + hz*(float(k-f_lo(3)) + half)
+               do j = f_lo(2), f_hi(2)
+                  y = xlo(2) + hy*(float(j-f_lo(2)) + half)
+                  do i = f_lo(1), f_hi(1)
+                     x = xlo(1) + hx*(float(i-f_lo(1)) + half)
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nZvel) = zero
-                     if (do_trac2.eq.1) then
+                     if ( do_trac2 == 1 ) then
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
                   enddo
                enddo
             enddo
-         else if (probtype.eq.18) then 
+         else if ( probtype == 18 ) then 
 !c     Round jet/plume
-            do k = klo, khi
-               z = xlo(3) + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
+            do k = f_lo(3), f_hi(3)
+               z = xlo(3) + hz*(float(k-f_lo(3)) + half)
+               do j = f_lo(2), f_hi(2)
+                  y = xlo(2) + hy*(float(j-f_lo(2)) + half)
+                  do i = f_lo(1), f_hi(1)
+                     x = xlo(1) + hx*(float(i-f_lo(1)) + half)
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
-                     if (do_trac2.eq.1) then
+                     if ( do_trac2 == 1 ) then
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
-                     if (do_jet_sponge.eq.1) then
+                     if ( do_jet_sponge == 1 ) then
 !c                        call bl_pd_is_ioproc(isioproc)
 !c                        if (isioproc.eq.1) then
 !c                           write (*,*) "jet_sponge_scale = ",jet_sponge_scale
 !c                        endif
-                        if (z.gt.jet_sponge_height) then
+                        if ( z > jet_sponge_height ) then
                            force(i,j,k,nXvel) = force(i,j,k,nXvel) - jet_sponge_scale*vel(i,j,k,0)*scal(i,j,k,nRhoScal)
                            force(i,j,k,nYvel) = force(i,j,k,nYvel) - jet_sponge_scale*vel(i,j,k,1)*scal(i,j,k,nRhoScal)
                            force(i,j,k,nZvel) = force(i,j,k,nZvel) - jet_sponge_scale*vel(i,j,k,2)*scal(i,j,k,nRhoScal)
-                        else if (sqrt(x*x+y*y).gt.jet_sponge_radius) then
+                        else if ( sqrt(x*x+y*y) > jet_sponge_radius ) then
                            force(i,j,k,nZvel) = force(i,j,k,nZvel) - jet_sponge_scale*vel(i,j,k,2)*scal(i,j,k,nRhoScal)
                         endif
                      endif
                   enddo
                enddo
             enddo
-         else if (probtype.eq.14.or.probtype.eq.15) then
+         else if ( probtype == 14 .or. probtype == 15 ) then
 #ifdef DO_IAMR_FORCE
-!c     Homogeneous Isotropic Turbulence
+            ! Homogeneous Isotropic Turbulence
             twicePi=two*Pi
             
-!c     Adjust z offset for probtype 15
-            if (probtype.eq.15.and.infl_time_offset.gt.(-half)) then
+            ! Adjust z offset for probtype 15
+            if ( probtype == 15 .and. infl_time_offset>(-half)) then
                infl_time = time + infl_time_offset
                zlo = xlo(3) - (time*adv_vel)
             else
-               if (time_offset.gt.zero) then
+               if ( time_offset > zero ) then
                   infl_time = time + time_offset
                else
                   infl_time = time
@@ -3813,16 +3799,16 @@ contains
                zlo = xlo(3)
             endif
 
-            if (probtype.eq.14) then 
+            if ( probtype == 14 ) then 
                Lx = domnhi(1)-domnlo(1)
                Ly = domnhi(2)-domnlo(2)
                Lz = domnhi(3)-domnlo(3)
-            else if (probtype.eq.15) then 
+            else if ( probtype == 15 ) then 
                Lx = forcing_xlength
                Ly = forcing_ylength
                Lz = forcing_zlength
             endif
-            if (hack_lz.eq.1) then 
+            if ( hack_lz == 1 ) then 
                Lz = Lz/two
             endif
             
@@ -3848,12 +3834,12 @@ contains
 
 !!$omp parallel do private(i,j,k,x,y,z,f1,f2,f3,kx,ky,kz,kxd,kyd,kzd)
 !!$omp&private(xT,kappa)
-            do k = klo, khi
-               z = zlo + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
+            do k = f_lo(3), f_hi(3)
+               z = zlo + hz*(float(k-f_lo(3)) + half)
+               do j = f_lo(2), f_hi(2)
+                  y = xlo(2) + hy*(float(j-f_lo(2)) + half)
+                  do i = f_lo(1), f_hi(1)
+                     x = xlo(1) + hx*(float(i-f_lo(1)) + half)
                      f1 = zero
                      f2 = zero
                      f3 = zero
@@ -3920,9 +3906,9 @@ contains
                enddo
             enddo
 #else
-            do k = klo, khi
-               do j = jlo, jhi
-                  do i = ilo, ihi
+            do k = f_lo(3), f_hi(3)
+               do j = f_lo(2), f_hi(2)
+                  do i = f_lo(1), f_hi(1)
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nXvel) = zero
@@ -3930,108 +3916,110 @@ contains
                enddo
             enddo
 #endif
-         else if (probtype.eq.19) then
-!c     Coriolis
-            do k = klo, khi
-               z = xlo(3) + hz*(float(k-klo) + half)
-               do j = jlo, jhi
-                  y = xlo(2) + hy*(float(j-jlo) + half)
-                  do i = ilo, ihi
-                     x = xlo(1) + hx*(float(i-ilo) + half)
+         else if (probtype == 19) then
+            ! Coriolis
+            do k = f_lo(3), f_hi(3)
+               z = xlo(3) + hz*(float(k-f_lo(3)) + half)
+               do j = f_lo(2), f_hi(2)
+                  y = xlo(2) + hy*(float(j-f_lo(2)) + half)
+                  do i = f_lo(1), f_hi(1)
+                     x = xlo(1) + hx*(float(i-f_lo(1)) + half)
                      force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*( two*omega*vel(i,j,k,nYvel)+omega*omega*x)
                      force(i,j,k,nYvel) = scal(i,j,k,nRhoScal)*(-two*omega*vel(i,j,k,nXvel)+omega*omega*y)
                      force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
-                     if (do_trac2.eq.1) then
+                     if (do_trac2==1) then
                         force(i,j,k,nZvel) = force(i,j,k,nZvel) + thermal_expansion*scal(i,j,k,nTrac2Scal)
                      endif
                   enddo
                enddo
             enddo
-         else if (probtype.eq.99.and.abs(grav_angle).gt.0.001) then
-!c     Angled gravity
+         else if (probtype == 99 .and. abs(grav_angle) > 0.001) then
+!     Angled gravity
             sga =  gravity * sin(Pi*grav_angle/180.)
             cga = -gravity * cos(Pi*grav_angle/180.)
-            do k = klo, khi
-               do j = jlo, jhi
-                  do i = ilo, ihi
+            do k = f_lo(3), f_hi(3)
+               do j = f_lo(2), f_hi(2)
+                  do i = f_lo(1), f_hi(1)
                      force(i,j,k,nXvel) = scal(i,j,k,nRhoScal)*sga
+#if ( AMREX_SPACEDIM == 2 )
+                     force(i,j,k,nYvel) = scal(i,j,k,nRhoScal)*cga
+#elif ( AMREX_SPACEDIM == 3 )
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nZvel) = scal(i,j,k,nRhoScal)*cga
+#endif
                   enddo
                enddo
             enddo
 !c     Default to gravity...
-         elseif (abs(gravity).gt.0.0001) then
-            do k = klo, khi
-               do j = jlo, jhi
-                  do i = ilo, ihi
+         elseif (abs(gravity) > 0.0001) then
+            do k = f_lo(3), f_hi(3)
+               do j = f_lo(2), f_hi(2)
+                  do i = f_lo(1), f_hi(1)
                      force(i,j,k,nXvel) = zero
+#if ( AMREX_SPACEDIM == 2 )
+                     force(i,j,k,nYvel) = gravity*scal(i,j,k,nRhoScal)
+#elif ( AMREX_SPACEDIM == 3 )
                      force(i,j,k,nYvel) = zero
                      force(i,j,k,nZvel) = gravity*scal(i,j,k,nRhoScal)
+#endif
                   enddo
                enddo
             enddo
 !c     else to zero
          else
-            do k = klo, khi
-               do j = jlo, jhi
-                  do i = ilo, ihi
+            do k = f_lo(3), f_hi(3)
+               do j = f_lo(2), f_hi(2)
+                  do i = f_lo(1), f_hi(1)
                      force(i,j,k,nXvel) = zero
                      force(i,j,k,nYvel) = zero
+#if ( AMREX_SPACEDIM == 3 )
                      force(i,j,k,nZvel) = zero
+#endif
                   enddo
                enddo
             enddo
          endif
-!c     End of velocity forcing
+         ! End of velocity forcing
       endif
 
-      if ((scomp+ncomp).gt.BL_SPACEDIM) then
-!c
-!c     Scalar forcing
-!c
+      if ( (scomp+ncomp) > AMREX_SPACEDIM) then
+         ! Scalar forcing
          do n = max(scomp,nRho), scomp+ncomp-1
-            if (n.eq.nRho) then
-!c
-!c     Density
-!c
-               do k = klo, khi
-                  do j = jlo, jhi
-                     do i = ilo, ihi
+            if (n == nRho) then
+               ! Density
+               do k = f_lo(3), f_hi(3)
+                  do j = f_lo(2), f_hi(2)
+                     do i = f_lo(1), f_hi(1)
                         force(i,j,k,n) = zero
                      enddo
                   enddo
                enddo
-            else if (n.eq.nTrac) then
-!c
-!c     Tracer
-!c
-               do k = klo, khi
-                  do j = jlo, jhi
-                     do i = ilo, ihi
+            else if (n == nTrac) then
+               ! Tracer
+               do k = f_lo(3), f_hi(3)
+                  do j = f_lo(2), f_hi(2)
+                     do i = f_lo(1), f_hi(1)
                         force(i,j,k,n) = zero
                      enddo
                   enddo
                enddo
-            else if (n.eq.nTrac2.and.do_trac2.eq.1) then
-!c
-!c     Other scalar
-!c
-               if (probtype.eq.20) then 
-!c     Temperature perturbation
-                  do k = klo, khi
-                     do j = jlo, jhi
-                        do i = ilo, ihi
+            else if ( n==nTrac2 .and. do_trac2==1 ) then
+               ! Other scalar
+               if (probtype == 20) then 
+                  ! Temperature perturbation
+                  do k = f_lo(3), f_hi(3)
+                     do j = f_lo(2), f_hi(2)
+                        do i = f_lo(1), f_hi(1)
                            force(i,j,k,n) = heating_coeff * scal(i,j,k,nTracScal)
                         enddo
                      enddo
                   enddo
                else  if (probtype.eq.18) then 
-!c     Round Jet/Plume (18)
-                  do k = klo, khi
-                     z = xlo(3) + hz*(float(k-klo) + half)
-                     do j = jlo, jhi
-                        do i = ilo, ihi
+                  ! Round Jet/Plume (18)
+                  do k = f_lo(3), f_hi(3)
+                     z = xlo(3) + hz*(float(k-f_lo(3)) + half)
+                     do j = f_lo(2), f_hi(2)
+                        do i = f_lo(1), f_hi(1)
                            if (abs(z-heating_centre).lt.heating_radius) then 
                               force(i,j,k,n) = heating_coeff * scal(i,j,k,nTracScal)
                            else
@@ -4041,11 +4029,11 @@ contains
                      enddo
                   enddo
                else  if (probtype.eq.19) then 
-!c     Coriolis evaporation (19)
-                  do k = klo, khi
-                     z = xlo(3) + hz*(float(k-klo) + half)
-                     do j = jlo, jhi
-                        do i = ilo, ihi
+                  ! Coriolis evaporation (19)
+                  do k = f_lo(3), f_hi(3)
+                     z = xlo(3) + hz*(float(k-f_lo(3)) + half)
+                     do j = f_lo(2), f_hi(2)
+                        do i = f_lo(1), f_hi(1)
                            if (abs(z-heating_centre).lt.heating_radius) then 
                               force(i,j,k,n) = heating_coeff
                            else
@@ -4055,22 +4043,20 @@ contains
                      enddo
                   enddo
                else
-!c     Some other probtype
-                  do k = klo, khi
-                     do j = jlo, jhi
-                        do i = ilo, ihi
-                           force(i,j,k,n) = zero
-                        enddo
+               ! Some other probtype
+               do k = f_lo(3), f_hi(3)
+                  do j = f_lo(2), f_hi(2)
+                     do i = f_lo(1), f_hi(1)
+                        force(i,j,k,n) = zero
                      enddo
                   enddo
+               enddo
                endif
             else
-!c
-!c     Other scalar
-!c
-               do k = klo, khi
-                  do j = jlo, jhi
-                     do i = ilo, ihi
+               ! Other scalar
+               do k = f_lo(3), f_hi(3)
+                  do j = f_lo(2), f_hi(2)
+                     do i = f_lo(1), f_hi(1)
                         force(i,j,k,n) = zero
                      enddo
                   enddo
@@ -4079,14 +4065,14 @@ contains
          enddo
       endif
       
-      if (getForceVerbose.gt.0 .and. isioproc.eq.1) then
+      if ( getForceVerbose>0 .and. isioproc==1) then
          do n = scomp,scomp+ncomp-1
             forcemin(n) = 1.d234
             forcemax(n) = -1.d234
          enddo
-         do k = klo, khi
-            do j = jlo, jhi
-               do i = ilo, ihi
+         do k = f_lo(3), f_hi(3)
+            do j = f_lo(2), f_hi(2)
+               do i = f_lo(1), f_hi(1)
                   do n = scomp,ncomp+scomp-1
                      forcemin(n) = min(forcemin(n),force(i,j,k,n))
                      forcemax(n) = max(forcemax(n),force(i,j,k,n))
@@ -4100,7 +4086,7 @@ contains
          enddo
       endif
 
-      end subroutine FORT_MAKEFORCE
+   end subroutine FORT_MAKEFORCE
 
 !c     ::: -----------------------------------------------------------
 !c     ::: This routine will tag high error cells based on the 
@@ -6977,7 +6963,7 @@ contains
 !c     perforated plate with radial pattern, no flow on boundaries (to enable periodic ok)
 #if 1
       jetVel = adv_vel/(1.0 - holeBLfac)      
-      do n=1,3
+      do n = 1, 3
          cent(n) = 0.5d0 * (domnlo(n) + domnhi(n))
       enddo
       holeRad = 0.0036d0
