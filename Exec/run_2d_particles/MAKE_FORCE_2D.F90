@@ -10,9 +10,9 @@
 #include <PROB_NS_F.H>
 #include <AMReX_ArrayLim.H>
 
-#define SDIM 2
-
 module make_force_2d_moldule
+
+  use amrex_fort_module, only : dim=>amrex_spacedim
 
   implicit none
 
@@ -22,104 +22,101 @@ module make_force_2d_moldule
   
 contains
 
-!c
-!    This routine computes the forcing terms that will be added to the momentum equation
-!c
-      subroutine FORT_MAKEFORCE(time,force, &
-                               vel, &
-                               scal, &
-                               DIMS(force), &
-                               DIMS(vel), &
-                               DIMS(scal), &
-                               dx,xlo,xhi,gravity,scomp,ncomp, &
-                               nscal,getForceVerbose &
-     )bind(C, name="FORT_MAKEFORCE")
+!
+! ::: -----------------------------------------------------------
+!     This routine add the forcing terms to the momentum equation
+
+   subroutine FORT_MAKEFORCE( time, &
+                              force, f_lo, f_hi,&
+                              vel, v_lo, v_hi,&
+                              scal, s_lo, s_hi,&
+                              dx, xlo, xhi, gravity, scomp, ncomp, &
+                              nscal, getForceVerbose ) &
+                              bind(C, name="FORT_MAKEFORCE")
 
       implicit none
 
-      integer    DIMDEC(force)
-      integer    DIMDEC(scal)
-      integer    scomp, ncomp
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     force  (DIMV(force),scomp:scomp+ncomp-1)
-      REAL_T     gravity
-      integer    DIMDEC(vel)
-      integer    getForceVerbose, nscal
-      REAL_T     vel    (DIMV(vel),0:SDIM-1)
-      REAL_T     scal   (DIMV(scal),0:nscal-1)
+! In/Out
+      integer :: f_lo(3), f_hi(3)
+      integer :: v_lo(3), v_hi(3)
+      integer :: s_lo(3), s_hi(3)
+      integer :: scomp, ncomp
+      integer :: nscal, getForceVerbose
+      REAL_T  :: time, dx(3)
+      REAL_T  :: xlo(3), xhi(3)
+      REAL_T  :: gravity
+      REAL_T, dimension(f_lo(1):f_hi(1),f_lo(2):f_hi(2),f_lo(3):f_hi(3),scomp:scomp+ncomp-1) :: force
+      REAL_T, dimension(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3),0:dim-1) :: vel
+      REAL_T, dimension(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),0:nscal-1) :: scal
 
-      integer    i,j,n
-      integer ilo, jlo
-      integer ihi, jhi
-      integer nXvel, nYvel, nRho, nTrac, nTrac2
-      integer nRhoScal, nTracScal, nTrac2Scal
+! Local
+      integer :: nXvel, nYvel, nZvel, nRho, nTrac, nRhoScal
+      integer :: nTrac2, nTracScal, nTrac2Scal
 
-      ilo = force_l1
-      jlo = force_l2
-      ihi = force_h1
-      jhi = force_h2
+      integer :: i, j, k, n
 
-!c     Assumes components are in the following order
+!     Assumes components are in the following order
       nXvel = 0
       nYvel = 1
       nRho  = 2
       nTrac = 3
       nTrac2= 4
 
-      nRhoScal   = nRho-SDIM
-      nTracScal  = nTrac-SDIM
-      nTrac2Scal = nTrac2-SDIM
+      nRhoScal   = nRho-dim
+      nTracScal  = nTrac-dim
+      nTrac2Scal = nTrac2-dim
 
       if (scomp.eq.0) then
-!c
-!c     Do velocity forcing
-!c
-         do j = jlo, jhi
-            do i = ilo, ihi
-               force(i,j,nXvel) = zero
-               force(i,j,nYvel) = zero
+!
+!     Do velocity forcing
+!
+         do k = f_lo(3), f_hi(3)
+            do j = f_lo(2), f_hi(2)
+               do i = f_lo(1), f_hi(1)
+                  force(i,j,k,nXvel) = zero
+                  force(i,j,k,nYvel) = zero
+#if ( AMREX_SPACEDIM == 3 )
+                  force(i,j,k,nZvel) = zero
+#endif
+               enddo
             enddo
          enddo
-!c     End of velocity forcing
+!     End of velocity forcing
       endif
 
-      if ((scomp+ncomp).gt.BL_SPACEDIM) then
-!c
-!c     Scalar forcing
-!c
+      if ((scomp+ncomp).gt.AMREX_SPACEDIM) then
+!        Scalar forcing
          do n = max(scomp,nRho), scomp+ncomp-1
             if (n.eq.nRho) then
-!c
-!c     Density
-!c
-               do j = jlo, jhi
-                  do i = ilo, ihi
-                     force(i,j,n) = zero
+               !     Density
+               do k = f_lo(3), f_hi(3)
+                  do j = f_lo(2), f_hi(2)
+                     do i = f_lo(1), f_hi(1)
+                        force(i,j,k,n) = zero
+                     enddo
                   enddo
                enddo
             else if (n.eq.nTrac) then
-!c
-!c     Tracer
-!c
-               do j = jlo, jhi
-                  do i = ilo, ihi
-                     force(i,j,n) = zero
+               !     Tracer
+               do k = f_lo(3), f_hi(3)
+                  do j = f_lo(2), f_hi(2)
+                     do i = f_lo(1), f_hi(1)
+                        force(i,j,k,n) = zero
+                     enddo
                   enddo
                enddo
             else
-!c
-!c     Other scalar
-!c
-               do j = jlo, jhi
-                  do i = ilo, ihi
-                     force(i,j,n) = zero
+               !     Other scalar
+               do k = f_lo(3), f_hi(3)
+                  do j = f_lo(2), f_hi(2)
+                     do i = f_lo(1), f_hi(1)
+                        force(i,j,k,n) = zero
+                     enddo
                   enddo
                enddo
             endif
          enddo
       endif
-
 
     end subroutine FORT_MAKEFORCE
 
