@@ -2452,7 +2452,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     info.setMetricTerm(false);
     
 #ifdef AMREX_USE_EB
-    MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info, ebfactory);
+    Vector<const EBFArrayBoxFactory*> ebf_rebase{ebfactory.begin()+c_lev, ebfactory.begin()+c_lev+nlevel};
+    MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info, ebf_rebase);
 #else
     MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info);
 #endif
@@ -2480,7 +2481,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         const auto& ba = amrex::convert(mg_grids[ilev], IntVect::TheNodeVector());
 #ifdef AMREX_USE_EB
-	      rhs[ilev].define(ba, mg_dmap[ilev], 1, 0, MFInfo(), *ebfactory[c_lev+ilev]);
+	rhs[ilev].define(ba, mg_dmap[ilev], 1, 0, MFInfo(), *ebfactory[c_lev+ilev]);
 #else
         rhs[ilev].define(ba, mg_dmap[ilev], 1, 0);
 #endif
