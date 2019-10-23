@@ -3012,50 +3012,34 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
-		// Need to do some funky half-time stuff
-		if (getForceVerbose)
-  		    amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
+               // Need to do some funky half-time stuff
+               if (getForceVerbose)
+                  amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
 
-		// Average the mac face velocities to get cell centred velocities
-                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-		FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
-		const int* vel_lo  = Vel.loVect();
-		const int* vel_hi  = Vel.hiVect();
-		const int* umacx_lo = u_mac[0][Rho_mfi].loVect();
-		const int* umacx_hi = u_mac[0][Rho_mfi].hiVect();
-		const int* umacy_lo = u_mac[1][Rho_mfi].loVect();
-		const int* umacy_hi = u_mac[1][Rho_mfi].hiVect();
-#if (BL_SPACEDIM==3)
-		const int* umacz_lo = u_mac[2][Rho_mfi].loVect();
-		const int* umacz_hi = u_mac[2][Rho_mfi].hiVect();
+               // Average the mac face velocities to get cell centred velocities
+               const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
+               FArrayBox Vel(amrex::grow(bx,0),AMREX_SPACEDIM);
+               FORT_AVERAGE_EDGE_STATES(BL_TO_FORTRAN_ANYD(Vel),
+                                        BL_TO_FORTRAN_ANYD(u_mac[0][Rho_mfi]),
+                                        BL_TO_FORTRAN_ANYD(u_mac[1][Rho_mfi]),
+#if (AMREX_SPACEDIM==3)
+                                        BL_TO_FORTRAN_ANYD(u_mac[2][Rho_mfi]),
 #endif
-		FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-					 u_mac[0][Rho_mfi].dataPtr(),
-					 u_mac[1][Rho_mfi].dataPtr(),
-#if (BL_SPACEDIM==3)
-					 u_mac[2][Rho_mfi].dataPtr(),
-#endif
-					 ARLIM(vel_lo),  ARLIM(vel_hi),
-					 ARLIM(umacx_lo), ARLIM(umacx_hi),
-					 ARLIM(umacy_lo), ARLIM(umacy_hi),
-#if (BL_SPACEDIM==3)
-					 
-					 ARLIM(umacz_lo), ARLIM(umacz_hi),
-#endif
-					 &getForceVerbose);
-		//
-		// Average the new and old time to get Crank-Nicholson half time approximation.
-		//
-		FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-		Scal.copy(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
-		Scal.plus(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
-		Scal.mult(0.5,bx);
-		
-		if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
-                getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
+                                        &getForceVerbose);
 
-                godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
-                                     Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
+               //
+               // Average the new and old time to get Crank-Nicholson half time approximation.
+               //
+               FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
+               Scal.copy(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
+               Scal.plus(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
+               Scal.mult(0.5,bx);
+
+               if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
+                  getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
+
+               godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
+                                    Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
             }
         }
 }
@@ -3841,35 +3825,19 @@ NavierStokesBase::velocity_advection_update (Real dt)
         //
         // Need to do some funky half-time stuff.
         //
-	if (getForceVerbose)
-  	    amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
+        if (getForceVerbose)
+           amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
         // Average the mac face velocities to get cell centred velocities.
         //
         FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
-        const int* vel_lo  = Vel.loVect();
-        const int* vel_hi  = Vel.hiVect();
-        const int* umacx_lo = u_mac[0][Rhohalf_mfi].loVect();
-        const int* umacx_hi = u_mac[0][Rhohalf_mfi].hiVect();
-        const int* umacy_lo = u_mac[1][Rhohalf_mfi].loVect();
-        const int* umacy_hi = u_mac[1][Rhohalf_mfi].hiVect();
-#if (BL_SPACEDIM==3)
-        const int* umacz_lo = u_mac[2][Rhohalf_mfi].loVect();
-        const int* umacz_hi = u_mac[2][Rhohalf_mfi].hiVect();
+        FORT_AVERAGE_EDGE_STATES(BL_TO_FORTRAN_ANYD(Vel),
+                                 BL_TO_FORTRAN_ANYD(u_mac[0][Rhohalf_mfi]),
+                                 BL_TO_FORTRAN_ANYD(u_mac[1][Rhohalf_mfi]),
+#if (AMREX_SPACEDIM==3)
+                                 BL_TO_FORTRAN_ANYD(u_mac[2][Rhohalf_mfi]),
 #endif
-        FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-            u_mac[0][Rhohalf_mfi].dataPtr(),
-            u_mac[1][Rhohalf_mfi].dataPtr(),
-#if (BL_SPACEDIM==3)
-            u_mac[2][Rhohalf_mfi].dataPtr(),
-#endif
-            ARLIM(vel_lo),  ARLIM(vel_hi),
-            ARLIM(umacx_lo), ARLIM(umacx_hi),
-            ARLIM(umacy_lo), ARLIM(umacy_hi),
-#if (BL_SPACEDIM==3)
-            ARLIM(umacz_lo), ARLIM(umacz_hi),
-#endif
-            &getForceVerbose);
+                                 &getForceVerbose);
         //
         // Average the new and old time to get Crank-Nicholson half time approximation.
         //
@@ -3877,7 +3845,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
         Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
         Scal.mult(0.5,bx,0,NUM_SCALARS);
-	
+
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
