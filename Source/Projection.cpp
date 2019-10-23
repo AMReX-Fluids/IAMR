@@ -591,7 +591,8 @@ Projection::syncProject (int             c_lev,
     // Add projected Vsync to new velocity at this level & add phi to pressure.
     //
     AddPhi(pres, phi);
-    UpdateArg1(vel, dt_crse, Vsync, BL_SPACEDIM, grids, 1);
+
+    MultiFab::Saxpy(vel, dt_crse, Vsync, 0, 0, AMREX_SPACEDIM, 1);
 
     if (verbose)
     {
@@ -783,9 +784,9 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Add projected vel to new velocity.
     //
-    UpdateArg1(vel_crse, dt_crse, Vsync, BL_SPACEDIM, grids,      1);
-    UpdateArg1(vel_fine, dt_crse, V_corr, BL_SPACEDIM, fine_grids, 1);
-
+    MultiFab::Saxpy(vel_crse,dt_crse,Vsync,0,0,AMREX_SPACEDIM,1);
+    MultiFab::Saxpy(vel_fine,dt_crse,V_corr,0,0,AMREX_SPACEDIM,1);
+    
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -1391,62 +1392,6 @@ Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
 }
 
 //
-// Update a quantity U using the formula: Unew = Unew + alpha*Uold
-//
-
-void
-Projection::UpdateArg1 (MultiFab&       Unew,
-                        Real            alpha,
-                        MultiFab&       Uold,
-                        int             nvar,
-                        const BoxArray& grids,
-                        int             ngrow)
-{
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-  for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi) 
-    {
-      BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
-
-      UpdateArg1(Unew[Uoldmfi],alpha,Uold[Uoldmfi],nvar,Uoldmfi.growntilebox(ngrow));
-    }
-}
-
-//
-// Update a quantity U using the formula
-// currently only the velocity and the pressure.
-// Unew = Unew + alpha*Uold
-//
-
-void
-Projection::UpdateArg1 (FArrayBox& Unew,
-                        Real       alpha,
-                        FArrayBox& Uold,
-                        int        nvar,
-                        const Box& b)
-{
-    BL_ASSERT(nvar <= Uold.nComp());
-    BL_ASSERT(nvar <= Unew.nComp());
-    BL_ASSERT(Uold.contains(b) == true);
-    BL_ASSERT(Unew.contains(b) == true);
-
-    const int*  lo    = b.loVect();
-    const int*  hi    = b.hiVect();
-    const int*  uo_lo = Uold.loVect(); 
-    const int*  uo_hi = Uold.hiVect(); 
-    const Real* uold  = Uold.dataPtr(0);
-    const int*  un_lo = Unew.loVect(); 
-    const int*  un_hi = Unew.hiVect(); 
-    const Real* unew  = Unew.dataPtr(0);
-
-    proj_update(lo,hi,&nvar,
-		unew, ARLIM(un_lo), ARLIM(un_hi),
-		&alpha,
-		uold, ARLIM(uo_lo), ARLIM(uo_hi) );
-}
-
-//
 // Add phi to P.
 //
 
@@ -1469,18 +1414,9 @@ Projection::incrPress (int  level,
     MultiFab& P_old = LevelData[level]->get_old_data(Press_Type);
     MultiFab& P_new = LevelData[level]->get_new_data(Press_Type);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-
-    for (MFIter P_newmfi(P_new,true); P_newmfi.isValid(); ++P_newmfi)
-    {
-        const Box& b  = P_newmfi.growntilebox(1);
-
-        UpdateArg1(P_new[P_newmfi],1.0/dt,P_old[P_newmfi],1,b);
-
-        P_old[P_newmfi].setVal(BogusValue,b);
-    }
+    MultiFab::Saxpy(P_new,1./dt,P_old,0,0,1,1);
+    //fixme? do we really need this?
+    P_old.setVal(BogusValue);    
 }
 
 //
