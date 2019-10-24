@@ -211,25 +211,6 @@ protected:
                       amrex::Real       alpha,
                       const amrex::Box& grd);
     //
-    // Update a quantity U using the formula
-    // Unew = Unew + alpha*Uold
-    //
-    void UpdateArg1 (amrex::MultiFab&       Unew,
-                     amrex::Real            alpha,
-                     amrex::MultiFab&       Uold,
-                     int             nvar,
-                     const amrex::BoxArray& grids,
-                     int ngrow);
-    //
-    // Update a quantity U using the formula
-    // Unew = Unew + alpha*Uold
-    //
-    void UpdateArg1 (amrex::FArrayBox& Unew,
-                     amrex::Real       alpha,
-                     amrex::FArrayBox& Uold,
-                     int        nvar,
-                     const amrex::Box& grd);
-    //
     // Add phi to P.
     //
     void AddPhi (amrex::MultiFab&       p,

@@ -330,7 +330,7 @@ NavierStokes::variableSetUp ()
     //
     // magnitude of vorticity
     //
-    derive_lst.add("mag_vort",IndexType::TheCellType(),1,dermgvort,grow_box_by_one);
+    derive_lst.add("mag_vort",IndexType::TheCellType(),1,DeriveFunc3D(dermgvort),grow_box_by_one);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #if (BL_SPACEDIM == 3)
     //
@@ -348,23 +348,23 @@ NavierStokes::variableSetUp ()
     //
     // divergence of velocity field
     //
-    derive_lst.add("diveru",IndexType::TheCellType(),1,dermgdivu,grow_box_by_one);
+    derive_lst.add("diveru",IndexType::TheCellType(),1,DeriveFunc3D(dermgdivu),grow_box_by_one);
     derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // average pressure
     //
-    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,deravgpres,
+    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,DeriveFunc3D(deravgpres),
                    the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in X direction
     //
-    derive_lst.add("gradpx",IndexType::TheCellType(),1,dergrdpx,the_same_box);
+    derive_lst.add("gradpx",IndexType::TheCellType(),1,DeriveFunc3D(dergrdpx),the_same_box);
     derive_lst.addComponent("gradpx",desc_lst,Press_Type,Pressure,1);
     //
     // pressure gradient in Y direction
     //
-    derive_lst.add("gradpy",IndexType::TheCellType(),1,dergrdpy,the_same_box);
+    derive_lst.add("gradpy",IndexType::TheCellType(),1,DeriveFunc3D(dergrdpy),the_same_box);
     derive_lst.addComponent("gradpy",desc_lst,Press_Type,Pressure,1);
     //
     // magnitude of pressure gradient 
@@ -376,7 +376,7 @@ NavierStokes::variableSetUp ()
     //
     // pressure gradient in Z direction
     //
-    derive_lst.add("gradpz",IndexType::TheCellType(),1,dergrdpz,the_same_box);
+    derive_lst.add("gradpz",IndexType::TheCellType(),1,DeriveFunc3D(dergrdpz),the_same_box);
     derive_lst.addComponent("gradpz",desc_lst,Press_Type,Pressure,1);
     //
     // radial velocity
