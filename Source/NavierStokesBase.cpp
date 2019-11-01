@@ -1982,31 +1982,6 @@ NavierStokesBase::zeroOldPress ()
     get_old_data(Press_Type).setVal(0);
 }
 
-//
-// Inject fine pressure nodes down onto coarse nodes.
-//
-void
-NavierStokesBase::injectDown (const Box&       ovlp,
-			      FArrayBox&       Pcrse,
-			      const FArrayBox& Pfine,
-			      IntVect&         fratio )
-{
-    BL_PROFILE("NavierStokesBase::injectDown()");
-
-    const int*  ovlo  = ovlp.loVect();
-    const int*  ovhi  = ovlp.hiVect();
-    Real*       cpres = Pcrse.dataPtr();
-    const int*  clo   = Pcrse.loVect();
-    const int*  chi   = Pcrse.hiVect();
-    const Real* fpres = Pfine.dataPtr();
-    const int*  flo   = Pfine.loVect();
-    const int*  fhi   = Pfine.hiVect();
-
-    fort_putdown(cpres,ARLIM(clo),ARLIM(chi),
-                 fpres,ARLIM(flo),ARLIM(fhi),
-                 ovlo,ovhi,fratio.getVect());
-}
-
 void
 NavierStokesBase::level_projector (Real dt,
 				   Real time,

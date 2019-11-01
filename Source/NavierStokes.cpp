@@ -1071,6 +1071,7 @@ NavierStokes::diffuse_velocity_setup (Real       dt,
     }
 }
 
+//fixme? is there now an amrex fn for this?
 Real 
 NavierStokes::MaxVal (const std::string& name,
                       Real           time)
@@ -2104,8 +2105,8 @@ NavierStokes::avgDown (int comp)
     MultiFab&       S_crse   = get_new_data(State_Type);
     MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
 
-    average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
-                         comp, 1, fine_ratio);
+    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+			comp, 1, fine_ratio);
 
     if (comp == Density) 
     {
@@ -2135,8 +2136,8 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
-                         0, S_crse.nComp(), fine_ratio);
+    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+			0, S_crse.nComp(), fine_ratio);
 
     //   
     // Now average down pressure over time n-(n+1) interval.
@@ -2147,24 +2148,7 @@ NavierStokes::avgDown ()
     MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
     const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
 
-    BoxArray crse_P_fine_BA = P_fgrids; crse_P_fine_BA.coarsen(fine_ratio);
-
-    // FIXME! Don't think this will work because each fine grid box is not neccesarily 
-    //  contained within one coarse box ... Maybe there's now amrex fns for average_down
-    //  and injectDown???
-    MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0,MFInfo(),Factory());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(crse_P_fine,true); mfi.isValid(); ++mfi)
-    {
-	const Box& bx = mfi.tilebox(); 
-	
-	injectDown(bx,crse_P_fine[mfi],P_fine[mfi],fine_ratio);
-    }
-    P_crse.copy(crse_P_fine, parent->Geom(level).periodicity());
-
-    crse_P_fine.clear();
+    amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
     //
     // Next average down divu and dSdT at new time.
     //
@@ -2173,16 +2157,16 @@ NavierStokes::avgDown ()
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
         
-        average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
-                             0, 1, fine_ratio);
+	amrex::average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
+			    0, 1, fine_ratio);
     }
     if (have_dsdt)
     {
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
         
-        average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
-                             0, 1, fine_ratio);
+	amrex::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
+			    0, 1, fine_ratio);
     }
     //
     // Fill rho_ctime at the current and finer levels with the correct data.

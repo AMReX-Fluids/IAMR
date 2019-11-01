@@ -259,14 +259,6 @@ protected:
                      amrex::Real            alpha);
 
     void initial_velocity_diffusion_update (amrex::Real dt);
-
-    //
-    // Inject fine pressure nodes down onto coarse nodes.
-    //
-    void injectDown (const amrex::Box&       ovlp,
-                     amrex::FArrayBox&       Pcrse,
-                     const amrex::FArrayBox& Pfine,
-                     amrex::IntVect&         fine_ratio);
     //
     // Compute level projection.
     //
@@ -546,7 +538,8 @@ private:
 // Data
 //
 protected:
-
+  
+    // fixme? for now, volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
     amrex::MultiFab area[BL_SPACEDIM];
 
