@@ -19,7 +19,7 @@ module navierstokes_2d_module
 
   private 
 
-  public gradp, fort_putdown, incrmult, fort_maxval, &
+  public gradp, fort_putdown, fort_maxval, &
        summass, summass_cyl, cen2edg, edge_interp, &
        pc_edge_interp, filcc_tile
   
@@ -111,43 +111,6 @@ contains
       end do
 
     end subroutine fort_putdown
-
-!c :: ----------------------------------------------------------
-!c :: NOTE: This routine is no longer needed. Use saxpy
-!c ::     funcitons in AMReX.
-!c ::     
-!C :: UTILITY ROUTINE: compute:
-!c ::             A += alpha*B on subrange
-!c ::
-!c :: INPUTS / OUTPUTS:
-!c ::  a         <=  output array
-!c ::  b          => input array
-!c ::  DIMS(a)    => index limits of a array
-!c ::  DIMS(b)    => index limits of a array
-!c ::  lo,hi      => index limits of update region
-!c ::  alpha      => multiplicative factor
-!c :: ----------------------------------------------------------
-!c ::
-    subroutine incrmult(a,DIMS(a),b,DIMS(b),lo,hi,alpha)&
-         bind(C,name="incrmult")
-
-       implicit none
-       integer    DIMDEC(a)
-       integer    DIMDEC(b)
-       integer    lo(2), hi(2)
-       REAL_T     alpha
-       REAL_T     a(DIMV(a))
-       REAL_T     b(DIMV(b))
-
-       integer i, j
-
-       do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             a(i,j) = a(i,j) + alpha*b(i,j)
-          end do
-       end do
-
-     end subroutine incrmult
 
 !c :: ----------------------------------------------------------
 !c :: MAXVAL
