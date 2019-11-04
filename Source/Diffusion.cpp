@@ -1211,9 +1211,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	    }
 	  }
 	  //FIXME
-	  Print()<<"Old tensor fluxes ...\n";
-	  amrex::print_state(*tensorflux_old[0], {64,80});
-	  amrex::print_state(*tensorflux_old[1], {64,80});
+ 	  // Print()<<"Old tensor fluxes ...\n";
+	  // amrex::print_state(*tensorflux_old[0], {64,80});
+	  // amrex::print_state(*tensorflux_old[1], {64,80});
 	  //
 	}
       }
