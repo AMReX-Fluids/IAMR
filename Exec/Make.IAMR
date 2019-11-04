@@ -5,6 +5,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 Bdirs += Source
 Bdirs += Source/TurbInflow
+Bdirs += Source/Src_nd
 Bdirs += Source/Src_$(DIM)d
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
@@ -18,7 +19,8 @@ INCLUDE_LOCATIONS += $(Blocs)
 #These are the directories in BoxLib
 
 Pdirs   := Base AmrCore Amr Boundary
-Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_TensorMG  LinearSolvers/MLMG
+Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_TensorMG  \
+           LinearSolvers/MLMG LinearSolvers/Projections
 
 ifeq ($(USE_PARTICLES),TRUE)
   Pdirs += Particle

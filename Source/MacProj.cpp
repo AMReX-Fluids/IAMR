@@ -745,8 +745,8 @@ MacProj::mac_sync_compute (int                   level,
     Godunov*        godunov             = ns_level.godunov;
     bool            use_forces_in_trans = godunov->useForcesInTrans() ? true : false;
 
-    MultiFab vel_visc_terms(grids,dmap,BL_SPACEDIM,1);
-    MultiFab scal_visc_terms(grids,dmap,numscal,1);
+    MultiFab vel_visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
+    MultiFab scal_visc_terms(grids,dmap,numscal,1,MFInfo(),ns_level.Factory());
 
     vel_visc_terms.setVal(0,1);  // Initialize to make calls below safe
     scal_visc_terms.setVal(0,1); // Initialize to make calls below safe
