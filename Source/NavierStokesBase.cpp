@@ -2,6 +2,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
+#include <AMReX_EBAmrUtil.H>
 
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
@@ -1297,6 +1298,26 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
             tags[mfi].tags(itags);
         }
     }
+        
+#ifdef AMREX_USE_EB
+    // Enforce that the EB not cross the coarse-fine boundary
+    const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+    if ( !ebfactory.isAllRegular() ) 
+    {
+      //
+      // FIXME - For now, always refine cut cells
+      //   Later, figure out a slick way to check if EB and CFB cross
+      //   and make refine_cutcells a runtime var
+      //
+      bool refine_cutcells = true;
+      // Refine on cut cells
+      if (refine_cutcells) // or if EB and CBF cross
+      {
+        const MultiFab& S_new = get_new_data(State_Type);
+        amrex::TagCutCells(tags, S_new);
+      }
+    }
+#endif
 }
 
 Real
