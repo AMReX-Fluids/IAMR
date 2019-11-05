@@ -3438,17 +3438,8 @@ NavierStokesBase::velocity_advection (Real dt)
 	    }
       getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
-
-//      Print() << "tforces from getForce of velocity_advection: " << tforces << std::endl;	// OK
-
-//      VisMF::Write(visc_terms,"viscterms_velocityadvection");	// OK 
-//      VisMF::Write(Gp,"Gp_velocityadvection");			// NO!!!!!!!!!!!!!!!!!!1
-//      VisMF::Write(rho_ptime,"rhoptime_velocityadvection");	// OK
-
       godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
-
-//      Print() << "tforces from velocity_advection: " << tforces << std::endl;	// NO
-      
+   
       D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                bndry[2] = fetchBCArray(State_Type,bx,2,1);)
@@ -3502,9 +3493,6 @@ NavierStokesBase::velocity_advection (Real dt)
       } // end of MFIter
 }
 
-//    VisMF::Write(Umf,"Umf_from_velocityadvection");	// OK
-//    VisMF::Write(*aofs,"Aofs_from_velocityadvection");	// NO
-
  } //end scope of FillPatchIter
     
     if (do_reflux)
@@ -3553,8 +3541,6 @@ NavierStokesBase::velocity_update (Real dt)
       }
     }
 
-//    VisMF::Write(get_new_data(State_Type),"Snew_from_velupdate00000");	// OK
-
     velocity_advection_update(dt);
 
     if (!initial_iter)
@@ -3563,8 +3549,6 @@ NavierStokesBase::velocity_update (Real dt)
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
-
-//    VisMF::Write(S_new,"Snew_from_velupdate1111");			// OK... how is that possible??
 
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
@@ -3588,11 +3572,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
-
-////    VisMF::Write(U_old,"Uold_before");	// OK
-//    VisMF::Write(U_new,"Unew_before");	// OK
-//    VisMF::Write(Aofs,"Aofs_before");	// NO
-//    VisMF::Write(Gp,"Gp_before");	// NO
     
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
@@ -3654,9 +3633,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
             }
         }
 
-//	Print() << S << std::endl;	// OK
-//	Print() << tforces << std::endl;	// NO
-
         godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
                                 Gp[Rhohalf_mfi],halftime[i],bx,dt);
         if (do_mom_diff == 1)
@@ -3665,8 +3641,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
                 U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],bx,0,d,1);
         }
     }
-//    Print() << "Printing U_new after Add_aofs_tf_gp..." << std::endl;
-//    VisMF::Write(U_new,"Unew_after");	// NO
 }
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
@@ -3680,7 +3654,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
              if(U_new[mfi].contains_nan(mfi.validbox(),sigma,1)){
 		FArrayBox tmp(mfi.validbox(),1);
                 tmp.copy(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
-//		Print() << tmp << std::endl;					
+				
 		}            
          }
 	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
