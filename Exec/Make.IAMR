@@ -5,6 +5,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 Bdirs += Source
 Bdirs += Source/TurbInflow
+Bdirs += Source/Src_nd
 Bdirs += Source/Src_$(DIM)d
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)

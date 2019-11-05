@@ -1274,7 +1274,6 @@ Godunov::ExtrapVelToFaces (const amrex::MFIter&  mfi,
 void
 Godunov::AdvectVel (const amrex::MFIter&  mfi,
                     const MultiFab& U, MultiFab& aofs,
-
                     D_DECL(const FArrayBox& uedge, const FArrayBox& vedge, const FArrayBox& wedge), 
                     D_DECL(      FArrayBox& xflx,        FArrayBox& yflx,        FArrayBox& zflx),
                     D_DECL(      FArrayBox& xstate,      FArrayBox& ystate,      FArrayBox& zstate),
@@ -1308,27 +1307,47 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 //amrex::Print()<<aofs[mfi];
   if(flags.getType(amrex::grow(bx, 0)) == FabType::covered)
   {
-      // If tile is completely covered by EB geometry, set slopes
+      // If tile is completely covered by EB geometry, set
       // value to some very large number so we know if
       // we accidentaly use these covered slopes later in calculations
-      aofs[mfi].setVal(1.2345e300, bx, 0, ncomp);
+      amrex::Real covered_val = 1.2345e300;
+      aofs[mfi].setVal(covered_val, bx, 0, ncomp);
+      
+      D_TERM(const Box ubx = amrex::surroundingNodes(bx,0);,
+	     const Box vbx = amrex::surroundingNodes(bx,1);,
+	     const Box wbx = amrex::surroundingNodes(bx,2););
+      D_TERM(xflx.setVal(covered_val, ubx, 0, ncomp);,
+	     yflx.setVal(covered_val, vbx, 0, ncomp);,
+	     zflx.setVal(covered_val, wbx, 0, ncomp););
+
   }
   else
   {
       // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
       if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
       {
+	//
+	// FIXME! need compute_ugradu to return fluxes for multilevel sync
+	//   while we wait for incflo updates, set to zero so diffusive fluxes
+	//   can be debugged
+	//
+	D_TERM(const Box ubx = amrex::surroundingNodes(bx,0);,
+	       const Box vbx = amrex::surroundingNodes(bx,1);,
+	       const Box wbx = amrex::surroundingNodes(bx,2););
+	D_TERM(xflx.setVal(0, ubx, 0, ncomp);,
+	       yflx.setVal(0, vbx, 0, ncomp);,
+	       zflx.setVal(0, wbx, 0, ncomp););
+
 	compute_ugradu(BL_TO_FORTRAN_BOX(bx),
 		       BL_TO_FORTRAN_ANYD(aofs[mfi]),
-		       BL_TO_FORTRAN_ANYD(U[mfi]),
-           
-           BL_TO_FORTRAN_ANYD(uedge),
-           BL_TO_FORTRAN_ANYD(m_xslopes[mfi]),
-           BL_TO_FORTRAN_ANYD(vedge),
-           BL_TO_FORTRAN_ANYD(m_yslopes[mfi]),
+		       BL_TO_FORTRAN_ANYD(U[mfi]),		       
+		       BL_TO_FORTRAN_ANYD(uedge),
+		       BL_TO_FORTRAN_ANYD(m_xslopes[mfi]),
+		       BL_TO_FORTRAN_ANYD(vedge),
+		       BL_TO_FORTRAN_ANYD(m_yslopes[mfi]),
 #if(AMREX_SPACEDIM ==3)           
-           BL_TO_FORTRAN_ANYD(wedge),
-           BL_TO_FORTRAN_ANYD(m_zslopes[mfi]),
+		       BL_TO_FORTRAN_ANYD(wedge),
+		       BL_TO_FORTRAN_ANYD(m_zslopes[mfi]),
 #endif
 		       domain.loVect(),domain.hiVect(),
 		       dx,&nghost);
@@ -1336,40 +1355,38 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
       else
       {
 	// Use EB routines
-  int known_edgestate = 0;
+	int known_edgestate = 0;
   
-  compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
-                             BL_TO_FORTRAN_ANYD(aofs[mfi]),
-                             BL_TO_FORTRAN_ANYD(U[mfi]),
-
-                             BL_TO_FORTRAN_ANYD(uedge),
-                             BL_TO_FORTRAN_ANYD(xflx),
-                             BL_TO_FORTRAN_ANYD(xstate),
-                             BL_TO_FORTRAN_ANYD(x_areafrac[mfi]),
-                             BL_TO_FORTRAN_ANYD(x_facecent[mfi]),
-                             BL_TO_FORTRAN_ANYD(m_xslopes[mfi]),
-
-                             BL_TO_FORTRAN_ANYD(vedge),
-                             BL_TO_FORTRAN_ANYD(yflx),
-                             BL_TO_FORTRAN_ANYD(ystate),
-                             BL_TO_FORTRAN_ANYD(y_areafrac[mfi]),
-                             BL_TO_FORTRAN_ANYD(y_facecent[mfi]),
-                             BL_TO_FORTRAN_ANYD(m_yslopes[mfi]),
+	compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
+			BL_TO_FORTRAN_ANYD(aofs[mfi]),
+			BL_TO_FORTRAN_ANYD(U[mfi]),
+			BL_TO_FORTRAN_ANYD(uedge),
+			BL_TO_FORTRAN_ANYD(xflx),
+			BL_TO_FORTRAN_ANYD(xstate),
+			BL_TO_FORTRAN_ANYD(x_areafrac[mfi]),
+			BL_TO_FORTRAN_ANYD(x_facecent[mfi]),
+			BL_TO_FORTRAN_ANYD(m_xslopes[mfi]),
+			BL_TO_FORTRAN_ANYD(vedge),
+			BL_TO_FORTRAN_ANYD(yflx),
+			BL_TO_FORTRAN_ANYD(ystate),
+			BL_TO_FORTRAN_ANYD(y_areafrac[mfi]),
+			BL_TO_FORTRAN_ANYD(y_facecent[mfi]),
+			BL_TO_FORTRAN_ANYD(m_yslopes[mfi]),
 #if(AMREX_SPACEDIM ==3)
-                             BL_TO_FORTRAN_ANYD(wedge),
-                             BL_TO_FORTRAN_ANYD(zflx),
-                             BL_TO_FORTRAN_ANYD(zstate),
-                             BL_TO_FORTRAN_ANYD(z_areafrac[mfi]),
-                             BL_TO_FORTRAN_ANYD(z_facecent[mfi]),
-                             BL_TO_FORTRAN_ANYD(m_zslopes[mfi]),
+			BL_TO_FORTRAN_ANYD(wedge),
+			BL_TO_FORTRAN_ANYD(zflx),
+			BL_TO_FORTRAN_ANYD(zstate),
+			BL_TO_FORTRAN_ANYD(z_areafrac[mfi]),
+			BL_TO_FORTRAN_ANYD(z_facecent[mfi]),
+			BL_TO_FORTRAN_ANYD(m_zslopes[mfi]),
 #endif
-                             BL_TO_FORTRAN_ANYD(flags),
-                             BL_TO_FORTRAN_ANYD(volfrac[mfi]),
-                             BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
-                             domain.loVect(),domain.hiVect(),
-                             dx, &ncomp, &nghost, &known_edgestate);
+			BL_TO_FORTRAN_ANYD(flags),
+			BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+			BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
+			domain.loVect(),domain.hiVect(),
+			dx, &ncomp, &nghost, &known_edgestate);
       }
-//amrex::Print()<<aofs[mfi];
+      //amrex::Print()<<aofs[mfi];
   }        
 }
 
@@ -1380,26 +1397,26 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
 //
 void
 Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
-		       const MultiFab& S, int first_scal, int num_scalars,
-		       MultiFab& aofs, int state_ind, int flxcomp,
-		       D_DECL(const MultiFab& xslopes,
-			     const MultiFab& yslopes,
-			     const MultiFab& zslopes),
-		       D_DECL(const FArrayBox& uedge, const FArrayBox& vedge, const FArrayBox& wedge),
-		       D_DECL(      FArrayBox& xflx,        FArrayBox& yflx,        FArrayBox& zflx),
-           D_DECL(      FArrayBox& xstate,      FArrayBox& ystate,      FArrayBox& zstate),
-           const MultiFab& volfrac,
-           const MultiCutFab& bndrycent,
-           D_DECL(const amrex::MultiCutFab& x_areafrac,
-				          const amrex::MultiCutFab& y_areafrac,
-				          const amrex::MultiCutFab& z_areafrac),
-           D_DECL(const amrex::MultiCutFab& x_facecent,
-				          const amrex::MultiCutFab& y_facecent,
-				          const amrex::MultiCutFab& z_facecent),
-           const amrex::Vector<int>& state_bc,
-		       const Box& domain,
-		       const amrex::Real* dx,
-		       int nghost, int known_edgestate)
+			   const MultiFab& S, int first_scal, int num_scalars,
+			   MultiFab& aofs, int state_ind, int flxcomp,
+			   D_DECL(const MultiFab& xslopes,
+				  const MultiFab& yslopes,
+				  const MultiFab& zslopes),
+			   D_DECL(const FArrayBox& uedge, const FArrayBox& vedge, const FArrayBox& wedge),
+			   D_DECL(      FArrayBox& xflx,        FArrayBox& yflx,        FArrayBox& zflx),
+			   D_DECL(      FArrayBox& xstate,      FArrayBox& ystate,      FArrayBox& zstate),
+			   const MultiFab& volfrac,
+			   const MultiCutFab& bndrycent,
+			   D_DECL(const amrex::MultiCutFab& x_areafrac,
+				  const amrex::MultiCutFab& y_areafrac,
+				  const amrex::MultiCutFab& z_areafrac),
+			   D_DECL(const amrex::MultiCutFab& x_facecent,
+				  const amrex::MultiCutFab& y_facecent,
+				  const amrex::MultiCutFab& z_facecent),
+			   const amrex::Vector<int>& state_bc,
+			   const Box& domain,
+			   const amrex::Real* dx,
+			   int nghost, int known_edgestate)
 {
   
   // Tilebox
@@ -1447,7 +1464,7 @@ Godunov::AdvectScalars_EB (const amrex::MFIter&  mfi,
       }
       else
       {
-//	// Use EB routines
+	// Use EB routines
         compute_aofs_eb(BL_TO_FORTRAN_BOX(bx),
                              BL_TO_FORTRAN_N_ANYD(aofs[mfi],state_ind),
                              BL_TO_FORTRAN_N_ANYD(S[mfi],first_scal),

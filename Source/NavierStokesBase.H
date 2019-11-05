@@ -177,7 +177,7 @@ public:
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
     
 #ifdef AMREX_USE_EB
-  amrex::MultiFab& getGradP() { return *gradp; }
+    amrex::MultiFab& getGradP() { return *gradp; }
 #endif
     //
     // Boundary condition access functions.
@@ -259,14 +259,6 @@ protected:
                      amrex::Real            alpha);
 
     void initial_velocity_diffusion_update (amrex::Real dt);
-
-    //
-    // Inject fine pressure nodes down onto coarse nodes.
-    //
-    void injectDown (const amrex::Box&       ovlp,
-                     amrex::FArrayBox&       Pcrse,
-                     const amrex::FArrayBox& Pfine,
-                     amrex::IntVect&         fine_ratio);
     //
     // Compute level projection.
     //
@@ -546,7 +538,8 @@ private:
 // Data
 //
 protected:
-
+  
+    // fixme? for now, volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
     amrex::MultiFab area[BL_SPACEDIM];
 
@@ -666,8 +659,8 @@ protected:
     static amrex::Real cfl;           // desired maximum cfl
     static amrex::Real change_max;    // maximum change in dt over a timestep
     static amrex::Real fixed_dt;      // set > 0 to specify dt
-	static bool stop_when_steady; 	  // set to true if simulation should stop at steady-state
-	static amrex::Real steady_tol;    // tolerance for assuming steady-state has been reached
+    static bool stop_when_steady; 	  // set to true if simulation should stop at steady-state
+    static amrex::Real steady_tol;    // tolerance for assuming steady-state has been reached
     static int  initial_iter;  // flag for initial pressure iterations
     static int  initial_step;  // flag for initial iterations
     static amrex::Real dt_cutoff;     // minimum dt allowed
@@ -684,7 +677,7 @@ protected:
     static int        NUM_SCALARS;      // number of non-velocity components
     static int        NUM_STATE;        // total number of state variables
 #ifdef AMREX_USE_EB
-    static const int  NUM_GROW=5;         // number of ghost cells
+    static const int  NUM_GROW=4;         // number of ghost cells
 #else
     static const int  NUM_GROW=1;         // number of ghost cells
 #endif

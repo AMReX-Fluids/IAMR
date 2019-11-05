@@ -94,3 +94,7 @@ Fixed a tiling bug in diffusion_rearrangement
 9/3/19
 Minor bugfixes only, some to satisfy compiler warnings, some for thread safety,
 some for ghost cell filling when needed
+
+10/1/19
+Updates to ppm for GPU.
+Change in logic for setting dt when te velocity is zero

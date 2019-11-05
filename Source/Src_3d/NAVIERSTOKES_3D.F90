@@ -18,7 +18,7 @@ module navierstokes_3d_module
 
   private 
 
-  public :: gradp, fort_putdown, incrmult, sumturb, &
+  public :: gradp, fort_putdown, sumturb, &
 #ifdef SUMJET
             sum_jet, &
 #endif
@@ -132,45 +132,6 @@ contains
       end do
 
       end subroutine fort_putdown 
-
-!c :: ----------------------------------------------------------
-!c :: NOTE: This routine is no longer needed. Use saxpy
-!c ::     funcitons in AMReX.
-!c :: UTILITY ROUTINE: compute:
-!c ::             A += alpha*B on subrange
-!c ::
-!c :: INPUTS / OUTPUTS:
-!c ::  a         <=  output array
-!c ::  b          => input array
-!c ::  alo,ahi    => index limits of a array
-!c ::  blo,bhi    => index limits of a array
-!c ::  lo,hi      => index limits of update region
-!c ::  alpha      => multiplicative factor
-!c :: ----------------------------------------------------------
-!c ::
-       subroutine incrmult(a,DIMS(a),b,DIMS(b),lo,hi,alpha)&
-                           bind(C,name="incrmult")
-
-       implicit none
-      
-       integer    DIMDEC(a)
-       integer    DIMDEC(b)
-       integer    lo(SDIM), hi(SDIM)
-       REAL_T     alpha
-       REAL_T     a(DIMV(a))
-       REAL_T     b(DIMV(b))
-
-       integer i, j, k
-
-       do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                a(i,j,k) = a(i,j,k) + alpha*b(i,j,k)
-             end do
-          end do
-       end do
-
-       end subroutine incrmult
 
 !c ::
 !c :: ----------------------------------------------------------

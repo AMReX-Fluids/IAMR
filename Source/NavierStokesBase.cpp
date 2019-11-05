@@ -2,6 +2,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
+#include <AMReX_EBAmrUtil.H>
 
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
@@ -194,26 +195,16 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     if (level > 0)
     {
-        rho_avg.define(grids,dmap,1,1);
-        p_avg.define(P_grids,dmap,1,0);
+        rho_avg.define(grids,dmap,1,1,MFInfo(),Factory());
+        p_avg.define(P_grids,dmap,1,0,MFInfo(),Factory());
     }
-
-#ifdef AMREX_USE_EB
-    //fixme? not 100% sure this is the right place
-    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    gradp->setVal(0.);
-
-    //FIXME --- this fn is really similar to restart()... work on that later   
-#endif
 
     //
     // rho_half is passed into level_project to be used as sigma in the MLMG
     // solve
-    rho_half.define (grids,dmap,1,1, MFInfo(), Factory());
-    //FIXME???
-    // not sure about whether all these other rhos need EBFacotry too or not
-    rho_ptime.define(grids,dmap,1,1);
-    rho_ctime.define(grids,dmap,1,1);
+    rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
+    rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
+    rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_qtime  = 0;
     rho_tqtime = 0;
     //
@@ -277,11 +268,11 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = new MultiFab(grids, dmap, 1, 1);
-    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
+    viscn_cc   = new MultiFab(grids, dmap, 1, 1,MFInfo(),Factory());
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1,MFInfo(),Factory());
   
-    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1,MFInfo(),Factory());
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1,MFInfo(),Factory());
     //
     // Set up the mac projector.
     //
@@ -683,9 +674,9 @@ NavierStokesBase::advance_setup (Real time,
     if (level < finest_level)
     {
         if (Vsync.empty())
-            Vsync.define(grids,dmap,BL_SPACEDIM,1);
+            Vsync.define(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
         if (Ssync.empty())
-            Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1);
+	  Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1,MFInfo(),Factory());
         Vsync.setVal(0);
         Ssync.setVal(0);
     }
@@ -850,6 +841,7 @@ NavierStokesBase::buildMetrics ()
     }
 #endif
 
+    // fixme? for now, volume and area are intentionally without EB knowledge
     volume.clear();
     volume.define(grids,dmap,1,GEOM_GROW);
     geom.GetVolume(volume);
@@ -1148,9 +1140,16 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // This DM won't be put into the cache.
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
+	    // FIXME
+	    // Declaring in this way doesn't work. I think it's because the box arrays
+	    // have been changed and each src box is not completely contained within a
+	    // single box in the Factory's BA
+	    // For now, coarse-fine boundary doesn't intersect EB, so should be okay...
+            // MultiFab crse_src(crse_src_ba, dm, 1, 0, MFInfo(), getLevel(level-1).Factory());
+            // MultiFab fine_src(fine_src_ba, dm, 1, 0, MFInfo(), Factory());
             MultiFab crse_src(crse_src_ba, dm, 1, 0);
             MultiFab fine_src(fine_src_ba, dm, 1, 0);
-
+    
             crse_src.setVal(1.e200);
             fine_src.setVal(1.e200);
             //
@@ -1201,7 +1200,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
                                  ARLIM(fine_src[mfi].hiVect()));
             }
 
-	    MultiFab u_mac_save(u_mac[n].boxArray(),u_mac[n].DistributionMap(), 1,0);
+	    MultiFab u_mac_save(u_mac[n].boxArray(),u_mac[n].DistributionMap(),1,0,MFInfo(),Factory());
 	    u_mac_save.copy(u_mac[n]);
 	    u_mac[n].copy(fine_src,0,0,1,0,nGrow);
 	    u_mac[n].copy(u_mac_save);
@@ -1299,6 +1298,26 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
             tags[mfi].tags(itags);
         }
     }
+        
+#ifdef AMREX_USE_EB
+    // Enforce that the EB not cross the coarse-fine boundary
+    const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+    if ( !ebfactory.isAllRegular() ) 
+    {
+      //
+      // FIXME - For now, always refine cut cells
+      //   Later, figure out a slick way to check if EB and CFB cross
+      //   and make refine_cutcells a runtime var
+      //
+      bool refine_cutcells = true;
+      // Refine on cut cells
+      if (refine_cutcells) // or if EB and CBF cross
+      {
+        const MultiFab& S_new = get_new_data(State_Type);
+        amrex::TagCutCells(tags, S_new);
+      }
+    }
+#endif
 }
 
 Real
@@ -1334,8 +1353,8 @@ NavierStokesBase::estTimeStep ()
 #ifdef AMREX_USE_EB
     // Nodal Projection sets EB covered cells to zero, so no need to do it here
     MultiFab& Gp = getGradP();
-//MultiFab& Gp = ns->getGradP();
-Gp.FillBoundary(geom.periodicity());
+    //MultiFab& Gp = ns->getGradP();
+    Gp.FillBoundary(geom.periodicity());
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
@@ -1368,9 +1387,9 @@ Gp.FillBoundary(geom.periodicity());
         const Real cur_time = state[State_Type].curTime();
         
         if (getForceVerbose)
-        amrex::Print() << "---" << '\n' 
-        << "H - est Time Step:" << '\n' 
-        << "Calling getForce..." << '\n';
+	  amrex::Print() << "---" << '\n' 
+			 << "H - est Time Step:" << '\n' 
+			 << "Calling getForce..." << '\n';
         
         getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
 
@@ -1485,7 +1504,7 @@ NavierStokesBase::getDivCond (int ngrow, Real time)
 
     if (!have_divu)
     {
-        divu = new MultiFab(grids,dmap,1,ngrow);
+        divu = new MultiFab(grids,dmap,1,ngrow,MFInfo(),Factory());
 
         divu->setVal(0);
     }
@@ -1507,7 +1526,7 @@ NavierStokesBase::getDsdt (int ngrow, Real time)
 
     if (!(have_dsdt && have_divu))
     {
-        dsdt = new MultiFab(grids,dmap,1,ngrow);
+        dsdt = new MultiFab(grids,dmap,1,ngrow,MFInfo(),Factory());
 
         dsdt->setVal(0);
     }
@@ -1890,6 +1909,9 @@ NavierStokesBase::init_additional_state_types ()
 
     int _Divu = -1;
     int dummy_Divu_Type;
+    //
+    // FIXME-- have divu was already set to zero...
+    // also check have_dsdt
     have_divu = 0;
     have_divu = isStateVariable("divu", dummy_Divu_Type, _Divu);
     have_divu = have_divu && dummy_Divu_Type == Divu_Type;
@@ -1981,31 +2003,6 @@ NavierStokesBase::zeroOldPress ()
     get_old_data(Press_Type).setVal(0);
 }
 
-//
-// Inject fine pressure nodes down onto coarse nodes.
-//
-void
-NavierStokesBase::injectDown (const Box&       ovlp,
-			      FArrayBox&       Pcrse,
-			      const FArrayBox& Pfine,
-			      IntVect&         fratio )
-{
-    BL_PROFILE("NavierStokesBase::injectDown()");
-
-    const int*  ovlo  = ovlp.loVect();
-    const int*  ovhi  = ovlp.hiVect();
-    Real*       cpres = Pcrse.dataPtr();
-    const int*  clo   = Pcrse.loVect();
-    const int*  chi   = Pcrse.hiVect();
-    const Real* fpres = Pfine.dataPtr();
-    const int*  flo   = Pfine.loVect();
-    const int*  fhi   = Pfine.hiVect();
-
-    fort_putdown(cpres,ARLIM(clo),ARLIM(chi),
-                 fpres,ARLIM(flo),ARLIM(fhi),
-                 ovlo,ovhi,fratio.getVect());
-}
-
 void
 NavierStokesBase::level_projector (Real dt,
 				   Real time,
@@ -2084,8 +2081,8 @@ NavierStokesBase::level_sync (int crse_iteration)
 
     if ((do_sync_proj && have_divu && do_divu_sync == 1) || do_MLsync_proj)
     {
-        cc_rhs_crse.define(grids,dmap,1,1);
-        cc_rhs_fine.define(finegrids,finedmap,1,1);
+        cc_rhs_crse.define(    grids,    dmap,1,1,MFInfo(),           Factory());
+        cc_rhs_fine.define(finegrids,finedmap,1,1,MFInfo(),fine_level.Factory());
         cc_rhs_crse.setVal(0);
         cc_rhs_fine.setVal(0);
     }
@@ -2105,7 +2102,7 @@ NavierStokesBase::level_sync (int crse_iteration)
         MultiFab& cur_divu_crse = get_new_data(Divu_Type);
         calc_divu(cur_time,dt,cc_rhs_crse);
         {
-            MultiFab new_divu_crse(grids,dmap,1,0);
+            MultiFab new_divu_crse(grids,dmap,1,0,MFInfo(),Factory());
             MultiFab::Copy(new_divu_crse,cc_rhs_crse,0,0,1,0);
             cc_rhs_crse.minus(cur_divu_crse,0,1,0);
             MultiFab::Copy(cur_divu_crse,new_divu_crse,0,0,1,0);
@@ -2116,7 +2113,7 @@ NavierStokesBase::level_sync (int crse_iteration)
         MultiFab& cur_divu_fine = fine_lev.get_new_data(Divu_Type);
         fine_lev.calc_divu(cur_time,dt,cc_rhs_fine);
         {
-            MultiFab new_divu_fine(finegrids,finedmap,1,0);
+            MultiFab new_divu_fine(finegrids,finedmap,1,0,MFInfo(),fine_lev.Factory());
             MultiFab::Copy(new_divu_fine,cc_rhs_fine,0,0,1,0);
             cc_rhs_fine.minus(cur_divu_fine,0,1,0);
             MultiFab::Copy(cur_divu_fine,new_divu_fine,0,0,1,0);
@@ -2160,8 +2157,8 @@ NavierStokesBase::level_sync (int crse_iteration)
         const BoxArray& P_finegrids = pres_fine.boxArray();
         const DistributionMapping& P_finedmap = pres_fine.DistributionMap();
 
-        MultiFab phi(P_finegrids,P_finedmap,1,1);
-        MultiFab V_corr(finegrids,finedmap,BL_SPACEDIM,1);
+        MultiFab phi(P_finegrids,P_finedmap,1,1,MFInfo(),fine_level.Factory());
+        MultiFab V_corr(finegrids,finedmap,BL_SPACEDIM,1,MFInfo(),fine_level.Factory());
 
         V_corr.setVal(0);
         //
@@ -2241,6 +2238,8 @@ NavierStokesBase::level_sync (int crse_iteration)
     }
     else if (do_sync_proj) 
     {
+      // fixme? is do_sync_proj used anymore?
+      // Update this block with factory?
         MultiFab phi(pres.boxArray(),pres.DistributionMap(),1,1);
         BoxArray sync_boxes = pres_fine.boxArray();
         sync_boxes.coarsen(ratio);
@@ -2707,15 +2706,15 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
     if (do_reflux && level < finest_level)
         reflux();
-
+        
     if (level < finest_level)
         avgDown();
-
+    
     if (do_mac_proj && level < finest_level)
         mac_sync();
 
     if (do_sync_proj && (level < finest_level))
-        level_sync(crse_iteration);
+        level_sync(crse_iteration);    
     //
     // Test for conservation.
     //
@@ -2759,7 +2758,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
         BoxArray ba(bx);
         DistributionMapping dm{ba};
 
-        MultiFab mf(ba, dm, BL_SPACEDIM, 0);
+        MultiFab mf(ba, dm, BL_SPACEDIM, 0, MFInfo(), Factory());
 
         mf.copy(get_new_data(State_Type), Xvel, 0, BL_SPACEDIM);
 
@@ -2876,13 +2875,13 @@ NavierStokesBase::restart (Amr&          papa,
     //
     if (level > 0)
     {
-        rho_avg.define(grids,dmap,1,1);
-        p_avg.define(P_grids,dmap,1,0);
+        rho_avg.define(grids,dmap,1,1,MFInfo(),Factory());
+        p_avg.define(P_grids,dmap,1,0,MFInfo(),Factory());
     }
     //FIXME see similar stuff in constructor
     rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
-    rho_ptime.define(grids,dmap,1,1);
-    rho_ctime.define(grids,dmap,1,1);
+    rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
+    rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_qtime  = 0;
     rho_tqtime = 0;
 
@@ -2904,8 +2903,8 @@ NavierStokesBase::restart (Amr&          papa,
 
     if (level < parent->finestLevel())
     {
-        Vsync.define(grids,dmap,BL_SPACEDIM,1);
-        Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1);
+        Vsync.define(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
+        Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1,MFInfo(),Factory());
     }
 
     diffusion = new Diffusion(parent, this,
@@ -2914,11 +2913,11 @@ NavierStokesBase::restart (Amr&          papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = new MultiFab(grids, dmap, 1, 1);
-    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
+    viscn_cc   = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
 
-    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
-    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
 
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
@@ -3012,50 +3011,34 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
-		// Need to do some funky half-time stuff
-		if (getForceVerbose)
-  		    amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
+               // Need to do some funky half-time stuff
+               if (getForceVerbose)
+                  amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
 
-		// Average the mac face velocities to get cell centred velocities
-                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-		FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
-		const int* vel_lo  = Vel.loVect();
-		const int* vel_hi  = Vel.hiVect();
-		const int* umacx_lo = u_mac[0][Rho_mfi].loVect();
-		const int* umacx_hi = u_mac[0][Rho_mfi].hiVect();
-		const int* umacy_lo = u_mac[1][Rho_mfi].loVect();
-		const int* umacy_hi = u_mac[1][Rho_mfi].hiVect();
-#if (BL_SPACEDIM==3)
-		const int* umacz_lo = u_mac[2][Rho_mfi].loVect();
-		const int* umacz_hi = u_mac[2][Rho_mfi].hiVect();
+               // Average the mac face velocities to get cell centred velocities
+               const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
+               FArrayBox Vel(amrex::grow(bx,0),AMREX_SPACEDIM);
+               FORT_AVERAGE_EDGE_STATES(BL_TO_FORTRAN_ANYD(Vel),
+                                        BL_TO_FORTRAN_ANYD(u_mac[0][Rho_mfi]),
+                                        BL_TO_FORTRAN_ANYD(u_mac[1][Rho_mfi]),
+#if (AMREX_SPACEDIM==3)
+                                        BL_TO_FORTRAN_ANYD(u_mac[2][Rho_mfi]),
 #endif
-		FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-					 u_mac[0][Rho_mfi].dataPtr(),
-					 u_mac[1][Rho_mfi].dataPtr(),
-#if (BL_SPACEDIM==3)
-					 u_mac[2][Rho_mfi].dataPtr(),
-#endif
-					 ARLIM(vel_lo),  ARLIM(vel_hi),
-					 ARLIM(umacx_lo), ARLIM(umacx_hi),
-					 ARLIM(umacy_lo), ARLIM(umacy_hi),
-#if (BL_SPACEDIM==3)
-					 
-					 ARLIM(umacz_lo), ARLIM(umacz_hi),
-#endif
-					 &getForceVerbose);
-		//
-		// Average the new and old time to get Crank-Nicholson half time approximation.
-		//
-		FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-		Scal.copy(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
-		Scal.plus(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
-		Scal.mult(0.5,bx);
-		
-		if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
-                getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
+                                        &getForceVerbose);
 
-                godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
-                                     Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
+               //
+               // Average the new and old time to get Crank-Nicholson half time approximation.
+               //
+               FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
+               Scal.copy(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
+               Scal.plus(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
+               Scal.mult(0.5,bx);
+
+               if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
+                  getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
+
+               godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
+                                    Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
             }
         }
 }
@@ -3149,7 +3132,7 @@ NavierStokesBase::sync_setup (MultiFab*& DeltaSsync)
 
     if (nconserved > 0 && level < parent->finestLevel())
     {
-        DeltaSsync = new MultiFab(grids, dmap, nconserved, 1);
+        DeltaSsync = new MultiFab(grids, dmap, nconserved, 1, MFInfo(), Factory());
         DeltaSsync->setVal(0,1);
     }
 }
@@ -3201,6 +3184,11 @@ set_bc_new (int*            bc_new,
     }
 }
 
+//
+// FIXME for EB?
+// for now, we require that the EB not intersect the CFB, so I think no
+// changes are needed. However, this fn would need updating if that
+// restriction were lifted...
 //
 // Interpolate A cell centered Sync correction from a
 // coarse level (c_lev) to a fine level (f_lev).
@@ -3387,6 +3375,11 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 }
 
 //
+// FIXME for EB?
+// for now, we require that the EB not intersect the CFB, so I think no
+// changes are needed. However, this fn would need updating if that
+// restriction were lifted...
+//
 // Interpolate sync pressure correction to a finer level.
 //
 void
@@ -3540,9 +3533,13 @@ NavierStokesBase::velocity_advection (Real dt)
     
     // E.M note: in PeleLM, filling u_mac ghost cells here lead to a wrong solution at boundaries
     // commenting the 2 lines below provide 0 errors in PeleLM
-    
-    for ( int i=0; i<BL_SPACEDIM; i++)
-      u_mac[i].FillBoundary(geom.periodicity());
+
+     // It seems the new extrapVelToFaces() fills u_mac ghost cells.
+     // Since FillBoundary only fills cells that overlap valid regions,
+     // don't understand how calling it could cause an error...
+     
+    // for ( int i=0; i<BL_SPACEDIM; i++)
+    //   u_mac[i].FillBoundary(geom.periodicity());
 
     //fixme
     //    aofs->setVal(0.);
@@ -3584,7 +3581,12 @@ NavierStokesBase::velocity_advection (Real dt)
             fluxes[i].define(ba, dmap, BL_SPACEDIM, 0, MFInfo(),Factory());
         }
     }
-    
+     //fixme
+    //static int count=0; count++;
+    //amrex::WriteSingleLevelPlotfile("gp_"+std::to_string(count), Gp, {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
+    //amrex::WriteSingleLevelPlotfile("mrhs_"+std::to_string(count), divu_fp, {"x"},geom, 0.0, 0);
+    //
+   
     //
     // Compute the advective forcing.
     //
@@ -3611,86 +3613,78 @@ NavierStokesBase::velocity_advection (Real dt)
       FArrayBox edgstate[BL_SPACEDIM];
       for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
       {
+	  const Box& bx=U_mfi.tilebox();
 
-	    const Box& bx=U_mfi.tilebox();
-		
-	    if (getForceVerbose)
-	    {
-	      amrex::Print() << "---" << '\n' 
+	  // fixme? tforces and S only used for non-EB, so move to #else //not eb block?
+	  if (getForceVerbose)
+	  {
+	    amrex::Print() << "---" << '\n' 
 			   << "B - velocity advection:" << '\n' 
 			   << "Calling getForce..." << '\n';
-	    }
-      getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
-
-
-//      Print() << "tforces from getForce of velocity_advection: " << tforces << std::endl;	// OK
-
-//      VisMF::Write(visc_terms,"viscterms_velocityadvection");	// OK 
-//      VisMF::Write(Gp,"Gp_velocityadvection");			// NO!!!!!!!!!!!!!!!!!!1
-//      VisMF::Write(rho_ptime,"rhoptime_velocityadvection");	// OK
-
-      godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
-
-//      Print() << "tforces from velocity_advection: " << tforces << std::endl;	// NO
-      
-      D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-	     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-	     bndry[2] = fetchBCArray(State_Type,bx,2,1);)
-         
-      for (int d=0; d<BL_SPACEDIM; ++d){
-#ifdef AMREX_USE_EB        
-        const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
-#else
-        const Box& ebx = amrex::surroundingNodes(bx,d);
-#endif
-        cfluxes[d].resize(ebx,BL_SPACEDIM+1);
-        edgstate[d].resize(ebx,BL_SPACEDIM+1);
-      }
-        
-        //
-        // Loop over the velocity components.
-        //
-        S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM); 
-        S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
-		
-        FArrayBox& divufab = divu_fp[U_mfi];
-        FArrayBox& aofsfab = (*aofs)[U_mfi];
-
-        D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
-               FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
-               FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
-
-	// FIXME? not sure which is better here, looping over comps like
-	//   orig IAMR or doing all comps together like incflo
+	  }
+	  getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+	  
+	  godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+	  
+	  D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+		 bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+		 bndry[2] = fetchBCArray(State_Type,bx,2,1););
+	    
+	  for (int d=0; d<BL_SPACEDIM; ++d){
 #ifdef AMREX_USE_EB
-	// Figure out fluxes for the multi-level sync later...
+	    const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
+#else
+	    const Box& ebx = amrex::surroundingNodes(bx,d);
+#endif
+	    cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+	    edgstate[d].resize(ebx,BL_SPACEDIM+1);
+	  }
+        
+	  //
+	  // Loop over the velocity components.
+	  //
+	  S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM); 
+	  S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
+	  
+	  FArrayBox& divufab = divu_fp[U_mfi];
+	  FArrayBox& aofsfab = (*aofs)[U_mfi];
+	  
+	  D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
+		 FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
+		 FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
+	  
+	  // FIXME? not sure which is better here, looping over comps like
+	  //   orig IAMR or doing all comps together like incflo
+#ifdef AMREX_USE_EB
+	  // Figure out fluxes for the multi-level sync later...
+	  
+	  // this uses slopes saved from the computation of umac (i.e.
+	  //   predict_velocity)
+	  // aofs = ugradu
+	  //
+	  //FIXME! Need to make AdvectVel fill fluxes for covered and regular cells 
+	  //
+	  godunov->AdvectVel(U_mfi, Umf, *aofs,
+			     D_DECL(u_mac[0][U_mfi],u_mac[1][U_mfi],u_mac[2][U_mfi]),
+			     D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+			     D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+			     D_DECL(bndry[0], bndry[1], bndry[2]),
+			     D_DECL(m_xslopes, m_yslopes, m_zslopes),
+			     *volfrac, *bndrycent,
+			     D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+			     D_DECL(*facecent[0], *facecent[1], *facecent[2]),
+			     geom.Domain(),
+			     geom.CellSize(),Godunov::hypgrow());	
 
-	// this uses slopes saved from the computation of umac (i.e.
-	//   predict_velocity)
-	// aofs = ugradu
-	// incflo advection scheme doesn't include terms like gradp here
-	godunov->AdvectVel(U_mfi, Umf, *aofs,
-			   D_DECL(u_mac[0][U_mfi],u_mac[1][U_mfi],u_mac[2][U_mfi]),
-         D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-         D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-			   D_DECL(bndry[0], bndry[1], bndry[2]),
-         D_DECL(m_xslopes, m_yslopes, m_zslopes),
-         *volfrac, *bndrycent,
-         D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
-         D_DECL(*facecent[0], *facecent[1], *facecent[2]),
-			   geom.Domain(),
-			   geom.CellSize(),Godunov::hypgrow());	
-
-	if (do_reflux){
-	     //FIXME make AdvectVel pass fluxes first
-	     for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
-	     {
-	       for (int d = 0; d < BL_SPACEDIM; d++){
-		 const Box& ebx = U_mfi.nodaltilebox(d);
-		 fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
-	       }
-	     }
-	   }
+	  if (do_reflux){
+	    for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+	    {
+	      for (int d = 0; d < BL_SPACEDIM; d++){
+		const Box& ebx = U_mfi.nodaltilebox(d);
+		fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+	      }
+	    }
+	  }
 #else // not eb
         for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
@@ -3810,7 +3804,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
     Gp.FillBoundary(geom.periodicity());
     if (do_mom_diff == 1)
       amrex::Abort("NavierStokesBase::velocity_advection_update(): do_mom_diff==1 not currently working with EB.");
-    // Changing Gp to a point causes memory problems for non-EB (and maybe EB too)...
+    // Changing Gp to a pointer causes problems for non-EB ...
+    // Think issue was need to use MultiFab::Copy; plain Copy was going someplace funny
     // MultiFab* Gp;
       // if (do_mom_diff == 1){
       // 	//need to make a copy of gradp
@@ -3841,35 +3836,19 @@ NavierStokesBase::velocity_advection_update (Real dt)
         //
         // Need to do some funky half-time stuff.
         //
-	if (getForceVerbose)
-  	    amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
+        if (getForceVerbose)
+           amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
         // Average the mac face velocities to get cell centred velocities.
         //
         FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
-        const int* vel_lo  = Vel.loVect();
-        const int* vel_hi  = Vel.hiVect();
-        const int* umacx_lo = u_mac[0][Rhohalf_mfi].loVect();
-        const int* umacx_hi = u_mac[0][Rhohalf_mfi].hiVect();
-        const int* umacy_lo = u_mac[1][Rhohalf_mfi].loVect();
-        const int* umacy_hi = u_mac[1][Rhohalf_mfi].hiVect();
-#if (BL_SPACEDIM==3)
-        const int* umacz_lo = u_mac[2][Rhohalf_mfi].loVect();
-        const int* umacz_hi = u_mac[2][Rhohalf_mfi].hiVect();
+        FORT_AVERAGE_EDGE_STATES(BL_TO_FORTRAN_ANYD(Vel),
+                                 BL_TO_FORTRAN_ANYD(u_mac[0][Rhohalf_mfi]),
+                                 BL_TO_FORTRAN_ANYD(u_mac[1][Rhohalf_mfi]),
+#if (AMREX_SPACEDIM==3)
+                                 BL_TO_FORTRAN_ANYD(u_mac[2][Rhohalf_mfi]),
 #endif
-        FORT_AVERAGE_EDGE_STATES(Vel.dataPtr(),
-            u_mac[0][Rhohalf_mfi].dataPtr(),
-            u_mac[1][Rhohalf_mfi].dataPtr(),
-#if (BL_SPACEDIM==3)
-            u_mac[2][Rhohalf_mfi].dataPtr(),
-#endif
-            ARLIM(vel_lo),  ARLIM(vel_hi),
-            ARLIM(umacx_lo), ARLIM(umacx_hi),
-            ARLIM(umacy_lo), ARLIM(umacy_hi),
-#if (BL_SPACEDIM==3)
-            ARLIM(umacz_lo), ARLIM(umacz_hi),
-#endif
-            &getForceVerbose);
+                                 &getForceVerbose);
         //
         // Average the new and old time to get Crank-Nicholson half time approximation.
         //
@@ -3877,7 +3856,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
         Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
         Scal.mult(0.5,bx,0,NUM_SCALARS);
-	
+
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
@@ -4558,7 +4537,7 @@ NavierStokesBase::post_timestep_particle (int crse_iteration)
 		
 		if (tindices.size() > 0)
 		{
-		    tmf.define(S_new.boxArray(), S_new.DistributionMap(), tindices.size(), ng);
+		    tmf.define(S_new.boxArray(), S_new.DistributionMap(), tindices.size(), ng, MFInfo(), Factory());
 
 		    if (n > 0)
 		    {
@@ -4606,7 +4585,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 	    ncomp = rec->numDerive();
 	}
 	
-        MultiFab* ret = new MultiFab(grids, dmap, ncomp, ngrow);
+        MultiFab* ret = new MultiFab(grids, dmap, ncomp, ngrow, MFInfo(), Factory());
 	ParticleDerive(name,time,*ret,0);
 	return std::unique_ptr<MultiFab>{ret};
     }
@@ -4628,7 +4607,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
     else {
 	if (name == "particle_count")
 	{
-	    MultiFab temp_dat(grids,dmap,1,0);
+	    MultiFab temp_dat(grids,dmap,1,0, MFInfo(), Factory());
 	    temp_dat.setVal(0);
 	    NSPC->Increment(temp_dat,level);
 	    MultiFab::Copy(mf,temp_dat,0,dcomp,1,0);
@@ -4646,14 +4625,17 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 	    {
 		BoxArray ba = parent->boxArray(lev);
 
-		MultiFab temp_dat(ba,parent->DistributionMap(lev),1,0);
+		MultiFab temp_dat(ba,parent->DistributionMap(lev),1,0,MFInfo(),Factory());
 		
 		trr *= parent->refRatio(lev-1);
 		
 		ba.coarsen(trr);
 		
+                // FIXME? Won't work because ba has been coarsened. But don't actually need
+                //  facotry here anyway...
+		//MultiFab ctemp_dat(ba,parent->DistributionMap(lev),1,0,MFInfo(),Factory());
 		MultiFab ctemp_dat(ba,parent->DistributionMap(lev),1,0);
-		
+
 		temp_dat.setVal(0);
 		ctemp_dat.setVal(0);
 		
@@ -4680,7 +4662,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 		
 		temp_dat.clear();
 
-		MultiFab dat(grids,dmap,1,0);
+		MultiFab dat(grids,dmap,1,0,MFInfo(),Factory());
 		dat.setVal(0);
 		dat.copy(ctemp_dat);
 		

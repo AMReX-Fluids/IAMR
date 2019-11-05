@@ -25,8 +25,7 @@ module projection_2d_module
 
   private 
 
-  public :: vel_to_accel,  &
-            proj_update, radmpyscal,radmpyvel, fort_raddiv, &
+  public :: vel_to_accel, radmpyscal, radmpyvel, fort_raddiv, &
             anelcoeffmpy
   
 contains
@@ -59,34 +58,6 @@ contains
       end do
 
     end subroutine vel_to_accel
-
-      subroutine proj_update(&
-          boxlo, boxhi, nvar, &
-          un, DIMS(un),&
-          alpha,&
-          uo, DIMS(uo) ) bind(C,name="proj_update")
-!c     
-!c     This function updates un via un = un + alpha*uo
-!c     The loop bounds are determined in the C++
-!c
-      implicit none
-      integer    boxlo(SDIM), boxhi(SDIM), nvar
-      REAL_T     alpha
-      integer    DIMDEC(un),DIMDEC(uo)
-      REAL_T     un(DIMV(un),nvar)
-      REAL_T     uo(DIMV(uo),nvar)
-
-      integer i, j, n
-
-      do n = 1, nvar
-         do j = boxlo(2), boxhi(2)
-            do i = boxlo(1), boxhi(1)
-               un(i,j,n) = un(i,j,n) + alpha*uo(i,j,n)
-            end do
-         end do
-      end do
-
-    end subroutine proj_update
 
     subroutine radmpyscal(lo,hi,a,DIMS(a),domlo,domhi,r,rlo,rhi) &
          bind(C,name="radmpyscal")

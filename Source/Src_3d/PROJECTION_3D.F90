@@ -18,8 +18,7 @@ module projection_3d_module
 
   private
 
-  public ::  vel_to_accel, &
-             proj_update, anelcoeffmpy
+  public ::  vel_to_accel, anelcoeffmpy
 
 contains
 
@@ -50,36 +49,6 @@ contains
       end do
 
       end subroutine vel_to_accel
-
-      subroutine proj_update( &
-          boxlo, boxhi, nvar, &
-          un, DIMS(un), &
-          alpha, &
-          uo, DIMS(uo) )bind(C,name="proj_update")
-!c     
-!c     This function updates un via un = un + alpha*uo
-!c     The loop bounds are determined in the C++
-!c
-      implicit none
-      integer    boxlo(SDIM), boxhi(SDIM), nvar
-      REAL_T     alpha
-      integer    DIMDEC(un),DIMDEC(uo)
-      REAL_T     un(DIMV(un),nvar)
-      REAL_T     uo(DIMV(uo),nvar)
-
-      integer i, j, k, n
-
-      do n = 1, nvar
-         do k = boxlo(3), boxhi(3)
-            do j = boxlo(2), boxhi(2)
-               do i = boxlo(1), boxhi(1)
-                  un(i,j,k,n) = un(i,j,k,n) + alpha*uo(i,j,k,n)
-               end do
-            end do
-         end do
-      end do
-
-      end subroutine proj_update
 
       subroutine anelcoeffmpy (lo,hi,a,DIMS(a),domlo,domhi, &
                                anel_coeff,anel_lo,anel_hi,bogus_value,mult) &
