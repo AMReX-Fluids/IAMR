@@ -422,9 +422,6 @@ protected:
     void computeBeta (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
                       const amrex::MultiFab* const* beta, int betaComp);
 
-    void computeBeta_null (std::array<amrex::MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                      const amrex::MultiFab* const* beta, int betaComp);
-
     static void Finalize ();
     //
     // Data Required by Derived Classes

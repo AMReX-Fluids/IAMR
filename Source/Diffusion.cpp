@@ -3070,40 +3070,6 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
     }
 }
 
-
-void
-Diffusion::computeBeta_null (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
-                        const MultiFab* const* beta,
-                        int                    betaComp)
-{
-    const MultiFab* area = navier_stokes->Area();
-
-    for (int n = 0; n < BL_SPACEDIM; n++)
-    {
-        bcoeffs[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0);
-    }
-    
-
-    const Real* dx = navier_stokes->Geom().CellSize();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (int n = 0; n < BL_SPACEDIM; n++)
-        {
-	    for (MFIter bcoeffsmfi(*beta[n],true); bcoeffsmfi.isValid(); ++bcoeffsmfi)
-            {
- 	        const Box& bx = bcoeffsmfi.tilebox();
-	      
- 		bcoeffs[n][bcoeffsmfi].copy(area[n][bcoeffsmfi],bx,0,bx,0,1);
-		bcoeffs[n][bcoeffsmfi].setVal(1.0,bx);
-		bcoeffs[n][bcoeffsmfi].mult((*beta[n])[bcoeffsmfi],bx,bx,betaComp,0,1);
-		//bcoeffs[n][bcoeffsmfi].mult(dx[n],bx);
-            }
-        }
-
-}
-
 void
 Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                         const MultiFab* const* beta,
@@ -3111,10 +3077,7 @@ Diffusion::computeBeta (std::array<MultiFab,AMREX_SPACEDIM>& bcoeffs,
                         const Geometry&        geom,
                         const MultiFab* const* area,
                         bool                   use_hoop_stress)
-{
-
-    int ng = 0;
-  
+{ 
     int allnull, allthere;
     checkBeta(beta, allthere, allnull);
 
@@ -3181,8 +3144,6 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     //
     // Note: This routine DOES NOT fill grow cells
     //
-    const Real* dx = navier_stokes->Geom().CellSize();
-    MultiFab&   S  = navier_stokes->get_data(State_Type,time);
 
     //
     // FIXME
@@ -3191,6 +3152,9 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     //
 #if 0
     // old way with volume weighted beta
+    MultiFab&   S  = navier_stokes->get_data(State_Type,time);
+    const Real* dx = navier_stokes->Geom().CellSize();
+
     if (is_diffusive[comp])
     {
         MultiFab visc_tmp(grids,dmap,1,1), s_tmp(grids,dmap,1,1);
@@ -3411,7 +3375,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                                const MultiFab* const* beta,
                                int                    betaComp)
 {
-    const MultiFab& volume = navier_stokes->Volume(); 
     const MultiFab* area   = navier_stokes->Area();
     // need for computeBeta. Don't see Why computeBeta defines area in this way
     // or why it even bothers to pass area when it's also passing geom
@@ -3438,7 +3401,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     //
     // Note: This routine DOES NOT fill grow cells
     //
-    const Real* dx   = navier_stokes->Geom().CellSize();
     MultiFab&   S    = navier_stokes->get_data(State_Type,time);
     //
     // FIXME
