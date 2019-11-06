@@ -398,7 +398,7 @@ NavierStokesBase::Initialize ()
     
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
- 
+    
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
@@ -2529,7 +2529,7 @@ NavierStokesBase::post_init_estDT (Real&        dt_init,
              n_factor *= parent->nCycle(m);
         dt_init    = std::min( dt_init, dt_save[k]/((Real) n_factor) );
     }
-
+ 
     Vector<Real> dt_level(finest_level+1,dt_init);
     Vector<int>  n_cycle(finest_level+1,1);
 
