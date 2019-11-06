@@ -2,7 +2,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
+
+#ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
+#endif
 
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
@@ -50,7 +53,6 @@ Vector<Real> NavierStokesBase::visc_coef;
 Real        NavierStokesBase::visc_tol           = 1.0e-10;
 Real        NavierStokesBase::visc_abs_tol       = 1.0e-10;
 Real        NavierStokesBase::be_cn_theta        = 0.5;
-int         NavierStokesBase::variable_vel_visc  = 1;
 
 int         NavierStokesBase::Tracer                    = -1;
 int         NavierStokesBase::Tracer2                   = -1;
@@ -396,8 +398,6 @@ NavierStokesBase::Initialize ()
     
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
-    
-    pp.query("variable_vel_visc",variable_vel_visc);
  
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
@@ -655,9 +655,7 @@ NavierStokesBase::advance_setup (Real time,
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_USE_EB
-   // just cribbing from incflo
-    // note mfix now uses 4...
-   umac_n_grow = 5;
+   umac_n_grow = 4;
 #else
     umac_n_grow = 1;
 #endif
@@ -2531,7 +2529,7 @@ NavierStokesBase::post_init_estDT (Real&        dt_init,
              n_factor *= parent->nCycle(m);
         dt_init    = std::min( dt_init, dt_save[k]/((Real) n_factor) );
     }
- 
+
     Vector<Real> dt_level(finest_level+1,dt_init);
     Vector<int>  n_cycle(finest_level+1,1);
 
