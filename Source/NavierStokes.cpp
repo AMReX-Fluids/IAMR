@@ -528,64 +528,75 @@ NavierStokes::predict_velocity (Real  dt)
     }
     Real tempdt = std::min(change_max,cfl/cflmax);
 
+
+#if AMREX_USE_EB
+    godunov->ExtrapVelToFaces(Umf,
+                              D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                              D_DECL(m_xslopes, m_yslopes, m_zslopes),
+                              geom );
+
+#else
+
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-      FArrayBox tforces;
-      Vector<int> bndry[BL_SPACEDIM];
+        FArrayBox tforces;
+        Vector<int> bndry[BL_SPACEDIM];
 
-      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-      {
-        Box bx=U_mfi.tilebox();
-        FArrayBox& Ufab = Umf[U_mfi];
+        for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+        {
+            Box bx=U_mfi.tilebox();
+            FArrayBox& Ufab = Umf[U_mfi];
 
-        if (getForceVerbose) {
-          Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
-        }
-        getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+            if (getForceVerbose) {
+                Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
+            }
+            getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 
-        //
-        // Compute the total forcing.
-        //
-        godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
+            //
+            // Compute the total forcing.
+            //
+            godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
 
-        D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-               bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-               bndry[2] = fetchBCArray(State_Type,bx,2,1););
+            D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+                   bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+                   bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-#ifdef AMREX_USE_EB
-	//
-	//  trace state to cell edges
-	//
-	// For now, import simple adv scheme from incflo
-	//
-	// FIXME
-	//  GODUNOV uses mathematical bcs like reflect_odd
-	//  incflo convection uses phys bcs like slip wall
-	// for now, just doing periodic, so just make sure I don't trip the bcs
-	//
-	godunov->ExtrapVelToFaces(U_mfi,
-                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
-                                   D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                                   Ufab, tforces,
-                                   D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
-                                   D_DECL(*facecent[0], *facecent[1], *facecent[2]),
-                                   domain);
+// #ifdef AMREX_USE_EB
+//             //
+//             //  trace state to cell edges
+//             //
+//             // For now, import simple adv scheme from incflo
+//             //
+//             // FIXME
+//             //  GODUNOV uses mathematical bcs like reflect_odd
+//             //  incflo convection uses phys bcs like slip wall
+//             // for now, just doing periodic, so just make sure I don't trip the bcs
+//             //
+//             godunov->ExtrapVelToFaces(U_mfi,
+//                                       D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+//                                       D_DECL(bndry[0],        bndry[1],        bndry[2]),
+//                                       D_DECL(m_xslopes, m_yslopes, m_zslopes),
+//                                       Ufab, tforces,
+//                                       D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+//                                       D_DECL(*facecent[0], *facecent[1], *facecent[2]),
+//                                       domain);
 
-#else
-	// non-EB
-	//  1. compute slopes
-	//  2. trace state to cell edges
-        godunov->ExtrapVelToFaces(bx, dx, dt,
-                                  D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                                  D_DECL(bndry[0],        bndry[1],        bndry[2]),
-                                  Ufab, tforces);
-#endif
+// #else
+            // non-EB
+            //  1. compute slopes
+            //  2. trace state to cell edges
+            godunov->ExtrapVelToFaces(bx, dx, dt,
+                                      D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                                      D_DECL(bndry[0],        bndry[1],        bndry[2]),
+                                      Ufab, tforces);
+// #endif
 //FIXME --- check these braces may be wrong after merge
-      }
+        }
     } // end OMP parallel region
+#endif
 
     return dt*tempdt;
 }

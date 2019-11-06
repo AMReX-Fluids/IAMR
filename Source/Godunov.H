@@ -14,6 +14,8 @@
 enum AdvectionForm {Conservative = 0, NonConservative};
 enum AdvectionScheme {PRE_MAC, FPU, BDS};
 
+#define COVERED_VAL 1.0e40
+
 //===========================================================
 // This header file defines the Godunov driver class.  Its
 // interface simplifies the calling sequence for the Godunov
@@ -266,44 +268,54 @@ public:      // public access functions
                        const amrex::Box& a_domain);
 
 
-  void ComputeVelocitySlopes(const amrex::MFIter&  mfi,
-                             const amrex::MultiFab& Sborder,
-                             D_DECL(amrex::MultiFab& m_xslopes,
-                                    amrex::MultiFab& m_yslopes,
-                                    amrex::MultiFab& m_zslopes),
-                             D_DECL(const amrex::Vector<int>& a_ubc,
-                                    const amrex::Vector<int>& a_vbc,
-                                    const amrex::Vector<int>& a_wbc),
-                             const amrex::Box& domain);
+  // void ComputeVelocitySlopes(const amrex::MFIter&  mfi,
+  //                            const amrex::MultiFab& Sborder,
+  //                            D_DECL(amrex::MultiFab& m_xslopes,
+  //                                   amrex::MultiFab& m_yslopes,
+  //                                   amrex::MultiFab& m_zslopes),
+  //                            D_DECL(const amrex::Vector<int>& a_ubc,
+  //                                   const amrex::Vector<int>& a_vbc,
+  //                                   const amrex::Vector<int>& a_wbc),
+  //                            const amrex::Box& domain);
 
-  void ComputeScalarSlopes(const amrex::MFIter& mfi,
-                           const amrex::MultiFab& Sborder, const int& ncomp,
-                           D_DECL(amrex::MultiFab& xslopes,
-                                  amrex::MultiFab& yslopes,
-                                  amrex::MultiFab& zslopes),
-                           D_DECL(const amrex::Vector<int>& ubc,
-                                  const amrex::Vector<int>& vbc,
-                                  const amrex::Vector<int>& wbc),
-                                  const amrex::Box& domain);
+  // void ComputeScalarSlopes(const amrex::MFIter& mfi,
+  //                          const amrex::MultiFab& Sborder, const int& ncomp,
+  //                          D_DECL(amrex::MultiFab& xslopes,
+  //                                 amrex::MultiFab& yslopes,
+  //                                 amrex::MultiFab& zslopes),
+  //                          D_DECL(const amrex::Vector<int>& ubc,
+  //                                 const amrex::Vector<int>& vbc,
+  //                                 const amrex::Vector<int>& wbc),
+  //                                 const amrex::Box& domain);
 
-  void ExtrapVelToFaces (const amrex::MFIter&  mfi,
-                         D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
-                                amrex::FArrayBox&  wmac),
-                         D_DECL(const amrex::Vector<int>& ubc,
-                                const amrex::Vector<int>& vbc,
-                                const amrex::Vector<int>& wbc),
-                         D_DECL(amrex::MultiFab& m_xslopes,
-                                amrex::MultiFab& m_yslopes,
-                                amrex::MultiFab& m_zslopes),
-                         const amrex::FArrayBox&  U,
-                         const amrex::FArrayBox&  tforces,
-                         D_DECL(const amrex::MultiCutFab& x_areafrac,
-				                        const amrex::MultiCutFab& y_areafrac,
-				                        const amrex::MultiCutFab& z_areafrac),
-                         D_DECL(const amrex::MultiCutFab& x_facecent,
-				                        const amrex::MultiCutFab& y_facecent,
-				                        const amrex::MultiCutFab& z_facecent),
-                         const amrex::Box& domain);
+  // void ExtrapVelToFaces (const amrex::MFIter&  mfi,
+  //                        D_DECL(amrex::FArrayBox&  umac, amrex::FArrayBox&  vmac,
+  //                               amrex::FArrayBox&  wmac),
+  //                        D_DECL(const amrex::Vector<int>& ubc,
+  //                               const amrex::Vector<int>& vbc,
+  //                               const amrex::Vector<int>& wbc),
+  //                        D_DECL(amrex::MultiFab& m_xslopes,
+  //                               amrex::MultiFab& m_yslopes,
+  //                               amrex::MultiFab& m_zslopes),
+  //                        const amrex::FArrayBox&  U,
+  //                        const amrex::FArrayBox&  tforces,
+  //                        D_DECL(const amrex::MultiCutFab& x_areafrac,
+  //       			                        const amrex::MultiCutFab& y_areafrac,
+  //       			                        const amrex::MultiCutFab& z_areafrac),
+  //                        D_DECL(const amrex::MultiCutFab& x_facecent,
+  //       			                        const amrex::MultiCutFab& y_facecent,
+  //       			                        const amrex::MultiCutFab& z_facecent),
+  //                        const amrex::Box& domain);
+
+    void ExtrapVelToFaces ( const amrex::MultiFab&  a_vel,
+                            D_DECL(amrex::MultiFab& a_umac,
+                                   amrex::MultiFab& a_vmac,
+                                   amrex::MultiFab& a_wmac ),
+                            D_DECL(amrex::MultiFab& a_xslopes,
+                                   amrex::MultiFab& a_yslopes,
+                                   amrex::MultiFab& a_zslopes),
+                            const amrex::Geometry&  a_geom);
+
 
   void AdvectVel (const amrex::MFIter&  mfi,
                   const amrex::MultiFab& U, amrex::MultiFab& aofs,
