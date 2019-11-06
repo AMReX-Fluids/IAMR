@@ -2091,34 +2091,6 @@ NavierStokes::reflux ()
 }
 
 //
-// Average down a single state component.
-//
-
-void
-NavierStokes::avgDown (int comp)
-{
-    if (level == parent->finestLevel())
-        return;
-
-    NavierStokes&   crse_lev = getLevel(level  );
-    NavierStokes&   fine_lev = getLevel(level+1);
-    MultiFab&       S_crse   = get_new_data(State_Type);
-    MultiFab&       S_fine   = fine_lev.get_new_data(State_Type);
-
-    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
-			comp, 1, fine_ratio);
-
-    if (comp == Density) 
-    {
-        //
-        // Fill rho_ctime at current and finer levels with the correct data.
-        //
-        for (int lev = level; lev <= parent->finestLevel(); lev++)
-            getLevel(lev).make_rho_curr_time();
-    }
-}
-
-//
 // Average fine information from the complete set of state types to coarse.
 //
 
@@ -2127,7 +2099,7 @@ NavierStokes::avgDown ()
 {
     if (level == parent->finestLevel())
         return;
-
+    
     NavierStokes&   crse_lev = getLevel(level  );
     NavierStokes&   fine_lev = getLevel(level+1);
     //
@@ -2136,6 +2108,8 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
+    // uses volume weighting for 2D, but not for 3D
+    // EB does have a vol weighting version, but doesn't go to not vol weighted for 3D
     amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
 			0, S_crse.nComp(), fine_ratio);
 
@@ -2146,8 +2120,26 @@ NavierStokes::avgDown ()
     MultiFab&       P_fine_init = fine_lev.get_new_data(Press_Type);
     MultiFab&       P_fine_avg  = fine_lev.p_avg;
     MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
-    const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
+    // const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
 
+    // FIXME? Doesn't work. Get error:
+    //0::Assertion `ebflag.box().contains(amrex::enclosedCells(bx))' failed, file "../../../amrex_fork/amrex_tensorFlux/Src/EB/AMReX_EBFArrayBox.cpp", line 23 !!!
+    // BoxArray crse_P_fine_BA = P_fgrids; crse_P_fine_BA.coarsen(fine_ratio);
+    // MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0,MFInfo(),fine_lev.Factory());
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     for (MFIter mfi(crse_P_fine,true); mfi.isValid(); ++mfi)
+//     {
+// 	const Box& bx = mfi.tilebox(); 
+	
+// 	injectDown(bx,crse_P_fine[mfi],P_fine[mfi],fine_ratio);
+//     }
+//     P_crse.copy(crse_P_fine, parent->Geom(level).periodicity());
+
+//     crse_P_fine.clear();
+
+    // This ignores EB, but *think* it should be okay because nodes are directly copied
     amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
     //
     // Next average down divu and dSdT at new time.

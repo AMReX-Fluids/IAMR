@@ -158,8 +158,6 @@ protected:
     static void Finalize ();
 
 private:
-  
-    void avgDown (int comp); // Average down for a single StateType scalar
 
     void center_to_edge_plain (const amrex::FArrayBox& ccfab,
                                amrex::FArrayBox&       ecfab,
@@ -167,7 +165,7 @@ private:
 			       int              sComp,
                                int              dComp,
                                int              nComp);
-    //
+   
     void diffuse_velocity_setup (amrex::Real       dt,
 				 amrex::MultiFab*& delta_rhs,
 				 amrex::MultiFab**& viscn,
