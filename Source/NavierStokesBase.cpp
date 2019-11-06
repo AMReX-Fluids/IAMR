@@ -655,9 +655,7 @@ NavierStokesBase::advance_setup (Real time,
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_USE_EB
-   // just cribbing from incflo
-    // note mfix now uses 4...
-   umac_n_grow = 5;
+    umac_n_grow = 4;
 #else
     umac_n_grow = 1;
 #endif
