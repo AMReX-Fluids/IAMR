@@ -101,8 +101,6 @@ ns.cfl                  = 0.9  # CFL number used to set dt
 ns.vel_visc_coef        = 0.01 
 ns.temp_cond_coef       = 0.0 
 ns.scal_diff_coefs      = 0.01
-ns.variable_vel_visc    = 0
-ns.variable_scal_diff   = 0
 
 # (this one is optional)
 #ns.gravity              = 0.0  # forcing term is rho * abs(gravity) "down"
