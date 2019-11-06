@@ -2,7 +2,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
+
+#ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
+#endif
 
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
