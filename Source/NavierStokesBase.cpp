@@ -3718,6 +3718,7 @@ NavierStokesBase::velocity_advection (Real dt)
       } // end of MFIter
  } // end OMP region
 
+
  } //end scope of FillPatchIter
 
     if (do_reflux)
@@ -3766,8 +3767,6 @@ NavierStokesBase::velocity_update (Real dt)
       }
     }
 
-//    VisMF::Write(get_new_data(State_Type),"Snew_from_velupdate00000");	// OK
-
     velocity_advection_update(dt);
 
     if (!initial_iter)
@@ -3776,8 +3775,6 @@ NavierStokesBase::velocity_update (Real dt)
         initial_velocity_diffusion_update(dt);
 
     MultiFab&  S_new     = get_new_data(State_Type);
-
-//    VisMF::Write(S_new,"Snew_from_velupdate1111");			// OK... how is that possible??
 
     for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
     {
@@ -3819,7 +3816,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
       MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
       getGradP(Gp, prev_pres_time);
 #endif
-
 
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
