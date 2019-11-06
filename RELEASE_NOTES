@@ -98,3 +98,6 @@ some for ghost cell filling when needed
 10/1/19
 Updates to ppm for GPU.
 Change in logic for setting dt when te velocity is zero
+
+11/1/19
+Switch many routines to dimension-agnostic (one common code no matter the dimensionality)
