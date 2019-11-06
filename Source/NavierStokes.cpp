@@ -464,29 +464,34 @@ NavierStokes::predict_velocity (Real  dt)
 
     //VisMF::Write(Umf, "U");
     const Box& domain = geom.Domain();
-    // Compute slopes and store for use in computing UgradU
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        Vector<int> bndry[AMREX_SPACEDIM];
-        for (MFIter mfi(Umf, true); mfi.isValid(); ++mfi)
-        {
-            // Box bx=mfi.tilebox();
-            // D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-            //        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-            //        bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-            godunov->ComputeSlopes(mfi, Umf,
-                                   D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                                   phys_bc, 0, AMREX_SPACEDIM, domain);
+    godunov->ComputeSlopes( Umf,
+                           D_DECL(m_xslopes, m_yslopes, m_zslopes),
+                           phys_bc, 0, AMREX_SPACEDIM, domain);
 
-            // godunov->ComputeVelocitySlopes(mfi, Umf,
-            //                                D_DECL(m_xslopes, m_yslopes, m_zslopes),
-            //                                D_DECL(bndry[0], bndry[1], bndry[2]),
-            //                                domain);
-        }
-    }
+//     // Compute slopes and store for use in computing UgradU
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     {
+//         Vector<int> bndry[AMREX_SPACEDIM];
+//         for (MFIter mfi(Umf, true); mfi.isValid(); ++mfi)
+//         {
+//             // Box bx=mfi.tilebox();
+//             // D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+//             //        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+//             //        bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+//             godunov->ComputeSlopes(mfi, Umf,
+//                                    D_DECL(m_xslopes, m_yslopes, m_zslopes),
+//                                    phys_bc, 0, AMREX_SPACEDIM, domain);
+
+//             // godunov->ComputeVelocitySlopes(mfi, Umf,
+//             //                                D_DECL(m_xslopes, m_yslopes, m_zslopes),
+//             //                                D_DECL(bndry[0], bndry[1], bndry[2]),
+//             //                                domain);
+//         }
+//     }
 
     //
     // need to fill ghost cells for slopes here.
@@ -495,9 +500,9 @@ NavierStokes::predict_velocity (Real  dt)
     // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
     //  only allows for periodic for now
     //
-    m_xslopes.FillBoundary(geom.periodicity());
-    m_yslopes.FillBoundary(geom.periodicity());
-    m_zslopes.FillBoundary(geom.periodicity());
+    D_TERM( m_xslopes.FillBoundary(geom.periodicity());,
+            m_yslopes.FillBoundary(geom.periodicity());,
+            m_zslopes.FillBoundary(geom.periodicity()););
 
     // VisMF::Write(m_xslopes, "xslopes");
     // VisMF::Write(m_yslopes, "yslopes");
@@ -685,29 +690,33 @@ NavierStokes::scalar_advection (Real dt,
       zslps.setVal(0.);
 
       const Box& domain = geom.Domain();
+
+      godunov->ComputeSlopes(Smf,
+                             D_DECL(xslps, yslps, zslps),
+                             phys_bc, 0, num_scalars, domain);
       // Compute slopes for use in computing aofs
       // Perhaps need to call EB_set_covered(Smf,....)
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      {
-	Vector<int> bndry[BL_SPACEDIM];
-	for (MFIter mfi(Smf, true); mfi.isValid(); ++mfi)
-	{
-            godunov->ComputeSlopes(mfi, Smf,
-                                   D_DECL(xslps, yslps, zslps),
-                                   phys_bc, 0, num_scalars, domain);
-	    // Box bx=mfi.tilebox();
-	    // D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-	    //        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-	    //        bndry[2] = fetchBCArray(State_Type,bx,2,1););
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//       {
+// 	Vector<int> bndry[BL_SPACEDIM];
+// 	for (MFIter mfi(Smf, true); mfi.isValid(); ++mfi)
+// 	{
+//             godunov->ComputeSlopes(mfi, Smf,
+//                                    D_DECL(xslps, yslps, zslps),
+//                                    phys_bc, 0, num_scalars, domain);
+// 	    // Box bx=mfi.tilebox();
+// 	    // D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+// 	    //        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+// 	    //        bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-	    // godunov->ComputeScalarSlopes(mfi, Smf, num_scalars,
-	    //     			 D_DECL(xslps, yslps, zslps),
-	    //     			 D_DECL(bndry[0], bndry[1], bndry[2]),
-	    //     			 domain);
-	}
-      }
+// 	    // godunov->ComputeScalarSlopes(mfi, Smf, num_scalars,
+// 	    //     			 D_DECL(xslps, yslps, zslps),
+// 	    //     			 D_DECL(bndry[0], bndry[1], bndry[2]),
+// 	    //     			 domain);
+// 	}
+//       }
       //
       // need to fill ghost cells for slopes here.
       // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR

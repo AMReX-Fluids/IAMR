@@ -1040,99 +1040,55 @@ Godunov::how_many(const Vector<AdvectionForm>& advectionType,
 #ifdef AMREX_USE_EB
 
 
-void Godunov::ComputeSlopes(const amrex::MFIter& a_mfi,
-                            MultiFab&  a_Sborder,
-                            D_DECL(MultiFab& a_xslopes,
-                                   MultiFab& a_yslopes,
-                                   MultiFab& a_zslopes),
-                            const BCRec&     a_bcs,
-                            int a_comp,
-                            int a_ncomp,
-                            const Box& a_domain)
+void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
+                             D_DECL(MultiFab& a_xslopes,
+                                    MultiFab& a_yslopes,
+                                    MultiFab& a_zslopes),
+                             const BCRec&     a_bcs,
+                             int a_comp,
+                             int a_ncomp,
+                             const Box& a_domain)
 {
     BL_PROFILE("Godunov::ComputeSlopes");
 
     EB_set_covered(a_Sborder, 0, a_Sborder.nComp(), 1, COVERED_VAL);
 
-    // Tilebox
-    Box bx = a_mfi.tilebox ();
-
-    // This is to check efficiently if this tile contains any eb stuff
-    const EBFArrayBox&  Sborder_fab = static_cast<EBFArrayBox const&>(a_Sborder[a_mfi]);
-    const EBCellFlagFab&      flags = Sborder_fab.getEBCellFlagFab();
-
-    if (flags.getType(amrex::grow(bx,0)) == FabType::covered )
-    {
-        // If tile is completely covered by EB geometry, set slopes
-        // value to some very large number so we know if
-        // we accidentally use these covered slopes later in calculations
-        D_TERM( a_xslopes[a_mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);,
-                a_yslopes[a_mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);,
-                a_zslopes[a_mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);)
-    }
-    else
-    {
-        const auto& state_fab = a_Sborder.array(a_mfi);
-        const auto&    xs_fab = a_xslopes.array(a_mfi);
-        const auto&    ys_fab = a_yslopes.array(a_mfi);
-        const auto&    zs_fab = a_zslopes.array(a_mfi);
-
-        // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
-        if ( flags.getType(amrex::grow(bx,1)) == FabType::regular )
-        {
-            AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
-            {
-                // X direction
-                Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
-                Real du_xc = 0.5*(state_fab(i+1,j,k,n) - state_fab(i-1,j,k,n));
-
-                Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
-                xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
-                xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
-
-                // Y direction
-                Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
-                Real du_yc = 0.5*(state_fab(i,j+1,k,n) - state_fab(i,j-1,k,n));
-
-                Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
-                yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
-                ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
-
-#if (AMREX_SPACEDIM == 3)
-                // Z direction
-                Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
-                Real du_zc = 0.5*(state_fab(i,j,k+1,n) - state_fab(i,j,k-1,n));
-
-                Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
-                zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
-                zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            });
+    for (MFIter mfi(a_Sborder,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        // Tilebox
+        Box bx = mfi.tilebox ();
 
-            Gpu::synchronize();
+        // This is to check efficiently if this tile contains any eb stuff
+        const EBFArrayBox&  Sborder_fab = static_cast<EBFArrayBox const&>(a_Sborder[mfi]);
+        const EBCellFlagFab&      flags = Sborder_fab.getEBCellFlagFab();
+
+        if (flags.getType(amrex::grow(bx,0)) == FabType::covered )
+        {
+            // If tile is completely covered by EB geometry, set slopes
+            // value to some very large number so we know if
+            // we accidentally use these covered slopes later in calculations
+            D_TERM( a_xslopes[mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);,
+                    a_yslopes[mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);,
+                    a_zslopes[mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);)
         }
         else
         {
-            const auto& flag_fab = flags.array();
+            const auto& state_fab = a_Sborder.array(mfi);
+            const auto&    xs_fab = a_xslopes.array(mfi);
+            const auto&    ys_fab = a_yslopes.array(mfi);
+            const auto&    zs_fab = a_zslopes.array(mfi);
 
-            AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
+            // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
+            if ( flags.getType(amrex::grow(bx,1)) == FabType::regular )
             {
-                if (flag_fab(i,j,k).isCovered())
-                {
-                    xs_fab(i,j,k,a_comp+n) = 0.0;
-                    ys_fab(i,j,k,a_comp+n) = 0.0;
-                    zs_fab(i,j,k,a_comp+n) = 0.0;
-                }
-                else
+                AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
                 {
                     // X direction
-                    Real du_xl = (flag_fab(i-1,j,k).isCovered()) ? 0.0 :
-                        2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                    Real du_xr = (flag_fab(i+1,j,k).isCovered()) ? 0.0 :
-                        2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
+                    Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
+                    Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
                     Real du_xc = 0.5*(state_fab(i+1,j,k,n) - state_fab(i-1,j,k,n));
 
                     Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
@@ -1140,113 +1096,161 @@ void Godunov::ComputeSlopes(const amrex::MFIter& a_mfi,
                     xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
 
                     // Y direction
-                    Real du_yl = (flag_fab(i,j-1,k).isCovered()) ? 0.0 :
-                        2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                    Real du_yr = (flag_fab(i,j+1,k).isCovered()) ? 0.0 :
-                        2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
+                    Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
+                    Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
                     Real du_yc = 0.5*(state_fab(i,j+1,k,n) - state_fab(i,j-1,k,n));
 
                     Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
                     yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
                     ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+
 #if (AMREX_SPACEDIM == 3)
                     // Z direction
-                    Real du_zl = (flag_fab(i,j,k-1).isCovered()) ? 0.0 :
-                        2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                    Real du_zr = (flag_fab(i,j,k+1).isCovered()) ? 0.0 :
-                        2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
+                    Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
+                    Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
                     Real du_zc = 0.5*(state_fab(i,j,k+1,n) - state_fab(i,j,k-1,n));
 
                     Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
                     zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
                     zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
 #endif
+                });
+
+            Gpu::synchronize();
+            }
+            else
+            {
+                const auto& flag_fab = flags.array();
+
+                AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
+                {
+                    if (flag_fab(i,j,k).isCovered())
+                    {
+                        xs_fab(i,j,k,a_comp+n) = 0.0;
+                        ys_fab(i,j,k,a_comp+n) = 0.0;
+                        zs_fab(i,j,k,a_comp+n) = 0.0;
                     }
+                    else
+                    {
+                        // X direction
+                        Real du_xl = (flag_fab(i-1,j,k).isCovered()) ? 0.0 :
+                            2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
+                        Real du_xr = (flag_fab(i+1,j,k).isCovered()) ? 0.0 :
+                            2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
+                        Real du_xc = 0.5*(state_fab(i+1,j,k,n) - state_fab(i-1,j,k,n));
+
+                        Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
+                        xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
+                        xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
+
+                        // Y direction
+                        Real du_yl = (flag_fab(i,j-1,k).isCovered()) ? 0.0 :
+                            2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
+                        Real du_yr = (flag_fab(i,j+1,k).isCovered()) ? 0.0 :
+                            2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
+                        Real du_yc = 0.5*(state_fab(i,j+1,k,n) - state_fab(i,j-1,k,n));
+
+                        Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
+                        yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
+                        ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+#if (AMREX_SPACEDIM == 3)
+                        // Z direction
+                        Real du_zl = (flag_fab(i,j,k-1).isCovered()) ? 0.0 :
+                            2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
+                        Real du_zr = (flag_fab(i,j,k+1).isCovered()) ? 0.0 :
+                            2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
+                        Real du_zc = 0.5*(state_fab(i,j,k+1,n) - state_fab(i,j,k-1,n));
+
+                        Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
+                        zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
+                        zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+#endif
+                    }
+                });
+
+                Gpu::synchronize();
+            } // end of cut cell region
+
+            // MR: CHECK
+            // Deal with BCs -- this part must be double checked
+            // For now, assume that BCs are in place, i.e. ghost nodes are filled with the correct
+            // Dirichlet's value.
+            // Also, for the time being we assume that ext_dir is the only BC type which require
+            // a special treatment
+            //
+            const auto& flag_fab  = flags.array();
+
+            AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
+            {
+                if ( (i == a_domain.smallEnd(0)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(0) == PhysBCType::inflow) )
+                {
+                    Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
+                    Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
+                    Real du_xc = (state_fab(i+1,j,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i-1,j,k,n))/3.0;
+
+                    Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
+                    xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
+                    xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
+                }
+                if ( (i == a_domain.bigEnd(0)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(0) == PhysBCType::inflow) )
+                {
+                    Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
+                    Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
+                    Real du_xc = -(state_fab(i-1,j,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i+1,j,k,n))/3.0;
+
+                    Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
+                    xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
+                    xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
+                }
+
+                if ( (j == a_domain.smallEnd(1)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(1) == PhysBCType::inflow) )
+                {
+                    Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
+                    Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
+                    Real du_yc = (state_fab(i,j+1,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j-1,k,n))/3.0;
+
+                    Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
+                    yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
+                    ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+                }
+                if ( (j == a_domain.bigEnd(1)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(1) == PhysBCType::inflow) )
+                {
+                    Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
+                    Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
+                    Real du_yc = -(state_fab(i,j-1,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j+1,k,n))/3.0;
+
+                    Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
+                    yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
+                    ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+                }
+
+#if (AMREX_SPACEDIM == 3)
+                if ( (k == a_domain.smallEnd(2)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(2) == PhysBCType::inflow) )
+                {
+                    Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
+                    Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
+                    Real du_zc = (state_fab(i,j,k+1,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j,k-1,n))/3.0;
+
+                    Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
+                    zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
+                    zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+                }
+                if ( (k == a_domain.bigEnd(2)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(2) == PhysBCType::inflow) )
+                {
+                    Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
+                    Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
+                    Real du_zc = -(state_fab(i,j,k-1,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j,k+1,n))/3.0;
+
+                    Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
+                    zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
+                    zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+                }
+#endif
             });
 
             Gpu::synchronize();
-        } // end of cut cell region
-
-        // MR: CHECK
-        // Deal with BCs -- this part must be double checked
-        // For now, assume that BCs are in place, i.e. ghost nodes are filled with the correct
-        // Dirichlet's value.
-        // Also, for the time being we assume that ext_dir is the only BC type which require
-        // a special treatment
-        //
-        const auto& flag_fab  = flags.array();
-
-        AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
-        {
-            if ( (i == a_domain.smallEnd(0)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(0) == PhysBCType::inflow) )
-            {
-                Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
-                Real du_xc = (state_fab(i+1,j,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i-1,j,k,n))/3.0;
-
-                Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
-                xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
-                xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
-            }
-            if ( (i == a_domain.bigEnd(0)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(0) == PhysBCType::inflow) )
-            {
-                Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
-                Real du_xc = -(state_fab(i-1,j,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i+1,j,k,n))/3.0;
-
-                Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
-                xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
-                xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
-            }
-
-            if ( (j == a_domain.smallEnd(1)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(1) == PhysBCType::inflow) )
-            {
-                Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
-                Real du_yc = (state_fab(i,j+1,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j-1,k,n))/3.0;
-
-                Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
-                yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
-                ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
-            }
-            if ( (j == a_domain.bigEnd(1)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(1) == PhysBCType::inflow) )
-            {
-                Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
-                Real du_yc = -(state_fab(i,j-1,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j+1,k,n))/3.0;
-
-                Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
-                yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
-                ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
-            }
-
-#if (AMREX_SPACEDIM == 3)
-            if ( (k == a_domain.smallEnd(2)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(2) == PhysBCType::inflow) )
-            {
-                Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
-                Real du_zc = (state_fab(i,j,k+1,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j,k-1,n))/3.0;
-
-                Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
-                zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
-                zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
-            }
-            if ( (k == a_domain.bigEnd(2)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(2) == PhysBCType::inflow) )
-            {
-                Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
-                Real du_zc = -(state_fab(i,j,k-1,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j,k+1,n))/3.0;
-
-                Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
-                zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
-                zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
-            }
-#endif
-        });
+        }
     }
-
-    Gpu::synchronize();
-
 }
 
 // //

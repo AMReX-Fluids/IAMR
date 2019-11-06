@@ -257,15 +257,14 @@ public:      // public access functions
   //
 #ifdef AMREX_USE_EB
 
-    void ComputeSlopes(const amrex::MFIter& a_mfi,
-                             amrex::MultiFab&  a_Sborder,
-                       D_DECL(amrex::MultiFab& a_xslopes,
-                              amrex::MultiFab& a_yslopes,
-                              amrex::MultiFab& a_zslopes),
-                       const amrex::BCRec&  a_bcs,
-                       int a_comp,
-                       int a_ncomp,
-                       const amrex::Box& a_domain);
+    void ComputeSlopes( amrex::MultiFab&  a_Sborder,
+                        D_DECL(amrex::MultiFab& a_xslopes,
+                               amrex::MultiFab& a_yslopes,
+                               amrex::MultiFab& a_zslopes),
+                        const amrex::BCRec&  a_bcs,
+                        int a_comp,
+                        int a_ncomp,
+                        const amrex::Box& a_domain);
 
 
   // void ComputeVelocitySlopes(const amrex::MFIter&  mfi,
