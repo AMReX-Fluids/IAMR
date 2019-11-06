@@ -66,7 +66,6 @@ int         NavierStokesBase::do_MLsync_proj            = 1;
 int         NavierStokesBase::do_reflux                 = 1;
 int         NavierStokesBase::modify_reflux_normal_vel  = 0;
 int         NavierStokesBase::do_mac_proj               = 1;
-int         NavierStokesBase::do_divu_sync              = 0;
 int         NavierStokesBase::do_refine_outflow         = 0; 
 int         NavierStokesBase::do_derefine_outflow       = 1;
 int         NavierStokesBase::Nbuf_outflow              = 1;  
@@ -387,7 +386,6 @@ NavierStokesBase::Initialize ()
     pp.query("do_init_vort_proj",        do_init_vort_proj);
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
-    pp.query("do_divu_sync",             do_divu_sync     );
     pp.query("do_denminmax",             do_denminmax     );
     pp.query("do_scalminmax",            do_scalminmax    );
     pp.query("do_density_ref",           do_density_ref   );
@@ -414,11 +412,6 @@ NavierStokesBase::Initialize ()
     if (init_shrink > 1.0)
         amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
 
-    //
-    // Make sure we don't use divu_sync.
-    //
-    if (do_divu_sync)
-        amrex::Error("do_divu_sync == 1 is not supported");
     //
     // This test ensures that if the user toggles do_sync_proj,
     // the user has knowledge that do_MLsync_proj is meaningless.
@@ -2077,69 +2070,12 @@ NavierStokesBase::level_sync (int crse_iteration)
 
     MultiFab cc_rhs_crse, cc_rhs_fine;
 
-    if ((do_sync_proj && have_divu && do_divu_sync == 1) || do_MLsync_proj)
+    if (do_MLsync_proj)
     {
         cc_rhs_crse.define(    grids,    dmap,1,1,MFInfo(),           Factory());
         cc_rhs_fine.define(finegrids,finedmap,1,1,MFInfo(),fine_level.Factory());
         cc_rhs_crse.setVal(0);
         cc_rhs_fine.setVal(0);
-    }
-    //
-    // At this point the Divu state data is what was used in the original
-    // level project and has not been updated by avgDown or mac_sync.
-    // We want to fill cc_rhs_crse and cc_rhs_fine with the difference
-    // between the divu we now define using calc_divu and the divu which
-    // is in the state data.
-    // We are also copying the new computed value of divu into the Divu state.
-    //
-    if (do_sync_proj && have_divu && do_divu_sync == 1) 
-    {
-        const Real cur_time = state[Divu_Type].curTime();
-        const Real dt_inv = 1.0 / dt;
-
-        MultiFab& cur_divu_crse = get_new_data(Divu_Type);
-        calc_divu(cur_time,dt,cc_rhs_crse);
-        {
-            MultiFab new_divu_crse(grids,dmap,1,0,MFInfo(),Factory());
-            MultiFab::Copy(new_divu_crse,cc_rhs_crse,0,0,1,0);
-            cc_rhs_crse.minus(cur_divu_crse,0,1,0);
-            MultiFab::Copy(cur_divu_crse,new_divu_crse,0,0,1,0);
-        }
-        cc_rhs_crse.mult(dt_inv,0,1,0);
-
-        NavierStokesBase& fine_lev = getLevel(level+1);
-        MultiFab& cur_divu_fine = fine_lev.get_new_data(Divu_Type);
-        fine_lev.calc_divu(cur_time,dt,cc_rhs_fine);
-        {
-            MultiFab new_divu_fine(finegrids,finedmap,1,0,MFInfo(),fine_lev.Factory());
-            MultiFab::Copy(new_divu_fine,cc_rhs_fine,0,0,1,0);
-            cc_rhs_fine.minus(cur_divu_fine,0,1,0);
-            MultiFab::Copy(cur_divu_fine,new_divu_fine,0,0,1,0);
-        }
-        cc_rhs_fine.mult(dt_inv,0,1,0);
-        //
-        // With new divu's, get new Dsdt, then average down.
-        //
-        calc_dsdt(cur_time, dt, get_new_data(Dsdt_Type));
-        fine_lev.calc_dsdt(cur_time, dt/crse_dt_ratio,
-                           fine_lev.get_new_data(Dsdt_Type));
-        for (int k = level; k>= 0; k--)
-        {
-            NavierStokesBase&   flev     = getLevel(k+1);
-            NavierStokesBase&   clev     = getLevel(k);
-
-            const IntVect&  fratio = clev.fine_ratio;
-          
-            amrex::average_down(flev.get_new_data(Divu_Type),
-                                 clev.get_new_data(Divu_Type),
-                                 flev.geom, clev.geom,
-                                 0, 1, fratio);
-
-            amrex::average_down(flev.get_new_data(Dsdt_Type),
-                                 clev.get_new_data(Dsdt_Type),
-                                 flev.geom, clev.geom,
-                                 0, 1, fratio);
-        }
     }
     //
     // Multilevel or single-level sync projection.

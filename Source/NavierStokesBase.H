@@ -710,7 +710,6 @@ protected:
     static int  do_reflux;
     static int  modify_reflux_normal_vel;
     static int  do_mac_proj;
-    static int  do_divu_sync;
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at 
     static int  Nbuf_outflow;               //   outflow boundaries.
