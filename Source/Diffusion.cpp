@@ -386,7 +386,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
     if (has_coarse_data)
     {
-      Solnc->define(*bac, *dmc, 1, ng, MFInfo(), ebfactory);
+      Solnc->define(*bac, *dmc, 1, ng, MFInfo(), S_new[1]->Factory());
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -3292,7 +3292,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	    
 	  if (level > 0) {
 	    auto& crse_ns = *(coarser->navier_stokes);
-	    crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,MFInfo(),navier_stokes->Factory());
+	    crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), 1, ng,MFInfo(),crse_ns.Factory());
 	    AmrLevel::FillPatch(crse_ns,crsedata,ng,time,State_Type,comp,1);
 	    if (rho_flag == 2) {
 	      // We want to evaluate (div beta grad) S, not rho*S.
