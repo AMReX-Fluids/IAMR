@@ -88,7 +88,7 @@ eb2.cylinder_has_fluid_inside=0
 #.......................................#
 ns.v                    = 1 # NS solver 
 proj.v                  = 1 # Nodal projection
-#mac.verbose             =   1           # MacProjector
+mac.verbose             = 1 # MacProjector
 #diffusion.verbose       =   1           # Diffusion operator
 #projection.mg_verbose   =   1           # Nodal projection
 
