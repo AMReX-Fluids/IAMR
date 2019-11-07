@@ -2110,8 +2110,9 @@ NavierStokes::avgDown ()
 
     // uses volume weighting for 2D, but not for 3D
     // EB does have a vol weighting version, but doesn't go to not vol weighted for 3D
-    amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
-			0, S_crse.nComp(), fine_ratio);
+    // amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
+    // 			0, S_crse.nComp(), fine_ratio);
+    average_down(S_fine, S_crse, 0, S_crse.nComp());
 
     //   
     // Now average down pressure over time n-(n+1) interval.

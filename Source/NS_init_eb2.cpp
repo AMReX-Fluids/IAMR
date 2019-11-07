@@ -71,15 +71,13 @@ NavierStokesBase::initialize_eb2_structs() {
   areafrac = ebfactory.getAreaFrac();
   facecent = ebfactory.getFaceCent();
   
-  vfrac.copy(*volfrac);
-  
   auto const& flags = ebfactory.getMultiEBCellFlagFab();
 
-  for (MFIter mfi(vfrac, false); mfi.isValid(); ++mfi)
+  for (MFIter mfi(*volfrac, false); mfi.isValid(); ++mfi)
   {
     BaseFab<int>& mfab = ebmask[mfi];
     const Box tbox = mfi.growntilebox();
-    const FArrayBox& vfab = vfrac[mfi];
+    const FArrayBox& vfab = (*volfrac)[mfi];
     const EBCellFlagFab& flagfab = flags[mfi];
     
     FabType typ = flagfab.getType(tbox);

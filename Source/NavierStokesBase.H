@@ -177,6 +177,7 @@ public:
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
     
 #ifdef AMREX_USE_EB
+    const amrex::MultiFab* VolFrac () const { return volfrac; }
     amrex::MultiFab& getGradP() { return *gradp; }
 #endif
     //
@@ -338,6 +339,9 @@ protected:
     void sync_setup (amrex::MultiFab*& DeltaSsync);
     void sync_cleanup (amrex::MultiFab*& DeltaSsync);
 
+    void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
+		      int scomp, int ncomp);
+
     //
     // Advect velocities.
     //
@@ -377,7 +381,7 @@ protected:
 				int  ncycle);
 
     virtual void avgDown () = 0; // Average down for all the state types.
-    //
+   
     virtual void calc_divu (amrex::Real      time,
 			    amrex::Real      dt,
 			    amrex::MultiFab& fab) = 0;
@@ -529,8 +533,6 @@ private:
     static bool body_state_set;
     static bool      no_eb_in_domain;
     static std::vector<amrex::Real> body_state;
-        
-    amrex::MultiFab vfrac;
 
 #endif    
 

@@ -853,10 +853,8 @@ NavierStokesBase::buildMetrics ()
         amrex::Abort("EB requires dx == dy (== dz)\n");
     }
 
-    vfrac.clear();
-    vfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
-    MultiFab::Copy(vfrac, ebfactory.getVolFrac(), 0, 0, 1, NUM_GROW);
+    volfrac = &(ebfactory.getVolFrac());
     areafrac = ebfactory.getAreaFrac();
 
     
@@ -1417,11 +1415,10 @@ NavierStokesBase::estTimeStep ()
 #endif 
         ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
 
-
-	      amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
-	      for (int k = 0; k < BL_SPACEDIM; k++)
-	       amrex::Print() << u_max[k] << "  ";
-	       amrex::Print() << '\n';
+	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
+	for (int k = 0; k < BL_SPACEDIM; k++)
+	  amrex::Print() << u_max[k] << "  ";
+	amrex::Print() << '\n';
     }
 
     return estdt;
@@ -4630,3 +4627,28 @@ NavierStokesBase::fetchBCArray (int State_Type, const Box& bx, int scomp, int nc
     return bc;
 }
 
+void
+NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
+			       int scomp, int ncomp)
+{
+  Print()<<"Using new average_down \n";
+#ifdef AMREX_USE_EB
+
+#if (AMREX_SPACEDIM == 3)
+    // no volume weighting
+    amrex::EB_average_down(S_fine, S_crse, scomp, ncomp, fine_ratio);
+#else
+    // volume weighting
+    amrex::EB_average_down(S_fine, S_crse, this->getLevel(level+1).Volume(),
+			   *(this->getLevel(level+1).VolFrac()),
+			   scomp, ncomp, fine_ratio);
+#endif
+    
+#else
+    // Call non-EB aware version
+    // uses volume weighting for 1D,2D but no volume weighting for 3D
+    amrex::average_down(S_fine, S_crse,
+			this->getLevel(level+1).geom, this->getLevel(level).geom, 
+			scomp, ncomp, fine_ratio);
+#endif
+}
