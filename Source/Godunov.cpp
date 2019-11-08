@@ -1053,6 +1053,18 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
 
     EB_set_covered(a_Sborder, 0, a_Sborder.nComp(), 1, COVERED_VAL);
 
+    // We initialize slopes to zero in the grown domain ... this is essential
+    //    to handle the up-winding at outflow faces (see inclfo)
+    D_TERM( a_xslopes.setVal(0.0, a_comp, a_ncomp, a_xslopes.nGrow());,
+            a_yslopes.setVal(0.0, a_comp, a_ncomp, a_yslopes.nGrow());,
+            a_zslopes.setVal(0.0, a_comp, a_ncomp, a_zslopes.nGrow()););
+
+    // ... then set them to this large number in the interior in order to be sure
+    //     that no "bad" values go unnoticed
+    D_TERM( a_xslopes.setVal( COVERED_VAL, a_comp, a_ncomp,0);,
+            a_yslopes.setVal( COVERED_VAL, a_comp, a_ncomp,0);,
+            a_zslopes.setVal( COVERED_VAL, a_comp, a_ncomp,0););
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1065,21 +1077,12 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
         const EBFArrayBox&  Sborder_fab = static_cast<EBFArrayBox const&>(a_Sborder[mfi]);
         const EBCellFlagFab&      flags = Sborder_fab.getEBCellFlagFab();
 
-        if (flags.getType(amrex::grow(bx,0)) == FabType::covered )
-        {
-            // If tile is completely covered by EB geometry, set slopes
-            // value to some very large number so we know if
-            // we accidentally use these covered slopes later in calculations
-            D_TERM( a_xslopes[mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);,
-                    a_yslopes[mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);,
-                    a_zslopes[mfi].setVal( 1.2345e300, bx, a_comp, a_ncomp);)
-        }
-        else
+        if (flags.getType(amrex::grow(bx,0)) != FabType::covered )
         {
             const auto& state_fab = a_Sborder.array(mfi);
-            const auto&    xs_fab = a_xslopes.array(mfi);
-            const auto&    ys_fab = a_yslopes.array(mfi);
-            const auto&    zs_fab = a_zslopes.array(mfi);
+            D_TERM( const auto& xs_fab = a_xslopes.array(mfi);,
+                    const auto& ys_fab = a_yslopes.array(mfi);,
+                    const auto& zs_fab = a_zslopes.array(mfi););
 
             // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
             if ( flags.getType(amrex::grow(bx,1)) == FabType::regular )
@@ -1116,7 +1119,7 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
 #endif
                 });
 
-            Gpu::synchronize();
+                Gpu::synchronize();
             }
             else
             {
@@ -1126,9 +1129,9 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                 {
                     if (flag_fab(i,j,k).isCovered())
                     {
-                        xs_fab(i,j,k,a_comp+n) = 0.0;
-                        ys_fab(i,j,k,a_comp+n) = 0.0;
-                        zs_fab(i,j,k,a_comp+n) = 0.0;
+                        D_TERM( xs_fab(i,j,k,a_comp+n) = 0.0;,
+                                ys_fab(i,j,k,a_comp+n) = 0.0;,
+                                zs_fab(i,j,k,a_comp+n) = 0.0;);
                     }
                     else
                     {
@@ -1248,7 +1251,6 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
 #endif
             });
 
-            Gpu::synchronize();
         }
     }
 }
