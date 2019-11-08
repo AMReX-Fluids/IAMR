@@ -162,9 +162,16 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
         // ===================  COVERED BRANCH =================== //
         if (flags.getType(amrex::grow(bx,0)) == FabType::covered )
         {
-            a_umac[mfi].setVal( COVERED_VAL, ubx, 0, 1);
-            a_vmac[mfi].setVal( COVERED_VAL, vbx, 0, 1);
-            a_wmac[mfi].setVal( COVERED_VAL, wbx, 0, 1);
+             const auto& umac_fab = a_umac[mfi].array();
+             const auto& vmac_fab = a_vmac[mfi].array();
+
+             AMREX_FOR_3D(ubx, i, j, k, { umac_fab(i,j,k) = COVERED_VAL; });
+             AMREX_FOR_3D(vbx, i, j, k, { vmac_fab(i,j,k) = COVERED_VAL; });
+
+#if (AMREX_SPACEDIM == 3)
+             const auto& wmac_fab = a_wmac[mfi].array();
+             AMREX_FOR_3D(wbx, i, j, k, { wmac_fab(i,j,k) = COVERED_VAL; });
+#endif
         }
         // ===================  REGULAR BRANCH =================== //
         else if (flags.getType(amrex::grow(bx,1)) == FabType::regular )
@@ -173,22 +180,23 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
             const auto& ccvel_fab = a_vel.array(mfi);
 
             // Cell-centered slopes
-            const auto& xslopes_fab = a_xslopes.array(mfi);
-            const auto& yslopes_fab = a_yslopes.array(mfi);
-            const auto& zslopes_fab = a_zslopes.array(mfi);
+            D_TERM( const auto& xslopes_fab = a_xslopes.array(mfi);,
+                    const auto& yslopes_fab = a_yslopes.array(mfi);,
+                    const auto& zslopes_fab = a_zslopes.array(mfi););
 
             // Face-centered velocity components
-            const auto& umac_fab = a_umac.array(mfi);
-            const auto& vmac_fab = a_vmac.array(mfi);
-            const auto& wmac_fab = a_wmac.array(mfi);
+            D_TERM( const auto& umac_fab = a_umac.array(mfi);,
+                    const auto& vmac_fab = a_vmac.array(mfi);,
+                    const auto& wmac_fab = a_wmac.array(mfi););
 
             // Face-centered left and right states
-            const auto& upls_fab = upls.array(mfi);
-            const auto& vpls_fab = vpls.array(mfi);
-            const auto& wpls_fab = wpls.array(mfi);
-            const auto& umns_fab = umns.array(mfi);
-            const auto& vmns_fab = vmns.array(mfi);
-            const auto& wmns_fab = wmns.array(mfi);
+            D_TERM( const auto& upls_fab = upls.array(mfi);,
+                    const auto& vpls_fab = vpls.array(mfi);,
+                    const auto& wpls_fab = wpls.array(mfi););
+
+            D_TERM( const auto& umns_fab = umns.array(mfi);,
+                    const auto& vmns_fab = vmns.array(mfi);,
+                    const auto& wmns_fab = wmns.array(mfi););
 
             // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
             AMREX_FOR_3D(ubx, i, j, k,
@@ -206,7 +214,7 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 vmns_fab(i,j,k) = ccvel_fab(i,j-1,k,1) + 0.5 * yslopes_fab(i,j-1,k,1);
                 vmac_fab(i,j,k) = riemann::solver( vmns_fab(i,j,k), vpls_fab(i,j,k) );
             });
-
+#if (AMREX_SPACEDIM == 3 )
             AMREX_FOR_3D(wbx, i, j, k,
             {
                 // Z-faces
@@ -214,7 +222,7 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 wmns_fab(i,j,k) = ccvel_fab(i,j,k-1,2) + 0.5 * zslopes_fab(i,j,k-1,2);
                 wmac_fab(i,j,k) = riemann::solver( wmns_fab(i,j,k), wpls_fab(i,j,k) );
             });
-
+#endif
             Gpu::synchronize();
         }
         // ===================  CUT-CELLS BRANCH =================== //
@@ -229,22 +237,23 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
             const auto& ccvel_fab = a_vel.array(mfi);
 
             // Cell-centered slopes
-            const auto& xslopes_fab = a_xslopes.array(mfi);
-            const auto& yslopes_fab = a_yslopes.array(mfi);
-            const auto& zslopes_fab = a_zslopes.array(mfi);
+            D_TERM( const auto& xslopes_fab = a_xslopes.array(mfi);,
+                    const auto& yslopes_fab = a_yslopes.array(mfi);,
+                    const auto& zslopes_fab = a_zslopes.array(mfi););
 
             // Face-centered left and right states
-            const auto& upls_fab = upls.array(mfi);
-            const auto& vpls_fab = vpls.array(mfi);
-            const auto& wpls_fab = wpls.array(mfi);
-            const auto& umns_fab = umns.array(mfi);
-            const auto& vmns_fab = vmns.array(mfi);
-            const auto& wmns_fab = wmns.array(mfi);
+            D_TERM( const auto& upls_fab = upls.array(mfi);,
+                    const auto& vpls_fab = vpls.array(mfi);,
+                    const auto& wpls_fab = wpls.array(mfi););
+
+            D_TERM( const auto& umns_fab = umns.array(mfi);,
+                    const auto& vmns_fab = vmns.array(mfi);,
+                    const auto& wmns_fab = wmns.array(mfi););
 
             // Face-centered areas
-            const auto& apx_fab = areafrac[0]->array(mfi);
-            const auto& apy_fab = areafrac[1]->array(mfi);
-            const auto& apz_fab = areafrac[2]->array(mfi);
+            D_TERM( const auto& apx_fab = areafrac[0]->array(mfi);,
+                    const auto& apy_fab = areafrac[1]->array(mfi);,
+                    const auto& apz_fab = areafrac[2]->array(mfi););
 
             // This FAB has cut cells
             AMREX_FOR_3D(ubx_grown, i, j, k,
@@ -267,6 +276,7 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 }
             });
 
+#if (AMREX_SPACEDIM == 3 )
             AMREX_FOR_3D(wbx_grown, i, j, k,
             {
                 // Z-faces
@@ -275,7 +285,7 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                     wmns_fab(i,j,k) = ccvel_fab(i,j,k-1,2) + 0.5 * zslopes_fab(i,j,k-1,2);
                 }
             });
-
+#endif
             Gpu::synchronize();
 
         } // Cut cells
@@ -289,8 +299,10 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
     umns.FillBoundary(a_geom.periodicity());
     vpls.FillBoundary(a_geom.periodicity());
     vmns.FillBoundary(a_geom.periodicity());
+#if (AMREX_SPACEDIM == 3 )
     wpls.FillBoundary(a_geom.periodicity());
     wmns.FillBoundary(a_geom.periodicity());
+#endif
 
     // ****************************************************************************
     // Do interpolation to centroids -- only for cut cells
@@ -314,27 +326,28 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                flags.getType(amrex::grow(bx,1)) == FabType::regular ) )
         {
             // Face-centered velocity components
-            const auto& umac_fab = a_umac.array(mfi);
-            const auto& vmac_fab = a_vmac.array(mfi);
-            const auto& wmac_fab = a_wmac.array(mfi);
+            D_TERM( const auto& umac_fab = a_umac.array(mfi);,
+                    const auto& vmac_fab = a_vmac.array(mfi);,
+                    const auto& wmac_fab = a_wmac.array(mfi););
 
             // Face-centered left and right states
-            const auto& upls_fab = upls.array(mfi);
-            const auto& vpls_fab = vpls.array(mfi);
-            const auto& wpls_fab = wpls.array(mfi);
-            const auto& umns_fab = umns.array(mfi);
-            const auto& vmns_fab = vmns.array(mfi);
-            const auto& wmns_fab = wmns.array(mfi);
+            D_TERM( const auto& upls_fab = upls.array(mfi);,
+                    const auto& vpls_fab = vpls.array(mfi);,
+                    const auto& wpls_fab = wpls.array(mfi););
+
+            D_TERM( const auto& umns_fab = umns.array(mfi);,
+                    const auto& vmns_fab = vmns.array(mfi);,
+                    const auto& wmns_fab = wmns.array(mfi););
 
             // Face-centered areas
-            const auto& apx_fab = areafrac[0]->array(mfi);
-            const auto& apy_fab = areafrac[1]->array(mfi);
-            const auto& apz_fab = areafrac[2]->array(mfi);
+            D_TERM( const auto& apx_fab = areafrac[0]->array(mfi);,
+                    const auto& apy_fab = areafrac[1]->array(mfi);,
+                    const auto& apz_fab = areafrac[2]->array(mfi););
 
             // Face centroids
-            const auto& fcx_fab = facecent[0]->array(mfi);
-            const auto& fcy_fab = facecent[1]->array(mfi);
-            const auto& fcz_fab = facecent[2]->array(mfi);
+            D_TERM( const auto& fcx_fab = facecent[0]->array(mfi);,
+                    const auto& fcy_fab = facecent[1]->array(mfi);,
+                    const auto& fcz_fab = facecent[2]->array(mfi););
 
             const auto& ccm_fab = cc_mask.const_array(mfi);
 
@@ -347,11 +360,17 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 else if (apx_fab(i,j,k) < 1.0)
                 {
                     int jj = j + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,0)));
+#if (AMREX_SPACEDIM == 3)
                     int kk = k + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,1)));
-
+#else
+                    int kk = k;
+#endif
                     Real fracy = (ccm_fab(i-1,jj,k) || ccm_fab(i,jj,k)) ? std::abs(fcx_fab(i,j,k,0)) : 0.0;
+#if (AMREX_SPACEDIM == 3)
                     Real fracz = (ccm_fab(i-1,j,kk) || ccm_fab(i,j,kk)) ? std::abs(fcx_fab(i,j,k,1)) : 0.0;
-
+#else
+                    Real fracz = 0.0;
+#endif
                     Real upls_on_centroid = (1.0-fracy)*(1.0-fracz)*upls_fab(i, j,k )+
                         fracy *(1.0-fracz)*upls_fab(i,jj,k )+
                         fracz *(1.0-fracy)*upls_fab(i, j,kk)+
@@ -378,10 +397,17 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 else if (apy_fab(i,j,k) < 1.0)
                 {
                     int ii = i + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,0)));
+#if (AMREX_SPACEDIM == 3)
                     int kk = k + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,1)));
-
+#else
+                    int kk = k;
+#endif
                     Real fracx = (ccm_fab(ii,j-1,k ) || ccm_fab(ii,j,k)) ? std::abs(fcy_fab(i,j,k,0)) : 0.0;
+#if (AMREX_SPACEDIM == 3)
                     Real fracz = (ccm_fab( i,j-1,kk) || ccm_fab(i,j,kk)) ? std::abs(fcy_fab(i,j,k,1)) : 0.0;
+#else
+                    Real fracz = 0.0;
+#endif
 
                     Real vpls_on_centroid = (1.0-fracx)*(1.0-fracz)*vpls_fab(i ,j,k )+
                         fracx *(1.0-fracz)*vpls_fab(ii,j,k )+
@@ -400,6 +426,7 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 }
             });
 
+#if (AMREX_SPACEDIM == 3)
              AMREX_FOR_3D(wbx, i, j, k,
              {
                 if (apz_fab(i,j,k) == 0.0)
@@ -431,7 +458,7 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 }
 
              });
-
+#endif
              Gpu::synchronize();
 
           } // Cut cells
