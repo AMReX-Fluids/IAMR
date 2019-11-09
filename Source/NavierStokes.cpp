@@ -2108,10 +2108,6 @@ NavierStokes::avgDown ()
     MultiFab& S_crse = get_new_data(State_Type);
     MultiFab& S_fine = fine_lev.get_new_data(State_Type);
 
-    // uses volume weighting for 2D, but not for 3D
-    // EB does have a vol weighting version, but doesn't go to not vol weighted for 3D
-    // amrex::average_down(S_fine, S_crse, fine_lev.geom, crse_lev.geom, 
-    // 			0, S_crse.nComp(), fine_ratio);
     average_down(S_fine, S_crse, 0, S_crse.nComp());
 
     //   
@@ -2125,6 +2121,7 @@ NavierStokes::avgDown ()
 
     // FIXME? Doesn't work. Get error:
     //0::Assertion `ebflag.box().contains(amrex::enclosedCells(bx))' failed, file "../../../amrex_fork/amrex_tensorFlux/Src/EB/AMReX_EBFArrayBox.cpp", line 23 !!!
+    // 
     // BoxArray crse_P_fine_BA = P_fgrids; crse_P_fine_BA.coarsen(fine_ratio);
     // MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0,MFInfo(),fine_lev.Factory());
 // #ifdef _OPENMP
@@ -2149,17 +2146,17 @@ NavierStokes::avgDown ()
     {
         MultiFab& Divu_crse = get_new_data(Divu_Type);
         MultiFab& Divu_fine = fine_lev.get_new_data(Divu_Type);
-        
-	amrex::average_down(Divu_fine, Divu_crse, fine_lev.geom, crse_lev.geom, 
-			    0, 1, fine_ratio);
+
+	average_down(Divu_fine, Divu_crse, 0, 1);
     }
     if (have_dsdt)
     {
         MultiFab& Dsdt_crse = get_new_data(Dsdt_Type);
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
-        
-	amrex::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
-			    0, 1, fine_ratio);
+
+	average_down(Dsdt_fine, Dsdt_crse, 0, 1);	
+	//amrex::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom, 
+	//		    0, 1, fine_ratio);
     }
     //
     // Fill rho_ctime at the current and finer levels with the correct data.

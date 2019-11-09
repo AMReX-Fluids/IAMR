@@ -185,6 +185,12 @@ public:
     //
     amrex::Vector<int> fetchBCArray (int State_Type, const amrex::Box& bx,
 				     int scomp, int ncomp);
+    //
+    // Select appropriate AMReX average_down() based on EB/non-EB and dimensionality
+    // for use in derived classes and Projection sync fns and initial vel proj
+    //
+    void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
+		      int scomp, int ncomp);
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
@@ -196,7 +202,7 @@ public:
     static amrex::Real getGravity () { return gravity; }
 
     static int DoTrac2();
-
+  
 protected:
 
     NavierStokesBase ();
@@ -338,9 +344,6 @@ protected:
 
     void sync_setup (amrex::MultiFab*& DeltaSsync);
     void sync_cleanup (amrex::MultiFab*& DeltaSsync);
-
-    void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
-		      int scomp, int ncomp);
 
     //
     // Advect velocities.

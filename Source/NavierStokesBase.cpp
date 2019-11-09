@@ -4631,9 +4631,15 @@ void
 NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
 			       int scomp, int ncomp)
 {
+  // 
+  // Choose the appropriate AMReX average_down() based on
+  // whether EB or non-EB, and dimensionality
+  //
   Print()<<"Using new average_down \n";
-#ifdef AMREX_USE_EB
 
+#ifdef AMREX_USE_EB
+  
+  // Assume we want EB to behave the same as non-EB in regards to dimensionality
 #if (AMREX_SPACEDIM == 3)
     // no volume weighting
     amrex::EB_average_down(S_fine, S_crse, scomp, ncomp, fine_ratio);
@@ -4645,8 +4651,7 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
 #endif
     
 #else
-    // Call non-EB aware version
-    // uses volume weighting for 1D,2D but no volume weighting for 3D
+    // non-EB aware, uses volume weighting for 1D,2D but no volume weighting for 3D
     amrex::average_down(S_fine, S_crse,
 			this->getLevel(level+1).geom, this->getLevel(level).geom, 
 			scomp, ncomp, fine_ratio);
