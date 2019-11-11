@@ -177,6 +177,7 @@ public:
     void getGradP (amrex::MultiFab& gp, amrex::Real time);
     
 #ifdef AMREX_USE_EB
+    const amrex::MultiFab* VolFrac () const { return volfrac; }
     amrex::MultiFab& getGradP() { return *gradp; }
 #endif
     //
@@ -184,6 +185,12 @@ public:
     //
     amrex::Vector<int> fetchBCArray (int State_Type, const amrex::Box& bx,
 				     int scomp, int ncomp);
+    //
+    // Select appropriate AMReX average_down() based on EB/non-EB and dimensionality
+    // for use in derived classes and Projection sync fns and initial vel proj
+    //
+    void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
+		      int scomp, int ncomp);
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
@@ -195,7 +202,7 @@ public:
     static amrex::Real getGravity () { return gravity; }
 
     static int DoTrac2();
-
+  
 protected:
 
     NavierStokesBase ();
@@ -377,7 +384,7 @@ protected:
 				int  ncycle);
 
     virtual void avgDown () = 0; // Average down for all the state types.
-    //
+   
     virtual void calc_divu (amrex::Real      time,
 			    amrex::Real      dt,
 			    amrex::MultiFab& fab) = 0;
@@ -529,8 +536,6 @@ private:
     static bool body_state_set;
     static bool      no_eb_in_domain;
     static std::vector<amrex::Real> body_state;
-        
-    amrex::MultiFab vfrac;
 
 #endif    
 
@@ -695,7 +700,6 @@ protected:
     static amrex::Real        visc_tol;
     static amrex::Real        visc_abs_tol;
     static amrex::Real        be_cn_theta;
-    static int         variable_vel_visc;  // variable viscosity flag
     //
     // Internal switches.
     //
@@ -711,7 +715,6 @@ protected:
     static int  do_reflux;
     static int  modify_reflux_normal_vel;
     static int  do_mac_proj;
-    static int  do_divu_sync;
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at 
     static int  Nbuf_outflow;               //   outflow boundaries.
