@@ -345,7 +345,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     // At this point, S_old has bndry at time N, S_new has bndry at time N+1
     //
     // CEG - looking back through code suggests this is not true for IAMR
-    //  right now. Need to fix in calling functions...
+    //  right now. Would need to fix in calling functions...
     //MultiFab& S_old = navier_stokes->get_old_data(State_Type);
     //MultiFab& S_new = navier_stokes->get_new_data(State_Type);
 
@@ -401,12 +401,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   
 #ifdef AMREX_USE_EB
     // create the right data holder for passing to MLEBABecLap
-    amrex::Vector<const amrex::EBFArrayBoxFactory*> ebf(1);
-    ebf[0] = &(dynamic_cast<EBFArrayBoxFactory const&>(ebfactory));
-    // fixme - why not just {ebfactory} below???
+    const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(ebfactory));
     
-    MLEBABecLap opn({geom}, {ba}, {dm}, infon, ebf);
-    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf[0]->getAreaFrac();
+    MLEBABecLap opn({geom}, {ba}, {dm}, infon, {ebf});
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf->getAreaFrac();
 #else	  
     MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
 #endif  
@@ -421,7 +419,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     infonp1.setMetricTerm(false);
       
 #ifdef AMREX_USE_EB
-    MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, ebf);
+    MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, {ebf});
 #else	  
     MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
 #endif
@@ -812,7 +810,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
 	       const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
 	       const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
-	
+
+	std::array<const Box*,AMREX_SPACEDIM> nbx{AMREX_D_DECL(&xbx,&ybx,&zbx)};
 	// this is to check efficiently if this tile contains any eb stuff
 	const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
 	const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
@@ -833,8 +832,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         {
 	  for (int i = 0; i < BL_SPACEDIM; ++i)
 	  {
-	    (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
-	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
+	    (*fluxnp1[i])[mfi].mult(b/dt,*nbx[i],fluxComp+icomp,1);
+	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],*nbx[i],0,fluxComp+icomp,1);
 	  }
 	}
         else
@@ -842,9 +841,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         // Use EB routines
           for (int i = 0; i < BL_SPACEDIM; ++i)
           {
-            (*fluxnp1[i])[mfi].mult(b/dt,fluxComp+icomp,1);
-            (*fluxnp1[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
-            (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);            
+            (*fluxnp1[i])[mfi].mult(b/dt,*nbx[i],fluxComp+icomp,1);
+            (*fluxnp1[i])[mfi].mult((*area[i])[mfi],*nbx[i],0,fluxComp+icomp,1);
+            (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],*nbx[i],0,fluxComp+icomp,1);
           }
         }
       }        
@@ -990,7 +989,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     FluxBoxes fb_old;
 
     const MultiFab* area   = navier_stokes->Area();
-    // need for computeBeta. Don't see Why computeBeta defines area in this way
+    // need for computeBeta. unsure why computeBeta defines area in this way
     // or why it even bothers to pass area when it's also passing geom
     const MultiFab *ap[AMREX_SPACEDIM];
     for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -1020,8 +1019,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       const Real a = 0.0;
       Real       b = -(1.0-be_cn_theta)*dt;
 
-      // FIXME not sure why this is here. this is the tensor solve so allnull seems
-      // like it should be an error...
       if (allnull)
 	b *= visc_coef[Xvel];
       
@@ -1147,14 +1144,44 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	  mlmg.getFluxes({fp},{&Soln});
 
 	  for (int d = 0; d < BL_SPACEDIM; d++){
-	    //tensorflux_old[d]->mult(-b/(dt*navier_stokes->Geom().CellSize()[d]),0);
 	    for (int i = 0; i < BL_SPACEDIM; ++i){
-	      // we've done away with velocity weighting in A,B
-	      MultiFab::Multiply(*tensorflux_old[d],area[d],0,i,1,flux_ng);
+	      // manage area-weighting in final total flux computation,
+	      // so only have to deal with EB switches once
+	      //MultiFab::Multiply(*tensorflux_old[d],area[d],0,i,1,flux_ng);
 	      tensorflux_old[d]->mult(-b/dt,i,1,flux_ng);
 	    }
 	  }
 	  //FIXME
+	  // static int count=0; count++;
+	  // VisMF::Write( *tensorflux_old[0],"fluxx_"+std::to_string(count));
+	  // VisMF::Write( *tensorflux_old[1],"fluxy_"+std::to_string(count));
+	  // {
+	  //   // read in result MF from unaltered version of code
+	  //   std::string name2="../run2d/fluxx_"+std::to_string(count);
+	  //   std::cout << "Reading " << name2 << std::endl;
+	  //   MultiFab mf2(tensorflux_old[0]->boxArray(),dmap,tensorflux_old[0]->nComp(),tensorflux_old[0]->nGrow());
+	  //   VisMF::Read(mf2, name2);
+	  //   MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+	  //   // Diff local MF and MF from unaltered code 
+	  //   MultiFab::Copy(mfdiff, *tensorflux_old[0], 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+	  //   mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+	  //   for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	  //     std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+	  // 		<< " and " << mfdiff.max(icomp,mf2.nGrow());
+	  //     if (mfdiff.nComp() > 1) {
+	  // 	std::cout << " for component " << icomp;
+	  //     }
+	  //     std::cout << "." << std::endl;
+	  //   }
+	  //   // write out difference MF for viewing: amrvis -mf 
+	  //   std::cout << "Writing mfdiff" << std::endl;
+	  //   VisMF::Write(mfdiff, "flxxdiff"+std::to_string(count));
+	  // }
+	  // amrex::WriteSingleLevelPlotfile("fluxx_"+std::to_string(count), *tensorflux_old[0], {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);
+	  // amrex::WriteSingleLevelPlotfile("fluxy_"+std::to_string(count), *tensorflux_old[1], {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);
+	  // amrex::WriteSingleLevelPlotfile("fluxx_"+std::to_string(count), *tensorflux_old[0], {AMREX_D_DECL("x","y","z")},navier_stokes->Geom(), 0.0, 0);
+	  // //FIXME
  	  // Print()<<"Old tensor fluxes ...\n";
 	  // amrex::print_state(*tensorflux_old[0], {64,80});
 	  // amrex::print_state(*tensorflux_old[1], {64,80});
@@ -1284,13 +1311,13 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         const Real*      betay_dat = betay.dataPtr(betaComp);
 
         tensor_hooprhs(&fort_xvel_comp,
-			       ARLIM(lo), ARLIM(hi),
-			       rhs, ARLIM(rlo), ARLIM(rhi), 
-			       sdat, ARLIM(slo), ARLIM(shi),
-			       rcendat, &coeff, 
-			       voli, ARLIM(vlo), ARLIM(vhi),
-			       betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
-			       betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
+		       ARLIM(lo), ARLIM(hi),
+		       rhs, ARLIM(rlo), ARLIM(rhi), 
+		       sdat, ARLIM(slo), ARLIM(shi),
+		       rcendat, &coeff, 
+		       voli, ARLIM(vlo), ARLIM(vhi),
+		       betax_dat,ARLIM(betax_lo),ARLIM(betax_hi),
+		       betay_dat,ARLIM(betay_lo),ARLIM(betay_hi));
       }
     }
 #endif
@@ -1360,7 +1387,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     //
     const Real a = 1.0;
     Real       b = be_cn_theta*dt;
-    // FIXME?
     if (allnull)
         b *= visc_coef[Xvel];
 
@@ -1383,6 +1409,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #ifdef AMREX_USE_EB
       const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
       MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+      
+      std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf->getAreaFrac();
 #else
       MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
 #endif
@@ -1531,23 +1559,88 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	// }
 	std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(tensorflux[0], tensorflux[1], tensorflux[2])};	
 	mlmg.getFluxes({fp},{&Soln});
-
-	// put this in MFIter loop when EB-izing
-	for (int d = 0; d < BL_SPACEDIM; d++){
-	  for (int i = 0; i < BL_SPACEDIM; ++i){
-	      // we've done away with vol weighting in A,B
-	      MultiFab::Multiply(*tensorflux[d],area[d],0,i,1,flux_ng);
+	
+#ifdef AMREX_USE_EB
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
+      {  
+	Box bx = mfi.tilebox();
+	
+	// need face-centered tilebox for each direction
+	D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+	       const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+	       const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+	std::array<const Box*,AMREX_SPACEDIM> nbx{AMREX_D_DECL(&xbx,&ybx,&zbx)};
+	
+	// this is to check efficiently if this tile contains any eb stuff
+	const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
+	const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
+      
+      if(flags.getType(amrex::grow(bx, flux_ng)) == FabType::covered)
+      {
+	// If tile is completely covered by EB geometry, set 
+	// value to some very large number so we know if
+	// we accidentaly use these covered vals later in calculations
+	D_TERM(tensorflux[0]->setVal(1.2345e30, xbx, 0, AMREX_SPACEDIM);,
+	       tensorflux[1]->setVal(1.2345e30, ybx, 0, AMREX_SPACEDIM);,
+	       tensorflux[2]->setVal(1.2345e30, zbx, 0, AMREX_SPACEDIM););
+      }
+      else
+      {
+	// No cut cells in tile + flux_ng-cell witdh halo -> use non-eb routine
+	if(flags.getType(amrex::grow(bx, flux_ng)) == FabType::regular)
+        {
+	  for (int i = 0; i < BL_SPACEDIM; ++i)
+	  {
+	    (*tensorflux[i])[mfi].mult(b/dt,*nbx[i],0,AMREX_SPACEDIM);
+	    if ( be_cn_theta!=1 ) 
+	      (*tensorflux[i])[mfi].plus((*tensorflux_old[i])[mfi],*nbx[i],0,0,BL_SPACEDIM);
+	    for (int d = 0; d < BL_SPACEDIM; ++d)
+	      (*tensorflux[i])[mfi].mult(area[i][mfi],*nbx[i],0,d,1);
 	  }
+	}
+        else
+        {
+	  // Use EB routines
+          for (int i = 0; i < BL_SPACEDIM; ++i)
+          {
+            (*tensorflux[i])[mfi].mult(b/dt,*nbx[i],0,AMREX_SPACEDIM);
+	    if ( be_cn_theta!=1 ) 	    
+	      (*tensorflux[i])[mfi].plus((*tensorflux_old[i])[mfi],*nbx[i],0,0,BL_SPACEDIM);
+	    for (int d = 0; d < BL_SPACEDIM; ++d) {
+	      (*tensorflux[i])[mfi].mult(area[i][mfi],*nbx[i],0,d,1);
+	      (*tensorflux[i])[mfi].mult((*areafrac[i])[mfi],*nbx[i],0,d,1);   
+	    }
+	  }
+        }
+      }        
+    }
+#else
+    // Non-EB
+    {
+      // Here we keep the weighting by the volume for non-EB && R-Z case
+      // The flag has already been checked for only 2D at the begining of the routine
+      if (parent->Geom(0).IsRZ()) //add_hoop_stress)
+      {
+	for (int d = 0; d < BL_SPACEDIM; ++d)
+	  // FIXME -- need to add time n flux, if (be_cn_theta!=1)
+	  tensorflux[d]->mult(b/(dt * navier_stokes->Geom().CellSize()[d]),0,AMREX_SPACEDIM,flux_ng);
+      }
+      else // Generic case for non-EB and 2D or 3D Cartesian
+      {
+	for (int d = 0; d < BL_SPACEDIM; d++){
 	  tensorflux[d]->mult(b/dt,0,AMREX_SPACEDIM,flux_ng);
 	  if ( be_cn_theta!=1 ) 
 	    tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,flux_ng);
+	  for (int i = 0; i < BL_SPACEDIM; ++i)
+	    MultiFab::Multiply(*tensorflux[d],area[d],0,i,1,flux_ng);
 	}
-	// for (int d = 0; d < BL_SPACEDIM; d++)
-        // {
-	//   tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
-	//   tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,0);
-	// }       
-
+      }      
+    }
+#endif
+	/////////////////////////////////////////
 	if (level > 0)
         {
 	  for (int k = 0; k < BL_SPACEDIM; k++)
@@ -3435,8 +3528,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	info.setMetricTerm(false);
 	
 #ifdef AMREX_USE_EB
-      const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-      MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+	const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+	MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
 #else
 	MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
 #endif	
