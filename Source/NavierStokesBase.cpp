@@ -3457,27 +3457,27 @@ NavierStokesBase::velocity_advection (Real dt)
      MultiFab& Gp = *gradp;
      Gp.FillBoundary(geom.periodicity());
 
-    //fixme
-    // not sure the right place to do this, but need to ensure all u_mac's
-    // ghost cells are filled.
-    // only periodic for now, but later may need create_umac_grown()
+     //fixme
+     // not sure the right place to do this, but need to ensure all u_mac's
+     // ghost cells are filled.
+     // only periodic for now, but later may need create_umac_grown()
 
-    // E.M note: in PeleLM, filling u_mac ghost cells here lead to a wrong solution at boundaries
-    // commenting the 2 lines below provide 0 errors in PeleLM
+     // E.M note: in PeleLM, filling u_mac ghost cells here lead to a wrong solution at boundaries
+     // commenting the 2 lines below provide 0 errors in PeleLM
 
      // It seems the new extrapVelToFaces() fills u_mac ghost cells.
      // Since FillBoundary only fills cells that overlap valid regions,
      // don't understand how calling it could cause an error...
 
-    // for ( int i=0; i<BL_SPACEDIM; i++)
-    //   u_mac[i].FillBoundary(geom.periodicity());
+     // for ( int i=0; i<BL_SPACEDIM; i++)
+     //   u_mac[i].FillBoundary(geom.periodicity());
 
-    //fixme
-    //    aofs->setVal(0.);
+     //fixme
+     //    aofs->setVal(0.);
 
 #else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-    getGradP(Gp, prev_pres_time);
+     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+     getGradP(Gp, prev_pres_time);
 #endif
 
     //fixme
@@ -3488,166 +3488,205 @@ NavierStokesBase::velocity_advection (Real dt)
 //       count++;
 //            amrex::WriteSingleLevelPlotfile("Gp_in_VA"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
 //
+
 //VisMF::Write(*aofs,"aofs_in_VA");
 
+     MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
 
-    MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
-    if (be_cn_theta != 1.0)
-        getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
-    else
-        visc_terms.setVal(0.,1);
+     // No need to compute this is we are using EB because we will
+     // not use Godunov.
+#ifndef AMREX_USE_EB
+     if (be_cn_theta != 1.0)
+         getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
+     else
+         visc_terms.setVal(0.,1);
+#endif
+     //FIXME? right now, only working with constraint divu = 0, but later
+     // divu_fp may get FillPatch'ed in create_mac_rhs(), so may need EBFactory
+     MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
+     create_mac_rhs(divu_fp,1,prev_time,dt);
 
-    //FIXME? right now, only working with constraint divu = 0, but later
-    // divu_fp may get FillPatch'ed in create_mac_rhs(), so may need EBFactory
-    MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
-    create_mac_rhs(divu_fp,1,prev_time,dt);
+     MultiFab fluxes[BL_SPACEDIM];
 
-    MultiFab fluxes[BL_SPACEDIM];
-
-    if (do_reflux)
-    {
-        for (int i = 0; i < BL_SPACEDIM; i++)
-        {
-            const BoxArray& ba = getEdgeBoxArray(i);
-            fluxes[i].define(ba, dmap, BL_SPACEDIM, 0, MFInfo(),Factory());
-        }
-    }
+     if (do_reflux)
+     {
+         for (int i = 0; i < BL_SPACEDIM; i++)
+         {
+             const BoxArray& ba = getEdgeBoxArray(i);
+             fluxes[i].define(ba, dmap, BL_SPACEDIM, 0, MFInfo(),Factory());
+         }
+     }
      //fixme
-    //static int count=0; count++;
-    //amrex::WriteSingleLevelPlotfile("gp_"+std::to_string(count), Gp, {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
-    //amrex::WriteSingleLevelPlotfile("mrhs_"+std::to_string(count), divu_fp, {"x"},geom, 0.0, 0);
-    //
+     //static int count=0; count++;
+     //amrex::WriteSingleLevelPlotfile("gp_"+std::to_string(count), Gp, {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
+     //amrex::WriteSingleLevelPlotfile("mrhs_"+std::to_string(count), divu_fp, {"x"},geom, 0.0, 0);
+     //
 
-    //
-    // Compute the advective forcing.
-    //
- {
-      FillPatchIterator
-	    U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
-	    Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+     //
+     // Compute the advective forcing.
+     //
+     {
+         FillPatchIterator
+             U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
+             Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
 
-      MultiFab& Umf=U_fpi.get_mf();
-      MultiFab& Rmf=Rho_fpi.get_mf();
+         MultiFab& Umf=U_fpi.get_mf();
+         MultiFab& Rmf=Rho_fpi.get_mf();
 
-      FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-      MultiFab& Smf=S_fpi.get_mf();
+         FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+         MultiFab& Smf=S_fpi.get_mf();
+
+#ifndef AMREX_USE_EB
+         //
+         //   THIS IS the NON-EB ALGORITHM
+         //
+         amrex::Print() << "**** DOING NON-EB ALGORITHM *** " << std::endl;
+
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-{
-      Vector<int> bndry[BL_SPACEDIM];
-      // FIXME - need to think about if some of these should be EBFabs?
-      FArrayBox tforces;
-      FArrayBox S;
-      FArrayBox cfluxes[BL_SPACEDIM];
-      FArrayBox edgstate[BL_SPACEDIM];
-      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-      {
-	  const Box& bx=U_mfi.tilebox();
+         {
+             Vector<int> bndry[BL_SPACEDIM];
+             // FIXME - need to think about if some of these should be EBFabs?
+             FArrayBox tforces;
+             FArrayBox S;
+             FArrayBox cfluxes[BL_SPACEDIM];
+             FArrayBox edgstate[BL_SPACEDIM];
+             for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+             {
+                 const Box& bx=U_mfi.tilebox();
 
-	  // fixme? tforces and S only used for non-EB, so move to #else //not eb block?
-	  if (getForceVerbose)
-	  {
-	    amrex::Print() << "---" << '\n'
-			   << "B - velocity advection:" << '\n'
-			   << "Calling getForce..." << '\n';
-	  }
-	  getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+                 // fixme? tforces and S only used for non-EB, so move to #else //not eb block?
+                 if (getForceVerbose)
+                 {
+                     amrex::Print() << "---" << '\n'
+                                    << "B - velocity advection:" << '\n'
+                                    << "Calling getForce..." << '\n';
+                 }
+                 getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
-	  godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+                 godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
 
-	  D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-		 bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-		 bndry[2] = fetchBCArray(State_Type,bx,2,1););
+                 D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+                        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+                        bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-	  for (int d=0; d<BL_SPACEDIM; ++d){
-#ifdef AMREX_USE_EB
-	    const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
-#else
-	    const Box& ebx = amrex::surroundingNodes(bx,d);
-#endif
-	    cfluxes[d].resize(ebx,BL_SPACEDIM+1);
-	    edgstate[d].resize(ebx,BL_SPACEDIM+1);
-	  }
+                 for (int d=0; d<BL_SPACEDIM; ++d){
+// #ifdef AMREX_USE_EB
+//                      const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
+// #else
+                     const Box& ebx = amrex::surroundingNodes(bx,d);
+// #endif
+                     cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+                     edgstate[d].resize(ebx,BL_SPACEDIM+1);
+                 }
 
-	  //
-	  // Loop over the velocity components.
-	  //
-	  S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
-	  S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
+                 //
+                 // Loop over the velocity components.
+                 //
+                 S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
+                 S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
 
-	  FArrayBox& divufab = divu_fp[U_mfi];
-	  FArrayBox& aofsfab = (*aofs)[U_mfi];
+                 FArrayBox& divufab = divu_fp[U_mfi];
+                 FArrayBox& aofsfab = (*aofs)[U_mfi];
 
-	  D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
-		 FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
-		 FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
+                 D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
+                        FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
+                        FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
 
-	  // FIXME? not sure which is better here, looping over comps like
-	  //   orig IAMR or doing all comps together like incflo
-#ifdef AMREX_USE_EB
-	  // Figure out fluxes for the multi-level sync later...
+                 // FIXME? not sure which is better here, looping over comps like
+                 //   orig IAMR or doing all comps together like incflo
+// #ifdef AMREX_USE_EB
+//                  // Figure out fluxes for the multi-level sync later...
 
-	  // this uses slopes saved from the computation of umac (i.e.
-	  //   predict_velocity)
-	  // aofs = ugradu
-	  //
-	  //FIXME! Need to make AdvectVel fill fluxes for covered and regular cells
-	  //
-	  godunov->AdvectVel(U_mfi, Umf, *aofs,
-			     D_DECL(u_mac[0][U_mfi],u_mac[1][U_mfi],u_mac[2][U_mfi]),
-			     D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-			     D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-			     D_DECL(bndry[0], bndry[1], bndry[2]),
-			     D_DECL(m_xslopes, m_yslopes, m_zslopes),
-			     *volfrac, *bndrycent,
-			     D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
-			     D_DECL(*facecent[0], *facecent[1], *facecent[2]),
-			     geom.Domain(),
-			     geom.CellSize(),Godunov::hypgrow());
+//                  // this uses slopes saved from the computation of umac (i.e.
+//                  //   predict_velocity)
+//                  // aofs = ugradu
+//                  //
+//                  //FIXME! Need to make AdvectVel fill fluxes for covered and regular cells
+//                  //
+//                  godunov->AdvectVel(U_mfi, Umf, *aofs,
+//                                     D_DECL(u_mac[0][U_mfi],u_mac[1][U_mfi],u_mac[2][U_mfi]),
+//                                     D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+//                                     D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+//                                     D_DECL(bndry[0], bndry[1], bndry[2]),
+//                                     D_DECL(m_xslopes, m_yslopes, m_zslopes),
+//                                     *volfrac, *bndrycent,
+//                                     D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+//                                     D_DECL(*facecent[0], *facecent[1], *facecent[2]),
+//                                     geom.Domain(),
+//                                     geom.CellSize(),Godunov::hypgrow());
 
-	  if (do_reflux){
-	    for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
-	    {
-	      for (int d = 0; d < BL_SPACEDIM; d++){
-		const Box& ebx = U_mfi.nodaltilebox(d);
-		fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
-	      }
-	    }
-	  }
-#else // not eb
-        for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
-        {
-            int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+//                  if (do_reflux){
+//                      for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+//                      {
+//                          for (int d = 0; d < BL_SPACEDIM; d++){
+//                              const Box& ebx = U_mfi.nodaltilebox(d);
+//                              fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+//                          }
+//                      }
+//                  }
+// #else // not eb
+                 for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+                 {
+                     int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
 
-            if (do_mom_diff == 1)
-            {
-                S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
-                tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
-            }
+                     if (do_mom_diff == 1)
+                     {
+                         S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
+                         tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
+                     }
 
-	    // WARNING: FPU argument is not used because FPU is by default in AdvectState
-	    godunov->AdvectState(bx, dx, dt,
-                                 area[0][U_mfi], u_mac_fab0, cfluxes[0],
-                                 area[1][U_mfi], u_mac_fab1, cfluxes[1],
+                     // WARNING: FPU argument is not used because FPU is by default in AdvectState
+                     godunov->AdvectState(bx, dx, dt,
+                                          area[0][U_mfi], u_mac_fab0, cfluxes[0],
+                                          area[1][U_mfi], u_mac_fab1, cfluxes[1],
 #if (BL_SPACEDIM == 3)
-                                 area[2][U_mfi], u_mac_fab2, cfluxes[2],
+                                          area[2][U_mfi], u_mac_fab2, cfluxes[2],
 #endif
-                                 Umf[U_mfi], S, tforces, divufab, comp,
-                                 aofsfab,comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
+                                          Umf[U_mfi], S, tforces, divufab, comp,
+                                          aofsfab,comp,use_conserv_diff,
+                                          comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
 
-            if (do_reflux){
-	      for (int d = 0; d < BL_SPACEDIM; d++){
-                const Box& ebx = U_mfi.nodaltilebox(d);
-		fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
-              }
-            }
-        }
-#endif //end if USE_EB
-      } // end of MFIter
- } // end OMP region
+                     if (do_reflux){
+                         for (int d = 0; d < BL_SPACEDIM; d++){
+                             const Box& ebx = U_mfi.nodaltilebox(d);
+                             fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+                         }
+                     }
+                 }
+//#endif //end if USE_EB
+             } // end of MFIter
+         } // end OMP region
+#else
+         //
+         //   THIS IS the EB ALGORITHM
+         //
+         amrex::Print() << "**** DOING EB ALGORITHM *** " << std::endl;
+
+         MultiFab cfluxes[AMREX_SPACEDIM];
+         int nghost(4);         // Use 4 for now
+
+         for (int i(0); i < AMREX_SPACEDIM; i++)
+         {
+             const BoxArray& ba = getEdgeBoxArray(i);
+             cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
+         }
+
+         godunov -> ComputeConvectiveTerm( Umf, *aofs,
+                                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                                           D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                           D_DECL(m_xslopes, m_yslopes, m_zslopes),
+                                           phys_bc, geom );
+         if (do_reflux)
+         {
+             for (int d(0); d < AMREX_SPACEDIM; d++)
+                 MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
+
+         }
+
+#endif
 
 
  } //end scope of FillPatchIter

@@ -315,22 +315,36 @@ public:      // public access functions
                                    amrex::MultiFab& a_zslopes),
                             const amrex::Geometry&  a_geom);
 
-    void
-    ComputeFluxes(  D_DECL(amrex::MultiFab& a_fx,
-                           amrex::MultiFab& a_fy,
-                           amrex::MultiFab& a_fz),
-                    amrex::MultiFab& a_state,
-                    const int a_comp,
-                    const int a_ncomp,
-                    D_DECL( amrex::MultiFab& a_xsl,
-                            amrex::MultiFab& a_ysl,
-                            amrex::MultiFab& a_zsl),
-                    const int a_sl_comp,
-                    D_DECL( amrex::MultiFab& u_mac,
-                            amrex::MultiFab& v_mac,
-                            amrex::MultiFab& w_mac),
-                    const amrex::Geometry& a_geom,
-                    const amrex::BCRec&   a_bcs);
+    void ComputeFluxes(  D_DECL(amrex::MultiFab& a_fx,
+                                amrex::MultiFab& a_fy,
+                                amrex::MultiFab& a_fz),
+                         amrex::MultiFab& a_state,
+                         const int a_comp,
+                         const int a_ncomp,
+                         D_DECL( const amrex::MultiFab& a_xsl,
+                                 const amrex::MultiFab& a_ysl,
+                                 const amrex::MultiFab& a_zsl),
+                         const int a_sl_comp,
+                         D_DECL( const amrex::MultiFab& u_mac,
+                                 const amrex::MultiFab& v_mac,
+                                 const amrex::MultiFab& w_mac),
+                         const amrex::Geometry& a_geom,
+                         const amrex::BCRec&   a_bcs);
+
+
+    void ComputeConvectiveTerm (amrex::MultiFab& a_vel,
+                                amrex::MultiFab& a_conv,
+                                D_DECL(amrex::MultiFab& a_fx,
+                                       amrex::MultiFab& a_fy,
+                                       amrex::MultiFab& a_fz),
+                                D_DECL(const amrex::MultiFab& a_umac,
+                                       const amrex::MultiFab& a_vmac,
+                                       const amrex::MultiFab& a_wmac),
+                                D_DECL(const amrex::MultiFab& a_xsl,
+                                       const amrex::MultiFab& a_ysl,
+                                       const amrex::MultiFab& a_zsl),
+                                const amrex::BCRec&    a_bcs,
+                                const amrex::Geometry& a_geom );
 
 
     void AdvectVel (const amrex::MFIter&  mfi,

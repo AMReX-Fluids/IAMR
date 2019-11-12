@@ -22,6 +22,7 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EB_utils.H>
 //fixme - for debugging only
 #endif
 #include <AMReX_VisMF.H>
@@ -1608,6 +1609,120 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
       //amrex::Print()<<aofs[mfi];
   }
 }
+
+
+void
+Godunov::ComputeConvectiveTerm (MultiFab& a_vel,
+                                MultiFab& a_conv,
+                                D_DECL(MultiFab& a_fx,
+                                       MultiFab& a_fy,
+                                       MultiFab& a_fz),
+                                D_DECL(const MultiFab& a_umac,
+                                       const MultiFab& a_vmac,
+                                       const MultiFab& a_wmac),
+                                D_DECL(const MultiFab& a_xsl,
+                                       const MultiFab& a_ysl,
+                                       const MultiFab& a_zsl),
+                                const BCRec&     a_bcs,
+                                const Geometry& a_geom )
+
+{
+
+
+    amrex::Print() << "ComputeConvectiveTerms: \n"
+                   << "max(abs(u,v,w) = "
+                   << a_vel.norm0(0,0,false,true) << " "
+                   << a_vel.norm0(1,0,false,true) << " "
+                   << a_vel.norm0(2,0,false,true) << std::endl;
+
+    // Compute fluxes
+    ComputeFluxes( D_DECL(a_fx, a_fy, a_fz),
+                   a_vel, 0, AMREX_SPACEDIM,
+                   D_DECL(a_xsl, a_ysl, a_zsl), 0,
+                   D_DECL(a_umac, a_vmac, a_wmac),
+                   a_geom, a_bcs);
+
+    // Compute divergence
+    bool     already_on_centroids(true);
+    MultiFab conv_tmp( a_conv.boxArray(), a_conv.DistributionMap(), AMREX_SPACEDIM, 2,
+                       MFInfo(), a_vel.Factory() );
+
+    conv_tmp.setVal(0.0);
+
+    Array<MultiFab*,AMREX_SPACEDIM> fluxes;
+    fluxes[0] = &a_fx;
+    fluxes[1] = &a_fy;
+    fluxes[2] = &a_fz;
+
+    EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
+                         a_geom, already_on_centroids);
+
+    MultiFab::Copy(a_conv, conv_tmp, 0, 0, AMREX_SPACEDIM, 0 );
+
+    //  amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, 0, AMREX_SPACEDIM, {a_geom} );
+    Gpu::synchronize();
+
+    //
+    // Now we have to return the fluxes multiplied by the area -- We basically return
+    // "intensive" fluxes
+    //
+    const Real*  dx = a_geom.CellSize();
+
+#if ( AMREX_SPACEDIM == 3 )
+    a_fx.mult(dx[1]*dx[2]);
+    a_fy.mult(dx[0]*dx[2]);
+    a_fz.mult(dx[0]*dx[1]);
+#else
+    a_fx.mult(dx[1]);
+    a_fy.mult(dx[0]);
+#endif
+
+    //
+    // Account for "effective areas" for cut cells
+    //
+    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_vel.Factory());
+
+    Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    areafrac  = ebfactory.getAreaFrac();
+
+    for (MFIter mfi(a_vel,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.tilebox ();
+
+        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(a_vel[mfi]);
+        const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
+
+        if ( (flags.getType(amrex::grow(bx,0)) != FabType::covered ) &&
+             (flags.getType(amrex::grow(bx,0)) != FabType::regular ) )
+        {
+
+            D_TERM( const auto& fx = a_fx.array(mfi);,
+                    const auto& fy = a_fy.array(mfi);,
+                    const auto& fz = a_fz.array(mfi););
+
+            D_TERM( const Box ubx = amrex::surroundingNodes(bx,0);,
+                    const Box vbx = amrex::surroundingNodes(bx,1);,
+                    const Box wbx = amrex::surroundingNodes(bx,2););
+
+            D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
+                    const auto& afrac_y = areafrac[1]->array(mfi);,
+                    const auto& afrac_z = areafrac[2]->array(mfi););
+
+            AMREX_FOR_4D(ubx, AMREX_SPACEDIM, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
+            AMREX_FOR_4D(vbx, AMREX_SPACEDIM, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
+#if (AMREX_SPACEDIM==3)
+            AMREX_FOR_4D(wbx, AMREX_SPACEDIM, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
+#endif
+        }
+
+    }
+
+    a_fx.FillBoundary(a_geom.periodicity());
+    a_fy.FillBoundary(a_geom.periodicity());
+    a_fz.FillBoundary(a_geom.periodicity());
+
+}
+
 
 //
 // Use mac velocity and slopes to compute the advection term for

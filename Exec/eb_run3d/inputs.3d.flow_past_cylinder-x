@@ -10,7 +10,7 @@ max_step                =  -1           # Max number of time steps
 #         TIME STEP COMPUTATION         #
 #.......................................#
 #incflo.fixed_dt         =   -1.0        # Use this constant dt if > 0
-ns.cfl              =   0.9             # CFL factor
+ns.cfl              =   0.45             # CFL factor
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            INPUT AND OUTPUT           #
