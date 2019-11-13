@@ -1636,7 +1636,7 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
     AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
 
     amrex::Print() << "ComputeConvectiveTerms: \n"
-                   << "max(abs(state) = ";
+                   << "max(abs(state)) = ";
     for (int d(0); d < a_ncomp; ++d)
         amrex::Print() << a_state.norm0(a_state_comp+d,0,false,true) << " ";
 
@@ -1732,10 +1732,10 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
                     const auto& afrac_y = areafrac[1]->array(mfi);,
                     const auto& afrac_z = areafrac[2]->array(mfi););
 
-            AMREX_FOR_4D(ubx, AMREX_SPACEDIM, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
-            AMREX_FOR_4D(vbx, AMREX_SPACEDIM, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
+            AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
+            AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
 #if (AMREX_SPACEDIM==3)
-            AMREX_FOR_4D(wbx, AMREX_SPACEDIM, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
+            AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
 #endif
         }
 
