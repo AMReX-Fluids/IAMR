@@ -52,3 +52,5 @@ FEXE_headers += NS_error_F.H
 CEXE_sources += MLMG_Mac.cpp NS_util.cpp
 CEXE_headers += IAMR_MLMG_F.H MACPROJ_F.H NS_util.H
 
+CEXE_sources += iamr_extrap_vel_to_faces.cpp
+CEXE_sources += iamr_compute_fluxes.cpp

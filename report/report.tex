@@ -1,0 +1,93 @@
+\documentclass[11pt]{report}
+
+% codes
+\newcommand{\pele}{{\sf Pele}}
+\newcommand{\pelec}{{\sf PeleC}}
+\newcommand{\pelelm}{{\sf PeleLM}}
+\newcommand{\pelephysics}{{\sf PelePhysics}}
+\newcommand{\fuego}{{\sf Fuego}}
+\newcommand{\iamr}{{\sf IAMR}}
+\newcommand{\amrex}{{\sf AMReX}}
+\newcommand{\craypat}{{\sf CrayPat}}
+
+% amrex vocab
+\newcommand{\cpp}{{\sf C++}}
+\newcommand{\fortran}{{\sf Fortran}}
+\newcommand{\omp}{{\sf OpenMP}}
+\newcommand{\bx}{{\sf Box}}
+\newcommand{\bxarray}{{\sf BoxArray}}
+\newcommand{\fab}{{\sf FAB}}
+\newcommand{\fabarray}{{\sf FabArray}}
+\newcommand{\multifab}{{\sf MultiFab}}
+\newcommand{\dmap}{{\sf DistributionMap}}
+\newcommand{\mfiter}{{\sf MFIter}}
+\newcommand{\profparser}{{\sf AMReXProfParser}}
+
+% landscape orientation for tables
+\usepackage{pdflscape} 
+
+%------------------------------------------------------------------------------
+\begin{document}
+
+\chapter{Overview}
+
+Completed and in-progess changes to \iamr.
+\begin{enumerate}
+\item
+  Update initialization procedure to build EB-aware geometries
+\item
+  Update nodal projection
+\item
+  Implement EB-friendly advection scheme in \iamr. Special care needed for cut cells with small volume fraction in order to preserve conservation.
+\item
+  Update computation of external forcing terms
+\item
+  EB-ize MAC Projection
+\item
+  Scalar diffusion rearrangement to speed-up problems with large multi-species networks. Also required modifications in the syncronization
+\item
+  EB updates for diffusion.
+  \begin{itemize}
+  \item
+    Transition away from volume-weighted diffusivities/viscosities in order to maximize use of existing \amrex\ functionality. 
+  \item
+    Update scalar and velocity diffusion to use EB-aware solvers
+  \item
+    Debugging and validation (can we use this term?) of tensor solver
+  \item
+    Transition tensor solve from using divU computed from temperature, mass fractions and enthalpy (i.e.\ Diffusion::compute\_divmusi) to using divU computed from the velocity field  
+  \end{itemize}
+\item
+  Multilevel updates
+  \begin{itemize}
+  \item
+    Enforce restriction that EB and coarse-fine boundary do not cross. This restriction is also currently embedded in \amrex\ diffusion solvers and perhaps additional solvers (projections?).
+  \item
+    Ensure data stuctures are created with approriate knowledge of the EB.
+    Requires a detailed examination of the code because not supplying EB information does not necessarily lead to crashes, only incorrect answers.
+    NavierStokesBase, NavierStokes, and Diffusion.cpp are good, but haven't touched MacProj or Projection
+  \end{itemize}  
+\end{enumerate}
+
+To Do items
+\begin{enumerate}
+\item
+  Multilevel
+  \begin{itemize}
+  \item
+    GradP - \iamr\ goes to lengths to enure non-EB gradp is consistent across levels. Would like to check on this for gradp coming from MLMG
+  \item
+    create\_umac\_grown
+  \item
+    SyncAdvect
+  \item
+    MAC sync
+  \item
+    Diffusion Ssync, Vsync 
+  \item
+    Sync projection
+  \end{itemize}
+\end{enumerate}
+
+
+\end{document}
