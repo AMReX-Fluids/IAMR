@@ -624,14 +624,18 @@ NavierStokes::scalar_advection (Real dt,
     const int   num_scalars    = lscalar - fscalar + 1;
     const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
+
     //
     // Get the viscous terms.
     //
     MultiFab visc_terms(grids,dmap,num_scalars,1,MFInfo(),Factory());
 
-    if (be_cn_theta != 1.0) {
+    if (be_cn_theta != 1.0)
+    {
         getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-    } else {
+    }
+    else
+    {
         visc_terms.setVal(0.0,1);
     }
 
@@ -642,60 +646,64 @@ NavierStokes::scalar_advection (Real dt,
     delete dsdt;
 
     MultiFab fluxes[BL_SPACEDIM];
-    //MultiFab edgstate[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) {
-      const BoxArray& ba = getEdgeBoxArray(i);
-      fluxes[i].define(ba, dmap, num_scalars, 0, MFInfo(), Factory());
-      //edgstate[i].define(ba, dmap, num_scalars, 0);
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        const BoxArray& ba = getEdgeBoxArray(i);
+        fluxes[i].define(ba, dmap, num_scalars, 0, MFInfo(), Factory());
     }
 
     //
     // Compute the advective forcing.
     //
     {
-      FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
-      MultiFab& Smf=S_fpi.get_mf();
+        FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
+        MultiFab& Smf=S_fpi.get_mf();
 
-  // Floor small values of states to be extrapolated
+        // Floor small values of states to be extrapolated
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
-      {
-        Box gbx=mfi.growntilebox(Godunov::hypgrow());
-        auto fab = Smf.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( gbx, num_scalars, i, j, k, n,
+        for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
         {
-          auto& val = fab(i,j,k,n);
-          val = std::abs(val) > 1.e-20 ? val : 0;
-        });
-      }
+            Box gbx=mfi.growntilebox(Godunov::hypgrow());
+            auto fab = Smf.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( gbx, num_scalars, i, j, k, n,
+            {
+                auto& val = fab(i,j,k,n);
+                val = std::abs(val) > 1.e-20 ? val : 0;
+            });
+        }
 
-      FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
-      const MultiFab& Umf=U_fpi.get_mf();
+        FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+        const MultiFab& Umf=U_fpi.get_mf();
 
 
 #ifdef AMREX_USE_EB
-      //
-      // compute slopes for construction of edge states
-      //
-      //Slopes in x-direction
-      MultiFab xslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-      xslps.setVal(0.);
-      // Slopes in y-direction
-      MultiFab yslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-      yslps.setVal(0.);
-      // Slopes in z-direction
-      MultiFab zslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-      zslps.setVal(0.);
+        //////////////////////////////////////////////////////////////////////////////
+        //  EB ALGORITHM
+        //////////////////////////////////////////////////////////////////////////////
 
-      const Box& domain = geom.Domain();
 
-      godunov->ComputeSlopes(Smf,
-                             D_DECL(xslps, yslps, zslps),
-                             phys_bc, 0, num_scalars, domain);
-      // Compute slopes for use in computing aofs
-      // Perhaps need to call EB_set_covered(Smf,....)
+        //
+        // compute slopes for construction of edge states
+        //
+        //Slopes in x-direction
+        MultiFab xslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+        xslps.setVal(0.);
+        // Slopes in y-direction
+        MultiFab yslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+        yslps.setVal(0.);
+        // Slopes in z-direction
+        MultiFab zslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+        zslps.setVal(0.);
+
+        const Box& domain = geom.Domain();
+
+        godunov->ComputeSlopes(Smf, D_DECL(xslps, yslps, zslps),
+                               phys_bc, 0, num_scalars, domain);
+        // Compute slopes for use in computing aofs
+        // Perhaps need to call EB_set_covered(Smf,....)
 // #ifdef _OPENMP
 // #pragma omp parallel
 // #endif
@@ -717,107 +725,133 @@ NavierStokes::scalar_advection (Real dt,
 // 	    //     			 domain);
 // 	}
 //       }
-      //
-      // need to fill ghost cells for slopes here.
-      // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-      //  only allows for periodic for now
-      //
-      D_TERM(xslps.FillBoundary(geom.periodicity());,
-	     yslps.FillBoundary(geom.periodicity());,
-	     zslps.FillBoundary(geom.periodicity()););
-#endif
+        //
+        // need to fill ghost cells for slopes here.
+        // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
+        //  only allows for periodic for now
+        //
+        D_TERM(xslps.FillBoundary(geom.periodicity());,
+               yslps.FillBoundary(geom.periodicity());,
+               zslps.FillBoundary(geom.periodicity()););
+
+
+        MultiFab cfluxes[AMREX_SPACEDIM];
+
+        for (int i(0); i < AMREX_SPACEDIM; i++)
+        {
+            const BoxArray& ba = getEdgeBoxArray(i);
+            cfluxes[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+        }
+
+        godunov -> ComputeConvectiveTerm( Smf, 0, *aofs, fscalar, num_scalars,
+                                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                          D_DECL(xslps, yslps, zslps), 0,
+                                          phys_bc, geom );
+        if (do_reflux)
+        {
+            for (int d(0); d < AMREX_SPACEDIM; d++)
+                MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
+
+        }
+
+#else
+        //////////////////////////////////////////////////////////////////////////////
+        //  NON-EB ALGORITHM
+        //////////////////////////////////////////////////////////////////////////////
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      {
-
-	Vector<int> state_bc;
-	FArrayBox tforces;
-	FArrayBox cfluxes[BL_SPACEDIM];
-	FArrayBox edgstate[BL_SPACEDIM];
-
-	for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
         {
-	  const Box bx = S_mfi.tilebox();
 
-	  if (getForceVerbose) {
-	    Print() << "---" << '\n' << "C - scalar advection:" << '\n'
-		    << " Calling getForce..." << '\n';
-	  }
-	  getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
+            Vector<int> state_bc;
+            FArrayBox tforces;
+            FArrayBox cfluxes[BL_SPACEDIM];
+            FArrayBox edgstate[BL_SPACEDIM];
 
-	  for (int d=0; d<BL_SPACEDIM; ++d)
-	  {
-#ifdef AMREX_USE_EB
-	    const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
-#else
-	    const Box& ebx = amrex::surroundingNodes(bx,d);
+            for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
+            {
+                const Box bx = S_mfi.tilebox();
+
+                if (getForceVerbose) {
+                    Print() << "---" << '\n' << "C - scalar advection:" << '\n'
+                            << " Calling getForce..." << '\n';
+                }
+                getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
+
+                for (int d=0; d<BL_SPACEDIM; ++d)
+                {
+// #ifdef AMREX_USE_EB
+// 	    const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
+// #else
+                    const Box& ebx = amrex::surroundingNodes(bx,d);
+//#endif
+                        cfluxes[d].resize(ebx,num_scalars);
+                        edgstate[d].resize(ebx,num_scalars);
+                }
+
+                for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
+                    int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
+                    godunov->Sum_tf_divu_visc(Smf[S_mfi],i,tforces,i,1,visc_terms[S_mfi],i,
+                                              (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
+                }
+
+                state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+
+// #ifdef AMREX_USE_EB
+
+// 	  godunov->AdvectScalars_EB(S_mfi, Smf, 0, num_scalars,
+// 				    *aofs, fscalar, 0,
+// 				    D_DECL(xslps, yslps, zslps),
+// 				    D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
+// 				    D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+// 				    D_DECL(edgstate[0],edgstate[1],edgstate[2]),
+// 				    *volfrac, *bndrycent,
+// 				    D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
+// 				    D_DECL(*facecent[0], *facecent[1], *facecent[2]),
+// 				    state_bc,
+// 				    geom.Domain(),
+// 				    geom.CellSize(),Godunov::hypgrow(), 0);
+
+// #else
+
+                    godunov->AdvectScalars(bx, dx, dt,
+                                           D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
+                                           D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
+                                           D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
+                                           D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
+                                           Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
+                                           (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
+//#endif
+
+                    //fixme: only need this copy if do_reflux?
+                    for (int d=0; d<BL_SPACEDIM; ++d)
+                    {
+                        const Box& ebx = S_mfi.nodaltilebox(d);
+                        (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+                    }
+            }
+        } // OMP parallel loop
 #endif
-	    cfluxes[d].resize(ebx,num_scalars);
-	    edgstate[d].resize(ebx,num_scalars);
-	  }
-
-	  for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
-	    int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
-	    godunov->Sum_tf_divu_visc(Smf[S_mfi],i,tforces,i,1,visc_terms[S_mfi],i,
-				      (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
-	  }
-
-	  state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
-
-#ifdef AMREX_USE_EB
-
-	  godunov->AdvectScalars_EB(S_mfi, Smf, 0, num_scalars,
-				    *aofs, fscalar, 0,
-				    D_DECL(xslps, yslps, zslps),
-				    D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
-				    D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-				    D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-				    *volfrac, *bndrycent,
-				    D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
-				    D_DECL(*facecent[0], *facecent[1], *facecent[2]),
-				    state_bc,
-				    geom.Domain(),
-				    geom.CellSize(),Godunov::hypgrow(), 0);
-
-#else
-
-	  godunov->AdvectScalars(bx, dx, dt,
-				 D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
-				 D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
-				 D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
-				 D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
-				 Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
-				 (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
-#endif
-
-	  //fixme: only need this copy if do_reflux?
-	  for (int d=0; d<BL_SPACEDIM; ++d)
-	  {
-	    const Box& ebx = S_mfi.nodaltilebox(d);
-	    (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
-	  }
-	}
-      }
-    }
+    } // FillPathIterator
 
     delete divu_fp;
 
     if (do_reflux)
     {
-      if (level > 0 )
-      {
-	//Print()<<"doing FineAdd..\n";
-	for (int d = 0; d < BL_SPACEDIM; d++)
-	  advflux_reg->FineAdd(fluxes[d],d,0,fscalar,num_scalars,dt);
-      }
-      if (level < parent->finestLevel())
-      {
-	//Print()<<"doing CrseInit..\n";
-	for (int i = 0; i < BL_SPACEDIM; i++)
-	  getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,fscalar,num_scalars,-dt);
-      }
+        if (level > 0 )
+        {
+            //Print()<<"doing FineAdd..\n";
+            for (int d = 0; d < BL_SPACEDIM; d++)
+                advflux_reg->FineAdd(fluxes[d],d,0,fscalar,num_scalars,dt);
+        }
+        if (level < parent->finestLevel())
+        {
+            //Print()<<"doing CrseInit..\n";
+            for (int i = 0; i < BL_SPACEDIM; i++)
+                getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,fscalar,num_scalars,-dt);
+        }
     }
 }
 
