@@ -3674,10 +3674,10 @@ NavierStokesBase::velocity_advection (Real dt)
              cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
          }
 
-         godunov -> ComputeConvectiveTerm( Umf, *aofs,
+         godunov -> ComputeConvectiveTerm( Umf, 0, *aofs, 0, AMREX_SPACEDIM,
                                            D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                            D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                           D_DECL(m_xslopes, m_yslopes, m_zslopes),
+                                           D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
                                            phys_bc, geom );
          if (do_reflux)
          {

@@ -332,8 +332,11 @@ public:      // public access functions
                          const amrex::BCRec&   a_bcs);
 
 
-    void ComputeConvectiveTerm (amrex::MultiFab& a_vel,
+    void ComputeConvectiveTerm (amrex::MultiFab& a_state,
+                                const int a_state_comp,
                                 amrex::MultiFab& a_conv,
+                                const int a_conv_comp,
+                                const int a_ncomp,
                                 D_DECL(amrex::MultiFab& a_fx,
                                        amrex::MultiFab& a_fy,
                                        amrex::MultiFab& a_fz),
@@ -343,6 +346,7 @@ public:      // public access functions
                                 D_DECL(const amrex::MultiFab& a_xsl,
                                        const amrex::MultiFab& a_ysl,
                                        const amrex::MultiFab& a_zsl),
+                                const int a_sl_comp,
                                 const amrex::BCRec&    a_bcs,
                                 const amrex::Geometry& a_geom );
 

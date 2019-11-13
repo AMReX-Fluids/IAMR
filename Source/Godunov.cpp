@@ -1506,11 +1506,11 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
                     const MultiFab& volfrac,
                     const MultiCutFab& bndrycent,
                     D_DECL(const amrex::MultiCutFab& x_areafrac,
-				                 const amrex::MultiCutFab& y_areafrac,
-				                 const amrex::MultiCutFab& z_areafrac),
+                           const amrex::MultiCutFab& y_areafrac,
+                           const amrex::MultiCutFab& z_areafrac),
                     D_DECL(const amrex::MultiCutFab& x_facecent,
-				                 const amrex::MultiCutFab& y_facecent,
-				                 const amrex::MultiCutFab& z_facecent),
+                           const amrex::MultiCutFab& y_facecent,
+                           const amrex::MultiCutFab& z_facecent),
                     const Box& domain,
                     const amrex::Real* dx,
                     int nghost)
@@ -1610,10 +1610,15 @@ Godunov::AdvectVel (const amrex::MFIter&  mfi,
   }
 }
 
-
+//
+// Compute
+//
 void
-Godunov::ComputeConvectiveTerm (MultiFab& a_vel,
+Godunov::ComputeConvectiveTerm (MultiFab& a_state,
+                                const int a_state_comp,
                                 MultiFab& a_conv,
+                                const int a_conv_comp,
+                                const int a_ncomp,
                                 D_DECL(MultiFab& a_fx,
                                        MultiFab& a_fy,
                                        MultiFab& a_fz),
@@ -1623,59 +1628,63 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_vel,
                                 D_DECL(const MultiFab& a_xsl,
                                        const MultiFab& a_ysl,
                                        const MultiFab& a_zsl),
+                                const int a_sl_comp,
                                 const BCRec&     a_bcs,
                                 const Geometry& a_geom )
-
 {
-
+    AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
+    AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
 
     amrex::Print() << "ComputeConvectiveTerms: \n"
-                   << "max(abs(u,v,w) = "
-                   << a_vel.norm0(0,0,false,true) << " "
-                   << a_vel.norm0(1,0,false,true) << " "
-                   << a_vel.norm0(2,0,false,true) << std::endl;
+                   << "max(abs(state) = ";
+    for (int d(0); d < a_ncomp; ++d)
+        amrex::Print() << a_state.norm0(a_state_comp+d,0,false,true) << " ";
 
     // Compute fluxes
     ComputeFluxes( D_DECL(a_fx, a_fy, a_fz),
-                   a_vel, 0, AMREX_SPACEDIM,
-                   D_DECL(a_xsl, a_ysl, a_zsl), 0,
+                   a_state, a_state_comp, a_ncomp,
+                   D_DECL(a_xsl, a_ysl, a_zsl), a_sl_comp,
                    D_DECL(a_umac, a_vmac, a_wmac),
                    a_geom, a_bcs);
 
     // Compute divergence
-    bool     already_on_centroids(true);
-    MultiFab conv_tmp( a_conv.boxArray(), a_conv.DistributionMap(), AMREX_SPACEDIM, 2,
-                       MFInfo(), a_vel.Factory() );
+    bool   already_on_centroids(true);
+    int    nghost(2);
+    MultiFab conv_tmp( a_conv.boxArray(), a_conv.DistributionMap(), a_ncomp, nghost,
+                       MFInfo(), a_state.Factory() );
 
     conv_tmp.setVal(0.0);
 
     Array<MultiFab*,AMREX_SPACEDIM> fluxes;
     fluxes[0] = &a_fx;
     fluxes[1] = &a_fy;
+#if (AMREX_SPACEDIM==3)
     fluxes[2] = &a_fz;
+#endif
 
     EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
                          a_geom, already_on_centroids);
 
-    amrex::Print() << "ComputeConvectiveTerms: BEFORE redistribution \n"
-                   << "max(abs(divu) = "
-                   << conv_tmp.norm0(0,0,false,true) << " "
-                   << conv_tmp.norm0(1,0,false,true) << " "
-                   << conv_tmp.norm0(2,0,false,true) << std::endl;
+    amrex::Print() << "\nComputeConvectiveTerms: BEFORE redistribution \n"
+                   << "max(abs(div(state*u)) = ";
+    for (int d(0); d < a_ncomp; ++d)
+        amrex::Print() << conv_tmp.norm0(d,0,false,true) << " ";
 
 
     //MultiFab::Copy(a_conv, conv_tmp, 0, 0, AMREX_SPACEDIM, 0 );
-
-    amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, 0, AMREX_SPACEDIM, {a_geom} );
+    // Redistribute divergence
+    amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, a_conv_comp, a_ncomp, {a_geom} );
 
 
     Gpu::synchronize();
 
-    amrex::Print() << "ComputeConvectiveTerms: AFTER redistribution \n"
-                   << "max(abs(divu) = "
-                   << a_conv.norm0(0,0,false,true) << " "
-                   << a_conv.norm0(1,0,false,true) << " "
-                   << a_conv.norm0(2,0,false,true) << std::endl;
+    amrex::Print() << "\nComputeConvectiveTerms: AFTER redistribution \n"
+                   << "max(abs(divu) = ";
+    for (int d(0); d < a_ncomp; ++d)
+        amrex::Print() << a_conv.norm0(a_conv_comp+d,0,false,true) << " ";
+
+    amrex::Print() << std::endl;
+
 
     //
     // Now we have to return the fluxes multiplied by the area -- We basically return
@@ -1695,16 +1704,16 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_vel,
     //
     // Account for "effective areas" for cut cells
     //
-    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_vel.Factory());
+    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
 
     Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
     areafrac  = ebfactory.getAreaFrac();
 
-    for (MFIter mfi(a_vel,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.tilebox ();
 
-        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(a_vel[mfi]);
+        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
         const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
 
         if ( (flags.getType(amrex::grow(bx,0)) != FabType::covered ) &&
