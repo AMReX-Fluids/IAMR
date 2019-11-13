@@ -1657,10 +1657,25 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_vel,
     EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
                          a_geom, already_on_centroids);
 
-    MultiFab::Copy(a_conv, conv_tmp, 0, 0, AMREX_SPACEDIM, 0 );
+    amrex::Print() << "ComputeConvectiveTerms: BEFORE redistribution \n"
+                   << "max(abs(divu) = "
+                   << conv_tmp.norm0(0,0,false,true) << " "
+                   << conv_tmp.norm0(1,0,false,true) << " "
+                   << conv_tmp.norm0(2,0,false,true) << std::endl;
 
-    //  amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, 0, AMREX_SPACEDIM, {a_geom} );
+
+    //MultiFab::Copy(a_conv, conv_tmp, 0, 0, AMREX_SPACEDIM, 0 );
+
+    amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, 0, AMREX_SPACEDIM, {a_geom} );
+
+
     Gpu::synchronize();
+
+    amrex::Print() << "ComputeConvectiveTerms: AFTER redistribution \n"
+                   << "max(abs(divu) = "
+                   << a_conv.norm0(0,0,false,true) << " "
+                   << a_conv.norm0(1,0,false,true) << " "
+                   << a_conv.norm0(2,0,false,true) << std::endl;
 
     //
     // Now we have to return the fluxes multiplied by the area -- We basically return
