@@ -54,6 +54,8 @@ Completed and in-progess changes to \iamr.
     Update scalar and velocity diffusion to use EB-aware solvers
   \item
     Debugging and validation (can we use this term?) of tensor solver
+  \item
+    Transition tensor solve from using divU computed from temperature, mass fractions and enthalpy (i.e.\ Diffusion::compute\_divmusi) to using divU computed from the velocity field  
   \end{itemize}
 \item
   Multilevel updates
@@ -69,8 +71,6 @@ Completed and in-progess changes to \iamr.
 
 To Do items
 \begin{enumerate}
-\item
-  Diffusion::compute\_divmusi not EB-aware. Delete constant mu version?
 \item
   Multilevel
   \begin{itemize}
