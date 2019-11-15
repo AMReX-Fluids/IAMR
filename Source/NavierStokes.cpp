@@ -465,9 +465,12 @@ NavierStokes::predict_velocity (Real  dt)
     //VisMF::Write(Umf, "U");
     const Box& domain = geom.Domain();
 
+    Vector<BCRec> math_bc(AMREX_SPACEDIM);
+    math_bc = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
+
     godunov->ComputeSlopes( Umf,
-                           D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                           phys_bc, 0, AMREX_SPACEDIM, domain);
+                            D_DECL(m_xslopes, m_yslopes, m_zslopes),
+                            math_bc, 0, AMREX_SPACEDIM, domain);
 
 //     // Compute slopes and store for use in computing UgradU
 // #ifdef _OPENMP
@@ -535,10 +538,14 @@ NavierStokes::predict_velocity (Real  dt)
 
 
 #if AMREX_USE_EB
+
+    Vector<BCRec> math_bcs(AMREX_SPACEDIM);
+    math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
+
     godunov->ExtrapVelToFaces(Umf,
                               D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                               D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                              geom );
+                              geom, math_bcs );
 
 #else
 
@@ -700,8 +707,11 @@ NavierStokes::scalar_advection (Real dt,
 
         const Box& domain = geom.Domain();
 
+        Vector<BCRec> math_bc(num_scalars);
+        math_bc = fetchBCArray(State_Type,fscalar,num_scalars);
+
         godunov->ComputeSlopes(Smf, D_DECL(xslps, yslps, zslps),
-                               phys_bc, 0, num_scalars, domain);
+                               math_bc, 0, num_scalars, domain);
         // Compute slopes for use in computing aofs
         // Perhaps need to call EB_set_covered(Smf,....)
 // #ifdef _OPENMP
@@ -743,11 +753,14 @@ NavierStokes::scalar_advection (Real dt,
             cfluxes[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
         }
 
+        Vector<BCRec> math_bcs(num_scalars);
+        math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
+
         godunov -> ComputeConvectiveTerm( Smf, 0, *aofs, fscalar, num_scalars,
                                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                           D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                           D_DECL(xslps, yslps, zslps), 0,
-                                          phys_bc, geom );
+                                          math_bcs, geom );
         if (do_reflux)
         {
             for (int d(0); d < AMREX_SPACEDIM; d++)
