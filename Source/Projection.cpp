@@ -2412,11 +2412,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 #ifdef AMREX_USE_EB
     Vector<const EBFArrayBoxFactory*> factory{ebfactory.begin()+c_lev, ebfactory.begin()+c_lev+nlevel};
 #else
-    Vector<const FabFactory<FArrayBox>*> factory;
-    factory.resize(nlevel, nullptr);
-    // could fill this way, but don't think this is necessary
-    // for (int lev(0); lev < nlevel; lev++)
-    //   factory[lev]=LevelData[c_lev+lev]->Factory();
+    Vector<const FabFactory<FArrayBox>*> factory(0);
 #endif
 
     // For now use NodalProjector only when no sync is required
@@ -2456,6 +2452,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         // NO RHS for now
         nodal_projector.project(vel_rebase, GetVecOfConstPtrs(sigma_rebase), {}, {});
 
+#ifdef AMREX_USE_EB
         // Get phi and gradphi
         Vector< const MultiFab* > phi_tmp(nlevel);
         Vector< const MultiFab* > gradphi_tmp(nlevel);
@@ -2489,6 +2486,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                               gradphi_tmp[lev]->nGrow());
             }
         }
+#endif
     }
     else
     {
