@@ -35,8 +35,12 @@ ifndef ATMOS_MACOP
 endif
 
 # EB stuff
-FEXE_headers += convection_F.H
-F90EXE_sources += param_mod.F90
+ifeq ($(USE_EB), TRUE)
+  FEXE_headers += convection_F.H
+  F90EXE_sources += param_mod.F90
+  CEXE_sources += iamr_extrap_vel_to_faces.cpp
+  CEXE_sources += iamr_compute_fluxes.cpp
+endif
 #
 
 CEXE_sources += NavierStokesBase.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
@@ -51,6 +55,3 @@ FEXE_headers += NS_error_F.H
 
 CEXE_sources += MLMG_Mac.cpp NS_util.cpp
 CEXE_headers += IAMR_MLMG_F.H MACPROJ_F.H NS_util.H
-
-CEXE_sources += iamr_extrap_vel_to_faces.cpp
-CEXE_sources += iamr_compute_fluxes.cpp
