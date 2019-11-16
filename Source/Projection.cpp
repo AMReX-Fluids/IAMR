@@ -13,6 +13,8 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 
+#include <AMReX_NodalProjector.H>
+
 //fixme, for writesingle level plotfile
 #include<AMReX_PlotFileUtil.H>
 
@@ -739,10 +741,16 @@ Projection::MLsyncProject (int             c_lev,
 
     const Geometry& fine_geom = parent->Geom(c_lev+1);
 
+    //Fixme
+    // Need to switch to NSB average_down but need MFs in Projection to be build with EBF
+    // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[c_lev]);
+    // ns->average_down(*vel[c_lev+1],*vel[c_lev],0,AMREX_SPACEDIM);
+    //
     // restrict_level(v_crse, v_fine, ratio);
     amrex::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
                          0, BL_SPACEDIM, ratio);
 
+    // ns->average_down(*sig[c_lev+1],*sig[c_lev],0,sig[c_lev]->nComp());
     // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
     amrex::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
                            0, sig[c_lev]->nComp(), ratio);
@@ -984,6 +992,8 @@ Projection::initialVelocityProject (int  c_lev,
 
     for (lev = f_lev-1; lev >= c_lev; --lev)
     {
+        // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+	// ns->average_down(*vel[lev+1], *vel[lev], 0, AMREX_SPACEDIM);
         amrex::average_down(*vel[lev+1], *vel[lev], parent->Geom(lev+1), parent->Geom(lev),
                             0, BL_SPACEDIM, parent->refRatio(lev));
     }
@@ -1332,6 +1342,8 @@ Projection::initialSyncProject (int       c_lev,
       MultiFab::Copy(v_crse, *vel[lev-1], 0, 0, BL_SPACEDIM, 1);
       MultiFab::Copy(v_fine, *vel[lev  ], 0, 0, BL_SPACEDIM, 1);
 
+      // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev-1]);
+      // ns->average_down(v_fine, v_crse, 0, v_crse.nComp());
       // restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
       amrex::average_down(v_fine,v_crse,fine_geom,crse_geom,
                            0, v_crse.nComp(), parent->refRatio(lev-1));
@@ -2298,6 +2310,13 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 {
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
+    // For now use AMReX Nodal Projector only if no sync is required
+    bool no_sync_needed = (sync_resid_fine==nullptr) && (sync_resid_crse==nullptr);
+
+    if (no_sync_needed)
+        amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
+                       << std::endl;
+
     int f_lev = c_lev + nlevel - 1;
 
     Vector<MultiFab> vel_test(nlevel);
@@ -2363,41 +2382,116 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         }
     }
 
+    //
+    // Setup objects for projection
+    //
     Vector<Geometry> mg_geom(nlevel);
-    for (int lev = 0; lev < nlevel; lev++) {
-        mg_geom[lev] = parent->Geom(lev+c_lev);
-    }  
-
-    Vector<BoxArray> mg_grids(nlevel);
-    for (int lev = 0; lev < nlevel; lev++) {
-        mg_grids[lev] = parent->boxArray(lev+c_lev);
-    }
-
+    Vector<BoxArray>            mg_grids(nlevel);
     Vector<DistributionMapping> mg_dmap(nlevel);
-    for (int lev=0; lev < nlevel; lev++ ) {
+
+    for (int lev(0); lev < nlevel; lev++)
+    {
+        mg_geom[lev] = parent->Geom(lev+c_lev);
+        mg_grids[lev] = parent->boxArray(lev+c_lev);
         mg_dmap[lev] = LevelData[lev+c_lev]->get_new_data(State_Type).DistributionMap();
     }
 
+    // Setup infos to pass to linear operator
     LPInfo info;
     //Fixme 
     // does this max_coarsening level need to match the one in main.cpp????
-    int max_coarsening_level = 30;
+    int max_coarsening_level(30);
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
     info.setMetricTerm(false);
+
+    MLNodeLaplacian mlndlap;
+    NodalProjector  nodal_projector;
     
 #ifdef AMREX_USE_EB
-    Vector<const EBFArrayBoxFactory*> ebf_rebase{ebfactory.begin()+c_lev, ebfactory.begin()+c_lev+nlevel};
-    MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info, ebf_rebase);
+    Vector<const EBFArrayBoxFactory*> factory{ebfactory.begin()+c_lev, ebfactory.begin()+c_lev+nlevel};
 #else
-    MLNodeLaplacian mlndlap(mg_geom, mg_grids, mg_dmap, info);
+    Vector<const FabFactory<FArrayBox>*> factory;
+    factory.resize(nlevel, nullptr);
+    // could fill this way, but don't think this is necessary
+    // for (int lev(0); lev < nlevel; lev++)
+    //   factory[lev]=LevelData[c_lev+lev]->Factory();
 #endif
+
+    // For now use NodalProjector only when no sync is required
+    if (no_sync_needed)
+    {
+        nodal_projector.define(mg_geom, mg_grids, mg_dmap, mlmg_lobc, mlmg_hibc,
+#ifdef AMREX_USE_EB
+                               factory,
+#endif
+                               info );
+    }
+    else
+    {
+        mlndlap.define(mg_geom, mg_grids, mg_dmap, info, factory);
+    }
+
+    //
+    // Setup variables to use in projection
+    //
+    Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
+    Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
+        // this sets phi_rebase = phi[start+c_lev]
+
+    Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
+    rhnd_rebase.resize(nlevel,nullptr);
+    Vector<MultiFab*> rhcc_rebase{rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel};
+
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
 //mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+    if (no_sync_needed)
+    {
+        // Setup mnatrix coefficients
+        Vector<MultiFab*> sigma_rebase(sig.begin()+c_lev, sig.begin()+c_lev+nlevel);
 
+        // NO RHS for now
+        nodal_projector.project(vel_rebase, GetVecOfConstPtrs(sigma_rebase), {}, {});
+
+        // Get phi and gradphi
+        Vector< const MultiFab* > phi_tmp(nlevel);
+        Vector< const MultiFab* > gradphi_tmp(nlevel);
+
+        phi_tmp     = nodal_projector.getPhi();
+        gradphi_tmp = nodal_projector.getGradPhi();
+
+        //
+        Vector< NavierStokesBase* > ns(nlevel);
+        Vector< MultiFab* > Gp(nlevel);
+
+        for (int lev = 0; lev < nlevel; lev++)
+        {
+            ns[lev] = dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
+            //fixme is this assert needed?
+            BL_ASSERT(!(ns[lev]==0));
+            Gp[lev] = &(ns[lev]->getGradP());
+
+            // Copy phi fron nodal projector internals
+            MultiFab::Copy(*phi_rebase[lev],*phi_tmp[lev], 0, 0, 1, phi_tmp[lev]->nGrow());
+
+            if ( proj2 )
+            {
+                MultiFab::Copy(*Gp[lev],*gradphi_tmp[lev], 0, 0, AMREX_SPACEDIM,
+                               gradphi_tmp[lev]->nGrow());
+                // Gp[lev]->negate(Gp[lev]->nGrow());
+            }
+            else
+            {
+                MultiFab::Add(*Gp[lev],*gradphi_tmp[lev], 0, 0, AMREX_SPACEDIM,
+                              gradphi_tmp[lev]->nGrow());
+            }
+        }
+    }
+    else
+    {
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction) {
         mlndlap.setRZCorrection(parent->Geom(0).IsRZ());
@@ -2422,40 +2516,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         rhs[ilev].define(ba, mg_dmap[ilev], 1, 0);
 #endif
     }
-
-    // this sets phi_rebase = phi[start+c_lev]
-    Vector<MultiFab*> phi_rebase(phi.begin()+c_lev, phi.begin()+c_lev+nlevel);
-    
-    Vector<MultiFab*> vel_rebase{vel.begin()+c_lev, vel.begin()+c_lev+nlevel};
-    Vector<const MultiFab*> rhnd_rebase{rhnd.begin(), rhnd.end()};
-    rhnd_rebase.resize(nlevel,nullptr);
-    Vector<MultiFab*> rhcc_rebase{rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel};
-
-
-// EM_DEBUG
-    //std::cout << "PLOTTING VEL MF" << std::endl;
-     //VisMF::Write(*vel_rebase[0],"vel_rebase_in");
-    // VisMF::Write(*vel[0],"vel_in");
-     //VisMF::Write(*rhnd_rebase[0],"rhcc");
-    // if (rhcc_rebase[0])
-       //VisMF::Write(*rhcc_rebase[0],"rhcc_in");
-    // else
-    //   Print()<<"No rhcc\n";
     
     // calls FillBoundary on vel
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
 
-// EM_DEBUG
-    //static int count=0;
-    //   count++;
-    //  VisMF::Write(rhs[0],"rhs2d_in");
-    //  amrex::WriteSingleLevelPlotfile("phi_in"+std::to_string(count), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
-    //  amrex::WriteSingleLevelPlotfile("RHS"+std::to_string(count), rhs[0], {"rhs"}, mg_geom[0], 0.0, 0);
-
-   //mlndlap.setMaxOrder(1);
-   //std::cout << "mlndlap.getMaxOrder " << mlndlap.getMaxOrder() << std::endl;;
-   // 
-   // 
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
@@ -2519,29 +2583,16 @@ fluxes[lev]->setVal(0.);
 			   fluxes[lev]->nGrow());
       }
 
-// EM_DEBUG
-       //static int count3=0;
-       //count3++;
-       //     amrex::WriteSingleLevelPlotfile("Gp"+std::to_string(count3), *Gp[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
-       //     amrex::WriteSingleLevelPlotfile("Fluxes"+std::to_string(count3), *fluxes[lev], {"gpx","gpy"}, mg_geom[0], 0.0, 0);
-//            amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count3), *sig[lev+c_lev], {"sigma"}, mg_geom[0], 0.0, 0);
-
 
     }
     
 #endif
-    //fixme
-    //amrex::WriteSingleLevelPlotfile("phi", *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
-// EM_DEBUG
-       //static int count4=0;
-       //count4++;
-       //     amrex::WriteSingleLevelPlotfile("Sig"+std::to_string(count4), *sig[0], {"sigma"}, mg_geom[0], 0.0, 0);
 
     if (sync_resid_fine != 0 or sync_resid_crse != 0)
     {
         set_boundary_velocity(c_lev, 1, vel, false);
     }
-//std::cout << "SYNC RESID FINE " << sync_resid_fine << " and COARSE " << sync_resid_crse << std::endl;
+
     if (sync_resid_fine != 0)
     {
         Real rmin, rmax;
@@ -2555,13 +2606,9 @@ fluxes[lev]->setVal(0.);
         mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], rhcc[c_lev],
                                        fineGrids, ref_ratio);
     }
-
+        amrex::Print() << "DOING UPDATE OF VELOCITY USING MLNODAL OBJECT " << std::endl;
     mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
-    
-// EM_DEBUG
-      //VisMF::Write(rhs[0],"rhs2d_after_UV");
-      //VisMF::Write(*vel_rebase[0],"vel_rebase_out");
-      //
+    }
 }
 
 // Set velocity in ghost cells to zero except for inflow

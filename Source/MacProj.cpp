@@ -255,7 +255,7 @@ MacProj::setup (int level)
         {
             const BoxArray& grids = LevelData[level]->boxArray();
             const DistributionMapping& dmap = LevelData[level]->DistributionMap();
-            mac_phi_crse[level].reset(new MultiFab(grids,dmap,1,1));
+            mac_phi_crse[level].reset(new MultiFab(grids,dmap,1,1, MFInfo(), LevelData[level]->Factory()));
             mac_phi_crse[level]->setVal(0.0);
         }
     }
@@ -337,7 +337,7 @@ MacProj::mac_project (int             level,
     //
     std::unique_ptr<MultiFab> raii;
     if (level == max_level) {
-        raii.reset(new MultiFab(grids,dmap,1,1));
+      raii.reset(new MultiFab(grids,dmap,1,1, MFInfo(), LevelData[level]->Factory()));
         mac_phi = raii.get();
     } else {
         mac_phi = mac_phi_crse[level].get();
@@ -364,19 +364,14 @@ MacProj::mac_project (int             level,
     // Initialize the rhs with divu.
     //
     const Real rhs_scale = 2.0/dt;
-    // fixme? RHS must need factory
-#ifdef AMREX_USE_EB
     MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
-#else
-    MultiFab Rhs(grids,dmap,1,0);
-#endif
 
     Rhs.copy(divu);
 
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1);
+	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
 	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
 	}
         scaleArea(level,area_tmp,anel_coeff[level]);
@@ -478,7 +473,8 @@ void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
                          MultiFab& rho_half,
-                         IntVect&  fine_ratio)
+                         IntVect&  fine_ratio,
+			 MultiFab* Rhs_increment)
 {
     BL_ASSERT(level < finest_level);
 
@@ -515,7 +511,7 @@ MacProj::mac_sync_solve (int       level,
     // MAC register, VOL = cell volume.  All other cells have a
     // value of zero (including crse cells under fine grids).
     //
-    MultiFab Rhs(grids,dmap,1,0);
+    MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
     Rhs.setVal(0.0);
     //
     // Reflux subtracts values at hi edge of coarse cell and
@@ -547,6 +543,11 @@ MacProj::mac_sync_solve (int       level,
         }
     }
 
+    if (Rhs_increment)
+    {
+      MultiFab::Add(Rhs,*Rhs_increment,0,0,1,0);
+    }
+
     mac_sync_phi->setVal(0.0);
 
     //
@@ -557,7 +558,7 @@ MacProj::mac_sync_solve (int       level,
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1);
+	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
 	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
 	}
         scaleArea(level,area_tmp,anel_coeff[level]);
@@ -579,6 +580,7 @@ MacProj::mac_sync_solve (int       level,
     }
 }
 
+  /* REMOVE in favor of single version above. subtract_avg and offset never used
 // this version is for the closed chamber LMC algorithm
 void
 MacProj::mac_sync_solve (int       level,
@@ -624,7 +626,7 @@ MacProj::mac_sync_solve (int       level,
     // MAC register, VOL = cell volume.  All other cells have a
     // value of zero (including crse cells under fine grids).
     //
-    MultiFab Rhs(grids,dmap,1,0);
+    MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
     Rhs.setVal(0.0);
     //
     // Reflux subtracts values at hi edge of coarse cell and
@@ -674,7 +676,7 @@ MacProj::mac_sync_solve (int       level,
     MultiFab area_tmp[BL_SPACEDIM];
     if (anel_coeff[level] != 0) {
 	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1);
+	  area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
 	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
 	}
         scaleArea(level,area_tmp,anel_coeff[level]);
@@ -696,7 +698,7 @@ MacProj::mac_sync_solve (int       level,
 	amrex::Print() << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
     }
 }
-
+  */
 //
 // After solving for mac_sync_phi in mac_sync_solve(), we
 // can now do the sync advect step.  This consists of two steps
@@ -772,8 +774,8 @@ MacProj::mac_sync_compute (int                   level,
         if (do_get_visc_terms)
             ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
     }
-
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    // FIXME thought needed on how we get gradP here...
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
 
     ns_level.getGradP(Gp, prev_pres_time);
 
@@ -785,8 +787,8 @@ MacProj::mac_sync_compute (int                   level,
     MultiFab mac_fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
       const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-      fluxes[i].define(ba, dmap, NUM_STATE, 0);
-      mac_fluxes[i].define(ba, dmap, 1, 0);
+      fluxes[i].define(ba, dmap, NUM_STATE, 0, MFInfo(),ns_level.Factory());
+      mac_fluxes[i].define(ba, dmap, 1, 0, MFInfo(),ns_level.Factory());
     }
         
     FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
@@ -975,7 +977,7 @@ MacProj::mac_sync_compute (int                    level,
     MultiFab fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
       const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-      fluxes[i].define(ba, dmap, 1, 0);
+      fluxes[i].define(ba, dmap, 1, 0, MFInfo(),ns_level.Factory());
     }
 
     //
