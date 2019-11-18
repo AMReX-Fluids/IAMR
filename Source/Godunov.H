@@ -261,7 +261,7 @@ public:      // public access functions
                         D_DECL(amrex::MultiFab& a_xslopes,
                                amrex::MultiFab& a_yslopes,
                                amrex::MultiFab& a_zslopes),
-                        const amrex::BCRec&  a_bcs,
+                        const  amrex::Vector<amrex::BCRec>& a_bcs,
                         int a_comp,
                         int a_ncomp,
                         const amrex::Box& a_domain);
@@ -313,7 +313,8 @@ public:      // public access functions
                             D_DECL(amrex::MultiFab& a_xslopes,
                                    amrex::MultiFab& a_yslopes,
                                    amrex::MultiFab& a_zslopes),
-                            const amrex::Geometry&  a_geom);
+                            const amrex::Geometry&  a_geom,
+                            const amrex::Vector<amrex::BCRec>& a_bcs );
 
     void ComputeFluxes(  D_DECL(amrex::MultiFab& a_fx,
                                 amrex::MultiFab& a_fy,
@@ -329,7 +330,7 @@ public:      // public access functions
                                  const amrex::MultiFab& v_mac,
                                  const amrex::MultiFab& w_mac),
                          const amrex::Geometry& a_geom,
-                         const amrex::BCRec&   a_bcs);
+                         const amrex::Vector<amrex::BCRec>& a_bcs);
 
 
     void ComputeConvectiveTerm (amrex::MultiFab& a_state,
@@ -347,7 +348,7 @@ public:      // public access functions
                                        const amrex::MultiFab& a_ysl,
                                        const amrex::MultiFab& a_zsl),
                                 const int a_sl_comp,
-                                const amrex::BCRec&    a_bcs,
+                                const amrex::Vector<amrex::BCRec>& a_bcs,
                                 const amrex::Geometry& a_geom );
 
 

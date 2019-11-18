@@ -58,13 +58,16 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                             D_DECL( MultiFab& a_xslopes,
                                     MultiFab& a_yslopes,
                                     MultiFab& a_zslopes),
-                            const Geometry&  a_geom)
-
+                            const Geometry&  a_geom,
+                            const amrex::Vector<amrex::BCRec>& a_bcs )
 {
     BL_PROFILE("Godunov::ExtrapVelToFaces");
     AMREX_ASSERT(a_vel.hasEBFabFactory());
 
     Box domain(a_geom.Domain());
+
+    const Dim3 domlo = amrex::lbound(domain);
+    const Dim3 domhi = amrex::ubound(domain);
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_vel.Factory());
 
@@ -140,6 +143,9 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
     IntVect e_y(0,1,0);
     IntVect e_z(0,0,1);
 
+    // Get ptr to BCRec
+    const auto bc = a_bcs.dataPtr();
+
     // ****************************************************************************
     // Predict to face centers
     // ****************************************************************************
@@ -201,26 +207,56 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
             // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
             AMREX_FOR_3D(ubx, i, j, k,
             {
-                // X-faces
-                upls_fab(i,j,k) = ccvel_fab(i  ,j,k,0) - 0.5 * xslopes_fab(i  ,j,k,0);
-                umns_fab(i,j,k) = ccvel_fab(i-1,j,k,0) + 0.5 * xslopes_fab(i-1,j,k,0);
-                umac_fab(i,j,k) = riemann::solver( umns_fab(i,j,k), upls_fab(i,j,k) );
+                if ( (i == domlo.x) and (bc[0].lo(0) == BCType::ext_dir) )
+                {
+                    umac_fab(i,j,k) = ccvel_fab(domlo.x-1,j,k,0);
+                }
+                else if ( (i == domhi.x+1) and (bc[0].hi(0) == BCType::ext_dir) )
+                {
+                    umac_fab(i,j,k) = ccvel_fab(domhi.x+1,j,k,0);
+                }
+                else
+                {
+                    upls_fab(i,j,k) = ccvel_fab(i  ,j,k,0) - 0.5 * xslopes_fab(i  ,j,k,0);
+                    umns_fab(i,j,k) = ccvel_fab(i-1,j,k,0) + 0.5 * xslopes_fab(i-1,j,k,0);
+                    umac_fab(i,j,k) = riemann::solver( umns_fab(i,j,k), upls_fab(i,j,k) );
+                }
             });
 
             AMREX_FOR_3D(vbx, i, j, k,
             {
-                // Y-faces
-                vpls_fab(i,j,k) = ccvel_fab(i,j  ,k,1) - 0.5 * yslopes_fab(i,j  ,k,1);
-                vmns_fab(i,j,k) = ccvel_fab(i,j-1,k,1) + 0.5 * yslopes_fab(i,j-1,k,1);
-                vmac_fab(i,j,k) = riemann::solver( vmns_fab(i,j,k), vpls_fab(i,j,k) );
+                if ( (j == domlo.y) and (bc[1].lo(1) == BCType::ext_dir) )
+                {
+                    vmac_fab(i,j,k) = ccvel_fab(i,domlo.y-1,k,1);
+                }
+                else if ( (j == domhi.y+1) and (bc[1].hi(1) == BCType::ext_dir) )
+                {
+                    vmac_fab(i,j,k) = ccvel_fab(i,domlo.y+1,k,1);
+                }
+                else
+                {
+                    vpls_fab(i,j,k) = ccvel_fab(i,j  ,k,1) - 0.5 * yslopes_fab(i,j  ,k,1);
+                    vmns_fab(i,j,k) = ccvel_fab(i,j-1,k,1) + 0.5 * yslopes_fab(i,j-1,k,1);
+                    vmac_fab(i,j,k) = riemann::solver( vmns_fab(i,j,k), vpls_fab(i,j,k) );
+                }
             });
 #if (AMREX_SPACEDIM == 3 )
             AMREX_FOR_3D(wbx, i, j, k,
             {
-                // Z-faces
-                wpls_fab(i,j,k) = ccvel_fab(i,j,k  ,2) - 0.5 * zslopes_fab(i,j,k  ,2);
-                wmns_fab(i,j,k) = ccvel_fab(i,j,k-1,2) + 0.5 * zslopes_fab(i,j,k-1,2);
-                wmac_fab(i,j,k) = riemann::solver( wmns_fab(i,j,k), wpls_fab(i,j,k) );
+                if ( (k == domlo.z) and (bc[2].lo(2) == BCType::ext_dir) )
+                {
+                    wmac_fab(i,j,k) = ccvel_fab(i,j,domlo.z-1,2);
+                }
+                else if ( (k == domhi.z+1) and (bc[2].lo(2) == BCType::ext_dir) )
+                {
+                    wmac_fab(i,j,k) = ccvel_fab(i,j,domhi.z+1,2);
+                }
+                else
+                {
+                    wpls_fab(i,j,k) = ccvel_fab(i,j,k  ,2) - 0.5 * zslopes_fab(i,j,k  ,2);
+                    wmns_fab(i,j,k) = ccvel_fab(i,j,k-1,2) + 0.5 * zslopes_fab(i,j,k-1,2);
+                    wmac_fab(i,j,k) = riemann::solver( wmns_fab(i,j,k), wpls_fab(i,j,k) );
+                }
             });
 #endif
             Gpu::synchronize();
@@ -255,34 +291,73 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                     const auto& apy_fab = areafrac[1]->array(mfi);,
                     const auto& apz_fab = areafrac[2]->array(mfi););
 
-            // This FAB has cut cells
+            // If near a Dirichlet boundary, define both upls and umns to be
+            // the Dirichlet value so that we do not need to modify the the interpolation
+            // to face centroid that follows.
             AMREX_FOR_3D(ubx_grown, i, j, k,
             {
-                // X-faces
                 if (apx_fab(i,j,k) > 0.0)
                 {
-                    upls_fab(i,j,k) = ccvel_fab(i  ,j,k,0) - 0.5 * xslopes_fab(i  ,j,k,0);
-                    umns_fab(i,j,k) = ccvel_fab(i-1,j,k,0) + 0.5 * xslopes_fab(i-1,j,k,0);
+                    if ( (i <= domlo.x) and (bc[0].lo(0) == BCType::ext_dir) )
+                    {
+                        upls_fab(i,j,k) = ccvel_fab(domlo.x-1,j,k,0);
+                        umns_fab(i,j,k) = ccvel_fab(domlo.x-1,j,k,0);
+                    }
+                    else if ( (i >= domhi.x+1) and (bc[0].hi(0) == BCType::ext_dir) )
+                    {
+                        upls_fab(i,j,k) = ccvel_fab(domhi.x+1,j,k,0);
+                        umns_fab(i,j,k) = ccvel_fab(domhi.x+1,j,k,0);
+                    }
+                    else
+                    {
+                        upls_fab(i,j,k) = ccvel_fab(i  ,j,k,0) - 0.5 * xslopes_fab(i  ,j,k,0);
+                        umns_fab(i,j,k) = ccvel_fab(i-1,j,k,0) + 0.5 * xslopes_fab(i-1,j,k,0);
+                    }
                 }
             });
 
             AMREX_FOR_3D(vbx_grown, i, j, k,
             {
-                // Y-faces
                 if (apy_fab(i,j,k) > 0.0)
                 {
-                    vpls_fab(i,j,k) = ccvel_fab(i,j  ,k,1) - 0.5 * yslopes_fab(i,j  ,k,1);
-                    vmns_fab(i,j,k) = ccvel_fab(i,j-1,k,1) + 0.5 * yslopes_fab(i,j-1,k,1);
+                    if ( (j <= domlo.y) and (bc[1].lo(1) == BCType::ext_dir) )
+                    {
+                        vpls_fab(i,j,k) = ccvel_fab(i,domlo.y-1,k,1);
+                        vmns_fab(i,j,k) = ccvel_fab(i,domlo.y-1,k,1);
+                    }
+                    else if ( (j >= domhi.y+1) and (bc[1].hi(1) == BCType::ext_dir) )
+                    {
+                        vpls_fab(i,j,k) = ccvel_fab(i,domlo.y+1,k,1);
+                        vmns_fab(i,j,k) = ccvel_fab(i,domlo.y+1,k,1);
+                    }
+                    else
+                    {
+                        vpls_fab(i,j,k) = ccvel_fab(i,j  ,k,1) - 0.5 * yslopes_fab(i,j  ,k,1);
+                        vmns_fab(i,j,k) = ccvel_fab(i,j-1,k,1) + 0.5 * yslopes_fab(i,j-1,k,1);
+                    }
                 }
             });
 
 #if (AMREX_SPACEDIM == 3 )
             AMREX_FOR_3D(wbx_grown, i, j, k,
             {
-                // Z-faces
-                if (apz_fab(i,j,k) > 0.0) {
-                    wpls_fab(i,j,k) = ccvel_fab(i,j,k  ,2) - 0.5 * zslopes_fab(i,j,k  ,2);
-                    wmns_fab(i,j,k) = ccvel_fab(i,j,k-1,2) + 0.5 * zslopes_fab(i,j,k-1,2);
+                if (apz_fab(i,j,k) > 0.0)
+                {
+                    if ( (k <= domlo.z) and (bc[2].lo(2) == BCType::ext_dir) )
+                    {
+                        wpls_fab(i,j,k) = ccvel_fab(i,j,domlo.z-1,2);
+                        wmns_fab(i,j,k) = ccvel_fab(i,j,domlo.z-1,2);
+                    }
+                    else if ( (k >= domhi.z+1) and (bc[2].lo(2) == BCType::ext_dir) )
+                    {
+                        wpls_fab(i,j,k) = ccvel_fab(i,j,domhi.z+1,2);
+                        wmns_fab(i,j,k) = ccvel_fab(i,j,domhi.z+1,2);
+                    }
+                    else
+                    {
+                        wpls_fab(i,j,k) = ccvel_fab(i,j,k  ,2) - 0.5 * zslopes_fab(i,j,k  ,2);
+                        wmns_fab(i,j,k) = ccvel_fab(i,j,k-1,2) + 0.5 * zslopes_fab(i,j,k-1,2);
+                    }
                 }
             });
 #endif

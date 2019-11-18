@@ -1,7 +1,7 @@
 
  &fortin
 
-  probtype = 4
+  probtype = 32
   denfact  = 1.
   adv_dir  = 1
   adv_vel  = 1.
