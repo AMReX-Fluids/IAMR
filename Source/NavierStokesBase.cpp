@@ -89,7 +89,7 @@ int  NavierStokesBase::num_state_type                     = 2;
 int  NavierStokesBase::have_divu                          = 0;
 int  NavierStokesBase::have_dsdt                          = 0;
 Real NavierStokesBase::divu_relax_factor                  = 0.0;
-int  NavierStokesBase::S_in_vel_diffusion                 = 1;
+int  NavierStokesBase::S_in_vel_diffusion                 = 0;
 int  NavierStokesBase::do_init_vort_proj                  = 0;
 int  NavierStokesBase::do_init_proj                       = 1;
 
