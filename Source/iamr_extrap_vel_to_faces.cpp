@@ -139,9 +139,14 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
 #endif
 
     // Shifts to define staggered boxes
+#if ( AMREX_SPACEDIM == 2 )
+    IntVect e_x(1,0);
+    IntVect e_y(0,1);
+#elif ( AMREX_SPACEDIM == 3 )
     IntVect e_x(1,0,0);
     IntVect e_y(0,1,0);
     IntVect e_z(0,0,1);
+#endif
 
     // Get ptr to BCRec
     const auto bc = a_bcs.dataPtr();
@@ -156,11 +161,15 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
 
         Box ubx = mfi.tilebox(e_x);
         Box vbx = mfi.tilebox(e_y);
+#if ( AMREX_SPACEDIM == 3 )
         Box wbx = mfi.tilebox(e_z);
+#endif
 
         Box ubx_grown = mfi.growntilebox(e_x);
         Box vbx_grown = mfi.growntilebox(e_y);
+#if ( AMREX_SPACEDIM == 3 )
         Box wbx_grown = mfi.growntilebox(e_z);
+#endif
 
         const EBFArrayBox&  vel_fab = static_cast<EBFArrayBox const&>(a_vel[mfi]);
         const EBCellFlagFab&  flags = vel_fab.getEBCellFlagFab();
@@ -391,7 +400,9 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
         Box  bx = mfi.tilebox();
         Box ubx = mfi.tilebox(e_x);
         Box vbx = mfi.tilebox(e_y);
+#if ( AMREX_SPACEDIM == 3 )
         Box wbx = mfi.tilebox(e_z);
+#endif
 
         // Check efficiently if this tile contains any eb stuff
         const EBFArrayBox&  vel_fab = static_cast<EBFArrayBox const&>(a_vel[mfi]);

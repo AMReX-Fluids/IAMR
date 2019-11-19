@@ -523,18 +523,18 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
             // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
             if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
             {
-                fluxes::ComputeFluxesOnBox( bx, a_fx[mfi], a_fy[mfi], a_fz[mfi], a_state[mfi], a_comp, a_ncomp,
-                                            a_xsl[mfi], a_ysl[mfi], a_zsl[mfi], a_sl_comp,
-                                            a_umac[mfi], a_vmac[mfi], a_wmac[mfi], domain, a_bcs);
+                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]), a_state[mfi], a_comp, a_ncomp,
+                                            D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                            D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs);
 
             }
             else
             {
-                fluxes::ComputeFluxesOnEBBox(bx, a_fx[mfi], a_fy[mfi], a_fz[mfi], a_state[mfi], a_comp, a_ncomp,
-                                             a_xsl[mfi], a_ysl[mfi], a_zsl[mfi], a_sl_comp,
-                                             a_umac[mfi], a_vmac[mfi], a_wmac[mfi], domain, a_bcs,
-                                             (*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi],
-                                             (*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi],
+                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]), a_state[mfi], a_comp, a_ncomp,
+                                             D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                             D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs,
+                                             D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
+                                             D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
                                              cc_mask[mfi], flags);
             }
         }
@@ -544,5 +544,7 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
     // MR: incflo does not have this: should it be added?
     a_fx.FillBoundary(a_geom.periodicity());
     a_fy.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
     a_fz.FillBoundary(a_geom.periodicity());
+#endif
 }

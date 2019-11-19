@@ -1746,7 +1746,9 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
 
     a_fx.FillBoundary(a_geom.periodicity());
     a_fy.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
     a_fz.FillBoundary(a_geom.periodicity());
+#endif
 
 }
 
