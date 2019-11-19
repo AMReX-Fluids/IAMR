@@ -231,7 +231,7 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 }
                 else if ( (j == domhi.y+1) and (bc[1].hi(1) == BCType::ext_dir) )
                 {
-                    vmac_fab(i,j,k) = ccvel_fab(i,domlo.y+1,k,1);
+                    vmac_fab(i,j,k) = ccvel_fab(i,domhi.y+1,k,1);
                 }
                 else
                 {
@@ -327,8 +327,8 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                     }
                     else if ( (j >= domhi.y+1) and (bc[1].hi(1) == BCType::ext_dir) )
                     {
-                        vpls_fab(i,j,k) = ccvel_fab(i,domlo.y+1,k,1);
-                        vmns_fab(i,j,k) = ccvel_fab(i,domlo.y+1,k,1);
+                        vpls_fab(i,j,k) = ccvel_fab(i,domhi.y+1,k,1);
+                        vmns_fab(i,j,k) = ccvel_fab(i,domhi.y+1,k,1);
                     }
                     else
                     {
