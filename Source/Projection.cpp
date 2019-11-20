@@ -2311,7 +2311,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
     // For now use AMReX Nodal Projector only if no sync is required
-    bool no_sync_needed = (sync_resid_fine==nullptr) && (sync_resid_crse==nullptr);
+    bool no_sync_needed = parent->finestLevel()==0;
 
     if (no_sync_needed)
         amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
@@ -2443,7 +2443,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
-//mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
     if (no_sync_needed)
     {
         // Setup mnatrix coefficients
