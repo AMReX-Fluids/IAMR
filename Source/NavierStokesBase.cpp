@@ -3665,12 +3665,14 @@ NavierStokesBase::velocity_advection (Real dt)
          amrex::Print() << "**** DOING EB ALGORITHM *** " << std::endl;
 
          MultiFab cfluxes[AMREX_SPACEDIM];
+         MultiFab edgstate[AMREX_SPACEDIM];
          int nghost(4);         // Use 4 for now
 
          for (int i(0); i < AMREX_SPACEDIM; i++)
          {
              const BoxArray& ba = getEdgeBoxArray(i);
              cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
+             edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
          }
 
          Vector<BCRec> math_bcs(AMREX_SPACEDIM);
@@ -3678,9 +3680,10 @@ NavierStokesBase::velocity_advection (Real dt)
 
          godunov -> ComputeConvectiveTerm( Umf, 0, *aofs, 0, AMREX_SPACEDIM,
                                            D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                                           D_DECL(edgstate[0],edgstate[1],edgstate[2]),
                                            D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
-                                           math_bcs, geom );
+                                           math_bcs, geom, 0 );
          if (do_reflux)
          {
              for (int d(0); d < AMREX_SPACEDIM; d++)
