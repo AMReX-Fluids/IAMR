@@ -3673,11 +3673,14 @@ NavierStokesBase::velocity_advection (Real dt)
              cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
          }
 
+         Vector<BCRec> math_bcs(AMREX_SPACEDIM);
+         math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
+
          godunov -> ComputeConvectiveTerm( Umf, 0, *aofs, 0, AMREX_SPACEDIM,
                                            D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                            D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
-                                           phys_bc, geom );
+                                           math_bcs, geom );
          if (do_reflux)
          {
              for (int d(0); d < AMREX_SPACEDIM; d++)
@@ -4660,6 +4663,22 @@ NavierStokesBase::fetchBCArray (int State_Type, const Box& bx, int scomp, int nc
       const int* b_rec = bcr.vect();
       for (int m = 0; m < 2*BL_SPACEDIM; m++)
 	bc[2*BL_SPACEDIM*n + m] = b_rec[m];
+    }
+
+    return bc;
+}
+
+Vector<BCRec>
+NavierStokesBase::fetchBCArray (int State_Type, int scomp, int ncomp)
+{
+    Vector<BCRec> bc(ncomp);
+    const StateDescriptor* stDesc;
+    const Box& domain = geom.Domain();
+
+    for (int n(0); n < ncomp; ++n)
+    {
+      stDesc=state[State_Type].descriptor();
+      setBC(domain,domain,stDesc->getBC(scomp+n), bc[n] );
     }
 
     return bc;

@@ -50,7 +50,7 @@ ComputeFluxesOnBox (const Box& a_bx,
                             const FArrayBox& a_vmac,
                             const FArrayBox& a_wmac),
                     const Box&       a_domain,
-                    const GpuArray<int, 2*AMREX_SPACEDIM>&  a_use_ghost_value)
+                    const Vector<BCRec>& a_bcs )
 {
 
     const Dim3 domlo = amrex::lbound(a_domain);
@@ -74,6 +74,7 @@ ComputeFluxesOnBox (const Box& a_bx,
             const Box vbx = amrex::surroundingNodes(a_bx,1);,
             const Box wbx = amrex::surroundingNodes(a_bx,2););
 
+    const auto bc = a_bcs.dataPtr();
 
     AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n,
     {
@@ -86,12 +87,11 @@ ComputeFluxesOnBox (const Box& a_bx,
         //
         // In the case of inflow we are using the prescribed Dirichlet value
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( (i == domlo.x) and (a_use_ghost_value[0]==1) )
+        if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
         {
             state_w = state(i-1,j,k,a_comp+n);
-
         }
-        else if ( (i == domhi.x+1) and (a_use_ghost_value[AMREX_SPACEDIM]==1) )
+        else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
         {
             state_w = state(i,j,k,a_comp+n);
         }
@@ -99,7 +99,7 @@ ComputeFluxesOnBox (const Box& a_bx,
         {
             state_pls = state(i  ,j,k,a_comp+n) - .5*xsl(i  ,j,k,a_sl_comp+n);
             state_mns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
-            state_w = upwind( state_mns, state_pls, u(i,j,k) );
+            state_w   = upwind( state_mns, state_pls, u(i,j,k) );
         }
 
         fx(i,j,k,n) = u(i,j,k) * state_w;
@@ -116,12 +116,11 @@ ComputeFluxesOnBox (const Box& a_bx,
         //
         // In the case of inflow we are using the prescribed Dirichlet value
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( (j == domlo.y) and (a_use_ghost_value[1]==1) )
+        if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
         {
-
             state_s = state(i,j-1,k,a_comp+n);
         }
-        else if ( (j == domhi.y+1) and (a_use_ghost_value[AMREX_SPACEDIM+1]==1) )
+        else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
         {
             state_s = state(i,j,k,a_comp+n);
         }
@@ -129,8 +128,7 @@ ComputeFluxesOnBox (const Box& a_bx,
         {
             state_pls = state(i,j  ,k,a_comp+n) - .5*ysl(i,j  ,k,a_sl_comp+n);
             state_mns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
-
-            state_s = upwind( state_mns, state_pls, v(i,j,k) );
+            state_s   = upwind( state_mns, state_pls, v(i,j,k) );
         }
 
         fy(i,j,k,n) = v(i,j,k) * state_s;
@@ -148,11 +146,11 @@ ComputeFluxesOnBox (const Box& a_bx,
         //
         // In the case of inflow we are using the prescribed Dirichlet value
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( (k == domlo.z) and (a_use_ghost_value[2]==1) )
+        if ( (k == domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
         {
             state_b = state(i,j,k-1,a_comp+n);
         }
-        else if ( (k == domhi.z+1) and (a_use_ghost_value[AMREX_SPACEDIM+2]==1) )
+        else if ( (k == domhi.z+1) and (bc[n].lo(2) == BCType::ext_dir) )
         {
             state_b = state(i,j,k,a_comp+n);
         }
@@ -160,8 +158,7 @@ ComputeFluxesOnBox (const Box& a_bx,
         {
             state_pls = state(i,j,k  ,a_comp+n) - .5*zsl(i,j,k  ,a_sl_comp+n);
             state_mns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
-
-            state_b = upwind( state_mns, state_pls, w(i,j,k) );
+            state_b   = upwind( state_mns, state_pls, w(i,j,k) );
         }
 
         fz(i,j,k,n) = w(i,j,k) * state_b;
@@ -188,7 +185,7 @@ ComputeFluxesOnEBBox (const Box& a_bx,
                               const FArrayBox& a_vmac,
                               const FArrayBox& a_wmac),
                       const Box&       a_domain,
-                      const GpuArray<int, 2*AMREX_SPACEDIM>&  a_use_ghost_value,
+                      const Vector<BCRec>& a_bcs,
                       D_DECL( const FArrayBox& a_afracx,
                               const FArrayBox& a_afracy,
                               const FArrayBox& a_afracz),
@@ -247,6 +244,8 @@ ComputeFluxesOnEBBox (const Box& a_bx,
 
     const auto& ccm_fab = a_cc_mask.const_array();
 
+    const auto bc = a_bcs.dataPtr();
+
     //
     // ===================== X =====================
     //
@@ -257,11 +256,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
 
         if( areafrac_x(i,j,k) > 0 )
         {
-            if ( (i == domlo.x) and (a_use_ghost_value[0]==1) )
+            if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
             {
                 sx(i,j,k,n) = state(domlo.x-1,j,k,a_comp+n);
             }
-            else if ( (i == domhi.x+1) and (a_use_ghost_value[AMREX_SPACEDIM]==1) )
+            else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
             {
                 sx(i,j,k,n) = state(domhi.x+1,j,k,a_comp+n);
             }
@@ -322,11 +321,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
 
         if( areafrac_y(i,j,k) > 0 )
         {
-            if ( (j == domlo.y) and (a_use_ghost_value[1]==1) )
+            if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
             {
                 sy(i,j,k,n) = state(i,domlo.y-1,k,a_comp+n);
             }
-            else if ( (j == domhi.y+1) and (a_use_ghost_value[AMREX_SPACEDIM+1]==1) )
+            else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
             {
                 sy(i,j,k,n) = state(i,domhi.y+1,k,a_comp+n);
             }
@@ -386,11 +385,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
 
         if( areafrac_z(i,j,k) > 0 )
         {
-            if ( (k == domlo.z) and (a_use_ghost_value[2]==1) )
+            if ( (k == domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
             {
                 sz(i,j,k,n) = state(i,j,domlo.z-1,a_comp+n);
             }
-            else if ( (k == domhi.z+1) and (a_use_ghost_value[AMREX_SPACEDIM+2]==1) )
+            else if ( (k == domhi.z+1) and (bc[n].hi(2) == BCType::ext_dir) )
             {
                 sz(i,j,k,n) = state(i,j,domhi.z+1,a_comp+n);
             }
@@ -454,11 +453,12 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
                                   const MultiFab& a_vmac,
                                   const MultiFab& a_wmac),
                          const Geometry& a_geom,
-                         const BCRec&     a_bcs )
+                         const Vector<BCRec>& a_bcs )
 {
 
     AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
     AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
+    AMREX_ALWAYS_ASSERT(a_bcs.size() == a_ncomp );
 
     // For now use 4 ghost nodes
     const int nghost(4);
@@ -511,17 +511,6 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
            a_fy.setVal(COVERED_VAL);,
            a_fz.setVal(COVERED_VAL););
 
-    // Create checks for BCs -- set to 1 if we need to use ghost value at the boundary
-    // For now just check for INFLOW
-    // MR: CHECK THIS
-    GpuArray<int, 2*AMREX_SPACEDIM>  use_ghost_value;
-
-    for (int d(0); d < AMREX_SPACEDIM; ++d )
-    {
-        use_ghost_value[d]                = (a_bcs.lo(d)==PhysBCType::inflow) ? 1 : 0;
-        use_ghost_value[d+AMREX_SPACEDIM] = (a_bcs.hi(d)==PhysBCType::inflow) ? 1 : 0;
-    }
-
     for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.tilebox ();
@@ -534,18 +523,18 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
             // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
             if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
             {
-                fluxes::ComputeFluxesOnBox( bx, a_fx[mfi], a_fy[mfi], a_fz[mfi], a_state[mfi], a_comp, a_ncomp,
-                                            a_xsl[mfi], a_ysl[mfi], a_zsl[mfi], a_sl_comp,
-                                            a_umac[mfi], a_vmac[mfi], a_wmac[mfi], domain, use_ghost_value);
+                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]), a_state[mfi], a_comp, a_ncomp,
+                                            D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                            D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs);
 
             }
             else
             {
-                fluxes::ComputeFluxesOnEBBox(bx, a_fx[mfi], a_fy[mfi], a_fz[mfi], a_state[mfi], a_comp, a_ncomp,
-                                             a_xsl[mfi], a_ysl[mfi], a_zsl[mfi], a_sl_comp,
-                                             a_umac[mfi], a_vmac[mfi], a_wmac[mfi], domain, use_ghost_value,
-                                             (*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi],
-                                             (*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi],
+                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]), a_state[mfi], a_comp, a_ncomp,
+                                             D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                             D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs,
+                                             D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
+                                             D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
                                              cc_mask[mfi], flags);
             }
         }
@@ -555,5 +544,7 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
     // MR: incflo does not have this: should it be added?
     a_fx.FillBoundary(a_geom.periodicity());
     a_fy.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
     a_fz.FillBoundary(a_geom.periodicity());
+#endif
 }

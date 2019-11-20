@@ -1045,12 +1045,13 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                              D_DECL(MultiFab& a_xslopes,
                                     MultiFab& a_yslopes,
                                     MultiFab& a_zslopes),
-                             const BCRec&     a_bcs,
+                             const Vector<BCRec>& a_bcs,
                              int a_comp,
                              int a_ncomp,
                              const Box& a_domain)
 {
     BL_PROFILE("Godunov::ComputeSlopes");
+    AMREX_ALWAYS_ASSERT(a_bcs.size()==a_ncomp);
 
     EB_set_covered(a_Sborder, 0, a_Sborder.nComp(), 1, COVERED_VAL);
 
@@ -1183,10 +1184,11 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
             // a special treatment
             //
             const auto& flag_fab  = flags.array();
+            const auto& bc = a_bcs.dataPtr();
 
             AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
             {
-                if ( (i == a_domain.smallEnd(0)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(0) == PhysBCType::inflow) )
+                if ( (i == a_domain.smallEnd(0)) && !flag_fab(i,j,k).isCovered() && (bc[n].lo(0) == BCType::ext_dir) )
                 {
                     Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
                     Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
@@ -1196,7 +1198,7 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                     xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
                     xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
                 }
-                if ( (i == a_domain.bigEnd(0)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(0) == PhysBCType::inflow) )
+                if ( (i == a_domain.bigEnd(0)) && !flag_fab(i,j,k).isCovered() && (bc[n].hi(0) == BCType::ext_dir) )
                 {
                     Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
                     Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
@@ -1207,7 +1209,7 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                     xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
                 }
 
-                if ( (j == a_domain.smallEnd(1)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(1) == PhysBCType::inflow) )
+                if ( (j == a_domain.smallEnd(1)) && !flag_fab(i,j,k).isCovered() && (bc[n].lo(1) == BCType::ext_dir) )
                 {
                     Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
                     Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
@@ -1217,7 +1219,7 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                     yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
                     ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
                 }
-                if ( (j == a_domain.bigEnd(1)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(1) == PhysBCType::inflow) )
+                if ( (j == a_domain.bigEnd(1)) && !flag_fab(i,j,k).isCovered() && (bc[n].hi(1) == BCType::ext_dir) )
                 {
                     Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
                     Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
@@ -1229,7 +1231,7 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                 }
 
 #if (AMREX_SPACEDIM == 3)
-                if ( (k == a_domain.smallEnd(2)) && !flag_fab(i,j,k).isCovered() && (a_bcs.lo(2) == PhysBCType::inflow) )
+                if ( (k == a_domain.smallEnd(2)) && !flag_fab(i,j,k).isCovered() && (bc[n].lo(2) == BCType::ext_dir) )
                 {
                     Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
                     Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
@@ -1239,7 +1241,7 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                     zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
                     zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
                 }
-                if ( (k == a_domain.bigEnd(2)) && !flag_fab(i,j,k).isCovered() && (a_bcs.hi(2) == PhysBCType::inflow) )
+                if ( (k == a_domain.bigEnd(2)) && !flag_fab(i,j,k).isCovered() && (bc[n].hi(2) == BCType::ext_dir) )
                 {
                     Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
                     Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
@@ -1629,11 +1631,12 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
                                        const MultiFab& a_ysl,
                                        const MultiFab& a_zsl),
                                 const int a_sl_comp,
-                                const BCRec&     a_bcs,
+                                const Vector<BCRec>&  a_bcs,
                                 const Geometry& a_geom )
 {
     AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
     AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
+    AMREX_ALWAYS_ASSERT(a_bcs.size()==a_ncomp);
 
     amrex::Print() << "ComputeConvectiveTerms: \n"
                    << "max(abs(state)) = ";
@@ -1743,7 +1746,9 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
 
     a_fx.FillBoundary(a_geom.periodicity());
     a_fy.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
     a_fz.FillBoundary(a_geom.periodicity());
+#endif
 
 }
 
