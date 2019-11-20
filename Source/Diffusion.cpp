@@ -1154,9 +1154,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	    tensorflux_old[d]->mult(-b/dt,0,AMREX_SPACEDIM,flux_ng);
 	  }
 	  //FIXME
-	  static int count=0; count++;
-	  VisMF::Write( *tensorflux_old[0],"fluxx_"+std::to_string(count));
-	  VisMF::Write( *tensorflux_old[1],"fluxy_"+std::to_string(count));
+	  // static int count=0; count++;
+	  // VisMF::Write( *tensorflux_old[0],"fluxx_"+std::to_string(count));
+	  // VisMF::Write( *tensorflux_old[1],"fluxy_"+std::to_string(count));
 	  // {
 	  //   // read in result MF from unaltered version of code
 	  //   std::string name2="../run2d/fluxx_"+std::to_string(count);
@@ -1818,9 +1818,8 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
 
     if (allnull)
       amrex::Abort("Constant viscosity case no longer supported");
-//      diffuse_Vsync_constant_mu(Vsync,dt,be_cn_theta,rho_half,rho_flag,update_fluxreg);
-    else
-      diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp,update_fluxreg);
+
+    diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp,update_fluxreg);
     //
     // applyBC has put "incorrect" values in the ghost cells
     // outside external Dirichlet boundaries. Reset these to zero
