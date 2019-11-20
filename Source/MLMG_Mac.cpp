@@ -147,10 +147,8 @@ static void compute_mac_rhs (MultiFab& rhs, const MultiFab* umac,
 
 }
 
-void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi,
-			   const BCRec& phys_bc,
-                           int level, int Density,
-			   Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc,
+                           int level, int Density, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                            const MultiFab *area, const MultiFab &volume,
                            const MultiFab &S, MultiFab &Rhs,
                            MultiFab *u_mac, MultiFab *mac_phi, int verbose)
@@ -227,11 +225,11 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi,
 }
 
 void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
-                          int level,
-			  Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+                          int level, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                           const MultiFab* area, const MultiFab& volume,
                           const MultiFab& rho, MultiFab& Rhs,
-                          MultiFab* mac_phi, int verbose)
+                          MultiFab* mac_phi, Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
+			  int verbose)
 {
     if (!initialized)
     {
@@ -263,6 +261,11 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
                                             (parent->getLevel(level)).Factory()));
     }
 
+    //
+    // Want to go back to ML(EB)ABecLap. MacProjector takes div and don't need that here
+    // Will MLEBABecLap take care of bcoef like MacProj?
+    // Not so relevant at the moment with restrriction EB not crossing coarse-fine bndry
+    
     // Set bcoefs to the average of Density at the faces
     // This does NOT compute the average at the CENTROIDS, but at the faces
     // Operator inside MAc projector will take care of this.
@@ -278,86 +281,79 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
         bcoefs[idim]->FillBoundary( geom.periodicity() );
     }
     
-    // create right containers for MacProjector
-    Array<MultiFab*,AMREX_SPACEDIM>  a_umac;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        a_umac[idim]= &(mac_phi[idim]);
-
-    //if (verbose)  // Always print this for now
-    {
-      MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
-#ifdef AMREX_USE_EB
-      bool already_on_centroid(true);
-      EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom,already_on_centroid);
-#else
-      computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom);
-#endif
-      
-      Print() << "  MAC SYNC solve on level "<< level
-    	      << " BEFORE projection: max(abs(divu)) = " << divu.norm0() << "\n";
-    }
-
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
-
+    
+    // MacProjector is not what we want for sync
+    // takes Face-centered velocity and interally computes div, but already have div
+    //
+    // Create right containers for MacProjector
+    //Array<MultiFab*,AMREX_SPACEDIM>  a_umac({mac_phi});
     //
     // Create MacProjection object
     // make sure u_mac already has bndry properly filled
-    MacProjector macproj( {a_umac}, {GetArrOfConstPtrs(bcoefs)}, {geom}, info, {&Rhs} );
-    
+    //MacProjector macproj( {a_umac}, {GetArrOfConstPtrs(bcoefs)}, {geom}, info, {&Rhs} );
+
+#ifdef AMREX_USE_EB
+    MLEBABecLaplacian mlabec({geom}, {ba}, {dm}, info, {(parent->getLevel(level)).Factory()});
+#else
+    MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
+#endif
+    mlabec.setMaxOrder(max_order);
+    mlabec.setVerbose(verbose);
+	
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
     set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
 
-    macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
+    mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
     // weiqun says not needed... I think default is the 0 we want
     // if (level > 0) {
     //     mlabec.setCoarseFineBC(nullptr, parent->refRatio(level-1)[0]);
     // }
-    macproj.setLevelBC(0, mac_phi);
-    macproj.setVerbose(verbose);
+    mlabec.setLevelBC(0, mac_phi);
 
+    mlabec.setScalars(0.0, 1.0);   
+    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
+
+    MLMG mlmg(mlabec);
     if (use_hypre) {
-      macproj.setBottomSolver(MLMG::BottomSolver::hypre);
-      macproj.setBottomVerbose(hypre_verbose);
-      macproj.setVerbose(hypre_verbose);
+      mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+      mlmg.setBottomVerbose(hypre_verbose);
+      mlmg.setVerbose(hypre_verbose);
     }
-    //mlmg.setMaxFmgIter(max_fmg_iter);
-    //mlmg.setVerbose(verbose);
+    mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(verbose);
 
     Rhs.negate();
 
-        // not 100% sure whether to give initial guess or not
-    bool steady_state=false;
-    if (steady_state)
-    {
-      // Solve using m_phi as an initial guess
-      macproj.project({mac_phi}, mac_tol,mac_abs_tol,MLMG::Location::FaceCentroid);
-    }
-    else
-    {
-      // Solve with initial guess of zero
-      macproj.project(mac_tol,mac_abs_tol,MLMG::Location::FaceCentroid);
-    }
+    mlmg.setFinalFillBC(true);
+    mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
 
-    // Enforce perodicity
-    for (int i=0; i<AMREX_SPACEDIM; ++i)
-      mac_phi[i].FillBoundary(geom.periodicity());
+    //Ucorr = fluxes = -B grad phi
+    mlmg.getFluxes({Ucorr});
+
+    // // Solve with initial guess of zero
+    // macproj.project(mac_tol,mac_abs_tol,MLMG::Location::FaceCentroid);
+
+    // // Enforce perodicity
+    // for (int i=0; i<AMREX_SPACEDIM; ++i)
+    //   mac_phi[i].FillBoundary(geom.periodicity());
 
     //if (verbose)  // Always print this for now
-    {
-      MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
-#ifdef AMREX_USE_EB
-      bool already_on_centroid(true);
-      EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom,already_on_centroid);
-#else
-      computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom);
-#endif
+//     {
+//       MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
+// #ifdef AMREX_USE_EB
+//       bool already_on_centroid(true);
+//       EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom,already_on_centroid);
+// #else
+//       computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom);
+// #endif
       
-      Print() << "  MAC SYNC solve on level "<< level
-    	      << " BEFORE projection: max(abs(divu)) = " << divu.norm0() << "\n";
-    }
+//       Print() << "  MAC SYNC solve on level "<< level
+//     	      << " BEFORE projection: max(abs(divu)) = " << divu.norm0() << "\n";
+//     }
 }
 
 // FIXME -- Need to take this fn and make one mac_level_solve()

@@ -50,6 +50,7 @@ public:
                          amrex::Real      dt, 
                          amrex::MultiFab& rho_half,
                          amrex::IntVect&  fine_ratio,
+			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
 			 amrex::MultiFab* Rhs_increment = nullptr);
 
   /* REMOVE in favor of single version above. subtract_avg and offset never used
@@ -66,6 +67,7 @@ public:
     // Computing the sync tendency.
     //
     void mac_sync_compute (int                   level,
+			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab*             u_mac, 
                            amrex::MultiFab&             Vsync,
                            amrex::MultiFab&             Ssync,
@@ -83,6 +85,7 @@ public:
 			   bool                  update_fluxreg = true);
 
     void mac_sync_compute (int                   level,
+			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab&             Sync,
                            int                   comp,
                            int                   s_ind,
