@@ -62,7 +62,6 @@ int         NavierStokesBase::do_temp                   = 0;
 int         NavierStokesBase::do_cons_trac              = 0;
 int         NavierStokesBase::do_cons_trac2             = 0;
 int         NavierStokesBase::do_sync_proj              = 1;
-int         NavierStokesBase::do_MLsync_proj            = 1;
 int         NavierStokesBase::do_reflux                 = 1;
 int         NavierStokesBase::modify_reflux_normal_vel  = 0;
 int         NavierStokesBase::do_mac_proj               = 1;
@@ -380,7 +379,6 @@ NavierStokesBase::Initialize ()
     pp.query("do_cons_trac2",            do_cons_trac2    );
     int initial_do_sync_proj =           do_sync_proj;
     pp.query("do_sync_proj",             do_sync_proj     );
-    pp.query("do_MLsync_proj",           do_MLsync_proj   );
     pp.query("do_reflux",                do_reflux        );
     pp.query("modify_reflux_normal_vel", modify_reflux_normal_vel);
     pp.query("do_init_vort_proj",        do_init_vort_proj);
@@ -412,19 +410,6 @@ NavierStokesBase::Initialize ()
     if (init_shrink > 1.0)
         amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
 
-    //
-    // This test ensures that if the user toggles do_sync_proj,
-    // the user has knowledge that do_MLsync_proj is meaningless.
-    //
-    if (do_MLsync_proj && !do_sync_proj && initial_do_sync_proj != do_sync_proj)
-    {
-        amrex::Print() << "Mismatched options for NavierStokesBase\n"
-		       << "do_MLsync_proj and do_sync_proj are inconsistent\n";
-
-        amrex::Abort("NavierStokesBase::Initialize()");
-    }
-
-    
     pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     pp.query("be_cn_theta",be_cn_theta);
@@ -1915,15 +1900,6 @@ NavierStokesBase::init_additional_state_types ()
         amrex::Abort("NavierStokesBase::init_additional_state_types()");
     }
 
-    if (have_divu && do_sync_proj && !do_MLsync_proj) 
-    {
-        amrex::Print() << "Must run the ML sync project if have_divu is true " << '\n';
-        amrex::Print() << "  because the divu sync is only implemented in the " << '\n';
-        amrex::Print() << "  multilevel sync (MLsyncProject), not in the single level " << '\n';
-        amrex::Print() << "  (syncProject)." << '\n';
-        amrex::Abort("NavierStokesBase::init_additional_state_types()");
-    }
-
     int _Dsdt = -1;
     int dummy_Dsdt_Type;
     have_dsdt = 0;
@@ -2065,151 +2041,101 @@ NavierStokesBase::level_sync (int crse_iteration)
         sync_bc[i] = sync_bc_array[i].dataPtr();
     }
 
-    MultiFab cc_rhs_crse, cc_rhs_fine;
-
-    if (do_MLsync_proj)
-    {
-        cc_rhs_crse.define(    grids,    dmap,1,1,MFInfo(),           Factory());
-        cc_rhs_fine.define(finegrids,finedmap,1,1,MFInfo(),fine_level.Factory());
-        cc_rhs_crse.setVal(0);
-        cc_rhs_fine.setVal(0);
-    }
     //
     // Multilevel or single-level sync projection.
     //
     MultiFab& Rh = get_rho_half_time();
-
-    if (do_MLsync_proj)
-    {
-        
-        MultiFab&         v_fine    = fine_level.get_new_data(State_Type);
-        MultiFab&       rho_fine    = fine_level.rho_avg;
-        const Geometry& crse_geom   = parent->Geom(level);
-        const BoxArray& P_finegrids = pres_fine.boxArray();
-        const DistributionMapping& P_finedmap = pres_fine.DistributionMap();
-
-        MultiFab phi(P_finegrids,P_finedmap,1,1,MFInfo(),fine_level.Factory());
-        MultiFab V_corr(finegrids,finedmap,BL_SPACEDIM,1,MFInfo(),fine_level.Factory());
-
-        V_corr.setVal(0);
-        //
-        // If periodic, enforce periodicity on Vsync.
-        //
-	if (crse_geom.isAnyPeriodic()) {
-	    Vsync.FillBoundary(0, BL_SPACEDIM, crse_geom.periodicity());
-	}
-        //
-        // Interpolate Vsync to fine grid correction in Vcorr.
-        //
-        SyncInterp(Vsync, level, V_corr, level+1, ratio,
-                   0, 0, BL_SPACEDIM, 0 , dt, sync_bc.dataPtr());
-        //
-        // The multilevel projection.  This computes the projection and
-        // adds in its contribution to levels (level) and (level+1).
-        //
-        Real  cur_crse_pres_time = state[Press_Type].curTime();
-        Real prev_crse_pres_time = state[Press_Type].prevTime();
-
-        NavierStokesBase& fine_lev   = getLevel(level+1);
-        Real  cur_fine_pres_time = fine_lev.state[Press_Type].curTime();
-        Real prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
-
-        bool first_crse_step_after_initial_iters =
-         (prev_crse_pres_time > state[State_Type].prevTime());
-
-        bool pressure_time_is_interval = 
-         (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval);
-        projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
-                                 pres_fine,v_fine,cc_rhs_fine,
-                                 Rh,rho_fine,Vsync,V_corr,
-                                 phi,&rhs_sync_reg,crsr_sync_ptr,
-                                 dt,ratio,crse_iteration,crse_dt_ratio, 
-                                 geom,pressure_time_is_interval,
-                                 first_crse_step_after_initial_iters,
-                                 cur_crse_pres_time,prev_crse_pres_time,
-                                 cur_fine_pres_time,prev_fine_pres_time);
-        cc_rhs_crse.clear();
-        cc_rhs_fine.clear();
-        //
-        // Correct pressure and velocities after the projection.
-        //
-        const int Nf = finegrids.size();
-
-        ratio = IntVect::TheUnitVector();
-
-        Vector<int*>         fine_sync_bc(Nf);
-        Vector< Vector<int> > fine_sync_bc_array(Nf);
-
-        for (int i = 0; i < Nf; i++)
-        {
-            fine_sync_bc_array[i] = getLevel(level+1).getBCArray(State_Type,
-                                                                 i,
-                                                                 Xvel,
-                                                                 BL_SPACEDIM);
-            fine_sync_bc[i] = fine_sync_bc_array[i].dataPtr();
-        }
-
-        for (int lev = level+2; lev <= finest_level; lev++)
-        {
-            ratio                 *= parent->refRatio(lev-1);
-            NavierStokesBase& flev = getLevel(lev);
-            MultiFab&     P_new    = flev.get_new_data(Press_Type);
-            MultiFab&     P_old    = flev.get_old_data(Press_Type);
-            MultiFab&     U_new    = flev.get_new_data(State_Type);
-
-            SyncInterp(V_corr, level+1, U_new, lev, ratio,
-                       0, 0, BL_SPACEDIM, 1 , dt, fine_sync_bc.dataPtr());
-            SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio,
-                           first_crse_step_after_initial_iters,
-                           cur_crse_pres_time, prev_crse_pres_time);
-        }
-
-        if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-            calcDpdt();
+    MultiFab cc_rhs_crse, cc_rhs_fine;
+    
+    cc_rhs_crse.define(    grids,    dmap,1,1,MFInfo(),           Factory());
+    cc_rhs_fine.define(finegrids,finedmap,1,1,MFInfo(),fine_level.Factory());
+    cc_rhs_crse.setVal(0);
+    cc_rhs_fine.setVal(0);
+    
+    MultiFab&         v_fine    = fine_level.get_new_data(State_Type);
+    MultiFab&       rho_fine    = fine_level.rho_avg;
+    const Geometry& crse_geom   = parent->Geom(level);
+    const BoxArray& P_finegrids = pres_fine.boxArray();
+    const DistributionMapping& P_finedmap = pres_fine.DistributionMap();
+    
+    MultiFab phi(P_finegrids,P_finedmap,1,1,MFInfo(),fine_level.Factory());
+    MultiFab V_corr(finegrids,finedmap,BL_SPACEDIM,1,MFInfo(),fine_level.Factory());
+    
+    V_corr.setVal(0);
+    //
+    // If periodic, enforce periodicity on Vsync.
+    //
+    if (crse_geom.isAnyPeriodic()) {
+      Vsync.FillBoundary(0, BL_SPACEDIM, crse_geom.periodicity());
     }
-    else if (do_sync_proj) 
+    //
+    // Interpolate Vsync to fine grid correction in Vcorr.
+    //
+    SyncInterp(Vsync, level, V_corr, level+1, ratio,
+	       0, 0, BL_SPACEDIM, 0 , dt, sync_bc.dataPtr());
+    //
+    // The multilevel projection.  This computes the projection and
+    // adds in its contribution to levels (level) and (level+1).
+    //
+    Real  cur_crse_pres_time = state[Press_Type].curTime();
+    Real prev_crse_pres_time = state[Press_Type].prevTime();
+    
+    NavierStokesBase& fine_lev   = getLevel(level+1);
+    Real  cur_fine_pres_time = fine_lev.state[Press_Type].curTime();
+    Real prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
+    
+    bool first_crse_step_after_initial_iters =
+      (prev_crse_pres_time > state[State_Type].prevTime());
+    
+    bool pressure_time_is_interval = 
+      (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval);
+    projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
+			     pres_fine,v_fine,cc_rhs_fine,
+			     Rh,rho_fine,Vsync,V_corr,
+			     phi,&rhs_sync_reg,crsr_sync_ptr,
+			     dt,ratio,crse_iteration,crse_dt_ratio, 
+			     geom,pressure_time_is_interval,
+			     first_crse_step_after_initial_iters,
+			     cur_crse_pres_time,prev_crse_pres_time,
+			     cur_fine_pres_time,prev_fine_pres_time);
+    cc_rhs_crse.clear();
+    cc_rhs_fine.clear();
+    //
+    // Correct pressure and velocities after the projection.
+    //
+    const int Nf = finegrids.size();
+    
+    ratio = IntVect::TheUnitVector();
+    
+    Vector<int*>         fine_sync_bc(Nf);
+    Vector< Vector<int> > fine_sync_bc_array(Nf);
+
+    for (int i = 0; i < Nf; i++)
     {
-      // fixme? is do_sync_proj used anymore?
-      // Update this block with factory?
-        MultiFab phi(pres.boxArray(),pres.DistributionMap(),1,1);
-        BoxArray sync_boxes = pres_fine.boxArray();
-        sync_boxes.coarsen(ratio);
-        //
-        // The single level projection.  This computes the projection and
-        // adds in its contribution to level (level).
-        //
-        projector->syncProject(level,pres,vel,Rh,Vsync,phi,
-                               &rhs_sync_reg,crsr_sync_ptr,sync_boxes,
-                               geom,dx,dt,crse_iteration,crse_dt_ratio);
-        //
-        // Correct pressure and velocities after the projection.
-        //
-        ratio = IntVect::TheUnitVector(); 
-
-        const Real cur_crse_pres_time  = state[Press_Type].curTime();
-        const Real prev_crse_pres_time = state[Press_Type].prevTime();
-
-        bool first_crse_step_after_initial_iters =
-         (prev_crse_pres_time > state[State_Type].prevTime());
-
-        for (int lev = level+1; lev <= finest_level; lev++)
-        {
-            ratio                 *= parent->refRatio(lev-1);
-            NavierStokesBase& fine_lev = getLevel(lev);
-            MultiFab&     P_new    = fine_lev.get_new_data(Press_Type);
-            MultiFab&     P_old    = fine_lev.get_old_data(Press_Type);
-            MultiFab&     U_new    = fine_lev.get_new_data(State_Type);
-            
-            SyncInterp(Vsync, level, U_new, lev, ratio,
-                       0, 0, BL_SPACEDIM, 1 , dt, sync_bc.dataPtr());
-            SyncProjInterp(phi, level, P_new, P_old, lev, ratio,
-                           first_crse_step_after_initial_iters,
-                           cur_crse_pres_time, prev_crse_pres_time);
-        }
-
-        if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-            calcDpdt();
+      fine_sync_bc_array[i] = getLevel(level+1).getBCArray(State_Type,
+							   i,
+							   Xvel,
+							   BL_SPACEDIM);
+      fine_sync_bc[i] = fine_sync_bc_array[i].dataPtr();
     }
+    
+    for (int lev = level+2; lev <= finest_level; lev++)
+    {
+      ratio                 *= parent->refRatio(lev-1);
+      NavierStokesBase& flev = getLevel(lev);
+      MultiFab&     P_new    = flev.get_new_data(Press_Type);
+      MultiFab&     P_old    = flev.get_old_data(Press_Type);
+      MultiFab&     U_new    = flev.get_new_data(State_Type);
+      
+      SyncInterp(V_corr, level+1, U_new, lev, ratio,
+		 0, 0, BL_SPACEDIM, 1 , dt, fine_sync_bc.dataPtr());
+      SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio,
+		     first_crse_step_after_initial_iters,
+		     cur_crse_pres_time, prev_crse_pres_time);
+    }
+    
+    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
+      calcDpdt();
 
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::level_sync()");
 }
@@ -3116,10 +3042,7 @@ set_bc_new (int*            bc_new,
 }
 
 //
-// FIXME for EB?
-// for now, we require that the EB not intersect the CFB, so I think no
-// changes are needed. However, this fn would need updating if that
-// restriction were lifted...
+// FIXME for EB, 3+ total levels
 //
 // Interpolate A cell centered Sync correction from a
 // coarse level (c_lev) to a fine level (f_lev).

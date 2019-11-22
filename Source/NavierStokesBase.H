@@ -714,7 +714,6 @@ protected:
     static int  do_cons_trac;
     static int  do_cons_trac2;
     static int  do_sync_proj;
-    static int  do_MLsync_proj;
     static int  do_reflux;
     static int  modify_reflux_normal_vel;
     static int  do_mac_proj;
