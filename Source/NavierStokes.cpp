@@ -745,11 +745,13 @@ NavierStokes::scalar_advection (Real dt,
 
 
         MultiFab cfluxes[AMREX_SPACEDIM];
+        MultiFab edgstate[AMREX_SPACEDIM];
 
         for (int i(0); i < AMREX_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
             cfluxes[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+            edgstate[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
         }
 
         Vector<BCRec> math_bcs(num_scalars);
@@ -757,9 +759,10 @@ NavierStokes::scalar_advection (Real dt,
 
         godunov -> ComputeConvectiveTerm( Smf, 0, *aofs, fscalar, num_scalars,
                                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                                          D_DECL(edgstate[0],edgstate[1],edgstate[2]),
                                           D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                           D_DECL(xslps, yslps, zslps), 0,
-                                          math_bcs, geom );
+                                          math_bcs, geom, 0);
         if (do_reflux)
         {
             for (int d(0); d < AMREX_SPACEDIM; d++)

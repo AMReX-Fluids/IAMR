@@ -39,6 +39,9 @@ ComputeFluxesOnBox (const Box& a_bx,
                     D_DECL( FArrayBox& a_fx,
                             FArrayBox& a_fy,
                             FArrayBox& a_fz),
+                    D_DECL( FArrayBox& edgestate_x,
+                            FArrayBox& edgestate_y,
+                            FArrayBox& edgestate_z),
                     const FArrayBox& a_state,
                     const int a_comp,
                     const int a_ncomp,
@@ -50,7 +53,8 @@ ComputeFluxesOnBox (const Box& a_bx,
                             const FArrayBox& a_vmac,
                             const FArrayBox& a_wmac),
                     const Box&       a_domain,
-                    const Vector<BCRec>& a_bcs )
+                    const Vector<BCRec>& a_bcs,
+                    int known_edgestate)
 {
 
     const Dim3 domlo = amrex::lbound(a_domain);
@@ -69,13 +73,17 @@ ComputeFluxesOnBox (const Box& a_bx,
     D_TERM( const auto& xsl = a_xsl.array();,
             const auto& ysl = a_ysl.array();,
             const auto& zsl = a_zsl.array(););
-
+    
+    D_TERM( const auto& edgs_x = edgestate_x.array();,
+            const auto& edgs_y = edgestate_y.array();,
+            const auto& edgs_z = edgestate_z.array(););
+    
     D_TERM( const Box ubx = amrex::surroundingNodes(a_bx,0);,
             const Box vbx = amrex::surroundingNodes(a_bx,1);,
             const Box wbx = amrex::surroundingNodes(a_bx,2););
 
     const auto bc = a_bcs.dataPtr();
-
+    
     AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n,
     {
         Real state_w(0)  ;
@@ -87,21 +95,28 @@ ComputeFluxesOnBox (const Box& a_bx,
         //
         // In the case of inflow we are using the prescribed Dirichlet value
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+        if ( known_edgestate == 0)
         {
-            state_w = state(i-1,j,k,a_comp+n);
-        }
-        else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
-        {
-            state_w = state(i,j,k,a_comp+n);
+          if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+          {
+              state_w = state(i-1,j,k,a_comp+n);
+          }
+          else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+          {
+              state_w = state(i,j,k,a_comp+n);
+          }
+          else
+          {
+              state_pls = state(i  ,j,k,a_comp+n) - .5*xsl(i  ,j,k,a_sl_comp+n);
+              state_mns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
+              state_w   = upwind( state_mns, state_pls, u(i,j,k) );
+          }
+          edgs_x(i,j,k) = state_w;
         }
         else
         {
-            state_pls = state(i  ,j,k,a_comp+n) - .5*xsl(i  ,j,k,a_sl_comp+n);
-            state_mns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
-            state_w   = upwind( state_mns, state_pls, u(i,j,k) );
+          state_w = edgs_x(i,j,k);
         }
-
         fx(i,j,k,n) = u(i,j,k) * state_w;
     });
 
@@ -116,19 +131,27 @@ ComputeFluxesOnBox (const Box& a_bx,
         //
         // In the case of inflow we are using the prescribed Dirichlet value
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+        if ( known_edgestate == 0)
         {
-            state_s = state(i,j-1,k,a_comp+n);
-        }
-        else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
-        {
-            state_s = state(i,j,k,a_comp+n);
+          if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+          {
+              state_s = state(i,j-1,k,a_comp+n);
+          }
+          else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+          {
+              state_s = state(i,j,k,a_comp+n);
+          }
+          else
+          {
+              state_pls = state(i,j  ,k,a_comp+n) - .5*ysl(i,j  ,k,a_sl_comp+n);
+              state_mns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
+              state_s   = upwind( state_mns, state_pls, v(i,j,k) );
+          }
+          edgs_y(i,j,k) = state_s;
         }
         else
         {
-            state_pls = state(i,j  ,k,a_comp+n) - .5*ysl(i,j  ,k,a_sl_comp+n);
-            state_mns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
-            state_s   = upwind( state_mns, state_pls, v(i,j,k) );
+          state_s = edgs_y(i,j,k);
         }
 
         fy(i,j,k,n) = v(i,j,k) * state_s;
@@ -146,19 +169,27 @@ ComputeFluxesOnBox (const Box& a_bx,
         //
         // In the case of inflow we are using the prescribed Dirichlet value
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( (k == domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
+        if ( known_edgestate == 0)
         {
-            state_b = state(i,j,k-1,a_comp+n);
-        }
-        else if ( (k == domhi.z+1) and (bc[n].lo(2) == BCType::ext_dir) )
-        {
-            state_b = state(i,j,k,a_comp+n);
+          if ( (k == domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
+          {
+              state_b = state(i,j,k-1,a_comp+n);
+          }
+          else if ( (k == domhi.z+1) and (bc[n].lo(2) == BCType::ext_dir) )
+          {
+              state_b = state(i,j,k,a_comp+n);
+          }
+          else
+          {
+              state_pls = state(i,j,k  ,a_comp+n) - .5*zsl(i,j,k  ,a_sl_comp+n);
+              state_mns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
+              state_b   = upwind( state_mns, state_pls, w(i,j,k) );
+          }
+          edgs_z(i,j,k) = state_b;
         }
         else
         {
-            state_pls = state(i,j,k  ,a_comp+n) - .5*zsl(i,j,k  ,a_sl_comp+n);
-            state_mns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
-            state_b   = upwind( state_mns, state_pls, w(i,j,k) );
+          state_b = edgs_z(i,j,k);
         }
 
         fz(i,j,k,n) = w(i,j,k) * state_b;
@@ -442,18 +473,22 @@ void
 Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
                                 MultiFab& a_fy,
                                 MultiFab& a_fz),
-                          MultiFab& a_state,
-                          const int a_comp,
-                          const int a_ncomp,
-                          D_DECL( const MultiFab& a_xsl,
-                                  const MultiFab& a_ysl,
-                                  const MultiFab& a_zsl),
-                          const int a_sl_comp,
-                          D_DECL( const MultiFab& a_umac,
-                                  const MultiFab& a_vmac,
-                                  const MultiFab& a_wmac),
+                         D_DECL(MultiFab& edgestate_x,
+                                MultiFab& edgestate_y,
+                                MultiFab& edgestate_z),
+                         MultiFab& a_state,
+                         const int a_comp,
+                         const int a_ncomp,
+                         D_DECL( const MultiFab& a_xsl,
+                                 const MultiFab& a_ysl,
+                                 const MultiFab& a_zsl),
+                         const int a_sl_comp,
+                         D_DECL( const MultiFab& a_umac,
+                                 const MultiFab& a_vmac,
+                                 const MultiFab& a_wmac),
                          const Geometry& a_geom,
-                         const Vector<BCRec>& a_bcs )
+                         const Vector<BCRec>& a_bcs,
+                         int known_edgestate)
 {
 
     AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
@@ -523,9 +558,11 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
             // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
             if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
             {
-                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]), a_state[mfi], a_comp, a_ncomp,
+                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
+                                            D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
+                                            a_state[mfi], a_comp, a_ncomp,
                                             D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
-                                            D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs);
+                                            D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs, known_edgestate);
 
             }
             else

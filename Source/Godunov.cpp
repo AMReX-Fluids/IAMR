@@ -1624,6 +1624,9 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
                                 D_DECL(MultiFab& a_fx,
                                        MultiFab& a_fy,
                                        MultiFab& a_fz),
+                                D_DECL(MultiFab& edgst_x,
+                                       MultiFab& edgst_y,
+                                       MultiFab& edgst_z),
                                 D_DECL(const MultiFab& a_umac,
                                        const MultiFab& a_vmac,
                                        const MultiFab& a_wmac),
@@ -1632,7 +1635,8 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
                                        const MultiFab& a_zsl),
                                 const int a_sl_comp,
                                 const Vector<BCRec>&  a_bcs,
-                                const Geometry& a_geom )
+                                const Geometry& a_geom,
+                                int known_edgestate)
 {
     AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
     AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
@@ -1645,10 +1649,11 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
 
     // Compute fluxes
     ComputeFluxes( D_DECL(a_fx, a_fy, a_fz),
+                   D_DECL(edgst_x, edgst_y, edgst_z),
                    a_state, a_state_comp, a_ncomp,
                    D_DECL(a_xsl, a_ysl, a_zsl), a_sl_comp,
                    D_DECL(a_umac, a_vmac, a_wmac),
-                   a_geom, a_bcs);
+                   a_geom, a_bcs, known_edgestate);
 
     // Compute divergence
     bool   already_on_centroids(true);

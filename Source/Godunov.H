@@ -319,6 +319,9 @@ public:      // public access functions
     void ComputeFluxes(  D_DECL(amrex::MultiFab& a_fx,
                                 amrex::MultiFab& a_fy,
                                 amrex::MultiFab& a_fz),
+                         D_DECL(amrex::MultiFab& edgst_x,
+                                amrex::MultiFab& edgst_y,
+                                amrex::MultiFab& edgst_z),
                          amrex::MultiFab& a_state,
                          const int a_comp,
                          const int a_ncomp,
@@ -330,7 +333,8 @@ public:      // public access functions
                                  const amrex::MultiFab& v_mac,
                                  const amrex::MultiFab& w_mac),
                          const amrex::Geometry& a_geom,
-                         const amrex::Vector<amrex::BCRec>& a_bcs);
+                         const amrex::Vector<amrex::BCRec>& a_bcs,
+                         int known_edgestate);
 
 
     void ComputeConvectiveTerm (amrex::MultiFab& a_state,
@@ -341,6 +345,9 @@ public:      // public access functions
                                 D_DECL(amrex::MultiFab& a_fx,
                                        amrex::MultiFab& a_fy,
                                        amrex::MultiFab& a_fz),
+                                D_DECL(amrex::MultiFab& edgst_x,
+                                       amrex::MultiFab& edgst_y,
+                                       amrex::MultiFab& edgst_z),
                                 D_DECL(const amrex::MultiFab& a_umac,
                                        const amrex::MultiFab& a_vmac,
                                        const amrex::MultiFab& a_wmac),
@@ -349,7 +356,8 @@ public:      // public access functions
                                        const amrex::MultiFab& a_zsl),
                                 const int a_sl_comp,
                                 const amrex::Vector<amrex::BCRec>& a_bcs,
-                                const amrex::Geometry& a_geom );
+                                const amrex::Geometry& a_geom,
+                                int known_edgestate);
 
 
     void AdvectVel (const amrex::MFIter&  mfi,
