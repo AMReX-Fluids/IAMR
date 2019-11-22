@@ -440,15 +440,21 @@ Projection::level_project (int             level,
     // Project
     //
     std::unique_ptr<MultiFab> sync_resid_crse, sync_resid_fine;
-
+#ifdef AMREX_USE_EB
+    const auto& factory =
+      dynamic_cast<EBFArrayBoxFactory const&>(LevelData[level]->Factory());
+#else
+    const auto& factory = LevelData[level]->Factory();
+#endif
+    
     if (level < parent->finestLevel()) {
-        sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1));
+      sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1, MFInfo(), factory));
     }
-
+ 
     if (level > 0 && iteration == crse_dt_ratio)
     {
-        const int ngrow = parent->MaxRefRatio(level-1) - 1;
-        sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow));
+      const int ngrow = parent->MaxRefRatio(level-1) - 1;
+      sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow, MFInfo(), factory));
     }
 
     Vector<MultiFab*> rhcc(maxlev, nullptr);
@@ -2311,11 +2317,13 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
     // For now use AMReX Nodal Projector only if no sync is required
-    bool no_sync_needed = (sync_resid_fine==nullptr) && (sync_resid_crse==nullptr);
+    bool no_sync_needed = parent->finestLevel()==0;
 
     if (no_sync_needed)
-        amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
-                       << std::endl;
+      amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
+		     << std::endl;
+    else
+      amrex::Print()<<"doMMLMGNodalProjection: using MLNodeLaplacian."<<std::endl;
 
     int f_lev = c_lev + nlevel - 1;
 
