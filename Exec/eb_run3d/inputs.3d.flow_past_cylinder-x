@@ -7,6 +7,13 @@ max_step                =  -1           # Max number of time steps
 #steady_state            =   0           # Steady-state solver?
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#           SOLVER SETTINGS             #
+#.......................................#
+ns.init_shrink = 1.0
+ns.init_iter = 3
+ns.init_vel_iter = 5
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
 #incflo.fixed_dt         =   -1.0        # Use this constant dt if > 0
@@ -88,8 +95,9 @@ eb2.cylinder_has_fluid_inside=0
 #.......................................#
 ns.v                    = 1 # NS solver 
 proj.v                  = 1 # Nodal projection
-mac.verbose             = 1 # MacProjector
+mac.verbose             = 5 # MacProjector
 #diffusion.verbose       =   1           # Diffusion operator
-#projection.mg_verbose   =   1           # Nodal projection
-
+projection.verbose   =   1           # Nodal projection
+projection.mg_verbose=   1
+projection.mg_rtol   =  1.0e-13
 #amr.plt_ccse_regtest    =   1
