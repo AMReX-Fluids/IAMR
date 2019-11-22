@@ -26,6 +26,7 @@ MacProj*    NavierStokesBase::mac_projector = 0;
 
 Real NavierStokesBase::init_shrink        = 1.0;
 int  NavierStokesBase::init_iter          = 2;
+int  NavierStokesBase::init_vel_iter      = 1;
 Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;
 Real NavierStokesBase::fixed_dt           = -1.0;
@@ -360,6 +361,7 @@ NavierStokesBase::Initialize ()
     //
     pp.get("cfl",cfl);
     pp.query("init_iter",init_iter);
+    pp.query("init_vel_iter",init_vel_iter);
     pp.query("init_shrink",init_shrink);
     pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
@@ -2550,7 +2552,7 @@ NavierStokesBase::post_init_state ()
 
       if (verbose) amrex::Print() << "calling initialVelocityProject" << std::endl;
 
-      projector->initialVelocityProject(0,divu_time,have_divu);
+      projector->initialVelocityProject(0,divu_time,have_divu,init_vel_iter);
 
       if (verbose) amrex::Print() << "done calling initialVelocityProject" << std::endl;
     }
@@ -3663,7 +3665,6 @@ NavierStokesBase::velocity_advection (Real dt)
          //
          //   THIS IS the EB ALGORITHM
          //
-         amrex::Print() << "**** DOING EB ALGORITHM *** " << std::endl;
 
          MultiFab cfluxes[AMREX_SPACEDIM];
          int nghost(4);         // Use 4 for now
