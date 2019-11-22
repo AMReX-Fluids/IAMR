@@ -532,128 +532,6 @@ Projection::level_project (int             level,
 }
 
 //
-// SYNC_PROJECT
-//
-
-void
-Projection::syncProject (int             c_lev,
-                         MultiFab&       pres,
-                         MultiFab&       vel,
-                         MultiFab&       rho_half,
-                         MultiFab&       Vsync,
-                         MultiFab&       phi,
-                         SyncRegister*   rhs_sync_reg,
-                         SyncRegister*   crsr_sync_reg,
-                         const BoxArray& sync_boxes,
-                         const Geometry& geom,
-                         const Real*     dx,
-                         Real            dt_crse,
-                         int             crse_iteration,
-                         int             crse_dt_ratio)
-{
-    BL_PROFILE("Projection::syncProject()");
-
-    if (verbose) {
-        amrex::Print() << "Projection::syncProject(): level = " << c_lev
-                       << " correction to level " << parent->finestLevel() << '\n';
-    }
-
-    if (verbose && benchmarking) ParallelDescriptor::Barrier();
-
-    const Real strt_time = ParallelDescriptor::second();
-
-    //
-    // Gather data.
-    //
-    const BoxArray& grids   = LevelData[c_lev]->boxArray();
-    const BoxArray& P_grids = pres.boxArray();
-    const DistributionMapping& P_dmap = pres.DistributionMap();
-    MultiFab& sig = rho_half;
-
-    MultiFab rhnd(P_grids,P_dmap,1,0);
-    rhs_sync_reg->InitRHS(rhnd,geom,*phys_bc);
-
-    phi.setVal(0);
-
-    sig.setBndry(BogusValue);
-    //
-    // Scale sync projection variables.
-    //
-    scaleVar(SYNC_PROJ,&sig,1,&Vsync,c_lev);
-    //
-    // If periodic, copy into periodic translates of Vsync.
-    //
-    if (geom.isAnyPeriodic()) {
-	Vsync.FillBoundary(0, BL_SPACEDIM, geom.periodicity());
-    }
-
-    Vector<MultiFab*> phis(maxlev, nullptr);
-    Vector<MultiFab*> vels(maxlev, nullptr);
-    Vector<MultiFab*> sigs(maxlev, nullptr);
-    Vector<MultiFab*> rhcc(maxlev, nullptr);
-    phis[c_lev] = &phi;
-    vels[c_lev] = &Vsync;
-    sigs[c_lev] = &sig;
-
-    //
-    //  PROJECT
-    //  if use_u = 0, then solves DGphi = RHS
-    //  if use_u = 1, then solves DGphi = RHS + DV
-    //  both return phi and (V-Gphi) as V
-    //
-    MultiFab* sync_resid_crse = 0;
-    std::unique_ptr<MultiFab> sync_resid_fine;
-
-    if (c_lev > 0 && crse_iteration == crse_dt_ratio)
-    {
-        const int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
-        sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow));
-    }
-
-    // vel and pressure update below -> !proj2
-    bool proj2 = false;
-    doMLMGNodalProjection(c_lev, 1, vels, phis, sigs, rhcc, {&rhnd},
-			  sync_tol, proj_abs_tol, proj2,
-                          sync_resid_crse, sync_resid_fine.get());
-
-    //
-    // If this sync project is not at level 0 then we need to account for
-    // the changes made here in the level c_lev velocity in the sync registers
-    // going into the level (c_lev-1) sync project.  Note that this must be
-    // done before rho_half is scaled back.
-    //
-    if (c_lev > 0 && crse_iteration == crse_dt_ratio)
-    {
-        const Real invrat         = 1.0/(double)crse_dt_ratio;
-        const Geometry& crsr_geom = parent->Geom(c_lev-1);
-        crsr_sync_reg->CompAdd(*sync_resid_fine,geom,crsr_geom,sync_boxes,invrat);
-    }
-    //
-    // Reset state + pressure data ...
-    //
-    // Unscale the sync projection variables for rz.
-    //
-    rescaleVar(SYNC_PROJ,&sig,1,&Vsync,c_lev);
-    //
-    // Add projected Vsync to new velocity at this level & add phi to pressure.
-    //
-    AddPhi(pres, phi);
-
-    MultiFab::Saxpy(vel, dt_crse, Vsync, 0, 0, AMREX_SPACEDIM, 1);
-
-    if (verbose)
-    {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      run_time = ParallelDescriptor::second() - strt_time;
-
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-	amrex::Print() << "Projection:syncProject(): c_lev: " << c_lev
-		       << ", time: " << run_time << '\n';
-    }
-}
-
-//
 //  MULTI-LEVEL SYNC_PROJECT
 //
 
@@ -1188,7 +1066,6 @@ Projection::initialPressureProject (int  c_lev)
 // The velocity projection in post_init, which computes the initial
 // pressure used in the timestepping.
 //
-
 void
 Projection::initialSyncProject (int       c_lev,
                                 const Vector<MultiFab*> sig,
@@ -1252,8 +1129,8 @@ Projection::initialSyncProject (int       c_lev,
 
             const int nghost = 1;
             rhcc[lev].reset(new MultiFab(amr_level.boxArray(),
-                                        amr_level.DistributionMap(),
-                                        1,nghost));
+					 amr_level.DistributionMap(),
+					 1,nghost,MFInfo(),amr_level.Factory()));
             MultiFab* rhcclev = rhcc[lev].get();
             rhcclev->setVal(0);
 

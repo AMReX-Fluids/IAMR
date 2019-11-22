@@ -86,23 +86,6 @@ public:
                  amrex::Real            dt,
                  int    have_divu);
     //
-    // A sync project involving only the coarse level of a 2 level system.
-    //
-    void syncProject (int             crse_level,
-                      amrex::MultiFab&       pres,
-                      amrex::MultiFab&       vel,
-                      amrex::MultiFab&       rho_half,
-                      amrex::MultiFab&       Vsync,
-                      amrex::MultiFab&       phi,
-                      SyncRegister*   rhs_sync_reg,
-                      SyncRegister*   crsr_sync_reg, 
-                      const amrex::BoxArray& sync_boxes,
-                      const amrex::Geometry& geom,
-                      const amrex::Real*     dx,
-                      amrex::Real            dt_crse,
-                      int             crse_iteration,
-                      int             crse_dt_ratio);
-    //
     // A sync project involving the coarse and fine level of a 2 level system.
     //
     void MLsyncProject (int             crse_level,
