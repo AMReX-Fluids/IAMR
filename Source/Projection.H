@@ -128,7 +128,8 @@ public:
     //
     void initialVelocityProject (int  crse_level,
                                  amrex::Real divu_time,
-                                 int  have_divu);
+                                 int  have_divu,
+                                 int init_vel_iter = 1 );
 
     //
     // This function creates an initially hydrostatic pressure field

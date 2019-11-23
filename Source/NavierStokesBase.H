@@ -664,6 +664,7 @@ protected:
     //
     static amrex::Real init_shrink;   // reduction factor of first esimated timestep
     static int  init_iter;     // # of timestep iterations for initial pressure
+    static int  init_vel_iter;     // # of iterations for initial velocity projection
     static amrex::Real cfl;           // desired maximum cfl
     static amrex::Real change_max;    // maximum change in dt over a timestep
     static amrex::Real fixed_dt;      // set > 0 to specify dt
