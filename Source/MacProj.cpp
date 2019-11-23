@@ -571,6 +571,10 @@ MacProj::mac_sync_solve (int       level,
                         rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi,
 			Ucorr, verbose);
 
+    // Make sure Ucorr has correct sign
+    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
+      Ucorr[idim]->negate();
+
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -793,10 +797,6 @@ MacProj::mac_sync_compute (int                   level,
       fluxes[i].define(ba, dmap, NUM_STATE, 0, MFInfo(),ns_level.Factory());
     }
         
-    // Make sure Ucorr has correct sign
-    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
-      Ucorr[idim]->negate();
-
     FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
                                  prev_time,State_Type,0,NUM_STATE);
     MultiFab& Smf = S_fpi.get_mf();
