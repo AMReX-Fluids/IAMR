@@ -202,10 +202,11 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
     //
     // rho_half is passed into level_project to be used as sigma in the MLMG
-    // solve
-    rho_half.define (grids,dmap,1,NUM_GROW,MFInfo(),Factory());
-    rho_ptime.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
-    rho_ctime.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
+    // solve, but MLMG doesn't copy any ghost cells, it fills what it needs itself.
+    // does rho_half still need any ghost cells?
+    rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
+    rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
+    rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_qtime  = 0;
     rho_tqtime = 0;
     //
@@ -1143,12 +1144,12 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 const Box& box   = crse_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
                 pc_edge_interp(box.loVect(), box.hiVect(), &nComp, rat, &n,
-                                       crse_src[mfi].dataPtr(),
-                                       ARLIM(crse_src[mfi].loVect()),
-                                       ARLIM(crse_src[mfi].hiVect()),
-                                       fine_src[mfi].dataPtr(),
-                                       ARLIM(fine_src[mfi].loVect()),
-                                       ARLIM(fine_src[mfi].hiVect()));
+			       crse_src[mfi].dataPtr(),
+			       ARLIM(crse_src[mfi].loVect()),
+			       ARLIM(crse_src[mfi].hiVect()),
+			       fine_src[mfi].dataPtr(),
+			       ARLIM(fine_src[mfi].loVect()),
+			       ARLIM(fine_src[mfi].hiVect()));
             }
             crse_src.clear();
             //
@@ -3044,7 +3045,7 @@ set_bc_new (int*            bc_new,
 }
 
 //
-// FIXME for EB, 3+ total levels
+// FIXME interp is EB-aware, but filcc eventually needs attention, see comments below
 //
 // Interpolate A cell centered Sync correction from a
 // coarse level (c_lev) to a fine level (f_lev).
@@ -3213,7 +3214,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 	  //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
-	  // Candace resume here -- check if interp is EB friendly...
 	  interpolater->interp(cdata,0,fdata,0,num_comp,fbx,ratio,
 			       cgeom,fgeom,bc_interp,src_comp,State_Type,RunOn::Cpu);
 
@@ -3246,11 +3246,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     }
 }
 
-//
-// FIXME for EB?
-// for now, we require that the EB not intersect the CFB, so I think no
-// changes are needed. However, this fn would need updating if that
-// restriction were lifted...
 //
 // Interpolate sync pressure correction to a finer level.
 //
