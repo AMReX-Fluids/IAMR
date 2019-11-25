@@ -446,11 +446,11 @@ Projection::level_project (int             level,
 #else
     const auto& factory = LevelData[level]->Factory();
 #endif
-    
+
     if (level < parent->finestLevel()) {
       sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1, MFInfo(), factory));
     }
- 
+
     if (level > 0 && iteration == crse_dt_ratio)
     {
       const int ngrow = parent->MaxRefRatio(level-1) - 1;
@@ -2347,12 +2347,12 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (!rhnd.empty())
     {
-        rhnd_rebase.assign(rhnd.begin()+c_lev, rhnd.end()+c_lev+nlevel);
+        rhnd_rebase.assign(rhnd.begin()+c_lev, rhnd.begin()+c_lev+nlevel);
     }
 
     if (!rhcc.empty())
     {
-        rhnd_rebase.assign(rhcc.begin()+c_lev, rhcc.end()+c_lev+nlevel);
+        rhcc_rebase.assign(rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel);
     }
 
 
