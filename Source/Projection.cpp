@@ -813,7 +813,7 @@ Projection::initialVelocityProject (int  c_lev,
                 sig[lev]->setVal(1.,nghost);
             }
         }
-
+        
         Vector<std::unique_ptr<MultiFab> > rhcc(maxlev);
         const int nghost = 1;
 
@@ -2347,15 +2347,16 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (!rhnd.empty())
     {
-        rhnd_rebase.assign(rhnd.begin()+c_lev, rhnd.end()+c_lev+nlevel);
+        rhnd_rebase.assign(rhnd.begin()+c_lev, rhnd.begin()+c_lev+nlevel);
     }
 
     if (!rhcc.empty())
     {
-        rhnd_rebase.assign(rhcc.begin()+c_lev, rhcc.end()+c_lev+nlevel);
+        rhcc_rebase.assign(rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel);
     }
 
-
+    amrex::Print() << "SIZE OF rhcc_rebase" << rhcc_rebase.size() << std::endl;
+amrex::Print() << "SIZE OF RHCC" << rhcc.size() << std::endl;
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry

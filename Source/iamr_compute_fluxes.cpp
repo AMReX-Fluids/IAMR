@@ -205,6 +205,9 @@ ComputeFluxesOnEBBox (const Box& a_bx,
                       D_DECL( FArrayBox& a_fx,
                               FArrayBox& a_fy,
                               FArrayBox& a_fz),
+                      D_DECL( FArrayBox& edgestate_x,
+                              FArrayBox& edgestate_y,
+                              FArrayBox& edgestate_z),
                       const FArrayBox& a_state,
                       const int a_comp,
                       const int a_ncomp,
@@ -224,7 +227,8 @@ ComputeFluxesOnEBBox (const Box& a_bx,
                               const FArrayBox& a_face_centy,
                               const FArrayBox& a_face_centz),
                       const IArrayBox& a_cc_mask,
-                      const EBCellFlagFab& a_flags)
+                      const EBCellFlagFab& a_flags,
+                      int known_edgestate)
 {
     const Dim3 domlo = amrex::lbound(a_domain);
     const Dim3 domhi = amrex::ubound(a_domain);
@@ -273,6 +277,10 @@ ComputeFluxesOnEBBox (const Box& a_bx,
             const auto& sy = s_on_y_face.array();,
             const auto& sz = s_on_z_face.array(););
 
+    D_TERM( const auto& edgs_x = edgestate_x.array();,
+            const auto& edgs_y = edgestate_y.array();,
+            const auto& edgs_z = edgestate_z.array(););
+    
     const auto& ccm_fab = a_cc_mask.const_array();
 
     const auto bc = a_bcs.dataPtr();
@@ -314,6 +322,9 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     {
         if( areafrac_x(i,j,k) > 0 )
         {
+          Real s_on_x_centroid; 
+          if ( known_edgestate == 0)
+          {
             int jj = j + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,0)));
 #if (AMREX_SPACEDIM==3)
             int kk = k + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,1)));
@@ -328,11 +339,17 @@ ComputeFluxesOnEBBox (const Box& a_bx,
             Real fracz(0.0);
 #endif
 
-            Real s_on_x_centroid = (1.0-fracy)*(1.0-fracz)*sx(i, j,k ,n)+
+            s_on_x_centroid = (1.0-fracy)*(1.0-fracz)*sx(i, j,k ,n)+
                 fracy *(1.0-fracz)*sx(i,jj,k ,n)+
                 fracz *(1.0-fracy)*sx(i, j,kk,n)+
                 fracy *     fracz *sx(i,jj,kk,n);
-
+                
+            edgs_x(i,j,k) = s_on_x_centroid;
+          }
+          else
+          {
+            s_on_x_centroid = edgs_x(i,j,k);
+          }
             fx(i,j,k,n) = u(i,j,k) * s_on_x_centroid;
         }
         else
@@ -378,6 +395,9 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     {
         if ( areafrac_y(i,j,k) > 0 )
         {
+          Real s_on_y_centroid;
+          if ( known_edgestate == 0)
+          {
             int ii = i + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,0)));
 #if (AMREX_SPACEDIM==3)
             int kk = k + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,1)));
@@ -392,10 +412,17 @@ ComputeFluxesOnEBBox (const Box& a_bx,
             Real fracz(0.0);
 #endif
 
-            Real s_on_y_centroid = (1.0-fracx)*(1.0-fracz)*sy(i ,j,k ,n)+
+            s_on_y_centroid = (1.0-fracx)*(1.0-fracz)*sy(i ,j,k ,n)+
                 fracx *(1.0-fracz)*sy(ii,j,k ,n)+
                 fracz *(1.0-fracx)*sy(i ,j,kk,n)+
                 fracx *     fracz *sy(ii,j,kk,n);
+          
+            edgs_y(i,j,k) = s_on_y_centroid;
+          }
+          else
+          {
+            s_on_y_centroid = edgs_y(i,j,k);
+          }
             fy(i,j,k,n) = v(i,j,k) * s_on_y_centroid;
         }
         else
@@ -442,17 +469,26 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     {
         if( areafrac_z(i,j,k) > 0 )
         {
+          Real s_on_z_centroid
+          if ( known_edgestate == 0)
+          {
             int ii = i + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,0)));
             int jj = j + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,1)));
 
             Real fracx = (ccm_fab(ii,j,k-1) || ccm_fab(ii,j,k)) ? std::abs(fcz_fab(i,j,k,0)) : 0.0;
             Real fracy = (ccm_fab(i,jj,k-1) || ccm_fab(i,jj,k)) ? std::abs(fcz_fab(i,j,k,1)) : 0.0;
 
-            Real s_on_z_centroid = (1.0-fracx)*(1.0-fracy)*sz(i ,j ,k,n)+
+            s_on_z_centroid = (1.0-fracx)*(1.0-fracy)*sz(i ,j ,k,n)+
                 fracx *(1.0-fracy)*sz(ii,j ,k,n)+
                 fracy *(1.0-fracx)*sz(i ,jj,k,n)+
                 fracx *     fracy *sz(ii,jj,k,n);
-
+            
+            edgs_z(i,j,k) = s_on_z_centroid;
+          }
+          else
+          {
+            s_on_z_centroid = edgs_z(i,j,k);
+          }
             fz(i,j,k,n) = w(i,j,k) * s_on_z_centroid;
         }
         else
@@ -567,12 +603,14 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
             }
             else
             {
-                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]), a_state[mfi], a_comp, a_ncomp,
+                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
+                                             D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
+                                             a_state[mfi], a_comp, a_ncomp,
                                              D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
                                              D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs,
                                              D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
                                              D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
-                                             cc_mask[mfi], flags);
+                                             cc_mask[mfi], flags, known_edgestate);
             }
         }
 
