@@ -586,16 +586,16 @@ Projection::MLsyncProject (int             c_lev,
     const DistributionMapping& Pdmap_crse = pres_crse.DistributionMap();
     const DistributionMapping& Pdmap_fine = pres_fine.DistributionMap();
 
-    phi[c_lev].reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,1));
+    phi[c_lev].reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,1,MFInfo(),LevelData[c_lev]->Factory()));
     phi[c_lev]->setVal(0);
 
-    phi[c_lev+1].reset(new MultiFab(Pgrids_fine,Pdmap_fine,1,1));
+    phi[c_lev+1].reset(new MultiFab(Pgrids_fine,Pdmap_fine,1,1,MFInfo(),LevelData[c_lev+1]->Factory()));
     phi[c_lev+1]->setVal(0);
 
     //
     // Set up crse RHS
     //
-    MultiFab rhnd(Pgrids_crse,Pdmap_crse,1,0);
+    MultiFab rhnd(Pgrids_crse,Pdmap_crse,1,0,MFInfo(),LevelData[c_lev]->Factory());
     rhs_sync_reg->InitRHS(rhnd,crse_geom,*phys_bc);
 
     Box P_finedomain(amrex::surroundingNodes(crse_geom.Domain()));
@@ -813,7 +813,7 @@ Projection::initialVelocityProject (int  c_lev,
                 sig[lev]->setVal(1.,nghost);
             }
         }
-        
+
         Vector<std::unique_ptr<MultiFab> > rhcc(maxlev);
         const int nghost = 1;
 
@@ -1095,7 +1095,6 @@ Projection::initialSyncProject (int       c_lev,
     //
     Vector<MultiFab*> vel(maxlev, nullptr);
     Vector<MultiFab*> phi(maxlev, nullptr);
-    Vector<Real> norm0_vel(AMREX_SPACEDIM);
 
     for (lev = c_lev; lev <= f_lev; lev++)
     {
@@ -1229,8 +1228,8 @@ Projection::initialSyncProject (int       c_lev,
       const DistributionMapping& crse_dmap = vel[lev-1]->DistributionMap();
       const DistributionMapping& fine_dmap = vel[lev  ]->DistributionMap();
 
-      MultiFab v_crse(crse_grids, crse_dmap, BL_SPACEDIM, 1);
-      MultiFab v_fine(fine_grids, fine_dmap, BL_SPACEDIM, 1);
+      MultiFab v_crse(crse_grids, crse_dmap, BL_SPACEDIM, 1, MFInfo(), LevelData[lev-1]->Factory());
+      MultiFab v_fine(fine_grids, fine_dmap, BL_SPACEDIM, 1, MFInfo(), LevelData[lev]->Factory());
 
       const Geometry& fine_geom = parent->Geom(lev  );
       const Geometry& crse_geom = parent->Geom(lev-1);
@@ -1238,11 +1237,10 @@ Projection::initialSyncProject (int       c_lev,
       MultiFab::Copy(v_crse, *vel[lev-1], 0, 0, BL_SPACEDIM, 1);
       MultiFab::Copy(v_fine, *vel[lev  ], 0, 0, BL_SPACEDIM, 1);
 
-      // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev-1]);
-      // ns->average_down(v_fine, v_crse, 0, v_crse.nComp());
-      // restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
-      amrex::average_down(v_fine,v_crse,fine_geom,crse_geom,
-                           0, v_crse.nComp(), parent->refRatio(lev-1));
+      NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev-1]);
+      ns->average_down(v_fine, v_crse, 0, v_crse.nComp());
+      // amrex::average_down(v_fine,v_crse,fine_geom,crse_geom,
+      //                      0, v_crse.nComp(), parent->refRatio(lev-1));
 
       MultiFab::Copy(*vel[lev-1], v_crse, 0, 0, BL_SPACEDIM, 1);
     }
@@ -2251,8 +2249,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         AMREX_ALWAYS_ASSERT(rhnd[c_lev]->boxArray().ixType().nodeCentered());
         // Do we need these two checks ???
-        BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
-        BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
+        // BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
+        // BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
     }
 
     set_boundary_velocity(c_lev, nlevel, vel, true);
@@ -2511,14 +2509,23 @@ fluxes[lev]->setVal(0.);
     if (sync_resid_fine != 0)
     {
         Real rmin, rmax;
-        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev], rhcc[c_lev]);
+	MultiFab* rhptr=nullptr;
+	if (!rhcc.empty())
+	  rhptr = rhcc[c_lev];
+
+        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev], rhptr);
     }
 
     if (sync_resid_crse != 0) {  // only level solve will come to here
         Real rmin, rmax;
         const BoxArray& fineGrids = parent->boxArray(c_lev+1);
         const IntVect& ref_ratio = parent->refRatio(c_lev);
-        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], rhcc[c_lev],
+	MultiFab* rhptr=nullptr;
+	if (!rhcc.empty())
+	  rhptr = rhcc[c_lev];
+
+	// this requires sigma to have 2 ghost cells (valid at -2)
+        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], rhptr,
                                        fineGrids, ref_ratio);
     }
         amrex::Print() << "DOING UPDATE OF VELOCITY USING MLNODAL OBJECT " << std::endl;
