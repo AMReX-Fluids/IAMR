@@ -433,7 +433,7 @@ Projection::level_project (int             level,
     vel[level] = &U_new;
     phi[level] = &P_new;
 
-    BL_ASSERT( 1 == rho_half.nGrow());
+    BL_ASSERT( rho_half.nGrow() >= 1 );
     sig[level] = &rho_half;
 
     //
@@ -446,11 +446,11 @@ Projection::level_project (int             level,
 #else
     const auto& factory = LevelData[level]->Factory();
 #endif
-    
+
     if (level < parent->finestLevel()) {
       sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1, MFInfo(), factory));
     }
- 
+
     if (level > 0 && iteration == crse_dt_ratio)
     {
       const int ngrow = parent->MaxRefRatio(level-1) - 1;
@@ -461,7 +461,6 @@ Projection::level_project (int             level,
     if (have_divu)
     {
         rhcc.resize(maxlev);
-
         if (is_rz == 1) {
             radMultScal(level,*divusource);
         }
@@ -586,16 +585,16 @@ Projection::MLsyncProject (int             c_lev,
     const DistributionMapping& Pdmap_crse = pres_crse.DistributionMap();
     const DistributionMapping& Pdmap_fine = pres_fine.DistributionMap();
 
-    phi[c_lev].reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,1));
+    phi[c_lev].reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,1,MFInfo(),LevelData[c_lev]->Factory()));
     phi[c_lev]->setVal(0);
 
-    phi[c_lev+1].reset(new MultiFab(Pgrids_fine,Pdmap_fine,1,1));
+    phi[c_lev+1].reset(new MultiFab(Pgrids_fine,Pdmap_fine,1,1,MFInfo(),LevelData[c_lev+1]->Factory()));
     phi[c_lev+1]->setVal(0);
 
     //
     // Set up crse RHS
     //
-    MultiFab rhnd(Pgrids_crse,Pdmap_crse,1,0);
+    MultiFab rhnd(Pgrids_crse,Pdmap_crse,1,0,MFInfo(),LevelData[c_lev]->Factory());
     rhs_sync_reg->InitRHS(rhnd,crse_geom,*phys_bc);
 
     Box P_finedomain(amrex::surroundingNodes(crse_geom.Domain()));
@@ -737,7 +736,6 @@ Projection::MLsyncProject (int             c_lev,
 // The initial velocity projection in post_init.
 // this function ensures that the velocities are nondivergent
 //
-//
 void
 Projection::initialVelocityProject (int  c_lev,
                                     Real cur_divu_time,
@@ -749,12 +747,12 @@ Projection::initialVelocityProject (int  c_lev,
 
     if (verbose)
     {
-        amrex::Print() << "Projection::initialVelocityProject(): levels = " << c_lev
-                       << "  " << f_lev << '\n';
-        if (rho_wgt_vel_proj)
-            amrex::Print() << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
-        else
-            amrex::Print() << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
+      amrex::Print() << "Projection::initialVelocityProject(): levels = " << c_lev
+		     << "  " << f_lev << '\n';
+      if (rho_wgt_vel_proj)
+	amrex::Print() << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
+      else
+	amrex::Print() << "CONSTANT DENSITY INITIAL VELOCITY PROJECTION\n";
     }
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
@@ -771,168 +769,168 @@ Projection::initialVelocityProject (int  c_lev,
             amrex::Print() << "Projection::initialVelocityProject(): iteration "
                            << iter <<std::endl;
 
-        for (lev = c_lev; lev <= f_lev; lev++)
+    for (lev = c_lev; lev <= f_lev; lev++)
+    {
+        LevelData[lev]->get_old_data(Press_Type).setVal(0.0);
+    }
+
+    for (lev = c_lev; lev <= f_lev; lev++)
+    {
+        vel[lev] = &(LevelData[lev]->get_new_data(State_Type));
+        phi[lev] = &(LevelData[lev]->get_old_data(Press_Type));
+
+        const int       nghost = 1;
+        const BoxArray& grids  = LevelData[lev]->boxArray();
+        const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
+	sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),LevelData[lev]->Factory()));
+
+        if (rho_wgt_vel_proj)
         {
-            LevelData[lev]->get_old_data(Press_Type).setVal(0.0);
-        }
+            LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
-        for (lev = c_lev; lev <= f_lev; lev++)
-        {
-            vel[lev] = &(LevelData[lev]->get_new_data(State_Type));
-            phi[lev] = &(LevelData[lev]->get_old_data(Press_Type));
+	    AmrLevel& amr_level = parent->getLevel(lev);
 
-            const int       nghost = 1;
-            const BoxArray& grids  = LevelData[lev]->boxArray();
-            const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
-            sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),LevelData[lev]->Factory()));
-
-            if (rho_wgt_vel_proj)
-            {
-                LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
-
-                AmrLevel& amr_level = parent->getLevel(lev);
-
-                MultiFab& S_new = amr_level.get_new_data(State_Type);
-
-                Real curr_time = amr_level.get_state_data(State_Type).curTime();
-
-                for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
-                    amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
-                                                    Density,Density,1);
-                }
-
-                MultiFab::Copy(*sig[lev],
-                               LevelData[lev]->get_new_data(State_Type),
-                               Density,
-                               0,
-                               1,
-                               nghost);
-            }
-            else
-            {
-                sig[lev]->setVal(1.,nghost);
-            }
-        }
-
-        Vector<std::unique_ptr<MultiFab> > rhcc(maxlev);
-        const int nghost = 1;
-
-        for (lev = c_lev; lev <= f_lev; lev++)
-        {
-            vel[lev]->setBndry(BogusValue,Xvel,BL_SPACEDIM);
-            //
-            // Set the physical boundary values.
-            //
-            AmrLevel& amr_level = parent->getLevel(lev);
-
-            MultiFab& S_new = amr_level.get_new_data(State_Type);
+	    MultiFab& S_new = amr_level.get_new_data(State_Type);
 
             Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
-            for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-            {
-                amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
+            for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+	      amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
+					      Density,Density,1);
             }
 
-            if (have_divu)
-            {
-                int Divu_Type, Divu;
-                if (!LevelData[lev]->isStateVariable("divu", Divu_Type, Divu))
-                    amrex::Error("Projection::initialVelocityProject(): Divu not found");
-
-                // The FillBoundary seems unnecessary because
-                // put_divu_in_cc_rhs will call FillPatch.  Moreover, why
-                // does rhcc need to have ghost cells at all?  The solver
-                // could create a temp MF with one ghost cell and it knows
-                // how to properly fill ghost cell.  -- Weiqun
-
-                //
-                // Make sure ghost cells are properly filled.
-                //
-                MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
-                divu_new.FillBoundary();
-
-                Real curr_divu_time_lev = amr_level.get_state_data(Divu_Type).curTime();
-
-                for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
-                {
-                    amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_divu_time_lev,0,0,1);
-                }
-
-                const BoxArray& grids     = amr_level.boxArray();
-                const DistributionMapping& dmap = amr_level.DistributionMap();
-                // for EB
-                //  rhcc does not need EB data
-                //  since it will be added to rhs and it is rhs that goes to
-                //  the MLMG solver.  rhs carries EB data and that's enough
-                rhcc[lev].reset(new MultiFab(grids,dmap,1,nghost));
-                put_divu_in_cc_rhs(*rhcc[lev],lev,cur_divu_time);
-            }
-        }
-
-        if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
-            set_outflow_bcs(INITIAL_VEL,phi,vel,
-                            amrex::GetVecOfPtrs(rhcc),
-                            amrex::GetVecOfPtrs(sig),
-                            c_lev,f_lev,have_divu);
-
-        //
-        // Scale the projection variables.
-        //
-        for (lev = c_lev; lev <= f_lev; lev++)  {
-            scaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
-        }
-
-        for (lev = f_lev-1; lev >= c_lev; --lev)
-        {
-            // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-            // ns->average_down(*vel[lev+1], *vel[lev], 0, AMREX_SPACEDIM);
-            amrex::average_down(*vel[lev+1], *vel[lev], parent->Geom(lev+1), parent->Geom(lev),
-                                0, BL_SPACEDIM, parent->refRatio(lev));
-        }
-
-        //
-        // Project
-        //
-        bool proj2 = true;
-        if (!have_divu)
-        {
-            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
-                                  amrex::GetVecOfPtrs(sig),
-                                  {},
-                                  {},
-                                  proj_tol, proj_abs_tol, proj2, 0, 0);
+            MultiFab::Copy(*sig[lev],
+                           LevelData[lev]->get_new_data(State_Type),
+                           Density,
+                           0,
+                           1,
+                           nghost);
         }
         else
         {
-            for (lev = c_lev; lev <= f_lev; lev++)
-            {
-                if (parent->Geom(0).IsRZ()) radMultScal(lev,*rhcc[lev]);
-                rhcc[lev]->mult(-1.0,0,1,nghost);
-            }
+            sig[lev]->setVal(1.,nghost);
+        }
+    }
 
-            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
-                                  amrex::GetVecOfPtrs(sig),
-                                  amrex::GetVecOfPtrs(rhcc),
-                                  {},
-                                  proj_tol, proj_abs_tol, proj2, 0, 0);
+    Vector<std::unique_ptr<MultiFab> > rhcc(maxlev);
+    const int nghost = 1;
+
+    for (lev = c_lev; lev <= f_lev; lev++)
+    {
+        vel[lev]->setBndry(BogusValue,Xvel,BL_SPACEDIM);
+        //
+        // Set the physical boundary values.
+        //
+        AmrLevel& amr_level = parent->getLevel(lev);
+
+        MultiFab& S_new = amr_level.get_new_data(State_Type);
+
+        Real curr_time = amr_level.get_state_data(State_Type).curTime();
+
+        for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+        {
+            amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
         }
 
-        //
-        // Unscale initial projection variables.
-        //
-        for (lev = c_lev; lev <= f_lev; lev++)
-            rescaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
+        if (have_divu)
+        {
+            int Divu_Type, Divu;
+            if (!LevelData[lev]->isStateVariable("divu", Divu_Type, Divu))
+                amrex::Error("Projection::initialVelocityProject(): Divu not found");
 
+            // The FillBoundary seems unnecessary because
+            // put_divu_in_cc_rhs will call FillPatch.  Moreover, why
+            // does rhcc need to have ghost cells at all?  The solver
+            // could create a temp MF with one ghost cell and it knows
+            // how to properly fill ghost cell.  -- Weiqun
+
+            //
+            // Make sure ghost cells are properly filled.
+            //
+            MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
+            divu_new.FillBoundary();
+
+            Real curr_divu_time_lev = amr_level.get_state_data(Divu_Type).curTime();
+
+            for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
+            {
+                amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_divu_time_lev,0,0,1);
+            }
+
+            const BoxArray& grids     = amr_level.boxArray();
+            const DistributionMapping& dmap = amr_level.DistributionMap();
+	    // for EB
+	    //  rhcc does not need EB data
+	    //  since it will be added to rhs and it is rhs that goes to
+	    //  the MLMG solver.  rhs carries EB data and that's enough
+            rhcc[lev].reset(new MultiFab(grids,dmap,1,nghost));
+            put_divu_in_cc_rhs(*rhcc[lev],lev,cur_divu_time);
+        }
+    }
+
+    if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
+       set_outflow_bcs(INITIAL_VEL,phi,vel,
+                       amrex::GetVecOfPtrs(rhcc),
+                       amrex::GetVecOfPtrs(sig),
+                       c_lev,f_lev,have_divu);
+
+     //
+     // Scale the projection variables.
+     //
+    for (lev = c_lev; lev <= f_lev; lev++)  {
+        scaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
+    }
+
+    for (lev = f_lev-1; lev >= c_lev; --lev)
+    {
+        // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+	// ns->average_down(*vel[lev+1], *vel[lev], 0, AMREX_SPACEDIM);
+        amrex::average_down(*vel[lev+1], *vel[lev], parent->Geom(lev+1), parent->Geom(lev),
+                            0, BL_SPACEDIM, parent->refRatio(lev));
+    }
+
+    //
+    // Project
+    //
+    bool proj2 = true;
+    if (!have_divu)
+    {
+        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+                              amrex::GetVecOfPtrs(sig),
+                                  {},
+                              {},
+                              proj_tol, proj_abs_tol, proj2, 0, 0);
+    }
+    else
+    {
         for (lev = c_lev; lev <= f_lev; lev++)
         {
-            LevelData[lev]->get_old_data(Press_Type).setVal(0.);
-            LevelData[lev]->get_new_data(Press_Type).setVal(0.);
+            if (parent->Geom(0).IsRZ()) radMultScal(lev,*rhcc[lev]);
+            rhcc[lev]->mult(-1.0,0,1,nghost);
+        }
+
+        doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+                              amrex::GetVecOfPtrs(sig),
+                              amrex::GetVecOfPtrs(rhcc),
+                              {},
+                              proj_tol, proj_abs_tol, proj2, 0, 0);
+    }
+
+    //
+    // Unscale initial projection variables.
+    //
+    for (lev = c_lev; lev <= f_lev; lev++)
+        rescaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
+
+    for (lev = c_lev; lev <= f_lev; lev++)
+    {
+        LevelData[lev]->get_old_data(Press_Type).setVal(0.);
+        LevelData[lev]->get_new_data(Press_Type).setVal(0.);
 #ifdef AMREX_USE_EB
-            // gradP updated in MLMGNodalProjection so need to reset to zero here
-            NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-            MultiFab& Gp = ns->getGradP();
-            Gp.setVal(0.);
+	// gradP updated in MLMGNodalProjection so need to reset to zero here
+	NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+	MultiFab& Gp = ns->getGradP();
+	Gp.setVal(0.);
 #endif
         }
     }
@@ -1095,7 +1093,6 @@ Projection::initialSyncProject (int       c_lev,
     //
     Vector<MultiFab*> vel(maxlev, nullptr);
     Vector<MultiFab*> phi(maxlev, nullptr);
-    Vector<Real> norm0_vel(AMREX_SPACEDIM);
 
     for (lev = c_lev; lev <= f_lev; lev++)
     {
@@ -1229,8 +1226,8 @@ Projection::initialSyncProject (int       c_lev,
       const DistributionMapping& crse_dmap = vel[lev-1]->DistributionMap();
       const DistributionMapping& fine_dmap = vel[lev  ]->DistributionMap();
 
-      MultiFab v_crse(crse_grids, crse_dmap, BL_SPACEDIM, 1);
-      MultiFab v_fine(fine_grids, fine_dmap, BL_SPACEDIM, 1);
+      MultiFab v_crse(crse_grids, crse_dmap, BL_SPACEDIM, 1, MFInfo(), LevelData[lev-1]->Factory());
+      MultiFab v_fine(fine_grids, fine_dmap, BL_SPACEDIM, 1, MFInfo(), LevelData[lev]->Factory());
 
       const Geometry& fine_geom = parent->Geom(lev  );
       const Geometry& crse_geom = parent->Geom(lev-1);
@@ -1238,11 +1235,10 @@ Projection::initialSyncProject (int       c_lev,
       MultiFab::Copy(v_crse, *vel[lev-1], 0, 0, BL_SPACEDIM, 1);
       MultiFab::Copy(v_fine, *vel[lev  ], 0, 0, BL_SPACEDIM, 1);
 
-      // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev-1]);
-      // ns->average_down(v_fine, v_crse, 0, v_crse.nComp());
-      // restrict_level(v_crse, v_fine, parent->refRatio(lev-1));
-      amrex::average_down(v_fine,v_crse,fine_geom,crse_geom,
-                           0, v_crse.nComp(), parent->refRatio(lev-1));
+      NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev-1]);
+      ns->average_down(v_fine, v_crse, 0, v_crse.nComp());
+      // amrex::average_down(v_fine,v_crse,fine_geom,crse_geom,
+      //                      0, v_crse.nComp(), parent->refRatio(lev-1));
 
       MultiFab::Copy(*vel[lev-1], v_crse, 0, 0, BL_SPACEDIM, 1);
     }
@@ -2224,8 +2220,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     BL_ASSERT(vel[f_lev]->nGrow() >= 1);
     BL_ASSERT(phi[c_lev]->nGrow() == 1);
     BL_ASSERT(phi[f_lev]->nGrow() == 1);
-    BL_ASSERT(sig[c_lev]->nGrow() == 1);
-    BL_ASSERT(sig[f_lev]->nGrow() == 1);
+    BL_ASSERT(sig[c_lev]->nGrow() >= 1);
+    BL_ASSERT(sig[f_lev]->nGrow() >= 1);
 
     BL_ASSERT(sig[c_lev]->nComp() == 1);
     BL_ASSERT(sig[f_lev]->nComp() == 1);
@@ -2251,8 +2247,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         AMREX_ALWAYS_ASSERT(rhnd[c_lev]->boxArray().ixType().nodeCentered());
         // Do we need these two checks ???
-        BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
-        BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
+        // BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
+        // BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
     }
 
     set_boundary_velocity(c_lev, nlevel, vel, true);
@@ -2510,17 +2506,26 @@ fluxes[lev]->setVal(0.);
     if (sync_resid_fine != 0)
     {
         Real rmin, rmax;
-        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev], rhcc[c_lev]);
+	MultiFab* rhptr=nullptr;
+	if (!rhcc.empty())
+	  rhptr = rhcc[c_lev];
+
+        mlndlap.compSyncResidualFine(*sync_resid_fine, *phi[c_lev], *vel[c_lev], rhptr);
     }
 
     if (sync_resid_crse != 0) {  // only level solve will come to here
         Real rmin, rmax;
         const BoxArray& fineGrids = parent->boxArray(c_lev+1);
         const IntVect& ref_ratio = parent->refRatio(c_lev);
-        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], rhcc[c_lev],
+	MultiFab* rhptr=nullptr;
+	if (!rhcc.empty())
+	  rhptr = rhcc[c_lev];
+
+	// this requires sigma to have 2 ghost cells (valid at -2)
+        mlndlap.compSyncResidualCoarse(*sync_resid_crse, *phi[c_lev], *vel[c_lev], rhptr,
                                        fineGrids, ref_ratio);
     }
-        amrex::Print() << "DOING UPDATE OF VELOCITY USING MLNODAL OBJECT " << std::endl;
+    amrex::Print() << "DOING UPDATE OF VELOCITY USING MLNODAL OBJECT " << std::endl;
     mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
     }
 }
