@@ -1034,7 +1034,7 @@ Projection::initialPressureProject (int  c_lev)
     // Project
     //
     bool proj2 = true;
-    Vector<MultiFab*> rhcc(maxlev, nullptr);
+    Vector<MultiFab*> rhcc(0);
     doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
                           amrex::GetVecOfPtrs(sig),
                           rhcc, {},
