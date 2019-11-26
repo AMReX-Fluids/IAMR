@@ -374,13 +374,15 @@ Godunov::SyncAdvect (const Box&  box,
     BL_ASSERT(tforces.nComp() >= fab_ind    );
     BL_ASSERT(sync.nComp()    >= sync_ind   );
 
-    BL_ASSERT(ucorr.box()     >= xflux.box());
+    BL_ASSERT((ucorr.box()).contains(xflux.box()));
+    // below Assert fails while above passes, so the two are not equivalent
+    //BL_ASSERT(ucorr.box()     >= xflux.box());
     BL_ASSERT(ucorr.nComp()   >= 1          );
 
-    BL_ASSERT(vcorr.box()     >= yflux.box());
+    BL_ASSERT((vcorr.box()).contains(yflux.box()));
     BL_ASSERT(vcorr.nComp()   >= 1          );
 #if (BL_SPACEDIM == 3)
-    BL_ASSERT(wcorr.box()     >= zflux.box());
+    BL_ASSERT((wcorr.box()).contains(zflux.box()));
     BL_ASSERT(wcorr.nComp()   >= 1          );
 #endif
 

@@ -9,7 +9,7 @@ amr.probin_file 	= probin.3d.periodic_shear_layer
 # WHEN SHOULD THE SIMULATION STOP?
 #*******************************************************************************
 # Maximum number of timesteps to be taken, if stop_time is not reached first.
-max_step 				= 50
+max_step 				= 1
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= 2.0
 # Stop simulation when we reach steady-state?
@@ -25,26 +25,26 @@ ns.do_tracer_ref = 1
 ns.cfl  		= 0.5  # CFL number used to set dt
 ns.init_shrink       	= 1.0  # factor which multiplies the very first time step
 #ns.change_max 	      	= 1.1  # maximum change for dt (NOTE: does not seem to be implemented)
-ns.init_iter 	      	= 0 #1    # number of initial iterations
-ns.do_init_proj = 1
+#ns.init_iter 	      	= 1    # number of initial iterations
+#ns.do_init_proj = 1
 
 #*******************************************************************************
 # FLUID PROPERTIES 
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef     	= 0.0 #0.001
+ns.vel_visc_coef     	= 0 #.001
 # Forcing term defaults to  rho * abs(gravity) "down"
 ns.gravity           	= 0.0
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs   	= 0.0
+ns.scal_diff_coefs   	= 0 #.01
 
 #*******************************************************************************
 # GRID AND GEOMETRY
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 			= 64 64 64
+amr.n_cell 			= 16 16 16 #32 32 32 #64 64 64
 amr.max_grid_size		= 64
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
@@ -83,7 +83,7 @@ ns.hi_bc   	         	= 0 0 0
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		 	= 0
+amr.max_level		 	= 1
 # Refinement criterion
 ns.do_tracer_ref 		= 1
 # Interval (in number of level l timesteps) between regridding
