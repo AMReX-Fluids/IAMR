@@ -1100,7 +1100,11 @@ Projection::initialSyncProject (int       c_lev,
     for (lev = c_lev; lev <= f_lev; lev++)
     {
         vel[lev] = &(LevelData[lev]->get_new_data(State_Type));
+        // phi points to P_old and we use it as a temporary to
+        // store phi resulting from the nodal projection, AKA
+        // the pressure increment
         phi[lev] = &(LevelData[lev]->get_old_data(Press_Type));
+        phi[lev] -> setVal(0.0);
     }
 
     const Real dt_inv = 1./dt;
@@ -1169,11 +1173,6 @@ Projection::initialSyncProject (int       c_lev,
         }
     }
 
-    for (lev = c_lev; lev <= f_lev; lev++)
-    {
-        MultiFab& P_old = LevelData[lev]->get_old_data(Press_Type);
-        P_old.setVal(0.);
-    }
     //
     // Set velocity bndry values to bogus values.
     //
@@ -1184,6 +1183,7 @@ Projection::initialSyncProject (int       c_lev,
         u_o.setBndry(BogusValue,Xvel,BL_SPACEDIM);
         sig[lev]->setBndry(BogusValue);
     }
+
     //
     // Convert velocities to accelerations (we always do this for the
     //  projections in these initial iterations).
@@ -1267,11 +1267,15 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++)
         rescaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
+
     //
     // Add correction at coarse and fine levels.
     //
     for (lev = c_lev; lev <= f_lev; lev++)
-        incrPress(lev, 1.0);
+    {
+        MultiFab& P_new = LevelData[lev]->get_new_data(Press_Type);
+        MultiFab::Add(P_new, *phi[lev], 0, 0, 1, 1);
+    }
 
     if (verbose)
     {
@@ -1363,22 +1367,6 @@ Projection::AddPhi (MultiFab&        p,
 {
 
   MultiFab::Add(p,phi,0,0,1,p.nGrow());
-}
-
-//
-// Convert phi into p^n+1/2.
-//
-
-void
-Projection::incrPress (int  level,
-                       Real dt)
-{
-    MultiFab& P_old = LevelData[level]->get_old_data(Press_Type);
-    MultiFab& P_new = LevelData[level]->get_new_data(Press_Type);
-
-    MultiFab::Saxpy(P_new,1./dt,P_old,0,0,1,1);
-    //fixme? do we really need this?
-    P_old.setVal(BogusValue);
 }
 
 //
