@@ -469,7 +469,7 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     {
         if( areafrac_z(i,j,k) > 0 )
         {
-          Real s_on_z_centroid
+          Real s_on_z_centroid;
           if ( known_edgestate == 0)
           {
             int ii = i + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,0)));
