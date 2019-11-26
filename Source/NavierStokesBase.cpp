@@ -4684,7 +4684,12 @@ NavierStokesBase::printMaxVel (bool new_data)
 void
 NavierStokesBase::printMaxGp (bool new_data)
 {
+#ifdef AMREX_USE_EB
     MultiFab& Gp = getGradP();
+#else
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    getGradP(Gp, state[Press_Type].curTime());
+#endif
     MultiFab& P  = new_data? get_new_data(Press_Type) : get_old_data(Press_Type);
 
 #if (AMREX_SPACEDIM==3)
