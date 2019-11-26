@@ -446,11 +446,11 @@ Projection::level_project (int             level,
 #else
     const auto& factory = LevelData[level]->Factory();
 #endif
-    
+
     if (level < parent->finestLevel()) {
       sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1, MFInfo(), factory));
     }
- 
+
     if (level > 0 && iteration == crse_dt_ratio)
     {
       const int ngrow = parent->MaxRefRatio(level-1) - 1;

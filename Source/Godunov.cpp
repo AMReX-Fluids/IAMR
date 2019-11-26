@@ -1644,11 +1644,6 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
     AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
     AMREX_ALWAYS_ASSERT(a_bcs.size()==a_ncomp);
 
-    amrex::Print() << "ComputeConvectiveTerms: \n"
-                   << "max(abs(state)) = ";
-    for (int d(0); d < a_ncomp; ++d)
-        amrex::Print() << a_state.norm0(a_state_comp+d,0,false,true) << " ";
-
     // Compute fluxes
     ComputeFluxes( D_DECL(a_fx, a_fy, a_fz),
                    D_DECL(edgst_x, edgst_y, edgst_z),
@@ -1675,26 +1670,10 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
     EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
                          a_geom, already_on_centroids);
 
-    amrex::Print() << "\nComputeConvectiveTerms: BEFORE redistribution \n"
-                   << "max(abs(div(state*u)) = ";
-    for (int d(0); d < a_ncomp; ++d)
-        amrex::Print() << conv_tmp.norm0(d,0,false,true) << " ";
-
-
-    //MultiFab::Copy(a_conv, conv_tmp, 0, 0, AMREX_SPACEDIM, 0 );
     // Redistribute divergence
     amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, a_conv_comp, a_ncomp, {a_geom} );
 
-
     Gpu::synchronize();
-
-    amrex::Print() << "\nComputeConvectiveTerms: AFTER redistribution \n"
-                   << "max(abs(divu) = ";
-    for (int d(0); d < a_ncomp; ++d)
-        amrex::Print() << a_conv.norm0(a_conv_comp+d,0,false,true) << " ";
-
-    amrex::Print() << std::endl;
-
 
     //
     // Now we have to return the fluxes multiplied by the area -- We basically return
