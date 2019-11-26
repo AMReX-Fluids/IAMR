@@ -1675,15 +1675,42 @@ NavierStokes::post_init_press (Real&        dt_init,
     const Real strt_time       = state[State_Type].curTime();
     const int  finest_level    = parent->finestLevel();
     NavierStokes::initial_iter = true;
+
+    if (verbose)
+        Print() << std::endl
+                << "post_init_press(): "
+                << "doing initial pressure iterations with dt = "
+                << dt_init;
+
     //
     // Iterate over the advance function.
     //
     for (int iter = 0; iter < init_iter; iter++)
     {
+
+        if (verbose)
+        {
+            Print() << std::endl
+                    << "post_init_press(): iter = " << iter
+                    << std::endl
+                    << "Before time integration:"
+                    <<std::endl;
+            printMaxValues();
+        }
+
         for (int k = 0; k <= finest_level; k++ )
         {
             getLevel(k).advance(strt_time,dt_init,1,1);
         }
+
+        if (verbose)
+        {
+            Print() << std::endl
+                    << "After time integration:"
+                    <<std::endl;
+            printMaxValues();
+        }
+
         //
         // This constructs a guess at P, also sets p_old == p_new.
         //
@@ -1693,7 +1720,9 @@ NavierStokes::post_init_press (Real&        dt_init,
         {
             sig[k] = &(getLevel(k).get_rho_half_time());
         }
-        if (projector) {
+
+        if (projector)
+        {
             projector->initialSyncProject(0,sig,parent->dtLevel(0),
                                           strt_time,have_divu);
         }
@@ -1702,6 +1731,25 @@ NavierStokes::post_init_press (Real&        dt_init,
         {
             getLevel(k).avgDown();
         }
+
+        if (verbose)
+        {
+            // initSyncProject project d(u)/dt, so new velocity
+            // is actually the projected accelleration
+            // We don't actually care because initial velocity state will be
+            // recovered at the end of each iteration.
+            // However, we need to recover u_new from d(u)/dt if we want to print
+            // correct diagnostics
+            MultiFab& S_new = get_new_data(State_Type);
+            MultiFab& S_old = get_old_data(State_Type);
+            MultiFab::Xpay(S_new, dt_init, S_old, Xvel, Xvel, AMREX_SPACEDIM, 0);
+
+            Print() << std::endl
+                    << "After nodal projection:"
+                    <<std::endl;
+            printMaxValues();
+        }
+
         for (int k = 0; k <= finest_level; k++)
         {
             //
@@ -1767,7 +1815,7 @@ NavierStokes::mac_sync ()
       // fixme? unsure how many ghost cells...
       Ucorr[idim]= new MultiFab(edgeba,dmap,1,0,MFInfo(),Factory());
     }
-    
+
     sync_setup(DeltaSsync);
     //
     // Compute the u_mac for the correction.
@@ -1790,7 +1838,7 @@ NavierStokes::mac_sync ()
       //
       // fixme? clear Ucorr here? think we're done with it
       //
-      
+
       //
       // For all conservative variables Q (other than density)
       // express Q as rho*q and increment sync by -(sync_for_rho)*q

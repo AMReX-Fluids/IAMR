@@ -15,7 +15,7 @@
 #include <AMReX_EBFabFactory.H>
 #endif
 
-class Projection 
+class Projection
 {
 protected:
   static const int maxlev = 10;
@@ -30,9 +30,9 @@ protected:
 public:
 
     Projection (amrex::Amr*   _parent,
-                amrex::BCRec* _phys_bc, 
+                amrex::BCRec* _phys_bc,
                 int    _do_sync_proj,
-                int    /*_finest_level*/, 
+                int    /*_finest_level*/,
                 int    _radius_grow );
 
     ~Projection ();
@@ -61,7 +61,7 @@ public:
                         amrex::Real            dt,
                         amrex::Real            cur_pres_time,
                         amrex::Real            prev_pres_time,
-                        const amrex::Geometry& geom, 
+                        const amrex::Geometry& geom,
                         amrex::MultiFab&       U_old,
                         amrex::MultiFab&       U_new,
                         amrex::MultiFab&       P_old,
@@ -142,7 +142,7 @@ public:
     //
     void initialSyncProject (int       crse_level,
                              const amrex::Vector<amrex::MultiFab*> sig,
-                             amrex::Real      dt, 
+                             amrex::Real      dt,
                              amrex::Real      strt_time,
                              int       have_divu);
     //
@@ -209,11 +209,7 @@ protected:
     //
     void AddPhi (amrex::MultiFab&       p,
                  amrex::MultiFab&       phi);
-    //
-    // Convert phi into p^n+1/2.
-    //
-    void incrPress (int  level,
-                    amrex::Real dt);
+
     //
     // This function scales variables at the start of a projection.
     //
@@ -276,7 +272,7 @@ protected:
     //
     // Anelastic coefficient array.
     //
-    static int                   anel_grow;  
+    static int                   anel_grow;
     amrex::Vector<amrex::Real**> anel_coeff;
 
     //
@@ -299,12 +295,12 @@ protected:
     static amrex::Real divu_minus_s_factor;
     static int  add_vort_proj;
 
-    void doMLMGNodalProjection(int c_lev, int nlevel, 
-                               const amrex::Vector<amrex::MultiFab*>& vel, 
+    void doMLMGNodalProjection(int c_lev, int nlevel,
+                               const amrex::Vector<amrex::MultiFab*>& vel,
                                const amrex::Vector<amrex::MultiFab*>& phi,
                                const amrex::Vector<amrex::MultiFab*>& sig,
                                const amrex::Vector<amrex::MultiFab*>& rhcc,
-                               const amrex::Vector<amrex::MultiFab*>& rhnd, 
+                               const amrex::Vector<amrex::MultiFab*>& rhnd,
                                amrex::Real rel_tol, amrex::Real abs_tol,
 			       bool proj2,
                                amrex::MultiFab* sync_resid_crse=nullptr,
@@ -313,7 +309,7 @@ protected:
 
     // set velocity in ghost cells to zero except for inflow
     void set_boundary_velocity(int c_lev, int nlevel,
-			       const amrex::Vector<amrex::MultiFab*>& vel, 
+			       const amrex::Vector<amrex::MultiFab*>& vel,
                                bool inflowCorner);
 
 };
