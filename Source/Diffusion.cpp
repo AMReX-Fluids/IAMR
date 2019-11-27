@@ -247,7 +247,14 @@ Real
 Diffusion::get_scaled_abs_tol (const MultiFab& rhs,
                                Real            reduction) //const
 {
-    return reduction * rhs.norm0();
+    Real oncomp(1.0/rhs.nComp());
+    Real rhs_avg_norm(0.0);
+    // Let's take an average on all the components
+    // This is the only way I can think of to prevent absolute tolerance to be
+    // execessively small
+    for (int comp(0); comp < rhs.nComp(); ++comp)
+        rhs_avg_norm += oncomp * rhs.norm0(comp,0,false,true);
+    return reduction * rhs_avg_norm;
 }
 
 
