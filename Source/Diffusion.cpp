@@ -30,6 +30,7 @@
 #include <AMReX_MLEBTensorOp.H>
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EB_utils.H>
 #else
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLTensorOp.H>
