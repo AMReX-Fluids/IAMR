@@ -3280,7 +3280,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Geometry& fgeom   = parent->Geom(f_lev);
     const Geometry& cgeom   = parent->Geom(c_lev);
 
-    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0);
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),Factory());
     crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
 
@@ -3608,6 +3608,7 @@ NavierStokesBase::velocity_advection (Real dt)
          for (int i(0); i < AMREX_SPACEDIM; i++)
          {
              const BoxArray& ba = getEdgeBoxArray(i);
+	     // Why Umf.Factory and not just Factory()?
              cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
              edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
          }
@@ -3835,10 +3836,14 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         const Real prev_time      = state[State_Type].prevTime();
         const Real prev_pres_time = state[Press_Type].prevTime();
 
+#ifdef AMREX_USE_EB
+	MultiFab& Gp=*gradp;
+#else
         MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
         getGradP(Gp, prev_pres_time);
+#endif
 
-	MultiFab visc_terms(grids,dmap,nComp,1);
+	MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(),Factory());
 
 	if (be_cn_theta != 1.0)
         {
