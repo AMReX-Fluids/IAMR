@@ -3817,19 +3817,56 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
     {
         MultiFab&  U_old          = get_old_data(State_Type);
         MultiFab&  U_new          = get_new_data(State_Type);
-        MultiFab&  Aofs           = *aofs;
-        const int  nComp          = BL_SPACEDIM;
+        MultiFab&  Rh             = get_rho_half_time();
         const Real prev_time      = state[State_Type].prevTime();
+        const int  xvel           = Xvel;
+
+        int              ng(1);
+	MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
+        MultiFab    tforces(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
+
+        //
+        // Get grad(p)
+        //
+#ifdef AMREX_USE_EB
+        MultiFab& Gp = *gradp;
+#else
         const Real prev_pres_time = state[Press_Type].prevTime();
-
-        MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+        MultiFab         Gp(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
         getGradP(Gp, prev_pres_time);
+#endif
 
-	MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(),Factory());
+        //
+        // Compute additional forcing terms
+        //
+        tforces.setVal(0.0,1);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        {
+            FArrayBox tforces_fab;
+            for (MFIter mfi(tforces,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const auto& bx = mfi.tilebox();
 
+                if (getForceVerbose)
+                {
+                    amrex::Print() << "---" << '\n'
+                                   << "G - initial velocity diffusion update:" << '\n'
+                                   << "Calling getForce..." << '\n';
+                }
+
+                getForce(tforces_fab,bx,0,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
+                tforces[mfi].copy(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
+            }
+        }
+
+        //
+        // Compute viscous terms
+        //
 	if (be_cn_theta != 1.0)
         {
-	    getViscTerms(visc_terms,Xvel,nComp,prev_time);
+	    getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
         }
         else
 	{
@@ -3837,53 +3874,91 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 	}
 
         //
-        // Update U_new with viscosity.
+        // Assemble RHS
         //
-        MultiFab& Rh = get_rho_half_time();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-{
-        FArrayBox tforces, S;
-	for (MFIter mfi(U_old,true); mfi.isValid(); ++mfi)
+        // Set tforces = tforces + visc - Gp
+        MultiFab::Add(tforces, visc_terms, 0, 0, AMREX_SPACEDIM, 0);
+        MultiFab::Subtract(tforces, Gp, 0, 0, AMREX_SPACEDIM, 0);
+
+        // If NOT solving for momentum, divide tforces for Rho
+        if (!(do_mom_diff==1))
         {
-	  const Box& bx = mfi.tilebox();
+            for (int idim(0); idim < AMREX_SPACEDIM; ++idim )
+                MultiFab::Divide(tforces, Rh, 0, idim, 1, 0);
+        }
 
-	    if (getForceVerbose)
-	    {
-	      amrex::Print() << "---" << '\n'
-			     << "G - initial velocity diffusion update:" << '\n'
-			     << "Calling getForce..." << '\n';
-	    }
-            getForce(tforces,bx,0,Xvel,BL_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
+        // Subtract convective term from tforces
+        // WARNING: I think it is assumed that the convective term
+        // may or may not account for rho depending on do_mom_diff
+        // so no need to account for rho here
+        MultiFab::Subtract(tforces, *aofs, 0, xvel, AMREX_SPACEDIM, 0);
 
-            godunov->Sum_tf_gp_visc(tforces,visc_terms[mfi],Gp[mfi],Rh[mfi]);
-
-            const Box& gbx = mfi.growntilebox();
-            S.resize(gbx,BL_SPACEDIM);
-            S.copy(U_old[mfi],gbx,0,gbx,0,BL_SPACEDIM);
-
-            if (do_mom_diff == 1)
+        if (do_mom_diff==1)
+        {
+            // If solving for momentum, set U_new=dt*tforces
+            // Then set u_new += rho_old*u_old = rho_old*u_old + dt*tforce
+            // Finally divide u_new by rho_new to recover velocities
+            MultiFab::Copy(U_new, tforces, 0, Xvel, AMREX_SPACEDIM, 0);
+            U_new.mult(dt);
+            for (int idim(0); idim < AMREX_SPACEDIM; ++idim )
             {
-                for (int d = 0; d < BL_SPACEDIM; d++)
-                {
-                    tforces.mult(Rh[mfi],bx,0,d,1);
-                    S.mult(rho_ptime[mfi],bx,0,d,1);
-                }
-            }
-
-            godunov->Add_aofs_tf(S,U_new[mfi],0,BL_SPACEDIM,Aofs[mfi],
-                                 0,tforces,0,bx,dt);
-
-            if (do_mom_diff == 1)
-            {
-                for (int d = 0; d < BL_SPACEDIM; d++)
-                    U_new[mfi].divide(rho_ctime[mfi],bx,0,d,1);
+                MultiFab::AddProduct(U_new, rho_ptime, 0, U_old, xvel+idim, xvel+idim, 1, 0);
+                MultiFab::Divide(U_new, rho_ctime, 0, xvel+idim, 1, 0);
             }
         }
-}
+        else
+        {
+            // Then set u_new = u_old + dt*tforces
+            MultiFab::LinComb(U_new, 1.0, U_old, xvel, dt, tforces, 0, xvel, AMREX_SPACEDIM, 0);
+        }
+
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//         {
+//             // FArrayBox tforces, S;
+//             FArrayBox S;
+//             for (MFIter mfi(U_old,true); mfi.isValid(); ++mfi)
+//             {
+//                 const Box& bx = mfi.tilebox();
+
+//                 if (getForceVerbose)
+//                 {
+//                     amrex::Print() << "---" << '\n'
+//                                    << "G - initial velocity diffusion update:" << '\n'
+//                                    << "Calling getForce..." << '\n';
+//                 }
+//                 //getForce(tforces[mfi],bx,0,Xvel,BL_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
+
+//                 godunov->Sum_tf_gp_visc(tforces[mfi],visc_terms[mfi],Gp[mfi],Rh[mfi]);
+
+//                 const Box& gbx = mfi.growntilebox();
+//                 S.resize(gbx,BL_SPACEDIM);
+//                 S.copy(U_old[mfi],gbx,0,gbx,0,BL_SPACEDIM);
+
+//                 if (do_mom_diff == 1)
+//                 {
+//                     for (int d = 0; d < BL_SPACEDIM; d++)
+//                     {
+//                         tforces[mfi].mult(Rh[mfi],bx,0,d,1);
+//                         S.mult(rho_ptime[mfi],bx,0,d,1);
+//                     }
+//                 }
+
+//                 godunov->Add_aofs_tf(S,U_new[mfi],0,BL_SPACEDIM,Aofs[mfi],
+//                                      0,tforces[mfi],0,bx,dt);
+
+//                 if (do_mom_diff == 1)
+//                 {
+//                     for (int d = 0; d < BL_SPACEDIM; d++)
+//                         U_new[mfi].divide(rho_ctime[mfi],bx,0,d,1);
+//                 }
+//             }
+//         }
+
     }
+
 }
 
 Real
