@@ -3825,7 +3825,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
         getGradP(Gp, prev_pres_time);
 
-	MultiFab visc_terms(grids,dmap,nComp,1);
+	MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(),Factory());
 
 	if (be_cn_theta != 1.0)
         {
