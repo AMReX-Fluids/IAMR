@@ -1577,7 +1577,7 @@ NavierStokes::writePlotFile (const std::string& dir,
     MultiFab::Copy(plotMF,*volfrac,0,cnt,1,nGrow);
 
     // set covered values for ease of viewing
-    //EB_set_covered(plotMF, 0.0);
+    EB_set_covered(plotMF, 0.0);
 #endif
 
     //
@@ -2337,10 +2337,12 @@ NavierStokes::calc_divu (Real      time,
             // Compute Div(U) = Div(visc_cond_coef * Grad(T))/(c_p*rho*T)
             //
             getViscTerms(divu,Temp,1,time);
-
+	    
             const MultiFab&   rhotime = get_rho(time);
+
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
 	    const MultiFab& tmf = temp_fpi.get_mf();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2352,8 +2354,12 @@ NavierStokes::calc_divu (Real      time,
                 divufab.divide(rhotime[rho_mfi],bx,0,0,1);
                 divufab.divide(tmf[rho_mfi],bx,0,0,1);
             }
-//            Real THERMO_cp_inv = 1.0 / 1004.6;
+#ifdef AMREX_USE_EB
+	    EB_set_covered(divu,1.2345e30);
+#endif
+	    //            Real THERMO_cp_inv = 1.0 / 1004.6;
             divu.mult(1/THERMO_cp);
+
         }
     }
 }
