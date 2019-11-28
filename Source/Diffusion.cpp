@@ -3514,7 +3514,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     if (is_diffusive[src_comp])
     {
         int ng = 1;
-	MultiFab visc_tmp(grids,dmap,BL_SPACEDIM,ng,MFInfo(),navier_stokes->Factory()),
+	MultiFab visc_tmp(grids,dmap,AMREX_SPACEDIM,2,MFInfo(),navier_stokes->Factory()),
 	  //old way
 	s_tmp(grids,dmap,BL_SPACEDIM,ng,MFInfo(),navier_stokes->Factory());
 	MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
@@ -3682,15 +3682,18 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
 // EM_DEBUG  to remove later
 //amrex::Print() << "DEBUG visc_terms = " << visc_terms.nGrow() << std::endl;
+//amrex::Print() << "DEBUG visc_terms = " << visc_terms.boxArray() << std::endl;
+//amrex::Print() << " " << std::endl;
 //amrex::Print() << "DEBUG visc_tmp = " << visc_tmp.nGrow() << std::endl;
+//amrex::Print() << "DEBUG visc_tmp = " << visc_tmp.boxArray() << std::endl;
 
-#if AMREX_USE_EB
-        amrex::single_level_redistribute(0, {visc_tmp}, {visc_terms}, 0, AMREX_SPACEDIM,
-                                         {navier_stokes->Geom()} );
-        EB_set_covered(visc_terms, 0.);
-#else
+//#if AMREX_USE_EB
+//        amrex::single_level_redistribute(0, {visc_tmp}, {visc_terms}, 0, AMREX_SPACEDIM,
+//                                         {navier_stokes->Geom()} );
+//        EB_set_covered(visc_terms, 0.);
+//#else
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
-#endif
+//#endif
     }
     else
     {
