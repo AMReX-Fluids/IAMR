@@ -3676,6 +3676,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 #if AMREX_USE_EB
         amrex::single_level_redistribute(0, {visc_tmp}, {visc_terms}, 0, AMREX_SPACEDIM,
                                          {navier_stokes->Geom()} );
+        EB_set_covered(visc_terms, 0.);
 #else
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
 #endif

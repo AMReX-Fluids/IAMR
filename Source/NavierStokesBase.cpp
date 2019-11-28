@@ -3622,6 +3622,9 @@ NavierStokesBase::velocity_advection (Real dt)
                                            D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
                                            math_bcs, geom, 0 );
+
+         EB_set_covered(*aofs, 0.); 
+
          if (do_reflux)
          {
              for (int d(0); d < AMREX_SPACEDIM; d++)
