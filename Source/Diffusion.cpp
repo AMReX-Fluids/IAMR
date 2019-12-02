@@ -381,7 +381,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     const auto& ebfactory = S_new[0]->Factory();
     
     MultiFab Rhs(ba,dm,1,0,MFInfo(),ebfactory);
-    MultiFab Soln(ba,dm,1,2,MFInfo(),ebfactory);
+    MultiFab Soln(ba,dm,1,ng,MFInfo(),ebfactory);
     MultiFab alpha(ba,dm,1,0,MFInfo(),ebfactory);
     
     std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
@@ -876,15 +876,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
      //
      // Copy into state variable at new time, without bc's
      //
-
-#if AMREX_USE_EB
-        amrex::single_level_redistribute(0, {Soln}, {*S_new[0]}, sigma, 1,
-                                         {navier_stokes->Geom()} );
-        EB_set_covered(*S_new[0], 0.);
-#else
      MultiFab::Copy(*S_new[0],Soln,0,sigma,1,0);
-#endif
-
 
      if (rho_flag == 2) {
 #ifdef _OPENMP
