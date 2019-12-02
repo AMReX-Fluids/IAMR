@@ -30,6 +30,7 @@
 #include <AMReX_MLEBTensorOp.H>
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EB_utils.H>
 #else
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLTensorOp.H>
@@ -247,7 +248,14 @@ Real
 Diffusion::get_scaled_abs_tol (const MultiFab& rhs,
                                Real            reduction) //const
 {
-    return reduction * rhs.norm0();
+    Real oncomp(1.0/rhs.nComp());
+    Real rhs_avg_norm(0.0);
+    // Let's take an average on all the components
+    // This is the only way I can think of to prevent absolute tolerance to be
+    // execessively small
+    for (int comp(0); comp < rhs.nComp(); ++comp)
+        rhs_avg_norm += oncomp * rhs.norm0(comp,0,false,true);
+    return reduction * rhs_avg_norm;
 }
 
 
@@ -373,7 +381,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     const auto& ebfactory = S_new[0]->Factory();
     
     MultiFab Rhs(ba,dm,1,0,MFInfo(),ebfactory);
-    MultiFab Soln(ba,dm,1,ng,MFInfo(),ebfactory);
+    MultiFab Soln(ba,dm,1,2,MFInfo(),ebfactory);
     MultiFab alpha(ba,dm,1,0,MFInfo(),ebfactory);
     
     std::array<MultiFab,AMREX_SPACEDIM> bcoeffs;
@@ -868,7 +876,15 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
      //
      // Copy into state variable at new time, without bc's
      //
+
+#if AMREX_USE_EB
+        amrex::single_level_redistribute(0, {Soln}, {*S_new[0]}, sigma, 1,
+                                         {navier_stokes->Geom()} );
+        EB_set_covered(*S_new[0], 0.);
+#else
      MultiFab::Copy(*S_new[0],Soln,0,sigma,1,0);
+#endif
+
 
      if (rho_flag == 2) {
 #ifdef _OPENMP
@@ -3506,7 +3522,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     if (is_diffusive[src_comp])
     {
         int ng = 1;
-	MultiFab visc_tmp(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory()),
+	MultiFab visc_tmp(grids,dmap,AMREX_SPACEDIM,2,MFInfo(),navier_stokes->Factory()),
 	  //old way
 	s_tmp(grids,dmap,BL_SPACEDIM,ng,MFInfo(),navier_stokes->Factory());
 	MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
@@ -3671,7 +3687,21 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
             }
         }
 #endif
+
+// EM_DEBUG  to remove later
+//amrex::Print() << "DEBUG visc_terms = " << visc_terms.nGrow() << std::endl;
+//amrex::Print() << "DEBUG visc_terms = " << visc_terms.boxArray() << std::endl;
+//amrex::Print() << " " << std::endl;
+//amrex::Print() << "DEBUG visc_tmp = " << visc_tmp.nGrow() << std::endl;
+//amrex::Print() << "DEBUG visc_tmp = " << visc_tmp.boxArray() << std::endl;
+
+#if AMREX_USE_EB
+        amrex::single_level_redistribute(0, {visc_tmp}, {visc_terms}, 0, AMREX_SPACEDIM,
+                                         {navier_stokes->Geom()} );
+        EB_set_covered(visc_terms, 0.);
+#else
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
+#endif
     }
     else
     {
