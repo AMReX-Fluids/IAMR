@@ -3371,7 +3371,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
       // fixme for EB? again guessing
         int ng = 1;
 	// should try visc_tmp.nGrow = 0
-        MultiFab visc_tmp(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory()),
+        int ng_visc(2);// needed for redistribution
+        MultiFab visc_tmp(grids,dmap,1,ng_visc,MFInfo(),navier_stokes->Factory()),
 	  s_tmp(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
         //
         // Set up operator and apply to compute viscous terms.
@@ -3468,26 +3469,18 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 
 	MLMG mgn(mlabec);
 	mgn.setVerbose(verbose);
-
 	mgn.apply({&visc_tmp},{&s_tmp});
 
-	//fixme
-	// // compare to old method...
-	// VisMF::Write(visc_terms,"VT");
-	// VisMF::Write(visc_tmp,"VTtmp");
-        // MultiFab diff(grids,dmap,1,1);
-	// MultiFab::Copy(diff,visc_tmp,0,0,1,0);
-	// MultiFab::Subtract(diff,visc_terms,comp-src_comp,0,1,0);
-	// VisMF::Write(diff,"VTdiff");
-	// std::cout << "Min and max of the diff are " << diff.min(0,0) <<" "
-	// 	  <<diff.max(0,0)<<"\n";
-	// MultiFab::Copy(diff,visc_tmp,0,0,1,0);
-	// MultiFab::Divide(diff,visc_terms,comp-src_comp,0,1,0);
-	// VisMF::Write(diff,"VTdiff2");
-	///
+#ifdef AMREX_USE_EB
+        amrex::single_level_redistribute(0, visc_tmp, visc_terms, comp-src_comp, 1,
+                                         {navier_stokes->Geom()});
+#else
 	MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
+#endif
+
     }
-    else {
+    else
+    {
       int ngrow = visc_terms.nGrow();
       visc_terms.setVal(0.0,comp-src_comp,1,ngrow);
     }
