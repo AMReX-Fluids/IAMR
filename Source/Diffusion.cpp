@@ -520,6 +520,13 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
   
 	int nghost = 0;
 #ifdef AMREX_USE_EB
+            MultiFab rhs_tmp(ba,dm,1,2,MFInfo(),ebfactory);
+            mgn.apply({&rhs_tmp},{&Soln});
+            amrex::single_level_redistribute(0, rhs_tmp, Rhs, 0, 1, {geom});
+#else
+            mgn.apply({&Rhs},{&Soln});
+#endif
+#ifdef AMREX_USE_EB
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
