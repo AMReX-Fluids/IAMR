@@ -111,11 +111,11 @@ ComputeFluxesOnBox (const Box& a_bx,
               state_mns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
               state_w   = upwind( state_mns, state_pls, u(i,j,k) );
           }
-          edgs_x(i,j,k) = state_w;
+          edgs_x(i,j,k,n) = state_w;
         }
         else
         {
-          state_w = edgs_x(i,j,k);
+          state_w = edgs_x(i,j,k,n);
         }
         fx(i,j,k,n) = u(i,j,k) * state_w;
     });
@@ -147,11 +147,11 @@ ComputeFluxesOnBox (const Box& a_bx,
               state_mns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
               state_s   = upwind( state_mns, state_pls, v(i,j,k) );
           }
-          edgs_y(i,j,k) = state_s;
+          edgs_y(i,j,k,n) = state_s;
         }
         else
         {
-          state_s = edgs_y(i,j,k);
+          state_s = edgs_y(i,j,k,n);
         }
 
         fy(i,j,k,n) = v(i,j,k) * state_s;
@@ -185,11 +185,11 @@ ComputeFluxesOnBox (const Box& a_bx,
               state_mns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
               state_b   = upwind( state_mns, state_pls, w(i,j,k) );
           }
-          edgs_z(i,j,k) = state_b;
+          edgs_z(i,j,k,n) = state_b;
         }
         else
         {
-          state_b = edgs_z(i,j,k);
+          state_b = edgs_z(i,j,k,n);
         }
 
         fz(i,j,k,n) = w(i,j,k) * state_b;
@@ -344,11 +344,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
                 fracz *(1.0-fracy)*sx(i, j,kk,n)+
                 fracy *     fracz *sx(i,jj,kk,n);
                 
-            edgs_x(i,j,k) = s_on_x_centroid;
+            edgs_x(i,j,k,n) = s_on_x_centroid;
           }
           else
           {
-            s_on_x_centroid = edgs_x(i,j,k);
+            s_on_x_centroid = edgs_x(i,j,k,n);
           }
             fx(i,j,k,n) = u(i,j,k) * s_on_x_centroid;
         }
@@ -417,11 +417,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
                 fracz *(1.0-fracx)*sy(i ,j,kk,n)+
                 fracx *     fracz *sy(ii,j,kk,n);
           
-            edgs_y(i,j,k) = s_on_y_centroid;
+            edgs_y(i,j,k,n) = s_on_y_centroid;
           }
           else
           {
-            s_on_y_centroid = edgs_y(i,j,k);
+            s_on_y_centroid = edgs_y(i,j,k,n);
           }
             fy(i,j,k,n) = v(i,j,k) * s_on_y_centroid;
         }
@@ -483,11 +483,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
                 fracy *(1.0-fracx)*sz(i ,jj,k,n)+
                 fracx *     fracy *sz(ii,jj,k,n);
             
-            edgs_z(i,j,k) = s_on_z_centroid;
+            edgs_z(i,j,k,n) = s_on_z_centroid;
           }
           else
           {
-            s_on_z_centroid = edgs_z(i,j,k);
+            s_on_z_centroid = edgs_z(i,j,k,n);
           }
             fz(i,j,k,n) = w(i,j,k) * s_on_z_centroid;
         }
