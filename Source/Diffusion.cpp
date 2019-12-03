@@ -1133,8 +1133,23 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	mlmg.setVerbose(10);
 	mlmg.setBottomVerbose(10);
 	//mlmg.setBottomVerbose(bottom_verbose);
-	  
-	mlmg.apply({&Rhs}, {&Soln});
+
+        int nghost(2);
+        MultiFab Rhs_tmp(grids,dmap,BL_SPACEDIM,nghost, MFInfo(),navier_stokes->Factory());
+        mlmg.apply({&Rhs_tmp}, {&Soln});
+
+        const Geometry& geom=navier_stokes->Geom();
+        Rhs_tmp.FillBoundary(geom.periodicity());
+#ifdef AMREX_USE_EB
+        //
+        // Not sure that redistribution needs to be done here or after the sync
+        //
+        amrex::single_level_redistribute(0,{Rhs_tmp},{Rhs}, 0, AMREX_SPACEDIM, {navier_stokes->Geom()});
+        EB_set_covered(Rhs, 0, AMREX_SPACEDIM, Rhs.nGrow(), 0.0);
+#else
+        amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
+#endif
+
 
 	if (do_reflux && (level<finest_level || level>0))
 	{
