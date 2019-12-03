@@ -3860,11 +3860,11 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-{
-            FArrayBox tforces_fab;
-            for (MFIter mfi(tforces,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-                const auto& bx = mfi.tilebox();
+	{
+	  FArrayBox tforces_fab;
+	  for (MFIter mfi(tforces,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+	  {
+	    const auto& bx = mfi.tilebox();
 	    
 	    if (getForceVerbose)
 	    {
@@ -3876,19 +3876,19 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
                 getForce(tforces_fab,bx,0,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
                 tforces[mfi].copy(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
             }
-        }
+	}
 
         //
         // Compute viscous terms
         //
 	if (be_cn_theta != 1.0)
-            {
+	{
 	    getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
         }
         else
-                {
+	{
 	    visc_terms.setVal(0);
-                }
+	}
 
         //
         // Assemble RHS
@@ -3903,16 +3903,16 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         {
             for (int idim(0); idim < AMREX_SPACEDIM; ++idim )
                 MultiFab::Divide(tforces, Rh, 0, idim, 1, 0);
-            }
-
+	}
+	
         // Subtract convective term from tforces
         // WARNING: I think it is assumed that the convective term
         // may or may not account for rho depending on do_mom_diff
         // so no need to account for rho here
         MultiFab::Subtract(tforces, *aofs, 0, xvel, AMREX_SPACEDIM, 0);
 
-            if (do_mom_diff == 1)
-            {
+	if (do_mom_diff == 1)
+	{
             // If solving for momentum, set U_new=dt*tforces
             // Then set u_new += rho_old*u_old = rho_old*u_old + dt*tforce
             // Finally divide u_new by rho_new to recover velocities
@@ -3928,7 +3928,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         {
             // Then set u_new = u_old + dt*tforces
             MultiFab::LinComb(U_new, 1.0, U_old, xvel, dt, tforces, 0, xvel, AMREX_SPACEDIM, 0);
-}
+	}
 
 // #ifdef _OPENMP
 // #pragma omp parallel
