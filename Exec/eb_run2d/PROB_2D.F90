@@ -19,13 +19,15 @@ module prob_2D_module
   private :: initbubble, initspin, &
              initviscbench, initvort, initchannel, initpervort, &
              inithotspot, initrt, inittraceradvect, initfromrest, &
-             initNodeEBtest
+             initNodeEBtest, initflowpastcylinder
 
   public :: amrex_probinit, FORT_INITDATA,  &
             FORT_DENERROR, FORT_AVERAGE_EDGE_STATES, FORT_MAKEFORCE, &
             FORT_ADVERROR, FORT_ADV2ERROR, FORT_TEMPERROR, FORT_MVERROR, &
             FORT_DENFILL, FORT_ADVFILL, FORT_TEMPFILL, FORT_XVELFILL, &
             FORT_YVELFILL, FORT_PRESFILL, FORT_DIVUFILL, FORT_DSDTFILL
+
+  REAL_T :: m_problo(SDIM), m_probhi(SDIM)        
 
 contains
 
@@ -105,6 +107,9 @@ contains
       else
          open(untin,file=probin(1:namlen),form='formatted',status='old')
       end if
+
+      m_problo = problo
+      m_probhi = probhi
 
 #ifdef BL_DO_FLCT
       forceInflow = .FALSE.
@@ -248,12 +253,76 @@ contains
                              vel,scal,DIMS(state), &
                              dx,xlo,xhi)
 
+      else if (probtype .eq. 32) then
+         call initflowpastcylinder(level,time,lo,hi,nscal, &
+          vel,scal,DIMS(state),press,DIMS(press), &
+          dx,xlo,xhi, m_probhi )
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
          stop
       end if
 
       end subroutine FORT_INITDATA
+
+      subroutine initflowpastcylinder ( level,time,lo,hi,nscal, &
+                                      vel,scal,DIMS(state),press,DIMS(press), &
+                                      dx,xlo,xhi,probhi) bind(C, name="initflowpastcylinder")
+
+      implicit none
+
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, dx(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM), probhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T     scal(DIMV(state),nscal)
+      REAL_T     press(DIMV(press))
+!c
+!c     ::::: local variables
+!c
+      integer i, j, n
+      REAL_T  x, y
+      REAL_T  xn, yn ! normalized coordinates
+      REAL_T  hx, hy
+      REAL_T  dist, my_max
+
+#include <probdata.H>
+
+      hx = dx(1)
+      hy = dx(2)
+
+      select case (adv_dir)
+      case(1)                   ! Flow in x direction
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy*(float(j-lo(2)) + half)
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+                  yn = y / probhi(2)
+                  vel(i,j,1) = adv_vel
+                  vel(i,j,2) = zero
+
+                  my_max = max(my_max,vel(i,j,1))
+                  scal(i,j,1) = denfact
+
+                  do n = 2,nscal-1
+                     scal(i,j,n) = one
+                  end do
+
+
+                  dist = sqrt((x-xblob)**2 + (y-yblob)**2)
+                  scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
+               end do
+            end do
+      case default
+         write(6,*) "initflowpastcylinder requires adv_dir=1, currently adv_dir=",adv_dir
+         stop
+      end select
+
+   end subroutine initflowpastcylinder
+
 !c
 !c ::: -----------------------------------------------------------
 !c
