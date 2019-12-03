@@ -617,6 +617,7 @@ Projection::MLsyncProject (int             c_lev,
     Vector<MultiFab*> vel (maxlev, nullptr);
     Vector<MultiFab*> sig (maxlev, nullptr);
     Vector<MultiFab*> rhcc(maxlev, nullptr);
+    Vector<MultiFab*> rhnd_vec(maxlev, nullptr);
 
     vel[c_lev  ] = &Vsync;
     vel[c_lev+1] = &V_corr;
@@ -624,6 +625,7 @@ Projection::MLsyncProject (int             c_lev,
     sig[c_lev+1] = &rho_fine;
     rhcc[c_lev  ] = &cc_rhs_crse;
     rhcc[c_lev+1] = &cc_rhs_fine;
+    rhnd_vec[c_lev] = &rhnd;
 
     const Geometry& fine_geom = parent->Geom(c_lev+1);
 
@@ -654,7 +656,7 @@ Projection::MLsyncProject (int             c_lev,
     bool proj2 = true;
     doMLMGNodalProjection(c_lev, 2, vel,
                           amrex::GetVecOfPtrs(phi),
-                          sig, rhcc, {&rhnd}, sync_tol, proj_abs_tol, proj2,
+                          sig, rhcc, rhnd_vec, sync_tol, proj_abs_tol, proj2,
                           sync_resid_crse, sync_resid_fine.get());
 
     //
