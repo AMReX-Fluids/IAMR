@@ -620,6 +620,7 @@ Projection::MLsyncProject (int             c_lev,
     Vector<MultiFab*> vel (maxlev, nullptr);
     Vector<MultiFab*> sig (maxlev, nullptr);
     Vector<MultiFab*> rhcc(maxlev, nullptr);
+    Vector<MultiFab*> rhnd_vec(maxlev, nullptr);
 
     vel[c_lev  ] = &Vsync;
     vel[c_lev+1] = &V_corr;
@@ -627,6 +628,7 @@ Projection::MLsyncProject (int             c_lev,
     sig[c_lev+1] = &rho_fine;
     rhcc[c_lev  ] = &cc_rhs_crse;
     rhcc[c_lev+1] = &cc_rhs_fine;
+    rhnd_vec[c_lev] = &rhnd;
 
     const Geometry& fine_geom = parent->Geom(c_lev+1);
 
@@ -655,7 +657,7 @@ Projection::MLsyncProject (int             c_lev,
     bool proj2 = true;
     doMLMGNodalProjection(c_lev, 2, vel,
                           amrex::GetVecOfPtrs(phi),
-                          sig, rhcc, {&rhnd}, sync_tol, proj_abs_tol, proj2,
+                          sig, rhcc, rhnd_vec, sync_tol, proj_abs_tol, proj2,
                           sync_resid_crse, sync_resid_fine.get());
 
     //
@@ -2237,8 +2239,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (!rhnd.empty() )
     {
-        AMREX_ALWAYS_ASSERT(rhnd[0]->boxArray().ixType().nodeCentered());
-        // Do we need these two checks ??? -- No, see above
+        AMREX_ALWAYS_ASSERT(rhnd[c_lev]->boxArray().ixType().nodeCentered());
+        // Do we need these two checks ??? -- no, see above
 	//BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
 	//BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
     }
@@ -2335,7 +2337,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (!rhnd.empty())
     {
-        rhnd_rebase.assign(rhnd.begin(), rhnd.end());
+        rhnd_rebase.assign(rhnd.begin()+c_lev, rhnd.begin()+c_lev+nlevel);
     }
 
     if (!rhcc.empty())
@@ -2343,10 +2345,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         rhcc_rebase.assign(rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel);
     }
 
-    amrex::Print() << "SIZE OF rhcc_rebase " << rhcc_rebase.size() << std::endl;
-    amrex::Print() << "SIZE OF RHCC " << rhcc.size() << std::endl;
-    amrex::Print() << "SIZE OF rhnd_rebase " << rhnd_rebase.size() << std::endl;
-    amrex::Print() << "SIZE OF RHND " << rhnd.size() << std::endl;
+    // amrex::Print() << "SIZE OF rhcc_rebase " << rhcc_rebase.size() << std::endl;
+    // amrex::Print() << "SIZE OF RHCC " << rhcc.size() << std::endl;
+    // amrex::Print() << "SIZE OF rhnd_rebase " << rhnd_rebase.size() << std::endl;
+    // amrex::Print() << "SIZE OF RHND " << rhnd.size() << std::endl;
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
@@ -2426,9 +2428,9 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
 
 // EM_DEBUG
-    static int count2=0;
-    count2++;
-    amrex::WriteSingleLevelPlotfile("rhs_"+std::to_string(count2), rhs[0], {"rhs"}, mg_geom[0], 0.0, 0);
+    // static int count2=0;
+    // count2++;
+    // amrex::WriteSingleLevelPlotfile("rhs_"+std::to_string(count2), rhs[0], {"rhs"}, mg_geom[0], 0.0, 0);
 
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
@@ -2440,7 +2442,7 @@ std::cout << "DEBUG TOLERANCE ERROR " << rel_tol << " " << abs_tol << std::endl;
 			       rel_tol, abs_tol);
 
 // EM_DEBUG
-    amrex::WriteSingleLevelPlotfile("phi_out"+std::to_string(count2), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+//    amrex::WriteSingleLevelPlotfile("phi_out"+std::to_string(count2), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
 
 
 #ifdef AMREX_USE_EB
