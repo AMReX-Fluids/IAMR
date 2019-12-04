@@ -1740,7 +1740,7 @@ NavierStokes::post_init_press (Real&        dt_init,
 
         if (projector)
         {
-            projector->initialSyncProject(0,sig,parent->dtLevel(0),
+            projector->initialSyncProject(0,sig,dt_init,
                                           strt_time,have_divu);
         }
 
