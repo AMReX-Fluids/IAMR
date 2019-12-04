@@ -258,9 +258,6 @@ Diffusion::get_scaled_abs_tol (const MultiFab& rhs,
     return reduction * rhs_avg_norm;
 }
 
-
-// towards simplification of this, why pass all of geom, vol, area, add_hoop_stress
-// when geom can be used to get all the others?
 void
 Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            const Vector<MultiFab*>&  Rho_old,
@@ -324,12 +321,12 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     }
 #endif
 
-    //for now, remove RZ until the Vol scaling issue is fixed...
-    // want
-    //   volume scaling for non-EB RZ
-    //   error for EB-RZ, "under development"
-    //   remove volume scaling for everything else
-    if (add_hoop_stress)
+    //for now, remove RZ because velocity always goes to the tensor solver
+    // if scalar velocity diffussion comes back, makes sure to check on volume scaling:
+    //   IAMR's treatment of RZ requires volume scaling
+    //   AMReX's treatment of RZ does not need volume scaling here
+    //   Cartesian geometires do not use volume scaling 
+    if ( add_hoop_stress )
       amrex::Abort("Diffusion::diffuse_scalar(): R-Z geometry under development!");
 
 
@@ -522,7 +519,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 		     MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp+icomp, 1);,
 		     MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp+icomp, 1););
 	std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
-	mgn.getFluxes({fp},{&Soln});
+	mgn.getFluxes({fp},{&Soln},Location::FaceCentroid);
 
 	int nghost = 0;
 #ifdef AMREX_USE_EB
@@ -743,11 +740,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	Rhs[mfi].plus(Soln[mfi],box,0,0,1);
       }
 
-      //Fixme???
-      // dev fillPatch'es S_new (both levels) before passing to MLMG op
-      // It's now assumed that S_new has been FillPatch'ed before passing to diffuse_scalar
-      // CHECK THAT THIS IS ACTUALLY DONE...
-
       //
       // Construct viscous operator with bndry data at time N+1.
       //
@@ -882,16 +874,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
      //
      // Copy into state variable at new time, without bc's
      //
-
-//#if AMREX_USE_EB
-//        amrex::single_level_redistribute(0, {Soln}, {*S_new[0]}, sigma, 1,
-//                                         {navier_stokes->Geom()} );
-//        EB_set_covered(*S_new[0], 0.);
-//#else
      MultiFab::Copy(*S_new[0],Soln,0,sigma,1,0);
-//#endif
-
-
 
      if (rho_flag == 2) {
 #ifdef _OPENMP
@@ -1154,13 +1137,15 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         mlmg.apply({&Rhs_tmp}, {&Soln});
 
         const Geometry& geom=navier_stokes->Geom();
-        Rhs_tmp.FillBoundary(geom.periodicity());
+	// FillBoundary is called within redistribute(), no need to call it here
+	//Rhs_tmp.FillBoundary(geom.periodicity());
 #ifdef AMREX_USE_EB
         //
         // Not sure that redistribution needs to be done here or after the sync
         //
         amrex::single_level_redistribute(0,{Rhs_tmp},{Rhs}, 0, AMREX_SPACEDIM, {navier_stokes->Geom()});
-        EB_set_covered(Rhs, 0, AMREX_SPACEDIM, Rhs.nGrow(), 0.0);
+	// This should not be needed
+	//EB_set_covered(Rhs, 0, AMREX_SPACEDIM, Rhs.nGrow(), 0.0);
 #else
         amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
 #endif
@@ -1305,9 +1290,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #if (BL_SPACEDIM == 2)
     if (parent->Geom(0).IsRZ())
     {
-#ifdef AMREX_USE_EB
-      amrex::Abort("tensor r-z still under development. \n");
-#endif
+      // 
+      // TODO: RZ is not working, even for non-EB right now
+      // 
+      amrex::Abort("tensor r-z under development. \n");
+
       // R-Z still needs old volume weighting
       // need to check above to make sure vol factor is in there (beta, fluxes)
       // and then below should be ok as is
@@ -1494,26 +1481,10 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	// fixme? don't know why we're bothering with rhsscale....
 	Real rhsscale = 1.0;
 	const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-	// computeAlpha(acoef, scalars, Xvel, a, b, cur_time, rho, 1,
-	// 	     &rhsscale, 0, nullptr);
 
-	// static void computeAlpha (amrex::MultiFab&       alpha,
-        //                       std::pair<amrex::Real,amrex::Real>& scalars,
-        //                       amrex::Real            a,
-        //                       amrex::Real            b,
-        //                       const amrex::MultiFab& rho_half,
-        //                       int                    rho_flag,
-        //                       amrex::Real*           rhsscale,
-        //                       const amrex::MultiFab* alpha_in,
-        //                       int                    alpha_in_comp,
-        //                       const amrex::MultiFab* rho,
-        //                       int                    rho_comp,
-        //                       const amrex::Geometry& geom,
-        //                       const amrex::MultiFab& volume,
-        //                       bool                   use_hoop_stress);
 	computeAlpha(acoef, scalars, a, b, rho,
 		     1, &rhsscale, nullptr, 0,
-		     nullptr, 0, // this 2nd rho doesn't get used b/c rho_flag==1
+		     nullptr, 0, 
 		     navier_stokes->Geom(),volume,parent->Geom(0).IsRZ());
 
 	tensorop.setScalars(scalars.first, scalars.second);
@@ -1567,8 +1538,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       //mlmg.setBottomVerbose(bottom_verbose);
 
       // ensures ghost cells of sol are correctly filled when returned from solver
-      //fixme?? isn't FillPatch ususally the way to do it?
-      // would need not to copy ghost cells to U_new below
       mlmg.setFinalFillBC(true);
 
       //    solution.setVal(0.0);
@@ -3377,9 +3346,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
     // mlmg way ...
     if (is_diffusive[comp])
     {
-      // fixme for EB? again guessing
         int ng = 1;
-	// should try visc_tmp.nGrow = 0
         int ng_visc(2);// needed for redistribution
         MultiFab visc_tmp(grids,dmap,1,ng_visc,MFInfo(),navier_stokes->Factory()),
 	  s_tmp(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
@@ -3393,7 +3360,7 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	info.setAgglomeration(agglomeration);
 	info.setConsolidation(consolidation);
 	info.setMaxCoarseningLevel(0);
-	// let MLMG take care of r-z
+	// let MLMG take care of r-z?
 	info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
@@ -3442,10 +3409,6 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	    const MultiFab& rhotime = navier_stokes->get_rho(time);
 	    MultiFab::Divide(s_tmp,rhotime,0,0,1,ng);
 	  }
-	  // fixme? Do we need/want this???
-	  // mfix does this
-	  //EB_set_covered(s_tmp, 0, 1, ng, covered_val);
-	  //s_tmp.FillBoundary (geom.periodicity());
 	  mlabec.setLevelBC(0, &s_tmp);
 	}
 
@@ -3466,7 +3429,6 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	  }
 	  computeBeta(bcoeffs,beta,betaComp,navier_stokes->Geom(),ap,
 		      parent->Geom(0).IsRZ());
-	  //computeBeta(bcoeffs, beta, betaComp);
 	  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
 	}
 
@@ -3541,11 +3503,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	  //old way
 	s_tmp(grids,dmap,BL_SPACEDIM,ng,MFInfo(),navier_stokes->Factory());
 	MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
-	// need to create an alias multifab
-	//MultiFab s_tmp(S, amrex::make_alias, Xvel, AMREX_SPACEDIM);
-
-	//fixme? not sure if we need this
-	visc_tmp.setVal(0.);
 
         //
         // Set up operator and apply to compute viscous terms.
@@ -3713,7 +3670,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 #if AMREX_USE_EB
         amrex::single_level_redistribute(0, {visc_tmp}, {visc_terms}, 0, AMREX_SPACEDIM,
                                          {navier_stokes->Geom()} );
-        EB_set_covered(visc_terms, 0.);
+        //EB_set_covered(visc_terms, 0.);
 #else
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
 #endif

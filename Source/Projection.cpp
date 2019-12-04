@@ -598,6 +598,9 @@ Projection::MLsyncProject (int             c_lev,
     MultiFab rhnd(Pgrids_crse,Pdmap_crse,1,0,MFInfo(),LevelData[c_lev]->Factory());
     rhs_sync_reg->InitRHS(rhnd,crse_geom,*phys_bc);
 
+    //fixme
+    //  doMLMGNodalProj expects Vector(maxlength) with vaild data at c_lev ...
+    
     Box P_finedomain(amrex::surroundingNodes(crse_geom.Domain()));
     P_finedomain.refine(ratio);
     if (Pgrids_fine[0] == P_finedomain) {
@@ -2191,7 +2194,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
     // For now use AMReX Nodal Projector only if no sync is required
-    bool no_sync_needed = parent->finestLevel()==0;
+    bool no_sync_needed = false; //parent->finestLevel()==0;
 
     if (no_sync_needed)
       amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
@@ -2227,16 +2230,17 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     if (!rhcc.empty() )
     {
         AMREX_ALWAYS_ASSERT(rhcc[c_lev]->boxArray().ixType().cellCentered());
-        BL_ASSERT(rhcc[c_lev]->nGrow() == 1);
-        BL_ASSERT(rhcc[f_lev]->nGrow() == 1);
+	// MLNodeLaplacian only uses vaild cells from rhcc and rhnd; fills ghost cells internally
+        // BL_ASSERT(rhcc[c_lev]->nGrow() == 1);
+        // BL_ASSERT(rhcc[f_lev]->nGrow() == 1);
     }
 
     if (!rhnd.empty() )
     {
-        AMREX_ALWAYS_ASSERT(rhnd[c_lev]->boxArray().ixType().nodeCentered());
-        // Do we need these two checks ???
-        // BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
-        // BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
+        AMREX_ALWAYS_ASSERT(rhnd[0]->boxArray().ixType().nodeCentered());
+        // Do we need these two checks ??? -- No, see above
+	//BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
+	//BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
     }
 
     set_boundary_velocity(c_lev, nlevel, vel, true);
@@ -2331,7 +2335,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (!rhnd.empty())
     {
-        rhnd_rebase.assign(rhnd.begin()+c_lev, rhnd.begin()+c_lev+nlevel);
+        rhnd_rebase.assign(rhnd.begin(), rhnd.end());
     }
 
     if (!rhcc.empty())
@@ -2339,8 +2343,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         rhcc_rebase.assign(rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel);
     }
 
-    amrex::Print() << "SIZE OF rhcc_rebase" << rhcc_rebase.size() << std::endl;
-amrex::Print() << "SIZE OF RHCC" << rhcc.size() << std::endl;
+    amrex::Print() << "SIZE OF rhcc_rebase " << rhcc_rebase.size() << std::endl;
+    amrex::Print() << "SIZE OF RHCC " << rhcc.size() << std::endl;
+    amrex::Print() << "SIZE OF rhnd_rebase " << rhnd_rebase.size() << std::endl;
+    amrex::Print() << "SIZE OF RHND " << rhnd.size() << std::endl;
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
@@ -2404,7 +2410,7 @@ amrex::Print() << "SIZE OF RHCC" << rhcc.size() << std::endl;
     for (int ilev = 0; ilev < nlevel; ++ilev) {
         mlndlap.setSigma(ilev, *sig[c_lev+ilev]);
     }
-    // compare to incflo::projection.cpp:74
+
     Vector<MultiFab> rhs(nlevel);
     for (int ilev = 0; ilev < nlevel; ++ilev)
     {
@@ -2419,6 +2425,11 @@ amrex::Print() << "SIZE OF RHCC" << rhcc.size() << std::endl;
     // calls FillBoundary on vel
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), vel_rebase, rhnd_rebase, rhcc_rebase);
 
+// EM_DEBUG
+    static int count2=0;
+    count2++;
+    amrex::WriteSingleLevelPlotfile("rhs_"+std::to_string(count2), rhs[0], {"rhs"}, mg_geom[0], 0.0, 0);
+
     MLMG mlmg(mlndlap);
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(P_code);
@@ -2429,9 +2440,7 @@ std::cout << "DEBUG TOLERANCE ERROR " << rel_tol << " " << abs_tol << std::endl;
 			       rel_tol, abs_tol);
 
 // EM_DEBUG
-    //static int count2=0;
-    //   count2++;
-    //        amrex::WriteSingleLevelPlotfile("phi_out"+std::to_string(count2), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
+    amrex::WriteSingleLevelPlotfile("phi_out"+std::to_string(count2), *phi_rebase[0], {"phi"}, mg_geom[0], 0.0, 0);
 
 
 #ifdef AMREX_USE_EB
@@ -2516,6 +2525,7 @@ fluxes[lev]->setVal(0.);
     }
         amrex::Print() << "DOING UPDATE OF VELOCITY USING MLNODAL OBJECT " << std::endl;
     mlndlap.updateVelocity(vel_rebase, amrex::GetVecOfConstPtrs(phi_rebase));
+    
     }
 }
 
