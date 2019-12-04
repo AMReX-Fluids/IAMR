@@ -1497,11 +1497,12 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       // The flag has already been checked for only 2D at the begining of the routine
       if (parent->Geom(0).IsRZ()) //add_hoop_stress)
       {
-	for (int d = 0; d < BL_SPACEDIM; ++d)
+	for (int d = 0; d < BL_SPACEDIM; ++d){
 	  // FIXME -- need to check this
 	  if ( be_cn_theta!=1 )
 	    tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,flux_ng);
 	  tensorflux[d]->mult(b/(dt * navier_stokes->Geom().CellSize()[d]),0,AMREX_SPACEDIM,flux_ng);
+	}
       }
       else // Generic case for non-EB and 2D or 3D Cartesian
       {
