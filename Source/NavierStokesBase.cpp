@@ -4711,7 +4711,6 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
   // Choose the appropriate AMReX average_down() based on
   // whether EB or non-EB, and dimensionality
   //
-  Print()<<"Using new average_down \n";
 
 #ifdef AMREX_USE_EB
   
