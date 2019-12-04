@@ -286,12 +286,24 @@ NavierStokes::advance (Real time,
 {
     BL_PROFILE("NavierStokes::advance()");
 
-    if (verbose) {
-      Print() << "Advancing grids at level " << level
-		     << " : starting time = "       << time
-		     << " with dt = "               << dt << '\n';
+    if (verbose)
+    {
+        Print() << "Advancing grids at level " << level
+                << " : starting time = "       << time
+                << " with dt = "               << dt
+                << std::endl;
     }
+
     advance_setup(time,dt,iteration,ncycle);
+
+    // Add this AFTER advance_setup()
+    if (verbose)
+    {
+        Print() << "NavierStokes::advance(): before velocity update:"
+                << std::endl;
+        printMaxValues(false);
+    }
+
     //
     // Compute traced states for normal comp of velocity at half time level.
     //
@@ -371,6 +383,7 @@ NavierStokes::advance (Real time,
     // Add the advective and other terms to get velocity at t^{n+1}.
     //
     velocity_update(dt);
+
     //
     // Increment rho average.
     //
@@ -378,6 +391,12 @@ NavierStokes::advance (Real time,
     {
         if (level > 0)
             incrRhoAvg((iteration==ncycle ? 0.5 : 1.0) / Real(ncycle));
+
+        if (verbose)
+        {
+            Print() << "NavierStokes::advance(): before nodal projection " << std::endl;
+            printMaxValues();
+        }
 
         //
         // Do a level project to update the pressure and velocity fields.
@@ -399,6 +418,12 @@ NavierStokes::advance (Real time,
     // Estimate new timestep from umac cfl.
     //
     advance_cleanup(iteration,ncycle);
+
+    if (verbose)
+    {
+        Print() << "NavierStokes::advance(): after velocity update" << std::endl;
+        printMaxValues();
+    }
 
     return dt_test;  // Return estimate of best new timestep.
 }
@@ -1677,10 +1702,13 @@ NavierStokes::post_init_press (Real&        dt_init,
     NavierStokes::initial_iter = true;
 
     if (verbose)
+    {
         Print() << std::endl
                 << "post_init_press(): "
                 << "doing initial pressure iterations with dt = "
-                << dt_init;
+                << dt_init
+                << std::endl;
+    }
 
     //
     // Iterate over the advance function.
@@ -1692,23 +1720,12 @@ NavierStokes::post_init_press (Real&        dt_init,
         {
             Print() << std::endl
                     << "post_init_press(): iter = " << iter
-                    << std::endl
-                    << "Before time integration:"
-                    <<std::endl;
-            printMaxValues();
+                    << std::endl;
         }
 
         for (int k = 0; k <= finest_level; k++ )
         {
             getLevel(k).advance(strt_time,dt_init,1,1);
-        }
-
-        if (verbose)
-        {
-            Print() << std::endl
-                    << "After time integration:"
-                    <<std::endl;
-            printMaxValues();
         }
 
         //
@@ -1723,7 +1740,7 @@ NavierStokes::post_init_press (Real&        dt_init,
 
         if (projector)
         {
-            projector->initialSyncProject(0,sig,parent->dtLevel(0),
+            projector->initialSyncProject(0,sig,dt_init,
                                           strt_time,have_divu);
         }
 
@@ -1735,7 +1752,7 @@ NavierStokes::post_init_press (Real&        dt_init,
         if (verbose)
         {
             // initSyncProject project d(u)/dt, so new velocity
-            // is actually the projected accelleration
+            // is actually the projected acceleration
             // We don't actually care because initial velocity state will be
             // recovered at the end of each iteration.
             // However, we need to recover u_new from d(u)/dt if we want to print
@@ -1744,9 +1761,7 @@ NavierStokes::post_init_press (Real&        dt_init,
             MultiFab& S_old = get_old_data(State_Type);
             MultiFab::Xpay(S_new, dt_init, S_old, Xvel, Xvel, AMREX_SPACEDIM, 0);
 
-            Print() << std::endl
-                    << "After nodal projection:"
-                    <<std::endl;
+            Print() << "After nodal projection:" << std::endl;
             printMaxValues();
         }
 
@@ -1783,6 +1798,19 @@ NavierStokes::post_init_press (Real&        dt_init,
 
     parent->setDtLevel(dt_save);
     parent->setNCycle(nc_save);
+
+    // Add space to output if verbose
+    if (verbose)
+    {
+        Print() << std::endl
+                << "post_init_press(): exiting after " << init_iter << " iterations"
+                << std::endl
+                << "After initial iterations: "
+                << std::endl;
+        printMaxValues();
+        Print() << std::endl << std::endl;
+    }
+
 }
 
 //
@@ -2337,7 +2365,7 @@ NavierStokes::calc_divu (Real      time,
             // Compute Div(U) = Div(visc_cond_coef * Grad(T))/(c_p*rho*T)
             //
             getViscTerms(divu,Temp,1,time);
-	    
+
             const MultiFab&   rhotime = get_rho(time);
 
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);

@@ -770,8 +770,12 @@ Projection::initialVelocityProject (int  c_lev,
     for (int iter(0); iter < init_vel_iter; ++iter)
     {
         if (verbose)
-            amrex::Print() << "Projection::initialVelocityProject(): iteration "
-                           << iter <<std::endl;
+        {
+            amrex::Print() << std::endl
+                           << "Projection::initialVelocityProject(): iteration "
+                           << iter
+                           << std::endl;
+        }
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
@@ -936,6 +940,26 @@ Projection::initialVelocityProject (int  c_lev,
             MultiFab& Gp = ns->getGradP();
             Gp.setVal(0.);
 #endif
+        }
+
+        if (verbose)
+        {
+            amrex::Print() << "After nodal projection:" << std::endl;
+            for (int lev(c_lev); lev <= f_lev; ++lev)
+            {
+                amrex::Print() << "  lev " << lev << ": "
+#if (AMREX_SPACEDIM==3)
+                               << "max(abs(u,v,w)) = "
+#else
+                               << "max(abs(u,v)) = "
+#endif
+                               << vel[lev]->norm0(0,0,false,true) << " "
+                               << vel[lev]->norm0(1,0,false,true) << " "
+#if (AMREX_SPACEDIM==3)
+                               << vel[lev]->norm0(2,0,false,true)
+#endif
+                               << std::endl;
+            }
         }
     }
 
@@ -2342,9 +2366,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         rhcc_rebase.assign(rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel);
     }
-
-    amrex::Print() << "SIZE OF rhcc_rebase" << rhcc_rebase.size() << std::endl;
-amrex::Print() << "SIZE OF RHCC" << rhcc.size() << std::endl;
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
