@@ -629,19 +629,17 @@ Projection::MLsyncProject (int             c_lev,
 
     const Geometry& fine_geom = parent->Geom(c_lev+1);
 
-    //Fixme
-    // Need to switch to NSB average_down but need MFs in Projection to be build with EBF
-    // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[c_lev]);
-    // ns->average_down(*vel[c_lev+1],*vel[c_lev],0,AMREX_SPACEDIM);
+    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[c_lev]);
+    ns->average_down(*vel[c_lev+1],*vel[c_lev],0,AMREX_SPACEDIM);
     //
     // restrict_level(v_crse, v_fine, ratio);
-    amrex::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
-                         0, BL_SPACEDIM, ratio);
+    // amrex::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
+    //                      0, BL_SPACEDIM, ratio);
 
-    // ns->average_down(*sig[c_lev+1],*sig[c_lev],0,sig[c_lev]->nComp());
+    ns->average_down(*sig[c_lev+1],*sig[c_lev],0,sig[c_lev]->nComp());
     // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
-    amrex::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
-                           0, sig[c_lev]->nComp(), ratio);
+    // amrex::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
+    //                        0, sig[c_lev]->nComp(), ratio);
 
     MultiFab* sync_resid_crse = 0;
     std::unique_ptr<MultiFab> sync_resid_fine;
@@ -2255,14 +2253,15 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     if (!rhcc.empty() )
     {
         AMREX_ALWAYS_ASSERT(rhcc[c_lev]->boxArray().ixType().cellCentered());
-        BL_ASSERT(rhcc[c_lev]->nGrow() == 1);
-        BL_ASSERT(rhcc[f_lev]->nGrow() == 1);
+	// MLNodeLaplacian only uses vaild cells from rhcc and rhnd; fills ghost cells internally
+        // BL_ASSERT(rhcc[c_lev]->nGrow() == 1);
+        // BL_ASSERT(rhcc[f_lev]->nGrow() == 1);
     }
 
     if (!rhnd.empty() )
     {
         AMREX_ALWAYS_ASSERT(rhnd[c_lev]->boxArray().ixType().nodeCentered());
-        // Do we need these two checks ???
+        // Do we need these two checks ??? -- no, see above
         // BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
         // BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
     }
@@ -2429,7 +2428,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     for (int ilev = 0; ilev < nlevel; ++ilev) {
         mlndlap.setSigma(ilev, *sig[c_lev+ilev]);
     }
-    // compare to incflo::projection.cpp:74
+
     Vector<MultiFab> rhs(nlevel);
     for (int ilev = 0; ilev < nlevel; ++ilev)
     {
