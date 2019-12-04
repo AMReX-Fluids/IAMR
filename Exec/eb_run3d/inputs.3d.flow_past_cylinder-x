@@ -3,22 +3,18 @@
 #.......................................#
 stop_time               =   0.2         # Max (simulated) time to evolve
 max_step                =  -1           # Max number of time steps
-#verbose                 =   5
-#steady_state            =   0           # Steady-state solver?
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #           SOLVER SETTINGS             #
 #.......................................#
-ns.init_shrink = 1.0
-ns.init_iter = 3
-ns.init_vel_iter = 5
-ns.visc_tol=1.0e-11
+ns.init_shrink     = 1.0
+ns.init_iter       = 3
+ns.init_vel_iter   = 5
+ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
+projection.mg_rtol =  1.0e-13
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
-#incflo.fixed_dt         =   -1.0        # Use this constant dt if > 0
-#ns.cfl              =   0.45             # CFL factor
-ns.cfl               = 0.045
+ns.cfl               = 0.45
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            INPUT AND OUTPUT           #
 #.......................................#
@@ -27,22 +23,12 @@ amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
 amr.restart             =   ""          # Checkpoint to restart from
 amr.probin_file         = probin.3d.flow_past_cylinder-x
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
 ns.gravity          =   0.  0.  0.  # Gravitational force (3D)
-#incflo.ro_0             =   1.          # Reference density
-
 ns.vel_visc_coef         = 0.001
 ns.scal_diff_coefs       = 1.0
-#incflo.fluid_model      =   "newtonian" # Fluid model (rheology)
-#incflo.mu               =   0.001       # Dynamic viscosity coefficient
-
-#incflo.ntrac            =   1           # Number of tracers
-#incflo.advect_tracer    =   1           # Should we update them?
-#incflo.mu_s             =   0.001       # Scalar diffusion coefficient
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
 #.......................................#
@@ -53,7 +39,6 @@ amr.n_error_buf         =   8
 amr.max_grid_size_x     =   1024
 amr.max_grid_size_y     =   1024
 amr.max_grid_size_z     =   1024
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              GEOMETRY                 #
 #.......................................#
@@ -72,23 +57,11 @@ ns.hi_bc   	      	= 2 5 0
 # Add cylinder
 eb2.geom_type               = cylinder
 eb2.cylinder.internal_flow  = false
-#eb2.cylinder.radius         = 0.05
 eb2.cylinder_radius         = 0.05
-#eb2.cylinder.direction      = 2
 eb2.cylinder_direction      = 2
-#eb2.cylinder.center         = 0.15  0.2  0.0
 eb2.cylinder_center         = 0.15  0.2  0.0
 
 eb2.cylinder_has_fluid_inside=0
-
-#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
-#           INITIAL CONDITIONS          #
-#.......................................#
-#incflo.probtype         =   31
-#incflo.ic_u             =   1.0         #
-#incflo.ic_v             =   0.0         #
-#incflo.ic_w             =   0.0         #
-#incflo.ic_p             =   0.0         #
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
@@ -96,8 +69,8 @@ eb2.cylinder_has_fluid_inside=0
 ns.v                    = 1 # NS solver 
 proj.v                  = 1 # Nodal projection
 mac.verbose             = 0 # MacProjector
-#diffusion.verbose       =   1           # Diffusion operator
-projection.verbose   =   1           # Nodal projection
-projection.mg_verbose=   0
-projection.mg_rtol   =  1.0e-13
-#amr.plt_ccse_regtest    =   1
+#diffusion.verbose      =   1           # Diffusion operator
+projection.verbose      =   1           # Nodal projection
+projection.mg_verbose   =   0
+
+
