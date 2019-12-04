@@ -1660,6 +1660,13 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
 
     conv_tmp.setVal(0.0);
 
+
+//static int count23=0;
+//count23++;
+//amrex::Print() << "EM DEBUG Plotting Fluxes " << std::to_string(count23) << " from Godunov" << std::endl;
+//    VisMF::Write(a_fx,"a_fx_"+std::to_string(count23));
+//    VisMF::Write(a_fy,"a_fy_"+std::to_string(count23));
+
     Array<MultiFab*,AMREX_SPACEDIM> fluxes;
     fluxes[0] = &a_fx;
     fluxes[1] = &a_fy;
