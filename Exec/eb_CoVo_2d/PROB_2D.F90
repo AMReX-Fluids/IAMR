@@ -19,15 +19,13 @@ module prob_2D_module
   private :: initbubble, initspin, &
              initviscbench, initvort, initchannel, initpervort, &
              inithotspot, initrt, inittraceradvect, initfromrest, &
-             initNodeEBtest, initflowpastcylinder
+             initNodeEBtest
 
   public :: amrex_probinit, FORT_INITDATA,  &
             FORT_DENERROR, FORT_AVERAGE_EDGE_STATES, FORT_MAKEFORCE, &
             FORT_ADVERROR, FORT_ADV2ERROR, FORT_TEMPERROR, FORT_MVERROR, &
             FORT_DENFILL, FORT_ADVFILL, FORT_TEMPFILL, FORT_XVELFILL, &
             FORT_YVELFILL, FORT_PRESFILL, FORT_DIVUFILL, FORT_DSDTFILL
-
-  REAL_T :: m_problo(SDIM), m_probhi(SDIM)        
 
 contains
 
@@ -75,15 +73,17 @@ contains
       REAL_T dxFile(3)
 
       namelist /fortin/ denerr, vorterr, adverr, temperr, &
-     			denfact, xblob, yblob, zblob, radblob, &
-                       velfact, probtype, randfact, bubgrad, &
-     			rhozero, tempzero, c_d, r_d, grav_angle, &
-                       adv_dir, adv_vel, axis_dir, radvort, &
-                       lid_vel 
+                        denfact, xblob, yblob, zblob, radblob, &
+                        velfact, probtype, randfact, bubgrad, &
+                        rhozero, tempzero, c_d, r_d, grav_angle, &
+                        adv_dir, adv_vel, axis_dir, radvort, &
+                        lid_vel 
 #ifdef BL_DO_FLCT
-                       ,forceInflow, numInflPlanesStore, strmwse_dir, &
-                       forceLo, forceHi, flct_file, turb_scale
+                        ,forceInflow, numInflPlanesStore, strmwse_dir, &
+                        forceLo, forceHi, flct_file, turb_scale
 #endif
+
+      namelist /CoVo/  meanFlowDir, meanFlowMag, xvort, yvort, rvort, forcevort
 
 !c
 !c      Build "probin" filename -- the name of file containing fortin namelist.
@@ -108,9 +108,6 @@ contains
          open(untin,file=probin(1:namlen),form='formatted',status='old')
       end if
 
-      m_problo = problo
-      m_probhi = probhi
-
 #ifdef BL_DO_FLCT
       forceInflow = .FALSE.
       numInflPlanesStore = 16
@@ -121,10 +118,30 @@ contains
       turb_scale = 1
 #endif
 
+      meanFlowDir = 1.0
+      meanFlowMag = 1.0d0
+      xvort = 0.5
+      yvort = 0.5
+      rvort = 0.01945
+      forcevort = 1.0
+
       read(untin,fortin)
+      read(untin,CoVo)
       if (isioproc .eq. 1) write(6,fortin)
+      if (isioproc .eq. 1) write(6,CoVo)
       close(unit=untin)
 
+!     Do some checks on COVO params     
+      IF (       meanFlowDir /= 1 .AND. meanFlowDir /= -1 &
+           .AND. meanFlowDir /= 2 .AND. meanFlowDir /= -2 &
+           .AND. meanFlowDir /= 3 .AND. meanFlowDir /= -3  ) THEN
+          WRITE(*,*) " meanFlowDir should be either: "
+          WRITE(*,*) " +/-1 for x direction" 
+          WRITE(*,*) " +/-2 for y direction" 
+          WRITE(*,*) " +/-3 for diagonal direction" 
+          WRITE(*,*) " Note: the mean flow direction(s) must be periodic "
+          CALL bl_abort('Correct meanFlowDir value !')
+      END IF
 #ifdef BL_DO_FLCT
       if (forceInflow .eqv. .FALSE.) then
          forceLo = .FALSE.
@@ -253,76 +270,17 @@ contains
                              vel,scal,DIMS(state), &
                              dx,xlo,xhi)
 
-      else if (probtype .eq. 32) then
-         call initflowpastcylinder(level,time,lo,hi,nscal, &
-          vel,scal,DIMS(state),press,DIMS(press), &
-          dx,xlo,xhi, m_probhi )
+      else if (probtype .eq. 14) then
+         call initCoVo(level,time,lo,hi,nscal, &
+                       vel,scal,DIMS(state),press,DIMS(press), &
+                       dx,xlo,xhi)
+
       else
          write(6,*) "INITDATA: bad probtype = ",probtype
          stop
       end if
 
       end subroutine FORT_INITDATA
-
-      subroutine initflowpastcylinder ( level,time,lo,hi,nscal, &
-                                      vel,scal,DIMS(state),press,DIMS(press), &
-                                      dx,xlo,xhi,probhi) bind(C, name="initflowpastcylinder")
-
-      implicit none
-
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM), probhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T     scal(DIMV(state),nscal)
-      REAL_T     press(DIMV(press))
-!c
-!c     ::::: local variables
-!c
-      integer i, j, n
-      REAL_T  x, y
-      REAL_T  xn, yn ! normalized coordinates
-      REAL_T  hx, hy
-      REAL_T  dist, my_max
-
-#include <probdata.H>
-
-      hx = dx(1)
-      hy = dx(2)
-
-      select case (adv_dir)
-      case(1)                   ! Flow in x direction
-            do j = lo(2), hi(2)
-               y = xlo(2) + hy*(float(j-lo(2)) + half)
-               do i = lo(1), hi(1)
-                  x = xlo(1) + hx*(float(i-lo(1)) + half)
-
-                  yn = y / probhi(2)
-                  vel(i,j,1) = adv_vel
-                  vel(i,j,2) = zero
-
-                  my_max = max(my_max,vel(i,j,1))
-                  scal(i,j,1) = denfact
-
-                  do n = 2,nscal-1
-                     scal(i,j,n) = one
-                  end do
-
-
-                  dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-                  scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
-               end do
-            end do
-      case default
-         write(6,*) "initflowpastcylinder requires adv_dir=1, currently adv_dir=",adv_dir
-         stop
-      end select
-
-   end subroutine initflowpastcylinder
-
 !c
 !c ::: -----------------------------------------------------------
 !c
@@ -575,6 +533,80 @@ contains
          end do
 
       end subroutine initvort
+!c
+!c ::: -----------------------------------------------------------
+!c
+      subroutine initCoVo(level,time,lo,hi,nscal, &
+                          vel,scal,DIMS(state),press,DIMS(press), &
+                          delta,xlo,xhi) &
+                          bind(C, name="initCoVo")
+
+      implicit none                 
+                         
+      integer    level, nscal
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(state)
+      integer    DIMDEC(press)
+      REAL_T     time, delta(SDIM)
+      REAL_T     xlo(SDIM), xhi(SDIM)
+      REAL_T     vel(DIMV(state),SDIM)
+      REAL_T    scal(DIMV(state),nscal)
+      REAL_T   press(DIMV(press))
+!c
+!c     ::::: local variables
+!c
+      integer :: i, j, n
+      REAL_T  :: dx, dy, d_sq, r_sq, u_vort, v_vort 
+      REAL_T  :: x, y, r
+      REAL_T  :: hx, hy
+
+#include <probdata.H>
+
+      hx = delta(1)
+      hy = delta(2)
+
+         do j = lo(2), hi(2)
+            y = xlo(2) + hy*(float(j-lo(2)) + half)
+            do i = lo(1), hi(1)
+               x = xlo(1) + hx*(float(i-lo(1)) + half)
+               dx = x - xvort
+               dy = y - yvort
+               d_sq = dx*dx + dy*dy
+               r_sq = rvort*rvort
+
+               u_vort = -forcevort*dy/r_sq * exp(-d_sq/r_sq/two)
+               v_vort = forcevort*dx/r_sq * exp(-d_sq/r_sq/two)
+
+               SELECT CASE ( meanFlowDir )
+                  CASE (1)
+                     vel(i,j,1) = meanFlowMag + u_vort
+                     vel(i,j,2) = v_vort
+                  CASE (-1)
+                     vel(i,j,1) = -meanFlowMag + u_vort
+                     vel(i,j,2) = v_vort
+                  CASE (2)
+                     vel(i,j,1) = u_vort
+                     vel(i,j,2) = meanFlowMag + v_vort
+                  CASE (-2)
+                     vel(i,j,1) = u_vort
+                     vel(i,j,2) = -meanFlowMag + v_vort
+                  CASE (3)
+                     vel(i,j,1) = meanFlowMag + u_vort
+                     vel(i,j,2) = meanFlowMag + v_vort
+                  CASE (-3)
+                     vel(i,j,1) = -meanFlowMag + u_vort
+                     vel(i,j,2) = -meanFlowMag + v_vort
+               END SELECT
+
+               scal(i,j,1) = merge(denfact,one,r.lt.radblob)
+               do n = 2,nscal-1
+                  scal(i,j,n) = one
+               end do                  
+               scal(i,j,nscal) = merge(one,zero,r.lt.radblob)
+            end do
+         end do
+
+      end subroutine initCoVo
 !c
 !c ::: -----------------------------------------------------------
 !c
