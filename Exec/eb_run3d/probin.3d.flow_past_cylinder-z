@@ -1,0 +1,15 @@
+
+ &fortin
+
+  probtype = 32
+  denfact  = 1.
+  adv_dir  = 3
+  adv_vel  = 1.
+  xblob    = 0.5
+  yblob    = 0.5	
+  zblob    = 0.15
+  radblob  = 0.1
+  vorterr = 1.e-2
+  adverr  = 0.1
+
+ /

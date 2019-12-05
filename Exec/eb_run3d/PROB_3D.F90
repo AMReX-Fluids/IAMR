@@ -1812,9 +1812,10 @@ contains
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
-
+      print*, "probhi = ", probhi
       select case (adv_dir)
-      case(1)                   ! Flow in x direction
+         ! Flow in x direction
+      case(1)
          do k = lo(3), hi(3)
             z = xlo(3) + hz*(float(k-lo(3)) + half)
             do j = lo(2), hi(2)
@@ -1823,7 +1824,7 @@ contains
                   x = xlo(1) + hx*(float(i-lo(1)) + half)
 
                   yn = y / probhi(2)
-                  vel(i,j,k,1) = 6.0d0 * adv_vel * yn * (1.0 - y/probhi(2))
+                  vel(i,j,k,1) = 6.0d0 * adv_vel * yn * (1.0 - yn)
                   vel(i,j,k,2) = zero
                   vel(i,j,k,3) = zero
 
@@ -1840,8 +1841,62 @@ contains
                end do
             end do
          end do
+         ! Flow in y direction
+      case(2)
+         do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy*(float(j-lo(2)) + half)
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+                  zn = z / probhi(3)
+                  vel(i,j,k,1) = zero
+                  vel(i,j,k,2) = 6.0d0 * adv_vel * zn * (1.0 - zn)
+                  vel(i,j,k,3) = zero
+
+                  my_max = max(my_max,vel(i,j,k,2))
+                  scal(i,j,k,1) = denfact
+
+                  do n = 2,nscal-1
+                     scal(i,j,k,n) = one
+                  end do
+
+
+                  dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+                  scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
+               end do
+            end do
+         end do
+         ! Flow in z direction
+      case(3)
+         do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy*(float(j-lo(2)) + half)
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+                  xn = x / probhi(1)
+                  vel(i,j,k,1) = zero
+                  vel(i,j,k,2) = zero
+                  vel(i,j,k,3) = 6.0d0 * adv_vel * xn * (1.0 - xn)
+
+                  my_max = max(my_max,vel(i,j,k,3))
+                  scal(i,j,k,1) = denfact
+
+                  do n = 2,nscal-1
+                     scal(i,j,k,n) = one
+                  end do
+
+
+                  dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+                  scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
+               end do
+            end do
+         end do
       case default
-         write(6,*) "initflowpastcylinder requires adv_dir=1, currently adv_dir=",adv_dir
+         write(6,*) "initflowpastcylinder requires adv_dir=1,2, or 3. Currently adv_dir=",adv_dir
          stop
       end select
 
@@ -6062,7 +6117,7 @@ contains
                do k = ARG_L3(u), ARG_H3(u)
                   do j = ARG_L2(u), ARG_H2(u)
                      y = (xlo(2) + dx(2)*(float(j-lo(2)) + half))/m_probhi(2)
-                     u(i,j,k) =  6.0d0 * x_vel * y * (1.0d0 - y )
+                     u(i,j,k) = 6.0d0 * x_vel * y * (1.0d0 - y)
                   end do
                end do
             end do
@@ -6404,13 +6459,24 @@ contains
       end if
 
       if (bc(2,1).eq.EXT_DIR.and.ARG_L2(v).lt.domlo(2)) then
-         do j = ARG_L2(v), domlo(2)-1
-            do k = ARG_L3(v), ARG_H3(v)
-               do i = ARG_L1(v), ARG_H1(v)
-                  v(i,j,k) = y_vel
+         if (probtype.eq.32) then
+            do j = ARG_L2(v), domlo(2)-1
+               do k = ARG_L3(v), ARG_H3(v)
+                  do i = ARG_L1(v), ARG_H1(v)
+                     z = (xlo(3) + dx(3)*(float(k-lo(3)) + half))/m_probhi(3)
+                     v(i,j,k) =  6.0d0 * y_vel * z * (1.0d0 - z)
+                  end do
                end do
             end do
-	 end do
+         else
+            do j = ARG_L2(v), domlo(2)-1
+               do k = ARG_L3(v), ARG_H3(v)
+                  do i = ARG_L1(v), ARG_H1(v)
+                     v(i,j,k) = y_vel
+                  end do
+               end do
+            end do
+         end if
       end if
 
       if (bc(2,2).eq.EXT_DIR.and.ARG_H2(v).gt.domhi(2)) then
@@ -6749,6 +6815,15 @@ contains
                   enddo
                enddo
             enddo
+         else if (probtype.eq.32) then
+            do k = ARG_L3(w), domlo(3)-1
+               do j = ARG_L2(w), ARG_H2(w)
+                  do i = ARG_L1(w), ARG_H1(w)
+                     x = (xlo(1) + dx(1)*(float(i-lo(1)) + half))/m_probhi(1)
+                     w(i,j,k) = 6.0d0 * z_vel * x * (1.0d0 - x)
+                  end do
+               end do
+            end do
 
          else if (probtype.eq.18) then
             do k = ARG_L3(w), domlo(3)-1
@@ -6803,6 +6878,8 @@ contains
                   enddo
                enddo
             enddo
+
+
 
          else
             if (probtype.eq.16) then
