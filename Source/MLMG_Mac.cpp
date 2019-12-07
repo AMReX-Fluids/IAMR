@@ -196,13 +196,53 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
 
     // no need to set A coef because it's zero
 
-    std::array<MultiFab,AMREX_SPACEDIM> bcoefs;
+    //
+    //    Compute beta coefficients
+    //
+    Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> bcoefs;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        const BoxArray& nba = amrex::convert(ba, IntVect::TheDimensionVector(idim));
-        bcoefs[idim].define(nba, dm, 1, 0);
+        BoxArray nba = amrex::convert(ba,IntVect::TheDimensionVector(idim));
+        bcoefs[idim].reset(new  MultiFab(nba, dm, 1, 0, MFInfo(),
+                                            (parent->getLevel(level)).Factory()));
     }
-    compute_mac_coefficient(bcoefs, S, Density, 1.0/rhs_scale);
+
+    // Set bcoefs to the average of Density at the faces
+    // This does NOT compute the average at the CENTROIDS, but at the faces
+    // Operator inside MAc projector will take care of this.
+    MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow());
+    MultiFab::Copy(rho, S, Density, 0, 1, S.nGrow()); // Extract rho component from S
+    average_cellcenter_to_face( GetArrOfPtrs(bcoefs), rho, geom);
+
+    // Now invert the coefficients and apply scale factor
+    int ng_for_invert(0);
+    Real scale_factor(1.0/rhs_scale);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        bcoefs[idim]->invert(scale_factor,ng_for_invert);
+        bcoefs[idim]->FillBoundary( geom.periodicity() );
+    }
+
+    //
+    // Compute RHS
+    //
+    // create right containers for MacProjector
+    Array<MultiFab*,AMREX_SPACEDIM>  umac;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        umac[idim]= &(u_mac[idim]);
+
+
+    // The bvelow lines replace compute_mac_rhs(Rhs, u_mac, area, volume, dxinv)
+    // which computes rhs = rhs - divu
+    MultiFab divu(Rhs.boxArray(),Rhs.DistributionMap(),Rhs.nComp(),Rhs.nGrow());
+    computeDivergence(divu,GetArrOfConstPtrs(umac), geom);
+    divu.mult(-1.0);
+    Rhs.plus(divu,0,1,0);
+
+    //
+    // Setup Linear solver
+    //
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
 
     MLMG mlmg(mlabec);
@@ -213,15 +253,12 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
 
-    const Real* dxinv = geom.InvCellSize();
-    compute_mac_rhs(Rhs, u_mac, area, volume, dxinv);
-
     mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
 
     auto& fluxes = bcoefs;
     mlmg.getFluxes({amrex::GetArrOfPtrs(fluxes)});
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        MultiFab::Add(u_mac[idim], fluxes[idim], 0, 0, 1, 0);
+        MultiFab::Add(u_mac[idim], *fluxes[idim], 0, 0, 1, 0);
     }
 }
 
@@ -245,7 +282,7 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
         ppmac.query("use_hypre", use_hypre);
         ppmac.query("hypre_verbose", hypre_verbose);
 #endif
-	
+
         initialized = true;
     }
 
@@ -266,7 +303,7 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     // Want to go back to ML(EB)ABecLap. MacProjector takes div and don't need that here
     // Will MLEBABecLap take care of bcoef like MacProj?
     // Not so relevant at the moment with restrriction EB not crossing coarse-fine bndry
-    
+
     // Set bcoefs to the average of Density at the faces
     // This does NOT compute the average at the CENTROIDS, but at the faces
     // Operator inside MAc projector will take care of this.
@@ -281,11 +318,11 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
         bcoefs[idim]->invert(scale_factor,ng_for_invert);
         bcoefs[idim]->FillBoundary( geom.periodicity() );
     }
-    
+
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
-    
+
     // MacProjector is not what we want for sync
     // takes Face-centered velocity and interally computes div, but already have div
     //
@@ -304,7 +341,7 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 #endif
     mlabec.setMaxOrder(max_order);
     mlabec.setVerbose(verbose);
-	
+
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
     set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
@@ -316,7 +353,7 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     // }
     mlabec.setLevelBC(0, mac_phi);
 
-    mlabec.setScalars(0.0, 1.0);   
+    mlabec.setScalars(0.0, 1.0);
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
 
     MLMG mlmg(mlabec);
@@ -352,7 +389,7 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 // #else
 //       computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom);
 // #endif
-      
+
 //       Print() << "  MAC SYNC solve on level "<< level
 //     	      << " BEFORE projection: max(abs(divu)) = " << divu.norm0() << "\n";
 //     }
