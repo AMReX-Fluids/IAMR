@@ -87,7 +87,7 @@ Godunov::Initialize ()
 
 //     //nghost from incflo.
 
-    hyp_grow = 5;
+    hyp_grow = 4;
 #endif
 
 #if (BL_SPACEDIM==2)
