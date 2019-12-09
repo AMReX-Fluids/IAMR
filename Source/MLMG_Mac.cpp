@@ -507,7 +507,7 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     macproj.setVerbose(verbose);
 
     if (use_hypre) {
-      macproj.setBottomSolver(MLMG::BottomSolver::hypre);
+      macproj.setBottomSolver("hypre");
       macproj.setBottomVerbose(hypre_verbose);
       macproj.setVerbose(hypre_verbose);
     }
