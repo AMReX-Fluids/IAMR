@@ -67,7 +67,17 @@ extern "C" {
                        const amrex::Real* radius,
                        const int* irlo, const int* irhi,
                        const int* rz_flag);
+  
+    void summass_eb (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
+		     ARLIM_P(grid_lo), ARLIM_P(grid_hi),
+		     const amrex::Real* vf, ARLIM_P(vf_lo), ARLIM_P(vf_hi),
+		     const amrex::Real* delta,
+		     amrex::Real* mass,
+		     const amrex::Real* radius,
+		     const int* irlo, const int* irhi,
+		     const int* rz_flag);
 
+  
     void summass_cyl (const amrex::Real* dat, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            ARLIM_P(grid_lo), ARLIM_P(grid_hi),
                            const amrex::Real* delta, amrex::Real* mass,

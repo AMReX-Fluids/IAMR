@@ -1240,8 +1240,8 @@ NavierStokes::sum_integrated_quantities ()
     const int finest_level = parent->finestLevel();
 
     Real time = state[State_Type].curTime();
-    // Real mass = 0.0;
-    // Real trac = 0.0;
+    Real mass = 0.0;
+    Real trac = 0.0;
     Real energy = 0.0;
     Real mgvort = 0.0;
 #if defined(DO_IAMR_FORCE)
@@ -1254,8 +1254,8 @@ NavierStokes::sum_integrated_quantities ()
     for (int lev = 0; lev <= finest_level; lev++)
     {
         NavierStokes& ns_level = getLevel(lev);
-        // mass += ns_level.volWgtSum("density",time);
-        // trac += ns_level.volWgtSum("tracer",time);
+	mass += ns_level.volWgtSum("density",time);
+	trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
         mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
 #if defined(DO_IAMR_FORCE)
@@ -1267,8 +1267,8 @@ NavierStokes::sum_integrated_quantities ()
     }
 
     Print() << '\n';
-    // Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
-    // Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';

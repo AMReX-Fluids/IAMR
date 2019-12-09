@@ -20,7 +20,7 @@ module navierstokes_2d_module
   private 
 
   public gradp, fort_putdown, fort_maxval, &
-       summass, summass_cyl, cen2edg, edge_interp, &
+       summass, summass_eb, summass_cyl, cen2edg, edge_interp, &
        pc_edge_interp, filcc_tile
   
 contains
@@ -184,6 +184,53 @@ contains
 
      end subroutine summass
 
+!c :: ----------------------------------------------------------
+!c :: SUMMASS
+!c ::             MASS = sum{ volfrac*vol(i,j)*rho(i,j) }
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rho        => density field
+!c ::  DIMS(rho)  => index limits of rho aray
+!c ::  lo,hi      => index limits of grid interior
+!c ::  dx	 => cell size
+!c ::  mass      <=  total mass
+!c ::  r		 => radius at cell center
+!c ::  irlo,hi    => index limits of r array
+!c ::  rz_flag    => == 1 if R_Z coords
+!c ::  tmp        => temp column array
+!c :: ----------------------------------------------------------
+!c ::
+     subroutine summass_eb(rho,DIMS(rho),DIMS(grid),vf,DIMS(vf),dx,mass,&
+            r,irlo,irhi,rz_flag) bind(C,name="summass_eb")
+
+       implicit none
+       integer irlo, irhi, rz_flag
+       integer DIMDEC(rho)
+       integer DIMDEC(vf)
+       integer DIMDEC(grid)
+       REAL_T  mass, dx(2)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  vf(DIMV(vf))
+       REAL_T  r(irlo:irhi)
+
+       integer i, j
+       REAL_T  dr, dz, vol
+
+       dr = dx(1)
+       dz = dx(2)
+
+       mass = zero
+
+       do i = ARG_L1(grid), ARG_H1(grid)
+          vol = dr*dz
+	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
+          do j = ARG_L2(grid), ARG_H2(grid)
+	     mass = mass + vf(i,j)*vol*rho(i,j)
+	  end do
+       end do
+
+     end subroutine summass_eb
+     
 !c :: ----------------------------------------------------------
 !c :: SUMMASSCYL
 !c ::    MASS = sum{ vol(i,j)*rho(i,j) } over subregion cylinder
