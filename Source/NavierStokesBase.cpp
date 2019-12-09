@@ -4076,7 +4076,7 @@ NavierStokesBase::volWgtSum (const std::string& name,
         {
 #ifdef AMREX_USE_EB
 	    summass_eb(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-		       vf,ARLIM(vflo),ARLIM(vfhi),dx,&s,rad,&irlo,&irhi,&rz_flag);
+		       vf,ARLIM(vflo),ARLIM(vfhi),dx,&s);
 #else
 	    summass(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s);
 #endif

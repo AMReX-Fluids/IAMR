@@ -861,7 +861,7 @@ contains
 
        mass = vol*mass
 
-       end subroutine summass
+     end subroutine summass_eb
 
 !c :: ----------------------------------------------------------
 !c :: SUMMASSCYL
