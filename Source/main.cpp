@@ -74,7 +74,7 @@ main (int   argc,
     //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
     // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var?
     // Using incflo values here
-    AmrLevel::SetEBMaxGrowCells(5,5,5);
+    AmrLevel::SetEBMaxGrowCells(4,4,4);
 
     //decide who should own max_coasening_level later
     int max_coarsening_level = 30;

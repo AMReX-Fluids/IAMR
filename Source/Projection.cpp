@@ -889,10 +889,10 @@ Projection::initialVelocityProject (int  c_lev,
 
         for (lev = f_lev-1; lev >= c_lev; --lev)
         {
-            // NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-            // ns->average_down(*vel[lev+1], *vel[lev], 0, AMREX_SPACEDIM);
-            amrex::average_down(*vel[lev+1], *vel[lev], parent->Geom(lev+1), parent->Geom(lev),
-                                0, BL_SPACEDIM, parent->refRatio(lev));
+	    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+	    ns->average_down(*vel[lev+1], *vel[lev], 0, AMREX_SPACEDIM);
+            //amrex::average_down(*vel[lev+1], *vel[lev], parent->Geom(lev+1), parent->Geom(lev),
+            //                    0, BL_SPACEDIM, parent->refRatio(lev));
         }
 
         //

@@ -3291,7 +3291,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Geometry& fgeom   = parent->Geom(f_lev);
     const Geometry& cgeom   = parent->Geom(c_lev);
 
-    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),Factory());
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),getLevel(c_lev).Factory());
     crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
 
