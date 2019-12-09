@@ -22,7 +22,7 @@ module navierstokes_3d_module
 #ifdef SUMJET
             sum_jet, &
 #endif
-            fort_maxval, summass, summass_cyl, cen2edg, edge_interp, &
+            fort_maxval, summass, summass_eb, summass_cyl, cen2edg, edge_interp, &
             pc_edge_interp, filcc_tile
   
 contains
@@ -809,6 +809,52 @@ contains
           do j = ARG_L2(grid), ARG_H2(grid)
              do i = ARG_L1(grid), ARG_H1(grid)
                 mass = mass + rho(i,j,k)
+             end do
+          end do
+       end do
+
+       mass = vol*mass
+
+       end subroutine summass
+
+       
+!c :: ----------------------------------------------------------
+!c :: SUMMASS
+!c ::             MASS = sum{ vol(i,j)*rho(i,j) }
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rho        => density field
+!c ::  DIMS(rho)  => index limits of rho aray
+!c ::  lo,hi      => index limits of grid interior
+!c ::  delta	 => cell size
+!c ::  mass      <=  total mass
+!c ::  r		 => radius at cell center
+!c ::  tmp        => temp column array
+!c :: ----------------------------------------------------------
+!c ::
+       subroutine summass_eb(rho,DIMS(rho),DIMS(grid),vf,DIMS(vf),delta,mass)&
+            bind(C,name="summass_eb")
+
+       implicit none
+
+       integer DIMDEC(rho)
+       integer DIMDEC(vf)
+       integer DIMDEC(grid)
+       REAL_T  mass, delta(SDIM)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  vf(DIMV(vf))
+
+       integer i, j, k
+       REAL_T  vol
+
+       vol = delta(1)*delta(2)*delta(3)
+
+       mass = zero
+
+       do k = ARG_L3(grid), ARG_H3(grid)
+          do j = ARG_L2(grid), ARG_H2(grid)
+             do i = ARG_L1(grid), ARG_H1(grid)
+                mass = mass +  vf(i,j,k)*rho(i,j,k)
              end do
           end do
        end do
