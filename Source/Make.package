@@ -36,7 +36,6 @@ endif
 
 # EB stuff
 ifeq ($(USE_EB), TRUE)
-  FEXE_headers += convection_F.H
   F90EXE_sources += param_mod.F90
   CEXE_sources += iamr_extrap_vel_to_faces.cpp
   CEXE_sources += iamr_compute_fluxes.cpp

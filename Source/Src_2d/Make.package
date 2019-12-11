@@ -25,9 +25,6 @@ endif
 
 # for EB
 ifeq ($(USE_EB),TRUE)
-F90EXE_sources += convection_mod_2d.F90 convection_eb_mod_2d.F90 \
-	       slopes_mod_2d.F90 divop_mod.F90
-
 F90EXE_sources += AMReX_EBMultiFabUtil_2d.F90
 
 endif

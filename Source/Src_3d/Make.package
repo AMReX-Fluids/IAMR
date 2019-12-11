@@ -24,11 +24,5 @@ F90EXE_sources += ARRAYLIM_$(DIM)D.F90 \
 
 # for EB
 ifeq ($(USE_EB),TRUE)
-F90EXE_sources += convection_mod_3d.F90 convection_eb_mod_3d.F90 \
-	       slopes_mod_3d.F90
-
 F90EXE_sources += AMReX_EBMultiFabUtil_3d.F90
-
-f90EXE_sources += divop_mod.f90
-
 endif
