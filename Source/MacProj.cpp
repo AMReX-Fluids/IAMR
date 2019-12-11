@@ -760,8 +760,12 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
     }
 
+#ifdef AMREX_USE_EB
+    MultiFab& Gp = ns_level.getGradP();
+#else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
     ns_level.getGradP(Gp, prev_pres_time);
+#endif
 
     std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(1,prev_time));
     //
