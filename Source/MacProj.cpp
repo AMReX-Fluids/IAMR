@@ -547,10 +547,6 @@ MacProj::mac_sync_solve (int       level,
                         rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi,
 			Ucorr, verbose);
 
-    // Make sure Ucorr has correct sign
-    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
-      Ucorr[idim]->negate();
-
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -562,125 +558,6 @@ MacProj::mac_sync_solve (int       level,
     }
 }
 
-  /* REMOVE in favor of single version above. subtract_avg and offset never used
-// this version is for the closed chamber LMC algorithm
-void
-MacProj::mac_sync_solve (int       level,
-                         Real      dt,
-                         MultiFab& rho_half,
-                         IntVect&  fine_ratio,
-			 MultiFab* Rhs_increment,
-			 bool      subtract_avg,
-			 Real&     offset)
-{
-    BL_ASSERT(level < finest_level);
-
-    if (verbose) amrex::Print() << "... mac_sync_solve at level " << level << '\n';
-
-    if (verbose && benchmarking) ParallelDescriptor::Barrier();
-
-    const Real      strt_time  = ParallelDescriptor::second();
-    const BoxArray& grids      = LevelData[level]->boxArray();
-    const DistributionMapping& dmap = LevelData[level]->DistributionMap();
-    const Geometry& geom       = parent->Geom(level);
-    const Real*     dx         = geom.CellSize();
-    const BoxArray& fine_boxes = LevelData[level+1]->boxArray();
-    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
-                                           : IntVect::TheZeroVector();
-    const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
-    const MultiFab&     volume     = ns_level.Volume();
-    const MultiFab*     area_level = ns_level.Area();
-    //
-    // Reusing storage here, since there should be no more need for the
-    // values in mac_phi at this level and mac_sync_phi only need to last
-    // into the call to mac_sync_compute.  Hope this works...  (LHH).
-    //
-    MultiFab* mac_sync_phi = mac_phi_crse[level].get();
-
-    //
-    // Solve the sync system.
-    //
-    //
-    // Alloc and define RHS by doing a reflux-like operation in coarse
-    // grid cells adjacent to fine grids.  The values in these
-    // cells should be SUM{MR/VOL} where the sum is taken over
-    // all edges of a cell that adjoin fine grids, MR = value in
-    // MAC register, VOL = cell volume.  All other cells have a
-    // value of zero (including crse cells under fine grids).
-    //
-    MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
-    Rhs.setVal(0.0);
-    //
-    // Reflux subtracts values at hi edge of coarse cell and
-    // adds values at lo edge.  We want the opposite here so
-    // set scale to -1 & alloc space for Rhs.
-    //
-    FluxRegister& mr = *mac_reg[level+1];
-    const Real scale = -1.0;
-
-    mr.Reflux(Rhs,volume,scale,0,0,1,geom);
-
-    BoxArray baf = fine_boxes;
-
-    baf.coarsen(fine_ratio);
-
-    // Use tiling here?
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
-    {
-        BL_ASSERT(grids[Rhsmfi.index()] == Rhsmfi.validbox());
-
-        const std::vector< std::pair<int,Box> >& isects = baf.intersections(Rhsmfi.validbox());
-
-        FArrayBox& rhsfab = Rhs[Rhsmfi];
-
-        for (int ii = 0, N = isects.size(); ii < N; ii++)
-        {
-            rhsfab.setVal(0.0,isects[ii].second,0);
-        }
-    }
-
-    if (Rhs_increment)
-    {
-      MultiFab::Add(Rhs,*Rhs_increment,0,0,1,0);
-    }
-
-
-    mac_sync_phi->setVal(0.0);
-
-    //
-    // Now define edge centered coefficients and adjust RHS for MAC solve.
-    //
-    const Real rhs_scale = 2.0/dt;
-
-    MultiFab area_tmp[BL_SPACEDIM];
-    if (anel_coeff[level] != 0) {
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	  area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
-	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
-	}
-        scaleArea(level,area_tmp,anel_coeff[level]);
-    }
-
-    const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
-
-    mlmg_mac_sync_solve(parent,*phys_bc, level, mac_sync_tol, mac_abs_tol,
-                        rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi, verbose);
-
-
-    if (verbose)
-    {
-        const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      run_time = ParallelDescriptor::second() - strt_time;
-
-        ParallelDescriptor::ReduceRealMax(run_time,IOProc);
-
-	amrex::Print() << "MacProj::mac_sync_solve(): time: " << run_time << std::endl;
-    }
-}
-  */
 //
 // After solving for mac_sync_phi in mac_sync_solve(), we
 // can now do the sync advect step.  This consists of two steps
@@ -796,7 +673,7 @@ MacProj::mac_sync_compute (int                   level,
         FArrayBox& divu = (*divu_fp)[Smfi];
         const Box& bx = Smfi.tilebox();
         //
-        // Step 1: compute ucorr = grad(phi)/rhonph
+        // Step 1: compute ucorr = grad(phi)/rhonph -- Now done in mac_sync_solve()
         //
         // Create storage for corrective velocities.
         //
@@ -948,10 +825,6 @@ MacProj::mac_sync_compute (int                    level,
       const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
       fluxes[i].define(ba, dmap, 1, 0, MFInfo(),ns_level.Factory());
     }
-
-    // Make sure Ucorr has correct sign
-    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
-      Ucorr[idim]->negate();
 
     //
     // Compute the mac sync correction.
