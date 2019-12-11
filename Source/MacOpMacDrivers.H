@@ -10,7 +10,7 @@
 //====================================================================
 
 
-// Apply the mac pressure gradient to a velocity field 
+// Apply the mac pressure gradient to a velocity field
 // "init" means that velocities are initialized here
 void mac_vel_update( int init,
                      amrex::FArrayBox &uvel,
@@ -19,8 +19,8 @@ void mac_vel_update( int init,
                      amrex::FArrayBox &wvel,
 #endif
                      const amrex::FArrayBox &phi,
-                     const amrex::FArrayBox &rho, int rho_comp,  
-                     const amrex::Box &bx, 
+                     const amrex::FArrayBox &rho, int rho_comp,
+                     const amrex::Box &bx,
 		     const amrex::Box &vbx, int level,
                      const amrex::Real *dx, amrex::Real scale );
 
@@ -29,7 +29,6 @@ void mac_vel_update( int init,
 
 void mlmg_mac_level_solve (amrex::Amr* parent, const amrex::MultiFab* cphi, const amrex::BCRec& phys_bc,
                            int level, int Density, amrex::Real mac_tol, amrex::Real mac_abs_tol, amrex::Real rhs_scale,
-                           const amrex::MultiFab *area, const amrex::MultiFab &volume,
                            const amrex::MultiFab &S, amrex::MultiFab &Rhs,
                            amrex::MultiFab *u_mac, amrex::MultiFab *mac_phi, int verbose);
 
@@ -40,14 +39,3 @@ void mlmg_mac_sync_solve (amrex::Amr* parent, const amrex::BCRec& phys_bc,
                           amrex::MultiFab* mac_phi,
 			  amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
 			  int verbose);
-
-#ifdef AMREX_USE_EB
-void eb_mac_level_solve (amrex::Amr* parent, const amrex::MultiFab* cphi,
-			 const amrex::BCRec& phys_bc, int level, int Density,
-			 amrex::Real mac_tol, amrex::Real mac_abs_tol,
-			 amrex::Real rhs_scale,
-			 const amrex::MultiFab *area, const amrex::MultiFab &volume,
-			 const amrex::MultiFab &S, amrex::MultiFab &Rhs,
-			 amrex::MultiFab *u_mac, amrex::MultiFab *mac_phi, int verbose);
-
-#endif
