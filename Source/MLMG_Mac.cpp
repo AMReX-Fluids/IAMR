@@ -175,29 +175,8 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     const BoxArray& ba = Rhs.boxArray();
     const DistributionMapping& dm = Rhs.DistributionMap();
 
-    LPInfo info;
-    info.setAgglomeration(agglomeration);
-    info.setConsolidation(consolidation);
-
-    MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
-    mlabec.setMaxOrder(max_order);
-
-    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
-    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
-    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
-
-    mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
-    if (level > 0) {
-        mlabec.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
-    }
-    mlabec.setLevelBC(0, mac_phi);
-
-    mlabec.setScalars(0.0, 1.0);
-
-    // no need to set A coef because it's zero
-
     //
-    //    Compute beta coefficients
+    // Compute beta coefficients
     //
     Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> bcoefs;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -225,42 +204,52 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     }
 
     //
-    // Compute RHS
+    // Create MacProjector Object
     //
-    // create right containers for MacProjector
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+
     Array<MultiFab*,AMREX_SPACEDIM>  umac;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         umac[idim]= &(u_mac[idim]);
 
-
-    // The bvelow lines replace compute_mac_rhs(Rhs, u_mac, area, volume, dxinv)
-    // which computes rhs = rhs - divu
-    MultiFab divu(Rhs.boxArray(),Rhs.DistributionMap(),Rhs.nComp(),Rhs.nGrow());
-    computeDivergence(divu,GetArrOfConstPtrs(umac), geom);
-    divu.mult(-1.0);
-    Rhs.plus(divu,0,1,0);
+    MacProjector macproj( {umac}, {GetArrOfConstPtrs(bcoefs)}, {geom}, info, {&Rhs} );
 
     //
-    // Setup Linear solver
+    // Set BCs
     //
-    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
+    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
+    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
 
-    MLMG mlmg(mlabec);
-    if (use_hypre) {
-        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-        mlmg.setBottomVerbose(hypre_verbose);
+    macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
+    if (level > 0)
+    {
+        macproj.getLinOp().setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
     }
-    mlmg.setMaxFmgIter(max_fmg_iter);
-    mlmg.setVerbose(verbose);
+    macproj.setLevelBC(0, mac_phi);
 
-    mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
-
-    auto& fluxes = bcoefs;
-    mlmg.getFluxes({amrex::GetArrOfPtrs(fluxes)});
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        MultiFab::Add(u_mac[idim], *fluxes[idim], 0, 0, 1, 0);
+    //
+    // Other MacProjector settings
+    //
+    macproj.getLinOp().setMaxOrder(max_order);
+    if (use_hypre)
+    {
+        macproj.getMLMG().setBottomSolver(MLMG::BottomSolver::hypre);
+        macproj.getMLMG().setBottomVerbose(hypre_verbose);
     }
+    // Ask about this one
+    macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
+    macproj.setVerbose(verbose);
+
+    //
+    // Perform projection
+    //
+    macproj.project({mac_phi}, mac_tol, mac_abs_tol, MLMG::Location::FaceCentroid);
 }
+
+
 
 void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
                           int level, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
@@ -458,13 +447,6 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
         bcoefs[idim]->FillBoundary( geom.periodicity() );
     }
 
-    // // set to huge val if covered, do normal geometric average otherwise
-    // // bx(i,j,k) = (2.d0*scale) / (rho(i-1,j,k)+rho(i,j,k))
-    // compute_mac_coefficient_eb(bcoefs[0], S, Density, 1.0/rhs_scale);
-    // // make sure BCs are filled
-    // for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    //   bcoefs[0][idim]->FillBoundary( geom.periodicity() );
-
     // create right containers for MacProjector
     Array<MultiFab*,AMREX_SPACEDIM>  a_umac;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -490,29 +472,27 @@ void eb_mac_level_solve (Amr* parent, const MultiFab* cphi,
     // make sure u_mac already has bndry properly filled
     MacProjector macproj( {a_umac}, {GetArrOfConstPtrs(bcoefs)}, {geom}, info, {&Rhs} );
 
-    // MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
-    //mlabec.setMaxOrder(max_order);
+    macproj.getLinOp().setMaxOrder(max_order);
 
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
     set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
 
     macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
-
-    // Weiqun says this should not be needed
-    // if (level > 0) {
-    //     mlabec.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
-    // }
+    if (level > 0) {
+        macproj.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
+    }
     macproj.setLevelBC(0, mac_phi);
     macproj.setVerbose(verbose);
 
-    if (use_hypre) {
-      macproj.setBottomSolver("hypre");
-      macproj.setBottomVerbose(hypre_verbose);
-      macproj.setVerbose(hypre_verbose);
+    if (use_hypre)
+    {
+        macproj.getMLMG().setBottomSolver(MLMG::BottomSolver::hypre);
+        macproj.getMLMG().setBottomVerbose(hypre_verbose);
+        macproj.getMLMG().setVerbose(hypre_verbose);
     }
-    // macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
-    // macproj.getMLMG().setVerbose(verbose);
+    macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
+    macproj.getMLMG().setVerbose(verbose);
 
     // not 100% sure whether to give initial guess or not
     bool steady_state=false;
