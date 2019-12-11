@@ -2223,7 +2223,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
       amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
 		     << std::endl;
     else
-      amrex::Print()<<"doMMLMGNodalProjection: using MLNodeLaplacian."<<std::endl;
+      amrex::Print()<<"doMLMGNodalProjection: using MLNodeLaplacian."<<std::endl;
 
     int f_lev = c_lev + nlevel - 1;
 

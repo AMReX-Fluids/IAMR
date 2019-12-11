@@ -496,31 +496,6 @@ NavierStokes::predict_velocity (Real  dt)
     godunov->ComputeSlopes( Umf,
                            D_DECL(m_xslopes, m_yslopes, m_zslopes),
                             math_bc, 0, AMREX_SPACEDIM, domain);
-
-//     // Compute slopes and store for use in computing UgradU
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//     {
-//         Vector<int> bndry[AMREX_SPACEDIM];
-//         for (MFIter mfi(Umf, true); mfi.isValid(); ++mfi)
-//         {
-//             // Box bx=mfi.tilebox();
-//             // D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-//             //        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-//             //        bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-//             godunov->ComputeSlopes(mfi, Umf,
-//                                    D_DECL(m_xslopes, m_yslopes, m_zslopes),
-//                                    phys_bc, 0, AMREX_SPACEDIM, domain);
-
-//             // godunov->ComputeVelocitySlopes(mfi, Umf,
-//             //                                D_DECL(m_xslopes, m_yslopes, m_zslopes),
-//             //                                D_DECL(bndry[0], bndry[1], bndry[2]),
-//             //                                domain);
-//         }
-//     }
-
     //
     // need to fill ghost cells for slopes here.
     // vel advection term ugradu uses these slopes (does not recompute in incflo
@@ -531,19 +506,10 @@ NavierStokes::predict_velocity (Real  dt)
     D_TERM( m_xslopes.FillBoundary(geom.periodicity());,
             m_yslopes.FillBoundary(geom.periodicity());,
             m_zslopes.FillBoundary(geom.periodicity()););
-
-    // VisMF::Write(m_xslopes, "xslopes");
-    // VisMF::Write(m_yslopes, "yslopes");
-    // VisMF::Write(m_zslopes, "zslopes");
-
-
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, prev_pres_time);
 #endif
-
-    //fixme
-    //VisMF::Write(Gp,"gradpPV");
 
 
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
@@ -555,7 +521,8 @@ NavierStokes::predict_velocity (Real  dt)
     auto umax = VectorMaxAbs({&Umf},FabArrayBase::mfiter_tile_size,0,BL_SPACEDIM,Umf.nGrow());
 
     Real cflmax = dt*umax[0]/dx[0];
-    for (int d=1; d<BL_SPACEDIM; ++d) {
+    for (int d=1; d<BL_SPACEDIM; ++d)
+    {
         cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
     }
     Real tempdt = std::min(change_max,cfl/cflmax);
@@ -600,36 +567,12 @@ NavierStokes::predict_velocity (Real  dt)
                    bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                    bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-// #ifdef AMREX_USE_EB
-//             //
-//             //  trace state to cell edges
-//             //
-//             // For now, import simple adv scheme from incflo
-//             //
-//             // FIXME
-//             //  GODUNOV uses mathematical bcs like reflect_odd
-//             //  incflo convection uses phys bcs like slip wall
-//             // for now, just doing periodic, so just make sure I don't trip the bcs
-//             //
-//             godunov->ExtrapVelToFaces(U_mfi,
-//                                       D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-//                                       D_DECL(bndry[0],        bndry[1],        bndry[2]),
-//                                       D_DECL(m_xslopes, m_yslopes, m_zslopes),
-//                                       Ufab, tforces,
-//                                       D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
-//                                       D_DECL(*facecent[0], *facecent[1], *facecent[2]),
-//                                       domain);
-
-// #else
-            // non-EB
             //  1. compute slopes
             //  2. trace state to cell edges
             godunov->ExtrapVelToFaces(bx, dx, dt,
                                       D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                       D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                       Ufab, tforces);
-// #endif
-//FIXME --- check these braces may be wrong after merge
         }
     } // end OMP parallel region
 #endif
@@ -822,13 +765,9 @@ NavierStokes::scalar_advection (Real dt,
 
                 for (int d=0; d<BL_SPACEDIM; ++d)
                 {
-// #ifdef AMREX_USE_EB
-// 	    const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
-// #else
                     const Box& ebx = amrex::surroundingNodes(bx,d);
-//#endif
-                        cfluxes[d].resize(ebx,num_scalars);
-                        edgstate[d].resize(ebx,num_scalars);
+                    cfluxes[d].resize(ebx,num_scalars);
+                    edgstate[d].resize(ebx,num_scalars);
                 }
 
                 for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
@@ -839,38 +778,20 @@ NavierStokes::scalar_advection (Real dt,
 
                 state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
 
-// #ifdef AMREX_USE_EB
+                godunov->AdvectScalars(bx, dx, dt,
+                                       D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
+                                       D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
+                                       D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
+                                       D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
+                                       Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
+                                       (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
 
-// 	  godunov->AdvectScalars_EB(S_mfi, Smf, 0, num_scalars,
-// 				    *aofs, fscalar, 0,
-// 				    D_DECL(xslps, yslps, zslps),
-// 				    D_DECL(u_mac[0][S_mfi],u_mac[1][S_mfi],u_mac[2][S_mfi]),
-// 				    D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-// 				    D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-// 				    *volfrac, *bndrycent,
-// 				    D_DECL(*areafrac[0], *areafrac[1], *areafrac[2]),
-// 				    D_DECL(*facecent[0], *facecent[1], *facecent[2]),
-// 				    state_bc,
-// 				    geom.Domain(),
-// 				    geom.CellSize(),Godunov::hypgrow(), 0);
-
-// #else
-
-                    godunov->AdvectScalars(bx, dx, dt,
-                                           D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
-                                           D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
-                                           D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
-                                           D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
-                                           Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
-                                           (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
-//#endif
-
-                    //fixme: only need this copy if do_reflux?
-                    for (int d=0; d<BL_SPACEDIM; ++d)
-                    {
-                        const Box& ebx = S_mfi.nodaltilebox(d);
-                        (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
-                    }
+                //fixme: only need this copy if do_reflux?
+                for (int d=0; d<BL_SPACEDIM; ++d)
+                {
+                    const Box& ebx = S_mfi.nodaltilebox(d);
+                    (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+                }
             }
         } // OMP parallel loop
 #endif
@@ -882,13 +803,11 @@ NavierStokes::scalar_advection (Real dt,
     {
         if (level > 0 )
         {
-            //Print()<<"doing FineAdd..\n";
             for (int d = 0; d < BL_SPACEDIM; d++)
                 advflux_reg->FineAdd(fluxes[d],d,0,fscalar,num_scalars,dt);
         }
         if (level < parent->finestLevel())
         {
-            //Print()<<"doing CrseInit..\n";
             for (int i = 0; i < BL_SPACEDIM; i++)
                 getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,fscalar,num_scalars,-dt);
         }
