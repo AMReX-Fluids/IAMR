@@ -2730,16 +2730,16 @@ NavierStokesBase::restart (Amr&          papa,
     mac_projector->install_level(level,this);
 
     const BoxArray& P_grids = state[Press_Type].boxArray();
-//#ifdef AMREX_USE_EB
-//    //fixme? not 100% sure this is the right place
-//    // note --- this fn is really similar to constructor
-//    //  need to make sure gradp is getting properly filled for this restart case?
-//    //  incflo style advection does not use Gp in tracing states to edges,
-//    //  don't think Gp is needed until the vel update after the projection
-//    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-//    gradp->setVal(0.);
-//
-//#endif
+#ifdef AMREX_USE_EB
+    //fixme? not 100% sure this is the right place
+    // note --- this fn is really similar to constructor
+    //  need to make sure gradp is getting properly filled for this restart case?
+    //  incflo style advection does not use Gp in tracing states to edges,
+    //  don't think Gp is needed until the vel update after the projection.
+    // But ultimately we need gradp in the checkpoint file.
+    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
+    gradp->setVal(0.);
+#endif
 
     //
     // Alloc space for density and temporary pressure variables.
@@ -3946,7 +3946,15 @@ NavierStokesBase::volWgtSum (const std::string& name,
         const Box&  grdbx = grids[mfi.index()];
         const int*  lo  = grdbx.loVect();
         const int*  hi  = grdbx.hiVect();
-
+#ifdef AMREX_USE_EB
+        if ( (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0) || Geom().IsRZ() )
+	  amrex::Abort("EB volWgtSum currently only works over entire cartesian domain.");
+	
+	const Real* vf   = (*volfrac)[mfi].dataPtr();
+        const int*  vflo = (*volfrac)[mfi].loVect();
+        const int*  vfhi = (*volfrac)[mfi].hiVect();
+#endif
+	
 #if (BL_SPACEDIM == 2)
         int   rz_flag = Geom().IsRZ() ? 1 : 0;
         Real* rad     = &radius[mfi.index()][0];
@@ -3965,9 +3973,14 @@ NavierStokesBase::volWgtSum (const std::string& name,
         }
         else
         {
-            summass(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
-                         dx,&s,rad,&irlo,&irhi,&rz_flag);
-        }
+#ifdef AMREX_USE_EB
+	    summass_eb(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+		       vf,ARLIM(vflo),ARLIM(vfhi),dx,&s,rad,&irlo,&irhi,&rz_flag);
+#else
+	    summass(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+		    dx,&s,rad,&irlo,&irhi,&rz_flag);
+#endif
+	}
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -3983,7 +3996,12 @@ NavierStokesBase::volWgtSum (const std::string& name,
         }
         else
         {
-            summass(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s);
+#ifdef AMREX_USE_EB
+	    summass_eb(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),
+		       vf,ARLIM(vflo),ARLIM(vfhi),dx,&s);
+#else
+	    summass(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),dx,&s);
+#endif
         }
 #endif
         sum += s;
