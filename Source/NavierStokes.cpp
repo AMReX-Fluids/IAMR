@@ -679,29 +679,7 @@ NavierStokes::scalar_advection (Real dt,
 
         godunov->ComputeSlopes(Smf, D_DECL(xslps, yslps, zslps),
                                math_bc, 0, num_scalars, domain);
-        // Compute slopes for use in computing aofs
-        // Perhaps need to call EB_set_covered(Smf,....)
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//       {
-// 	Vector<int> bndry[BL_SPACEDIM];
-// 	for (MFIter mfi(Smf, true); mfi.isValid(); ++mfi)
-// 	{
-//             godunov->ComputeSlopes(mfi, Smf,
-//                                    D_DECL(xslps, yslps, zslps),
-//                                    phys_bc, 0, num_scalars, domain);
-// 	    // Box bx=mfi.tilebox();
-// 	    // D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-// 	    //        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-// 	    //        bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-// 	    // godunov->ComputeScalarSlopes(mfi, Smf, num_scalars,
-// 	    //     			 D_DECL(xslps, yslps, zslps),
-// 	    //     			 D_DECL(bndry[0], bndry[1], bndry[2]),
-// 	    //     			 domain);
-// 	}
-//       }
         //
         // need to fill ghost cells for slopes here.
         // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR

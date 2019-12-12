@@ -3907,51 +3907,6 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
             // Then set u_new = u_old + dt*tforces
             MultiFab::LinComb(U_new, 1.0, U_old, xvel, dt, tforces, 0, xvel, AMREX_SPACEDIM, 0);
         }
-
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//         {
-//             // FArrayBox tforces, S;
-//             FArrayBox S;
-//             for (MFIter mfi(U_old,true); mfi.isValid(); ++mfi)
-//             {
-//                 const Box& bx = mfi.tilebox();
-
-//                 if (getForceVerbose)
-//                 {
-//                     amrex::Print() << "---" << '\n'
-//                                    << "G - initial velocity diffusion update:" << '\n'
-//                                    << "Calling getForce..." << '\n';
-//                 }
-//                 //getForce(tforces[mfi],bx,0,Xvel,BL_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
-
-//                 godunov->Sum_tf_gp_visc(tforces[mfi],visc_terms[mfi],Gp[mfi],Rh[mfi]);
-
-//                 const Box& gbx = mfi.growntilebox();
-//                 S.resize(gbx,BL_SPACEDIM);
-//                 S.copy(U_old[mfi],gbx,0,gbx,0,BL_SPACEDIM);
-
-//                 if (do_mom_diff == 1)
-//                 {
-//                     for (int d = 0; d < BL_SPACEDIM; d++)
-//                     {
-//                         tforces[mfi].mult(Rh[mfi],bx,0,d,1);
-//                         S.mult(rho_ptime[mfi],bx,0,d,1);
-//                     }
-//                 }
-
-//                 godunov->Add_aofs_tf(S,U_new[mfi],0,BL_SPACEDIM,Aofs[mfi],
-//                                      0,tforces[mfi],0,bx,dt);
-
-//                 if (do_mom_diff == 1)
-//                 {
-//                     for (int d = 0; d < BL_SPACEDIM; d++)
-//                         U_new[mfi].divide(rho_ctime[mfi],bx,0,d,1);
-//                 }
-//             }
-//         }
-
     }
 
 }
