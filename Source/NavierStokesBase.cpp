@@ -3393,62 +3393,34 @@ NavierStokesBase::velocity_advection (Real dt)
     }
 
     const int   finest_level   = parent->finestLevel();
-    const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
-    const Real  prev_pres_time = state[Press_Type].prevTime();
+
     //
     // Compute viscosity components.
     //
 #ifdef AMREX_USE_EB
-    //fixme?  I think one gp is fine, just update as we go, but
-    // maybe revisit this later
-    //const MultiFab& Gp = getGradP();
-     MultiFab& Gp = *gradp;
-     Gp.FillBoundary(geom.periodicity());
-
-    //fixme
-    // not sure the right place to do this, but need to ensure all u_mac's
-    // ghost cells are filled.
-    // only periodic for now, but later may need create_umac_grown()
-
-    // E.M note: in PeleLM, filling u_mac ghost cells here lead to a wrong solution at boundaries
-    // commenting the 2 lines below provide 0 errors in PeleLM
-
-     // It seems the new extrapVelToFaces() fills u_mac ghost cells.
-     // Since FillBoundary only fills cells that overlap valid regions,
-     // don't understand how calling it could cause an error...
-
-    // for ( int i=0; i<BL_SPACEDIM; i++)
-    //   u_mac[i].FillBoundary(geom.periodicity());
-
-    //fixme
-    //    aofs->setVal(0.);
-
+    MultiFab& Gp = getGradP();
+    Gp.FillBoundary(geom.periodicity());
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-    getGradP(Gp, prev_pres_time);
+    getGradP(Gp, state[Press_Type].prevTime());
 #endif
 
-    //fixme
-    //VisMF::Write(Gp,"gradpVA");
+    MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
 
-// EM_DEBUG
-//    static int count=0;
-//       count++;
-//            amrex::WriteSingleLevelPlotfile("Gp_in_VA"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
-//
-//VisMF::Write(*aofs,"aofs_in_VA");
-
-     MultiFab visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
-
-     // No need to compute this is we are using EB because we will
-     // not use Godunov.
+    // No need to compute this is we are using EB because we will
+    // not use Godunov.
 #ifndef AMREX_USE_EB
     if (be_cn_theta != 1.0)
-        getViscTerms(visc_terms,Xvel,BL_SPACEDIM,prev_time);
+    {
+        getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
+    }
     else
+    {
         visc_terms.setVal(0.,1);
+    }
 #endif
+
     //FIXME? right now, only working with constraint divu = 0, but later
     // divu_fp may get FillPatch'ed in create_mac_rhs(), so may need EBFactory
     MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
@@ -3458,126 +3430,117 @@ NavierStokesBase::velocity_advection (Real dt)
 
     if (do_reflux)
     {
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
-            fluxes[i].define(ba, dmap, BL_SPACEDIM, 0, MFInfo(),Factory());
+            fluxes[i].define(ba, dmap, AMREX_SPACEDIM, 0, MFInfo(),Factory());
         }
     }
-     //fixme
-    //static int count=0; count++;
-    //amrex::WriteSingleLevelPlotfile("gp_"+std::to_string(count), Gp, {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
-    //amrex::WriteSingleLevelPlotfile("mrhs_"+std::to_string(count), divu_fp, {"x"},geom, 0.0, 0);
-    //
 
     //
     // Compute the advective forcing.
     //
- {
-      FillPatchIterator
-	    U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM),
-	    Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
-
-      MultiFab& Umf=U_fpi.get_mf();
-      MultiFab& Rmf=Rho_fpi.get_mf();
-
-      FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-      MultiFab& Smf=S_fpi.get_mf();
+    {
+        FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+        MultiFab& Umf=U_fpi.get_mf();
 
 #ifndef AMREX_USE_EB
-         //
-         //   THIS IS the NON-EB ALGORITHM
-         //
-         amrex::Print() << "**** DOING NON-EB ALGORITHM *** " << std::endl;
+        //
+        // >>>>>>>>>>>>>>>>>>>>>>>>>>>  NON-EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        //
+        FillPatchIterator Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+        FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
 
+        MultiFab& Rmf=Rho_fpi.get_mf();
+        MultiFab& Smf=S_fpi.get_mf();
+
+        const Real* dx = geom.CellSize();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-{
-      Vector<int> bndry[BL_SPACEDIM];
-      // FIXME - need to think about if some of these should be EBFabs?
-      FArrayBox tforces;
-      FArrayBox S;
-      FArrayBox cfluxes[BL_SPACEDIM];
-      FArrayBox edgstate[BL_SPACEDIM];
-      for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-      {
-	  const Box& bx=U_mfi.tilebox();
-
-	  // fixme? tforces and S only used for non-EB, so move to #else //not eb block?
-	  if (getForceVerbose)
-	  {
-	    amrex::Print() << "---" << '\n'
-			   << "B - velocity advection:" << '\n'
-			   << "Calling getForce..." << '\n';
-	  }
-	  getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
-
-	  godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
-
-	  D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-		 bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-		 bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-	  for (int d=0; d<BL_SPACEDIM; ++d){
-// #ifdef AMREX_USE_EB
-//                      const Box& ebx = amrex::grow(amrex::surroundingNodes(bx,d),3);
-// #else
-	    const Box& ebx = amrex::surroundingNodes(bx,d);
-// #endif
-	    cfluxes[d].resize(ebx,BL_SPACEDIM+1);
-	    edgstate[d].resize(ebx,BL_SPACEDIM+1);
-	  }
-
-	  //
-	  // Loop over the velocity components.
-	  //
-	  S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
-	  S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
-
-	  FArrayBox& divufab = divu_fp[U_mfi];
-	  FArrayBox& aofsfab = (*aofs)[U_mfi];
-
-	  D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
-		 FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
-		 FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
-
-        for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
         {
-            int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+            Vector<int> bndry[AMREX_SPACEDIM];
+            FArrayBox tforces;
+            FArrayBox S;
+            FArrayBox cfluxes[AMREX_SPACEDIM];
+            FArrayBox edgstate[AMREX_SPACEDIM];
 
-            if (do_mom_diff == 1)
+            for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
             {
-                S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
-                tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
-            }
+                const Box& bx=U_mfi.tilebox();
 
-	    // WARNING: FPU argument is not used because FPU is by default in AdvectState
-	    godunov->AdvectState(bx, dx, dt,
-                                 area[0][U_mfi], u_mac_fab0, cfluxes[0],
-                                 area[1][U_mfi], u_mac_fab1, cfluxes[1],
-#if (BL_SPACEDIM == 3)
-                                 area[2][U_mfi], u_mac_fab2, cfluxes[2],
+                if (getForceVerbose)
+                {
+                    amrex::Print() << "---" << '\n'
+                                   << "B - velocity advection:" << '\n'
+                                   << "Calling getForce..." << '\n';
+                }
+
+                getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+
+                godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+
+                D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+                       bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+                       bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    const Box& ebx = amrex::surroundingNodes(bx,d);
+                    cfluxes[d].resize(ebx,BL_SPACEDIM+1);
+                    edgstate[d].resize(ebx,BL_SPACEDIM+1);
+                }
+
+                //
+                // Loop over the velocity components.
+                //
+                S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
+                S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
+
+                FArrayBox& divufab = divu_fp[U_mfi];
+                FArrayBox& aofsfab = (*aofs)[U_mfi];
+
+                D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
+                       FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
+                       FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
+
+                for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+                {
+                    int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+
+                    if (do_mom_diff == 1)
+                    {
+                        S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
+                        tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
+                    }
+
+                    // WARNING: FPU argument is not used because FPU is by default in AdvectState
+                    godunov->AdvectState(bx, dx, dt,
+                                         area[0][U_mfi], u_mac_fab0, cfluxes[0],
+                                         area[1][U_mfi], u_mac_fab1, cfluxes[1],
+#if (AMREX_SPACEDIM == 3)
+                                         area[2][U_mfi], u_mac_fab2, cfluxes[2],
 #endif
-                                 Umf[U_mfi], S, tforces, divufab, comp,
-                                 aofsfab,comp,use_conserv_diff,
-                                 comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
+                                         Umf[U_mfi], S, tforces, divufab, comp,
+                                         aofsfab,comp,use_conserv_diff,
+                                         comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
 
-            if (do_reflux){
-	      for (int d = 0; d < BL_SPACEDIM; d++){
-                const Box& ebx = U_mfi.nodaltilebox(d);
-		fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
-              }
-            }
-        }
-//#endif //end if USE_EB
-      } // end of MFIter
- } // end OMP region
+                    if (do_reflux)
+                    {
+                        for (int d = 0; d < AMREX_SPACEDIM; d++)
+                        {
+                            const Box& ebx = U_mfi.nodaltilebox(d);
+                            fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+                        }
+                    }
+                }
+            } // end of MFIter
+        } // end OMP region
 #else
-         //
-         //   THIS IS the EB ALGORITHM
-         //
+        //
+        // >>>>>>>>>>>>>>>>>>>>>>>>>>>  EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        //
 
          MultiFab cfluxes[AMREX_SPACEDIM];
          MultiFab edgstate[AMREX_SPACEDIM];
@@ -3586,7 +3549,6 @@ NavierStokesBase::velocity_advection (Real dt)
          for (int i(0); i < AMREX_SPACEDIM; i++)
          {
              const BoxArray& ba = getEdgeBoxArray(i);
-	     // Why Umf.Factory and not just Factory()?
              cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
              edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
          }
@@ -3611,21 +3573,19 @@ NavierStokesBase::velocity_advection (Real dt)
          }
 
 #endif
-
-
- } //end scope of FillPatchIter
+    } //end scope of FillPatchIter
 
     if (do_reflux)
     {
         if (level > 0 )
 	{
-	  for (int d = 0; d < BL_SPACEDIM; d++)
-	    advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
+            for (int d = 0; d < BL_SPACEDIM; d++)
+                advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
 	}
         if(level < finest_level)
 	{
-	  for (int i = 0; i < BL_SPACEDIM; i++)
-	    getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
+            for (int i = 0; i < BL_SPACEDIM; i++)
+                getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
 	}
     }
 }
@@ -3949,12 +3909,12 @@ NavierStokesBase::volWgtSum (const std::string& name,
 #ifdef AMREX_USE_EB
         if ( (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0) || Geom().IsRZ() )
 	  amrex::Abort("EB volWgtSum currently only works over entire cartesian domain.");
-	
+
 	const Real* vf   = (*volfrac)[mfi].dataPtr();
         const int*  vflo = (*volfrac)[mfi].loVect();
         const int*  vfhi = (*volfrac)[mfi].hiVect();
 #endif
-	
+
 #if (BL_SPACEDIM == 2)
         int   rz_flag = Geom().IsRZ() ? 1 : 0;
         Real* rad     = &radius[mfi.index()][0];
