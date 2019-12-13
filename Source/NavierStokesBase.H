@@ -601,10 +601,10 @@ protected:
 
     Diffusion* diffusion;
     //
-    // amrex::MultiFab arrays for variable viscosity and diffusivity
+    // arrays for variable viscosity and diffusivity
     //
-    amrex::MultiFab *viscn_cc, *viscnp1_cc;
-    amrex::MultiFab *diffn_cc, *diffnp1_cc;
+    FluxBoxes fb_viscn, fb_viscnp1, fb_diffn, fb_diffnp1;
+    amrex::MultiFab **viscn, **viscnp1, **diffn, **diffnp1;
     //
     // Sync update quantities.
     //
