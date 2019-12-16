@@ -452,7 +452,6 @@ NavierStokes::predict_velocity (Real  dt)
     // c-f/phys boundary, since we have no interpolator fn, also,
     // preserve extrap for corners at periodic/non-periodic intersections.
     //
-    //FIXME? does this really need EB? YES
     MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
     if (be_cn_theta != 1.0)
     {
@@ -511,7 +510,6 @@ NavierStokes::predict_velocity (Real  dt)
     getGradP(Gp, prev_pres_time);
 #endif
 
-
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
     MultiFab& Smf=S_fpi.get_mf();
 
@@ -521,8 +519,7 @@ NavierStokes::predict_velocity (Real  dt)
     auto umax = VectorMaxAbs({&Umf},FabArrayBase::mfiter_tile_size,0,BL_SPACEDIM,Umf.nGrow());
 
     Real cflmax = dt*umax[0]/dx[0];
-    for (int d=1; d<BL_SPACEDIM; ++d)
-    {
+    for (int d=1; d<BL_SPACEDIM; ++d) {
         cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
     }
     Real tempdt = std::min(change_max,cfl/cflmax);
@@ -539,8 +536,9 @@ NavierStokes::predict_velocity (Real  dt)
                               geom, math_bcs );
 
 #else
-
-
+    //
+    // Non-EB version
+    //
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -668,10 +666,11 @@ NavierStokes::scalar_advection (Real dt,
         // Slopes in y-direction
         MultiFab yslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
         yslps.setVal(0.);
+#if ( AMREX_SPACEDIM == 3 )
         // Slopes in z-direction
         MultiFab zslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
         zslps.setVal(0.);
-
+#endif
         const Box& domain = geom.Domain();
 
         Vector<BCRec> math_bc(num_scalars);
@@ -756,19 +755,19 @@ NavierStokes::scalar_advection (Real dt,
 
                 state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
 
-                godunov->AdvectScalars(bx, dx, dt,
-                                       D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
-                                       D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
-                                       D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
-                                       D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
-                                       Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
-                                       (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
+		godunov->AdvectScalars(bx, dx, dt,
+				       D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
+				       D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
+				       D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
+				       D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
+				       Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
+				       (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
 
-                //fixme: only need this copy if do_reflux?
-                for (int d=0; d<BL_SPACEDIM; ++d)
-                {
-                    const Box& ebx = S_mfi.nodaltilebox(d);
-                    (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+		if (do_reflux) {
+		  for (int d=0; d<BL_SPACEDIM; ++d) {
+		      const Box& ebx = S_mfi.nodaltilebox(d);
+		      (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+		  }
                 }
             }
         } // OMP parallel loop
@@ -1949,7 +1948,6 @@ NavierStokes::mac_sync ()
         if (alpha_in!=0) delete alpha_in;
 
         MultiFab::Copy(Ssync,*Snp1[0],state_ind,sigma,1,0);
- //	MultiFab::Copy(Ssync,*Snp1[0],0,sigma,1,0);
 
         //
         // Increment the viscous flux registers
