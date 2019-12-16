@@ -1932,8 +1932,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 
     const MultiFab& volume = navier_stokes->Volume();
     const MultiFab* area   = navier_stokes->Area();
-    // need for computeBeta. Don't see Why computeBeta defines area in this way
-    // or why it even bothers to pass area when it's also passing geom
+    // need for computeBeta. 
     const MultiFab *ap[AMREX_SPACEDIM];
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
@@ -1943,7 +1942,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     MultiFab Rhs(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
 
     MultiFab::Copy(Rhs,Vsync,0,0,BL_SPACEDIM,0);
-    // SSync has mult by dt here. Needed here too?
 
     if (verbose > 1)
     {
@@ -1986,7 +1984,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     MultiFab Soln(grids,dmap,BL_SPACEDIM,soln_ng, MFInfo(),navier_stokes->Factory());
     Soln.setVal(0);
 
-    //fixme
+    //for old solver: 
     // MultiFab Solnold(grids,dmap,BL_SPACEDIM,soln_ng, MFInfo(),navier_stokes->Factory());
     // Solnold.setVal(0);
 
@@ -2029,7 +2027,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
       {
 	MultiFab acoef;
 	// fixme ghostcells?
-	acoef.define(grids, dmap, 1, 1, MFInfo(), navier_stokes->Factory());
+	acoef.define(grids, dmap, 1, 0, MFInfo(), navier_stokes->Factory());
 	std::pair<Real,Real> scalars;
 	// const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
 	// computeAlpha(acoef, scalars, Xvel, a, b, cur_time, rho, rho_flag,
@@ -2097,8 +2095,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
       Rhs.mult(rhsscale,0,1);
 
       // ensures ghost cells of sol are correctly filled when returned from solver
-      //fixme?? isn't FillPatch ususally the way to do it?
-      // would need not not copy ghost cells to U_new below
       mlmg.setFinalFillBC(true);
       mlmg.solve({&Soln}, {&Rhs}, tol_rel, tol_abs);
 
