@@ -22,6 +22,48 @@ bool NavierStokesBase::ebInitialized()
     return eb_initialized;
 }
 
+static
+void reentrant_profile(std::vector<amrex::RealVect> &points) {
+  amrex::RealVect p;
+
+  p = amrex::RealVect(D_DECL(36.193*0.1, 7.8583*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(35.924*0.1, 7.7881*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(35.713*0.1, 7.5773*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(35.643*0.1, 7.3083*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(35.3*0.1, 7.0281*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(35.421*0.1, 6.241*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(34.82*0.1, 5.686*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(30.539*0.1, 3.5043*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(29.677*0.1, 2.6577*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(29.457*0.1, 1.47*0.1, 0.0));
+  points.push_back(p);
+  // p = amrex::RealVect(D_DECL(29.38*0.1, -1.1038*0.1, 0.0));
+  // points.push_back(p);
+  // p = amrex::RealVect(D_DECL(29.3*0.1, -2.7262*0.1, 0.0));
+  // points.push_back(p);
+  // p = amrex::RealVect(D_DECL(29.273*0.1, -4.3428*0.1, 0.0));
+  // points.push_back(p);
+  p = amrex::RealVect(D_DECL(28.364*0.1, -5.7632*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(27.151*0.1, -6.8407*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(25.694*0.1, -7.5555*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(24.035*0.1, -7.8586*0.1, 0.0));
+  points.push_back(p);
+  p = amrex::RealVect(D_DECL(22.358*0.1, -7.6902*0.1, 0.0));
+  points.push_back(p);
+}
+
 // called in main before Amr->init(start,stop)
 void
 initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
@@ -32,14 +74,146 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     std::string geom_type;
     ppeb2.get("geom_type", geom_type);
 
-    Print()<<"geom "<<geom<<"\n\n";
-    //Build geometry -- WIP!!!
-    // seems like this is a call that can create the implicit function,
-    // GeometryShop, and Geometry all at "once"... geom might already be init
-    //AMReX_EB2::Build (const Geometry& geom, int required_coarsening_level,
-    //   int max_coarsening_level, int ngrow)
-    //fixme -- not sure that 4 is the right number here, just taken from CNS
+#if BL_SPACEDIM > 2
+  if (geom_type == "combustor")
+  {
+    ParmParse pp("combustor");
+
+    Real fwl;
+    pp.get("far_wall_loc",fwl);
+
+    EB2::PlaneIF farwall({AMREX_D_DECL(fwl,0.,0.)},
+                         {AMREX_D_DECL(1. ,0.,0.)});
+
+    Vector<Real> pl1pt, pl2pt, pl2nm, pl3pt;
+    pp.getarr("ramp_plane1_point", pl1pt);
+    pp.getarr("ramp_plane2_point", pl2pt);
+    pp.getarr("ramp_plane2_normal", pl2nm);
+    pp.getarr("ramp_plane3_point", pl3pt);
+
+    auto ramp = EB2::makeIntersection(EB2::PlaneIF({pl1pt[0], pl1pt[1], 0.},
+                                                   {      0.,      -1., 0.}),
+                                      EB2::PlaneIF({pl2pt[0], pl2pt[1], 0.},
+                                                   {pl2nm[0], pl2nm[1], 0.}),
+                                      EB2::PlaneIF({pl3pt[0], pl3pt[1], 0.},
+                                                   {      1.,       0., 0.}));
+
+    Vector<Real> pipelo, pipehi;
+    pp.getarr("pipe_lo", pipelo);
+    pp.getarr("pipe_hi", pipehi);
+
+    EB2::BoxIF pipe({pipelo[0], pipelo[1], -1.}, {pipehi[0], pipehi[1], 1.}, false);
+
+    // where does plane 1 and plane 2 intersect?
+    Real k2 = std::abs(pl2nm[0]/pl2nm[1]);
+    Real secty = pl2pt[1] + k2*(pl3pt[0]-pl2pt[0]);
+    // How much do we cut?
+    Real dx = geom.CellSize(0);
+    Real dycut = 4.*(1.+max_coarsening_level)*std::min(dx, k2*dx);
+    EB2::BoxIF flat_corner({pl3pt[0], 0., -1.}, {1.e10, secty+dycut, 1.}, false);
+
+    auto polys = EB2::makeUnion(farwall, ramp, pipe, flat_corner);
+
+    // Real lenx = Geometry::ProbLength(0);
+    // Real leny = Geometry::ProbLength(1);
+    Real lenx = DefaultGeometry().ProbLength(0);
+    Real leny = DefaultGeometry().ProbLength(1);
+    auto pr = EB2::translate(EB2::lathe(polys), {lenx*0.5, leny*0.5, 0.});
+
+    auto gshop = EB2::makeShop(pr);
+    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
+  } else if (geom_type == "Piston-Cylinder") {
+
+    EB2::SplineIF Piston;
+
+    std::vector<amrex::RealVect> splpts;
+    reentrant_profile(splpts);
+    Piston.addSplineElement(splpts);
+
+    amrex::RealVect p;
+    std::vector<amrex::RealVect> lnpts;
+
+    p = amrex::RealVect(D_DECL(22.358*0.1, -7.6902*0.1, 0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(1.9934*0.1, 3.464*0.1, 0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(0.0*0.1, 3.464*0.1, 0.0));
+    lnpts.push_back(p);
+    Piston.addLineElement(lnpts);
+    lnpts.clear();
+
+    p = amrex::RealVect(D_DECL(49.0*0.1, 7.8583*0.1,  0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(36.193*0.1, 7.8583*0.1, 0.0));
+    lnpts.push_back(p);
+    Piston.addLineElement(lnpts);
+    lnpts.clear();
+
+    EB2::CylinderIF cylinder(48.0*0.1, 70.0*0.1, 2, {0.0, 0.0, -10.0*0.1}, true);
+
+    auto revolvePiston  = EB2::lathe(Piston);
+    //auto PistonComplement = EB2::makeComplement(revolvePiston);
+    //auto PistonCylinder = EB2::makeIntersection(revolvePiston, cylinder);
+    auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
+    auto gshop = EB2::makeShop(PistonCylinder);
+    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
+  } else if (geom_type == "Line-Piston-Cylinder") {
+    EB2::SplineIF Piston;
+    std::vector<amrex::RealVect> lnpts;
+    amrex::RealVect p;
+
+    Real scaleFact;
+    scaleFact = 0.25;
+
+    p = amrex::RealVect(D_DECL(49.0*0.1*scaleFact, 7.8583*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(36.193*0.1*scaleFact, 7.8583*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    Piston.addLineElement(lnpts);
+    lnpts.clear();
+
+    p = amrex::RealVect(D_DECL(36.193*0.1*scaleFact, 7.8583*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(24.035*0.1*scaleFact, -7.8586*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    Piston.addLineElement(lnpts);
+    lnpts.clear();
+
+    p = amrex::RealVect(D_DECL(24.035*0.1*scaleFact, -7.8586*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(20.0*0.1*scaleFact, -7.8586*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    Piston.addLineElement(lnpts);
+    lnpts.clear();
+
+    p = amrex::RealVect(D_DECL(20.0*0.1*scaleFact, -7.8586*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(1.9934*0.1*scaleFact, 3.464*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    Piston.addLineElement(lnpts);
+    lnpts.clear();
+
+    p = amrex::RealVect(D_DECL(1.9934*0.1*scaleFact, 3.464*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    p = amrex::RealVect(D_DECL(0.09061*0.1*scaleFact, 3.464*0.1*scaleFact, 0.0));
+    lnpts.push_back(p);
+    Piston.addLineElement(lnpts);
+
+    EB2::CylinderIF cylinder(48.0*0.1*scaleFact, 70.0*0.1*scaleFact, 2, {0.0, 0.0, -10.0*0.1*scaleFact}, true);
+
+    auto revolvePiston  = EB2::lathe(Piston);
+    auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
+    auto gshop = EB2::makeShop(PistonCylinder);
+    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
+  }
+  else {
+#endif
+
     EB2::Build(geom, required_coarsening_level, max_coarsening_level, 4);
+
+#if BL_SPACEDIM > 2
+  }
+#endif
 }
 
 void
