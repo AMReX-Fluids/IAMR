@@ -10,7 +10,7 @@ ns.init_shrink     = 1.0
 ns.init_iter       = 3
 ns.init_vel_iter   = 5
 ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
-projection.mg_rtol =  1.0e-13
+nodal_proj.rtol    =  1.0e-13
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
@@ -55,22 +55,17 @@ ns.lo_bc 	     	= 1 5 0
 ns.hi_bc   	      	= 2 5 0
 
 # Add cylinder
-eb2.geom_type               = cylinder
-eb2.cylinder.internal_flow  = false
-eb2.cylinder_radius         = 0.05
-eb2.cylinder_direction      = 2
-eb2.cylinder_center         = 0.15  0.2  0.0
-
-eb2.cylinder_has_fluid_inside=0
+eb2.geom_type                 = cylinder
+eb2.cylinder_has_fluid_inside = 0
+eb2.cylinder_radius           = 0.05
+eb2.cylinder_direction        = 2
+eb2.cylinder_center           = 0.15  0.2  0.0
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
 #.......................................#
-ns.v                    = 1 # NS solver 
+ns.v                    = 1 # NS solver
 proj.v                  = 1 # Nodal projection
-mac.verbose             = 0 # MacProjector
-#diffusion.verbose      =   1           # Diffusion operator
-projection.verbose      =   1           # Nodal projection
-projection.mg_verbose   =   0
-
-
+mac_proj.verbose        = 0 # MacProjector
+#diffusion.verbose      = 1 # Diffusion operator
+nodal_proj.verbose      = 1 # Nodal projection
