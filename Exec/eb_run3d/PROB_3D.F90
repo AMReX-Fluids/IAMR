@@ -1812,7 +1812,7 @@ contains
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
-      print*, "probhi = ", probhi
+
       select case (adv_dir)
          ! Flow in x direction
       case(1)
