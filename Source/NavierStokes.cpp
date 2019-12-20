@@ -214,7 +214,7 @@ NavierStokes::initData ()
 
         state[State_Type].setTimeLevel(curTime,dt,dt);
 
-        //Make sure something reasonable is in diffn_cc
+        //Make sure something reasonable is in diffn_ec
         calcDiffusivity(cur_time);
 
         calc_divu(cur_time,dtin,Divu_new);
@@ -296,6 +296,22 @@ NavierStokes::advance (Real time,
 
     advance_setup(time,dt,iteration,ncycle);
 
+    //
+    // Calculate the time N viscosity and diffusivity
+    //   Note: The viscosity and diffusivity at time N+1 are
+    //         initialized here to the time N values just to
+    //         have something reasonable.
+    //
+    const Real prev_time = state[State_Type].prevTime();
+    const int num_diff = NUM_STATE-BL_SPACEDIM-1;
+    
+    calcViscosity(prev_time,dt,iteration,ncycle);
+    calcDiffusivity(prev_time);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      MultiFab::Copy(*viscnp1[d], *viscn[d], 0, 0, 1, viscn[d]->nGrow());
+      MultiFab::Copy(*diffnp1[d], *diffn[d], 0, 0, num_diff, diffn[d]->nGrow());
+    }
+    
     // Add this AFTER advance_setup()
     if (verbose)
     {
@@ -452,7 +468,6 @@ NavierStokes::predict_velocity (Real  dt)
     // c-f/phys boundary, since we have no interpolator fn, also,
     // preserve extrap for corners at periodic/non-periodic intersections.
     //
-    //FIXME? does this really need EB? YES
     MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
     if (be_cn_theta != 1.0)
     {
@@ -539,8 +554,9 @@ NavierStokes::predict_velocity (Real  dt)
                               geom, math_bcs );
 
 #else
-
-
+    //
+    // Non-EB version
+    //
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -668,10 +684,11 @@ NavierStokes::scalar_advection (Real dt,
         // Slopes in y-direction
         MultiFab yslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
         yslps.setVal(0.);
+#if ( AMREX_SPACEDIM == 3 )
         // Slopes in z-direction
         MultiFab zslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
         zslps.setVal(0.);
-
+#endif
         const Box& domain = geom.Domain();
 
         Vector<BCRec> math_bc(num_scalars);
@@ -764,11 +781,11 @@ NavierStokes::scalar_advection (Real dt,
                                        Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
                                        (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
 
-                //fixme: only need this copy if do_reflux?
-                for (int d=0; d<BL_SPACEDIM; ++d)
-                {
+                if (do_reflux) {
+                  for (int d=0; d<BL_SPACEDIM; ++d) {
                     const Box& ebx = S_mfi.nodaltilebox(d);
                     (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+                  }
                 }
             }
         } // OMP parallel loop
@@ -1949,7 +1966,6 @@ NavierStokes::mac_sync ()
         if (alpha_in!=0) delete alpha_in;
 
         MultiFab::Copy(Ssync,*Snp1[0],state_ind,sigma,1,0);
- //	MultiFab::Copy(Ssync,*Snp1[0],0,sigma,1,0);
 
         //
         // Increment the viscous flux registers
@@ -2434,33 +2450,17 @@ NavierStokes::calcViscosity (const Real time,
                              const int  iteration,
                              const int  ncycle)
 {
-    //
-    // Select time level to work with (N or N+1)
-    //
-    MultiFab* visc_cc = 0;
-
-    const TimeLevel whichTime = which_time(State_Type,time);
-
-    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
-
-    if (whichTime == AmrOldTime)               // time N
-    {
-        visc_cc = viscn_cc;
-    }
-    else if (whichTime == AmrNewTime)          // time N+1
-    {
-        visc_cc = viscnp1_cc;
-    }
-    //
-    // Calculate viscosity
-    //
-    const int nGrow = visc_cc->nGrow();
-
     if (is_diffusive[Xvel])
     {
         if (visc_coef[Xvel] >= 0.0)
         {
-            visc_cc->setVal(visc_coef[Xvel], 0, 1, nGrow);
+            auto whichTime = which_time(State_Type,time);
+            BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+
+            auto visc = (whichTime == AmrOldTime ? viscn : viscnp1);
+            for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+                visc[dir]->setVal(visc_coef[Xvel], 0, visc[dir]->nComp(), visc[dir]->nGrow());
+            }
         }
         else
         {
@@ -2481,28 +2481,11 @@ NavierStokes::calcDiffusivity (const Real time)
     //
     int src_comp = Density+1;
     int ncomp = NUM_STATE - BL_SPACEDIM -1;
-    //
-    // Select time level to work with (N or N+1)
-    //
-    MultiFab* diff_cc = 0;
 
     const TimeLevel whichTime = which_time(State_Type,time);
-
     BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
-    if (whichTime == AmrOldTime)               // time N
-    {
-        diff_cc = diffn_cc;
-    }
-    else if (whichTime == AmrNewTime)          // time N+1
-    {
-        diff_cc = diffnp1_cc;
-    }
-    //
-    // Calculate diffusivity
-    //
-    const int nGrow = diff_cc->nGrow();
-
+    MultiFab** diff = (whichTime == AmrOldTime ? diffn : diffnp1);
     for (int comp=src_comp; comp<src_comp+ncomp; comp++)
     {
         int diff_comp = comp - Density - 1;
@@ -2511,7 +2494,9 @@ NavierStokes::calcDiffusivity (const Real time)
         {
             if (visc_coef[comp] >= 0.0)
             {
-                diff_cc->setVal(visc_coef[comp], diff_comp, 1, nGrow);
+                for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+                    diff[dir]->setVal(visc_coef[comp], diff_comp, 1, diff[dir]->nGrow());
+                }
             }
             else
             {
@@ -2528,32 +2513,13 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab* visc_cc = 0;
-
     const TimeLevel whichTime = which_time(State_Type,time);
-
     BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
-    if (whichTime == AmrOldTime)               // time N
-    {
-        visc_cc = viscn_cc;
-    }
-    else if (whichTime == AmrNewTime)          // time N+1
-    {
-        visc_cc = viscnp1_cc;
-    }
-    //
-    // Fill edge-centered viscosity
-    //
+    MultiFab **visc = (whichTime == AmrOldTime ? viscn : viscnp1);
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-      for (MFIter ecMfi(*viscosity[dir],true); ecMfi.isValid(); ++ecMfi)
-        {
-	    const Box& bx=ecMfi.growntilebox();
-
-            center_to_edge_plain((*visc_cc)[ecMfi],(*viscosity[dir])[ecMfi],
-				 bx,0,0,1);
-        }
+        MultiFab::Copy(*viscosity[dir],*visc[dir],0,0,1,0);
     }
 }
 
@@ -2572,32 +2538,13 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     //
     // Select time level to work with (N or N+1)
     //
-    MultiFab* diff_cc = 0;
-
     const TimeLevel whichTime = which_time(State_Type,time);
-
     BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
-    if (whichTime == AmrOldTime)               // time N
-    {
-        diff_cc = diffn_cc;
-    }
-    else if (whichTime == AmrNewTime)          // time N+1
-    {
-        diff_cc = diffnp1_cc;
-    }
-    //
-    // Fill edge-centered diffusivities
-    //
+    MultiFab **diff = (whichTime == AmrOldTime ? diffn : diffnp1);
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-      for (MFIter ecMfi(*diffusivity[dir],true); ecMfi.isValid(); ++ecMfi)
-        {
-	    const Box& bx=ecMfi.growntilebox();
-
-            center_to_edge_plain((*diff_cc)[ecMfi],(*diffusivity[dir])[ecMfi],
-                                 bx,diff_comp,dst_comp,ncomp);
-        }
+        MultiFab::Copy(*diffusivity[dir],*diff[dir],diff_comp,dst_comp,ncomp,0);
     }
 }
 

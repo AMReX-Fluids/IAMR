@@ -73,7 +73,6 @@ Projection::Initialize ()
     ParmParse pp("proj");
 
     pp.query("v",                   verbose);
-    pp.query("Pcode",               P_code);
     pp.query("proj_tol",            proj_tol);
     pp.query("sync_tol",            sync_tol);
     pp.query("proj_abs_tol",        proj_abs_tol);
@@ -901,7 +900,7 @@ Projection::initialVelocityProject (int  c_lev,
         bool proj2 = true;
         if (!have_divu)
         {
-            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+            doMLMGNodalProjection(c_lev, f_lev-c_lev+1, vel, phi,
                                   amrex::GetVecOfPtrs(sig),
                                   {},
                                   {},
@@ -915,7 +914,7 @@ Projection::initialVelocityProject (int  c_lev,
                 rhcc[lev]->mult(-1.0,0,1,nghost);
             }
 
-            doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+            doMLMGNodalProjection(c_lev, f_lev-c_lev+1, vel, phi,
                                   amrex::GetVecOfPtrs(sig),
                                   amrex::GetVecOfPtrs(rhcc),
                                   {},
@@ -1059,7 +1058,7 @@ Projection::initialPressureProject (int  c_lev)
     //
     bool proj2 = true;
     Vector<MultiFab*> rhcc(0);
-    doMLMGNodalProjection(c_lev, f_lev+1, vel, phi,
+    doMLMGNodalProjection(c_lev, f_lev-c_lev+1, vel, phi,
                           amrex::GetVecOfPtrs(sig),
                           rhcc, {},
                           proj_tol, proj_abs_tol, proj2, 0, 0);
@@ -1108,7 +1107,7 @@ Projection::initialSyncProject (int       c_lev,
     int f_lev = parent->finestLevel();
 
     if (verbose)
-      amrex::Print() << "Projection::initialSyncProject(): levels = " << c_lev << "  " << f_lev << '\n';
+      amrex::Print() << "Projection::initialSyncProject(): levels = " << c_lev << " - " << f_lev << '\n';
 
     if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
@@ -1167,6 +1166,7 @@ Projection::initialSyncProject (int       c_lev,
                 amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
             }
 
+	    // Needed for set_outflow_bcs(). MLMG ignores rh ghost cells. 
             const int nghost = 1;
             rhcc[lev].reset(new MultiFab(amr_level.boxArray(),
 					 amr_level.DistributionMap(),
@@ -1195,7 +1195,7 @@ Projection::initialSyncProject (int       c_lev,
             }
         }
     }
-
+    
     //
     // Set velocity bndry values to bogus values.
     //
@@ -1280,7 +1280,7 @@ Projection::initialSyncProject (int       c_lev,
     }
 
     bool proj2 = false;
-    doMLMGNodalProjection(c_lev, f_lev+1, vel, phi, sig,
+    doMLMGNodalProjection(c_lev, f_lev-c_lev+1, vel, phi, sig,
                           amrex::GetVecOfPtrs(rhcc),
                           {}, proj_tol, proj_abs_tol, proj2, 0, 0);
 
@@ -1774,7 +1774,7 @@ Projection::initialVorticityProject (int c_lev)
     // Project.
     //
     bool proj2 = !add_vort_proj;
-    doMLMGNodalProjection(c_lev, f_lev+1,
+    doMLMGNodalProjection(c_lev, f_lev-c_lev+1,
                           amrex::GetVecOfPtrs(u_real),
                           amrex::GetVecOfPtrs(p_real),
                           amrex::GetVecOfPtrs(s_real),

@@ -1139,9 +1139,9 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                     else
                     {
                         // X direction
-                        Real du_xl = (flag_fab(i-1,j,k).isCovered()) ? 0.0 :
+                        Real du_xl = (!flag_fab(i,j,k).isConnected(-1,0,0)) ? 0.0 :
                             2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                        Real du_xr = (flag_fab(i+1,j,k).isCovered()) ? 0.0 :
+                        Real du_xr = (!flag_fab(i,j,k).isConnected( 1,0,0)) ? 0.0 :
                             2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
                         Real du_xc = 0.5*(state_fab(i+1,j,k,n) - state_fab(i-1,j,k,n));
 
@@ -1150,9 +1150,9 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                         xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
 
                         // Y direction
-                        Real du_yl = (flag_fab(i,j-1,k).isCovered()) ? 0.0 :
+                        Real du_yl = (!flag_fab(i,j,k).isConnected(0,-1,0)) ? 0.0 :
                             2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                        Real du_yr = (flag_fab(i,j+1,k).isCovered()) ? 0.0 :
+                        Real du_yr = (!flag_fab(i,j,k).isConnected(0, 1,0)) ? 0.0 :
                             2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
                         Real du_yc = 0.5*(state_fab(i,j+1,k,n) - state_fab(i,j-1,k,n));
 
@@ -1161,9 +1161,9 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                         ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
 #if (AMREX_SPACEDIM == 3)
                         // Z direction
-                        Real du_zl = (flag_fab(i,j,k-1).isCovered()) ? 0.0 :
+                        Real du_zl = (!flag_fab(i,j,k).isConnected(0,0,-1)) ? 0.0 :
                             2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                        Real du_zr = (flag_fab(i,j,k+1).isCovered()) ? 0.0 :
+                        Real du_zr = (!flag_fab(i,j,k).isConnected(0,0, 1)) ? 0.0 :
                             2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
                         Real du_zc = 0.5*(state_fab(i,j,k+1,n) - state_fab(i,j,k-1,n));
 

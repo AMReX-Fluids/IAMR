@@ -270,11 +270,11 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = new MultiFab(grids, dmap, 1, 1,MFInfo(),Factory());
-    viscnp1_cc = new MultiFab(grids, dmap, 1, 1,MFInfo(),Factory());
+    viscn   = fb_viscn.define(this,1,0);
+    viscnp1 = fb_viscnp1.define(this,1,0);
+    diffn   = fb_diffn.define(this,NUM_STATE-Density-1,0);
+    diffnp1 = fb_diffnp1.define(this,NUM_STATE-Density-1,0);
 
-    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1,MFInfo(),Factory());
-    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1,MFInfo(),Factory());
     //
     // Set up the mac projector.
     //
@@ -301,12 +301,11 @@ NavierStokesBase::~NavierStokesBase ()
     // Remove the arrays for variable viscosity and diffusivity
     // and delete the Diffusion object
     //
-    delete viscn_cc;
-    delete viscnp1_cc;
-
-    delete diffn_cc;
-    delete diffnp1_cc;
-
+    fb_viscn.clear();
+    fb_viscnp1.clear();
+    fb_diffn.clear();
+    fb_diffnp1.clear();
+    
     delete diffusion;
 }
 
@@ -776,20 +775,6 @@ NavierStokesBase::advance_setup (Real time,
     //         }
     //    }
     // }
-
-    //
-    // Calculate the time N viscosity and diffusivity
-    //   Note: The viscosity and diffusivity at time N+1 are
-    //         initialized here to the time N values just to
-    //         have something reasonable.
-    //
-    const Real prev_time = state[State_Type].prevTime();
-    calcViscosity(prev_time,dt,iteration,ncycle);
-	  MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
-
-    const int num_diff = NUM_STATE-BL_SPACEDIM-1;
-    calcDiffusivity(prev_time);
-    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
 }
 
 //
@@ -2784,11 +2769,10 @@ NavierStokesBase::restart (Amr&          papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn_cc   = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
-    viscnp1_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
-
-    diffn_cc   = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
-    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
+    viscn   = fb_viscn.define(this,1,0);
+    viscnp1 = fb_viscnp1.define(this,1,0);
+    diffn   = fb_diffn.define(this,NUM_STATE-Density-1,0);
+    diffnp1 = fb_diffnp1.define(this,NUM_STATE-Density-1,0);
 
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
