@@ -2377,28 +2377,34 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         // NO RHS for now
         nodal_projector.project(vel_rebase, GetVecOfConstPtrs(sigma_rebase), rhcc_rebase, rhnd_rebase);
 
-#ifdef AMREX_USE_EB
         // Get phi and gradphi
         Vector< const MultiFab* > phi_tmp(nlevel);
         Vector< const MultiFab* > gradphi_tmp(nlevel);
 
         phi_tmp     = nodal_projector.getPhi();
+#ifdef AMREX_USE_EB
         gradphi_tmp = nodal_projector.getGradPhi();
+#endif
 
         //
         Vector< NavierStokesBase* > ns(nlevel);
+#ifdef AMREX_USE_EB
         Vector< MultiFab* > Gp(nlevel);
+#endif
 
         for (int lev = 0; lev < nlevel; lev++)
         {
             ns[lev] = dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
             //fixme is this assert needed?
             BL_ASSERT(!(ns[lev]==0));
+#ifdef AMREX_USE_EB
             Gp[lev] = &(ns[lev]->getGradP());
+#endif
 
             // Copy phi fron nodal projector internals
             MultiFab::Copy(*phi_rebase[lev],*phi_tmp[lev], 0, 0, 1, phi_tmp[lev]->nGrow());
 
+#ifdef AMREX_USE_EB
             if ( proj2 )
             {
                 MultiFab::Copy(*Gp[lev],*gradphi_tmp[lev], 0, 0, AMREX_SPACEDIM,
@@ -2410,8 +2416,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                 MultiFab::Add(*Gp[lev],*gradphi_tmp[lev], 0, 0, AMREX_SPACEDIM,
                               gradphi_tmp[lev]->nGrow());
             }
-        }
 #endif
+        }
     }
     else
     {
