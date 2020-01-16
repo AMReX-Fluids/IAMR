@@ -265,12 +265,11 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
 
     //Ucorr = fluxes = -B grad phi
-    mlmg.getFluxes({Ucorr});
+    mlmg.getFluxes({Ucorr}, MLMG::Location::FaceCentroid);
     // Make sure Ucorr has correct sign
     for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
       Ucorr[idim]->negate();
 
-    
     // // Solve with initial guess of zero
     // macproj.project(mac_tol,mac_abs_tol,MLMG::Location::FaceCentroid);
 
