@@ -1,0 +1,76 @@
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: ./amr3d.gnu.MPI.ex() [0x5b7749]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*) at /scratch/esclapez/TestsEB/amrex//Src/Base/AMReX_BLBackTrace.cpp:167
+
+ 1: ./amr3d.gnu.MPI.ex() [0x5b9eed]
+    amrex::BLBackTrace::handler(int) at /scratch/esclapez/TestsEB/amrex//Src/Base/AMReX_BLBackTrace.cpp:71
+
+ 2: /lib/x86_64-linux-gnu/libc.so.6(+0x354b0) [0x7f745644c4b0]
+
+ 3: ./amr3d.gnu.MPI.ex() [0x7779d1]
+    double& amrex::Array4<double>::operator()<double, void>(int, int, int, int) const at /scratch/esclapez/TestsEB/amrex//Src/Base/AMReX_Array4.H:78
+ (inlined by) amrex::mlebabeclap_gsrb(amrex::Box const&, amrex::Array4<double> const&, amrex::Array4<double const> const&, double, amrex::Array4<double const> const&, double, double, double, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<int const> const&, amrex::Array4<int const> const&, amrex::Array4<int const> const&, amrex::Array4<int const> const&, amrex::Array4<int const> const&, amrex::Array4<int const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<int const> const&, amrex::Array4<amrex::EBCellFlag const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, amrex::Array4<double const> const&, bool, amrex::Box const&, int, int) at /scratch/esclapez/TestsEB/amrex//Src/LinearSolvers/MLMG/AMReX_MLEBABecLap_3D_K.H:328
+ (inlined by) amrex::MLEBABecLap::Fsmooth(int, int, amrex::MultiFab&, amrex::MultiFab const&, int) const at /scratch/esclapez/TestsEB/amrex//Src/LinearSolvers/MLMG/AMReX_MLEBABecLap.cpp:590
+
+ 4: ./amr3d.gnu.MPI.ex() [0x6c0da4]
+    amrex::MLCellLinOp::smooth(int, int, amrex::MultiFab&, amrex::MultiFab const&, bool) const at /scratch/esclapez/TestsEB/amrex//Src/LinearSolvers/MLMG/AMReX_MLCellLinOp.cpp:352 (discriminator 2)
+
+ 5: ./amr3d.gnu.MPI.ex() [0x6a8670]
+    amrex::MLMG::mgVcycle(int, int) at /scratch/esclapez/TestsEB/amrex//Src/LinearSolvers/MLMG/AMReX_MLMG.cpp:498
+
+ 6: ./amr3d.gnu.MPI.ex() [0x6a96ba]
+    amrex::MLMG::oneIter(int) at /scratch/esclapez/TestsEB/amrex//Src/LinearSolvers/MLMG/AMReX_MLMG.cpp:242
+
+ 7: ./amr3d.gnu.MPI.ex() [0x6a9968]
+    amrex::MLMG::solve(amrex::Vector<amrex::MultiFab*, std::allocator<amrex::MultiFab*> > const&, amrex::Vector<amrex::MultiFab const*, std::allocator<amrex::MultiFab const*> > const&, double, double, char const*) at /scratch/esclapez/TestsEB/amrex//Src/LinearSolvers/MLMG/AMReX_MLMG.cpp:129
+
+ 8: ./amr3d.gnu.MPI.ex() [0x4ca492]
+    std::_Vector_base<amrex::MultiFab*, std::allocator<amrex::MultiFab*> >::~_Vector_base() at /usr/include/c++/5/bits/stl_vector.h:161
+ (inlined by) std::vector<amrex::MultiFab*, std::allocator<amrex::MultiFab*> >::~vector() at /usr/include/c++/5/bits/stl_vector.h:425
+ (inlined by) amrex::Vector<amrex::MultiFab*, std::allocator<amrex::MultiFab*> >::~Vector() at /scratch/esclapez/TestsEB/amrex//Src/Base/AMReX_Vector.H:21
+ (inlined by) Diffusion::diffuse_tensor_velocity(double, double, amrex::MultiFab const&, int, amrex::MultiFab*, int, amrex::MultiFab const* const*, amrex::MultiFab const* const*, int) at /scratch/esclapez/TestsEB/IAMR/Exec/eb_run3dscalars/../../Source/Diffusion.cpp:1409
+
+ 9: ./amr3d.gnu.MPI.ex() [0x4cb844]
+    Diffusion::diffuse_velocity(double, double, amrex::MultiFab const&, int, amrex::MultiFab*, int, amrex::MultiFab const* const*, amrex::MultiFab const* const*, int) at /scratch/esclapez/TestsEB/IAMR/Exec/eb_run3dscalars/../../Source/Diffusion.cpp:938
+
+10: ./amr3d.gnu.MPI.ex() [0x4cb983]
+    Diffusion::diffuse_velocity(double, double, amrex::MultiFab const&, int, amrex::MultiFab*, amrex::MultiFab const* const*, amrex::MultiFab const* const*) at /scratch/esclapez/TestsEB/IAMR/Exec/eb_run3dscalars/../../Source/Diffusion.cpp:900
+
+11: ./amr3d.gnu.MPI.ex() [0x441546]
+    NavierStokes::velocity_diffusion_update(double) at /scratch/esclapez/TestsEB/IAMR/Exec/eb_run3dscalars/../../Source/NavierStokes.cpp:1039
+
+12: ./amr3d.gnu.MPI.ex() [0x483747]
+    std::unique_ptr<amrex::MultiFab, std::default_delete<amrex::MultiFab> >::get() const at /usr/include/c++/5/bits/unique_ptr.h:308
+ (inlined by) std::unique_ptr<amrex::MultiFab, std::default_delete<amrex::MultiFab> >::operator*() const at /usr/include/c++/5/bits/unique_ptr.h:294
+ (inlined by) amrex::StateData::newData() at /scratch/esclapez/TestsEB/amrex//Src/Amr/AMReX_StateData.H:330
+ (inlined by) amrex::AmrLevel::get_new_data(int) at /scratch/esclapez/TestsEB/amrex//Src/Amr/AMReX_AmrLevel.H:320
+ (inlined by) NavierStokesBase::velocity_update(double) at /scratch/esclapez/TestsEB/IAMR/Exec/eb_run3dscalars/../../Source/NavierStokesBase.cpp:3615
+
+13: ./amr3d.gnu.MPI.ex() [0x4463c4]
+    NavierStokes::advance(double, double, int, int) at /scratch/esclapez/TestsEB/IAMR/Exec/eb_run3dscalars/../../Source/NavierStokes.cpp:406
+
+14: ./amr3d.gnu.MPI.ex() [0x61863c]
+    std::vector<double, std::allocator<double> >::operator[](unsigned long) at /usr/include/c++/5/bits/stl_vector.h:780
+ (inlined by) amrex::Vector<double, std::allocator<double> >::operator[](unsigned long) at /scratch/esclapez/TestsEB/amrex//Src/Base/AMReX_Vector.H:33
+ (inlined by) amrex::Amr::timeStep(int, double, int, int, double) at /scratch/esclapez/TestsEB/amrex//Src/Amr/AMReX_Amr.cpp:2121
+
+15: ./amr3d.gnu.MPI.ex() [0x60a822]
+    amrex::Amr::coarseTimeStep(double) at /scratch/esclapez/TestsEB/amrex//Src/Amr/AMReX_Amr.cpp:2439
+
+16: ./amr3d.gnu.MPI.ex() [0x40f715]
+    main at /scratch/esclapez/TestsEB/IAMR/Exec/eb_run3dscalars/../../Source/main.cpp:118
+
+17: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf0) [0x7f7456437830]
+
+18: ./amr3d.gnu.MPI.ex() [0x414df9]
+    _start at ??:?
+
