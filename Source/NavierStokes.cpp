@@ -1737,6 +1737,14 @@ NavierStokes::mac_sync ()
     BL_PROFILE_REGION_START("R::NavierStokes::mac_sync()");
     BL_PROFILE("NavierStokes::mac_sync()");
 
+    if (verbose)
+    {
+        Print() << std::endl
+                << "mac_sync() "
+                << "------------------------------------------------- "
+                << std::endl;
+    }
+
     //
     // fixme - why not just return immediately if do_reflux = false
     //  why waste time computing things and then not use them

@@ -623,3 +623,183 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
     a_fz.FillBoundary(a_geom.periodicity());
 #endif
 }
+
+
+//
+// Compute the three components of the convection term -- MAC sync version
+//
+void
+Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
+                                    MultiFab& a_fy,
+                                    MultiFab& a_fz),
+                             D_DECL(MultiFab& edgestate_x,
+                                    MultiFab& edgestate_y,
+                                    MultiFab& edgestate_z),
+                             MultiFab& a_state,
+                             const int a_comp,
+                             const int a_ncomp,
+                             D_DECL( const MultiFab& a_xsl,
+                                     const MultiFab& a_ysl,
+                                     const MultiFab& a_zsl),
+                             const int a_sl_comp,
+                             D_DECL( const MultiFab& a_umac,
+                                     const MultiFab& a_vmac,
+                                     const MultiFab& a_wmac),
+                             D_DECL( const MultiFab& a_ucorr,
+                                     const MultiFab& a_vcorr,
+                                     const MultiFab& a_wcorr),
+                             const Geometry& a_geom,
+                             const Vector<BCRec>& a_bcs,
+                             int known_edgestate)
+{
+
+    AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
+    AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
+    AMREX_ALWAYS_ASSERT(a_bcs.size() == a_ncomp );
+
+    // For now use 4 ghost nodes
+    const int nghost(4);
+
+    Box domain(a_geom.Domain());
+
+    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
+
+    // Get EB geometric info
+    Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    Array< const MultiCutFab*,AMREX_SPACEDIM> facecent;
+
+    areafrac  =   ebfactory.getAreaFrac();
+    facecent  =   ebfactory.getFaceCent();
+
+    // Create cc_mask
+    iMultiFab cc_mask(a_state.boxArray(), a_state.DistributionMap(), 1, 1);
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        const std::vector<IntVect>& pshifts = a_geom.periodicity().shiftIntVect();
+        const BoxArray& ba = cc_mask.boxArray();
+        for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
+        {
+            Array4<int> const& fab = cc_mask.array(mfi);
+
+            const Box& bx = mfi.fabbox();
+            for (const auto& iv : pshifts)
+            {
+                ba.intersections(bx+iv, isects);
+                for (const auto& is : isects)
+                {
+                    const Box& b = is.second-iv;
+                    AMREX_FOR_3D ( b, i, j, k,
+                    {
+                        fab(i,j,k) = 1;
+                    });
+                }
+            }
+            // NOTE: here we do not need host-device synchronization since it
+            // is already included in the MFIter destructor
+        }
+    }
+
+
+    //
+    // For the time being we compute the fluxes in two steps
+    //
+    // 1) Compute fluxes using umac: this will give us the correct edge states
+    // 2) Recompute the fluxes with ucorr and the edge state computed at 1)
+    //
+    // We could do 1) and 2) in one pass by modifying the flux functions but for now
+    // we keep it simple and cross that bridge if we bump into efficiency issues
+
+    //
+    // Step 1: compute edge values using umac for upwinding -- only if we do not know edge state yet
+    //
+    if (!known_edgestate)
+    {
+        for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            Box bx = mfi.tilebox ();
+
+            const EBFArrayBox&  state_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
+            const EBCellFlagFab&    flags = state_fab.getEBCellFlagFab();
+
+            if (flags.getType(amrex::grow(bx,0)) != FabType::covered )
+            {
+                // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+                if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
+                {
+                    fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
+                                                D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
+                                                a_state[mfi], a_comp, a_ncomp,
+                                                D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                                D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs, 0);
+
+                }
+                else
+                {
+                    fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
+                                                 D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
+                                                 a_state[mfi], a_comp, a_ncomp,
+                                                 D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                                 D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs,
+                                                 D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
+                                                 D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
+                                                 cc_mask[mfi], flags, 0);
+                }
+            }
+
+        }
+    }
+
+
+    // Initialize (or reset if know_edgestate=0) fluxes
+    D_TERM(a_fx.setVal(COVERED_VAL);,
+           a_fy.setVal(COVERED_VAL);,
+           a_fz.setVal(COVERED_VAL););
+
+    //
+    // Step 1: compute edge values using umac for upwinding
+    //
+    for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.tilebox ();
+
+        const EBFArrayBox&  state_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
+        const EBCellFlagFab&    flags = state_fab.getEBCellFlagFab();
+
+        if (flags.getType(amrex::grow(bx,0)) != FabType::covered )
+        {
+            // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
+            if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
+            {
+                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
+                                            D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
+                                            a_state[mfi], a_comp, a_ncomp,
+                                            D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                            D_DECL(a_ucorr[mfi], a_vcorr[mfi], a_wcorr[mfi]), domain, a_bcs, 1);
+
+            }
+            else
+            {
+                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
+                                             D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
+                                             a_state[mfi], a_comp, a_ncomp,
+                                             D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
+                                             D_DECL(a_ucorr[mfi], a_vcorr[mfi], a_wcorr[mfi]), domain, a_bcs,
+                                             D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
+                                             D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
+                                             cc_mask[mfi], flags, 1);
+            }
+        }
+
+    }
+
+    // MR: incflo does not have this: should it be added?
+    a_fx.FillBoundary(a_geom.periodicity());
+    a_fy.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
+    a_fz.FillBoundary(a_geom.periodicity());
+#endif
+}

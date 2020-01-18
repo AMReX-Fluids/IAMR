@@ -1383,4 +1383,134 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
 
 }
 
+
+
+//
+// Compute
+//
+void
+Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
+                                    const int a_state_comp,
+                                    MultiFab& a_conv,
+                                    const int a_conv_comp,
+                                    const int a_ncomp,
+                                    D_DECL(MultiFab& a_fx,
+                                           MultiFab& a_fy,
+                                           MultiFab& a_fz),
+                                    D_DECL(MultiFab& edgst_x,
+                                           MultiFab& edgst_y,
+                                           MultiFab& edgst_z),
+                                    D_DECL(const MultiFab& a_umac,
+                                           const MultiFab& a_vmac,
+                                           const MultiFab& a_wmac),
+                                    D_DECL(const MultiFab& a_ucorr,
+                                           const MultiFab& a_vcorr,
+                                           const MultiFab& a_wcorr),
+                                    D_DECL(const MultiFab& a_xsl,
+                                           const MultiFab& a_ysl,
+                                           const MultiFab& a_zsl),
+                                    const int a_sl_comp,
+                                    const Vector<BCRec>&  a_bcs,
+                                    const Geometry& a_geom,
+                                    int known_edgestate)
+{
+    AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
+    AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
+    AMREX_ALWAYS_ASSERT(a_bcs.size()==a_ncomp);
+
+    // Compute fluxes
+    ComputeSyncFluxes( D_DECL(a_fx, a_fy, a_fz),
+                       D_DECL(edgst_x, edgst_y, edgst_z),
+                       a_state, a_state_comp, a_ncomp,
+                       D_DECL(a_xsl, a_ysl, a_zsl), a_sl_comp,
+                       D_DECL(a_umac, a_vmac, a_wmac),
+                       D_DECL(a_ucorr, a_vcorr, a_wcorr),
+                       a_geom, a_bcs, known_edgestate);
+
+    // Compute divergence
+    bool   already_on_centroids(true);
+    int    nghost(2);
+    MultiFab conv_tmp( a_conv.boxArray(), a_conv.DistributionMap(), a_ncomp, nghost,
+                       MFInfo(), a_state.Factory() );
+
+    conv_tmp.setVal(0.0);
+
+    Array<MultiFab*,AMREX_SPACEDIM> fluxes;
+    fluxes[0] = &a_fx;
+    fluxes[1] = &a_fy;
+#if (AMREX_SPACEDIM==3)
+    fluxes[2] = &a_fz;
+#endif
+
+    EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
+                         a_geom, already_on_centroids);
+
+    // Redistribute divergence
+    amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, a_conv_comp, a_ncomp, {a_geom} );
+
+    Gpu::synchronize();
+
+    //
+    // Now we have to return the fluxes multiplied by the area -- We basically return
+    // "intensive" fluxes
+    //
+    const Real*  dx = a_geom.CellSize();
+
+#if ( AMREX_SPACEDIM == 3 )
+    a_fx.mult(dx[1]*dx[2]);
+    a_fy.mult(dx[0]*dx[2]);
+    a_fz.mult(dx[0]*dx[1]);
+#else
+    a_fx.mult(dx[1]);
+    a_fy.mult(dx[0]);
+#endif
+
+    //
+    // Account for "effective areas" for cut cells
+    //
+    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
+
+    Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    areafrac  = ebfactory.getAreaFrac();
+
+    for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.tilebox ();
+
+        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
+        const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
+
+        if ( (flags.getType(amrex::grow(bx,0)) != FabType::covered ) &&
+             (flags.getType(amrex::grow(bx,0)) != FabType::regular ) )
+        {
+
+            D_TERM( const auto& fx = a_fx.array(mfi);,
+                    const auto& fy = a_fy.array(mfi);,
+                    const auto& fz = a_fz.array(mfi););
+
+            D_TERM( const Box ubx = amrex::surroundingNodes(bx,0);,
+                    const Box vbx = amrex::surroundingNodes(bx,1);,
+                    const Box wbx = amrex::surroundingNodes(bx,2););
+
+            D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
+                    const auto& afrac_y = areafrac[1]->array(mfi);,
+                    const auto& afrac_z = areafrac[2]->array(mfi););
+
+            AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
+            AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
+#if (AMREX_SPACEDIM==3)
+            AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
+#endif
+        }
+
+    }
+
+    a_fx.FillBoundary(a_geom.periodicity());
+    a_fy.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
+    a_fz.FillBoundary(a_geom.periodicity());
+#endif
+
+}
+
 #endif

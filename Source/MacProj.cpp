@@ -657,6 +657,23 @@ MacProj::mac_sync_compute (int                   level,
     FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
                                  prev_time,State_Type,0,NUM_STATE);
     MultiFab& Smf = S_fpi.get_mf();
+
+
+#ifdef AMREX_USE_EB
+    //
+    // EB algorithm
+    //
+    amrex::Print() << "RUNNING EB algorithm-------------------------------------------"
+                   << std::endl;
+
+    //
+    // STILL MISSING: add the get force part
+    //
+
+#else
+    //
+    // non-EB algorithm
+    //
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
