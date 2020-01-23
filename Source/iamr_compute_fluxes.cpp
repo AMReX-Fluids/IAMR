@@ -73,17 +73,17 @@ ComputeFluxesOnBox (const Box& a_bx,
     D_TERM( const auto& xsl = a_xsl.array();,
             const auto& ysl = a_ysl.array();,
             const auto& zsl = a_zsl.array(););
-    
+
     D_TERM( const auto& edgs_x = edgestate_x.array();,
             const auto& edgs_y = edgestate_y.array();,
             const auto& edgs_z = edgestate_z.array(););
-    
+
     D_TERM( const Box ubx = amrex::surroundingNodes(a_bx,0);,
             const Box vbx = amrex::surroundingNodes(a_bx,1);,
             const Box wbx = amrex::surroundingNodes(a_bx,2););
 
     const auto bc = a_bcs.dataPtr();
-    
+
     AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n,
     {
         Real state_w(0)  ;
@@ -97,26 +97,27 @@ ComputeFluxesOnBox (const Box& a_bx,
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
         if ( known_edgestate == 0)
         {
-          if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
-          {
-              state_w = state(i-1,j,k,a_comp+n);
-          }
-          else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
-          {
-              state_w = state(i,j,k,a_comp+n);
-          }
-          else
-          {
-              state_pls = state(i  ,j,k,a_comp+n) - .5*xsl(i  ,j,k,a_sl_comp+n);
-              state_mns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
-              state_w   = upwind( state_mns, state_pls, u(i,j,k) );
-          }
-          edgs_x(i,j,k,n) = state_w;
+            if ( (i <= domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+            {
+                state_w = state(domlo.x-1,j,k,a_comp+n);
+            }
+            else if ( (i >= domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+            {
+                state_w = state(domhi.x+1,j,k,a_comp+n);
+            }
+            else
+            {
+                state_pls = state(i  ,j,k,a_comp+n) - .5*xsl(i  ,j,k,a_sl_comp+n);
+                state_mns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
+                state_w   = upwind( state_mns, state_pls, u(i,j,k) );
+            }
+            edgs_x(i,j,k,n) = state_w;
         }
         else
         {
-          state_w = edgs_x(i,j,k,n);
+            state_w = edgs_x(i,j,k,n);
         }
+
         fx(i,j,k,n) = u(i,j,k) * state_w;
     });
 
@@ -133,25 +134,25 @@ ComputeFluxesOnBox (const Box& a_bx,
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
         if ( known_edgestate == 0)
         {
-          if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
-          {
-              state_s = state(i,j-1,k,a_comp+n);
-          }
-          else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
-          {
-              state_s = state(i,j,k,a_comp+n);
-          }
-          else
-          {
-              state_pls = state(i,j  ,k,a_comp+n) - .5*ysl(i,j  ,k,a_sl_comp+n);
-              state_mns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
-              state_s   = upwind( state_mns, state_pls, v(i,j,k) );
-          }
-          edgs_y(i,j,k,n) = state_s;
+            if ( (j <= domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+            {
+                state_s = state(i,domlo.y-1,k,a_comp+n);
+            }
+            else if ( (j >= domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+            {
+                state_s = state(i,domhi.y+1,k,a_comp+n);
+            }
+            else
+            {
+                state_pls = state(i,j  ,k,a_comp+n) - .5*ysl(i,j  ,k,a_sl_comp+n);
+                state_mns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
+                state_s   = upwind( state_mns, state_pls, v(i,j,k) );
+            }
+            edgs_y(i,j,k,n) = state_s;
         }
         else
         {
-          state_s = edgs_y(i,j,k,n);
+            state_s = edgs_y(i,j,k,n);
         }
 
         fy(i,j,k,n) = v(i,j,k) * state_s;
@@ -171,25 +172,25 @@ ComputeFluxesOnBox (const Box& a_bx,
         // This is from incflo: In the case of PINF, POUT we are using the upwind value
         if ( known_edgestate == 0)
         {
-          if ( (k == domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
-          {
-              state_b = state(i,j,k-1,a_comp+n);
-          }
-          else if ( (k == domhi.z+1) and (bc[n].lo(2) == BCType::ext_dir) )
-          {
-              state_b = state(i,j,k,a_comp+n);
-          }
-          else
-          {
-              state_pls = state(i,j,k  ,a_comp+n) - .5*zsl(i,j,k  ,a_sl_comp+n);
-              state_mns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
-              state_b   = upwind( state_mns, state_pls, w(i,j,k) );
-          }
-          edgs_z(i,j,k,n) = state_b;
+            if ( (k <= domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
+            {
+                state_b = state(i,j,domlo.z-1,a_comp+n);
+            }
+            else if ( (k >= domhi.z+1) and (bc[n].lo(2) == BCType::ext_dir) )
+            {
+                state_b = state(i,j,domhi.z+1,a_comp+n);
+            }
+            else
+            {
+                state_pls = state(i,j,k  ,a_comp+n) - .5*zsl(i,j,k  ,a_sl_comp+n);
+                state_mns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
+                state_b   = upwind( state_mns, state_pls, w(i,j,k) );
+            }
+            edgs_z(i,j,k,n) = state_b;
         }
         else
         {
-          state_b = edgs_z(i,j,k,n);
+            state_b = edgs_z(i,j,k,n);
         }
 
         fz(i,j,k,n) = w(i,j,k) * state_b;
@@ -280,7 +281,7 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     D_TERM( const auto& edgs_x = edgestate_x.array();,
             const auto& edgs_y = edgestate_y.array();,
             const auto& edgs_z = edgestate_z.array(););
-    
+
     const auto& ccm_fab = a_cc_mask.const_array();
 
     const auto bc = a_bcs.dataPtr();
@@ -295,11 +296,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
 
         if( areafrac_x(i,j,k) > 0 )
         {
-            if ( (i == domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+            if ( (i <= domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
             {
                 sx(i,j,k,n) = state(domlo.x-1,j,k,a_comp+n);
             }
-            else if ( (i == domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+            else if ( (i >= domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
             {
                 sx(i,j,k,n) = state(domhi.x+1,j,k,a_comp+n);
             }
@@ -322,34 +323,34 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     {
         if( areafrac_x(i,j,k) > 0 )
         {
-          Real s_on_x_centroid; 
-          if ( known_edgestate == 0)
-          {
-            int jj = j + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,0)));
+            Real s_on_x_centroid;
+            if ( known_edgestate == 0)
+            {
+                int jj = j + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,0)));
 #if (AMREX_SPACEDIM==3)
-            int kk = k + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,1)));
+                int kk = k + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,1)));
 #else
-            int kk = k;
+                int kk = k;
 #endif
 
-            Real fracy = (ccm_fab(i-1,jj,k) || ccm_fab(i,jj,k)) ? std::abs(fcx_fab(i,j,k,0)) : 0.0;
+                Real fracy = (ccm_fab(i-1,jj,k) || ccm_fab(i,jj,k)) ? std::abs(fcx_fab(i,j,k,0)) : 0.0;
 #if (AMREX_SPACEDIM==3)
-            Real fracz = (ccm_fab(i-1,j,kk) || ccm_fab(i,j,kk)) ? std::abs(fcx_fab(i,j,k,1)) : 0.0;
+                Real fracz = (ccm_fab(i-1,j,kk) || ccm_fab(i,j,kk)) ? std::abs(fcx_fab(i,j,k,1)) : 0.0;
 #else
-            Real fracz(0.0);
+                Real fracz(0.0);
 #endif
 
-            s_on_x_centroid = (1.0-fracy)*(1.0-fracz)*sx(i, j,k ,n)+
-                fracy *(1.0-fracz)*sx(i,jj,k ,n)+
-                fracz *(1.0-fracy)*sx(i, j,kk,n)+
-                fracy *     fracz *sx(i,jj,kk,n);
-                
-            edgs_x(i,j,k,n) = s_on_x_centroid;
-          }
-          else
-          {
-            s_on_x_centroid = edgs_x(i,j,k,n);
-          }
+                s_on_x_centroid = (1.0-fracy)*(1.0-fracz)*sx(i, j,k ,n)+
+                    fracy *(1.0-fracz)*sx(i,jj,k ,n)+
+                    fracz *(1.0-fracy)*sx(i, j,kk,n)+
+                    fracy *     fracz *sx(i,jj,kk,n);
+
+                edgs_x(i,j,k,n) = s_on_x_centroid;
+            }
+            else
+            {
+                s_on_x_centroid = edgs_x(i,j,k,n);
+            }
             fx(i,j,k,n) = u(i,j,k) * s_on_x_centroid;
         }
         else
@@ -369,11 +370,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
 
         if( areafrac_y(i,j,k) > 0 )
         {
-            if ( (j == domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+            if ( (j <= domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
             {
                 sy(i,j,k,n) = state(i,domlo.y-1,k,a_comp+n);
             }
-            else if ( (j == domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
+            else if ( (j >= domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
             {
                 sy(i,j,k,n) = state(i,domhi.y+1,k,a_comp+n);
             }
@@ -395,34 +396,34 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     {
         if ( areafrac_y(i,j,k) > 0 )
         {
-          Real s_on_y_centroid;
-          if ( known_edgestate == 0)
-          {
-            int ii = i + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,0)));
+            Real s_on_y_centroid;
+            if ( known_edgestate == 0)
+            {
+                int ii = i + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,0)));
 #if (AMREX_SPACEDIM==3)
-            int kk = k + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,1)));
+                int kk = k + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,1)));
 #else
-            int kk = k;
+                int kk = k;
 #endif
 
-            Real fracx = (ccm_fab(ii,j-1,k) || ccm_fab(ii,j,k)) ? std::abs(fcy_fab(i,j,k,0)) : 0.0;
+                Real fracx = (ccm_fab(ii,j-1,k) || ccm_fab(ii,j,k)) ? std::abs(fcy_fab(i,j,k,0)) : 0.0;
 #if (AMREX_SPACEDIM==3)
-            Real fracz = (ccm_fab(i,j-1,kk) || ccm_fab(i,j,kk)) ? std::abs(fcy_fab(i,j,k,1)) : 0.0;
+                Real fracz = (ccm_fab(i,j-1,kk) || ccm_fab(i,j,kk)) ? std::abs(fcy_fab(i,j,k,1)) : 0.0;
 #else
-            Real fracz(0.0);
+                Real fracz(0.0);
 #endif
 
-            s_on_y_centroid = (1.0-fracx)*(1.0-fracz)*sy(i ,j,k ,n)+
-                fracx *(1.0-fracz)*sy(ii,j,k ,n)+
-                fracz *(1.0-fracx)*sy(i ,j,kk,n)+
-                fracx *     fracz *sy(ii,j,kk,n);
-          
-            edgs_y(i,j,k,n) = s_on_y_centroid;
-          }
-          else
-          {
-            s_on_y_centroid = edgs_y(i,j,k,n);
-          }
+                s_on_y_centroid = (1.0-fracx)*(1.0-fracz)*sy(i ,j,k ,n)+
+                    fracx *(1.0-fracz)*sy(ii,j,k ,n)+
+                    fracz *(1.0-fracx)*sy(i ,j,kk,n)+
+                    fracx *     fracz *sy(ii,j,kk,n);
+
+                edgs_y(i,j,k,n) = s_on_y_centroid;
+            }
+            else
+            {
+                s_on_y_centroid = edgs_y(i,j,k,n);
+            }
             fy(i,j,k,n) = v(i,j,k) * s_on_y_centroid;
         }
         else
@@ -443,11 +444,11 @@ ComputeFluxesOnEBBox (const Box& a_bx,
 
         if( areafrac_z(i,j,k) > 0 )
         {
-            if ( (k == domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
+            if ( (k <= domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
             {
                 sz(i,j,k,n) = state(i,j,domlo.z-1,a_comp+n);
             }
-            else if ( (k == domhi.z+1) and (bc[n].hi(2) == BCType::ext_dir) )
+            else if ( (k >= domhi.z+1) and (bc[n].hi(2) == BCType::ext_dir) )
             {
                 sz(i,j,k,n) = state(i,j,domhi.z+1,a_comp+n);
             }
@@ -469,26 +470,26 @@ ComputeFluxesOnEBBox (const Box& a_bx,
     {
         if( areafrac_z(i,j,k) > 0 )
         {
-          Real s_on_z_centroid;
-          if ( known_edgestate == 0)
-          {
-            int ii = i + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,0)));
-            int jj = j + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,1)));
+            Real s_on_z_centroid;
+            if ( known_edgestate == 0)
+            {
+                int ii = i + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,0)));
+                int jj = j + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,1)));
 
-            Real fracx = (ccm_fab(ii,j,k-1) || ccm_fab(ii,j,k)) ? std::abs(fcz_fab(i,j,k,0)) : 0.0;
-            Real fracy = (ccm_fab(i,jj,k-1) || ccm_fab(i,jj,k)) ? std::abs(fcz_fab(i,j,k,1)) : 0.0;
+                Real fracx = (ccm_fab(ii,j,k-1) || ccm_fab(ii,j,k)) ? std::abs(fcz_fab(i,j,k,0)) : 0.0;
+                Real fracy = (ccm_fab(i,jj,k-1) || ccm_fab(i,jj,k)) ? std::abs(fcz_fab(i,j,k,1)) : 0.0;
 
-            s_on_z_centroid = (1.0-fracx)*(1.0-fracy)*sz(i ,j ,k,n)+
-                fracx *(1.0-fracy)*sz(ii,j ,k,n)+
-                fracy *(1.0-fracx)*sz(i ,jj,k,n)+
-                fracx *     fracy *sz(ii,jj,k,n);
-            
-            edgs_z(i,j,k,n) = s_on_z_centroid;
-          }
-          else
-          {
-            s_on_z_centroid = edgs_z(i,j,k,n);
-          }
+                s_on_z_centroid = (1.0-fracx)*(1.0-fracy)*sz(i ,j ,k,n)+
+                    fracx *(1.0-fracy)*sz(ii,j ,k,n)+
+                    fracy *(1.0-fracx)*sz(i ,jj,k,n)+
+                    fracx *     fracy *sz(ii,jj,k,n);
+
+                edgs_z(i,j,k,n) = s_on_z_centroid;
+            }
+            else
+            {
+                s_on_z_centroid = edgs_z(i,j,k,n);
+            }
             fz(i,j,k,n) = w(i,j,k) * s_on_z_centroid;
         }
         else
