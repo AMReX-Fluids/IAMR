@@ -1758,12 +1758,21 @@ NavierStokes::mac_sync ()
     // does this have ghosts filled?
     MultiFab&  Rh             = get_rho_half_time();
 
+#ifdef AMREX_USE_EB
+    const int nghost = 4; // For redistribution ... We may not need 4 but for now we play safe
+#else
+    const int nghost = 0;
+#endif
+
+
+
     Array<MultiFab*,AMREX_SPACEDIM> Ucorr;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim){
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
       const BoxArray& edgeba = getEdgeBoxArray(idim);
       //
       // fixme? unsure how many ghost cells...
-      Ucorr[idim]= new MultiFab(edgeba,dmap,1,0,MFInfo(),Factory());
+      Ucorr[idim]= new MultiFab(edgeba,dmap,1,nghost,MFInfo(),Factory());
     }
 
     sync_setup(DeltaSsync);
