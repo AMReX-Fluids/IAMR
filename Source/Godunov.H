@@ -152,11 +152,7 @@ public:      // public access functions
     // Diagnostic functions follow
     // =============================================================
 
-    // estimate the timestep from the cell-centered quantities
-    amrex::Real estdt( amrex::FArrayBox &U, amrex::FArrayBox &tforces, amrex::FArrayBox &Rho,
-                const amrex::Box &grd, const amrex::Real *dx, amrex::Real cfl, amrex::Real *u_max );
-
-	// find the largest change in velocity magnitude since last iteration
+    // find the largest change in velocity magnitude since last iteration
     amrex::Real maxchng_velmag( amrex::FArrayBox &U_old, amrex::FArrayBox &U_new, const amrex::Box &grd );
 
     // test the mac edge velocity Courant numbers

@@ -544,51 +544,10 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
                          lo, hi, bc);
 }
 
-//
-// Diagnostic functions follow
-//
-
-//
-// Estimate the maximum allowable timestep at a cell center.
-//
-
-Real
-Godunov::estdt (FArrayBox&  U,
-                FArrayBox&  tforces,
-                FArrayBox&  rho,
-                const Box&  grd,
-                const Real* dx,
-                Real        cfl,
-                Real*       u_max)
-{
-    BL_ASSERT( U.nComp()       >= BL_SPACEDIM );
-    BL_ASSERT( tforces.nComp() >= BL_SPACEDIM );
-    BL_ASSERT( rho.nComp()     == 1           );
-
-    const int *lo     = grd.loVect();
-    const int *hi     = grd.hiVect();
-    const int *vlo    = U.loVect();
-    const int *vhi    = U.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    const Real *Udat  = U.dataPtr();
-    const Real *tfdat = tforces.dataPtr();
-    const Real *rdat  = rho.dataPtr();
-
-    Real dt;
-    fort_estdt(Udat,  ARLIM(vlo), ARLIM(vhi),
-               tfdat, ARLIM(tlo), ARLIM(thi),
-               rdat,  ARLIM(rlo), ARLIM(rhi),
-               lo, hi, &dt, dx, &cfl, u_max);
-    return dt;
-}
 
 //
 // Estimate the maximum change in velocity magnitude since previous iteration.
 //
-
 Real
 Godunov::maxchng_velmag (FArrayBox&  U_old,
 			 FArrayBox&  U_new,

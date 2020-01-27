@@ -21,15 +21,15 @@ module godunov_2d_module
 
   implicit none
 
-  private 
+  private
 
-  public :: extrap_vel_to_faces, fort_estdt, fort_maxchng_velmag, &
+  public :: extrap_vel_to_faces, fort_maxchng_velmag, &
        fort_test_umac_rho, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax,&
        fort_sum_tf_gp,fort_sum_tf_gp_visc,fort_sum_tf_divu,&
        fort_sum_tf_divu_visc, update_tf,&
        update_aofs_tf, update_aofs_tf_gp
-  
+
 contains
 
   subroutine extrap_vel_to_faces(lo,hi,&
@@ -346,82 +346,12 @@ contains
 
   end subroutine extrap_state_to_faces
 
-  subroutine fort_estdt (&
-          vel,DIMS(vel),&
-          tforces,DIMS(tf),&
-          rho,DIMS(rho),&
-          lo,hi,dt,dx,cfl,u_max) bind(C,name="fort_estdt")
-! c 
-! c     ----------------------------------------------------------
-! c     estimate the timestep for this grid and scale by CFL number
-! c     This routine sets dt as dt = dt_est*cfl where
-! c     dt_est is estimated from the actual velocities and their 
-! c     total forcing
-! c     ----------------------------------------------------------
-! c
-      implicit none
-      REAL_T    u, v
-      REAL_T    small
-      REAL_T    dt_start
-      REAL_T    tforce1
-      REAL_T    tforce2
-      integer   i, j
-      integer lo(SDIM), hi(SDIM)
-      REAL_T  dt,dx(SDIM),cfl,u_max(SDIM)
-
-      integer DIMDEC(vel)
-      integer DIMDEC(rho)
-      integer DIMDEC(tf)
-
-      REAL_T  vel(DIMV(vel),SDIM)
-      REAL_T  rho(DIMV(rho))
-      REAL_T  tforces(DIMV(tf),SDIM)
-
-#if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
-      small   = 1.0e-8
-#else
-      small   = 1.0d-8
-#endif
-      u       = zero
-      v       = zero
-      tforce1 = zero
-      tforce2 = zero
-
-      do j = lo(2), hi(2)
-         do i = lo(1), hi(1)
-            u = max(u,abs(vel(i,j,1)))
-            v = max(v,abs(vel(i,j,2)))
-             tforce1 = max(tforce1,abs(tforces(i,j,1)/rho(i,j)))
-             tforce2 = max(tforce2,abs(tforces(i,j,2)/rho(i,j)))
-         end do
-      end do
-
-      u_max(1) = u
-      u_max(2) = v
-
-      dt_start = 1.0D+20
-      dt = dt_start
-
-      if (u .gt. small) dt = min(dt,dx(1)/u)
-      if (v .gt. small) dt = min(dt,dx(2)/v)
-
-      if (tforce1 .gt. small) then
-        dt  = min(dt,sqrt(two*dx(1)/tforce1))
-      end if
-
-      if (tforce2 .gt. small) then
-        dt  = min(dt,sqrt(two*dx(2)/tforce2))
-      end if
-
-      dt = dt*cfl
-
-    end subroutine fort_estdt
 
     subroutine fort_maxchng_velmag (&
           old_vel,DIMS(old_vel),&
           new_vel,DIMS(new_vel),&
           lo,hi,max_change) bind(C,name="fort_maxchng_velmag")
-! c 
+! c
 ! c     ----------------------------------------------------------
 ! c     Given the velocity field at the previous and current time steps
 ! c     (old_vel and new_vel, respectively), find the largest change in
@@ -512,8 +442,8 @@ contains
       u_max(2) = max(abs(vmax), abs(vmin))
       cflmax   = dt*max(u_max(1)/hx,u_max(2)/hy)
 
-      write(6,1000) umax,umin,u_max(1) 
-      write(6,1001) vmax,vmin,u_max(2) 
+      write(6,1000) umax,umin,u_max(1)
+      write(6,1001) vmax,vmin,u_max(2)
       write(6,1002) rhomax,rhomin
 
  1000 format('UMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
@@ -628,7 +558,7 @@ contains
               sy,sy_lo,sy_hi,&
               ubc)
       end if
-         
+
       if (ppm_type .gt. 0) then
          do i = imin, imax+1
             do j = jmin-1,jmax+1
@@ -774,7 +704,7 @@ contains
       ! 1a. Repeat for ylo
       ! 2. The transverse correction is - vbar * grady, where vbar=(vad_{j+1}+vad_{j})/2
       !      and grady is computed with the ylo values.  Results into stxlo,stxhi, and
-      !      upwinded into xstate using UFACE, where 
+      !      upwinded into xstate using UFACE, where
       !      if velpred!=1:
       !          UFACE = uedge
       !      else
@@ -842,7 +772,7 @@ contains
 
 
       do L=1,nc
-         ! c     
+         ! c
          ! c     compute the slopes
          ! c
          ! c     trace the state to the cell edges
@@ -1020,7 +950,7 @@ contains
                   stxlo(imax+1) = s(imax+1,j,L)
                   stxhi(imax+1) = s(imax+1,j,L)
                else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).gt.0.d0) then
-                  stxhi(imax+1) = stxlo(imax+1) 
+                  stxhi(imax+1) = stxlo(imax+1)
                else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                   if (n+L-1.eq.XVEL) then
                      if (velpred.eq.1) then
@@ -1067,7 +997,7 @@ contains
          end if
          !c
          !c     compute the yedge states
-         !c      
+         !c
          if ((velpred.ne.1) .or. (n+L-1.eq.YVEL)) then
             do i = imin, imax
                do j = jmin-1,jmax+1
@@ -1186,7 +1116,7 @@ contains
          end if
       enddo
     end subroutine estate_premac
-       
+
     subroutine estate_fpu(lo,hi,&
          s,s_lo,s_hi,&
          tf,tf_lo,tf_hi,&
@@ -1414,7 +1344,7 @@ contains
             do i = imin-1,imax+1
 
                if (iconserv(L).eq.1) then
-                  
+
                   st = -(vedge(i,j+1)*ylo(i,j+1) - vedge(i,j)*ylo(i,j))/hy&
                       + s(i,j,L)*(vedge(i,j+1)-vedge(i,j))/hy&
                       - s(i,j,L)*divu(i,j)
@@ -1426,7 +1356,7 @@ contains
                      else
                         inc = 0
                      endif
-                     tr = vbar*(s(i,j+inc,L)-s(i,j+inc-1,L))/hy 
+                     tr = vbar*(s(i,j+inc,L)-s(i,j+inc-1,L))/hy
                   else
                      tr = half*(vedge(i,j+1) + vedge(i,j)) *&
                          (  ylo(i,j+1) - ylo(i,j)  ) / hy
@@ -1510,7 +1440,7 @@ contains
 !c     compute the yedge states
 !c
       do i = imin,imax
-            
+
             do j = jmin-1,jmax+1
 
                if (iconserv(L).eq.1) then
@@ -1550,7 +1480,7 @@ contains
                end if
 
             end do
-            
+
             if (bc(2,1,L).eq.EXT_DIR .and. vedge(i,jmin).ge.0.d0) then
                styhi(jmin) = s(i,jmin-1,L)
                stylo(jmin) = s(i,jmin-1,L)
@@ -1574,7 +1504,7 @@ contains
                styhi(jmin) = 0.d0
                stylo(jmin) = 0.d0
             end if
-            
+
             if (bc(2,2,L).eq.EXT_DIR .and. vedge(i,jmax+1).le.0.d0) then
                stylo(jmax+1) = s(i,jmax+1,L)
                styhi(jmax+1) = s(i,jmax+1,L)
@@ -1598,7 +1528,7 @@ contains
                stylo(jmax+1) = 0.d0
                styhi(jmax+1) = 0.d0
             end if
-            
+
             do j=jmin,jmax+1
                ystate(i,j,L) = merge(stylo(j),styhi(j),vedge(i,j) .ge. 0.0d0)
                ystate(i,j,L) = merge(half*(stylo(j)+styhi(j)),ystate(i,j,L),&
@@ -1650,7 +1580,7 @@ contains
               if (uad(imin,j) .ge. 0.d0) then
                  xhi(imin,j) = s(imin-1,j)
                  xlo(imin,j) = s(imin-1,j)
-              else 
+              else
                  xlo(imin,j) = xhi(imin,j)
               end if
             end do
@@ -1680,7 +1610,7 @@ contains
               if (uad(imax+1,j) .le. 0.d0) then
                  xhi(imax+1,j) = s(imax+1,j)
                  xlo(imax+1,j) = s(imax+1,j)
-               else 
+               else
                  xhi(imax+1,j) = xlo(imax+1,j)
                end if
              end do
@@ -1807,7 +1737,7 @@ contains
          slx,slx_lo,slx_hi,&
          sly,sly_lo,sly_hi,&
          bc)
-! c 
+! c
 ! c     this subroutine computes first, second or forth order slopes of
 ! c     a 2D scalar field.
 ! c
@@ -1923,7 +1853,7 @@ contains
                   slx(i,j)= sflg*min(slim,abs(del))
                end do
             end do
-            
+
             if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
                do j = jmin-1, jmax+1
                   slx(imin-1,j) = 0.d0
@@ -2016,7 +1946,7 @@ contains
 !c     COMPUTE 4TH order slopes
 !c
       if (slope_order.eq.4) then
-!c         
+!c
 !c     ------------------------ x slopes
 !c
          if (use_unlimited_slopes) then
@@ -2029,7 +1959,7 @@ contains
                       sixth * (slxscr(i+1,cen) + slxscr(i-1,cen))
                end do
             end do
-            
+
             if (bc(1,1) .eq. EXT_DIR .or. bc(1,1) .eq. HOEXTRAP) then
                do j = jmin-1, jmax+1
                   slx(imin,j) = -sixteen/fifteen*s(imin-1,j) + half*s(imin,j) + &
@@ -2113,7 +2043,7 @@ contains
                       sixth * (slyscr(j+1,cen) + slyscr(j-1,cen))
                end do
             end do
-            
+
             if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
                do i = imin-1, imax+1
                   sly(i,jmin-1) = 0.d0
@@ -2258,7 +2188,7 @@ contains
                    dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
-         
+
 !c     interpolate s to x-edges
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+2
@@ -2290,7 +2220,7 @@ contains
                end if
             end do
          end do
-         
+
 !c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
          if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
 !c     the value in the first cc ghost cell represents the edge value
@@ -2333,7 +2263,7 @@ contains
                end if
             end do
          end if
-         
+
          if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
 !c     the value in the first cc ghost cell represents the edge value
             sp(hi(1),lo(2)-1:hi(2)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1)
@@ -2395,7 +2325,7 @@ contains
          end do
 
 !c     use Colella 2008 limiters
-!c     This is a new version of the algorithm 
+!c     This is a new version of the algorithm
 !c     to eliminate sensitivity to roundoff.
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
@@ -2446,7 +2376,7 @@ contains
                      if (sgn*amax .ge. sgn*delam) then
                         if (sgn*(delam - alpham).ge.1.d-10) then
                            alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                        else 
+                        else
                            alphap = -2.d0*alpham
                         endif
                      endif
@@ -2546,7 +2476,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -2651,7 +2581,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -2717,7 +2647,7 @@ contains
                    dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
-         
+
 !c     interpolate s to y-edges
          do j=lo(2)-1,hi(2)+2
             do i=lo(1)-1,hi(1)+1
@@ -2749,7 +2679,7 @@ contains
                end if
             end do
          end do
-         
+
 !c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
          if (bc(2,1) .eq. EXT_DIR  .or. bc(2,1) .eq. HOEXTRAP) then
 !c     the value in the first cc ghost cell represents the edge value
@@ -2836,7 +2766,7 @@ contains
          end if
 
       else if (ppm_type .eq. 2) then
-         
+
 !c     interpolate s to y-edges
          do j=lo(2)-2,hi(2)+3
             do i=lo(1)-1,hi(1)+1
@@ -2854,7 +2784,7 @@ contains
          end do
 
 !c     use Colella 2008 limiters
-!c     This is a new version of the algorithm 
+!c     This is a new version of the algorithm
 !c     to eliminate sensitivity to roundoff.
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
@@ -2905,7 +2835,7 @@ contains
                      if (sgn*amax .ge. sgn*delam) then
                         if (sgn*(delam - alpham).ge.1.d-10) then
                            alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                        else 
+                        else
                            alphap = -2.d0*alpham
                         endif
                      endif
@@ -3005,7 +2935,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -3105,7 +3035,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -3154,7 +3084,7 @@ contains
       end do
 
     end subroutine ppm
- 
+
       subroutine adv_forcing(&
           aofs,DIMS(aofs),&
           xflux,DIMS(xflux),&
@@ -3213,7 +3143,7 @@ contains
                    - divux*half*(xflux(i+1,j) + xflux(i,j))&
                    - divuy*half*(yflux(i,j+1) + yflux(i,j))
 
-! EM_DEBUG    
+! EM_DEBUG
 !if ((i < 4) .and. (j==0)) then
 !write(*,*)  'in adv_forcing ', i,j,divux,divuy,aofs(i,j),xflux(i,j),yflux(i,j)
 !endif
@@ -3241,9 +3171,9 @@ contains
 
          end do
       end do
-!c     
+!c
 !c     compute part of advective tendency that depends on the flux convergence
-!c     
+!c
       if ( iconserv .ne. 1 ) then
          do j = jmin,jmax
             do i = imin,imax
@@ -3259,7 +3189,7 @@ contains
                    xflux(i+1,j) - xflux(i,j) +&
                    yflux(i,j+1) - yflux(i,j))/vol(i,j)
 
-! EM_DEBUG    
+! EM_DEBUG
 !if ((i < 4) .and. (j == 0)) then
 !write(*,*)  'in adv_forcing ', i,j,xflux(i,j),yflux(i,j),aofs(i,j)
 !endif
@@ -3309,7 +3239,7 @@ contains
       imax = hi(1)
       jmax = hi(2)
 ! c
-! c     compute corrective fluxes from edge states 
+! c     compute corrective fluxes from edge states
 ! c     and perform conservative update
 ! c
       do j = jmin,jmax
@@ -3400,7 +3330,7 @@ contains
                    dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
-         
+
 !c     interpolate s to x-edges
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+2
@@ -3432,7 +3362,7 @@ contains
                end if
             end do
          end do
-         
+
 !c     different stencil needed for x-component of EXT_DIR and HOEXTRAP bc's
          if (bc(1,1) .eq. EXT_DIR  .or. bc(1,1) .eq. HOEXTRAP) then
 !c     the value in the first c!c ghost cell represents the edge value
@@ -3475,7 +3405,7 @@ contains
                end if
             end do
          end if
-         
+
          if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
 !c     the value in the first c!c ghost cell represents the edge value
             sp(hi(1),lo(2)-1:hi(2)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1)
@@ -3537,7 +3467,7 @@ contains
          end do
 
 !c     use Colella 2008 limiters
-!c     This is a new version of the algorithm 
+!c     This is a new version of the algorithm
 !c     to eliminate sensitivity to roundoff.
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
@@ -3588,7 +3518,7 @@ contains
                      if (sgn*amax .ge. sgn*delam) then
                         if (sgn*(delam - alpham).ge.1.d-10) then
                            alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                        else 
+                        else
                            alphap = -2.d0*alpham
                         endif
                      endif
@@ -3688,7 +3618,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -3793,7 +3723,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -3860,7 +3790,7 @@ contains
                    dsvl(i,j) = sign(1.d0,dsc)*min(abs(dsc),abs(dsl),abs(dsr))
             end do
          end do
-         
+
 !c     interpolate s to y-edges
          do j=lo(2)-1,hi(2)+2
             do i=lo(1)-1,hi(1)+1
@@ -3892,7 +3822,7 @@ contains
                end if
             end do
          end do
-         
+
 !c     different stencil needed for y-component of EXT_DIR and HOEXTRAP bc's
          if (bc(2,1) .eq. EXT_DIR  .or. bc(2,1) .eq. HOEXTRAP) then
 !c     the value in the first c!c ghost cell represents the edge value
@@ -3979,7 +3909,7 @@ contains
          end if
 
       else if (ppm_type .eq. 2) then
-         
+
 !c     interpolate s to y-edges
          do j=lo(2)-2,hi(2)+3
             do i=lo(1)-1,hi(1)+1
@@ -3997,7 +3927,7 @@ contains
          end do
 
 !c     use Colella 2008 limiters
-!c     This is a new version of the algorithm 
+!c     This is a new version of the algorithm
 !c     to eliminate sensitivity to roundoff.
          do j=lo(2)-1,hi(2)+1
             do i=lo(1)-1,hi(1)+1
@@ -4048,7 +3978,7 @@ contains
                      if (sgn*amax .ge. sgn*delam) then
                         if (sgn*(delam - alpham).ge.1.d-10) then
                            alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                        else 
+                        else
                            alphap = -2.d0*alpham
                         endif
                      endif
@@ -4148,7 +4078,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -4248,7 +4178,7 @@ contains
                         if (sgn*amax .ge. sgn*delam) then
                            if (sgn*(delam - alpham).ge.1.d-10) then
                               alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                           else 
+                           else
                               alphap = -2.d0*alpham
                            endif
                         endif
@@ -4322,7 +4252,7 @@ contains
 !c
 !c     compute extrema of s
 !c
-      do j = jmin, jmax         
+      do j = jmin, jmax
          do i = imin, imax
             smin = min(&
                 s(i-1,j-1),s(i  ,j-1),s(i+1,j-1),&
@@ -4364,13 +4294,13 @@ contains
 !c
 !c     compute extrema of s
 !c
-      do j = jmin-1, jmax+1         
+      do j = jmin-1, jmax+1
          do i = imin-1, imax+1
             s(i,j) = s(i,j) / rho(i,j)
          end do
       end do
 
-      do j = jmin, jmax         
+      do j = jmin, jmax
          do i = imin, imax
             slo_min = min(s(i-1,j-1),s(i  ,j-1),s(i+1,j-1))
             smd_min = min(s(i-1,j  ),s(i  ,j  ),s(i+1,j  ))
@@ -4387,12 +4317,12 @@ contains
          end do
       end do
 
-      do j = jmin-1, jmax+1         
+      do j = jmin-1, jmax+1
          do i = imin-1, imax+1
             s(i,j) = s(i,j) * rho(i,j)
          end do
       end do
-      
+
     end subroutine consscalminmax
 
       subroutine fort_sum_tf_gp(&
@@ -4451,7 +4381,7 @@ contains
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
 
-! EM_DEBUG    
+! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG IN SUM_TF_GP ',i,j,n,gp(i,j,n),tforces(i,j,n),visc(i,j,n),rho(i,j)
 !endif
@@ -4669,12 +4599,12 @@ contains
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
 
-! EM_DEBUG            
+! EM_DEBUG
 !  if ((i < 2) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG IN update_aofs_tf_gp ',i,j,n,gp(i,j,n),rho(i,j),tforces(i,j,n),aofs(i,j,n),u(i,j,n)
 !endif
 
-            
+
                un(i,j,n) = u(i,j,n) &
                    - dt*   aofs(i,j,n)&
                    + dt*tforces(i,j,n)/rho(i,j)&
@@ -4690,7 +4620,7 @@ contains
 
       implicit none
       integer lo_1,lo_2,hi_1,hi_2
-! C      
+! C
 ! C     FIXME? Do the arrays s, slx, sly, sc have the same bounds
 ! C            here and in the calling function?
 ! C            Perhaps passing in loop bounds (is,js,ie,je) instead
@@ -4702,7 +4632,7 @@ contains
       REAL_T   slxy(lo_1-1:hi_1+1,lo_2-1:hi_2+1)
       REAL_T   sint(lo_1-2:hi_1+2,lo_2-2:hi_2+2)
       REAL_T     sc(lo_1-1:hi_1+1,lo_2-1:hi_2+1,4)
-      REAL_T dx(2)     
+      REAL_T dx(2)
 
       REAL_T   diff(lo_1-1:hi_1+1,4)
       REAL_T   smin(lo_1-1:hi_1+1,4)
@@ -4730,14 +4660,14 @@ contains
         do j = js-2,je+1
           sint(i,j) = (&
                    s(i-1,j-1) + s(i-1,j+2) + s(i+2,j-1) + s(i+2,j+2) &
-          - seven*(s(i-1,j  ) + s(i-1,j+1) + s(i  ,j-1) + s(i+1,j-1) +& 
-                   s(i  ,j+2) + s(i+1,j+2) + s(i+2,j  ) + s(i+2,j+1)) +& 
+          - seven*(s(i-1,j  ) + s(i-1,j+1) + s(i  ,j-1) + s(i+1,j-1) +&
+                   s(i  ,j+2) + s(i+1,j+2) + s(i+2,j  ) + s(i+2,j+1)) +&
             49.d0*(s(i  ,j  ) + s(i+1,j  ) + s(i  ,j+1) + s(i+1,j+1)) ) / 144.d0
         enddo
       enddo
 
       do j = js-1,je+1
-        do i = is-1,ie+1 
+        do i = is-1,ie+1
 
           slx(i,j) = half*(sint(i  ,j) + sint(i  ,j-1) - &
                           sint(i-1,j) - sint(i-1,j-1) ) / hx
@@ -4775,8 +4705,8 @@ contains
           sc(i,j,1) = max(min(sc(i,j,1), smax(i,1)), smin(i,1))
         enddo
 
-        do ll = 1,3 
-          do i = is-1,ie+1 
+        do ll = 1,3
+          do i = is-1,ie+1
             sumloc = fourth*(sc(i,j,4) + sc(i,j,3) + &
                             sc(i,j,2) + sc(i,j,1))
             sumdif(i) = (sumloc - s(i,j))*4.
@@ -4794,8 +4724,8 @@ contains
             kdp(i) = inc1 + inc2 + inc3 + inc4
           enddo
 
-          do k = 1,4 
-            do i = is-1,ie+1 
+          do k = 1,4
+            do i = is-1,ie+1
               div = merge(1,kdp(i),kdp(i) .lt. 1)
 	      choice1 = sumdif(i)*sgndif(i)/div
               redfac = merge(choice1,zero,diff(i,k).gt.eps)
@@ -4810,7 +4740,7 @@ contains
           enddo
         enddo
 
-        do i = is-1,ie+1 
+        do i = is-1,ie+1
           slx(i,j) = half*( sc(i,j,4) + sc(i,j,3)&
                           -sc(i,j,1) - sc(i,j,2))/hx
           sly(i,j) = half*( sc(i,j,4) + sc(i,j,2)&
@@ -4869,7 +4799,7 @@ contains
       REAL_T  sy(DIMV(work))
       REAL_T tforces(DIMV(work))
       REAL_T    divu(DIMV(work))
-      
+
       REAL_T smin,smax
 
       REAL_T   sc(DIMV(work),4)
@@ -4907,14 +4837,14 @@ contains
         enddo
       enddo
 
-!C see comments in subroutine bdsslope      
+!C see comments in subroutine bdsslope
       call bdsslope(s,lo(1),lo(2),hi(1),hi(2),sx,sy,sc,dx)
 
-      do j = js,je 
+      do j = js,je
 
-        do i = is-1,ie 
+        do i = is-1,ie
           choose_hi(i+1) = merge(0,1,uedge(i+1,j) .ge. 0.0d0)
-        end do 
+        end do
         if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP&
                .or.bc(1,1).eq.REFLECT_EVEN) then
            choose_hi(is) = 1
@@ -4924,7 +4854,7 @@ contains
            choose_hi(ie+1) = 0
         endif
 
-        do i = is-1,ie 
+        do i = is-1,ie
           iup   = merge(i,i+1,choose_hi(i+1).eq.0)
           isign = merge(1,-1, choose_hi(i+1).eq.0)
           vtrans = vedge(iup,j+1)
@@ -4946,7 +4876,7 @@ contains
 
 !c       Impose BCs on gamp.
         if (j .eq. je) then
-          do i = is-1, ie  
+          do i = is-1, ie
             if (bc(2,2).eq.EXT_DIR .and.(vedge(i,je+1).le.zero) ) then
                gamp(i) = s(i,je+1)
             else if (bc(2,2).eq.REFLECT_ODD) then
@@ -4955,7 +4885,7 @@ contains
           end do
         end if
 
-        do i = is-1,ie 
+        do i = is-1,ie
           iup   = merge(i,i+1,choose_hi(i+1).eq.0)
           isign = merge(1,-1, choose_hi(i+1).eq.0)
           vtrans = vedge(iup,j)
@@ -4977,7 +4907,7 @@ contains
 
 !c       Impose BCs on gamm.
         if (j .eq. js) then
-          do i = is-1, ie 
+          do i = is-1, ie
             if (bc(2,1).eq.EXT_DIR .and.(vedge(i,js).ge.zero) ) then
                gamm(i) = s(i,js-1)
             else if (bc(2,1).eq.REFLECT_ODD) then
@@ -4986,7 +4916,7 @@ contains
           end do
         end if
 
-        do i = is-1, ie 
+        do i = is-1, ie
           iup   = merge(i,i+1,choose_hi(i+1).eq.0)
           isign = merge(1,-1, choose_hi(i+1).eq.0)
           vdif   = dth*(vedge(iup,j+1)*gamp(i) - vedge(iup,j  )*gamm(i) ) / hy
@@ -5005,9 +4935,9 @@ contains
         enddo
       enddo
 
-      do j = js-1,je 
+      do j = js-1,je
 
-        do i = is,ie 
+        do i = is,ie
           choose_hi(i) = merge(0,1,vedge(i,j+1) .ge. 0.0d0)
           if ( (j .eq. js-1) .and. &
             (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP&
@@ -5017,9 +4947,9 @@ contains
             (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP&
                                 .or.bc(2,2).eq.REFLECT_EVEN) )&
           choose_hi(i) = 0
-        end do 
+        end do
 
-        do i = is,ie 
+        do i = is,ie
           jup   = merge(j,j+1,choose_hi(i).eq.0)
           jsign = merge(1, -1,choose_hi(i).eq.0)
           vtrans = uedge(i+1,jup)
@@ -5045,7 +4975,7 @@ contains
            gamp(ie) = zero
         end if
 
-        do i = is,ie 
+        do i = is,ie
           jup   = merge(j,j+1,choose_hi(i).eq.0)
           jsign = merge(1, -1,choose_hi(i).eq.0)
           vtrans = uedge(i,jup)
@@ -5071,7 +5001,7 @@ contains
            gamm(is) = zero
         end if
 
-        do i = is,ie 
+        do i = is,ie
           jup   = merge(j,j+1,choose_hi(i).eq.0)
           jsign = merge(1, -1,choose_hi(i).eq.0)
           vdif   = dth*(uedge(i+1,jup)*gamp(i)-uedge(i,jup)*gamm(i))/hx
@@ -5090,10 +5020,10 @@ contains
         enddo
       enddo
 
-!c     
+!c
 !c     Impose BCs on xstate.
-!c     
-      do j = js,je 
+!c
+      do j = js,je
         if (bc(1,1).eq.EXT_DIR .and. uedge(is,j).ge.zero) then
            xstate(is,j) = s(is-1,j)
         else if (bc(1,1).eq.REFLECT_ODD) then
@@ -5107,10 +5037,10 @@ contains
         end if
       enddo
 
-!c     
+!c
 !c     Impose BCs on ystate.
-!c     
-      do i = is,ie 
+!c
+      do i = is,ie
         if (bc(2,1).eq.EXT_DIR .and.(vedge(i,js).ge.zero) ) then
            ystate(i,js) = s(i,js-1)
         else if (bc(2,1).eq.REFLECT_ODD) then
@@ -5126,7 +5056,7 @@ contains
 
     end subroutine estate_bds
 
-!C FIXME? check that the arrays are properly sized      
+!C FIXME? check that the arrays are properly sized
       subroutine bilin(poly,c,x,y,hx,hy,istart,iend,lo_1,hi_1)
 
       implicit none
@@ -5159,4 +5089,3 @@ contains
     end subroutine bilin
 
  end module godunov_2d_module
- 
