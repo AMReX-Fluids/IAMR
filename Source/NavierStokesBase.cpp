@@ -1476,15 +1476,21 @@ NavierStokesBase::getDivCond (int ngrow, Real time)
 
     if (!have_divu)
     {
+      //std::cout << "WE ARE IN NO DIVU " << std::endl;
         divu = new MultiFab(grids,dmap,1,ngrow,MFInfo(),Factory());
 
         divu->setVal(0);
     }
     else
     {
+     //std::cout << "WE ARE IN HAVE DIVU " << std::endl;
         divu = getState(ngrow,Divu_Type,0,1,time);
     }
 
+ //VisMF::Write(*divu,"divu_in");
+
+  //amrex::Abort();
+    
     return divu;
 }
 
@@ -1669,7 +1675,12 @@ NavierStokesBase::getState (int  ngrow,
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),
                                 state[state_idx].DistributionMap(),
                                 ncomp,ngrow,MFInfo(),Factory());
+    
+    VisMF::Write(*mf,"new_mf");
+    
     FillPatch(*this,*mf,ngrow,time,state_idx,scomp,ncomp,0);
+    
+    VisMF::Write(*mf,"after_mf");
 
     return mf;
 }

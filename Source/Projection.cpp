@@ -836,6 +836,8 @@ Projection::initialVelocityProject (int  c_lev,
             {
                 amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
             }
+            
+
 
             if (have_divu)
             {
@@ -870,9 +872,17 @@ Projection::initialVelocityProject (int  c_lev,
                 //  the MLMG solver.  rhs carries EB data and that's enough
                 rhcc[lev].reset(new MultiFab(grids,dmap,1,nghost));
                 put_divu_in_cc_rhs(*rhcc[lev],lev,cur_divu_time);
+                
+  //                              std::cout << "WE ARE IN HAVE DIVU" << std::endl;
+  //                VisMF::Write(*rhcc[0],"rhcc_in");
+  //amrex::Abort();
+  
             }
         }
+  
 
+  
+  
         if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
             set_outflow_bcs(INITIAL_VEL,phi,vel,
                             amrex::GetVecOfPtrs(rhcc),
@@ -897,6 +907,15 @@ Projection::initialVelocityProject (int  c_lev,
         //
         // Project
         //
+        //
+        //std::cout << "EM DEBUG DOING FIRST PROJECTION " << std::endl;
+        // VisMF::Write(*vel[0],"vel_in");
+        // VisMF::Write(*phi[0],"phi_in");
+        // VisMF::Write(*sig[0],"sig_in");
+        // VisMF::Write(*rhcc[0],"rhcc_in");
+        // 
+        //  amrex::Abort();
+                
         bool proj2 = true;
         if (!have_divu)
         {
@@ -920,6 +939,11 @@ Projection::initialVelocityProject (int  c_lev,
                                   {},
                                   proj_tol, proj_abs_tol, proj2, 0, 0);
         }
+        
+        
+        std::cout << "EM DEBUG AFTER FIRST PROJECTION " << std::endl;
+
+        
 
         //
         // Unscale initial projection variables.
@@ -2359,9 +2383,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (max_mlmg_iter > 0)
         nodal_projector.getMLMG().setMaxIter(max_mlmg_iter);
-
-    std::cout << "DEBUG TOLERANCE ERROR " << rel_tol << " " << abs_tol << std::endl;
-
 
     if (sync_resid_fine != 0)
     {
