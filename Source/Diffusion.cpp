@@ -497,6 +497,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
 #ifdef AMREX_USE_EB
         MultiFab rhs_tmp(ba,dm,1,2,MFInfo(),ebfactory);
+        rhs_tmp.setVal(0.);
         mgn.apply({&rhs_tmp},{&Soln});
 
         const amrex::MultiFab* weights;
@@ -1112,6 +1113,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
         int nghost(2);
         MultiFab Rhs_tmp(grids,dmap,BL_SPACEDIM,nghost, MFInfo(),navier_stokes->Factory());
+        Rhs_tmp.setVal(0.);
         mlmg.apply({&Rhs_tmp}, {&Soln});
 
         const Geometry& geom=navier_stokes->Geom();
@@ -3220,7 +3222,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         int ng = 1;
         int ng_visc(2);// needed for redistribution
         MultiFab visc_tmp(grids,dmap,1,ng_visc,MFInfo(),navier_stokes->Factory()),
-	  s_tmp(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
+                 s_tmp(grids,dmap,1,ng,MFInfo(),navier_stokes->Factory());
+        visc_tmp.setVal(0.);
         //
         // Set up operator and apply to compute viscous terms.
         //
@@ -3345,7 +3348,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     const MultiFab *ap[AMREX_SPACEDIM];
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-	ap[d] = &(area[d]);
+      ap[d] = &(area[d]);
     }
 
     int allthere;
@@ -3375,9 +3378,10 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     {
         int ng = 1;
 	MultiFab visc_tmp(grids,dmap,AMREX_SPACEDIM,2,MFInfo(),navier_stokes->Factory()),
-	  //old way
-	s_tmp(grids,dmap,BL_SPACEDIM,ng,MFInfo(),navier_stokes->Factory());
-	MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
+  //old way
+           s_tmp(grids,dmap,BL_SPACEDIM,ng,MFInfo(),navier_stokes->Factory());
+  visc_tmp.setVal(0.);
+  MultiFab::Copy(s_tmp,S,Xvel,0,BL_SPACEDIM,0);
 
         //
         // Set up operator and apply to compute viscous terms.
