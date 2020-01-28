@@ -498,7 +498,12 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 #ifdef AMREX_USE_EB
         MultiFab rhs_tmp(ba,dm,1,2,MFInfo(),ebfactory);
         mgn.apply({&rhs_tmp},{&Soln});
-        amrex::single_level_redistribute(0, rhs_tmp, Rhs, 0, 1, {geom});
+
+        const amrex::MultiFab* weights;
+        const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(ebfactory));
+        weights = &(ebf->getVolFrac());
+
+        amrex::single_level_weighted_redistribute(0, rhs_tmp, Rhs, {*weights}, 0, 1, {geom});
 #else
         mgn.apply({&Rhs},{&Soln});
 #endif
@@ -1121,7 +1126,12 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	//   redistribution only alters cut cells and their nearest-neighbors.
 	//   regridding algorithm buffers the cells flagged for refinement
         //
-        amrex::single_level_redistribute(0,{Rhs_tmp},{Rhs}, 0, AMREX_SPACEDIM, {navier_stokes->Geom()});
+
+        const amrex::MultiFab* weights;
+        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+        weights = &(ebfactory.getVolFrac());
+
+        amrex::single_level_weighted_redistribute(0,{Rhs_tmp},{Rhs}, {*weights}, 0, AMREX_SPACEDIM, {navier_stokes->Geom()});
 	// Is this really needed? IAMR is fine without it
 	EB_set_covered(Rhs, 0, AMREX_SPACEDIM, Rhs.nGrow(), 0.0);
 #else
@@ -3304,7 +3314,11 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	mgn.apply({&visc_tmp},{&s_tmp});
 
 #ifdef AMREX_USE_EB
-        amrex::single_level_redistribute(0, visc_tmp, visc_terms, comp-src_comp, 1,
+        const amrex::MultiFab* weights;
+        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+        weights = &(ebfactory.getVolFrac());
+
+        amrex::single_level_weighted_redistribute(0, visc_tmp, visc_terms, {*weights}, comp-src_comp, 1,
                                          {navier_stokes->Geom()});
 #else
 	MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
@@ -3529,7 +3543,12 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 //amrex::Print() << "DEBUG visc_tmp = " << visc_tmp.boxArray() << std::endl;
 
 #if AMREX_USE_EB
-        amrex::single_level_redistribute(0, {visc_tmp}, {visc_terms}, 0, AMREX_SPACEDIM,
+
+        const amrex::MultiFab* weights;
+        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+        weights = &(ebfactory.getVolFrac());
+
+        amrex::single_level_weighted_redistribute(0, {visc_tmp}, {visc_terms}, {*weights}, 0, AMREX_SPACEDIM,
                                          {navier_stokes->Geom()} );
         EB_set_covered(visc_terms, 0.);
 #else

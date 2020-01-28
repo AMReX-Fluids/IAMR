@@ -1,0 +1,101 @@
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            SIMULATION STOP            #
+#.......................................#
+stop_time               =   100.0         # Max (simulated) time to evolve
+max_step                =  5010           # Max number of time steps
+#verbose                 =   5
+#steady_state            =   0           # Steady-state solver?
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#           SOLVER SETTINGS             #
+#.......................................#
+ns.init_shrink = 1.0
+ns.init_iter = 0
+ns.init_vel_iter = 0
+ns.visc_tol=1.0e-11
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         TIME STEP COMPUTATION         #
+#.......................................#
+#incflo.fixed_dt         =   -1.0        # Use this constant dt if > 0
+#ns.cfl              =   0.45             # CFL factor
+ns.cfl               = 0.1
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            INPUT AND OUTPUT           #
+#.......................................#
+amr.plot_int            =   100          # Steps between plot files
+amr.plot_per            =   -0.1         # Steps between plot files
+amr.check_int           =   1000        # Steps between checkpoint files
+amr.derive_plot_vars    =   mag_vort avg_pressure gradpx gradpy
+amr.restart             =   chk05000         # Checkpoint to restart from
+amr.probin_file         = probin.2d.flow_past_cylinder-x_comp_PeleLM
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#               PHYSICS                 #
+#.......................................#
+ns.gravity          =   0.  0.  0.  # Gravitational force (3D)
+#incflo.ro_0             =   1.          # Reference density
+
+ns.vel_visc_coef         = 0.00001
+ns.scal_diff_coefs       = 0.0
+#incflo.fluid_model      =   "newtonian" # Fluid model (rheology)
+#incflo.mu               =   0.001       # Dynamic viscosity coefficient
+
+#incflo.ntrac            =   1           # Number of tracers
+#incflo.advect_tracer    =   1           # Should we update them?
+#incflo.mu_s             =   0.001       # Scalar diffusion coefficient
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        ADAPTIVE MESH REFINEMENT       #
+#.......................................#
+amr.n_cell              =   256 256    # Grid cells at coarsest AMRlevel
+amr.n_cell              =   128 128    # Grid cells at coarsest AMRlevel
+amr.max_level           =   0           # Max AMR level in hierarchy
+amr.grid_eff            =   0.7
+amr.n_error_buf         =   8
+amr.max_grid_size_x     =   1024
+amr.max_grid_size_y     =   1024
+amr.max_grid_size_z     =   1024
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              GEOMETRY                 #
+#.......................................#
+geometry.prob_lo        =  -0.04 -0.04   # Lo corner coordinates
+geometry.prob_hi        =   0.04 0.04  # Hi corner coordinates
+geometry.is_periodic    =   0   1   # Periodicity x y z (0/1)
+geometry.coord_sys      = 0
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWal
+# Boundary conditions on the low end of the domain.
+ns.lo_bc 	     	= 1 0
+# Boundary conditions on the high end of the domain.
+ns.hi_bc   	     	= 2 0 
+
+# Add cylinder
+eb2.geom_type     = sphere
+eb2.sphere_radius = 0.0069
+eb2.sphere_center =  -0.02  0.00  # don't forget probin: adv_dir !=1
+eb2.sphere_has_fluid_inside = 0
+eb2.small_volfrac = 1.e-4
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#           INITIAL CONDITIONS          #
+#.......................................#
+#incflo.probtype         =   31
+#incflo.ic_u             =   1.0         #
+#incflo.ic_v             =   0.0         #
+#incflo.ic_w             =   0.0         #
+#incflo.ic_p             =   0.0         #
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              VERBOSITY                #
+#.......................................#
+ns.v                    = 1 # NS solver 
+proj.v                  = 1 # Nodal projection
+mac.verbose             = 0 # MacProjector
+#diffusion.verbose       =   1           # Diffusion operator
+projection.verbose   =   1           # Nodal projection
+projection.mg_verbose=   0
+projection.mg_rtol   =  1.0e-13
+#amr.plt_ccse_regtest    =   1
