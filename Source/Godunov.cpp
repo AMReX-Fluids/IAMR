@@ -1408,7 +1408,10 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
                          a_geom, already_on_centroids);
 
     // Redistribute divergence
-    amrex::single_level_redistribute( 0, {conv_tmp}, {a_conv}, a_conv_comp, a_ncomp, {a_geom} );
+    const amrex::MultiFab* weights;
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
+    weights = &(ebfactory.getVolFrac());
+    amrex::single_level_weighted_redistribute( 0, {conv_tmp}, {a_conv}, {*weights}, a_conv_comp, a_ncomp, {a_geom} );
 
     Gpu::synchronize();
 
@@ -1430,8 +1433,6 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
     //
     // Account for "effective areas" for cut cells
     //
-    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
-
     Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
     areafrac  = ebfactory.getAreaFrac();
 
