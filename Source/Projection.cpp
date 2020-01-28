@@ -872,11 +872,6 @@ Projection::initialVelocityProject (int  c_lev,
                 //  the MLMG solver.  rhs carries EB data and that's enough
                 rhcc[lev].reset(new MultiFab(grids,dmap,1,nghost));
                 put_divu_in_cc_rhs(*rhcc[lev],lev,cur_divu_time);
-                
-  //                              std::cout << "WE ARE IN HAVE DIVU" << std::endl;
-  //                VisMF::Write(*rhcc[0],"rhcc_in");
-  //amrex::Abort();
-  
             }
         }
   
@@ -908,13 +903,6 @@ Projection::initialVelocityProject (int  c_lev,
         // Project
         //
         //
-        //std::cout << "EM DEBUG DOING FIRST PROJECTION " << std::endl;
-        // VisMF::Write(*vel[0],"vel_in");
-        // VisMF::Write(*phi[0],"phi_in");
-        // VisMF::Write(*sig[0],"sig_in");
-        // VisMF::Write(*rhcc[0],"rhcc_in");
-        // 
-        //  amrex::Abort();
                 
         bool proj2 = true;
         if (!have_divu)
@@ -940,11 +928,6 @@ Projection::initialVelocityProject (int  c_lev,
                                   proj_tol, proj_abs_tol, proj2, 0, 0);
         }
         
-        
-        std::cout << "EM DEBUG AFTER FIRST PROJECTION " << std::endl;
-
-        
-
         //
         // Unscale initial projection variables.
         //
