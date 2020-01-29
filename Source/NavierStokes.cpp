@@ -304,14 +304,14 @@ NavierStokes::advance (Real time,
     //
     const Real prev_time = state[State_Type].prevTime();
     const int num_diff = NUM_STATE-BL_SPACEDIM-1;
-    
+
     calcViscosity(prev_time,dt,iteration,ncycle);
     calcDiffusivity(prev_time);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       MultiFab::Copy(*viscnp1[d], *viscn[d], 0, 0, 1, viscn[d]->nGrow());
       MultiFab::Copy(*diffnp1[d], *diffn[d], 0, 0, num_diff, diffn[d]->nGrow());
     }
-    
+
     // Add this AFTER advance_setup()
     if (verbose)
     {
@@ -508,9 +508,9 @@ NavierStokes::predict_velocity (Real  dt)
     Vector<BCRec> math_bc(AMREX_SPACEDIM);
     math_bc = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
-    godunov->ComputeSlopes( Umf,
-                           D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                            math_bc, 0, AMREX_SPACEDIM, domain);
+    godunov->ComputeSlopes( Umf, 0,
+                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
+                            AMREX_SPACEDIM, math_bc, domain);
     //
     // need to fill ghost cells for slopes here.
     // vel advection term ugradu uses these slopes (does not recompute in incflo
@@ -694,8 +694,8 @@ NavierStokes::scalar_advection (Real dt,
         Vector<BCRec> math_bc(num_scalars);
         math_bc = fetchBCArray(State_Type,fscalar,num_scalars);
 
-        godunov->ComputeSlopes(Smf, D_DECL(xslps, yslps, zslps),
-                               math_bc, 0, num_scalars, domain);
+        godunov->ComputeSlopes(Smf, 0, D_DECL(xslps, yslps, zslps), 0,
+                               num_scalars, math_bc, domain);
 
         //
         // need to fill ghost cells for slopes here.

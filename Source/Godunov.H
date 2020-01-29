@@ -253,13 +253,14 @@ public:      // public access functions
   //
 #ifdef AMREX_USE_EB
 
-    void ComputeSlopes( amrex::MultiFab&  a_Sborder,
-                        D_DECL(amrex::MultiFab& a_xslopes,
-                               amrex::MultiFab& a_yslopes,
-                               amrex::MultiFab& a_zslopes),
-                        const  amrex::Vector<amrex::BCRec>& a_bcs,
+    void ComputeSlopes( amrex::MultiFab&  a_state,
                         int a_comp,
+                        D_DECL(amrex::MultiFab& a_xsl,
+                               amrex::MultiFab& a_ysl,
+                               amrex::MultiFab& a_zsl),
+                        int a_sl_comp,
                         int a_ncomp,
+                        const  amrex::Vector<amrex::BCRec>& a_bcs,
                         const amrex::Box& a_domain);
 
     void ExtrapVelToFaces ( const amrex::MultiFab&  a_vel,

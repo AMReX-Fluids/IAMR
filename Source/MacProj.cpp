@@ -702,8 +702,9 @@ MacProj::mac_sync_compute (int                   level,
                 MultiFab*  sync_ptr  = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
 
                 // Compute slopes of state component
-                godunov -> ComputeSlopes(Smf, D_DECL(slopes[0], slopes[1], slopes[2]),
-                                         math_bcs, sl_comp, ncomp, domain);
+                godunov -> ComputeSlopes(Smf, comp,
+                                         D_DECL(slopes[0], slopes[1], slopes[2]), sl_comp,
+                                         ncomp, math_bcs, domain);
 
                 D_TERM(slopes[0].FillBoundary(geom.periodicity());,
                        slopes[1].FillBoundary(geom.periodicity());,
