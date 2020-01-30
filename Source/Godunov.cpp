@@ -1018,7 +1018,7 @@ void Godunov::ComputeSlopes( MultiFab&  a_state,
     AMREX_ALWAYS_ASSERT(a_zsl.nComp()   >= a_sl_comp + a_ncomp - 1);
     AMREX_ALWAYS_ASSERT(a_bcs.size()    == a_ncomp);
 
-    EB_set_covered(a_state, a_comp, a_state.nComp(), 1, COVERED_VAL);
+    EB_set_covered(a_state, a_comp, a_ncomp, 1, COVERED_VAL);
 
     // We initialize slopes to zero in the grown domain ... this is essential
     //    to handle the up-winding at outflow faces (see inclfo)
