@@ -1371,6 +1371,12 @@ NavierStokesBase::estTimeStep ()
 
     MultiFab::Subtract(tforces, Gp, 0, 0, AMREX_SPACEDIM, 0);
 
+#ifdef AMREX_USE_EB
+    // Before dividing by rho_ctime I need to make sure that it is not
+    // set to zero in the EB domain
+    EB_set_covered(rho_ctime, COVERED_VAL);
+#endif
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim )
         MultiFab::Divide(tforces, rho_ctime, 0, idim, 1, 0);
 
