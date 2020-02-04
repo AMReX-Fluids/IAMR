@@ -837,6 +837,8 @@ Projection::initialVelocityProject (int  c_lev,
             {
                 amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
             }
+            
+
 
             if (have_divu)
             {
@@ -873,7 +875,10 @@ Projection::initialVelocityProject (int  c_lev,
                 put_divu_in_cc_rhs(*rhcc[lev],lev,cur_divu_time);
             }
         }
+  
 
+  
+  
         if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
         {
             set_outflow_bcs(INITIAL_VEL,phi,vel,
@@ -893,6 +898,8 @@ Projection::initialVelocityProject (int  c_lev,
         //
         // Project
         //
+        //
+                
         bool proj2 = true;
         if (!have_divu)
         {
@@ -916,7 +923,7 @@ Projection::initialVelocityProject (int  c_lev,
                                   {},
                                   proj_tol, proj_abs_tol, proj2, 0, 0);
         }
-
+        
         //
         // Unscale initial projection variables.
         //
@@ -2357,9 +2364,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     if (max_mlmg_iter > 0)
         nodal_projector.getMLMG().setMaxIter(max_mlmg_iter);
-
-    std::cout << "DEBUG TOLERANCE ERROR " << rel_tol << " " << abs_tol << std::endl;
-
 
     if (sync_resid_fine != 0)
     {

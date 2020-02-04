@@ -1501,7 +1501,7 @@ NavierStokesBase::getDivCond (int ngrow, Real time)
     {
         divu = getState(ngrow,Divu_Type,0,1,time);
     }
-
+    
     return divu;
 }
 
@@ -1686,8 +1686,9 @@ NavierStokesBase::getState (int  ngrow,
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),
                                 state[state_idx].DistributionMap(),
                                 ncomp,ngrow,MFInfo(),Factory());
+        
     FillPatch(*this,*mf,ngrow,time,state_idx,scomp,ncomp,0);
-
+    
     return mf;
 }
 
@@ -3738,7 +3739,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
-                U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],bx,0,d,1);
+                U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],bx,0,d,1);                
         }
     }
 }
