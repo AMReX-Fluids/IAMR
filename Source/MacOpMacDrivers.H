@@ -4,6 +4,7 @@
 
 #include <MacOperator.H>
 
+#define COVERED_VAL 1.0e40
 //====================================================================
 // This header file contains declarations for the MacOperator mac projection
 // driver routines
