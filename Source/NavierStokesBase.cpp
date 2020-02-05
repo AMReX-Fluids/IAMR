@@ -305,7 +305,7 @@ NavierStokesBase::~NavierStokesBase ()
     fb_viscnp1.clear();
     fb_diffn.clear();
     fb_diffnp1.clear();
-    
+
     delete diffusion;
 }
 
@@ -1293,6 +1293,10 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
 #endif
 }
 
+
+//
+// Estimate the maximum allowable timestep at a cell center.
+//
 Real
 NavierStokesBase::estTimeStep ()
 {
@@ -1315,93 +1319,106 @@ NavierStokesBase::estTimeStep ()
         return factor*fixed_dt;
     }
 
+    const Real  small         = 1.0e-8;
     const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
 
     const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   U_new         = get_new_data(State_Type);
 
-    Real u_max[BL_SPACEDIM] = {0};
+    Vector<Real> u_max(AMREX_SPACEDIM);
+    Vector<Real> f_max(AMREX_SPACEDIM);
 
 #ifdef AMREX_USE_EB
-    // Nodal Projection sets EB covered cells to zero, so no need to do it here
     MultiFab& Gp = getGradP();
-    //MultiFab& Gp = ns->getGradP();
     Gp.FillBoundary(geom.periodicity());
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 #endif
 
-// EM_DEBUG
-    //static int count=0;
-    //   count++;
-    //        amrex::WriteSingleLevelPlotfile("Gp_in_estTimeStep"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
     //
+    // Find local max of velocity
     //
+    u_max = U_new.norm0({AMREX_D_DECL(0,1,2)},0,true,true);
 
-    //FIXME? find a better solution for umax? gcc 5.4, OMP reduction does not take arrays
-    Real umax_x=-1.e200,umax_y=-1.e200,umax_z=-1.e200;
+    //
+    // Compute forcing terms: in this case this means external forces and grad(p)
+    // Viscous terms not included since Crack-Nicholson is unconditionally stable
+    // so no need to account for explicit part of viscous term
+    //
+    MultiFab tforces(grids,dmap,AMREX_SPACEDIM,n_grow,MFInfo(),Factory());
+
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(min:estdt) reduction(max:umax_x,umax_y,umax_z)
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-{
-    FArrayBox tforces;
-    Real gr_max[BL_SPACEDIM];
-
-    for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
     {
-        const Box& bx=Rho_mfi.tilebox();
+        FArrayBox tforces_fab;
+        for (MFIter mfi(rho_ctime,true); mfi.isValid(); ++mfi)
+        {
+            const auto& bx = mfi.tilebox();
+            const auto  cur_time = state[State_Type].curTime();
 
-        //
-        // Get the velocity forcing.  For some reason no viscous forcing.
-        //
+            if (getForceVerbose)
+                amrex::Print() << "---" << '\n'
+                               << "H - est Time Step:" << '\n'
+                               << "Calling getForce..." << '\n';
 
-        const Real cur_time = state[State_Type].curTime();
-
-        if (getForceVerbose)
-	  amrex::Print() << "---" << '\n'
-			 << "H - est Time Step:" << '\n'
-			 << "Calling getForce..." << '\n';
-
-        getForce(tforces,bx,n_grow,Xvel,BL_SPACEDIM,cur_time,U_new[Rho_mfi],U_new[Rho_mfi],Density);
-
-        tforces.minus(Gp[Rho_mfi],0,0,BL_SPACEDIM);
-        //
-        // Estimate the maximum allowable timestep from the Godunov box.
-        //
-        Real dt = godunov->estdt(U_new[Rho_mfi],tforces,rho_ctime[Rho_mfi],bx,
-                                 geom.CellSize(),cfl,gr_max);
-
-        // for (int k = 0; k < BL_SPACEDIM; k++)
-        // {
-	//     u_max[k] = std::max(u_max[k],gr_max[k]);
-	// }
-        umax_x = std::max(umax_x,gr_max[0]);
-        umax_y = std::max(umax_y,gr_max[1]);
-#if (BL_SPACEDIM == 3)
-        umax_z = std::max(umax_z,gr_max[2]);
-#endif
-        estdt = std::min(estdt,dt);
+            getForce(tforces_fab,bx,n_grow,Xvel,AMREX_SPACEDIM,cur_time,U_new[mfi],U_new[mfi],Density);
+            tforces[mfi].copy(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
+        }
     }
-}
 
+    MultiFab::Subtract(tforces, Gp, 0, 0, AMREX_SPACEDIM, 0);
+
+#ifdef AMREX_USE_EB
+    // Before dividing by rho_ctime I need to make sure that it is not
+    // set to zero in the EB domain
+    EB_set_covered(rho_ctime, COVERED_VAL);
+#endif
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim )
+        MultiFab::Divide(tforces, rho_ctime, 0, idim, 1, 0);
+
+    //
+    // Find local max of tforces
+    //
+    f_max = tforces.norm0({AMREX_D_DECL(0,1,2)},0,true,true);
+
+    //
+    // Compute local estdt
+    //
+    const Real* dx = geom.CellSize();
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        if (u_max[idim] > small)
+        {
+            estdt = std::min(estdt, dx[idim]/u_max[idim]);
+        }
+
+        if (f_max[idim] > small)
+        {
+            estdt = std::min(estdt, std::sqrt(2.0*dx[idim]/f_max[idim]));
+        }
+    }
+
+    //
+    // Reduce estimated dt by CFL factor and find global min
+    //
+    estdt = estdt * cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
 
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        u_max[0] = umax_x;
-        u_max[1] = umax_y;
-#if (BL_SPACEDIM == 3)
-        u_max[2] = umax_z;
-#endif
-        ParallelDescriptor::ReduceRealMax(u_max, BL_SPACEDIM, IOProc);
+        ParallelDescriptor::ReduceRealMax(u_max.dataPtr(), AMREX_SPACEDIM, IOProc);
 
 	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
-	for (int k = 0; k < BL_SPACEDIM; k++)
-	  amrex::Print() << u_max[k] << "  ";
+	for (int k = 0; k < AMREX_SPACEDIM; k++)
+        {
+            amrex::Print() << u_max[k] << "  ";
+        }
 	amrex::Print() << '\n';
     }
 

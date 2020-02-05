@@ -152,11 +152,7 @@ public:      // public access functions
     // Diagnostic functions follow
     // =============================================================
 
-    // estimate the timestep from the cell-centered quantities
-    amrex::Real estdt( amrex::FArrayBox &U, amrex::FArrayBox &tforces, amrex::FArrayBox &Rho,
-                const amrex::Box &grd, const amrex::Real *dx, amrex::Real cfl, amrex::Real *u_max );
-
-	// find the largest change in velocity magnitude since last iteration
+    // find the largest change in velocity magnitude since last iteration
     amrex::Real maxchng_velmag( amrex::FArrayBox &U_old, amrex::FArrayBox &U_new, const amrex::Box &grd );
 
     // test the mac edge velocity Courant numbers
@@ -257,13 +253,14 @@ public:      // public access functions
   //
 #ifdef AMREX_USE_EB
 
-    void ComputeSlopes( amrex::MultiFab&  a_Sborder,
-                        D_DECL(amrex::MultiFab& a_xslopes,
-                               amrex::MultiFab& a_yslopes,
-                               amrex::MultiFab& a_zslopes),
-                        const  amrex::Vector<amrex::BCRec>& a_bcs,
+    void ComputeSlopes( amrex::MultiFab&  a_state,
                         int a_comp,
+                        D_DECL(amrex::MultiFab& a_xsl,
+                               amrex::MultiFab& a_ysl,
+                               amrex::MultiFab& a_zsl),
+                        int a_sl_comp,
                         int a_ncomp,
+                        const  amrex::Vector<amrex::BCRec>& a_bcs,
                         const amrex::Box& a_domain);
 
     void ExtrapVelToFaces ( const amrex::MultiFab&  a_vel,
@@ -296,6 +293,29 @@ public:      // public access functions
                          const amrex::Vector<amrex::BCRec>& a_bcs,
                          int known_edgestate);
 
+    void ComputeSyncFluxes(  D_DECL(amrex::MultiFab& a_fx,
+                                    amrex::MultiFab& a_fy,
+                                    amrex::MultiFab& a_fz),
+                             D_DECL(amrex::MultiFab& edgst_x,
+                                    amrex::MultiFab& edgst_y,
+                                    amrex::MultiFab& edgst_z),
+                             amrex::MultiFab& a_state,
+                             const int a_comp,
+                             const int a_ncomp,
+                             D_DECL( const amrex::MultiFab& a_xsl,
+                                     const amrex::MultiFab& a_ysl,
+                                     const amrex::MultiFab& a_zsl),
+                             const int a_sl_comp,
+                             D_DECL( const amrex::MultiFab& u_mac,
+                                     const amrex::MultiFab& v_mac,
+                                     const amrex::MultiFab& w_mac),
+                             D_DECL( const amrex::MultiFab& u_corr,
+                                     const amrex::MultiFab& v_corr,
+                                     const amrex::MultiFab& w_corr),
+                             const amrex::Geometry& a_geom,
+                             const amrex::Vector<amrex::BCRec>& a_bcs,
+                             int known_edgestate);
+
 
     void ComputeConvectiveTerm (amrex::MultiFab& a_state,
                                 const int a_state_comp,
@@ -318,6 +338,31 @@ public:      // public access functions
                                 const amrex::Vector<amrex::BCRec>& a_bcs,
                                 const amrex::Geometry& a_geom,
                                 int known_edgestate);
+
+    void ComputeSyncConvectiveTerm (amrex::MultiFab& a_state,
+                                    const int a_state_comp,
+                                    amrex::MultiFab& a_conv,
+                                    const int a_conv_comp,
+                                    const int a_ncomp,
+                                    D_DECL(amrex::MultiFab& a_fx,
+                                           amrex::MultiFab& a_fy,
+                                           amrex::MultiFab& a_fz),
+                                    D_DECL(amrex::MultiFab& edgst_x,
+                                           amrex::MultiFab& edgst_y,
+                                           amrex::MultiFab& edgst_z),
+                                    D_DECL(const amrex::MultiFab& a_umac,
+                                           const amrex::MultiFab& a_vmac,
+                                           const amrex::MultiFab& a_wmac),
+                                    D_DECL(const amrex::MultiFab& a_ucorr,
+                                           const amrex::MultiFab& a_vcorr,
+                                           const amrex::MultiFab& a_wcorr),
+                                    D_DECL(const amrex::MultiFab& a_xsl,
+                                           const amrex::MultiFab& a_ysl,
+                                           const amrex::MultiFab& a_zsl),
+                                    const int a_sl_comp,
+                                    const amrex::Vector<amrex::BCRec>& a_bcs,
+                                    const amrex::Geometry& a_geom,
+                                    int known_edgestate);
 #endif
 
   //================ for debugging purposes this is made public

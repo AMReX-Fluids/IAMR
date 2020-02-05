@@ -4361,6 +4361,27 @@ contains
                end do
             end do
          end do
+      else if ( probtype .eq. 32 ) then
+         select case (adv_dir)
+         case (1)
+            do i = lo(1), hi(1)
+               if (i<domhi(1)/2) then
+                  tag(i,:,:) = set
+               end if
+            end do
+         case (2)
+            do j = lo(2), hi(2)
+               if (i<domhi(2)/2) then
+                  tag(:,j,:) = set
+               end if
+            end do
+         case (3)
+            do k = lo(3), hi(3)
+               if (i<domhi(3)/2) then
+                  tag(:,:,k) = set
+               end if
+            end do
+         end select
       else
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)

@@ -544,51 +544,10 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
                          lo, hi, bc);
 }
 
-//
-// Diagnostic functions follow
-//
-
-//
-// Estimate the maximum allowable timestep at a cell center.
-//
-
-Real
-Godunov::estdt (FArrayBox&  U,
-                FArrayBox&  tforces,
-                FArrayBox&  rho,
-                const Box&  grd,
-                const Real* dx,
-                Real        cfl,
-                Real*       u_max)
-{
-    BL_ASSERT( U.nComp()       >= BL_SPACEDIM );
-    BL_ASSERT( tforces.nComp() >= BL_SPACEDIM );
-    BL_ASSERT( rho.nComp()     == 1           );
-
-    const int *lo     = grd.loVect();
-    const int *hi     = grd.hiVect();
-    const int *vlo    = U.loVect();
-    const int *vhi    = U.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    const Real *Udat  = U.dataPtr();
-    const Real *tfdat = tforces.dataPtr();
-    const Real *rdat  = rho.dataPtr();
-
-    Real dt;
-    fort_estdt(Udat,  ARLIM(vlo), ARLIM(vhi),
-               tfdat, ARLIM(tlo), ARLIM(thi),
-               rdat,  ARLIM(rlo), ARLIM(rhi),
-               lo, hi, &dt, dx, &cfl, u_max);
-    return dt;
-}
 
 //
 // Estimate the maximum change in velocity magnitude since previous iteration.
 //
-
 Real
 Godunov::maxchng_velmag (FArrayBox&  U_old,
 			 FArrayBox&  U_new,
@@ -1042,50 +1001,55 @@ Godunov::how_many(const Vector<AdvectionForm>& advectionType,
 #ifdef AMREX_USE_EB
 
 
-void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
-                             D_DECL(MultiFab& a_xslopes,
-                                    MultiFab& a_yslopes,
-                                    MultiFab& a_zslopes),
-                             const Vector<BCRec>& a_bcs,
+void Godunov::ComputeSlopes( MultiFab&  a_state,
                              int a_comp,
+                             D_DECL(MultiFab& a_xsl,
+                                    MultiFab& a_ysl,
+                                    MultiFab& a_zsl),
+                             int a_sl_comp,
                              int a_ncomp,
+                             const Vector<BCRec>& a_bcs,
                              const Box& a_domain)
 {
     BL_PROFILE("Godunov::ComputeSlopes");
-    AMREX_ALWAYS_ASSERT(a_bcs.size()==a_ncomp);
+    AMREX_ALWAYS_ASSERT(a_state.nComp() >= a_comp    + a_ncomp - 1);
+    AMREX_ALWAYS_ASSERT(a_xsl.nComp()   >= a_sl_comp + a_ncomp - 1);
+    AMREX_ALWAYS_ASSERT(a_ysl.nComp()   >= a_sl_comp + a_ncomp - 1);
+    AMREX_ALWAYS_ASSERT(a_zsl.nComp()   >= a_sl_comp + a_ncomp - 1);
+    AMREX_ALWAYS_ASSERT(a_bcs.size()    == a_ncomp);
 
-    EB_set_covered(a_Sborder, 0, a_Sborder.nComp(), 1, COVERED_VAL);
+    EB_set_covered(a_state, a_comp, a_ncomp, 1, COVERED_VAL);
 
     // We initialize slopes to zero in the grown domain ... this is essential
     //    to handle the up-winding at outflow faces (see inclfo)
-    D_TERM( a_xslopes.setVal(0.0, a_comp, a_ncomp, a_xslopes.nGrow());,
-            a_yslopes.setVal(0.0, a_comp, a_ncomp, a_yslopes.nGrow());,
-            a_zslopes.setVal(0.0, a_comp, a_ncomp, a_zslopes.nGrow()););
+    D_TERM( a_xsl.setVal(0.0, a_sl_comp, a_ncomp, a_xsl.nGrow());,
+            a_ysl.setVal(0.0, a_sl_comp, a_ncomp, a_ysl.nGrow());,
+            a_zsl.setVal(0.0, a_sl_comp, a_ncomp, a_zsl.nGrow()););
 
     // ... then set them to this large number in the interior in order to be sure
     //     that no "bad" values go unnoticed
-    D_TERM( a_xslopes.setVal( COVERED_VAL, a_comp, a_ncomp,0);,
-            a_yslopes.setVal( COVERED_VAL, a_comp, a_ncomp,0);,
-            a_zslopes.setVal( COVERED_VAL, a_comp, a_ncomp,0););
+    D_TERM( a_xsl.setVal( COVERED_VAL, a_sl_comp, a_ncomp,0);,
+            a_ysl.setVal( COVERED_VAL, a_sl_comp, a_ncomp,0);,
+            a_zsl.setVal( COVERED_VAL, a_sl_comp, a_ncomp,0););
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(a_Sborder,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         // Tilebox
         Box bx = mfi.tilebox ();
 
         // This is to check efficiently if this tile contains any eb stuff
-        const EBFArrayBox&  Sborder_fab = static_cast<EBFArrayBox const&>(a_Sborder[mfi]);
+        const EBFArrayBox&  Sborder_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
         const EBCellFlagFab&      flags = Sborder_fab.getEBCellFlagFab();
 
         if (flags.getType(amrex::grow(bx,0)) != FabType::covered )
         {
-            const auto& state_fab = a_Sborder.array(mfi);
-            D_TERM( const auto& xs_fab = a_xslopes.array(mfi);,
-                    const auto& ys_fab = a_yslopes.array(mfi);,
-                    const auto& zs_fab = a_zslopes.array(mfi););
+            const auto& state_fab = a_state.array(mfi);
+            D_TERM( const auto& xs_fab = a_xsl.array(mfi);,
+                    const auto& ys_fab = a_ysl.array(mfi);,
+                    const auto& zs_fab = a_zsl.array(mfi););
 
             // No cut cells in tile + 1-cell witdh halo -> use non-eb routine
             if ( flags.getType(amrex::grow(bx,1)) == FabType::regular )
@@ -1093,32 +1057,32 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                 AMREX_FOR_4D(bx, a_ncomp, i, j, k, n,
                 {
                     // X direction
-                    Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                    Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
-                    Real du_xc = 0.5*(state_fab(i+1,j,k,n) - state_fab(i-1,j,k,n));
+                    Real du_xl = 2.0*(state_fab(i  ,j,k,a_comp+n) - state_fab(i-1,j,k,a_comp+n));
+                    Real du_xr = 2.0*(state_fab(i+1,j,k,a_comp+n) - state_fab(i  ,j,k,a_comp+n));
+                    Real du_xc = 0.5*(state_fab(i+1,j,k,a_comp+n) - state_fab(i-1,j,k,a_comp+n));
 
                     Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
                     xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
-                    xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
+                    xs_fab(i,j,k,a_sl_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
 
                     // Y direction
-                    Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                    Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
-                    Real du_yc = 0.5*(state_fab(i,j+1,k,n) - state_fab(i,j-1,k,n));
+                    Real du_yl = 2.0*(state_fab(i,j  ,k,a_comp+n) - state_fab(i,j-1,k,a_comp+n));
+                    Real du_yr = 2.0*(state_fab(i,j+1,k,a_comp+n) - state_fab(i,j  ,k,a_comp+n));
+                    Real du_yc = 0.5*(state_fab(i,j+1,k,a_comp+n) - state_fab(i,j-1,k,a_comp+n));
 
                     Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
                     yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
-                    ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+                    ys_fab(i,j,k,a_sl_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
 
 #if (AMREX_SPACEDIM == 3)
                     // Z direction
-                    Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                    Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
-                    Real du_zc = 0.5*(state_fab(i,j,k+1,n) - state_fab(i,j,k-1,n));
+                    Real du_zl = 2.0*(state_fab(i,j,k  ,a_comp+n) - state_fab(i,j,k-1,a_comp+n));
+                    Real du_zr = 2.0*(state_fab(i,j,k+1,a_comp+n) - state_fab(i,j,k  ,a_comp+n));
+                    Real du_zc = 0.5*(state_fab(i,j,k+1,a_comp+n) - state_fab(i,j,k-1,a_comp+n));
 
                     Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
                     zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
-                    zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+                    zs_fab(i,j,k,a_sl_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
 #endif
                 });
 
@@ -1132,44 +1096,44 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
                 {
                     if (flag_fab(i,j,k).isCovered())
                     {
-                        D_TERM( xs_fab(i,j,k,a_comp+n) = 0.0;,
-                                ys_fab(i,j,k,a_comp+n) = 0.0;,
-                                zs_fab(i,j,k,a_comp+n) = 0.0;);
+                        D_TERM( xs_fab(i,j,k,a_sl_comp+n) = 0.0;,
+                                ys_fab(i,j,k,a_sl_comp+n) = 0.0;,
+                                zs_fab(i,j,k,a_sl_comp+n) = 0.0;);
                     }
                     else
                     {
                         // X direction
                         Real du_xl = (!flag_fab(i,j,k).isConnected(-1,0,0)) ? 0.0 :
-                            2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
+                            2.0*(state_fab(i  ,j,k,a_comp+n) - state_fab(i-1,j,k,a_comp+n));
                         Real du_xr = (!flag_fab(i,j,k).isConnected( 1,0,0)) ? 0.0 :
-                            2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
-                        Real du_xc = 0.5*(state_fab(i+1,j,k,n) - state_fab(i-1,j,k,n));
+                            2.0*(state_fab(i+1,j,k,a_comp+n) - state_fab(i  ,j,k,a_comp+n));
+                        Real du_xc = 0.5*(state_fab(i+1,j,k,a_comp+n) - state_fab(i-1,j,k,a_comp+n));
 
                         Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
                         xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
-                        xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
+                        xs_fab(i,j,k,a_sl_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
 
                         // Y direction
                         Real du_yl = (!flag_fab(i,j,k).isConnected(0,-1,0)) ? 0.0 :
-                            2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
+                            2.0*(state_fab(i,j  ,k,a_comp+n) - state_fab(i,j-1,k,a_comp+n));
                         Real du_yr = (!flag_fab(i,j,k).isConnected(0, 1,0)) ? 0.0 :
-                            2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
-                        Real du_yc = 0.5*(state_fab(i,j+1,k,n) - state_fab(i,j-1,k,n));
+                            2.0*(state_fab(i,j+1,k,a_comp+n) - state_fab(i,j  ,k,a_comp+n));
+                        Real du_yc = 0.5*(state_fab(i,j+1,k,a_comp+n) - state_fab(i,j-1,k,a_comp+n));
 
                         Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
                         yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
-                        ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+                        ys_fab(i,j,k,a_sl_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
 #if (AMREX_SPACEDIM == 3)
                         // Z direction
                         Real du_zl = (!flag_fab(i,j,k).isConnected(0,0,-1)) ? 0.0 :
-                            2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
+                            2.0*(state_fab(i,j,k  ,a_comp+n) - state_fab(i,j,k-1,a_comp+n));
                         Real du_zr = (!flag_fab(i,j,k).isConnected(0,0, 1)) ? 0.0 :
-                            2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
-                        Real du_zc = 0.5*(state_fab(i,j,k+1,n) - state_fab(i,j,k-1,n));
+                            2.0*(state_fab(i,j,k+1,a_comp+n) - state_fab(i,j,k  ,a_comp+n));
+                        Real du_zc = 0.5*(state_fab(i,j,k+1,a_comp+n) - state_fab(i,j,k-1,a_comp+n));
 
                         Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
                         zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
-                        zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+                        zs_fab(i,j,k,a_sl_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
 #endif
                     }
                 });
@@ -1191,66 +1155,66 @@ void Godunov::ComputeSlopes( MultiFab&  a_Sborder,
             {
                 if ( (i == a_domain.smallEnd(0)) && !flag_fab(i,j,k).isCovered() && (bc[n].lo(0) == BCType::ext_dir) )
                 {
-                    Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                    Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
-                    Real du_xc = (state_fab(i+1,j,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i-1,j,k,n))/3.0;
+                    Real du_xl = 2.0*(state_fab(i  ,j,k,a_comp+n) - state_fab(i-1,j,k,a_comp+n));
+                    Real du_xr = 2.0*(state_fab(i+1,j,k,a_comp+n) - state_fab(i  ,j,k,a_comp+n));
+                    Real du_xc = (state_fab(i+1,j,k,a_comp+n)+3.0*state_fab(i,j,k,a_comp+n)-4.0*state_fab(i-1,j,k,a_comp+n))/3.0;
 
                     Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
                     xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
-                    xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
+                    xs_fab(i,j,k,a_sl_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
                 }
                 if ( (i == a_domain.bigEnd(0)) && !flag_fab(i,j,k).isCovered() && (bc[n].hi(0) == BCType::ext_dir) )
                 {
-                    Real du_xl = 2.0*(state_fab(i  ,j,k,n) - state_fab(i-1,j,k,n));
-                    Real du_xr = 2.0*(state_fab(i+1,j,k,n) - state_fab(i  ,j,k,n));
-                    Real du_xc = -(state_fab(i-1,j,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i+1,j,k,n))/3.0;
+                    Real du_xl = 2.0*(state_fab(i  ,j,k,a_comp+n) - state_fab(i-1,j,k,a_comp+n));
+                    Real du_xr = 2.0*(state_fab(i+1,j,k,a_comp+n) - state_fab(i  ,j,k,a_comp+n));
+                    Real du_xc = -(state_fab(i-1,j,k,a_comp+n)+3.0*state_fab(i,j,k,a_comp+n)-4.0*state_fab(i+1,j,k,a_comp+n))/3.0;
 
                     Real xslope = amrex::min(std::abs(du_xl),std::abs(du_xc),std::abs(du_xr));
                     xslope          = (du_xr*du_xl > 0.0) ? xslope : 0.0;
-                    xs_fab(i,j,k,a_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
+                    xs_fab(i,j,k,a_sl_comp+n) = (du_xc       > 0.0) ? xslope : -xslope;
                 }
 
                 if ( (j == a_domain.smallEnd(1)) && !flag_fab(i,j,k).isCovered() && (bc[n].lo(1) == BCType::ext_dir) )
                 {
-                    Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                    Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
-                    Real du_yc = (state_fab(i,j+1,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j-1,k,n))/3.0;
+                    Real du_yl = 2.0*(state_fab(i,j  ,k,a_comp+n) - state_fab(i,j-1,k,a_comp+n));
+                    Real du_yr = 2.0*(state_fab(i,j+1,k,a_comp+n) - state_fab(i,j  ,k,a_comp+n));
+                    Real du_yc = (state_fab(i,j+1,k,a_comp+n)+3.0*state_fab(i,j,k,a_comp+n)-4.0*state_fab(i,j-1,k,a_comp+n))/3.0;
 
                     Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
                     yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
-                    ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+                    ys_fab(i,j,k,a_sl_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
                 }
                 if ( (j == a_domain.bigEnd(1)) && !flag_fab(i,j,k).isCovered() && (bc[n].hi(1) == BCType::ext_dir) )
                 {
-                    Real du_yl = 2.0*(state_fab(i,j  ,k,n) - state_fab(i,j-1,k,n));
-                    Real du_yr = 2.0*(state_fab(i,j+1,k,n) - state_fab(i,j  ,k,n));
-                    Real du_yc = -(state_fab(i,j-1,k,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j+1,k,n))/3.0;
+                    Real du_yl = 2.0*(state_fab(i,j  ,k,a_comp+n) - state_fab(i,j-1,k,a_comp+n));
+                    Real du_yr = 2.0*(state_fab(i,j+1,k,a_comp+n) - state_fab(i,j  ,k,a_comp+n));
+                    Real du_yc = -(state_fab(i,j-1,k,a_comp+n)+3.0*state_fab(i,j,k,a_comp+n)-4.0*state_fab(i,j+1,k,a_comp+n))/3.0;
 
                     Real yslope = amrex::min(std::abs(du_yl),std::abs(du_yc),std::abs(du_yr));
                     yslope          = (du_yr*du_yl > 0.0) ? yslope : 0.0;
-                    ys_fab(i,j,k,a_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
+                    ys_fab(i,j,k,a_sl_comp+n) = (du_yc       > 0.0) ? yslope : -yslope;
                 }
 
 #if (AMREX_SPACEDIM == 3)
                 if ( (k == a_domain.smallEnd(2)) && !flag_fab(i,j,k).isCovered() && (bc[n].lo(2) == BCType::ext_dir) )
                 {
-                    Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                    Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
-                    Real du_zc = (state_fab(i,j,k+1,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j,k-1,n))/3.0;
+                    Real du_zl = 2.0*(state_fab(i,j,k  ,a_comp+n) - state_fab(i,j,k-1,a_comp+n));
+                    Real du_zr = 2.0*(state_fab(i,j,k+1,a_comp+n) - state_fab(i,j,k  ,a_comp+n));
+                    Real du_zc = (state_fab(i,j,k+1,a_comp+n)+3.0*state_fab(i,j,k,a_comp+n)-4.0*state_fab(i,j,k-1,a_comp+n))/3.0;
 
                     Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
                     zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
-                    zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+                    zs_fab(i,j,k,a_sl_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
                 }
                 if ( (k == a_domain.bigEnd(2)) && !flag_fab(i,j,k).isCovered() && (bc[n].hi(2) == BCType::ext_dir) )
                 {
-                    Real du_zl = 2.0*(state_fab(i,j,k  ,n) - state_fab(i,j,k-1,n));
-                    Real du_zr = 2.0*(state_fab(i,j,k+1,n) - state_fab(i,j,k  ,n));
-                    Real du_zc = -(state_fab(i,j,k-1,n)+3.0*state_fab(i,j,k,n)-4.0*state_fab(i,j,k+1,n))/3.0;
+                    Real du_zl = 2.0*(state_fab(i,j,k  ,a_comp+n) - state_fab(i,j,k-1,a_comp+n));
+                    Real du_zr = 2.0*(state_fab(i,j,k+1,a_comp+n) - state_fab(i,j,k  ,a_comp+n));
+                    Real du_zc = -(state_fab(i,j,k-1,a_comp+n)+3.0*state_fab(i,j,k,a_comp+n)-4.0*state_fab(i,j,k+1,a_comp+n))/3.0;
 
                     Real zslope = amrex::min(std::abs(du_zl),std::abs(du_zc),std::abs(du_zr));
                     zslope          = (du_zr*du_zl > 0.0) ? zslope : 0.0;
-                    zs_fab(i,j,k,a_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
+                    zs_fab(i,j,k,a_sl_comp+n) = (du_zc       > 0.0) ? zslope : -zslope;
                 }
 #endif
             });
@@ -1343,6 +1307,137 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
     //
 //    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
 
+    Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    areafrac  = ebfactory.getAreaFrac();
+
+    for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.tilebox ();
+
+        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
+        const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
+
+        if ( (flags.getType(amrex::grow(bx,0)) != FabType::covered ) &&
+             (flags.getType(amrex::grow(bx,0)) != FabType::regular ) )
+        {
+
+            D_TERM( const auto& fx = a_fx.array(mfi);,
+                    const auto& fy = a_fy.array(mfi);,
+                    const auto& fz = a_fz.array(mfi););
+
+            D_TERM( const Box ubx = amrex::surroundingNodes(bx,0);,
+                    const Box vbx = amrex::surroundingNodes(bx,1);,
+                    const Box wbx = amrex::surroundingNodes(bx,2););
+
+            D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
+                    const auto& afrac_y = areafrac[1]->array(mfi);,
+                    const auto& afrac_z = areafrac[2]->array(mfi););
+
+            AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
+            AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
+#if (AMREX_SPACEDIM==3)
+            AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
+#endif
+        }
+
+    }
+
+    a_fx.FillBoundary(a_geom.periodicity());
+    a_fy.FillBoundary(a_geom.periodicity());
+#if ( AMREX_SPACEDIM == 3 )
+    a_fz.FillBoundary(a_geom.periodicity());
+#endif
+
+}
+
+
+
+//
+// Compute
+//
+void
+Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
+                                    const int a_state_comp,
+                                    MultiFab& a_conv,
+                                    const int a_conv_comp,
+                                    const int a_ncomp,
+                                    D_DECL(MultiFab& a_fx,
+                                           MultiFab& a_fy,
+                                           MultiFab& a_fz),
+                                    D_DECL(MultiFab& edgst_x,
+                                           MultiFab& edgst_y,
+                                           MultiFab& edgst_z),
+                                    D_DECL(const MultiFab& a_umac,
+                                           const MultiFab& a_vmac,
+                                           const MultiFab& a_wmac),
+                                    D_DECL(const MultiFab& a_ucorr,
+                                           const MultiFab& a_vcorr,
+                                           const MultiFab& a_wcorr),
+                                    D_DECL(const MultiFab& a_xsl,
+                                           const MultiFab& a_ysl,
+                                           const MultiFab& a_zsl),
+                                    const int a_sl_comp,
+                                    const Vector<BCRec>&  a_bcs,
+                                    const Geometry& a_geom,
+                                    int known_edgestate)
+{
+    AMREX_ALWAYS_ASSERT(a_state.hasEBFabFactory());
+    AMREX_ALWAYS_ASSERT(a_state.ixType().cellCentered());
+    AMREX_ALWAYS_ASSERT(a_bcs.size()==a_ncomp);
+
+    // Compute fluxes
+    ComputeSyncFluxes( D_DECL(a_fx, a_fy, a_fz),
+                       D_DECL(edgst_x, edgst_y, edgst_z),
+                       a_state, a_state_comp, a_ncomp,
+                       D_DECL(a_xsl, a_ysl, a_zsl), a_sl_comp,
+                       D_DECL(a_umac, a_vmac, a_wmac),
+                       D_DECL(a_ucorr, a_vcorr, a_wcorr),
+                       a_geom, a_bcs, known_edgestate);
+
+    // Compute divergence
+    bool   already_on_centroids(true);
+    int    nghost(2);
+    MultiFab conv_tmp( a_conv.boxArray(), a_conv.DistributionMap(), a_ncomp, nghost,
+                       MFInfo(), a_state.Factory() );
+
+    conv_tmp.setVal(0.0);
+
+    Array<MultiFab*,AMREX_SPACEDIM> fluxes;
+    fluxes[0] = &a_fx;
+    fluxes[1] = &a_fy;
+#if (AMREX_SPACEDIM==3)
+    fluxes[2] = &a_fz;
+#endif
+
+    EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
+                         a_geom, already_on_centroids);
+
+    // Redistribute divergence
+    const amrex::MultiFab* weights;
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
+    weights = &(ebfactory.getVolFrac());
+    amrex::single_level_weighted_redistribute( 0, {conv_tmp}, {a_conv}, {*weights}, a_conv_comp, a_ncomp, {a_geom} );
+
+    Gpu::synchronize();
+
+    //
+    // Now we have to return the fluxes multiplied by the area -- We basically return
+    // "intensive" fluxes
+    //
+    const Real*  dx = a_geom.CellSize();
+
+#if ( AMREX_SPACEDIM == 3 )
+    a_fx.mult(dx[1]*dx[2]);
+    a_fy.mult(dx[0]*dx[2]);
+    a_fz.mult(dx[0]*dx[1]);
+#else
+    a_fx.mult(dx[1]);
+    a_fy.mult(dx[0]);
+#endif
+
+    //
+    // Account for "effective areas" for cut cells
+    //
     Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
     areafrac  = ebfactory.getAreaFrac();
 

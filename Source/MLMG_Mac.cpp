@@ -107,6 +107,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
         bcoefs[idim]->invert(scale_factor,ng_for_invert);
         bcoefs[idim]->FillBoundary( geom.periodicity() );
     }
+    EB_set_covered_faces(GetArrOfPtrs(bcoefs), COVERED_VAL);
 
     //
     // Create MacProjector Object
@@ -219,13 +220,6 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 
     // MacProjector is not what we want for sync
     // takes Face-centered velocity and interally computes div, but already have div
-    //
-    // Create right containers for MacProjector
-    //Array<MultiFab*,AMREX_SPACEDIM>  a_umac({mac_phi});
-    //
-    // Create MacProjection object
-    // make sure u_mac already has bndry properly filled
-    //MacProjector macproj( {a_umac}, {GetArrOfConstPtrs(bcoefs)}, {geom}, info, {&Rhs} );
 
 #ifdef AMREX_USE_EB
     const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>((parent->getLevel(level)).Factory());
@@ -241,12 +235,7 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
 
     mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
-    // weiqun says not needed... I think default is the 0 we want
-    // if (level > 0) {
-    //     mlabec.setCoarseFineBC(nullptr, parent->refRatio(level-1)[0]);
-    // }
     mlabec.setLevelBC(0, mac_phi);
-
     mlabec.setScalars(0.0, 1.0);
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
 
@@ -265,30 +254,11 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
 
     //Ucorr = fluxes = -B grad phi
-    mlmg.getFluxes({Ucorr});
+    mlmg.getFluxes({Ucorr}, MLMG::Location::FaceCentroid);
+
     // Make sure Ucorr has correct sign
     for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
-      Ucorr[idim]->negate();
-
-    
-    // // Solve with initial guess of zero
-    // macproj.project(mac_tol,mac_abs_tol,MLMG::Location::FaceCentroid);
-
-    // // Enforce perodicity
-    // for (int i=0; i<AMREX_SPACEDIM; ++i)
-    //   mac_phi[i].FillBoundary(geom.periodicity());
-
-    //if (verbose)  // Always print this for now
-//     {
-//       MultiFab divu(ba, dm, 1, 0, MFInfo(), (parent->getLevel(level)).Factory());
-// #ifdef AMREX_USE_EB
-//       bool already_on_centroid(true);
-//       EB_computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom,already_on_centroid);
-// #else
-//       computeDivergence(divu,GetArrOfConstPtrs(a_umac),geom);
-// #endif
-
-//       Print() << "  MAC SYNC solve on level "<< level
-//     	      << " BEFORE projection: max(abs(divu)) = " << divu.norm0() << "\n";
-//     }
+    {
+        Ucorr[idim]->negate();
+    }
 }

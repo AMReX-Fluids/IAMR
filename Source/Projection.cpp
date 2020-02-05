@@ -764,7 +764,7 @@ Projection::initialVelocityProject (int  c_lev,
     Vector<MultiFab*> phi(maxlev, nullptr);
     Vector<std::unique_ptr<MultiFab> > sig(maxlev);
 
-    for (int iter(0); iter < init_vel_iter; ++iter)
+    for (int iter = 0; iter < init_vel_iter; ++iter)
     {
         if (verbose)
         {
@@ -799,7 +799,8 @@ Projection::initialVelocityProject (int  c_lev,
 
                 Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
-                for (MFIter mfi(S_new); mfi.isValid(); ++mfi) {
+                for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+                {
                     amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
                                                     Density,Density,1);
                 }
@@ -879,24 +880,19 @@ Projection::initialVelocityProject (int  c_lev,
   
   
         if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
+        {
             set_outflow_bcs(INITIAL_VEL,phi,vel,
                             amrex::GetVecOfPtrs(rhcc),
                             amrex::GetVecOfPtrs(sig),
                             c_lev,f_lev,have_divu);
+        }
 
         //
         // Scale the projection variables.
         //
-        for (lev = c_lev; lev <= f_lev; lev++)  {
-            scaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
-        }
-
-        for (lev = f_lev-1; lev >= c_lev; --lev)
+        for (lev = c_lev; lev <= f_lev; lev++)
         {
-	    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-	    ns->average_down(*vel[lev+1], *vel[lev], 0, AMREX_SPACEDIM);
-            //amrex::average_down(*vel[lev+1], *vel[lev], parent->Geom(lev+1), parent->Geom(lev),
-            //                    0, BL_SPACEDIM, parent->refRatio(lev));
+            scaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
         }
 
         //
@@ -934,6 +930,7 @@ Projection::initialVelocityProject (int  c_lev,
         for (lev = c_lev; lev <= f_lev; lev++)
             rescaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
 
+
         for (lev = c_lev; lev <= f_lev; lev++)
         {
             LevelData[lev]->get_old_data(Press_Type).setVal(0.);
@@ -967,7 +964,8 @@ Projection::initialVelocityProject (int  c_lev,
         }
     }
 
-    if (verbose) {
+    if (verbose)
+    {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         Real      run_time = ParallelDescriptor::second() - strt_time;
 

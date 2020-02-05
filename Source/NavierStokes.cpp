@@ -304,14 +304,14 @@ NavierStokes::advance (Real time,
     //
     const Real prev_time = state[State_Type].prevTime();
     const int num_diff = NUM_STATE-BL_SPACEDIM-1;
-    
+
     calcViscosity(prev_time,dt,iteration,ncycle);
     calcDiffusivity(prev_time);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       MultiFab::Copy(*viscnp1[d], *viscn[d], 0, 0, 1, viscn[d]->nGrow());
       MultiFab::Copy(*diffnp1[d], *diffn[d], 0, 0, num_diff, diffn[d]->nGrow());
     }
-    
+
     // Add this AFTER advance_setup()
     if (verbose)
     {
@@ -508,9 +508,9 @@ NavierStokes::predict_velocity (Real  dt)
     Vector<BCRec> math_bc(AMREX_SPACEDIM);
     math_bc = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
-    godunov->ComputeSlopes( Umf,
-                           D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                            math_bc, 0, AMREX_SPACEDIM, domain);
+    godunov->ComputeSlopes( Umf, 0,
+                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
+                            AMREX_SPACEDIM, math_bc, domain);
     //
     // need to fill ghost cells for slopes here.
     // vel advection term ugradu uses these slopes (does not recompute in incflo
@@ -694,8 +694,8 @@ NavierStokes::scalar_advection (Real dt,
         Vector<BCRec> math_bc(num_scalars);
         math_bc = fetchBCArray(State_Type,fscalar,num_scalars);
 
-        godunov->ComputeSlopes(Smf, D_DECL(xslps, yslps, zslps),
-                               math_bc, 0, num_scalars, domain);
+        godunov->ComputeSlopes(Smf, 0, D_DECL(xslps, yslps, zslps), 0,
+                               num_scalars, math_bc, domain);
 
         //
         // need to fill ghost cells for slopes here.
@@ -1737,6 +1737,14 @@ NavierStokes::mac_sync ()
     BL_PROFILE_REGION_START("R::NavierStokes::mac_sync()");
     BL_PROFILE("NavierStokes::mac_sync()");
 
+    if (verbose)
+    {
+        Print() << std::endl
+                << "mac_sync() "
+                << "------------------------------------------------- "
+                << std::endl;
+    }
+
     //
     // fixme - why not just return immediately if do_reflux = false
     //  why waste time computing things and then not use them
@@ -1750,12 +1758,21 @@ NavierStokes::mac_sync ()
     // does this have ghosts filled?
     MultiFab&  Rh             = get_rho_half_time();
 
+#ifdef AMREX_USE_EB
+    const int nghost = 4; // For redistribution ... We may not need 4 but for now we play safe
+#else
+    const int nghost = 0;
+#endif
+
+
+
     Array<MultiFab*,AMREX_SPACEDIM> Ucorr;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim){
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
       const BoxArray& edgeba = getEdgeBoxArray(idim);
       //
       // fixme? unsure how many ghost cells...
-      Ucorr[idim]= new MultiFab(edgeba,dmap,1,0,MFInfo(),Factory());
+      Ucorr[idim]= new MultiFab(edgeba,dmap,1,nghost,MFInfo(),Factory());
     }
 
     sync_setup(DeltaSsync);
