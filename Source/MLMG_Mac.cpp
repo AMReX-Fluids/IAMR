@@ -107,8 +107,10 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
         bcoefs[idim]->invert(scale_factor,ng_for_invert);
         bcoefs[idim]->FillBoundary( geom.periodicity() );
     }
+#ifdef AMREX_USE_EB
     EB_set_covered_faces(GetArrOfPtrs(bcoefs), COVERED_VAL);
-
+#endif
+    
     //
     // Create MacProjector Object
     //
