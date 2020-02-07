@@ -1013,11 +1013,9 @@ void Godunov::ComputeSlopes( MultiFab&  a_state,
 {
     BL_PROFILE("Godunov::ComputeSlopes");
     AMREX_ALWAYS_ASSERT(a_state.nComp() >= a_comp    + a_ncomp - 1);
-    AMREX_ALWAYS_ASSERT(a_xsl.nComp()   >= a_sl_comp + a_ncomp - 1);
-    AMREX_ALWAYS_ASSERT(a_ysl.nComp()   >= a_sl_comp + a_ncomp - 1);
-#if AMREX_SPACEDIM==3
-    AMREX_ALWAYS_ASSERT(a_zsl.nComp()   >= a_sl_comp + a_ncomp - 1);
-#endif
+    D_TERM(AMREX_ALWAYS_ASSERT(a_xsl.nComp()   >= a_sl_comp + a_ncomp - 1);,
+	   AMREX_ALWAYS_ASSERT(a_ysl.nComp()   >= a_sl_comp + a_ncomp - 1);,
+	   AMREX_ALWAYS_ASSERT(a_zsl.nComp()   >= a_sl_comp + a_ncomp - 1); )
     AMREX_ALWAYS_ASSERT(a_bcs.size()    == a_ncomp);
 
     EB_set_covered(a_state, a_comp, a_ncomp, 1, COVERED_VAL);
