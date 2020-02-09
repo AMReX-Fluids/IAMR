@@ -5,6 +5,8 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
+#include <AMReX_EBInterpolater.H>
+#include <AMReX_EBFArrayBox.H>
 #endif
 
 #include <NavierStokesBase.H>
@@ -3058,7 +3060,7 @@ set_bc_new (int*            bc_new,
 }
 
 //
-// FIXME interp is EB-aware, but filcc eventually needs attention, see comments below
+// FIXME filcc eventually needs attention, see comments below
 //
 // Interpolate A cell centered Sync correction from a
 // coarse level (c_lev) to a fine level (f_lev).
@@ -3089,6 +3091,16 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
     Interpolater* interpolater = 0;
 
+#ifdef AMREX_USE_EB
+    switch (which_interp)
+    {
+      // As with the non-EB case, both of these point to the same interpolater
+    case CellCons_T:     interpolater = &eb_cell_cons_interp;    break;
+    case CellConsLin_T:  interpolater = &eb_lincc_interp;        break;
+    default:
+      amrex::Abort("NavierStokesBase::SyncInterp(): EB currently requires Cell Conservative interpolater. \n");
+    }
+#else
     switch (which_interp)
     {
     case PC_T:           interpolater = &pc_interp;           break;
@@ -3096,9 +3108,10 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     case CellConsLin_T:  interpolater = &lincc_interp;        break;
     case CellConsProt_T: interpolater = &protected_interp;    break;
     default:
-        amrex::Abort("NavierStokesBase::SyncInterp(): how did this happen");
+        amrex::Abort("NavierStokesBase::SyncInterp(): how did this happen \n");
     }
-
+#endif
+    
     NavierStokesBase& fine_level = getLevel(f_lev);
     const BoxArray& fgrids     = fine_level.boxArray();
     const DistributionMapping& fdmap = fine_level.DistributionMap();
@@ -3118,9 +3131,16 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     // Note: The boxes in cdataBA may NOT be disjoint !!!
     //
-    // What to do here when crseBA is not the same as AmrLevel[crse].boxArray
-    //MultiFab cdataMF(cdataBA,fdmap,num_comp,0,MFInfo(),Factory());
+#ifdef AMREX_USE_EB
+    // I am unsure of EBSupport and ng (set to zero here) 
+    auto factory = makeEBFabFactory(cgeom,cdataBA,fdmap,{0,0,0},EBSupport::basic);
+    MultiFab cdataMF(cdataBA,fdmap,num_comp,0,MFInfo(),*factory);
+#else
+    //    ,MFInfo(),getLevel(c_lev).Factory());
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
+#endif
+
+    
 
     // Coarse box could expand beyond the extent of fine box depending on the interpolation type, so initialize here
     cdataMF.setVal(0);
@@ -3129,6 +3149,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     //
     // Set physical boundary conditions in cdataMF.
     //
+    //////////
     // Should be fine for EB for now, since EB doesn't intersect Phys BC
     // Although calling filcc_tile is not what we really want to be doing,
     // there must be something higher level
@@ -3191,11 +3212,21 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     }
 
 
+#ifdef AMREX_USE_EB
+    //FIXME
+    // rather than creating this flags, would it be better to just create fdata MF?
+    // there's currently no way to reassign the EBCellFlagFab for a EBFArrayBox,
+    // so the non-EB strategy of creating one FAB and resizing it for MFiters doens't work
+    const FabArray<EBCellFlagFab>& flags = dynamic_cast<EBFArrayBoxFactory const&>(getLevel(f_lev).Factory()).getMultiEBCellFlagFab();
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
+#ifndef AMREX_USE_EB
       FArrayBox    fdata;
+#endif
       Vector<BCRec> bc_interp(num_comp);
       int* bc_new = new int[2*BL_SPACEDIM*(src_comp+num_comp)];
 
@@ -3208,7 +3239,11 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 	  const int* clo   = cbx.loVect();
 	  const int* chi   = cbx.hiVect();
 
+#ifdef AMREX_USE_EB
+	  EBFArrayBox fdata(flags[mfi],fbx,num_comp,FineSync[mfi].arena());
+#else
 	  fdata.resize(fbx, num_comp);
+#endif
 	  //
 	  // Set the boundary condition array for interpolation.
 	  //
@@ -3282,6 +3317,10 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
 
     BoxArray crse_ba(N);
 
+#ifdef AMREX_USE_EB
+    amrex::Abort("NavierStokesBase::SyncProjInterp():: Multilevel currently under development. Run with amr.max_level <= 1 \n");
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3293,6 +3332,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Geometry& fgeom   = parent->Geom(f_lev);
     const Geometry& cgeom   = parent->Geom(c_lev);
 
+    // causes problems
     MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),getLevel(c_lev).Factory());
     crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
