@@ -1398,8 +1398,14 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
     bool   already_on_centroids(true);
     int    nghost(2);
     MultiFab conv_tmp( a_conv.boxArray(), a_conv.DistributionMap(), a_ncomp, nghost,
-                       MFInfo(), a_state.Factory() );
+                       MFInfo(), a_conv.Factory() );
+    //
+    // a_conv (== Vsync or Ssync) may already contain corrections, so need 2nd temp
+    // for resistribution
+    MultiFab conv_tmp_redist( a_conv.boxArray(), a_conv.DistributionMap(), a_ncomp, nghost,
+                       MFInfo(), a_conv.Factory() );
 
+    
     conv_tmp.setVal(0.0);
 
     Array<MultiFab*,AMREX_SPACEDIM> fluxes;
@@ -1416,8 +1422,11 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
     const amrex::MultiFab* weights;
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
     weights = &(ebfactory.getVolFrac());
-    amrex::single_level_weighted_redistribute( 0, {conv_tmp}, {a_conv}, {*weights}, a_conv_comp, a_ncomp, {a_geom} );
+    amrex::single_level_weighted_redistribute( 0, {conv_tmp}, {conv_tmp_redist}, {*weights}, 0, a_ncomp, {a_geom} );
 
+    // Now add this update to a_conv
+    MultiFab::Add(a_conv,conv_tmp_redist,0,a_conv_comp,a_ncomp,a_conv.nGrow());
+    
     Gpu::synchronize();
 
     //
