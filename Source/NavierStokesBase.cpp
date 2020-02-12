@@ -1373,12 +1373,6 @@ NavierStokesBase::estTimeStep ()
 
     MultiFab::Subtract(tforces, Gp, 0, 0, AMREX_SPACEDIM, 0);
 
-#ifdef AMREX_USE_EB
-    // Before dividing by rho_ctime I need to make sure that it is not
-    // set to zero in the EB domain
-    EB_set_covered(rho_ctime, COVERED_VAL);
-#endif
-
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim )
         MultiFab::Divide(tforces, rho_ctime, 0, idim, 1, 0);
 
@@ -2165,6 +2159,10 @@ NavierStokesBase::make_rho_prev_time ()
     const Real prev_time = state[State_Type].prevTime();
 
     FillPatch(*this,rho_ptime,1,prev_time,State_Type,Density,1,0);
+
+#ifdef AMREX_USE_EB
+    EB_set_covered(rho_ptime,COVERED_VAL);
+#endif
 }
 
 void
@@ -2173,6 +2171,10 @@ NavierStokesBase::make_rho_curr_time ()
     const Real curr_time = state[State_Type].curTime();
 
     FillPatch(*this,rho_ctime,1,curr_time,State_Type,Density,1,0);
+
+#ifdef AMREX_USE_EB
+    EB_set_covered(rho_ctime,COVERED_VAL);
+#endif
 }
 
 void
@@ -2567,7 +2569,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 {
 
   BL_PROFILE("NavierStokesBase::post_timestep()");
-
+  
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_PARTICLES
@@ -2591,6 +2593,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
+
     //
     // Test for conservation.
     //
@@ -3463,8 +3466,6 @@ NavierStokesBase::velocity_advection (Real dt)
     }
 #endif
 
-    //FIXME? right now, only working with constraint divu = 0, but later
-    // divu_fp may get FillPatch'ed in create_mac_rhs(), so may need EBFactory
     MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
     create_mac_rhs(divu_fp,1,prev_time,dt);
 
@@ -3605,6 +3606,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
                                            math_bcs, geom, 0 );
 
+	 // don't think this is needed here any more. Godunov sets covered vals now...
          EB_set_covered(*aofs, 0.);
 
          if (do_reflux)
@@ -4667,7 +4669,10 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
 
 #ifdef AMREX_USE_EB
 
+  // FIXME?
   // Assume we want EB to behave the same as non-EB in regards to dimensionality
+  // Not sure why we'd want 2D to be different than 3D
+  // Note that 3D volume weighting doesn't exist for non-EB
 #if (AMREX_SPACEDIM == 3)
     // no volume weighting
     amrex::EB_average_down(S_fine, S_crse, scomp, ncomp, fine_ratio);
