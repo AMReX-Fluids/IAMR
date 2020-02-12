@@ -30,7 +30,6 @@
 #define XVEL 0
 #define YVEL 1
 #define ZVEL 2
-#define COVERED_VAL  1.0e40
 
 using namespace amrex;
 

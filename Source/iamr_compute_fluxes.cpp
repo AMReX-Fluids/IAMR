@@ -761,7 +761,7 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
            a_fz.setVal(COVERED_VAL););
 
     //
-    // Step 1: compute edge values using umac for upwinding
+    // Step 2: re-advect with Ucorr
     //
     for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
