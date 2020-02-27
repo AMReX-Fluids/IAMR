@@ -248,10 +248,45 @@ public:      // public access functions
                       const amrex::FArrayBox& rho,     int r_ind,
                       int        iconserv) const;
 
+    void predict_vels_on_faces (D_DECL( amrex::Box const& a_ubx,
+                                        amrex::Box const& a_vbx,
+                                        amrex::Box const& a_wbx ),
+                                D_DECL( amrex::Array4<amrex::Real> const& a_u,
+                                        amrex::Array4<amrex::Real> const& a_v,
+                                        amrex::Array4<amrex::Real> const& a_w ),
+                                amrex::Array4<amrex::Real const> const& a_vcc,
+                                const amrex::Geometry&  a_geom,
+                                const amrex::Vector<amrex::BCRec>& a_bcs );
+
+    void iamr_set_mac_bcs ( amrex::Box const& a_domain,
+                            D_DECL( amrex::Box const& a_ubx,
+                                    amrex::Box const& a_vbx,
+                                    amrex::Box const& a_wbx ) ,
+                            D_DECL( amrex::Array4<amrex::Real> const& a_u,
+                                    amrex::Array4<amrex::Real> const& a_v,
+                                    amrex::Array4<amrex::Real> const& a_w ),
+                            amrex::Array4<amrex::Real const> const& a_vel,
+                            amrex::Vector<amrex::BCRec> const& a_bcs );
   //
   // EB functions
   //
 #ifdef AMREX_USE_EB
+
+    void predict_vels_on_faces_eb (amrex::Box const& a_ccbx,
+                                   D_DECL( amrex::Box const& a_ubx,
+                                           amrex::Box const& a_vbx,
+                                           amrex::Box const& a_wbx ),
+                                   D_DECL( amrex::Array4<amrex::Real> const& a_u,
+                                           amrex::Array4<amrex::Real> const& a_v,
+                                           amrex::Array4<amrex::Real> const& a_w ),
+                                   amrex::Array4<amrex::Real const> const& a_vcc,
+                                   amrex::Array4<amrex::EBCellFlag const> const& a_flag,
+                                   D_DECL( amrex::Array4<amrex::Real const> const& a_fcx,
+                                           amrex::Array4<amrex::Real const> const& a_fcy,
+                                           amrex::Array4<amrex::Real const> const& a_fcz ),
+                                   amrex::Array4<amrex::Real const> const& a_ccc,
+                                   const amrex::Geometry&  a_geom,
+                                   const amrex::Vector<amrex::BCRec>& a_bcs );
 
     void ComputeSlopes( amrex::MultiFab&  a_state,
                         int a_comp,

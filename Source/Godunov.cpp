@@ -22,6 +22,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EB_utils.H>
+#include <iamr_convection_K.H>
 //fixme - for debugging only
 #endif
 #include <AMReX_VisMF.H>
@@ -997,6 +998,85 @@ Godunov::how_many(const Vector<AdvectionForm>& advectionType,
     return counter;
 }
 
+
+void
+Godunov::iamr_set_mac_bcs ( Box const& a_domain,
+                            D_DECL( Box const& a_ubx,
+                                    Box const& a_vbx,
+                                    Box const& a_wbx ) ,
+                            D_DECL( Array4<Real> const& a_u,
+                                    Array4<Real> const& a_v,
+                                    Array4<Real> const& a_w ),
+                            Array4<Real const> const& a_vel,
+                            Vector<BCRec> const& a_bcs )
+{
+    int idim = 0;
+    if (a_bcs[idim].lo(idim) == BCType::ext_dir and
+        a_domain.smallEnd(idim) == a_ubx.smallEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryLo(a_ubx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_u(i,j,k) = a_vel(i-1,j,k,0);
+        });
+    }
+
+    if (a_bcs[idim].hi(idim) == BCType::ext_dir and
+        a_domain.bigEnd(idim)+1 == a_ubx.bigEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryHi(a_ubx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_u(i,j,k) = a_vel(i,j,k,0);
+        });
+    }
+
+    idim = 1;
+    if (a_bcs[idim].lo(idim) == BCType::ext_dir and
+        a_domain.smallEnd(idim) == a_vbx.smallEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryLo(a_vbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_v(i,j,k) = a_vel(i,j-1,k,1);
+        });
+    }
+
+    if (a_bcs[idim].hi(idim) == BCType::ext_dir and
+        a_domain.bigEnd(idim)+1 == a_vbx.bigEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryHi(a_vbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_v(i,j,k) = a_vel(i,j,k,1);
+        });
+    }
+
+#if (AMREX_SPACEDIM==3)
+    idim = 2;
+    if (a_bcs[idim].lo(idim) == BCType::ext_dir and
+        a_domain.smallEnd(idim) == a_wbx.smallEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryLo(a_wbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_w(i,j,k) = a_vel(i,j,k-1,2);
+        });
+    }
+
+    if (a_bcs[idim].hi(idim) == BCType::ext_dir and
+        a_domain.bigEnd(idim)+1 == a_wbx.bigEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryHi(a_wbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_w(i,j,k) = a_vel(i,j,k,2);
+        });
+    }
+#endif
+}
+
+
 #ifdef AMREX_USE_EB
 
 
@@ -1404,7 +1484,7 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
     MultiFab conv_tmp_redist( a_conv.boxArray(), a_conv.DistributionMap(), a_ncomp, nghost,
                        MFInfo(), a_conv.Factory() );
 
-    
+
     conv_tmp.setVal(0.0);
 
     Array<MultiFab*,AMREX_SPACEDIM> fluxes;
@@ -1425,7 +1505,7 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
 
     // Now add this update to a_conv
     MultiFab::Add(a_conv,conv_tmp_redist,0,a_conv_comp,a_ncomp,a_conv.nGrow());
-    
+
     Gpu::synchronize();
 
     //
