@@ -1749,32 +1749,87 @@ contains
       hx = dx(1)
       hy = dx(2)
       hz = dx(3)
+      
+      select case (adv_dir)
+         ! Flow in x direction
+      case(1)
+         do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy*(float(j-lo(2)) + half)
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-      if ( adv_dir .ne. 1 ) then
-         write(6,*) "initchannel requires adv_dir=1, currently adv_dir=",adv_dir
-         stop
-      end if
+                  yn = y / probhi(2)
+                  vel(i,j,k,1) = adv_vel
+                  vel(i,j,k,2) = zero
+                  vel(i,j,k,3) = zero
 
-      do k = lo(3), hi(3)
-         z = xlo(3) + hz*(float(k-lo(3)) + half)
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half)
-            do i = lo(1), hi(1)
-               vel(i,j,k,1) = adv_vel
-               vel(i,j,k,2) = zero
-               vel(i,j,k,3) = zero
-               scal(i,j,k,1) = denfact
+                  scal(i,j,k,1) = denfact
 
-               do n = 2,nscal-1
-                  scal(i,j,k,n) = one
+                  do n = 2,nscal-1
+                     scal(i,j,k,n) = one
+                  end do
+
+                  dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+                  scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
                end do
-
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
-  	       dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
-	       scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
             end do
          end do
-      end do
+         ! Flow in y direction
+      case(2)
+         do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy*(float(j-lo(2)) + half)
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+                  zn = z / probhi(3)
+                  vel(i,j,k,1) = zero
+                  vel(i,j,k,2) = adv_vel
+                  vel(i,j,k,3) = zero
+
+                  scal(i,j,k,1) = denfact
+
+                  do n = 2,nscal-1
+                     scal(i,j,k,n) = one
+                  end do
+
+                  dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+                  scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
+               end do
+            end do
+         end do
+         ! Flow in z direction
+      case(3)
+         do k = lo(3), hi(3)
+            z = xlo(3) + hz*(float(k-lo(3)) + half)
+            do j = lo(2), hi(2)
+               y = xlo(2) + hy*(float(j-lo(2)) + half)
+               do i = lo(1), hi(1)
+                  x = xlo(1) + hx*(float(i-lo(1)) + half)
+
+                  xn = x / probhi(1)
+                  vel(i,j,k,1) = zero
+                  vel(i,j,k,2) = zero
+                  vel(i,j,k,3) = adv_vel
+
+                  scal(i,j,k,1) = denfact
+
+                  do n = 2,nscal-1
+                     scal(i,j,k,n) = one
+                  end do
+
+                  dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
+                  scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
+               end do
+            end do
+         end do
+      case default
+         write(6,*) "initchannel requires adv_dir=1,2, or 3. Currently adv_dir=",adv_dir
+         stop
+      end select
 
    end subroutine initchannel
 
@@ -1805,7 +1860,7 @@ contains
       REAL_T  x, y, z
       REAL_T  xn, yn, zn ! normalized coordinates
       REAL_T  hx, hy, hz
-      REAL_T  dist, my_max
+      REAL_T  dist
 
 #include <probdata.H>
 
@@ -1828,13 +1883,11 @@ contains
                   vel(i,j,k,2) = zero
                   vel(i,j,k,3) = zero
 
-                  my_max = max(my_max,vel(i,j,k,1))
                   scal(i,j,k,1) = denfact
 
                   do n = 2,nscal-1
                      scal(i,j,k,n) = one
                   end do
-
 
                   dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
                   scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
@@ -1855,13 +1908,11 @@ contains
                   vel(i,j,k,2) = 6.0d0 * adv_vel * zn * (1.0 - zn)
                   vel(i,j,k,3) = zero
 
-                  my_max = max(my_max,vel(i,j,k,2))
                   scal(i,j,k,1) = denfact
 
                   do n = 2,nscal-1
                      scal(i,j,k,n) = one
                   end do
-
 
                   dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
                   scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
@@ -1882,13 +1933,11 @@ contains
                   vel(i,j,k,2) = zero
                   vel(i,j,k,3) = 6.0d0 * adv_vel * xn * (1.0 - xn)
 
-                  my_max = max(my_max,vel(i,j,k,3))
                   scal(i,j,k,1) = denfact
 
                   do n = 2,nscal-1
                      scal(i,j,k,n) = one
                   end do
-
 
                   dist = sqrt((x-xblob)**2 + (y-yblob)**2 + (z-zblob)**2)
                   scal(i,j,k,nscal) = merge(one,zero,dist.lt.radblob)
