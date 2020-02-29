@@ -1760,7 +1760,6 @@ contains
                do i = lo(1), hi(1)
                   x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-                  yn = y / probhi(2)
                   vel(i,j,k,1) = adv_vel
                   vel(i,j,k,2) = zero
                   vel(i,j,k,3) = zero
@@ -1785,7 +1784,6 @@ contains
                do i = lo(1), hi(1)
                   x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-                  zn = z / probhi(3)
                   vel(i,j,k,1) = zero
                   vel(i,j,k,2) = adv_vel
                   vel(i,j,k,3) = zero
@@ -1810,7 +1808,6 @@ contains
                do i = lo(1), hi(1)
                   x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-                  xn = x / probhi(1)
                   vel(i,j,k,1) = zero
                   vel(i,j,k,2) = zero
                   vel(i,j,k,3) = adv_vel
