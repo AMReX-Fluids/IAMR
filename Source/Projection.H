@@ -169,10 +169,6 @@ public:
                        amrex::MultiFab& mf,
                        int       comp);
 
-    void put_divu_in_cc_rhs (amrex::MultiFab&       rhs,
-                             int             level,
-                             amrex::Real            time);
-
     //
     // Helper function for NavierStokes::getGradP().
     //
