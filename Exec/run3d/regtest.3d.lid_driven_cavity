@@ -28,7 +28,7 @@ ns.init_iter          	=  3    # number of initial iterations
 ns.vel_visc_coef        =  0.01
 ns.scal_diff_coefs      =  0.0
 
-amr.probin_file 		=  probin.3d.lid_driven_cavity
+amr.probin_file 		=  regtest.probin.3d.lid_driven_cavity
 
 geometry.coord_sys   	=  0
 
@@ -46,5 +46,5 @@ ns.hi_bc             	=  5 5 5
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 
-amr.derive_plot_vars   	=  mag_vort
+amr.derive_plot_vars = NONE
 proj.v 					=  0

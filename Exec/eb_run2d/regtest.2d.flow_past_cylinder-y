@@ -1,7 +1,7 @@
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            SIMULATION STOP            #
 #.......................................#
-max_step                =  20           # Max number of time steps
+max_step                =  10           # Max number of time steps
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #           SOLVER SETTINGS             #
@@ -13,14 +13,13 @@ ns.visc_tol=1.0e-11
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
-#ns.cfl              =   0.45             # CFL factor
 ns.cfl               = 0.3
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            INPUT AND OUTPUT           #
 #.......................................#
 amr.plot_int            =   50          # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
-amr.derive_plot_vars    =   mag_vort avg_pressure gradpx gradpy
+amr.derive_plot_vars = NONE
 amr.restart             =   ""          # Checkpoint to restart from
 amr.probin_file         = regtest.probin.2d.flow_past_cylinder-y
 
@@ -29,8 +28,8 @@ amr.probin_file         = regtest.probin.2d.flow_past_cylinder-y
 #.......................................#
 ns.gravity          =   0.  
 
-ns.vel_visc_coef         = 0.001
-ns.scal_diff_coefs       = 0.001
+ns.vel_visc_coef         = 0.1
+ns.scal_diff_coefs       = 0.1
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
@@ -52,7 +51,7 @@ geometry.coord_sys      = 0
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWal
 # Boundary conditions on the low end of the domain.
-ns.lo_bc 	     	= 1 5 0
+ns.lo_bc 	     	= 1 4 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	     	= 2 5 0
 
@@ -72,4 +71,15 @@ mac.verbose             = 0 # MacProjector
 projection.verbose   =   1           # Nodal projection
 projection.mg_verbose=   0
 projection.mg_rtol   =  1.0e-13
-#amr.plt_ccse_regtest    =   1
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            for testing                #
+#.......................................#
+# turn tiling on for testing
+fabarray.mfiter_tile_size = 8 8 8
+
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
+amr.plt_ccse_regtest    =   1
+

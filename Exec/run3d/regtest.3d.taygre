@@ -123,7 +123,7 @@ amr.blocking_factor     = 8
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort
+amr.derive_plot_vars = NONE
 
 #*******************************************************************************
 proj.v=4

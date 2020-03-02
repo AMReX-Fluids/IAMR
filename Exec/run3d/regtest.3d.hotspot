@@ -147,6 +147,6 @@ amr.blocking_factor     = 4
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
+amr.derive_plot_vars = NONE
 
 #*******************************************************************************

@@ -24,7 +24,7 @@ amr.n_cell 		= 32 32 32
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 3 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 ns.do_vorticity_ref     = 1
 
 #*******************************************************************************
@@ -84,7 +84,7 @@ ns.scal_diff_coefs      = 0.0
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.taygre
+amr.probin_file 	= regtest.probin.3d.taygre
 
 #*******************************************************************************
 

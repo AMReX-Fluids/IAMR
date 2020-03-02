@@ -3,18 +3,9 @@
 # INPUTS.2D.HOTSPOT for regression testing
 #*******************************************************************************
 
-ns.init_iter=1
-ns.do_init_proj = 1
-
-# turn tiling on for testing
-fabarray.mfiter_tile_size = 8 8 8
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 20
+max_step 		= 10
 
 #*******************************************************************************
 
@@ -28,8 +19,8 @@ ns.do_temp_ref = 1
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 64 64 #32 32
-#amr.max_grid_size	= 32
+amr.n_cell 		= 64 64
+amr.max_grid_size	= 32
 
 #*******************************************************************************
 
@@ -50,6 +41,8 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
+proj.v = 10
+mac.v = 10
 
 #*******************************************************************************
 
@@ -74,13 +67,12 @@ ns.cfl                  = 0.5  # CFL number used to set dt
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 0.3  # factor which multiplies the very first time step
+ns.init_shrink          = 0.5  # factor which multiplies the very first time step
 
 #*******************************************************************************
 
 # Viscosity coefficient 
 ns.vel_visc_coef        = 0.001
-
 
 #*******************************************************************************
 
@@ -103,7 +95,7 @@ amr.probin_file 	= regtest.probin.2d.hotspot
 #eb2.geom_type    =  all_regular
 eb2.geom_type     = sphere
 eb2.sphere_radius = 0.25
-eb2.sphere_center =  -0.001  1.5
+eb2.sphere_center =  -0.001  1.0
 eb2.sphere_has_fluid_inside = 0
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
@@ -114,11 +106,11 @@ geometry.prob_lo     =  -1. 0.
 geometry.prob_hi     =  1. 2.
 
 #Set to 1 if periodic in that direction
-geometry.is_periodic =  0 0 
+geometry.is_periodic =  0 0  
 
 # Boundary conditions on the low, high end of the domain.
-ns.lo_bc             = 5 4
-ns.hi_bc             = 5 2  
+ns.lo_bc             = 4 5
+ns.hi_bc             = 4 2  
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
@@ -127,9 +119,18 @@ ns.hi_bc             = 5 2
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
+amr.derive_plot_vars = NONE
 
 #*******************************************************************************
 
 amr.blocking_factor = 8
 amr.grid_eff = 0.95
+
+#*******************************************************************************
+# turn tiling on for testing
+fabarray.mfiter_tile_size = 8 8 8
+
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
+amr.plt_ccse_regtest    =   1

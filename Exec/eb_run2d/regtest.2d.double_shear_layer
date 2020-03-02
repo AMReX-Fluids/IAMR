@@ -1,10 +1,9 @@
-
 #*******************************************************************************
 # INPUTS.2D.PERIODIC_SHEAR_LAYER
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.2d.periodic_shear_layer
+amr.probin_file 	= regtest.probin.2d.double_shear_layer
 
 #*******************************************************************************
 # WHEN SHOULD THE SIMULATION STOP?
@@ -25,20 +24,17 @@ ns.do_tracer_ref = 1
 
 ns.cfl  		= 0.5  # CFL number used to set dt
 ns.init_shrink       	= 1.0  # factor which multiplies the very first time step
-#ns.change_max 	      	= 1.1  # maximum change for dt (NOTE: does not seem to be implemented)
-#ns.init_iter 	      	= 0 #1    # number of initial iterations
-#ns.do_init_proj = 1
 
 #*******************************************************************************
 # FLUID PROPERTIES 
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef     	= 0. #001
+ns.vel_visc_coef     	= 0.00
 # Forcing term defaults to  rho * abs(gravity) "down"
 ns.gravity           	= 0.0
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs   	= 0.0
+ns.scal_diff_coefs   	= 0.00
 
 #*******************************************************************************
 # GRID AND GEOMETRY
@@ -46,7 +42,6 @@ ns.scal_diff_coefs   	= 0.0
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 			= 64 64
-amr.max_grid_size		= 64
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   	=  0
@@ -58,12 +53,10 @@ geometry.prob_hi     	=  1.0 1.0
 geometry.is_periodic 	=  1 1
 
 # Embedded Boundary options
-#eb2.geom_type    =  all_regular
-eb2.geom_type     = sphere
-eb2.sphere_radius = 0.25
-eb2.sphere_center =  0.5  0.5  # don't forget probin: adv_dir !=1
-#eb2.sphere_center =  0.5  -0.5 # don't forget probin: adv_dir = 1
-eb2.sphere_has_fluid_inside = 0
+eb2.geom_type     = box
+eb2.box_lo = 0.15 0.25
+eb2.box_hi =  0.65  0.75 
+eb2.box_has_fluid_inside = 0
 
 #*******************************************************************************
 # BOUNDARY CONDITIONS
@@ -102,19 +95,16 @@ amr.blocking_factor 	= 8
 #*******************************************************************************
 
 # Choose which quantities to write to plot file
-amr.plot_vars    		= ALL
-amr.derive_plot_vars 	= mag_vort gradp
+amr.plot_vars    	= ALL
+amr.derive_plot_vars = NONE
 
 # Interval (in number of coarse timesteps) between plot files
 amr.plot_file 			= plt
-amr.plot_int			= 10
-#amr.plot_per			= 0.2
+amr.plot_int			= 100
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
 amr.check_file 			= chk
-amr.check_int			= 10
-# Continue from checkpoint 
-# amr.restart 			= chk01000
+amr.check_int			= 100
 
 #*******************************************************************************
 # VERBOSITY
@@ -125,25 +115,23 @@ ns.v  	            	= 1 	# NavierStokes
 diffuse.v 	       	= 1 	# Diffusion
 proj.v 	            	= 1 	# Projection
 proj.Pcode              = 1
-cg.v  	            	= 1 	# ConjugateGradient
-mlmg.v 	            	= 1 	# MultiGrid
-
-#*******************************************************************************
-# LINEAR SOLVER SETTINGS
-#*******************************************************************************
-
-# Use MLMG solver where possible
-mac.use_mlmg_solver 	= 1
-diffuse.use_mlmg_solver = 1
 
 #*******************************************************************************
 # PROJECTION SETTINGS
 #*******************************************************************************
 
-proj.v = 2
+proj.v = 1
 proj.proj_tol = 1.e-12
 proj.proj_abs_tol = 1.e-15
 
-mg.v = 2
 
-ns.variable_vel_visc = 0
+#*******************************************************************************
+#            for testing                
+#*******************************************************************************
+# turn tiling on for testing
+fabarray.mfiter_tile_size = 8 8 8
+
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
+amr.plt_ccse_regtest    =   1
