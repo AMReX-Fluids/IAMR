@@ -25,20 +25,6 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
     const int  domain_khi = domain_box.bigEnd(2);
 #endif
 
-    // auto const bc_ilo = m_bc_type[Orientation(Direction::x,Orientation::low)];
-    // auto const bc_ihi = m_bc_type[Orientation(Direction::x,Orientation::high)];
-    // auto const bc_jlo = m_bc_type[Orientation(Direction::y,Orientation::low)];
-    // auto const bc_jhi = m_bc_type[Orientation(Direction::y,Orientation::high)];
-    // auto const bc_klo = m_bc_type[Orientation(Direction::z,Orientation::low)];
-    // auto const bc_khi = m_bc_type[Orientation(Direction::z,Orientation::high)];
-
-    // bool extdir_ilo = (bc_ilo == BC::mass_inflow) or (bc_ilo == BC::no_slip_wall);
-    // bool extdir_ihi = (bc_ihi == BC::mass_inflow) or (bc_ihi == BC::no_slip_wall);
-    // bool extdir_jlo = (bc_jlo == BC::mass_inflow) or (bc_jlo == BC::no_slip_wall);
-    // bool extdir_jhi = (bc_jhi == BC::mass_inflow) or (bc_jhi == BC::no_slip_wall);
-    // bool extdir_klo = (bc_klo == BC::mass_inflow) or (bc_klo == BC::no_slip_wall);
-    // bool extdir_khi = (bc_khi == BC::mass_inflow) or (bc_khi == BC::no_slip_wall);
-
     const auto bc = a_bcs.dataPtr();
     bool extdir_ilo = (bc[0].lo(0) == BCType::ext_dir);
     bool extdir_ihi = (bc[0].hi(0) == BCType::ext_dir);
