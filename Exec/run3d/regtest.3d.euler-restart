@@ -51,7 +51,7 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= 1000
+amr.check_int		= 6
 
 #*******************************************************************************
 
@@ -121,7 +121,7 @@ amr.blocking_factor     = 8
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    =  mag_vort x_velocity y_velocity density tracer modgradrho energy mag_vel diveru avg_pressure gradpx gradpy gradpz gradp 
+amr.derive_plot_vars = NONE
 
 #*******************************************************************************
 proj.v=1
