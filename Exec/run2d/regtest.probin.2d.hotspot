@@ -1,0 +1,16 @@
+&fortin
+
+  probtype = 6
+  xblob = 0.0
+  yblob = 0.65
+  radblob = 0.2
+  denfact = 2.0
+  adv_dir = 1
+  adv_vel = 0.0
+  adverr  = 0.01
+  vorterr  = 0.5
+  denerr = 0.1
+  temperr = 1.01
+  bubgrad = 0.005
+
+/
