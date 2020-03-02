@@ -83,7 +83,7 @@ ns.scal_diff_coefs      = 0.0
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.taygre
+amr.probin_file 	= regtest.probin.3d.taygre
 
 #*******************************************************************************
 
