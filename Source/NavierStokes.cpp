@@ -926,14 +926,13 @@ NavierStokes::scalar_diffusion_update (Real dt,
         diffuse_comp[0] = is_diffusive[sigma];
         const int rho_flag = Diffusion::set_rho_flag(diffusionType[sigma]);
 
-        const bool add_hoop_stress = false; // Only true if sigma == Xvel && Geometry::IsRZ())
         const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
         const bool add_old_time_divFlux = true;
 
         const int betaComp = 0;
         const int visc_coef_comp = sigma;
         const int Rho_comp = Density;
-	      const int bc_comp  = sigma;
+	const int bc_comp  = sigma;
 
         const MultiFab *a[AMREX_SPACEDIM];
         for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -948,7 +947,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                    cmp_diffn,cmp_diffnp1,betaComp,
                                    visc_coef,visc_coef_comp,volume,a,crse_ratio,
                                    theBCs[bc_comp],geom,
-                                   add_hoop_stress,solve_mode,add_old_time_divFlux,
+                                   solve_mode,add_old_time_divFlux,
                                    diffuse_comp);
 
         if(alpha!=0) delete alpha;
@@ -1873,7 +1872,6 @@ NavierStokes::mac_sync ()
     
     // Diffusion solver switches
     // together implies that Diff solve does NOT need Sold
-    const bool add_hoop_stress = false;
     const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
     const bool add_old_time_divFlux = false;
 
@@ -1934,7 +1932,7 @@ NavierStokes::mac_sync ()
                                    cmp_diffn,cmp_diffnp1,betaComp,
                                    visc_coef,visc_coef_comp,volume,a,
                                    crse_ratio,theBCs[state_ind],geom,
-                                   add_hoop_stress,solve_mode,
+                                   solve_mode,
                                    add_old_time_divFlux,diffuse_comp);
 
         if (alpha_in!=0) delete alpha_in;
