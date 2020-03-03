@@ -3,8 +3,22 @@
 #include <AMReX_iMultiFab.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_BCRec.H>
+#include <iamr_convection_K.H>
+#include <NS_util.H>
 
 using namespace amrex;
+
+namespace {
+    std::pair<bool,bool> has_extdir (BCRec const* bcrec, int ncomp, int dir)
+    {
+        std::pair<bool,bool> r{false,false};
+        for (int n = 0; n < ncomp; ++n) {
+            r.first = r.first or bcrec[n].lo(dir) == BCType::ext_dir;
+            r.second = r.second or bcrec[n].hi(dir) == BCType::ext_dir;
+        }
+        return r;
+    }
+}
 
 
 //
@@ -57,6 +71,20 @@ ComputeFluxesOnBox (const Box& a_bx,
                     int known_edgestate)
 {
 
+    constexpr Real small = 1.e-10;
+
+    const int domain_ilo = a_domain.smallEnd(0);
+    const int domain_ihi = a_domain.bigEnd(0);
+    const int domain_jlo = a_domain.smallEnd(1);
+    const int domain_jhi = a_domain.bigEnd(1);
+#if (AMREX_SPACEDIM==3)
+    const int domain_klo = a_domain.smallEnd(2);
+    const int domain_khi = a_domain.bigEnd(2);
+#endif
+
+    //
+    // TODO Pass Array $ directly !!!!!
+    //
     const Dim3 domlo = amrex::lbound(a_domain);
     const Dim3 domhi = amrex::ubound(a_domain);
 
@@ -83,118 +111,229 @@ ComputeFluxesOnBox (const Box& a_bx,
             const Box wbx = amrex::surroundingNodes(a_bx,2););
 
     const auto bc = a_bcs.dataPtr();
+    auto d_bcrec  = convertToDeviceVector(a_bcs);
 
-    AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n,
+    // At an ext_dir boundary, the boundary value is on the face, not cell center.
+    auto extdir_lohi = has_extdir(a_bcs.dataPtr(), a_ncomp, 0);
+    bool has_extdir_lo = extdir_lohi.first;
+    bool has_extdir_hi = extdir_lohi.second;
+
+    if ((has_extdir_lo and domain_ilo >= ubx.smallEnd(0)-1) or
+        (has_extdir_hi and domain_ihi <= ubx.bigEnd(0)))
     {
-        Real state_w(0)  ;
-        Real state_mns(0);
-        Real state_pls(0);
-
-        //
-        // West face
-        //
-        // In the case of inflow we are using the prescribed Dirichlet value
-        // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( known_edgestate == 0)
+        amrex::ParallelFor(ubx, a_ncomp, [d_bcrec,state,domain_ilo,domain_ihi,u,small,fx, known_edgestate, edgs_x]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if ( (i <= domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
+            bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
+            bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
+            Real qs;
+            if ( known_edgestate == 0)
             {
-                state_w = state(domlo.x-1,j,k,a_comp+n);
+                if (extdir_ilo and i <= domain_ilo) {
+                    qs = state(domain_ilo-1,j,k,n);
+                } else if (extdir_ihi and i >= domain_ihi+1) {
+                    qs = state(domain_ihi+1,j,k,n);
+                } else {
+                    Real qpls = state(i,j,k,n) - 0.5 * iamr_xslope_extdir
+                        (i,j,k,n,state, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                    Real qmns = state(i-1,j,k,n) + 0.5 * iamr_xslope_extdir
+                        (i-1,j,k,n,state, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                    if (u(i,j,k) > small) {
+                        qs = qmns;
+                    } else if (u(i,j,k) < -small) {
+                        qs = qpls;
+                    } else {
+                        qs = 0.5*(qmns+qpls);
+                    }
+                }
+                edgs_x(i,j,k,n) = qs;
             }
-            else if ( (i >= domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
+            // else
+            // {
+            //     qs = edgs_x(i,j,k,n);
+            // }
+            fx(i,j,k,n) =  edgs_x(i,j,k,n) * u(i,j,k);
+        });
+    }
+    else
+    {
+        amrex::ParallelFor(ubx, a_ncomp, [state,u,small,fx, known_edgestate, edgs_x]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            Real qpls = state(i  ,j,k,n) - 0.5 * iamr_xslope(i  ,j,k,n,state);
+            Real qmns = state(i-1,j,k,n) + 0.5 * iamr_xslope(i-1,j,k,n,state);
+            Real qs;
+            if ( known_edgestate == 0)
             {
-                state_w = state(domhi.x+1,j,k,a_comp+n);
+                if (u(i,j,k) > small) {
+                    qs = qmns;
+                } else if (u(i,j,k) < -small) {
+                    qs = qpls;
+                } else {
+                    qs = 0.5*(qmns+qpls);
+                }
+
+                edgs_x(i,j,k,n) = qs;
+            }
+            // else
+            // {
+            //     qs = edgs_x(i,j,k,n);
+            // }
+
+            fx(i,j,k,n) = edgs_x(i,j,k,n) * u(i,j,k);
+        });
+    }
+
+
+    extdir_lohi = has_extdir(a_bcs.dataPtr(), a_ncomp, 1);
+    has_extdir_lo = extdir_lohi.first;
+    has_extdir_hi = extdir_lohi.second;
+    if ((has_extdir_lo and domain_jlo >= vbx.smallEnd(1)-1) or
+        (has_extdir_hi and domain_jhi <= vbx.bigEnd(1)))
+    {
+        amrex::ParallelFor(vbx, a_ncomp, [d_bcrec,state,domain_jlo,domain_jhi,v,small,fy,known_edgestate,edgs_y]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            Real qs;
+
+            if ( known_edgestate == 0)
+            {
+                bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
+                bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
+                if (extdir_jlo and j <= domain_jlo) {
+                    qs = state(i,domain_jlo-1,k,n);
+                } else if (extdir_jhi and j >= domain_jhi+1) {
+                    qs = state(i,domain_jhi+1,k,n);
+                } else {
+                    Real qpls = state(i,j,k,n) - 0.5 * iamr_yslope_extdir
+                        (i,j,k,n,state, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                    Real qmns = state(i,j-1,k,n) + 0.5 * iamr_yslope_extdir
+                        (i,j-1,k,n,state, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                    if (v(i,j,k) > small) {
+                        qs = qmns;
+                    } else if (v(i,j,k) < -small) {
+                        qs = qpls;
+                    } else {
+                        qs = 0.5*(qmns+qpls);
+                    }
+                }
+
+                edgs_y(i,j,k,n) = qs;
             }
             else
             {
-                state_pls = state(i  ,j,k,a_comp+n) - .5*xsl(i  ,j,k,a_sl_comp+n);
-                state_mns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
-                state_w   = upwind( state_mns, state_pls, u(i,j,k) );
+                qs = edgs_y(i,j,k,n);
             }
-            edgs_x(i,j,k,n) = state_w;
-        }
-        else
-        {
-            state_w = edgs_x(i,j,k,n);
-        }
 
-        fx(i,j,k,n) = u(i,j,k) * state_w;
-    });
-
-    AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n,
+            fy(i,j,k,n) = qs * v(i,j,k);
+        });
+    }
+    else
     {
-        Real state_s(0);
-        Real state_mns(0);
-        Real state_pls(0);
-
-        //
-        // South face
-        //
-        // In the case of inflow we are using the prescribed Dirichlet value
-        // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( known_edgestate == 0)
+        amrex::ParallelFor(vbx, a_ncomp, [state,v,small,fy,known_edgestate,edgs_y]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if ( (j <= domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+            Real qs;
+            if (known_edgestate==0)
             {
-                state_s = state(i,domlo.y-1,k,a_comp+n);
-            }
-            else if ( (j >= domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
-            {
-                state_s = state(i,domhi.y+1,k,a_comp+n);
+                Real qpls = state(i,j  ,k,n) - 0.5 * iamr_yslope(i,j  ,k,n,state);
+                Real qmns = state(i,j-1,k,n) + 0.5 * iamr_yslope(i,j-1,k,n,state);
+
+                if (v(i,j,k) > small) {
+                    qs = qmns;
+                } else if (v(i,j,k) < -small) {
+                    qs = qpls;
+                } else {
+                    qs = 0.5*(qmns+qpls);
+                }
+
+                edgs_y(i,j,k,n) = qs;
             }
             else
             {
-                state_pls = state(i,j  ,k,a_comp+n) - .5*ysl(i,j  ,k,a_sl_comp+n);
-                state_mns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
-                state_s   = upwind( state_mns, state_pls, v(i,j,k) );
+                qs = edgs_y(i,j,k,n);
             }
-            edgs_y(i,j,k,n) = state_s;
-        }
-        else
-        {
-            state_s = edgs_y(i,j,k,n);
-        }
 
-        fy(i,j,k,n) = v(i,j,k) * state_s;
-    });
+            fy(i,j,k,n) = qs * v(i,j,k);
+        });
+    }
+
 
 #if ( AMREX_SPACEDIM ==3 )
-    AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n,
-    {
-        Real state_b(0);
-        Real state_mns(0);
-        Real state_pls(0);
 
-        //
-        // Bottom face
-        //
-        // In the case of inflow we are using the prescribed Dirichlet value
-        // This is from incflo: In the case of PINF, POUT we are using the upwind value
-        if ( known_edgestate == 0)
+    extdir_lohi = has_extdir(a_bcs.dataPtr(), a_ncomp, 2);
+    has_extdir_lo = extdir_lohi.first;
+    has_extdir_hi = extdir_lohi.second;
+    if ((has_extdir_lo and domain_klo >= wbx.smallEnd(2)-1) or
+        (has_extdir_hi and domain_khi <= wbx.bigEnd(2)))
+    {
+        amrex::ParallelFor(wbx, a_ncomp, [d_bcrec,state,domain_klo,domain_khi,w,small,fz,edgs_z,known_edgestate]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if ( (k <= domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
+            Real qs;
+
+            if (known_edgestate==0)
             {
-                state_b = state(i,j,domlo.z-1,a_comp+n);
-            }
-            else if ( (k >= domhi.z+1) and (bc[n].lo(2) == BCType::ext_dir) )
-            {
-                state_b = state(i,j,domhi.z+1,a_comp+n);
+                bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
+                bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
+
+                if (extdir_klo and k <= domain_klo) {
+                    qs = state(i,j,domain_klo-1,n);
+                } else if (extdir_khi and k >= domain_khi+1) {
+                    qs = state(i,j,domain_khi+1,n);
+                } else {
+                    Real qpls = state(i,j,k,n) - 0.5 * iamr_zslope_extdir
+                        (i,j,k,n,state, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                    Real qmns = state(i,j,k-1,n) + 0.5 * iamr_zslope_extdir(
+                        i,j,k-1,n,state, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                    if (w(i,j,k) > small) {
+                        qs = qmns;
+                    } else if (w(i,j,k) < -small) {
+                        qs = qpls;
+                    } else {
+                        qs = 0.5*(qmns+qpls);
+                    }
+                }
+                edgs_z(i,j,k,n) = qs;
             }
             else
             {
-                state_pls = state(i,j,k  ,a_comp+n) - .5*zsl(i,j,k  ,a_sl_comp+n);
-                state_mns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
-                state_b   = upwind( state_mns, state_pls, w(i,j,k) );
+                qs = edgs_z(i,j,k,n);
             }
-            edgs_z(i,j,k,n) = state_b;
-        }
-        else
+            fz(i,j,k,n) = qs * w(i,j,k);
+        });
+    }
+    else
+    {
+        amrex::ParallelFor(wbx, a_ncomp, [state,w,small,fz, edgs_z, known_edgestate]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            state_b = edgs_z(i,j,k,n);
-        }
+            Real qs;
 
-        fz(i,j,k,n) = w(i,j,k) * state_b;
-    });
+            if ( known_edgestate==0 )
+            {
+                Real qpls = state(i,j,k  ,n) - 0.5 * iamr_zslope(i,j,k  ,n,state);
+                Real qmns = state(i,j,k-1,n) + 0.5 * iamr_zslope(i,j,k-1,n,state);
+
+                if (w(i,j,k) > small) {
+                    qs = qmns;
+                } else if (w(i,j,k) < -small) {
+                    qs = qpls;
+                } else {
+                    qs = 0.5*(qmns+qpls);
+                }
+
+                edgs_z(i,j,k,n) = qs;
+            }
+            else
+            {
+                qs = edgs_z(i,j,k,n);
+            }
+
+            fz(i,j,k,n) = qs * w(i,j,k);
+        });
+    }
+
 #endif
 }
 
