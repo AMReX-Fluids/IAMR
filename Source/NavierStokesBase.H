@@ -228,14 +228,14 @@ protected:
     // Get the forcing term.
     //
     void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
+                   const amrex::Box&      bx,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
-		   const amrex::Real       time,
+                   const amrex::Real       time,
                    const amrex::FArrayBox& Vel,
                    const amrex::FArrayBox& Scal,
-		   int              scalScomp);
+                   int              scalScomp);
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
@@ -358,6 +358,8 @@ protected:
     void velocity_update (amrex::Real dt);
 
     void velocity_advection_update (amrex::Real dt);
+    
+    void calc_mut_LES();
 
     amrex::Real volWgtSum (const std::string& name,
                     amrex::Real               time);
@@ -740,6 +742,7 @@ protected:
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
     static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin
+    static int  getLESVerbose;             // Does exactly what it says on the tin
     //
     // Member when pressure defined at points in time rather than interval
     //

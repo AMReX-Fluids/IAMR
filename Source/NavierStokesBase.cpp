@@ -81,6 +81,7 @@ int         NavierStokesBase::do_temp_ref               = 0;
 int         NavierStokesBase::do_scalar_update_in_order = 0;
 Vector<int>  NavierStokesBase::scalarUpdateOrder;
 int         NavierStokesBase::getForceVerbose           = 0;
+int         NavierStokesBase::getLESVerbose             = 0;
 
 int  NavierStokesBase::Dpdt_Type = -1;
 
@@ -403,6 +404,7 @@ NavierStokesBase::Initialize ()
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
     pp.query("getForceVerbose",          getForceVerbose  );
+    pp.query("getLESVerbose",            getLESVerbose  );
     pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
     if (do_scalar_update_in_order) {
 	    const int n_scalar_update_order_vals = pp.countval("scalar_update_order");

@@ -2478,6 +2478,12 @@ NavierStokes::calcViscosity (const Real time,
             for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
                 visc[dir]->setVal(visc_coef[Xvel], 0, visc[dir]->nComp(), visc[dir]->nGrow());
             }
+            
+            
+        NavierStokesBase::calc_mut_LES();
+            
+            
+            
         }
         else
         {
