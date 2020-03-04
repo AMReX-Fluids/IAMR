@@ -282,73 +282,28 @@ ComputeFluxesOnBox (const Box& a_bx,
 // Compute fluxes on given EB box
 //
 void
-ComputeFluxesOnEBBox (const Box& a_bx,
-                      D_DECL( Array4<Real> const& a_fx,
-                              Array4<Real> const& a_fy,
-                              Array4<Real> const& a_fz),
-                      D_DECL( Array4<Real> const& a_edgeq_x,
-                              Array4<Real> const& a_edgeq_y,
-                              Array4<Real> const& a_edgeq_z),
-                      Array4<Real> const& a_q,
-                      const int a_comp,
-                      const int a_ncomp,
-                      D_DECL( const FArrayBox& a_xsl,
-                              const FArrayBox& a_ysl,
-                              const FArrayBox& a_zsl),
-                      const int a_sl_comp,
-                      D_DECL( Array4<Real const> const& a_umac,
-                              Array4<Real const> const& a_vmac,
-                              Array4<Real const> const& a_wmac),
-                      const Box&       a_domain,
-                      const Vector<BCRec>& a_bcs,
-                      D_DECL( Array4<Real const> const& a_afracx,
-                              Array4<Real const> const& a_afracy,
-                              Array4<Real const> const& a_afracz),
-                      D_DECL( const FArrayBox& a_face_centx,
-                              const FArrayBox& a_face_centy,
-                              const FArrayBox& a_face_centz),
-                      const IArrayBox& a_cc_mask,
-                      const EBCellFlagFab& a_flags,
-                      Array4<Real const> const& a_ccc,
-                      Array4<EBCellFlag const> const& a_flag,
-                      int known_edgestate)
+ComputeFluxesOnEBBox ( Box const& a_bx,
+                       D_DECL( Array4<Real> const& a_fx,
+                               Array4<Real> const& a_fy,
+                               Array4<Real> const& a_fz),
+                       D_DECL( Array4<Real> const& a_edgeq_x,
+                               Array4<Real> const& a_edgeq_y,
+                               Array4<Real> const& a_edgeq_z),
+                       Array4<Real> const& a_q,
+                       const int a_comp,
+                       const int a_ncomp,
+                       D_DECL( Array4<Real const> const& a_umac,
+                               Array4<Real const> const& a_vmac,
+                               Array4<Real const> const& a_wmac),
+                       const Box&       a_domain,
+                       const Vector<BCRec>& a_bcs,
+                       D_DECL( Array4<Real const> const& a_fcx,
+                               Array4<Real const> const& a_fcy,
+                               Array4<Real const> const& a_fcz),
+                       Array4<Real const> const& a_ccc,
+                       Array4<EBCellFlag const> const& a_flag,
+                       int known_edgestate)
 {
-    const Dim3 domlo = amrex::lbound(a_domain);
-    const Dim3 domhi = amrex::ubound(a_domain);
-
-    D_TERM( const auto& xsl = a_xsl.array();,
-            const auto& ysl = a_ysl.array();,
-            const auto& zsl = a_zsl.array(););
-
-    D_TERM( const Box ubx_grown = amrex::surroundingNodes(amrex::grow(a_bx,1),0);,
-            const Box vbx_grown = amrex::surroundingNodes(amrex::grow(a_bx,1),1);,
-            const Box wbx_grown = amrex::surroundingNodes(amrex::grow(a_bx,1),2););
-
-    D_TERM( FArrayBox s_on_x_face(ubx_grown, a_ncomp);,
-            FArrayBox s_on_y_face(vbx_grown, a_ncomp);,
-            FArrayBox s_on_z_face(wbx_grown, a_ncomp););
-
-    // Delete this one
-    D_TERM( const auto& fcx_fab = a_face_centx.array();,
-            const auto& fcy_fab = a_face_centy.array();,
-            const auto& fcz_fab = a_face_centz.array(););
-
-    D_TERM( const auto& a_fcx = a_face_centx.array();,
-            const auto& a_fcy = a_face_centy.array();,
-            const auto& a_fcz = a_face_centz.array(););
-
-    // These lines ensure that the temporary Fabs above aren't destroyed
-    //   before we're done with them when running with GPUs
-    D_TERM( Elixir eli_x = s_on_x_face.elixir();,
-            Elixir eli_y = s_on_y_face.elixir();,
-            Elixir eli_z = s_on_z_face.elixir(););
-
-    D_TERM( const auto& sx = s_on_x_face.array();,
-            const auto& sy = s_on_y_face.array();,
-            const auto& sz = s_on_z_face.array(););
-
-    const auto& ccm_fab = a_cc_mask.const_array();
-
     constexpr Real small = 1.e-10;
 
     const int domain_ilo = a_domain.smallEnd(0);
@@ -901,38 +856,6 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
     areafrac  =   ebfactory.getAreaFrac();
     facecent  =   ebfactory.getFaceCent();
 
-    // Create cc_mask
-    iMultiFab cc_mask(a_state.boxArray(), a_state.DistributionMap(), 1, 1);
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = a_geom.periodicity().shiftIntVect();
-        const BoxArray& ba = cc_mask.boxArray();
-        for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
-        {
-            Array4<int> const& fab = cc_mask.array(mfi);
-
-            const Box& bx = mfi.fabbox();
-            for (const auto& iv : pshifts)
-            {
-                ba.intersections(bx+iv, isects);
-                for (const auto& is : isects)
-                {
-                    const Box& b = is.second-iv;
-                    AMREX_FOR_3D ( b, i, j, k,
-                    {
-                        fab(i,j,k) = 1;
-                    });
-                }
-            }
-            // NOTE: here we do not need host-device synchronization since it
-            // is already included in the MFIter destructor
-        }
-    }
-
     // Initialize fluxes
     D_TERM(a_fx.setVal(COVERED_VAL);,
            a_fy.setVal(COVERED_VAL);,
@@ -963,11 +886,9 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
                 fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                              D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
                                              a_state.array(mfi), a_comp, a_ncomp,
-                                             D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
                                              D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs,
-                                             D_DECL(areafrac[0]->array(mfi), areafrac[1]->array(mfi), areafrac[2]->array(mfi)),
-                                             D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
-                                             cc_mask[mfi], flags, ccc, flag, known_edgestate);
+                                             D_DECL(facecent[0]->array(mfi), facecent[1]->array(mfi), facecent[2]->array(mfi)),
+                                             ccc, flag, known_edgestate);
             }
         }
 
@@ -1028,39 +949,6 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
     areafrac  =   ebfactory.getAreaFrac();
     facecent  =   ebfactory.getFaceCent();
 
-    // Create cc_mask
-    iMultiFab cc_mask(a_state.boxArray(), a_state.DistributionMap(), 1, 1);
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = a_geom.periodicity().shiftIntVect();
-        const BoxArray& ba = cc_mask.boxArray();
-        for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
-        {
-            Array4<int> const& fab = cc_mask.array(mfi);
-
-            const Box& bx = mfi.fabbox();
-            for (const auto& iv : pshifts)
-            {
-                ba.intersections(bx+iv, isects);
-                for (const auto& is : isects)
-                {
-                    const Box& b = is.second-iv;
-                    AMREX_FOR_3D ( b, i, j, k,
-                    {
-                        fab(i,j,k) = 1;
-                    });
-                }
-            }
-            // NOTE: here we do not need host-device synchronization since it
-            // is already included in the MFIter destructor
-        }
-    }
-
-
     //
     // For the time being we compute the fluxes in two steps
     //
@@ -1100,11 +988,9 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
                     fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                                  D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
                                                  a_state.array(mfi), a_comp, a_ncomp,
-                                                 D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
                                                  D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs,
-                                                 D_DECL(areafrac[0]->array(mfi), areafrac[1]->array(mfi), areafrac[2]->array(mfi)),
-                                                 D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
-                                                 cc_mask[mfi], flags, ccc, flag, 0);
+                                                 D_DECL(facecent[0]->array(mfi), facecent[1]->array(mfi), facecent[2]->array(mfi)),
+                                                 ccc, flag, 0);
                 }
             }
 
@@ -1145,11 +1031,9 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
                 fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                              D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
                                              a_state.array(mfi), a_comp, a_ncomp,
-                                             D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
                                              D_DECL(a_ucorr.array(mfi), a_vcorr.array(mfi), a_wcorr.array(mfi)), domain, a_bcs,
-                                             D_DECL(areafrac[0]->array(mfi), areafrac[1]->array(mfi), areafrac[2]->array(mfi)),
-                                             D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
-                                             cc_mask[mfi], flags, ccc, flag, 1);
+                                             D_DECL(facecent[0]->array(mfi), facecent[1]->array(mfi), facecent[2]->array(mfi)),
+                                             ccc, flag, 1);
             }
         }
 
