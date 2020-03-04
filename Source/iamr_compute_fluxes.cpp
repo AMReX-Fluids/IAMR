@@ -4,6 +4,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <iamr_convection_K.H>
+#include <iamr_convection_K.H>
 #include <NS_util.H>
 
 using namespace amrex;
@@ -50,22 +51,18 @@ upwind(const Real velocity_minus,
 //
 void
 ComputeFluxesOnBox (const Box& a_bx,
-                    D_DECL( FArrayBox& a_fx,
-                            FArrayBox& a_fy,
-                            FArrayBox& a_fz),
-                    D_DECL( FArrayBox& edgestate_x,
-                            FArrayBox& edgestate_y,
-                            FArrayBox& edgestate_z),
-                    const FArrayBox& a_state,
+                    D_DECL( Array4<Real> const& a_fx,
+                            Array4<Real> const& a_fy,
+                            Array4<Real> const& a_fz),
+                    D_DECL( Array4<Real> const& a_edgeq_x,
+                            Array4<Real> const& a_edgeq_y,
+                            Array4<Real> const& a_edgeq_z),
+                    Array4<Real const> const& a_q,
                     const int a_comp,
                     const int a_ncomp,
-                    D_DECL( const FArrayBox& a_xsl,
-                            const FArrayBox& a_ysl,
-                            const FArrayBox& a_zsl),
-                    const int a_sl_comp,
-                    D_DECL( const FArrayBox& a_umac,
-                            const FArrayBox& a_vmac,
-                            const FArrayBox& a_wmac),
+                    D_DECL( Array4<Real const> const& a_umac,
+                            Array4<Real const> const& a_vmac,
+                            Array4<Real const> const& a_wmac),
                     const Box&       a_domain,
                     const Vector<BCRec>& a_bcs,
                     int known_edgestate)
@@ -82,33 +79,9 @@ ComputeFluxesOnBox (const Box& a_bx,
     const int domain_khi = a_domain.bigEnd(2);
 #endif
 
-    //
-    // TODO Pass Array $ directly !!!!!
-    //
-    const Dim3 domlo = amrex::lbound(a_domain);
-    const Dim3 domhi = amrex::ubound(a_domain);
-
-    const auto& state = a_state.array();
-
-    D_TERM( const auto& fx  = a_fx.array();,
-            const auto& fy  = a_fy.array();,
-            const auto& fz  = a_fz.array(););
-
-    D_TERM( const auto& u   = a_umac.array();,
-            const auto& v   = a_vmac.array();,
-            const auto& w   = a_wmac.array(););
-
-    D_TERM( const auto& xsl = a_xsl.array();,
-            const auto& ysl = a_ysl.array();,
-            const auto& zsl = a_zsl.array(););
-
-    D_TERM( const auto& edgs_x = edgestate_x.array();,
-            const auto& edgs_y = edgestate_y.array();,
-            const auto& edgs_z = edgestate_z.array(););
-
-    D_TERM( const Box ubx = amrex::surroundingNodes(a_bx,0);,
-            const Box vbx = amrex::surroundingNodes(a_bx,1);,
-            const Box wbx = amrex::surroundingNodes(a_bx,2););
+    D_TERM( const Box& ubx = amrex::surroundingNodes(a_bx,0);,
+            const Box& vbx = amrex::surroundingNodes(a_bx,1);,
+            const Box& wbx = amrex::surroundingNodes(a_bx,2););
 
     const auto bc = a_bcs.dataPtr();
     auto d_bcrec  = convertToDeviceVector(a_bcs);
@@ -121,66 +94,55 @@ ComputeFluxesOnBox (const Box& a_bx,
     if ((has_extdir_lo and domain_ilo >= ubx.smallEnd(0)-1) or
         (has_extdir_hi and domain_ihi <= ubx.bigEnd(0)))
     {
-        amrex::ParallelFor(ubx, a_ncomp, [d_bcrec,state,domain_ilo,domain_ihi,u,small,fx, known_edgestate, edgs_x]
+        amrex::ParallelFor(ubx, a_ncomp, [d_bcrec,a_q,domain_ilo,domain_ihi,a_umac,small,a_fx, known_edgestate, a_edgeq_x]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
             bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
             Real qs;
-            if ( known_edgestate == 0)
-            {
+            if ( known_edgestate == 0) {
                 if (extdir_ilo and i <= domain_ilo) {
-                    qs = state(domain_ilo-1,j,k,n);
+                    qs = a_q(domain_ilo-1,j,k,n);
                 } else if (extdir_ihi and i >= domain_ihi+1) {
-                    qs = state(domain_ihi+1,j,k,n);
+                    qs = a_q(domain_ihi+1,j,k,n);
                 } else {
-                    Real qpls = state(i,j,k,n) - 0.5 * iamr_xslope_extdir
-                        (i,j,k,n,state, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
-                    Real qmns = state(i-1,j,k,n) + 0.5 * iamr_xslope_extdir
-                        (i-1,j,k,n,state, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
-                    if (u(i,j,k) > small) {
+                    Real qpls = a_q(i,j,k,n) - 0.5 * iamr_xslope_extdir
+                        (i,j,k,n,a_q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                    Real qmns = a_q(i-1,j,k,n) + 0.5 * iamr_xslope_extdir
+                        (i-1,j,k,n,a_q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                    if (a_umac(i,j,k) > small) {
                         qs = qmns;
-                    } else if (u(i,j,k) < -small) {
+                    } else if (a_umac(i,j,k) < -small) {
                         qs = qpls;
                     } else {
                         qs = 0.5*(qmns+qpls);
                     }
                 }
-                edgs_x(i,j,k,n) = qs;
+                a_edgeq_x(i,j,k,n) = qs;
             }
-            // else
-            // {
-            //     qs = edgs_x(i,j,k,n);
-            // }
-            fx(i,j,k,n) =  edgs_x(i,j,k,n) * u(i,j,k);
+            a_fx(i,j,k,n) =  a_edgeq_x(i,j,k,n) * a_umac(i,j,k);
         });
     }
     else
     {
-        amrex::ParallelFor(ubx, a_ncomp, [state,u,small,fx, known_edgestate, edgs_x]
+        amrex::ParallelFor(ubx, a_ncomp, [a_q,a_umac,small,a_fx,known_edgestate,a_edgeq_x]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real qpls = state(i  ,j,k,n) - 0.5 * iamr_xslope(i  ,j,k,n,state);
-            Real qmns = state(i-1,j,k,n) + 0.5 * iamr_xslope(i-1,j,k,n,state);
+            Real qpls = a_q(i  ,j,k,n) - 0.5 * iamr_xslope(i  ,j,k,n,a_q);
+            Real qmns = a_q(i-1,j,k,n) + 0.5 * iamr_xslope(i-1,j,k,n,a_q);
             Real qs;
-            if ( known_edgestate == 0)
-            {
-                if (u(i,j,k) > small) {
+            if ( known_edgestate == 0)  {
+                if (a_umac(i,j,k) > small) {
                     qs = qmns;
-                } else if (u(i,j,k) < -small) {
+                } else if (a_umac(i,j,k) < -small) {
                     qs = qpls;
                 } else {
                     qs = 0.5*(qmns+qpls);
                 }
 
-                edgs_x(i,j,k,n) = qs;
+                a_edgeq_x(i,j,k,n) = qs;
             }
-            // else
-            // {
-            //     qs = edgs_x(i,j,k,n);
-            // }
-
-            fx(i,j,k,n) = edgs_x(i,j,k,n) * u(i,j,k);
+            a_fx(i,j,k,n) = a_edgeq_x(i,j,k,n) * a_umac(i,j,k);
         });
     }
 
@@ -191,70 +153,60 @@ ComputeFluxesOnBox (const Box& a_bx,
     if ((has_extdir_lo and domain_jlo >= vbx.smallEnd(1)-1) or
         (has_extdir_hi and domain_jhi <= vbx.bigEnd(1)))
     {
-        amrex::ParallelFor(vbx, a_ncomp, [d_bcrec,state,domain_jlo,domain_jhi,v,small,fy,known_edgestate,edgs_y]
+        amrex::ParallelFor(vbx, a_ncomp, [d_bcrec,a_q,domain_jlo,domain_jhi,a_vmac,small,a_fy,known_edgestate,a_edgeq_y]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
 
-            if ( known_edgestate == 0)
-            {
+            if ( known_edgestate == 0) {
                 bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
                 bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
                 if (extdir_jlo and j <= domain_jlo) {
-                    qs = state(i,domain_jlo-1,k,n);
+                    qs = a_q(i,domain_jlo-1,k,n);
                 } else if (extdir_jhi and j >= domain_jhi+1) {
-                    qs = state(i,domain_jhi+1,k,n);
+                    qs = a_q(i,domain_jhi+1,k,n);
                 } else {
-                    Real qpls = state(i,j,k,n) - 0.5 * iamr_yslope_extdir
-                        (i,j,k,n,state, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
-                    Real qmns = state(i,j-1,k,n) + 0.5 * iamr_yslope_extdir
-                        (i,j-1,k,n,state, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
-                    if (v(i,j,k) > small) {
+                    Real qpls = a_q(i,j,k,n) - 0.5 * iamr_yslope_extdir
+                        (i,j,k,n,a_q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                    Real qmns = a_q(i,j-1,k,n) + 0.5 * iamr_yslope_extdir
+                        (i,j-1,k,n,a_q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                    if (a_vmac(i,j,k) > small) {
                         qs = qmns;
-                    } else if (v(i,j,k) < -small) {
+                    } else if (a_vmac(i,j,k) < -small) {
                         qs = qpls;
                     } else {
                         qs = 0.5*(qmns+qpls);
                     }
                 }
 
-                edgs_y(i,j,k,n) = qs;
-            }
-            else
-            {
-                qs = edgs_y(i,j,k,n);
+                a_edgeq_y(i,j,k,n) = qs;
             }
 
-            fy(i,j,k,n) = qs * v(i,j,k);
+            a_fy(i,j,k,n) = a_edgeq_y(i,j,k,n) * a_vmac(i,j,k);
         });
     }
     else
     {
-        amrex::ParallelFor(vbx, a_ncomp, [state,v,small,fy,known_edgestate,edgs_y]
+        amrex::ParallelFor(vbx, a_ncomp, [a_q,a_vmac,small,a_fy,known_edgestate,a_edgeq_y]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
-            if (known_edgestate==0)
-            {
-                Real qpls = state(i,j  ,k,n) - 0.5 * iamr_yslope(i,j  ,k,n,state);
-                Real qmns = state(i,j-1,k,n) + 0.5 * iamr_yslope(i,j-1,k,n,state);
+            if ( known_edgestate == 0 ) {
+                Real qpls = a_q(i,j  ,k,n) - 0.5 * iamr_yslope(i,j  ,k,n,a_q);
+                Real qmns = a_q(i,j-1,k,n) + 0.5 * iamr_yslope(i,j-1,k,n,a_q);
 
-                if (v(i,j,k) > small) {
+                if (a_vmac(i,j,k) > small) {
                     qs = qmns;
-                } else if (v(i,j,k) < -small) {
+                } else if (a_vmac(i,j,k) < -small) {
                     qs = qpls;
                 } else {
                     qs = 0.5*(qmns+qpls);
                 }
 
-                edgs_y(i,j,k,n) = qs;
-            }
-            else
-            {
-                qs = edgs_y(i,j,k,n);
+                a_edgeq_y(i,j,k,n) = qs;
             }
 
-            fy(i,j,k,n) = qs * v(i,j,k);
+            a_fy(i,j,k,n) = a_edgeq_y(i,j,k,n) * a_vmac(i,j,k);
         });
     }
 
@@ -267,70 +219,59 @@ ComputeFluxesOnBox (const Box& a_bx,
     if ((has_extdir_lo and domain_klo >= wbx.smallEnd(2)-1) or
         (has_extdir_hi and domain_khi <= wbx.bigEnd(2)))
     {
-        amrex::ParallelFor(wbx, a_ncomp, [d_bcrec,state,domain_klo,domain_khi,w,small,fz,edgs_z,known_edgestate]
+        amrex::ParallelFor(wbx, a_ncomp, [d_bcrec,a_q,domain_klo,domain_khi,a_wmac,small,a_fz, a_edgeq_z,known_edgestate]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
 
-            if (known_edgestate==0)
-            {
+            if ( known_edgestate == 0 ) {
                 bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
                 bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
 
                 if (extdir_klo and k <= domain_klo) {
-                    qs = state(i,j,domain_klo-1,n);
+                    qs = a_q(i,j,domain_klo-1,n);
                 } else if (extdir_khi and k >= domain_khi+1) {
-                    qs = state(i,j,domain_khi+1,n);
+                    qs = a_q(i,j,domain_khi+1,n);
                 } else {
-                    Real qpls = state(i,j,k,n) - 0.5 * iamr_zslope_extdir
-                        (i,j,k,n,state, extdir_klo, extdir_khi, domain_klo, domain_khi);
-                    Real qmns = state(i,j,k-1,n) + 0.5 * iamr_zslope_extdir(
-                        i,j,k-1,n,state, extdir_klo, extdir_khi, domain_klo, domain_khi);
-                    if (w(i,j,k) > small) {
+                    Real qpls = a_q(i,j,k,n) - 0.5 * iamr_zslope_extdir
+                        (i,j,k,n,a_q, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                    Real qmns = a_q(i,j,k-1,n) + 0.5 * iamr_zslope_extdir(
+                        i,j,k-1,n,a_q, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                    if (a_wmac(i,j,k) > small) {
                         qs = qmns;
-                    } else if (w(i,j,k) < -small) {
+                    } else if (a_wmac(i,j,k) < -small) {
                         qs = qpls;
                     } else {
                         qs = 0.5*(qmns+qpls);
                     }
                 }
-                edgs_z(i,j,k,n) = qs;
+                a_edgeq_z(i,j,k,n) = qs;
             }
-            else
-            {
-                qs = edgs_z(i,j,k,n);
-            }
-            fz(i,j,k,n) = qs * w(i,j,k);
+            a_fz(i,j,k,n) = a_edgeq_z(i,j,k,n) * a_wmac(i,j,k);
         });
     }
     else
     {
-        amrex::ParallelFor(wbx, a_ncomp, [state,w,small,fz, edgs_z, known_edgestate]
+        amrex::ParallelFor(wbx, a_ncomp, [a_q,a_wmac,small,a_fz, a_edgeq_z, known_edgestate]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
 
-            if ( known_edgestate==0 )
-            {
-                Real qpls = state(i,j,k  ,n) - 0.5 * iamr_zslope(i,j,k  ,n,state);
-                Real qmns = state(i,j,k-1,n) + 0.5 * iamr_zslope(i,j,k-1,n,state);
+            if ( known_edgestate == 0 ) {
+                Real qpls = a_q(i,j,k  ,n) - 0.5 * iamr_zslope(i,j,k  ,n,a_q);
+                Real qmns = a_q(i,j,k-1,n) + 0.5 * iamr_zslope(i,j,k-1,n,a_q);
 
-                if (w(i,j,k) > small) {
+                if (a_wmac(i,j,k) > small) {
                     qs = qmns;
-                } else if (w(i,j,k) < -small) {
+                } else if (a_wmac(i,j,k) < -small) {
                     qs = qpls;
                 } else {
                     qs = 0.5*(qmns+qpls);
                 }
 
-                edgs_z(i,j,k,n) = qs;
+                a_edgeq_z(i,j,k,n) = qs;
             }
-            else
-            {
-                qs = edgs_z(i,j,k,n);
-            }
-
-            fz(i,j,k,n) = qs * w(i,j,k);
+            a_fz(i,j,k,n) = a_edgeq_z(i,j,k,n) * a_wmac(i,j,k);
         });
     }
 
@@ -342,70 +283,59 @@ ComputeFluxesOnBox (const Box& a_bx,
 //
 void
 ComputeFluxesOnEBBox (const Box& a_bx,
-                      D_DECL( FArrayBox& a_fx,
-                              FArrayBox& a_fy,
-                              FArrayBox& a_fz),
-                      D_DECL( FArrayBox& edgestate_x,
-                              FArrayBox& edgestate_y,
-                              FArrayBox& edgestate_z),
-                      const FArrayBox& a_state,
+                      D_DECL( Array4<Real> const& a_fx,
+                              Array4<Real> const& a_fy,
+                              Array4<Real> const& a_fz),
+                      D_DECL( Array4<Real> const& a_edgeq_x,
+                              Array4<Real> const& a_edgeq_y,
+                              Array4<Real> const& a_edgeq_z),
+                      Array4<Real> const& a_q,
                       const int a_comp,
                       const int a_ncomp,
                       D_DECL( const FArrayBox& a_xsl,
                               const FArrayBox& a_ysl,
                               const FArrayBox& a_zsl),
                       const int a_sl_comp,
-                      D_DECL( const FArrayBox& a_umac,
-                              const FArrayBox& a_vmac,
-                              const FArrayBox& a_wmac),
+                      D_DECL( Array4<Real const> const& a_umac,
+                              Array4<Real const> const& a_vmac,
+                              Array4<Real const> const& a_wmac),
                       const Box&       a_domain,
                       const Vector<BCRec>& a_bcs,
-                      D_DECL( const FArrayBox& a_afracx,
-                              const FArrayBox& a_afracy,
-                              const FArrayBox& a_afracz),
+                      D_DECL( Array4<Real const> const& a_afracx,
+                              Array4<Real const> const& a_afracy,
+                              Array4<Real const> const& a_afracz),
                       D_DECL( const FArrayBox& a_face_centx,
                               const FArrayBox& a_face_centy,
                               const FArrayBox& a_face_centz),
                       const IArrayBox& a_cc_mask,
                       const EBCellFlagFab& a_flags,
+                      Array4<Real const> const& a_ccc,
+                      Array4<EBCellFlag const> const& a_flag,
                       int known_edgestate)
 {
     const Dim3 domlo = amrex::lbound(a_domain);
     const Dim3 domhi = amrex::ubound(a_domain);
 
-    const auto& state = a_state.array();
-
-    D_TERM( const auto& fx  = a_fx.array();,
-            const auto& fy  = a_fy.array();,
-            const auto& fz  = a_fz.array(););
-
-    D_TERM( const auto& u   = a_umac.array();,
-            const auto& v   = a_vmac.array();,
-            const auto& w   = a_wmac.array(););
-
     D_TERM( const auto& xsl = a_xsl.array();,
             const auto& ysl = a_ysl.array();,
             const auto& zsl = a_zsl.array(););
-
-    D_TERM( const Box ubx = amrex::surroundingNodes(a_bx,0);,
-            const Box vbx = amrex::surroundingNodes(a_bx,1);,
-            const Box wbx = amrex::surroundingNodes(a_bx,2););
 
     D_TERM( const Box ubx_grown = amrex::surroundingNodes(amrex::grow(a_bx,1),0);,
             const Box vbx_grown = amrex::surroundingNodes(amrex::grow(a_bx,1),1);,
             const Box wbx_grown = amrex::surroundingNodes(amrex::grow(a_bx,1),2););
 
-    D_TERM( const auto& areafrac_x = a_afracx.array();,
-            const auto& areafrac_y = a_afracy.array();,
-            const auto& areafrac_z = a_afracz.array(););
-
     D_TERM( FArrayBox s_on_x_face(ubx_grown, a_ncomp);,
             FArrayBox s_on_y_face(vbx_grown, a_ncomp);,
             FArrayBox s_on_z_face(wbx_grown, a_ncomp););
 
+    // Delete this one
     D_TERM( const auto& fcx_fab = a_face_centx.array();,
             const auto& fcy_fab = a_face_centy.array();,
             const auto& fcz_fab = a_face_centz.array(););
+
+    D_TERM( const auto& a_fcx = a_face_centx.array();,
+            const auto& a_fcy = a_face_centy.array();,
+            const auto& a_fcz = a_face_centz.array(););
 
     // These lines ensure that the temporary Fabs above aren't destroyed
     //   before we're done with them when running with GPUs
@@ -417,225 +347,511 @@ ComputeFluxesOnEBBox (const Box& a_bx,
             const auto& sy = s_on_y_face.array();,
             const auto& sz = s_on_z_face.array(););
 
-    D_TERM( const auto& edgs_x = edgestate_x.array();,
-            const auto& edgs_y = edgestate_y.array();,
-            const auto& edgs_z = edgestate_z.array(););
-
     const auto& ccm_fab = a_cc_mask.const_array();
 
+    constexpr Real small = 1.e-10;
+
+    const int domain_ilo = a_domain.smallEnd(0);
+    const int domain_ihi = a_domain.bigEnd(0);
+    const int domain_jlo = a_domain.smallEnd(1);
+    const int domain_jhi = a_domain.bigEnd(1);
+#if (AMREX_SPACEDIM==3)
+    const int domain_klo = a_domain.smallEnd(2);
+    const int domain_khi = a_domain.bigEnd(2);
+#endif
+
+    D_TERM( const Box& ubx = amrex::surroundingNodes(a_bx,0);,
+            const Box& vbx = amrex::surroundingNodes(a_bx,1);,
+            const Box& wbx = amrex::surroundingNodes(a_bx,2););
+
     const auto bc = a_bcs.dataPtr();
+    auto d_bcrec  = convertToDeviceVector(a_bcs);
 
-    //
-    // ===================== X =====================
-    //
-    AMREX_FOR_4D(ubx_grown, a_ncomp, i, j, k, n,
+
+    // ****************************************************************************
+    // Predict to x-faces
+    // ****************************************************************************
+
+    // At an ext_dir boundary, the boundary value is on the face, not cell center.
+    auto extdir_lohi = has_extdir(a_bcs.dataPtr(), a_ncomp, 0);
+    bool has_extdir_lo = extdir_lohi.first;
+    bool has_extdir_hi = extdir_lohi.second;
+
+    if ((has_extdir_lo and domain_ilo >= ubx.smallEnd(0)-1) or
+        (has_extdir_hi and domain_ihi <= ubx.bigEnd(0)))
     {
-        Real upls(0.0);
-        Real umns(0.0);
-
-        if( areafrac_x(i,j,k) > 0 )
+        amrex::ParallelFor(ubx, a_ncomp,
+        [d_bcrec,domain_ilo,domain_jlo,domain_klo,domain_ihi,domain_jhi,domain_khi,
+         a_q,a_ccc,a_fcx,a_flag,a_umac,small,a_fx, known_edgestate, a_edgeq_x]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if ( (i <= domlo.x) and (bc[n].lo(0) == BCType::ext_dir) )
-            {
-                sx(i,j,k,n) = state(domlo.x-1,j,k,a_comp+n);
-            }
-            else if ( (i >= domhi.x+1) and (bc[n].hi(0) == BCType::ext_dir) )
-            {
-                sx(i,j,k,n) = state(domhi.x+1,j,k,a_comp+n);
-            }
-            else
-            {
-                upls = state(i  ,j,k,a_comp+n) - .5*xsl(i  ,j,k,a_sl_comp+n);
-                umns = state(i-1,j,k,a_comp+n) + .5*xsl(i-1,j,k,a_sl_comp+n);
+           bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
+           bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
+           bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
+           bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
+           bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
+           bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
+           Real qs;
 
-                sx(i,j,k,n) = upwind( umns, upls, u(i,j,k) );
-            }
-        }
-        else
-        {
-            sx(i,j,k,n) = COVERED_VAL;
-        }
-    });
+           if (a_flag(i,j,k).isConnected(-1,0,0))
+           {
+               if (extdir_ilo and i <= domain_ilo) {
+                   qs = a_q(domain_ilo-1,j,k,n);
+               } else if (extdir_ihi and i >= domain_ihi+1) {
+                   qs = a_q(domain_ihi+1,j,k,n);
+               } else {
 
-    // Interpolate to face centroid
-    AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n,
+                   Real yf = a_fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
+                   Real zf = a_fcx(i,j,k,1);
+
+                   Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
+                   Real yc = a_ccc(i,j,k,1);
+                   Real zc = a_ccc(i,j,k,2);
+
+                   Real delta_x = 0.5 + xc;
+                   Real delta_y = yf  - yc;
+                   Real delta_z = zf  - zc;
+
+                   Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i-1,j,k,n));
+                   Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i-1,j,k,n));
+
+                   // Compute slopes of component "n" of q
+                   const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,a_q,a_ccc,a_flag,
+                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
+                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
+                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
+
+                   Real qpls = a_q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
+                                              + delta_y * slopes_eb_hi[1]
+                                              + delta_z * slopes_eb_hi[2];
+
+                   qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+
+                   xc = a_ccc(i-1,j,k,0); // centroid of cell (i-1,j,k)
+                   yc = a_ccc(i-1,j,k,1);
+                   zc = a_ccc(i-1,j,k,2);
+
+                   delta_x = 0.5 - xc;
+                   delta_y = yf  - yc;
+                   delta_z = zf  - zc;
+
+                   // Compute slopes of component "n" of q
+                   const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i-1,j,k,n,a_q,a_ccc,a_flag,
+                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
+                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
+                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
+
+                   Real qmns = a_q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
+                                              + delta_y * slopes_eb_lo[1]
+                                              + delta_z * slopes_eb_lo[2];
+
+                   qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+
+                    if (a_umac(i,j,k) > small) {
+                        qs = qmns;
+                    } else if (a_umac(i,j,k) < -small) {
+                        qs = qpls;
+                    } else {
+                        qs = 0.5*(qmns+qpls);
+                    }
+               }
+
+               a_fx(i,j,k,n) = a_umac(i,j,k) * qs;
+
+           } else {
+               a_fx(i,j,k,n) = 0.0;
+           }
+        });
+    }
+    else
     {
-        if( areafrac_x(i,j,k) > 0 )
+        amrex::ParallelFor(ubx, a_ncomp,
+        [a_q,a_ccc,a_fcx,a_flag,a_umac,small,a_fx]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real s_on_x_centroid;
-            if ( known_edgestate == 0)
-            {
-                int jj = j + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,0)));
-#if (AMREX_SPACEDIM==3)
-                int kk = k + static_cast<int>(std::copysign(1.0, fcx_fab(i,j,k,1)));
-#else
-                int kk = k;
-#endif
+           Real qs;
+           if (a_flag(i,j,k).isConnected(-1,0,0))
+           {
+               Real yf = a_fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
+               Real zf = a_fcx(i,j,k,1);
 
-                Real fracy = (ccm_fab(i-1,jj,k) || ccm_fab(i,jj,k)) ? std::abs(fcx_fab(i,j,k,0)) : 0.0;
-#if (AMREX_SPACEDIM==3)
-                Real fracz = (ccm_fab(i-1,j,kk) || ccm_fab(i,j,kk)) ? std::abs(fcx_fab(i,j,k,1)) : 0.0;
-#else
-                Real fracz(0.0);
-#endif
+               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
+               Real yc = a_ccc(i,j,k,1);
+               Real zc = a_ccc(i,j,k,2);
 
-                s_on_x_centroid = (1.0-fracy)*(1.0-fracz)*sx(i, j,k ,n)+
-                    fracy *(1.0-fracz)*sx(i,jj,k ,n)+
-                    fracz *(1.0-fracy)*sx(i, j,kk,n)+
-                    fracy *     fracz *sx(i,jj,kk,n);
+               Real delta_x = 0.5 + xc;
+               Real delta_y = yf  - yc;
+               Real delta_z = zf  - zc;
 
-                edgs_x(i,j,k,n) = s_on_x_centroid;
-            }
-            else
-            {
-                s_on_x_centroid = edgs_x(i,j,k,n);
-            }
-            fx(i,j,k,n) = u(i,j,k) * s_on_x_centroid;
-        }
-        else
-        {
-            fx(i,j,k,n) = COVERED_VAL;
-        }
-    });
+               Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i-1,j,k,n));
+               Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i-1,j,k,n));
+
+               // Compute slopes of component "n" of q
+               const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,a_q,a_ccc,a_flag);
+
+               Real qpls = a_q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
+                                          + delta_y * slopes_eb_hi[1]
+                                          + delta_z * slopes_eb_hi[2];
+
+               qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+
+               xc = a_ccc(i-1,j,k,0); // centroid of cell (i-1,j,k)
+               yc = a_ccc(i-1,j,k,1);
+               zc = a_ccc(i-1,j,k,2);
+
+               delta_x = 0.5 - xc;
+               delta_y = yf  - yc;
+               delta_z = zf  - zc;
+
+               // Compute slopes of component "n" of q
+               const auto& slopes_eb_lo = iamr_slopes_eb(i-1,j,k,n,a_q,a_ccc,a_flag);
+
+               Real qmns = a_q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
+                                          + delta_y * slopes_eb_lo[1]
+                                          + delta_z * slopes_eb_lo[2];
+
+               qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+
+               if (a_umac(i,j,k) > small) {
+                    qs = qmns;
+                } else if (a_umac(i,j,k) < -small) {
+                    qs = qpls;
+                } else {
+                    qs = 0.5*(qmns+qpls);
+                }
+
+                a_fx(i,j,k,n) = a_umac(i,j,k) * qs;
+
+           } else {
+               a_fx(i,j,k,n) = 0.0;
+           }
+        });
+    }
 
 
-    //
-    // ===================== Y =====================
-    //
-    AMREX_FOR_4D(vbx_grown, a_ncomp, i, j, k, n,
+    // ****************************************************************************
+    // Predict to y-faces
+    // ****************************************************************************
+    extdir_lohi = has_extdir(a_bcs.dataPtr(), a_ncomp, 1);
+    has_extdir_lo = extdir_lohi.first;
+    has_extdir_hi = extdir_lohi.second;
+    if ((has_extdir_lo and domain_jlo >= vbx.smallEnd(1)-1) or
+        (has_extdir_hi and domain_jhi <= vbx.bigEnd(1)))
     {
-        Real vpls(0.0);
-        Real vmns(0.0);
-
-        if( areafrac_y(i,j,k) > 0 )
+        amrex::ParallelFor(vbx, a_ncomp,
+        [d_bcrec,domain_ilo,domain_jlo,domain_klo,domain_ihi,domain_jhi,domain_khi,
+         a_q,a_ccc,a_fcy,a_flag,a_vmac,small,a_fy]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if ( (j <= domlo.y) and (bc[n].lo(1) == BCType::ext_dir) )
+            Real qs;
+            if (a_flag(i,j,k).isConnected(0,-1,0))
             {
-                sy(i,j,k,n) = state(i,domlo.y-1,k,a_comp+n);
-            }
-            else if ( (j >= domhi.y+1) and (bc[n].hi(1) == BCType::ext_dir) )
-            {
-                sy(i,j,k,n) = state(i,domhi.y+1,k,a_comp+n);
-            }
-            else
-            {
-                vpls = state(i,j  ,k,a_comp+n) - .5*ysl(i,j  ,k,a_sl_comp+n);
-                vmns = state(i,j-1,k,a_comp+n) + .5*ysl(i,j-1,k,a_sl_comp+n);
+                bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
+                bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
+                bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
+                bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
+                bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
+                bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
 
-                sy(i,j,k,n) = upwind( vmns, vpls, v(i,j,k) );
-            }
-        }
-        else
-        {
-            sy(i,j,k,n) = COVERED_VAL;
-        }
-    });
+                if (extdir_jlo and j <= domain_jlo) {
+                    qs = a_q(i,domain_jlo-1,k,n);
+                } else if (extdir_jhi and j >= domain_jhi+1) {
+                    qs = a_q(i,domain_jhi+1,k,n);
+                } else {
 
-    AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n,
+                   Real xf = a_fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
+                   Real zf = a_fcy(i,j,k,1);
+
+                   Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
+                   Real yc = a_ccc(i,j,k,1);
+                   Real zc = a_ccc(i,j,k,2);
+
+                   Real delta_x = xf  - xc;
+                   Real delta_y = 0.5 + yc;
+                   Real delta_z = zf  - zc;
+
+                   Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j-1,k,n));
+                   Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j-1,k,n));
+
+                   // Compute slopes of component "n" of q
+                   const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,a_q,a_ccc,a_flag,
+                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
+                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
+                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
+
+                   Real qpls = a_q(i,j  ,k,n) + delta_x * slopes_eb_hi[0]
+                                              - delta_y * slopes_eb_hi[1]
+                                              + delta_z * slopes_eb_hi[2];
+
+                   qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+
+                   xc = a_ccc(i,j-1,k,0); // centroid of cell (i-1,j,k)
+                   yc = a_ccc(i,j-1,k,1);
+                   zc = a_ccc(i,j-1,k,2);
+
+                   delta_x = xf  - xc;
+                   delta_y = 0.5 - yc;
+                   delta_z = zf  - zc;
+
+                   // Compute slopes of component "n" of q
+                   const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j-1,k,n,a_q,a_ccc,a_flag,
+                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
+                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
+                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
+
+                   Real qmns = a_q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
+                                              + delta_y * slopes_eb_lo[1]
+                                              + delta_z * slopes_eb_lo[2];
+
+                   qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+
+                    if (a_vmac(i,j,k) > small) {
+                        qs = qmns;
+                    } else if (a_vmac(i,j,k) < -small) {
+                        qs = qpls;
+                    } else {
+                        qs = 0.5*(qmns+qpls);
+                    }
+                }
+
+                a_fy(i,j,k,n) = a_vmac(i,j,k) * qs;
+
+           } else {
+                a_fy(i,j,k,n) = 0.0;
+           }
+        });
+    }
+    else
     {
-        if ( areafrac_y(i,j,k) > 0 )
+        amrex::ParallelFor(vbx, a_ncomp,
+        [a_q,a_ccc,a_fcy,a_flag,a_vmac,small,a_fy]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real s_on_y_centroid;
-            if ( known_edgestate == 0)
-            {
-                int ii = i + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,0)));
-#if (AMREX_SPACEDIM==3)
-                int kk = k + static_cast<int>(std::copysign(1.0,fcy_fab(i,j,k,1)));
-#else
-                int kk = k;
-#endif
+            Real qs;
+            if (a_flag(i,j,k).isConnected(0,-1,0)) {
 
-                Real fracx = (ccm_fab(ii,j-1,k) || ccm_fab(ii,j,k)) ? std::abs(fcy_fab(i,j,k,0)) : 0.0;
-#if (AMREX_SPACEDIM==3)
-                Real fracz = (ccm_fab(i,j-1,kk) || ccm_fab(i,j,kk)) ? std::abs(fcy_fab(i,j,k,1)) : 0.0;
-#else
-                Real fracz(0.0);
-#endif
+               Real xf = a_fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
+               Real zf = a_fcy(i,j,k,1);
 
-                s_on_y_centroid = (1.0-fracx)*(1.0-fracz)*sy(i ,j,k ,n)+
-                    fracx *(1.0-fracz)*sy(ii,j,k ,n)+
-                    fracz *(1.0-fracx)*sy(i ,j,kk,n)+
-                    fracx *     fracz *sy(ii,j,kk,n);
+               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
+               Real yc = a_ccc(i,j,k,1);
+               Real zc = a_ccc(i,j,k,2);
 
-                edgs_y(i,j,k,n) = s_on_y_centroid;
-            }
-            else
-            {
-                s_on_y_centroid = edgs_y(i,j,k,n);
-            }
-            fy(i,j,k,n) = v(i,j,k) * s_on_y_centroid;
-        }
-        else
-        {
-            fy(i,j,k,n) = COVERED_VAL;
-        }
-    });
+               Real delta_x = xf  - xc;
+               Real delta_y = 0.5 + yc;
+               Real delta_z = zf  - zc;
+
+               Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j-1,k,n));
+               Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j-1,k,n));
+
+               // Compute slopes of component "n" of q
+               const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,a_q,a_ccc,a_flag);
+
+               Real qpls = a_q(i,j  ,k,n) + delta_x * slopes_eb_hi[0]
+                                          - delta_y * slopes_eb_hi[1]
+                                          + delta_z * slopes_eb_hi[2];
+
+               qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+
+               xc = a_ccc(i,j-1,k,0); // centroid of cell (i-1,j,k)
+               yc = a_ccc(i,j-1,k,1);
+               zc = a_ccc(i,j-1,k,2);
+
+               delta_x = xf  - xc;
+               delta_y = 0.5 - yc;
+               delta_z = zf  - zc;
+
+               // Compute slopes of component "n" of q
+               const auto& slopes_eb_lo = iamr_slopes_eb(i,j-1,k,n,a_q,a_ccc,a_flag);
+
+               Real qmns = a_q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
+                                          + delta_y * slopes_eb_lo[1]
+                                          + delta_z * slopes_eb_lo[2];
+
+               qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+
+               if (a_vmac(i,j,k) > small) {
+                   qs = qmns;
+               } else if (a_vmac(i,j,k) < -small) {
+                   qs = qpls;
+               } else {
+                   qs = 0.5*(qmns+qpls);
+               }
+
+               a_fy(i,j,k,n) = a_vmac(i,j,k) * qs;
+
+           } else {
+               a_fy(i,j,k,n) = 0.0;
+           }
+        });
+    }
+
 
 
     //
     // ===================== Z =====================
     //
 #if ( AMREX_SPACEDIM == 3 )
-    AMREX_FOR_4D(wbx_grown, a_ncomp, i, j, k, n,
+
+
+    // ****************************************************************************
+    // Predict to z-faces
+    // ****************************************************************************
+
+    extdir_lohi =  has_extdir(a_bcs.dataPtr(), a_ncomp, 2);
+    has_extdir_lo = extdir_lohi.first;
+    has_extdir_hi = extdir_lohi.second;
+    if ((has_extdir_lo and domain_klo >= wbx.smallEnd(2)-1) or
+        (has_extdir_hi and domain_khi <= wbx.bigEnd(2)))
     {
-        Real wpls(0.0);
-        Real wmns(0.0);
-
-        if( areafrac_z(i,j,k) > 0 )
+        amrex::ParallelFor(wbx, a_ncomp,
+        [d_bcrec,domain_ilo,domain_jlo,domain_klo,domain_ihi,domain_jhi,domain_khi,
+         a_q,a_ccc,a_fcz,a_flag,a_wmac,small,a_fz]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if ( (k <= domlo.z) and (bc[n].lo(2) == BCType::ext_dir) )
-            {
-                sz(i,j,k,n) = state(i,j,domlo.z-1,a_comp+n);
-            }
-            else if ( (k >= domhi.z+1) and (bc[n].hi(2) == BCType::ext_dir) )
-            {
-                sz(i,j,k,n) = state(i,j,domhi.z+1,a_comp+n);
-            }
-            else
-            {
-                wpls = state(i,j,k  ,a_comp+n) - .5*zsl(i,j,k  ,a_sl_comp+n);
-                wmns = state(i,j,k-1,a_comp+n) + .5*zsl(i,j,k-1,a_sl_comp+n);
+            if (a_flag(i,j,k).isConnected(0,0,-1)) {
 
-                sz(i,j,k,n) = upwind( wmns, wpls, w(i,j,k) );
-            }
-        }
-        else
-        {
-            sz(i,j,k,n) = COVERED_VAL;
-        }
-    });
+                bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
+                bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
+                bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
+                bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
+                bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
+                bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
 
-    AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n,
+                Real qs;
+                if (extdir_klo and k <= domain_klo) {
+                    qs = a_q(i,j,domain_klo-1,n);
+                } else if (extdir_khi and k >= domain_khi+1) {
+                    qs = a_q(i,j,domain_khi+1,n);
+                } else {
+
+                    Real xf = a_fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
+                    Real yf = a_fcz(i,j,k,1);
+
+                    Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
+                    Real yc = a_ccc(i,j,k,1);
+                    Real zc = a_ccc(i,j,k,2);
+
+                    Real delta_x = xf  - xc;
+                    Real delta_y = yf  - yc;
+                    Real delta_z = 0.5 + zc;
+
+                    Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j,k-1,n));
+                    Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j,k-1,n));
+
+                    // Compute slopes of component "n" of q
+                    const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,a_q,a_ccc,a_flag,
+                                               extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
+                                               extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
+                                               extdir_klo, extdir_khi, domain_klo, domain_khi);
+
+                    Real qpls = a_q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
+                                               + delta_y * slopes_eb_hi[1]
+                                               - delta_z * slopes_eb_hi[2];
+
+                    qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+
+                    xc = a_ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
+                    yc = a_ccc(i,j,k-1,1);
+                    zc = a_ccc(i,j,k-1,2);
+
+                    delta_x = xf  - xc;
+                    delta_y = yf  - yc;
+                    delta_z = 0.5 - zc;
+
+                    // Compute slopes of component "n" of q
+                    const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j,k-1,n,a_q,a_ccc,a_flag,
+                                               extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
+                                               extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
+                                               extdir_klo, extdir_khi, domain_klo, domain_khi);
+
+                    Real qmns = a_q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
+                                               + delta_y * slopes_eb_lo[1]
+                                               + delta_z * slopes_eb_lo[2];
+
+                    qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+
+                    if (a_wmac(i,j,k) > small) {
+                        qs = qmns;
+                    } else if (a_wmac(i,j,k) < -small) {
+                        qs = qpls;
+                    } else {
+                        qs = 0.5*(qmns+qpls);
+                    }
+                }
+
+                a_fz(i,j,k,n) = a_wmac(i,j,k) * qs;
+
+           } else {
+                a_fz(i,j,k,n) = 0.0;
+           }
+        });
+    }
+    else
     {
-        if( areafrac_z(i,j,k) > 0 )
+        amrex::ParallelFor(wbx, a_ncomp,
+        [a_q,a_ccc,a_fcz,a_flag,a_wmac,small,a_fz]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real s_on_z_centroid;
-            if ( known_edgestate == 0)
-            {
-                int ii = i + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,0)));
-                int jj = j + static_cast<int>(std::copysign(1.0,fcz_fab(i,j,k,1)));
+            if (a_flag(i,j,k).isConnected(0,0,-1)) {
+                Real qs;
 
-                Real fracx = (ccm_fab(ii,j,k-1) || ccm_fab(ii,j,k)) ? std::abs(fcz_fab(i,j,k,0)) : 0.0;
-                Real fracy = (ccm_fab(i,jj,k-1) || ccm_fab(i,jj,k)) ? std::abs(fcz_fab(i,j,k,1)) : 0.0;
+                Real xf = a_fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
+                Real yf = a_fcz(i,j,k,1);
 
-                s_on_z_centroid = (1.0-fracx)*(1.0-fracy)*sz(i ,j ,k,n)+
-                    fracx *(1.0-fracy)*sz(ii,j ,k,n)+
-                    fracy *(1.0-fracx)*sz(i ,jj,k,n)+
-                    fracx *     fracy *sz(ii,jj,k,n);
+                Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
+                Real yc = a_ccc(i,j,k,1);
+                Real zc = a_ccc(i,j,k,2);
 
-                edgs_z(i,j,k,n) = s_on_z_centroid;
-            }
-            else
-            {
-                s_on_z_centroid = edgs_z(i,j,k,n);
-            }
-            fz(i,j,k,n) = w(i,j,k) * s_on_z_centroid;
-        }
-        else
-        {
-            fz(i,j,k,n) = COVERED_VAL;
-        }
-    });
+                Real delta_x = xf  - xc;
+                Real delta_y = yf  - yc;
+                Real delta_z = 0.5 + zc;
+
+                Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j,k-1,n));
+                Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j,k-1,n));
+
+                // Compute slopes of component "n" of q
+                const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,a_q,a_ccc,a_flag);
+
+                Real qpls = a_q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
+                                           + delta_y * slopes_eb_hi[1]
+                                           - delta_z * slopes_eb_hi[2];
+
+                qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+
+                xc = a_ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
+                yc = a_ccc(i,j,k-1,1);
+                zc = a_ccc(i,j,k-1,2);
+
+                delta_x = xf  - xc;
+                delta_y = yf  - yc;
+                delta_z = 0.5 - zc;
+
+                // Compute slopes of component "n" of q
+                const auto& slopes_eb_lo = iamr_slopes_eb(i,j,k-1,n,a_q,a_ccc,a_flag);
+
+                Real qmns = a_q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
+                                           + delta_y * slopes_eb_lo[1]
+                                           + delta_z * slopes_eb_lo[2];
+
+                qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+
+                if (a_wmac(i,j,k) > small) {
+                    qs = qmns;
+                } else if (a_wmac(i,j,k) < -small) {
+                    qs = qpls;
+                } else {
+                    qs = 0.5*(qmns+qpls);
+                }
+
+                a_fz(i,j,k,n) = a_wmac(i,j,k) * qs;
+
+           } else {
+                a_fz(i,j,k,n) = 0.0;
+           }
+        });
+    }
+
 #endif
 }
 
@@ -728,29 +944,30 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
 
         const EBFArrayBox&  state_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
         const EBCellFlagFab&    flags = state_fab.getEBCellFlagFab();
+        Array4<EBCellFlag const> const& flag = flags.const_array();
 
         if (flags.getType(amrex::grow(bx,0)) != FabType::covered )
         {
             // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
             if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
             {
-                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
-                                            D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
-                                            a_state[mfi], a_comp, a_ncomp,
-                                            D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
-                                            D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs, known_edgestate);
+                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
+                                            D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
+                                            a_state.array(mfi), a_comp, a_ncomp,
+                                            D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs, known_edgestate);
 
             }
             else
             {
-                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
-                                             D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
-                                             a_state[mfi], a_comp, a_ncomp,
+                Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
+                                             D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
+                                             a_state.array(mfi), a_comp, a_ncomp,
                                              D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
-                                             D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs,
-                                             D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
+                                             D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs,
+                                             D_DECL(areafrac[0]->array(mfi), areafrac[1]->array(mfi), areafrac[2]->array(mfi)),
                                              D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
-                                             cc_mask[mfi], flags, known_edgestate);
+                                             cc_mask[mfi], flags, ccc, flag, known_edgestate);
             }
         }
 
@@ -864,29 +1081,30 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
 
             const EBFArrayBox&  state_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
             const EBCellFlagFab&    flags = state_fab.getEBCellFlagFab();
+            Array4<EBCellFlag const> const& flag = flags.const_array();
 
             if (flags.getType(amrex::grow(bx,0)) != FabType::covered )
             {
                 // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
                 if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
                 {
-                    fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
-                                                D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
-                                                a_state[mfi], a_comp, a_ncomp,
-                                                D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
-                                                D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs, 0);
+                    fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
+                                                D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
+                                                a_state.array(mfi), a_comp, a_ncomp,
+                                                D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs, 0);
 
                 }
                 else
                 {
-                    fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
-                                                 D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
-                                                 a_state[mfi], a_comp, a_ncomp,
+                    Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+                    fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
+                                                 D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
+                                                 a_state.array(mfi), a_comp, a_ncomp,
                                                  D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
-                                                 D_DECL(a_umac[mfi], a_vmac[mfi], a_wmac[mfi]), domain, a_bcs,
-                                                 D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
+                                                 D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs,
+                                                 D_DECL(areafrac[0]->array(mfi), areafrac[1]->array(mfi), areafrac[2]->array(mfi)),
                                                  D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
-                                                 cc_mask[mfi], flags, 0);
+                                                 cc_mask[mfi], flags, ccc, flag, 0);
                 }
             }
 
@@ -908,29 +1126,30 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
 
         const EBFArrayBox&  state_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
         const EBCellFlagFab&    flags = state_fab.getEBCellFlagFab();
+        Array4<EBCellFlag const> const& flag = flags.const_array();
 
         if (flags.getType(amrex::grow(bx,0)) != FabType::covered )
         {
             // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
             if (flags.getType(amrex::grow(bx,nghost)) == FabType::regular )
             {
-                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
-                                            D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
-                                            a_state[mfi], a_comp, a_ncomp,
-                                            D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
-                                            D_DECL(a_ucorr[mfi], a_vcorr[mfi], a_wcorr[mfi]), domain, a_bcs, 1);
+                fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
+                                            D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
+                                            a_state.array(mfi), a_comp, a_ncomp,
+                                            D_DECL(a_ucorr.array(mfi), a_vcorr.array(mfi), a_wcorr.array(mfi)), domain, a_bcs, 1);
 
             }
             else
             {
-                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx[mfi], a_fy[mfi], a_fz[mfi]),
-                                             D_DECL(edgestate_x[mfi], edgestate_y[mfi], edgestate_z[mfi]),
-                                             a_state[mfi], a_comp, a_ncomp,
+                Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+                fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
+                                             D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
+                                             a_state.array(mfi), a_comp, a_ncomp,
                                              D_DECL(a_xsl[mfi], a_ysl[mfi], a_zsl[mfi]), a_sl_comp,
-                                             D_DECL(a_ucorr[mfi], a_vcorr[mfi], a_wcorr[mfi]), domain, a_bcs,
-                                             D_DECL((*areafrac[0])[mfi], (*areafrac[1])[mfi], (*areafrac[2])[mfi]),
+                                             D_DECL(a_ucorr.array(mfi), a_vcorr.array(mfi), a_wcorr.array(mfi)), domain, a_bcs,
+                                             D_DECL(areafrac[0]->array(mfi), areafrac[1]->array(mfi), areafrac[2]->array(mfi)),
                                              D_DECL((*facecent[0])[mfi], (*facecent[1])[mfi], (*facecent[2])[mfi]),
-                                             cc_mask[mfi], flags, 1);
+                                             cc_mask[mfi], flags, ccc, flag, 1);
             }
         }
 
