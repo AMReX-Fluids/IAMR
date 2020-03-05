@@ -1610,22 +1610,23 @@ NavierStokes::post_init_press (Real&        dt_init,
                                Vector<int>&  nc_save,
                                Vector<Real>& dt_save)
 {
-    const Real strt_time       = state[State_Type].curTime();
-    const int  finest_level    = parent->finestLevel();
-    NavierStokes::initial_iter = true;
-
     if ( init_iter <= 0 ){
       // make sure there's not NANs in old pressure field
       // end up with P_old = P_new as is the case when doing initial iters
       MultiFab& p_old=get_old_data(Press_Type);
       MultiFab& p_new=get_new_data(Press_Type);
       MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
+
+      NavierStokes::initial_step = false;
       
-      if (verbose)
-	Print()<< "post_init_press(): exiting without doing inital iterations because init_iter == "<<init_iter<<std::endl;
+      Print()<< "WARNING! post_init_press(): exiting without doing inital iterations because init_iter == "<<init_iter<<std::endl;
       
       return;
     }
+
+    const Real strt_time       = state[State_Type].curTime();
+    const int  finest_level    = parent->finestLevel();
+    NavierStokes::initial_iter = true;
 
     if (verbose)
     {
@@ -1704,9 +1705,6 @@ NavierStokes::post_init_press (Real&        dt_init,
 
         NavierStokes::initial_iter = false;
     }
-
-    if (init_iter <= 0)
-        NavierStokes::initial_iter = false; // Just being compulsive -- rbp.
 
     NavierStokes::initial_step = false;
     //
