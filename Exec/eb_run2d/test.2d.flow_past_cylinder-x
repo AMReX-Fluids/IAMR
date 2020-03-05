@@ -7,8 +7,8 @@ max_step                =  20           # Max number of time steps
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_shrink = 1.0
-ns.init_iter = 0
-ns.init_vel_iter = 0
+ns.init_iter = 1
+ns.init_vel_iter = 1
 ns.visc_tol=1.0e-11
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
@@ -37,7 +37,7 @@ ns.scal_diff_coefs       = 0.001
 #.......................................#
 amr.n_cell              =   96 32     # Grid cells at coarsest AMRlevel
 #amr.n_cell              =   96 64     # Grid cells at coarsest AMRlevel
-amr.max_level           =   1 #0         # Max AMR level in hierarchy
+amr.max_level           =   2        # Max AMR level in hierarchy
 amr.grid_eff            =   0.7
 amr.n_error_buf         =   8
 
