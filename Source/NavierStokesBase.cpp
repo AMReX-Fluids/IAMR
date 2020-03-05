@@ -165,11 +165,6 @@ NavierStokesBase::NavierStokesBase ()
     aofs         = 0;
     diffusion    = 0;
 
-#ifdef AMREX_USE_EB
-    m_xslopes    = 0;
-    m_yslopes    = 0;
-    m_zslopes    = 0;
-#endif
 
     if (!additional_state_types_initialized)
         init_additional_state_types();
@@ -900,6 +895,14 @@ NavierStokesBase::checkPoint (const std::string& dir,
         if (NSPC != 0)
             NSPC->Checkpoint(dir,the_ns_particle_file_name);
     }
+#endif
+
+# ifdef AMREX_USE_EB    
+// Need to add gradp in the checkpoint 
+   std::string LevelDir, FullPath;
+   LevelDirectoryNames(dir, LevelDir, FullPath);
+   std::string gradp_mf_fullpath = FullPath + "/gradp";
+   VisMF::Write(*gradp,gradp_mf_fullpath,how); 
 #endif
 }
 
@@ -2569,7 +2572,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 {
 
   BL_PROFILE("NavierStokesBase::post_timestep()");
-  
+
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_PARTICLES
@@ -2593,7 +2596,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
-
     //
     // Test for conservation.
     //
@@ -2739,6 +2741,8 @@ NavierStokesBase::restart (Amr&          papa,
 
     const BoxArray& P_grids = state[Press_Type].boxArray();
 #ifdef AMREX_USE_EB
+    init_eb(parent->Geom(level), grids, dmap);
+
     //fixme? not 100% sure this is the right place
     // note --- this fn is really similar to constructor
     //  need to make sure gradp is getting properly filled for this restart case?
@@ -2746,7 +2750,14 @@ NavierStokesBase::restart (Amr&          papa,
     //  don't think Gp is needed until the vel update after the projection.
     // But ultimately we need gradp in the checkpoint file.
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    gradp->setVal(0.);
+    
+    std::string file=papa.theRestartFile();
+    std::string LevelDir, FullPath;
+    LevelDirectoryNames(file, LevelDir, FullPath);
+    std::string gradp_mf_fullpath = FullPath;
+    gradp_mf_fullpath += "/gradp";
+    const char *faHeader = 0;
+    VisMF::Read(*gradp, gradp_mf_fullpath, faHeader);
 #endif
 
     //
