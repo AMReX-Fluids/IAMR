@@ -359,7 +359,7 @@ protected:
 
     void velocity_advection_update (amrex::Real dt);
     
-    void calc_mut_LES();
+    void calc_mut_LES(amrex::Real time);
 
     amrex::Real volWgtSum (const std::string& name,
                     amrex::Real               time);
@@ -742,7 +742,12 @@ protected:
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
     static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin
-    static int  getLESVerbose;             // Does exactly what it says on the tin
+    //
+    // LES parameters
+    //
+    static int  do_LES;             // To activate LES modelling
+    static int  getLESVerbose;      // Does exactly what it says on the tin
+    static std::string LES_model;          // To choose a LES model 
     //
     // Member when pressure defined at points in time rather than interval
     //

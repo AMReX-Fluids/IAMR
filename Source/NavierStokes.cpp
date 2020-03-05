@@ -2479,9 +2479,9 @@ NavierStokes::calcViscosity (const Real time,
                 visc[dir]->setVal(visc_coef[Xvel], 0, visc[dir]->nComp(), visc[dir]->nGrow());
             }
             
-            
-        NavierStokesBase::calc_mut_LES();
-            
+            if (do_LES){    
+               NavierStokesBase::calc_mut_LES(time);
+            }
             
             
         }
