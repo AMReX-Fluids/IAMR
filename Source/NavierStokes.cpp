@@ -1765,21 +1765,17 @@ NavierStokes::mac_sync ()
     // does this have ghosts filled?
     MultiFab&  Rh             = get_rho_half_time();
 
-#ifdef AMREX_USE_EB
-    const int nghost = 4; // For redistribution ... We may not need 4 but for now we play safe
-#else
-    const int nghost = 0;
-#endif
+    // fixme? unsure how many ghost cells...
+    // for umac, inflo uses: use_godunov ? 4 : 3;
+    // for now, match umac which uses 4
+    const int nghost = umac_n_grow; // ==4; For redistribution ... We may not need 4 but for now we play safe
 
     Array<MultiFab*,AMREX_SPACEDIM> Ucorr;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
       const BoxArray& edgeba = getEdgeBoxArray(idim);
-      //
-      // fixme? unsure how many ghost cells...
-      // for umac, inflo uses: use_godunov ? 4 : 3;
-      // for now, match umac which uses 4
-      Ucorr[idim]= new MultiFab(edgeba,dmap,umac_n_grow,nghost,MFInfo(),Factory());
+
+      Ucorr[idim]= new MultiFab(edgeba,dmap,1,nghost,MFInfo(),Factory());
     }
 
     sync_setup(DeltaSsync);
