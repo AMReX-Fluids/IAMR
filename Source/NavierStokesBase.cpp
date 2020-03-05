@@ -2522,10 +2522,12 @@ NavierStokesBase::post_init_state ()
 
       if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
     }
-    // make sure there's not NANs in pressure field
+    // make sure there's not NANs in old pressure field
+    // end up with P_old = P_new as is the case when exiting initialPressureProject
     if(!do_init_proj){
-      MultiFab& press=get_old_data(Press_Type);
-      press.setVal(0.);
+      MultiFab& p_old=get_old_data(Press_Type);
+      MultiFab& p_new=get_new_data(Press_Type);
+      MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
     }
 
 }

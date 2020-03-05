@@ -104,8 +104,8 @@ NavierStokes::initData ()
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
-        Sfab.setVal(0.0,vbx);
-        Pfab.setVal(0.0,snewmfi.nodaltilebox());
+        Sfab.setVal(0.0,snewmfi.growntilebox());
+        Pfab.setVal(0.0,snewmfi.grownnodaltilebox(-1,P_new.nGrow()));
 
         RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
         const int* lo      = vbx.loVect();
@@ -125,7 +125,7 @@ NavierStokes::initData ()
     }
 
 #ifdef AMREX_USE_EB
-  set_body_state(S_new);
+    set_body_state(S_new);
 #endif
 
 #ifdef BL_USE_VELOCITY
@@ -199,7 +199,7 @@ NavierStokes::initData ()
 	Print() << "initData: finished init from velocity_plotfile" << '\n';
     }
 #endif /*BL_USE_VELOCITY*/
-
+    
     make_rho_prev_time();
     make_rho_curr_time();
     //
@@ -1614,6 +1614,19 @@ NavierStokes::post_init_press (Real&        dt_init,
     const int  finest_level    = parent->finestLevel();
     NavierStokes::initial_iter = true;
 
+    if ( init_iter <= 0 ){
+      // make sure there's not NANs in old pressure field
+      // end up with P_old = P_new as is the case when doing initial iters
+      MultiFab& p_old=get_old_data(Press_Type);
+      MultiFab& p_new=get_new_data(Press_Type);
+      MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
+      
+      if (verbose)
+	Print()<< "post_init_press(): exiting without doing inital iterations because init_iter == "<<init_iter<<std::endl;
+      
+      return;
+    }
+
     if (verbose)
     {
         Print() << std::endl
@@ -1622,7 +1635,7 @@ NavierStokes::post_init_press (Real&        dt_init,
                 << dt_init
                 << std::endl;
     }
-
+    
     //
     // Iterate over the advance function.
     //
