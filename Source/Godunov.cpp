@@ -1424,7 +1424,9 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
     amrex::single_level_weighted_redistribute( 0, {conv_tmp}, {conv_tmp_redist}, {*weights}, 0, a_ncomp, {a_geom} );
 
     // Now add this update to a_conv
-    MultiFab::Add(a_conv,conv_tmp_redist,0,a_conv_comp,a_ncomp,a_conv.nGrow());
+    // Note that redistribute() does not fill ghost cells, so if desired, would
+    // need to fill ghosts here.
+    MultiFab::Add(a_conv,conv_tmp_redist,0,a_conv_comp,a_ncomp,0);
     
     Gpu::synchronize();
 
