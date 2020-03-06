@@ -36,8 +36,7 @@ const int* boxhi = (box).hiVect();
 
 const Real Projection::BogusValue = 1.e200;
 
-//FIXME? perhaps remove P_code in favor of nodal_proj.verbose...
-int  Projection::P_code              = 0;
+int  Projection::P_code              = -1;
 int  Projection::proj_2              = 1;
 int  Projection::verbose             = 0;
 Real Projection::proj_tol            = 1.0e-12;
@@ -74,7 +73,6 @@ Projection::Initialize ()
     ParmParse pp("proj");
 
     pp.query("v",                   verbose);
-    pp.query("Pcode",               P_code);
     pp.query("proj_tol",            proj_tol);
     pp.query("sync_tol",            sync_tol);
     pp.query("proj_abs_tol",        proj_abs_tol);
@@ -94,7 +92,11 @@ Projection::Initialize ()
 
     pp.query("proj_2",              proj_2);
     if (!proj_2)
-	amrex::Error("Must use proj_2==1 due to new gravity and outflow stuff. proj_2!=1 no longer supported.");
+	amrex::Abort("Must use proj_2==1 due to new gravity and outflow stuff. proj_2!=1 no longer supported.");
+
+    pp.query("Pcode",               P_code);
+    if (P_code >=0 )
+      amrex::Abort("proj.Pcode is no more. Use nodal_proj.verbose.");
 
     amrex::ExecOnFinalize(Projection::Finalize);
 
@@ -2183,9 +2185,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 {
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
-    amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
-                   << std::endl;
-
     int f_lev = c_lev + nlevel - 1;
 
     Vector<MultiFab> vel_test(nlevel);
@@ -2305,7 +2304,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
         rhcc_rebase.assign(rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel);
     }
-    
+
     // Setup nodal projector object
     NodalProjector  nodal_projector(vel_rebase, GetVecOfConstPtrs(sigma_rebase), mg_geom, info, rhcc_rebase, rhnd_rebase);
     nodal_projector.setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -2322,7 +2321,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     nodal_projector.getLinOp().setGaussSeidel(use_gauss_seidel);
     nodal_projector.getLinOp().setHarmonicAverage(use_harmonic_average);
     nodal_projector.getMLMG().setMaxFmgIter(max_fmg_iter);
-    nodal_projector.getMLMG().setVerbose(P_code);
 
     if (max_mlmg_iter > 0)
         nodal_projector.getMLMG().setMaxIter(max_mlmg_iter);
