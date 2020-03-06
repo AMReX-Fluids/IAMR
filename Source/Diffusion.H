@@ -152,9 +152,6 @@ public:
                         int                           alphaComp);
 
   
-    void getTensorBndryData (ViscBndryTensor& bndry, amrex::Real time);
-
-  
     void getViscTerms (amrex::MultiFab&              visc_terms,
                        int                    src_comp,
                        int                    comp,
@@ -168,28 +165,6 @@ public:
                              amrex::Real                   time,
                              const amrex::MultiFab* const* beta,
 			     int                    dataComp);
-
-    void getBndryData (ViscBndry&         bndry,
-                       int                state_ind,
-                       int                num_comp,
-                       amrex::Real               time,
-                       int                rho_flag);
-
-    void getBndryDataGivenS (ViscBndry&         bndry,
-                             amrex::MultiFab&          S,
-                             amrex::MultiFab&          S_crse,
-                             int                state_ind,
-                             int                src_comp,
-                             int                num_comp);
-
-    static void getBndryDataGivenS(ViscBndry&                             bndry,
-                                   const amrex::Vector<amrex::MultiFab*>& S,
-                                   int                                    S_comp,
-                                   const amrex::Vector<amrex::MultiFab*>& Rho,
-                                   int                                    Rho_comp,
-                                   const amrex::BCRec&                    bc,
-                                   const amrex::IntVect&                  crat,
-                                   int                                    rho_flag);
 
     void FillBoundary (amrex::BndryRegister& bdry,
                        int                   src_comp,
@@ -219,52 +194,36 @@ public:
     static int set_rho_flag (const DiffusionForm compDiffusionType);
 
     static bool are_any (const amrex::Vector<DiffusionForm>& diffusionType,
-                         const DiffusionForm         testForm,
-                         const int                   sComp,
-                         const int                   nComp);
+                         const DiffusionForm                 testForm,
+                         const int                           sComp,
+                         const int                           nComp);
 
     static int how_many (const amrex::Vector<DiffusionForm>& diffusionType,
-                         const DiffusionForm         testForm,
-                         const int                   sComp,
-                         const int                   nComp);
+                         const DiffusionForm                 testForm,
+                         const int                           sComp,
+                         const int                           nComp);
 
     static void setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
-                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
-                          const amrex::BCRec& bc);
+			     std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
+			     const amrex::BCRec&                            bc);
 
-    static void computeAlpha (amrex::MultiFab&       alpha,
+    static void computeAlpha (amrex::MultiFab&                    alpha,
                               std::pair<amrex::Real,amrex::Real>& scalars,
-                              amrex::Real            a,
-                              amrex::Real            b,
-                              const amrex::MultiFab& rho_half,
-                              int                    rho_flag, 
-                              amrex::Real*           rhsscale,
-                              const amrex::MultiFab* alpha_in,
-                              int                    alpha_in_comp,
-                              const amrex::MultiFab* rho,
-                              int                    rho_comp,
-                              const amrex::Geometry& geom,
-                              const amrex::MultiFab& volume,
-                              bool                   use_hoop_stress = false);
+                              amrex::Real                         a,
+                              amrex::Real                         b,
+                              const amrex::MultiFab&              rho_half,
+                              int                                 rho_flag, 
+                              amrex::Real*                        rhsscale,
+                              const amrex::MultiFab*              alpha_in,
+                              int                                 alpha_in_comp,
+                              const amrex::MultiFab*              rho,
+                              int                                 rho_comp);
     
 protected:
 
     void setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
-
-
-    void computeAlpha (amrex::MultiFab&       alpha,
-                       std::pair<amrex::Real,amrex::Real>& scalars,
-                       int                    comp,
-                       amrex::Real            a,
-                       amrex::Real            b,
-                       amrex::Real            time,
-                       const amrex::MultiFab& rho,
-                       int                    rho_flag, 
-                       amrex::Real*           rhsscale,
-                       int                    dataComp,
-                       const amrex::MultiFab* alpha_in);
 
 
     amrex::Array<amrex::MultiFab,AMREX_SPACEDIM>
