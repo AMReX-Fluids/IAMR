@@ -4,7 +4,7 @@
 #*******************************************************************************
 
 # for getting things started with eb skip some steps
-ns.init_iter =  1
+ns.init_iter =  0
 ns.do_mac_proj = 1
 # to turn off initial projections set to 0
 ns.do_init_proj = 1
@@ -22,7 +22,7 @@ proj.Pcode = 2
 mg.v = 1
 mg.verbose_linop = 10
 
-amr.n_cell 		= 128 128
+amr.n_cell 		= 32 32
 amr.max_grid_size	= 64
 amr.max_level		= 0 # maximum number of levels of refinement
 amr.regrid_int		= 2 
