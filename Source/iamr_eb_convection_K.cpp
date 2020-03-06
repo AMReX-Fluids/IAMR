@@ -1,5 +1,6 @@
-#include <iamr_convection_K.H>
+#include <iamr_eb_slopes_K.H>
 #include <Godunov.H>
+#include <iamr_constants.H>
 
 using namespace amrex;
 
@@ -20,8 +21,6 @@ void Godunov::predict_vels_on_faces_eb ( Box const& a_ccbx,
                                          const Geometry&  a_geom,
                                          const Vector<BCRec>& a_bcs )
 {
-    constexpr Real small = 1.e-10;
-
     const Box& domain_box = a_geom.Domain();
     const int  domain_ilo = domain_box.smallEnd(0);
     const int  domain_ihi = domain_box.bigEnd(0);
@@ -44,8 +43,6 @@ void Godunov::predict_vels_on_faces_eb ( Box const& a_ccbx,
 
 
     // At an ext_dir boundary, the boundary value is on the face, not cell center.
-
-    Real small_vel = 1.e-10;
 
     // ****************************************************************************
     // Predict to x-faces

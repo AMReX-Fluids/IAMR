@@ -22,7 +22,6 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EB_utils.H>
-#include <iamr_convection_K.H>
 //fixme - for debugging only
 #endif
 #include <AMReX_VisMF.H>

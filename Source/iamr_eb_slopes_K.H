@@ -1,108 +1,13 @@
-#ifndef IAMR_CONVECTION_K_H_
-#define IAMR_CONVECTION_K_H_
+#ifndef IAMR_EB_SLOPES_K_H_
+#define IAMR_EB_SLOPES_K_H_
 
-#ifdef AMREX_USE_EB
-#include <AMReX_EBFArrayBox.H>
+// #include <AMReX_EBFArrayBox.H>
+#include <AMReX_Array4.H>
 #include <AMReX_EBCellFlag.H>
-#else
-#include <AMReX_FArrayBox.H>
-#endif
+#include <AMReX_BCRec.H>
+
 
 namespace {
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real iamr_xslope (int i, int j, int k, int n,
-                           amrex::Array4<amrex::Real const> const& vcc) noexcept
-{
-    amrex::Real dl = 2.0*(vcc(i  ,j,k,n) - vcc(i-1,j,k,n));
-    amrex::Real dr = 2.0*(vcc(i+1,j,k,n) - vcc(i  ,j,k,n));
-    amrex::Real dc = 0.5*(vcc(i+1,j,k,n) - vcc(i-1,j,k,n));
-    amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
-    slope = (dr*dl > 0.0) ? slope : 0.0;
-    return (dc > 0.0) ? slope : -slope;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real iamr_xslope_extdir (int i, int j, int k, int n,
-                                  amrex::Array4<amrex::Real const> const& vcc,
-                                  bool edlo, bool edhi, int domlo, int domhi) noexcept
-{
-    amrex::Real dl = 2.0*(vcc(i  ,j,k,n) - vcc(i-1,j,k,n));
-    amrex::Real dr = 2.0*(vcc(i+1,j,k,n) - vcc(i  ,j,k,n));
-    amrex::Real dc = 0.5*(vcc(i+1,j,k,n) - vcc(i-1,j,k,n));
-    if (edlo and i == domlo) {
-        dc = (vcc(i+1,j,k,n)+3.0*vcc(i,j,k,n)-4.0*vcc(i-1,j,k,n))/3.0;
-    } else if (edhi and i == domhi) {
-        dc = (4.0*vcc(i+1,j,k,n)-3.0*vcc(i,j,k,n)-vcc(i-1,j,k,n))/3.0;
-    }
-    amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
-    slope = (dr*dl > 0.0) ? slope : 0.0;
-    return (dc > 0.0) ? slope : -slope;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real iamr_yslope (int i, int j, int k, int n,
-                           amrex::Array4<amrex::Real const> const& vcc) noexcept
-{
-    amrex::Real dl = 2.0*(vcc(i,j  ,k,n) - vcc(i,j-1,k,n));
-    amrex::Real dr = 2.0*(vcc(i,j+1,k,n) - vcc(i,j  ,k,n));
-    amrex::Real dc = 0.5*(vcc(i,j+1,k,n) - vcc(i,j-1,k,n));
-    amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
-    slope = (dr*dl > 0.0) ? slope : 0.0;
-    return (dc > 0.0) ? slope : -slope;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real iamr_yslope_extdir (int i, int j, int k, int n,
-                                  amrex::Array4<amrex::Real const> const& vcc,
-                                  bool edlo, bool edhi, int domlo, int domhi) noexcept
-{
-    amrex::Real dl = 2.0*(vcc(i,j  ,k,n) - vcc(i,j-1,k,n));
-    amrex::Real dr = 2.0*(vcc(i,j+1,k,n) - vcc(i,j  ,k,n));
-    amrex::Real dc = 0.5*(vcc(i,j+1,k,n) - vcc(i,j-1,k,n));
-    if (edlo and j == domlo) {
-        dc = (vcc(i,j+1,k,n)+3.0*vcc(i,j,k,n)-4.0*vcc(i,j-1,k,n))/3.0;
-    } else if (edhi and j == domhi) {
-        dc = (4.0*vcc(i,j+1,k,n)-3.0*vcc(i,j,k,n)-vcc(i,j-1,k,n))/3.0;
-    }
-    amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
-    slope = (dr*dl > 0.0) ? slope : 0.0;
-    return (dc > 0.0) ? slope : -slope;
-}
-
-#if (AMREX_SPACEDIM==3)
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real iamr_zslope (int i, int j, int k, int n,
-                           amrex::Array4<amrex::Real const> const& vcc) noexcept
-{
-    amrex::Real dl = 2.0*(vcc(i,j,k  ,n) - vcc(i,j,k-1,n));
-    amrex::Real dr = 2.0*(vcc(i,j,k+1,n) - vcc(i,j,k  ,n));
-    amrex::Real dc = 0.5*(vcc(i,j,k+1,n) - vcc(i,j,k-1,n));
-    amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
-    slope = (dr*dl > 0.0) ? slope : 0.0;
-    return (dc > 0.0) ? slope : -slope;
-}
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real iamr_zslope_extdir (int i, int j, int k, int n,
-                                  amrex::Array4<amrex::Real const> const& vcc,
-                                  bool edlo, bool edhi, int domlo, int domhi) noexcept
-{
-    amrex::Real dl = 2.0*(vcc(i,j,k  ,n) - vcc(i,j,k-1,n));
-    amrex::Real dr = 2.0*(vcc(i,j,k+1,n) - vcc(i,j,k  ,n));
-    amrex::Real dc = 0.5*(vcc(i,j,k+1,n) - vcc(i,j,k-1,n));
-    if (edlo and k == domlo) {
-        dc = (vcc(i,j,k+1,n)+3.0*vcc(i,j,k,n)-4.0*vcc(i,j,k-1,n))/3.0;
-    } else if (edhi and k == domhi) {
-        dc = (4.0*vcc(i,j,k+1,n)-3.0*vcc(i,j,k,n)-vcc(i,j,k-1,n))/3.0;
-    }
-    amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
-    slope = (dr*dl > 0.0) ? slope : 0.0;
-    return (dc > 0.0) ? slope : -slope;
-}
-#endif
-
-#ifdef AMREX_USE_EB
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::GpuArray<amrex::Real,3>
@@ -377,7 +282,129 @@ iamr_slopes_extdir_eb (int i, int j, int k, int n,
     return {xslope,yslope,zslope};
 }
 
-#endif
+
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,3>
+iamr_slopes_extdir_eb (int i, int j, int k, int n,
+                       amrex::Array4<amrex::Real const> const& state,
+                       amrex::Array4<amrex::Real const> const& ccent,
+                       amrex::Array4<amrex::EBCellFlag const> const& flag,
+                       amrex::BCRec const*  d_bcrec,
+                       amrex::Box const&  domain   ) noexcept
+{
+    // First get EB-aware slope that doesn't know about extdir
+    amrex::GpuArray<amrex::Real,3> eb_slope = iamr_slopes_eb(i,j,k,n,state,ccent,flag);
+    amrex::Real xslope = eb_slope[0];
+    amrex::Real yslope = eb_slope[1];
+    amrex::Real zslope = eb_slope[2];
+
+    // Now correct only those cells which are not affected by EB but are by extdir
+    if ( d_bcrec[n].lo(0) == amrex::BCType::ext_dir and i == domain.smallEnd(0) )
+    {
+        if( !( flag(i  ,j,k).isSingleValued() or
+              (flag(i-1,j,k).isSingleValued() or not flag(i,j,k).isConnected(-1,0,0)) or
+              (flag(i+1,j,k).isSingleValued() or not flag(i,j,k).isConnected( 1,0,0))) )
+        {
+           amrex::Real dl = 2.0*(state(i  ,j,k,n) - state(i-1,j,k,n));
+           amrex::Real dr = 2.0*(state(i+1,j,k,n) - state(i  ,j,k,n));
+           amrex::Real dc =
+              (state(i+1,j,k,n)+3.0*state(i,j,k,n)-4.0*state(i-1,j,k,n))/3.0;
+
+           amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
+           slope = (dr*dl > 0.0) ? slope : 0.0;
+           xslope = (dc > 0.0) ? slope : -slope;
+        }
+
+    }
+    else if (  d_bcrec[n].hi(0) == amrex::BCType::ext_dir and i  == domain.bigEnd(0) )
+    {
+        if( !( flag(i  ,j,k).isSingleValued() or
+              (flag(i-1,j,k).isSingleValued() or not flag(i,j,k).isConnected(-1,0,0)) or
+              (flag(i+1,j,k).isSingleValued() or not flag(i,j,k).isConnected( 1,0,0))) )
+        {
+           amrex::Real dl = 2.0*(state(i  ,j,k,n) - state(i-1,j,k,n));
+           amrex::Real dr = 2.0*(state(i+1,j,k,n) - state(i  ,j,k,n));
+           amrex::Real dc =
+              (4.0*state(i+1,j,k,n)-3.0*state(i,j,k,n)-state(i-1,j,k,n))/3.0;
+
+           amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
+           slope = (dr*dl > 0.0) ? slope : 0.0;
+           xslope = (dc > 0.0) ? slope : -slope;
+        }
+    }
+
+    if ( d_bcrec[n].lo(1) == amrex::BCType::ext_dir and j == domain.smallEnd(1))
+    {
+        if( !( flag(i,j  ,k).isSingleValued() or
+              (flag(i,j-1,k).isSingleValued() or not flag(i,j,k).isConnected(0,-1,0)) or
+              (flag(i,j+1,k).isSingleValued() or not flag(i,j,k).isConnected(0, 1,0))) )
+        {
+           amrex::Real dl = 2.0*(state(i,j  ,k,n) - state(i,j-1,k,n));
+           amrex::Real dr = 2.0*(state(i,j+1,k,n) - state(i,j  ,k,n));
+           amrex::Real dc =
+              (state(i,j+1,k,n)+3.0*state(i,j,k,n)-4.0*state(i,j-1,k,n))/3.0;
+
+           amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
+           slope = (dr*dl > 0.0) ? slope : 0.0;
+           yslope = (dc > 0.0) ? slope : -slope;
+        }
+    }
+    else if ( d_bcrec[n].hi(1) == amrex::BCType::ext_dir and j == domain.bigEnd(1))
+    {
+        if( !(flag(i,j  ,k).isSingleValued() or
+           (flag(i,j-1,k).isSingleValued() or not flag(i,j,k).isConnected(0,-1,0)) or
+           (flag(i,j+1,k).isSingleValued() or not flag(i,j,k).isConnected(0, 1,0))) )
+        {
+           amrex::Real dl = 2.0*(state(i,j  ,k,n) - state(i,j-1,k,n));
+           amrex::Real dr = 2.0*(state(i,j+1,k,n) - state(i,j  ,k,n));
+           amrex::Real dc =
+              (4.0*state(i,j+1,k,n)-3.0*state(i,j,k,n)-state(i,j-1,k,n))/3.0;
+
+           amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
+           slope = (dr*dl > 0.0) ? slope : 0.0;
+           yslope = (dc > 0.0) ? slope : -slope;
+        }
+    }
+
+    if (d_bcrec[n].lo(2) == amrex::BCType::ext_dir and k == domain.smallEnd(2) )
+    {
+        if( !( flag(i,j,k  ).isSingleValued() or
+              (flag(i,j,k-1).isSingleValued() or not flag(i,j,k).isConnected(0,0,-1)) or
+              (flag(i,j,k+1).isSingleValued() or not flag(i,j,k).isConnected(0,0, 1))) )
+        {
+           amrex::Real dl = 2.0*(state(i,j,k  ,n) - state(i,j,k-1,n));
+           amrex::Real dr = 2.0*(state(i,j,k+1,n) - state(i,j,k  ,n));
+           amrex::Real dc =
+              (state(i,j,k+1,n)+3.0*state(i,j,k,n)-4.0*state(i,j,k-1,n))/3.0;
+
+           amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
+           slope = (dr*dl > 0.0) ? slope : 0.0;
+           zslope = (dc > 0.0) ? slope : -slope;
+        }
+    }
+    else if ( d_bcrec[n].hi(2) == amrex::BCType::ext_dir and k  == domain.bigEnd(2))
+    {
+        if( !( flag(i,j,k  ).isSingleValued() or
+             (flag(i,j,k-1).isSingleValued() or not flag(i,j,k).isConnected(0,0,-1)) or
+             (flag(i,j,k+1).isSingleValued() or not flag(i,j,k).isConnected(0,0, 1))) )
+        {
+           amrex::Real dl = 2.0*(state(i,j,k  ,n) - state(i,j,k-1,n));
+           amrex::Real dr = 2.0*(state(i,j,k+1,n) - state(i,j,k  ,n));
+           amrex::Real dc =
+              (4.0*state(i,j,k+1,n)-3.0*state(i,j,k,n)-state(i,j,k-1,n))/3.0;
+
+           amrex::Real slope = amrex::min(std::abs(dl),std::abs(dc),std::abs(dr));
+           slope = (dr*dl > 0.0) ? slope : 0.0;
+           zslope = (dc > 0.0) ? slope : -slope;
+        }
+    }
+
+    return {xslope,yslope,zslope};
+}
+
 
 }
+
+
 #endif

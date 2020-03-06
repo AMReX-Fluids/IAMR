@@ -1,10 +1,13 @@
 #include <Godunov.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_EBFArrayBox.H>
+
 #include <AMReX_BCRec.H>
-#include <iamr_convection_K.H>
-#include <iamr_convection_K.H>
+#include <iamr_edge_state_mol_K.H>
+#if AMREX_USE_EB
+#include <AMReX_EBFArrayBox.H>
+#include <iamr_eb_edge_state_mol_K.H>
+#endif
 #include <NS_util.H>
 
 using namespace amrex;
@@ -13,7 +16,8 @@ namespace {
     std::pair<bool,bool> has_extdir (BCRec const* bcrec, int ncomp, int dir)
     {
         std::pair<bool,bool> r{false,false};
-        for (int n = 0; n < ncomp; ++n) {
+        for (int n = 0; n < ncomp; ++n)
+        {
             r.first = r.first or bcrec[n].lo(dir) == BCType::ext_dir;
             r.second = r.second or bcrec[n].hi(dir) == BCType::ext_dir;
         }
@@ -27,24 +31,6 @@ namespace {
 //
 namespace fluxes
 {
-//
-// Compute upwind non-normal velocity
-//
-AMREX_GPU_HOST_DEVICE
-Real
-upwind(const Real velocity_minus,
-       const Real velocity_plus,
-       const Real u_edge)
-{
-    // Small value to protect against tiny velocities used in upwinding
-    const Real small_velocity(1.e-10);
-
-    if(std::abs(u_edge) < small_velocity)
-        return .5*(velocity_minus+velocity_plus);
-
-    return u_edge > 0 ? velocity_minus : velocity_plus;
-}
-
 
 //
 // Compute fluxes on given REGULAR box
@@ -67,9 +53,6 @@ ComputeFluxesOnBox (const Box& a_bx,
                     const Vector<BCRec>& a_bcs,
                     int known_edgestate)
 {
-
-    constexpr Real small = 1.e-10;
-
     const int domain_ilo = a_domain.smallEnd(0);
     const int domain_ihi = a_domain.bigEnd(0);
     const int domain_jlo = a_domain.smallEnd(1);
@@ -94,53 +77,28 @@ ComputeFluxesOnBox (const Box& a_bx,
     if ((has_extdir_lo and domain_ilo >= ubx.smallEnd(0)-1) or
         (has_extdir_hi and domain_ihi <= ubx.bigEnd(0)))
     {
-        amrex::ParallelFor(ubx, a_ncomp, [d_bcrec,a_q,domain_ilo,domain_ihi,a_umac,small,a_fx, known_edgestate, a_edgeq_x]
+        amrex::ParallelFor(ubx, a_ncomp, [d_bcrec,a_q,domain_ilo,domain_ihi,a_umac,a_fx, known_edgestate, a_edgeq_x]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
             bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
-            Real qs;
-            if ( known_edgestate == 0) {
-                if (extdir_ilo and i <= domain_ilo) {
-                    qs = a_q(domain_ilo-1,j,k,n);
-                } else if (extdir_ihi and i >= domain_ihi+1) {
-                    qs = a_q(domain_ihi+1,j,k,n);
-                } else {
-                    Real qpls = a_q(i,j,k,n) - 0.5 * iamr_xslope_extdir
-                        (i,j,k,n,a_q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
-                    Real qmns = a_q(i-1,j,k,n) + 0.5 * iamr_xslope_extdir
-                        (i-1,j,k,n,a_q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
-                    if (a_umac(i,j,k) > small) {
-                        qs = qmns;
-                    } else if (a_umac(i,j,k) < -small) {
-                        qs = qpls;
-                    } else {
-                        qs = 0.5*(qmns+qpls);
-                    }
-                }
-                a_edgeq_x(i,j,k,n) = qs;
+            if ( known_edgestate == 0)
+            {
+                a_edgeq_x(i,j,k,n) = iamr_xedge_state_mol_extdir( i, j, k, n, a_q, a_umac,
+                                                                  extdir_ilo, extdir_ihi,
+                                                                  domain_ilo, domain_ihi );
             }
             a_fx(i,j,k,n) =  a_edgeq_x(i,j,k,n) * a_umac(i,j,k);
         });
     }
     else
     {
-        amrex::ParallelFor(ubx, a_ncomp, [a_q,a_umac,small,a_fx,known_edgestate,a_edgeq_x]
+        amrex::ParallelFor(ubx, a_ncomp, [a_q,a_umac,a_fx,known_edgestate,a_edgeq_x]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real qpls = a_q(i  ,j,k,n) - 0.5 * iamr_xslope(i  ,j,k,n,a_q);
-            Real qmns = a_q(i-1,j,k,n) + 0.5 * iamr_xslope(i-1,j,k,n,a_q);
-            Real qs;
-            if ( known_edgestate == 0)  {
-                if (a_umac(i,j,k) > small) {
-                    qs = qmns;
-                } else if (a_umac(i,j,k) < -small) {
-                    qs = qpls;
-                } else {
-                    qs = 0.5*(qmns+qpls);
-                }
-
-                a_edgeq_x(i,j,k,n) = qs;
+            if ( known_edgestate == 0)
+            {
+                a_edgeq_x(i,j,k,n) = iamr_xedge_state_mol( i, j, k, n, a_q, a_umac);
             }
             a_fx(i,j,k,n) = a_edgeq_x(i,j,k,n) * a_umac(i,j,k);
         });
@@ -153,33 +111,19 @@ ComputeFluxesOnBox (const Box& a_bx,
     if ((has_extdir_lo and domain_jlo >= vbx.smallEnd(1)-1) or
         (has_extdir_hi and domain_jhi <= vbx.bigEnd(1)))
     {
-        amrex::ParallelFor(vbx, a_ncomp, [d_bcrec,a_q,domain_jlo,domain_jhi,a_vmac,small,a_fy,known_edgestate,a_edgeq_y]
+        amrex::ParallelFor(vbx, a_ncomp, [d_bcrec,a_q,domain_jlo,domain_jhi,a_vmac,a_fy,known_edgestate,a_edgeq_y]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
 
-            if ( known_edgestate == 0) {
+            if ( known_edgestate == 0)
+            {
                 bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
                 bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
-                if (extdir_jlo and j <= domain_jlo) {
-                    qs = a_q(i,domain_jlo-1,k,n);
-                } else if (extdir_jhi and j >= domain_jhi+1) {
-                    qs = a_q(i,domain_jhi+1,k,n);
-                } else {
-                    Real qpls = a_q(i,j,k,n) - 0.5 * iamr_yslope_extdir
-                        (i,j,k,n,a_q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
-                    Real qmns = a_q(i,j-1,k,n) + 0.5 * iamr_yslope_extdir
-                        (i,j-1,k,n,a_q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
-                    if (a_vmac(i,j,k) > small) {
-                        qs = qmns;
-                    } else if (a_vmac(i,j,k) < -small) {
-                        qs = qpls;
-                    } else {
-                        qs = 0.5*(qmns+qpls);
-                    }
-                }
 
-                a_edgeq_y(i,j,k,n) = qs;
+                a_edgeq_y(i,j,k,n) = iamr_yedge_state_mol_extdir( i, j, k, n, a_q, a_vmac,
+                                                                  extdir_jlo, extdir_jhi,
+                                                                  domain_jlo, domain_jhi );
             }
 
             a_fy(i,j,k,n) = a_edgeq_y(i,j,k,n) * a_vmac(i,j,k);
@@ -187,23 +131,13 @@ ComputeFluxesOnBox (const Box& a_bx,
     }
     else
     {
-        amrex::ParallelFor(vbx, a_ncomp, [a_q,a_vmac,small,a_fy,known_edgestate,a_edgeq_y]
+        amrex::ParallelFor(vbx, a_ncomp, [a_q,a_vmac,a_fy,known_edgestate,a_edgeq_y]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
-            if ( known_edgestate == 0 ) {
-                Real qpls = a_q(i,j  ,k,n) - 0.5 * iamr_yslope(i,j  ,k,n,a_q);
-                Real qmns = a_q(i,j-1,k,n) + 0.5 * iamr_yslope(i,j-1,k,n,a_q);
-
-                if (a_vmac(i,j,k) > small) {
-                    qs = qmns;
-                } else if (a_vmac(i,j,k) < -small) {
-                    qs = qpls;
-                } else {
-                    qs = 0.5*(qmns+qpls);
-                }
-
-                a_edgeq_y(i,j,k,n) = qs;
+            if ( known_edgestate == 0 )
+            {
+                a_edgeq_y(i,j,k,n) = iamr_yedge_state_mol( i, j, k, n, a_q, a_vmac );
             }
 
             a_fy(i,j,k,n) = a_edgeq_y(i,j,k,n) * a_vmac(i,j,k);
@@ -219,58 +153,31 @@ ComputeFluxesOnBox (const Box& a_bx,
     if ((has_extdir_lo and domain_klo >= wbx.smallEnd(2)-1) or
         (has_extdir_hi and domain_khi <= wbx.bigEnd(2)))
     {
-        amrex::ParallelFor(wbx, a_ncomp, [d_bcrec,a_q,domain_klo,domain_khi,a_wmac,small,a_fz, a_edgeq_z,known_edgestate]
+        amrex::ParallelFor(wbx, a_ncomp, [d_bcrec,a_q,domain_klo,domain_khi,a_wmac,a_fz,a_edgeq_z,known_edgestate]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real qs;
-
-            if ( known_edgestate == 0 ) {
+            if ( known_edgestate == 0 )
+            {
                 bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
                 bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
-
-                if (extdir_klo and k <= domain_klo) {
-                    qs = a_q(i,j,domain_klo-1,n);
-                } else if (extdir_khi and k >= domain_khi+1) {
-                    qs = a_q(i,j,domain_khi+1,n);
-                } else {
-                    Real qpls = a_q(i,j,k,n) - 0.5 * iamr_zslope_extdir
-                        (i,j,k,n,a_q, extdir_klo, extdir_khi, domain_klo, domain_khi);
-                    Real qmns = a_q(i,j,k-1,n) + 0.5 * iamr_zslope_extdir(
-                        i,j,k-1,n,a_q, extdir_klo, extdir_khi, domain_klo, domain_khi);
-                    if (a_wmac(i,j,k) > small) {
-                        qs = qmns;
-                    } else if (a_wmac(i,j,k) < -small) {
-                        qs = qpls;
-                    } else {
-                        qs = 0.5*(qmns+qpls);
-                    }
-                }
-                a_edgeq_z(i,j,k,n) = qs;
+                a_edgeq_z(i,j,k,n) = iamr_zedge_state_mol_extdir( i, j, k, n, a_q, a_wmac,
+                                                                  extdir_klo, extdir_khi,
+                                                                  domain_klo, domain_khi );
             }
             a_fz(i,j,k,n) = a_edgeq_z(i,j,k,n) * a_wmac(i,j,k);
         });
     }
     else
     {
-        amrex::ParallelFor(wbx, a_ncomp, [a_q,a_wmac,small,a_fz, a_edgeq_z, known_edgestate]
+        amrex::ParallelFor(wbx, a_ncomp, [a_q,a_wmac,a_fz, a_edgeq_z, known_edgestate]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
 
-            if ( known_edgestate == 0 ) {
-                Real qpls = a_q(i,j,k  ,n) - 0.5 * iamr_zslope(i,j,k  ,n,a_q);
-                Real qmns = a_q(i,j,k-1,n) + 0.5 * iamr_zslope(i,j,k-1,n,a_q);
-
-                if (a_wmac(i,j,k) > small) {
-                    qs = qmns;
-                } else if (a_wmac(i,j,k) < -small) {
-                    qs = qpls;
-                } else {
-                    qs = 0.5*(qmns+qpls);
-                }
-
-                a_edgeq_z(i,j,k,n) = qs;
-            }
+            if ( known_edgestate == 0 )
+            {
+                a_edgeq_z(i,j,k,n) = iamr_zedge_state_mol( i, j, k, n, a_q, a_wmac );
+             }
             a_fz(i,j,k,n) = a_edgeq_z(i,j,k,n) * a_wmac(i,j,k);
         });
     }
@@ -304,16 +211,6 @@ ComputeFluxesOnEBBox ( Box const& a_bx,
                        Array4<EBCellFlag const> const& a_flag,
                        int known_edgestate)
 {
-    constexpr Real small = 1.e-10;
-
-    const int domain_ilo = a_domain.smallEnd(0);
-    const int domain_ihi = a_domain.bigEnd(0);
-    const int domain_jlo = a_domain.smallEnd(1);
-    const int domain_jhi = a_domain.bigEnd(1);
-#if (AMREX_SPACEDIM==3)
-    const int domain_klo = a_domain.smallEnd(2);
-    const int domain_khi = a_domain.bigEnd(2);
-#endif
 
     D_TERM( const Box& ubx = amrex::surroundingNodes(a_bx,0);,
             const Box& vbx = amrex::surroundingNodes(a_bx,1);,
@@ -329,91 +226,24 @@ ComputeFluxesOnEBBox ( Box const& a_bx,
 
     // At an ext_dir boundary, the boundary value is on the face, not cell center.
     auto extdir_lohi = has_extdir(a_bcs.dataPtr(), a_ncomp, 0);
-    bool has_extdir_lo = extdir_lohi.first;
-    bool has_extdir_hi = extdir_lohi.second;
-
-    if ((has_extdir_lo and domain_ilo >= ubx.smallEnd(0)-1) or
-        (has_extdir_hi and domain_ihi <= ubx.bigEnd(0)))
+    if ((extdir_lohi.first  and a_domain.smallEnd(0) >= ubx.smallEnd(0)-1) or
+        (extdir_lohi.second and a_domain.bigEnd(0)  <= ubx.bigEnd(0)))
     {
         amrex::ParallelFor(ubx, a_ncomp,
-        [d_bcrec,domain_ilo,domain_jlo,domain_klo,domain_ihi,domain_jhi,domain_khi,
-         a_q,a_ccc,a_fcx,a_flag,a_umac,small,a_fx, known_edgestate, a_edgeq_x]
+        [d_bcrec,a_q,a_ccc,a_fcx,a_flag,a_umac, a_fx, known_edgestate, a_edgeq_x, a_domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-           bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
-           bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
-           bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
-           bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
-           bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
-           bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
-           Real qs;
-
            if (a_flag(i,j,k).isConnected(-1,0,0))
            {
-               if (extdir_ilo and i <= domain_ilo) {
-                   qs = a_q(domain_ilo-1,j,k,n);
-               } else if (extdir_ihi and i >= domain_ihi+1) {
-                   qs = a_q(domain_ihi+1,j,k,n);
-               } else {
-
-                   Real yf = a_fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
-                   Real zf = a_fcx(i,j,k,1);
-
-                   Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-                   Real yc = a_ccc(i,j,k,1);
-                   Real zc = a_ccc(i,j,k,2);
-
-                   Real delta_x = 0.5 + xc;
-                   Real delta_y = yf  - yc;
-                   Real delta_z = zf  - zc;
-
-                   Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i-1,j,k,n));
-                   Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i-1,j,k,n));
-
-                   // Compute slopes of component "n" of q
-                   const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,a_q,a_ccc,a_flag,
-                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
-
-                   Real qpls = a_q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
-                                              + delta_y * slopes_eb_hi[1]
-                                              + delta_z * slopes_eb_hi[2];
-
-                   qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
-
-                   xc = a_ccc(i-1,j,k,0); // centroid of cell (i-1,j,k)
-                   yc = a_ccc(i-1,j,k,1);
-                   zc = a_ccc(i-1,j,k,2);
-
-                   delta_x = 0.5 - xc;
-                   delta_y = yf  - yc;
-                   delta_z = zf  - zc;
-
-                   // Compute slopes of component "n" of q
-                   const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i-1,j,k,n,a_q,a_ccc,a_flag,
-                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
-
-                   Real qmns = a_q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
-                                              + delta_y * slopes_eb_lo[1]
-                                              + delta_z * slopes_eb_lo[2];
-
-                   qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
-
-                    if (a_umac(i,j,k) > small) {
-                        qs = qmns;
-                    } else if (a_umac(i,j,k) < -small) {
-                        qs = qpls;
-                    } else {
-                        qs = 0.5*(qmns+qpls);
-                    }
+               if (known_edgestate == 0)
+               {
+                   a_edgeq_x(i,j,k,n) = iamr_eb_xedge_state_mol_extdir( i, j, k, n, a_q, a_umac, a_fcx, a_ccc,
+                                                                        a_flag, d_bcrec.data(), a_domain );
                }
-
-               a_fx(i,j,k,n) = a_umac(i,j,k) * qs;
-
-           } else {
+               a_fx(i,j,k,n) = a_umac(i,j,k) * a_edgeq_x(i,j,k,n);
+           }
+           else
+           {
                a_fx(i,j,k,n) = 0.0;
            }
         });
@@ -421,63 +251,20 @@ ComputeFluxesOnEBBox ( Box const& a_bx,
     else
     {
         amrex::ParallelFor(ubx, a_ncomp,
-        [a_q,a_ccc,a_fcx,a_flag,a_umac,small,a_fx]
+        [a_q,a_ccc,a_fcx,a_flag,a_umac,a_fx,known_edgestate, a_edgeq_x]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
            Real qs;
            if (a_flag(i,j,k).isConnected(-1,0,0))
            {
-               Real yf = a_fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
-               Real zf = a_fcx(i,j,k,1);
-
-               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-               Real yc = a_ccc(i,j,k,1);
-               Real zc = a_ccc(i,j,k,2);
-
-               Real delta_x = 0.5 + xc;
-               Real delta_y = yf  - yc;
-               Real delta_z = zf  - zc;
-
-               Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i-1,j,k,n));
-               Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i-1,j,k,n));
-
-               // Compute slopes of component "n" of q
-               const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,a_q,a_ccc,a_flag);
-
-               Real qpls = a_q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
-                                          + delta_y * slopes_eb_hi[1]
-                                          + delta_z * slopes_eb_hi[2];
-
-               qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
-
-               xc = a_ccc(i-1,j,k,0); // centroid of cell (i-1,j,k)
-               yc = a_ccc(i-1,j,k,1);
-               zc = a_ccc(i-1,j,k,2);
-
-               delta_x = 0.5 - xc;
-               delta_y = yf  - yc;
-               delta_z = zf  - zc;
-
-               // Compute slopes of component "n" of q
-               const auto& slopes_eb_lo = iamr_slopes_eb(i-1,j,k,n,a_q,a_ccc,a_flag);
-
-               Real qmns = a_q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
-                                          + delta_y * slopes_eb_lo[1]
-                                          + delta_z * slopes_eb_lo[2];
-
-               qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
-
-               if (a_umac(i,j,k) > small) {
-                    qs = qmns;
-                } else if (a_umac(i,j,k) < -small) {
-                    qs = qpls;
-                } else {
-                    qs = 0.5*(qmns+qpls);
-                }
-
-                a_fx(i,j,k,n) = a_umac(i,j,k) * qs;
-
-           } else {
+               if (known_edgestate == 0)
+               {
+                   a_edgeq_x(i,j,k,n) = iamr_eb_xedge_state_mol( i, j, k, n, a_q, a_umac, a_fcx, a_ccc, a_flag );
+               }
+               a_fx(i,j,k,n) = a_umac(i,j,k) * a_edgeq_x(i,j,k,n);
+           }
+           else
+           {
                a_fx(i,j,k,n) = 0.0;
            }
         });
@@ -488,156 +275,48 @@ ComputeFluxesOnEBBox ( Box const& a_bx,
     // Predict to y-faces
     // ****************************************************************************
     extdir_lohi = has_extdir(a_bcs.dataPtr(), a_ncomp, 1);
-    has_extdir_lo = extdir_lohi.first;
-    has_extdir_hi = extdir_lohi.second;
-    if ((has_extdir_lo and domain_jlo >= vbx.smallEnd(1)-1) or
-        (has_extdir_hi and domain_jhi <= vbx.bigEnd(1)))
+    if ((extdir_lohi.first  and a_domain.smallEnd(1) >= vbx.smallEnd(1)-1) or
+        (extdir_lohi.second and a_domain.bigEnd(1)   <= vbx.bigEnd(1)))
     {
-        amrex::ParallelFor(vbx, a_ncomp,
-        [d_bcrec,domain_ilo,domain_jlo,domain_klo,domain_ihi,domain_jhi,domain_khi,
-         a_q,a_ccc,a_fcy,a_flag,a_vmac,small,a_fy]
+        amrex::ParallelFor(vbx, a_ncomp, [d_bcrec,a_q,a_ccc,a_fcy,a_flag,a_vmac,a_fy,known_edgestate,a_edgeq_y,a_domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Real qs;
             if (a_flag(i,j,k).isConnected(0,-1,0))
             {
-                bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
-                bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
-                bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
-                bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
-                bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
-                bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
-
-                if (extdir_jlo and j <= domain_jlo) {
-                    qs = a_q(i,domain_jlo-1,k,n);
-                } else if (extdir_jhi and j >= domain_jhi+1) {
-                    qs = a_q(i,domain_jhi+1,k,n);
-                } else {
-
-                   Real xf = a_fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
-                   Real zf = a_fcy(i,j,k,1);
-
-                   Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-                   Real yc = a_ccc(i,j,k,1);
-                   Real zc = a_ccc(i,j,k,2);
-
-                   Real delta_x = xf  - xc;
-                   Real delta_y = 0.5 + yc;
-                   Real delta_z = zf  - zc;
-
-                   Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j-1,k,n));
-                   Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j-1,k,n));
-
-                   // Compute slopes of component "n" of q
-                   const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,a_q,a_ccc,a_flag,
-                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
-
-                   Real qpls = a_q(i,j  ,k,n) + delta_x * slopes_eb_hi[0]
-                                              - delta_y * slopes_eb_hi[1]
-                                              + delta_z * slopes_eb_hi[2];
-
-                   qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
-
-                   xc = a_ccc(i,j-1,k,0); // centroid of cell (i-1,j,k)
-                   yc = a_ccc(i,j-1,k,1);
-                   zc = a_ccc(i,j-1,k,2);
-
-                   delta_x = xf  - xc;
-                   delta_y = 0.5 - yc;
-                   delta_z = zf  - zc;
-
-                   // Compute slopes of component "n" of q
-                   const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j-1,k,n,a_q,a_ccc,a_flag,
-                                              extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                              extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                              extdir_klo, extdir_khi, domain_klo, domain_khi);
-
-                   Real qmns = a_q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
-                                              + delta_y * slopes_eb_lo[1]
-                                              + delta_z * slopes_eb_lo[2];
-
-                   qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
-
-                    if (a_vmac(i,j,k) > small) {
-                        qs = qmns;
-                    } else if (a_vmac(i,j,k) < -small) {
-                        qs = qpls;
-                    } else {
-                        qs = 0.5*(qmns+qpls);
-                    }
+                if (known_edgestate==0)
+                {
+                    a_edgeq_y(i,j,k,n) = iamr_eb_yedge_state_mol_extdir( i, j, k, n, a_q, a_vmac, a_fcy, a_ccc,
+                                                                         a_flag, d_bcrec.data(), a_domain );
                 }
 
-                a_fy(i,j,k,n) = a_vmac(i,j,k) * qs;
-
-           } else {
+                a_fy(i,j,k,n) = a_vmac(i,j,k) * a_edgeq_y(i,j,k,n);
+            }
+            else
+            {
                 a_fy(i,j,k,n) = 0.0;
-           }
+            }
         });
     }
     else
     {
         amrex::ParallelFor(vbx, a_ncomp,
-        [a_q,a_ccc,a_fcy,a_flag,a_vmac,small,a_fy]
+        [a_q,a_ccc,a_fcy,a_flag,a_vmac,a_fy,known_edgestate,a_edgeq_y]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qs;
-            if (a_flag(i,j,k).isConnected(0,-1,0)) {
+            if (a_flag(i,j,k).isConnected(0,-1,0))
+            {
+                if (known_edgestate==0)
+                {
+                    a_edgeq_y(i,j,k,n) = iamr_eb_yedge_state_mol( i, j, k, n, a_q, a_vmac, a_fcy, a_ccc, a_flag );
+                }
 
-               Real xf = a_fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
-               Real zf = a_fcy(i,j,k,1);
-
-               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-               Real yc = a_ccc(i,j,k,1);
-               Real zc = a_ccc(i,j,k,2);
-
-               Real delta_x = xf  - xc;
-               Real delta_y = 0.5 + yc;
-               Real delta_z = zf  - zc;
-
-               Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j-1,k,n));
-               Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j-1,k,n));
-
-               // Compute slopes of component "n" of q
-               const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,a_q,a_ccc,a_flag);
-
-               Real qpls = a_q(i,j  ,k,n) + delta_x * slopes_eb_hi[0]
-                                          - delta_y * slopes_eb_hi[1]
-                                          + delta_z * slopes_eb_hi[2];
-
-               qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
-
-               xc = a_ccc(i,j-1,k,0); // centroid of cell (i-1,j,k)
-               yc = a_ccc(i,j-1,k,1);
-               zc = a_ccc(i,j-1,k,2);
-
-               delta_x = xf  - xc;
-               delta_y = 0.5 - yc;
-               delta_z = zf  - zc;
-
-               // Compute slopes of component "n" of q
-               const auto& slopes_eb_lo = iamr_slopes_eb(i,j-1,k,n,a_q,a_ccc,a_flag);
-
-               Real qmns = a_q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
-                                          + delta_y * slopes_eb_lo[1]
-                                          + delta_z * slopes_eb_lo[2];
-
-               qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
-
-               if (a_vmac(i,j,k) > small) {
-                   qs = qmns;
-               } else if (a_vmac(i,j,k) < -small) {
-                   qs = qpls;
-               } else {
-                   qs = 0.5*(qmns+qpls);
-               }
-
-               a_fy(i,j,k,n) = a_vmac(i,j,k) * qs;
-
-           } else {
+                a_fy(i,j,k,n) = a_vmac(i,j,k) * a_edgeq_y(i,j,k,n);
+            }
+            else
+            {
                a_fy(i,j,k,n) = 0.0;
-           }
+            }
         });
     }
 
@@ -654,156 +333,48 @@ ComputeFluxesOnEBBox ( Box const& a_bx,
     // ****************************************************************************
 
     extdir_lohi =  has_extdir(a_bcs.dataPtr(), a_ncomp, 2);
-    has_extdir_lo = extdir_lohi.first;
-    has_extdir_hi = extdir_lohi.second;
-    if ((has_extdir_lo and domain_klo >= wbx.smallEnd(2)-1) or
-        (has_extdir_hi and domain_khi <= wbx.bigEnd(2)))
+    if ((extdir_lohi.first  and a_domain.smallEnd(2) >= wbx.smallEnd(2)-1) or
+        (extdir_lohi.second and a_domain.bigEnd(2)   <= wbx.bigEnd(2)))
     {
         amrex::ParallelFor(wbx, a_ncomp,
-        [d_bcrec,domain_ilo,domain_jlo,domain_klo,domain_ihi,domain_jhi,domain_khi,
-         a_q,a_ccc,a_fcz,a_flag,a_wmac,small,a_fz]
+        [d_bcrec, a_q,a_ccc,a_fcz,a_flag,a_wmac,a_fz,known_edgestate,a_edgeq_z,a_domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if (a_flag(i,j,k).isConnected(0,0,-1)) {
-
-                bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
-                bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
-                bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
-                bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
-                bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
-                bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
-
-                Real qs;
-                if (extdir_klo and k <= domain_klo) {
-                    qs = a_q(i,j,domain_klo-1,n);
-                } else if (extdir_khi and k >= domain_khi+1) {
-                    qs = a_q(i,j,domain_khi+1,n);
-                } else {
-
-                    Real xf = a_fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
-                    Real yf = a_fcz(i,j,k,1);
-
-                    Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-                    Real yc = a_ccc(i,j,k,1);
-                    Real zc = a_ccc(i,j,k,2);
-
-                    Real delta_x = xf  - xc;
-                    Real delta_y = yf  - yc;
-                    Real delta_z = 0.5 + zc;
-
-                    Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j,k-1,n));
-                    Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j,k-1,n));
-
-                    // Compute slopes of component "n" of q
-                    const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,a_q,a_ccc,a_flag,
-                                               extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                               extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                               extdir_klo, extdir_khi, domain_klo, domain_khi);
-
-                    Real qpls = a_q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
-                                               + delta_y * slopes_eb_hi[1]
-                                               - delta_z * slopes_eb_hi[2];
-
-                    qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
-
-                    xc = a_ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
-                    yc = a_ccc(i,j,k-1,1);
-                    zc = a_ccc(i,j,k-1,2);
-
-                    delta_x = xf  - xc;
-                    delta_y = yf  - yc;
-                    delta_z = 0.5 - zc;
-
-                    // Compute slopes of component "n" of q
-                    const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j,k-1,n,a_q,a_ccc,a_flag,
-                                               extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                               extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                               extdir_klo, extdir_khi, domain_klo, domain_khi);
-
-                    Real qmns = a_q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
-                                               + delta_y * slopes_eb_lo[1]
-                                               + delta_z * slopes_eb_lo[2];
-
-                    qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
-
-                    if (a_wmac(i,j,k) > small) {
-                        qs = qmns;
-                    } else if (a_wmac(i,j,k) < -small) {
-                        qs = qpls;
-                    } else {
-                        qs = 0.5*(qmns+qpls);
-                    }
+            if (a_flag(i,j,k).isConnected(0,0,-1))
+            {
+                if (known_edgestate==0)
+                {
+                    a_edgeq_z(i,j,k,n) = iamr_eb_zedge_state_mol_extdir( i, j, k, n, a_q, a_wmac, a_fcz, a_ccc,
+                                                                         a_flag, d_bcrec.data(), a_domain );
                 }
+                a_fz(i,j,k,n) = a_wmac(i,j,k) * a_edgeq_z(i,j,k,n);
 
-                a_fz(i,j,k,n) = a_wmac(i,j,k) * qs;
-
-           } else {
+            }
+            else
+            {
                 a_fz(i,j,k,n) = 0.0;
-           }
+            }
         });
     }
     else
     {
         amrex::ParallelFor(wbx, a_ncomp,
-        [a_q,a_ccc,a_fcz,a_flag,a_wmac,small,a_fz]
+        [a_q,a_ccc,a_fcz,a_flag,a_wmac,a_fz,known_edgestate,a_edgeq_z]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            if (a_flag(i,j,k).isConnected(0,0,-1)) {
-                Real qs;
-
-                Real xf = a_fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
-                Real yf = a_fcz(i,j,k,1);
-
-                Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-                Real yc = a_ccc(i,j,k,1);
-                Real zc = a_ccc(i,j,k,2);
-
-                Real delta_x = xf  - xc;
-                Real delta_y = yf  - yc;
-                Real delta_z = 0.5 + zc;
-
-                Real cc_qmax = std::max(a_q(i,j,k,n),a_q(i,j,k-1,n));
-                Real cc_qmin = std::min(a_q(i,j,k,n),a_q(i,j,k-1,n));
-
-                // Compute slopes of component "n" of q
-                const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,a_q,a_ccc,a_flag);
-
-                Real qpls = a_q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
-                                           + delta_y * slopes_eb_hi[1]
-                                           - delta_z * slopes_eb_hi[2];
-
-                qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
-
-                xc = a_ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
-                yc = a_ccc(i,j,k-1,1);
-                zc = a_ccc(i,j,k-1,2);
-
-                delta_x = xf  - xc;
-                delta_y = yf  - yc;
-                delta_z = 0.5 - zc;
-
-                // Compute slopes of component "n" of q
-                const auto& slopes_eb_lo = iamr_slopes_eb(i,j,k-1,n,a_q,a_ccc,a_flag);
-
-                Real qmns = a_q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
-                                           + delta_y * slopes_eb_lo[1]
-                                           + delta_z * slopes_eb_lo[2];
-
-                qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
-
-                if (a_wmac(i,j,k) > small) {
-                    qs = qmns;
-                } else if (a_wmac(i,j,k) < -small) {
-                    qs = qpls;
-                } else {
-                    qs = 0.5*(qmns+qpls);
+            if (a_flag(i,j,k).isConnected(0,0,-1))
+            {
+                if (known_edgestate==0)
+                {
+                    a_edgeq_z(i,j,k,n) = iamr_eb_zedge_state_mol( i, j, k, n, a_q, a_wmac, a_fcz, a_ccc, a_flag );
                 }
+                a_fz(i,j,k,n) = a_wmac(i,j,k) * a_edgeq_z(i,j,k,n);
 
-                a_fz(i,j,k,n) = a_wmac(i,j,k) * qs;
-
-           } else {
+            }
+            else
+            {
                 a_fz(i,j,k,n) = 0.0;
-           }
+            }
         });
     }
 

@@ -1,5 +1,6 @@
 #include <Godunov.H>
-#include <iamr_convection_K.H>
+#include <iamr_slopes_K.H>
+#include <iamr_constants.H>
 
 using namespace amrex;
 
@@ -13,7 +14,6 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
                                       const Geometry&  a_geom,
                                       const Vector<BCRec>& a_bcs )
 {
-    constexpr Real small = 1.e-10;
 
     const Box& domain_box = a_geom.Domain();
     const int  domain_ilo = domain_box.smallEnd(0);
@@ -50,7 +50,7 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
                 a_u(i,j,k) = 0.0;
             } else {
                 Real avg = 0.5 * (upls + umns);
-                if (std::abs(avg) < small) {
+                if (std::abs(avg) < small_vel) {
                     a_u(i,j,k) = 0.0;
                 } else if (avg > 0.0) {
                     a_u(i,j,k) = umns;
@@ -77,7 +77,7 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
                 a_u(i,j,k) = 0.0;
             } else {
                 Real avg = 0.5 * (upls + umns);
-                if (std::abs(avg) < small) {
+                if (std::abs(avg) < small_vel) {
                     a_u(i,j,k) = 0.0;
                 } else if (avg > 0.0) {
                     a_u(i,j,k) = umns;
@@ -102,7 +102,7 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
                 a_v(i,j,k) = 0.0;
             } else {
                 Real avg = 0.5 * (vpls + vmns);
-                if (std::abs(avg) < small) {
+                if (std::abs(avg) < small_vel) {
                     a_v(i,j,k) = 0.0;
                 } else if (avg > 0.0) {
                     a_v(i,j,k) = vmns;
@@ -129,7 +129,7 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
                 a_v(i,j,k) = 0.0;
             } else {
                 Real avg = 0.5 * (vpls + vmns);
-                if (std::abs(avg) < small) {
+                if (std::abs(avg) < small_vel) {
                     a_v(i,j,k) = 0.0;
                 } else if (avg > 0.0) {
                     a_v(i,j,k) = vmns;
@@ -155,7 +155,7 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
                 a_w(i,j,k) = 0.0;
             } else {
                 Real avg = 0.5 * (wpls + wmns);
-                if (std::abs(avg) < small) {
+                if (std::abs(avg) < small_vel) {
                     a_w(i,j,k) = 0.0;
                 } else if (avg > 0.0) {
                     a_w(i,j,k) = wmns;
@@ -182,7 +182,7 @@ void Godunov::predict_vels_on_faces ( D_DECL( Box const& a_ubx,
                 a_w(i,j,k) = 0.0;
             } else {
                 Real avg = 0.5 * (wpls + wmns);
-                if (std::abs(avg) < small) {
+                if (std::abs(avg) < small_vel) {
                     a_w(i,j,k) = 0.0;
             } else if (avg > 0.0) {
                     a_w(i,j,k) = wmns;
