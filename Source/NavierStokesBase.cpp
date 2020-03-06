@@ -31,6 +31,7 @@ int  NavierStokesBase::init_iter          = 2;
 int  NavierStokesBase::init_vel_iter      = 1;
 Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;
+Real NavierStokesBase::init_dt            = -1.0;
 Real NavierStokesBase::fixed_dt           = -1.0;
 bool NavierStokesBase::stop_when_steady   = false;
 Real NavierStokesBase::steady_tol         = 1.0e-10;
@@ -367,6 +368,7 @@ NavierStokesBase::Initialize ()
     pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
+    pp.query("init_dt", init_dt);
     pp.query("stop_when_steady",stop_when_steady);
     pp.query("steady_tol",steady_tol);
     pp.query("sum_interval",sum_interval);
@@ -456,9 +458,9 @@ NavierStokesBase::Initialize ()
     pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
     pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
-    //
+    
     // Are we going to do velocity or momentum update?
-    //
+    
     pp.query("do_mom_diff",do_mom_diff);
     pp.query("predict_mom_together",predict_mom_together);
 
@@ -1403,9 +1405,40 @@ NavierStokesBase::estTimeStep ()
     //
     // Reduce estimated dt by CFL factor and find global min
     //
-    estdt = estdt * cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
 
+    if ( estdt < 1.0e+20) {
+      //
+      // timestep estimation successful
+      //
+      estdt = estdt * cfl;
+    }
+    else if (init_dt > 0 ) {
+      //
+      // use init_dt, scale for amr level 
+      //
+      Real factor = 1.0;
+
+      if (!(level == 0))
+      {
+	int ratio = 1;
+	for (int lev = 1; lev <= level; lev++)
+	{
+	  ratio *= parent->nCycle(lev);
+	}
+	factor = 1.0/double(ratio);
+      }
+      
+      estdt = factor*init_dt;
+    }
+    else {
+      Print()<<"\nNavierStokesBase::estTimeStep() failed to provide a good timestep "
+	     <<"(probably because initial velocity field is zero with no external forcing).\n"
+	     <<"Use ns.init_dt to provide a reasonable timestep on coarsest level.\n"
+	     <<"Note that ns.init_shrink will be applied to init_dt."<<std::endl;
+      amrex::Abort("\n");
+    }
+    
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -1417,6 +1450,17 @@ NavierStokesBase::estTimeStep ()
             amrex::Print() << u_max[k] << "  ";
         }
 	amrex::Print() << '\n';
+	  
+	if (getForceVerbose){
+	  ParallelDescriptor::ReduceRealMax(f_max.dataPtr(), AMREX_SPACEDIM, IOProc);
+	  amrex::Print() << "        FMAX = ";
+	  for (int k = 0; k < AMREX_SPACEDIM; k++)
+	  {
+            amrex::Print() << f_max[k] << "  ";
+	  }
+	  amrex::Print() << '\n';
+	}
+	Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
     }
 
     return estdt;
@@ -1948,12 +1992,11 @@ NavierStokesBase::init_additional_state_types ()
 Real
 NavierStokesBase::initialTimeStep ()
 {
-  Real returnDt = init_shrink*estTimeStep();
+    Real returnDt = init_shrink*estTimeStep();
 
-  amrex::Print() << "Multiplying dt by init_shrink; dt = "
-		 << returnDt << '\n';
-
-  return returnDt;
+    amrex::Print() << "Multiplying dt by init_shrink: dt = "
+		   << returnDt << '\n';
+    return returnDt;
 }
 
 //
