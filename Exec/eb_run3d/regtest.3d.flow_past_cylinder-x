@@ -61,10 +61,7 @@ eb2.cylinder_center           = -0.45  0.0  0.0
 #              VERBOSITY                #
 #.......................................#
 ns.v                    = 1 # NS solver
-proj.v                  = 1 # Nodal projection
-mac_proj.verbose        = 0 # MacProjector
 #diffusion.verbose      = 1 # Diffusion operator
-nodal_proj.verbose      = 1 # Nodal projection
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            for testing                #

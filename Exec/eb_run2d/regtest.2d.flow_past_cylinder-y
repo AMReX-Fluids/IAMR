@@ -65,7 +65,6 @@ eb2.sphere_has_fluid_inside =0
 #              VERBOSITY                #
 #.......................................#
 ns.v                    = 1 # NS solver 
-proj.v                  = 1 # Nodal projection
 mac.verbose             = 0 # MacProjector
 #diffusion.verbose       =   1           # Diffusion operator
 projection.verbose   =   1           # Nodal projection

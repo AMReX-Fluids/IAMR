@@ -44,10 +44,6 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-diffuse.v = 0
-mac.v =0
-proj.v=1
-proj.Pcode = 0
 
 #*******************************************************************************
 

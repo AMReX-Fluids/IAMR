@@ -38,7 +38,6 @@ amr.regrid_int		= 2
 
 ns.v                    = 1
 amr.v                   = 1
-proj.v			= 1
 
 amr.check_int		= 10 
 

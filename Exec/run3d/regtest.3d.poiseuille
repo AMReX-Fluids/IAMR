@@ -23,8 +23,6 @@ ns.do_tracer_ref        =  1
 
 ns.v                    =  1
 amr.v                   =  1
-proj.v 			=  1
-proj.Pcode = 0
 
 amr.check_int		=  1000
 amr.plot_int		=  10
