@@ -44,7 +44,6 @@ ComputeFluxesOnBox (const Box& a_bx,
                             Array4<Real> const& a_edgeq_y,
                             Array4<Real> const& a_edgeq_z),
                     Array4<Real const> const& a_q,
-                    const int a_comp,
                     const int a_ncomp,
                     D_DECL( Array4<Real const> const& a_umac,
                             Array4<Real const> const& a_vmac,
@@ -197,7 +196,6 @@ ComputeFluxesOnEBBox ( Box const& a_bx,
                                Array4<Real> const& a_edgeq_y,
                                Array4<Real> const& a_edgeq_z),
                        Array4<Real> const& a_q,
-                       const int a_comp,
                        const int a_ncomp,
                        D_DECL( Array4<Real const> const& a_umac,
                                Array4<Real const> const& a_vmac,
@@ -447,7 +445,7 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
             {
                 fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                             D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
-                                            a_state.array(mfi), a_comp, a_ncomp,
+                                            a_state.array(mfi,a_comp), a_ncomp,
                                             D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs, known_edgestate);
 
             }
@@ -456,7 +454,7 @@ Godunov::ComputeFluxes(  D_DECL(MultiFab& a_fx,
                 Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
                 fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                              D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
-                                             a_state.array(mfi), a_comp, a_ncomp,
+                                             a_state.array(mfi,a_comp), a_ncomp,
                                              D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs,
                                              D_DECL(facecent[0]->array(mfi), facecent[1]->array(mfi), facecent[2]->array(mfi)),
                                              ccc, flag, known_edgestate);
@@ -549,7 +547,7 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
                 {
                     fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                                 D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
-                                                a_state.array(mfi), a_comp, a_ncomp,
+                                                a_state.array(mfi,a_comp), a_ncomp,
                                                 D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs, 0);
 
                 }
@@ -558,7 +556,7 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
                     Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
                     fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                                  D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
-                                                 a_state.array(mfi), a_comp, a_ncomp,
+                                                 a_state.array(mfi,a_comp), a_ncomp,
                                                  D_DECL(a_umac.array(mfi), a_vmac.array(mfi), a_wmac.array(mfi)), domain, a_bcs,
                                                  D_DECL(facecent[0]->array(mfi), facecent[1]->array(mfi), facecent[2]->array(mfi)),
                                                  ccc, flag, 0);
@@ -592,7 +590,7 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
             {
                 fluxes::ComputeFluxesOnBox( bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                             D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
-                                            a_state.array(mfi), a_comp, a_ncomp,
+                                            a_state.array(mfi,a_comp), a_ncomp,
                                             D_DECL(a_ucorr.array(mfi), a_vcorr.array(mfi), a_wcorr.array(mfi)), domain, a_bcs, 1);
 
             }
@@ -601,7 +599,7 @@ Godunov::ComputeSyncFluxes(  D_DECL(MultiFab& a_fx,
                 Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
                 fluxes::ComputeFluxesOnEBBox(bx, D_DECL(a_fx.array(mfi), a_fy.array(mfi), a_fz.array(mfi)),
                                              D_DECL(edgestate_x.array(mfi), edgestate_y.array(mfi), edgestate_z.array(mfi)),
-                                             a_state.array(mfi), a_comp, a_ncomp,
+                                             a_state.array(mfi,a_comp), a_ncomp,
                                              D_DECL(a_ucorr.array(mfi), a_vcorr.array(mfi), a_wcorr.array(mfi)), domain, a_bcs,
                                              D_DECL(facecent[0]->array(mfi), facecent[1]->array(mfi), facecent[2]->array(mfi)),
                                              ccc, flag, 1);

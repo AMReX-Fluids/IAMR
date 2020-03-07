@@ -35,16 +35,10 @@ ifndef ATMOS_MACOP
 endif
 
 CEXE_headers += iamr_constants.H
-CEXE_headers += iamr_slopes_K.H iamr_edge_state_mol_K.H
-CEXE_sources += iamr_convection_K.cpp
 
 # EB stuff
 ifeq ($(USE_EB), TRUE)
   F90EXE_sources += param_mod.F90
-  CEXE_sources += iamr_extrap_vel_to_faces.cpp
-  CEXE_sources += iamr_compute_fluxes.cpp
-  CEXE_sources += iamr_eb_convection_K.cpp
-  CEXE_headers += iamr_eb_slopes_K.H  iamr_eb_edge_state_mol_K.H
 endif
 #
 
