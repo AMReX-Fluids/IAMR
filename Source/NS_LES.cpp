@@ -45,31 +45,16 @@ NavierStokesBase::calc_mut_LES(const Real time)
   MultiFab& Uvel=fpi.get_mf();
   
 
-
-      int agglomeration = 1;
-      int consolidation = 1;
-      LPInfo info;
-      info.setAgglomeration(agglomeration);
-      info.setConsolidation(consolidation);
-      //fixme??
-      info.setMetricTerm(false);
-      info.setMaxCoarseningLevel(100);
+  LPInfo info;
 
 #ifdef AMREX_USE_EB
-      const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-      MLEBTensorOp tensorop({geom}, {grids}, {dmap}, info, {ebf});
+  const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+  MLEBTensorOp tensorop({geom}, {grids}, {dmap}, info, {ebf});
 
-      std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf->getAreaFrac();
+  std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf->getAreaFrac();
 #else
-      MLTensorOp tensorop({geom}, {grids}, {dmap}, info);
+  MLTensorOp tensorop({geom}, {grids}, {dmap}, info);
 #endif
-
-
-      int tensor_max_order    = 2;
-      tensorop.setMaxOrder(tensor_max_order);
-
-
-
 
       // create right container
       Array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc[AMREX_SPACEDIM];
@@ -87,49 +72,42 @@ NavierStokesBase::calc_mut_LES(const Real time)
       
       // set up level BCs
       // WARNING THIS PART BELOW HAS NOT BEEN TESTED
-      //{
-      //  MultiFab crsedata;
-      //  int ng = 0;
-      //  const int soln_ng = 1;
-      //
-      //  if (level > 0) {
-      //    //auto& crse_ns = *(coarser->navier_stokes);
-      //    NavierStokesBase& crse_ns  = getLevel(level-1);
-      //    crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), AMREX_SPACEDIM,
-      //                    ng, MFInfo(),crse_ns.Factory());
-      //    AmrLevel::FillPatch(crse_ns, crsedata, ng, time, State_Type, Xvel,
-      //                        AMREX_SPACEDIM);
-      //    tensorop.setCoarseFineBC(&crsedata, crse_ratio[0]);
-      //  }
-      //
-      //  AmrLevel::FillPatch(*this,Uvel,soln_ng,time,State_Type,Xvel,AMREX_SPACEDIM);
-      //
+      {
+        MultiFab crsedata;
+        int ng = 0;
+        const int soln_ng = 1;
+      
+        if (level > 0) {
+          //auto& crse_ns = *(coarser->navier_stokes);
+          NavierStokesBase& crse_ns  = getLevel(level-1);
+          crsedata.define(crse_ns.boxArray(), crse_ns.DistributionMap(), AMREX_SPACEDIM,
+                          ng, MFInfo(),crse_ns.Factory());
+          AmrLevel::FillPatch(crse_ns, crsedata, ng, time, State_Type, Xvel,
+                              AMREX_SPACEDIM);
+          tensorop.setCoarseFineBC(&crsedata, crse_ratio[0]);
+        }
+      
+        AmrLevel::FillPatch(*this,Uvel,soln_ng,time,State_Type,Xvel,AMREX_SPACEDIM);
+      
         tensorop.setLevelBC(0, &Uvel);
-      //}
+      }
       
       
-        tensorop.setScalars(0., 1.0);
-        tensorop.setACoeffs(0, 0.0);
-        tensorop.setShearViscosity(0, [1. ,1.]);
-        tensorop.setBulkViscosity(0, 0.);
-#ifdef AMREX_USE_EB
-        tensorop.setEBShearViscosity(0, 1.);
-        tensorop.setEBBulkViscosity(0, 0.);
-#endif
-
-
-
-
- FluxBoxes fb(this,AMREX_SPACEDIM);
+ const int dim_fluxes = pow(AMREX_SPACEDIM,2);
+ FluxBoxes fb(this,dim_fluxes);
  MultiFab** tensorflux = fb.get();
-std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(tensorflux[0], tensorflux[1], tensorflux[2])};
+std::array<MultiFab*,AMREX_SPACEDIM> grad_Uvel{AMREX_D_DECL(tensorflux[0], tensorflux[1], tensorflux[2])};
 
   // OK READY TO CREATE THE ROUTINE TO COMPUTE GRADIENT INSTEAD OF CALLING COMPFLUX 
- tensorop.compFlux(0,{fp},{Uvel},MLLinOp::Location::FaceCenter);
+// tensorop.compFlux(0,{fp},{Uvel},MLLinOp::Location::FaceCenter);
  
- //VisMF::Write(Uvel,"test");
+tensorop.compVelGrad(0,{grad_Uvel},{Uvel},MLLinOp::Location::FaceCenter);
+
+
+// VisMF::Write(Uvel,"test");
  
-  VisMF::Write(*fp[0],"test");
+  VisMF::Write(*grad_Uvel[0],"fluxes_x");
+  VisMF::Write(*grad_Uvel[1],"fluxes_y");
 
   
   if (LES_model == "Smagorinsky") {
