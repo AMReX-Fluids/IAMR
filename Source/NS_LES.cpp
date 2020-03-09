@@ -27,7 +27,7 @@ using namespace amrex;
 
 
 void
-NavierStokesBase::calc_mut_LES(const Real time)
+NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
 
 {
 
@@ -112,6 +112,12 @@ tensorop.compVelGrad(0,{grad_Uvel},{Uvel},MLLinOp::Location::FaceCenter);
   
   if (LES_model == "Smagorinsky") {
     amrex::Print() << "\n DEBUG WE DO SMAGORNISKY \n\n";
+
+for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+                mu_LES[dir]->setVal(999., 0, mu_LES[dir]->nComp(), mu_LES[dir]->nGrow());
+            }
+
+
   }
   else
   {

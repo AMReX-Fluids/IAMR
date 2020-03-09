@@ -359,7 +359,7 @@ protected:
 
     void velocity_advection_update (amrex::Real dt);
     
-    void calc_mut_LES(amrex::Real time);
+    void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
     
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,

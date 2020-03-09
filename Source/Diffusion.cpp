@@ -997,6 +997,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	ap[d] = &(area[d]);
     }
 
+VisMF::Write(*betan[0],"test_visc_x");
+VisMF::Write(*betan[1],"test_visc_y");
+
     //
     // Set up Rhs.
     //
