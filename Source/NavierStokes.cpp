@@ -1,6 +1,3 @@
-//fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
-
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -502,7 +499,6 @@ NavierStokes::predict_velocity (Real  dt)
     // fixme ghost cell situation???
     MultiFab& Gp = *gradp;
 
-    //VisMF::Write(Umf, "U");
     const Box& domain = geom.Domain();
 
     Vector<BCRec> math_bc(AMREX_SPACEDIM);
@@ -1616,6 +1612,9 @@ NavierStokes::post_init_press (Real&        dt_init,
       MultiFab& p_old=get_old_data(Press_Type);
       MultiFab& p_new=get_new_data(Press_Type);
       MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
+
+      parent->setDtLevel(dt_save);
+      parent->setNCycle(nc_save);
 
       NavierStokes::initial_step = false;
       
