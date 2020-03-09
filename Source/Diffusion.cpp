@@ -269,6 +269,11 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            int                       betaComp,
                            const Vector<Real>&       visc_coef,
                            int                       visc_coef_comp,
+			   //
+			   //FIXME
+			   // remove volume and area -- can get these from
+			   // geom if they're still needed
+			   ///
                            const MultiFab&           volume,
                            const MultiFab* const*    area,
                            const IntVect&            cratio,
@@ -457,69 +462,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         mgn.apply({&Rhs},{&Soln});
 #endif
 
-	AMREX_D_TERM(MultiFab flxx(*fluxn[0], amrex::make_alias, fluxComp+icomp, 1);,
-		     MultiFab flxy(*fluxn[1], amrex::make_alias, fluxComp+icomp, 1);,
-		     MultiFab flxz(*fluxn[2], amrex::make_alias, fluxComp+icomp, 1););
-	std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
-	mgn.getFluxes({fp},{&Soln},MLLinOp::Location::FaceCentroid);
-
-	int nghost = 0;
-#ifdef AMREX_USE_EB
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
-	{
-	  Box bx = mfi.tilebox();
-
-	  // need face-centered tilebox for each direction
-	  D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
-		 const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-		 const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
-
-	  // this is to check efficiently if this tile contains any eb stuff
-	  const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
-	  const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
-
-	  if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
-	  {
-	    // If tile is completely covered by EB geometry, set
-	    // value to some very large number so we know if
-	    // we accidentaly use these covered vals later in calculations
-	    D_TERM(fluxn[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
-		   fluxn[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
-		   fluxn[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
-	  }
-	  else
-	  {
-	    // No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
-	    if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
-	    {
-	      for (int i = 0; i < BL_SPACEDIM; ++i)
-	      {
-		(*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
-		(*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
-	      }
-	    }
-	    else
-	    {
-	      // Use EB routines
-	      for (int i = 0; i < BL_SPACEDIM; ++i)
-	      {
-		(*fluxn[i])[mfi].mult(-b/dt,fluxComp+icomp,1);
-		(*fluxn[i])[mfi].mult((*area[i])[mfi],0,fluxComp+icomp,1);
-		(*fluxn[i])[mfi].mult((*areafrac[i])[mfi],0,fluxComp+icomp,1);
-	      }
-	    }
-	  }
-	}
-#else // non-EB
-	for (int i = 0; i < BL_SPACEDIM; ++i)
-	{
-	    MultiFab::Multiply(*fluxn[i],(*area[i]),0,fluxComp+icomp,1,nghost);
-	    (*fluxn[i]).mult(-b/dt,fluxComp+icomp,1,nghost);
-	  }
-#endif
+	computeExtensiveFluxes(mgn, Soln, fluxn, fluxComp+icomp, 1, &geom, -b/dt);
       }
       else
       {
@@ -658,73 +601,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
       mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
-      AMREX_D_TERM(MultiFab flxx(*fluxnp1[0], amrex::make_alias, fluxComp+icomp, 1);,
-		   MultiFab flxy(*fluxnp1[1], amrex::make_alias, fluxComp+icomp, 1);,
-		   MultiFab flxz(*fluxnp1[2], amrex::make_alias, fluxComp+icomp, 1););
-      std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
-      mgnp1.getFluxes({fp}, MLLinOp::Location::FaceCentroid);
-
-      int nghost = fluxnp1[0]->nGrow(); // this = 0
-
-#ifdef AMREX_USE_EB
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
-      {
-	Box bx = mfi.tilebox();
-
-	// need face-centered tilebox for each direction
-	D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
-	       const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-	       const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
-
-	std::array<const Box*,AMREX_SPACEDIM> nbx{AMREX_D_DECL(&xbx,&ybx,&zbx)};
-	// this is to check efficiently if this tile contains any eb stuff
-	const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
-	const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
-
-      if(flags.getType(amrex::grow(bx, nghost)) == FabType::covered)
-      {
-	// If tile is completely covered by EB geometry, set
-	// value to some very large number so we know if
-	// we accidentaly use these covered vals later in calculations
-	D_TERM(fluxnp1[0]->setVal(1.2345e30, xbx, fluxComp+icomp, 1);,
-	       fluxnp1[1]->setVal(1.2345e30, ybx, fluxComp+icomp, 1);,
-	       fluxnp1[2]->setVal(1.2345e30, zbx, fluxComp+icomp, 1););
-      }
-      else
-      {
-	// No cut cells in tile + nghost-cell witdh halo -> use non-eb routine
-	if(flags.getType(amrex::grow(bx, nghost)) == FabType::regular)
-        {
-	  for (int i = 0; i < BL_SPACEDIM; ++i)
-	  {
-	    (*fluxnp1[i])[mfi].mult(b/dt,*nbx[i],fluxComp+icomp,1);
-	    (*fluxnp1[i])[mfi].mult((*area[i])[mfi],*nbx[i],0,fluxComp+icomp,1);
-	  }
-	}
-        else
-        {
-        // Use EB routines
-          for (int i = 0; i < BL_SPACEDIM; ++i)
-          {
-            (*fluxnp1[i])[mfi].mult(b/dt,*nbx[i],fluxComp+icomp,1);
-            (*fluxnp1[i])[mfi].mult((*area[i])[mfi],*nbx[i],0,fluxComp+icomp,1);
-            (*fluxnp1[i])[mfi].mult((*areafrac[i])[mfi],*nbx[i],0,fluxComp+icomp,1);
-          }
-        }
-      }
-    }
-#else
-    // Non-EB here
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-      {
-        MultiFab::Multiply(*fluxnp1[i],(*area[i]),0,fluxComp+icomp,1,nghost);
-	      (*fluxnp1[i]).mult(b/dt,fluxComp+icomp,1,nghost);
-      }
-#endif
-
+      computeExtensiveFluxes(mgnp1, Soln, fluxnp1, fluxComp+icomp, 1, &geom, b/dt);
+      
      //
      // Copy into state variable at new time, without bc's
      //
@@ -820,7 +698,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #endif
 
     const int finest_level = parent->finestLevel();
-    const MultiFab& volume = navier_stokes->Volume();
     //
     // At this point, S_old has bndry at time N S_new contains GRAD(SU).
     //
@@ -841,6 +718,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     FluxBoxes fb_old;
 
     const MultiFab* area   = navier_stokes->Area();
+    const Geometry& geom   = navier_stokes->Geom();
 
     //
     // Set up Rhs.
@@ -957,8 +835,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         weights = &(ebfactory.getVolFrac());
 
         amrex::single_level_weighted_redistribute(0,{Rhs_tmp},{Rhs}, {*weights}, 0, AMREX_SPACEDIM, {navier_stokes->Geom()});
-	// Is this really needed? IAMR is fine without it
-	EB_set_covered(Rhs, 0, AMREX_SPACEDIM, Rhs.nGrow(), 0.0);
 #else
         amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
 #endif
@@ -968,25 +844,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	{
 	  tensorflux_old = fb_old.define(navier_stokes, AMREX_SPACEDIM);
 
-	  std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(tensorflux_old[0], tensorflux_old[1], tensorflux_old[2])};
-	  mlmg.getFluxes({fp},{&Soln},MLLinOp::Location::FaceCentroid);
-
-	  for (int d = 0; d < BL_SPACEDIM; d++){
-	    //
-	    // For now,
-	    // viscous fluxes are not passed out of this fn. They are only
-	    // used for the reflux operation at the end, which uses the sum of the
-	    // old and new time fluxes. =>
-	    // Can manage area-weighting in final total flux computation,
-	    // so only deal with EB switches once
-	    //
-	    // for (int i = 0; i < BL_SPACEDIM; ++i){
-	    //   MultiFab::Multiply(*tensorflux_old[d],area[d],0,i,1,flux_ng);
-	    // }
-	    tensorflux_old[d]->mult(-b/dt,0,AMREX_SPACEDIM,flux_ng);
+	  computeExtensiveFluxes(mlmg, Soln, tensorflux_old, 0, AMREX_SPACEDIM, &geom, -b/dt);
 	}
       }
-    }
     }
     else
     {
@@ -1006,15 +866,10 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       FArrayBox& rhsfab = Rhs[Rhsmfi];
       FArrayBox& Ufab   = U_new[Rhsmfi];
 
-      //
-      // Don't Scale inviscid part by volume anymore.
-      //
       for (int comp = 0; comp < BL_SPACEDIM; comp++)
       {
         const int sigma = Xvel + comp;
 
-	// No more vol scaling
-        //Ufab.mult(volume[Rhsmfi],bx,0,sigma,1);
         //
         // Multiply by density at time nph (if rho_flag==1)
         //                     or time n   (if rho_flag==3).
@@ -1032,7 +887,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         {
           FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
           deltafab.mult(dt,bx,comp+rhsComp,1);
-          //deltafab.mult(volume[Rhsmfi],bx,0,comp+rhsComp,1);
           rhsfab.plus(deltafab,bx,comp+rhsComp,comp,1);
         }
       }
@@ -1056,7 +910,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       LPInfo info;
       info.setAgglomeration(agglomeration);
       info.setConsolidation(consolidation);
-      //fixme??
       info.setMetricTerm(false);
       info.setMaxCoarseningLevel(100);
 
@@ -1170,105 +1023,16 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       //
       if (do_reflux && (level < finest_level || level > 0))
       {
-	//Print()<<"Doing reflux ...\n";
-
 	FluxBoxes fb(navier_stokes, BL_SPACEDIM);
 	MultiFab** tensorflux = fb.get();
-	//fixme --- for debugging
-	//tensorflux = new MultiFab*[BL_SPACEDIM];
-	// for (int dir = 0; dir < BL_SPACEDIM; dir++)
-	// {
-	//   const BoxArray& ba = navier_stokes->getEdgeBoxArray(dir);
-	//   const DistributionMapping& dm = navier_stokes->DistributionMap();
-	//   tensorflux[dir] = new MultiFab(ba,dm,AMREX_SPACEDIM,0);
-	// }
-	std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(tensorflux[0], tensorflux[1], tensorflux[2])};
-	mlmg.getFluxes({fp},{&Soln},MLLinOp::Location::FaceCentroid);
 
-#ifdef AMREX_USE_EB
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(Soln,true); mfi.isValid(); ++mfi)
-      {
-	Box bx = mfi.tilebox();
+	computeExtensiveFluxes(mlmg, Soln, tensorflux, 0, AMREX_SPACEDIM, &geom, b/dt);
+	if ( be_cn_theta!=1 )
+	  for ( int i = 0; i < AMREX_SPACEDIM; i++)
+	    MultiFab::Add(*tensorflux[i], *tensorflux_old[i], 0, 0,
+			  AMREX_SPACEDIM, flux_ng);  
 
-	// need face-centered tilebox for each direction
-	D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
-	       const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
-	       const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
-	std::array<const Box*,AMREX_SPACEDIM> nbx{AMREX_D_DECL(&xbx,&ybx,&zbx)};
 
-	// this is to check efficiently if this tile contains any eb stuff
-	const EBFArrayBox& in_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
-	const EBCellFlagFab& flags = in_fab.getEBCellFlagFab();
-
-      if(flags.getType(amrex::grow(bx, flux_ng)) == FabType::covered)
-      {
-	// If tile is completely covered by EB geometry, set
-	// value to some very large number so we know if
-	// we accidentaly use these covered vals later in calculations
-	D_TERM(tensorflux[0]->setVal(1.2345e30, xbx, 0, AMREX_SPACEDIM);,
-	       tensorflux[1]->setVal(1.2345e30, ybx, 0, AMREX_SPACEDIM);,
-	       tensorflux[2]->setVal(1.2345e30, zbx, 0, AMREX_SPACEDIM););
-      }
-      else
-      {
-	// No cut cells in tile + flux_ng-cell witdh halo -> use non-eb routine
-	if(flags.getType(amrex::grow(bx, flux_ng)) == FabType::regular)
-        {
-	  for (int i = 0; i < BL_SPACEDIM; ++i)
-	  {
-	    (*tensorflux[i])[mfi].mult(b/dt,*nbx[i],0,AMREX_SPACEDIM);
-	    if ( be_cn_theta!=1 )
-	      (*tensorflux[i])[mfi].plus((*tensorflux_old[i])[mfi],*nbx[i],0,0,BL_SPACEDIM);
-	    for (int d = 0; d < BL_SPACEDIM; ++d)
-	      (*tensorflux[i])[mfi].mult(area[i][mfi],*nbx[i],0,d,1);
-	  }
-	}
-        else
-        {
-	  // Use EB routines
-          for (int i = 0; i < BL_SPACEDIM; ++i)
-          {
-            (*tensorflux[i])[mfi].mult(b/dt,*nbx[i],0,AMREX_SPACEDIM);
-	    if ( be_cn_theta!=1 )
-	      (*tensorflux[i])[mfi].plus((*tensorflux_old[i])[mfi],*nbx[i],0,0,BL_SPACEDIM);
-	    for (int d = 0; d < BL_SPACEDIM; ++d) {
-	      (*tensorflux[i])[mfi].mult(area[i][mfi],*nbx[i],0,d,1);
-	      (*tensorflux[i])[mfi].mult((*areafrac[i])[mfi],*nbx[i],0,d,1);
-	    }
-	  }
-        }
-      }
-    }
-#else
-    // Non-EB
-    {
-      // Here we keep the weighting by the volume for non-EB && R-Z case
-      // The flag has already been checked for only 2D at the begining of the routine
-      if (parent->Geom(0).IsRZ()) //add_hoop_stress)
-      {
-	for (int d = 0; d < BL_SPACEDIM; ++d){
-	  // FIXME -- need to check this
-	  if ( be_cn_theta!=1 )
-	    tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,flux_ng);
-	  tensorflux[d]->mult(b/(dt * navier_stokes->Geom().CellSize()[d]),0,AMREX_SPACEDIM,flux_ng);
-	}
-      }
-      else // Generic case for non-EB and 2D or 3D Cartesian
-      {
-	for (int d = 0; d < BL_SPACEDIM; d++){
-	  tensorflux[d]->mult(b/dt,0,AMREX_SPACEDIM,flux_ng);
-	  if ( be_cn_theta!=1 )
-	    tensorflux[d]->plus(*(tensorflux_old[d]),0,BL_SPACEDIM,flux_ng);
-	  for (int i = 0; i < BL_SPACEDIM; ++i)
-	    MultiFab::Multiply(*tensorflux[d],area[d],0,i,1,flux_ng);
-	}
-      }
-    }
-#endif
-	/////////////////////////////////////////
 	if (level > 0)
         {
 	  for (int k = 0; k < BL_SPACEDIM; k++)
@@ -1350,7 +1114,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 
     if (verbose) amrex::Print() << "Diffusion::diffuse_tensor_Vsync ...\n";
 
-    const MultiFab& volume = navier_stokes->Volume();
     const MultiFab* area   = navier_stokes->Area();
 
     MultiFab Rhs(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
@@ -1363,7 +1126,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 	amrex::Print() << "Original max of Vsync " << r_norm << '\n';
     }
     //
-    // Multiply RHS by volume and density.
+    // Multiply RHS by density.
     //
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1377,8 +1140,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
-	  // remove vol scaling
-	  //rhs.mult(volume[Rhsmfi],bx,0,comp,1);
             if (rho_flag == 1)
                 rhs.mult(rho,bx,0,comp,1);
             if (rho_flag == 3)
@@ -1398,119 +1159,107 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     MultiFab Soln(grids,dmap,BL_SPACEDIM,soln_ng, MFInfo(),navier_stokes->Factory());
     Soln.setVal(0);
 
-    //for old solver: 
-    // MultiFab Solnold(grids,dmap,BL_SPACEDIM,soln_ng, MFInfo(),navier_stokes->Factory());
-    // Solnold.setVal(0);
-
     // MLMG
-      const Real tol_rel = visc_tol;
-      const Real tol_abs = -1;
+    const Real tol_rel = visc_tol;
+    const Real tol_abs = -1;
 
-      LPInfo info;
-      info.setAgglomeration(agglomeration);
-      info.setConsolidation(consolidation);
-      //fixme??
-      info.setMetricTerm(false);
-      //info.setMaxCoarseningLevel(100);
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setMetricTerm(false);
+    //info.setMaxCoarseningLevel(100);
 
 #ifdef AMREX_USE_EB
-      const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-      MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+    const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+    MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
 #else
-      MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
+    MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
 #endif
 
-      tensorop.setMaxOrder(tensor_max_order);
-
-      // create right container
-      Array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc[AMREX_SPACEDIM];
-      Array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc[AMREX_SPACEDIM];
-      // fill it
-      for (int i=0; i<AMREX_SPACEDIM; i++)
-	setDomainBC(mlmg_lobc[i], mlmg_hibc[i], Xvel+i);
-      // pass to op
-      tensorop.setDomainBC({AMREX_D_DECL(mlmg_lobc[0],mlmg_lobc[1],mlmg_lobc[2])},
-			   {AMREX_D_DECL(mlmg_hibc[0],mlmg_hibc[1],mlmg_hibc[2])});
-
-      // set up level BCs
-      if (level > 0) {
-	tensorop.setCoarseFineBC(nullptr, crse_ratio[0]);
-      }
-      tensorop.setLevelBC(0, nullptr);
-
+    tensorop.setMaxOrder(tensor_max_order);
+    
+    // create right container
+    Array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc[AMREX_SPACEDIM];
+    Array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc[AMREX_SPACEDIM];
+    // fill it
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+      setDomainBC(mlmg_lobc[i], mlmg_hibc[i], Xvel+i);
+    // pass to op
+    tensorop.setDomainBC({AMREX_D_DECL(mlmg_lobc[0],mlmg_lobc[1],mlmg_lobc[2])},
+			 {AMREX_D_DECL(mlmg_hibc[0],mlmg_hibc[1],mlmg_hibc[2])});
+    
+    // set up level BCs
+    if (level > 0) {
+      tensorop.setCoarseFineBC(nullptr, crse_ratio[0]);
+    }
+    tensorop.setLevelBC(0, nullptr);
+    
+    {
+      MultiFab acoef;
+      acoef.define(grids, dmap, 1, 0, MFInfo(), navier_stokes->Factory());
+      std::pair<Real,Real> scalars;
+      computeAlpha(acoef, scalars, a, b, rho,
+		   rho_flag, &rhsscale, nullptr, 0,
+		   &rho, 0);
+      
+      tensorop.setScalars(scalars.first, scalars.second);
+      tensorop.setACoeffs(0, acoef);
+    }
+    
+    {
+      Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+      for (int n = 0; n < BL_SPACEDIM; n++)
       {
-	MultiFab acoef;
-	// fixme ghostcells?
-	acoef.define(grids, dmap, 1, 0, MFInfo(), navier_stokes->Factory());
-	std::pair<Real,Real> scalars;
-	// const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
-	// computeAlpha(acoef, scalars, Xvel, a, b, cur_time, rho, rho_flag,
-	// 	     &rhsscale, 0, nullptr);
-	//FIXME - not sure about rho vs rho_half in computeAlpha
-	// check for RZ
-	computeAlpha(acoef, scalars, a, b, rho,
-		     rho_flag, &rhsscale, nullptr, 0,
-		     &rho, 0);
-
-	tensorop.setScalars(scalars.first, scalars.second);
-	tensorop.setACoeffs(0, acoef);
+	face_bcoef[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0,MFInfo(),navier_stokes->Factory());
+	face_bcoef[n].setVal(1.0);
       }
 
-      {
-	Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-	for (int n = 0; n < BL_SPACEDIM; n++)
+      tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+      
+#ifdef AMREX_USE_EB
+      MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
+      EB_average_face_to_cellcenter(cc_bcoef, 0,
+				    amrex::GetArrOfConstPtrs(face_bcoef));
+      tensorop.setEBShearViscosity(0, cc_bcoef);
+#endif
+
+      if (NavierStokesBase::S_in_vel_diffusion) {
+	// remove the "divmusi" terms by setting kappa = (2/3) mu
+	//
+	Print()<<"WARNING: Hack to get rid of divU terms ...\n";
+	Array<MultiFab,AMREX_SPACEDIM> kappa;
+	Real twothirds = 2.0/3.0;
+	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	{
-	  face_bcoef[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0,MFInfo(),navier_stokes->Factory());
-	  face_bcoef[n].setVal(1.0);
+	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
+	  MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
+	  kappa[idim].mult(twothirds);
 	}
-
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
-
+	tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
 #ifdef AMREX_USE_EB
-	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
-	EB_average_face_to_cellcenter(cc_bcoef, 0,
-				      amrex::GetArrOfConstPtrs(face_bcoef));
-	tensorop.setEBShearViscosity(0, cc_bcoef);
+	cc_bcoef.mult(twothirds);
+	tensorop.setEBBulkViscosity(0, cc_bcoef);
 #endif
-
-	if (NavierStokesBase::S_in_vel_diffusion) {
-	  // remove the "divmusi" terms by setting kappa = (2/3) mu
-	  //
-	  Print()<<"WARNING: Hack to get rid of divU terms ...\n";
-	  Array<MultiFab,AMREX_SPACEDIM> kappa;
-	  Real twothirds = 2.0/3.0;
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	  {
-	    kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
-	    MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
-	    kappa[idim].mult(twothirds);
-	  }
-	  tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
-#ifdef AMREX_USE_EB
-	  cc_bcoef.mult(twothirds);
-	  tensorop.setEBBulkViscosity(0, cc_bcoef);
-#endif
-	}
       }
-
-      MLMG mlmg(tensorop);
-      //fixme?
-      //mlmg.setMaxIter(max_iter);
-      //mlmg.setBottomVerbose(bottom_verbose);
-      if (use_hypre) {
-	mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-	mlmg.setBottomVerbose(hypre_verbose);
-      }
-      mlmg.setMaxFmgIter(max_fmg_iter);
-      mlmg.setVerbose(verbose);
-
-      // fixme? why bother with rhsscale since set = 1 above
-      Rhs.mult(rhsscale,0,1);
-
-      // ensures ghost cells of sol are correctly filled when returned from solver
-      mlmg.setFinalFillBC(true);
-      mlmg.solve({&Soln}, {&Rhs}, tol_rel, tol_abs);
-
+    }
+    
+    MLMG mlmg(tensorop);
+    //fixme?
+    //mlmg.setMaxIter(max_iter);
+    //mlmg.setBottomVerbose(bottom_verbose);
+    if (use_hypre) {
+      mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+      mlmg.setBottomVerbose(hypre_verbose);
+    }
+    mlmg.setMaxFmgIter(max_fmg_iter);
+    mlmg.setVerbose(verbose);
+    
+    // fixme? why bother with rhsscale since set = 1 above
+    Rhs.mult(rhsscale,0,1);
+    
+    mlmg.setFinalFillBC(true);
+    mlmg.solve({&Soln}, {&Rhs}, tol_rel, tol_abs);
+    
     //
     // Copy into state variable at new time.
     //
@@ -1526,27 +1275,15 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     {
         FluxBoxes fb(navier_stokes, BL_SPACEDIM);
         MultiFab** tensorflux = fb.get();
-
 	std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(tensorflux[0], tensorflux[1], tensorflux[2])};
 
-	mlmg.getFluxes({fp},{&Soln});
-
-	// FIXME update these comments...
+	const Geometry& geom   = navier_stokes->Geom();
+	//
         // The extra factor of dt comes from the fact that Vsync looks
         // like dV/dt, not just an increment to V.
         //
-        // This is to remove the dx scaling in the coeffs
-        //
-	int flux_ng = tensorflux[0]->nGrow();
-        for (int d =0; d <BL_SPACEDIM; d++){
-	  //tensorflux[d]->mult(b/(dt*navier_stokes->Geom().CellSize()[d]),0);
-	  for (int i = 0; i < BL_SPACEDIM; ++i){
-	    // we've done away with vol weighting in A,B
-	    MultiFab::Multiply(*tensorflux[d],area[d],0,i,1,flux_ng);
-	  }
-	  tensorflux[d]->mult(b/dt,0,AMREX_SPACEDIM,flux_ng);
-	}
-
+	computeExtensiveFluxes(mlmg, Soln, tensorflux, 0, AMREX_SPACEDIM, &geom, b/dt);
+	
 	if (update_fluxreg)
 	{
 	  for (int k = 0; k < BL_SPACEDIM; k++)
@@ -1789,6 +1526,131 @@ Diffusion::computeBeta (const MultiFab* const* beta,
 		   MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
     return r;
 }
+
+//
+// return the fluxes multiplied by the area -- extensive fluxes
+//
+void
+Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
+				  MultiFab* const* flux, const int fluxComp,
+				  const int ncomp,
+				  const Geometry* a_geom, const Real fac )
+{
+    BL_ASSERT(flux[0]->nGrow()==0);
+    int nghost = 0;
+      
+    AMREX_D_TERM(MultiFab flxx(*flux[0], amrex::make_alias, fluxComp, ncomp);,
+		 MultiFab flxy(*flux[1], amrex::make_alias, fluxComp, ncomp);,
+		 MultiFab flxz(*flux[2], amrex::make_alias, fluxComp, ncomp););
+    std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
+
+    a_mg.getFluxes({fp},{&Soln},MLLinOp::Location::FaceCentroid);
+
+    //
+    // fixme? which way to define area?
+    //
+    // amrex::MultiFab area[BL_SPACEDIM];
+    // DistributionMapping dmap = Soln.DistributionMap();
+    // BoxArray ba = Soln.boxArray();
+    // for (int dir = 0; dir < BL_SPACEDIM; ++dir)
+    // {
+    //     area[dir].clear();
+    // 	area[dir].define(ba.surroundingNodes(dir),dmap,1,nghost);
+    //     a_geom->GetFaceArea(area[dir],dir);
+    // }
+
+    const Real*  dx = a_geom->CellSize();
+    Real area[AMREX_SPACEDIM];
+#if ( AMREX_SPACEDIM == 3 )
+    area[0] = dx[1]*dx[2];
+    area[1] = dx[0]*dx[2];
+    area[2] = dx[0]*dx[1];
+#else
+    area[0] = dx[1];
+    area[1] = dx[0];
+#endif
+
+#ifdef AMREX_USE_EB
+    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Soln.Factory());
+    Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    areafrac  = ebfactory.getAreaFrac();
+#endif
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(Soln, mfi_info); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.tilebox ();
+
+	D_TERM( const auto& fx = flxx.array(mfi);,
+		const auto& fy = flxy.array(mfi);,
+		const auto& fz = flxz.array(mfi););
+
+	D_TERM( const Box ubx = mfi.nodaltilebox(0);,
+		const Box vbx = mfi.nodaltilebox(1);,
+		const Box wbx = mfi.nodaltilebox(2););
+	
+	// D_TERM( const auto& a_x = area[0].array(mfi);,
+	// 	const auto& a_y = area[1].array(mfi);,
+	// 	const auto& a_z = area[2].array(mfi););
+
+// 	AMREX_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*a_x(i,j,k);});
+// 	AMREX_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*a_y(i,j,k);});
+// #if (AMREX_SPACEDIM==3)
+// 	AMREX_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*a_z(i,j,k);});
+// #endif
+
+	AMREX_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*area[0];});
+	AMREX_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*area[1];});
+#if (AMREX_SPACEDIM==3)
+	AMREX_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*area[2];});
+#endif
+	
+#ifdef AMREX_USE_EB
+	//
+	// Deal with irregular cells 
+	//
+        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
+        const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
+
+	if ( flags.getType(amrex::grow(bx,0)) == FabType::regular ) continue;
+
+	
+ 	D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
+		const auto& afrac_y = areafrac[1]->array(mfi);,
+		const auto& afrac_z = areafrac[2]->array(mfi););
+	  
+        if ( flags.getType(amrex::grow(bx,0)) == FabType::covered )
+        {
+	  //
+	  // For now, set to very large num so we know if you accidentally use it
+	  // MLMG will set covered fluxes to zero
+	  //
+	  AMREX_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) = COVERED_VAL;});
+	  AMREX_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) = COVERED_VAL;});
+#if (AMREX_SPACEDIM==3)
+	  AMREX_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) = COVERED_VAL;});
+#endif
+        }
+        else 
+        {
+	  //
+	  // Account for "effective areas" for cut cells
+	  //
+	  AMREX_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
+	  AMREX_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
+#if (AMREX_SPACEDIM==3)
+	  AMREX_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
+#endif
+        }
+#endif
+    }
+
+}
+
 
 void
 Diffusion::getViscTerms (MultiFab&              visc_terms,
@@ -2059,8 +1921,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         weights = &(ebfactory.getVolFrac());
 
         amrex::single_level_weighted_redistribute(0, {visc_tmp}, {visc_terms}, {*weights}, 0, AMREX_SPACEDIM,
-                                         {navier_stokes->Geom()} );
-        EB_set_covered(visc_terms, 0.);
+						  {navier_stokes->Geom()} );
 #else
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
 #endif

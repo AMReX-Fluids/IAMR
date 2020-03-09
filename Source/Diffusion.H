@@ -25,6 +25,7 @@
 #include <AMReX_MCMultiGrid.H>
 #include <AMReX_MCCGSolver.H>
 
+#define COVERED_VAL 1.0e40
 
 //
 // Useful enumeration of the different forms of the diffusion terms
@@ -229,7 +230,15 @@ protected:
     amrex::Array<amrex::MultiFab,AMREX_SPACEDIM>
     computeBeta (const amrex::MultiFab* const* beta,
 		 int                           betaComp);
-  
+
+    void computeExtensiveFluxes(amrex::MLMG&            a_mg,
+				amrex::MultiFab&        Soln,
+				amrex::MultiFab* const* flux,
+				const int               fluxComp,
+				const int               nomp,
+				const amrex::Geometry*  a_geom,
+				const amrex::Real       fac );
+      
     static void Finalize ();
     //
     // Data Required by Derived Classes
