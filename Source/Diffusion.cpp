@@ -269,13 +269,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            int                       betaComp,
                            const Vector<Real>&       visc_coef,
                            int                       visc_coef_comp,
-			   //
-			   //FIXME
-			   // remove volume and area -- can get these from
-			   // geom if they're still needed
-			   ///
-                           const MultiFab&           volume,
-                           const MultiFab* const*    area,
                            const IntVect&            cratio,
                            const BCRec&              bc,
                            const Geometry&           geom,
@@ -328,7 +321,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     const BoxArray* bac = (has_coarse_data ? &(S_new[1]->boxArray()) : 0);
 
     BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==ba));
-    BL_ASSERT(volume.DistributionMap() == dm);
 
     const auto& factory = S_new[0]->Factory();
 
@@ -357,8 +349,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 #ifdef AMREX_USE_EB
     const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(factory));
     MLEBABecLap opn({geom}, {ba}, {dm}, infon, {ebf});
-    
-    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf->getAreaFrac();
 #else
     MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
 #endif
@@ -717,7 +707,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     MultiFab** tensorflux_old;
     FluxBoxes fb_old;
 
-    const MultiFab* area   = navier_stokes->Area();
     const Geometry& geom   = navier_stokes->Geom();
 
     //
@@ -916,8 +905,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #ifdef AMREX_USE_EB
       const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
       MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
-
-      std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf->getAreaFrac();
 #else
       MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
 #endif
@@ -1784,8 +1771,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                                const MultiFab* const* beta,
                                int                    betaComp)
 {
-    const MultiFab* area   = navier_stokes->Area();
-
     int allthere;
     checkBeta(beta, allthere);
 

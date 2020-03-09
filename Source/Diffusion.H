@@ -83,8 +83,6 @@ public:
 			 int                                    betaComp,
 			 const amrex::Vector<amrex::Real>&      visc_coef,
 			 int                                    visc_coef_comp,
-			 const amrex::MultiFab&                 volume,
-			 const amrex::MultiFab* const*          area,
 			 const amrex::IntVect&                  cratio,
 			 const amrex::BCRec&                    bc,
 			 const amrex::Geometry&                 geom,

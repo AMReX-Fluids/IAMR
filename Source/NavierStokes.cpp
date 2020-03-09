@@ -930,18 +930,12 @@ NavierStokes::scalar_diffusion_update (Real dt,
         const int Rho_comp = Density;
 	const int bc_comp  = sigma;
 
-        const MultiFab *a[AMREX_SPACEDIM];
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-        {
-          a[d] = &(area[d]);
-        }
-
         diffusion->diffuse_scalar (Sn, Sn, Snp1, Snp1, sigma, 1, Rho_comp,
                                    prev_time,curr_time,be_cn_theta,Rh,rho_flag,
                                    fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,
                                    alpha,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
-                                   visc_coef,visc_coef_comp,volume,a,crse_ratio,
+                                   visc_coef,visc_coef_comp,crse_ratio,
                                    theBCs[bc_comp],geom,
                                    solve_mode,add_old_time_divFlux,
                                    diffuse_comp);
@@ -1921,10 +1915,6 @@ NavierStokes::mac_sync ()
         const int alphaComp = 0;
         int betaComp = 0;
         int visc_coef_comp = state_ind;
-        const MultiFab *a[AMREX_SPACEDIM];
-       	for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            a[d] = &(area[d]);
-       	}
 
         diffuse_comp[0] = is_diffusive[BL_SPACEDIM+sigma];
 
@@ -1936,7 +1926,7 @@ NavierStokes::mac_sync ()
                                    delta_rhs,rhsComp,
                                    alpha_in,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
-                                   visc_coef,visc_coef_comp,volume,a,
+                                   visc_coef,visc_coef_comp,
                                    crse_ratio,theBCs[state_ind],geom,
                                    solve_mode,
                                    add_old_time_divFlux,diffuse_comp);
