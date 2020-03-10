@@ -1957,7 +1957,7 @@ Diffusion::FillBoundary (BndryRegister& bdry,
 void
 Diffusion::checkBeta (const MultiFab* const* beta,
                       int&                   allthere,
-                      int&                   allnull) const
+                      int&                   allnull)
 {
     allnull  = 1;
     allthere = beta != 0;

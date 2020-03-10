@@ -172,9 +172,9 @@ public:
                        amrex::Real           time,
                        int                   rho_flag);
 
-    void checkBeta (const amrex::MultiFab* const* beta,
-                    int&                          allthere,
-                    int&                          allnull) const;
+    static void checkBeta (const amrex::MultiFab* const* beta,
+			   int&                          allthere,
+			   int&                          allnull);
 
     void checkBeta (const amrex::MultiFab* const* beta,
 		    int&                          allthere) const;
@@ -218,16 +218,17 @@ public:
                               const amrex::MultiFab*              rho,
                               int                                 rho_comp);
     
+    static amrex::Array<amrex::MultiFab,AMREX_SPACEDIM>
+    computeBeta (const amrex::MultiFab* const* beta,
+		 int                           betaComp);
+
+
 protected:
 
     void setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
 
-
-    amrex::Array<amrex::MultiFab,AMREX_SPACEDIM>
-    computeBeta (const amrex::MultiFab* const* beta,
-		 int                           betaComp);
 
     void computeExtensiveFluxes(amrex::MLMG&            a_mg,
 				amrex::MultiFab&        Soln,
