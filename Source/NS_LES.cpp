@@ -111,11 +111,82 @@ tensorop.compVelGrad(0,{grad_Uvel},{Uvel},MLLinOp::Location::FaceCenter);
 
   
   if (LES_model == "Smagorinsky") {
-    amrex::Print() << "\n DEBUG WE DO SMAGORNISKY \n\n";
+    amrex::Print() << "\n DEBUG WE DO SMAGORNISKY with constant " << smago_Cs_cst << "\n\n";
 
-for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-                mu_LES[dir]->setVal(999., 0, mu_LES[dir]->nComp(), mu_LES[dir]->nGrow());
+const auto dx = geom.CellSizeArray();
+ //amrex::Print() << "\n DEBUG geom.CellSizeArray() " << dx[0]  << "\n\n";
+
+FArrayBox fab_tmp;
+for (MFIter mfi(Uvel,true); mfi.isValid(); ++mfi)
+  {
+    Box bx = mfi.tilebox();
+
+// need face-centered tilebox for each direction
+    //D_TERM(const Box& xbx = mfi.tilebox(IntVect::TheDimensionVector(0));,
+    //       const Box& ybx = mfi.tilebox(IntVect::TheDimensionVector(1));,
+    //       const Box& zbx = mfi.tilebox(IntVect::TheDimensionVector(2)););
+
+
+for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+  
+  amrex::Print() << "\n WE ARE IN IDIM " << idim << "\n ";
+  
+                const Box& nbx = mfi.nodaltilebox(idim);
+                Array4<Real      > dst = mu_LES[idim]->array(mfi);
+                Array4<Real      > src = grad_Uvel[idim]->array(mfi);
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, 1, i, j, k, n,
+                {
+                  
+                  Real smag = 0;
+                  for (int i_symij = 0; i_symij < dim_fluxes; ++i_symij)
+                  {
+                    Real symij = src(i,j,k,i_symij) + src(i,j,k,i_symij);
+                    smag += symij * symij;
+                  }
+                  
+                  smag = 0.5 * smag;
+                  
+                  
+                  //amrex::Print() << "\n component 0 " << src(i,j,k,0);
+                  //amrex::Print() << "\n component 1 " << src(i,j,k,1);
+                  //amrex::Print() << "\n component 2 " << src(i,j,k,2);
+                  //amrex::Print() << "\n component 3 " << src(i,j,k,3);
+                 
+                  
+                    dst(i,j,k,n) = pow(smago_Cs_cst * dx[idim],2) * sqrt(smag);
+                });
             }
+
+
+
+//      for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+//
+//        Box ebox = surroundingNodes(bx,dir);
+//        fab_tmp.resize(ebox,1);
+//
+//// HAVE TO MAKE A 4D LOOP HERE see MLTensorOp::compVelGrad
+//
+//        for (int k = 0; k < dim_fluxes; k++)
+//        {
+//          fab_tmp.setVal(200.);
+////          fab_tmp.copy( (*flux[i])[mfi],ebox,k,ebox,0,1);
+////          fab_tmp.mult((enth_edgstate[i])[mfi],ebox,k,0,1);
+//          (*mu_LES[dir])[mfi].plus(fab_tmp,0,0,1);
+//        }
+//      }
+//      
+      
+      
+}
+
+
+VisMF::Write(*mu_LES[0],"mu_LES_x");
+VisMF::Write(*mu_LES[1],"mu_LES_y");
+
+//            for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+//                mu_LES[dir]->setVal(999., 0, mu_LES[dir]->nComp(), mu_LES[dir]->nGrow());
+//            }
 
 
   }

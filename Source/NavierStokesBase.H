@@ -752,7 +752,8 @@ protected:
     //
     static int  do_LES;             // To activate LES modelling
     static int  getLESVerbose;      // Does exactly what it says on the tin
-    static std::string LES_model;          // To choose a LES model 
+    static std::string LES_model;   // To choose a LES model
+    static amrex::Real smago_Cs_cst;       // A parameter for the Smagorinsky model, usually set to 0.18    
     //
     // Member when pressure defined at points in time rather than interval
     //
