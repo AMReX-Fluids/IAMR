@@ -363,6 +363,15 @@ public:      // public access functions
                                     const amrex::Vector<amrex::BCRec>& a_bcs,
                                     const amrex::Geometry& a_geom,
                                     int known_edgestate);
+
+    //
+    // make fluxes area-weighted, i.e. extensive fluxes
+    //
+    void areaWeightFluxes( D_DECL(amrex::MultiFab& a_fx,
+			      amrex::MultiFab& a_fy,
+			      amrex::MultiFab& a_fz),
+		       const int               a_ncomp,
+		       const amrex::Geometry&  a_geom);
 #endif
 
   //================ for debugging purposes this is made public

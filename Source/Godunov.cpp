@@ -22,9 +22,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EB_utils.H>
-//fixme - for debugging only
 #endif
-#include <AMReX_VisMF.H>
 
 #define GEOM_GROW 1
 #define XVEL 0
@@ -1269,11 +1267,9 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
     conv_tmp.setVal(0.0);
 
     Array<MultiFab*,AMREX_SPACEDIM> fluxes;
-    fluxes[0] = &a_fx;
-    fluxes[1] = &a_fy;
-#if (AMREX_SPACEDIM==3)
-    fluxes[2] = &a_fz;
-#endif
+    D_TERM(fluxes[0] = &a_fx;,
+	   fluxes[1] = &a_fy;,
+	   fluxes[2] = &a_fz;);
 
     EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
                          a_geom, already_on_centroids);
@@ -1286,70 +1282,8 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
 
     Gpu::synchronize();
 
-    //
-    // Now we have to return the fluxes multiplied by the area -- We basically return
-    // "intensive" fluxes
-    //
-    const Real*  dx = a_geom.CellSize();
-
-#if ( AMREX_SPACEDIM == 3 )
-    a_fx.mult(dx[1]*dx[2]);
-    a_fy.mult(dx[0]*dx[2]);
-    a_fz.mult(dx[0]*dx[1]);
-#else
-    a_fx.mult(dx[1]);
-    a_fy.mult(dx[0]);
-#endif
-
-    //
-    // Account for "effective areas" for cut cells
-    //
-//    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
-
-    Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
-    areafrac  = ebfactory.getAreaFrac();
-
-    for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        Box bx = mfi.tilebox ();
-
-        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
-        const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
-
-        if ( (flags.getType(amrex::grow(bx,0)) != FabType::covered ) &&
-             (flags.getType(amrex::grow(bx,0)) != FabType::regular ) )
-        {
-
-            D_TERM( const auto& fx = a_fx.array(mfi);,
-                    const auto& fy = a_fy.array(mfi);,
-                    const auto& fz = a_fz.array(mfi););
-
-            D_TERM( const Box ubx = amrex::surroundingNodes(bx,0);,
-                    const Box vbx = amrex::surroundingNodes(bx,1);,
-                    const Box wbx = amrex::surroundingNodes(bx,2););
-
-            D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
-                    const auto& afrac_y = areafrac[1]->array(mfi);,
-                    const auto& afrac_z = areafrac[2]->array(mfi););
-
-            AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
-            AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
-#if (AMREX_SPACEDIM==3)
-            AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
-#endif
-        }
-
-    }
-
-    a_fx.FillBoundary(a_geom.periodicity());
-    a_fy.FillBoundary(a_geom.periodicity());
-#if ( AMREX_SPACEDIM == 3 )
-    a_fz.FillBoundary(a_geom.periodicity());
-#endif
-
+    areaWeightFluxes(D_DECL(a_fx,a_fy,a_fz), a_ncomp, a_geom);
 }
-
-
 
 //
 // Compute
@@ -1408,11 +1342,9 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
     conv_tmp.setVal(0.0);
 
     Array<MultiFab*,AMREX_SPACEDIM> fluxes;
-    fluxes[0] = &a_fx;
-    fluxes[1] = &a_fy;
-#if (AMREX_SPACEDIM==3)
-    fluxes[2] = &a_fz;
-#endif
+    D_TERM( fluxes[0] = &a_fx;,
+	    fluxes[1] = &a_fy;,
+	    fluxes[2] = &a_fz;);
 
     EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
                          a_geom, already_on_centroids);
@@ -1430,65 +1362,88 @@ Godunov::ComputeSyncConvectiveTerm (MultiFab& a_state,
     
     Gpu::synchronize();
 
-    //
-    // Now we have to return the fluxes multiplied by the area -- We basically return
-    // "intensive" fluxes
-    //
-    const Real*  dx = a_geom.CellSize();
+    areaWeightFluxes(D_DECL(a_fx,a_fy,a_fz), a_ncomp, a_geom);
+}
 
+//
+// create area-weighted fluxes, i.e. extensive fluxes
+//
+void
+Godunov::areaWeightFluxes( D_DECL(MultiFab& a_fx,
+				  MultiFab& a_fy,
+				  MultiFab& a_fz),
+			   const int        a_ncomp,
+			   const Geometry&  a_geom)
+{
+    const Real*  dx = a_geom.CellSize();
+    Real area[AMREX_SPACEDIM];
 #if ( AMREX_SPACEDIM == 3 )
-    a_fx.mult(dx[1]*dx[2]);
-    a_fy.mult(dx[0]*dx[2]);
-    a_fz.mult(dx[0]*dx[1]);
+    area[0] = dx[1]*dx[2];
+    area[1] = dx[0]*dx[2];
+    area[2] = dx[0]*dx[1];
 #else
-    a_fx.mult(dx[1]);
-    a_fy.mult(dx[0]);
+    area[0] = dx[1];
+    area[1] = dx[0];
 #endif
 
-    //
-    // Account for "effective areas" for cut cells
-    //
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_fx.Factory());
     Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
     areafrac  = ebfactory.getAreaFrac();
-
-    for (MFIter mfi(a_state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(a_fx,mfi_info); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.tilebox ();
+        Box bx = mfi.tilebox(IntVect(AMREX_D_DECL(0,0,0)));
+	
+	D_TERM( const auto& fx = a_fx.array(mfi);,
+		const auto& fy = a_fy.array(mfi);,
+		const auto& fz = a_fz.array(mfi););
 
-        const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(a_state[mfi]);
-        const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
-
-        if ( (flags.getType(amrex::grow(bx,0)) != FabType::covered ) &&
-             (flags.getType(amrex::grow(bx,0)) != FabType::regular ) )
-        {
-
-            D_TERM( const auto& fx = a_fx.array(mfi);,
-                    const auto& fy = a_fy.array(mfi);,
-                    const auto& fz = a_fz.array(mfi););
-
-            D_TERM( const Box ubx = amrex::surroundingNodes(bx,0);,
-                    const Box vbx = amrex::surroundingNodes(bx,1);,
-                    const Box wbx = amrex::surroundingNodes(bx,2););
-
-            D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
-                    const auto& afrac_y = areafrac[1]->array(mfi);,
-                    const auto& afrac_z = areafrac[2]->array(mfi););
-
-            AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
-            AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
+	D_TERM( const Box ubx = mfi.tilebox(IntVect(AMREX_D_DECL(1,0,0)));,
+		const Box vbx = mfi.tilebox(IntVect(AMREX_D_DECL(0,1,0)));,
+		const Box wbx = mfi.tilebox(IntVect(AMREX_D_DECL(0,0,1))););
+	
+	AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= area[0];});
+	AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= area[1];});
 #if (AMREX_SPACEDIM==3)
-            AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
+	AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= area[2];});
+#endif
+	
+#ifdef AMREX_USE_EB
+	//
+	// Deal with irregular cells 
+	//
+        const EBFArrayBox&     fab = static_cast<EBFArrayBox const&>(a_fx[mfi]);
+        const EBCellFlagFab&   flags = fab.getEBCellFlagFab();
+
+	if ( flags.getType(amrex::grow(bx,0)) == FabType::regular ) continue;
+
+	
+ 	D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
+		const auto& afrac_y = areafrac[1]->array(mfi);,
+		const auto& afrac_z = areafrac[2]->array(mfi););
+	  
+        if ( flags.getType(amrex::grow(bx,0)) != FabType::covered )
+        {
+	  //
+	  // Account for "effective areas" for cut cells
+	  //
+	  AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= afrac_x(i,j,k);});
+	  AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= afrac_y(i,j,k);});
+#if (AMREX_SPACEDIM==3)
+	  AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
 #endif
         }
-
+#endif
     }
 
-    a_fx.FillBoundary(a_geom.periodicity());
-    a_fy.FillBoundary(a_geom.periodicity());
-#if ( AMREX_SPACEDIM == 3 )
-    a_fz.FillBoundary(a_geom.periodicity());
-#endif
-
+    D_TERM( a_fx.FillBoundary(a_geom.periodicity());,
+	    a_fy.FillBoundary(a_geom.periodicity());,
+	    a_fz.FillBoundary(a_geom.periodicity()); );
 }
 
 #endif
