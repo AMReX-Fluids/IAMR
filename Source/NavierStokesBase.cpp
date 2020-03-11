@@ -3600,17 +3600,11 @@ NavierStokesBase::velocity_advection (Real dt)
          Vector<BCRec> math_bcs(AMREX_SPACEDIM);
          math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
 
-         MOL::ComputeAofs(*aofs, 0, AMREX_SPACEDIM, Umf, 0,
+         MOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, Umf, 0,
                           D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                           D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
+                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                           math_bcs, geom  );
-
-         // godunov -> ComputeConvectiveTerm( Umf, 0, *aofs, 0, AMREX_SPACEDIM,
-         //                                   D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-         //                                   D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-         //                                   D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-         //                                   D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
-         //                                   math_bcs, geom, 0 );
 
 	 // don't think this is needed here any more. Godunov sets covered vals now...
          EB_set_covered(*aofs, 0.);

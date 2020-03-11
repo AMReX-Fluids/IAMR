@@ -28,6 +28,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
+#include <iamr_mol.H>
 #endif
 
 #include <AMReX_buildInfo.H>
@@ -496,36 +497,6 @@ NavierStokes::predict_velocity (Real  dt)
       });
     }
 
-#ifdef AMREX_USE_EB
-    // Create reference here for now, even though not using any forcing terms
-    // in velocity extrapolation yet, because will want to use forcing terms later.
-    // fixme ghost cell situation???
-    MultiFab& Gp = *gradp;
-
-    //VisMF::Write(Umf, "U");
-    const Box& domain = geom.Domain();
-
-    Vector<BCRec> math_bc(AMREX_SPACEDIM);
-    math_bc = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
-
-    godunov->ComputeSlopes( Umf, 0,
-                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
-                            AMREX_SPACEDIM, math_bc, domain);
-    //
-    // need to fill ghost cells for slopes here.
-    // vel advection term ugradu uses these slopes (does not recompute in incflo
-    //  scheme) needs 4 ghost cells (comments say 5, but I only see use of 4 max)
-    // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-    //  only allows for periodic for now
-    //
-    D_TERM( m_xslopes.FillBoundary(geom.periodicity());,
-            m_yslopes.FillBoundary(geom.periodicity());,
-            m_zslopes.FillBoundary(geom.periodicity()););
-#else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-    getGradP(Gp, prev_pres_time);
-#endif
-
 
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
     MultiFab& Smf=S_fpi.get_mf();
@@ -557,6 +528,9 @@ NavierStokes::predict_velocity (Real  dt)
     //
     // Non-EB version
     //
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    getGradP(Gp, prev_pres_time);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -720,12 +694,12 @@ NavierStokes::scalar_advection (Real dt,
         Vector<BCRec> math_bcs(num_scalars);
         math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
 
-        godunov -> ComputeConvectiveTerm( Smf, 0, *aofs, fscalar, num_scalars,
-                                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                                          D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-                                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                          D_DECL(xslps, yslps, zslps), 0,
-                                          math_bcs, geom, 0);
+        MOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
+                         D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                         D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
+                         D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                         math_bcs, geom  );
+
         if (do_reflux)
         {
             for (int d(0); d < AMREX_SPACEDIM; d++)

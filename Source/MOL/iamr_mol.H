@@ -16,6 +16,10 @@ namespace MOL {
                                amrex::MultiFab& zedge),
                        int  edge_comp,
                        bool known_edgestate,
+                       D_DECL( amrex::MultiFab& xfluxes,
+                               amrex::MultiFab& yfluxes,
+                               amrex::MultiFab& zfluxes),
+                       int fluxes_comp,
                        amrex::Vector<amrex::BCRec> const& bcs,
                        amrex::Geometry const& geom);
 

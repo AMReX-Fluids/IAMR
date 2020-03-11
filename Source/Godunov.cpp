@@ -1357,6 +1357,25 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
     EB_computeDivergence(conv_tmp, GetArrOfConstPtrs(fluxes),
                          a_geom, already_on_centroids);
 
+    // for (int icomp=0; icomp < a_ncomp; ++icomp)
+    // {
+    //     Print() << "  norm0(div) = "
+    //             << conv_tmp.norm0(icomp, 1, false, true) << " ";
+    // }
+
+    // Print() << std::endl;
+
+    // for (int icomp=0; icomp < AMREX_SPACEDIM; ++icomp)
+    // {
+    //     Print() << " Fluxes for component " << icomp << " of velocity field: "
+    //             << std::endl
+    //             << "  norm0(fx,fy,fz) = "
+    //             << a_fx.norm0(icomp, 0) << " "
+    //             << a_fy.norm0(icomp, 0) << " "
+    //             << a_fz.norm0(icomp, 0) << " "
+    //             << std::endl;
+    // }
+
     // Redistribute divergence
     const amrex::MultiFab* weights;
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_state.Factory());
@@ -1364,6 +1383,14 @@ Godunov::ComputeConvectiveTerm (MultiFab& a_state,
     amrex::single_level_weighted_redistribute( 0, {conv_tmp}, {a_conv}, {*weights}, a_conv_comp, a_ncomp, {a_geom} );
 
     Gpu::synchronize();
+
+    for (int icomp=0; icomp < a_ncomp; ++icomp)
+    {
+        Print() << "  norm0(div) = "
+                << a_conv.norm1(a_conv_comp+icomp, a_geom.periodicity(),true) << " ";
+    }
+
+    Print() << std::endl;
 
     //
     // Now we have to return the fluxes multiplied by the area -- We basically return

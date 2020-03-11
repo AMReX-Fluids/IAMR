@@ -18,6 +18,10 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                            MultiFab& zedge),
                    int  edge_comp,
                    bool known_edgestate,
+                   D_DECL( MultiFab& xfluxes,
+                           MultiFab& yfluxes,
+                           MultiFab& zfluxes),
+                   int fluxes_comp,
                    Vector<BCRec> const& bcs,
                    Geometry const&  geom )
 {
@@ -108,6 +112,19 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute fluxes
                 EB_ComputeFluxes(gbx, D_DECL(fx,fy,fz), D_DECL(u,v,w), D_DECL(xed,yed,zed), ncomp, flag );
 
+                // Copy fluxes to output
+                D_TERM( auto const& xfl = xfluxes.array(mfi, fluxes_comp);,
+                        auto const& yfl = yfluxes.array(mfi, fluxes_comp);,
+                        auto const& zfl = zfluxes.array(mfi, fluxes_comp););
+
+                amrex::ParallelFor(bx, ncomp, [ D_DECL(fx,fy,fz), D_DECL(xfl,yfl,zfl) ]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    D_TERM( xfl( i, j, k, n ) = fx( i, j, k, n );,
+                            yfl( i, j, k, n ) = fy( i, j, k, n );,
+                            zfl( i, j, k, n ) = fz( i, j, k, n ););
+
+                });
 
                 //
                 // Compute divergence and redistribute
@@ -139,6 +156,19 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute fluxes
                 ComputeFluxes(bx, D_DECL(fx,fy,fz), D_DECL(u,v,w), D_DECL(xed,yed,zed), ncomp );
 
+                D_TERM( auto const& xfl = xfluxes.array(mfi, fluxes_comp);,
+                        auto const& yfl = yfluxes.array(mfi, fluxes_comp);,
+                        auto const& zfl = zfluxes.array(mfi, fluxes_comp););
+
+                amrex::ParallelFor(bx, ncomp, [ D_DECL(fx,fy,fz), D_DECL(xfl,yfl,zfl) ]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    D_TERM( xfl( i, j, k, n ) = fx( i, j, k, n );,
+                            yfl( i, j, k, n ) = fy( i, j, k, n );,
+                            zfl( i, j, k, n ) = fz( i, j, k, n ););
+
+                });
+
                 // Compute divergence
                 ComputeDivergence(bx, aofs.array(mfi, aofs_comp), D_DECL(fx,fy,fz), ncomp, geom);
 
@@ -147,6 +177,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
 
         }
+
     }
 
 }
@@ -188,7 +219,6 @@ MOL::ComputeFluxes ( Box const& bx,
     });
 
 #if (AMREX_SPACEDIM==3)
-
     //
     //  z flux
     //
@@ -217,10 +247,10 @@ MOL::ComputeDivergence ( Box const& bx,
     amrex::ParallelFor(bx, ncomp, [ div, D_DECL(fx,fy,fz), dxinv]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-        div(i,j,k,n) = dxinv[0] * (fx(i,j,k,n) - fx(i+1,j,k,n))
-            +          dxinv[1] * (fy(i,j,k,n) - fy(i,j+1,k,n))
+        div(i,j,k,n) = dxinv[0] * (fx(i+1,j,k,n) - fx(i,j,k,n))
+            +          dxinv[1] * (fy(i,j+1,k,n) - fy(i,j,k,n))
 #if (AMREX_SPACEDIM==3)
-            +          dxinv[2] * (fz(i,j,k,n) - fz(i,j,k+1,n))
+            +          dxinv[2] * (fz(i,j,k+1,n) - fz(i,j,k,n))
 #endif
             ;
     });
@@ -247,7 +277,7 @@ MOL::EB_ComputeFluxes ( Box const& bx,
     //
     const Box& xbx = amrex::surroundingNodes(bx,0);
 
-    amrex::ParallelFor(xbx, ncomp, [fx, umac, xedge,flag]
+    amrex::ParallelFor(xbx, ncomp, [fx, umac, xedge, flag]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isConnected(-1,0,0))
@@ -265,7 +295,7 @@ MOL::EB_ComputeFluxes ( Box const& bx,
     //
     const Box& ybx = amrex::surroundingNodes(bx,1);
 
-    amrex::ParallelFor(ybx, ncomp, [fy, vmac, yedge,flag]
+    amrex::ParallelFor(ybx, ncomp, [fy, vmac, yedge, flag]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isConnected(0,-1,0))
@@ -285,7 +315,7 @@ MOL::EB_ComputeFluxes ( Box const& bx,
     //
     const Box& zbx = amrex::surroundingNodes(bx,2);
 
-    amrex::ParallelFor(zbx, ncomp, [fz, wmac, zedge,flag]
+    amrex::ParallelFor(zbx, ncomp, [fz, wmac, zedge, flag]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isConnected(0,0,-1))
@@ -327,20 +357,20 @@ MOL::EB_ComputeDivergence ( Box const& bx,
         }
         else if (flag(i,j,k).isRegular())
         {
-            div(i,j,k,n) = dxinv[0] * (fx(i,j,k,n) - fx(i+1,j,k,n))
-                +          dxinv[1] * (fy(i,j,k,n) - fy(i,j+1,k,n))
+            div(i,j,k,n) = dxinv[0] * (fx(i+1,j,k,n) - fx(i,j,k,n))
+                +          dxinv[1] * (fy(i,j+1,k,n) - fy(i,j,k,n))
 #if (AMREX_SPACEDIM==3)
-                +          dxinv[2] * (fz(i,j,k,n) - fz(i,j,k+1,n))
+                +          dxinv[2] * (fz(i,j,k+1,n) - fz(i,j,k,n))
 #endif
                 ;
         }
         else
         {
             div(i,j,k,n) = (1.0/vfrac(i,j,k)) *
-                (       dxinv[0] * (apx(i,j,k)*fx(i,j,k,n) - apx(i+1,j,k)*fx(i+1,j,k,n))
-                      + dxinv[1] * (apy(i,j,k)*fy(i,j,k,n) - apy(i,j+1,k)*fy(i,j+1,k,n))
+                (       dxinv[0] * (apx(i+1,j,k)*fx(i+1,j,k,n) - apx(i,j,k)*fx(i,j,k,n))
+                      + dxinv[1] * (apy(i,j+1,k)*fy(i,j+1,k,n) - apy(i,j,k)*fy(i,j,k,n))
 #if (AMREX_SPACEDIM==3)
-                      + dxinv[2] * (apz(i,j,k)*fz(i,j,k,n) - apz(i,j,k+1)*fz(i,j,k+1,n))
+                      + dxinv[2] * (apz(i,j,k+1)*fz(i,j,k+1,n) - apz(i,j,k)*fz(i,j,k,n))
 #endif
                     );
 
@@ -367,14 +397,14 @@ MOL::Redistribute (  Box const& bx, int ncomp,
     Box const& bxg1 = amrex::grow(bx,1);
     Box const& bxg2 = amrex::grow(bx,2);
 
-    // xxxxx TODO: more weight options
+    // Weight by EB volume fraction
     amrex::ParallelFor(bxg2, [wgt,dbox,vfrac]
     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
         wgt(i,j,k) = (dbox.contains(IntVect(i,j,k))) ? vfrac(i,j,k) : 0.0;
     });
 
-    amrex::ParallelFor(bxg1, ncomp, [flag, dbox, vfrac, div_in, tmp, delm]
+    amrex::ParallelFor(bxg1, ncomp, [flag, dbox, vfrac, div_in, tmp, delm, wgt]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
         if (flag(i,j,k).isSingleValued()) {
@@ -390,9 +420,9 @@ MOL::Redistribute (  Box const& bx, int ncomp,
                              flag(i,j,k).isConnected(ii,jj,kk) and
                              dbox.contains(IntVect(i+ii,j+jj,k+kk)))
                         {
-                            Real vf = vfrac(i+ii,j+jj,k+kk);
-                            vtot += vf;
-                            divnc += vf * div_in(i+ii,j+jj,k+kk,n);
+                            Real wted_vf = vfrac(i+ii,j+jj,k+kk) * wgt(i+ii,j+jj,k+kk);
+                            vtot += wted_vf;
+                            divnc += wted_vf * div_in(i+ii,j+jj,k+kk,n);
                         }
                     }
                 }
