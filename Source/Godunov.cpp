@@ -1387,6 +1387,8 @@ Godunov::areaWeightFluxes( D_DECL(MultiFab& a_fx,
 #endif
 
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_fx.Factory());
+    const FabArray<EBCellFlagFab>& flagMF = ebfactory.getMultiEBCellFlagFab();
+    
     Array< const MultiCutFab*,AMREX_SPACEDIM> areafrac;
     areafrac  = ebfactory.getAreaFrac();
     
@@ -1413,21 +1415,18 @@ Godunov::areaWeightFluxes( D_DECL(MultiFab& a_fx,
 	AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= area[2];});
 #endif
 	
-#ifdef AMREX_USE_EB
 	//
 	// Deal with irregular cells 
 	//
-        const EBFArrayBox&     fab = static_cast<EBFArrayBox const&>(a_fx[mfi]);
-        const EBCellFlagFab&   flags = fab.getEBCellFlagFab();
-
-	if ( flags.getType(amrex::grow(bx,0)) == FabType::regular ) continue;
-
+        auto fabtyp = flagMF[mfi].getType(bx);
+	
+	if (fabtyp == FabType::regular ) continue;
 	
  	D_TERM( const auto& afrac_x = areafrac[0]->array(mfi);,
 		const auto& afrac_y = areafrac[1]->array(mfi);,
 		const auto& afrac_z = areafrac[2]->array(mfi););
 	  
-        if ( flags.getType(amrex::grow(bx,0)) != FabType::covered )
+	if ( fabtyp != FabType::covered )
         {
 	  //
 	  // Account for "effective areas" for cut cells
@@ -1438,7 +1437,6 @@ Godunov::areaWeightFluxes( D_DECL(MultiFab& a_fx,
 	  AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= afrac_z(i,j,k);});
 #endif
         }
-#endif
     }
 
     D_TERM( a_fx.FillBoundary(a_geom.periodicity());,
