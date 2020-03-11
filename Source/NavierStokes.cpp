@@ -519,11 +519,9 @@ NavierStokes::predict_velocity (Real  dt)
     Vector<BCRec> math_bcs(AMREX_SPACEDIM);
     math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
-    godunov->ExtrapVelToFaces(Umf,
-                              D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                              D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                              geom, math_bcs );
-
+    MOL::ExtrapVelToFaces( Umf,
+                           D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                           geom, math_bcs );
 #else
     //
     // Non-EB version

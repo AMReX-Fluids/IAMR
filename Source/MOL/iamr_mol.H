@@ -55,6 +55,33 @@ namespace MOL {
                                      amrex::Array4<amrex::Real const> const& fz),
                              int ncomp, amrex::Geometry const& geom );
 
+    void ExtrapVelToFaces ( const amrex::MultiFab&  vel,
+                            D_DECL(amrex::MultiFab& umac,
+                                   amrex::MultiFab& vmac,
+                                   amrex::MultiFab& wmac ),
+                            const amrex::Geometry&  a_geom,
+                            const amrex::Vector<amrex::BCRec>& a_bcs );
+
+    void PredictVelOnFaces ( D_DECL( amrex::Box const& ubx,
+                                     amrex::Box const& vbx,
+                                     amrex::Box const& wbx ),
+                             D_DECL( amrex::Array4<amrex::Real> const& u,
+                                     amrex::Array4<amrex::Real> const& v,
+                                     amrex::Array4<amrex::Real> const& w ),
+                             amrex::Array4<amrex::Real const > const& vcc,
+                             const amrex::Geometry&  geom,
+                             const amrex::Vector<amrex::BCRec>& bcs );
+
+    void SetMacBCs ( amrex::Box const& domain,
+                     D_DECL( amrex::Box const& ubx,
+                             amrex::Box const& vbx,
+                             amrex::Box const& wbx ),
+                     D_DECL( amrex::Array4<amrex::Real> const& u,
+                             amrex::Array4<amrex::Real> const& v,
+                             amrex::Array4<amrex::Real> const& w ),
+                     amrex::Array4<amrex::Real const > const& vel,
+                      const amrex::Vector<amrex::BCRec>& bcs );
+
 #ifdef AMREX_USE_EB
     void EB_ComputeEdgeState ( amrex::Box const& bx,
                                D_DECL( amrex::Array4<amrex::Real> const& xedge,
@@ -97,6 +124,22 @@ namespace MOL {
                                 D_DECL( amrex::Array4<amrex::Real const> const& apx,
                                         amrex::Array4<amrex::Real const> const& apy,
                                         amrex::Array4<amrex::Real const> const& apz ) );
+
+    void EB_PredictVelOnFaces ( amrex::Box const& ccbx,
+                                D_DECL( amrex::Box const& ubx,
+                                        amrex::Box const& vbx,
+                                        amrex::Box const& wbx ),
+                                D_DECL( amrex::Array4<amrex::Real> const& u,
+                                        amrex::Array4<amrex::Real> const& v,
+                                        amrex::Array4<amrex::Real> const& w ),
+                                amrex::Array4<amrex::Real const > const& vcc,
+                                amrex::Array4<amrex::EBCellFlag const> const& flag,
+                                D_DECL( amrex::Array4<amrex::Real const> const& fcx,
+                                        amrex::Array4<amrex::Real const> const& fcy,
+                                        amrex::Array4<amrex::Real const> const& fcz),
+                                amrex::Array4<amrex::Real const> const& ccc,
+                                const amrex::Geometry&  geom,
+                                const amrex::Vector<amrex::BCRec>& bcs );
 
     void Redistribute (  amrex::Box const& bx, int ncomp,
                          amrex::Array4<amrex::Real> const& div,

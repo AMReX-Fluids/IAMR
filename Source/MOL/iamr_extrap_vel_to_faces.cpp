@@ -1,10 +1,8 @@
-#include <Godunov.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_iMultiFab.H>
-#include <AMReX_MultiCutFab.H>
-#include <AMReX_EBFabFactory.H>
-#include <AMReX_EBFArrayBox.H>
 #include <NS_util.H>
+#include <iamr_mol.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_MultiCutFab.H>
+#endif
 
 using namespace amrex;
 
@@ -14,15 +12,12 @@ using namespace amrex;
 // The resulting FC velocities are computed at the CENTROID of the face.
 //
 void
-Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
-                            D_DECL( MultiFab& a_umac,
-                                    MultiFab& a_vmac,
-                                    MultiFab& a_wmac ),
-                            D_DECL( MultiFab& a_xslopes,
-                                    MultiFab& a_yslopes,
-                                    MultiFab& a_zslopes),
-                            const Geometry&  a_geom,
-                            const amrex::Vector<amrex::BCRec>& a_bcs )
+MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
+                        D_DECL( MultiFab& a_umac,
+                                MultiFab& a_vmac,
+                                MultiFab& a_wmac ),
+                        const Geometry&  a_geom,
+                        const amrex::Vector<amrex::BCRec>& a_bcs )
 {
     BL_PROFILE("Godunov::ExtrapVelToFaces");
 
@@ -68,16 +63,94 @@ Godunov::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 Array4<Real const> const& fcy = fcent[1]->const_array(mfi);
                 Array4<Real const> const& fcz = fcent[2]->const_array(mfi);
                 Array4<Real const> const& ccc = ccent.const_array(mfi);
-                predict_vels_on_faces_eb(bx,ubx,vbx,wbx,u,v,w,vcc,flagarr,fcx,fcy,fcz,ccc,a_geom,a_bcs);
+
+                MOL::EB_PredictVelOnFaces(bx,ubx,vbx,wbx,u,v,w,vcc,flagarr,fcx,fcy,fcz,ccc,a_geom,a_bcs);
             }
             else
 #endif
             {
-                predict_vels_on_faces(ubx,vbx,wbx,u,v,w,vcc,a_geom,a_bcs);
+                MOL::PredictVelOnFaces(ubx,vbx,wbx,u,v,w,vcc,a_geom,a_bcs);
             }
 
-            iamr_set_mac_bcs(domain,ubx,vbx,wbx,u,v,w,vcc,a_bcs);
+            MOL::SetMacBCs(domain,ubx,vbx,wbx,u,v,w,vcc,a_bcs);
         }
     }
 
+}
+
+void
+MOL::SetMacBCs ( Box const& a_domain,
+                 D_DECL( Box const& a_ubx,
+                         Box const& a_vbx,
+                         Box const& a_wbx ) ,
+                 D_DECL( Array4<Real> const& a_u,
+                         Array4<Real> const& a_v,
+                         Array4<Real> const& a_w ),
+                 Array4<Real const> const& a_vel,
+                 Vector<BCRec> const& a_bcs )
+{
+    int idim = 0;
+    if (a_bcs[idim].lo(idim) == BCType::ext_dir and
+        a_domain.smallEnd(idim) == a_ubx.smallEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryLo(a_ubx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_u(i,j,k) = a_vel(i-1,j,k,0);
+        });
+    }
+
+    if (a_bcs[idim].hi(idim) == BCType::ext_dir and
+        a_domain.bigEnd(idim)+1 == a_ubx.bigEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryHi(a_ubx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_u(i,j,k) = a_vel(i,j,k,0);
+        });
+    }
+
+    idim = 1;
+    if (a_bcs[idim].lo(idim) == BCType::ext_dir and
+        a_domain.smallEnd(idim) == a_vbx.smallEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryLo(a_vbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_v(i,j,k) = a_vel(i,j-1,k,1);
+        });
+    }
+
+    if (a_bcs[idim].hi(idim) == BCType::ext_dir and
+        a_domain.bigEnd(idim)+1 == a_vbx.bigEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryHi(a_vbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_v(i,j,k) = a_vel(i,j,k,1);
+        });
+    }
+
+#if (AMREX_SPACEDIM==3)
+    idim = 2;
+    if (a_bcs[idim].lo(idim) == BCType::ext_dir and
+        a_domain.smallEnd(idim) == a_wbx.smallEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryLo(a_wbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_w(i,j,k) = a_vel(i,j,k-1,2);
+        });
+    }
+
+    if (a_bcs[idim].hi(idim) == BCType::ext_dir and
+        a_domain.bigEnd(idim)+1 == a_wbx.bigEnd(idim))
+    {
+        amrex::ParallelFor(amrex::bdryHi(a_wbx,idim),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            a_w(i,j,k) = a_vel(i,j,k,2);
+        });
+    }
+#endif
 }
