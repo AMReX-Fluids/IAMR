@@ -87,6 +87,7 @@ amr.probin_file 	= probin.2d.CoVo
 ns.getLESVerbose = 1
 ns.do_LES = 1
 ns.LES_model = Smagorinsky
+#ns.LES_model = Sigma
 ns.smago_Cs_cst = 0.18
 
 
