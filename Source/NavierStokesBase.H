@@ -679,19 +679,20 @@ protected:
     // Internal parameters for timestepping.
     //
     static amrex::Real init_shrink;   // reduction factor of first esimated timestep
-    static int  init_iter;     // # of timestep iterations for initial pressure
-    static int  init_vel_iter;     // # of iterations for initial velocity projection
+    static int  init_iter;            // # of timestep iterations for initial pressure
+    static int  init_vel_iter;        // # of iterations for initial velocity projection
     static amrex::Real cfl;           // desired maximum cfl
     static amrex::Real change_max;    // maximum change in dt over a timestep
     static amrex::Real fixed_dt;      // set > 0 to specify dt
-    static bool stop_when_steady; 	  // set to true if simulation should stop at steady-state
+    static amrex::Real init_dt;       // set > 0 to specify initial dt at coarsest level
+    static bool stop_when_steady;     // set to true if simulation should stop at steady-state
     static amrex::Real steady_tol;    // tolerance for assuming steady-state has been reached
-    static int  initial_iter;  // flag for initial pressure iterations
-    static int  initial_step;  // flag for initial iterations
+    static int  initial_iter;         // flag for initial pressure iterations
+    static int  initial_step;         // flag for initial iterations
     static amrex::Real dt_cutoff;     // minimum dt allowed
-    static int  sum_interval;  // number of timesteps for conservation stats
-    static int  turb_interval; // number of timesteps for turbulence stats
-    static int  jet_interval;  // number of timesteps for turbulence stats for the round jet
+    static int  sum_interval;         // number of timesteps for conservation stats
+    static int  turb_interval;        // number of timesteps for turbulence stats
+    static int  jet_interval;         // number of timesteps for turbulence stats for the round jet
     static int  jet_interval_split;  // cell divisor for each dimension in numerical integration
     //
     // Internal parameters for options.

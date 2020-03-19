@@ -36,7 +36,7 @@ const int* boxhi = (box).hiVect();
 
 const Real Projection::BogusValue = 1.e200;
 
-int  Projection::P_code              = 0;
+int  Projection::P_code              = -1;
 int  Projection::proj_2              = 1;
 int  Projection::verbose             = 0;
 Real Projection::proj_tol            = 1.0e-12;
@@ -92,7 +92,11 @@ Projection::Initialize ()
 
     pp.query("proj_2",              proj_2);
     if (!proj_2)
-	amrex::Error("Must use proj_2==1 due to new gravity and outflow stuff. proj_2!=1 no longer supported.");
+	amrex::Abort("Must use proj_2==1 due to new gravity and outflow stuff. proj_2!=1 no longer supported.");
+
+    pp.query("Pcode",               P_code);
+    if (P_code >=0 )
+      amrex::Abort("proj.Pcode is no more. Use nodal_proj.verbose.");
 
     amrex::ExecOnFinalize(Projection::Finalize);
 
@@ -631,12 +635,12 @@ Projection::MLsyncProject (int             c_lev,
     NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[c_lev]);
     ns->average_down(*vel[c_lev+1],*vel[c_lev],0,AMREX_SPACEDIM);
     //
-    // restrict_level(v_crse, v_fine, ratio);
+    // // restrict_level(v_crse, v_fine, ratio);
     // amrex::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
     //                      0, BL_SPACEDIM, ratio);
 
     ns->average_down(*sig[c_lev+1],*sig[c_lev],0,sig[c_lev]->nComp());
-    // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
+    // // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
     // amrex::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
     //                        0, sig[c_lev]->nComp(), ratio);
 
@@ -644,7 +648,6 @@ Projection::MLsyncProject (int             c_lev,
     std::unique_ptr<MultiFab> sync_resid_fine;
 
     if (c_lev > 0 &&  crse_iteration == crse_dt_ratio)
-      //    if (c_lev > 0)
     {
         int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
         sync_resid_fine.reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,ngrow));
@@ -746,10 +749,15 @@ Projection::initialVelocityProject (int  c_lev,
     int lev;
     int f_lev = parent->finestLevel();
 
+    if ( init_vel_iter <= 0 ){
+      if ( verbose ) Print()<<"Returning from initalVelocityProject() without projecting because init_vel_iter<=0\n";
+      return;
+    }
+    
     if (verbose)
     {
         amrex::Print() << "Projection::initialVelocityProject(): levels = " << c_lev
-                       << "  " << f_lev << '\n';
+                       << "-" << f_lev << '\n';
         if (rho_wgt_vel_proj)
             amrex::Print() << "RHO WEIGHTED INITIAL VELOCITY PROJECTION\n";
         else
@@ -779,18 +787,25 @@ Projection::initialVelocityProject (int  c_lev,
             LevelData[lev]->get_old_data(Press_Type).setVal(0.0);
         }
 
+	// MLNodeLaplacian does not take any ghost cells from rhcc or sig.
+	// copies only valid cells and fills ghosts internally.
+	// However, vel and phi are assumed to have 1 ghost cell in MLMG.
+	// set outflow bcs fills vel and phi using 1 ghost cell from sig (holding rho)
+	// and rhcc (holding divu)
+	const int nghost = (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu) ? 1 : 0;
+
         for (lev = c_lev; lev <= f_lev; lev++)
         {
             vel[lev] = &(LevelData[lev]->get_new_data(State_Type));
             phi[lev] = &(LevelData[lev]->get_old_data(Press_Type));
 
-            const int       nghost = 1;
             const BoxArray& grids  = LevelData[lev]->boxArray();
             const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
             sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),LevelData[lev]->Factory()));
 
             if (rho_wgt_vel_proj)
             {
+	      if ( nghost > 0 ){
                 LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
                 AmrLevel& amr_level = parent->getLevel(lev);
@@ -804,13 +819,14 @@ Projection::initialVelocityProject (int  c_lev,
                     amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
                                                     Density,Density,1);
                 }
+	      }
 
-                MultiFab::Copy(*sig[lev],
-                               LevelData[lev]->get_new_data(State_Type),
-                               Density,
-                               0,
-                               1,
-                               nghost);
+	      MultiFab::Copy(*sig[lev],
+			     LevelData[lev]->get_new_data(State_Type),
+			     Density,
+			     0,
+			     1,
+			     nghost);
             }
             else
             {
@@ -819,7 +835,6 @@ Projection::initialVelocityProject (int  c_lev,
         }
 
         Vector<std::unique_ptr<MultiFab> > rhcc(maxlev);
-        const int nghost = 1;
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
@@ -834,11 +849,9 @@ Projection::initialVelocityProject (int  c_lev,
             Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
             for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-            {
+            {	      
                 amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
             }
-            
-
 
             if (have_divu)
             {
@@ -846,38 +859,12 @@ Projection::initialVelocityProject (int  c_lev,
                 if (!LevelData[lev]->isStateVariable("divu", Divu_Type, Divu))
                     amrex::Error("Projection::initialVelocityProject(): Divu not found");
 
-                // The FillBoundary seems unnecessary because
-                // put_divu_in_cc_rhs will call FillPatch.  Moreover, why
-                // does rhcc need to have ghost cells at all?  The solver
-                // could create a temp MF with one ghost cell and it knows
-                // how to properly fill ghost cell.  -- Weiqun
+		NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+		BL_ASSERT(!(ns == 0));
 
-                //
-                // Make sure ghost cells are properly filled.
-                //
-                MultiFab& divu_new = amr_level.get_new_data(Divu_Type);
-                divu_new.FillBoundary();
-
-                Real curr_divu_time_lev = amr_level.get_state_data(Divu_Type).curTime();
-
-                for (MFIter mfi(divu_new); mfi.isValid(); ++mfi)
-                {
-                    amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_divu_time_lev,0,0,1);
-                }
-
-                const BoxArray& grids     = amr_level.boxArray();
-                const DistributionMapping& dmap = amr_level.DistributionMap();
-                // for EB
-                //  rhcc does not need EB data
-                //  since it will be added to rhs and it is rhs that goes to
-                //  the MLMG solver.  rhs carries EB data and that's enough
-                rhcc[lev].reset(new MultiFab(grids,dmap,1,nghost));
-                put_divu_in_cc_rhs(*rhcc[lev],lev,cur_divu_time);
+		rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
             }
         }
-  
-
-  
   
         if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
         {
@@ -892,7 +879,7 @@ Projection::initialVelocityProject (int  c_lev,
         //
         for (lev = c_lev; lev <= f_lev; lev++)
         {
-            scaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
+            scaleVar(INITIAL_VEL,sig[lev].get(),nghost,vel[lev],lev);
         }
 
         //
@@ -928,8 +915,7 @@ Projection::initialVelocityProject (int  c_lev,
         // Unscale initial projection variables.
         //
         for (lev = c_lev; lev <= f_lev; lev++)
-            rescaleVar(INITIAL_VEL,sig[lev].get(),1,vel[lev],lev);
-
+            rescaleVar(INITIAL_VEL,sig[lev].get(),nghost,vel[lev],lev);
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
@@ -946,7 +932,7 @@ Projection::initialVelocityProject (int  c_lev,
         if (verbose)
         {
             amrex::Print() << "After nodal projection:" << std::endl;
-            for (int lev(c_lev); lev <= f_lev; ++lev)
+            for (lev = c_lev; lev <= f_lev; ++lev)
             {
                 amrex::Print() << "  lev " << lev << ": "
 #if (AMREX_SPACEDIM==3)
@@ -1313,26 +1299,6 @@ Projection::initialSyncProject (int       c_lev,
 
 	amrex::Print() << "Projection::initialSyncProject(): time: " << run_time << '\n';
     }
-}
-
-//
-// Put S in the rhs of the projector--cell based version.
-//
-
-void
-Projection::put_divu_in_cc_rhs (MultiFab&       rhs,
-                                int             level,
-                                Real            time)
-{
-    rhs.setVal(0);
-
-    NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
-
-    BL_ASSERT(!(ns == 0));
-
-    std::unique_ptr<MultiFab> divu (ns->getDivCond(1,time));
-
-    MultiFab::Copy(rhs,*divu,0,0,1,rhs.nGrow());
 }
 
 //
@@ -2100,8 +2066,6 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
     const int ncStripWidth = 1;
 
-    //FIXME??
-    // For big enough problems, perhaps these should be boxArrays?
     FArrayBox  rho[2*BL_SPACEDIM];
     FArrayBox dsdt[2*BL_SPACEDIM];
     FArrayBox dudt[1][2*BL_SPACEDIM];
@@ -2120,8 +2084,8 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
 	Box phi_strip =
             amrex::surroundingNodes(amrex::bdryNode(domain,
-                                                      outFacesAtThisLevel[iface],
-                                                      ncStripWidth));
+						    outFacesAtThisLevel[iface],
+						    ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
         phi_fine_strip[iface].setVal(0.);
     }
@@ -2221,9 +2185,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 {
     BL_PROFILE("Projection:::doMLMGNodalProjection()");
 
-    amrex::Print() << "doMLMGNodalProjection: performing nodal projection using NodalProjector object"
-                   << std::endl;
-
     int f_lev = c_lev + nlevel - 1;
 
     Vector<MultiFab> vel_test(nlevel);
@@ -2233,8 +2194,9 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     BL_ASSERT(vel[f_lev]->nGrow() >= 1);
     BL_ASSERT(phi[c_lev]->nGrow() == 1);
     BL_ASSERT(phi[f_lev]->nGrow() == 1);
-    BL_ASSERT(sig[c_lev]->nGrow() == 1);
-    BL_ASSERT(sig[f_lev]->nGrow() == 1);
+    // MLMG does not copy any ghost cells from sig
+    // BL_ASSERT(sig[c_lev]->nGrow() == 1);
+    // BL_ASSERT(sig[f_lev]->nGrow() == 1);
 
     BL_ASSERT(sig[c_lev]->nComp() == 1);
     BL_ASSERT(sig[f_lev]->nComp() == 1);
@@ -2343,7 +2305,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         rhcc_rebase.assign(rhcc.begin()+c_lev, rhcc.begin()+c_lev+nlevel);
     }
 
-
     // Setup nodal projector object
     NodalProjector  nodal_projector(vel_rebase, GetVecOfConstPtrs(sigma_rebase), mg_geom, info, rhcc_rebase, rhnd_rebase);
     nodal_projector.setDomainBC(mlmg_lobc, mlmg_hibc);
@@ -2360,7 +2321,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     nodal_projector.getLinOp().setGaussSeidel(use_gauss_seidel);
     nodal_projector.getLinOp().setHarmonicAverage(use_harmonic_average);
     nodal_projector.getMLMG().setMaxFmgIter(max_fmg_iter);
-    nodal_projector.getMLMG().setVerbose(P_code);
 
     if (max_mlmg_iter > 0)
         nodal_projector.getMLMG().setMaxIter(max_mlmg_iter);
@@ -2375,8 +2335,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     nodal_projector.project(phi_rebase,rel_tol,abs_tol);
-
-
+    
 #ifdef AMREX_USE_EB
         Vector< NavierStokesBase* > ns(nlevel);
         Vector< MultiFab* > Gp(nlevel);

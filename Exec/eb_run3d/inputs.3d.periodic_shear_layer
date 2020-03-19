@@ -9,7 +9,7 @@ amr.probin_file 	= probin.3d.periodic_shear_layer
 # WHEN SHOULD THE SIMULATION STOP?
 #*******************************************************************************
 # Maximum number of timesteps to be taken, if stop_time is not reached first.
-max_step 				= 1
+max_step 				= 5
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= 2.0
 # Stop simulation when we reach steady-state?
@@ -44,8 +44,8 @@ ns.scal_diff_coefs   	= 0 #.01
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 			= 16 16 16 #32 32 32 #64 64 64
-amr.max_grid_size		= 64
+amr.n_cell 			= 32 32 32 #64 64 64 #16 16 16 #
+#amr.max_grid_size		= 64
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   	=  0
@@ -83,7 +83,7 @@ ns.hi_bc   	         	= 0 0 0
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		 	= 1
+amr.max_level		 	= 0
 # Refinement criterion
 ns.do_tracer_ref 		= 1
 # Interval (in number of level l timesteps) between regridding
@@ -124,7 +124,7 @@ amr.v 	            	= 1 	# AMR (top-level)
 ns.v  	            	= 1 	# NavierStokes
 diffuse.v 	       	= 1 	# Diffusion
 proj.v 	            	= 1 	# Projection
-proj.Pcode              = 1
+nodal_proj.verbose              = 1
 cg.v  	            	= 1 	# ConjugateGradient
 mlmg.v 	            	= 1 	# MultiGrid
 

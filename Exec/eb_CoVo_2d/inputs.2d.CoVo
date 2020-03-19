@@ -18,7 +18,7 @@ proj.consolidation   = 0
 ns.v                    = 1
 amr.v                   = 1
 proj.v = 1
-proj.Pcode = 2
+nodal_proj.verbose = 2
 mg.v = 1
 mg.verbose_linop = 10
 

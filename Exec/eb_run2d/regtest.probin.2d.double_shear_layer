@@ -3,7 +3,6 @@
   probtype = 5
   xblob = 0.
   yblob = 0.
-  zblob= 0.
   radblob = 0.4
   denfact = 1.0
   adv_dir = 0

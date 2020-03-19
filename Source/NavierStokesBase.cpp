@@ -31,6 +31,7 @@ int  NavierStokesBase::init_iter          = 2;
 int  NavierStokesBase::init_vel_iter      = 1;
 Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;
+Real NavierStokesBase::init_dt            = -1.0;
 Real NavierStokesBase::fixed_dt           = -1.0;
 bool NavierStokesBase::stop_when_steady   = false;
 Real NavierStokesBase::steady_tol         = 1.0e-10;
@@ -369,6 +370,7 @@ NavierStokesBase::Initialize ()
     pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
+    pp.query("init_dt", init_dt);
     pp.query("stop_when_steady",stop_when_steady);
     pp.query("steady_tol",steady_tol);
     pp.query("sum_interval",sum_interval);
@@ -464,9 +466,9 @@ NavierStokesBase::Initialize ()
     pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
     pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
-    //
+    
     // Are we going to do velocity or momentum update?
-    //
+    
     pp.query("do_mom_diff",do_mom_diff);
     pp.query("predict_mom_together",predict_mom_together);
 
@@ -656,14 +658,15 @@ NavierStokesBase::advance_setup (Real time,
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_USE_EB
-   umac_n_grow = 4;
+    // incflo now uses: use_godunov ? 4 : 3;
+    umac_n_grow = 4;
 #else
     umac_n_grow = 1;
 #endif
 
 #ifdef AMREX_PARTICLES
-    if (ncycle >= 1)
-        umac_n_grow = ncycle;
+    if (ncycle > umac_n_grow)
+      umac_n_grow = ncycle;
 #endif
 
     mac_projector->setup(level);
@@ -1418,9 +1421,40 @@ NavierStokesBase::estTimeStep ()
     //
     // Reduce estimated dt by CFL factor and find global min
     //
-    estdt = estdt * cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
 
+    if ( estdt < 1.0e+20) {
+      //
+      // timestep estimation successful
+      //
+      estdt = estdt * cfl;
+    }
+    else if (init_dt > 0 ) {
+      //
+      // use init_dt, scale for amr level 
+      //
+      Real factor = 1.0;
+
+      if (!(level == 0))
+      {
+	int ratio = 1;
+	for (int lev = 1; lev <= level; lev++)
+	{
+	  ratio *= parent->nCycle(lev);
+	}
+	factor = 1.0/double(ratio);
+      }
+      
+      estdt = factor*init_dt;
+    }
+    else {
+      Print()<<"\nNavierStokesBase::estTimeStep() failed to provide a good timestep "
+	     <<"(probably because initial velocity field is zero with no external forcing).\n"
+	     <<"Use ns.init_dt to provide a reasonable timestep on coarsest level.\n"
+	     <<"Note that ns.init_shrink will be applied to init_dt."<<std::endl;
+      amrex::Abort("\n");
+    }
+    
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -1432,6 +1466,17 @@ NavierStokesBase::estTimeStep ()
             amrex::Print() << u_max[k] << "  ";
         }
 	amrex::Print() << '\n';
+	  
+	if (getForceVerbose){
+	  ParallelDescriptor::ReduceRealMax(f_max.dataPtr(), AMREX_SPACEDIM, IOProc);
+	  amrex::Print() << "        FMAX = ";
+	  for (int k = 0; k < AMREX_SPACEDIM; k++)
+	  {
+            amrex::Print() << f_max[k] << "  ";
+	  }
+	  amrex::Print() << '\n';
+	}
+	Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
     }
 
     return estdt;
@@ -1963,12 +2008,11 @@ NavierStokesBase::init_additional_state_types ()
 Real
 NavierStokesBase::initialTimeStep ()
 {
-  Real returnDt = init_shrink*estTimeStep();
+    Real returnDt = init_shrink*estTimeStep();
 
-  amrex::Print() << "Multiplying dt by init_shrink; dt = "
-		 << returnDt << '\n';
-
-  return returnDt;
+    amrex::Print() << "Multiplying dt by init_shrink: dt = "
+		   << returnDt << '\n';
+    return returnDt;
 }
 
 //
@@ -2474,7 +2518,7 @@ NavierStokesBase::post_init_state ()
 
     //
     // Make sure we're not trying to use ref_ratio=4
-    // Fortran multigrid has a problem and MLMG does not support rr=4 yet
+    // MLMG does not support rr=4 yet
     //
     // Derived class PeleLM seems to also use this function , so it's a
     // convienient place for the test, even though it's not the most
@@ -2485,8 +2529,7 @@ NavierStokesBase::post_init_state ()
       const int rr = parent->MaxRefRatio(i);
       if (rr == 4)
       {
-	  Print()<<"Refinement ratio of 4 not currently supported.\n";
-	  exit(0);
+	amrex::Abort("Refinement ratio of 4 not currently supported.\n");
       }
     }
 
@@ -2510,7 +2553,6 @@ NavierStokesBase::post_init_state ()
       //
       // Do sync project to define divergence free velocity field.
       //
-
       if (verbose) amrex::Print() << "calling initialVelocityProject" << std::endl;
 
       projector->initialVelocityProject(0,divu_time,have_divu,init_vel_iter);
@@ -2525,20 +2567,26 @@ NavierStokesBase::post_init_state ()
     //
     for (int k = finest_level-1; k>= 0; k--)
     {
-        getLevel(k).avgDown();
+      getLevel(k).avgDown();
     }
     make_rho_curr_time();
 
-    if (do_init_proj && projector && (std::fabs(gravity)) > 0.)
-        //
-        // Do projection to establish initially hydrostatic pressure field.
-        //
-        projector->initialPressureProject(0);
+    if (do_init_proj && projector && (std::fabs(gravity)) > 0.){
+      //
+      // Do projection to establish initially hydrostatic pressure field.
+      //
+      if (verbose) amrex::Print() << "calling initialPressureProject" << std::endl;
 
-    // make sure there's not NANs in pressure field
+      projector->initialPressureProject(0);
+
+      if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
+    }
+    // make sure there's not NANs in old pressure field
+    // end up with P_old = P_new as is the case when exiting initialPressureProject
     if(!do_init_proj){
-      MultiFab& press=get_old_data(Press_Type);
-      press.setVal(0.);
+      MultiFab& p_old=get_old_data(Press_Type);
+      MultiFab& p_new=get_new_data(Press_Type);
+      MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
     }
 
 }
@@ -3240,8 +3288,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 
 #ifdef AMREX_USE_EB
-    //FIXME
-    // rather than creating this flags, would it be better to just create fdata MF?
+    //FIXME?
     // there's currently no way to reassign the EBCellFlagFab for a EBFArrayBox,
     // so the non-EB strategy of creating one FAB and resizing it for MFiters doens't work
     const FabArray<EBCellFlagFab>& flags = dynamic_cast<EBFArrayBoxFactory const&>(getLevel(f_lev).Factory()).getMultiEBCellFlagFab();
@@ -3344,10 +3391,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
 
     BoxArray crse_ba(N);
 
-#ifdef AMREX_USE_EB
-    amrex::Abort("NavierStokesBase::SyncProjInterp():: Multilevel currently under development. Run with amr.max_level <= 1 \n");
-#endif
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3359,10 +3402,26 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Geometry& fgeom   = parent->Geom(f_lev);
     const Geometry& cgeom   = parent->Geom(c_lev);
 
-    // causes problems
-    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),getLevel(c_lev).Factory());
+#ifdef AMREX_USE_EB
+    // I am unsure of EBSupport and ng (set to 1 here)
+    // need 1 ghost cell to use EB_set_covered on nodal MF
+    // Factory is always CC, regardless of status of crse_ba
+    auto factory = makeEBFabFactory(cgeom,crse_ba,P_new.DistributionMap(),{1,1,1},EBSupport::basic);
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),*factory);
+
+#else
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0);
+#endif
+
     crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
+
+#ifdef AMREX_USE_EB
+    // FIXME - 
+    // For now, just zero covered fine cells. Better interpolation to come...
+    ///
+    EB_set_covered(crse_phi,0.);
+#endif
 
     NavierStokesBase& fine_lev        = getLevel(f_lev);
     const Real    cur_fine_pres_time  = fine_lev.state[Press_Type].curTime();
@@ -3423,6 +3482,12 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         }
       }
     }
+#ifdef AMREX_USE_EB
+    // FIXME? - this can probably go after new interpolation is implemented
+    EB_set_covered(P_new,0.);
+    EB_set_covered(P_old,0.);
+#endif
+
 }
 
 std::string

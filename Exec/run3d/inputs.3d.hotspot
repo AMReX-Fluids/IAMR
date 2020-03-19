@@ -58,7 +58,7 @@ ns.v                    = 1
 diffuse.v = 0
 mac.v =0
 proj.v=1
-proj.Pcode = 0
+nodal_proj.verbose = 0
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
@@ -102,7 +102,7 @@ ns.gravity              = -9.8
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.3d.hotspot
+amr.probin_file 	= regtest.probin.3d.hotspot
 
 #*******************************************************************************
 

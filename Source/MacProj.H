@@ -149,14 +149,12 @@ protected:
     int        finest_level_allocated;
 
     static int  verbose;
-    static bool  use_cg_solve;
     static int  do_outflow_bcs;
     static amrex::Real mac_tol;
     static amrex::Real mac_abs_tol;
     static amrex::Real mac_sync_tol;
     static int  check_umac_periodicity;
     static int fix_mac_sync_rhs;
-    static int use_mlmg_solver;
 };
 
 #endif

@@ -3,15 +3,12 @@
 # INPUTS.3D.HOTSPOT - hot bubble rising
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 5
+max_step 		= 10
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
@@ -26,8 +23,7 @@ ns.do_derefine_outflow = 0
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 32 32 32
-#amr.max_grid_size	= 16
+amr.n_cell 		= 32 32 32 #128 128 128 #
 
 #*******************************************************************************
 
@@ -48,10 +44,7 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-diffuse.v = 0
-mac.v =0
-proj.v=1
-proj.Pcode = 0
+
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
@@ -60,12 +53,12 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= 10 
+amr.check_int		= 100 
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 10
+amr.plot_int		= 100
 
 #*******************************************************************************
 
@@ -75,7 +68,7 @@ ns.cfl                  = 0.5  # CFL number used to set dt
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 0.3  # factor which multiplies the very first time step
+ns.init_shrink          = 0.5  # factor which multiplies the very first time step
 
 #*******************************************************************************
 
@@ -99,6 +92,13 @@ amr.probin_file 	= regtest.probin.3d.hotspot
 
 #*******************************************************************************
 
+# Embedded Boundary options
+#eb2.geom_type    =  all_regular
+eb2.geom_type     = sphere
+eb2.sphere_radius = 0.25
+eb2.sphere_center =  -0.001 0.0 1.0
+eb2.sphere_has_fluid_inside = 0
+
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
@@ -113,7 +113,7 @@ geometry.prob_hi     =  1. 1. 2.
 #*******************************************************************************
 
 #Set to 1 if periodic in that direction
-geometry.is_periodic =  0 0 0
+geometry.is_periodic = 0 0 0
 
 #*******************************************************************************
 
@@ -129,28 +129,21 @@ ns.hi_bc             = 4 5 2
 
 #*******************************************************************************
 
-# Embedded boundary geometry type
-#eb2.geom_type    =  all_regular
-eb2.geom_type = cylinder
-eb2.cylinder_direction = 1
-eb2.cylinder_radius = 0.25
-eb2.cylinder_center = 0.0  0.0  1.25 #1.75
-eb2.cylinder_height = -1.0
-eb2.cylinder_has_fluid_inside = 0
-
-#*******************************************************************************
-
-# For solver reasons, use multigrid iterations as the bottom solve.
-# mg.usecg = 1
-
-#*******************************************************************************
-
 # Factor by which grids must be coarsenable.
 amr.blocking_factor     = 4
 
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
+amr.derive_plot_vars = NONE
+
+#*******************************************************************************
+#            for testing                
+#*******************************************************************************
+
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
+amr.plt_ccse_regtest    =   1
 
 #*******************************************************************************

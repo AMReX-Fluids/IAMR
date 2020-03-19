@@ -143,7 +143,7 @@ godunov.slope_order = 4
 #proj.proj_tol       = 1.0e-10  # tolerence for projections
 #proj.sync_tol       = 1.0e-9  # tolerence for projections
 #proj.rho_wgt_vel_proj = 1      # 0 => const den proj, 1 => rho weighted
-#proj.Pcode          = 1
+#nodal_proj.verbose          = 1
 #proj.filter_factor  = 0.0
 #proj.do_outflow_bcs = 1
 #proj.divu_minus_s_factor = .5
