@@ -40,7 +40,6 @@ int  MacProj::verbose;
 Real MacProj::mac_tol;
 Real MacProj::mac_abs_tol;
 Real MacProj::mac_sync_tol;
-bool MacProj::use_cg_solve;
 int  MacProj::do_outflow_bcs;
 int  MacProj::fix_mac_sync_rhs;
 int  MacProj::check_umac_periodicity;
@@ -65,7 +64,6 @@ MacProj::Initialize ()
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
     MacProj::mac_sync_tol           = 1.0e-8;
-    MacProj::use_cg_solve           = false;
     MacProj::do_outflow_bcs         = 1;
     MacProj::fix_mac_sync_rhs       = 0;
     //
@@ -83,7 +81,6 @@ MacProj::Initialize ()
     pp.query("mac_tol",                mac_tol);
     pp.query("mac_abs_tol",            mac_abs_tol);
     pp.query("mac_sync_tol",           mac_sync_tol);
-    pp.query("use_cg_solve",           use_cg_solve);
     pp.query("benchmarking",           benchmarking);
     pp.query("do_outflow_bcs",         do_outflow_bcs);
     pp.query("fix_mac_sync_rhs",       fix_mac_sync_rhs);

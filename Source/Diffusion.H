@@ -250,9 +250,6 @@ protected:
     //
     // Static data.
     //
-    static bool        use_mg_precond_flag;
-    static int         use_mlmg_solver;
-    static int         use_cg_solve;
     static int         scale_abec;
     static amrex::Vector<int>  is_diffusive;    // Does variable diffuse?
     static amrex::Vector<amrex::Real> visc_coef;       // Const coef viscosity terms
@@ -272,7 +269,6 @@ private:
     // Static data.
     //
     static int         do_reflux;
-    static int         use_tensor_cg_solve;
     static int         max_order;
     static int         tensor_max_order;
 };
