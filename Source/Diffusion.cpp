@@ -483,15 +483,15 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         {
             const Box& box = Smfi.tilebox();
             tmpfab.resize(box,1);
-            tmpfab.copy((*S_new[0])[Smfi],box,sigma,box,0,1);
-            tmpfab.minus((*S_old[0])[Smfi],box,sigma,0,1);
-            (*S_new[0])[Smfi].minus(tmpfab,box,0,sigma,1); // Remove this term from S_new
-            tmpfab.mult(1.0/dt,box,0,1);
+            tmpfab.copy<RunOn::Host>((*S_new[0])[Smfi],box,sigma,box,0,1);
+            tmpfab.minus<RunOn::Host>((*S_old[0])[Smfi],box,sigma,0,1);
+            (*S_new[0])[Smfi].minus<RunOn::Host>(tmpfab,box,0,sigma,1); // Remove this term from S_new
+            tmpfab.mult<RunOn::Host>(1.0/dt,box,0,1);
             if (rho_flag == 1)
-              tmpfab.mult(rho_half[Smfi],box,0,0,1);
+              tmpfab.mult<RunOn::Host>(rho_half[Smfi],box,0,0,1);
             if (alpha_in!=0)
-              tmpfab.mult((*alpha_in)[Smfi],box,alpha_in_comp+icomp,0,1);
-            Rhs[Smfi].plus(tmpfab,box,0,rhsComp+icomp,1);
+              tmpfab.mult<RunOn::Host>((*alpha_in)[Smfi],box,alpha_in_comp+icomp,0,1);
+            Rhs[Smfi].plus<RunOn::Host>(tmpfab,box,0,rhsComp+icomp,1);
 	}
       }
       }
@@ -510,12 +510,12 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         {
             const Box& box = mfi.tilebox();
             tmpfab.resize(box,1);
-            tmpfab.copy((*delta_rhs)[mfi],box,rhsComp+icomp,box,0,1);
-            tmpfab.mult(dt,box,0,1);
-            Rhs[mfi].plus(tmpfab,box,0,0,1);
+            tmpfab.copy<RunOn::Host>((*delta_rhs)[mfi],box,rhsComp+icomp,box,0,1);
+            tmpfab.mult<RunOn::Host>(dt,box,0,1);
+            Rhs[mfi].plus<RunOn::Host>(tmpfab,box,0,0,1);
 
             if (rho_flag == 1)
-              Rhs[mfi].mult(rho_half[mfi],box,0,0);
+              Rhs[mfi].mult<RunOn::Host>(rho_half[mfi],box,0,0);
 	}
       }
       }
@@ -535,12 +535,12 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       {
 	const Box& box = mfi.tilebox();
 	if (rho_flag == 1)
-	  Soln[mfi].mult(rho_half[mfi],box,0,0,1);
+	  Soln[mfi].mult<RunOn::Host>(rho_half[mfi],box,0,0,1);
 	if (rho_flag == 3)
-	  Soln[mfi].mult((*Rho_old[0])[mfi],box,Rho_comp,0,1);
+	  Soln[mfi].mult<RunOn::Host>((*Rho_old[0])[mfi],box,Rho_comp,0,1);
 	if (alpha_in!=0)
-	  Soln[mfi].mult((*alpha_in)[mfi],box,alpha_in_comp+icomp,0,1);
-	Rhs[mfi].plus(Soln[mfi],box,0,0,1);
+	  Soln[mfi].mult<RunOn::Host>((*alpha_in)[mfi],box,alpha_in_comp+icomp,0,1);
+	Rhs[mfi].plus<RunOn::Host>(Soln[mfi],box,0,0,1);
       }
 
       //
@@ -603,7 +603,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 #pragma omp parallel
 #endif
         for (MFIter Smfi(*S_new[0],true); Smfi.isValid(); ++Smfi) {
-                (*S_new[0])[Smfi].mult((*Rho_new[0])[Smfi],Smfi.tilebox(),Rho_comp,sigma,1);
+                (*S_new[0])[Smfi].mult<RunOn::Host>((*Rho_new[0])[Smfi],Smfi.tilebox(),Rho_comp,sigma,1);
         }
      }
 
@@ -864,19 +864,19 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         //                     or time n   (if rho_flag==3).
         //
         if (rho_flag == 1)
-          Ufab.mult(rho_half[Rhsmfi],bx,0,sigma,1);
+          Ufab.mult<RunOn::Host>(rho_half[Rhsmfi],bx,0,sigma,1);
         if (rho_flag == 3)
-          Ufab.mult((navier_stokes->rho_ptime)[Rhsmfi],bx,0,sigma,1);
+          Ufab.mult<RunOn::Host>((navier_stokes->rho_ptime)[Rhsmfi],bx,0,sigma,1);
         //
         // Add to Rhs which contained operator applied to U_old.
         //
-        rhsfab.plus(Ufab,bx,sigma,comp,1);
+        rhsfab.plus<RunOn::Host>(Ufab,bx,sigma,comp,1);
 
         if (delta_rhs != 0)
         {
           FArrayBox& deltafab = (*delta_rhs)[Rhsmfi];
-          deltafab.mult(dt,bx,comp+rhsComp,1);
-          rhsfab.plus(deltafab,bx,comp+rhsComp,comp,1);
+          deltafab.mult<RunOn::Host>(dt,bx,comp+rhsComp,1);
+          rhsfab.plus<RunOn::Host>(deltafab,bx,comp+rhsComp,comp,1);
         }
       }
     }
@@ -1128,9 +1128,9 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
         for (int comp = 0; comp < BL_SPACEDIM; comp++)
         {
             if (rho_flag == 1)
-                rhs.mult(rho,bx,0,comp,1);
+                rhs.mult<RunOn::Host>(rho,bx,0,comp,1);
             if (rho_flag == 3)
-                rhs.mult(prho,bx,0,comp,1);
+                rhs.mult<RunOn::Host>(prho,bx,0,comp,1);
         }
     }
 
@@ -1262,8 +1262,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     {
         FluxBoxes fb(navier_stokes, BL_SPACEDIM);
         MultiFab** tensorflux = fb.get();
-	std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(tensorflux[0], tensorflux[1], tensorflux[2])};
-
 	const Geometry& geom   = navier_stokes->Geom();
 	//
         // The extra factor of dt comes from the fact that Vsync looks
@@ -1401,11 +1399,11 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
       const Box& bx = Rhsmfi.tilebox();
-      Rhs[Rhsmfi].mult(volume[Rhsmfi],bx,0,0);
+      Rhs[Rhsmfi].mult<RunOn::Host>(volume[Rhsmfi],bx,0,0);
       if (rho_flag == 1) {
-        Rhs[Rhsmfi].mult(rho_half[Rhsmfi],bx,0,0);
+        Rhs[Rhsmfi].mult<RunOn::Host>(rho_half[Rhsmfi],bx,0,0);
       }
-      Rhs[Rhsmfi].mult(rhsscale,bx);
+      Rhs[Rhsmfi].mult<RunOn::Host>(rhsscale,bx);
     }
 
     mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
@@ -1442,7 +1440,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 #endif
         for (MFIter Ssyncmfi(Ssync,true); Ssyncmfi.isValid(); ++Ssyncmfi)
         {
-            Ssync[Ssyncmfi].mult(S_new[Ssyncmfi],Ssyncmfi.tilebox(),Density,sigma,1);
+            Ssync[Ssyncmfi].mult<RunOn::Host>(S_new[Ssyncmfi],Ssyncmfi.tilebox(),Density,sigma,1);
         }
     }
 
@@ -1524,7 +1522,6 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
 				  const Geometry* a_geom, const Real fac )
 {
     BL_ASSERT(flux[0]->nGrow()==0);
-    int nghost = 0;
       
     AMREX_D_TERM(MultiFab flxx(*flux[0], amrex::make_alias, fluxComp, ncomp);,
 		 MultiFab flxy(*flux[1], amrex::make_alias, fluxComp, ncomp);,
@@ -1547,14 +1544,13 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
     // }
 
     const Real*  dx = a_geom->CellSize();
-    Real area[AMREX_SPACEDIM];
 #if ( AMREX_SPACEDIM == 3 )
-    area[0] = dx[1]*dx[2];
-    area[1] = dx[0]*dx[2];
-    area[2] = dx[0]*dx[1];
+    Real areax = dx[1]*dx[2];
+    Real areay = dx[0]*dx[2];
+    Real areaz = dx[0]*dx[1];
 #else
-    area[0] = dx[1];
-    area[1] = dx[0];
+    Real areax = dx[1];
+    Real areay = dx[0];
 #endif
 
 #ifdef AMREX_USE_EB
@@ -1590,10 +1586,10 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
 // 	AMREX_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*a_z(i,j,k);});
 // #endif
 
-	AMREX_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*area[0];});
-	AMREX_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*area[1];});
+	AMREX_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax;});
+	AMREX_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*areay;});
 #if (AMREX_SPACEDIM==3)
-	AMREX_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*area[2];});
+	AMREX_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*areaz;});
 #endif
 	
 #ifdef AMREX_USE_EB

@@ -513,7 +513,7 @@ MacProj::mac_sync_solve (int       level,
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
-            Rhs[Rhsmfi].setVal(0.0,isects[ii].second,0);
+            Rhs[Rhsmfi].setVal<RunOn::Host>(0.0,isects[ii].second,0);
         }
     }
 
@@ -757,7 +757,7 @@ MacProj::mac_sync_compute (int                   level,
             //
             // Get needed data.
             //
-            Rho.copy(S,Density,0,1);
+            Rho.copy<RunOn::Host>(S,Density,0,1);
 
             ns_level.getForce(tforces,bx,1,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
 
@@ -800,10 +800,10 @@ MacProj::mac_sync_compute (int                   level,
 
                     if (do_mom_diff == 1 && comp < BL_SPACEDIM)
                     {
-                        rhoS.copy(Smf[Smfi],gbx,comp,gbx,comp,1);
-                        rhoS.mult(Smf[Smfi],gbx,gbx,Density,comp,1);
+                        rhoS.copy<RunOn::Host>(Smf[Smfi],gbx,comp,gbx,comp,1);
+                        rhoS.mult<RunOn::Host>(Smf[Smfi],gbx,gbx,Density,comp,1);
                         Sp = &rhoS;
-                        tforces.mult(Smf[Smfi],tforces.box(),tforces.box(),Density,comp,1);
+                        tforces.mult<RunOn::Host>(Smf[Smfi],tforces.box(),tforces.box(),Density,comp,1);
                     }
                     else
                     {
@@ -833,7 +833,7 @@ MacProj::mac_sync_compute (int                   level,
                     {
                         for (int d = 0; d < BL_SPACEDIM; d++){
                             const Box& ebx = Smfi.nodaltilebox(d);
-                            fluxes[d][Smfi].copy(flux[d],ebx,0,ebx,comp,1);
+                            fluxes[d][Smfi].copy<RunOn::Host>(flux[d],ebx,0,ebx,comp,1);
                         }
                     }
                 }
@@ -923,9 +923,9 @@ MacProj::mac_sync_compute (int                    level,
                    flux[1].resize(amrex::surroundingNodes(bx,1),1);,
                    flux[2].resize(amrex::surroundingNodes(bx,2),1););
 
-            D_TERM(flux[0].copy((*sync_edges[0])[Syncmfi],eComp,0,1);,
-                   flux[1].copy((*sync_edges[1])[Syncmfi],eComp,0,1);,
-                   flux[2].copy((*sync_edges[2])[Syncmfi],eComp,0,1););
+            D_TERM(flux[0].copy<RunOn::Host>((*sync_edges[0])[Syncmfi],eComp,0,1);,
+                   flux[1].copy<RunOn::Host>((*sync_edges[1])[Syncmfi],eComp,0,1);,
+                   flux[2].copy<RunOn::Host>((*sync_edges[2])[Syncmfi],eComp,0,1););
 
             int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
 
@@ -949,7 +949,7 @@ MacProj::mac_sync_compute (int                    level,
             {
                 for (int d = 0; d < BL_SPACEDIM; d++){
                     const Box& ebx = Syncmfi.nodaltilebox(d);
-                    fluxes[d][Syncmfi].copy(flux[d],ebx,0,ebx,0,1);
+                    fluxes[d][Syncmfi].copy<RunOn::Host>(flux[d],ebx,0,ebx,0,1);
                 }
             }
         }
@@ -1025,7 +1025,7 @@ MacProj::check_div_cond (int      level,
                    vol_dat,ARLIM(vlo),ARLIM(vhi));
 #endif
 
-            sum += dmac.sum(0);
+            sum += dmac.sum<RunOn::Host>(0);
         }
     }
 
@@ -1123,7 +1123,7 @@ MacProj::set_outflow_bcs (int             level,
             divudat[iface].resize(ccBoxArray[iface], 1);
             phidat[iface].resize(phiBoxArray[iface], 1);
 
-            phidat[iface].setVal(0.0);
+            phidat[iface].setVal<RunOn::Host>(0.0);
             divu.copyTo(divudat[iface]);
             S.copyTo(rhodat[iface], Density, 0, 1);
         }
@@ -1170,7 +1170,7 @@ MacProj::set_outflow_bcs (int             level,
             {
                 Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
                 if (ovlp.ok())
-                    (*mac_phi)[mfi].copy(phidat[iface],ovlp,0,ovlp,0,1);
+                    (*mac_phi)[mfi].copy<RunOn::Host>(phidat[iface],ovlp,0,ovlp,0,1);
             }
         }
     }
@@ -1302,9 +1302,9 @@ MacProj::test_umac_periodic (int       level,
 
         mfcd.FillFab(mfid[dim], pirm[i].m_fbid, diff);
 
-        diff.minus(u_mac[dim][pirm[i].m_idx],pirm[i].m_dstBox,diff.box(),0,0,1);
+        diff.minus<RunOn::Host>(u_mac[dim][pirm[i].m_idx],pirm[i].m_dstBox,diff.box(),0,0,1);
 
-        const Real max_norm = diff.norm(0);
+        const Real max_norm = diff.norm<RunOn::Host>(0);
 
         if (max_norm > umac_periodic_test_Tol )
         {

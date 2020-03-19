@@ -101,8 +101,8 @@ NavierStokes::initData ()
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
-        Sfab.setVal(0.0,snewmfi.growntilebox(),0,S_new.nComp());
-        Pfab.setVal(0.0,snewmfi.grownnodaltilebox(-1,P_new.nGrow()));
+        Sfab.setVal<RunOn::Host>(0.0,snewmfi.growntilebox(),0,S_new.nComp());
+        Pfab.setVal<RunOn::Host>(0.0,snewmfi.grownnodaltilebox(-1,P_new.nGrow()));
 
         RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
         const int* lo      = vbx.loVect();
@@ -477,7 +477,6 @@ NavierStokes::predict_velocity (Real  dt)
 
     FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
-
     // Floor small values of states to be extrapolated
 #ifdef _OPENMP
 #pragma omp parallel
@@ -485,14 +484,14 @@ NavierStokes::predict_velocity (Real  dt)
     for (MFIter mfi(Umf,true); mfi.isValid(); ++mfi)
     {
       Box gbx=mfi.growntilebox(Godunov::hypgrow());
-      auto fab = Umf.array(mfi);
+      auto fab_a = Umf.array(mfi);
+      Elixir fab_e = Umf[mfi].elixir();
       AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
       {
-        auto& val = fab(i,j,k,n);
-        val = std::abs(val) > 1.e-20 ? val : 0;
+        auto& val = fab_a(i,j,k,n);
+        val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
       });
     }
-
 #ifdef AMREX_USE_EB
     // Create reference here for now, even though not using any forcing terms
     // in velocity extrapolation yet, because will want to use forcing terms later.
@@ -780,7 +779,7 @@ NavierStokes::scalar_advection (Real dt,
                 if (do_reflux) {
                   for (int d=0; d<BL_SPACEDIM; ++d) {
                     const Box& ebx = S_mfi.nodaltilebox(d);
-                    (fluxes[d])[S_mfi].copy(cfluxes[d],ebx,0,ebx,0,num_scalars);
+                    (fluxes[d])[S_mfi].copy<RunOn::Host>(cfluxes[d],ebx,0,ebx,0,num_scalars);
                   }
                 }
             }
@@ -963,14 +962,14 @@ NavierStokes::scalar_diffusion_update (Real dt,
 	      const Box& ebox = (*fluxn[d])[fmfi].box();//fmfi.tilebox();
 
 	      fluxtot.resize(ebox,1);
-	      fluxtot.copy((*fluxn[d])[fmfi],ebox,0,ebox,0,1);
-	      fluxtot.plus((*fluxnp1[d])[fmfi],ebox,0,0,1);
+	      fluxtot.copy<RunOn::Host>((*fluxn[d])[fmfi],ebox,0,ebox,0,1);
+	      fluxtot.plus<RunOn::Host>((*fluxnp1[d])[fmfi],ebox,0,0,1);
 
 	      if (level < parent->finestLevel())
-		fluxes[fmfi].copy(fluxtot);
+		fluxes[fmfi].copy<RunOn::Host>(fluxtot);
 
 	      if (level > 0)
-		getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt,RunOn::Cpu);
+		getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt,RunOn::Host);
 	    }
 
 	    if (level < parent->finestLevel())
@@ -1116,7 +1115,7 @@ NavierStokes::MaxVal (const std::string& name,
             baf.intersections(grids[i],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
-                fab.setVal(0,isects[ii].second,0,fab.nComp());
+              fab.setVal<RunOn::Host>(0,isects[ii].second,0,fab.nComp());
         }
         Real        s;
         const Real* dat = fab.dataPtr();
@@ -1812,11 +1811,12 @@ NavierStokes::mac_sync ()
 	    const Box& bx = Smfi.tilebox();
 
             delta_ssync.resize(bx,1);
-            delta_ssync.copy(S_new[Smfi], bx, istate, bx, 0, 1);
-            delta_ssync.divide(S_new[Smfi], bx, Density, 0, 1);
-            delta_ssync.mult(Ssync[Smfi],bx,Density-BL_SPACEDIM,0,1);
-            (*DeltaSsync)[Smfi].copy(delta_ssync,bx,0,bx,iconserved,1);
-            Ssync[Smfi].minus(delta_ssync,bx,0,istate-BL_SPACEDIM,1);
+            // FIXME MSD: Combine these
+            delta_ssync.copy<RunOn::Host>(S_new[Smfi], bx, istate, bx, 0, 1);
+            delta_ssync.divide<RunOn::Host>(S_new[Smfi], bx, Density, 0, 1);
+            delta_ssync.mult<RunOn::Host>(Ssync[Smfi],bx,Density-BL_SPACEDIM,0,1);
+            (*DeltaSsync)[Smfi].copy<RunOn::Host>(delta_ssync,bx,0,bx,iconserved,1);
+            Ssync[Smfi].minus<RunOn::Host>(delta_ssync,bx,0,istate-BL_SPACEDIM,1);
           }
 	}
       }
@@ -1832,10 +1832,11 @@ NavierStokes::mac_sync ()
 	FArrayBox&       vfab   = Vsync[Vsyncmfi];
 	const FArrayBox& rhofab = rho_ctime[Vsyncmfi];
 	const Box&       bx     = Vsyncmfi.tilebox();
-	
-	D_TERM(vfab.divide(rhofab,bx,0,Xvel,1);,
-	       vfab.divide(rhofab,bx,0,Yvel,1);,
-	       vfab.divide(rhofab,bx,0,Zvel,1););
+
+        // FIXME MSD: Combine these
+	D_TERM(vfab.divide<RunOn::Host>(rhofab,bx,0,Xvel,1);,
+	       vfab.divide<RunOn::Host>(rhofab,bx,0,Yvel,1);,
+	       vfab.divide<RunOn::Host>(rhofab,bx,0,Zvel,1););
       }
     }
     //
@@ -1974,8 +1975,8 @@ NavierStokes::mac_sync ()
 	for (MFIter SsyncMfi(Ssync,true); SsyncMfi.isValid(); ++SsyncMfi)
         {
 	  const Box& bx = SsyncMfi.tilebox();
-	  Ssync[SsyncMfi].plus((*DeltaSsync)[SsyncMfi], bx,
-			       iconserved, istate-BL_SPACEDIM, 1);
+	  Ssync[SsyncMfi].plus<RunOn::Host>((*DeltaSsync)[SsyncMfi], bx,
+                                            iconserved, istate-BL_SPACEDIM, 1);
 	}
       }
     }
@@ -1989,8 +1990,8 @@ NavierStokes::mac_sync ()
 #endif
       for (MFIter S_newmfi(S_new,true); S_newmfi.isValid(); ++S_newmfi)
       {
-	S_new[S_newmfi].plus(Ssync[S_newmfi],S_newmfi.tilebox(),
-			     sigma,BL_SPACEDIM+sigma,1);
+	S_new[S_newmfi].plus<RunOn::Host>(Ssync[S_newmfi],S_newmfi.tilebox(),
+                                          sigma,BL_SPACEDIM+sigma,1);
       }
     }
     //
@@ -2035,7 +2036,7 @@ NavierStokes::mac_sync ()
 #endif
       for (MFIter mfi(Sf_new,true); mfi.isValid(); ++mfi){
 	const Box& bx = mfi.tilebox();
-	Sf_new[mfi].plus(sync_incr[mfi],bx,0,Density,numscal);
+	Sf_new[mfi].plus<RunOn::Host>(sync_incr[mfi],bx,0,Density,numscal);
       }
 
       fine_lev.make_rho_curr_time();
@@ -2090,9 +2091,10 @@ NavierStokes::reflux ()
             const FArrayBox& rhfab = Rh[Vsyncmfi];
 	    const Box&       bx    = Vsyncmfi.tilebox();
 
-            D_TERM(vfab.divide(rhfab,bx,0,Xvel,1);,
-                   vfab.divide(rhfab,bx,0,Yvel,1);,
-                   vfab.divide(rhfab,bx,0,Zvel,1););
+            // FIXME MSD: Combine these
+            D_TERM(vfab.divide<RunOn::Host>(rhfab,bx,0,Xvel,1);,
+                   vfab.divide<RunOn::Host>(rhfab,bx,0,Yvel,1);,
+                   vfab.divide<RunOn::Host>(rhfab,bx,0,Zvel,1););
         }
     }
 
@@ -2107,7 +2109,7 @@ NavierStokes::reflux ()
             for (MFIter Ssyncmfi(Ssync,true); Ssyncmfi.isValid(); ++Ssyncmfi)
             {
 		const Box& bx = Ssyncmfi.tilebox();
-                Ssync[Ssyncmfi].divide(Rh[Ssyncmfi],bx,0,sigma,1);
+                Ssync[Ssyncmfi].divide<RunOn::Host>(Rh[Ssyncmfi],bx,0,sigma,1);
             }
         }
     }
@@ -2139,8 +2141,9 @@ NavierStokes::reflux ()
 
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
-            vfab.setVal(0,isects[ii].second,0,BL_SPACEDIM);
-            sfab.setVal(0,isects[ii].second,0,NUM_STATE-BL_SPACEDIM);
+          // FIXME MSD: Combine these
+          vfab.setVal<RunOn::Host>(0,isects[ii].second,0,BL_SPACEDIM);
+          sfab.setVal<RunOn::Host>(0,isects[ii].second,0,NUM_STATE-BL_SPACEDIM);
         }
     }
 }
@@ -2258,8 +2261,9 @@ NavierStokes::calc_divu (Real      time,
                 FArrayBox& divufab = divu[rho_mfi];
 		const Box& bx = rho_mfi.tilebox();
 
-                divufab.divide(rhotime[rho_mfi],bx,0,0,1);
-                divufab.divide(tmf[rho_mfi],bx,0,0,1);
+                // FIXME MSD: Combine these
+                divufab.divide<RunOn::Host>(rhotime[rho_mfi],bx,0,0,1);
+                divufab.divide<RunOn::Host>(tmf[rho_mfi],bx,0,0,1);
             }
 #ifdef AMREX_USE_EB
 	    EB_set_covered(divu,COVERED_VAL);
@@ -2295,9 +2299,10 @@ NavierStokes::calc_dsdt (Real      time,
             {
                 const Box& vbx     = mfi.tilebox();
                 FArrayBox& dsdtfab = dsdt[mfi];
-                dsdtfab.copy(Divu_new[mfi],vbx,0,vbx,0,1);
-                dsdtfab.minus(Divu_old[mfi],vbx,0,0,1);
-                dsdtfab.divide(dt,vbx,0,1);
+                // FIXME MSD: Combine these
+                dsdtfab.copy<RunOn::Host>(Divu_new[mfi],vbx,0,vbx,0,1);
+                dsdtfab.minus<RunOn::Host>(Divu_old[mfi],vbx,0,0,1);
+                dsdtfab.divide<RunOn::Host>(dt,vbx,0,1);
             }
         }
     }

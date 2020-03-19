@@ -127,7 +127,7 @@ OutFlowBC_MG::vcycle (int downiter,
     if (next != 0)
     {
         Restrict();
-        next->phi->setVal(0);
+        next->phi->setVal<RunOn::Host>(0);
         next->vcycle(downiter,upiter);
         interpolate();
         step(upiter);

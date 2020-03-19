@@ -321,7 +321,7 @@ Projection::level_project (int             level,
     for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
     {
 	const Box& bx = mfi.growntilebox(nGrow);
-        P_new[mfi].setVal(0.0,bx,0,1);
+        P_new[mfi].setVal<RunOn::Host>(0.0,bx,0,1);
     }
 
     //
@@ -381,10 +381,10 @@ Projection::level_project (int             level,
 #endif
 
 	for (int i = 0; i < BL_SPACEDIM; i++) {
-	  Gpfab.divide(rhofab,bx,0,i,1);
+	  Gpfab.divide<RunOn::Host>(rhofab,bx,0,i,1);
 	}
 
-	U_new[mfi].plus(Gpfab,bx,0,0,BL_SPACEDIM);
+	U_new[mfi].plus<RunOn::Host>(Gpfab,bx,0,0,BL_SPACEDIM);
     }
 
     //
@@ -1180,9 +1180,9 @@ Projection::initialSyncProject (int       c_lev,
        	        const Box& bx = mfi.growntilebox();
 	        FArrayBox& dsdtfab = (*dsdt)[mfi];
 
-                dsdtfab.minus((*divu)[mfi],bx,bx,0,0,1);
-                dsdtfab.mult(dt_inv,bx);
-                (*rhcclev)[mfi].copy(dsdtfab,bx,0,bx,0,1);
+                dsdtfab.minus<RunOn::Host>((*divu)[mfi],bx,bx,0,0,1);
+                dsdtfab.mult<RunOn::Host>(dt_inv,bx);
+                (*rhcclev)[mfi].copy<RunOn::Host>(dsdtfab,bx,0,bx,0,1);
             }
         }
     }
@@ -1724,8 +1724,8 @@ Projection::initialVorticityProject (int c_lev)
 	  // rhnd has ng=0 as declared above
 	  const Box& bx = mfi.tilebox();
 
-	  (*rhnd[lev])[mfi].setVal(0,bx);
-	  (*rhnd[lev])[mfi].copy(P_new[mfi], bx, 0, bx, 0, 1);
+	  (*rhnd[lev])[mfi].setVal<RunOn::Host>(0,bx);
+	  (*rhnd[lev])[mfi].copy<RunOn::Host>(P_new[mfi], bx, 0, bx, 0, 1);
         }
     }
 
@@ -1779,11 +1779,11 @@ Projection::initialVorticityProject (int c_lev)
                 const Box& box = mfi.tilebox();
                 if (add_vort_proj)
                 {
-                  (*vel[lev])[mfi].plus((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
+                  (*vel[lev])[mfi].plus<RunOn::Host>((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
                 }
                 else
                 {
-                  (*vel[lev])[mfi].copy((*u_real[lev])[mfi],box,Xvel+n,box,Xvel+idx[n], 1);
+                  (*vel[lev])[mfi].copy<RunOn::Host>((*u_real[lev])[mfi],box,Xvel+n,box,Xvel+idx[n], 1);
                 }
             }
         }
@@ -2087,7 +2087,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 						    outFacesAtThisLevel[iface],
 						    ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
-        phi_fine_strip[iface].setVal(0.);
+        phi_fine_strip[iface].setVal<RunOn::Host>(0.);
     }
 
     ProjOutFlowBC projBC;
@@ -2123,7 +2123,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                 (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
 	} else {
             for (int iface = 0; iface < numOutFlowFaces; iface++)
-                dsdt[iface].setVal(0.);
+                dsdt[iface].setVal<RunOn::Host>(0.);
 	}
 
         projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
@@ -2153,7 +2153,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
 	    const Box& bx = mfi.validbox();
 	    BL_ASSERT((phi_fine_strip[iface].box()).contains(bx));
-	      phi_fine_strip_mf[mfi].copy(phi_fine_strip[iface],bx,0,bx,0,1);
+	      phi_fine_strip_mf[mfi].copy<RunOn::Host>(phi_fine_strip[iface],bx,0,bx,0,1);
         }
 
         phi[lev]->copy(phi_fine_strip_mf);
@@ -2452,7 +2452,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
             Box ovlp = *it & v_fab.box();
             if (ovlp.ok()) {
-              v_fab.setVal(0.0, ovlp, Xvel+idir, 1);
+              v_fab.setVal<RunOn::Host>(0.0, ovlp, Xvel+idir, 1);
             }
 	  }
 	}

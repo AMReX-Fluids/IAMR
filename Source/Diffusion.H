@@ -222,6 +222,13 @@ public:
     computeBeta (const amrex::MultiFab* const* beta,
 		 int                           betaComp);
 
+    void computeExtensiveFluxes(amrex::MLMG&            a_mg,
+				amrex::MultiFab&        Soln,
+				amrex::MultiFab* const* flux,
+				const int               fluxComp,
+				const int               nomp,
+				const amrex::Geometry*  a_geom,
+				const amrex::Real       fac );
 
 protected:
 
@@ -230,14 +237,6 @@ protected:
                       int src_comp);
 
 
-    void computeExtensiveFluxes(amrex::MLMG&            a_mg,
-				amrex::MultiFab&        Soln,
-				amrex::MultiFab* const* flux,
-				const int               fluxComp,
-				const int               nomp,
-				const amrex::Geometry*  a_geom,
-				const amrex::Real       fac );
-      
     static void Finalize ();
     //
     // Data Required by Derived Classes

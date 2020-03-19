@@ -9,10 +9,12 @@ TOP = ../..
 #
 
 DIM        = 3
-COMP	   = gnu
+COMP	   = gcc
 DEBUG	   = FALSE
 USE_MPI    = TRUE
-USE_OMP    = TRUE
+USE_OMP    = FALSE
+
+USE_CUDA = FALSE
 
 #TEST=TRUE
 #USE_ASSERTION=TRUE
