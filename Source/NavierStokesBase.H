@@ -17,7 +17,6 @@
 #include <Projection.H>
 #include <SyncRegister.H>
 #include <AMReX_Utility.H>
-#include <ViscBndry.H>
 
 #ifdef AMREX_PARTICLES
 #include <AMReX_AmrParticles.H>
