@@ -108,7 +108,15 @@ ViscBndry::setHomogValues (const BCRec&   bc,
 
         for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
         {
-            bndry[face][fsi].setVal(0);
+          //bndry[face][fsi].setVal(0);
+          FArrayBox& bndryfab = bndry[face][fsi];
+          auto const& bndryfab_a = bndryfab.array();
+          Elixir bndryfab_e = bndryfab.elixir();
+          amrex::ParallelFor(bndryfab.box(),
+          [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+          {
+            bndryfab_a(i,j,k) = 0;
+          });
         }
     }
 }

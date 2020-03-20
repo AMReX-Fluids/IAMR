@@ -272,7 +272,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
 
             if (zeroIt[iface])
             {
-                phiMF[iface].setVal(0);
+                phiMF[iface].setVal<RunOn::Host>(0);
             }
             else
             {
@@ -307,7 +307,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
                 //
                 Box phiGhostBox = OutFlowBC::SemiGrow(faceBox,1,BL_SPACEDIM-1);
                 FArrayBox phi(phiGhostBox,1), resid(rhs.box(),1);
-                phi.setVal(0);
+                phi.setVal<RunOn::Host>(0);
             
                 MacOutFlowBC_MG mac_mg(faceBox,&phi,&rhs,&resid,beta,
                                        dxFiltered[iface],isPeriodicFiltered[iface]);
@@ -350,7 +350,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
         if (zeroAll)
         {
             for ( i = 0; i < numOutFlowFaces; i++ )
-                phiMF[i].setVal(0);
+                phiMF[i].setVal<RunOn::Host>(0);
         }
         else
         {
@@ -468,7 +468,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             hiconn[BL_SPACEDIM-1] = 0;
             Box connected_region(loconn,hiconn);
             FArrayBox ccE_conn(connected_region,BL_SPACEDIM+1);
-            ccE_conn.setVal(1.e200);
+            ccE_conn.setVal<RunOn::Host>(1.e200);
 
 #if (BL_SPACEDIM == 2)
             FArrayBox x(connected_region,1);
@@ -532,7 +532,7 @@ MacOutFlowBC::computeBC (FArrayBox         velMF[][2*BL_SPACEDIM],
             //
             Box phiGhostBox = OutFlowBC::SemiGrow(faceBox,1,BL_SPACEDIM-1);
             FArrayBox phi(phiGhostBox,1);
-            phi.setVal(0);
+            phi.setVal<RunOn::Host>(0);
       
             FArrayBox resid(rhs.box(),1);
       
@@ -676,10 +676,11 @@ MacOutFlowBC_MG::MacOutFlowBC_MG (Box&       Domain,
         newbeta[0].resize(amrex::surroundingNodes(newdomain,0),1);
         newbeta[1].resize(amrex::surroundingNodes(newdomain,1),1);
 
-        newphi->setVal(0);
-        newresid->setVal(0);
-        newbeta[0].setVal(0);
-        newbeta[1].setVal(0);
+        // FIXME MSD: Combine these
+        newphi->setVal<RunOn::Host>(0);
+        newresid->setVal<RunOn::Host>(0);
+        newbeta[0].setVal<RunOn::Host>(0);
+        newbeta[1].setVal<RunOn::Host>(0);
 
         DEF_BOX_LIMITS(domain,dom_lo,dom_hi);
         DEF_BOX_LIMITS(newdomain,new_lo,new_hi);

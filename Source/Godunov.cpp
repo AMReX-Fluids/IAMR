@@ -186,10 +186,10 @@ Godunov::AdvectScalars(const Box&  box,
 
     // ComputeAofs erase the edge state values to write the fluxes
     // So here we make a copy to keep separated fluxes and edge state
-    xflx.copy(xstate,ecomp,flxcomp,num_scalars);
-    yflx.copy(ystate,ecomp,flxcomp,num_scalars);
+    xflx.copy<RunOn::Host>(xstate,ecomp,flxcomp,num_scalars);
+    yflx.copy<RunOn::Host>(ystate,ecomp,flxcomp,num_scalars);
 #if (AMREX_SPACEDIM == 3)
-    zflx.copy(zstate,ecomp,flxcomp,num_scalars);
+    zflx.copy<RunOn::Host>(zstate,ecomp,flxcomp,num_scalars);
 #endif
     //
     // C component indices starts from 0, Fortran from 1
