@@ -82,7 +82,7 @@ ViscBndryTensor::setHomogValues (const Vector<BCRec>& bc,
 
         for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
         {
-            bndry[face][fsi].setVal(0);
+            bndry[face][fsi].setVal<RunOn::Host>(0);
         }
     }
 }

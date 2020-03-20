@@ -124,7 +124,7 @@ amr.v 	            	= 1 	# AMR (top-level)
 ns.v  	            	= 1 	# NavierStokes
 diffuse.v 	       	= 1 	# Diffusion
 proj.v 	            	= 1 	# Projection
-proj.Pcode              = 1
+nodal_proj.verbose              = 1
 cg.v  	            	= 1 	# ConjugateGradient
 mlmg.v 	            	= 1 	# MultiGrid
 

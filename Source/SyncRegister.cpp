@@ -95,7 +95,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 	    const Box& blo = vbx & domlo;
 
 	    if (blo.ok())
-	      rhs[mfi].setVal(0.0,blo,0,1);
+	      rhs[mfi].setVal<RunOn::Host>(0.0,blo,0,1);
 	  }
 	  if (phys_hi[dir] == Outflow)
 	  {
@@ -104,7 +104,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 	    const Box& bhi = vbx & domhi;
 
 	    if (bhi.ok())
-	      rhs[mfi].setVal(0.0,bhi,0,1);
+	      rhs[mfi].setVal<RunOn::Host>(0.0,bhi,0,1);
 	  }
 	}
       }
@@ -137,13 +137,13 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 		Box mask_cells = amrex::enclosedCells(amrex::grow(fab.box(),1));
 		
 		tmpfab.resize(mask_cells,1);
-		tmpfab.setVal(0);
+		tmpfab.setVal<RunOn::Host>(0);
 		
 		grids.intersections(mask_cells,isects);
 		
 		for (int i = 0, N = isects.size(); i < N; i++)
 		{
-		    tmpfab.setVal(1,isects[i].second,0,1);
+                  tmpfab.setVal<RunOn::Host>(1,isects[i].second,0,1);
 		}
 		
 		if (geom.isAnyPeriodic() && !geom.Domain().contains(mask_cells))
@@ -162,7 +162,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 			{
 			    Box& isect = isects[i].second;
 			    isect     -= iv;
-			    tmpfab.setVal(1,isect,0,1);
+			    tmpfab.setVal<RunOn::Host>(1,isect,0,1);
 			}
 		    }
 		}
@@ -200,16 +200,30 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
                 for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
                 {
                     FArrayBox& fab = fs[fsi];
+                    auto const& fab_a = fab.array();
+                    Elixir fab_e = fab.elixir();
 
                     const Box& blo = fab.box() & domlo;
 
-                    if (blo.ok())
-                        fab.mult(2.0,blo,0,1);
-
+                    if (blo.ok()) {
+                      //fab.mult(2.0,blo,0,1);
+                      amrex::ParallelFor(blo,
+                      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                      {
+                        fab_a(i,j,k) *= 2.0;
+                      });
+                    }
+                    
                     const Box& bhi = fab.box() & domhi;
 
-                    if (bhi.ok())
-                        fab.mult(2.0,bhi,0,1);
+                    if (bhi.ok()) {
+                      //fab.mult(2.0,bhi,0,1);
+                      amrex::ParallelFor(bhi,
+                      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                      {
+                        fab_a(i,j,k) *= 2.0;
+                      });
+                    }
                 }
             }
         }
@@ -293,7 +307,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 	      const int  i   = isects[ii].first;
 	      const Box& pbx = Pgrids[i];
 
-	      syncfab.setVal(0,isects[ii].second,0,1);
+	      syncfab.setVal<RunOn::Host>(0,isects[ii].second,0,1);
 	      fine_geom.periodicShift(sync_box, pbx, pshifts);
 
 	      for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
@@ -302,7 +316,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 	      {
 		  Box isect = pbx + *it;
 		  isect    &= sync_box;
-		  syncfab.setVal(0,isect,0,1);
+		  syncfab.setVal<RunOn::Host>(0,isect,0,1);
 	      }
 	  }
       }
@@ -338,6 +352,8 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 	    {
 		FArrayBox& finefab = Sync_resid_fine[mfi];
 		FArrayBox& crsefab = Sync_resid_crse[mfi];
+                auto const& crsefab_a = crsefab.array();
+                Elixir crsefab_e = crsefab.elixir();
 
 		const Box& finebox  = finefab.box();
 		const int* resid_lo = finebox.loVect();
@@ -356,6 +372,8 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 		    }
 
 		    cbndfab.resize(bndbox, 1);
+                    auto const& cbndfab_a = cbndfab.array();
+                    Elixir cbndfab_e = cbndfab.elixir();
 		
 		    const int* clo = bndbox.loVect();
 		    const int* chi = bndbox.hiVect();
@@ -377,19 +395,38 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 			    domlo.setRange(j,crse_node_domain.smallEnd(j),1);
 			    domlo &= bndbox;			    
 			    if (domlo.ok()) {
-				cbndfab.mult(2.0,domlo,0,1);
+                              //cbndfab.mult(2.0,domlo,0,1);
+                              amrex::ParallelFor(domlo,
+                              [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                              {
+                                cbndfab_a(i,j,k) *= 2.0;
+                              });
 			    }
 
 			    Box domhi(crse_node_domain);
 			    domhi.setRange(j,crse_node_domain.bigEnd(j),1);
 			    domhi &= bndbox;
 			    if (domhi.ok()) {
-				cbndfab.mult(2.0,domhi,0,1);
+                              //cbndfab.mult(2.0,domhi,0,1);
+                              amrex::ParallelFor(domhi,
+                              [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                              {
+                                cbndfab_a(i,j,k) *= 2.0;
+                              });
 			    }
 			}
 		    }
 
-		    crsefab += cbndfab;
+		    //crsefab += cbndfab;
+                    const auto& ovlp = crsefab.box() & cbndfab.box();
+                    if (ovlp.ok())
+                    {
+                      amrex::ParallelFor(ovlp,
+                      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                      {
+                        crsefab_a(i,j,k) = cbndfab_a(i,j,k);
+                      });
+                    }
 		}
             }
         }

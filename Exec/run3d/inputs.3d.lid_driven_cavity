@@ -2,33 +2,34 @@
 # INPUTS.3D.LID_DRIVEN_CAVITY
 #*******************************************************************************
 
-max_step                =  -1
+max_step                =  1
 
-stop_time 				=  10.0
+stop_time 		=  10.0
 
 ns.stop_when_steady 	=  1
-ns.steady_tol 			=  1.0e-4
+ns.steady_tol 		=  1.0e-4
 
 amr.n_cell              =  64 64 64
 
 amr.max_level           =  0
 
-ns.v                    =  0
+ns.v                    =  1
 amr.v                   =  1
 
-amr.check_int			=  50
+amr.check_int		=  50
 
-amr.plot_int			=  5
+amr.plot_int		=  5
 
 ns.cfl                  =  0.7  # CFL number used to set dt
 
+ns.init_dt              =  0.0140625  # initial dt to get simulation going
 ns.init_shrink          =  0.3  # factor which multiplies the very first time step
 ns.init_iter          	=  3    # number of initial iterations
 
 ns.vel_visc_coef        =  0.01
 ns.scal_diff_coefs      =  0.0
 
-amr.probin_file 		=  probin.3d.lid_driven_cavity
+amr.probin_file 		=  regtest.probin.3d.lid_driven_cavity
 
 geometry.coord_sys   	=  0
 
@@ -37,7 +38,7 @@ geometry.prob_hi     	=  1. 1. 1.
 
 geometry.is_periodic 	=  0 0 0
 
-ns.gravity = 0.0
+ns.gravity  		= 0.0
 
 ns.lo_bc             	=  5 5 5
 ns.hi_bc             	=  5 5 5
@@ -47,4 +48,4 @@ ns.hi_bc             	=  5 5 5
 # 2 = Outflow            5 = NoSlipWall
 
 amr.derive_plot_vars   	=  mag_vort
-proj.v 					=  0
+proj.v 			=  0

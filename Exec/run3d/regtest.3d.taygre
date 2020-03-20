@@ -83,7 +83,7 @@ ns.scal_diff_coefs      = 0.0
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.taygre
+amr.probin_file 	= regtest.probin.3d.taygre
 
 #*******************************************************************************
 
@@ -123,10 +123,9 @@ amr.blocking_factor     = 8
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort
+amr.derive_plot_vars = NONE
 
 #*******************************************************************************
-proj.v=4
 proj.proj_tol = 1.e-10
 proj.sync_tol = 1.e-8
 

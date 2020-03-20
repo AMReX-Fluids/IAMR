@@ -309,7 +309,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
         if (zeroAll)
         {
             for (int i=0; i < numOutFlowFaces; i++)
-                phiMF[i].setVal(0);
+                phiMF[i].setVal<RunOn::Host>(0);
         }
         else
         {
@@ -381,9 +381,9 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             Box nodal_connected_region(loconn,hiconn);
             FArrayBox x(nodal_connected_region,1);
             FArrayBox s(nodal_connected_region,1);
-            s.setVal(0.);
+            s.setVal<RunOn::Host>(0.);
 
-            ccE_conn.setVal(1.e200);
+            ccE_conn.setVal<RunOn::Host>(1.e200);
 
             int per = 0;
             if ( (numOutFlowFaces == 1) || 
@@ -496,7 +496,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             hiconn[1] = width;
             Box nodal_connected_region(loconn,hiconn);
             FArrayBox phiFiltered(nodal_connected_region,1);
-            phiFiltered.setVal(0.);
+            phiFiltered.setVal<RunOn::Host>(0.);
 
             fill_twod(&lenx,&leny,&lenz,&length,&width,
                            faces2,&numOutFlowFaces,
@@ -515,13 +515,13 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             //
             Box phiGhostBox = OutFlowBC::SemiGrow(phiFiltered.box(),1,BL_SPACEDIM-1);
             FArrayBox phi(phiGhostBox,1);
-            phi.setVal(0);
-            phi.copy(phiFiltered);
+            phi.setVal<RunOn::Host>(0);
+            phi.copy<RunOn::Host>(phiFiltered);
       
             Box grownRhs = OutFlowBC::SemiGrow(rhs_temp.box(),1,BL_SPACEDIM-1);
             FArrayBox rhs(grownRhs,1);
-            rhs.setVal(0);
-            rhs.copy(rhs_temp);
+            rhs.setVal<RunOn::Host>(0);
+            rhs.copy<RunOn::Host>(rhs_temp);
             FArrayBox resid(rhs.box(),1);
             ProjOutFlowBC_MG proj_mg(connected_region,&phi,&rhs,&resid,&beta,
                                      dxFiltered[0],per);
@@ -736,9 +736,10 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
         FArrayBox* newresid  = new FArrayBox(newp_size,1);
         FArrayBox* newrhs    = new FArrayBox(newp_size,1);
         FArrayBox* newbeta   = new FArrayBox(grownBox,1);
-        newphi->setVal(0);
-        newresid->setVal(0);
-        newbeta->setVal(0);
+        // FIXME MSD: Combine these
+        newphi->setVal<RunOn::Host>(0);
+        newresid->setVal<RunOn::Host>(0);
+        newbeta->setVal<RunOn::Host>(0);
    
         DEF_BOX_LIMITS(domain,dom_lo,dom_hi);
         DEF_BOX_LIMITS(newdomain,new_lo,new_hi);
@@ -771,7 +772,7 @@ ProjOutFlowBC_MG::residual ()
     DEF_LIMITS(*resid,residPtr,residlo,residhi);
     DEF_LIMITS(dgphi,dgphiPtr,dglo,dghi);
 
-    resid->setVal(0);
+    resid->setVal<RunOn::Host>(0);
 
     hgresid (ARLIM(rhslo), ARLIM(rhshi),  rhsPtr,
                   ARLIM(betalo), ARLIM(betahi),  betaPtr,
@@ -826,7 +827,7 @@ ProjOutFlowBC_MG::Restrict ()
     DEF_LIMITS(*resid,residPtr,resid_lo,resid_hi);
     DEF_LIMITS(*(next->theRhs()),rescPtr,resc_lo,resc_hi);
 
-    next->theRhs()->setVal(0);
+    next->theRhs()->setVal<RunOn::Host>(0);
   
     fort_restrict(residPtr,ARLIM(resid_lo),ARLIM(resid_hi), 
                   rescPtr, ARLIM(resc_lo),ARLIM(resc_hi),
@@ -838,7 +839,7 @@ ProjOutFlowBC_MG::interpolate ()
 {
     FArrayBox temp(phi->box(),1);
 
-    temp.setVal(0);
+    temp.setVal<RunOn::Host>(0);
     
     DEF_BOX_LIMITS(domain,lo,hi);
     DEF_BOX_LIMITS(next->theDomain(),loc,hic);

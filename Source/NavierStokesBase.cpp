@@ -32,6 +32,7 @@ int  NavierStokesBase::init_iter          = 2;
 int  NavierStokesBase::init_vel_iter      = 1;
 Real NavierStokesBase::cfl                = 0.8;
 Real NavierStokesBase::change_max         = 1.1;
+Real NavierStokesBase::init_dt            = -1.0;
 Real NavierStokesBase::fixed_dt           = -1.0;
 bool NavierStokesBase::stop_when_steady   = false;
 Real NavierStokesBase::steady_tol         = 1.0e-10;
@@ -166,11 +167,6 @@ NavierStokesBase::NavierStokesBase ()
     aofs         = 0;
     diffusion    = 0;
 
-#ifdef AMREX_USE_EB
-    m_xslopes    = 0;
-    m_yslopes    = 0;
-    m_zslopes    = 0;
-#endif
 
     if (!additional_state_types_initialized)
         init_additional_state_types();
@@ -368,6 +364,7 @@ NavierStokesBase::Initialize ()
     pp.query("dt_cutoff",dt_cutoff);
     pp.query("change_max",change_max);
     pp.query("fixed_dt",fixed_dt);
+    pp.query("init_dt", init_dt);
     pp.query("stop_when_steady",stop_when_steady);
     pp.query("steady_tol",steady_tol);
     pp.query("sum_interval",sum_interval);
@@ -457,9 +454,9 @@ NavierStokesBase::Initialize ()
     pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
     pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
-    //
+
     // Are we going to do velocity or momentum update?
-    //
+
     pp.query("do_mom_diff",do_mom_diff);
     pp.query("predict_mom_together",predict_mom_together);
 
@@ -649,14 +646,15 @@ NavierStokesBase::advance_setup (Real time,
     const int finest_level = parent->finestLevel();
 
 #ifdef AMREX_USE_EB
-   umac_n_grow = 4;
+    // incflo now uses: use_godunov ? 4 : 3;
+    umac_n_grow = 4;
 #else
     umac_n_grow = 1;
 #endif
 
 #ifdef AMREX_PARTICLES
-    if (ncycle >= 1)
-        umac_n_grow = ncycle;
+    if (ncycle > umac_n_grow)
+      umac_n_grow = ncycle;
 #endif
 
     mac_projector->setup(level);
@@ -876,9 +874,10 @@ NavierStokesBase::calcDpdt ()
         {
             const Box& vbx     = mfi.tilebox();
             FArrayBox& dpdtfab = dpdt[mfi];
-            dpdtfab.copy(new_press[mfi],vbx,0,vbx,0,1);
-            dpdtfab.minus(old_press[mfi],vbx,0,0,1);
-            dpdtfab.divide(dt_for_dpdt,vbx,0,1);
+            // FIXME MSD: Combine these
+            dpdtfab.copy<RunOn::Host>(new_press[mfi],vbx,0,vbx,0,1);
+            dpdtfab.minus<RunOn::Host>(old_press[mfi],vbx,0,0,1);
+            dpdtfab.divide<RunOn::Host>(dt_for_dpdt,vbx,0,1);
         }
     }
     else
@@ -901,6 +900,14 @@ NavierStokesBase::checkPoint (const std::string& dir,
         if (NSPC != 0)
             NSPC->Checkpoint(dir,the_ns_particle_file_name);
     }
+#endif
+
+# ifdef AMREX_USE_EB
+// Need to add gradp in the checkpoint
+   std::string LevelDir, FullPath;
+   LevelDirectoryNames(dir, LevelDir, FullPath);
+   std::string gradp_mf_fullpath = FullPath + "/gradp";
+   VisMF::Write(*gradp,gradp_mf_fullpath,how);
 #endif
 }
 
@@ -1368,7 +1375,7 @@ NavierStokesBase::estTimeStep ()
                                << "Calling getForce..." << '\n';
 
             getForce(tforces_fab,bx,n_grow,Xvel,AMREX_SPACEDIM,cur_time,U_new[mfi],U_new[mfi],Density);
-            tforces[mfi].copy(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
+            tforces[mfi].copy<RunOn::Host>(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
         }
     }
 
@@ -1403,8 +1410,39 @@ NavierStokesBase::estTimeStep ()
     //
     // Reduce estimated dt by CFL factor and find global min
     //
-    estdt = estdt * cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
+
+    if ( estdt < 1.0e+20) {
+      //
+      // timestep estimation successful
+      //
+      estdt = estdt * cfl;
+    }
+    else if (init_dt > 0 ) {
+      //
+      // use init_dt, scale for amr level
+      //
+      Real factor = 1.0;
+
+      if (!(level == 0))
+      {
+	int ratio = 1;
+	for (int lev = 1; lev <= level; lev++)
+	{
+	  ratio *= parent->nCycle(lev);
+	}
+	factor = 1.0/double(ratio);
+      }
+
+      estdt = factor*init_dt;
+    }
+    else {
+      Print()<<"\nNavierStokesBase::estTimeStep() failed to provide a good timestep "
+	     <<"(probably because initial velocity field is zero with no external forcing).\n"
+	     <<"Use ns.init_dt to provide a reasonable timestep on coarsest level.\n"
+	     <<"Note that ns.init_shrink will be applied to init_dt."<<std::endl;
+      amrex::Abort("\n");
+    }
 
     if (verbose)
     {
@@ -1417,6 +1455,17 @@ NavierStokesBase::estTimeStep ()
             amrex::Print() << u_max[k] << "  ";
         }
 	amrex::Print() << '\n';
+
+	if (getForceVerbose){
+	  ParallelDescriptor::ReduceRealMax(f_max.dataPtr(), AMREX_SPACEDIM, IOProc);
+	  amrex::Print() << "        FMAX = ";
+	  for (int k = 0; k < AMREX_SPACEDIM; k++)
+	  {
+            amrex::Print() << f_max[k] << "  ";
+	  }
+	  amrex::Print() << '\n';
+	}
+	Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
     }
 
     return estdt;
@@ -1471,9 +1520,10 @@ NavierStokesBase::get_rho_half_time ()
         FArrayBox& rhofab = rho_half[mfi];
 	const Box& bx = mfi.growntilebox();
 
-        rhofab.copy(rho_ptime[mfi],bx,0,bx,0,1);
-        rhofab.plus(rho_ctime[mfi],bx,0,0);
-        rhofab.mult(.5,bx);
+        // FIXME MSD: Combine these
+        rhofab.copy<RunOn::Host>(rho_ptime[mfi],bx,0,bx,0,1);
+        rhofab.plus<RunOn::Host>(rho_ctime[mfi],bx,0,0);
+        rhofab.mult<RunOn::Host>(.5,bx);
 
     }
 
@@ -1644,7 +1694,7 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
-                gpfab.copy(gptmpfab,isects[ii].second);
+                gpfab.copy<RunOn::Host>(gptmpfab,isects[ii].second);
             }
 	  }
 	}
@@ -1741,8 +1791,8 @@ NavierStokesBase::initRhoAvg (Real alpha)
     	const Box& bx = rho_avgmfi.tilebox();
         FArrayBox& rhoavgfab = rho_avg[rho_avgmfi];
 
-    	rhoavgfab.copy(S_new[rho_avgmfi],bx,Density,bx,0,1);
-        rhoavgfab.mult(alpha,bx);
+    	rhoavgfab.copy<RunOn::Host>(S_new[rho_avgmfi],bx,Density,bx,0,1);
+        rhoavgfab.mult<RunOn::Host>(alpha,bx);
     }
 }
 
@@ -1799,8 +1849,8 @@ NavierStokesBase::init (AmrLevel &old)
 	  const Box& vbx  = mfi.tilebox();
 	  const FArrayBox& pfab = mf_fpi[mfi];
 
-	  P_old[mfi].copy(pfab,vbx,0,vbx,0,1);
-	  P_new[mfi].copy(pfab,vbx,0,vbx,0,1);
+	  P_old[mfi].copy<RunOn::Host>(pfab,vbx,0,vbx,0,1);
+	  P_new[mfi].copy<RunOn::Host>(pfab,vbx,0,vbx,0,1);
 	}
     }
 
@@ -1948,12 +1998,11 @@ NavierStokesBase::init_additional_state_types ()
 Real
 NavierStokesBase::initialTimeStep ()
 {
-  Real returnDt = init_shrink*estTimeStep();
+    Real returnDt = init_shrink*estTimeStep();
 
-  amrex::Print() << "Multiplying dt by init_shrink; dt = "
-		 << returnDt << '\n';
-
-  return returnDt;
+    amrex::Print() << "Multiplying dt by init_shrink: dt = "
+		   << returnDt << '\n';
+    return returnDt;
 }
 
 //
@@ -2459,7 +2508,7 @@ NavierStokesBase::post_init_state ()
 
     //
     // Make sure we're not trying to use ref_ratio=4
-    // Fortran multigrid has a problem and MLMG does not support rr=4 yet
+    // MLMG does not support rr=4 yet
     //
     // Derived class PeleLM seems to also use this function , so it's a
     // convienient place for the test, even though it's not the most
@@ -2470,8 +2519,7 @@ NavierStokesBase::post_init_state ()
       const int rr = parent->MaxRefRatio(i);
       if (rr == 4)
       {
-	  Print()<<"Refinement ratio of 4 not currently supported.\n";
-	  exit(0);
+	amrex::Abort("Refinement ratio of 4 not currently supported.\n");
       }
     }
 
@@ -2495,7 +2543,6 @@ NavierStokesBase::post_init_state ()
       //
       // Do sync project to define divergence free velocity field.
       //
-
       if (verbose) amrex::Print() << "calling initialVelocityProject" << std::endl;
 
       projector->initialVelocityProject(0,divu_time,have_divu,init_vel_iter);
@@ -2510,20 +2557,26 @@ NavierStokesBase::post_init_state ()
     //
     for (int k = finest_level-1; k>= 0; k--)
     {
-        getLevel(k).avgDown();
+      getLevel(k).avgDown();
     }
     make_rho_curr_time();
 
-    if (do_init_proj && projector && (std::fabs(gravity)) > 0.)
-        //
-        // Do projection to establish initially hydrostatic pressure field.
-        //
-        projector->initialPressureProject(0);
+    if (do_init_proj && projector && (std::fabs(gravity)) > 0.){
+      //
+      // Do projection to establish initially hydrostatic pressure field.
+      //
+      if (verbose) amrex::Print() << "calling initialPressureProject" << std::endl;
 
-    // make sure there's not NANs in pressure field
+      projector->initialPressureProject(0);
+
+      if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
+    }
+    // make sure there's not NANs in old pressure field
+    // end up with P_old = P_new as is the case when exiting initialPressureProject
     if(!do_init_proj){
-      MultiFab& press=get_old_data(Press_Type);
-      press.setVal(0.);
+      MultiFab& p_old=get_old_data(Press_Type);
+      MultiFab& p_new=get_new_data(Press_Type);
+      MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
     }
 
 }
@@ -2594,7 +2647,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
-
     //
     // Test for conservation.
     //
@@ -2740,6 +2792,8 @@ NavierStokesBase::restart (Amr&          papa,
 
     const BoxArray& P_grids = state[Press_Type].boxArray();
 #ifdef AMREX_USE_EB
+    init_eb(parent->Geom(level), grids, dmap);
+
     //fixme? not 100% sure this is the right place
     // note --- this fn is really similar to constructor
     //  need to make sure gradp is getting properly filled for this restart case?
@@ -2747,7 +2801,14 @@ NavierStokesBase::restart (Amr&          papa,
     //  don't think Gp is needed until the vel update after the projection.
     // But ultimately we need gradp in the checkpoint file.
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    gradp->setVal(0.);
+
+    std::string file=papa.theRestartFile();
+    std::string LevelDir, FullPath;
+    LevelDirectoryNames(file, LevelDir, FullPath);
+    std::string gradp_mf_fullpath = FullPath;
+    gradp_mf_fullpath += "/gradp";
+    const char *faHeader = 0;
+    VisMF::Read(*gradp, gradp_mf_fullpath, faHeader);
 #endif
 
     //
@@ -2834,7 +2895,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
 	    const Box& bx = S_oldmfi.tilebox();
             tforces.resize(bx,1);
-            tforces.setVal(0);
+            tforces.setVal<RunOn::Host>(0);
             godunov->Add_aofs_tf(S_old[S_oldmfi],S_new[S_oldmfi],Density,1,
                                  Aofs[S_oldmfi],Density,tforces,0,bx,dt);
       }
@@ -2909,9 +2970,9 @@ NavierStokesBase::scalar_advection_update (Real dt,
                // Average the new and old time to get Crank-Nicholson half time approximation.
                //
                FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-               Scal.copy(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
-               Scal.plus(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
-               Scal.mult(0.5,bx);
+               Scal.copy<RunOn::Host>(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
+               Scal.plus<RunOn::Host>(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
+               Scal.mult<RunOn::Host>(0.5,bx);
 
                if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
                   getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
@@ -3217,8 +3278,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 
 #ifdef AMREX_USE_EB
-    //FIXME
-    // rather than creating this flags, would it be better to just create fdata MF?
+    //FIXME?
     // there's currently no way to reassign the EBCellFlagFab for a EBFArrayBox,
     // so the non-EB strategy of creating one FAB and resizing it for MFiters doens't work
     const FabArray<EBCellFlagFab>& flags = dynamic_cast<EBFArrayBoxFactory const&>(getLevel(f_lev).Factory()).getMultiEBCellFlagFab();
@@ -3275,25 +3335,25 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 	  if (increment)
 	  {
-	      fdata.mult(dt_clev);
+	      fdata.mult<RunOn::Host>(dt_clev);
 
 	      if (interpolater == &protected_interp)
 	      {
-		  cdata.mult(dt_clev,cbx);
+		  cdata.mult<RunOn::Host>(dt_clev,cbx);
 		  FArrayBox& fine_state = (*fine_stateMF)[mfi];
 		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
 					num_comp,fbx,ratio,
 					cgeom,fgeom,bc_interp,RunOn::Cpu);
 
 		  Real dt_clev_inv = 1./dt_clev;
-		  cdata.mult(dt_clev_inv,cbx);
+		  cdata.mult<RunOn::Host>(dt_clev_inv,cbx);
 	      }
 
-	      FineSync[mfi].plus(fdata,fbx,0,dest_comp,num_comp);
+	      FineSync[mfi].plus<RunOn::Host>(fdata,fbx,0,dest_comp,num_comp);
 	  }
 	  else
 	  {
-	      FineSync[mfi].copy(fdata,fbx,0,fbx,dest_comp,num_comp);
+	      FineSync[mfi].copy<RunOn::Host>(fdata,fbx,0,fbx,dest_comp,num_comp);
 	  }
       }
     delete [] bc_new;
@@ -3321,10 +3381,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
 
     BoxArray crse_ba(N);
 
-#ifdef AMREX_USE_EB
-    amrex::Abort("NavierStokesBase::SyncProjInterp():: Multilevel currently under development. Run with amr.max_level <= 1 \n");
-#endif
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3336,10 +3392,26 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Geometry& fgeom   = parent->Geom(f_lev);
     const Geometry& cgeom   = parent->Geom(c_lev);
 
-    // causes problems
-    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),getLevel(c_lev).Factory());
+#ifdef AMREX_USE_EB
+    // I am unsure of EBSupport and ng (set to 1 here)
+    // need 1 ghost cell to use EB_set_covered on nodal MF
+    // Factory is always CC, regardless of status of crse_ba
+    auto factory = makeEBFabFactory(cgeom,crse_ba,P_new.DistributionMap(),{1,1,1},EBSupport::basic);
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0,MFInfo(),*factory);
+
+#else
+    MultiFab     crse_phi(crse_ba,P_new.DistributionMap(),1,0);
+#endif
+
     crse_phi.setVal(1.e200);
     crse_phi.copy(phi,0,0,1);
+
+#ifdef AMREX_USE_EB
+    // FIXME -
+    // For now, just zero covered fine cells. Better interpolation to come...
+    ///
+    EB_set_covered(crse_phi,0.);
+#endif
 
     NavierStokesBase& fine_lev        = getLevel(f_lev);
     const Real    cur_fine_pres_time  = fine_lev.state[Press_Type].curTime();
@@ -3365,15 +3437,15 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
 	    const Box&  fbx     = mfi.tilebox();
 
             fine_phi.resize(fbx,1);
-            fine_phi.setVal(1.e200);
+            fine_phi.setVal<RunOn::Host>(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type,RunOn::Cpu);
 
-            fine_phi.mult(cur_mult_factor);
-            P_new[mfi].plus(fine_phi,fbx,0,0);
-            fine_phi.mult(prev_mult_factor);
-            P_old[mfi].plus(fine_phi,fbx,0,0);
+            fine_phi.mult<RunOn::Host>(cur_mult_factor);
+            P_new[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
+            fine_phi.mult<RunOn::Host>(prev_mult_factor);
+            P_old[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
 	  }
 	}
     }
@@ -3390,16 +3462,22 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
 	    const Box&  fbx     = mfi.tilebox();
 
             fine_phi.resize(fbx,1);
-            fine_phi.setVal(1.e200);
+            fine_phi.setVal<RunOn::Host>(1.e200);
             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
                                         0,Press_Type,RunOn::Cpu);
 
-            P_new[mfi].plus(fine_phi,fbx,0,0);
-            P_old[mfi].plus(fine_phi,fbx,0,0);
+            P_new[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
+            P_old[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
         }
       }
     }
+#ifdef AMREX_USE_EB
+    // FIXME? - this can probably go after new interpolation is implemented
+    EB_set_covered(P_new,0.);
+    EB_set_covered(P_old,0.);
+#endif
+
 }
 
 std::string
@@ -3540,7 +3618,7 @@ NavierStokesBase::velocity_advection (Real dt)
                 // Loop over the velocity components.
                 //
                 S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
-                S.copy(Umf[U_mfi],0,0,BL_SPACEDIM);
+                S.copy<RunOn::Host>(Umf[U_mfi],0,0,BL_SPACEDIM);
 
                 FArrayBox& divufab = divu_fp[U_mfi];
                 FArrayBox& aofsfab = (*aofs)[U_mfi];
@@ -3555,8 +3633,8 @@ NavierStokesBase::velocity_advection (Real dt)
 
                     if (do_mom_diff == 1)
                     {
-                        S.mult(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
-                        tforces.mult(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
+                        S.mult<RunOn::Host>(Rmf[U_mfi],S.box(),S.box(),0,comp,1);
+                        tforces.mult<RunOn::Host>(rho_ptime[U_mfi],tforces.box(),tforces.box(),0,comp,1);
                     }
 
                     // WARNING: FPU argument is not used because FPU is by default in AdvectState
@@ -3575,7 +3653,7 @@ NavierStokesBase::velocity_advection (Real dt)
                         for (int d = 0; d < AMREX_SPACEDIM; d++)
                         {
                             const Box& ebx = U_mfi.nodaltilebox(d);
-                            fluxes[d][U_mfi].copy(cfluxes[d],ebx,0,ebx,comp,1);
+                            fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d],ebx,0,ebx,comp,1);
                         }
                     }
                 }
@@ -3747,9 +3825,9 @@ NavierStokesBase::velocity_advection_update (Real dt)
         // Average the new and old time to get Crank-Nicholson half time approximation.
         //
         FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-        Scal.copy(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
-        Scal.plus(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
-        Scal.mult(0.5,bx,0,NUM_SCALARS);
+        Scal.copy<RunOn::Host>(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
+        Scal.plus<RunOn::Host>(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
+        Scal.mult<RunOn::Host>(0.5,bx,0,NUM_SCALARS);
 
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
@@ -3759,20 +3837,20 @@ NavierStokesBase::velocity_advection_update (Real dt)
         // Do following only at initial iteration--per JBB.
         //
         if (initial_iter && is_diffusive[Xvel])
-            tforces.setVal(0);
+            tforces.setVal<RunOn::Host>(0);
 
 	//why is this on a grown box?
 	   const Box& sbx = Rhohalf_mfi.growntilebox();
         S.resize(sbx,BL_SPACEDIM);
-        S.copy(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
+        S.copy<RunOn::Host>(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
 
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
             {
-                Gp[Rhohalf_mfi].mult(halftime[i],bx,0,d,1);
-                tforces.mult(halftime[i],bx,0,d,1);
-                S.mult(rho_ptime[Rhohalf_mfi],bx,0,d,1);
+                Gp[Rhohalf_mfi].mult<RunOn::Host>(halftime[i],bx,0,d,1);
+                tforces.mult<RunOn::Host>(halftime[i],bx,0,d,1);
+                S.mult<RunOn::Host>(rho_ptime[Rhohalf_mfi],bx,0,d,1);
             }
         }
 
@@ -3781,7 +3859,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
-                U_new[Rhohalf_mfi].divide(rho_ctime[Rhohalf_mfi],bx,0,d,1);
+                U_new[Rhohalf_mfi].divide<RunOn::Host>(rho_ctime[Rhohalf_mfi],bx,0,d,1);
         }
     }
 }
@@ -3795,9 +3873,9 @@ NavierStokesBase::velocity_advection_update (Real dt)
        if (U_new.contains_nan(sigma,1,0))
        {
          for(MFIter mfi(U_new); mfi.isValid(); ++mfi){
-             if(U_new[mfi].contains_nan(mfi.validbox(),sigma,1)){
+             if(U_new[mfi].contains_nan<RunOn::Host>(mfi.validbox(),sigma,1)){
 		            FArrayBox tmp(mfi.validbox(),1);
-                tmp.copy(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
+                tmp.copy<RunOn::Host>(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
 
 		}
          }
@@ -3856,7 +3934,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
                 }
 
                 getForce(tforces_fab,bx,0,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
-                tforces[mfi].copy(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
+                tforces[mfi].copy<RunOn::Host>(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
             }
         }
 
@@ -3941,7 +4019,7 @@ NavierStokesBase::volWgtSum (const std::string& name,
             baf.intersections(grids[mfi.index()],isects);
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
-                fab.setVal(0,isects[ii].second,0,fab.nComp());
+                fab.setVal<RunOn::Host>(0,isects[ii].second,0,fab.nComp());
         }
         Real        s;
         const Real* dat = fab.dataPtr();
@@ -4114,8 +4192,8 @@ NavierStokesBase::TurbSum (Real time, Real *turb, int ksize, int turbVars)
 
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
-                presFab.setVal(0,isects[ii].second,0,presMF->nComp());
-                turbFab.setVal(0,isects[ii].second,0,turbMF->nComp());
+                presFab.setVal<RunOn::Host>(0,isects[ii].second,0,presMF->nComp());
+                turbFab.setVal<RunOn::Host>(0,isects[ii].second,0,turbMF->nComp());
             }
         }
     }

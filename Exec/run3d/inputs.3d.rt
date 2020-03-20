@@ -36,7 +36,7 @@ ns.init_iter          = 3  # factor which multiplies the very first time step
 ns.vel_visc_coef        = 0.0
 ns.scal_diff_coefs      = 0.0
 
-amr.probin_file 	= probin.3d.rt
+amr.probin_file 	= regtest.probin.3d.rt
 
 geometry.coord_sys   =  0
 
