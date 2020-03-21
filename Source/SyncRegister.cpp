@@ -207,22 +207,14 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 
                     if (blo.ok()) {
                       //fab.mult(2.0,blo,0,1);
-                      amrex::ParallelFor(blo,
-                      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                      {
-                        fab_a(i,j,k) *= 2.0;
-                      });
+                      fab.mult<RunOn::Host>(2.0,blo,0,1);
                     }
-                    
+
                     const Box& bhi = fab.box() & domhi;
 
                     if (bhi.ok()) {
                       //fab.mult(2.0,bhi,0,1);
-                      amrex::ParallelFor(bhi,
-                      [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                      {
-                        fab_a(i,j,k) *= 2.0;
-                      });
+                      fab.mult<RunOn::Host>(2.0,bhi,0,1);
                     }
                 }
             }
@@ -396,11 +388,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 			    domlo &= bndbox;			    
 			    if (domlo.ok()) {
                               //cbndfab.mult(2.0,domlo,0,1);
-                              amrex::ParallelFor(domlo,
-                              [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                              {
-                                cbndfab_a(i,j,k) *= 2.0;
-                              });
+                              cbndfab.mult<RunOn::Host>(2.0,domlo,0,1);
 			    }
 
 			    Box domhi(crse_node_domain);
@@ -408,11 +396,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 			    domhi &= bndbox;
 			    if (domhi.ok()) {
                               //cbndfab.mult(2.0,domhi,0,1);
-                              amrex::ParallelFor(domhi,
-                              [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                              {
-                                cbndfab_a(i,j,k) *= 2.0;
-                              });
+                              cbndfab.mult<RunOn::Host>(2.0,domhi,0,1);
 			    }
 			}
 		    }
@@ -424,7 +408,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                       amrex::ParallelFor(ovlp,
                       [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                       {
-                        crsefab_a(i,j,k) = cbndfab_a(i,j,k);
+                        crsefab_a(i,j,k) += cbndfab_a(i,j,k);
                       });
                     }
 		}
