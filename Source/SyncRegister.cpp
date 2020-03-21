@@ -200,8 +200,6 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
                 for (FabSetIter fsi(fs); fsi.isValid(); ++fsi)
                 {
                     FArrayBox& fab = fs[fsi];
-                    auto const& fab_a = fab.array();
-                    Elixir fab_e = fab.elixir();
 
                     const Box& blo = fab.box() & domlo;
 
