@@ -208,11 +208,10 @@ public:
                               std::pair<amrex::Real,amrex::Real>& scalars,
                               amrex::Real                         a,
                               amrex::Real                         b,
-                              const amrex::MultiFab&              rho_half,
-                              int                                 rho_flag, 
                               amrex::Real*                        rhsscale,
                               const amrex::MultiFab*              alpha_in,
                               int                                 alpha_in_comp,
+                              int                                 rho_flag, 
                               const amrex::MultiFab*              rho,
                               int                                 rho_comp);
     
