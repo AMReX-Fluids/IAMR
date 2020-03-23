@@ -484,7 +484,7 @@ NavierStokes::predict_velocity (Real  dt)
     for (MFIter mfi(Umf,true); mfi.isValid(); ++mfi)
     {
       Box gbx=mfi.growntilebox(Godunov::hypgrow());
-      auto fab_a = Umf.array(mfi);
+      auto const& fab_a = Umf.array(mfi);
       Elixir fab_e = Umf[mfi].elixir();
       AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
       {

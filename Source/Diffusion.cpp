@@ -326,7 +326,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     MultiFab Rhs(ba,dm,1,0,MFInfo(),factory);
     MultiFab Soln(ba,dm,1,ng,MFInfo(),factory);
-    MultiFab alpha(ba,dm,1,0,MFInfo(),factory);
 
     auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
     if (has_coarse_data)
@@ -572,10 +571,16 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
       {
 	std::pair<Real,Real> scalars;
-
-	computeAlpha(alpha, scalars, a, b, rho_half, rho_flag,
+	MultiFab alpha;
+	const MultiFab* rho = (rho_flag == 1) ? &rho_half : Rho_new[0];
+	int rhoComp = (rho_flag == 1 ) ? 0 : Rho_comp;
+	
+	// computeAlpha(alpha, scalars, a, b, rho_half, rho_flag,
+	// 	     &rhsscale, alpha_in, alpha_in_comp+icomp,
+	// 	     Rho_new[0], Rho_comp);
+	computeAlpha(alpha, scalars, a, b, 
 		     &rhsscale, alpha_in, alpha_in_comp+icomp,
-		     Rho_new[0], Rho_comp);
+		     rho_flag, rho, rhoComp);
 	opnp1.setScalars(scalars.first, scalars.second);
 	opnp1.setACoeffs(0, alpha);
       }
@@ -945,15 +950,14 @@ VisMF::Write(*betan[1],"test_visc_y");
 
       {
 	MultiFab acoef;
-	acoef.define(grids, dmap, 1, 0, MFInfo(), navier_stokes->Factory());
 	std::pair<Real,Real> scalars;
 	// fixme? don't know why we're bothering with rhsscale....
 	Real rhsscale = 1.0;
 	const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
-
-	computeAlpha(acoef, scalars, a, b, rho,
-		     1, &rhsscale, nullptr, 0,
-		     nullptr, 0); 
+	  
+	computeAlpha(acoef, scalars, a, b,
+		     &rhsscale, nullptr, 0,
+		     rho_flag, &rho, 0); 
 
 	tensorop.setScalars(scalars.first, scalars.second);
 	tensorop.setACoeffs(0, acoef);
@@ -1142,7 +1146,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     //
     const Real      a         = 1.0;
     const Real      b         = be_cn_theta*dt;
-    const MultiFab& rho       = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
     Real rhsscale = 1.0;
 
     int soln_ng = 1;
@@ -1186,11 +1189,12 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     
     {
       MultiFab acoef;
-      acoef.define(grids, dmap, 1, 0, MFInfo(), navier_stokes->Factory());
       std::pair<Real,Real> scalars;
-      computeAlpha(acoef, scalars, a, b, rho,
-		   rho_flag, &rhsscale, nullptr, 0,
-		   &rho, 0);
+      const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
+      
+      computeAlpha(acoef, scalars, a, b,
+		   &rhsscale, nullptr, 0,
+		   rho_flag, &rho, 0);
       
       tensorop.setScalars(scalars.first, scalars.second);
       tensorop.setACoeffs(0, acoef);
@@ -1298,7 +1302,6 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
                           const MultiFab*        alpha,
                           int                    alphaComp)
 {
-    const MultiFab& volume = navier_stokes->Volume();
     const int state_ind    = sigma + BL_SPACEDIM;
     //
     // Fixme!! this solve still has volume scaling...
@@ -1376,9 +1379,12 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
       std::pair<Real,Real> scalars;
       const Real cur_time = navier_stokes->get_state_data(State_Type).curTime();
       MultiFab& S = navier_stokes->get_data(State_Type,cur_time);
-      const int Rho_comp = Density;
-      computeAlpha(acoef, scalars, a, b, rho_half, rho_flag,
-                   &rhsscale, alpha, alphaComp, &S, Rho_comp);
+      const MultiFab& rho = (rho_flag == 1) ? rho_half : S;
+      const int Rho_comp = (rho_flag ==1) ? 0 : Density;
+
+      computeAlpha(acoef, scalars, a, b, 
+                   &rhsscale, alpha, alphaComp,
+		   rho_flag, &S, Rho_comp);
       mlabec.setScalars(scalars.first, scalars.second);
       mlabec.setACoeffs(0, acoef);
     }
@@ -1402,7 +1408,6 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
     {
       const Box& bx = Rhsmfi.tilebox();
-      Rhs[Rhsmfi].mult<RunOn::Host>(volume[Rhsmfi],bx,0,0);
       if (rho_flag == 1) {
         Rhs[Rhsmfi].mult<RunOn::Host>(rho_half[Rhsmfi],bx,0,0);
       }
@@ -1415,15 +1420,8 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     checkBeta(flux, flux_allthere, flux_allnull);
     if (flux_allthere)
     {
-      AMREX_D_TERM(MultiFab flxx(*flux[0], amrex::make_alias, fluxComp, 1);,
-                   MultiFab flxy(*flux[1], amrex::make_alias, fluxComp, 1);,
-                   MultiFab flxz(*flux[2], amrex::make_alias, fluxComp, 1););
-      std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
-      mlmg.getFluxes({fp}, MLLinOp::Location::FaceCentroid);
-      // FIXME!!! need area weighting here
-      for (int i = 0; i < BL_SPACEDIM; ++i) {
-        (*flux[i]).mult(b/(dt*navier_stokes->Geom().CellSize()[i]),fluxComp,1,0);
-       }
+      computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, 1,
+			     &(navier_stokes->Geom()), b/dt);
     }
 
     MultiFab::Copy(Ssync,Soln,0,sigma,1,0);
@@ -1465,14 +1463,19 @@ Diffusion::computeAlpha (MultiFab&             alpha,
                          std::pair<Real,Real>& scalars,
                          Real                  a,
                          Real                  b,
-                         const MultiFab&       rho_half,
-                         int                   rho_flag,
                          Real*                 rhsscale,
                          const MultiFab*       alpha_in,
                          int                   alpha_in_comp,
+			 int                   rho_flag,
                          const MultiFab*       rho,
                          int                   rho_comp)
 {
+    const BoxArray& ba = rho->boxArray();
+    const DistributionMapping& dm = rho->DistributionMap();
+    const auto& factory = rho->Factory();
+
+    alpha.define(ba, dm, 1, 0, MFInfo(), factory);
+
     if (alpha_in != 0)
     {
         BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
@@ -1481,11 +1484,7 @@ Diffusion::computeAlpha (MultiFab&             alpha,
     else
       alpha.setVal(1.0); 
 
-    if (rho_flag == 1)
-    {
-      MultiFab::Multiply(alpha,rho_half,0,0,1,0);
-    }
-    else if (rho_flag == 2 || rho_flag == 3)
+    if ( rho_flag > 0 )
     {
         MultiFab::Multiply(alpha,*rho,rho_comp,0,1,0);
     }
