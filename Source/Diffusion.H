@@ -12,14 +12,12 @@
 #include <AMReX_ErrorList.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_ABecLaplacian.H>
-#include <ViscBndry.H>
 #include <FluxBoxes.H>
 #include <AMReX_MLLinOp.H>
 
 //
 // Include files for tensor solve.
 //
-#include <ViscBndryTensor.H>
 #include <AMReX_DivVis.H>
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_MCMultiGrid.H>
@@ -210,11 +208,10 @@ public:
                               std::pair<amrex::Real,amrex::Real>& scalars,
                               amrex::Real                         a,
                               amrex::Real                         b,
-                              const amrex::MultiFab&              rho_half,
-                              int                                 rho_flag, 
                               amrex::Real*                        rhsscale,
                               const amrex::MultiFab*              alpha_in,
                               int                                 alpha_in_comp,
+                              int                                 rho_flag, 
                               const amrex::MultiFab*              rho,
                               int                                 rho_comp);
     
