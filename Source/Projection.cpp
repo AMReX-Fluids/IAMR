@@ -374,7 +374,7 @@ Projection::level_project (int             level,
 
 #ifdef AMREX_USE_EB
 	FArrayBox Gpfab(bx,BL_SPACEDIM);
-	Gpfab.copy((Gp)[mfi],0,0,BL_SPACEDIM);
+	Gpfab.copy<RunOn::Host>((Gp)[mfi],0,0,BL_SPACEDIM);
 //Gpfab.FillBoundary(geom.periodicity());
 #else
 	FArrayBox& Gpfab = Gp[mfi];

@@ -258,10 +258,10 @@ NavierStokesBase::initialize_eb2_structs() {
     int iLocal = mfi.LocalIndex();
 
     if (typ == FabType::regular) {
-      mfab.setVal(1);
+      mfab.setVal<RunOn::Host>(1);
     }
     else if (typ == FabType::covered) {
-      mfab.setVal(-1);
+      mfab.setVal<RunOn::Host>(-1);
     }
     else if (typ == FabType::singlevalued) {
       int Ncut = 0;
