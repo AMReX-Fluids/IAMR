@@ -82,6 +82,15 @@ namespace MOL {
                      amrex::Array4<amrex::Real const > const& vel,
                       const amrex::Vector<amrex::BCRec>& bcs );
 
+    void CopyFluxes( amrex::Box const& bx,
+                     D_DECL( amrex::Array4<amrex::Real> const& fx_out,
+                             amrex::Array4<amrex::Real> const& fy_out,
+                             amrex::Array4<amrex::Real> const& fz_out),
+                     D_DECL( amrex::Array4<amrex::Real const> const& fx_in,
+                             amrex::Array4<amrex::Real const> const& fy_in,
+                             amrex::Array4<amrex::Real const> const& fz_in),
+                     int ncomp );
+
 #ifdef AMREX_USE_EB
     void EB_ComputeEdgeState ( amrex::Box const& bx,
                                D_DECL( amrex::Array4<amrex::Real> const& xedge,
