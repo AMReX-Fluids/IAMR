@@ -86,7 +86,7 @@ int         NavierStokesBase::do_LES                    = 0;
 int         NavierStokesBase::getLESVerbose             = 0;
 std::string NavierStokesBase::LES_model                 = "Smagorinsky";
 Real        NavierStokesBase::smago_Cs_cst              = 0.18;
-Real        NavierStokesBase::sigma_Cs_cst              = 0.18;
+Real        NavierStokesBase::sigma_Cs_cst              = 1.5;
 
 
 

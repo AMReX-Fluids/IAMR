@@ -714,8 +714,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
     const Geometry& geom   = navier_stokes->Geom();
 
-VisMF::Write(*betan[0],"test_visc_x");
-VisMF::Write(*betan[1],"test_visc_y");
+//VisMF::Write(*betan[0],"test_visc_x");
+//VisMF::Write(*betan[1],"test_visc_y");
 
     //
     // Set up Rhs.
