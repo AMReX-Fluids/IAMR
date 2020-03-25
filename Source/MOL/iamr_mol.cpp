@@ -134,12 +134,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute fluxes
                 EB_ComputeFluxes(gbx, D_DECL(fx,fy,fz), D_DECL(u,v,w), D_DECL(xed,yed,zed), ncomp, flag );
 
-                // Copy fluxes to output
-                CopyFluxes(bx, D_DECL( xfluxes.array(mfi, fluxes_comp),
-                                       yfluxes.array(mfi, fluxes_comp),
-                                       zfluxes.array(mfi, fluxes_comp) ),
-                           D_DECL(fx,fy,fz), ncomp );
-
                 //
                 // Compute divergence and redistribute
                 //
@@ -155,6 +149,15 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Reuse fluxes temporary as scratch memory to perform redistribution
                 Array4<Real> scratch = tmpfab.array(0);
                 Redistribute(bx, ncomp, aofs.array(mfi, aofs_comp), div_tmp, scratch, flag, vfrac, geom);
+
+                // Weight fluxes by area and copy them  to output
+                EB_AreaWeightFluxes(bx, D_DECL(fx,fy,fz), D_DECL(apx,apy,apz), ncomp, geom.CellSize());
+
+                CopyFluxes(bx, D_DECL( xfluxes.array(mfi, fluxes_comp),
+                                       yfluxes.array(mfi, fluxes_comp),
+                                       zfluxes.array(mfi, fluxes_comp) ),
+                           D_DECL(fx,fy,fz), ncomp );
+
             }
             else
 #endif
@@ -170,14 +173,16 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute fluxes
                 ComputeFluxes(bx, D_DECL(fx,fy,fz), D_DECL(u,v,w), D_DECL(xed,yed,zed), ncomp );
 
-                // Copy fluxes to output
+                // Compute divergence
+                ComputeDivergence(bx, aofs.array(mfi, aofs_comp), D_DECL(fx,fy,fz), ncomp, geom);
+
+                // Weight fluxes by area and copy them  to output
+                AreaWeightFluxes(bx, D_DECL(fx,fy,fz), ncomp, geom.CellSize());
+
                 CopyFluxes(bx, D_DECL( xfluxes.array(mfi, fluxes_comp),
                                        yfluxes.array(mfi, fluxes_comp),
                                        zfluxes.array(mfi, fluxes_comp) ),
                            D_DECL(fx,fy,fz), ncomp );
-
-                // Compute divergence
-                ComputeDivergence(bx, aofs.array(mfi, aofs_comp), D_DECL(fx,fy,fz), ncomp, geom);
 
             }
 
@@ -263,6 +268,114 @@ MOL::ComputeDivergence ( Box const& bx,
     });
 
 }
+
+void
+MOL::CopyFluxes( Box const& bx,
+                 D_DECL( Array4<Real> const& fx_out,
+                         Array4<Real> const& fy_out,
+                         Array4<Real> const& fz_out),
+                 D_DECL( Array4<Real const> const& fx_in,
+                         Array4<Real const> const& fy_in,
+                         Array4<Real const> const& fz_in),
+                 int ncomp)
+{
+    //
+    //  X flux
+    //
+    const Box& xbx = amrex::surroundingNodes(bx,0);
+
+    amrex::ParallelFor(xbx, ncomp, [fx_out, fx_in]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        fx_out(i,j,k,n) = fx_in(i,j,k,n);
+    });
+
+    //
+    //  y flux
+    //
+    const Box& ybx = amrex::surroundingNodes(bx,1);
+
+    amrex::ParallelFor(ybx, ncomp, [fy_out, fy_in]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        fy_out(i,j,k,n) = fy_in(i,j,k,n);
+    });
+
+#if (AMREX_SPACEDIM==3)
+    //
+    //  z flux
+    //
+    const Box& zbx = amrex::surroundingNodes(bx,2);
+
+    amrex::ParallelFor(zbx, ncomp, [fz_out, fz_in]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        fz_out(i,j,k,n) = fz_in(i,j,k,n);
+    });
+
+#endif
+}
+
+void
+MOL::AreaWeightFluxes( Box const& bx,
+                       D_DECL( Array4<Real> const& fx,
+                               Array4<Real> const& fy,
+                               Array4<Real> const& fz),
+                       int ncomp,
+                       const Real* dx )
+{
+
+    Real  area[AMREX_SPACEDIM];
+#if ( AMREX_SPACEDIM == 3 )
+    area[0] = dx[1]*dx[2];
+    area[1] = dx[0]*dx[2];
+    area[2] = dx[0]*dx[1];
+#else
+    area[0] = dx[1];
+    area[1] = dx[0];
+#endif
+
+    //
+    //  X flux
+    //
+    const Box& xbx = amrex::surroundingNodes(bx,0);
+
+    amrex::ParallelFor(xbx, ncomp, [fx,area]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        fx(i,j,k,n) *= area[0];
+    });
+
+    //
+    //  y flux
+    //
+    const Box& ybx = amrex::surroundingNodes(bx,1);
+
+    amrex::ParallelFor(ybx, ncomp, [fy,area]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        fy(i,j,k,n) *= area[1];
+    });
+
+#if (AMREX_SPACEDIM==3)
+    //
+    //  z flux
+    //
+    const Box& zbx = amrex::surroundingNodes(bx,2);
+
+    amrex::ParallelFor(zbx, ncomp, [fz,area]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        fz(i,j,k,n) *= area[2];
+    });
+
+#endif
+
+}
+
+//
+// ============================  EB-only routines ============================
+//
 
 #ifdef AMREX_USE_EB
 void
@@ -497,24 +610,36 @@ MOL::Redistribute (  Box const& bx, int ncomp,
 
 
 void
-MOL::CopyFluxes( Box const& bx,
-                 D_DECL( Array4<Real> const& fx_out,
-                         Array4<Real> const& fy_out,
-                         Array4<Real> const& fz_out),
-                 D_DECL( Array4<Real const> const& fx_in,
-                         Array4<Real const> const& fy_in,
-                         Array4<Real const> const& fz_in),
-                 int ncomp)
+MOL::EB_AreaWeightFluxes ( Box const& bx,
+                           D_DECL( Array4<Real> const& fx,
+                                   Array4<Real> const& fy,
+                                   Array4<Real> const& fz),
+                           D_DECL( Array4<Real const> const& apx,
+                                   Array4<Real const> const& apy,
+                                   Array4<Real const> const& apz ),
+                           int ncomp,
+                           const Real* dx )
 {
+
+    Real  area[AMREX_SPACEDIM];
+#if ( AMREX_SPACEDIM == 3 )
+    area[0] = dx[1]*dx[2];
+    area[1] = dx[0]*dx[2];
+    area[2] = dx[0]*dx[1];
+#else
+    area[0] = dx[1];
+    area[1] = dx[0];
+#endif
+
     //
     //  X flux
     //
     const Box& xbx = amrex::surroundingNodes(bx,0);
 
-    amrex::ParallelFor(xbx, ncomp, [fx_out, fx_in]
+    amrex::ParallelFor(xbx, ncomp, [fx,area,apx]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-        fx_out(i,j,k,n) = fx_in(i,j,k,n);
+        fx(i,j,k,n) *= area[0]*apx(i,j,k);
     });
 
     //
@@ -522,10 +647,10 @@ MOL::CopyFluxes( Box const& bx,
     //
     const Box& ybx = amrex::surroundingNodes(bx,1);
 
-    amrex::ParallelFor(ybx, ncomp, [fy_out, fy_in]
+    amrex::ParallelFor(ybx, ncomp, [fy,area,apy]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-        fy_out(i,j,k,n) = fy_in(i,j,k,n);
+        fy(i,j,k,n) *= area[1]*apy(i,j,k);
     });
 
 #if (AMREX_SPACEDIM==3)
@@ -534,15 +659,17 @@ MOL::CopyFluxes( Box const& bx,
     //
     const Box& zbx = amrex::surroundingNodes(bx,2);
 
-    amrex::ParallelFor(zbx, ncomp, [fz_out, fz_in]
+    amrex::ParallelFor(zbx, ncomp, [fz,area,apz]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-        fz_out(i,j,k,n) = fz_in(i,j,k,n);
+        fz(i,j,k,n) *= area[2]*apz(i,j,k);
     });
 
 #endif
 
-
-
 }
+
+
+
+
 #endif
