@@ -15,7 +15,7 @@ ns.do_MLsync_proj = 0
 # for matching NodeEB
 proj.proj_tol= 1.e-11
 proj.proj_abs_tol= 0.0
-proj.max_mlmg_iter=100
+nodal_proj.maxiter=100
 
 # verbosity
 ns.v                    = 1

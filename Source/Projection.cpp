@@ -59,7 +59,6 @@ namespace
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
-    int max_mlmg_iter = -1;
     bool use_gauss_seidel = true;
     bool use_harmonic_average = false;
 }
@@ -2311,7 +2310,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
-//mlndlap.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+//  nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction)
     {
@@ -2321,9 +2320,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     nodal_projector.getLinOp().setGaussSeidel(use_gauss_seidel);
     nodal_projector.getLinOp().setHarmonicAverage(use_harmonic_average);
     nodal_projector.getMLMG().setMaxFmgIter(max_fmg_iter);
-
-    if (max_mlmg_iter > 0)
-        nodal_projector.getMLMG().setMaxIter(max_mlmg_iter);
 
     if (sync_resid_fine != 0)
     {
