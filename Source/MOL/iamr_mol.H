@@ -80,16 +80,8 @@ namespace MOL {
                              amrex::Array4<amrex::Real> const& v,
                              amrex::Array4<amrex::Real> const& w ),
                      amrex::Array4<amrex::Real const > const& vel,
-                      const amrex::Vector<amrex::BCRec>& bcs );
+                     const amrex::Vector<amrex::BCRec>& bcs );
 
-    void CopyFluxes ( amrex::Box const& bx,
-                      D_DECL( amrex::Array4<amrex::Real> const& fx_out,
-                              amrex::Array4<amrex::Real> const& fy_out,
-                              amrex::Array4<amrex::Real> const& fz_out),
-                      D_DECL( amrex::Array4<amrex::Real const> const& fx_in,
-                              amrex::Array4<amrex::Real const> const& fy_in,
-                              amrex::Array4<amrex::Real const> const& fz_in),
-                      int ncomp );
 
     void AreaWeightFluxes ( amrex::Box const& bx,
                             D_DECL( amrex::Array4<amrex::Real> const& fx,
@@ -160,7 +152,6 @@ namespace MOL {
     void Redistribute (  amrex::Box const& bx, int ncomp,
                          amrex::Array4<amrex::Real> const& div,
                          amrex::Array4<amrex::Real const> const& div_in,
-                         amrex::Array4<amrex::Real> const& scratch,
                          amrex::Array4<amrex::EBCellFlag const> const& flag,
                          amrex::Array4<amrex::Real const> const& vfrac,
                          amrex::Geometry const& geom );
