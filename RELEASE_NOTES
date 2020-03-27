@@ -104,3 +104,7 @@ Switch many routines to dimension-agnostic (one common code no matter the dimens
 
 12/2/19
 Minor interface cleanups and problem setups
+
+04/01/19
+Introducing complex geometries via EB
+
