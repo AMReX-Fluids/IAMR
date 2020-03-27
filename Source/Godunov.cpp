@@ -1376,14 +1376,13 @@ Godunov::areaWeightFluxes( D_DECL(MultiFab& a_fx,
 			   const Geometry&  a_geom)
 {
     const Real*  dx = a_geom.CellSize();
-    Real area[AMREX_SPACEDIM];
 #if ( AMREX_SPACEDIM == 3 )
-    area[0] = dx[1]*dx[2];
-    area[1] = dx[0]*dx[2];
-    area[2] = dx[0]*dx[1];
+    Real areax = dx[1]*dx[2];
+    Real areay = dx[0]*dx[2];
+    Real areaz = dx[0]*dx[1];
 #else
-    area[0] = dx[1];
-    area[1] = dx[0];
+    Real areax = dx[1];
+    Real areay = dx[0];
 #endif
 
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(a_fx.Factory());
@@ -1409,10 +1408,10 @@ Godunov::areaWeightFluxes( D_DECL(MultiFab& a_fx,
 		const Box vbx = mfi.tilebox(IntVect(AMREX_D_DECL(0,1,0)));,
 		const Box wbx = mfi.tilebox(IntVect(AMREX_D_DECL(0,0,1))););
 	
-	AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= area[0];});
-	AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= area[1];});
+	AMREX_FOR_4D(ubx, a_ncomp, i, j, k, n, {fx(i,j,k,n) *= areax;});
+	AMREX_FOR_4D(vbx, a_ncomp, i, j, k, n, {fy(i,j,k,n) *= areay;});
 #if (AMREX_SPACEDIM==3)
-	AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= area[2];});
+	AMREX_FOR_4D(wbx, a_ncomp, i, j, k, n, {fz(i,j,k,n) *= areaz;});
 #endif
 	
 	//
