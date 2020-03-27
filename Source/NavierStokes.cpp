@@ -677,12 +677,13 @@ NavierStokes::scalar_advection (Real dt,
 
         MultiFab cfluxes[AMREX_SPACEDIM];
         MultiFab edgstate[AMREX_SPACEDIM];
+        int nghost = 2;
 
         for (int i(0); i < AMREX_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
-            cfluxes[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-            edgstate[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+            cfluxes[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
+            edgstate[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
         }
 
         Vector<BCRec> math_bcs(num_scalars);

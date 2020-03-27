@@ -3666,7 +3666,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
          MultiFab cfluxes[AMREX_SPACEDIM];
          MultiFab edgstate[AMREX_SPACEDIM];
-         int nghost(4);         // Use 4 for now
+         int nghost(2);
 
          for (int i(0); i < AMREX_SPACEDIM; i++)
          {
