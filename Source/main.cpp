@@ -9,7 +9,18 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EB2.H>
+#include <AMReX_AmrLevel.H>
+#endif
+
 using namespace amrex;
+
+#ifdef AMREX_USE_EB
+//skipping header file and just declaring eb2 init fn here as in CNS for now
+void initialize_EB2 (const Geometry& geom, const int required_level,
+		     const int max_level);
+#endif
 
 int
 main (int   argc,
@@ -50,7 +61,28 @@ main (int   argc,
     }
 
     Amr* amrptr = new Amr;
+    //    Amr amr;
+#ifdef AMREX_USE_EB
+    // fixme? not sure what level of support should be default
+    // levels explianed in user guide
+    // Ann suggested we need vol and area frac, and face and area centriod => full
+    AmrLevel::SetEBSupportLevel(EBSupport::full);
+    // set grow cells for basic, volume, full
+    // fixme? not sure what these numbers should be
+    // AmrLevel.cpp defaults 5, 4, 2
+    // CNS::numGrow()= 5
+    //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
+    // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var?
+    // Using incflo values here
+    AmrLevel::SetEBMaxGrowCells(4,4,4);
 
+    //decide who should own max_coasening_level later
+    int max_coarsening_level = 4;
+    pp.query("max_coarsening_level", max_coarsening_level);
+    initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
+		   max_coarsening_level);
+#endif
+		   
     amrptr->init(strt_time,stop_time);
 
     if (num_steps > 0)

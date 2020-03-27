@@ -1,0 +1,8 @@
+&fortin
+
+  probtype = 13
+  xblob = 0.7006
+  yblob = 0.5521
+  adverr  = 0.1
+
+/

@@ -1,0 +1,3 @@
+Currently the flag 'add_hoop_stress' is set to false by default, so the R-Z coordinates are not supported.
+If turned on, it gives good results if we bypass the call to 'hooprhs' routine and 'fort_setalpha' in computeAlpha.
+Otherwise it crashes. We have to figure out later what we do with that ?

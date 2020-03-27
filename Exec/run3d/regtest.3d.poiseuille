@@ -1,0 +1,56 @@
+
+#*******************************************************************************
+# INPUTS.3D.POISEUILLE for regression testing
+#*******************************************************************************
+
+# make omp reduction more consistent for regression testing
+system.regtest_reduction = 1
+
+# just testing
+godunov.ppm_type = 2
+mac.mac_sync_tol=1.e-10
+
+max_step                =  10
+stop_time 		=  -1
+
+ns.stop_when_steady 	=  1
+ns.steady_tol 		=  1.0e-4
+
+amr.n_cell              =  32 16 16
+
+amr.max_level           =  2
+ns.do_tracer_ref        =  1
+
+ns.v                    =  1
+amr.v                   =  1
+
+amr.check_int		=  1000
+amr.plot_int		=  10
+
+ns.cfl                  =  0.5  # CFL number used to set dt
+
+ns.init_shrink          =  0.3  # factor which multiplies the very first time step
+ns.init_iter          	=  1    # number of initial iterations
+
+ns.vel_visc_coef        =  1.0
+ns.scal_diff_coefs      =  0.001
+
+amr.probin_file 	=  regtest.probin.3d.poiseuille
+
+geometry.coord_sys   	=  0
+
+geometry.prob_lo     	=  0. 0. 0.
+geometry.prob_hi     	=  2. 1. 1.
+
+geometry.is_periodic 	=  0 0 0
+
+ns.gravity		=  1.0
+
+ns.lo_bc             	=  1 5 4 
+ns.hi_bc             	=  2 5 4 
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+amr.derive_plot_vars = NONE

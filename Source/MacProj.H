@@ -49,8 +49,11 @@ public:
     void mac_sync_solve (int       level,
                          amrex::Real      dt, 
                          amrex::MultiFab& rho_half,
-                         amrex::IntVect&  fine_ratio);
+                         amrex::IntVect&  fine_ratio,
+			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
+			 amrex::MultiFab* Rhs_increment = nullptr);
 
+  /* REMOVE in favor of single version above. subtract_avg and offset never used
     // this version is for the closed chamber LMC algorithm
     void mac_sync_solve (int       level,
                          amrex::Real      dt, 
@@ -59,10 +62,12 @@ public:
 			 amrex::MultiFab* Rhs_increment,
 			 bool      subtract_avg,
 			 amrex::Real&     offset);
+  */
     //
     // Computing the sync tendency.
     //
     void mac_sync_compute (int                   level,
+			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab*             u_mac, 
                            amrex::MultiFab&             Vsync,
                            amrex::MultiFab&             Ssync,
@@ -80,6 +85,7 @@ public:
 			   bool                  update_fluxreg = true);
 
     void mac_sync_compute (int                   level,
+			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab&             Sync,
                            int                   comp,
                            int                   s_ind,
@@ -143,14 +149,12 @@ protected:
     int        finest_level_allocated;
 
     static int  verbose;
-    static bool  use_cg_solve;
     static int  do_outflow_bcs;
     static amrex::Real mac_tol;
     static amrex::Real mac_abs_tol;
     static amrex::Real mac_sync_tol;
     static int  check_umac_periodicity;
     static int fix_mac_sync_rhs;
-    static int use_mlmg_solver;
 };
 
 #endif

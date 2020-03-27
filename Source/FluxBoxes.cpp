@@ -11,7 +11,7 @@ FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
     {
 	const BoxArray& ba = amr_level->getEdgeBoxArray(dir);
         const DistributionMapping& dm = amr_level->DistributionMap();
-        data[dir] = new MultiFab(ba,dm,nvar,nghost);
+        data[dir] = new MultiFab(ba,dm,nvar,nghost,MFInfo(),amr_level->Factory());
     }
     return data;
 }

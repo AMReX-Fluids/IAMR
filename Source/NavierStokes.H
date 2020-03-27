@@ -99,6 +99,18 @@ public:
     //
     static void variableCleanUp ();
 
+    //
+    // Predict face velocities (before projection), estimate current cfl
+    // from t^n cell-centered velocities (plus cfl and change_max)
+    //
+    amrex::Real predict_velocity (amrex::Real dt);
+    //
+    // Advect scalars.
+    //
+    void scalar_advection (amrex::Real dt,
+                           int  first_scalar,
+                           int  last_scalar);
+  
 protected:
 
     ////////////////////////////////////////////////////////////////////////////
@@ -158,8 +170,6 @@ protected:
     static void Finalize ();
 
 private:
-  
-    void avgDown (int comp); // Average down for a single StateType scalar
 
     void center_to_edge_plain (const amrex::FArrayBox& ccfab,
                                amrex::FArrayBox&       ecfab,
@@ -167,7 +177,7 @@ private:
 			       int              sComp,
                                int              dComp,
                                int              nComp);
-    //
+   
     void diffuse_velocity_setup (amrex::Real       dt,
 				 amrex::MultiFab*& delta_rhs,
 				 amrex::MultiFab**& viscn,
@@ -191,17 +201,6 @@ private:
     void post_init_press (amrex::Real&        dt_init,
 			  amrex::Vector<int>&  nc_save,
 			  amrex::Vector<amrex::Real>& dt_save);
-    //
-    // Predict face velocities (before projection), estimate current cfl
-    // from t^n cell-centered velocities (plus cfl and change_max)
-    //
-    amrex::Real predict_velocity (amrex::Real dt);
-    //
-    // Advect scalars.
-    //
-    void scalar_advection (amrex::Real dt,
-                           int  first_scalar,
-                           int  last_scalar);
     //
     // Update scalars, (viscous solve in scalar_update).
     //

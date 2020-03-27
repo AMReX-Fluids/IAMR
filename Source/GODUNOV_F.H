@@ -12,24 +12,19 @@ extern "C"
 #endif
    void fort_test_umac_rho(const amrex::Real* um, ARLIM_P(ulo), ARLIM_P(uhi),
 			   const amrex::Real* vm, ARLIM_P(vlo), ARLIM_P(vhi),
-#if (BL_SPACEDIM == 3)                            
+#if (BL_SPACEDIM == 3)
 			   const amrex::Real* wm, ARLIM_P(wlo), ARLIM_P(whi),
-#endif                                              
+#endif
 			   const amrex::Real* rh, ARLIM_P(rlo), ARLIM_P(rhi),
-			   const int* lo, const int* hi, const amrex::Real* dt, 
+			   const int* lo, const int* hi, const amrex::Real* dt,
 			   const amrex::Real* dx, amrex::Real* cfl, const amrex::Real* u_max);
-   
-   void fort_estdt(const amrex::Real* Udat,  ARLIM_P(vlo), ARLIM_P(vhi),
-		   const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
-		   const amrex::Real* rdat,  ARLIM_P(rlo), ARLIM_P(rhi),
-		   const int* lo, const int* hi, amrex::Real* dt, 
-		   const amrex::Real* dx, amrex::Real* cfl, amrex::Real* u_max);
-   
+
+
    void fort_maxchng_velmag(const amrex::Real* Uodat,  ARLIM_P(uo_lo), ARLIM_P(uo_hi),
 		   const amrex::Real* Undat,  ARLIM_P(un_lo), ARLIM_P(un_hi),
 		   const int* lo, const int* hi, amrex::Real* max_change);
-   
-   
+
+
    void extrap_vel_to_faces(const int* lo, const int* hi,
                             const amrex::Real* u_dat, const int* u_lo, const int* u_hi,
                             const int* ubc,
@@ -73,34 +68,34 @@ extern "C"
 			 const amrex::Real* yflux_dat, ARLIM_P(yflux_lo),ARLIM_P(yflux_hi),
                          const amrex::Real* vedge_dat, ARLIM_P(vedge_lo),ARLIM_P(vedge_hi),
 			 const amrex::Real* areay_dat, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
-#if (BL_SPACEDIM == 3)                                                    
+#if (BL_SPACEDIM == 3)
 			 const amrex::Real* zflux_dat, ARLIM_P(zflux_lo),ARLIM_P(zflux_hi),
                          const amrex::Real* wedge_dat, ARLIM_P(wedge_lo),ARLIM_P(wedge_hi),
 			 const amrex::Real* areaz_dat, ARLIM_P(az_lo), ARLIM_P(az_hi),
 #endif
 			 const amrex::Real* vol_dat, ARLIM_P(v_lo),ARLIM_P(v_hi),
 			 const int* lo, const int* hi, int* iconserv);
-   
+
    void sync_adv_forcing(const amrex::Real* sync_dat,ARLIM_P(s_lo),ARLIM_P(s_hi),
-			      
+
 			      const amrex::Real* xflux_dat, ARLIM_P(xflux_lo),ARLIM_P(xflux_hi),
                               const amrex::Real* ucorr_dat, ARLIM_P(ucorr_lo),ARLIM_P(ucorr_hi),
 			      const amrex::Real* areax_dat, ARLIM_P(ax_lo), ARLIM_P(ax_hi),
-			      
+
 			      const amrex::Real* yflux_dat, ARLIM_P(yflux_lo),ARLIM_P(yflux_hi),
                               const amrex::Real* vcorr_dat, ARLIM_P(vcorr_lo),ARLIM_P(vcorr_hi),
 			      const amrex::Real* areay_dat, ARLIM_P(ay_lo), ARLIM_P(ay_hi),
-#if (BL_SPACEDIM == 3)                                             
+#if (BL_SPACEDIM == 3)
 			      const amrex::Real* zflux_dat, ARLIM_P(zflux_lo),ARLIM_P(zflux_hi),
                               const amrex::Real* wcorr_dat, ARLIM_P(wcorr_lo),ARLIM_P(wcorr_hi),
 			      const amrex::Real* areaz_dat, ARLIM_P(az_lo), ARLIM_P(az_hi),
 #endif
 			      const amrex::Real* vol_dat, ARLIM_P(v_lo),ARLIM_P(v_hi),
 			      const int* lo, const int* hi);
-   
-   void convscalminmax (const amrex::Real* Sold_dat, 
+
+   void convscalminmax (const amrex::Real* Sold_dat,
                              ARLIM_P(slo), ARLIM_P(shi),
-                             const amrex::Real* Snew_dat, 
+                             const amrex::Real* Snew_dat,
                              ARLIM_P(snlo), ARLIM_P(snhi),
 #if (BL_SPACEDIM == 3)
 			     const amrex::Real* smin_dat, const amrex::Real* smax_dat,
@@ -108,8 +103,8 @@ extern "C"
 #endif
 			     const int* lo, const int* hi, const int* bc);
 
-   void consscalminmax (const amrex::Real* Sold_dat, 
-			     const amrex::Real*  Rho_dat, 
+   void consscalminmax (const amrex::Real* Sold_dat,
+			     const amrex::Real*  Rho_dat,
                              ARLIM_P(solo), ARLIM_P(sohi),
 			     const amrex::Real* Snew_dat,
 			     const amrex::Real* Rhon_dat,
@@ -119,25 +114,25 @@ extern "C"
 			     ARLIM_P(lo),ARLIM_P(hi),
 #endif
 			     const int* lo, const int* hi, const int* bc);
-   
-   void  update_tf(const amrex::Real* SOdat, ARLIM_P(slo), ARLIM_P(shi), 
+
+   void  update_tf(const amrex::Real* SOdat, ARLIM_P(slo), ARLIM_P(shi),
 			const amrex::Real* SNdat, ARLIM_P(slo), ARLIM_P(shi),
 			const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			const int* lo, const int* hi, amrex::Real* dt, int* num_comp);
-   
+
    void fort_correct_tf(const amrex::Real* SSdat, ARLIM_P(slo), ARLIM_P(shi),
 			const amrex::Real* SPdat, ARLIM_P(splo), ARLIM_P(sphi),
 			const amrex::Real* TSdat, ARLIM_P(tlo), ARLIM_P(thi),
 			const amrex::Real* TNdat, ARLIM_P(tnlo), ARLIM_P(tnhi),
 			const int* lo, const int* hi, amrex::Real* dt, int* num_comp);
-   
-   void update_aofs_tf(const amrex::Real* SOdat, ARLIM_P(slo), ARLIM_P(shi), 
+
+   void update_aofs_tf(const amrex::Real* SOdat, ARLIM_P(slo), ARLIM_P(shi),
 			    const amrex::Real* SNdat, ARLIM_P(slo), ARLIM_P(shi),
 			    const amrex::Real* AOdat, ARLIM_P(alo), ARLIM_P(ahi),
 			    const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
-			    const int* lo, const int* hi, 
+			    const int* lo, const int* hi,
 			    amrex::Real* dt, int* num_comp);
-   
+
    void update_aofs_tf_gp(const amrex::Real* UOdat, ARLIM_P(ulo), ARLIM_P(uhi),
 			       const amrex::Real* UNdat, ARLIM_P(ulo), ARLIM_P(uhi),
 			       const amrex::Real* AOdat, ARLIM_P(alo), ARLIM_P(ahi),
@@ -145,33 +140,33 @@ extern "C"
 			       const amrex::Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),
 			       const amrex::Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 			       const int* lo, const int* hi, amrex::Real* dt);
-   
+
    void fort_sum_tf_gp_visc(const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			    const amrex::Real* VIdat, ARLIM_P(vlo), ARLIM_P(vhi),
 			    const amrex::Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),
 			    const amrex::Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 			    const int* tlo, const int* thi);
-   
+
    void fort_sum_tf_divu_visc(const amrex::Real* Sdat,  ARLIM_P(slo), ARLIM_P(shi),
 			      const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			      const amrex::Real* DUdat, ARLIM_P(dlo), ARLIM_P(dhi),
 			      const amrex::Real* VIdat, ARLIM_P(vlo), ARLIM_P(vhi),
 			      const amrex::Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
-			      const int* tlo, const int* thi, 
+			      const int* tlo, const int* thi,
 			      int* num_comp, int* iconserv);
-   
+
    void fort_sum_tf_gp(const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 		       const amrex::Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),
 		       const amrex::Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
 		       const int* tlo, const int* thi);
-   
+
    void fort_sum_tf_divu(const amrex::Real* Sdat,  ARLIM_P(slo), ARLIM_P(shi),
 			 const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			 const amrex::Real* DUdat, ARLIM_P(dlo), ARLIM_P(dhi),
 			 const amrex::Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
-			 const int* tlo, const int* thi, 
+			 const int* tlo, const int* thi,
 			 int* num_comp, int* iconserv);
-   
+
    void set_params(const int& slope_order,
 			const int& use_unlimited_slopes);
 #ifdef __cplusplus

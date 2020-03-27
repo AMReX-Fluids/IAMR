@@ -72,7 +72,7 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 
 #*******************************************************************************
 
-# Viscosity coefficient 
+# Viscosity coefficient
 ns.vel_visc_coef        = 1.e-2
 
 #*******************************************************************************

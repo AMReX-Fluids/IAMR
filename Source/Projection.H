@@ -11,7 +11,11 @@
 #include <AMReX_FluxRegister.H>
 #include <AMReX_MultiFabUtil.H>
 
-class Projection 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#endif
+
+class Projection
 {
 protected:
   static const int maxlev = 10;
@@ -26,9 +30,9 @@ protected:
 public:
 
     Projection (amrex::Amr*   _parent,
-                amrex::BCRec* _phys_bc, 
+                amrex::BCRec* _phys_bc,
                 int    _do_sync_proj,
-                int    /*_finest_level*/, 
+                int    /*_finest_level*/,
                 int    _radius_grow );
 
     ~Projection ();
@@ -38,7 +42,13 @@ public:
     void install_level (int                   level,
                         amrex::AmrLevel*             level_data,
                         amrex::Vector< amrex::Vector<amrex::Real> >* _radius);
+#ifdef AMREX_USE_EB
+    void install_level (int                   level,
+                        amrex::AmrLevel*             level_data,
+                        amrex::Vector< amrex::Vector<amrex::Real> >* _radius,
+			const amrex::EBFArrayBoxFactory& _ebfactory);
 
+#endif
     void install_anelastic_coefficient (int                        level,
                                         amrex::Real                **anel_coeff);
     void build_anelastic_coefficient (int                        level,
@@ -51,7 +61,7 @@ public:
                         amrex::Real            dt,
                         amrex::Real            cur_pres_time,
                         amrex::Real            prev_pres_time,
-                        const amrex::Geometry& geom, 
+                        const amrex::Geometry& geom,
                         amrex::MultiFab&       U_old,
                         amrex::MultiFab&       U_new,
                         amrex::MultiFab&       P_old,
@@ -75,23 +85,6 @@ public:
                  amrex::Real            time,
                  amrex::Real            dt,
                  int    have_divu);
-    //
-    // A sync project involving only the coarse level of a 2 level system.
-    //
-    void syncProject (int             crse_level,
-                      amrex::MultiFab&       pres,
-                      amrex::MultiFab&       vel,
-                      amrex::MultiFab&       rho_half,
-                      amrex::MultiFab&       Vsync,
-                      amrex::MultiFab&       phi,
-                      SyncRegister*   rhs_sync_reg,
-                      SyncRegister*   crsr_sync_reg, 
-                      const amrex::BoxArray& sync_boxes,
-                      const amrex::Geometry& geom,
-                      const amrex::Real*     dx,
-                      amrex::Real            dt_crse,
-                      int             crse_iteration,
-                      int             crse_dt_ratio);
     //
     // A sync project involving the coarse and fine level of a 2 level system.
     //
@@ -135,7 +128,8 @@ public:
     //
     void initialVelocityProject (int  crse_level,
                                  amrex::Real divu_time,
-                                 int  have_divu);
+                                 int  have_divu,
+                                 int init_vel_iter = 1 );
 
     //
     // This function creates an initially hydrostatic pressure field
@@ -148,7 +142,7 @@ public:
     //
     void initialSyncProject (int       crse_level,
                              const amrex::Vector<amrex::MultiFab*> sig,
-                             amrex::Real      dt, 
+                             amrex::Real      dt,
                              amrex::Real      strt_time,
                              int       have_divu);
     //
@@ -174,10 +168,6 @@ public:
     void AnelCoeffDiv (int       level,
                        amrex::MultiFab& mf,
                        int       comp);
-
-    void put_divu_in_cc_rhs (amrex::MultiFab&       rhs,
-                             int             level,
-                             amrex::Real            time);
 
     //
     // Helper function for NavierStokes::getGradP().
@@ -215,11 +205,7 @@ protected:
     //
     void AddPhi (amrex::MultiFab&       p,
                  amrex::MultiFab&       phi);
-    //
-    // Convert phi into p^n+1/2.
-    //
-    void incrPress (int  level,
-                    amrex::Real dt);
+
     //
     // This function scales variables at the start of a projection.
     //
@@ -269,6 +255,11 @@ protected:
     //
     amrex::Amr*             parent;
     amrex::Vector<amrex::AmrLevel*> LevelData;
+#ifdef AMREX_USE_EB
+    // pointer to eb factory on each level
+    // could potentially do away with this and use LevelData to get ebFactory...
+    amrex::Vector<const amrex::EBFArrayBoxFactory*> ebfactory;
+#endif
     //
     // The array of Radii, and number of radii ghost cells.
     //
@@ -277,7 +268,7 @@ protected:
     //
     // Anelastic coefficient array.
     //
-    static int                   anel_grow;  
+    static int                   anel_grow;
     amrex::Vector<amrex::Real**> anel_coeff;
 
     //
@@ -300,21 +291,22 @@ protected:
     static amrex::Real divu_minus_s_factor;
     static int  add_vort_proj;
 
-    void doMLMGNodalProjection(int c_lev, int nlevel, 
-                               const amrex::Vector<amrex::MultiFab*>& vel, 
+    void doMLMGNodalProjection(int c_lev, int nlevel,
+                               const amrex::Vector<amrex::MultiFab*>& vel,
                                const amrex::Vector<amrex::MultiFab*>& phi,
                                const amrex::Vector<amrex::MultiFab*>& sig,
                                const amrex::Vector<amrex::MultiFab*>& rhcc,
-                               const amrex::Vector<amrex::MultiFab*>& rhnd, 
+                               const amrex::Vector<amrex::MultiFab*>& rhnd,
                                amrex::Real rel_tol, amrex::Real abs_tol,
+			       bool proj2,
                                amrex::MultiFab* sync_resid_crse=nullptr,
                                amrex::MultiFab* sync_resid_fine=nullptr,
-                               bool doing_initial_velproj=false,
                                bool doing_initial_vortproj=false);
 
     // set velocity in ghost cells to zero except for inflow
-    void set_boundary_velocity(int c_lev, int nlevel, const amrex::Vector<amrex::MultiFab*>& vel, 
-                               bool doing_initial_velproj, bool inflowCorner);
+    void set_boundary_velocity(int c_lev, int nlevel,
+			       const amrex::Vector<amrex::MultiFab*>& vel,
+                               bool inflowCorner);
 
 };
 #endif

@@ -19,8 +19,8 @@ module navierstokes_2d_module
 
   private 
 
-  public gradp, fort_putdown, incrmult, fort_maxval, &
-       summass, summass_cyl, cen2edg, edge_interp, &
+  public gradp, fort_putdown, fort_maxval, &
+       summass, summass_eb, summass_cyl, cen2edg, edge_interp, &
        pc_edge_interp, filcc_tile
   
 contains
@@ -50,13 +50,15 @@ contains
 
         do j = lo(2), hi(2)
         do i = lo(1), hi(1)
+
           gp(i,j,1) = ddx*(p(i+1,j)-p(i,j)+p(i+1,j+1)-p(i,j+1))
           gp(i,j,2) = ddy*(p(i,j+1)-p(i,j)+p(i+1,j+1)-p(i+1,j))
         
    ! Below is the same "stencil" as the compute fluxes in AMReX     
 !          gp(i,j,1) = ddx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
 !          gp(i,j,2) = ddy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
-end do
+
+        end do
         end do
       else
         do j = lo(2), hi(2)
@@ -109,43 +111,6 @@ end do
       end do
 
     end subroutine fort_putdown
-
-!c :: ----------------------------------------------------------
-!c :: NOTE: This routine is no longer needed. Use saxpy
-!c ::     funcitons in AMReX.
-!c ::     
-!C :: UTILITY ROUTINE: compute:
-!c ::             A += alpha*B on subrange
-!c ::
-!c :: INPUTS / OUTPUTS:
-!c ::  a         <=  output array
-!c ::  b          => input array
-!c ::  DIMS(a)    => index limits of a array
-!c ::  DIMS(b)    => index limits of a array
-!c ::  lo,hi      => index limits of update region
-!c ::  alpha      => multiplicative factor
-!c :: ----------------------------------------------------------
-!c ::
-    subroutine incrmult(a,DIMS(a),b,DIMS(b),lo,hi,alpha)&
-         bind(C,name="incrmult")
-
-       implicit none
-       integer    DIMDEC(a)
-       integer    DIMDEC(b)
-       integer    lo(2), hi(2)
-       REAL_T     alpha
-       REAL_T     a(DIMV(a))
-       REAL_T     b(DIMV(b))
-
-       integer i, j
-
-       do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             a(i,j) = a(i,j) + alpha*b(i,j)
-          end do
-       end do
-
-     end subroutine incrmult
 
 !c :: ----------------------------------------------------------
 !c :: MAXVAL
@@ -219,6 +184,53 @@ end do
 
      end subroutine summass
 
+!c :: ----------------------------------------------------------
+!c :: SUMMASS
+!c ::             MASS = sum{ volfrac*vol(i,j)*rho(i,j) }
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  rho        => density field
+!c ::  DIMS(rho)  => index limits of rho aray
+!c ::  lo,hi      => index limits of grid interior
+!c ::  dx	 => cell size
+!c ::  mass      <=  total mass
+!c ::  r		 => radius at cell center
+!c ::  irlo,hi    => index limits of r array
+!c ::  rz_flag    => == 1 if R_Z coords
+!c ::  tmp        => temp column array
+!c :: ----------------------------------------------------------
+!c ::
+     subroutine summass_eb(rho,DIMS(rho),DIMS(grid),vf,DIMS(vf),dx,mass,&
+            r,irlo,irhi,rz_flag) bind(C,name="summass_eb")
+
+       implicit none
+       integer irlo, irhi, rz_flag
+       integer DIMDEC(rho)
+       integer DIMDEC(vf)
+       integer DIMDEC(grid)
+       REAL_T  mass, dx(2)
+       REAL_T  rho(DIMV(rho))
+       REAL_T  vf(DIMV(vf))
+       REAL_T  r(irlo:irhi)
+
+       integer i, j
+       REAL_T  dr, dz, vol
+
+       dr = dx(1)
+       dz = dx(2)
+
+       mass = zero
+
+       do i = ARG_L1(grid), ARG_H1(grid)
+          vol = dr*dz
+	  if (rz_flag .eq. 1) vol = vol*two*Pi*r(i)
+          do j = ARG_L2(grid), ARG_H2(grid)
+	     mass = mass + vf(i,j)*vol*rho(i,j)
+	  end do
+       end do
+
+     end subroutine summass_eb
+     
 !c :: ----------------------------------------------------------
 !c :: SUMMASSCYL
 !c ::    MASS = sum{ vol(i,j)*rho(i,j) } over subregion cylinder

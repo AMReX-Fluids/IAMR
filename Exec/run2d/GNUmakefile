@@ -18,6 +18,8 @@ USE_MPI     = TRUE
 USE_OMP     = FALSE
 PROFILE     = FALSE
 
+USE_CUDA = FALSE
+
 EBASE = amr
 
 Bpack   := ./Make.package

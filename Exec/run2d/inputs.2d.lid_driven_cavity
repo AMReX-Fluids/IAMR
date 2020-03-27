@@ -13,13 +13,16 @@ stop_time 				= -1
 
 # Stop simulation when we reach steady-state
 ns.stop_when_steady 	= 1
-ns.steady_tol 			= 1.0e-5
+ns.steady_tol 		= 1.0e-5
+
+# Specify initial dt to get going
+ns.init_dt              = 0.0140625  
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 				= 128 128
-amr.max_grid_size		= 16
+amr.n_cell			= 64 64
+#amr.max_grid_size		= 32
 
 #*******************************************************************************
 
@@ -39,12 +42,12 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int			= 1000
+amr.check_int		= 1000
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int			= 100
+amr.plot_int		= 100
 
 #*******************************************************************************
 
@@ -74,7 +77,7 @@ ns.gravity              = 0.0
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 		= probin.2d.lid_driven_cavity  
+amr.probin_file 	= probin.2d.lid_driven_cavity  
 
 #*******************************************************************************
 

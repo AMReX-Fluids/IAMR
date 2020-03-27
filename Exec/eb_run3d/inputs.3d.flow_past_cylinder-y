@@ -1,0 +1,71 @@
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            SIMULATION STOP            #
+#.......................................#
+stop_time               =   0.2         # Max (simulated) time to evolve
+max_step                =  -1           # Max number of time steps
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#           SOLVER SETTINGS             #
+#.......................................#
+ns.init_shrink     = 1.0
+ns.init_iter       = 3
+ns.init_vel_iter   = 5
+ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
+nodal_proj.rtol    = 1.0e-13
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         TIME STEP COMPUTATION         #
+#.......................................#
+ns.cfl               = 0.45
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            INPUT AND OUTPUT           #
+#.......................................#
+amr.plot_int            =   20          # Steps between plot files
+amr.plot_per            =   0.1         # Steps between plot files
+amr.check_int           =   1000        # Steps between checkpoint files
+amr.restart             =   ""          # Checkpoint to restart from
+amr.probin_file         = probin.3d.flow_past_cylinder-y
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#               PHYSICS                 #
+#.......................................#
+ns.gravity          =   0.  0.  0.  # Gravitational force (3D)
+ns.vel_visc_coef         = 0.001
+ns.scal_diff_coefs       = 1.0
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        ADAPTIVE MESH REFINEMENT       #
+#.......................................#
+amr.n_cell              =   8 96 32     # Grid cells at coarsest AMRlevel
+amr.max_level           =   0           # Max AMR level in hierarchy
+amr.grid_eff            =   0.7
+amr.n_error_buf         =   8
+amr.max_grid_size_x     =   1024
+amr.max_grid_size_y     =   1024
+amr.max_grid_size_z     =   1024
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              GEOMETRY                 #
+#.......................................#
+geometry.prob_lo        =   0.  0.  0.  # Lo corner coordinates
+geometry.prob_hi        =   0.1 1.2 0.4 # Hi corner coordinates
+geometry.is_periodic    =   1   0   0   # Periodicity x y z (0/1)
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWal
+# Boundary conditions on the low end of the domain.
+ns.lo_bc 	     	= 0 1 5
+# Boundary conditions on the high end of the domain.
+ns.hi_bc   	      	= 0 2 5
+
+# Add cylinder
+eb2.geom_type                 = cylinder
+eb2.cylinder_has_fluid_inside = 0
+eb2.cylinder_radius           = 0.05
+eb2.cylinder_direction        = 0
+eb2.cylinder_center           = 0.0 0.15 0.2
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              VERBOSITY                #
+#.......................................#
+ns.v                    = 1 # NS solver
+proj.v                  = 1 # Nodal projection
+mac_proj.verbose        = 0 # MacProjector
+#diffusion.verbose      = 1 # Diffusion operator
+nodal_proj.verbose      = 1 # Nodal projection

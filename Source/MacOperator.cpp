@@ -114,7 +114,9 @@ MacOperator::setCoefficients (const MultiFab* area,
 	// to be on bcoef (which is nodal in one dimension), or perhaps by
 	// keeping rhomfi and using enclosedCells/surroudingNodes. 
 	// But to keep updating all bcoefs at the same time, must pass validbox
-	// and test inside the fortran function 
+	// and test inside the fortran function
+	// OR
+	// could pass in separate bounds boxes for x and y -- perhaps a better idea
         const Box& vbx       = rhomfi.validbox();
         const int* lo        = tilebx.loVect();
         const int* hi        = tilebx.hiVect();

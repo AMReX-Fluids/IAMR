@@ -17,7 +17,7 @@ namespace amrex {
     Vector<Real> gMax(nComp);
 
     for (int n=0; n<nComp; ++n) {
-      gMax[n] = mfs[0]->max(sComp+n,nGrow);
+        gMax[n] = mfs[0]->max(sComp+n,nGrow);
     }
 
     for (int i=1; i<mfs.size(); ++i) {
@@ -26,7 +26,7 @@ namespace amrex {
         gMax[n] = std::max(gMax[n], mfs[i]->max(sComp+n,nGrow));
       }
     }
-    
+
     return gMax;
   }
 
@@ -40,16 +40,16 @@ namespace amrex {
     Vector<Real> gMaxAbs(nComp);
 
     for (int n=0; n<nComp; ++n) {
-      gMaxAbs[n] = mfs[0]->norm0(sComp+n,nGrow);
+        gMaxAbs[n] = mfs[0]->norm0(sComp+n,nGrow,false, true);
     }
 
     for (int i=1; i<mfs.size(); ++i) {
 
       for (int n=0; n<nComp; ++n) {
-        gMaxAbs[n] = std::max(gMaxAbs[n], mfs[i]->norm0(sComp+n,nGrow));
+          gMaxAbs[n] = std::max(gMaxAbs[n], mfs[i]->norm0(sComp+n,nGrow,false,true));
       }
     }
-    
+
     return gMaxAbs;
   }
 
@@ -72,7 +72,7 @@ namespace amrex {
         gMin[n] = std::min(gMin[n], mfs[i]->min(sComp+n,nGrow));
       }
     }
-    
+
     return gMin;
   }
 

@@ -21,12 +21,12 @@
 module godunov_3d_module
 
   use amrex_fort_module, only : rt=>amrex_real
-  
+
   implicit none
 
   private
-  
-  public :: extrap_vel_to_faces, fort_estdt, fort_maxchng_velmag, &
+
+  public :: extrap_vel_to_faces, fort_maxchng_velmag, &
             fort_test_umac_rho, &
             adv_forcing, sync_adv_forcing, &
             convscalminmax, consscalminmax, &
@@ -35,7 +35,7 @@ module godunov_3d_module
             update_aofs_tf_gp
 
 contains
-           
+
 
  subroutine extrap_vel_to_faces(lo,hi,&
        u,u_lo,u_hi,&
@@ -75,7 +75,7 @@ contains
     real(rt), dimension(:,:,:), pointer, contiguous :: xyhi,xzhi,yxhi,yzhi,zxhi,zyhi
     integer velpred
     parameter( velpred = 1 )
-    
+
     ! Works space requirements:
     !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy,    uad,vad - ec(wk)
     !  on g2=grow(bx,2): dsvl
@@ -103,20 +103,20 @@ contains
     call amrex_allocate(zhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(sz, wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zedge,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-    
+
     call amrex_allocate(xylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(xzlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(yxlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(yzlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zxlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-    
+
     call amrex_allocate(xyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(xzhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(yxhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(yzhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zxhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-    call amrex_allocate(zyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))    
+    call amrex_allocate(zyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
 
     uwlo = wklo
     uwhi = wkhi
@@ -394,7 +394,7 @@ contains
     call amrex_deallocate(yzhi)
     call amrex_deallocate(zxhi)
     call amrex_deallocate(zyhi)
-    
+
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
@@ -430,15 +430,15 @@ contains
        wmac,wmac_lo,wmac_hi,        zstate,zstate_lo,zstate_hi,&
        corner_couple, &
        dt, dx, bc, state_ind, use_forces_in_trans, ppm_type, iconserv)  bind(C,name="extrap_state_to_faces")
-  
+
     use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
-  
+
     implicit none
     integer, intent(in) ::  nc, bc(SDIM,2,nc), state_ind, use_forces_in_trans, ppm_type, iconserv(nc), corner_couple
     integer, dimension(3), intent(in) :: lo,hi,s_lo,s_hi,tf_lo,tf_hi,&
                               divu_lo,divu_hi,xstate_lo,xstate_hi,ystate_lo,ystate_hi,zstate_lo,zstate_hi, &
                               umac_lo,umac_hi,vmac_lo,vmac_hi,wmac_lo,wmac_hi
-  
+
     real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),nc)
     real(rt), intent(in) :: tf(tf_lo(1):tf_hi(1),tf_lo(2):tf_hi(2),tf_lo(3):tf_hi(3),nc)
     real(rt), intent(in) :: divu(divu_lo(1):divu_hi(1),divu_lo(2):divu_hi(2),divu_lo(3):divu_hi(3))
@@ -448,9 +448,9 @@ contains
     real(rt), intent(inout) :: ystate(ystate_lo(1):ystate_hi(1),ystate_lo(2):ystate_hi(2),ystate_lo(3):ystate_hi(3),nc) ! result
     real(rt), intent(in) :: wmac(wmac_lo(1):wmac_hi(1),wmac_lo(2):wmac_hi(2),wmac_lo(3):wmac_hi(3))
     real(rt), intent(inout) :: zstate(zstate_lo(1):zstate_hi(1),zstate_lo(2):zstate_hi(2),zstate_lo(3):zstate_hi(3),nc) ! result
-  
+
     real(rt), intent(in) :: dt, dx(SDIM)
-  
+
     integer, dimension(3) :: wklo,wkhi,eblo,ebhi,ebxhi,ebyhi,ebzhi,g2lo,g2hi
     real(rt), dimension(:,:,:), pointer, contiguous :: xlo,xhi,sx,xedge
     real(rt), dimension(:,:,:), pointer, contiguous :: ylo,yhi,sy,yedge
@@ -461,7 +461,7 @@ contains
     real(rt), dimension(:,:,:), pointer, contiguous :: sm,sp,dsvl
     real(rt), dimension(:,:,:), pointer, contiguous :: xylo,xzlo,yxlo,yzlo,zxlo,zylo
     real(rt), dimension(:,:,:), pointer, contiguous :: xyhi,xzhi,yxhi,yzhi,zxhi,zyhi
-  
+
     ! Works space requirements:
     !  on wk=grow(bx,1): xlo,xhi,sx,ylo,yhi,sy,sm,sp,Imx,Ipx,Imy,Ipy
     !  on g2=grow(bx,2): dsvl
@@ -487,14 +487,14 @@ contains
     call amrex_allocate(zhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(sz,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zedge,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-  
+
     call amrex_allocate(xylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(xzlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(yxlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(yzlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zxlo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(zylo,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
-    
+
     call amrex_allocate(xyhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(xzhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
     call amrex_allocate(yxhi,wklo(1),wkhi(1),wklo(2),wkhi(2),wklo(3),wkhi(3))
@@ -511,7 +511,7 @@ contains
       eblo = lo - 1
       ebhi = hi + 1
     endif
-  
+
     ebxhi = ebhi
     ebxhi(1) = ebxhi(1) + 1
     ebyhi = ebhi
@@ -532,7 +532,7 @@ contains
     g2lo = lo - 2
     g2hi = hi + 2
     call amrex_allocate(dsvl,g2lo(1),g2hi(1),g2lo(2),g2hi(2),g2lo(3),g2hi(3))
-  
+
     call estate_fpu(lo,hi,&
          s,s_lo,s_hi,&
          tf,tf_lo,tf_hi,&
@@ -582,7 +582,7 @@ contains
          corner_couple,&
          bc, dt, dx, state_ind, nc, use_forces_in_trans, iconserv, ppm_type)
     !
-    
+
     call amrex_deallocate(xedge)
     call amrex_deallocate(yedge)
     call amrex_deallocate(zedge)
@@ -598,7 +598,7 @@ contains
     call amrex_deallocate(yzhi)
     call amrex_deallocate(zxhi)
     call amrex_deallocate(zyhi)
-    
+
     call amrex_deallocate(xlo)
     call amrex_deallocate(xhi)
     call amrex_deallocate(sx)
@@ -620,85 +620,15 @@ contains
     call amrex_deallocate(sedgey)
     call amrex_deallocate(sedgez)
     call amrex_deallocate(dsvl)
-  
+
   end subroutine extrap_state_to_faces
 
-  subroutine fort_estdt ( &
-          vel,DIMS(vel), &
-          tforces,DIMS(tf), &
-          rho,DIMS(rho), &
-          lo,hi,dt,dx,cfl,u_max) bind(C,name="fort_estdt")
-!c 
-!c     ----------------------------------------------------------
-!c     estimate the timestep for this grid and scale by CFL number
-!c     This routine sets dt as dt = dt_est*cfl where
-!c     dt_est is estimated from the actual velocities and their 
-!c     total forcing
-!c     ----------------------------------------------------------
-!c
-      implicit none
-      integer i, j, k
-      real(rt)  u, v, w
-      real(rt)  small
-      real(rt)  dt_start
-      real(rt)  tforce1,tforce2,tforce3
-      integer lo(SDIM), hi(SDIM)
-      real(rt)  dt,dx(SDIM),cfl,u_max(SDIM)
-
-      integer DIMDEC(vel)
-      integer DIMDEC(rho)
-      integer DIMDEC(tf)
-
-      real(rt)  vel(DIMV(vel),SDIM)
-      real(rt)  rho(DIMV(rho))
-      real(rt)  tforces(DIMV(tf),SDIM), irho
-
-      PARAMETER(small = 1.0D-8, dt_start = 1.0D+20)
-
-      u       = zero
-      v       = zero
-      w       = zero
-      tforce1 = zero
-      tforce2 = zero
-      tforce3 = zero
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               irho = 1.0d0/rho(i,j,k)
-               u = max(u,abs(vel(i,j,k,1)))	
-               v = max(v,abs(vel(i,j,k,2)))
-               w = max(w,abs(vel(i,j,k,3)))
-               tforce1 = max(tforce1,abs(tforces(i,j,k,1)*irho))
-               tforce2 = max(tforce2,abs(tforces(i,j,k,2)*irho))
-               tforce3 = max(tforce3,abs(tforces(i,j,k,3)*irho))
-            end do
-         end do
-      end do
-
-      u_max(1) = u
-      u_max(2) = v
-      u_max(3) = w
-
-      dt = dt_start
-
-      if (u .gt. small) dt = min(dt,dx(1)/u)
-      if (v .gt. small) dt = min(dt,dx(2)/v)
-      if (w .gt. small) dt = min(dt,dx(3)/w)
-
-      if (tforce1 .gt. small) dt = min(dt,sqrt(two*dx(1)/tforce1))
-      if (tforce2 .gt. small) dt = min(dt,sqrt(two*dx(2)/tforce2))
-      if (tforce3 .gt. small) dt = min(dt,sqrt(two*dx(3)/tforce3))
-
-      dt = dt*cfl
-
-      end subroutine fort_estdt
 
       subroutine fort_maxchng_velmag ( &
           old_vel,DIMS(old_vel), &
           new_vel,DIMS(new_vel), &
           lo,hi,max_change) bind(C,name="fort_maxchng_velmag")
-!c 
+!c
 !c     ----------------------------------------------------------
 !c     Given the velocity field at the previous and current time steps
 !c     (old_vel and new_vel, respectively), find the largest change in
@@ -836,7 +766,7 @@ contains
 
       end subroutine fort_test_umac_rho
 
-      subroutine transvel (lo, hi, & 
+      subroutine transvel (lo, hi, &
            u,u_lo,u_hi,&
            ulo,ulo_lo,ulo_hi,&
            uhi,uhi_lo,uhi_hi,&
@@ -884,7 +814,7 @@ contains
            Imz_lo,Imz_hi,Ipz_lo,Ipz_hi,sedgez_lo,sedgez_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi, &
            tfx_lo,tfx_hi,tfy_lo,tfy_hi,tfz_lo,tfz_hi
-          
+
 
       real(rt), intent(in) :: u(u_lo(1):u_hi(1),u_lo(2):u_hi(2),u_lo(3):u_hi(3))
       real(rt), intent(inout) :: ulo(ulo_lo(1):ulo_hi(1),ulo_lo(2):ulo_hi(2),ulo_lo(3):ulo_hi(3))
@@ -1184,7 +1114,7 @@ contains
             end do
          end do
       end do
-      
+
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
             do i = imin-1,imax+1
@@ -1254,7 +1184,7 @@ contains
          zyhi,zyhi_lo,zyhi_hi,&
          corner_couple, &
          bc, dt, dx, n, nc, velpred, use_minion, ppm_type)
-         
+
       ! Here is what this routine does
       ! 1. Trace values of state from cell-centers to faces using cell-centered velocities
       !     and excluding transverse corrections.  This produces data in xlo,xho.  Enforce
@@ -1272,7 +1202,7 @@ contains
       !
       !    Now, compute stxlo,stxhi as traced states with transverse corrections computed using
       !       the mixed terms computed above, and the corresponding ad velocities
-      !    
+      !
       !    Finally, result xstate is upwinded between stxlo,stxhi using UFACE, where
       !      if velpred!=1:
       !          UFACE = uedge
@@ -1300,7 +1230,7 @@ contains
            w_lo,w_hi,zlo_lo,zlo_hi,zhi_lo,zhi_hi,sz_lo,sz_hi,wad_lo,wad_hi,&
            wedge_lo,wedge_hi,zedge_lo,zedge_hi,zstate_lo,zstate_hi,Imz_lo,Imz_hi,Ipz_lo,Ipz_hi,sedgez_lo,sedgez_hi,&
            dsvl_lo,dsvl_hi,sm_lo,sm_hi,sp_lo,sp_hi,lo,hi
-           
+
       integer, dimension(3), intent(in) :: xylo_lo,xylo_hi,xzlo_lo,xzlo_hi,yxlo_lo,yxlo_hi, &
                                            yzlo_lo,yzlo_hi,zxlo_lo,zxlo_hi,zylo_lo,zylo_hi, &
                                            xyhi_lo,xyhi_hi,xzhi_lo,xzhi_hi,yxhi_lo,yxhi_hi, &
@@ -1344,22 +1274,22 @@ contains
       real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
       real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
       real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2),dsvl_lo(3):dsvl_hi(3))
-      
+
       real(rt), intent(inout) :: xylo(xylo_lo(1):xylo_hi(1),xylo_lo(2):xylo_hi(2),xylo_lo(3):xylo_hi(3))
       real(rt), intent(inout) :: xzlo(xzlo_lo(1):xzlo_hi(1),xzlo_lo(2):xzlo_hi(2),xzlo_lo(3):xzlo_hi(3))
       real(rt), intent(inout) :: yxlo(yxlo_lo(1):yxlo_hi(1),yxlo_lo(2):yxlo_hi(2),yxlo_lo(3):yxlo_hi(3))
       real(rt), intent(inout) :: yzlo(yzlo_lo(1):yzlo_hi(1),yzlo_lo(2):yzlo_hi(2),yzlo_lo(3):yzlo_hi(3))
       real(rt), intent(inout) :: zxlo(zxlo_lo(1):zxlo_hi(1),zxlo_lo(2):zxlo_hi(2),zxlo_lo(3):zxlo_hi(3))
       real(rt), intent(inout) :: zylo(zylo_lo(1):zylo_hi(1),zylo_lo(2):zylo_hi(2),zylo_lo(3):zylo_hi(3))
-      
+
       real(rt), intent(inout) :: xyhi(xyhi_lo(1):xyhi_hi(1),xyhi_lo(2):xyhi_hi(2),xyhi_lo(3):xyhi_hi(3))
       real(rt), intent(inout) :: xzhi(xzhi_lo(1):xzhi_hi(1),xzhi_lo(2):xzhi_hi(2),xzhi_lo(3):xzhi_hi(3))
       real(rt), intent(inout) :: yxhi(yxhi_lo(1):yxhi_hi(1),yxhi_lo(2):yxhi_hi(2),yxhi_lo(3):yxhi_hi(3))
       real(rt), intent(inout) :: yzhi(yzhi_lo(1):yzhi_hi(1),yzhi_lo(2):yzhi_hi(2),yzhi_lo(3):yzhi_hi(3))
       real(rt), intent(inout) :: zxhi(zxhi_lo(1):zxhi_hi(1),zxhi_lo(2):zxhi_hi(2),zxhi_lo(3):zxhi_hi(3))
       real(rt), intent(inout) :: zyhi(zyhi_lo(1):zyhi_hi(1),zyhi_lo(2):zyhi_hi(2),zyhi_lo(3):zyhi_hi(3))
-      
-     
+
+
       real(rt) :: stxlo(lo(1)-2:hi(1)+2)
       real(rt) :: stxhi(lo(1)-2:hi(1)+2)
       real(rt) :: stylo(lo(2)-2:hi(2)+2)
@@ -1375,7 +1305,7 @@ contains
       integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax, inc, corner_couple
       logical  :: ltx,lty,ltz
       parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )         
+      parameter( eps_for_bc = 1.0D-10 )
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -1406,10 +1336,10 @@ contains
       ihx  = 1.0d0/dx(1)
       ihy  = 1.0d0/dx(2)
       ihz  = 1.0d0/dx(3)
-      
-      
+
+
       do L=1,nc
-      
+
 !c
 !c     compute the slopes
 !c
@@ -1478,14 +1408,14 @@ contains
          end do
       end if
 
-      
+
       call trans_xbc(lo,hi,&
            s(s_lo(1),s_lo(2),s_lo(3),L),s_lo,s_hi,&
            xlo,xlo_lo,xlo_hi,&
            xhi,xhi_lo,xhi_hi,&
            uad,uad_lo,uad_hi,&
            n+L-1, bc, eps_for_bc,.false.,.false.)
-      
+
 
       do k = kmin-1,kmax+1
          do j = jmin-1,jmax+1
@@ -1534,7 +1464,7 @@ contains
               yhi,yhi_lo,yhi_hi,&
               vad,vad_lo,vad_hi,&
               n+L-1, bc, eps_for_bc,.false.,.false.)
-      
+
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
             do i = imin-1,imax+1
@@ -1658,7 +1588,7 @@ contains
               xzhi,xzhi_lo,xzhi_hi,&
               uad,uad_lo,uad_hi,&
               n+L-1, bc, eps_for_bc,.false.,.true.)
-              
+
 !c     upwind
       do k=kmin,kmax
          do j=jmin-1,jmax+1
@@ -1691,7 +1621,7 @@ contains
               yxhi,yxhi_lo,yxhi_hi,&
               vad,vad_lo,vad_hi,&
               n+L-1, bc, eps_for_bc,.true.,.false.)
-              
+
 !c     upwind
       do k=kmin-1,kmax+1
          do j=jmin,jmax+1
@@ -1724,7 +1654,7 @@ contains
               yzhi,yzhi_lo,yzhi_hi,&
               vad,vad_lo,vad_hi,&
               n+L-1, bc, eps_for_bc,.false.,.true.)
-              
+
 !c     upwind
       do k=kmin,kmax
          do j=jmin,jmax+1
@@ -1790,7 +1720,7 @@ contains
               zyhi,zyhi_lo,zyhi_hi,&
               wad,wad_lo,wad_hi,&
               n+L-1, bc, eps_for_bc,.false.,.true.)
-              
+
 !c     upwind
       do k=kmin,kmax+1
          do j=jmin,jmax
@@ -1992,7 +1922,7 @@ contains
                   styhi(jmin) = 0.0d0
                   stylo(jmin) = 0.0d0
                end if
-               
+
                if (bc(2,2).eq.EXT_DIR .and. velpred.eq.1) then
                   stylo(jmax+1) = s(i,jmax+1,k,L)
                   styhi(jmax+1) = s(i,jmax+1,k,L)
@@ -2064,13 +1994,13 @@ contains
                       *(xylo(i+1,j  ,k-1)-xylo(i,j,k-1)) &
                       - dt4y*(vad(i  ,j+1,k-1)+vad(i,j,k-1)) &
                       *(yxlo(i  ,j+1,k-1)-yxlo(i,j,k-1))
-                  
+
                   stzhi(k) = zhi(i,j,k) &
                       - dt4x*(uad(i+1,j  ,k  )+uad(i,j,k  )) &
                       *(xylo(i+1,j  ,k  )-xylo(i,j,k  )) &
                       - dt4y*(vad(i  ,j+1,k  )+vad(i,j,k  )) &
                       *(yxlo(i  ,j+1,k  )-yxlo(i,j,k  ))
-                  
+
                   if (use_minion.eq.0) then
                      stzlo(k) = stzlo(k) + dth*tf(i,j,k-1,L)
                      stzhi(k) = stzhi(k) + dth*tf(i,j,k,L)
@@ -2167,7 +2097,7 @@ contains
 
       else
 
-!c    
+!c
 !c     ORIGINAL NON-CORNER COUPLING CODE
 !c
 !c
@@ -2328,7 +2258,7 @@ contains
       if ((velpred.ne.1) .or. ((n+L-1).eq.YVEL)) then
          do k = kmin,kmax
             do i = imin,imax
-               
+
                do j = jmin-1,jmax+1
                   if (uad(i,j,k)*uad(i+1,j,k).lt.0.d0) then
                       ubar = 0.5d0*(uad(i,j,k)+uad(i+1,j,k))
@@ -2415,7 +2345,7 @@ contains
                   styhi(jmin) = 0.0d0
                   stylo(jmin) = 0.0d0
                end if
-               
+
                if (bc(2,2).eq.EXT_DIR .and. velpred.eq.1) then
                   stylo(jmax+1) = s(i,jmax+1,k,L)
                   styhi(jmax+1) = s(i,jmax+1,k,L)
@@ -2480,7 +2410,7 @@ contains
       if ((velpred.ne.1) .or. ((n+L-1).eq.ZVEL)) then
          do j = jmin,jmax
             do i = imin,imax
-               
+
                do k = kmin-1,kmax+1
                   if (uad(i,j,k)*uad(i+1,j,k).lt.0.d0) then
                       ubar = 0.5d0*(uad(i,j,k)+uad(i+1,j,k))
@@ -2520,7 +2450,7 @@ contains
                   else
                      stzlo(k+1)= s(i,j,k,L) + (half-dthz*w(i,j,k))*sz(i,j,k) &
                          - dth*tr1 - dth*tr2 &
-                         + dth*tf(i,j,k,L) 
+                         + dth*tf(i,j,k,L)
                      stzhi(k)  = s(i,j,k,L) - (half+dthz*w(i,j,k))*sz(i,j,k) &
                          - dth*tr1 - dth*tr2 &
                          + dth*tf(i,j,k,L)
@@ -2615,7 +2545,7 @@ contains
       end if
 
       end if
-      
+
       end do
 
       end subroutine estate_premac
@@ -2721,7 +2651,7 @@ contains
       real(rt), intent(inout) :: Imy(Imy_lo(1):Imy_hi(1),Imy_lo(2):Imy_hi(2),Imy_lo(3):Imy_hi(3))
       real(rt), intent(inout) :: Ipy(Ipy_lo(1):Ipy_hi(1),Ipy_lo(2):Ipy_hi(2),Ipy_lo(3):Ipy_hi(3))
       real(rt), intent(inout) :: sedgey(sedgey_lo(1):sedgey_hi(1),sedgey_lo(2):sedgey_hi(2),sedgey_lo(3):sedgey_hi(3))
-      
+
       real(rt), intent(inout) :: zlo(zlo_lo(1):zlo_hi(1),zlo_lo(2):zlo_hi(2),zlo_lo(3):zlo_hi(3))
       real(rt), intent(inout) :: zhi(zhi_lo(1):zhi_hi(1),zhi_lo(2):zhi_hi(2),zhi_lo(3):zhi_hi(3))
       real(rt), intent(inout) :: sz(sz_lo(1):sz_hi(1),sz_lo(2):sz_hi(2),sz_lo(3):sz_hi(3))
@@ -2731,7 +2661,7 @@ contains
       real(rt), intent(inout) :: Imz(Imz_lo(1):Imz_hi(1),Imz_lo(2):Imz_hi(2),Imz_lo(3):Imz_hi(3))
       real(rt), intent(inout) :: Ipz(Ipz_lo(1):Ipz_hi(1),Ipz_lo(2):Ipz_hi(2),Ipz_lo(3):Ipz_hi(3))
       real(rt), intent(inout) :: sedgez(sedgez_lo(1):sedgez_hi(1),sedgez_lo(2):sedgez_hi(2),sedgez_lo(3):sedgez_hi(3))
-      
+
       real(rt), intent(inout) :: sm(sm_lo(1):sm_hi(1),sm_lo(2):sm_hi(2),sm_lo(3):sm_hi(3))
       real(rt), intent(inout) :: sp(sp_lo(1):sp_hi(1),sp_lo(2):sp_hi(2),sp_lo(3):sp_hi(3))
       real(rt), intent(inout) :: dsvl(dsvl_lo(1):dsvl_hi(1),dsvl_lo(2):dsvl_hi(2),dsvl_lo(3):dsvl_hi(3))
@@ -2749,7 +2679,7 @@ contains
       real(rt), intent(inout) :: yzhi(yzhi_lo(1):yzhi_hi(1),yzhi_lo(2):yzhi_hi(2),yzhi_lo(3):yzhi_hi(3))
       real(rt), intent(inout) :: zxhi(zxhi_lo(1):zxhi_hi(1),zxhi_lo(2):zxhi_hi(2),zxhi_lo(3):zxhi_hi(3))
       real(rt), intent(inout) :: zyhi(zyhi_lo(1):zyhi_hi(1),zyhi_lo(2):zyhi_hi(2),zyhi_lo(3):zyhi_hi(3))
-      
+
       real(rt) :: stxlo(lo(1)-2:hi(1)+2)
       real(rt) :: stxhi(lo(1)-2:hi(1)+2)
       real(rt) :: stylo(lo(2)-2:hi(2)+2)
@@ -2795,7 +2725,7 @@ contains
       ihz  = 1.0d0/dx(3)
 
       do L=1,nc
-      
+
 !c
 !c     compute the slopes
 !c
@@ -2817,7 +2747,7 @@ contains
               sedgex,sedgex_lo,sedgex_hi,&
               sedgey,sedgey_lo,sedgey_hi,&
               sedgez,sedgez_lo,sedgez_hi,&
-              dx, dt, bc(1,1,L), eps_for_bc, ppm_type) 
+              dx, dt, bc(1,1,L), eps_for_bc, ppm_type)
       else
          call slopes(ALL, &
                           lo,hi,&
@@ -2993,7 +2923,7 @@ contains
            zhi,zhi_lo,zhi_hi,&
            wedge,wedge_lo,wedge_hi,&
            n+L-1, bc(1,1,L), eps_for_bc,.false.,.false.)
-      
+
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
             do i = imin-1,imax+1
@@ -3108,7 +3038,7 @@ contains
            xzhi,xzhi_lo,xzhi_hi,&
            uedge,uedge_lo,uedge_hi,&
            n+L-1, bc(1,1,L), eps_for_bc,.false.,.true.)
-           
+
 !c     upwind
       do k=kmin,kmax
          do j=jmin-1,jmax+1
@@ -3148,7 +3078,7 @@ contains
                   yxhi(i,j,k) = yhi(i,j,k) &
                       - dt6x*(uedge(i+1,j  ,k)+uedge(i,j  ,k)) &
                       *(xedge(i+1,j  ,k)-xedge(i,j  ,k))
-                  
+
                end do
             end do
          end do
@@ -3214,7 +3144,7 @@ contains
            yzhi,yzhi_lo,yzhi_hi,&
            vedge,vedge_lo,vedge_hi,&
            n+L-1, bc(1,1,L), eps_for_bc,.false.,.true.)
-           
+
 !c     upwind
       do k=kmin,kmax
          do j=jmin,jmax+1
@@ -3310,7 +3240,7 @@ contains
             end do
          end do
       end if
-         
+
 !c     boundary conditions
      call trans_zbc(lo,hi,&
            s(s_lo(1),s_lo(2),s_lo(3),L),s_lo,s_hi,&
@@ -3329,14 +3259,14 @@ contains
             end do
          end do
       end do
-      
+
 !c
 !c     compute the xedge states
 !c
       do k = kmin,kmax
          do j = jmin,jmax
             do i = imin,imax+1
-                  
+
                if (iconserv(L).eq.1) then
 
                   stxlo(i) = xlo(i,j,k) &
@@ -3345,7 +3275,7 @@ contains
                       - dthz*(zylo(i-1,j  ,k+1)*wedge(i-1,j  ,k+1) &
                       - zylo(i-1,j,k)*wedge(i-1,j,k)) &
                       + dthy*s(i-1,j,k,L)*(vedge(i-1,j+1,k)-vedge(i-1,j,k)) &
-                      + dthz*s(i-1,j,k,L)*(wedge(i-1,j,k+1)-wedge(i-1,j,k)) 
+                      + dthz*s(i-1,j,k,L)*(wedge(i-1,j,k+1)-wedge(i-1,j,k))
                   stxhi(i) = xhi(i,j,k) &
                       - dthy*(yzlo(i  ,j+1,k  )*vedge(i  ,j+1,  k) &
                       - yzlo(i  ,j,k)*vedge(i  ,j,k)) &
@@ -3353,7 +3283,7 @@ contains
                       - zylo(i  ,j,k)*wedge(i  ,j,k)) &
                       + dthy*s(i  ,j,k,L)*(vedge(i,j+1,k)-vedge(i,j,k)) &
                       + dthz*s(i  ,j,k,L)*(wedge(i,j,k+1)-wedge(i,j,k))
-                
+
                   if (use_minion.eq.0) then
                      stxlo(i) = stxlo(i) - dth*s(i-1,j,k,L)*divu(i-1,j,k)
                      stxhi(i) = stxhi(i) - dth*s(i  ,j,k,L)*divu(i,  j,k)
@@ -3378,9 +3308,9 @@ contains
                   stxlo(i) = stxlo(i) + dth*tf(i-1,j,k,L)
                   stxhi(i) = stxhi(i) + dth*tf(i,  j,k,L)
                end if
-               
+
             end do
-            
+
             if (bc(1,1,L).eq.EXT_DIR .and. uedge(imin,j,k).ge.zero) then
                stxhi(imin) = s(imin-1,j,k,L)
                stxlo(imin) = s(imin-1,j,k,L)
@@ -3427,9 +3357,9 @@ contains
                stxlo(imax+1) = zero
                stxhi(imax+1) = zero
             end if
-            
+
             do i = imin, imax+1
-               xstate(i,j,k,L) = merge(stxlo(i),stxhi(i),uedge(i,j,k) .ge. 0.0d0) 
+               xstate(i,j,k,L) = merge(stxlo(i),stxhi(i),uedge(i,j,k) .ge. 0.0d0)
                xstate(i,j,k,L) = merge(half*(stxlo(i)+stxhi(i)),xstate(i,j,k,L) &
                    ,abs(uedge(i,j,k)).lt.eps)
             end do
@@ -3458,14 +3388,14 @@ contains
                       - zxlo(i,j  ,k)*wedge(i,j  ,k)) &
                       + dthx*s(i,j  ,k,L)*(uedge(i+1,j,k)-uedge(i,j,k)) &
                       + dthz*s(i,j  ,k,L)*(wedge(i,j,k+1)-wedge(i,j,k))
-                  
+
                   if (use_minion .eq. 0) then
                      stylo(j) = stylo(j) - dth*s(i,j-1,k,L)*divu(i,j-1,k)
                      styhi(j) = styhi(j) - dth*s(i,j  ,k,L)*divu(i,j,  k)
                   end if
 
                else
-                  
+
                   stylo(j) = ylo(i,j,k) &
                       - dt4x*(uedge(i+1,j-1,k  )+uedge(i,j-1,k))* &
                       (xzlo(i+1,j-1,k  )-xzlo(i,j-1,k)) &
@@ -3483,7 +3413,7 @@ contains
                   stylo(j) = stylo(j) + dth*tf(i,j-1,k,L)
                   styhi(j) = styhi(j) + dth*tf(i,j,  k,L)
                end if
-               
+
             end do
 
             if (bc(2,1,L).eq.EXT_DIR .and. vedge(i,jmin,k).ge.zero) then
@@ -3509,7 +3439,7 @@ contains
                styhi(jmin) = zero
                stylo(jmin) = zero
             end if
-            
+
             if (bc(2,2,L).eq.EXT_DIR .and. vedge(i,jmax+1,k).le.zero) then
                stylo(jmax+1) = s(i,jmax+1,k,L)
                styhi(jmax+1) = s(i,jmax+1,k,L)
@@ -3533,7 +3463,7 @@ contains
                stylo(jmax+1) = zero
                styhi(jmax+1) = zero
             end if
-            
+
             do j=jmin,jmax+1
                ystate(i,j,k,L) = merge(stylo(j),styhi(j),vedge(i,j,k) .ge. 0.0d0)
                ystate(i,j,k,L) = merge(half*(stylo(j)+styhi(j)),ystate(i,j,k,L), &
@@ -3541,15 +3471,15 @@ contains
             end do
          end do
       end do
-!c     
+!c
 !c     compute the zedge states
 !c
       do j = jmin,jmax
          do i = imin,imax
             do k = kmin,kmax+1
-                  
+
                if (iconserv(L).eq.1) then
-                 
+
                   stzlo(k) = zlo(i,j,k) &
                       - dthx*(xylo(i+1,j  ,k-1)*uedge(i+1,j  ,k-1) &
                       - xylo(i,j,k-1)*uedge(i,j,k-1)) &
@@ -3577,7 +3507,7 @@ contains
                       *(xylo(i+1,j  ,k-1)-xylo(i,j,k-1)) &
                       - dt4y*(vedge(i  ,j+1,k-1)+vedge(i,j,k-1)) &
                       *(yxlo(i  ,j+1,k-1)-yxlo(i,j,k-1))
-                  
+
                   stzhi(k) = zhi(i,j,k) &
                       - dt4x*(uedge(i+1,j  ,k  )+uedge(i,j,k  )) &
                       *(xylo(i+1,j  ,k  )-xylo(i,j,k  )) &
@@ -3639,7 +3569,7 @@ contains
                stzlo(kmax+1) = zero
                stzhi(kmax+1) = zero
             end if
-               
+
             do k = kmin,kmax+1
                zstate(i,j,k,L) = merge(stzlo(k),stzhi(k),wedge(i,j,k) .ge. 0.0d0)
                zstate(i,j,k,L) = merge(half*(stzlo(k)+stzhi(k)),zstate(i,j,k,L), &
@@ -3647,9 +3577,9 @@ contains
             end do
          end do
       end do
-      
+
       else
-!c    
+!c
 !c     ORIGINAL NON-CORNER COUPLING CODE
 !c
 !c
@@ -3661,8 +3591,8 @@ contains
                do i = imin-1,imax+1
                   if (iconserv(L).eq.1) then
                      tr = &
-                         (vedge(i,j+1,k)*yedge(i,j+1,k) - vedge(i,j,k)*yedge(i,j,k))*ihy +  & 
-                         (wedge(i,j,k+1)*zedge(i,j,k+1) - wedge(i,j,k)*zedge(i,j,k))*ihz   
+                         (vedge(i,j+1,k)*yedge(i,j+1,k) - vedge(i,j,k)*yedge(i,j,k))*ihy +  &
+                         (wedge(i,j,k+1)*zedge(i,j,k+1) - wedge(i,j,k)*zedge(i,j,k))*ihz
                      st = -dth*tr + dth*(tf(i,j,k,L) - s(i,j,k,L)*divu(i,j,k)) &
                          + dth*s(i,j,k,L)*(vedge(i,j+1,k)-vedge(i,j,k))*ihy &
                          + dth*s(i,j,k,L)*(wedge(i,j,k+1)-wedge(i,j,k))*ihz
@@ -3772,7 +3702,7 @@ contains
 
                      tr = &
                          (uedge(i+1,j,k)*xedge(i+1,j,k) - uedge(i,j,k)*xedge(i,j,k))*ihx +    &
-                         (wedge(i,j,k+1)*zedge(i,j,k+1) - wedge(i,j,k)*zedge(i,j,k))*ihz   
+                         (wedge(i,j,k+1)*zedge(i,j,k+1) - wedge(i,j,k)*zedge(i,j,k))*ihz
 
                      st = -dth*tr + dth*(tf(i,j,k,L) - s(i,j,k,L)*divu(i,j,k)) &
                          + dth*s(i,j,k,L)*(uedge(i+1,j,k)-uedge(i,j,k))*ihx &
@@ -3839,7 +3769,7 @@ contains
                   styhi(jmin) = zero
                   stylo(jmin) = zero
                end if
-               
+
                if (bc(2,2,L).eq.EXT_DIR .and. vedge(i,jmax+1,k).le.zero) then
                   stylo(jmax+1) = s(i,jmax+1,k,L)
                   styhi(jmax+1) = s(i,jmax+1,k,L)
@@ -3882,9 +3812,9 @@ contains
 
                   if (iconserv(L).eq.1) then
                      tr = &
-                         (uedge(i+1,j,k)*xedge(i+1,j,k) - uedge(i,j,k)*xedge(i,j,k))*ihx +  &  
-                         (vedge(i,j+1,k)*yedge(i,j+1,k) - vedge(i,j,k)*yedge(i,j,k))*ihy   
-                     
+                         (uedge(i+1,j,k)*xedge(i+1,j,k) - uedge(i,j,k)*xedge(i,j,k))*ihx +  &
+                         (vedge(i,j+1,k)*yedge(i,j+1,k) - vedge(i,j,k)*yedge(i,j,k))*ihy
+
                      st = -dth*tr + dth*(tf(i,j,k,L) - s(i,j,k,L)*divu(i,j,k)) &
                          + dth*s(i,j,k,L)*(uedge(i+1,j,k)-uedge(i,j,k))*ihx &
                          + dth*s(i,j,k,L)*(vedge(i,j+1,k)-vedge(i,j,k))*ihy
@@ -3981,11 +3911,11 @@ contains
                end do
             end do
       end do
-      
+
       end if
 
       end do
-      
+
       end subroutine estate_fpu
 
       subroutine trans_xbc(lo,hi,&
@@ -4001,17 +3931,17 @@ contains
 !c     transverse derivatives
 !c
       implicit none
-      
+
       integer, intent(in) :: n,xbc(SDIM,2)
       integer, dimension(3), intent(in) :: &
            s_lo,s_hi,xlo_lo,xlo_hi,xhi_lo,xhi_hi,uad_lo,uad_hi,lo,hi
-           
+
       real(rt), intent(in)    :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
       real(rt), intent(inout) :: xlo(xlo_lo(1):xlo_hi(1),xlo_lo(2):xlo_hi(2),xlo_lo(3):xlo_hi(3))
       real(rt), intent(inout) :: xhi(xhi_lo(1):xhi_hi(1),xhi_lo(2):xhi_hi(2),xhi_lo(3):xhi_hi(3))
       real(rt), intent(in)    :: uad(uad_lo(1):uad_hi(1),uad_lo(2):uad_hi(2),uad_lo(3):uad_hi(3))
       real(rt), intent(in)    :: eps
-      
+
       logical ycouple
       logical zcouple
 
@@ -4135,17 +4065,17 @@ contains
 !c
 
       implicit none
-      
+
       integer, intent(in) :: n,ybc(SDIM,2)
       integer, dimension(3), intent(in) :: &
            s_lo,s_hi,ylo_lo,ylo_hi,yhi_lo,yhi_hi,vad_lo,vad_hi,lo,hi
-           
+
       real(rt), intent(in)    :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
       real(rt), intent(inout) :: ylo(ylo_lo(1):ylo_hi(1),ylo_lo(2):ylo_hi(2),ylo_lo(3):ylo_hi(3))
       real(rt), intent(inout) :: yhi(yhi_lo(1):yhi_hi(1),yhi_lo(2):yhi_hi(2),yhi_lo(3):yhi_hi(3))
       real(rt), intent(in)    :: vad(vad_lo(1):vad_hi(1),vad_lo(2):vad_hi(2),vad_lo(3):vad_hi(3))
       real(rt), intent(in)    ::  eps
-      
+
       logical xcouple
       logical zcouple
 
@@ -4280,7 +4210,7 @@ contains
 
       logical xcouple
       logical ycouple
-      
+
       real(rt) :: stz
       logical ltest
       integer i,j
@@ -4393,7 +4323,7 @@ contains
          sly,sly_lo,sly_hi,&
          slz,slz_lo,slz_hi,&
          bc)
-!c 
+!c
 !c     this subroutine computes first or forth order slopes of
 !c     a 3D scalar field.
 !c
@@ -4420,7 +4350,7 @@ contains
       real(rt) :: slxscr(lo(1)-2:hi(1)+2,4)
       real(rt) :: slyscr(lo(2)-2:hi(2)+2,4)
       real(rt) :: slzscr(lo(3)-2:hi(3)+2,4)
-      
+
       integer imin,jmin,kmin,imax,jmax,kmax,i,j,k
       integer ng
       real(rt) dpls,dmin,ds
@@ -4476,7 +4406,7 @@ contains
 !c
       if (slope_order.eq.1) then
          do k = kmin-1, kmax+1
-            do j = jmin-1, jmax+1 
+            do j = jmin-1, jmax+1
                do i = imin-1, imax+1
                   slx(i,j,k) = zero
                   sly(i,j,k) = zero
@@ -4694,7 +4624,7 @@ contains
               end do
            else
               do k = kmin-1,kmax+1
-                 do j = jmin-1,jmax+1 
+                 do j = jmin-1,jmax+1
                     do i = imin-2,imax+2
                        dmin           =  two*(s(i,  j,k)-s(i-1,j,k))
                        dpls           =  two*(s(i+1,j,k)-s(i,  j,k))
@@ -4778,7 +4708,7 @@ contains
               end do
            else
               do k = kmin-1,kmax+1
-                 do i = imin-1,imax+1 
+                 do i = imin-1,imax+1
                     do j = jmin-2,jmax+2
                        dmin           =  two*(s(i,j,  k)-s(i,j-1,k))
                        dpls           =  two*(s(i,j+1,k)-s(i,j,  k))
@@ -5039,7 +4969,7 @@ contains
             end do
          end do
       end do
-      
+
       call ppm_zdir(s,s_lo,s_hi, &
                     sm,sm_lo,sm_hi, &
                     sp,sp_lo,sp_hi, &
@@ -5074,7 +5004,7 @@ contains
       end do
 
       end subroutine ppm
-            
+
       subroutine ppm_fpu(lo,hi,&
          s,s_lo,s_hi,&
          uedge,uedge_lo,uedge_hi,&
@@ -5231,8 +5161,8 @@ contains
          end do
       end do
 
-      end subroutine ppm_fpu      
-  
+      end subroutine ppm_fpu
+
       subroutine adv_forcing( &
           aofs,DIMS(aofs), &
           xflux,DIMS(xflux), &
@@ -5306,7 +5236,7 @@ contains
                      ( - divux*half*(xflux(i+1,j,k)+xflux(i,j,k)) &
                        - divuy*half*(yflux(i,j+1,k)+yflux(i,j,k)) &
                        - divuz*half*(zflux(i,j,k+1)+zflux(i,j,k)) ) /vol(i,j,k)
-              
+
                end do
             end do
          end do
@@ -5340,7 +5270,7 @@ contains
       end do
 
 !c
-!c     compute the part of the advective tendency 
+!c     compute the part of the advective tendency
 !c     that depends on the flux convergence
 !c
       if ( iconserv .ne. 1 ) then
@@ -5420,7 +5350,7 @@ contains
       jmax = hi(2)
       kmax = hi(3)
 !c
-!c     compute corrective fluxes from edge states 
+!c     compute corrective fluxes from edge states
 !c     and perform conservative update
 !c
 
@@ -5548,7 +5478,7 @@ contains
                      if (sgn*amax .ge. sgn*delam) then
                         if (sgn*(delam - alpham).ge.1.d-10) then
                            alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                        else 
+                        else
                            alphap = -2.d0*alpham
                         endif
                      endif
@@ -5566,7 +5496,7 @@ contains
                      endif
                   end if
                end if
-               
+
                sm(i,j,k) = s(i,j,k) + alpham
                sp(i,j,k) = s(i,j,k) + alphap
 
@@ -5583,7 +5513,7 @@ contains
                            sedgez,sedgez_lo,sedgez_hi,lo,hi,bc,ppm_type)
 
       implicit none
-      
+
       integer, intent(in) :: lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
       integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgez_lo,sedgez_hi
       real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
@@ -5723,7 +5653,7 @@ contains
             sp(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)) = s(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,hi(3)+1)
 
             k = hi(3)-1
-            
+
             do j=lo(2)-1,hi(2)+1
                do i=lo(1)-1,hi(1)+1
                   !
@@ -5965,7 +5895,7 @@ contains
                      if (sgn*amax .ge. sgn*delam) then
                         if (sgn*(delam - alpham).ge.1.d-10) then
                            alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                        else 
+                        else
                            alphap = -2.d0*alpham
                         endif
                      endif
@@ -5983,7 +5913,7 @@ contains
                      endif
                   end if
                end if
-               
+
                sm(i,j,k) = s(i,j,k) + alpham
                sp(i,j,k) = s(i,j,k) + alphap
 
@@ -6383,7 +6313,7 @@ contains
                      if (sgn*amax .ge. sgn*delam) then
                         if (sgn*(delam - alpham).ge.1.d-10) then
                            alphap = (-2.d0*delam - 2.d0*sgn*sqrt(delam**2 - delam*alpham))
-                        else 
+                        else
                            alphap = -2.d0*alpham
                         endif
                      endif
@@ -6401,7 +6331,7 @@ contains
                      endif
                   end if
                end if
-               
+
                sm(i,j,k) = s(i,j,k) + alpham
                sp(i,j,k) = s(i,j,k) + alphap
 
@@ -6418,7 +6348,7 @@ contains
                            sedgex,sedgex_lo,sedgex_hi,lo,hi,bc,ppm_type)
 
       implicit none
-      
+
       integer, intent(in) :: lo(SDIM), hi(SDIM), bc(SDIM,2), ppm_type
       integer, dimension(3), intent(in) :: s_lo,s_hi,sm_lo,sm_hi,sp_lo,sp_hi,dsvl_lo,dsvl_hi,sedgex_lo,sedgex_hi
       real(rt), intent(in) :: s(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3))
@@ -6550,7 +6480,7 @@ contains
 
          end if
 
-         if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then 
+         if (bc(1,2) .eq. EXT_DIR  .or. bc(1,2) .eq. HOEXTRAP) then
 !c     the value in the first cc ghost cell represents the edge value
             sp(hi(1),lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1) = s(hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
 
@@ -6735,7 +6665,7 @@ contains
       kmin = lo(3)
       kmax = hi(3)
 
-!c     
+!c
 !c     ::::: compute min/max a slab at a time
 !c     ::::: compute min and max of neighbors on kmin-1 slab
 !c
@@ -6744,7 +6674,7 @@ contains
       kp = 2
 
       k = kmin-1
-      do j = jmin, jmax         
+      do j = jmin, jmax
          do i = imin, imax
             smin(i,j,km) = min(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
@@ -6752,13 +6682,13 @@ contains
             smax(i,j,km) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
                 s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
-         end do         
+         end do
       end do
 !c
 !c     ::::: compute min and max of neighbors on kmin slab
 !c
       k = kmin
-      do j = jmin, jmax         
+      do j = jmin, jmax
          do i = imin, imax
             smin(i,j,kk) = min(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
@@ -6766,15 +6696,15 @@ contains
             smax(i,j,kk) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
                 s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
-         end do         
+         end do
       end do
 
       do k = kmin, kmax
 !c
 !c        ::::: compute min and max of neighbors on k+1 slab
 !c
-         do j = jmin, jmax     
-            do i = imin, imax   
+         do j = jmin, jmax
+            do i = imin, imax
                smin(i,j,kp) = min(s(i-1,j-1,k+1),s(i,j-1,k+1),s(i+1,j-1,k+1), &
                    s(i-1,j  ,k+1),s(i,j  ,k+1),s(i+1,j  ,k+1), &
                    s(i-1,j+1,k+1),s(i,j+1,k+1),s(i+1,j+1,k+1))
@@ -6788,7 +6718,7 @@ contains
                smx = max(smax(i,j,km),smax(i,j,kk),smax(i,j,kp))
                sn(i,j,k) = max(sn(i,j,k),smn)
                sn(i,j,k) = min(sn(i,j,k),smx)
-               
+
             end do
          end do
 !c
@@ -6844,21 +6774,21 @@ contains
       kp = 2
 
       k = kmin-1
-      do j = jmin, jmax         
+      do j = jmin, jmax
          do i = imin, imax
             smin(i,j,km) = min(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
                 s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
             smax(i,j,km) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
-                s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k)) 
-         end do         
+                s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
+         end do
       end do
 !c
 !c     ::::: compute min and max of neighbors on kmin slab
 !c
       k = kmin
-      do j = jmin, jmax         
+      do j = jmin, jmax
          do i = imin, imax
             smin(i,j,kk) = min(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
@@ -6866,15 +6796,15 @@ contains
             smax(i,j,kk) = max(s(i-1,j-1,k),s(i,j-1,k),s(i+1,j-1,k), &
                 s(i-1,j  ,k),s(i,j  ,k),s(i+1,j  ,k), &
                 s(i-1,j+1,k),s(i,j+1,k),s(i+1,j+1,k))
-         end do         
+         end do
       end do
 
       do k = kmin, kmax
 !c
 !c        ::::: compute min and max of neighbors on k+1 slab
 !c
-         do j = jmin, jmax     
-            do i = imin, imax   
+         do j = jmin, jmax
+            do i = imin, imax
                smin(i,j,kp) = min(s(i-1,j-1,k+1),s(i,j-1,k+1),s(i+1,j-1,k+1), &
                    s(i-1,j  ,k+1),s(i,j  ,k+1),s(i+1,j  ,k+1), &
                    s(i-1,j+1,k+1),s(i,j+1,k+1),s(i+1,j+1,k+1))
@@ -6888,7 +6818,7 @@ contains
                smx = max(smax(i,j,km),smax(i,j,kk),smax(i,j,kp))
                sn(i,j,k) = max(sn(i,j,k)/rhon(i,j,k),smn) * rhon(i,j,k)
                sn(i,j,k) = min(sn(i,j,k)/rhon(i,j,k),smx) * rhon(i,j,k)
-               
+
             end do
          end do
 !c
@@ -7096,7 +7026,7 @@ contains
             end do
          end do
       end if
-      
+
       end subroutine fort_sum_tf_divu_visc
 
       subroutine update_tf ( &
@@ -7128,7 +7058,7 @@ contains
          end do
       end do
 
-      end subroutine update_tf 
+      end subroutine update_tf
 
       subroutine update_aofs_tf ( &
           s,       DIMS(s), &
@@ -7162,7 +7092,7 @@ contains
             end do
          end do
       end do
-      end subroutine update_aofs_tf 
+      end subroutine update_aofs_tf
 
       subroutine update_aofs_tf_gp ( &
           u,       DIMS(u), &
@@ -7198,12 +7128,12 @@ contains
                do i = lo(1), hi(1)
                   un(i,j,k,n) = u(i,j,k,n) + dt * &
                       ( (tforces(i,j,k,n) - gp(i,j,k,n)) / rho(i,j,k) - aofs(i,j,k,n) )
-                  
+
                end do
             end do
          end do
       end do
 
       end subroutine update_aofs_tf_gp
-      
+
  end module godunov_3d_module

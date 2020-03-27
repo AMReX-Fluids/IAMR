@@ -33,7 +33,7 @@ amr.max_level			= 2 # maximum number of levels of refinement
 
 ns.do_tracer_ref = 1
 mg.v = 0
-proj.Pcode = 0
+nodal_proj.verbose = 0
 proj.v = 0
 diffuse.v = 0
 

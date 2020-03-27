@@ -1,0 +1,80 @@
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            SIMULATION STOP            #
+#.......................................#
+max_step                =  20           # Max number of time steps
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#           SOLVER SETTINGS             #
+#.......................................#
+ns.init_shrink = 1.0
+ns.init_iter = 1
+ns.init_vel_iter = 1
+ns.visc_tol=1.0e-11
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         TIME STEP COMPUTATION         #
+#.......................................#
+#ns.cfl              =   0.45             # CFL factor
+ns.cfl               = 0.3
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            INPUT AND OUTPUT           #
+#.......................................#
+amr.plot_int            =   50          # Steps between plot files
+amr.check_int           =   1000        # Steps between checkpoint files
+amr.derive_plot_vars    =   mag_vort avg_pressure gradpx gradpy
+amr.restart             =   ""          # Checkpoint to restart from
+amr.probin_file         = regtest.probin.2d.flow_past_cylinder-x
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#               PHYSICS                 #
+#.......................................#
+ns.gravity          =   0.  
+
+ns.vel_visc_coef         = 0.001
+ns.scal_diff_coefs       = 0.001
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        ADAPTIVE MESH REFINEMENT       #
+#.......................................#
+amr.n_cell              =   96 32     # Grid cells at coarsest AMRlevel
+#amr.n_cell              =   96 64     # Grid cells at coarsest AMRlevel
+amr.max_level           =   2        # Max AMR level in hierarchy
+amr.grid_eff            =   0.7
+amr.n_error_buf         =   8
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              GEOMETRY                 #
+#.......................................#
+# following domain for use with amr.n_cell = 96 32
+geometry.prob_lo        =  -0.6 -0.2 -0.05  # Lo corner coordinates
+geometry.prob_hi        =   0.6  0.2  0.05  # Hi corner coordinates
+# following domain for use with amr.n_cell = 96 64
+#geometry.prob_lo        =  -0.6 -0.4 -0.05  # Lo corner coordinates
+#geometry.prob_hi        =   0.6  0.4  0.05  # Hi corner coordinates
+geometry.is_periodic    =   1    0    1   # Periodicity x y z (0/1)
+geometry.coord_sys      = 0
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWal
+# Boundary conditions on the low end of the domain.
+ns.lo_bc 	     	= 0 5 0
+# Boundary conditions on the high end of the domain.
+ns.hi_bc   	     	= 0 5 0
+
+# Add cylinder
+eb2.geom_type               = sphere
+eb2.sphere_radius           = 0.05001
+eb2.sphere_center           = -0.45  0.0  0.0
+eb2.sphere_has_fluid_inside =0
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              VERBOSITY                #
+#.......................................#
+ns.v                    = 1 # NS solver 
+proj.v                  = 1 # Nodal projection
+mac.verbose             = 0 # MacProjector
+#diffusion.verbose       =   1           # Diffusion operator
+projection.verbose   =   1           # Nodal projection
+projection.mg_verbose=   0
+projection.mg_rtol   =  1.0e-13
+#amr.plt_ccse_regtest    =   1
