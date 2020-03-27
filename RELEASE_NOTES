@@ -101,3 +101,10 @@ Change in logic for setting dt when te velocity is zero
 
 11/1/19
 Switch many routines to dimension-agnostic (one common code no matter the dimensionality)
+
+12/2/19
+Minor interface cleanups and problem setups
+
+04/01/19
+Introducing complex geometries via EB
+
