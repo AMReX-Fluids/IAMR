@@ -10,6 +10,10 @@
 #include <MACPROJ_F.H>
 #include <MacOutFlowBC.H>
 
+#ifdef AMREX_USE_EB
+#include <iamr_mol.H>
+#endif
+
 //fixme, for writesingle level plotfile
 #include<AMReX_PlotFileUtil.H>
 
@@ -645,8 +649,8 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    MultiFab fluxes[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    MultiFab fluxes[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
         fluxes[i].define(ba, dmap, NUM_STATE, 0, MFInfo(),ns_level.Factory());
@@ -708,13 +712,12 @@ MacProj::mac_sync_compute (int                   level,
                        slopes[2].FillBoundary(geom.periodicity()););
 
 
-                godunov -> ComputeSyncConvectiveTerm(Smf, comp, *sync_ptr, sync_comp, ncomp,
-                                                     D_DECL(flux[0],flux[1],flux[2]),
-                                                     D_DECL(edgestate[0],edgestate[1],edgestate[2]),
-                                                     D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                                     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                                     D_DECL(slopes[0],slopes[1],slopes[2]), sl_comp,
-                                                     math_bcs, geom, 0 );
+                MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
+                                     D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                     D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                     D_DECL(flux[0],flux[1],flux[2]), 0,
+                                     math_bcs, geom  );
 
                 if (level > 0 && update_fluxreg)
                 {

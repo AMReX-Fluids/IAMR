@@ -23,6 +23,26 @@ namespace MOL {
                        amrex::Vector<amrex::BCRec> const& bcs,
                        amrex::Geometry const& geom);
 
+    void ComputeSyncAofs ( amrex::MultiFab& aofs, int aofs_comp, int ncomp,
+                           amrex::MultiFab const& state, int state_comp,
+                           D_DECL( amrex::MultiFab const& umac,
+                                   amrex::MultiFab const& vmac,
+                                   amrex::MultiFab const& wmac),
+                           D_DECL( amrex::MultiFab const& ucorr,
+                                   amrex::MultiFab const& vcorr,
+                                   amrex::MultiFab const& wcorr),
+                           D_DECL( amrex::MultiFab& xedge,
+                                   amrex::MultiFab& yedge,
+                                   amrex::MultiFab& zedge),
+                           int  edge_comp,
+                           bool known_edgestate,
+                           D_DECL( amrex::MultiFab& xfluxes,
+                                   amrex::MultiFab& yfluxes,
+                                   amrex::MultiFab& zfluxes),
+                           int fluxes_comp,
+                           amrex::Vector<amrex::BCRec> const& bcs,
+                           amrex::Geometry const& geom);
+
 
     void ComputeEdgeState (amrex::Box const& a_bx,
                            D_DECL( amrex::Array4<amrex::Real> const& xedge,

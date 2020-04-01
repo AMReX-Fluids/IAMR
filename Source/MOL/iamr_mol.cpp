@@ -164,13 +164,200 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 AreaWeightFluxes(bx, D_DECL(fx,fy,fz), ncomp, geom.CellSize());
 
             }
+        }
+    }
+}
 
 
+
+
+void
+MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
+                       MultiFab const& state, int state_comp,
+                       D_DECL( MultiFab const& umac,
+                               MultiFab const& vmac,
+                               MultiFab const& wmac),
+                       D_DECL( MultiFab const& ucorr,
+                               MultiFab const& vcorr,
+                               MultiFab const& wcorr),
+                       D_DECL( MultiFab& xedge,
+                               MultiFab& yedge,
+                               MultiFab& zedge),
+                       int  edge_comp,
+                       bool known_edgestate,
+                       D_DECL( MultiFab& xfluxes,
+                               MultiFab& yfluxes,
+                               MultiFab& zfluxes),
+                       int fluxes_comp,
+                       Vector<BCRec> const& bcs,
+                       Geometry const&  geom )
+{
+    BL_PROFILE("MOL::ComputeSyncAofs()");
+
+    AMREX_ALWAYS_ASSERT(state.nComp() >= state_comp + ncomp);
+
+#ifdef AMREX_USE_EB
+    AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
+    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
+#endif
+
+    Box  const& domain = geom.Domain();
+
+    MFItInfo mfi_info;
+
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(1024,1024,1024)).SetDynamic(true);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(aofs,mfi_info); mfi.isValid(); ++mfi)
+    {
+        auto const& bx = mfi.tilebox();
+
+        D_TERM( Array4<Real> fx = xfluxes.array(mfi,fluxes_comp);,
+                Array4<Real> fy = yfluxes.array(mfi,fluxes_comp);,
+                Array4<Real> fz = zfluxes.array(mfi,fluxes_comp););
+
+#ifdef AMREX_USE_EB
+        // Initialize covered cells
+        auto const& flagfab = ebfactory.getMultiEBCellFlagFab()[mfi];
+        auto const& flag    = flagfab.const_array();
+
+        if (flagfab.getType(bx) == FabType::covered)
+        {
+            auto const& aofs_arr = aofs.array(mfi, aofs_comp);
+            amrex::ParallelFor(bx, ncomp, [aofs_arr] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                aofs_arr( i, j, k, n ) = covered_val;
+            });
+
+            const Box&  xbx = amrex::surroundingNodes(bx,0);
+            amrex::ParallelFor(xbx, ncomp, [fx] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                fx( i, j, k, n ) = 0.0;
+            });
+
+            const Box&  ybx = amrex::surroundingNodes(bx,1);
+            amrex::ParallelFor(ybx, ncomp, [fy] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                fy( i, j, k, n ) = 0.0;
+            });
+
+            const Box&  zbx = amrex::surroundingNodes(bx,2);
+            amrex::ParallelFor(zbx, ncomp, [fz] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                fz( i, j, k, n ) = 0.0;
+            });
 
         }
+        else
+#endif
+        {
+            Array4<Real const> const q = state.const_array(mfi,state_comp);
 
+            D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
+                    Array4<Real> yed = yedge.array(mfi,edge_comp);,
+                    Array4<Real> zed = zedge.array(mfi,edge_comp););
+
+            D_TERM( Array4<Real const> u = umac.const_array(mfi);,
+                    Array4<Real const> v = vmac.const_array(mfi);,
+                    Array4<Real const> w = wmac.const_array(mfi););
+
+            D_TERM( Array4<Real const> uc = ucorr.const_array(mfi);,
+                    Array4<Real const> vc = vcorr.const_array(mfi);,
+                    Array4<Real const> wc = wcorr.const_array(mfi););
+
+#ifdef AMREX_USE_EB
+            bool regular = flagfab.getType(amrex::grow(bx,1)) == FabType::regular;
+
+            if (!regular)
+            {
+                D_TERM( Array4<Real const> fcx = ebfactory.getFaceCent()[0]->const_array(mfi);,
+                        Array4<Real const> fcy = ebfactory.getFaceCent()[1]->const_array(mfi);,
+                        Array4<Real const> fcz = ebfactory.getFaceCent()[2]->const_array(mfi););
+
+                Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+
+                // Grown box on which to compute the fluxes and divergence.
+                // We need at least two ghost nodes for redistribution
+                Box gbx = amrex::grow(bx,2);
+
+                // Compute edge state if needed
+                if (!known_edgestate)
+                {
+                    EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
+                                         D_DECL(u,v,w), domain, bcs,
+                                         D_DECL(fcx,fcy,fcz), ccc, flag );
+                }
+
+                // Compute fluxes
+                EB_ComputeFluxes(gbx, D_DECL(fx,fy,fz), D_DECL(uc,vc,wc), D_DECL(xed,yed,zed), ncomp, flag );
+
+                //
+                // Compute divergence and redistribute
+                //
+                FArrayBox    divtmp(gbx,2*ncomp);
+                Array4<Real> divtmp_arr        = divtmp.array(0);
+                Array4<Real> divtmp_redist_arr = divtmp.array(ncomp);
+
+                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
+
+                D_TERM( auto apx = ebfactory.getAreaFrac()[0]->const_array(mfi);,
+                        auto apy = ebfactory.getAreaFrac()[1]->const_array(mfi);,
+                        auto apz = ebfactory.getAreaFrac()[2]->const_array(mfi); );
+
+                // Compute conservative divergence
+                EB_ComputeDivergence(gbx, divtmp_arr, D_DECL(fx,fy,fz), ncomp, geom, flag, vfrac, D_DECL(apx,apy,apz));
+
+                // Redistribute
+                Redistribute(bx, ncomp, divtmp_redist_arr, divtmp_arr, flag, vfrac, geom);
+
+                // Sum contribution to sync aofs
+                auto const& aofs_arr = aofs.array(mfi, aofs_comp);
+
+                amrex::ParallelFor(bx, ncomp, [aofs_arr, divtmp_redist_arr]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    aofs_arr( i, j, k, n ) += divtmp_redist_arr( i, j, k, n );
+                });
+
+                // Weight fluxes by area and copy them  to output
+                EB_AreaWeightFluxes(bx, D_DECL(fx,fy,fz), D_DECL(apx,apy,apz), ncomp, geom.CellSize());
+
+            }
+            else
+#endif
+            {
+                // Compute edge state if needed
+                if (!known_edgestate)
+                {
+                    ComputeEdgeState( bx, D_DECL( xed, yed, zed ), q, ncomp,
+                                      D_DECL( u, v, w ), domain, bcs );
+
+                }
+
+                // Compute fluxes
+                ComputeFluxes(bx, D_DECL(fx,fy,fz), D_DECL(uc,vc,wc), D_DECL(xed,yed,zed), ncomp );
+
+                // Compute divergence
+                FArrayBox    divtmp(bx,ncomp);
+                Array4<Real> divtmp_arr = divtmp.array(0);
+                ComputeDivergence(bx, divtmp_arr, D_DECL(fx,fy,fz), ncomp, geom);
+
+                // Sum contribution to sync aofs
+                auto const& aofs_arr = aofs.array(mfi, aofs_comp);
+
+                amrex::ParallelFor(bx, ncomp, [aofs_arr, divtmp_arr]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    aofs_arr( i, j, k, n ) += divtmp_arr( i, j, k, n );
+                });
+
+                // Weight fluxes by area and copy them  to output
+                AreaWeightFluxes(bx, D_DECL(fx,fy,fz), ncomp, geom.CellSize());
+
+            }
+        }
     }
-
 }
 
 
