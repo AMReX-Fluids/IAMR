@@ -642,37 +642,10 @@ NavierStokes::scalar_advection (Real dt,
         //  EB ALGORITHM
         //////////////////////////////////////////////////////////////////////////////
 
-
-        //
-        // compute slopes for construction of edge states
-        //
-        //Slopes in x-direction
-        MultiFab xslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-        xslps.setVal(0.);
-        // Slopes in y-direction
-        MultiFab yslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-        yslps.setVal(0.);
-#if ( AMREX_SPACEDIM == 3 )
-        // Slopes in z-direction
-        MultiFab zslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-        zslps.setVal(0.);
-#endif
         const Box& domain = geom.Domain();
 
         Vector<BCRec> math_bc(num_scalars);
         math_bc = fetchBCArray(State_Type,fscalar,num_scalars);
-
-        godunov->ComputeSlopes(Smf, 0, D_DECL(xslps, yslps, zslps), 0,
-                               num_scalars, math_bc, domain);
-
-        //
-        // need to fill ghost cells for slopes here.
-        // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-        //  only allows for periodic for now
-        //
-        D_TERM(xslps.FillBoundary(geom.periodicity());,
-               yslps.FillBoundary(geom.periodicity());,
-               zslps.FillBoundary(geom.periodicity()););
 
 
         MultiFab cfluxes[AMREX_SPACEDIM];

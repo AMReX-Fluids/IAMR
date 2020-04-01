@@ -682,7 +682,6 @@ MacProj::mac_sync_compute (int                   level,
             const BoxArray& ba = ns_level.getEdgeBoxArray(i);
             flux[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
             edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
-            slopes[i].define(grids, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
 
             // Set all ghost nodes to zero and then swap ghost nodes with neighboring boxes
             // This will set correction to zero at a box boundary unless the boundary is
@@ -701,15 +700,6 @@ MacProj::mac_sync_compute (int                   level,
                 // Select sync MF and its component for processing
                 const int  sync_comp = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
                 MultiFab*  sync_ptr  = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
-
-                // Compute slopes of state component
-                godunov -> ComputeSlopes(Smf, comp,
-                                         D_DECL(slopes[0], slopes[1], slopes[2]), sl_comp,
-                                         ncomp, math_bcs, domain);
-
-                D_TERM(slopes[0].FillBoundary(geom.periodicity());,
-                       slopes[1].FillBoundary(geom.periodicity());,
-                       slopes[2].FillBoundary(geom.periodicity()););
 
 
                 MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
