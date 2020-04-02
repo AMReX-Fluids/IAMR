@@ -106,7 +106,11 @@ Switch many routines to dimension-agnostic (one common code no matter the dimens
 Minor interface cleanups and problem setups
 
 04/01/20
+**This is a major update since many branches were merged into development during
+the month of March
 Introducing complex geometries via EB.
 No longer supporting constant mu or RZ options.
 Update and add regression tests.
-
+Many updates to be compatible with changes to amrex
+Various bugfixes for host and GPU calculations  
+Various changes to problem setups
