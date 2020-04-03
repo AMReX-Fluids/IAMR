@@ -189,7 +189,7 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
         {
            if (flag(i,j,k).isConnected(-1,0,0))
            {
-               xedge(i,j,k,n) = iamr_eb_xedge_state_mol_extdir( i, j, k, n, q, umac, fcx, ccc,
+               xedge(i,j,k,n) = iamr_eb_xedge_state_mol_extdir( D_DECL(i, j, k), n, q, umac, fcx, ccc,
                                                                 flag, d_bcrec.data(), domain );
            }
            else
@@ -205,7 +205,7 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
         {
            if (flag(i,j,k).isConnected(-1,0,0))
            {
-               xedge(i,j,k,n) = iamr_eb_xedge_state_mol( i, j, k, n, q, umac, fcx, ccc, flag );
+               xedge(i,j,k,n) = iamr_eb_xedge_state_mol( D_DECL(i, j, k), n, q, umac, fcx, ccc, flag );
            }
            else
            {
@@ -227,7 +227,7 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
         {
             if (flag(i,j,k).isConnected(0,-1,0))
             {
-                yedge(i,j,k,n) = iamr_eb_yedge_state_mol_extdir( i, j, k, n, q, vmac, fcy, ccc,
+                yedge(i,j,k,n) = iamr_eb_yedge_state_mol_extdir( D_DECL(i, j, k), n, q, vmac, fcy, ccc,
                                                                  flag, d_bcrec.data(), domain );
             }
             else
@@ -243,7 +243,7 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
         {
             if (flag(i,j,k).isConnected(0,-1,0))
             {
-                yedge(i,j,k,n) = iamr_eb_yedge_state_mol( i, j, k, n, q, vmac, fcy, ccc, flag );
+                yedge(i,j,k,n) = iamr_eb_yedge_state_mol( D_DECL(i, j, k), n, q, vmac, fcy, ccc, flag );
             }
             else
             {

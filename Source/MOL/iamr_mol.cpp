@@ -38,7 +38,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
 
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(1024,1024,1024)).SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -75,11 +75,13 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 fy( i, j, k, n ) = 0.0;
             });
 
+#if (AMREX_SPACEDIM==3)
             const Box&  zbx = amrex::surroundingNodes(bx,2);
             amrex::ParallelFor(zbx, ncomp, [fz] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fz( i, j, k, n ) = 0.0;
             });
+#endif
 
         }
         else
@@ -205,7 +207,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
 
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(1024,1024,1024)).SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -242,11 +244,13 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 fy( i, j, k, n ) = 0.0;
             });
 
+#if (AMREX_SPACEDIM==3)
             const Box&  zbx = amrex::surroundingNodes(bx,2);
             amrex::ParallelFor(zbx, ncomp, [fz] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fz( i, j, k, n ) = 0.0;
             });
+#endif
 
         }
         else
@@ -591,7 +595,7 @@ MOL::EB_ComputeDivergence ( Box const& bx,
     amrex::ParallelFor(bx, ncomp, [ div, D_DECL(fx,fy,fz), dxinv, dbox, flag, vfrac, D_DECL(apx,apy,apz) ]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-        if (!dbox.contains(IntVect(i,j,k)) or flag(i,j,k).isCovered())
+        if (!dbox.contains(IntVect(D_DECL(i,j,k))) or flag(i,j,k).isCovered())
         {
             div(i,j,k,n) = 0.0;
         }
@@ -643,7 +647,7 @@ MOL::Redistribute (  Box const& bx, int ncomp,
     amrex::ParallelFor(bxg2, [wgt,dbox,vfrac]
     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        wgt(i,j,k) = (dbox.contains(IntVect(i,j,k))) ? vfrac(i,j,k) : 0.0;
+        wgt(i,j,k) = (dbox.contains(IntVect(D_DECL(i,j,k)))) ? vfrac(i,j,k) : 0.0;
     });
 
     amrex::ParallelFor(bxg1, ncomp, [flag, dbox, vfrac, div_in, tmp, delm, wgt]
@@ -652,7 +656,11 @@ MOL::Redistribute (  Box const& bx, int ncomp,
         if (flag(i,j,k).isSingleValued()) {
             Real vtot = 0.0;
             Real divnc = 0.0;
+#if (AMREX_SPACEDIM==3)
             for (int kk = -1; kk <= 1; ++kk)
+#else
+                const int kk = 0;
+#endif
             {
                 for (int jj = -1; jj <= 1; ++jj)
                 {
@@ -660,7 +668,7 @@ MOL::Redistribute (  Box const& bx, int ncomp,
                     {
                         if ( (ii != 0 or jj != 0 or kk != 0) and
                              flag(i,j,k).isConnected(ii,jj,kk) and
-                             dbox.contains(IntVect(i+ii,j+jj,k+kk)))
+                             dbox.contains(IntVect(D_DECL(i+ii,j+jj,k+kk))))
                         {
                             Real wted_vf = vfrac(i+ii,j+jj,k+kk) * wgt(i+ii,j+jj,k+kk);
                             vtot += wted_vf;
@@ -686,7 +694,11 @@ MOL::Redistribute (  Box const& bx, int ncomp,
         if (flag(i,j,k).isSingleValued())
         {
             Real wtot = 0.0;
+#if (AMREX_SPACEDIM==3)
             for (int kk = -1; kk <= 1; ++kk)
+#else
+                const int kk = 0;
+#endif
             {
                 for (int jj = -1; jj <= 1; ++jj)
                 {
@@ -704,15 +716,16 @@ MOL::Redistribute (  Box const& bx, int ncomp,
             wtot = 1.0/(wtot+1.e-80);
 
             Real dtmp = delm(i,j,k,n) * wtot;
-
+#if (AMREX_SPACEDIM==3)
             for (int kk = -1; kk <= 1; ++kk)
+#endif
             {
                 for (int jj = -1; jj <= 1; ++jj)
                 {
                     for (int ii = -1; ii <= 1; ++ii)
                     {
                         if ((ii != 0 or jj != 0 or kk != 0) and
-                            bx.contains(IntVect(i+ii,j+jj,k+kk)) and
+                            bx.contains(IntVect(D_DECL(i+ii,j+jj,k+kk))) and
                             flag(i,j,k).isConnected(ii,jj,kk))
                         {
                             Gpu::Atomic::Add(&tmp(i+ii,j+jj,k+kk,n), dtmp*wgt(i+ii,j+jj,k+kk));

@@ -57,48 +57,54 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
             if (a_flag(i,j,k).isConnected(-1,0,0))
             {
                Real yf = a_fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+#if (AMREX_SPACEDIM==3)
                Real zf = a_fcx(i,j,k,1);
+#endif
 
-               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-               Real yc = a_ccc(i,j,k,1);
-               Real zc = a_ccc(i,j,k,2);
+               D_TERM(Real xc = a_ccc(i,j,k,0);, // centroid of cell (i,j,k)
+                      Real yc = a_ccc(i,j,k,1);,
+                      Real zc = a_ccc(i,j,k,2););
 
-               Real delta_x = 0.5 + xc;
-               Real delta_y = yf  - yc;
-               Real delta_z = zf  - zc;
+               D_TERM(Real delta_x = 0.5 + xc;,
+                      Real delta_y = yf  - yc;,
+                      Real delta_z = zf  - zc;);
 
                Real cc_umax = std::max(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
                Real cc_umin = std::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
 
                // Compute slopes of component "0" of a_vcc
-               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,0,a_vcc,a_ccc,a_flag,
-                                          extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                          extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                          extdir_klo, extdir_khi, domain_klo, domain_khi);
-
+               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(D_DECL(i,j,k), 0, a_vcc, a_ccc,
+                                                                a_flag, bc, domain_box );
+#if (AMREX_SPACEDIM==3)
                Real upls = a_vcc(i  ,j,k,0) - delta_x * slopes_eb_hi[0]
                                             + delta_y * slopes_eb_hi[1]
                                             + delta_z * slopes_eb_hi[2];
+#else
+               Real upls = a_vcc(i  ,j,k,0) - delta_x * slopes_eb_hi[0]
+                                            + delta_y * slopes_eb_hi[1];
+#endif
 
                upls = std::max(std::min(upls, cc_umax), cc_umin);
 
-               xc = a_ccc(i-1,j,k,0); // centroid of cell (i-1,j,k)
-               yc = a_ccc(i-1,j,k,1);
-               zc = a_ccc(i-1,j,k,2);
+               D_TERM(xc = a_ccc(i-1,j,k,0);, // centroid of cell (i-1,j,k)
+                      yc = a_ccc(i-1,j,k,1);,
+                      zc = a_ccc(i-1,j,k,2););
 
-               delta_x = 0.5 - xc;
-               delta_y = yf  - yc;
-               delta_z = zf  - zc;
+               D_TERM(delta_x = 0.5 - xc;,
+                      delta_y = yf  - yc;,
+                      delta_z = zf  - zc;);
 
                // Compute slopes of component "0" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i-1,j,k,0,a_vcc,a_ccc,a_flag,
-                                          extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                          extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                          extdir_klo, extdir_khi, domain_klo, domain_khi);
-
+               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(D_DECL(i-1,j,k),0,a_vcc,a_ccc,a_flag,
+                                                                bc, domain_box);
+#if (AMREX_SPACEDIM==3)
                Real umns = a_vcc(i-1,j,k,0) + delta_x * slopes_eb_lo[0]
                                             + delta_y * slopes_eb_lo[1]
                                             + delta_z * slopes_eb_lo[2];
+#else
+               Real umns = a_vcc(i-1,j,k,0) + delta_x * slopes_eb_lo[0]
+                                            + delta_y * slopes_eb_lo[1];
+#endif
 
                umns = std::max(std::min(umns, cc_umax), cc_umin);
 
@@ -131,42 +137,54 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
             if (a_flag(i,j,k).isConnected(-1,0,0))
             {
                Real yf = a_fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+#if (AMREX_SPACEDIM==3)
                Real zf = a_fcx(i,j,k,1);
+#endif
 
-               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-               Real yc = a_ccc(i,j,k,1);
-               Real zc = a_ccc(i,j,k,2);
+               D_TERM(Real xc = a_ccc(i,j,k,0);, // centroid of cell (i,j,k)
+                      Real yc = a_ccc(i,j,k,1);,
+                      Real zc = a_ccc(i,j,k,2););
 
-               Real delta_x = 0.5 + xc;
-               Real delta_y = yf  - yc;
-               Real delta_z = zf  - zc;
+               D_TERM(Real delta_x = 0.5 + xc;,
+                      Real delta_y = yf  - yc;,
+                      Real delta_z = zf  - zc;);
 
                Real cc_umax = std::max(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
                Real cc_umin = std::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
 
                // Compute slopes of component "0" of a_vcc
-               const auto slopes_eb_hi = iamr_slopes_eb(i,j,k,0,a_vcc,a_ccc,a_flag);
+               const auto slopes_eb_hi = iamr_slopes_eb(D_DECL(i,j,k),0,a_vcc,a_ccc,a_flag);
 
+#if (AMREX_SPACEDIM==3)
                Real upls = a_vcc(i  ,j,k,0) - delta_x * slopes_eb_hi[0]
                                             + delta_y * slopes_eb_hi[1]
                                             + delta_z * slopes_eb_hi[2];
+#else
+               Real upls = a_vcc(i  ,j,k,0) - delta_x * slopes_eb_hi[0]
+                                            + delta_y * slopes_eb_hi[1];
+#endif
 
                upls = std::max(std::min(upls, cc_umax), cc_umin);
 
-               xc = a_ccc(i-1,j,k,0); // centroid of cell (i-1,j,k)
-               yc = a_ccc(i-1,j,k,1);
-               zc = a_ccc(i-1,j,k,2);
+               D_TERM(xc = a_ccc(i-1,j,k,0);, // centroid of cell (i-1,j,k)
+                      yc = a_ccc(i-1,j,k,1);,
+                      zc = a_ccc(i-1,j,k,2););
 
-               delta_x = 0.5 - xc;
-               delta_y = yf  - yc;
-               delta_z = zf  - zc;
+               D_TERM(delta_x = 0.5 - xc;,
+                      delta_y = yf  - yc;,
+                      delta_z = zf  - zc;);
 
                // Compute slopes of component "0" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_eb(i-1,j,k,0,a_vcc,a_ccc,a_flag);
+               const auto& slopes_eb_lo = iamr_slopes_eb(D_DECL(i-1,j,k),0,a_vcc,a_ccc,a_flag);
 
+#if (AMREX_SPACEDIM==3)
                Real umns = a_vcc(i-1,j,k,0) + delta_x * slopes_eb_lo[0]
                                             + delta_y * slopes_eb_lo[1]
                                             + delta_z * slopes_eb_lo[2];
+#else
+               Real umns = a_vcc(i-1,j,k,0) + delta_x * slopes_eb_lo[0]
+                                            + delta_y * slopes_eb_lo[1];
+#endif
 
                umns = std::max(std::min(umns, cc_umax), cc_umin);
 
@@ -198,48 +216,54 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
             if (a_flag(i,j,k).isConnected(0,-1,0))
             {
                Real xf = a_fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+#if (AMREX_SPACEDIM==3)
                Real zf = a_fcy(i,j,k,1);
+#endif
 
-               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-               Real yc = a_ccc(i,j,k,1);
-               Real zc = a_ccc(i,j,k,2);
+               D_TERM(Real xc = a_ccc(i,j,k,0);, // centroid of cell (i,j,k)
+                      Real yc = a_ccc(i,j,k,1);,
+                      Real zc = a_ccc(i,j,k,2););
 
-               Real delta_x = xf  - xc;
-               Real delta_y = 0.5 + yc;
-               Real delta_z = zf  - zc;
+               D_TERM(Real delta_x = xf  - xc;,
+                      Real delta_y = 0.5 + yc;,
+                      Real delta_z = zf  - zc;);
 
                Real cc_vmax = std::max(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
                Real cc_vmin = std::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
 
                // Compute slopes of component "1" of a_vcc
-               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,1,a_vcc,a_ccc,a_flag,
-                                          extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                          extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                          extdir_klo, extdir_khi, domain_klo, domain_khi);
+               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(D_DECL(i,j,k),1,a_vcc,a_ccc,a_flag,bc,domain_box);
 
+#if (AMREX_SPACEDIM==3)
                Real vpls = a_vcc(i,j  ,k,1) + delta_x * slopes_eb_hi[0]
                                             - delta_y * slopes_eb_hi[1]
                                             + delta_z * slopes_eb_hi[2];
+#else
+               Real vpls = a_vcc(i,j  ,k,1) + delta_x * slopes_eb_hi[0]
+                                            - delta_y * slopes_eb_hi[1];
+#endif
 
                vpls = std::max(std::min(vpls, cc_vmax), cc_vmin);
 
-               xc = a_ccc(i,j-1,k,0); // centroid of cell (i,j-1,k)
-               yc = a_ccc(i,j-1,k,1);
-               zc = a_ccc(i,j-1,k,2);
+               D_TERM(xc = a_ccc(i,j-1,k,0);, // centroid of cell (i,j-1,k)
+                      yc = a_ccc(i,j-1,k,1);,
+                      zc = a_ccc(i,j-1,k,2););
 
-               delta_x = xf  - xc;
-               delta_y = 0.5 - yc;
-               delta_z = zf  - zc;
+               D_TERM(delta_x = xf  - xc;,
+                      delta_y = 0.5 - yc;,
+                      delta_z = zf  - zc;);
 
                // Compute slopes of component "1" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j-1,k,1,a_vcc,a_ccc,a_flag,
-                                          extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                          extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                          extdir_klo, extdir_khi, domain_klo, domain_khi);
+               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(D_DECL(i,j-1,k),1,a_vcc,a_ccc,a_flag,bc, domain_box);
 
+#if (AMREX_SPACEDIM==3)
                Real vmns = a_vcc(i,j-1,k,1) + delta_x * slopes_eb_lo[0]
-                                          + delta_y * slopes_eb_lo[1]
-                                          + delta_z * slopes_eb_lo[2];
+                                            + delta_y * slopes_eb_lo[1]
+                                            + delta_z * slopes_eb_lo[2];
+#else
+               Real vmns = a_vcc(i,j-1,k,1) + delta_x * slopes_eb_lo[0]
+                                            + delta_y * slopes_eb_lo[1];
+#endif
 
                vmns = std::max(std::min(vmns, cc_vmax), cc_vmin);
 
@@ -272,42 +296,54 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
             if (a_flag(i,j,k).isConnected(0,-1,0))
             {
                Real xf = a_fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+#if (AMREX_SPACEDIM==3)
                Real zf = a_fcy(i,j,k,1);
+#endif
 
-               Real xc = a_ccc(i,j,k,0); // centroid of cell (i,j,k)
-               Real yc = a_ccc(i,j,k,1);
-               Real zc = a_ccc(i,j,k,2);
+               D_TERM(Real xc = a_ccc(i,j,k,0);, // centroid of cell (i,j,k)
+                      Real yc = a_ccc(i,j,k,1);,
+                      Real zc = a_ccc(i,j,k,2););
 
-               Real delta_x = xf  - xc;
-               Real delta_y = 0.5 + yc;
-               Real delta_z = zf  - zc;
+               D_TERM(Real delta_x = xf  - xc;,
+                      Real delta_y = 0.5 + yc;,
+                      Real delta_z = zf  - zc;);
 
                Real cc_vmax = std::max(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
                Real cc_vmin = std::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
 
                // Compute slopes of component "1" of a_vcc
-               const auto slopes_eb_hi = iamr_slopes_eb(i,j,k,1,a_vcc,a_ccc,a_flag);
+               const auto slopes_eb_hi = iamr_slopes_eb(D_DECL(i,j,k),1,a_vcc,a_ccc,a_flag);
 
+#if (AMREX_SPACEDIM==3)
                Real vpls = a_vcc(i,j  ,k,1) + delta_x * slopes_eb_hi[0]
                                             - delta_y * slopes_eb_hi[1]
                                             + delta_z * slopes_eb_hi[2];
+#else
+               Real vpls = a_vcc(i,j  ,k,1) + delta_x * slopes_eb_hi[0]
+                                            - delta_y * slopes_eb_hi[1];
+#endif
 
                vpls = std::max(std::min(vpls, cc_vmax), cc_vmin);
 
-               xc = a_ccc(i,j-1,k,0); // centroid of cell (i,j-1,k)
-               yc = a_ccc(i,j-1,k,1);
-               zc = a_ccc(i,j-1,k,2);
+               D_TERM(xc = a_ccc(i,j-1,k,0);,// centroid of cell (i,j-1,k)
+                      yc = a_ccc(i,j-1,k,1);,
+                      zc = a_ccc(i,j-1,k,2););
 
-               delta_x = xf  - xc;
-               delta_y = 0.5 - yc;
-               delta_z = zf  - zc;
+               D_TERM(delta_x = xf  - xc;,
+                      delta_y = 0.5 - yc;,
+                      delta_z = zf  - zc;);
 
                // Compute slopes of component "1" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_eb(i,j-1,k,1,a_vcc,a_ccc,a_flag);
+               const auto& slopes_eb_lo = iamr_slopes_eb(D_DECL(i,j-1,k),1,a_vcc,a_ccc,a_flag);
 
+#if (AMREX_SPACEDIM==3)
                Real vmns = a_vcc(i,j-1,k,1) + delta_x * slopes_eb_lo[0]
                                             + delta_y * slopes_eb_lo[1]
                                             + delta_z * slopes_eb_lo[2];
+#else
+               Real vmns = a_vcc(i,j-1,k,1) + delta_x * slopes_eb_lo[0]
+                                            + delta_y * slopes_eb_lo[1];
+#endif
 
                vmns = std::max(std::min(vmns, cc_vmax), cc_vmin);
 
@@ -326,6 +362,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
             }
         });
     }
+
 #if (AMREX_SPACEDIM==3)
     // ****************************************************************************
     // Predict to z-faces
@@ -353,10 +390,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real cc_wmin = std::min(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
 
                // Compute slopes of component "2" of a_vcc
-               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,2,a_vcc,a_ccc,a_flag,
-                                          extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                          extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                          extdir_klo, extdir_khi, domain_klo, domain_khi);
+               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,2,a_vcc,a_ccc,a_flag,bc,domain_box);
 
                Real wpls = a_vcc(i,j,k  ,2) + delta_x * slopes_eb_hi[0]
                                             + delta_y * slopes_eb_hi[1]
@@ -373,10 +407,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                delta_z = 0.5 - zc;
 
                // Compute slopes of component "2" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j,k-1,2,a_vcc,a_ccc,a_flag,
-                                          extdir_ilo, extdir_ihi, domain_ilo, domain_ihi,
-                                          extdir_jlo, extdir_jhi, domain_jlo, domain_jhi,
-                                          extdir_klo, extdir_khi, domain_klo, domain_khi);
+               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j,k-1,2,a_vcc,a_ccc,a_flag,bc,domain_box);
 
                Real wmns = a_vcc(i,j,k-1,2) + delta_x * slopes_eb_lo[0]
                                             + delta_y * slopes_eb_lo[1]

@@ -38,13 +38,16 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
     {
         for (MFIter mfi(a_vel, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box const& ubx = mfi.nodaltilebox(0);
-            Box const& vbx = mfi.nodaltilebox(1);
-            Box const& wbx = mfi.nodaltilebox(2);
-            Array4<Real> const& u = a_umac.array(mfi);
-            Array4<Real> const& v = a_vmac.array(mfi);
-            Array4<Real> const& w = a_wmac.array(mfi);
+            D_TERM( Box const& ubx = mfi.nodaltilebox(0);,
+                    Box const& vbx = mfi.nodaltilebox(1);,
+                    Box const& wbx = mfi.nodaltilebox(2););
+
+            D_TERM( Array4<Real> const& u = a_umac.array(mfi);,
+                    Array4<Real> const& v = a_vmac.array(mfi);,
+                    Array4<Real> const& w = a_wmac.array(mfi););
+
             Array4<Real const> const& vcc = a_vel.const_array(mfi);
+
 #ifdef AMREX_USE_EB
             Box const& bx = mfi.tilebox();
             EBCellFlagFab const& flagfab = flags[mfi];
@@ -52,27 +55,30 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
             auto const typ = flagfab.getType(amrex::grow(bx,1));
             if (typ == FabType::covered)
             {
-                amrex::ParallelFor(ubx, vbx, wbx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { u(i,j,k) = 0.0; },
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { v(i,j,k) = 0.0; },
-                [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { w(i,j,k) = 0.0; });
+                amrex::ParallelFor(ubx, [u] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { u(i,j,k) = 0.0; });
+                amrex::ParallelFor(vbx, [v] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { v(i,j,k) = 0.0; });
+#if (AMREX_SPACEDIM==3)
+                amrex::ParallelFor(wbx, [w] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { w(i,j,k) = 0.0; });
+#endif
             }
             else if (typ == FabType::singlevalued)
             {
-                Array4<Real const> const& fcx = fcent[0]->const_array(mfi);
-                Array4<Real const> const& fcy = fcent[1]->const_array(mfi);
-                Array4<Real const> const& fcz = fcent[2]->const_array(mfi);
+                D_TERM( Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
+                        Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
+                        Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
+
                 Array4<Real const> const& ccc = ccent.const_array(mfi);
 
-                MOL::EB_PredictVelOnFaces(bx,ubx,vbx,wbx,u,v,w,vcc,flagarr,fcx,fcy,fcz,ccc,a_geom,a_bcs);
+                MOL::EB_PredictVelOnFaces(bx,D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,flagarr,
+                                          D_DECL(fcx,fcy,fcz),ccc,a_geom,a_bcs);
             }
             else
 #endif
             {
-                MOL::PredictVelOnFaces(ubx,vbx,wbx,u,v,w,vcc,a_geom,a_bcs);
+                MOL::PredictVelOnFaces(D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_geom,a_bcs);
             }
 
-            MOL::SetMacBCs(domain,ubx,vbx,wbx,u,v,w,vcc,a_bcs);
+            MOL::SetMacBCs(domain,D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_bcs);
         }
     }
 
