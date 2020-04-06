@@ -2,7 +2,7 @@
 #define IAMR_MOL_H_
 
 #include <AMReX_MultiFab.H>
-
+#include <AMReX_BCRec.H>
 
 namespace MOL {
 

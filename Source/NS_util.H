@@ -2,6 +2,7 @@
 #define NS_util_H
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_BCRec.H>
 
 namespace amrex
 {
@@ -36,9 +37,9 @@ namespace amrex
 #ifdef AMREX_USE_GPU
         Gpu::htod_memcpy
 #else
-            std::memcpy
+	std::memcpy
 #endif
-            (v_d.data(), v.data(), sizeof(BCRec)*ncomp);
+	  (v_d.data(), v.data(), sizeof(amrex::BCRec)*ncomp);
 
         return v_d;
     }
