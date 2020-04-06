@@ -10,19 +10,7 @@
 #include <Godunov.H>
 #include <GODUNOV_F.H>
 
-#include <AMReX_BCRec.H>
-
 #include <algorithm>
-
-#ifdef AMREX_USE_EB
-#include <AMReX_MFIter.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MultiCutFab.H>
-#include <AMReX_EBCellFlag.H>
-#include <AMReX_EBFArrayBox.H>
-#include <AMReX_EBFabFactory.H>
-#include <AMReX_EB_utils.H>
-#endif
 
 #define GEOM_GROW 1
 #define XVEL 0

@@ -2,12 +2,6 @@
 #ifndef _GODUNOV_CLASS_H_
 #define _GODUNOV_CLASS_H_
 
-#ifdef AMREX_USE_EB
-#include <AMReX_MultiCutFab.H>
-#include <AMReX_EBFabFactory.H>
-#include <AMReX_BCRec.H>
-#endif
-
 //
 // A useful enumeration of the forms for the advective terms
 //
