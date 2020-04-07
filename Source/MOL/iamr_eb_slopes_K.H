@@ -92,31 +92,9 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
 
                 Atb[jj] += A[lc][jj] * du[lc];
             }
-            // AtA[0][0] += A[lc][0]* A[lc][0];
-            // AtA[0][1] += A[lc][0]* A[lc][1];
-            // AtA[0][2] += A[lc][0]* A[lc][2];
-            // AtA[1][1] += A[lc][1]* A[lc][1];
-            // AtA[1][2] += A[lc][1]* A[lc][2];
-            // AtA[2][2] += A[lc][2]* A[lc][2];
-
-            // D_TERM( Atb[0] += A[lc][0]*du[lc];,
-            //         Atb[1] += A[lc][1]*du[lc];,
-            //         Atb[2] += A[lc][2]*du[lc]; )
         }
     }
 
-    // Fill in symmetric
-    // for(int jj = 0; jj < AMREX_SPACEDIM; ++jj)
-    // {
-    //     for(int ii = 0; ii < jj; ++ii)
-    //     {
-    //         AtA[jj][ii] = AtA[ii][jj];
-    //     }
-    // }
-
-    // AtA[1][0] = AtA[0][1];
-    // AtA[2][0] = AtA[0][2];
-    // AtA[2][1] = AtA[1][2];
 
     amrex::Real detAtA =
 #if (AMREX_SPACEDIM==3)
