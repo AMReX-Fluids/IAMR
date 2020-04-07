@@ -103,23 +103,11 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
  
   tensorop.compVelGrad(0,{grad_Uvel},{Uvel},MLLinOp::Location::FaceCenter);
 
-//VisMF::Write(*grad_Uvel[0],"fluxes_x");
-//VisMF::Write(*grad_Uvel[1],"fluxes_y");
-  
-//static int count_LES_src=0;
-//count_LES_src++;
-//amrex::WriteSingleLevelPlotfile("grad_Uvel_"+std::to_string(count_LES_src), *grad_Uvel[0], {"comp0","comp1","comp2","comp3"}, geom, 0.0, 0);
-
-  
- 
- 
   //
   // Now that we have the gradients of velocity, we can compute the LES subgrid viscosity
   // 
       
   const auto dx = geom.CellSizeArray();
-
-// amrex::Print() << "\n DEBUG geom.CellSizeArray() " << dx[0]  << "\n\n";
 
   FArrayBox fab_tmp;
   for (MFIter mfi(Uvel,true); mfi.isValid(); ++mfi)
@@ -127,8 +115,6 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
     Box bx = mfi.tilebox();
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-  
-  //amrex::Print() << "\n WE ARE IN IDIM " << idim << "\n ";
   
       const Box& nbx = mfi.nodaltilebox(idim);
       Array4<Real      > dst = mu_LES[idim]->array(mfi);
@@ -225,10 +211,7 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
 //       Compute the sigma operator
               dst(i,j,k,n) = pow(sigma_Cs_cst * dx[idim],2) * ((sigma3 * (sigma1-sigma2) * (sigma2-sigma3)) / pow(sigma1,2));
 
-         }
-
-
-
+           }
 
 
          }
@@ -237,22 +220,11 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
            amrex::Abort("\n DEBUG DONT KNOW THIS LES MODEL \n\n");
          }
                     
-         //amrex::Print() << "\n MU_LES " << i << " " << j << " " << k << " " << dst(i,j,k,n);
       });
     }
     
   }
 
-//static int count_LES=0;
-//count_LES++;
-//amrex::WriteSingleLevelPlotfile("mu_LES_"+std::to_string(count_LES), *mu_LES[0], {"mu_LES_x"}, geom, 0.0, 0);
-
-
-
-//VisMF::Write(*mu_LES[0],"mu_LES_x");
-//VisMF::Write(*mu_LES[1],"mu_LES_y");
-
- 
   
 }
 
