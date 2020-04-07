@@ -127,6 +127,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute divergence and redistribute
                 //
                 FArrayBox    divtmp(gbx,ncomp);
+                Elixir       diveli = divtmp.elixir();
                 Array4<Real> divtmp_arr = divtmp.array();
 
                 auto vfrac = ebfactory.getVolFrac().const_array(mfi);
@@ -300,6 +301,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute divergence and redistribute
                 //
                 FArrayBox    divtmp(gbx,2*ncomp);
+                Elixir       diveli = divtmp.elixir();
                 Array4<Real> divtmp_arr        = divtmp.array(0);
                 Array4<Real> divtmp_redist_arr = divtmp.array(ncomp);
 
