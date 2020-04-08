@@ -4,7 +4,7 @@
 #*******************************************************************************
 
 ns.do_temp=1
-ns.temp_cond_coef=1.e-8
+ns.temp_cond_coef=1.e-4
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
@@ -28,7 +28,7 @@ amr.n_cell 		= 32 32 32 #128 128 128 #
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 0 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -95,8 +95,8 @@ amr.probin_file 	= regtest.probin.3d.hotspot
 # Embedded Boundary options
 #eb2.geom_type    =  all_regular
 eb2.geom_type     = sphere
-eb2.sphere_radius = 0.25
-eb2.sphere_center =  -0.001 0.0 1.0
+eb2.sphere_radius = 0.10
+eb2.sphere_center =  -0.001 0.0 .85
 eb2.sphere_has_fluid_inside = 0
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
@@ -126,11 +126,6 @@ ns.hi_bc             = 4 5 2
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
-
-#*******************************************************************************
-
-# Factor by which grids must be coarsenable.
-amr.blocking_factor     = 4
 
 #*******************************************************************************
 

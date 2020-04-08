@@ -76,7 +76,7 @@ ns.hi_bc   	         	= 0 0 0
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		 	= 0
+amr.max_level		 	= 1
 # Refinement criterion
 ns.do_tracer_ref 		= 1
 # Interval (in number of level l timesteps) between regridding
