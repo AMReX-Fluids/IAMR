@@ -8,7 +8,7 @@
   adv_dir = 1
   adv_vel = 0.0
   adverr  = 0.01
-  vorterr  = 0.5
+  vorterr  = 200
   denerr = 0.1
   temperr = 1.01
   bubgrad = 0.005

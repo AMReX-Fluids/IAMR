@@ -1459,6 +1459,16 @@ contains
            end do
         end do
 
+!c     probtype = NodeEB
+      else if (probtype .eq. 14) then
+
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = merge(set,tag(i,j),adv(i,j,1).gt.adverr)
+           end do
+        end do
+
+
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_ADVERROR ',probtype
         stop
@@ -1765,6 +1775,15 @@ contains
               tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
            end do
         end do
+
+!c     probtype = RT
+      else if (probtype .eq. 14) then
+        do j = lo(2), hi(2)
+           do i = lo(1), hi(1)
+              tag(i,j) = merge(set,tag(i,j),abs(vort(i,j,1)).gt.vorterr)
+           end do
+        end do
+
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
