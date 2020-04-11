@@ -649,6 +649,7 @@ MOL::Redistribute (  Box const& bx, int ncomp,
 
     // Temporaries
     FArrayBox scratch(bxg2,2*ncomp+1);
+    Elixir eli = scratch.elixir();
     Array4<Real>  tmp  = scratch.array(0);
     Array4<Real>  delm = scratch.array(ncomp);
     Array4<Real>  wgt  = scratch.array(2*ncomp);
