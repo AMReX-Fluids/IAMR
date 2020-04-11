@@ -7,6 +7,7 @@
 
 using namespace amrex;
 
+
 void
 MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                    MultiFab const& state, int state_comp,
@@ -87,8 +88,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
         else
 #endif
         {
-            Array4<Real const> const q = state.const_array(mfi,state_comp);
-
             D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
                     Array4<Real> yed = yedge.array(mfi,edge_comp);,
                     Array4<Real> zed = zedge.array(mfi,edge_comp););
@@ -115,7 +114,9 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute edge state if needed
                 if (!known_edgestate)
                 {
-                    EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
+		    Array4<Real const> const q = state.const_array(mfi,state_comp);
+
+		    EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
                                          D_DECL(u,v,w), domain, bcs,
                                          D_DECL(fcx,fcy,fcz), ccc, flag );
                 }
@@ -152,6 +153,8 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute edge state if needed
                 if (!known_edgestate)
                 {
+		    Array4<Real const> const q = state.const_array(mfi,state_comp); 
+
                     ComputeEdgeState( bx, D_DECL( xed, yed, zed ), q, ncomp,
                                       D_DECL( u, v, w ), domain, bcs );
 
@@ -257,15 +260,9 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
         else
 #endif
         {
-            Array4<Real const> const q = state.const_array(mfi,state_comp);
-
             D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
                     Array4<Real> yed = yedge.array(mfi,edge_comp);,
                     Array4<Real> zed = zedge.array(mfi,edge_comp););
-
-            D_TERM( Array4<Real const> u = umac.const_array(mfi);,
-                    Array4<Real const> v = vmac.const_array(mfi);,
-                    Array4<Real const> w = wmac.const_array(mfi););
 
             D_TERM( Array4<Real const> uc = ucorr.const_array(mfi);,
                     Array4<Real const> vc = vcorr.const_array(mfi);,
@@ -289,6 +286,12 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute edge state if needed
                 if (!known_edgestate)
                 {
+		    Array4<Real const> const q = state.const_array(mfi,state_comp);
+		    
+		    D_TERM( Array4<Real const> u = umac.const_array(mfi);,
+			    Array4<Real const> v = vmac.const_array(mfi);,
+			    Array4<Real const> w = wmac.const_array(mfi););
+
                     EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
                                          D_DECL(u,v,w), domain, bcs,
                                          D_DECL(fcx,fcy,fcz), ccc, flag );
@@ -336,6 +339,12 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute edge state if needed
                 if (!known_edgestate)
                 {
+		    Array4<Real const> const q = state.const_array(mfi,state_comp);
+		    
+		    D_TERM( Array4<Real const> u = umac.const_array(mfi);,
+			    Array4<Real const> v = vmac.const_array(mfi);,
+			    Array4<Real const> w = wmac.const_array(mfi););
+		    
                     ComputeEdgeState( bx, D_DECL( xed, yed, zed ), q, ncomp,
                                       D_DECL( u, v, w ), domain, bcs );
 

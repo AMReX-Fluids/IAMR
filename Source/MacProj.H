@@ -53,20 +53,10 @@ public:
 			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
 			 amrex::MultiFab* Rhs_increment = nullptr);
 
-  /* REMOVE in favor of single version above. subtract_avg and offset never used
-    // this version is for the closed chamber LMC algorithm
-    void mac_sync_solve (int       level,
-                         amrex::Real      dt, 
-                         amrex::MultiFab& rho_half,
-                         amrex::IntVect&  fine_ratio,
-			 amrex::MultiFab* Rhs_increment,
-			 bool      subtract_avg,
-			 amrex::Real&     offset);
-  */
     //
     // Computing the sync tendency.
     //
-    void mac_sync_compute (int                   level,
+    void mac_sync_compute (int                          level,
 			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab*             u_mac, 
                            amrex::MultiFab&             Vsync,
@@ -77,26 +67,26 @@ public:
                            amrex::Real                  prev_time,
                            amrex::Real                  prev_pres_time,
                            amrex::Real                  dt,
-                           int                   NUM_STATE,
+                           int                          NUM_STATE,
                            amrex::Real                  be_cn_theta,
-                           bool                  modify_reflux_normal_vel,
-                           int		         do_mom_diff,
-                           const amrex::Vector<int>&     increment_sync = amrex::Vector<int>(),
-			   bool                  update_fluxreg = true);
+                           bool                         modify_reflux_normal_vel,
+                           int		                do_mom_diff,
+                           const amrex::Vector<int>&    increment_sync = amrex::Vector<int>(),
+			   bool                         update_fluxreg = true);
 
-    void mac_sync_compute (int                   level,
+    void mac_sync_compute (int                          level,
 			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab&             Sync,
-                           int                   comp,
-                           int                   s_ind,
-                           const amrex::MultiFab*       const* sync_edges,
-			   int                   eComp,
+                           int                          comp,
+                           int                          s_ind,
+                           amrex::MultiFab* const*      sync_edges,
+			   int                          eComp,
                            amrex::MultiFab&             rho_half,
                            amrex::FluxRegister*         adv_flux_reg,
                            amrex::Vector<AdvectionForm>& advectionType,
-                           bool		         modify_reflux_normal_vel,
-                           amrex::Real                  dt,
-			   bool                  update_fluxreg = true);
+                           bool		                 modify_reflux_normal_vel,
+                           amrex::Real                   dt,
+			   bool                          update_fluxreg = true);
 
     static void Initialize ();
     static void Finalize ();

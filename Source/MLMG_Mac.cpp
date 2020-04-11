@@ -258,9 +258,17 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     //Ucorr = fluxes = -B grad phi
     mlmg.getFluxes({Ucorr}, MLMG::Location::FaceCentroid);
 
-    // Make sure Ucorr has correct sign
     for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
     {
-        Ucorr[idim]->negate();
+      // Make sure Ucorr has correct sign
+      Ucorr[idim]->negate();
+
+#ifdef AMREX_USE_EB
+      // Set all ghost nodes to zero and then swap ghost nodes with neighboring boxes
+      // This will set correction to zero at a box boundary unless the boundary is
+      // of periodic type or it is shared with another box
+      Ucorr[idim] -> setBndry(0.0);
+      Ucorr[idim] -> FillBoundary(geom.periodicity());
+#endif
     }
 }

@@ -544,6 +544,9 @@ MacProj::mac_sync_solve (int       level,
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
+    //
+    // Compute Ucorr, including filling ghost cells for EB  
+    //
     mlmg_mac_sync_solve(parent,*phys_bc, level, mac_sync_tol, mac_abs_tol,
                         rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi,
 			Ucorr, verbose);
@@ -587,7 +590,7 @@ MacProj::mac_sync_compute (int                   level,
                            Real                  be_cn_theta,
                            bool                  modify_reflux_normal_vel,
                            int                   do_mom_diff,
-                           const Vector<int>&     increment_sync,
+                           const Vector<int>&    increment_sync,
 			   bool                  update_fluxreg)
 {
     if (modify_reflux_normal_vel)
@@ -600,7 +603,6 @@ MacProj::mac_sync_compute (int                   level,
     const Geometry& geom                = parent->Geom(level);
     const Real*     dx                  = geom.CellSize();
     const int       numscal             = NUM_STATE - BL_SPACEDIM;
-    MultiFab*       mac_sync_phi        = mac_phi_crse[level].get();
     NavierStokesBase&   ns_level        = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
@@ -638,8 +640,12 @@ MacProj::mac_sync_compute (int                   level,
     }
 
 #ifdef AMREX_USE_EB
+    const int  nghost  = 4;         // Use 4 for now
+
     MultiFab& Gp = ns_level.getGradP();
 #else
+    const int  nghost  = 0;
+    
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
     ns_level.getGradP(Gp, prev_pres_time);
 #endif
@@ -653,7 +659,7 @@ MacProj::mac_sync_compute (int                   level,
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, NUM_STATE, 0, MFInfo(),ns_level.Factory());
+        fluxes[i].define(ba, dmap, NUM_STATE, nghost, MFInfo(),ns_level.Factory());
     }
 
     FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
@@ -668,26 +674,15 @@ MacProj::mac_sync_compute (int                   level,
     // Use a block here so all temporaries will go out of scope once
     // it is done being executed
     {
-        MultiFab flux[AMREX_SPACEDIM];
         MultiFab edgestate[AMREX_SPACEDIM];
-        MultiFab slopes[AMREX_SPACEDIM];
-        const int  nghost  = 4;         // Use 4 for now
         const int  ncomp   = 1;         // Number of components to process at once
-        const int  sl_comp = 0;         // Slope component
         Vector<BCRec>  math_bcs(ncomp);
         const Box& domain = geom.Domain();
 
         for (int i = 0; i < AMREX_SPACEDIM; ++i)
         {
             const BoxArray& ba = ns_level.getEdgeBoxArray(i);
-            flux[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
             edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
-
-            // Set all ghost nodes to zero and then swap ghost nodes with neighboring boxes
-            // This will set correction to zero at a box boundary unless the boundary is
-            // of periodic type or it is shared with another box
-            Ucorr[i] -> setBndry(0.0);
-            Ucorr[i] -> FillBoundary(geom.periodicity());
         }
 
         for (int comp = 0; comp < NUM_STATE; ++comp)
@@ -706,16 +701,9 @@ MacProj::mac_sync_compute (int                   level,
                                      D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                      D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                      D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     D_DECL(flux[0],flux[1],flux[2]), 0,
+                                     D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                      math_bcs, geom  );
 
-                if (level > 0 && update_fluxreg)
-                {
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    {
-                        MultiFab::Copy(fluxes[d], flux[d], 0, comp, ncomp, 0 );
-                    }
-                }
             }
         }
     }
@@ -729,7 +717,6 @@ MacProj::mac_sync_compute (int                   level,
     {
         Vector<int> ns_level_bc;
         FArrayBox tforces, tvelforces, U;
-        //      FArrayBox* grad_phi[BL_SPACEDIM];
         FArrayBox flux[BL_SPACEDIM], Rho;
 
         for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
@@ -869,7 +856,7 @@ MacProj::mac_sync_compute (int                    level,
                            MultiFab&              Sync,
                            int                    comp,
                            int                    s_ind,
-                           const MultiFab* const* sync_edges,
+                           MultiFab* const*       sync_edges,
 			   int                    eComp,
                            MultiFab&              rho_half,
                            FluxRegister*          adv_flux_reg,
@@ -883,27 +870,61 @@ MacProj::mac_sync_compute (int                    level,
 
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom         = parent->Geom(level);
-    MultiFab*       mac_sync_phi = mac_phi_crse[level].get();
-    const NavierStokesBase& ns_level = *(NavierStokesBase*) &(parent->getLevel(level));
+    NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
 
-    Godunov godunov;
+#ifdef AMREX_USE_EB
+    const int  nghost  = 4;         // Use 4 for now
+#else
+    const int  nghost  = 0;
+#endif
+    
     MultiFab fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, 1, 0, MFInfo(),ns_level.Factory());
+        fluxes[i].define(ba, dmap, 1, nghost, MFInfo(),ns_level.Factory());
     }
 
     //
     // Compute the mac sync correction.
     //
+#ifdef AMREX_USE_EB
+    //
+    // EB algorithm
+    //
+    // Use a block here so all temporaries will go out of scope once
+    // it is done being executed
+    {
+        const int  ncomp   = 1;         // Number of components to process at once
+        Vector<BCRec>  math_bcs(ncomp);
+        const Box& domain = geom.Domain();
+
+	// Get BCs for this component
+	// FIXME?  *think* comp should be okay here. Seems comp is the state index
+	// and not the index for Sync.
+	math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
+
+	MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
+			     Sync, s_ind, // this is not used when we pass edge states
+			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+			     math_bcs, geom  );
+	
+    }
+#else
+    //
+    // non-EB algorithm
+    //
+    Godunov godunov;
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         FArrayBox flux[BL_SPACEDIM];
-        FArrayBox* grad_phi[BL_SPACEDIM];
 
         for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
         {
@@ -947,7 +968,8 @@ MacProj::mac_sync_compute (int                    level,
             }
         }
     }//end OMP parallel region
-
+#endif
+    
     if (level > 0 && update_fluxreg){
         for (int d = 0; d < BL_SPACEDIM; d++){
             adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
