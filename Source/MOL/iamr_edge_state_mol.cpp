@@ -55,7 +55,8 @@ MOL::ComputeEdgeState (const Box& bx,
 
     const auto bc = bcs.dataPtr();
     auto d_bcrec  = convertToDeviceVector(bcs);
-
+    BCRec const* d_bcrec_ptr = d_bcrec.data();
+    
     // At an ext_dir boundary, the boundary value is on the face, not cell center.
     auto extdir_lohi = has_extdir(bcs.dataPtr(), ncomp, 0);
     bool has_extdir_lo = extdir_lohi.first;
@@ -64,11 +65,11 @@ MOL::ComputeEdgeState (const Box& bx,
     if ((has_extdir_lo and domain_ilo >= ubx.smallEnd(0)-1) or
         (has_extdir_hi and domain_ihi <= ubx.bigEnd(0)))
     {
-        amrex::ParallelFor(ubx, ncomp, [d_bcrec,q,domain_ilo,domain_ihi,umac,xedge]
+        amrex::ParallelFor(ubx, ncomp, [d_bcrec_ptr,q,domain_ilo,domain_ihi,umac,xedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            bool extdir_ilo = d_bcrec[n].lo(0) == BCType::ext_dir;
-            bool extdir_ihi = d_bcrec[n].hi(0) == BCType::ext_dir;
+            bool extdir_ilo = d_bcrec_ptr[n].lo(0) == BCType::ext_dir;
+            bool extdir_ihi = d_bcrec_ptr[n].hi(0) == BCType::ext_dir;
 
             xedge(i,j,k,n) = iamr_xedge_state_mol_extdir( i, j, k, n, q, umac,
                                                           extdir_ilo, extdir_ihi,
@@ -92,11 +93,11 @@ MOL::ComputeEdgeState (const Box& bx,
     if ((has_extdir_lo and domain_jlo >= vbx.smallEnd(1)-1) or
         (has_extdir_hi and domain_jhi <= vbx.bigEnd(1)))
     {
-        amrex::ParallelFor(vbx, ncomp, [d_bcrec,q,domain_jlo,domain_jhi,vmac,yedge]
+        amrex::ParallelFor(vbx, ncomp, [d_bcrec_ptr,q,domain_jlo,domain_jhi,vmac,yedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            bool extdir_jlo = d_bcrec[n].lo(1) == BCType::ext_dir;
-            bool extdir_jhi = d_bcrec[n].hi(1) == BCType::ext_dir;
+            bool extdir_jlo = d_bcrec_ptr[n].lo(1) == BCType::ext_dir;
+            bool extdir_jhi = d_bcrec_ptr[n].hi(1) == BCType::ext_dir;
 
             yedge(i,j,k,n) = iamr_yedge_state_mol_extdir( i, j, k, n, q, vmac,
                                                           extdir_jlo, extdir_jhi,
@@ -121,11 +122,11 @@ MOL::ComputeEdgeState (const Box& bx,
     if ((has_extdir_lo and domain_klo >= wbx.smallEnd(2)-1) or
         (has_extdir_hi and domain_khi <= wbx.bigEnd(2)))
     {
-        amrex::ParallelFor(wbx, ncomp, [d_bcrec,q,domain_klo,domain_khi,wmac,zedge]
+        amrex::ParallelFor(wbx, ncomp, [d_bcrec_ptr,q,domain_klo,domain_khi,wmac,zedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            bool extdir_klo = d_bcrec[n].lo(2) == BCType::ext_dir;
-            bool extdir_khi = d_bcrec[n].hi(2) == BCType::ext_dir;
+            bool extdir_klo = d_bcrec_ptr[n].lo(2) == BCType::ext_dir;
+            bool extdir_khi = d_bcrec_ptr[n].hi(2) == BCType::ext_dir;
             zedge(i,j,k,n) = iamr_zedge_state_mol_extdir( i, j, k, n, q, wmac,
                                                           extdir_klo, extdir_khi,
                                                           domain_klo, domain_khi );
@@ -173,7 +174,7 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
 
     const auto bc = bcs.dataPtr();
     auto d_bcrec  = convertToDeviceVector(bcs);
-
+    BCRec const* d_bcrec_ptr = d_bcrec.data();
 
     // ****************************************************************************
     // Predict to x-faces
@@ -184,13 +185,13 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     if ((extdir_lohi.first  and domain.smallEnd(0) >= ubx.smallEnd(0)-1) or
         (extdir_lohi.second and domain.bigEnd(0)  <= ubx.bigEnd(0)))
     {
-        amrex::ParallelFor(ubx, ncomp, [d_bcrec,q,ccc,fcx,flag,umac, xedge, domain]
+        amrex::ParallelFor(ubx, ncomp, [d_bcrec_ptr,q,ccc,fcx,flag,umac, xedge, domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
            if (flag(i,j,k).isConnected(-1,0,0))
            {
                xedge(i,j,k,n) = iamr_eb_xedge_state_mol_extdir( D_DECL(i, j, k), n, q, umac, fcx, ccc,
-                                                                flag, d_bcrec.data(), domain );
+                                                                flag, d_bcrec_ptr, domain );
            }
            else
            {
@@ -222,13 +223,13 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     if ((extdir_lohi.first  and domain.smallEnd(1) >= vbx.smallEnd(1)-1) or
         (extdir_lohi.second and domain.bigEnd(1)   <= vbx.bigEnd(1)))
     {
-        amrex::ParallelFor(vbx, ncomp, [d_bcrec,q,ccc,fcy,flag,vmac,yedge,domain]
+        amrex::ParallelFor(vbx, ncomp, [d_bcrec_ptr,q,ccc,fcy,flag,vmac,yedge,domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (flag(i,j,k).isConnected(0,-1,0))
             {
                 yedge(i,j,k,n) = iamr_eb_yedge_state_mol_extdir( D_DECL(i, j, k), n, q, vmac, fcy, ccc,
-                                                                 flag, d_bcrec.data(), domain );
+                                                                 flag, d_bcrec_ptr, domain );
             }
             else
             {
@@ -263,13 +264,13 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     if ((extdir_lohi.first  and domain.smallEnd(2) >= wbx.smallEnd(2)-1) or
         (extdir_lohi.second and domain.bigEnd(2)   <= wbx.bigEnd(2)))
     {
-        amrex::ParallelFor(wbx, ncomp, [d_bcrec,q,ccc,fcz,flag,wmac,zedge,domain]
+        amrex::ParallelFor(wbx, ncomp, [d_bcrec_ptr,q,ccc,fcz,flag,wmac,zedge,domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (flag(i,j,k).isConnected(0,0,-1))
             {
                 zedge(i,j,k,n) = iamr_eb_zedge_state_mol_extdir( i, j, k, n, q, wmac, fcz, ccc,
-                                                                 flag, d_bcrec.data(), domain );
+                                                                 flag, d_bcrec_ptr, domain );
             }
             else
             {
