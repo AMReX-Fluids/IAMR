@@ -39,7 +39,7 @@ namespace amrex
 #else
 	std::memcpy
 #endif
-	  (v_d.data(), v.data(), sizeof(amrex::BCRec)*ncomp);
+	  (v_d.data(), v.data(), sizeof(T)*ncomp);
 
         return v_d;
     }
