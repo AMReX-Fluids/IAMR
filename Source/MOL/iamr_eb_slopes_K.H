@@ -23,70 +23,74 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
     const int dim_stencil = 27;
 #endif
 
-    amrex::Real A[dim_stencil][AMREX_SPACEDIM];
-    amrex::Real du[dim_stencil];
-
-    {
-        int lc=0;
-
-#if (AMREX_SPACEDIM==3)
-        for(int kk(-1); kk<=1; kk++)
-#endif
-        {
-            for(int jj(-1); jj<=1; jj++)
-            {
-                for(int ii(-1); ii<=1; ii++)
-                {
-
-                    if( flag(i,j,k).isConnected(ii,jj,kk) and
-                        not (ii==0 and jj==0 and kk==0))
-                    {
-
-                        // Not multplying by dx to be consistent with how the
-                        // slope is stored. Also not including the global shift
-                        // wrt plo or i,j,k. We only need relative distance.
-
-                        D_TERM( A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);,
-                                A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);,
-                                A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2););
-
-                        du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
-
-                    }
-                    else
-                    {
-                        D_TERM( A[lc][0] = 0.0;,
-                                A[lc][1] = 0.0;,
-                                A[lc][2] = 0.0; );
-
-                        du[lc] = 0.0;
-                    }
-
-                    lc++;
-                }
-            }
-        }
-    }
-
     amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
     amrex::Real Atb[AMREX_SPACEDIM];
 
-    for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
     {
-        for(int ii(0); ii<AMREX_SPACEDIM; ++ii)
-        {
-            AtA[ii][jj] = 0.0;
-        }
-        Atb[jj] = 0.0;
-    }
+        // A and du are local to this block, so they get deleted at the
+        // end of it once Atb and AtA are filled
+        amrex::Real A[dim_stencil][AMREX_SPACEDIM];
+        amrex::Real du[dim_stencil];
 
-    {
-        for(int lc(0); lc < dim_stencil; ++lc)
         {
-            // Matrix is symmetric: just fill (and the use) only half of it
-            for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
+            int lc = 0;
+
+#if (AMREX_SPACEDIM==3)
+            for (int kk = -1; kk<=1; kk++)
+#endif
             {
-                for(int ii(0); ii <= jj; ++ii)
+                for (int jj = -1; jj<=1; jj++)
+                {
+                    for(int ii = -1; ii<=1; ii++)
+                    {
+                        if( flag(i,j,k).isConnected(ii,jj,kk) and
+                            not (ii==0 and jj==0 and kk==0))
+                        {
+                            // Not multiplying by dx to be consistent with how the
+                            // slope is stored. Also not including the global shift
+                            // wrt plo or i,j,k. We only need relative distance.
+                            D_TERM( A[lc][0] = ii + ccent(i+ii,j+jj,k+kk,0) - ccent(i,j,k,0);,
+                                    A[lc][1] = jj + ccent(i+ii,j+jj,k+kk,1) - ccent(i,j,k,1);,
+                                    A[lc][2] = kk + ccent(i+ii,j+jj,k+kk,2) - ccent(i,j,k,2););
+
+                            du[lc] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
+                        }
+                        else
+                        {
+                            D_TERM( A[lc][0] = 0.0;,
+                                    A[lc][1] = 0.0;,
+                                    A[lc][2] = 0.0; );
+
+                            du[lc] = 0.0;
+                        }
+
+                        lc++;
+                    }
+                }
+            }
+        }
+
+
+        //
+        // Fill Atb and AtA
+        //
+        for (int jj = 0 ; jj<AMREX_SPACEDIM; ++jj)
+        {
+            for(int ii = 0; ii<AMREX_SPACEDIM; ++ii)
+            {
+                AtA[ii][jj] = 0.0;
+            }
+            Atb[jj] = 0.0;
+        }
+
+
+        for (int lc = 0; lc < dim_stencil; ++lc)
+        {
+            // Matrix is symmetric: just fill (and the use) only the upper
+            //half of it
+            for(int jj = 0; jj<AMREX_SPACEDIM; ++jj)
+            {
+                for(int ii = 0; ii <= jj; ++ii)
                 {
                     AtA[ii][jj] += A[lc][ii] * A[lc][jj];
                 }
@@ -94,8 +98,8 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
                 Atb[jj] += A[lc][jj] * du[lc];
             }
         }
-    }
 
+    }
 
     amrex::Real detAtA =
 #if (AMREX_SPACEDIM==3)
