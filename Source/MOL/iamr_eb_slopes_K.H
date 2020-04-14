@@ -15,15 +15,16 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
                 amrex::Array4<amrex::Real const> const& ccent,
                 amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
-    const int dim3 = AMREX_SPACEDIM * AMREX_SPACEDIM * AMREX_SPACEDIM;
-
-    amrex::Real A[dim3][AMREX_SPACEDIM];
-    amrex::Real du[dim3];
-
 #if (AMREX_SPACEDIM==2)
+    const int dim_stencil = 9;
     const int k  = 0;
     const int kk = 0;
+#else
+    const int dim_stencil = 27;
 #endif
+
+    amrex::Real A[dim_stencil][AMREX_SPACEDIM];
+    amrex::Real du[dim_stencil];
 
     {
         int lc=0;
@@ -80,7 +81,7 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
     }
 
     {
-        for(int lc(0); lc < dim3; ++lc)
+        for(int lc(0); lc < dim_stencil; ++lc)
         {
             // Matrix is symmetric: just fill (and the use) only half of it
             for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
