@@ -1,5 +1,5 @@
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs 
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 #These are the directories in IAMR
 
@@ -7,6 +7,7 @@ Bdirs += Source
 Bdirs += Source/TurbInflow
 Bdirs += Source/Src_nd
 Bdirs += Source/Src_$(DIM)d
+Bdirs += Source/MOL
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
@@ -56,7 +57,7 @@ AMReX_buildInfo.cpp:
           --amrex_home "$(AMREX_HOME)" \
           --COMP "$(COMP)" --COMP_VERSION "$(COMP_VERSION)" \
           --FCOMP "$(FCOMP)" --FCOMP_VERSION "$(FCOMP_VERSION)" \
-          --GIT "$(TOP) $(AMREX_HOME)" 
+          --GIT "$(TOP) $(AMREX_HOME)"
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

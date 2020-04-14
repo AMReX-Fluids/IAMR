@@ -7,6 +7,7 @@
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EBInterpolater.H>
 #include <AMReX_EBFArrayBox.H>
+#include <iamr_mol.H>
 #endif
 
 #include <NavierStokesBase.H>
@@ -466,9 +467,9 @@ NavierStokesBase::Initialize ()
     pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
     pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
-    
+
     // Are we going to do velocity or momentum update?
-    
+
     pp.query("do_mom_diff",do_mom_diff);
     pp.query("predict_mom_together",predict_mom_together);
 
@@ -914,12 +915,12 @@ NavierStokesBase::checkPoint (const std::string& dir,
     }
 #endif
 
-# ifdef AMREX_USE_EB    
-// Need to add gradp in the checkpoint 
+# ifdef AMREX_USE_EB
+// Need to add gradp in the checkpoint
    std::string LevelDir, FullPath;
    LevelDirectoryNames(dir, LevelDir, FullPath);
    std::string gradp_mf_fullpath = FullPath + "/gradp";
-   VisMF::Write(*gradp,gradp_mf_fullpath,how); 
+   VisMF::Write(*gradp,gradp_mf_fullpath,how);
 #endif
 }
 
@@ -1432,7 +1433,7 @@ NavierStokesBase::estTimeStep ()
     }
     else if (init_dt > 0 ) {
       //
-      // use init_dt, scale for amr level 
+      // use init_dt, scale for amr level
       //
       Real factor = 1.0;
 
@@ -1445,7 +1446,7 @@ NavierStokesBase::estTimeStep ()
 	}
 	factor = 1.0/double(ratio);
       }
-      
+
       estdt = factor*init_dt;
     }
     else {
@@ -1455,7 +1456,7 @@ NavierStokesBase::estTimeStep ()
 	     <<"Note that ns.init_shrink will be applied to init_dt."<<std::endl;
       amrex::Abort("\n");
     }
-    
+
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -1467,7 +1468,7 @@ NavierStokesBase::estTimeStep ()
             amrex::Print() << u_max[k] << "  ";
         }
 	amrex::Print() << '\n';
-	  
+
 	if (getForceVerbose){
 	  ParallelDescriptor::ReduceRealMax(f_max.dataPtr(), AMREX_SPACEDIM, IOProc);
 	  amrex::Print() << "        FMAX = ";
@@ -1560,7 +1561,7 @@ NavierStokesBase::getDivCond (int ngrow, Real time)
     {
         divu = getState(ngrow,Divu_Type,0,1,time);
     }
-    
+
     return divu;
 }
 
@@ -1745,9 +1746,9 @@ NavierStokesBase::getState (int  ngrow,
     MultiFab* mf = new MultiFab(state[state_idx].boxArray(),
                                 state[state_idx].DistributionMap(),
                                 ncomp,ngrow,MFInfo(),Factory());
-        
+
     FillPatch(*this,*mf,ngrow,time,state_idx,scomp,ncomp,0);
-    
+
     return mf;
 }
 
@@ -2813,7 +2814,7 @@ NavierStokesBase::restart (Amr&          papa,
     //  don't think Gp is needed until the vel update after the projection.
     // But ultimately we need gradp in the checkpoint file.
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    
+
     std::string file=papa.theRestartFile();
     std::string LevelDir, FullPath;
     LevelDirectoryNames(file, LevelDir, FullPath);
@@ -3188,7 +3189,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         amrex::Abort("NavierStokesBase::SyncInterp(): how did this happen \n");
     }
 #endif
-    
+
     NavierStokesBase& fine_level = getLevel(f_lev);
     const BoxArray& fgrids     = fine_level.boxArray();
     const DistributionMapping& fdmap = fine_level.DistributionMap();
@@ -3209,7 +3210,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     // Note: The boxes in cdataBA may NOT be disjoint !!!
     //
 #ifdef AMREX_USE_EB
-    // I am unsure of EBSupport and ng (set to zero here) 
+    // I am unsure of EBSupport and ng (set to zero here)
     auto factory = makeEBFabFactory(cgeom,cdataBA,fdmap,{0,0,0},EBSupport::basic);
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0,MFInfo(),*factory);
 #else
@@ -3217,7 +3218,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 #endif
 
-    
+
 
     // Coarse box could expand beyond the extent of fine box depending on the interpolation type, so initialize here
     cdataMF.setVal(0);
@@ -3419,7 +3420,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     crse_phi.copy(phi,0,0,1);
 
 #ifdef AMREX_USE_EB
-    // FIXME - 
+    // FIXME -
     // For now, just zero covered fine cells. Better interpolation to come...
     ///
     EB_set_covered(crse_phi,0.);
@@ -3678,7 +3679,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
          MultiFab cfluxes[AMREX_SPACEDIM];
          MultiFab edgstate[AMREX_SPACEDIM];
-         int nghost(4);         // Use 4 for now
+         int nghost(2);
 
          for (int i(0); i < AMREX_SPACEDIM; i++)
          {
@@ -3690,12 +3691,11 @@ NavierStokesBase::velocity_advection (Real dt)
          Vector<BCRec> math_bcs(AMREX_SPACEDIM);
          math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
 
-         godunov -> ComputeConvectiveTerm( Umf, 0, *aofs, 0, AMREX_SPACEDIM,
-                                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                                           D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-                                           D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                           D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
-                                           math_bcs, geom, 0 );
+         MOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, Umf, 0,
+                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                          D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
+                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                          math_bcs, geom  );
 
 	 // don't think this is needed here any more. Godunov sets covered vals now...
          EB_set_covered(*aofs, 0.);
@@ -3872,7 +3872,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)
-                U_new[Rhohalf_mfi].divide<RunOn::Host>(rho_ctime[Rhohalf_mfi],bx,0,d,1);                
+                U_new[Rhohalf_mfi].divide<RunOn::Host>(rho_ctime[Rhohalf_mfi],bx,0,d,1);
         }
     }
 }

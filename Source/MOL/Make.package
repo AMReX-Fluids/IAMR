@@ -1,0 +1,15 @@
+CEXE_headers += iamr_mol.H
+CEXE_sources += iamr_mol.cpp
+
+CEXE_sources += iamr_edge_state_mol.cpp
+CEXE_sources += iamr_extrap_vel_to_faces.cpp
+
+CEXE_headers += iamr_slopes_K.H iamr_edge_state_mol_K.H
+CEXE_sources += iamr_predict_vel_on_faces.cpp
+
+# EB stuff
+ifeq ($(USE_EB), TRUE)
+  CEXE_sources += iamr_eb_predict_vel_on_faces.cpp
+  CEXE_headers += iamr_eb_slopes_K.H  iamr_eb_edge_state_mol_K.H
+endif
+#

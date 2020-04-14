@@ -25,6 +25,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
+#include <iamr_mol.H>
 #endif
 
 #include <AMReX_buildInfo.H>
@@ -196,7 +197,7 @@ NavierStokes::initData ()
 	Print() << "initData: finished init from velocity_plotfile" << '\n';
     }
 #endif /*BL_USE_VELOCITY*/
-    
+
     make_rho_prev_time();
     make_rho_curr_time();
     //
@@ -492,35 +493,6 @@ NavierStokes::predict_velocity (Real  dt)
         val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
       });
     }
-#ifdef AMREX_USE_EB
-    // Create reference here for now, even though not using any forcing terms
-    // in velocity extrapolation yet, because will want to use forcing terms later.
-    // fixme ghost cell situation???
-    MultiFab& Gp = *gradp;
-
-    const Box& domain = geom.Domain();
-
-    Vector<BCRec> math_bc(AMREX_SPACEDIM);
-    math_bc = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
-
-    godunov->ComputeSlopes( Umf, 0,
-                            D_DECL(m_xslopes, m_yslopes, m_zslopes), 0,
-                            AMREX_SPACEDIM, math_bc, domain);
-    //
-    // need to fill ghost cells for slopes here.
-    // vel advection term ugradu uses these slopes (does not recompute in incflo
-    //  scheme) needs 4 ghost cells (comments say 5, but I only see use of 4 max)
-    // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-    //  only allows for periodic for now
-    //
-    D_TERM( m_xslopes.FillBoundary(geom.periodicity());,
-            m_yslopes.FillBoundary(geom.periodicity());,
-            m_zslopes.FillBoundary(geom.periodicity()););
-#else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-    getGradP(Gp, prev_pres_time);
-#endif
-
 
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
     MultiFab& Smf=S_fpi.get_mf();
@@ -543,15 +515,16 @@ NavierStokes::predict_velocity (Real  dt)
     Vector<BCRec> math_bcs(AMREX_SPACEDIM);
     math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
-    godunov->ExtrapVelToFaces(Umf,
-                              D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                              D_DECL(m_xslopes, m_yslopes, m_zslopes),
-                              geom, math_bcs );
-
+    MOL::ExtrapVelToFaces( Umf,
+                           D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                           geom, math_bcs );
 #else
     //
     // Non-EB version
     //
+    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    getGradP(Gp, prev_pres_time);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -669,58 +642,32 @@ NavierStokes::scalar_advection (Real dt,
         //  EB ALGORITHM
         //////////////////////////////////////////////////////////////////////////////
 
-
-        //
-        // compute slopes for construction of edge states
-        //
-        //Slopes in x-direction
-        MultiFab xslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-        xslps.setVal(0.);
-        // Slopes in y-direction
-        MultiFab yslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-        yslps.setVal(0.);
-#if ( AMREX_SPACEDIM == 3 )
-        // Slopes in z-direction
-        MultiFab zslps(grids, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-        zslps.setVal(0.);
-#endif
         const Box& domain = geom.Domain();
 
         Vector<BCRec> math_bc(num_scalars);
         math_bc = fetchBCArray(State_Type,fscalar,num_scalars);
 
-        godunov->ComputeSlopes(Smf, 0, D_DECL(xslps, yslps, zslps), 0,
-                               num_scalars, math_bc, domain);
-
-        //
-        // need to fill ghost cells for slopes here.
-        // non-periodic BCs are in theory taken care of inside compute ugradu, but IAMR
-        //  only allows for periodic for now
-        //
-        D_TERM(xslps.FillBoundary(geom.periodicity());,
-               yslps.FillBoundary(geom.periodicity());,
-               zslps.FillBoundary(geom.periodicity()););
-
 
         MultiFab cfluxes[AMREX_SPACEDIM];
         MultiFab edgstate[AMREX_SPACEDIM];
+        int nghost = 2;
 
         for (int i(0); i < AMREX_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
-            cfluxes[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
-            edgstate[i].define(ba, dmap, num_scalars, Godunov::hypgrow(), MFInfo(), Factory());
+            cfluxes[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
+            edgstate[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
         }
 
         Vector<BCRec> math_bcs(num_scalars);
         math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
 
-        godunov -> ComputeConvectiveTerm( Smf, 0, *aofs, fscalar, num_scalars,
-                                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                                          D_DECL(edgstate[0],edgstate[1],edgstate[2]),
-                                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                          D_DECL(xslps, yslps, zslps), 0,
-                                          math_bcs, geom, 0);
+        MOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
+                         D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                         D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
+                         D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                         math_bcs, geom  );
+
         if (do_reflux)
         {
             for (int d(0); d < AMREX_SPACEDIM; d++)
@@ -1610,9 +1557,9 @@ NavierStokes::post_init_press (Real&        dt_init,
       parent->setNCycle(nc_save);
 
       NavierStokes::initial_step = false;
-      
+
       Print()<< "WARNING! post_init_press(): exiting without doing inital iterations because init_iter == "<<init_iter<<std::endl;
-      
+
       return;
     }
 
@@ -1628,7 +1575,7 @@ NavierStokes::post_init_press (Real&        dt_init,
                 << dt_init
                 << std::endl;
     }
-    
+
     //
     // Iterate over the advance function.
     //
@@ -1739,7 +1686,7 @@ NavierStokes::mac_sync ()
     BL_PROFILE("NavierStokes::mac_sync()");
 
     if (!do_reflux) return;
-    
+
     if (verbose)
     {
         Print() << std::endl
@@ -1788,7 +1735,7 @@ NavierStokes::mac_sync ()
     //
     // fixme? clear Ucorr here? think we're done with it
     //
-    
+
     //
     // For all conservative variables Q (other than density)
     // express Q as rho*q and increment sync by -(sync_for_rho)*q
@@ -1845,14 +1792,14 @@ NavierStokes::mac_sync ()
     if (is_diffusive[Xvel])
     {
       int rho_flag = (do_mom_diff == 0) ? 1 : 3;
-      
+
       MultiFab** loc_viscn = 0;
       FluxBoxes fb_viscn;
-      
+
       Real viscTime = state[State_Type].prevTime();
       loc_viscn = fb_viscn.define(this);
       getViscosity(loc_viscn, viscTime);
-      
+
       diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
     }
 
@@ -1870,7 +1817,7 @@ NavierStokes::mac_sync ()
     Vector<int> diffuse_comp(1);
     int ng=1;
     const Real curr_time = state[State_Type].curTime();
-    
+
     // Diffusion solver switches
     // together implies that Diff solve does NOT need Sold
     const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
@@ -1878,29 +1825,29 @@ NavierStokes::mac_sync ()
 
     const int nlev = 1;
     Vector<MultiFab*> Snp1(nlev,0);
-    
+
     MultiFab dSsync(grids,dmap,NUM_STATE,1,MFInfo(),Factory());
     Snp1[0] = &dSsync;
-    
+
     Vector<MultiFab*> Rhonp1(nlev,0);
     Rhonp1[0] = &(get_new_data(State_Type));
     int Rho_comp = Density;
-    
+
     FluxBoxes fb_fluxn  (this);
     MultiFab** fluxn   = fb_fluxn.get();
-    
+
     const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
-    
+
     for (int sigma = 0; sigma<numscal; sigma++)
     {
       const int state_ind = BL_SPACEDIM + sigma;
       const int rho_flag  = Diffusion::set_rho_flag(diffusionType[state_ind]);
-      
+
       if (is_diffusive[state_ind])
       {
         Snp1[0]->setVal(0.,state_ind,1,ng);
 
-        FluxBoxes fb_diffnp1; 
+        FluxBoxes fb_diffnp1;
         MultiFab** cmp_diffnp1=0, **cmp_diffn=0;
 
         Real diffTime = state[State_Type].curTime();
@@ -1998,16 +1945,16 @@ NavierStokes::mac_sync ()
     // Update rho_ctime after rho is updated with Ssync.
     //
     make_rho_curr_time();
-    
+
     if (level > 0) incrRhoAvg(Ssync,Density-BL_SPACEDIM,1.0);
     //
     // Get boundary conditions.
     //
     const int N = grids.size();
-    
+
     Vector<int*>         sync_bc(N);
     Vector< Vector<int> > sync_bc_array(N);
-    
+
     for (int i = 0; i < N; i++)
     {
       sync_bc_array[i] = getBCArray(State_Type,i,Density,numscal);
@@ -2026,10 +1973,10 @@ NavierStokes::mac_sync ()
       const BoxArray& fine_grids = fine_lev.boxArray();
       MultiFab sync_incr(fine_grids,fine_lev.DistributionMap(),numscal,0,MFInfo(),fine_lev.Factory());
       sync_incr.setVal(0.0);
-      
+
       SyncInterp(Ssync,level,sync_incr,lev,ratio,0,0,
 		 numscal,1,mult,sync_bc.dataPtr());
-      
+
       MultiFab& Sf_new = fine_lev.get_new_data(State_Type);
 #ifdef _OPENMP
 #pragma omp parallel

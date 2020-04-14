@@ -35,11 +35,11 @@ ifndef ATMOS_MACOP
   FEXE_headers += MACOPERATOR_F.H
 endif
 
+CEXE_headers += iamr_constants.H
+
 # EB stuff
 ifeq ($(USE_EB), TRUE)
   F90EXE_sources += param_mod.F90
-  CEXE_sources += iamr_extrap_vel_to_faces.cpp
-  CEXE_sources += iamr_compute_fluxes.cpp
 endif
 #
 
