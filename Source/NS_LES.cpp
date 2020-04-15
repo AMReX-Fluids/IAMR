@@ -54,7 +54,8 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
   LPInfo info;
 
 #ifdef AMREX_USE_EB
-  const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+  NavierStokesBase& navier_stokes  = getLevel(level);
+  const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes.Factory());
   MLEBTensorOp tensorop({geom}, {grids}, {dmap}, info, {ebf});
 
   std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM>areafrac = ebf->getAreaFrac();
