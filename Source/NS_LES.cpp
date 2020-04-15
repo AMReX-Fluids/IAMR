@@ -120,14 +120,17 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
       Array4<Real      > dst = mu_LES[idim]->array(mfi);
       Array4<Real      > src = grad_Uvel[idim]->array(mfi);
 
-      AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, 1, i, j, k, n,
-      {
-         if (LES_model == "Smagorinsky") {
-          
-            if (ParallelDescriptor::IOProcessor() && getLESVerbose) {               
-                amrex::Print() << "\n in calc_mut_LES : WE DO SMAGORNISKY with constant " << smago_Cs_cst << "\n\n";
-            }
-          
+      Real Cs_cst = LES_model == "Smagorinsky" ? smago_Cs_cst : sigma_Cs_cst;
+      
+      if (LES_model == "Smagorinsky") {
+	
+	if (ParallelDescriptor::IOProcessor() && getLESVerbose) {               
+	  amrex::Print() << "\n in calc_mut_LES : WE DO SMAGORNISKY with constant " << Cs_cst << "\n\n";
+	}
+
+	AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, 1, i, j, k, n,
+	{
+
             Real smag = 0;
             for (int i_symij = 0; i_symij < dim_fluxes; ++i_symij)
             {
@@ -137,10 +140,10 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
                   
             smag = 0.5 * smag;
                   
-            dst(i,j,k,n) = pow(smago_Cs_cst * dx[idim],2) * sqrt(smag);
+            dst(i,j,k,n) = pow(Cs_cst * dx[idim],2) * sqrt(smag);
                     
-         }
-         else if (LES_model == "Sigma") {
+	});
+      } else if (LES_model == "Sigma") {
 
          //  Reference for the Sigma model
          //          Franck Nicoud, Hubert Baya Toda, Olivier Cabrit, Sanjeeb Bose, Jungil Lee
@@ -150,8 +153,11 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
 
 
 #if (AMREX_SPACEDIM < 3)
-           amrex::Abort("FATAL ERROR in NS_LES.cpp: Sigma model is only for 3D");
+	amrex::Abort("FATAL ERROR in NS_LES.cpp: Sigma model is only for 3D");
 #endif
+
+	AMREX_HOST_DEVICE_PARALLEL_FOR_4D (nbx, 1, i, j, k, n,
+        {
 
            Real G_11 = src(i,j,k,0)*src(i,j,k,0)  + src(i,j,k,1)*src(i,j,k,1)  +  src(i,j,k,2)*src(i,j,k,2);
            Real G_12 = src(i,j,k,0)*src(i,j,k,3)  + src(i,j,k,1)*src(i,j,k,4)  +  src(i,j,k,2)*src(i,j,k,5);
@@ -208,19 +214,18 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
               sigma1 = max(verysmall,sigma1);
 
 
-//       Compute the sigma operator
-              dst(i,j,k,n) = pow(sigma_Cs_cst * dx[idim],2) * ((sigma3 * (sigma1-sigma2) * (sigma2-sigma3)) / pow(sigma1,2));
+	      //       Compute the sigma operator
+              dst(i,j,k,n) = pow(Cs_cst * dx[idim],2) * ((sigma3 * (sigma1-sigma2) * (sigma2-sigma3)) / pow(sigma1,2));
 
            }
+	});
 
+      } else {
 
-         }
-         else
-         {
-           amrex::Abort("\n DEBUG DONT KNOW THIS LES MODEL \n\n");
-         }
+	amrex::Abort("\n DEBUG DONT KNOW THIS LES MODEL \n\n");
+
+      }
                     
-      });
     }
     
   }
