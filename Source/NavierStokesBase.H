@@ -194,6 +194,8 @@ public:
     void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
 		      int scomp, int ncomp);
 
+    void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
+
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
     ////////////////////////////////////////////////////////////////////////////
@@ -357,8 +359,6 @@ protected:
     void velocity_update (amrex::Real dt);
 
     void velocity_advection_update (amrex::Real dt);
-    
-    void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
     
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
