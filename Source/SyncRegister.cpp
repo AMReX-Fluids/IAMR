@@ -343,7 +343,6 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 		FArrayBox& finefab = Sync_resid_fine[mfi];
 		FArrayBox& crsefab = Sync_resid_crse[mfi];
                 auto const& crsefab_a = crsefab.array();
-                Elixir crsefab_e = crsefab.elixir();
 
 		const Box& finebox  = finefab.box();
 		const int* resid_lo = finebox.loVect();
