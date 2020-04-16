@@ -481,11 +481,10 @@ NavierStokes::predict_velocity (Real  dt)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(Umf,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
       Box gbx=mfi.growntilebox(Godunov::hypgrow());
       auto const& fab_a = Umf.array(mfi);
-      Elixir fab_e = Umf[mfi].elixir();
       AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
       {
         auto& val = fab_a(i,j,k,n);
