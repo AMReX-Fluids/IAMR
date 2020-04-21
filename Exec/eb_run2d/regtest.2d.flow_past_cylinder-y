@@ -35,7 +35,7 @@ ns.scal_diff_coefs       = 0.1
 #        ADAPTIVE MESH REFINEMENT       #
 #.......................................#
 amr.n_cell              =   32 96     # Grid cells at coarsest AMRlevel
-amr.max_level           =   0         # Max AMR level in hierarchy
+amr.max_level           =   1         # Max AMR level in hierarchy
 amr.grid_eff            =   0.7
 amr.n_error_buf         =   8
 
@@ -51,9 +51,9 @@ geometry.coord_sys      = 0
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWal
 # Boundary conditions on the low end of the domain.
-ns.lo_bc 	     	= 1 4 0
+ns.lo_bc 	     	= 5 1 0
 # Boundary conditions on the high end of the domain.
-ns.hi_bc   	     	= 2 5 0
+ns.hi_bc   	     	= 4 2 0
 
 # Add cylinder
 eb2.geom_type               = sphere

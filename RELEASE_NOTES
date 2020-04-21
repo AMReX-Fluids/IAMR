@@ -97,7 +97,20 @@ some for ghost cell filling when needed
 
 10/1/19
 Updates to ppm for GPU.
-Change in logic for setting dt when te velocity is zero
+Change in logic for setting dt when the velocity is zero
 
 11/1/19
 Switch many routines to dimension-agnostic (one common code no matter the dimensionality)
+
+12/2/19
+Minor interface cleanups and problem setups
+
+04/01/20
+**This is a major update since many branches were merged into development during
+the month of March
+Introducing complex geometries via EB.
+No longer supporting constant mu or RZ options.
+Update and add regression tests.
+Many updates to be compatible with changes to amrex
+Various bugfixes for host and GPU calculations  
+Various changes to problem setups

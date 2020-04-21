@@ -482,11 +482,10 @@ NavierStokes::predict_velocity (Real  dt)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(Umf,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
       Box gbx=mfi.growntilebox(Godunov::hypgrow());
       auto const& fab_a = Umf.array(mfi);
-      Elixir fab_e = Umf[mfi].elixir();
       AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
       {
         auto& val = fab_a(i,j,k,n);
@@ -1702,10 +1701,15 @@ NavierStokes::mac_sync ()
     // does this have ghosts filled?
     MultiFab&  Rh             = get_rho_half_time();
 
+#ifdef AMREX_USE_EB
     // fixme? unsure how many ghost cells...
     // for umac, inflo uses: use_godunov ? 4 : 3;
     // for now, match umac which uses 4
     const int nghost = umac_n_grow; // ==4; For redistribution ... We may not need 4 but for now we play safe
+#else
+    const int nghost = 0;
+#endif
+
 
     Array<MultiFab*,AMREX_SPACEDIM> Ucorr;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -2379,6 +2383,26 @@ NavierStokes::calcViscosity (const Real time,
             for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
                 visc[dir]->setVal(visc_coef[Xvel], 0, visc[dir]->nComp(), visc[dir]->nGrow());
             }
+            
+            if (do_LES){   
+
+               FluxBoxes mu_LES(this,1,0);
+               MultiFab** mu_LES_mf = mu_LES.get();
+               for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+                mu_LES_mf[dir]->setVal(0., 0, mu_LES_mf[dir]->nComp(), mu_LES_mf[dir]->nGrow());
+            }
+ 
+               NavierStokesBase::calc_mut_LES(mu_LES_mf,time);
+
+             for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+                MultiFab::Add(*visc[dir], *mu_LES_mf[dir], 0, 0, 1, 0);
+
+            }
+
+
+            }
+            
+            
         }
         else
         {

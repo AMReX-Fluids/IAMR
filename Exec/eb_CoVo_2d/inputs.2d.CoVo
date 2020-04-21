@@ -4,7 +4,7 @@
 #*******************************************************************************
 
 # for getting things started with eb skip some steps
-ns.init_iter = 0
+ns.init_iter =  0
 ns.do_mac_proj = 1
 # to turn off initial projections set to 0
 ns.do_init_proj = 1
@@ -22,16 +22,16 @@ nodal_proj.verbose = 2
 mg.v = 1
 mg.verbose_linop = 10
 
-amr.n_cell 		= 128 128
-amr.max_grid_size	= 64
-amr.max_level		= 0 # maximum number of levels of refinement
+amr.n_cell 		= 32 32
+amr.max_grid_size	= 16
+amr.max_level		= 1 # maximum number of levels of refinement
 amr.regrid_int		= 2 
 amr.ref_ratio		= 2 2
 
-max_step 		= 1  #500
+max_step 		= 500
 stop_time 		= 0.02
 
-amr.check_int		= 10
+amr.check_int		= 0
 amr.plot_int		= 10
 amr.derive_plot_vars    = mag_vort avg_pressure gradpx gradpy
 
@@ -70,7 +70,7 @@ ns.hi_bc             = 0 0
 #*******************************************************************************
 
 # turn off diff visc grav
-ns.vel_visc_coef        = 0.0
+ns.vel_visc_coef        = 0.01
 ns.scal_diff_coefs      = 0.0
 ns.gravity              = 0.0
 
@@ -84,4 +84,11 @@ amr.probin_file 	= probin.2d.CoVo
 # Factor by which grids must be coarsenable.
 #amr.blocking_factor     = 4
 
+ns.getLESVerbose = 1
+ns.do_LES = 1
+ns.LES_model = Smagorinsky
+#ns.LES_model = Sigma
+ns.smago_Cs_cst = 0.18
 
+
+ns.do_vorticity_ref = 1

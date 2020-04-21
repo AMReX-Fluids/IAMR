@@ -1283,7 +1283,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 }
 
 //
-// Used bu PeleLM to sync species
+// Used by PeleLM to sync species
 //
 void
 Diffusion::diffuse_Ssync (MultiFab&              Ssync,
@@ -1300,9 +1300,6 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
                           int                    alphaComp)
 {
     const int state_ind    = sigma + BL_SPACEDIM;
-    //
-    // Fixme!! this solve still has volume scaling...
-    //
     if (verbose)
     {
         amrex::Print() << "Diffusion::diffuse_Ssync lev: " << level << " "

@@ -194,6 +194,8 @@ public:
     void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
 		      int scomp, int ncomp);
 
+    void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
+
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
     ////////////////////////////////////////////////////////////////////////////
@@ -227,14 +229,14 @@ protected:
     // Get the forcing term.
     //
     void getForce (amrex::FArrayBox&       force,
-		   const amrex::Box&      bx,
+                   const amrex::Box&      bx,
                    int              ngrow,
                    int              strt_comp,
                    int              num_comp,
-		   const amrex::Real       time,
+                   const amrex::Real       time,
                    const amrex::FArrayBox& Vel,
                    const amrex::FArrayBox& Scal,
-		   int              scalScomp);
+                   int              scalScomp);
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
@@ -357,6 +359,11 @@ protected:
     void velocity_update (amrex::Real dt);
 
     void velocity_advection_update (amrex::Real dt);
+    
+    void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
+                      std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
+                      int src_comp);
+
 
     amrex::Real volWgtSum (const std::string& name,
                     amrex::Real               time);
@@ -740,6 +747,14 @@ protected:
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
     static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin
+    //
+    // LES parameters
+    //
+    static int  do_LES;             // To activate LES modelling
+    static int  getLESVerbose;      // Does exactly what it says on the tin
+    static std::string LES_model;   // To choose a LES model
+    static amrex::Real smago_Cs_cst;       // A parameter for the Smagorinsky model, usually set to 0.18    
+    static amrex::Real sigma_Cs_cst;       // A parameter for the Sigma model, usually set to 1.5 
     //
     // Member when pressure defined at points in time rather than interval
     //
