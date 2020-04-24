@@ -478,20 +478,20 @@ NavierStokes::predict_velocity (Real  dt)
 
     FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
+
     // Floor small values of states to be extrapolated
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(Umf,true); mfi.isValid(); ++mfi)
     {
-      Box gbx=mfi.growntilebox(Godunov::hypgrow());
-      auto const& fab_a = Umf.array(mfi);
-      Elixir fab_e = Umf[mfi].elixir();
-      AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
-      {
-        auto& val = fab_a(i,j,k,n);
-        val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
-      });
+        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        auto const& fab_a = Umf.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
+        {
+            auto& val = fab_a(i,j,k,n);
+            val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
+        });
     }
 
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
