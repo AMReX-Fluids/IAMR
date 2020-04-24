@@ -20,7 +20,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                     Array4<Real const> const& a_fcz ),
                             Array4<Real const> const& a_ccc,
                             const Geometry&  a_geom,
-                            const Vector<BCRec>& a_bcs )
+                            const BCRec* bc )
 {
     const Box& domain_box = a_geom.Domain();
     const int  domain_ilo = domain_box.smallEnd(0);
@@ -32,7 +32,6 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
     const int  domain_khi = domain_box.bigEnd(2);
 #endif
 
-    const auto bc = a_bcs.dataPtr();
     bool extdir_ilo = (bc[0].lo(0) == BCType::ext_dir);
     bool extdir_ihi = (bc[0].hi(0) == BCType::ext_dir);
     bool extdir_jlo = (bc[1].lo(1) == BCType::ext_dir);

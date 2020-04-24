@@ -13,7 +13,7 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
                                   Array4<Real> const& w),
                           Array4<Real const> const& vcc,
                           const Geometry&  geom,
-                          const Vector<BCRec>& bcs )
+                          const BCRec* bc )
 {
 
     const Box& domain_box = geom.Domain();
@@ -26,7 +26,6 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     const int  domain_khi = domain_box.bigEnd(2);
 #endif
 
-    const auto bc = bcs.dataPtr();
     bool extdir_ilo = (bc[0].lo(0) == BCType::ext_dir);
     bool extdir_ihi = (bc[0].hi(0) == BCType::ext_dir);
     bool extdir_jlo = (bc[1].lo(1) == BCType::ext_dir);
