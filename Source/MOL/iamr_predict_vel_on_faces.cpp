@@ -26,13 +26,13 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     const int  domain_khi = domain_box.bigEnd(2);
 #endif
 
-    bool extdir_ilo = (bc[0].lo(0) == BCType::ext_dir);
-    bool extdir_ihi = (bc[0].hi(0) == BCType::ext_dir);
-    bool extdir_jlo = (bc[1].lo(1) == BCType::ext_dir);
-    bool extdir_jhi = (bc[1].lo(1) == BCType::ext_dir);
+    bool extdir_ilo = (bc[0].lo(0) == BCType::ext_dir) || (bc[0].lo(0) == BCType::hoextrap);
+    bool extdir_ihi = (bc[0].hi(0) == BCType::ext_dir) || (bc[0].hi(0) == BCType::hoextrap);
+    bool extdir_jlo = (bc[1].lo(1) == BCType::ext_dir) || (bc[1].lo(1) == BCType::hoextrap);
+    bool extdir_jhi = (bc[1].lo(1) == BCType::ext_dir) || (bc[1].lo(1) == BCType::hoextrap);
 #if (AMREX_SPACEDIM==3)
-    bool extdir_klo = (bc[2].lo(2) == BCType::ext_dir);
-    bool extdir_khi = (bc[2].lo(2) == BCType::ext_dir);
+    bool extdir_klo = (bc[2].lo(2) == BCType::ext_dir) || (bc[2].lo(2) == BCType::hoextrap);
+    bool extdir_khi = (bc[2].lo(2) == BCType::ext_dir) || (bc[2].lo(2) == BCType::hoextrap);
 #endif
 
     //
