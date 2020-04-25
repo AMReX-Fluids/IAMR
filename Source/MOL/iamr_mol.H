@@ -90,7 +90,7 @@ namespace MOL {
                                      amrex::Array4<amrex::Real> const& w ),
                              amrex::Array4<amrex::Real const > const& vcc,
                              const amrex::Geometry&  geom,
-                             const amrex::Vector<amrex::BCRec>& bcs );
+                             const amrex::BCRec* bcs );
 
     void SetMacBCs ( amrex::Box const& domain,
                      D_DECL( amrex::Box const& ubx,
@@ -167,7 +167,7 @@ namespace MOL {
                                         amrex::Array4<amrex::Real const> const& fcz),
                                 amrex::Array4<amrex::Real const> const& ccc,
                                 const amrex::Geometry&  geom,
-                                const amrex::Vector<amrex::BCRec>& bcs );
+                                const amrex::BCRec* bcs );
 
     void Redistribute (  amrex::Box const& bx, int ncomp,
                          amrex::Array4<amrex::Real> const& div,

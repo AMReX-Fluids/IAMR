@@ -1,6 +1,6 @@
 #include <iamr_mol.H>
 #include <iamr_constants.H>
-
+#include <NS_util.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_MultiCutFab.H>
 #endif
@@ -36,6 +36,9 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 #endif
 
     Box  const& domain = geom.Domain();
+
+    Gpu::DeviceVector<BCRec> bcs_device = convertToDeviceVector(bcs);
+    const BCRec* bcs_ptr = bcs_device.dataPtr();
 
     MFItInfo mfi_info;
 
@@ -208,6 +211,9 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 #endif
 
     Box  const& domain = geom.Domain();
+
+    Gpu::DeviceVector<BCRec> bcs_device = convertToDeviceVector(bcs);
+    const BCRec* bcs_ptr = bcs_device.dataPtr();
 
     MFItInfo mfi_info;
 
