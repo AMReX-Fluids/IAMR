@@ -483,7 +483,7 @@ NavierStokes::predict_velocity (Real  dt)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Umf,True); mfi.isValid(); ++mfi)
     {
         Box gbx=mfi.growntilebox(Godunov::hypgrow());
         auto const& fab_a = Umf.array(mfi);
