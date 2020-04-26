@@ -774,7 +774,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	tensorop.setScalars(a, b);
 
 	Array<MultiFab,AMREX_SPACEDIM> face_bcoef = computeBeta(betan, betaComp);
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
 #ifdef AMREX_USE_EB
 	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
 	EB_average_face_to_cellcenter(cc_bcoef, 0,
@@ -962,7 +962,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
       {
 	Array<MultiFab,AMREX_SPACEDIM> face_bcoef = computeBeta(betanp1,betaComp);
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
 
 #ifdef AMREX_USE_EB
 	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
@@ -1205,7 +1205,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 	face_bcoef[n].setVal(1.0);
       }
 
-      tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+      tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
       
 #ifdef AMREX_USE_EB
       MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
@@ -1852,7 +1852,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 	tensorop.setScalars(a, b);
 
 	Array<MultiFab,AMREX_SPACEDIM> face_bcoef = computeBeta(beta,betaComp);
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
 
 #ifdef AMREX_USE_EB
 	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
