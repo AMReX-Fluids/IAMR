@@ -122,7 +122,11 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         umac[idim]= &(u_mac[idim]);
 
-    MacProjector macproj( {umac}, {GetArrOfConstPtrs(bcoefs)}, {geom}, info, {&Rhs} );
+    MacProjector macproj( {umac}, MLMG::Location::FaceCentroid, // Location of umac (face center vs centroid)
+                          {GetArrOfConstPtrs(bcoefs)}, MLMG::Location::FaceCenter,  // Location of beta (face center vs centroid)
+                          MLMG::Location::CellCenter,           // Location of solution variable phi (cell center vs centroid)
+                          {geom}, info, 
+                          {&Rhs}, MLMG::Location::CellCenter);  // Location of RHS (cell center vs centroid)
 
     //
     // Set BCs
@@ -154,7 +158,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     //
     // Perform projection
     //
-    macproj.project({mac_phi}, mac_tol, mac_abs_tol, MLMG::Location::FaceCentroid);
+    macproj.project({mac_phi}, mac_tol, mac_abs_tol);
 }
 
 
