@@ -478,19 +478,20 @@ NavierStokes::predict_velocity (Real  dt)
 
     FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
+
     // Floor small values of states to be extrapolated
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-      Box gbx=mfi.growntilebox(Godunov::hypgrow());
-      auto const& fab_a = Umf.array(mfi);
-      AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
-      {
-        auto& val = fab_a(i,j,k,n);
-        val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
-      });
+        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        auto const& fab_a = Umf.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
+        {
+            auto& val = fab_a(i,j,k,n);
+            val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
+        });
     }
 
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
@@ -2383,15 +2384,15 @@ NavierStokes::calcViscosity (const Real time,
             for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
                 visc[dir]->setVal(visc_coef[Xvel], 0, visc[dir]->nComp(), visc[dir]->nGrow());
             }
-            
-            if (do_LES){   
+
+            if (do_LES){
 
                FluxBoxes mu_LES(this,1,0);
                MultiFab** mu_LES_mf = mu_LES.get();
                for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
                 mu_LES_mf[dir]->setVal(0., 0, mu_LES_mf[dir]->nComp(), mu_LES_mf[dir]->nGrow());
             }
- 
+
                NavierStokesBase::calc_mut_LES(mu_LES_mf,time);
 
              for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
@@ -2401,8 +2402,8 @@ NavierStokes::calcViscosity (const Real time,
 
 
             }
-            
-            
+
+
         }
         else
         {

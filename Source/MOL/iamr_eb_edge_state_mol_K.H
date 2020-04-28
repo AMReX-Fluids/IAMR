@@ -24,14 +24,16 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
 #endif
 
     amrex::Real qs;
-    int domlo = domain.smallEnd(0);
-    int domhi = domain.bigEnd(0);
+    int  domlo = domain.smallEnd(0);
+    int  domhi = domain.bigEnd(0);
+    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir || d_bcrec[n].lo(0) == amrex::BCType::hoextrap;
+    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir || d_bcrec[n].hi(0) == amrex::BCType::hoextrap;
 
-    if ( d_bcrec[n].lo(0) == amrex::BCType::ext_dir and i <= domlo)
+    if ( extlo and i <= domlo)
     {
         qs = q(domlo-1,j,k,n);
     }
-    else if (d_bcrec[n].hi(0) == amrex::BCType::ext_dir and i >= domhi+1)
+    else if ( exthi and i >= domhi+1)
     {
         qs = q(domhi+1,j,k,n);
     }
@@ -207,12 +209,14 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     amrex::Real qs;
     int domlo = domain.smallEnd(1);
     int domhi = domain.bigEnd(1);
+    bool extlo = d_bcrec[n].lo(1) == amrex::BCType::ext_dir || d_bcrec[n].lo(1) == amrex::BCType::hoextrap;
+    bool exthi = d_bcrec[n].hi(1) == amrex::BCType::ext_dir || d_bcrec[n].hi(1) == amrex::BCType::hoextrap;
 
-    if ( d_bcrec[n].lo(1) == amrex::BCType::ext_dir and j <= domlo)
+    if ( extlo and j <= domlo)
     {
         qs = q(i,domlo-1,k,n);
     }
-    else if (d_bcrec[n].hi(1) == amrex::BCType::ext_dir and j >= domhi+1)
+    else if (exthi and j >= domhi+1)
     {
         qs = q(i,domhi+1,k,n);
     }
@@ -390,12 +394,14 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
     amrex::Real qs;
     int domlo = domain.smallEnd(2);
     int domhi = domain.bigEnd(2);
+    bool extlo = d_bcrec[n].lo(2) == amrex::BCType::ext_dir || d_bcrec[n].lo(2) == amrex::BCType::hoextrap;
+    bool exthi = d_bcrec[n].hi(2) == amrex::BCType::ext_dir || d_bcrec[n].hi(2) == amrex::BCType::hoextrap;
 
-    if ( d_bcrec[n].lo(2) == amrex::BCType::ext_dir and k <= domlo)
+    if ( extlo and k <= domlo)
     {
         qs = q(i,j,domlo-1,n);
     }
-    else if ( d_bcrec[n].hi(2) == amrex::BCType::ext_dir and k >= domhi+1)
+    else if ( exthi and k >= domhi+1)
     {
         qs = q(i,j,domhi+1,n);
     }

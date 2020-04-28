@@ -221,7 +221,10 @@ iamr_slopes_extdir_eb (D_DECL(int i, int j, int k), int n,
             amrex::Real zslope = eb_slope[2];);
 
     // Now correct only those cells which are not affected by EB but are by extdir
-    if ( d_bcrec[n].lo(0) == amrex::BCType::ext_dir and i == domain.smallEnd(0) )
+    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir || d_bcrec[n].lo(0) == amrex::BCType::hoextrap;
+    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir || d_bcrec[n].hi(0) == amrex::BCType::hoextrap;
+
+    if ( extlo  and i == domain.smallEnd(0) )
     {
         if( !( flag(i  ,j,k).isSingleValued() or
               (flag(i-1,j,k).isSingleValued() or not flag(i,j,k).isConnected(-1,0,0)) or
@@ -238,7 +241,7 @@ iamr_slopes_extdir_eb (D_DECL(int i, int j, int k), int n,
         }
 
     }
-    else if (  d_bcrec[n].hi(0) == amrex::BCType::ext_dir and i  == domain.bigEnd(0) )
+    else if ( exthi and i == domain.bigEnd(0) )
     {
         if( !( flag(i  ,j,k).isSingleValued() or
               (flag(i-1,j,k).isSingleValued() or not flag(i,j,k).isConnected(-1,0,0)) or
@@ -255,7 +258,10 @@ iamr_slopes_extdir_eb (D_DECL(int i, int j, int k), int n,
         }
     }
 
-    if ( d_bcrec[n].lo(1) == amrex::BCType::ext_dir and j == domain.smallEnd(1))
+    extlo = d_bcrec[n].lo(1) == amrex::BCType::ext_dir || d_bcrec[n].lo(1) == amrex::BCType::hoextrap;
+    exthi = d_bcrec[n].hi(1) == amrex::BCType::ext_dir || d_bcrec[n].hi(1) == amrex::BCType::hoextrap;
+
+    if ( extlo and j == domain.smallEnd(1))
     {
         if( !( flag(i,j  ,k).isSingleValued() or
               (flag(i,j-1,k).isSingleValued() or not flag(i,j,k).isConnected(0,-1,0)) or
@@ -271,7 +277,7 @@ iamr_slopes_extdir_eb (D_DECL(int i, int j, int k), int n,
            yslope = (dc > 0.0) ? slope : -slope;
         }
     }
-    else if ( d_bcrec[n].hi(1) == amrex::BCType::ext_dir and j == domain.bigEnd(1))
+    else if ( exthi and j == domain.bigEnd(1))
     {
         if( !(flag(i,j  ,k).isSingleValued() or
            (flag(i,j-1,k).isSingleValued() or not flag(i,j,k).isConnected(0,-1,0)) or
@@ -289,7 +295,10 @@ iamr_slopes_extdir_eb (D_DECL(int i, int j, int k), int n,
     }
 
 #if (AMREX_SPACEDIM==3)
-    if (d_bcrec[n].lo(2) == amrex::BCType::ext_dir and k == domain.smallEnd(2) )
+    extlo = d_bcrec[n].lo(2) == amrex::BCType::ext_dir || d_bcrec[n].lo(2) == amrex::BCType::hoextrap;
+    exthi = d_bcrec[n].hi(2) == amrex::BCType::ext_dir || d_bcrec[n].hi(2) == amrex::BCType::hoextrap;
+
+    if ( extlo and k == domain.smallEnd(2) )
     {
         if( !( flag(i,j,k  ).isSingleValued() or
               (flag(i,j,k-1).isSingleValued() or not flag(i,j,k).isConnected(0,0,-1)) or
@@ -305,7 +314,7 @@ iamr_slopes_extdir_eb (D_DECL(int i, int j, int k), int n,
            zslope = (dc > 0.0) ? slope : -slope;
         }
     }
-    else if ( d_bcrec[n].hi(2) == amrex::BCType::ext_dir and k  == domain.bigEnd(2))
+    else if ( exthi and k  == domain.bigEnd(2))
     {
         if( !( flag(i,j,k  ).isSingleValued() or
              (flag(i,j,k-1).isSingleValued() or not flag(i,j,k).isConnected(0,0,-1)) or

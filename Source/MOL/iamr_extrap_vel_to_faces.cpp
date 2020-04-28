@@ -31,6 +31,7 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
 
     Box const& domain = a_geom.Domain();
     Gpu::DeviceVector<BCRec> bcs_device = convertToDeviceVector(a_bcs);
+    const BCRec* bcs_ptr = bcs_device.dataPtr();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -70,12 +71,12 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 Array4<Real const> const& ccc = ccent.const_array(mfi);
 
                 MOL::EB_PredictVelOnFaces(bx,D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,flagarr,
-                                          D_DECL(fcx,fcy,fcz),ccc,a_geom,a_bcs);
+                                          D_DECL(fcx,fcy,fcz),ccc,a_geom, bcs_ptr);
             }
             else
 #endif
             {
-                MOL::PredictVelOnFaces(D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_geom,a_bcs);
+                MOL::PredictVelOnFaces(D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_geom,bcs_ptr);
             }
 
             MOL::SetMacBCs(domain,D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_bcs);
