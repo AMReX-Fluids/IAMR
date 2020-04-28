@@ -175,13 +175,6 @@ public:      // public access functions
     // Source term functions follow
     // =============================================================
 
-    // compute the update rule, this is useful for 1st order RK
-    // psi^n+1 = psi^n + dt*(tf^n)
-    void Add_tf( const amrex::FArrayBox &Sold,
-                 amrex::FArrayBox &Snew,    int start_ind, int num_comp,
-                 const amrex::FArrayBox &tforces, int tf_ind,
-                 const amrex::Box &grd,     amrex::Real dt ) const;
-
     // compute the update rule
     // psi^n+1 = psi^n - dt*aofs + dt*tforces
     void Add_aofs_tf( const amrex::FArrayBox &Sold,

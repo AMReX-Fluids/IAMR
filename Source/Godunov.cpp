@@ -611,54 +611,12 @@ Godunov::test_umac_rho (FArrayBox&  umac,
     return cfl;
 }
 
-//
-// Source term functions follow
-//
-
-//
-// Compute the update rule, this is useful for 1st order RK.
-//
-// psi^n+1 = psi^n + dt*tf^n
-//
-
-void
-Godunov::Add_tf (const FArrayBox& Sold,
-                 FArrayBox& Snew,
-                 int        start_ind,
-                 int        num_comp,
-                 const FArrayBox& tforces,
-                 int        tf_ind,
-                 const Box& grd,
-                 Real       dt) const
-{
-    BL_ASSERT(Snew.nComp()    >= start_ind + num_comp);
-    BL_ASSERT(Sold.nComp()    >= start_ind + num_comp);
-    BL_ASSERT(tforces.nComp() >= tf_ind    + num_comp);
-
-    const int *solo   = Sold.loVect();
-    const int *sohi   = Sold.hiVect();
-    const int *snlo   = Snew.loVect();
-    const int *snhi   = Snew.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *lo     = grd.loVect();
-    const int *hi     = grd.hiVect();
-    const Real *SOdat = Sold.dataPtr(start_ind);
-    Real *SNdat = Snew.dataPtr(start_ind);
-    const Real *TFdat = tforces.dataPtr(tf_ind);
-
-    update_tf(SOdat, ARLIM(solo), ARLIM(sohi),
-                   SNdat, ARLIM(snlo), ARLIM(snhi),
-                   TFdat, ARLIM(tlo), ARLIM(thi),
-                   lo, hi, &dt, &num_comp);
-}
 
 //
 // Compute the update rule
 //
 // psi^n+1 = psi^n - dt*aofs + dt*tforces
 //
-
 void
 Godunov::Add_aofs_tf (const FArrayBox& Sold,
                       FArrayBox& Snew,
