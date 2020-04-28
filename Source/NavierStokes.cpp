@@ -2384,15 +2384,15 @@ NavierStokes::calcViscosity (const Real time,
             for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
                 visc[dir]->setVal(visc_coef[Xvel], 0, visc[dir]->nComp(), visc[dir]->nGrow());
             }
-            
-            if (do_LES){   
+
+            if (do_LES){
 
                FluxBoxes mu_LES(this,1,0);
                MultiFab** mu_LES_mf = mu_LES.get();
                for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
                 mu_LES_mf[dir]->setVal(0., 0, mu_LES_mf[dir]->nComp(), mu_LES_mf[dir]->nGrow());
             }
- 
+
                NavierStokesBase::calc_mut_LES(mu_LES_mf,time);
 
              for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
@@ -2402,8 +2402,8 @@ NavierStokes::calcViscosity (const Real time,
 
 
             }
-            
-            
+
+
         }
         else
         {
