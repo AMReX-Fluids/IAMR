@@ -121,15 +121,6 @@ extern "C"
 			const amrex::Real* TNdat, ARLIM_P(tnlo), ARLIM_P(tnhi),
 			const int* lo, const int* hi, amrex::Real* dt, int* num_comp);
 
-
-   void update_aofs_tf_gp(const amrex::Real* UOdat, ARLIM_P(ulo), ARLIM_P(uhi),
-			       const amrex::Real* UNdat, ARLIM_P(ulo), ARLIM_P(uhi),
-			       const amrex::Real* AOdat, ARLIM_P(alo), ARLIM_P(ahi),
-			       const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
-			       const amrex::Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),
-			       const amrex::Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
-			       const int* lo, const int* hi, amrex::Real* dt);
-
    void fort_sum_tf_gp_visc(const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
 			    const amrex::Real* VIdat, ARLIM_P(vlo), ARLIM_P(vhi),
 			    const amrex::Real* GPdat, ARLIM_P(glo), ARLIM_P(ghi),

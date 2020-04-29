@@ -3820,7 +3820,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
     MultiFab& halftime = get_rho_half_time();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 {
 
@@ -3879,8 +3879,22 @@ NavierStokesBase::velocity_advection_update (Real dt)
             }
         }
 
-        godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
-                                Gp[Rhohalf_mfi],halftime[i],bx,dt);
+
+
+        const auto& Unew = U_new[Rhohalf_mfi].array(Xvel);
+        const auto& Uold = S.const_array();
+        const auto& aofs = Aofs[Rhohalf_mfi].const_array(Xvel);
+        const auto& tf   = tforces.const_array();
+        const auto& gp   = Gp[Rhohalf_mfi].const_array();
+        const auto& rho  = halftime[i].const_array();
+
+        amrex::ParallelFor(bx, AMREX_SPACEDIM, [Unew, Uold, aofs, tf, gp, rho, dt]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            Unew(i,j,k,n) = Uold(i,j,k,n) + dt *
+                ( tf(i,j,k,n) - gp(i,j,k,n)/rho(i,j,k) - aofs(i,j,k,n) );
+        });
+
         if (do_mom_diff == 1)
         {
             for (int d = 0; d < BL_SPACEDIM; d++)

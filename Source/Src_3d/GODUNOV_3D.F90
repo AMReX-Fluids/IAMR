@@ -31,7 +31,7 @@ module godunov_3d_module
             adv_forcing, sync_adv_forcing, &
             convscalminmax, consscalminmax, &
             fort_sum_tf_gp, fort_sum_tf_gp_visc, fort_sum_tf_divu, &
-            fort_sum_tf_divu_visc, update_aofs_tf_gp
+            fort_sum_tf_divu_visc
 
 contains
 
@@ -7027,48 +7027,5 @@ contains
       end if
 
       end subroutine fort_sum_tf_divu_visc
-
-
-      subroutine update_aofs_tf_gp ( &
-          u,       DIMS(u), &
-          un,      DIMS(un), &
-          aofs,    DIMS(aofs), &
-          tforces, DIMS(tf), &
-          gp,      DIMS(gp), &
-          rho,     DIMS(rho), &
-          lo, hi, dt) bind(C,name="update_aofs_tf_gp")
-      !
-      ! update the velocities
-      !
-      implicit none
-      integer i, j, k, n
-      integer DIMDEC(u)
-      integer DIMDEC(un)
-      integer DIMDEC(aofs)
-      integer DIMDEC(rho)
-      integer DIMDEC(gp)
-      integer DIMDEC(tf)
-      integer lo(SDIM), hi(SDIM)
-      real(rt) u(DIMV(u),SDIM)
-      real(rt) un(DIMV(un),SDIM)
-      real(rt) aofs(DIMV(aofs),SDIM)
-      real(rt) rho(DIMV(rho))
-      real(rt) gp(DIMV(gp),SDIM)
-      real(rt) tforces(DIMV(tf),SDIM)
-      real(rt) dt
-
-      do n = 1, SDIM
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  un(i,j,k,n) = u(i,j,k,n) + dt * &
-                      ( (tforces(i,j,k,n) - gp(i,j,k,n)) / rho(i,j,k) - aofs(i,j,k,n) )
-
-               end do
-            end do
-         end do
-      end do
-
-      end subroutine update_aofs_tf_gp
 
  end module godunov_3d_module

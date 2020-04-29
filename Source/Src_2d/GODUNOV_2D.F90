@@ -27,7 +27,7 @@ module godunov_2d_module
        fort_test_umac_rho, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax,&
        fort_sum_tf_gp,fort_sum_tf_gp_visc,fort_sum_tf_divu,&
-       fort_sum_tf_divu_visc, update_aofs_tf_gp
+       fort_sum_tf_divu_visc
 
 contains
 
@@ -4483,54 +4483,6 @@ contains
       end if
 
     end subroutine fort_sum_tf_divu_visc
-      subroutine update_aofs_tf_gp(&
-          u,       DIMS(u),&
-          un,      DIMS(un),&
-          aofs,    DIMS(aofs),&
-          tforces, DIMS(tf),&
-          gp,      DIMS(gp),&
-          rho,     DIMS(rho),&
-          lo, hi, dt) bind(C,name="update_aofs_tf_gp")
-
-!c
-!c     update the velocities
-!c
-      implicit none
-      integer i, j, n
-      integer DIMDEC(u)
-      integer DIMDEC(un)
-      integer DIMDEC(aofs)
-      integer DIMDEC(rho)
-      integer DIMDEC(gp)
-      integer DIMDEC(tf)
-      integer lo(SDIM), hi(SDIM)
-      REAL_T u(DIMV(u),SDIM)
-      REAL_T un(DIMV(un),SDIM)
-      REAL_T aofs(DIMV(aofs),SDIM)
-      REAL_T rho(DIMV(rho))
-      REAL_T gp(DIMV(gp),SDIM)
-      REAL_T tforces(DIMV(tf),SDIM)
-      REAL_T dt
-
-      do n = 1, SDIM
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-
-! EM_DEBUG
-!  if ((i < 2) .and.((j > 14).and.(j < 18))) then
-!write(*,*) 'DEBUG IN update_aofs_tf_gp ',i,j,n,gp(i,j,n),rho(i,j),tforces(i,j,n),aofs(i,j,n),u(i,j,n)
-!endif
-
-
-               un(i,j,n) = u(i,j,n) &
-                   - dt*   aofs(i,j,n)&
-                   + dt*tforces(i,j,n)/rho(i,j)&
-                   - dt*     gp(i,j,n)/rho(i,j)
-            end do
-         end do
-      end do
-
-    end subroutine update_aofs_tf_gp
 
 
       subroutine bdsslope(s,lo_1,lo_2,hi_1,hi_2,slx,sly,sc,dx)

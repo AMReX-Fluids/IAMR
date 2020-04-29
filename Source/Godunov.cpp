@@ -611,59 +611,6 @@ Godunov::test_umac_rho (FArrayBox&  umac,
     return cfl;
 }
 
-
-//
-// Compute the update rule for velocities
-//
-// psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
-//
-void
-Godunov::Add_aofs_tf_gp (const FArrayBox& Uold,
-                         FArrayBox& Unew,
-                         const FArrayBox& Aofs,
-                         const FArrayBox& tforces,
-                         const FArrayBox& gp,
-                         const FArrayBox& rho,
-                         const Box& grd,
-                         Real       dt) const
-{
-    BL_ASSERT(Unew.nComp()    >= BL_SPACEDIM);
-    BL_ASSERT(Uold.nComp()    >= BL_SPACEDIM);
-    BL_ASSERT(Aofs.nComp()    >= BL_SPACEDIM);
-    BL_ASSERT(tforces.nComp() >= BL_SPACEDIM);
-    BL_ASSERT(gp.nComp()      == BL_SPACEDIM);
-    BL_ASSERT(rho.nComp()     == 1          );
-
-    const int *lo     = grd.loVect();
-    const int *hi     = grd.hiVect();
-    const int *uolo   = Uold.loVect();
-    const int *uohi   = Uold.hiVect();
-    const int *unlo   = Unew.loVect();
-    const int *unhi   = Unew.hiVect();
-    const int *alo    = Aofs.loVect();
-    const int *ahi    = Aofs.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *glo    = gp.loVect();
-    const int *ghi    = gp.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    const Real *UOdat = Uold.dataPtr();
-    Real *UNdat = Unew.dataPtr();
-    const Real *AOdat = Aofs.dataPtr();
-    const Real *TFdat = tforces.dataPtr();
-    const Real *GPdat = gp.dataPtr();
-    const Real *RHdat = rho.dataPtr();
-
-    update_aofs_tf_gp(UOdat, ARLIM(uolo), ARLIM(uohi),
-                           UNdat, ARLIM(unlo), ARLIM(unhi),
-                           AOdat, ARLIM(alo), ARLIM(ahi),
-                           TFdat, ARLIM(tlo), ARLIM(thi),
-                           GPdat, ARLIM(glo), ARLIM(ghi),
-                           RHdat, ARLIM(rlo), ARLIM(rhi),
-                           lo, hi, &dt);
-}
-
 //
 // Compute total source term for velocities, weighted by rho.
 //

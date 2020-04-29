@@ -175,13 +175,6 @@ public:      // public access functions
     // Source term functions follow
     // =============================================================
 
-    // compute the update rule for velocities or momenta
-    // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
-    void Add_aofs_tf_gp( const amrex::FArrayBox &Uold, amrex::FArrayBox &Unew,
-                         const amrex::FArrayBox &Aofs, const amrex::FArrayBox &tforces,
-                         const amrex::FArrayBox &gp,   const amrex::FArrayBox &rho,
-                         const amrex::Box &grd,  amrex::Real dt) const;
-
     // compute total source term for velocities
     // tforces = (tforces + visc - gp)/rho
     void Sum_tf_gp_visc (amrex::FArrayBox&       tforces, int Tcomp,
