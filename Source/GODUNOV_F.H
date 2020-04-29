@@ -115,23 +115,12 @@ extern "C"
 #endif
 			     const int* lo, const int* hi, const int* bc);
 
-   void  update_tf(const amrex::Real* SOdat, ARLIM_P(slo), ARLIM_P(shi),
-			const amrex::Real* SNdat, ARLIM_P(slo), ARLIM_P(shi),
-			const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
-			const int* lo, const int* hi, amrex::Real* dt, int* num_comp);
-
    void fort_correct_tf(const amrex::Real* SSdat, ARLIM_P(slo), ARLIM_P(shi),
 			const amrex::Real* SPdat, ARLIM_P(splo), ARLIM_P(sphi),
 			const amrex::Real* TSdat, ARLIM_P(tlo), ARLIM_P(thi),
 			const amrex::Real* TNdat, ARLIM_P(tnlo), ARLIM_P(tnhi),
 			const int* lo, const int* hi, amrex::Real* dt, int* num_comp);
 
-   void update_aofs_tf(const amrex::Real* SOdat, ARLIM_P(slo), ARLIM_P(shi),
-			    const amrex::Real* SNdat, ARLIM_P(slo), ARLIM_P(shi),
-			    const amrex::Real* AOdat, ARLIM_P(alo), ARLIM_P(ahi),
-			    const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
-			    const int* lo, const int* hi,
-			    amrex::Real* dt, int* num_comp);
 
    void update_aofs_tf_gp(const amrex::Real* UOdat, ARLIM_P(ulo), ARLIM_P(uhi),
 			       const amrex::Real* UNdat, ARLIM_P(ulo), ARLIM_P(uhi),

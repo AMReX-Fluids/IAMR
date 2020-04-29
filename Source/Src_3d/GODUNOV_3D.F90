@@ -31,8 +31,7 @@ module godunov_3d_module
             adv_forcing, sync_adv_forcing, &
             convscalminmax, consscalminmax, &
             fort_sum_tf_gp, fort_sum_tf_gp_visc, fort_sum_tf_divu, &
-            fort_sum_tf_divu_visc, update_tf, update_aofs_tf, &
-            update_aofs_tf_gp
+            fort_sum_tf_divu_visc, update_aofs_tf_gp
 
 contains
 
@@ -7029,70 +7028,6 @@ contains
 
       end subroutine fort_sum_tf_divu_visc
 
-      subroutine update_tf ( &
-          s,       DIMS(s), &
-          sn,      DIMS(sn), &
-          tforces, DIMS(tf), &
-          lo,hi,dt,nvar) bind(C,name="update_tf")
-!c
-!c     update a field with a forcing term
-!c
-      implicit none
-      integer i, j, k, n, nvar
-      integer DIMDEC(s)
-      integer DIMDEC(sn)
-      integer DIMDEC(tf)
-      integer lo(SDIM), hi(SDIM)
-      real(rt) dt
-      real(rt) s(DIMV(s),nvar)
-      real(rt) sn(DIMV(sn),nvar)
-      real(rt) tforces(DIMV(tf),nvar)
-
-      do n = 1,nvar
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  sn(i,j,k,n) = s(i,j,k,n) + dt*tforces(i,j,k,n)
-               end do
-            end do
-         end do
-      end do
-
-      end subroutine update_tf
-
-      subroutine update_aofs_tf ( &
-          s,       DIMS(s), &
-          sn,      DIMS(sn), &
-          aofs,    DIMS(aofs), &
-          tforces, DIMS(tf), &
-          lo,hi,dt,nvar) bind(C,name="update_aofs_tf")
-!c
-!c     update a field with an advective tendency
-!c     and a forcing term
-!c
-      implicit none
-      integer i, j, k, n, nvar
-      integer DIMDEC(s)
-      integer DIMDEC(sn)
-      integer DIMDEC(aofs)
-      integer DIMDEC(tf)
-      integer lo(SDIM), hi(SDIM)
-      real(rt) dt
-      real(rt) s(DIMV(s),nvar)
-      real(rt) sn(DIMV(sn),nvar)
-      real(rt) aofs(DIMV(aofs),nvar)
-      real(rt) tforces(DIMV(tf),nvar)
-
-      do n = 1,nvar
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  sn(i,j,k,n) = s(i,j,k,n) + dt*(tforces(i,j,k,n) - aofs(i,j,k,n))
-               end do
-            end do
-         end do
-      end do
-      end subroutine update_aofs_tf
 
       subroutine update_aofs_tf_gp ( &
           u,       DIMS(u), &

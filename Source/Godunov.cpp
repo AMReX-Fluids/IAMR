@@ -613,55 +613,10 @@ Godunov::test_umac_rho (FArrayBox&  umac,
 
 
 //
-// Compute the update rule
-//
-// psi^n+1 = psi^n - dt*aofs + dt*tforces
-//
-void
-Godunov::Add_aofs_tf (const FArrayBox& Sold,
-                      FArrayBox& Snew,
-                      int        start_ind,
-                      int        num_comp,
-                      const FArrayBox& Aofs,
-                      int        aofs_ind,
-                      const FArrayBox& tforces,
-                      int        tf_ind,
-                      const Box& grd,
-                      Real       dt) const
-{
-    BL_ASSERT(Snew.nComp()    >= start_ind + num_comp);
-    BL_ASSERT(Sold.nComp()    >= start_ind + num_comp);
-    BL_ASSERT(Aofs.nComp()    >= aofs_ind  + num_comp);
-    BL_ASSERT(tforces.nComp() >= tf_ind    + num_comp);
-
-    const int *solo   = Sold.loVect();
-    const int *sohi   = Sold.hiVect();
-    const int *snlo   = Snew.loVect();
-    const int *snhi   = Snew.hiVect();
-    const int *alo    = Aofs.loVect();
-    const int *ahi    = Aofs.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *lo     = grd.loVect();
-    const int *hi     = grd.hiVect();
-    const Real *SOdat = Sold.dataPtr(start_ind);
-    Real *SNdat = Snew.dataPtr(start_ind);
-    const Real *AOdat = Aofs.dataPtr(aofs_ind);
-    const Real *TFdat = tforces.dataPtr(tf_ind);
-
-    update_aofs_tf(SOdat, ARLIM(solo), ARLIM(sohi),
-                        SNdat, ARLIM(snlo), ARLIM(snhi),
-                        AOdat, ARLIM(alo), ARLIM(ahi),
-                        TFdat, ARLIM(tlo), ARLIM(thi),
-                        lo, hi, &dt, &num_comp);
-}
-
-//
 // Compute the update rule for velocities
 //
 // psi^n+1 = psi^n - dt*aofs - dt*gp/rho + dt*tforces
 //
-
 void
 Godunov::Add_aofs_tf_gp (const FArrayBox& Uold,
                          FArrayBox& Unew,

@@ -2899,20 +2899,22 @@ NavierStokesBase::scalar_advection_update (Real dt,
     if (sComp == Density)
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-{
-      FArrayBox  tforces;
-      for (MFIter S_oldmfi(S_old,true); S_oldmfi.isValid(); ++S_oldmfi)
-      {
+        for (MFIter mfi(S_old,true); mfi.isValid(); ++mfi)
+        {
+	    const Box&  bx = mfi.tilebox();
+            const auto& Snew = S_new[mfi].array(Density);
+            const auto& Sold = S_old[mfi].const_array(Density);
+            const auto& aofs = Aofs[mfi].const_array(Density);
 
-	    const Box& bx = S_oldmfi.tilebox();
-            tforces.resize(bx,1);
-            tforces.setVal<RunOn::Host>(0);
-            godunov->Add_aofs_tf(S_old[S_oldmfi],S_new[S_oldmfi],Density,1,
-                                 Aofs[S_oldmfi],Density,tforces,0,bx,dt);
-      }
-}
+            amrex::ParallelFor(bx, 1, [ Snew, Sold, aofs, dt]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                Snew(i,j,k,n) = Sold(i,j,k,n) - dt * aofs(i,j,k,n);
+            });
+        }
+
         //
         // Call ScalMinMax to avoid overshoots in density.
         //
@@ -2953,7 +2955,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
     {
         const MultiFab& rho_halftime = get_rho_half_time();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 {
         FArrayBox  tforces;
@@ -2990,8 +2992,18 @@ NavierStokesBase::scalar_advection_update (Real dt,
                if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
                   getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
 
-               godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
-                                    Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
+                  const auto& Snew = S_new[Rho_mfi].array(sigma);
+                  const auto& Sold = S_old[Rho_mfi].const_array(sigma);
+                  const auto& aofs = Aofs[Rho_mfi].const_array(sigma);
+                  const auto& tf   = tforces.const_array();
+
+                  amrex::ParallelFor(bx, 1, [ Snew, Sold, aofs, tf, dt]
+                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                  {
+                      Snew(i,j,k,n) = Sold(i,j,k,n) + dt * ( tf(i,j,k,n) -aofs(i,j,k,n) );
+                  });
+
+
             }
         }
 }

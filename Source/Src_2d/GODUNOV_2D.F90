@@ -27,8 +27,7 @@ module godunov_2d_module
        fort_test_umac_rho, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax,&
        fort_sum_tf_gp,fort_sum_tf_gp_visc,fort_sum_tf_divu,&
-       fort_sum_tf_divu_visc, update_tf,&
-       update_aofs_tf, update_aofs_tf_gp
+       fort_sum_tf_divu_visc, update_aofs_tf_gp
 
 contains
 
@@ -4484,71 +4483,6 @@ contains
       end if
 
     end subroutine fort_sum_tf_divu_visc
-
-      subroutine update_tf(&
-          s,       DIMS(s),&
-          sn,      DIMS(sn),&
-          tforces, DIMS(tf),&
-          lo,hi,dt,nvar) bind(C,name="update_tf")
-!c
-!c     update a field with a forcing term
-!c
-      implicit none
-      integer i, j, n, nvar
-      integer DIMDEC(s)
-      integer DIMDEC(sn)
-      integer DIMDEC(tf)
-      integer lo(SDIM), hi(SDIM)
-      REAL_T dt
-      REAL_T s(DIMV(s),nvar)
-      REAL_T sn(DIMV(sn),nvar)
-      REAL_T tforces(DIMV(tf),nvar)
-
-      do n = 1,nvar
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               sn(i,j,n) = s(i,j,n) + dt*tforces(i,j,n)
-            end do
-         end do
-      end do
-
-    end subroutine update_tf
-
-      subroutine update_aofs_tf(&
-          s,       DIMS(s),&
-          sn,      DIMS(sn),&
-          aofs,    DIMS(aofs),&
-          tforces, DIMS(tf),&
-          lo,hi,dt,nvar) bind(C,name="update_aofs_tf")
-!c
-!c     update a field with an advective tendency
-!c     and a forcing term
-!c
-      implicit none
-      integer i, j, n, nvar
-      integer DIMDEC(s)
-      integer DIMDEC(sn)
-      integer DIMDEC(aofs)
-      integer DIMDEC(tf)
-      integer lo(SDIM), hi(SDIM)
-      REAL_T dt
-      REAL_T s(DIMV(s),nvar)
-      REAL_T sn(DIMV(sn),nvar)
-      REAL_T aofs(DIMV(aofs),nvar)
-      REAL_T tforces(DIMV(tf),nvar)
-
-      do n = 1,nvar
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               sn(i,j,n) = s(i,j,n)&
-                   - dt*aofs(i,j,n)&
-                   + dt*tforces(i,j,n)
-            end do
-         end do
-      end do
-
-    end subroutine update_aofs_tf
-
       subroutine update_aofs_tf_gp(&
           u,       DIMS(u),&
           un,      DIMS(un),&
