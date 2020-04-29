@@ -2908,10 +2908,10 @@ NavierStokesBase::scalar_advection_update (Real dt,
             const auto& Sold = S_old[mfi].const_array(Density);
             const auto& aofs = Aofs[mfi].const_array(Density);
 
-            amrex::ParallelFor(bx, 1, [ Snew, Sold, aofs, dt]
-            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            amrex::ParallelFor(bx, [ Snew, Sold, aofs, dt]
+            AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                Snew(i,j,k,n) = Sold(i,j,k,n) - dt * aofs(i,j,k,n);
+                Snew(i,j,k) = Sold(i,j,k) - dt * aofs(i,j,k);
             });
         }
 
@@ -2997,10 +2997,10 @@ NavierStokesBase::scalar_advection_update (Real dt,
                   const auto& aofs = Aofs[Rho_mfi].const_array(sigma);
                   const auto& tf   = tforces.const_array();
 
-                  amrex::ParallelFor(bx, 1, [ Snew, Sold, aofs, tf, dt]
-                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                  amrex::ParallelFor(bx, [ Snew, Sold, aofs, tf, dt]
+                  AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
                   {
-                      Snew(i,j,k,n) = Sold(i,j,k,n) + dt * ( tf(i,j,k,n) -aofs(i,j,k,n) );
+                      Snew(i,j,k) = Sold(i,j,k) + dt * ( tf(i,j,k) -aofs(i,j,k) );
                   });
 
 
