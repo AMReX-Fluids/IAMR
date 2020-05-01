@@ -182,21 +182,13 @@ public:      // public access functions
 
     // iconserv==1   => tforces = tforces + visc - divU*S
     // iconserv==0   => tforces = (tforces+visc)/rho
-    void Sum_tf_divu_visc (const amrex::FArrayBox& S,
-                           amrex::FArrayBox& tforces,
-                           int s_ind, int num_comp,
-                           const amrex::FArrayBox& visc, int v_ind,
-                           const amrex::FArrayBox& divu,
-                           const amrex::FArrayBox& rho,
-                           int iconserv) const;
-
-    void Sum_tf_divu_visc (const amrex::FArrayBox& S, int s_ind,
-                           amrex::FArrayBox& tforces, int t_ind,
-                           int        num_comp,
-                           const amrex::FArrayBox& visc,    int v_ind,
-                           const amrex::FArrayBox& divu,    int d_ind,
-                           const amrex::FArrayBox& rho,     int tr_ind,
-                           int        iconserv) const;
+    void Sum_tf_divu_visc ( amrex::Box                        const& bx,
+                            amrex::Array4<amrex::Real>        const& tforces,
+                            amrex::Array4<amrex::Real const>  const& visc,
+                            amrex::Array4<amrex::Real const>  const& divu,
+                            amrex::Array4<amrex::Real const>  const& S,
+                            amrex::Array4<amrex::Real const>  const& rho,
+                            int ncomp, int iconserv ) const;
 
   //================ for debugging purposes this is made public
     // internal FABS

@@ -29,8 +29,7 @@ module godunov_3d_module
   public :: extrap_vel_to_faces, fort_maxchng_velmag, &
             fort_test_umac_rho, &
             adv_forcing, sync_adv_forcing, &
-            convscalminmax, consscalminmax, &
-            fort_sum_tf_divu_visc
+            convscalminmax, consscalminmax
 
 contains
 
@@ -6837,58 +6836,4 @@ contains
 
       end subroutine consscalminmax
 
-      subroutine fort_sum_tf_divu_visc( &
-          S,DIMS(S), &
-          tforces,DIMS(tf), &
-          divu,DIMS(divu), &
-          visc,DIMS(visc), &
-          rho,DIMS(rho), &
-          lo,hi,nvar,iconserv ) bind(C,name="fort_sum_tf_divu_visc")
-!c
-!c     sum tforces, viscous forcing and divU*S into tforces
-!c     depending on the value of iconserv
-!c
-      implicit none
-      integer nvar, iconserv
-      integer lo(SDIM), hi(SDIM)
-      integer i, j, k, n
-
-      integer DIMDEC(S)
-      integer DIMDEC(tf)
-      integer DIMDEC(divu)
-      integer DIMDEC(visc)
-      integer DIMDEC(rho)
-
-      real(rt) S(DIMV(S),nvar)
-      real(rt) tforces(DIMV(tf),nvar)
-      real(rt) divu(DIMV(divu))
-      real(rt) visc(DIMV(visc),nvar)
-      real(rt) rho(DIMV(rho))
-
-
-      if ( iconserv .eq. 1 ) then
-         do n = 1, nvar
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     tforces(i,j,k,n) = tforces(i,j,k,n) +  visc(i,j,k,n) &
-                         - S(i,j,k,n)*divu(i,j,k)
-                  end do
-               end do
-            end do
-         end do
-      else
-         do n = 1, nvar
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  do i = lo(1), hi(1)
-                     tforces(i,j,k,n) = (tforces(i,j,k,n) + visc(i,j,k,n))/rho(i,j,k)
-                  end do
-               end do
-            end do
-         end do
-      end if
-
-      end subroutine fort_sum_tf_divu_visc
-
- end module godunov_3d_module
+    end module godunov_3d_module

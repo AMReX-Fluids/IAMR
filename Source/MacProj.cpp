@@ -745,21 +745,25 @@ MacProj::mac_sync_compute (int                   level,
             //
             // Compute total forcing terms.
             //
-            auto const& tf   = tforces.array();
-            auto const& visc = vel_visc_terms[Smfi].const_array(Xvel);
-            auto const& gp   = Gp[Smfi].const_array();
-            auto const& rho  = Rho.const_array();
+            auto const& vtf   = tforces.array();
+            auto const& stf   = tforces.array(AMREX_SPACEDIM);
+            auto const& vvisc = vel_visc_terms[Smfi].const_array(Xvel);
+            auto const& svisc = scal_visc_terms[Smfi].const_array(0);
+            auto const& gp    = Gp[Smfi].const_array();
+            auto const& rho   = Rho.const_array();
+            auto const& divU  = divu.const_array();
+            auto const& scal  = S.array(AMREX_SPACEDIM);
             auto const  grown_box  = grow(bx,ngrow);
 
-            godunov->Sum_tf_gp_visc(grown_box, tf, visc, gp, rho);
+            godunov->Sum_tf_gp_visc(grown_box, vtf, vvisc, gp, rho);
 
-            godunov->Sum_tf_divu_visc(S, BL_SPACEDIM, tforces, BL_SPACEDIM, numscal,
-                                      scal_visc_terms[Smfi], 0, divu, 0, Rho, 0, 1);
+            godunov->Sum_tf_divu_visc(grown_box, stf, svisc, divU, scal, rho, numscal, 1);
+
             if (use_forces_in_trans)
             {
                 ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi],Smf[Smfi],Density);
                 auto const& tvf = tvelforces.array();
-                godunov->Sum_tf_gp_visc(grown_box, tvf, visc, gp, rho);
+                godunov->Sum_tf_gp_visc(grown_box, tvf, vvisc, gp, rho);
             }
             //
             // Get the sync FABS.

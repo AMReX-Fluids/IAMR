@@ -716,8 +716,17 @@ NavierStokes::scalar_advection (Real dt,
 
                 for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
                     int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
-                    godunov->Sum_tf_divu_visc(Smf[S_mfi],i,tforces,i,1,visc_terms[S_mfi],i,
-                                              (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
+
+                    auto const& tf    = tforces.array(i);
+                    auto const& visc  = visc_terms[S_mfi].const_array(i);
+                    auto const& rho   = rho_ptime[S_mfi].const_array();
+                    auto const& divU  = (*divu_fp)[S_mfi].const_array();
+                    auto const& scal  = Smf[S_mfi].array(i);
+                    auto const  grown_box  = grow(bx,nGrowF);
+
+
+                    godunov->Sum_tf_divu_visc(grown_box, tf, visc, divU, scal, rho, 1, use_conserv_diff);
+
                 }
 
                 state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);

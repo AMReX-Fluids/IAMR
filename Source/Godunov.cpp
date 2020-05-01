@@ -631,70 +631,35 @@ Godunov::Sum_tf_gp_visc ( Box const&                 bx,
     });
 }
 
-//
-// Compute total source term for scalars.  Note for compatibility
-// The switch iconserv, determines the form of the total source term
-//
-// iconserv==1   => tforces = tforces + visc - divU*S
-//
-// iconserv==0   => tforces = (tforces+ visc)/rho
-//
-void
-Godunov::Sum_tf_divu_visc (const FArrayBox& S,
-                           FArrayBox& tforces,
-                           int s_ind, int num_comp,
-                           const FArrayBox& visc, int v_ind,
-                           const FArrayBox& divu,
-                           const FArrayBox& rho,
-                           int iconserv) const
-{
-    Sum_tf_divu_visc(S, s_ind, tforces, s_ind, num_comp,
-                     visc, v_ind, divu, 0, rho, 0, iconserv);
-}
-
 
 void
-Godunov::Sum_tf_divu_visc (const FArrayBox& S,
-                           int        s_ind,
-                           FArrayBox& tforces,
-                           int        t_ind,
-                           int        num_comp,
-                           const FArrayBox& visc,
-                           int        v_ind,
-                           const FArrayBox& divu,
-                           int        d_ind,
-                           const FArrayBox& rho,
-                           int        r_ind,
-                           int        iconserv) const
+Godunov::Sum_tf_divu_visc ( amrex::Box                        const& bx,
+                            amrex::Array4<amrex::Real>        const& tforces,
+                            amrex::Array4<amrex::Real const>  const& visc,
+                            amrex::Array4<amrex::Real const>  const& divu,
+                            amrex::Array4<amrex::Real const>  const& S,
+                            amrex::Array4<amrex::Real const>  const& rho,
+                            int ncomp, int iconserv ) const
 {
-    BL_ASSERT(S.nComp()       >= s_ind+num_comp);
-    BL_ASSERT(tforces.nComp() >= t_ind+num_comp);
-    BL_ASSERT(divu.nComp()    >  d_ind);
-    BL_ASSERT(visc.nComp()    >= v_ind+num_comp);
-    BL_ASSERT(rho.nComp()     >  r_ind);
 
-    const int *slo    = S.loVect();
-    const int *shi    = S.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *dlo    = divu.loVect();
-    const int *dhi    = divu.hiVect();
-    const int *vlo    = visc.loVect();
-    const int *vhi    = visc.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    const Real *Sdat  = S.dataPtr(s_ind);
-    Real *TFdat = tforces.dataPtr(t_ind);
-    const Real *DUdat = divu.dataPtr(d_ind);
-    const Real *VIdat = visc.dataPtr(v_ind);
-    const Real *RHdat = rho.dataPtr(r_ind);
+    if (iconserv == 1)
+    {
+        amrex::ParallelFor(bx, ncomp, [tforces, visc, S, divu]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            tforces(i,j,k,n) = tforces(i,j,k,n) + visc(i,j,k,n)
+                                 - S(i,j,k,n) * divu(i,j,k);
+        });
+    }
+    else
+    {
+        amrex::ParallelFor(bx, ncomp, [tforces, visc, rho]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            tforces(i,j,k,n) = ( tforces(i,j,k,n) + visc(i,j,k,n) ) / rho(i,j,k);
+        });
+    }
 
-    fort_sum_tf_divu_visc(Sdat,  ARLIM(slo), ARLIM(shi),
-                          TFdat, ARLIM(tlo), ARLIM(thi),
-                          DUdat, ARLIM(dlo), ARLIM(dhi),
-                          VIdat, ARLIM(vlo), ARLIM(vhi),
-                          RHdat, ARLIM(rlo), ARLIM(rhi),
-                          tlo, thi, &num_comp, &iconserv);
 }
 
 
