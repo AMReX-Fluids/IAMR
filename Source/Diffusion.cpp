@@ -446,7 +446,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(factory));
         weights = &(ebf->getVolFrac());
 
-        amrex::single_level_weighted_redistribute(0, rhs_tmp, Rhs, {*weights}, 0, 1, {geom});
+        amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, 1, geom);
 #else
         mgn.apply({&Rhs},{&Soln});
 #endif
@@ -832,7 +832,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
         weights = &(ebfactory.getVolFrac());
 
-        amrex::single_level_weighted_redistribute(0,{Rhs_tmp},{Rhs}, {*weights}, 0, AMREX_SPACEDIM, {navier_stokes->Geom()});
+        amrex::single_level_weighted_redistribute(Rhs_tmp, Rhs, *weights, 0, AMREX_SPACEDIM, navier_stokes->Geom());
 #else
         amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
 #endif
@@ -1751,8 +1751,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
         weights = &(ebfactory.getVolFrac());
 
-        amrex::single_level_weighted_redistribute(0, visc_tmp, visc_terms, {*weights}, comp-src_comp, 1,
-                                         {navier_stokes->Geom()});
+        amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, comp-src_comp, 1,
+                                         navier_stokes->Geom());
 #else
 	MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
 #endif
@@ -1907,8 +1907,8 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
         weights = &(ebfactory.getVolFrac());
 
-        amrex::single_level_weighted_redistribute(0, {visc_tmp}, {visc_terms}, {*weights}, 0, AMREX_SPACEDIM,
-						  {navier_stokes->Geom()} );
+        amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, 0, AMREX_SPACEDIM,
+						  navier_stokes->Geom() );
 #else
         MultiFab::Copy(visc_terms,visc_tmp,0,0,BL_SPACEDIM,0);
 #endif
