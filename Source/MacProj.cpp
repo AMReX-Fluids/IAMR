@@ -545,7 +545,7 @@ MacProj::mac_sync_solve (int       level,
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
     //
-    // Compute Ucorr, including filling ghost cells for EB  
+    // Compute Ucorr, including filling ghost cells for EB
     //
     mlmg_mac_sync_solve(parent,*phys_bc, level, mac_sync_tol, mac_abs_tol,
                         rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi,
@@ -645,7 +645,7 @@ MacProj::mac_sync_compute (int                   level,
     MultiFab& Gp = ns_level.getGradP();
 #else
     const int  nghost  = 0;
-    
+
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
     ns_level.getGradP(Gp, prev_pres_time);
 #endif
@@ -724,13 +724,14 @@ MacProj::mac_sync_compute (int                   level,
             const int i     = Smfi.index();
             FArrayBox& S    = Smf[Smfi];
             FArrayBox& divu = (*divu_fp)[Smfi];
-            const Box& bx = Smfi.tilebox();
+            const Box& bx   = Smfi.tilebox();
+            const int ngrow = 1;
             //
             // Step 1: compute ucorr = grad(phi)/rhonph -- Now done in mac_sync_solve()
             //
             // Create storage for corrective velocities.
             //
-            Rho.resize(amrex::grow(bx,1),1);
+            Rho.resize(amrex::grow(bx,ngrow),1);
 
             //
             // Step 2: compute Mac correction by calling GODUNOV box
@@ -739,18 +740,26 @@ MacProj::mac_sync_compute (int                   level,
             //
             Rho.copy<RunOn::Host>(S,Density,0,1);
 
-            ns_level.getForce(tforces,bx,1,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
+            ns_level.getForce(tforces,bx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
 
             //
             // Compute total forcing terms.
             //
-            godunov->Sum_tf_gp_visc(tforces, 0, vel_visc_terms[Smfi], 0, Gp[Smfi], 0, Rho, 0);
+            auto const& tf   = tforces.array();
+            auto const& visc = vel_visc_terms[Smfi].const_array(Xvel);
+            auto const& gp   = Gp[Smfi].const_array();
+            auto const& rho  = Rho.const_array();
+            auto const  grown_box  = grow(bx,ngrow);
+
+            godunov->Sum_tf_gp_visc(grown_box, tf, visc, gp, rho);
+
             godunov->Sum_tf_divu_visc(S, BL_SPACEDIM, tforces, BL_SPACEDIM, numscal,
                                       scal_visc_terms[Smfi], 0, divu, 0, Rho, 0, 1);
             if (use_forces_in_trans)
             {
                 ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi],Smf[Smfi],Density);
-                godunov->Sum_tf_gp_visc(tvelforces,0,vel_visc_terms[Smfi],0,Gp[Smfi],0,Rho,0);
+                auto const& tvf = tvelforces.array();
+                godunov->Sum_tf_gp_visc(grown_box, tvf, visc, gp, rho);
             }
             //
             // Get the sync FABS.
@@ -879,7 +888,7 @@ MacProj::mac_sync_compute (int                    level,
 #else
     const int  nghost  = 0;
 #endif
-    
+
     MultiFab fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
@@ -912,14 +921,14 @@ MacProj::mac_sync_compute (int                    level,
 			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
 			     math_bcs, geom  );
-	
+
     }
 #else
     //
     // non-EB algorithm
     //
     Godunov godunov;
-    
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -969,7 +978,7 @@ MacProj::mac_sync_compute (int                    level,
         }
     }//end OMP parallel region
 #endif
-    
+
     if (level > 0 && update_fluxreg){
         for (int d = 0; d < BL_SPACEDIM; d++){
             adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);

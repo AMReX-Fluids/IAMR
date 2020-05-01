@@ -26,7 +26,7 @@ module godunov_2d_module
   public :: extrap_vel_to_faces, fort_maxchng_velmag, &
        fort_test_umac_rho, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax,&
-       fort_sum_tf_gp,fort_sum_tf_gp_visc,fort_sum_tf_divu,&
+       fort_sum_tf_gp,fort_sum_tf_divu,&
        fort_sum_tf_divu_visc
 
 contains
@@ -4336,53 +4336,6 @@ contains
       end do
 
     end subroutine fort_sum_tf_gp
-
-      subroutine fort_sum_tf_gp_visc(&
-          tforces,DIMS(tf),&
-          visc,DIMS(visc),&
-          gp,DIMS(gp),&
-          rho,DIMS(rho),&
-          lo,hi ) bind(C,name="fort_sum_tf_gp_visc")
-!c
-!c     sum pressure forcing and viscous forcing into
-!c     tforces
-!c
-      implicit none
-      integer i, j, n
-      integer DIMDEC(tf)
-      integer DIMDEC(visc)
-      integer DIMDEC(gp)
-      integer DIMDEC(rho)
-      integer lo(SDIM), hi(SDIM)
-      REAL_T tforces(DIMV(tf),SDIM)
-      REAL_T visc(DIMV(visc),SDIM)
-      REAL_T gp(DIMV(gp),SDIM)
-      REAL_T rho(DIMV(rho))
-
-      do n = 1, SDIM
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-
-! EM_DEBUG
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
-!write(*,*) 'DEBUG IN SUM_TF_GP ',i,j,n,gp(i,j,n),tforces(i,j,n),visc(i,j,n),rho(i,j)
-!endif
-
-               tforces(i,j,n) = (&
-                   tforces(i,j,n)&
-                   +  visc(i,j,n)&
-                   -    gp(i,j,n))/rho(i,j)
-
-! EM_DEBUG
-!if ((i < 4) .and.((j > 14).and.(j < 18))) then
-!write(*,*) 'DEBUG IN SUM_TF_GP ',i,j,n,gp(i,j,n),tforces(i,j,n),visc(i,j,n),rho(i,j)
-!endif
-
-            end do
-         end do
-      end do
-
-    end subroutine fort_sum_tf_gp_visc
 
       subroutine fort_sum_tf_divu(&
           s,DIMS(S),&

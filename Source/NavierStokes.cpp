@@ -536,16 +536,23 @@ NavierStokes::predict_velocity (Real  dt)
         {
             Box bx=U_mfi.tilebox();
             FArrayBox& Ufab = Umf[U_mfi];
+            const int ngrow = 1;
 
             if (getForceVerbose) {
                 Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
             }
-            getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+            getForce(tforces,bx,ngrow,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 
             //
             // Compute the total forcing.
             //
-            godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
+            auto const& tf   = tforces.array();
+            auto const& visc = visc_terms[U_mfi].const_array(Xvel);
+            auto const& gp   = Gp[U_mfi].const_array();
+            auto const& rho  = rho_ptime[U_mfi].const_array();
+            auto const  gbx  = grow(bx,ngrow);
+
+            godunov->Sum_tf_gp_visc(gbx, tf, visc, gp, rho);
 
             D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                    bndry[1] = fetchBCArray(State_Type,bx,1,1);,

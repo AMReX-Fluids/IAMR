@@ -647,49 +647,19 @@ Godunov::Sum_tf_gp (FArrayBox& tforces, int Tcomp,
 //
 // tforces = (tforces + visc - gp)/rho
 //
-
 void
-Godunov::Sum_tf_gp_visc (FArrayBox&       tforces,
-                         const FArrayBox& visc,
-                         const FArrayBox& gp,
-                         const FArrayBox& Rho) const
+Godunov::Sum_tf_gp_visc ( Box const&                 bx,
+                          Array4<Real>        const& tforces,
+                          Array4<Real const>  const& visc,
+                          Array4<Real const>  const& gp,
+                          Array4<Real const>  const& rho ) const
 {
-    Sum_tf_gp_visc (tforces, 0, visc, 0, gp, 0, Rho, 0);
-}
-
-void
-Godunov::Sum_tf_gp_visc (FArrayBox&       tforces,
-                         int              Tcomp,
-                         const FArrayBox& visc,
-                         int              Vcomp,
-                         const FArrayBox& gp,
-                         int              Gcomp,
-                         const FArrayBox& rho,
-                         int              Rcomp) const
-{
-    BL_ASSERT(rho.nComp()     > Rcomp);
-    BL_ASSERT(tforces.nComp() >= Tcomp+BL_SPACEDIM);
-    BL_ASSERT(visc.nComp()    >= Vcomp+BL_SPACEDIM);
-    BL_ASSERT(gp.nComp()      == Gcomp+BL_SPACEDIM);
-
-    const int *vlo    = visc.loVect();
-    const int *vhi    = visc.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *glo    = gp.loVect();
-    const int *ghi    = gp.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    Real *TFdat = tforces.dataPtr(Tcomp);
-    const Real *VIdat = visc.dataPtr(Vcomp);
-    const Real *GPdat = gp.dataPtr(Gcomp);
-    const Real *RHdat = rho.dataPtr(Rcomp);
-
-    fort_sum_tf_gp_visc(TFdat, ARLIM(tlo), ARLIM(thi),
-                        VIdat, ARLIM(vlo), ARLIM(vhi),
-                        GPdat, ARLIM(glo), ARLIM(ghi),
-                        RHdat, ARLIM(rlo), ARLIM(rhi),
-                        tlo, thi);
+    amrex::ParallelFor(bx, AMREX_SPACEDIM, [tforces, visc, gp, rho]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        tforces(i,j,k,n) = ( tforces(i,j,k,n) + visc(i,j,k,n)
+                             - gp(i,j,k,n) ) / rho(i,j,k);
+    });
 }
 
 //

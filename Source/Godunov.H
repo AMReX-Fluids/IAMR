@@ -174,18 +174,11 @@ public:      // public access functions
     // =============================================================
     // Source term functions follow
     // =============================================================
-
-    // compute total source term for velocities
-    // tforces = (tforces + visc - gp)/rho
-    void Sum_tf_gp_visc (amrex::FArrayBox&       tforces, int Tcomp,
-                         const amrex::FArrayBox& visc,    int Vcomp,
-                         const amrex::FArrayBox& gp,      int Gcomp,
-                         const amrex::FArrayBox& rho,     int Rcomp) const;
-
-    void Sum_tf_gp_visc( amrex::FArrayBox&       tforces,
-                         const amrex::FArrayBox& visc,
-                         const amrex::FArrayBox& gp,
-                         const amrex::FArrayBox& Rho) const;
+    void Sum_tf_gp_visc ( amrex::Box                        const& bx,
+                          amrex::Array4<amrex::Real>        const& tforces,
+                          amrex::Array4<amrex::Real const>  const& visc,
+                          amrex::Array4<amrex::Real const>  const& gp,
+                          amrex::Array4<amrex::Real const>  const& rho ) const;
 
     // iconserv==1   => tforces = tforces + visc - divU*S
     // iconserv==0   => tforces = (tforces+visc)/rho

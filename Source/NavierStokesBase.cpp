@@ -3616,6 +3616,7 @@ NavierStokesBase::velocity_advection (Real dt)
             for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
             {
                 const Box& bx=U_mfi.tilebox();
+                const int ngrow = 1;
 
                 if (getForceVerbose)
                 {
@@ -3624,9 +3625,15 @@ NavierStokesBase::velocity_advection (Real dt)
                                    << "Calling getForce..." << '\n';
                 }
 
-                getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+                getForce(tforces,bx,ngrow,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
-                godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
+                auto const& tf   = tforces.array();
+                auto const& visc = visc_terms[U_mfi].const_array(Xvel);
+                auto const& gp   = Gp[U_mfi].const_array();
+                auto const& rho  = rho_ptime[U_mfi].const_array();
+                auto const  gbx  = grow(bx,ngrow);
+
+                godunov->Sum_tf_gp_visc(gbx, tf, visc, gp, rho);
 
                 D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
