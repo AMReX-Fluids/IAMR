@@ -129,13 +129,6 @@ extern "C"
 			      const int* tlo, const int* thi,
 			      int* num_comp, int* iconserv);
 
-   void fort_sum_tf_divu(const amrex::Real* Sdat,  ARLIM_P(slo), ARLIM_P(shi),
-			 const amrex::Real* Tfdat, ARLIM_P(tlo), ARLIM_P(thi),
-			 const amrex::Real* DUdat, ARLIM_P(dlo), ARLIM_P(dhi),
-			 const amrex::Real* RHdat, ARLIM_P(rlo), ARLIM_P(rhi),
-			 const int* tlo, const int* thi,
-			 int* num_comp, int* iconserv);
-
    void set_params(const int& slope_order,
 			const int& use_unlimited_slopes);
 #ifdef __cplusplus

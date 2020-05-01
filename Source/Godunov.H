@@ -198,16 +198,6 @@ public:      // public access functions
                            const amrex::FArrayBox& rho,     int tr_ind,
                            int        iconserv) const;
 
-    // iconserv==1   => tforces = tforces - divU*S
-    // iconserv==0   => tforces = (tforces)/rho
-    void Sum_tf_divu (const amrex::FArrayBox& S,       int s_ind,
-                      amrex::FArrayBox& tforces, int t_ind,
-                      int        num_comp,
-                      const amrex::FArrayBox& divu,    int d_ind,
-                      const amrex::FArrayBox& rho,     int r_ind,
-                      int        iconserv) const;
-
-
   //================ for debugging purposes this is made public
     // internal FABS
     amrex::FArrayBox work; // work space for the Godunov Box

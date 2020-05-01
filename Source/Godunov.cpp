@@ -635,52 +635,6 @@ Godunov::Sum_tf_gp_visc ( Box const&                 bx,
 // Compute total source term for scalars.  Note for compatibility
 // The switch iconserv, determines the form of the total source term
 //
-// iconserv==1   => tforces = tforces - divU*S
-//
-// iconserv==0   => tforces = (tforces)/rho
-//
-
-void
-Godunov::Sum_tf_divu (const FArrayBox& S,
-                      int        s_ind,
-                      FArrayBox& tforces,
-                      int        t_ind,
-                      int        num_comp,
-                      const FArrayBox& divu,
-                      int        d_ind,
-                      const FArrayBox& rho,
-                      int        r_ind,
-                      int        iconserv) const
-{
-    BL_ASSERT(S.nComp()       >= s_ind+num_comp);
-    BL_ASSERT(tforces.nComp() >= t_ind+num_comp);
-    BL_ASSERT(divu.nComp()    > d_ind          );
-    BL_ASSERT(rho.nComp()     > r_ind          );
-
-    const int *slo    = S.loVect();
-    const int *shi    = S.hiVect();
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *dlo    = divu.loVect();
-    const int *dhi    = divu.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    const Real *Sdat  = S.dataPtr(s_ind);
-    Real *TFdat = tforces.dataPtr(t_ind);
-    const Real *DUdat = divu.dataPtr(d_ind);
-    const Real *RHdat = rho.dataPtr(r_ind);
-
-    fort_sum_tf_divu(Sdat,  ARLIM(slo), ARLIM(shi),
-                     TFdat, ARLIM(tlo), ARLIM(thi),
-                     DUdat, ARLIM(dlo), ARLIM(dhi),
-                     RHdat, ARLIM(rlo), ARLIM(rhi),
-                     tlo, thi, &num_comp, &iconserv);
-}
-
-//
-// Compute total source term for scalars.  Note for compatibility
-// The switch iconserv, determines the form of the total source term
-//
 // iconserv==1   => tforces = tforces + visc - divU*S
 //
 // iconserv==0   => tforces = (tforces+ visc)/rho
