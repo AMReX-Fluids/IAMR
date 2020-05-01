@@ -30,7 +30,7 @@ module godunov_3d_module
             fort_test_umac_rho, &
             adv_forcing, sync_adv_forcing, &
             convscalminmax, consscalminmax, &
-            fort_sum_tf_gp, fort_sum_tf_divu, &
+            fort_sum_tf_divu, &
             fort_sum_tf_divu_visc
 
 contains
@@ -6837,47 +6837,6 @@ contains
       end do
 
       end subroutine consscalminmax
-
-      subroutine fort_sum_tf_gp( &
-          tforces,DIMS(tf), &
-          gp,DIMS(gp), &
-          rho,DIMS(rho), &
-          lo,hi ) bind(C,name="fort_sum_tf_gp")
-
-!c
-!c     sum pressure forcing into tforces
-!c
-      implicit none
-      integer i, j, k, n
-      integer DIMDEC(tf)
-      integer DIMDEC(gp)
-      integer DIMDEC(rho)
-      integer lo(SDIM), hi(SDIM)
-      real(rt) tforces(DIMV(tf),SDIM)
-      real(rt) gp(DIMV(gp),SDIM)
-      real(rt) rho(DIMV(rho))
-      real(rt), allocatable :: irho(:,:,:)
-
-      allocate(irho(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               irho(i,j,k) = 1.0d0/rho(i,j,k)
-            end do
-         end do
-      end do
-
-      do n = 1, SDIM
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  tforces(i,j,k,n) = (tforces(i,j,k,n) - gp(i,j,k,n))*irho(i,j,k)
-               end do
-            end do
-         end do
-      end do
-      end subroutine fort_sum_tf_gp
 
       subroutine fort_sum_tf_divu( &
           S,DIMS(S), &

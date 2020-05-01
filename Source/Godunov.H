@@ -198,12 +198,6 @@ public:      // public access functions
                            const amrex::FArrayBox& rho,     int tr_ind,
                            int        iconserv) const;
 
-    // compute total source term for velocities
-    // tforces = (tforces - gp)/rho
-    void Sum_tf_gp (amrex::FArrayBox& tforces, int Tcomp,
-                    const amrex::FArrayBox& gp, int Gcomp,
-                    const amrex::FArrayBox& rho, int Rcomp) const;
-
     // iconserv==1   => tforces = tforces - divU*S
     // iconserv==0   => tforces = (tforces)/rho
     void Sum_tf_divu (const amrex::FArrayBox& S,       int s_ind,

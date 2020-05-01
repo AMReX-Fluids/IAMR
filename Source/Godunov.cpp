@@ -614,37 +614,6 @@ Godunov::test_umac_rho (FArrayBox&  umac,
 //
 // Compute total source term for velocities, weighted by rho.
 //
-// tforces = (tforces - gp)/rho
-//
-
-void
-Godunov::Sum_tf_gp (FArrayBox& tforces, int Tcomp,
-                    const FArrayBox& gp, int Gcomp,
-                    const FArrayBox& rho, int Rcomp) const
-{
-    BL_ASSERT(rho.nComp()     > Rcomp);
-    BL_ASSERT(tforces.nComp() > Tcomp + BL_SPACEDIM);
-    BL_ASSERT(gp.nComp()      > Gcomp + BL_SPACEDIM);
-
-    const int *tlo    = tforces.loVect();
-    const int *thi    = tforces.hiVect();
-    const int *glo    = gp.loVect();
-    const int *ghi    = gp.hiVect();
-    const int *rlo    = rho.loVect();
-    const int *rhi    = rho.hiVect();
-    Real *TFdat = tforces.dataPtr(Tcomp);
-    const Real *GPdat = gp.dataPtr(Gcomp);
-    const Real *RHdat = rho.dataPtr(Rcomp);
-
-    fort_sum_tf_gp(TFdat, ARLIM(tlo), ARLIM(thi),
-                   GPdat, ARLIM(glo), ARLIM(ghi),
-                   RHdat, ARLIM(rlo), ARLIM(rhi),
-                   tlo, thi);
-}
-
-//
-// Compute total source term for velocities, weighted by rho.
-//
 // tforces = (tforces + visc - gp)/rho
 //
 void

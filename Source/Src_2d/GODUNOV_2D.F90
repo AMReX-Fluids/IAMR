@@ -26,8 +26,7 @@ module godunov_2d_module
   public :: extrap_vel_to_faces, fort_maxchng_velmag, &
        fort_test_umac_rho, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax,&
-       fort_sum_tf_gp,fort_sum_tf_divu,&
-       fort_sum_tf_divu_visc
+       fort_sum_tf_divu, fort_sum_tf_divu_visc
 
 contains
 
@@ -4306,36 +4305,6 @@ contains
       end do
 
     end subroutine consscalminmax
-
-      subroutine fort_sum_tf_gp(&
-          tforces,DIMS(tf),&
-          gp,DIMS(gp),&
-          rho,DIMS(rho),&
-          lo,hi ) bind(C,name="fort_sum_tf_gp")
-!c
-!c     sum pressure forcing into tforces
-!c
-      implicit none
-      integer i, j, n
-      integer DIMDEC(tf)
-      integer DIMDEC(gp)
-      integer DIMDEC(rho)
-      integer lo(SDIM), hi(SDIM)
-      REAL_T tforces(DIMV(tf),SDIM)
-      REAL_T gp(DIMV(gp),SDIM)
-      REAL_T rho(DIMV(rho))
-
-      do n = 1, SDIM
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               tforces(i,j,n) = (&
-                   tforces(i,j,n)&
-                   -    gp(i,j,n))/rho(i,j)
-            end do
-         end do
-      end do
-
-    end subroutine fort_sum_tf_gp
 
       subroutine fort_sum_tf_divu(&
           s,DIMS(S),&
