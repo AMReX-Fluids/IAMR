@@ -703,6 +703,7 @@ protected:
     static int        NUM_STATE;        // total number of state variables
 #ifdef AMREX_USE_EB
     static const int  NUM_GROW=4;         // number of ghost cells
+    static int refine_cutcells;
 #else
     static const int  NUM_GROW=1;         // number of ghost cells
 #endif
