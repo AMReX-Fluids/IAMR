@@ -1308,9 +1308,10 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
       //
       // FIXME - For now, always refine cut cells
       //   Later, figure out a slick way to check if EB and CFB cross
-      //   and make refine_cutcells a runtime var
+      //   and allow !refine_cutcells 
       //
-      bool refine_cutcells = true;
+      if (!refine_cutcells) amrex::Abort("For now, cutcells must always exist at finest level.");
+
       // Refine on cut cells
       if (refine_cutcells) // or if EB and CBF cross
       {
