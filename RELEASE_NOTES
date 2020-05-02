@@ -105,7 +105,7 @@ Switch many routines to dimension-agnostic (one common code no matter the dimens
 12/2/19
 Minor interface cleanups and problem setups
 
-04/01/20
+4/1/20
 **This is a major update since many branches were merged into development during
 the month of March
 Introducing complex geometries via EB.
@@ -114,3 +114,9 @@ Update and add regression tests.
 Many updates to be compatible with changes to amrex
 Various bugfixes for host and GPU calculations  
 Various changes to problem setups
+
+5/1/20
+Assortment of minor bug fixes
+Tiling/GPU improvements
+AMReX interface updates
+Minor EB improvements
