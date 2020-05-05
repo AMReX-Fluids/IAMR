@@ -118,6 +118,7 @@ int  NavierStokesBase::predict_mom_together   = 0;
 bool NavierStokesBase::def_harm_avg_cen2edge  = false;
 
 #ifdef AMREX_USE_EB
+int          NavierStokesBase::refine_cutcells     = 1;
 bool         NavierStokesBase::eb_initialized      = false;
 bool         NavierStokesBase::no_eb_in_domain     = true;
 bool         NavierStokesBase::body_state_set      = false;
@@ -413,6 +414,10 @@ NavierStokesBase::Initialize ()
     pp.query("LES_model",                LES_model  );
     pp.query("smago_Cs_cst",             smago_Cs_cst  );
     pp.query("sigma_Cs_cst",             sigma_Cs_cst  );
+
+#ifdef AMREX_USE_EB
+    pp.query("refine_cutcells", refine_cutcells);
+#endif
 
     pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
     if (do_scalar_update_in_order) {
@@ -1303,9 +1308,10 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
       //
       // FIXME - For now, always refine cut cells
       //   Later, figure out a slick way to check if EB and CFB cross
-      //   and make refine_cutcells a runtime var
+      //   and allow !refine_cutcells 
       //
-      bool refine_cutcells = true;
+      if (!refine_cutcells) amrex::Abort("For now, cutcells must always exist at finest level.");
+
       // Refine on cut cells
       if (refine_cutcells) // or if EB and CBF cross
       {
