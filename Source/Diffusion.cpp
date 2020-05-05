@@ -1323,9 +1323,6 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 
     MultiFab::Copy(Rhs,Ssync,sigma,0,1,0);
 
-    Rhs.mult(dt);
-
-
     if (verbose > 1)
     {
         MultiFab junk(grids,dmap,1,0,MFInfo(),navier_stokes->Factory());
