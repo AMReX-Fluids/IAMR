@@ -544,9 +544,9 @@ Godunov::maxchng_velmag ( MultiFab const&  u_old,
     ReduceData<Real> reduce_data(reduce_op);
     using ReduceTuple = typename decltype(reduce_data)::Type;
 
-#if !defined(AMREX_USE_GPU) && defined(_OPENMP)
-#pragma omp parallel  if (!system::regtest_reduction) reduction(max:max_change)
-#endif
+    // Do not OpenMP-fy this loop for now
+    // Unclear how to keep OpenMP and GPU implementation
+    // from messing with each other
     for (MFIter mfi(u_old,true); mfi.isValid(); ++mfi)
     {
         const auto& bx   = mfi.tilebox();
