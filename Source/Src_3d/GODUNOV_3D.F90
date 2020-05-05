@@ -26,8 +26,7 @@ module godunov_3d_module
 
   private
 
-  public :: extrap_vel_to_faces, fort_maxchng_velmag, &
-            fort_test_umac_rho, &
+  public :: extrap_vel_to_faces, fort_test_umac_rho, &
             adv_forcing, sync_adv_forcing, &
             convscalminmax, consscalminmax
 
@@ -619,48 +618,6 @@ contains
     call amrex_deallocate(dsvl)
 
   end subroutine extrap_state_to_faces
-
-
-      subroutine fort_maxchng_velmag ( &
-          old_vel,DIMS(old_vel), &
-          new_vel,DIMS(new_vel), &
-          lo,hi,max_change) bind(C,name="fort_maxchng_velmag")
-!c
-!c     ----------------------------------------------------------
-!c     Given the velocity field at the previous and current time steps
-!c     (old_vel and new_vel, respectively), find the largest change in
-!c     velocity magnitude between the two.
-!c     ----------------------------------------------------------
-!c
-      implicit none
-      real(rt)   old_velmag, new_velmag
-      integer  i, j, k
-      integer  lo(SDIM), hi(SDIM)
-      real(rt)   max_change
-
-      integer DIMDEC(old_vel)
-      integer DIMDEC(new_vel)
-
-      real(rt)  old_vel(DIMV(old_vel),SDIM)
-      real(rt)  new_vel(DIMV(new_vel),SDIM)
-
-      max_change = zero
-
-      do k = lo(3), hi(3)
-          do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-                old_velmag = sqrt(old_vel(i,j,k,1)**2 + &
-                                 old_vel(i,j,k,2)**2 + &
-                                 old_vel(i,j,k,3)**2)
-                new_velmag = sqrt(new_vel(i,j,k,1)**2 + &
-                                 new_vel(i,j,k,2)**2 + &
-                                 new_vel(i,j,k,3)**2)
-                max_change = max(max_change, abs(new_velmag - old_velmag))
-            end do
-          end do
-      end do
-
-      end subroutine fort_maxchng_velmag
 
       subroutine fort_test_umac_rho ( &
           umac,DIMS(umac), &

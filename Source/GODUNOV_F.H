@@ -20,11 +20,6 @@ extern "C"
 			   const amrex::Real* dx, amrex::Real* cfl, const amrex::Real* u_max);
 
 
-   void fort_maxchng_velmag(const amrex::Real* Uodat,  ARLIM_P(uo_lo), ARLIM_P(uo_hi),
-		   const amrex::Real* Undat,  ARLIM_P(un_lo), ARLIM_P(un_hi),
-		   const int* lo, const int* hi, amrex::Real* max_change);
-
-
    void extrap_vel_to_faces(const int* lo, const int* hi,
                             const amrex::Real* u_dat, const int* u_lo, const int* u_hi,
                             const int* ubc,

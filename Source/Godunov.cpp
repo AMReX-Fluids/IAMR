@@ -7,6 +7,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FArrayBox.H>
+#include <AMReX_MultiFab.H>
 #include <Godunov.H>
 #include <GODUNOV_F.H>
 
@@ -534,26 +535,47 @@ Godunov::ConvectiveScalMinMax (FArrayBox& Sold,
 // Estimate the maximum change in velocity magnitude since previous iteration.
 //
 Real
-Godunov::maxchng_velmag (FArrayBox&  U_old,
-			 FArrayBox&  U_new,
-			 const Box&  grd)
+Godunov::maxchng_velmag ( MultiFab const&  u_old,
+			  MultiFab const&  u_new )
 {
-    BL_ASSERT( U_old.nComp()   >= BL_SPACEDIM );
-    BL_ASSERT( U_new.nComp()   >= BL_SPACEDIM );
+    Real max_change = 0.0;
 
-    const int *lo     = grd.loVect();
-    const int *hi     = grd.hiVect();
-    const int *uo_lo  = U_old.loVect();
-    const int *uo_hi  = U_old.hiVect();
-    const int *un_lo  = U_new.loVect();
-    const int *un_hi  = U_new.hiVect();
-    const Real *Uodat = U_old.dataPtr();
-    const Real *Undat = U_new.dataPtr();
+    ReduceOps<ReduceOpMax> reduce_op;
+    ReduceData<Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
 
-	Real max_change = 0.0;
-    fort_maxchng_velmag(Uodat, ARLIM(uo_lo), ARLIM(uo_hi),
-               	   Undat, ARLIM(un_lo), ARLIM(un_hi),
-               	   lo, hi, &max_change);
+#if !defined(AMREX_USE_GPU) && defined(_OPENMP)
+#pragma omp parallel  if (!system::regtest_reduction) reduction(max:max_change)
+#endif
+    for (MFIter mfi(u_old,true); mfi.isValid(); ++mfi)
+    {
+        const auto& bx   = mfi.tilebox();
+        const auto& uold = u_old[mfi].array();
+        const auto& unew = u_new[mfi].array();
+
+        reduce_op.eval(bx, reduce_data, [uold, unew]
+        AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            Real uold_mag = 0.0;
+            Real unew_mag = 0.0;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
+                uold_mag += uold(i,j,k,d)*uold(i,j,k,d);
+                unew_mag += unew(i,j,k,d)*unew(i,j,k,d);
+            }
+
+            uold_mag = std::sqrt(uold_mag);
+            unew_mag = std::sqrt(unew_mag);
+
+            return std::abs(unew_mag-uold_mag);
+        });
+
+        max_change = std::max(amrex::get<0>(reduce_data.value()),
+                              max_change);
+    }
+
+    ParallelDescriptor::ReduceRealMax(max_change);
+
     return max_change;
 }
 

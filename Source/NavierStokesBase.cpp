@@ -2404,31 +2404,19 @@ NavierStokesBase::steadyState()
         return false; // If nothing to compare to, must not yet be steady :)
     }
 
-    Real        max_change    = 0.0;
     MultiFab&   U_old         = get_old_data(State_Type);
     MultiFab&   U_new         = get_new_data(State_Type);
 
-	//
-	// Estimate the maximum change in velocity magnitude since previous
-	// iteration
-	//
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(max:max_change)
-#endif
-    for (MFIter Rho_mfi(rho_ctime,true); Rho_mfi.isValid(); ++Rho_mfi)
-    {
-      const Box& bx=Rho_mfi.tilebox();
-      Real change = godunov->maxchng_velmag(U_new[Rho_mfi],U_old[Rho_mfi],bx);
+    //
+    // Estimate the maximum change in velocity magnitude since previous
+    // iteration
+    //
+    Real  max_change  = godunov->maxchng_velmag(U_old,U_new);
 
-      max_change = std::max(change, max_change);
-    }
-
-    ParallelDescriptor::ReduceRealMax(max_change);
-
-	//
-	// System is classified as steady if the maximum change is smaller than
-	// prescribed tolerance
-	//
+    //
+    // System is classified as steady if the maximum change is smaller than
+    // prescribed tolerance
+    //
     bool steady = max_change < steady_tol;
 
     if (verbose)

@@ -147,7 +147,8 @@ public:      // public access functions
     // =============================================================
 
     // find the largest change in velocity magnitude since last iteration
-    amrex::Real maxchng_velmag( amrex::FArrayBox &U_old, amrex::FArrayBox &U_new, const amrex::Box &grd );
+    amrex::Real maxchng_velmag( amrex::MultiFab const& u_old,
+                                amrex::MultiFab const& u_new );
 
     // test the mac edge velocity Courant numbers
     amrex::Real test_umac_rho( amrex::FArrayBox &umac,
