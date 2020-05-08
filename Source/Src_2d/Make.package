@@ -23,8 +23,8 @@ ifndef ATMOS_MACOP
   F90EXE_sources += MACOPERATOR_$(DIM)D.F90
 endif
 
-# for EB
-ifeq ($(USE_EB),TRUE)
-F90EXE_sources += AMReX_EBMultiFabUtil_2d.F90
+# # for EB
+# ifeq ($(USE_EB),TRUE)
+# F90EXE_sources += AMReX_EBMultiFabUtil_2d.F90
 
-endif
+# endif
