@@ -157,7 +157,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 if (!known_edgestate)
                 {
                     Array4<Real const> const q = state.const_array(mfi,state_comp); 
-                    Box gbx = amrex::grow(bx,2);  // We need 2 ghost-cells for PeleLM
+                    Box gbx = amrex::grow(bx,xedge.nGrow());
 
                     ComputeEdgeState( gbx, D_DECL( xed, yed, zed ), q, ncomp,
                                       D_DECL( u, v, w ), domain, bcs );
