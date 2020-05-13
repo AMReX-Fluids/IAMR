@@ -881,8 +881,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                    fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,
                                    alpha,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
-                                   visc_coef,visc_coef_comp,crse_ratio,
-                                   theBCs[bc_comp],geom,
+                                   crse_ratio,theBCs[bc_comp],geom,
                                    solve_mode,add_old_time_divFlux,
                                    diffuse_comp);
 
@@ -1879,7 +1878,6 @@ NavierStokes::mac_sync ()
                                    delta_rhs,rhsComp,
                                    alpha_in,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
-                                   visc_coef,visc_coef_comp,
                                    crse_ratio,theBCs[state_ind],geom,
                                    solve_mode,
                                    add_old_time_divFlux,diffuse_comp);

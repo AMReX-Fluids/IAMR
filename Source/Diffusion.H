@@ -79,8 +79,6 @@ public:
 			 const amrex::MultiFab* const*          betan, 
 			 const amrex::MultiFab* const*          betanp1,
 			 int                                    betaComp,
-			 const amrex::Vector<amrex::Real>&      visc_coef,
-			 int                                    visc_coef_comp,
 			 const amrex::IntVect&                  cratio,
 			 const amrex::BCRec&                    bc,
 			 const amrex::Geometry&                 geom,
