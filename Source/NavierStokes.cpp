@@ -1723,7 +1723,8 @@ NavierStokes::mac_sync ()
     //
     // Compute the u_mac for the correction.
     //
-    mac_projector->mac_sync_solve(level,dt,Rh,fine_ratio,Ucorr);
+    Vector<BCRec> rho_math_bc = fetchBCArray(State_Type,Density,1);
+    mac_projector->mac_sync_solve(level,dt,Rh,rho_math_bc[0],fine_ratio,Ucorr);
     //
     // Update coarse grid state by adding correction from mac_sync solve
     // the correction is the advective tendency of the new velocities.
