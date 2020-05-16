@@ -640,7 +640,7 @@ MacProj::mac_sync_compute (int                   level,
     }
 
 #ifdef AMREX_USE_EB
-    const int  nghost  = 4;         // Use 4 for now
+    const int  nghost  = 2;
 
     MultiFab& Gp = ns_level.getGradP();
 #else
@@ -875,7 +875,7 @@ MacProj::mac_sync_compute (int                    level,
     const MultiFab* area         = ns_level.Area();
 
 #ifdef AMREX_USE_EB
-    const int  nghost  = 4;         // Use 4 for now
+    const int  nghost  = 2;
 #else
     const int  nghost  = 0;
 #endif
