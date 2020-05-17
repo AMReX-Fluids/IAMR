@@ -2202,7 +2202,10 @@ NavierStokes::calc_divu (Real      time,
             const MultiFab&   rhotime = get_rho(time);
 
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
-	    const MultiFab& tmf = temp_fpi.get_mf();
+	    MultiFab& tmf = temp_fpi.get_mf();
+#ifdef AMREX_USE_EB
+	    EB_set_covered(tmf,COVERED_VAL);
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
