@@ -21,8 +21,3 @@ endif
 
 F90EXE_sources += ARRAYLIM_$(DIM)D.F90 \
                   NavierStokesBase_$(DIM)D.F90
-
-# for EB
-ifeq ($(USE_EB),TRUE)
-F90EXE_sources += AMReX_EBMultiFabUtil_3d.F90
-endif

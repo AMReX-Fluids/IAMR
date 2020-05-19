@@ -55,6 +55,7 @@ static void set_mac_solve_bc (std::array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_l
 }
 
 void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc,
+                           const BCRec& density_math_bc,
                            int level, int Density, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                            const MultiFab &S, MultiFab &Rhs,
                            MultiFab *u_mac, MultiFab *mac_phi, int verbose)
@@ -92,11 +93,17 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     }
 
     // Set bcoefs to the average of Density at the faces
-    // This does NOT compute the average at the CENTROIDS, but at the faces
-    // Operator inside MAc projector will take care of this.
-    MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow());
+    // In the EB case, they will be defined at the Face Centroid
+    MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow(),
+                 MFInfo(), (parent->getLevel(level)).Factory());
     MultiFab::Copy(rho, S, Density, 0, 1, S.nGrow()); // Extract rho component from S
-    average_cellcenter_to_face( GetArrOfPtrs(bcoefs), rho, geom);
+
+#ifdef AMREX_USE_EB
+        EB_interp_CellCentroid_to_FaceCentroid( rho, GetArrOfPtrs(bcoefs), 0, 0, 1,
+                                                geom, {density_math_bc});
+#else
+        average_cellcenter_to_face(GetArrOfPtrs(bcoefs), rho, geom);
+#endif
 
     // Now invert the coefficients and apply scale factor
     int ng_for_invert(0);
@@ -107,10 +114,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
         bcoefs[idim]->invert(scale_factor,ng_for_invert);
         bcoefs[idim]->FillBoundary( geom.periodicity() );
     }
-#ifdef AMREX_USE_EB
-    EB_set_covered_faces(GetArrOfPtrs(bcoefs), COVERED_VAL);
-#endif
-    
+
     //
     // Create MacProjector Object
     //
@@ -122,11 +126,14 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         umac[idim]= &(u_mac[idim]);
 
+    // phi is always considered at cell centers.
+    // This won't be an issue because  we won't use phi directly
+    // and EB is always, by construction, far from fine/coarse interfaces
     MacProjector macproj( {umac}, MLMG::Location::FaceCentroid, // Location of umac (face center vs centroid)
-                          {GetArrOfConstPtrs(bcoefs)}, MLMG::Location::FaceCenter,  // Location of beta (face center vs centroid)
+                          {GetArrOfConstPtrs(bcoefs)}, MLMG::Location::FaceCentroid,  // Location of beta (face center vs centroid)
                           MLMG::Location::CellCenter,           // Location of solution variable phi (cell center vs centroid)
-                          {geom}, info, 
-                          {&Rhs}, MLMG::Location::CellCenter);  // Location of RHS (cell center vs centroid)
+                          {geom}, info,
+                          {&Rhs}, MLMG::Location::CellCentroid);  // Location of RHS (cell center vs centroid)
 
     //
     // Set BCs
@@ -164,6 +171,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
 
 
 void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
+                          const BCRec& rho_math_bc,
                           int level, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
                           const MultiFab* area, const MultiFab& volume,
                           const MultiFab& rho, MultiFab& Rhs,
@@ -206,9 +214,14 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     // Not so relevant at the moment with restrriction EB not crossing coarse-fine bndry
 
     // Set bcoefs to the average of Density at the faces
-    // This does NOT compute the average at the CENTROIDS, but at the faces
-    // Operator inside MAc projector will take care of this.
-    average_cellcenter_to_face( GetArrOfPtrs(bcoefs), rho, geom);
+    // In the EB case, they will be defined at the Face Centroid
+#ifdef AMREX_USE_EB
+        EB_interp_CellCentroid_to_FaceCentroid( rho, GetArrOfPtrs(bcoefs), 0, 0, 1,
+                                                geom, {rho_math_bc});
+#else
+        average_cellcenter_to_face(GetArrOfPtrs(bcoefs), rho, geom);
+#endif
+
 
     // Now invert the coefficients and apply scale factor
     int ng_for_invert(0);
@@ -243,7 +256,11 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
     mlabec.setLevelBC(0, mac_phi);
     mlabec.setScalars(0.0, 1.0);
+#ifdef AMREX_USE_EB
+    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs), MLMG::Location::FaceCentroid);
+#else
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
+#endif
 
     MLMG mlmg(mlabec);
     if (use_hypre) {

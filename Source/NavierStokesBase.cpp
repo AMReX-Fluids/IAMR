@@ -1308,7 +1308,7 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
       //
       // FIXME - For now, always refine cut cells
       //   Later, figure out a slick way to check if EB and CFB cross
-      //   and allow !refine_cutcells 
+      //   and allow !refine_cutcells
       //
       if (!refine_cutcells) amrex::Abort("For now, cutcells must always exist at finest level.");
 
@@ -2263,7 +2263,10 @@ NavierStokesBase::mac_project (Real      time,
 
     const Real strt_time = ParallelDescriptor::second();
 
-    mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,increment_vel_register);
+    Vector<BCRec> density_math_bc = fetchBCArray(State_Type,Density,1);
+
+    mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,
+                               density_math_bc[0], increment_vel_register);
 
     create_umac_grown(ngrow);
 
