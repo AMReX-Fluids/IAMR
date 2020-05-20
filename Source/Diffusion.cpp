@@ -573,9 +573,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	const MultiFab* rho = (rho_flag == 1) ? &rho_half : Rho_new[0];
 	int rhoComp = (rho_flag == 1 ) ? 0 : Rho_comp;
 	
-	// computeAlpha(alpha, scalars, a, b, rho_half, rho_flag,
-	// 	     &rhsscale, alpha_in, alpha_in_comp+icomp,
-	// 	     Rho_new[0], Rho_comp);
 	computeAlpha(alpha, scalars, a, b, 
 		     &rhsscale, alpha_in, alpha_in_comp+icomp,
 		     rho_flag, rho, rhoComp);
@@ -587,8 +584,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	Array<MultiFab,AMREX_SPACEDIM> bcoeffs = computeBeta(betanp1, betaComp+icomp);
 	opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
       }
-      // rhsscale =1. above
-      //Rhs.mult(rhsscale,0,1);
+      Rhs.mult(rhsscale,0,1);
       const Real S_tol     = visc_tol;
       const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
 
@@ -950,7 +946,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       {
 	MultiFab acoef;
 	std::pair<Real,Real> scalars;
-	// fixme? don't know why we're bothering with rhsscale....
 	Real rhsscale = 1.0;
 	const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
 	  
@@ -1251,7 +1246,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
     
-    // fixme? why bother with rhsscale since set = 1 above
     Rhs.mult(rhsscale,0,1);
     
     mlmg.setFinalFillBC(true);
