@@ -522,8 +522,11 @@ NavierStokes::predict_velocity (Real  dt)
     //
     // Non-EB version
     //
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    const int ngrow = 1;
+    MultiFab Gp(grids, dmap, AMREX_SPACEDIM,ngrow);
     getGradP(Gp, prev_pres_time);
+
+    MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -532,16 +535,22 @@ NavierStokes::predict_velocity (Real  dt)
         FArrayBox tforces;
         Vector<int> bndry[BL_SPACEDIM];
 
+
+        //
+        // Compute forcing
+        //
         for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
         {
             Box bx=U_mfi.tilebox();
             FArrayBox& Ufab = Umf[U_mfi];
-            const int ngrow = 1;
+            //const int ngrow = 1;
 
             if (getForceVerbose) {
                 Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
             }
+
             getForce(tforces,bx,ngrow,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+
 
             //
             // Compute the total forcing.
@@ -554,6 +563,19 @@ NavierStokes::predict_velocity (Real  dt)
 
             godunov->Sum_tf_gp_visc(gbx, tf, visc, gp, rho);
 
+            // Copy to forcing_term MF
+            forcing_term[U_mfi].copy<RunOn::Host>(tforces);
+        }
+
+        //
+        // Compute MAC velocities
+        //
+        for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+        {
+            Box bx=U_mfi.tilebox();
+            FArrayBox& Ufab = Umf[U_mfi];
+
+
             D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                    bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                    bndry[2] = fetchBCArray(State_Type,bx,2,1););
@@ -563,8 +585,9 @@ NavierStokes::predict_velocity (Real  dt)
             godunov->ExtrapVelToFaces(bx, dx, dt,
                                       D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                       D_DECL(bndry[0],        bndry[1],        bndry[2]),
-                                      Ufab, tforces);
+                                      Ufab, forcing_term[U_mfi]);
         }
+
     } // end OMP parallel region
 #endif
 
