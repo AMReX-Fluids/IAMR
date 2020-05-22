@@ -29,11 +29,13 @@ void mac_vel_update( int init,
 
 
 void mlmg_mac_level_solve (amrex::Amr* parent, const amrex::MultiFab* cphi, const amrex::BCRec& phys_bc,
+                           const amrex::BCRec& density_math_bc,
                            int level, int Density, amrex::Real mac_tol, amrex::Real mac_abs_tol, amrex::Real rhs_scale,
                            const amrex::MultiFab &S, amrex::MultiFab &Rhs,
                            amrex::MultiFab *u_mac, amrex::MultiFab *mac_phi, int verbose);
 
 void mlmg_mac_sync_solve (amrex::Amr* parent, const amrex::BCRec& phys_bc,
+                          const amrex::BCRec& rho_math_bc,
                           int level, amrex::Real mac_tol, amrex::Real mac_abs_tol, amrex::Real rhs_scale,
                           const amrex::MultiFab* area, const amrex::MultiFab& volume,
                           const amrex::MultiFab& rho, amrex::MultiFab& Rhs,

@@ -344,23 +344,12 @@ Projection::level_project (int             level,
 
 
 #ifdef AMREX_USE_EB
-    //fixme?  I think one gp is fine, just update as we go, but
-    // maybe revisit this later
     MultiFab& Gp = ns->getGradP();
     Gp.FillBoundary(geom.periodicity());
 #else
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
     ns->getGradP(Gp, prev_pres_time);
 #endif
-
-
-//amrex::Print() << "Gp \n" << Gp[0];
-
-// EM_DEBUG
-//static int count=0;
-//       count++;
-//            amrex::WriteSingleLevelPlotfile("Gp_in_Proj"+std::to_string(count), Gp, {"gpx","gpy"}, parent->Geom(0), 0.0, 0);
-//            amrex::WriteSingleLevelPlotfile("Pressure_in_Proj"+std::to_string(count), P_old, {"press"}, parent->Geom(0), 0.0, 0);
 
 
 #ifdef _OPENMP
@@ -374,7 +363,6 @@ Projection::level_project (int             level,
 #ifdef AMREX_USE_EB
 	FArrayBox Gpfab(bx,BL_SPACEDIM);
 	Gpfab.copy<RunOn::Host>((Gp)[mfi],0,0,BL_SPACEDIM);
-//Gpfab.FillBoundary(geom.periodicity());
 #else
 	FArrayBox& Gpfab = Gp[mfi];
 #endif
@@ -451,12 +439,22 @@ Projection::level_project (int             level,
 
     if (level < parent->finestLevel()) {
       sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1, MFInfo(), factory));
+      for (MFIter mfi(*sync_resid_crse,true); mfi.isValid(); ++mfi)
+        {
+          const Box& bx = mfi.grownnodaltilebox();
+          (*sync_resid_crse)[mfi].setVal(0.,bx);
+        }
     }
 
     if (level > 0 && iteration == crse_dt_ratio)
     {
       const int ngrow = parent->MaxRefRatio(level-1) - 1;
       sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow, MFInfo(), factory));
+      for (MFIter mfi(*sync_resid_fine,true); mfi.isValid(); ++mfi)
+        {
+          const Box& bx = mfi.grownnodaltilebox();
+          (*sync_resid_fine)[mfi].setVal(0.,bx);
+        }
     }
 
     Vector<MultiFab*> rhcc;
@@ -472,13 +470,12 @@ Projection::level_project (int             level,
 
 	rhcc[level] = divusource.get();
     }
-
+amrex::Print () << "\n DEBUG BEFORE doMLMGNodalProjection \n";
     bool proj2 = true;
     doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol,
 			  proj_abs_tol, proj2,
 			  sync_resid_crse.get(), sync_resid_fine.get());
-
-
+amrex::Print () << "\n DEBUG AFTER doMLMGNodalProjection \n";
     //
     // Note: this must occur *after* the projection has been done
     //       (but before the modified velocity has been copied back)
@@ -650,6 +647,11 @@ Projection::MLsyncProject (int             c_lev,
     {
         int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
         sync_resid_fine.reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,ngrow));
+        for (MFIter mfi(*sync_resid_fine,true); mfi.isValid(); ++mfi)
+        { 
+          const Box& bx = mfi.grownnodaltilebox();
+          (*sync_resid_fine)[mfi].setVal(0.,bx);
+        }
     }
 
     bool proj2 = true;

@@ -12,23 +12,23 @@
 class MacProj
 {
 public:
-    
+
     MacProj (amrex::Amr*   parent,
              int    _finest_level,
-             amrex::BCRec* _phys_bc, 
+             amrex::BCRec* _phys_bc,
              int    /*not used*/ );
-    
+
     ~MacProj ();
 
-    
-    void install_level (int       level, 
+
+    void install_level (int       level,
                         amrex::AmrLevel* level_data);
 
-    void install_anelastic_coefficient (int                    level, 
+    void install_anelastic_coefficient (int                    level,
                                         amrex::Real**            anel_coeff);
-    void build_anelastic_coefficient (int                    level, 
+    void build_anelastic_coefficient (int                    level,
 				      amrex::Real**&            anel_coeff);
-    
+
     void setup (int level);
     void cleanup (int level);
     //
@@ -41,14 +41,16 @@ public:
                       amrex::Real            prev_time,
                       const amrex::MultiFab& divu,
                       int             have_divu,
-                      bool            increment_vel_register = true);
+                      const amrex::BCRec&   density_math_bc,
+                      bool            increment_vel_register = true );
 
     //
     // The sync solve.
     //
     void mac_sync_solve (int       level,
-                         amrex::Real      dt, 
+                         amrex::Real      dt,
                          amrex::MultiFab& rho_half,
+                         const amrex::BCRec&  rho_math_bc,
                          amrex::IntVect&  fine_ratio,
 			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
 			 amrex::MultiFab* Rhs_increment = nullptr);
@@ -58,10 +60,10 @@ public:
     //
     void mac_sync_compute (int                          level,
 			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
-                           amrex::MultiFab*             u_mac, 
+                           amrex::MultiFab*             u_mac,
                            amrex::MultiFab&             Vsync,
                            amrex::MultiFab&             Ssync,
-                           amrex::MultiFab&             rho_half, 
+                           amrex::MultiFab&             rho_half,
                            amrex::FluxRegister*         adv_flux_reg,
                            amrex::Vector<AdvectionForm>& advectionType,
                            amrex::Real                  prev_time,
@@ -109,7 +111,7 @@ protected:
 
     void set_outflow_bcs (int level,
                           amrex::MultiFab* mac_phi,
-                          const amrex::MultiFab* u_mac, 
+                          const amrex::MultiFab* u_mac,
                           const amrex::MultiFab& S,
                           const  amrex::MultiFab& divu);
     //
@@ -130,7 +132,7 @@ protected:
     //
     // Anelastic coefficient array.
     //
-    static int                   anel_grow;  
+    static int                   anel_grow;
     amrex::Vector<amrex::Real**> anel_coeff;
     //
     // Parameters.

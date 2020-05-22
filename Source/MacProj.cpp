@@ -317,7 +317,8 @@ MacProj::mac_project (int             level,
                       Real            time,
                       const MultiFab& divu,
                       int             have_divu,
-                      bool            increment_vel_register)
+                      const BCRec&    density_math_bc,
+                      bool            increment_vel_register )
 {
     BL_PROFILE("MacProj::mac_project()");
     if (verbose) amrex::Print() << "... mac_project at level " << level << '\n';
@@ -381,7 +382,7 @@ MacProj::mac_project (int             level,
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
     MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
-    mlmg_mac_level_solve(parent, cphi, *phys_bc, level, Density, mac_tol, mac_abs_tol,
+    mlmg_mac_level_solve(parent, cphi, *phys_bc, density_math_bc, level, Density, mac_tol, mac_abs_tol,
                          rhs_scale, S, Rhs, u_mac, mac_phi, verbose);
 
 
@@ -450,9 +451,10 @@ void
 MacProj::mac_sync_solve (int       level,
                          Real      dt,
                          MultiFab& rho_half,
+                         const BCRec& rho_math_bc,
                          IntVect&  fine_ratio,
 			 Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
-			 MultiFab* Rhs_increment)
+			 MultiFab* Rhs_increment )
 {
     BL_ASSERT(level < finest_level);
 
@@ -545,9 +547,9 @@ MacProj::mac_sync_solve (int       level,
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
     //
-    // Compute Ucorr, including filling ghost cells for EB  
+    // Compute Ucorr, including filling ghost cells for EB
     //
-    mlmg_mac_sync_solve(parent,*phys_bc, level, mac_sync_tol, mac_abs_tol,
+    mlmg_mac_sync_solve(parent,*phys_bc, rho_math_bc, level, mac_sync_tol, mac_abs_tol,
                         rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi,
 			Ucorr, verbose);
 
@@ -645,7 +647,7 @@ MacProj::mac_sync_compute (int                   level,
     MultiFab& Gp = ns_level.getGradP();
 #else
     const int  nghost  = 0;
-    
+
     MultiFab Gp(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
     ns_level.getGradP(Gp, prev_pres_time);
 #endif
@@ -879,7 +881,7 @@ MacProj::mac_sync_compute (int                    level,
 #else
     const int  nghost  = 0;
 #endif
-    
+
     MultiFab fluxes[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
@@ -912,14 +914,14 @@ MacProj::mac_sync_compute (int                    level,
 			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
 			     math_bcs, geom  );
-	
+
     }
 #else
     //
     // non-EB algorithm
     //
     Godunov godunov;
-    
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -969,7 +971,7 @@ MacProj::mac_sync_compute (int                    level,
         }
     }//end OMP parallel region
 #endif
-    
+
     if (level > 0 && update_fluxreg){
         for (int d = 0; d < BL_SPACEDIM; d++){
             adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
