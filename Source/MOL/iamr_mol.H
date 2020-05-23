@@ -103,10 +103,15 @@ namespace MOL {
                      const amrex::Vector<amrex::BCRec>& bcs );
 
 
-    void AreaWeightFluxes ( amrex::Box const& bx,
+    void AreaWeightFluxes ( D_DECL( const amrex::Box& xbx,
+				    const amrex::Box& ybx,
+				    const amrex::Box& zbx),
                             D_DECL( amrex::Array4<amrex::Real> const& fx,
                                     amrex::Array4<amrex::Real> const& fy,
                                     amrex::Array4<amrex::Real> const& fz),
+                            D_DECL( amrex::Array4<amrex::Real> const& fxtmp,
+                                    amrex::Array4<amrex::Real> const& fytmp,
+                                    amrex::Array4<amrex::Real> const& fztmp),
                             int ncomp,
                             const amrex::Real* dx );
 
@@ -172,14 +177,20 @@ namespace MOL {
     void Redistribute (  amrex::Box const& bx, int ncomp,
                          amrex::Array4<amrex::Real> const& div,
                          amrex::Array4<amrex::Real const> const& div_in,
+			 amrex::Array4<amrex::Real> const& scratch,
                          amrex::Array4<amrex::EBCellFlag const> const& flag,
                          amrex::Array4<amrex::Real const> const& vfrac,
                          amrex::Geometry const& geom );
 
-    void EB_AreaWeightFluxes ( amrex::Box const& bx,
+    void EB_AreaWeightFluxes ( D_DECL( const amrex::Box& xbx,
+				       const amrex::Box& ybx,
+				       const amrex::Box& zbx),
                                D_DECL( amrex::Array4<amrex::Real> const& fx,
                                        amrex::Array4<amrex::Real> const& fy,
                                        amrex::Array4<amrex::Real> const& fz),
+                               D_DECL( amrex::Array4<amrex::Real> const& fxtmp,
+                                       amrex::Array4<amrex::Real> const& fytmp,
+                                       amrex::Array4<amrex::Real> const& fztmp),
                                D_DECL( amrex::Array4<amrex::Real const> const& apx,
                                        amrex::Array4<amrex::Real const> const& apy,
                                        amrex::Array4<amrex::Real const> const& apz ),
