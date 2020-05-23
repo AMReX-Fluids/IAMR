@@ -439,22 +439,14 @@ Projection::level_project (int             level,
 
     if (level < parent->finestLevel()) {
       sync_resid_crse.reset(new MultiFab(P_grids,P_dmap,1,1, MFInfo(), factory));
-      for (MFIter mfi(*sync_resid_crse,true); mfi.isValid(); ++mfi)
-        {
-          const Box& bx = mfi.grownnodaltilebox();
-          (*sync_resid_crse)[mfi].setVal(0.,bx);
-        }
+      sync_resid_crse->setVal(0.);
     }
 
     if (level > 0 && iteration == crse_dt_ratio)
     {
       const int ngrow = parent->MaxRefRatio(level-1) - 1;
       sync_resid_fine.reset(new MultiFab(P_grids,P_dmap,1,ngrow, MFInfo(), factory));
-      for (MFIter mfi(*sync_resid_fine,true); mfi.isValid(); ++mfi)
-        {
-          const Box& bx = mfi.grownnodaltilebox();
-          (*sync_resid_fine)[mfi].setVal(0.,bx);
-        }
+      sync_resid_fine->setVal(0.);
     }
 
     Vector<MultiFab*> rhcc;
@@ -470,12 +462,12 @@ Projection::level_project (int             level,
 
 	rhcc[level] = divusource.get();
     }
-amrex::Print () << "\n DEBUG BEFORE doMLMGNodalProjection \n";
+
     bool proj2 = true;
     doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol,
 			  proj_abs_tol, proj2,
 			  sync_resid_crse.get(), sync_resid_fine.get());
-amrex::Print () << "\n DEBUG AFTER doMLMGNodalProjection \n";
+
     //
     // Note: this must occur *after* the projection has been done
     //       (but before the modified velocity has been copied back)
@@ -647,11 +639,7 @@ Projection::MLsyncProject (int             c_lev,
     {
         int ngrow = parent->MaxRefRatio(c_lev-1) - 1;
         sync_resid_fine.reset(new MultiFab(Pgrids_crse,Pdmap_crse,1,ngrow));
-        for (MFIter mfi(*sync_resid_fine,true); mfi.isValid(); ++mfi)
-        { 
-          const Box& bx = mfi.grownnodaltilebox();
-          (*sync_resid_fine)[mfi].setVal(0.,bx);
-        }
+        sync_resid_fine->setVal(0.);
     }
 
     bool proj2 = true;
