@@ -36,17 +36,20 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nComp() >= fluxes_comp  + ncomp);,
             AMREX_ALWAYS_ASSERT(yfluxes.nComp() >= fluxes_comp  + ncomp);,
             AMREX_ALWAYS_ASSERT(zfluxes.nComp() >= fluxes_comp  + ncomp););
+    AMREX_ALWAYS_ASSERT(aofs.nGrow() == 0);
     D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nGrow() == xedge.nGrow());,
             AMREX_ALWAYS_ASSERT(yfluxes.nGrow() == yedge.nGrow());,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
 
 #ifdef AMREX_USE_EB
-    // We need at least two ghost nodes for redistribution
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
-    AMREX_ALWAYS_ASSERT(aofs.nGrow()==0);
+    // We need at least two ghost nodes for redistribution
     D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
             AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
             AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
+    // Need at least 2 more ghost cells in state than in xedge  
+    AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
+
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
 
@@ -54,7 +57,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
     
-    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
     if (Gpu::notInLaunchRegion())  mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -259,9 +261,26 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     BL_PROFILE("MOL::ComputeSyncAofs()");
 
     AMREX_ALWAYS_ASSERT(state.nComp() >= state_comp + ncomp);
+    AMREX_ALWAYS_ASSERT(aofs.nComp()  >= aofs_comp  + ncomp);
+    D_TERM( AMREX_ALWAYS_ASSERT(xedge.nComp() >= edge_comp  + ncomp);,
+            AMREX_ALWAYS_ASSERT(yedge.nComp() >= edge_comp  + ncomp);,
+            AMREX_ALWAYS_ASSERT(zedge.nComp() >= edge_comp  + ncomp););
+    D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nComp() >= fluxes_comp  + ncomp);,
+            AMREX_ALWAYS_ASSERT(yfluxes.nComp() >= fluxes_comp  + ncomp);,
+            AMREX_ALWAYS_ASSERT(zfluxes.nComp() >= fluxes_comp  + ncomp););
+    D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nGrow() == xedge.nGrow());,
+            AMREX_ALWAYS_ASSERT(yfluxes.nGrow() == yedge.nGrow());,
+            AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
 
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
+    // We need at least two ghost nodes for redistribution
+    D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
+            AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
+            AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
+    // Need at least 2 more ghost cells in state than in xedge  
+    AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
+
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
 
@@ -269,7 +288,6 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
 
-    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -331,7 +349,8 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	    int tmpcomp = ncomp*(AMREX_SPACEDIM+1);
 #ifdef AMREX_USE_EB
 	    Box gbx = bx;
-	    // We need at least two ghost nodes for redistribution
+	    // To get valid flux on box faces, need 2 additional cells
+	    //  to compute the slopes needed to compute the edge state.
             bool regular = flagfab.getType(amrex::grow(bx,2)) == FabType::regular;
 	    if (!regular) {
 	      // Grown box on which to compute the fluxes and divergence.
