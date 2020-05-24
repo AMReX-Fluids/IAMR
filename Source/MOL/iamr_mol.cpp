@@ -298,8 +298,8 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
 
-    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
+    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
