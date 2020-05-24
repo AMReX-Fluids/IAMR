@@ -58,7 +58,8 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     Box  const& domain = geom.Domain();
 
     MFItInfo mfi_info;
-    
+
+    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
     if (Gpu::notInLaunchRegion())  mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -76,6 +77,10 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 Array4<Real> fy = yfluxes.array(mfi,fluxes_comp);,
                 Array4<Real> fz = zfluxes.array(mfi,fluxes_comp););
 
+	D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
+		Array4<Real> yed = yedge.array(mfi,edge_comp);,
+		Array4<Real> zed = zedge.array(mfi,edge_comp););
+
 #ifdef AMREX_USE_EB
         // Initialize covered cells
         auto const& flagfab = ebfactory.getMultiEBCellFlagFab()[mfi];
@@ -89,20 +94,23 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 aofs_arr( i, j, k, n ) = covered_val;
             });
 
-            amrex::ParallelFor(xbx, ncomp, [fx] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            amrex::ParallelFor(xbx, ncomp, [fx,xed] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fx( i, j, k, n ) = 0.0;
+		xed( i, j, k, n ) = 0.0;
             });
 
-            amrex::ParallelFor(ybx, ncomp, [fy] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            amrex::ParallelFor(ybx, ncomp, [fy,yed] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fy( i, j, k, n ) = 0.0;
+		yed( i, j, k, n ) = 0.0;
             });
 
 #if (AMREX_SPACEDIM==3)
-            amrex::ParallelFor(zbx, ncomp, [fz] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            amrex::ParallelFor(zbx, ncomp, [fz,zed] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fz( i, j, k, n ) = 0.0;
+		zed( i, j, k, n ) = 0.0;
             });
 #endif
 
@@ -110,10 +118,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
         else
 #endif
         {
-            D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
-                    Array4<Real> yed = yedge.array(mfi,edge_comp);,
-                    Array4<Real> zed = zedge.array(mfi,edge_comp););
-
             D_TERM( Array4<Real const> u = umac.const_array(mfi);,
                     Array4<Real const> v = vmac.const_array(mfi);,
                     Array4<Real const> w = wmac.const_array(mfi););
@@ -294,6 +298,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
 
+    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -308,6 +313,10 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
         D_TERM( Array4<Real> fx = xfluxes.array(mfi,fluxes_comp);,
                 Array4<Real> fy = yfluxes.array(mfi,fluxes_comp);,
                 Array4<Real> fz = zfluxes.array(mfi,fluxes_comp););
+	
+	D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
+		Array4<Real> yed = yedge.array(mfi,edge_comp);,
+		Array4<Real> zed = zedge.array(mfi,edge_comp););
 
 #ifdef AMREX_USE_EB
         // Initialize covered cells
@@ -322,31 +331,29 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 aofs_arr( i, j, k, n ) = covered_val;
             });
 
-            amrex::ParallelFor(xbx, ncomp, [fx] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            amrex::ParallelFor(xbx, ncomp, [fx,xed] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fx( i, j, k, n ) = 0.0;
+		xed( i, j, k, n ) = 0.0;
             });
 
-            amrex::ParallelFor(ybx, ncomp, [fy] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            amrex::ParallelFor(ybx, ncomp, [fy,yed] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fy( i, j, k, n ) = 0.0;
+		yed( i, j, k, n ) = 0.0;
             });
 
 #if (AMREX_SPACEDIM==3)
-            amrex::ParallelFor(zbx, ncomp, [fz] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            amrex::ParallelFor(zbx, ncomp, [fz,zed] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 fz( i, j, k, n ) = 0.0;
+		zed( i, j, k, n ) = 0.0;
             });
 #endif
-
         }
         else
 #endif
         {
-            D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
-                    Array4<Real> yed = yedge.array(mfi,edge_comp);,
-                    Array4<Real> zed = zedge.array(mfi,edge_comp););
-
             D_TERM( Array4<Real const> uc = ucorr.const_array(mfi);,
                     Array4<Real const> vc = vcorr.const_array(mfi);,
                     Array4<Real const> wc = wcorr.const_array(mfi););
