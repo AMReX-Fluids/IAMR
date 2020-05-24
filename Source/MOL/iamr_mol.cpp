@@ -40,6 +40,10 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nGrow() == xedge.nGrow());,
             AMREX_ALWAYS_ASSERT(yfluxes.nGrow() == yedge.nGrow());,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
+    if ( !known_edgestate )
+      // To compute edge states, need at least 2 more ghost cells in state than in
+      //  xedge 
+      AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
@@ -47,8 +51,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
             AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
             AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
-    // Need at least 2 more ghost cells in state than in xedge  
-    AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
@@ -124,9 +126,11 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	    int tmpcomp = ncomp*AMREX_SPACEDIM;
 
 #ifdef AMREX_USE_EB
-	    // Need valid flux on all ng_f cells. To get valid flux, need 2 additional cells
-	    //  to compute the slopes needed to compute the edge state.
-            bool regular = flagfab.getType(amrex::grow(bx,ng_f+2)) == FabType::regular;
+	    // PeleLM needs valid flux on all ng_f cells. If !known_edgestate, need 2 additional
+	    //  cells in state to compute the slopes needed to compute the edge state.
+	    // Assert above ensures ng_f >=2, so that requirement for redistribution is met.
+	    int halo = known_edgestate ? ng_f : ng_f+2; 
+            bool regular = flagfab.getType(amrex::grow(bx,halo)) == FabType::regular;
 	    if (!regular) {
 	      // Grown box on which to compute the edge states and fluxes for EB containing boxes
 	      // need at least 2 filled ghost cells all around for redistribution
@@ -271,6 +275,10 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nGrow() == xedge.nGrow());,
             AMREX_ALWAYS_ASSERT(yfluxes.nGrow() == yedge.nGrow());,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
+    if ( !known_edgestate )
+      // To compute edge states, need at least 2 more ghost cells in state than in
+      //  xedge 
+      AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
@@ -278,8 +286,6 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
             AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
             AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
-    // Need at least 2 more ghost cells in state than in xedge  
-    AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
@@ -349,9 +355,11 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	    int tmpcomp = ncomp*(AMREX_SPACEDIM+1);
 #ifdef AMREX_USE_EB
 	    Box gbx = bx;
-	    // To get valid flux on box faces, need 2 additional cells
-	    //  to compute the slopes needed to compute the edge state.
-            bool regular = flagfab.getType(amrex::grow(bx,2)) == FabType::regular;
+	    // Need valid divergence in 2 ghost cells for redistribution. If
+	    // !known_edgestate, need 2 additional cells in state to compute the slopes
+	    // needed to compute the edge state.
+	    int halo = known_edgestate ? 2 : 4; 
+            bool regular = flagfab.getType(amrex::grow(bx,halo)) == FabType::regular;
 	    if (!regular) {
 	      // Grown box on which to compute the fluxes and divergence.
 	      gbx.grow(2);
