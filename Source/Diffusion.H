@@ -217,7 +217,7 @@ public:
     computeBeta (const amrex::MultiFab* const* beta,
 		 int                           betaComp);
 
-    void computeExtensiveFluxes(amrex::MLMG&            a_mg,
+    static void computeExtensiveFluxes(amrex::MLMG&            a_mg,
 				amrex::MultiFab&        Soln,
 				amrex::MultiFab* const* flux,
 				const int               fluxComp,
