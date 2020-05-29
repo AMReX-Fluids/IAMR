@@ -26,7 +26,7 @@ module godunov_3d_module
 
   private
 
-  public :: extrap_vel_to_faces, fort_test_umac_rho, &
+  public :: extrap_vel_to_faces, &
             adv_forcing, sync_adv_forcing, &
             convscalminmax, consscalminmax
 
@@ -618,107 +618,6 @@ contains
     call amrex_deallocate(dsvl)
 
   end subroutine extrap_state_to_faces
-
-      subroutine fort_test_umac_rho ( &
-          umac,DIMS(umac), &
-          vmac,DIMS(vmac), &
-          wmac,DIMS(wmac), &
-          rho,DIMS(rho), &
-          lo,hi,dt,dx,cflmax,u_max) &
-          bind(C,name="fort_test_umac_rho")
-!c
-!c     This subroutine computes the extrema of the density
-!c     and mac edge velocities
-!c
-      implicit none
-      integer lo(SDIM),hi(SDIM)
-      real(rt)  dt, dx(SDIM), u_max(SDIM), cflmax
-      integer imin, imax, jmin, jmax, kmin, kmax
-      integer i, j, k
-      real(rt)  hx, hy, hz
-      real(rt)  umax, vmax, wmax, rhomax
-      real(rt)  umin, vmin, wmin, rhomin
-
-      integer DIMDEC(umac)
-      integer DIMDEC(vmac)
-      integer DIMDEC(wmac)
-      integer DIMDEC(rho)
-
-      real(rt)  umac(DIMV(umac))
-      real(rt)  vmac(DIMV(vmac))
-      real(rt)  wmac(DIMV(wmac))
-      real(rt)  rho(DIMV(rho))
-
-      hx   = dx(1)
-      hy   = dx(2)
-      hz   = dx(3)
-      imin = lo(1)
-      imax = hi(1)
-      jmin = lo(2)
-      jmax = hi(2)
-      kmin = lo(3)
-      kmax = hi(3)
-      umax = -1.d200
-      vmax = -1.d200
-      wmax = -1.d200
-      umin =  1.d200
-      vmin =  1.d200
-      wmin =  1.d200
-      rhomax = -1.d200
-      rhomin =  1.d200
-
-      do k = kmin, kmax
-         do j = jmin, jmax
-            do i = imin, imax+1
-               umax = max(umax,umac(i,j,k))
-               umin = min(umin,umac(i,j,k))
-            end do
-         end do
-      end do
-
-      do k = kmin, kmax
-         do j = jmin, jmax+1
-            do i = imin, imax
-               vmax = max(vmax,vmac(i,j,k))
-               vmin = min(vmin,vmac(i,j,k))
-            end do
-         end do
-      end do
-
-      do k = kmin, kmax+1
-         do j = jmin, jmax
-            do i = imin, imax
-               wmax = max(wmax,wmac(i,j,k))
-               wmin = min(wmin,wmac(i,j,k))
-            end do
-         end do
-      end do
-
-      do k = kmin, kmax
-         do j = jmin, jmax
-            do i = imin, imax
-               rhomax = max(rhomax,rho(i,j,k))
-               rhomin = min(rhomin,rho(i,j,k))
-            end do
-         end do
-      end do
-
-      u_max(1) = max(abs(umax), abs(umin))
-      u_max(2) = max(abs(vmax), abs(vmin))
-      u_max(3) = max(abs(wmax), abs(wmin))
-      cflmax   = dt*max(u_max(1)/hx,u_max(2)/hy,u_max(3)/hz)
-
-      write(6,1000) umax,umin,u_max(1)
-      write(6,1001) vmax,vmin,u_max(2)
-      write(6,1002) wmax,wmin,u_max(3)
-      write(6,1003) rhomax,rhomin
-
- 1000 format('UMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1001 format('VMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1002 format('WMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1003 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
-
-      end subroutine fort_test_umac_rho
 
       subroutine transvel (lo, hi, &
            u,u_lo,u_hi,&

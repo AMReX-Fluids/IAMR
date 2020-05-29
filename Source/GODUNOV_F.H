@@ -10,15 +10,6 @@
 extern "C"
 {
 #endif
-   void fort_test_umac_rho(const amrex::Real* um, ARLIM_P(ulo), ARLIM_P(uhi),
-			   const amrex::Real* vm, ARLIM_P(vlo), ARLIM_P(vhi),
-#if (BL_SPACEDIM == 3)
-			   const amrex::Real* wm, ARLIM_P(wlo), ARLIM_P(whi),
-#endif
-			   const amrex::Real* rh, ARLIM_P(rlo), ARLIM_P(rhi),
-			   const int* lo, const int* hi, const amrex::Real* dt,
-			   const amrex::Real* dx, amrex::Real* cfl, const amrex::Real* u_max);
-
 
    void extrap_vel_to_faces(const int* lo, const int* hi,
                             const amrex::Real* u_dat, const int* u_lo, const int* u_hi,

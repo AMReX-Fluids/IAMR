@@ -580,60 +580,6 @@ Godunov::maxchng_velmag ( MultiFab const&  u_old,
 }
 
 //
-// Estimate the extrema of umac edge velocities and rho.
-//
-
-Real
-Godunov::test_umac_rho (FArrayBox&  umac,
-                        FArrayBox&  vmac,
-#if (BL_SPACEDIM == 3)
-                        FArrayBox&  wmac,
-#endif
-                        FArrayBox&  rho,
-                        const Box&  grd,
-                        const Real* dx,
-                        const Real  dt,
-                        const Real* u_max)
-{
-    //
-    // Test block.
-    //
-    D_TERM(BL_ASSERT(umac.nComp() == 1);,
-           BL_ASSERT(vmac.nComp() == 1);,
-           BL_ASSERT(wmac.nComp() == 1););
-
-    BL_ASSERT(rho.nComp()  == 1);
-
-    const int *lo  = grd.loVect();
-    const int *hi  = grd.hiVect();
-    const int *ulo = umac.loVect();
-    const int *uhi = umac.hiVect();
-    const int *vlo = vmac.loVect();
-    const int *vhi = vmac.hiVect();
-    const int *rlo = rho.loVect();
-    const int *rhi = rho.hiVect();
-    const Real *um = umac.dataPtr();
-    const Real *vm = vmac.dataPtr();
-    const Real *rh = rho.dataPtr();
-
-#if (BL_SPACEDIM == 3)
-    const int *wlo = wmac.loVect();
-    const int *whi = wmac.hiVect();
-    const Real *wm = wmac.dataPtr();
-#endif
-
-    Real cfl;
-    fort_test_umac_rho(um, ARLIM(ulo), ARLIM(uhi),
-                       vm, ARLIM(vlo), ARLIM(vhi),
-#if (BL_SPACEDIM == 3)
-                       wm, ARLIM(wlo), ARLIM(whi),
-#endif
-                       rh, ARLIM(rlo), ARLIM(rhi),
-                       lo, hi, &dt, dx, &cfl, u_max);
-    return cfl;
-}
-
-//
 // Compute total source term for velocities, weighted by rho.
 //
 // tforces = (tforces + visc - gp)/rho

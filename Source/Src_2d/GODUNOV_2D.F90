@@ -23,7 +23,7 @@ module godunov_2d_module
 
   private
 
-  public :: extrap_vel_to_faces, fort_test_umac_rho, adv_forcing, &
+  public :: extrap_vel_to_faces, adv_forcing, &
        sync_adv_forcing, convscalminmax,consscalminmax
 
 contains
@@ -341,81 +341,6 @@ contains
     call amrex_deallocate(dsvl)
 
   end subroutine extrap_state_to_faces
-
-
-      subroutine fort_test_umac_rho(&
-          umac,DIMS(umac),&
-          vmac,DIMS(vmac),&
-          rho,DIMS(rho),&
-          lo,hi,dt,dx,cflmax,u_max) bind(C,name="fort_test_umac_rho")
-! c
-! c     This subroutine computes the extrema of the density
-! c     and mac edge velocities
-! c
-      implicit none
-      integer DIMDEC(umac)
-      integer DIMDEC(vmac)
-      integer DIMDEC(rho)
-      integer imin, imax, jmin, jmax
-      integer i, j
-      integer lo(SDIM),hi(SDIM)
-      REAL_T  dt, dx(SDIM), u_max(SDIM), cflmax
-      REAL_T  hx, hy
-      REAL_T  umax, vmax, rhomax
-      REAL_T  umin, vmin, rhomin
-      REAL_T  umac(DIMV(umac))
-      REAL_T  vmac(DIMV(vmac))
-      REAL_T  rho(DIMV(rho))
-
-      hx   = dx(1)
-      hy   = dx(2)
-      imin = lo(1)
-      imax = hi(1)
-      jmin = lo(2)
-      jmax = hi(2)
-      umax = -1.d200
-      vmax = -1.d200
-      umin =  1.d200
-      vmin =  1.d200
-      rhomax = -1.d200
-      rhomin =  1.d200
-
-      do j = jmin, jmax
-         do i = imin, imax+1
-            umax = max(umax,umac(i,j))
-            umin = min(umin,umac(i,j))
-         end do
-      end do
-      do j = jmin, jmax+1
-         do i = imin, imax
-            vmax = max(vmax,vmac(i,j))
-            vmin = min(vmin,vmac(i,j))
-         end do
-      end do
-      do j = jmin, jmax
-         do i = imin, imax
-            rhomax = max(rhomax,rho(i,j))
-            rhomin = min(rhomin,rho(i,j))
-         end do
-      end do
-
-      u_max(1) = max(abs(umax), abs(umin))
-      u_max(2) = max(abs(vmax), abs(vmin))
-      cflmax   = dt*max(u_max(1)/hx,u_max(2)/hy)
-
-      write(6,1000) umax,umin,u_max(1)
-      write(6,1001) vmax,vmin,u_max(2)
-      write(6,1002) rhomax,rhomin
-
- 1000 format('UMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1001 format('VMAC MAX/MIN/AMAX ',e21.14,2x,e21.14,2x,e21.14)
- 1002 format('RHO  MAX/MIN      ',e21.14,2x,e21.14)
-
-#ifndef	BL_NO_FLUSH
-!c      call flush(6)
-#endif
-
-    end subroutine fort_test_umac_rho
 
     subroutine transvel(lo,hi,&
            u,u_lo,u_hi,&

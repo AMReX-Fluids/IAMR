@@ -150,15 +150,6 @@ public:      // public access functions
     amrex::Real maxchng_velmag( amrex::MultiFab const& u_old,
                                 amrex::MultiFab const& u_new );
 
-    // test the mac edge velocity Courant numbers
-    amrex::Real test_umac_rho( amrex::FArrayBox &umac,
-                        amrex::FArrayBox &vmac,
-#if (BL_SPACEDIM == 3 )
-                        amrex::FArrayBox &wmac,
-#endif
-                        amrex::FArrayBox &Rho,
-                        const amrex::Box &grd, const amrex::Real *dx, const amrex::Real dt,
-                        const amrex::Real *u_max );
 
     static bool are_any(const amrex::Vector<AdvectionForm>& advectionType,
                         const AdvectionForm         testForm,
