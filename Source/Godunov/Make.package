@@ -1,0 +1,14 @@
+# CEXE_sources += iamr_compute_advection_term.cpp
+# CEXE_sources += iamr_correct_small_cells.cpp
+# CEXE_sources += iamr_MAC_projection.cpp
+
+CEXE_headers += godunov.H
+CEXE_headers += iamr_slopes_godunov_K.H
+
+CEXE_sources += iamr_godunov_predict.cpp
+# CEXE_sources += iamr_godunov_advection.cpp
+CEXE_sources += iamr_godunov_plm.cpp
+CEXE_sources += iamr_godunov_ppm.cpp
+
+CEXE_headers += iamr_godunov_plm.H
+CEXE_headers += iamr_godunov_ppm.H

@@ -4,11 +4,13 @@
 //
 
 #include <AMReX_LO_BCTYPES.H>
+#include <AMReX_BCRec.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_MultiFab.H>
 #include <Godunov.H>
+#include <godunov.H>
 #include <GODUNOV_F.H>
 
 #include <algorithm>
@@ -133,6 +135,26 @@ Godunov::ExtrapVelToFaces (const amrex::Box&  box,
 #endif
                       &dt, dx, &use_forces_in_trans, &ppm_type);
 }
+
+
+void
+Godunov::ExtrapVelToFaces ( const MultiFab& vel,
+                            MultiFab const& tforces,
+                            D_DECL( MultiFab& u_mac,
+                                    MultiFab& v_mac,
+                                    MultiFab& w_mac ),
+                            const Vector<BCRec> & h_bcrec,
+                            const Geometry& geom, Real dt )
+{
+    if (ppm_type > 0)
+    {
+        amrex::Abort("Godunov::ExtrapVelToFaces works for ppm_type==0 only for now");
+    }
+
+    godunov::predict_godunov( vel, tforces,  D_DECL( u_mac, v_mac, w_mac ),
+                              h_bcrec, geom, dt, false, use_forces_in_trans );
+}
+
 
 void
 Godunov::AdvectScalars(const Box&  box,

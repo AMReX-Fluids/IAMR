@@ -8,6 +8,7 @@ Bdirs += Source/TurbInflow
 Bdirs += Source/Src_nd
 Bdirs += Source/Src_$(DIM)d
 Bdirs += Source/MOL
+Bdirs += Source/Godunov
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))

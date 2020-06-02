@@ -567,6 +567,8 @@ NavierStokes::predict_velocity (Real  dt)
             forcing_term[U_mfi].copy<RunOn::Host>(tforces);
         }
 
+        forcing_term.setVal(0.0, forcing_term.nGrow());
+
         //
         // Compute MAC velocities
         //
@@ -575,22 +577,58 @@ NavierStokes::predict_velocity (Real  dt)
             Box bx=U_mfi.tilebox();
             FArrayBox& Ufab = Umf[U_mfi];
 
-
             D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                    bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                    bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
             //  1. compute slopes
-            //  2. trace state to cell edges
-            godunov->ExtrapVelToFaces(bx, dx, dt,
+            //  2. trace state to cell edges   !!! ANN: uncomment this for IAMR behavior
+            godunov->ExtrapVelToFaces(bx, dx, 0.0,
                                       D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                       D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                       Ufab, forcing_term[U_mfi]);
+
         }
 
     } // end OMP parallel region
+
+    Vector<BCRec> math_bcs(AMREX_SPACEDIM);
+    math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
+
+
+    // ANN: uncomment this for incflo behavior
+    // godunov -> ExtrapVelToFaces( Umf, forcing_term,
+    //                              D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+    //                              math_bcs, geom, 0.0 );
+
+
+
+    for (MFIter mfi(u_mac[0],false); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox();
+        const auto v_mac =  u_mac[0].array(mfi);
+
+        amrex::ParallelFor(bx,
+        [v_mac]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (i==32 and j==15 and k==0 )
+            {
+                std::printf("V_MAC AT %d %d %d %e \n", i, j, k, v_mac(i,j,k));
+            }
+        });
+    }
+
 #endif
 
+    Print() << "norm0(u,v,w) MAC = "
+            << u_mac[0].norm0(0,0,false,true) << " "
+            << u_mac[1].norm0(0,0,false,true) << " "
+            << u_mac[2].norm0(0,0,false,true) << std::endl;
+
+    Print() << "norm1(u,v,w) MAC = "
+            << u_mac[0].norm1(0,geom.periodicity(),true) << " "
+            << u_mac[1].norm1(0,geom.periodicity(),true) << " "
+            << u_mac[2].norm1(0,geom.periodicity(),true) << std::endl;
     return dt*tempdt;
 }
 
