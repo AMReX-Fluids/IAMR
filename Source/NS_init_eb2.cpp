@@ -121,9 +121,10 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto pr = EB2::translate(EB2::lathe(polys), {lenx*0.5, leny*0.5, 0.});
 
     auto gshop = EB2::makeShop(pr);
-    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
-  } else if (geom_type == "Piston-Cylinder") {
-
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+  }
+  else if (geom_type == "Piston-Cylinder")
+  {
     EB2::SplineIF Piston;
 
     std::vector<amrex::RealVect> splpts;
@@ -156,8 +157,10 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     //auto PistonCylinder = EB2::makeIntersection(revolvePiston, cylinder);
     auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
     auto gshop = EB2::makeShop(PistonCylinder);
-    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
-  } else if (geom_type == "Line-Piston-Cylinder") {
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+  }
+  else if (geom_type == "Line-Piston-Cylinder")
+  {
     EB2::SplineIF Piston;
     std::vector<amrex::RealVect> lnpts;
     amrex::RealVect p;
@@ -204,16 +207,13 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto revolvePiston  = EB2::lathe(Piston);
     auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
     auto gshop = EB2::makeShop(PistonCylinder);
-    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
   }
-  else {
+  else
 #endif
-
-    EB2::Build(geom, required_coarsening_level, max_coarsening_level, 4);
-
-#if BL_SPACEDIM > 2
+  {
+    EB2::Build(geom, required_coarsening_level, max_coarsening_level);
   }
-#endif
 }
 
 void
