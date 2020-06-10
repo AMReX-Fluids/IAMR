@@ -59,7 +59,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
 
-    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
     if (Gpu::notInLaunchRegion())  mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -132,8 +131,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 #ifdef AMREX_USE_EB
 	    // PeleLM needs valid flux on all ng_f cells. If !known_edgestate, need 2 additional
 	    //  cells in state to compute the slopes needed to compute the edge state.
-	    // Assert above ensures ng_f >=2, so that requirement for redistribution is met.
-	    int halo = known_edgestate ? ng_f : ng_f+2; 
+	    int halo = known_edgestate ? 0 : ng_f+2;
             bool regular = flagfab.getType(amrex::grow(bx,halo)) == FabType::regular;
 	    if (!regular) {
 	      // Grown box on which to compute the edge states and fluxes for EB containing boxes
@@ -298,8 +296,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
     MFItInfo mfi_info;
 
-    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling(IntVect(D_DECL(1024,1024,1024))).SetDynamic(true);
-    //if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -362,10 +359,8 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	    int tmpcomp = ncomp*(AMREX_SPACEDIM+1);
 #ifdef AMREX_USE_EB
 	    Box gbx = bx;
-	    // Need valid divergence in 2 ghost cells for redistribution. If
-	    // !known_edgestate, need 2 additional cells in state to compute the slopes
-	    // needed to compute the edge state.
-	    int halo = known_edgestate ? 2 : 4; 
+	    // Need 2 grow cells in state to compute the slopes needed to compute the edge state.
+	    int halo = known_edgestate ? 0 : 2;
             bool regular = flagfab.getType(amrex::grow(bx,halo)) == FabType::regular;
 	    if (!regular) {
 	      // Grown box on which to compute the fluxes and divergence.
