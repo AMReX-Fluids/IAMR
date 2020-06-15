@@ -284,6 +284,8 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
     diffn_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
     diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    viscn_cc = new MultiFab(grids, dmap, 1, 1);
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
 
     //
     // Set up the mac projector.

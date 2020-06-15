@@ -612,6 +612,7 @@ protected:
     FluxBoxes fb_viscn, fb_viscnp1, fb_diffn, fb_diffnp1;
     amrex::MultiFab **viscn, **viscnp1, **diffn, **diffnp1;
     amrex::MultiFab *diffn_cc, *diffnp1_cc;
+    amrex::MultiFab *viscn_cc, *viscnp1_cc;
     //
     // Sync update quantities.
     //
