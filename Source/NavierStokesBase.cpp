@@ -2886,6 +2886,11 @@ NavierStokesBase::restart (Amr&          papa,
     diffn   = fb_diffn.define(this,NUM_STATE-Density-1,0);
     diffnp1 = fb_diffnp1.define(this,NUM_STATE-Density-1,0);
 
+    diffn_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1);
+    viscn_cc = new MultiFab(grids, dmap, 1, 1);
+    viscnp1_cc = new MultiFab(grids, dmap, 1, 1);
+
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
 }
