@@ -39,7 +39,6 @@ amrex::Real incflo_ho_xslope (int i, int j, int k, int n,
     dcen = 0.5*(dlft+drgt);
     dsgn = std::copysign(1.e0, dcen);
     dlim = (dlft*drgt >= 0.0) ? 2.0*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0;
-    // dcen = dsgn*amrex::min(dlim, std::abs(dcen));
 
     dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
 
@@ -78,7 +77,6 @@ amrex::Real incflo_ho_xslope_extdir (int i, int j, int k, int n,
     dcen = 0.5*(dlft+drgt);
     dsgn = std::copysign(1.e0, dcen);
     dlim = (dlft*drgt >= 0.0) ? 2.0*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0;
-    // dcen = dsgn*amrex::min(dlim, std::abs(dcen));
 
     dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
 
@@ -146,12 +144,9 @@ amrex::Real incflo_ho_yslope (int i, int j, int k, int n,
     drgt = qp - qj;
     dcen = 0.5*(dlft+drgt);
     dsgn = std::copysign(1.e0, dcen);
-    dlim = (dlft*drgt >= 0.0) ? 2.0*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0;
-    // dcen = dsgn*amrex::min(dlim, std::abs(dcen));
 
     dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
     return dsgn*amrex::min(dlim, std::abs(dtemp));
-
 }
 
 
@@ -185,10 +180,8 @@ amrex::Real incflo_ho_yslope_extdir (int i, int j, int k, int n,
     dcen = 0.5*(dlft+drgt);
     dsgn = std::copysign(1.e0, dcen);
     dlim = (dlft*drgt >= 0.0) ? 2.0*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0;
-    //dcen = dsgn*amrex::min(dlim, std::abs(dcen)); MICHELE
 
     dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
-
 
     if (edlo and j == domlo) {
        dtemp  = -16./15.*q(i,j-1,k,n) + .5*q(i,j,k,n) + 2./3.*q(i,j+1,k,n) -  0.1*q(i,j+2,k,n);
@@ -256,7 +249,6 @@ amrex::Real incflo_ho_zslope (int i, int j, int k, int n,
     dcen = 0.5*(dlft+drgt);
     dsgn = std::copysign(1.e0, dcen);
     dlim = (dlft*drgt >= 0.0) ? 2.0*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0;
-    // dcen = dsgn*amrex::min(dlim, std::abs(dcen));
 
     dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
     return dsgn*amrex::min(dlim, std::abs(dtemp));
@@ -294,14 +286,8 @@ amrex::Real incflo_ho_zslope_extdir (int i, int j, int k, int n,
     dcen = 0.5*(dlft+drgt);
     dsgn = std::copysign(1.e0, dcen);
     dlim = (dlft*drgt >= 0.0) ? 2.0*amrex::min(std::abs(dlft), std::abs(drgt)) : 0.0;
-    // dcen = dsgn*amrex::min(dlim, std::abs(dcen));
 
     dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
-
-    // if (i==31 and j==4 and k==1 )
-    // {
-    //     std::printf("SLOPES COMPONENTS %e %e \n",  dtemp, dlim);
-    // }
 
     if (edlo and k == domlo) {
        dtemp  = -16./15.*q(i,j,k-1,n) + .5*q(i,j,k,n) + 2./3.*q(i,j,k+1,n) -  0.1*q(i,j,k+2,n);
@@ -334,12 +320,6 @@ amrex::Real incflo_ho_zslope_extdir (int i, int j, int k, int n,
        dfp = dsgnsh*amrex::min(dlimsh, std::abs(dfp));
        dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
     }
-
-
-    // if ( n==2 and i==31 and j==4 and k==0 )
-    // {
-    //     std::printf("SLOPES COMPONENTS (k-1) AFTER %d %e %e %e\n",  k, dtemp, dlim, dsgn*amrex::min(dlim, std::abs(dtemp)));
-    // }
 
     return dsgn*amrex::min(dlim, std::abs(dtemp));
 }

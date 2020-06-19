@@ -42,7 +42,6 @@ void godunov::predict_godunov ( MultiFab const& vel,
             Array4<Real const> const& a_f = vel_forces.const_array(mfi);
 
             scratch.resize(bxg1, ncomp*12+3);
-//            Elixir eli = scratch.elixir(); // not needed because of streamSynchronize later
             Real* p = scratch.dataPtr();
 
             Array4<Real> Imx = makeArray4(p,bxg1,ncomp);
@@ -77,43 +76,14 @@ void godunov::predict_godunov ( MultiFab const& vel,
                                         geom, l_dt, h_bcrec, d_bcrec);
             }
 
-            // amrex::ParallelFor(bx,
-            // [Ipz]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            // {
-            //     if ( i==31 and j==4 and k==1 )
-            //     {
-            //         std::printf("FIRST LOOP %d %d %d %e\n", i, j, k, Ipz(i,j,k-1,2));
-            //     }
-            // });
-
             make_trans_velocities(Box(u_ad), Box(v_ad), Box(w_ad),
                                   u_ad, v_ad, w_ad,
                                   Imx, Ipx, Imy, Ipy, Imz, Ipz, a_vel, a_f,
                                   domain, l_dt, d_bcrec, use_forces_in_trans);
-            // for (int nc = 2*ncomp; nc < 4*ncomp; ++nc)
-            //     scratch.setVal(0.1, nc);
-
-            // amrex::ParallelFor(bx,
-            // [Imy,Ipy]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            // {
-            //     if ( i==4 and j==3 and k==10 )
-            //     {
-            //         std::printf("SECOND LOOP %d %d %d %e %e\n", i, j, k, Imy(i,j,k,1), Ipy(i,j,k,1));
-            //     }
-            // });
 
             predict_godunov_on_box(bx, ncomp, xbx, ybx, zbx, a_umac, a_vmac, a_wmac,
                                    a_vel, u_ad, v_ad, w_ad, Imx, Ipx, Imy, Ipy, Imz, Ipz, a_f,
                                    domain, dx, l_dt, d_bcrec, use_forces_in_trans, p);
-
-            // amrex::ParallelFor(bx,
-            // [Imy,Ipy]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            // {
-            //     if ( i==4 and j==3 and k==10 )
-            //     {
-            //         std::printf("%d %d %d %e %e\n", i, j, k, Imy(i,j,k,1), Ipy(i,j,k,1));
-            //     }
-            // });
 
             Gpu::streamSynchronize();  // otherwise we might be using too much memory
         }
@@ -202,17 +172,13 @@ void godunov::make_trans_velocities (Box const& xbx, Box const& ybx, Box const& 
         }
 
         auto bc = pbc[n];
-        //Godunov_trans_zbc(i, j, k, n, vel, lo, hi, lo, bc.lo(2), bc.hi(2), dlo.z, dhi.z);
+        Godunov_trans_zbc(i, j, k, n, vel, lo, hi, lo, bc.lo(2), bc.hi(2), dlo.z, dhi.z);
 
         constexpr Real small_vel = 1e-10;
 
         Real st = ( (lo+hi) >= 0.) ? lo : hi;
         bool ltm = ( (lo <= 0. && hi >= 0.) || (std::abs(lo+hi) < small_vel) );
         w_ad(i,j,k) = ltm ? 0. : st;
-        // if ( n==2 and i==31 and j==4 and k==1 )
-        // {
-        //     std::printf("WAD i=%d j=%d k=%d lo=%e hi=%e %e\n", i, j, k, Ipz(i,j,k-1,n), hi, ltm);
-        // }
     });
 }
 
@@ -246,16 +212,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
     Real dy = dx_arr[1];
     Real dz = dx_arr[2];
 
-   //  BCRec const* pbc = get_velocity_bcrec_device_ptr();
-
-    // amrex::ParallelFor(bx,
-    // [Imy,Ipy]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    // {
-    //     if ( i==4 and j==3 and k==10 )
-    //     {
-    //         std::printf("THIRD LOOP %d %d %d %e %e\n", i, j, k, Imy(i,j,k,1), Ipy(i,j,k,1));
-    //     }
-    // });
 
     Box xebox = Box(bx).grow(1,1).grow(2,1).surroundingNodes(0);
     Box yebox = Box(bx).grow(0,1).grow(2,1).surroundingNodes(1);
@@ -298,26 +254,22 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
             Real st = (uad >= 0.) ? lo : hi;
             Real fu = (std::abs(uad) < small_vel) ? 0.0 : 1.0;
             Imx(i, j, k, n) = fu*st + (1.0 - fu) *0.5 * (hi + lo); // store xedge
-            if ( n==0 and i==32 and j==15 and k==0 )
-            {
-                std::printf("\n\n AT (%2d,%2d,%2d) ============== \n xedge, lo, hi, fu, st, uad  = %e %e %e %e %e %e\n\n", i, j, k, Imx(i, j, k, n), lo, hi, fu, st, uad);
-            }
         },
         yebox, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real lo, hi;
-            // if (l_use_forces_in_trans) {
-            //     lo = Ipy(i,j-1,k,n) + 0.5*l_dt*f(i,j-1,k,n);
-            //     hi = Imy(i,j  ,k,n) + 0.5*l_dt*f(i,j  ,k,n);
-            // } else {
+            if (l_use_forces_in_trans) {
+                lo = Ipy(i,j-1,k,n) + 0.5*l_dt*f(i,j-1,k,n);
+                hi = Imy(i,j  ,k,n) + 0.5*l_dt*f(i,j  ,k,n);
+            } else {
                 lo = Ipy(i,j-1,k,n);
                 hi = Imy(i,j  ,k,n);
-                //}
+            }
 
             Real vad = v_ad(i,j,k);
             auto bc = pbc[n];
 
-            //Godunov_trans_ybc(i, j, k, n, q, lo, hi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y);
+            Godunov_trans_ybc(i, j, k, n, q, lo, hi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y);
 
             ylo(i,j,k,n) = lo;
             yhi(i,j,k,n) = hi;
@@ -327,11 +279,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
             Real st = (vad >= 0.) ? lo : hi;
             Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
             Imy(i, j, k, n) = fu*st + (1.0 - fu)*0.5*(hi + lo); // store yedge
-            // if ( n==1 and i==31 and j==4 and k==0 )
-            // {
-            //     std::printf("\n\n AT (%2d,%2d,%2d) ============== \n yedge, lo, hi, fu, st, vad  = %e %e %e %e %e %e\n\n", i, j, k, Imy(i, j, k, n), lo, hi, fu, st, vad);
-            // }
-
         },
         zebox, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
@@ -357,11 +304,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
             Real st = (wad >= 0.) ? lo : hi;
             Real fu = (std::abs(wad) < small_vel) ? 0.0 : 1.0;
             Imz(i, j, k, n) = fu*st + (1.0 - fu)*0.5*(hi + lo); // store zedge
-            // if ( n==2 and i==31 and j==4 and k==1 )
-            // {
-            //     std::printf("\n\n AT (%2d,%2d,%2d) ============== \n zedge, lo, hi, fu, st, wad  = %e %e %e %e %e %e\n\n", i, j, k, Imz(i, j, k, n), lo, hi, fu, st, wad);
-            // }
-
         });
 
     Array4<Real> xedge = Imx;
@@ -466,11 +408,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real st = ( (stl+sth) >= 0.) ? stl : sth;
         bool ltm = ( (stl <= 0. && sth >= 0.) || (std::abs(stl+sth) < small_vel) );
         qx(i,j,k) = ltm ? 0. : st;
-
-        if ( n==0 and i==32 and j==15 and k==0 )
-        {
-            std::printf("\n\n AT (%2d,%2d,%2d) ============== \n xstate, stxlo, stxhi, stx = %e %e %e %e\n\n", i, j, k, qx(i, j, k), stl, sth, st);
-        }
     });
 
     //
@@ -563,12 +500,7 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         Real st = ( (stl+sth) >= 0.) ? stl : sth;
         bool ltm = ( (stl <= 0. && sth >= 0.) || (std::abs(stl+sth) < small_vel) );
-        qy(i,j,k) = ltm ? 0. : st; // MICHELE
-        if ( n==1 and i==31 and j==4 and k==0 )
-        {
-            //std::printf("\n\n AT (%2d,%2d,%2d) ============== \n qy, lo, hi, fu, st, vad  = %e %e %e %e %e %e\n\n", i, j, k, Imy(i, j, k, n), lo, hi, fu, st, vad);
-        }
-        // std::printf("%d %d %d %e \n", i, j, k, qy(i,j,k));
+        qy(i,j,k) = ltm ? 0. : st;
     });
 
     //
@@ -667,11 +599,5 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real st = ( (stl+sth) >= 0.) ? stl : sth;
         bool ltm = ( (stl <= 0. && sth >= 0.) || (std::abs(stl+sth) < small_vel) );
         qz(i,j,k) = ltm ? 0. : st;
-        if ( n==2 and i==31 and j==4 and k==1 )
-        {
-            std::printf("\n\n qz(%2d,%2d,%2d)  = %e\n\n", i, j, k, qz(i, j, k));
-        }
-
-
     });
 }

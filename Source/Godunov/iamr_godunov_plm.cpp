@@ -139,13 +139,6 @@ void godunov::predict_plm_y (Box const& bx_in, int ncomp,
 
             Ipy(i,j-1,k,n) = vmns;
             Imy(i,j  ,k,n) = vpls;
-
-            // if (i==4 and j==3 and k==10 and n==1)
-            // {
-            //     Real slp = incflo_ho_yslope_extdir(i,j,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
-            //     Real slm = incflo_ho_yslope_extdir(i,j-1,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
-            //     std::printf("SLOPES %d %d %d %e %e\n", i, j, k, slm, slp);
-            // }
         });
     }
     else
@@ -161,10 +154,6 @@ void godunov::predict_plm_y (Box const& bx_in, int ncomp,
             Ipy(i,j-1,k,n) = vmns;
             Imy(i,j  ,k,n) = vpls;
 
-            // if (i==4 and j==3 and k==10 and n==1)
-            // {
-            //     std::printf("GETTING CLOSER %d %d %d %e %e\n", i, j, k, vmns, vpls);
-            // }
         });
     }
 }

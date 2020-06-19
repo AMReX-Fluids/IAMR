@@ -528,6 +528,10 @@ NavierStokes::predict_velocity (Real  dt)
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
 
+    ParmParse pp("debug_flags");
+    int new_algo = 1;
+    pp.query("new_algo", new_algo);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -583,11 +587,14 @@ NavierStokes::predict_velocity (Real  dt)
 
             //  1. compute slopes
             //  2. trace state to cell edges   !!! ANN: uncomment this for IAMR behavior
-            godunov->ExtrapVelToFaces(bx, dx, 0.0,
-                                      D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                                      D_DECL(bndry[0],        bndry[1],        bndry[2]),
-                                      Ufab, forcing_term[U_mfi]);
-
+            if (not new_algo)
+            {
+                Print() << "USING OLD ALGO" << std::endl;
+                godunov->ExtrapVelToFaces(bx, dx, 0.0,
+                                          D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+                                          D_DECL(bndry[0],        bndry[1],        bndry[2]),
+                                          Ufab, forcing_term[U_mfi]);
+            }
         }
 
     } // end OMP parallel region
@@ -596,24 +603,31 @@ NavierStokes::predict_velocity (Real  dt)
     math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
 
-    // ANN: uncomment this for incflo behavior
-    // godunov -> ExtrapVelToFaces( Umf, forcing_term,
-    //                              D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-    //                              math_bcs, geom, 0.0 );
+    if (new_algo)
+    {
+        Print() << "USING NEW ALGO" << std::endl;
+        // ANN: uncomment this for incflo behavior
+        godunov -> ExtrapVelToFaces( Umf, forcing_term,
+                                     D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                                     math_bcs, geom, 0.0 );
+    }
 
 
 
     for (MFIter mfi(u_mac[0],false); mfi.isValid(); ++mfi)
     {
         Box bx = mfi.validbox();
-        const auto v_mac =  u_mac[0].array(mfi);
+        const auto umac =  u_mac[0].array(mfi);
+        const auto vmac =  u_mac[1].array(mfi);
+        const auto wmac =  u_mac[2].array(mfi);
 
         amrex::ParallelFor(bx,
-        [v_mac]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        [umac,vmac,wmac]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (i==32 and j==15 and k==0 )
+            //std::printf("MAC VEL AT %d %d %d %e %e %e \n", i, j, k, umac(i,j,k), vmac(i,j,k), wmac(i,j,k));
+            if (i==25 and j==0 and k==3 )
             {
-                std::printf("V_MAC AT %d %d %d %e \n", i, j, k, v_mac(i,j,k));
+                std::printf("VMAC AT %d %d %d %e \n", i, j, k, vmac(i,j,k));
             }
         });
     }
