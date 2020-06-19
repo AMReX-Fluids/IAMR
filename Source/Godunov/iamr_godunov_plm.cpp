@@ -199,11 +199,11 @@ void godunov::predict_plm_z (Box const& bx_in, int ncomp,
                 incflo_ho_zslope_extdir(i,j,k-1,n,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
 
             if (extdir_klo and k == domain_klo) {
-                wmns = vcc(i,j,k-1,n);
-                wpls = vcc(i,j,k-1,n);
+                wmns = q(i,j,k-1,n);
+                wpls = q(i,j,k-1,n);
             } else if (extdir_khi and k == domain_khi+1) {
-                wmns = vcc(i,j,k,n);
-                wpls = vcc(i,j,k,n);
+                wmns = q(i,j,k,n);
+                wpls = q(i,j,k,n);
             }
 
             Ipz(i,j,k-1,n) = wmns;
