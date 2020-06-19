@@ -704,8 +704,8 @@ contains
       real(rt) :: hx, hy, hz, dt, dth, dthx, dthy, dthz, dx(SDIM)
       real(rt) :: eps,eps_for_bc, val, tst, dt3
       logical :: ltm
-      parameter( eps        = 1.0D-10 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps        = 1.0D-8 )
+      parameter( eps_for_bc = 1.0D-8 )
 
       dth  = half*dt
       dt3  = dt / 3.d0
@@ -1157,8 +1157,8 @@ contains
       real(rt) ::  eps, eps_for_bc
       integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax, inc, corner_couple
       logical  :: ltx,lty,ltz
-      parameter( eps        = 1.0D-10 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps        = 1.0D-8 )
+      parameter( eps_for_bc = 1.0D-8 )
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -2544,8 +2544,8 @@ contains
       real(rt) ::  dt3, dt3x, dt3y, dt3z, dt4, dt4x, dt4y, dt4z
       real(rt) ::  dt6, dt6x, dt6y, dt6z
       integer  :: i,j,k,L,imin,jmin,kmin,imax,jmax,kmax,inc,corner_couple
-      parameter( eps        = 1.0D-10 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps        = 1.0D-8 )
+      parameter( eps_for_bc = 1.0D-8 )
 
       dth  = half*dt
       dthx = half*dt / dx(1)
