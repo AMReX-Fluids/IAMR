@@ -29,7 +29,6 @@ module godunov_3d_module
   public :: extrap_vel_to_faces, &
             adv_forcing, sync_adv_forcing, &
             convscalminmax, consscalminmax
-
 contains
 
 
@@ -619,6 +618,7 @@ contains
 
   end subroutine extrap_state_to_faces
 
+
       subroutine transvel (lo, hi, &
            u,u_lo,u_hi,&
            ulo,ulo_lo,ulo_hi,&
@@ -704,7 +704,7 @@ contains
       real(rt) :: hx, hy, hz, dt, dth, dthx, dthy, dthz, dx(SDIM)
       real(rt) :: eps,eps_for_bc, val, tst, dt3
       logical :: ltm
-      parameter( eps        = 1.0D-10 )!parameter( eps        = 1.0D-6 )
+      parameter( eps        = 1.0D-10 )
       parameter( eps_for_bc = 1.0D-10 )
 
       dth  = half*dt
@@ -978,10 +978,6 @@ contains
                    (whi(i,j,k) .ge. 0.0d0) ) .or. &
                    (abs(tst)   .lt. eps )
                wlo(i,j,k) = merge(0.0d0,val,ltm)
-               ! if (i==31 .and. j==4 .and. k==1) then
-               !    write(6,"(A,I2,X,I1,X,I2,X,3(ES12.6,X))") "WAD ", i,j,k, wlo(i,j,k), whi(i,j,k), merge(1.0,0.0,ltm)
-               !    flush(6)
-               ! endif
             end do
          end do
       end do
@@ -1280,12 +1276,6 @@ contains
                fu  = merge(0.0d0,one,abs(uad(i,j,k)).lt.eps)
                stx = merge(xlo(i,j,k),xhi(i,j,k),uad(i,j,k) .ge. 0.0d0)
                xedge(i,j,k) = fu*stx + (one - fu)*half*(xhi(i,j,k)+xlo(i,j,k))
-               if (n==XVEL .and. i==32 .and. j==15 .and. k==0) then
-                 ! print* , "wad, eps, ,abs(wad(i,j,k)).lt.eps) = ", wad(i,j,k), eps, (abs(wad(i,j,k)).lt.eps)
-                  write(6,"(A,3(I2,A),6(ES13.6,X),A)") new_line("A")//new_line("A")//" AT (", i, ",", j, ",", k, ") ============== "&
-                       //new_line("a")//" xedge, lo, hi, fu, st, uad  = ",  xedge(i,j,k), xlo(i,j,k), xhi(i,j,k), fu, stx, uad(i,j,k), new_line("A")//new_line("A")
-                  flush(6)
-               endif
             end do
          end do
       end do
@@ -1305,36 +1295,28 @@ contains
                do i = imin-1,imax+1
                   ylo(i,j,k) = s(i,j-1,k,L) + (half  - dthy*v(i,j-1,k))*sy(i,j-1,k)
                   yhi(i,j,k) = s(i,j, k,L)  + (-half - dthy*v(i,j,  k))*sy(i,j, k)
-                  ! if (n==XVEL+1) then
-                  !    !if (i==4 .and. j==3 .and. k==10) then
-                  !    if (i==4 .and. j==3 .and. k==10) then
-                  !       write(6,"(A,2(I1,X),I2,X,2(ES12.6,X))") "SLOPES FINAL ", i,j,k, sy(i,j-1,k), sy(i,j,k)
-                  !       write(6,"(A,2(I1,X),I2,X,2(ES12.6,X))") "FIRST LOOP ", i,j,k, ylo(i,j,k), yhi(i,j,k)
-                  !       flush(6)
-                  !    endif
-                  ! endif
                end do
             end do
          end do
       end if
 
-      ! if (use_minion.eq.1)then
-      !    do k = kmin-1,kmax+1
-      !       do j = jmin, jmax+1
-      !          do i = imin-1,  imax+1
-      !             ylo(i,j,k) = ylo(i,j,k) + dth*tf(i,j-1,k,L)
-      !             yhi(i,j,k) = yhi(i,j,k) + dth*tf(i,j,  k,L)
-      !          end do
-      !       end do
-      !    end do
-      ! end if
+      if (use_minion.eq.1)then
+         do k = kmin-1,kmax+1
+            do j = jmin, jmax+1
+               do i = imin-1,  imax+1
+                  ylo(i,j,k) = ylo(i,j,k) + dth*tf(i,j-1,k,L)
+                  yhi(i,j,k) = yhi(i,j,k) + dth*tf(i,j,  k,L)
+               end do
+            end do
+         end do
+      end if
 
-      ! call trans_ybc(lo,hi,&
-      !         s(s_lo(1),s_lo(2),s_lo(3),L),s_lo,s_hi,&
-      !         ylo,ylo_lo,ylo_hi,&
-      !         yhi,yhi_lo,yhi_hi,&
-      !         vad,vad_lo,vad_hi,&
-      !         n+L-1, bc, eps_for_bc,.false.,.false.)
+      call trans_ybc(lo,hi,&
+              s(s_lo(1),s_lo(2),s_lo(3),L),s_lo,s_hi,&
+              ylo,ylo_lo,ylo_hi,&
+              yhi,yhi_lo,yhi_hi,&
+              vad,vad_lo,vad_hi,&
+              n+L-1, bc, eps_for_bc,.false.,.false.)
 
       do k = kmin-1,kmax+1
          do j = jmin,  jmax+1
@@ -1342,12 +1324,6 @@ contains
                fv  = merge(0.0d0,one,abs(vad(i,j,k)).lt.eps)
                sty = merge(ylo(i,j,k),yhi(i,j,k),vad(i,j,k) .ge. 0.0d0)
                yedge(i,j,k) = fv*sty + (one - fv)*half*(yhi(i,j,k)+ylo(i,j,k))
-               ! if (n==YVEL .and. i==31 .and. j==4 .and. k==0) then
-               !   ! print* , "wad, eps, ,abs(wad(i,j,k)).lt.eps) = ", wad(i,j,k), eps, (abs(wad(i,j,k)).lt.eps)
-               !    write(6,"(A,3(I2,A),6(ES12.6,X),A)") new_line("A")//new_line("A")//" AT (", i, ",", j, ",", k, ") ============== "&
-               !         //new_line("a")//" yedge, lo, hi, fu, st, vad  = ",  yedge(i,j,k), ylo(i,j,k), yhi(i,j,k), fv, sty, vad(i,j,k), new_line("A")//new_line("A")
-               !    flush(6)
-               ! endif
             end do
          end do
       end do
@@ -1393,16 +1369,9 @@ contains
       do k = kmin,kmax+1
          do j = jmin-1,jmax+1
             do i = imin-1,imax+1
-               fw  = merge(zero,one,abs(wad(i,j,k)).lt.eps)
+               fw  = merge(0.0d0,one,abs(wad(i,j,k)).lt.eps)
                stz = merge(zlo(i,j,k),zhi(i,j,k),wad(i,j,k) .ge. 0.0d0)
-               zedge(i,j,k) = fw*stz + (1.0d0-fw)*0.5d0*(zhi(i,j,k)+zlo(i,j,k))
-               ! if (n==ZVEL .and. i==31 .and. j==4 .and. k==1) then
-               !    print* , "wad, eps, ,abs(wad(i,j,k)).lt.eps) = ", wad(i,j,k), eps, (abs(wad(i,j,k)).lt.eps)
-               !    write(6,"(A,3(I2,A),6(ES12.6,X),A)") new_line("A")//new_line("A")//" AT (", i, ",", j, ",", k, ") ============== "&
-               !         //new_line("a")//" zedge, lo, hi, fu, st, wad  = ",  zedge(i,j,k), zlo(i,j,k), zhi(i,j,k), fw, stz, wad(i,j,k), new_line("A")//new_line("A")
-               !    flush(6)
-               ! endif
-
+               zedge(i,j,k) = fw*stz + (one-fw)*half*(zhi(i,j,k)+zlo(i,j,k))
             end do
          end do
       end do
@@ -1650,7 +1619,7 @@ contains
                   stxlo(imin) = s(imin-1,j,k,L)
                else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).lt.0.0d0) then
                   stxlo(imin) = stxhi(imin)
-                else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
+               else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
                   if ((n+L-1).eq.XVEL) then
                      if (velpred.eq.1) then
 #ifndef ALLOWXINFLOW
@@ -1682,7 +1651,6 @@ contains
                   stxhi(imin) = 0.0d0
                   stxlo(imin) = 0.0d0
                end if
-
                if (bc(1,2).eq.EXT_DIR .and. velpred.eq.1) then
                   stxlo(imax+1) = s(imax+1,j,k,L)
                   stxhi(imax+1) = s(imax+1,j,k,L)
@@ -1696,7 +1664,7 @@ contains
                      if (velpred.eq.1) then
 #ifndef ALLOWXINFLOW
 !c     prevent backflow
-                        stxlo(imax+1) = MAX(stxlo(imax+1),0.0d0)  ! ANN: commenting this out makes the IAMR output match the incflo output
+                        stxlo(imax+1) = MAX(stxlo(imax+1),0.0d0)
 #endif
                         stxhi(imax+1) = stxlo(imax+1)
                      else
@@ -1730,13 +1698,6 @@ contains
                      ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
                      stx = merge(stxlo(i),stxhi(i),(stxlo(i)+stxhi(i)) .ge. 0.0d0)
                      xstate(i,j,k,L) = merge(zero,stx,ltx)
-                     if (L==XVEL .and. i==32 .and. j==15 .and. k==0) then
-                        ! print* , "wad, eps, ,abs(wad(i,j,k)).lt.eps) = ", wad(i,j,k), eps, (abs(wad(i,j,k)).lt.eps)
-                        write(6,"(A,3(I2,A),4(ES13.6,X),A)") new_line("A")//new_line("A")//" AT (", i, ",", j, ",", k, ") ============== "&
-                             //new_line("a")//" xstate, stxlo, stxhi, stx = ",  xstate(i,j,k,L), stxlo(i), stxhi(i), stx, new_line("A")//new_line("A")
-                        flush(6)
-                     endif
-
                   end do
                else
                   do i = imin, imax+1
@@ -1773,7 +1734,7 @@ contains
                   end if
 
                end do
-#if 0
+
                if (bc(2,1).eq.EXT_DIR .and. velpred.eq.1) then
                   styhi(jmin) = s(i,jmin-1,k,L)
                   stylo(jmin) = s(i,jmin-1,k,L)
@@ -1855,21 +1816,13 @@ contains
                   stylo(jmax+1) = 0.0d0
                   styhi(jmax+1) = 0.0d0
                end if
-               print*, "    ==============================================================="
-#endif
+
                if ( velpred .eq. 1 ) then
                   do j = jmin, jmax+1
                      lty = stylo(j) .le. zero  .and.  styhi(j) .ge. 0.0d0
                      lty = lty .or. (abs(stylo(j)+styhi(j)) .lt. eps)
                      sty = merge(stylo(j),styhi(j),(stylo(j)+styhi(j)) .ge. 0.0d0)
-                     ystate(i,j,k,L) = merge(0.0d0,sty,lty)  !!!! MICHELE  -- check separately sthi, stlo
-                     ! if (n==XVEL+1) then
-                     !    if (i==4 .and. j==3 .and. k==10) then
-                     !       write(6,"(2(I1,X),I2,X,2(ES12.6,X))") i,j,k, stylo(j), styhi(j)
-                     !       flush(6)
-                     !    endif
-                     ! endif
-                     !if (n==YVEL)   print*, i, j, k, ystate(i,j,k,L)
+                     ystate(i,j,k,L) = merge(0.0d0,sty,lty)
                   end do
                else
                   do j=jmin,jmax+1
@@ -1880,10 +1833,7 @@ contains
                end if
             end do
          end do
-
       end if
-
-
 !c
 !c     compute the zedge states
 !c
@@ -1999,7 +1949,6 @@ contains
       end if
 
       else
-
 
 !c
 !c     ORIGINAL NON-CORNER COUPLING CODE
@@ -4436,7 +4385,6 @@ contains
               end do
            end if
         end if
-
 !c
 !c     ------------------------ z slopes
 !c
@@ -4493,14 +4441,7 @@ contains
               end do
            end if
         end if
-
-        ! if (n==XVEL+1) then
-        !    if (i==4 .and. j==3 .and. k==10) then
-        !       write(6,"(A,2(I1,X),I2,X,2(ES12.6,X))") "HERE ", i,j,k, ylo(i,j,k), yhi(i,j,k)
-        !       flush(6)
-        !    endif
-        ! endif
-        !c
+!c
 !c ... end, if slope_order .eq. 2
 !c
       end if
@@ -4513,7 +4454,6 @@ contains
 !c
         if ( (dir.eq.XVEL) .or. (dir.eq.ALL) ) then
            if (use_unlimited_slopes) then
-              print*, "UNLIMITED"
               do k = kmin-1,kmax+1
                  do j = jmin-1,jmax+1
                     do i = imin-2,imax+2
@@ -4566,7 +4506,7 @@ contains
                        slx(imin,  j,k) = sflg*min(slim,abs(del))
 
 !c                      Recalculate the slope at imin+1 using the revised slxscr(imin,fromm)
-                       slxscr(imin,fromm) = slx(imin,j,k) ! = sflg*min(slim,abs(del))
+                       slxscr(imin,fromm) = slx(imin,j,k)
                        ds = two * two3rd * slxscr(imin+1,cen) - &
                          sixth * (slxscr(imin+2,fromm) + slxscr(imin,fromm))
                        slx(imin+1,j,k) = slxscr(imin+1,flag)*min(abs(ds),slxscr(imin+1,lim))
@@ -4636,16 +4576,6 @@ contains
                        ds = two * two3rd * slyscr(j,cen) - &
                            sixth * (slyscr(j+1,fromm) + slyscr(j-1,fromm))
                        sly(i,j,k) = slyscr(j,flag)*min(abs(ds),slyscr(j,lim))
-
-
-                       ! if (dir == YVEL) then
-                       !    if (i==4 .and. j==3 .and. k==10) then
-                       !       write(6,"(A,3(ES20.6,X))") "SLOPES STENCIL  : ", slyscr(j,cen), slyscr(j+1,fromm), slyscr(j-1,fromm)
-                       !       write(6,"(A,3(ES20.6,X))") "SLOPES STENCIL Q: ", s(i,j-1,k), s(i,j,k), s(i,j+1,k)
-                       !       flush(6)
-                       !    endif
-                       ! endif
-
                     end do
 !c
                     if (bc(2,1) .eq. EXT_DIR .or. bc(2,1) .eq. HOEXTRAP) then
@@ -4723,22 +4653,12 @@ contains
                        slzscr(k,lim)  = merge(slzscr(k,lim),zero,(dpls*dmin) .ge. 0.0d0)
                        slzscr(k,flag) = sign(one,slzscr(k,cen))
                        slzscr(k,fromm)= slzscr(k,flag)* &
-                            min(slzscr(k,lim),abs(slzscr(k,cen)))
-
-
+                           min(slzscr(k,lim),abs(slzscr(k,cen)))
                     end do
                     do k = kmin-1,kmax+1
                        ds = two * two3rd * slzscr(k,cen) - &
                            sixth * (slzscr(k+1,fromm) + slzscr(k-1,fromm))
                        slz(i,j,k) = slzscr(k,flag)*min(abs(ds),slzscr(k,lim))
-
-                    !   if (dir==ZVEL) then
-                    !    if (i==31 .and. j==4 .and. k==0) then
-                    !       write(6,"(A,I1,X,3(ES13.6,X))") "SLOPES COMPONENTS (k-1) ", k, ds,slzscr(k,lim), slz(i,j,k)
-                    !       flush(6)
-                    !    endif
-                    ! endif
-
                     end do
 !c
                     if (bc(3,1) .eq. EXT_DIR .or. bc(3,1) .eq. HOEXTRAP) then
@@ -4757,15 +4677,6 @@ contains
                        ds = two * two3rd * slzscr(kmin+1,cen) - &
                          sixth * (slzscr(kmin+2,fromm) + slzscr(kmin,fromm))
                        slz(i,j,kmin+1) = slzscr(kmin+1,flag)*min(abs(ds),slzscr(kmin+1,lim))
-                       !print*, "kmin = ", kmin
-                      ! if (dir==ZVEL) then
-                      !  if (i==31 .and. j==4 .and. kmin==0 ) then
-                      !     write(6,"(A,2(ES12.6,X))") "SLOPES COMPONENTS AFTER ", ds,slzscr(kmin+1,lim)
-                      !     flush(6)
-                      !  endif
-                    !endif
-
-
                     end if
                     if (bc(3,2) .eq. EXT_DIR .or. bc(3,2) .eq. HOEXTRAP) then
                        del  = sixteen15ths*s(i,j,kmax+1) - half*s(i,j,kmax) &
@@ -4784,9 +4695,6 @@ contains
                          sixth * (slzscr(kmax-2,fromm) + slzscr(kmax,fromm))
                        slz(i,j,kmax-1) = slzscr(kmax-1,flag)*min(abs(ds),slzscr(kmax-1,lim))
                     end if
-
-
-
                  end do
               end do
            end if
@@ -6784,4 +6692,301 @@ contains
 
       end subroutine consscalminmax
 
-    end module godunov_3d_module
+      subroutine fort_sum_tf_gp( &
+          tforces,DIMS(tf), &
+          gp,DIMS(gp), &
+          rho,DIMS(rho), &
+          lo,hi ) bind(C,name="fort_sum_tf_gp")
+
+!c
+!c     sum pressure forcing into tforces
+!c
+      implicit none
+      integer i, j, k, n
+      integer DIMDEC(tf)
+      integer DIMDEC(gp)
+      integer DIMDEC(rho)
+      integer lo(SDIM), hi(SDIM)
+      real(rt) tforces(DIMV(tf),SDIM)
+      real(rt) gp(DIMV(gp),SDIM)
+      real(rt) rho(DIMV(rho))
+      real(rt), allocatable :: irho(:,:,:)
+
+      allocate(irho(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               irho(i,j,k) = 1.0d0/rho(i,j,k)
+            end do
+         end do
+      end do
+
+      do n = 1, SDIM
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tforces(i,j,k,n) = (tforces(i,j,k,n) - gp(i,j,k,n))*irho(i,j,k)
+               end do
+            end do
+         end do
+      end do
+      end subroutine fort_sum_tf_gp
+
+      subroutine fort_sum_tf_gp_visc( &
+          tforces,DIMS(tf), &
+          visc,DIMS(visc), &
+          gp,DIMS(gp), &
+          rho,DIMS(rho), &
+          lo,hi ) bind(C,name="fort_sum_tf_gp_visc")
+!c
+!c     sum pressure forcing and viscous forcing into
+!c     tforces
+!c
+      implicit none
+      integer i, j, k, n
+      integer DIMDEC(tf)
+      integer DIMDEC(visc)
+      integer DIMDEC(gp)
+      integer DIMDEC(rho)
+      integer lo(SDIM), hi(SDIM)
+      real(rt) tforces(DIMV(tf),SDIM)
+      real(rt) visc(DIMV(visc),SDIM)
+      real(rt) gp(DIMV(gp),SDIM)
+      real(rt) rho(DIMV(rho))
+      real(rt), allocatable :: irho(:,:,:)
+
+      allocate(irho(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)))
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               irho(i,j,k) = 1.0d0/rho(i,j,k)
+            end do
+         end do
+      end do
+
+      do n = 1, SDIM
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tforces(i,j,k,n) = (tforces(i,j,k,n) + visc(i,j,k,n) &
+                      -    gp(i,j,k,n) )*irho(i,j,k)
+               end do
+            end do
+         end do
+      end do
+      end subroutine fort_sum_tf_gp_visc
+
+      subroutine fort_sum_tf_divu( &
+          S,DIMS(S), &
+          tforces,DIMS(tf), &
+          divu,DIMS(divu), &
+          rho,DIMS(rho), &
+          lo,hi,nvar,iconserv ) bind(C,name="fort_sum_tf_divu")
+!c
+!c     sum tforces, viscous forcing and divU*S into tforces
+!c     depending on the value of iconserv
+!c
+      implicit none
+      integer nvar, iconserv
+      integer lo(SDIM), hi(SDIM)
+      integer i, j, k, n
+
+      integer DIMDEC(S)
+      integer DIMDEC(tf)
+      integer DIMDEC(divu)
+      integer DIMDEC(rho)
+
+      real(rt) S(DIMV(S),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
+      real(rt) divu(DIMV(divu))
+      real(rt) rho(DIMV(rho))
+
+      if ( iconserv .eq. 1 ) then
+         do n = 1, nvar
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tforces(i,j,k,n) =  &
+                    tforces(i,j,k,n) - S(i,j,k,n)*divu(i,j,k)
+                  end do
+               end do
+            end do
+         end do
+      else
+         do n = 1, nvar
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tforces(i,j,k,n) = tforces(i,j,k,n)/rho(i,j,k)
+                  end do
+               end do
+            end do
+         end do
+      end if
+
+      end subroutine fort_sum_tf_divu
+
+      subroutine fort_sum_tf_divu_visc( &
+          S,DIMS(S), &
+          tforces,DIMS(tf), &
+          divu,DIMS(divu), &
+          visc,DIMS(visc), &
+          rho,DIMS(rho), &
+          lo,hi,nvar,iconserv ) bind(C,name="fort_sum_tf_divu_visc")
+!c
+!c     sum tforces, viscous forcing and divU*S into tforces
+!c     depending on the value of iconserv
+!c
+      implicit none
+      integer nvar, iconserv
+      integer lo(SDIM), hi(SDIM)
+      integer i, j, k, n
+
+      integer DIMDEC(S)
+      integer DIMDEC(tf)
+      integer DIMDEC(divu)
+      integer DIMDEC(visc)
+      integer DIMDEC(rho)
+
+      real(rt) S(DIMV(S),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
+      real(rt) divu(DIMV(divu))
+      real(rt) visc(DIMV(visc),nvar)
+      real(rt) rho(DIMV(rho))
+
+
+      if ( iconserv .eq. 1 ) then
+         do n = 1, nvar
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tforces(i,j,k,n) = tforces(i,j,k,n) +  visc(i,j,k,n) &
+                         - S(i,j,k,n)*divu(i,j,k)
+                  end do
+               end do
+            end do
+         end do
+      else
+         do n = 1, nvar
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     tforces(i,j,k,n) = (tforces(i,j,k,n) + visc(i,j,k,n))/rho(i,j,k)
+                  end do
+               end do
+            end do
+         end do
+      end if
+
+      end subroutine fort_sum_tf_divu_visc
+
+      subroutine update_tf ( &
+          s,       DIMS(s), &
+          sn,      DIMS(sn), &
+          tforces, DIMS(tf), &
+          lo,hi,dt,nvar) bind(C,name="update_tf")
+!c
+!c     update a field with a forcing term
+!c
+      implicit none
+      integer i, j, k, n, nvar
+      integer DIMDEC(s)
+      integer DIMDEC(sn)
+      integer DIMDEC(tf)
+      integer lo(SDIM), hi(SDIM)
+      real(rt) dt
+      real(rt) s(DIMV(s),nvar)
+      real(rt) sn(DIMV(sn),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
+
+      do n = 1,nvar
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  sn(i,j,k,n) = s(i,j,k,n) + dt*tforces(i,j,k,n)
+               end do
+            end do
+         end do
+      end do
+
+      end subroutine update_tf
+
+      subroutine update_aofs_tf ( &
+          s,       DIMS(s), &
+          sn,      DIMS(sn), &
+          aofs,    DIMS(aofs), &
+          tforces, DIMS(tf), &
+          lo,hi,dt,nvar) bind(C,name="update_aofs_tf")
+!c
+!c     update a field with an advective tendency
+!c     and a forcing term
+!c
+      implicit none
+      integer i, j, k, n, nvar
+      integer DIMDEC(s)
+      integer DIMDEC(sn)
+      integer DIMDEC(aofs)
+      integer DIMDEC(tf)
+      integer lo(SDIM), hi(SDIM)
+      real(rt) dt
+      real(rt) s(DIMV(s),nvar)
+      real(rt) sn(DIMV(sn),nvar)
+      real(rt) aofs(DIMV(aofs),nvar)
+      real(rt) tforces(DIMV(tf),nvar)
+
+      do n = 1,nvar
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  sn(i,j,k,n) = s(i,j,k,n) + dt*(tforces(i,j,k,n) - aofs(i,j,k,n))
+               end do
+            end do
+         end do
+      end do
+      end subroutine update_aofs_tf
+
+      subroutine update_aofs_tf_gp ( &
+          u,       DIMS(u), &
+          un,      DIMS(un), &
+          aofs,    DIMS(aofs), &
+          tforces, DIMS(tf), &
+          gp,      DIMS(gp), &
+          rho,     DIMS(rho), &
+          lo, hi, dt) bind(C,name="update_aofs_tf_gp")
+      !
+      ! update the velocities
+      !
+      implicit none
+      integer i, j, k, n
+      integer DIMDEC(u)
+      integer DIMDEC(un)
+      integer DIMDEC(aofs)
+      integer DIMDEC(rho)
+      integer DIMDEC(gp)
+      integer DIMDEC(tf)
+      integer lo(SDIM), hi(SDIM)
+      real(rt) u(DIMV(u),SDIM)
+      real(rt) un(DIMV(un),SDIM)
+      real(rt) aofs(DIMV(aofs),SDIM)
+      real(rt) rho(DIMV(rho))
+      real(rt) gp(DIMV(gp),SDIM)
+      real(rt) tforces(DIMV(tf),SDIM)
+      real(rt) dt
+
+      do n = 1, SDIM
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  un(i,j,k,n) = u(i,j,k,n) + dt * &
+                      ( (tforces(i,j,k,n) - gp(i,j,k,n)) / rho(i,j,k) - aofs(i,j,k,n) )
+
+               end do
+            end do
+         end do
+      end do
+
+      end subroutine update_aofs_tf_gp
+
+ end module godunov_3d_module
