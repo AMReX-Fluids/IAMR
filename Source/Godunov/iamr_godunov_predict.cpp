@@ -128,8 +128,6 @@ void godunov::make_trans_velocities (Box const& xbx, Box const& ybx, Box const& 
         auto bc = pbc[n];
         Godunov_trans_xbc(i, j, k, n, vel, lo, hi, lo, bc.lo(0), bc.hi(0), dlo.x, dhi.x);
 
-        constexpr Real small_vel = 1e-10;
-
         Real st = ( (lo+hi) >= 0.) ? lo : hi;
         bool ltm = ( (lo <= 0. && hi >= 0.) || (std::abs(lo+hi) < small_vel) );
         u_ad(i,j,k) = ltm ? 0. : st;
@@ -151,8 +149,6 @@ void godunov::make_trans_velocities (Box const& xbx, Box const& ybx, Box const& 
         auto bc = pbc[n];
         Godunov_trans_ybc(i, j, k, n, vel, lo, hi, lo, bc.lo(1), bc.hi(1), dlo.y, dhi.y);
 
-        constexpr Real small_vel = 1e-10;
-
         Real st = ( (lo+hi) >= 0.) ? lo : hi;
         bool ltm = ( (lo <= 0. && hi >= 0.) || (std::abs(lo+hi) < small_vel) );
         v_ad(i,j,k) = ltm ? 0. : st;
@@ -173,8 +169,6 @@ void godunov::make_trans_velocities (Box const& xbx, Box const& ybx, Box const& 
 
         auto bc = pbc[n];
         Godunov_trans_zbc(i, j, k, n, vel, lo, hi, lo, bc.lo(2), bc.hi(2), dlo.z, dhi.z);
-
-        constexpr Real small_vel = 1e-10;
 
         Real st = ( (lo+hi) >= 0.) ? lo : hi;
         bool ltm = ( (lo <= 0. && hi >= 0.) || (std::abs(lo+hi) < small_vel) );
@@ -249,8 +243,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
             xlo(i,j,k,n) = lo;
             xhi(i,j,k,n) = hi;
 
-            constexpr Real small_vel = 1e-10;
-
             Real st = (uad >= 0.) ? lo : hi;
             Real fu = (std::abs(uad) < small_vel) ? 0.0 : 1.0;
             Imx(i, j, k, n) = fu*st + (1.0 - fu) *0.5 * (hi + lo); // store xedge
@@ -274,8 +266,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
             ylo(i,j,k,n) = lo;
             yhi(i,j,k,n) = hi;
 
-            constexpr Real small_vel = 1e-10;
-
             Real st = (vad >= 0.) ? lo : hi;
             Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
             Imy(i, j, k, n) = fu*st + (1.0 - fu)*0.5*(hi + lo); // store yedge
@@ -298,8 +288,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
             zlo(i,j,k,n) = lo;
             zhi(i,j,k,n) = hi;
-
-            constexpr Real small_vel = 1e-10;
 
             Real st = (wad >= 0.) ? lo : hi;
             Real fu = (std::abs(wad) < small_vel) ? 0.0 : 1.0;
@@ -341,7 +329,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real wad = w_ad(i,j,k);
         Godunov_trans_zbc(i, j, k, n, q, l_zylo, l_zyhi, wad, bc.lo(2), bc.hi(2), dlo.z, dhi.z);
 
-        constexpr Real small_vel = 1.e-10;
 
         Real st = (wad >= 0.) ? l_zylo : l_zyhi;
         Real fu = (std::abs(wad) < small_vel) ? 0.0 : 1.0;
@@ -359,8 +346,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         Real vad = v_ad(i,j,k);
         Godunov_trans_ybc(i, j, k, n, q, l_yzlo, l_yzhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y);
-
-        constexpr Real small_vel = 1.e-10;
 
         Real st = (vad >= 0.) ? l_yzlo : l_yzhi;
         Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
@@ -386,9 +371,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         Godunov_cc_xbc_lo(i, j, k, n, q, stl, sth, u_ad, bc.lo(0), dlo.x);
         Godunov_cc_xbc_hi(i, j, k, n, q, stl, sth, u_ad, bc.hi(0), dhi.x);
-
-        constexpr Real small_vel = 1.e-10;
-
 
         if ( (i==dlo.x) and (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap) )
         {
@@ -435,7 +417,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real uad = u_ad(i,j,k);
         Godunov_trans_xbc(i, j, k, n, q, l_xzlo, l_xzhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x);
 
-        constexpr Real small_vel = 1.e-10;
 
         Real st = (uad >= 0.) ? l_xzlo : l_xzhi;
         Real fu = (std::abs(uad) < small_vel) ? 0.0 : 1.0;
@@ -453,8 +434,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         Real wad = w_ad(i,j,k);
         Godunov_trans_zbc(i, j, k, n, q, l_zxlo, l_zxhi, wad, bc.lo(2), bc.hi(2), dlo.z, dhi.z);
-
-        constexpr Real small_vel = 1.e-10;
 
         Real st = (wad >= 0.) ? l_zxlo : l_zxhi;
         Real fu = (std::abs(wad) < small_vel) ? 0.0 : 1.0;
@@ -480,8 +459,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         Godunov_cc_ybc_lo(i, j, k, n, q, stl, sth, v_ad, bc.lo(1), dlo.y);
         Godunov_cc_ybc_hi(i, j, k, n, q, stl, sth, v_ad, bc.hi(1), dhi.y);
-
-        constexpr Real small_vel = 1.e-10;
 
         if ( (j==dlo.y) and (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap) )
         {
@@ -528,7 +505,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real uad = u_ad(i,j,k);
         Godunov_trans_xbc(i, j, k, n, q, l_xylo, l_xyhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x);
 
-        constexpr Real small_vel = 1.e-10;
 
         Real st = (uad >= 0.) ? l_xylo : l_xyhi;
         Real fu = (std::abs(uad) < small_vel) ? 0.0 : 1.0;
@@ -551,7 +527,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real vad = v_ad(i,j,k);
         Godunov_trans_ybc(i, j, k, n, q, l_yxlo, l_yxhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y);
 
-        constexpr Real small_vel = 1.e-10;
 
         Real st = (vad >= 0.) ? l_yxlo : l_yxhi;
         Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
@@ -578,8 +553,6 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         Godunov_cc_zbc_lo(i, j, k, n, q, stl, sth, w_ad, bc.lo(2), dlo.z);
         Godunov_cc_zbc_hi(i, j, k, n, q, stl, sth, w_ad, bc.hi(2), dhi.z);
-
-        constexpr Real small_vel = 1.e-10;
 
         if ( (k==dlo.z) and (bc.lo(2) == BCType::foextrap || bc.lo(2) == BCType::hoextrap) )
         {
