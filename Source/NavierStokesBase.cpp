@@ -721,22 +721,7 @@ NavierStokesBase::advance_setup (Real time,
     // Alloc MultiFab to hold advective update terms.
     //
     BL_ASSERT(aofs == 0);
-    // NOTE: nghost=0 for aofs appears to work. mfix also uses no ghost cells.
     aofs = new MultiFab(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
-
-#ifdef AMREX_USE_EB
-    //Slopes in x-direction
-    m_xslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
-    m_xslopes.setVal(0.);
-    // Slopes in y-direction
-    m_yslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
-    m_yslopes.setVal(0.);
-#if (AMREX_SPACEDIM > 2)
-    // Slopes in z-direction
-    m_zslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
-    m_zslopes.setVal(0.);
-#endif
-#endif
 
     //
     // Set rho_avg.
@@ -2785,8 +2770,8 @@ NavierStokesBase::resetState (Real time,
 
 void
 NavierStokesBase::restart (Amr&          papa,
-                       std::istream& is,
-                       bool          bReadSpecial)
+			   std::istream& is,
+			   bool          bReadSpecial)
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
