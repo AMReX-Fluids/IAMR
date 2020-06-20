@@ -318,6 +318,11 @@ NavierStokesBase::~NavierStokesBase ()
     fb_diffn.clear();
     fb_diffnp1.clear();
 
+    delete viscn_cc;
+    delete viscnp1_cc;
+    delete diffn_cc;
+    delete diffnp1_cc;
+
     delete diffusion;
 }
 

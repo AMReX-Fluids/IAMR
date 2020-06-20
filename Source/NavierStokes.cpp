@@ -1738,8 +1738,11 @@ NavierStokes::mac_sync ()
 				    modify_reflux_normal_vel,
 				    do_mom_diff);
     //
-    // fixme? clear Ucorr here? think we're done with it
+    // Delete Ucorr; we're done with it.
     //
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      delete Ucorr[idim];
+
 
     //
     // For all conservative variables Q (other than density)
