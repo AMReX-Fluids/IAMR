@@ -305,11 +305,9 @@ NavierStokes::advance (Real time,
 
     calcViscosity(prev_time,dt,iteration,ncycle);
     calcDiffusivity(prev_time);
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      MultiFab::Copy(*viscnp1[d], *viscn[d], 0, 0, 1, viscn[d]->nGrow());
-      MultiFab::Copy(*diffnp1[d], *diffn[d], 0, 0, num_diff, diffn[d]->nGrow());
-    }
-
+    MultiFab::Copy(*viscnp1_cc, *viscn_cc, 0, 0, 1, viscn_cc->nGrow());
+    MultiFab::Copy(*diffnp1_cc, *diffn_cc, 0, 0, num_diff, diffn_cc->nGrow());
+    
     // Add this AFTER advance_setup()
     if (verbose)
     {
@@ -953,9 +951,9 @@ NavierStokes::velocity_diffusion_update (Real dt)
             delta_rhs->setVal(0);
         }
 
+	FluxBoxes fb_viscn, fb_viscnp1;
         MultiFab** loc_viscn   = 0;
         MultiFab** loc_viscnp1 = 0;
-	FluxBoxes fb_viscn, fb_viscnp1;
 
         Real viscTime = state[State_Type].prevTime();
         loc_viscn = fb_viscn.define(this);
@@ -964,11 +962,11 @@ NavierStokes::velocity_diffusion_update (Real dt)
         viscTime = state[State_Type].curTime();
         loc_viscnp1 = fb_viscnp1.define(this);
         getViscosity(loc_viscnp1, viscTime);
-
+	
         diffuse_velocity_setup(dt, delta_rhs, loc_viscn, loc_viscnp1);
 
         diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
-                                    delta_rhs,loc_viscn,loc_viscnp1);
+                                    delta_rhs,loc_viscn,viscn_cc,loc_viscnp1,viscnp1_cc);
 
         delete delta_rhs;
     }
@@ -2307,7 +2305,12 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         viscosity = fb.define(this);
         getViscosity(viscosity, time);
 
-        diffusion->getTensorViscTerms(visc_terms,time,viscosity,0);
+	auto whichTime = which_time(State_Type,time);
+	BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+	
+	auto viscosityCC = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
+	
+        diffusion->getTensorViscTerms(visc_terms,time,viscosity,viscosityCC,0);
 
         //
         // Add Div(u) term if desired, if this is velocity, and if Div(u)
@@ -2366,11 +2369,14 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 }
 
 //
-// Functions for calculating the variable viscosity and diffusivity.
-// These default to setting the variable viscosity and diffusivity arrays
-// to the values in visc_coef and diff_coef.  These functions would
-// need to be replaced in any class derived from NavierStokes that
-// wants variable coefficients.
+// Functions calcViscosity/Diffusivity and getViscosity/Diffusivity are  
+// for calculating variable viscosity and diffusivity. Here we default to
+// constant visc/diff and set the variable viscosity and diffusivity arrays
+// to the values in visc_coef and diff_coef.
+// For variable viscosity/diffusivity, (per MSD) calcViscosity/Diffusivity
+// should compute the transport coefficients at cell centers (or cell centroids
+// for EB) and getViscosity/Diffusivity should interpolate those to faces (or
+// face-centroids for EB).
 //
 void
 NavierStokes::calcViscosity (const Real time,
@@ -2385,25 +2391,8 @@ NavierStokes::calcViscosity (const Real time,
             auto whichTime = which_time(State_Type,time);
             BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
-            auto visc = (whichTime == AmrOldTime ? viscn : viscnp1);
-            for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-                visc[dir]->setVal(visc_coef[Xvel], 0, visc[dir]->nComp(), visc[dir]->nGrow());
-            }
-
-            if (do_LES)
-	    {
-               FluxBoxes mu_LES(this,1,0);
-               MultiFab** mu_LES_mf = mu_LES.get();
-               for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-                mu_LES_mf[dir]->setVal(0., 0, mu_LES_mf[dir]->nComp(), mu_LES_mf[dir]->nGrow());
-	       }
-
-               NavierStokesBase::calc_mut_LES(mu_LES_mf,time);
-
-	       for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-		 MultiFab::Add(*visc[dir], *mu_LES_mf[dir], 0, 0, 1, 0);
-	       }
-            }
+            auto visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
+	    visc->setVal(visc_coef[Xvel], 0, visc->nComp(), visc->nGrow());
         }
         else
 	{
@@ -2428,7 +2417,7 @@ NavierStokes::calcDiffusivity (const Real time)
     const TimeLevel whichTime = which_time(State_Type,time);
     BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
-    MultiFab** diff = (whichTime == AmrOldTime ? diffn : diffnp1);
+    MultiFab* diff = (whichTime == AmrOldTime ? diffn_cc : diffnp1_cc);
     for (int comp=src_comp; comp<src_comp+ncomp; comp++)
     {
         int diff_comp = comp - Density - 1;
@@ -2437,9 +2426,7 @@ NavierStokes::calcDiffusivity (const Real time)
         {
             if (visc_coef[comp] >= 0.0)
             {
-                for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-                    diff[dir]->setVal(visc_coef[comp], diff_comp, 1, diff[dir]->nGrow());
-                }
+	      diff->setVal(visc_coef[comp], diff_comp, 1, diff->nGrow());
             }
             else
             {
@@ -2453,16 +2440,35 @@ void
 NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
                             const Real time)
 {
-    //
-    // Select time level to work with (N or N+1)
-    //
-    const TimeLevel whichTime = which_time(State_Type,time);
-    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+    // //
+    // // Select time level to work with (N or N+1)
+    // //
+    // const TimeLevel whichTime = which_time(State_Type,time);
+    // BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
-    MultiFab **visc = (whichTime == AmrOldTime ? viscn : viscnp1);
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    // MultiFab *visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
+  
+    // For non-const viscosity, this where the interp from cell-center/centroid
+    // to faces would take place. 
+    // But here we simply do constant viscosity.
+
+    for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+      viscosity[dir]->setVal(visc_coef[Xvel], 0, viscosity[dir]->nComp(), viscosity[dir]->nGrow());
+    }
+	  
+    if (do_LES)
     {
-        MultiFab::Copy(*viscosity[dir],*visc[dir],0,0,1,0);
+      FluxBoxes mu_LES(this,1,0);
+      MultiFab** mu_LES_mf = mu_LES.get();
+      for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+	mu_LES_mf[dir]->setVal(0., 0, mu_LES_mf[dir]->nComp(), mu_LES_mf[dir]->nGrow());
+      }
+      
+      NavierStokesBase::calc_mut_LES(mu_LES_mf,time);
+      
+      for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+	MultiFab::Add(*viscosity[dir], *mu_LES_mf[dir], 0, 0, 1, 0);
+      }
     }
 }
 
@@ -2478,16 +2484,21 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     // Pick correct diffusivity component
     //
     int diff_comp = state_comp - Density - 1;
-    //
-    // Select time level to work with (N or N+1)
-    //
-    const TimeLevel whichTime = which_time(State_Type,time);
-    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+    // //
+    // // Select time level to work with (N or N+1)
+    // //
+    // const TimeLevel whichTime = which_time(State_Type,time);
+    // BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+    
+    // MultiFab *diff = (whichTime == AmrOldTime ? diffn_cc : diffnp1_cc);
 
-    MultiFab **diff = (whichTime == AmrOldTime ? diffn : diffnp1);
+    // For non-const diffusivity, this where the interp from cell-center/centroid
+    // to faces would take place. 
+    // But here we simply do constant diffusivity.
+
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        MultiFab::Copy(*diffusivity[dir],*diff[dir],diff_comp,dst_comp,ncomp,0);
+      diffusivity[dir]->setVal(visc_coef[diff_comp], dst_comp, 1, diffusivity[dir]->nGrow());
     }
 }
 

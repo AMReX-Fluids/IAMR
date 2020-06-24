@@ -432,9 +432,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	opn.setScalars(a,b);
 	//opn.setACoeffs(0, alpha) not needed bc a=0
 
-	Array<MultiFab,AMREX_SPACEDIM> bcoeffs = computeBeta(betan, betaComp+icomp);
-	opn.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
-
+	setBeta(opn,betan,betaComp+icomp);
+	
 #ifdef AMREX_USE_EB
         MultiFab rhs_tmp(ba,dm,1,2,MFInfo(),factory);
         rhs_tmp.setVal(0.);
@@ -446,7 +445,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
         amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, 1, geom);
 #else
-        mgn.apply({&Rhs},{&Soln});
+	mgn.apply({&Rhs},{&Soln});
 #endif
 
 	computeExtensiveFluxes(mgn, Soln, fluxn, fluxComp+icomp, 1, &geom, -b/dt);
@@ -580,10 +579,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 	opnp1.setACoeffs(0, alpha);
       }
 
-      {
-	Array<MultiFab,AMREX_SPACEDIM> bcoeffs = computeBeta(betanp1, betaComp+icomp);
-	opnp1.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
-      }
+      setBeta(opnp1,betanp1,betaComp+icomp);
+      
       Rhs.mult(rhsscale,0,1);
       const Real S_tol     = visc_tol;
       const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
@@ -626,10 +623,12 @@ Diffusion::diffuse_velocity (Real                   dt,
                              int                    rho_flag,
                              MultiFab*              delta_rhs,
                              const MultiFab* const* betan,
-                             const MultiFab* const* betanp1)
+			     const MultiFab* const  betanCC,
+                             const MultiFab* const* betanp1,
+			     const MultiFab* const  betanp1CC)
 {
     diffuse_velocity(dt, be_cn_theta, rho_half, rho_flag,
-                     delta_rhs, 0, betan, betanp1, 0);
+                     delta_rhs, 0, betan, betanCC, betanp1, betanp1CC, 0);
 }
 
 void
@@ -640,7 +639,9 @@ Diffusion::diffuse_velocity (Real                   dt,
                              MultiFab*              delta_rhs,
                              int                    rhsComp,
                              const MultiFab* const* betan,
+			     const MultiFab* const  betanCC,
                              const MultiFab* const* betanp1,
+			     const MultiFab* const  betanp1CC,
                              int                    betaComp)
 {
   if (verbose) amrex::Print() << "... Diffusion::diffuse_velocity() lev: " << level << std::endl;
@@ -648,7 +649,7 @@ Diffusion::diffuse_velocity (Real                   dt,
     const Real strt_time = ParallelDescriptor::second();
 
     diffuse_tensor_velocity(dt,be_cn_theta,rho_half,rho_flag,
-			    delta_rhs,rhsComp,betan,betanp1,betaComp);
+			    delta_rhs,rhsComp,betan,betanCC,betanp1,betanp1CC,betaComp);
 
     if (verbose)
     {
@@ -670,7 +671,9 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
                                     MultiFab*              delta_rhs,
                                     int                    rhsComp,
                                     const MultiFab* const* betan,
+                                    const MultiFab* const  betanCC,
                                     const MultiFab* const* betanp1,
+                                    const MultiFab* const  betanp1CC,
                                     int                    betaComp)
 {
     int allthere, allnull;
@@ -767,37 +770,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 
 	tensorop.setScalars(a, b);
 
-	Array<MultiFab,AMREX_SPACEDIM> face_bcoef = computeBeta(betan, betaComp);
-
 #ifdef AMREX_USE_EB
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
-
-	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
-	EB_average_face_to_cellcenter(cc_bcoef, 0,
-				      amrex::GetArrOfConstPtrs(face_bcoef));
-	tensorop.setEBShearViscosity(0, cc_bcoef);
+	setViscosity(tensorop, betan, betaComp, *betanCC);
 #else
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
-#endif
-
-	if (NavierStokesBase::S_in_vel_diffusion) {
-	  // remove the "divmusi" terms by setting kappa = (2/3) mu
-	  //
-	  Print()<<"WARNING: Hack to get rid of divU terms ...\n";
-	  Array<MultiFab,AMREX_SPACEDIM> kappa;
-	  Real twothirds = 2.0/3.0;
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	  {
-	    kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
-	    MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
-	    kappa[idim].mult(twothirds);
-	  }
-	  tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
-#ifdef AMREX_USE_EB
-	  cc_bcoef.mult(twothirds);
-	  tensorop.setEBBulkViscosity(0, cc_bcoef);
-#endif
-	}
+	setViscosity(tensorop, betan, betaComp);
+#endif	
 
 	MLMG mlmg(tensorop);
 	// FIXME -- consider making new parameters max_iter and bottom_verbose
@@ -957,38 +934,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 	tensorop.setACoeffs(0, acoef);
       }
 
-      {
-	Array<MultiFab,AMREX_SPACEDIM> face_bcoef = computeBeta(betanp1,betaComp);
-
 #ifdef AMREX_USE_EB
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
-	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
-	EB_average_face_to_cellcenter(cc_bcoef, 0,
-				      amrex::GetArrOfConstPtrs(face_bcoef));
-	tensorop.setEBShearViscosity(0, cc_bcoef);
+      setViscosity(tensorop, betanp1, betaComp, *betanp1CC);
 #else
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
-#endif
-
-	if (NavierStokesBase::S_in_vel_diffusion) {
-	  // remove the "divmusi" terms by setting kappa = (2/3) mu
-	  //
-	  Print()<<"WARNING: Hack to get rid of divU terms ...\n";
-	  Array<MultiFab,AMREX_SPACEDIM> kappa;
-	  Real twothirds = 2.0/3.0;
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	  {
-	    kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
-	    MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
-	    kappa[idim].mult(twothirds);
-	  }
-	  tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
-#ifdef AMREX_USE_EB
-	  cc_bcoef.mult(twothirds);
-	  tensorop.setEBBulkViscosity(0, cc_bcoef);
-#endif
-	}
-      }
+      setViscosity(tensorop, betanp1, betaComp);
+#endif	
 
       MLMG mlmg(tensorop);
       //fixme?
@@ -1195,44 +1145,23 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
       tensorop.setScalars(scalars.first, scalars.second);
       tensorop.setACoeffs(0, acoef);
     }
-    
-    {
-      Array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-      for (int n = 0; n < BL_SPACEDIM; n++)
-      {
-	face_bcoef[n].define(area[n].boxArray(),area[n].DistributionMap(),1,0,MFInfo(),navier_stokes->Factory());
-	face_bcoef[n].setVal(1.0);
-      }
 
+    {
+      FluxBoxes  fb_bcoef;
+      MultiFab** face_bcoef = 0;
+      face_bcoef = fb_bcoef.define(navier_stokes);
+      for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+	face_bcoef[dir]->setVal(1.0);
+      }
       
 #ifdef AMREX_USE_EB
-      tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
-      MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
-      EB_average_face_to_cellcenter(cc_bcoef, 0,
-				    amrex::GetArrOfConstPtrs(face_bcoef));
-      tensorop.setEBShearViscosity(0, cc_bcoef);
-#else
-      tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
-#endif
+      MultiFab bcoefCC(grids,dmap,1,0,MFInfo(),navier_stokes->Factory());
+      bcoefCC.setVal(1.0);
 
-      if (NavierStokesBase::S_in_vel_diffusion) {
-	// remove the "divmusi" terms by setting kappa = (2/3) mu
-	//
-	Print()<<"WARNING: Hack to get rid of divU terms ...\n";
-	Array<MultiFab,AMREX_SPACEDIM> kappa;
-	Real twothirds = 2.0/3.0;
-	for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	{
-	  kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
-	  MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
-	  kappa[idim].mult(twothirds);
-	}
-	tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
-#ifdef AMREX_USE_EB
-	cc_bcoef.mult(twothirds);
-	tensorop.setEBBulkViscosity(0, cc_bcoef);
-#endif
-      }
+      setViscosity(tensorop, face_bcoef, 0, bcoefCC);
+#else
+      setViscosity(tensorop, face_bcoef, 0);
+#endif	
     }
     
     MLMG mlmg(tensorop);
@@ -1380,10 +1309,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
       mlabec.setACoeffs(0, acoef);
     }
 
-    {
-      Array<MultiFab,BL_SPACEDIM> bcoeffs = computeBeta(beta, betaComp);
-      mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
-    }
+    setBeta(mlabec, beta, betaComp);
 
     MLMG mlmg(mlabec);
     if (use_hypre) {
@@ -1494,16 +1420,97 @@ Diffusion::computeAlpha (MultiFab&             alpha,
     }
 }
 
-Array<MultiFab,AMREX_SPACEDIM>
-Diffusion::computeBeta (const MultiFab* const* beta,
-                        int                    betaComp)
+#ifdef AMREX_USE_EB
+void
+Diffusion::setBeta(MLEBABecLap&           op,
+		   const MultiFab* const* beta,
+		   int                    betaComp)
 {
-    Array<MultiFab,AMREX_SPACEDIM> r{
+    Array<MultiFab,AMREX_SPACEDIM> bcoeffs{
       AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
 		   MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
 		   MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
-    return r;
+
+    op.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs), MLLinOp::Location::FaceCentroid);
 }
+
+void
+Diffusion::setViscosity(MLEBTensorOp&          tensorop,
+			const MultiFab* const* beta,
+			int                    betaComp,
+			const MultiFab&        beta_cc)
+{
+    Array<MultiFab,AMREX_SPACEDIM> face_bcoef{
+      AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
+		   MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
+		   MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
+    tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLLinOp::Location::FaceCentroid);
+    
+    MultiFab cc_bcoef = MultiFab(beta_cc, amrex::make_alias, betaComp, 1);
+    tensorop.setEBShearViscosity(0, cc_bcoef);
+
+    if (NavierStokesBase::S_in_vel_diffusion) {
+      // remove the "divmusi" terms by setting kappa = (2/3) mu
+      //
+      Print()<<"WARNING: Hack to get rid of divU terms ...\n";
+      Array<MultiFab,AMREX_SPACEDIM> kappa;
+      Real twothirds = 2.0/3.0;
+      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      {
+	kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
+	MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
+	kappa[idim].mult(twothirds);
+      }
+      tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
+      cc_bcoef.mult(twothirds);
+      tensorop.setEBBulkViscosity(0, cc_bcoef);
+      //put beta_cc back to normal
+      cc_bcoef.mult(3.0/2.0);
+    }
+}
+
+#else
+
+void
+Diffusion::setBeta(MLABecLaplacian&       op,
+		   const MultiFab* const* beta,
+		   int                    betaComp)
+{
+    Array<MultiFab,AMREX_SPACEDIM> bcoeffs{
+      AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
+		   MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
+		   MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
+
+    op.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+}
+
+void
+Diffusion::setViscosity(MLTensorOp&            tensorop,
+			const MultiFab* const* beta,
+			int                    betaComp)
+{
+    Array<MultiFab,AMREX_SPACEDIM> face_bcoef{
+      AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
+		   MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
+		   MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
+    tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
+
+    if (NavierStokesBase::S_in_vel_diffusion) {
+      // remove the "divmusi" terms by setting kappa = (2/3) mu
+      //
+      Print()<<"WARNING: Hack to get rid of divU terms ...\n";
+      Array<MultiFab,AMREX_SPACEDIM> kappa;
+      Real twothirds = 2.0/3.0;
+      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      {
+	kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
+	MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
+	kappa[idim].mult(twothirds);
+      }
+      tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
+    }
+}
+#endif
 
 //
 // return the fluxes multiplied by the area -- extensive fluxes
@@ -1552,6 +1559,8 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
     areafrac  = ebfactory.getAreaFrac();
 #endif
 
+//FIXME - would be better to rewrite this with testing for EB regular first
+    
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -1722,8 +1731,8 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	mlabec.setScalars(a,b);
 	// mlabec.setACoeffs() not needed since a = 0.0
 
-	Array<MultiFab,BL_SPACEDIM> bcoeffs = computeBeta(beta,betaComp);
-	mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
+
+	setBeta(mlabec, beta, betaComp);
 
 	// Do we need something like this cribbed from mfix???
 	// This sets the coefficient on the wall and defines it as a homogeneous
@@ -1758,6 +1767,7 @@ void
 Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
                                Real                   time,
                                const MultiFab* const* beta,
+			       const MultiFab* const  betaCC,
                                int                    betaComp)
 {
     int allthere;
@@ -1848,36 +1858,11 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 
 	tensorop.setScalars(a, b);
 
-	Array<MultiFab,AMREX_SPACEDIM> face_bcoef = computeBeta(beta,betaComp);
-
 #ifdef AMREX_USE_EB
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef), MLMG::Location::FaceCenter);
-	MultiFab cc_bcoef(grids,dmap,BL_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
-	EB_average_face_to_cellcenter(cc_bcoef, 0,
-				      amrex::GetArrOfConstPtrs(face_bcoef));
-	tensorop.setEBShearViscosity(0, cc_bcoef);
+	setViscosity(tensorop, beta, betaComp, *betaCC);
 #else
-	tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
-#endif
-
-	if (NavierStokesBase::S_in_vel_diffusion) {
-	  // remove the "divmusi" terms by setting kappa = (2/3) mu
-	  //
-	  Print()<<"WARNING: Hack to get rid of divU terms ...\n";
-	  Array<MultiFab,AMREX_SPACEDIM> kappa;
-	  Real twothirds = 2.0/3.0;
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	  {
-	    kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
-	    MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
-	    kappa[idim].mult(twothirds);
-	  }
-	  tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
-#ifdef AMREX_USE_EB
-	  cc_bcoef.mult(twothirds);
-	  tensorop.setEBBulkViscosity(0, cc_bcoef);
-#endif
-	}
+	setViscosity(tensorop, beta, betaComp);
+#endif	
 
 	MLMG mlmg(tensorop);
 	// FIXME -- consider making new parameters max_iter and bottom_verbose
