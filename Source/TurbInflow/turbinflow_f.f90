@@ -12,7 +12,7 @@ module turbinflow_module
   integer, save :: npboxcells(3)
   real(kind=amrex_real), save :: pboxlo(3), dx(3), dxinv(3)
   real(kind=amrex_real), pointer, save :: plane_time(:)
-  integer, save :: turb_ncomp
+  integer, save :: turb_ncomp = 3
 
   integer, parameter :: nplane = 32
   real(kind=amrex_real), pointer, save :: sdata(:,:,:,:)
@@ -75,7 +75,6 @@ contains
     read(iunit,*) probsize
     read(iunit,*) is_periodic
     !read(iunit,*) turb_ncomp
-    turb_ncomp = 3
 
     if (is_periodic(3) .eq. 0) then
        isswirltype = 1
