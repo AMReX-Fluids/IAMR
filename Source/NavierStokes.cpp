@@ -2498,7 +2498,7 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-      diffusivity[dir]->setVal(visc_coef[diff_comp], dst_comp, 1, diffusivity[dir]->nGrow());
+      diffusivity[dir]->setVal(visc_coef[diff_comp], dst_comp, ncomp, diffusivity[dir]->nGrow());
     }
 }
 
