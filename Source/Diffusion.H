@@ -219,22 +219,22 @@ public:
                               int                                 rho_comp);
 
 #ifdef AMREX_USE_EB
-    void setBeta(amrex::MLEBABecLap&           op,
-		 const amrex::MultiFab* const* beta,
-		 int                           betaComp);
+    static void setBeta(amrex::MLEBABecLap&           op,
+			const amrex::MultiFab* const* beta,
+			int                           betaComp);
 
     void setViscosity(amrex::MLEBTensorOp&          tensorop,
 		      const amrex::MultiFab* const* beta,
 		      int                           betaComp,
 		      const amrex::MultiFab&        beta_cc);
 #else
-    void setBeta(amrex::MLABecLaplacian&       op,
-		 const amrex::MultiFab* const* beta,
-		 int                           betaComp);
+    static void setBeta(amrex::MLABecLaplacian&       op,
+			const amrex::MultiFab* const* beta,
+			int                           betaComp);
   
-  void setViscosity(amrex::MLTensorOp&            tensorop,
-		    const amrex::MultiFab* const* beta,
-		    int                           betaComp);
+    void setViscosity(amrex::MLTensorOp&            tensorop,
+		      const amrex::MultiFab* const* beta,
+		      int                           betaComp);
 #endif
   
     static void computeExtensiveFluxes(amrex::MLMG&            a_mg,
