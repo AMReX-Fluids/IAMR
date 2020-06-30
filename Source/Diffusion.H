@@ -11,19 +11,17 @@
 #include <AMReX_AmrLevel.H>
 #include <AMReX_ErrorList.H>
 #include <AMReX_FluxRegister.H>
-#include <AMReX_ABecLaplacian.H>
 #include <FluxBoxes.H>
-#include <AMReX_MLLinOp.H>
 
-//
-// Include files for tensor solve.
-//
-#include <AMReX_DivVis.H>
-#include <AMReX_LO_BCTYPES.H>
-#include <AMReX_MCMultiGrid.H>
-#include <AMReX_MCCGSolver.H>
-
+#ifdef AMREX_USE_EB
+#include <AMReX_MLEBABecLap.H>
+#include <AMReX_MLEBTensorOp.H>
 #define COVERED_VAL 1.0e40
+#else
+#include <AMReX_MLABecLaplacian.H>
+#include <AMReX_MLTensorOp.H>
+#endif
+
 
 //
 // Useful enumeration of the different forms of the diffusion terms
@@ -92,7 +90,9 @@ public:
 			  int                           rho_flag,
 			  amrex::MultiFab*              delta_rhs, 
 			  const amrex::MultiFab* const* betan, 
-			  const amrex::MultiFab* const* betanp1);
+			  const amrex::MultiFab* const  betanCC, 
+			  const amrex::MultiFab* const* betanp1,
+			  const amrex::MultiFab* const  betanp1CC);
   
     void diffuse_velocity (amrex::Real                   dt,
                            amrex::Real                   be_cn_theta,
@@ -100,8 +100,10 @@ public:
                            int                           rho_flag,
                            amrex::MultiFab*              delta_rhs, 
                            int                           rhsComp,
-                           const amrex::MultiFab* const* betan, 
+                           const amrex::MultiFab* const* betan,
+			   const amrex::MultiFab* const  betanCC, 
                            const amrex::MultiFab* const* betanp1,
+			   const amrex::MultiFab* const  betanp1CC,
                            int                           betaComp);
 
     void diffuse_tensor_velocity (amrex::Real            dt,
@@ -110,8 +112,10 @@ public:
                                   int                    rho_flag,
                                   amrex::MultiFab*       delta_rhs, 
                                   int                    rhsComp,
-                                  const amrex::MultiFab* const* betan, 
+                                  const amrex::MultiFab* const* betan,
+				  const amrex::MultiFab* const  betanCC, 
                                   const amrex::MultiFab* const* betanp1,
+				  const amrex::MultiFab* const  betanp1CC,
                                   int                    betaComp);
 
     void diffuse_Vsync (amrex::MultiFab&              Vsync,
@@ -159,7 +163,8 @@ public:
     void getTensorViscTerms (amrex::MultiFab&              visc_terms, 
                              amrex::Real                   time,
                              const amrex::MultiFab* const* beta,
-			     int                    dataComp);
+			     const amrex::MultiFab* const  betaCC,
+			     int                           dataComp);
 
     void FillBoundary (amrex::BndryRegister& bdry,
                        int                   src_comp,
@@ -212,18 +217,33 @@ public:
                               int                                 rho_flag, 
                               const amrex::MultiFab*              rho,
                               int                                 rho_comp);
-    
-    static amrex::Array<amrex::MultiFab,AMREX_SPACEDIM>
-    computeBeta (const amrex::MultiFab* const* beta,
-		 int                           betaComp);
 
+#ifdef AMREX_USE_EB
+    static void setBeta(amrex::MLEBABecLap&           op,
+			const amrex::MultiFab* const* beta,
+			int                           betaComp);
+
+    void setViscosity(amrex::MLEBTensorOp&          tensorop,
+		      const amrex::MultiFab* const* beta,
+		      int                           betaComp,
+		      const amrex::MultiFab&        beta_cc);
+#else
+    static void setBeta(amrex::MLABecLaplacian&       op,
+			const amrex::MultiFab* const* beta,
+			int                           betaComp);
+  
+    void setViscosity(amrex::MLTensorOp&            tensorop,
+		      const amrex::MultiFab* const* beta,
+		      int                           betaComp);
+#endif
+  
     static void computeExtensiveFluxes(amrex::MLMG&            a_mg,
-				amrex::MultiFab&        Soln,
-				amrex::MultiFab* const* flux,
-				const int               fluxComp,
-				const int               nomp,
-				const amrex::Geometry*  a_geom,
-				const amrex::Real       fac );
+				       amrex::MultiFab&        Soln,
+				       amrex::MultiFab* const* flux,
+				       const int               fluxComp,
+				       const int               nomp,
+				       const amrex::Geometry*  a_geom,
+				       const amrex::Real       fac );
 
 protected:
 

@@ -277,11 +277,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn   = fb_viscn.define(this,1,0);
-    viscnp1 = fb_viscnp1.define(this,1,0);
-    diffn   = fb_diffn.define(this,NUM_STATE-Density-1,0);
-    diffnp1 = fb_diffnp1.define(this,NUM_STATE-Density-1,0);
-
     diffn_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
     diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
     viscn_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
@@ -313,11 +308,6 @@ NavierStokesBase::~NavierStokesBase ()
     // Remove the arrays for variable viscosity and diffusivity
     // and delete the Diffusion object
     //
-    fb_viscn.clear();
-    fb_viscnp1.clear();
-    fb_diffn.clear();
-    fb_diffnp1.clear();
-
     delete viscn_cc;
     delete viscnp1_cc;
     delete diffn_cc;
@@ -2871,11 +2861,6 @@ NavierStokesBase::restart (Amr&          papa,
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
-    viscn   = fb_viscn.define(this,1,0);
-    viscnp1 = fb_viscnp1.define(this,1,0);
-    diffn   = fb_diffn.define(this,NUM_STATE-Density-1,0);
-    diffnp1 = fb_diffnp1.define(this,NUM_STATE-Density-1,0);
-
     diffn_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
     diffnp1_cc = new MultiFab(grids, dmap, NUM_STATE-Density-1, 1, MFInfo(), Factory());
     viscn_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
@@ -3835,6 +3820,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         //
         // Average the mac face velocities to get cell centred velocities.
         //
+	//FIXME - need to address this for EB
         FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
         FORT_AVERAGE_EDGE_STATES(BL_TO_FORTRAN_ANYD(Vel),
                                  BL_TO_FORTRAN_ANYD(u_mac[0][Rhohalf_mfi]),

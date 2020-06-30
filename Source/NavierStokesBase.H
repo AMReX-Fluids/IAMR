@@ -418,14 +418,14 @@ protected:
     //
     virtual amrex::Real estTimeStep ();
 
-    virtual void getViscosity (amrex::MultiFab* viscosity[BL_SPACEDIM],
+    virtual void getViscosity (amrex::MultiFab*  viscosity[BL_SPACEDIM],
 			       const amrex::Real time) = 0;
     //
     // Compute viscous terms.
     //
     virtual void getViscTerms (amrex::MultiFab& visc_terms,
-			       int       src_comp,
-			       int       num_comp,
+			       int              src_comp,
+			       int              num_comp,
 			       amrex::Real      time) = 0;
     //
     virtual void mac_sync () = 0;
@@ -595,8 +595,6 @@ protected:
     //
     // arrays for variable viscosity and diffusivity
     //
-    FluxBoxes fb_viscn, fb_viscnp1, fb_diffn, fb_diffnp1;
-    amrex::MultiFab **viscn, **viscnp1, **diffn, **diffnp1;
     amrex::MultiFab *diffn_cc, *diffnp1_cc;
     amrex::MultiFab *viscn_cc, *viscnp1_cc;
     //
