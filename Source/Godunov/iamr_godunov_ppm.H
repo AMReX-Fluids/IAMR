@@ -885,27 +885,27 @@ void Godunov_cc_xbc_lo(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &uedge,
-                       const int bclo, const int domlo)
+                       const int bclo, const int domlo, const bool velpred =false)
 {
     using namespace amrex;
 
     if (i == domlo)
     {
-            if (bclo == BCType::ext_dir && uedge(i, j, k) >= 0.)
-            {
-                hi = s(domlo-1, j, k, n);
-                lo = hi;
-            }
-            else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
-                      bclo == BCType::reflect_even ||
-                     (bclo == BCType::ext_dir && uedge(i, j, k) < 0) )
-                lo = hi;
+        if (bclo == BCType::ext_dir && ( uedge(i, j, k) >= 0. || velpred ) )
+        {
+            hi = s(domlo-1, j, k, n);
+            lo = hi;
+        }
+        else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
+                  bclo == BCType::reflect_even ||
+                  (bclo == BCType::ext_dir && uedge(i, j, k) < 0) )
+            lo = hi;
 
-            else if (bclo == BCType::reflect_odd)
-            {
-                hi = 0.;
-                lo = hi;
-            }
+        else if (bclo == BCType::reflect_odd)
+        {
+            hi = 0.;
+            lo = hi;
+        }
     } else return;
 }
 
@@ -914,27 +914,27 @@ void Godunov_cc_xbc_hi(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &uedge,
-                       const int bchi, const int domhi)
+                       const int bchi, const int domhi, const bool velpred=false )
 {
     using namespace amrex;
 
     if (i == domhi+1)
     {
-            if (bchi == BCType::ext_dir && uedge(i, j, k) <= 0.)
-            {
-                lo = s(domhi+1, j, k, n);
-                hi = lo;
-            }
-            else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
-                      bchi == BCType::reflect_even ||
-                     (bchi == BCType::ext_dir && uedge(i, j, k) > 0) )
-                hi = lo;
+        if (bchi == BCType::ext_dir &&  ( uedge(i, j, k) <= 0. || velpred ) )
+        {
+            lo = s(domhi+1, j, k, n);
+            hi = lo;
+        }
+        else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
+                  bchi == BCType::reflect_even ||
+                  (bchi == BCType::ext_dir && uedge(i, j, k) > 0) )
+            hi = lo;
 
-            else if (bchi == BCType::reflect_odd)
-            {
-                lo = 0.;
-                hi = lo;
-            }
+        else if (bchi == BCType::reflect_odd)
+        {
+            lo = 0.;
+            hi = lo;
+        }
     }
     else return;
 }
@@ -944,26 +944,26 @@ void Godunov_cc_ybc_lo(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &vedge,
-                       const int bclo, const int domlo)
+                       const int bclo, const int domlo, const bool velpred=false )
 {
     using namespace amrex;
 
     if (j == domlo)
     {
-            if (bclo == BCType::ext_dir && vedge(i, j, k) >= 0.)
-            {
-                hi = s(i, domlo-1, k, n);
-                lo = hi;
-            }
-            else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
-                      bclo == BCType::reflect_even ||
-                     (bclo == BCType::ext_dir && vedge(i, j, k) < 0) )
-                lo = hi;
+        if (bclo == BCType::ext_dir && ( vedge(i, j, k) >= 0. || velpred ) )
+        {
+            hi = s(i, domlo-1, k, n);
+            lo = hi;
+        }
+        else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
+                  bclo == BCType::reflect_even ||
+                  (bclo == BCType::ext_dir && vedge(i, j, k) < 0) )
+            lo = hi;
 
-            else if (bclo == BCType::reflect_odd){
-                hi = 0.;
-                lo = hi;
-            }
+        else if (bclo == BCType::reflect_odd){
+            hi = 0.;
+            lo = hi;
+        }
     } else return;
 }
 
@@ -972,27 +972,27 @@ void Godunov_cc_ybc_hi(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4<const amrex::Real> &vedge,
-                       const int bchi, const int domhi)
+                       const int bchi, const int domhi, const bool velpred=false )
 {
     using namespace amrex;
 
     if (j == domhi+1)
     {
-            if (bchi == BCType::ext_dir && vedge(i, j, k) <= 0.)
-            {
-                lo = s(i, domhi+1, k, n);
-                hi = lo;
-            }
-            else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
-                      bchi == BCType::reflect_even ||
-                     (bchi == BCType::ext_dir && vedge(i, j, k) > 0) )
-                hi = lo;
+        if (bchi == BCType::ext_dir && ( vedge(i, j, k) <= 0. || velpred ) )
+        {
+            lo = s(i, domhi+1, k, n);
+            hi = lo;
+        }
+        else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
+                  bchi == BCType::reflect_even ||
+                  (bchi == BCType::ext_dir && vedge(i, j, k) > 0) )
+            hi = lo;
 
-            else if(bchi == BCType::reflect_odd)
-            {
-                lo = 0.;
-                hi = lo;
-            }
+        else if(bchi == BCType::reflect_odd)
+        {
+            lo = 0.;
+            hi = lo;
+        }
     }
     else return;
 }
@@ -1002,28 +1002,28 @@ void Godunov_cc_zbc_lo(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &wedge,
-                       const int bclo, const int domlo)
+                       const int bclo, const int domlo, const bool velpred=false )
 {
     using namespace amrex;
 
     if (k == domlo)
     {
-            if (bclo == BCType::ext_dir && wedge(i, j, k) >= 0.)
-            {
-                hi = s(i, j, domlo-1, n);
-                lo = hi;
-            }
+        if (bclo == BCType::ext_dir && ( wedge(i, j, k) >= 0. || velpred ) )
+        {
+            hi = s(i, j, domlo-1, n);
+            lo = hi;
+        }
 
-            else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
-                      bclo == BCType::reflect_even ||
-                     (bclo == BCType::ext_dir && wedge(i, j, k) < 0) )
-                lo = hi;
+        else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
+                  bclo == BCType::reflect_even ||
+                  (bclo == BCType::ext_dir && wedge(i, j, k) < 0) )
+            lo = hi;
 
-            else if(bclo == BCType::reflect_odd)
-            {
-                hi = 0.;
-                lo = hi;
-            }
+        else if(bclo == BCType::reflect_odd)
+        {
+            hi = 0.;
+            lo = hi;
+        }
     } else return;
 }
 
@@ -1032,27 +1032,27 @@ void Godunov_cc_zbc_hi(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &wedge,
-                       const int bchi, const int domhi)
+                       const int bchi, const int domhi, const bool velpred=false )
 {
     using namespace amrex;
 
     if (k == domhi+1)
     {
-            if (bchi == BCType::ext_dir && wedge(i, j, k) <= 0.)
-            {
-                lo = s(i,j,domhi+1, n);
-                hi = lo;
-            }
-            else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
-                      bchi == BCType::reflect_even ||
-                     (bchi == BCType::ext_dir && wedge(i, j, k) > 0) )
-                hi = lo;
+        if (bchi == BCType::ext_dir && ( wedge(i, j, k) <= 0. || velpred ) )
+        {
+            lo = s(i,j,domhi+1, n);
+            hi = lo;
+        }
+        else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
+                  bchi == BCType::reflect_even ||
+                  (bchi == BCType::ext_dir && wedge(i, j, k) > 0) )
+            hi = lo;
 
-            else if(bchi == BCType::reflect_odd)
-            {
-                lo = 0.;
-                hi = lo;
-            }
+        else if(bchi == BCType::reflect_odd)
+        {
+            lo = 0.;
+            hi = lo;
+        }
     } else return;
 }
 
