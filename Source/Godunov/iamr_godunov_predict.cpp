@@ -63,10 +63,10 @@ void godunov::predict_godunov ( MultiFab const& vel,
             Array4<Real> w_ad = makeArray4(p,Box(bx).grow(0,1).grow(1,1).surroundingNodes(2),1);
             p +=         w_ad.size();
 
-            // if (use_ppm)
-            //     godunov::predict_ppm (lev, bxg1, AMREX_SPACEDIM, Imx, Ipx, Imy, Ipy, Imz, Ipz, a_vel, a_vel,
-            //                           geom, l_dt, d_bcrec);
-            // else
+            if (use_ppm)
+                godunov::predict_ppm( bxg1, AMREX_SPACEDIM, Imx, Ipx, Imy, Ipy, Imz, Ipz, a_vel, a_vel,
+                                      geom, l_dt, d_bcrec);
+            else
             {
                 godunov::predict_plm_x( bx, AMREX_SPACEDIM, Imx, Ipx, a_vel, a_vel,
                                         geom, l_dt, h_bcrec, d_bcrec);

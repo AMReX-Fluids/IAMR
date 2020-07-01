@@ -49,7 +49,7 @@ namespace godunov {
                         amrex::Vector<amrex::BCRec> const& h_bcrec,
                         amrex::BCRec const* d_bcrec);
 
-    void predict_ppm (int lev, amrex::Box const& bx, int ncomp,
+    void predict_ppm (amrex::Box const& bx, int ncomp,
                       amrex::Array4<amrex::Real> const& Imx,
                       amrex::Array4<amrex::Real> const& Ipx,
                       amrex::Array4<amrex::Real> const& Imy,
@@ -58,7 +58,7 @@ namespace godunov {
                       amrex::Array4<amrex::Real> const& Ipz,
                       amrex::Array4<amrex::Real const> const& q,
                       amrex::Array4<amrex::Real const> const& vel,
-                      amrex::Vector<amrex::Geometry> geom,
+                      amrex::Geometry geom,
                       amrex::Real dt,
                       amrex::BCRec const* d_bcrec);
 
