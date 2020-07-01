@@ -125,3 +125,7 @@ Minor EB improvements
 Various EB improvements
 Change default dt scaling in sync diffusion solve for PeleLM usage
 Various checks on number of ghost cells and divide by zeros.
+
+7/1/20
+Small tiling additions
+Small bug fixes, and minor EB and transport improvements
