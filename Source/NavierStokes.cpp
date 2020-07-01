@@ -340,8 +340,7 @@ NavierStokes::advance (Real time,
 	// NOTE have_divu is now a static var in NSBase
         mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
     } else { 
-	u_mac[0].FillBoundary(0, 1, geom.periodicity());
-        u_mac[1].FillBoundary(0, 1, geom.periodicity());
+	create_umac_grown(umac_n_grow);	
     }
     //
     // Advect velocities.

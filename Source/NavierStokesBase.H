@@ -348,7 +348,10 @@ protected:
 
     void sync_setup (amrex::MultiFab*& DeltaSsync);
     void sync_cleanup (amrex::MultiFab*& DeltaSsync);
-
+    //
+    // Grow by nGrow and fillpatch the MAC-projected velocities.
+    // 
+    void create_umac_grown (int nGrow);
     //
     // Advect velocities.
     //
@@ -496,10 +499,6 @@ private:
     // Compute dpdt
     //
     void calcDpdt();
-    //
-    // Grow by nGrow and fillpatch the MAC-projected velocities.
-    //
-    void create_umac_grown (int nGrow);
     //
     NavierStokesBase& getLevel (int lev) {
 	return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
