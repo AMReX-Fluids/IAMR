@@ -339,6 +339,8 @@ NavierStokes::advance (Real time,
         MultiFab& S_old = get_old_data(State_Type);
 	// NOTE have_divu is now a static var in NSBase
         mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
+    } else { 
+	create_umac_grown(umac_n_grow);	
     }
     //
     // Advect velocities.
