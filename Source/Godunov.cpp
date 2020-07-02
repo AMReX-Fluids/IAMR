@@ -146,15 +146,14 @@ Godunov::ExtrapVelToFaces ( const MultiFab& vel,
                             const Vector<BCRec> & h_bcrec,
                             const Geometry& geom, Real dt )
 {
-    if (ppm_type > 0)
+    if (ppm_type > 1)
     {
-        amrex::Abort("Godunov::ExtrapVelToFaces works for ppm_type==0 only for now");
+        amrex::Abort("Godunov::ExtrapVelToFaces works for ppm_type=={0,1}. ppm_type==2 is deprecated");
     }
 
     //velpred=1 only, use_minion=1, ppm_type
-
     godunov::predict_godunov( vel, tforces,  D_DECL( u_mac, v_mac, w_mac ),
-                              h_bcrec, geom, dt, false, use_forces_in_trans );
+                              h_bcrec, geom, dt, (ppm_type>0), use_forces_in_trans );
 }
 
 

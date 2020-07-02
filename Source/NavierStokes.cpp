@@ -590,7 +590,7 @@ NavierStokes::predict_velocity (Real  dt)
             if (not new_algo)
             {
                 Print() << "USING OLD ALGO" << std::endl;
-                godunov->ExtrapVelToFaces(bx, dx, 0.0,
+                godunov->ExtrapVelToFaces(bx, dx, dt,
                                           D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
                                           D_DECL(bndry[0],        bndry[1],        bndry[2]),
                                           Ufab, forcing_term[U_mfi]);
@@ -609,7 +609,7 @@ NavierStokes::predict_velocity (Real  dt)
         // ANN: uncomment this for incflo behavior
         godunov -> ExtrapVelToFaces( Umf, forcing_term,
                                      D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                     math_bcs, geom, 0.0 );
+                                     math_bcs, geom, dt );
     }
 
 
