@@ -696,16 +696,10 @@ void Godunov_trans_xbc(const int i, const int j, const int k, const int n,
     {
         if (bclo==BCType::ext_dir)
         {
-            if (n == 0)
-            {
-                hi = uedge >= 0. ? s(domlo-1,j,k,n) : hi;
-                lo = hi;
-            }
-            else
-            {
-                hi = uedge <= small_vel ? hi : s(domlo-1,j,k,n);
-                lo = hi;
-            }
+            Real avg = 0.5 * (s(domlo-1,j,k,n) + hi);
+            hi = uedge > 0. ? s(domlo-1,j,k,n) : hi;
+            hi = std::abs(uedge) < small_vel ? avg : hi;
+            lo = hi;
         }
         else if(bclo == BCType::foextrap || bclo == BCType::hoextrap || bclo == BCType::reflect_even)
         {
@@ -723,16 +717,10 @@ void Godunov_trans_xbc(const int i, const int j, const int k, const int n,
     {
         if (bchi==BCType::ext_dir)
         {
-            if (n==0)
-            {
-                lo = uedge <= 0. ? s(domhi+1,j,k,n) : lo;
-                hi = lo;
-            }
-            else
-            {
-                lo = uedge >= -small_vel ? lo : s(domhi+1,j,k,n);
-                hi = lo;
-            }
+            Real avg = 0.5 * ( s(domhi+1,j,k,n) + lo );
+            lo = uedge < 0.? s(domhi+1,j,k,n) : lo;
+            lo = std::abs(uedge) < small_vel ? avg : lo;
+            hi = lo;
         }
         else if (bchi == BCType::foextrap || bchi == BCType::hoextrap || bchi == BCType::reflect_even)
         {
@@ -763,16 +751,10 @@ void Godunov_trans_ybc(const int i, const int j, const int k, const int n,
     {
         if (bclo==BCType::ext_dir)
         {
-            if (n==1)
-            {
-                hi = vedge >= 0. ?  s(i,domlo-1,k,n) : hi;
-                lo = hi;
-            }
-            else
-            {
-                hi = vedge <= small_vel ? hi : s(i,domlo-1,k,n);
-                lo = hi;
-            }
+            Real avg = 0.5 * ( s(i,domlo-1,k,n) + hi );
+            hi = vedge > 0. ?  s(i,domlo-1,k,n) : hi;
+            hi = std::abs(vedge) < small_vel ? avg : hi;
+            lo = hi;
         }
         else if (bclo == BCType::foextrap || bclo == BCType::hoextrap || bclo == BCType::reflect_even)
         {
@@ -790,16 +772,10 @@ void Godunov_trans_ybc(const int i, const int j, const int k, const int n,
     {
         if (bchi==BCType::ext_dir)
         {
-            if (n==1)
-            {
-                lo = vedge <= 0. ? s(i,domhi+1,k,n) : lo;
-                hi = lo;
-            }
-            else
-            {
-                lo = vedge >= -small_vel ? lo : s(i,domhi+1,k,n);
-                hi = lo;
-            }
+            Real avg = 0.5 * ( s(i,domhi+1,k,n) + lo );
+            lo = vedge < 0.0 ? s(i,domhi+1,k,n) : lo;
+            lo = std::abs(vedge) < small_vel ? avg : lo;
+            hi = lo;
         }
         else if (bchi == BCType::foextrap || bchi == BCType::hoextrap || bchi == BCType::reflect_even)
         {
@@ -830,16 +806,10 @@ void Godunov_trans_zbc(const int i, const int j, const int k, const int n,
     {
         if (bclo==BCType::ext_dir)
         {
-            if (n==2)
-            {
-                hi = wedge >= 0. ? s(i,j,domlo-1,n) : hi;
-                lo = hi;
-            }
-            else
-            {
-                hi = wedge <= small_vel ? hi : s(i,j,domlo-1,n);
-                lo = hi;
-            }
+            Real avg = 0.5 * ( s(i,j,domlo-1,n) + hi );
+            hi = wedge > 0. ? s(i,j,domlo-1,n) : hi;
+            hi = std::abs(wedge) < small_vel ? avg : hi;
+            lo = hi;
         }
         else if (bclo == BCType::foextrap || bclo == BCType::hoextrap || bclo == BCType::reflect_even)
         {
@@ -857,16 +827,10 @@ void Godunov_trans_zbc(const int i, const int j, const int k, const int n,
     {
         if (bchi==BCType::ext_dir)
         {
-            if (n==2)
-            {
-                lo = wedge <= 0. ? s(i,j,domhi+1,n) : lo;
-                hi = lo;
-            }
-            else
-            {
-                lo = wedge >= -small_vel ? lo : s(i,j,domhi+1,n);
-                hi = lo;
-            }
+            Real avg = 0.5*( s(i,j,domhi+1,n) + lo );
+            lo = wedge < 0. ? s(i,j,domhi+1,n) : lo;
+            lo = std::abs(wedge) < small_vel ? avg : lo;
+            hi = lo;
         }
         else if (bchi == BCType::foextrap || bchi == BCType::hoextrap || bchi == BCType::reflect_even)
         {

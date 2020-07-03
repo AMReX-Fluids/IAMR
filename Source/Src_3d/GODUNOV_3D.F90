@@ -3825,27 +3825,16 @@ contains
 !c     -------------- the lower x boundary
 !c
       if (xbc(1,1).eq.EXT_DIR) then
-         if ( n .eq. XVEL ) then
-            do j = jmin-1,jmax+1
-             do k = kmin-1,kmax+1
-              if (uad(imin,j,k) .ge. 0.0d0) then
-                  xlo(imin,j,k) = s(imin-1,j,k)
-                  xhi(imin,j,k) = s(imin-1,j,k)
-              else
-                  xlo(imin,j,k) = xhi(imin,j,k)
-              endif
-             end do
+         do j = jmin-1,jmax+1
+            do k = kmin-1,kmax+1
+               ltest = uad(imin,j,k) .gt. zero
+               stx   = merge(s(imin-1,j,k),xhi(imin,j,k),ltest)
+               ltest = abs(uad(imin,j,k)) .lt. eps
+               stx   = merge(half*(xhi(imin,j,k)+s(imin-1,j,k)),stx,ltest)
+               xlo(imin,j,k) = stx
+               xhi(imin,j,k) = stx
             end do
-         else
-            do j = jmin-1,jmax+1
-               do k = kmin-1,kmax+1
-                  ltest = uad(imin,j,k).le.eps
-                  stx   = merge(xhi(imin,j,k),s(imin-1,j,k),ltest)
-                  xlo(imin,j,k) = stx
-                  xhi(imin,j,k) = stx
-               end do
-            end do
-         end if
+         end do
       else if (xbc(1,1).eq.FOEXTRAP.or.xbc(1,1).eq.HOEXTRAP &
              .or.xbc(1,1).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
@@ -3865,27 +3854,16 @@ contains
 !c     -------------- the upper x boundary
 !c
       if (xbc(1,2).eq.EXT_DIR) then
-         if ( n .eq. XVEL ) then
-            do j = jmin-1,jmax+1
-             do k = kmin-1,kmax+1
-               if (uad(imax+1,j,k) .le. 0.0d0) then
-                  xlo(imax+1,j,k) = s(imax+1,j,k)
-                  xhi(imax+1,j,k) = s(imax+1,j,k)
-               else
-                  xhi(imax+1,j,k) = xlo(imax+1,j,k)
-               endif
-             end do
+         do j = jmin-1,jmax+1
+            do k = kmin-1,kmax+1
+               ltest = uad(imax+1,j,k) .lt. zero
+               stx   = merge(s(imax+1,j,k),xlo(imax+1,j,k),ltest)
+               ltest = abs(uad(imax+1,j,k)) .lt. eps
+               stx   = merge(half*(s(imax+1,j,k)+xlo(imax+1,j,k)), stx, ltest)
+               xlo(imax+1,j,k) = stx
+               xhi(imax+1,j,k) = stx
             end do
-         else
-            do j = jmin-1,jmax+1
-               do k = kmin-1,kmax+1
-                  ltest = uad(imax+1,j,k).ge.-eps
-                  stx   = merge(xlo(imax+1,j,k),s(imax+1,j,k),ltest)
-                  xlo(imax+1,j,k) = stx
-                  xhi(imax+1,j,k) = stx
-               end do
-            end do
-         end if
+         end do
       else if (xbc(1,2).eq.FOEXTRAP.or.xbc(1,2).eq.HOEXTRAP &
              .or.xbc(1,2).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
@@ -3959,27 +3937,16 @@ contains
 !c     -------------- the lower y boundary
 !c
       if (ybc(2,1).eq.EXT_DIR) then
-         if ( n .eq. YVEL ) then
-            do i = imin-1,imax+1
-             do k = kmin-1,kmax+1
-              if (vad(i,jmin,k) .ge. zero) then
-                  ylo(i,jmin,k) = s(i,jmin-1,k)
-                  yhi(i,jmin,k) = s(i,jmin-1,k)
-              else
-                  ylo(i,jmin,k) = yhi(i,jmin,k)
-              endif
-             end do
+         do i = imin-1,imax+1
+            do k = kmin-1,kmax+1
+               ltest = vad(i,jmin,k) .gt. eps
+               sty   = merge(s(i,jmin-1,k),yhi(i,jmin,k),ltest)
+               ltest = abs(vad(i,jmin,k)) .lt. eps
+               sty   = merge(half*(s(i,jmin-1,k)+yhi(i,jmin,k)), sty, ltest)
+               ylo(i,jmin,k) = sty
+               yhi(i,jmin,k) = sty
             end do
-         else
-            do i = imin-1,imax+1
-               do k = kmin-1,kmax+1
-                  ltest = vad(i,jmin,k).le.eps
-                  sty   = merge(yhi(i,jmin,k),s(i,jmin-1,k),ltest)
-                  ylo(i,jmin,k) = sty
-                  yhi(i,jmin,k) = sty
-               end do
-            end do
-         end if
+         end do
       else if (ybc(2,1).eq.FOEXTRAP.or.ybc(2,1).eq.HOEXTRAP &
              .or.ybc(2,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
@@ -3999,27 +3966,16 @@ contains
 !c     -------------- the upper y boundary
 !c
       if (ybc(2,2).eq.EXT_DIR) then
-         if ( n .eq. YVEL ) then
-            do i = imin-1,imax+1
-             do k = kmin-1,kmax+1
-               if (vad(i,jmax+1,k) .le. zero) then
-                  ylo(i,jmax+1,k) = s(i,jmax+1,k)
-                  yhi(i,jmax+1,k) = s(i,jmax+1,k)
-               else
-                  yhi(i,jmax+1,k) = ylo(i,jmax+1,k)
-               endif
-             end do
+         do i = imin-1,imax+1
+            do k = kmin-1,kmax+1
+               ltest = vad(i,jmax+1,k) .lt. zero
+               sty   = merge(s(i,jmax+1,k),ylo(i,jmax+1,k),ltest)
+               ltest = abs(vad(i,jmax+1,k)) .lt. eps
+               sty   = merge(half*(s(i,jmax+1,k)+ylo(i,jmax+1,k)), sty, ltest)
+               ylo(i,jmax+1,k) = sty
+               yhi(i,jmax+1,k) = sty
             end do
-         else
-            do i = imin-1,imax+1
-               do k = kmin-1,kmax+1
-                  ltest = vad(i,jmax+1,k).ge.-eps
-                  sty   = merge(ylo(i,jmax+1,k),s(i,jmax+1,k),ltest)
-                  ylo(i,jmax+1,k) = sty
-                  yhi(i,jmax+1,k) = sty
-               end do
-            end do
-         end if
+         end do
       else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP &
              .or.ybc(2,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
@@ -4091,27 +4047,17 @@ contains
 !c     -------------- the lower z boundary
 !c
       if (zbc(3,1).eq.EXT_DIR) then
-         if ( n .eq. ZVEL ) then
-            do i = imin-1,imax+1
-             do j = jmin-1,jmax+1
-               if (wad(i,j,kmin) .ge. zero) then
-                  zhi(i,j,kmin) = s(i,j,kmin-1)
-                  zlo(i,j,kmin) = s(i,j,kmin-1)
-               else
-                  zlo(i,j,kmin) = zhi(i,j,kmin)
-               endif
-             end do
+         ! if ( n .eq. ZVEL ) then
+         do i = imin-1,imax+1
+            do j = jmin-1,jmax+1
+               ltest = wad(i,j,kmin) .gt. 0.0D0
+               stz   = merge(s(i,j,kmin-1),zhi(i,j,kmin),ltest)
+               ltest = abs(wad(i,j,kmin)) .lt. eps
+               stz   = merge(half*(zhi(i,j,kmin)+s(i,j,kmin-1)),stz,ltest)
+               zhi(i,j,kmin) = stz
+               zlo(i,j,kmin) = stz
             end do
-         else
-            do i = imin-1,imax+1
-               do j = jmin-1,jmax+1
-                  ltest = wad(i,j,kmin).le.eps
-                  stz   = merge(zhi(i,j,kmin),s(i,j,kmin-1),ltest)
-                  zhi(i,j,kmin) = stz
-                  zlo(i,j,kmin) = stz
-               end do
-            end do
-         end if
+         end do
       else if (zbc(3,1).eq.FOEXTRAP.or.zbc(3,1).eq.HOEXTRAP &
              .or.zbc(3,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
@@ -4131,27 +4077,16 @@ contains
 !c     -------------- the upper z boundary
 !c
       if (zbc(3,2).eq.EXT_DIR) then
-         if ( n .eq. ZVEL ) then
-            do i = imin-1,imax+1
-             do j = jmin-1,jmax+1
-               if (wad(i,j,kmax+1) .le. zero) then
-                  zlo(i,j,kmax+1) = s(i,j,kmax+1)
-                  zhi(i,j,kmax+1) = s(i,j,kmax+1)
-               else
-                  zhi(i,j,kmax+1) = zlo(i,j,kmax+1)
-               endif
-             end do
+         do i = imin-1,imax+1
+            do j = jmin-1,jmax+1
+               ltest = wad(i,j,kmax+1) .lt. zero
+               stz   = merge(s(i,j,kmax+1),zlo(i,j,kmax+1),ltest)
+               ltest = abs(wad(i,j,kmax+1)) .lt. eps
+               stz   = merge(half*(s(i,j,kmax+1)+zlo(i,j,kmax+1)),stz,ltest)
+               zhi(i,j,kmax+1) = stz
+               zlo(i,j,kmax+1) = stz
             end do
-         else
-            do i = imin-1,imax+1
-               do j = jmin-1,jmax+1
-                  ltest = wad(i,j,kmax+1).ge.-eps
-                  stz   = merge(zlo(i,j,kmax+1),s(i,j,kmax+1),ltest)
-                  zhi(i,j,kmax+1) = stz
-                  zlo(i,j,kmax+1) = stz
-               end do
-            end do
-         end if
+         end do
       else if (zbc(3,2).eq.FOEXTRAP.or.zbc(3,2).eq.HOEXTRAP &
              .or.zbc(3,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
