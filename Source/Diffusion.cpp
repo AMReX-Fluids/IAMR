@@ -471,9 +471,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
           auto const& solution = Soln.array(Smfi);
           auto const& snew     = S_new[0]->array(Smfi,sigma);
           auto const& sold     = S_old[0]->array(Smfi,sigma);
-          auto const& rhoHalf  = ( rho_flag == 1 ) ? rho_half.array(Smfi) : Soln.array(Smfi);
+          auto const& rhoHalf  = (rho_flag == 1) ? rho_half.array(Smfi) : Soln.array(Smfi);
           auto const& rho_old  = Rho_old[0]->array(Smfi,Rho_comp);
-          auto const& alpha = (has_alpha) ? alpha_in->array(Smfi,alpha_in_comp+icomp) : Soln.array(Smfi);
+          auto const& alpha    = (has_alpha) ? alpha_in->array(Smfi,alpha_in_comp+icomp) : Soln.array(Smfi);
           auto const& deltarhs = (has_delta_rhs) ? delta_rhs->array(Smfi,rhsComp+icomp) : Soln.array(Smfi);
           Real dtinv = 1.0/dt;
 
@@ -674,7 +674,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     //
     // At this point, S_old has bndry at time N S_new contains GRAD(SU).
     //
-    MultiFab&  U_old     = navier_stokes->get_old_data(State_Type);
     MultiFab&  U_new     = navier_stokes->get_new_data(State_Type);
     const Real cur_time  = navier_stokes->get_state_data(State_Type).curTime();
     const Real prev_time = navier_stokes->get_state_data(State_Type).prevTime();
@@ -811,19 +810,13 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
        const Box& bx  = mfi.tilebox();
        auto const& rhs      = Rhs.array(mfi);
        auto const& unew     = U_new.array(mfi,Xvel);
-       auto const& rhoHalf  = ( rho_flag == 1 ) ? rho_half.array(mfi) : U_new.array(mfi);
-       auto const& rho_prev = (navier_stokes->rho_ptime).array(mfi);
+       auto const& rho      = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->rho_ptime.array(mfi);  
        auto const& deltarhs = (has_delta_rhs) ? delta_rhs->array(mfi,rhsComp) : U_new.array(mfi);
-       amrex::ParallelFor(bx, [rhs, unew, rhoHalf, rho_prev, deltarhs,
-                               has_delta_rhs, rho_flag, dt] 
+       amrex::ParallelFor(bx, [rhs, unew, rho, deltarhs, has_delta_rhs, dt] 
        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
        {
           for (int n = 0; n < AMREX_SPACEDIM; n++) {
-             if (rho_flag == 1) {
-                unew(i,j,k,n) *= rhoHalf(i,j,k);
-             } else if (rho_flag == 3) {
-                unew(i,j,k,n) *= rho_prev(i,j,k);
-             }
+             unew(i,j,k,n) *= rho(i,j,k);
              rhs(i,j,k,n) += unew(i,j,k,n);
              if ( has_delta_rhs ) {
                 rhs(i,j,k,n) += deltarhs(i,j,k,n) * dt;
