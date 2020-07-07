@@ -1347,7 +1347,7 @@ NavierStokesBase::estTimeStep ()
     MultiFab& Gp = getGradP();
     Gp.FillBoundary(geom.periodicity());
 #else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
     getGradP(Gp, cur_pres_time);
 #endif
 
@@ -1366,27 +1366,38 @@ NavierStokesBase::estTimeStep ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+    for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        FArrayBox tforces_fab;
-        for (MFIter mfi(rho_ctime,true); mfi.isValid(); ++mfi)
-        {
-            const auto& bx = mfi.tilebox();
-            const auto  cur_time = state[State_Type].curTime();
-
-            if (getForceVerbose)
-                amrex::Print() << "---" << '\n'
-                               << "H - est Time Step:" << '\n'
-                               << "Calling getForce..." << '\n';
-
-            getForce(tforces_fab,bx,n_grow,Xvel,AMREX_SPACEDIM,cur_time,U_new[mfi],U_new[mfi],Density);
-            tforces[mfi].copy<RunOn::Host>(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
-        }
+        const auto& bx          = mfi.tilebox();
+        const auto  cur_time    = state[State_Type].curTime();
+              auto& tforces_fab = tforces[mfi];
+        if (getForceVerbose)
+            amrex::Print() << "---" << '\n'
+                           << "H - est Time Step:" << '\n'
+                           << "Calling getForce..." << '\n';
+        getForce(tforces_fab,bx,n_grow,0,AMREX_SPACEDIM,cur_time,U_new[mfi],U_new[mfi],Density);
     }
 
-    MultiFab::Subtract(tforces, Gp, 0, 0, AMREX_SPACEDIM, 0);
-
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim )
-        MultiFab::Divide(tforces, rho_ctime, 0, idim, 1, 0);
+    // Rescale force  
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+       const auto& bx    = mfi.tilebox();
+       const auto& rho   = rho_ctime.array(mfi);  
+       const auto& gradp = Gp.array(mfi); 
+       const auto& force = tforces.array(mfi);
+       amrex::ParallelFor(bx, [rho, gradp, force] 
+       AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+       {
+          Real rho_pt = rho(i,j,k);
+          for (int n = 0; n < AMREX_SPACEDIM; n++) {
+             force(i,j,k,n) += gradp(i,j,k,n);
+             force(i,j,k,n) *= rho_pt;
+          } 
+       });
+    }
 
     //
     // Find local max of tforces
@@ -1430,21 +1441,20 @@ NavierStokesBase::estTimeStep ()
 
       if (!(level == 0))
       {
-	int ratio = 1;
-	for (int lev = 1; lev <= level; lev++)
-	{
-	  ratio *= parent->nCycle(lev);
-	}
-	factor = 1.0/double(ratio);
+         int ratio = 1;
+         for (int lev = 1; lev <= level; lev++)
+         {
+           ratio *= parent->nCycle(lev);
+         }
+         factor = 1.0/double(ratio);
       }
 
       estdt = factor*init_dt;
-    }
-    else {
+    } else {
       Print()<<"\nNavierStokesBase::estTimeStep() failed to provide a good timestep "
-	     <<"(probably because initial velocity field is zero with no external forcing).\n"
-	     <<"Use ns.init_dt to provide a reasonable timestep on coarsest level.\n"
-	     <<"Note that ns.init_shrink will be applied to init_dt."<<std::endl;
+             <<"(probably because initial velocity field is zero with no external forcing).\n"
+             <<"Use ns.init_dt to provide a reasonable timestep on coarsest level.\n"
+             <<"Note that ns.init_shrink will be applied to init_dt."<<std::endl;
       amrex::Abort("\n");
     }
 
@@ -1453,26 +1463,26 @@ NavierStokesBase::estTimeStep ()
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
         ParallelDescriptor::ReduceRealMax(u_max.dataPtr(), AMREX_SPACEDIM, IOProc);
 
-	amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
-	for (int k = 0; k < AMREX_SPACEDIM; k++)
+        amrex::Print() << "estTimeStep :: \n" << "LEV = " << level << " UMAX = ";
+        for (int k = 0; k < AMREX_SPACEDIM; k++)
         {
             amrex::Print() << u_max[k] << "  ";
         }
-	amrex::Print() << '\n';
+        amrex::Print() << '\n';
 
-	if (getForceVerbose){
-	  ParallelDescriptor::ReduceRealMax(f_max.dataPtr(), AMREX_SPACEDIM, IOProc);
-	  amrex::Print() << "        FMAX = ";
-	  for (int k = 0; k < AMREX_SPACEDIM; k++)
-	  {
-            amrex::Print() << f_max[k] << "  ";
-	  }
-	  amrex::Print() << '\n';
-	}
-	Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
+        if (getForceVerbose) {
+           ParallelDescriptor::ReduceRealMax(f_max.dataPtr(), AMREX_SPACEDIM, IOProc);
+           amrex::Print() << "        FMAX = ";
+           for (int k = 0; k < AMREX_SPACEDIM; k++)
+           {
+              amrex::Print() << f_max[k] << "  ";
+           }
+           amrex::Print() << '\n';
+        }
+        Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
     }
 
-    return estdt;
+  return estdt;
 }
 
 const MultiFab&
