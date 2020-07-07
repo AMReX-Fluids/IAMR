@@ -1527,20 +1527,20 @@ NavierStokesBase::get_rho_half_time ()
     // Fill it in when needed ...
     //
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-  for (MFIter mfi(rho_half,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rho_half,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        FArrayBox& rhofab = rho_half[mfi];
-	const Box& bx = mfi.growntilebox();
-
-        // FIXME MSD: Combine these
-        rhofab.copy<RunOn::Host>(rho_ptime[mfi],bx,0,bx,0,1);
-        rhofab.plus<RunOn::Host>(rho_ctime[mfi],bx,0,0);
-        rhofab.mult<RunOn::Host>(.5,bx);
-
+        const Box& bx = mfi.growntilebox();
+        auto const& rho_h = rho_half.array(mfi);
+        auto const& rho_p = rho_ptime.array(mfi);
+        auto const& rho_c = rho_ctime.array(mfi);
+        amrex::ParallelFor(bx, [rho_h, rho_p, rho_c] 
+        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+           rho_h(i,j,k) = 0.5 * (rho_p(i,j,k) + rho_c(i,j,k))
+        });
     }
-
     return rho_half;
 }
 
