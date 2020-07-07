@@ -30,19 +30,22 @@ void Godunov_plm_fpu_x (const int i, const int j, const int k, const int n,
 
         Real upls, umns;
 
-        if (extdir_ilo && i == domain_ilo)
+        if (i == domain_ilo && (bc.lo(0) == BCType::ext_dir))
         {
             upls = S(i-1,j,k,n);
             umns = S(i-1,j,k,n);
-        } else if (extdir_ihi && i == domain_ihi+1)
+        }
+        else if (i == domain_ihi+1 && (bc.hi(0) == BCType::ext_dir))
         {
             upls = S(i  ,j,k,n);
             umns = S(i  ,j,k,n);
-        } else {
+        }
+        else
+        {
             upls = S(i  ,j,k,n) + 0.5 * (-1.0 - umac * dt/dx) *
-               incflo_ho_xslope_extdir(i  ,j,k,n,S, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+               incflo_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
             umns = S(i-1,j,k,n) + 0.5 * ( 1.0 - umac * dt/dx) *
-               incflo_ho_xslope_extdir(i-1,j,k,n,S, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+               incflo_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
         }
 
         Ip = umns;
@@ -69,18 +72,22 @@ void Godunov_plm_fpu_y (const int i, const int j, const int k, const int n,
 
         Real vpls, vmns;
 
-        if (extdir_jlo && j == domain_jlo)
+        if (j == domain_jlo && (bc.lo(1) == BCType::ext_dir))
         {
             vpls = S(i,j-1,k,n);
             vmns = S(i,j-1,k,n);
-        } else if (extdir_jhi && j == domain_jhi+1) {
+        }
+        else if (j == domain_jhi+1 && (bc.hi(1) == BCType::ext_dir))
+        {
             vpls = S(i,j  ,k,n);
             vmns = S(i,j  ,k,n);
-        } else {
+        }
+        else
+        {
             vpls = S(i,j  ,k,n) + 0.5 * (-1.0 - vmac * dt/dy) *
-               incflo_ho_yslope_extdir(i,j  ,k,n,S, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                incflo_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
             vmns = S(i,j-1,k,n) + 0.5 * ( 1.0 - vmac * dt/dy) *
-               incflo_ho_yslope_extdir(i,j-1,k,n,S, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                incflo_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
         }
 
         Ip = vmns;
@@ -107,18 +114,22 @@ void Godunov_plm_fpu_z (const int i, const int j, const int k, const int n,
 
         Real wpls, wmns;
 
-        if (extdir_klo && k == domain_klo)
+        if (k == domain_klo && (bc.lo(2) == BCType::ext_dir))
         {
             wpls = S(i,j,k-1,n);
             wmns = S(i,j,k-1,n);
-        } else if (extdir_khi && k == domain_khi+1) {
+        }
+        else if (k == domain_khi+1 && (bc.hi(2) == BCType::ext_dir))
+        {
             wpls = S(i,j,k  ,n);
             wmns = S(i,j,k  ,n);
-        } else {
+        }
+        else
+        {
             wpls = S(i,j,k  ,n) + 0.5 * (-1.0 - wmac * dt/dz) *
-               incflo_ho_zslope_extdir(i,j,k  ,n,S, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                incflo_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
             wmns = S(i,j,k-1,n) + 0.5 * ( 1.0 - wmac * dt/dz) *
-               incflo_ho_zslope_extdir(i,j,k-1,n,S, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                incflo_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
         }
 
         Ip = wmns;
