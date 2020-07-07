@@ -1538,7 +1538,7 @@ NavierStokesBase::get_rho_half_time ()
         amrex::ParallelFor(bx, [rho_h, rho_p, rho_c] 
         AMREX_GPU_DEVICE(int i, int j, int k) noexcept
         {
-           rho_h(i,j,k) = 0.5 * (rho_p(i,j,k) + rho_c(i,j,k))
+           rho_h(i,j,k) = 0.5 * (rho_p(i,j,k) + rho_c(i,j,k));
         });
     }
     return rho_half;
