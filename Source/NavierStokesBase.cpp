@@ -1643,7 +1643,7 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	    for (MFIter mfi(gp, true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(gp, true); mfi.isValid(); ++mfi)
             {
               const Box& bx=mfi.growntilebox();
               Projection::getGradP(pMF[mfi],gp[mfi],bx,dx);
@@ -1654,20 +1654,18 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
         //
         MultiFab gpTmp(gp.boxArray(),gp.DistributionMap(),1,NGrow);
 
-	{
-
-	  FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
-	  MultiFab& pMF = P_fpi.get_mf();
-
+        {
+           FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
+           MultiFab& pMF = P_fpi.get_mf();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	  for (MFIter mfi(gpTmp, true); mfi.isValid(); ++mfi)
-	  {
-      	    const Box& bx=mfi.growntilebox();
-	    Projection::getGradP(pMF[mfi],gpTmp[mfi],bx,dx);
-	  }
-	}
+           for (MFIter mfi(gpTmp, true); mfi.isValid(); ++mfi)
+           {
+             const Box& bx=mfi.growntilebox();
+             Projection::getGradP(pMF[mfi],gpTmp[mfi],bx,dx);
+           }
+        }
         //
         // Now must decide which parts of gpTmp to copy to gp.
         //
@@ -1694,41 +1692,35 @@ NavierStokesBase::getGradP (MultiFab& gp, Real      time)
         }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	{
-	  std::vector< std::pair<int,Box> > isects;
-
-	  for (MFIter mfi(gpTmp,true); mfi.isValid(); ++mfi)
-	  {
-            fineBA.intersections(mfi.growntilebox(),isects);
-
-            FArrayBox&       gpfab    =    gp[mfi];
-            const FArrayBox& gptmpfab = gpTmp[mfi];
-
+        for (MFIter mfi(gpTmp,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            auto isects = fineBA.intersections(mfi.growntilebox());
+            auto const& gp_ar    = gp.array(mfi);
+            auto const& gpTmp_ar = gpTmp.array(mfi);
             for (int ii = 0, N = isects.size(); ii < N; ii++)
             {
-                gpfab.copy<RunOn::Host>(gptmpfab,isects[ii].second);
+                const Box& ovlp = isects[ii].second;
+                amrex::ParallelFor(ovlp, [gp_ar,gpTmp_ar]
+                AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    gp_ar(i,j,k) = gpTmp_ar(i,j,k);
+                });
             }
-	  }
-	}
-
-	gp.EnforcePeriodicity(geom.periodicity());
-    }
-    else
-    {
-
+        }
+        gp.EnforcePeriodicity(geom.periodicity());
+    } else {
         FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
-	MultiFab& pMF = P_fpi.get_mf();
+        MultiFab& pMF = P_fpi.get_mf();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(gp, true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(gp, true); mfi.isValid(); ++mfi)
         {
-	  BL_ASSERT(amrex::grow(grids[mfi.index()],NGrow) == gp[mfi].box());
-
-	  Projection::getGradP(pMF[mfi],gp[mfi],mfi.growntilebox(),dx);
-	}
+           BL_ASSERT(amrex::grow(grids[mfi.index()],NGrow) == gp[mfi].box());
+           Projection::getGradP(pMF[mfi],gp[mfi],mfi.growntilebox(),dx);
+        }
     }
 }
 
