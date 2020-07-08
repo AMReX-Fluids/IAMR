@@ -858,7 +858,6 @@ void Godunov_cc_xbc_lo(const int i, const int j, const int k, const int n,
         if (bclo == BCType::ext_dir && ( uedge(i, j, k) >= 0. || velpred ) )
         {
             hi = s(domlo-1, j, k, n);
-            lo = hi;
         }
         else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
                   bclo == BCType::reflect_even ||

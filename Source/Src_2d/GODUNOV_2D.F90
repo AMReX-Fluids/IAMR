@@ -404,8 +404,8 @@ contains
       real(rt) :: hx, hy, dt, dth, dthx, dthy, dx(SDIM), uad, vad
       real(rt) :: eps,eps_for_bc
       logical :: ltm
-      parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps        = 1.0D-8 )
+      parameter( eps_for_bc = 1.0D-8 )
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -643,8 +643,8 @@ contains
       real(rt) :: tr,stx,sty,fu,fv,eps,eps_for_bc
       integer  :: i,j,L,imin,jmin,imax,jmax, place_to_break
       logical  :: ltx,lty
-      parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps        = 1.0D-8 )
+      parameter( eps_for_bc = 1.0D-8 )
 
       dth  = half*dt
       dthx = half*dt/dx(1)
@@ -1070,8 +1070,8 @@ contains
       real(rt) :: hx, hy, dth, dthx, dthy
       real(rt) :: tr,ubar,vbar,stx,sty,fu,fv,eps,eps_for_bc,st
       integer  :: i,j,L,imin,jmin,imax,jmax, inc,place_to_break
-      parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps        = 1.0D-8 )
+      parameter( eps_for_bc = 1.0D-8 )
 
       dth  = half*dt
       dthx = half*dt / dx(1)
@@ -1461,23 +1461,14 @@ contains
       jmax = hi(2)
 
       if (xbc(1,1).eq.EXT_DIR) then
-         if (n .eq. XVEL) then
-            do j = jmin-1,jmax+1
-              if (uad(imin,j) .ge. 0.d0) then
-                 xhi(imin,j) = s(imin-1,j)
-                 xlo(imin,j) = s(imin-1,j)
-              else
-                 xlo(imin,j) = xhi(imin,j)
-              end if
-            end do
-         else
-            do j = jmin-1,jmax+1
-               ltest = uad(imin,j).le.eps
-               stx   = merge(xhi(imin,j),s(imin-1,j),ltest)
-               xhi(imin,j) = stx
-               xlo(imin,j) = stx
-            end do
-         end if
+         do j = jmin-1,jmax+1
+            ltest = uad(imin,j) .gt. zero
+            stx   = merge(s(imin-1,j),xhi(imin,j),ltest)
+            ltest = abs(uad(imin,j)) .lt. eps
+            stx   = merge(half*(xhi(imin,j)+s(imin-1,j)),stx,ltest)
+            xlo(imin,j) = stx
+            xhi(imin,j) = stx
+         end do
       else if (xbc(1,1).eq.FOEXTRAP.or.xbc(1,1).eq.HOEXTRAP&
              .or.xbc(1,1).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
@@ -1491,23 +1482,14 @@ contains
       end if
 
       if (xbc(1,2).eq.EXT_DIR) then
-         if (n .eq. XVEL) then
-            do j = jmin-1,jmax+1
-              if (uad(imax+1,j) .le. 0.d0) then
-                 xhi(imax+1,j) = s(imax+1,j)
-                 xlo(imax+1,j) = s(imax+1,j)
-               else
-                 xhi(imax+1,j) = xlo(imax+1,j)
-               end if
-             end do
-         else
-            do j = jmin-1,jmax+1
-               ltest = uad(imax+1,j).ge.-eps
-               stx   = merge(xlo(imax+1,j),s(imax+1,j),ltest)
-               xhi(imax+1,j) = stx
-               xlo(imax+1,j) = stx
-            end do
-         end if
+         do j = jmin-1,jmax+1
+            ltest = uad(imax+1,j) .lt. zero
+            stx   = merge(s(imax+1,j),xlo(imax+1,j),ltest)
+            ltest = abs(uad(imax+1,j)) .lt. eps
+            stx   = merge(half*(s(imax+1,j)+xlo(imax+1,j)), stx, ltest)
+            xlo(imax+1,j) = stx
+            xhi(imax+1,j) = stx
+         end do
       else if (xbc(1,2).eq.FOEXTRAP.or.xbc(1,2).eq.HOEXTRAP&
              .or.xbc(1,2).eq.REFLECT_EVEN) then
          do j = jmin-1,jmax+1
@@ -1557,23 +1539,14 @@ contains
       jmax = hi(2)
 
       if (ybc(2,1).eq.EXT_DIR) then
-         if (n .eq. YVEL) then
-            do i = imin-1,imax+1
-              if (vad(i,jmin).ge.0.d0) then
-                 yhi(i,jmin) = s(i,jmin-1)
-                 ylo(i,jmin) = s(i,jmin-1)
-              else
-                 ylo(i,jmin) = yhi(i,jmin)
-              end if
-            end do
-         else
-            do i = imin-1,imax+1
-               ltest = vad(i,jmin).le.eps
-               sty   = merge(yhi(i,jmin),s(i,jmin-1),ltest)
-               yhi(i,jmin) = sty
-               ylo(i,jmin) = sty
-            end do
-         end if
+         do i = imin-1,imax+1
+            ltest = vad(i,jmin) .gt. eps
+            sty   = merge(s(i,jmin-1),yhi(i,jmin),ltest)
+            ltest = abs(vad(i,jmin)) .lt. eps
+            sty   = merge(half*(s(i,jmin-1)+yhi(i,jmin)), sty, ltest)
+            ylo(i,jmin) = sty
+            yhi(i,jmin) = sty
+         end do
       else if (ybc(2,1).eq.FOEXTRAP.or.ybc(2,1).eq.HOEXTRAP&
              .or.ybc(2,1).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
@@ -1587,23 +1560,14 @@ contains
       end if
 
       if (ybc(2,2).eq.EXT_DIR) then
-         if (n .eq. YVEL) then
-            do i = imin-1,imax+1
-              if (vad(i,jmax+1).le.0.d0) then
-                 ylo(i,jmax+1) = s(i,jmax+1)
-                 yhi(i,jmax+1) = s(i,jmax+1)
-              else
-                 yhi(i,jmax+1) = ylo(i,jmax+1)
-              end if
-            end do
-         else
-            do i = imin-1,imax+1
-               ltest = vad(i,jmax+1).ge.-eps
-               sty   = merge(ylo(i,jmax+1),s(i,jmax+1),ltest)
-               yhi(i,jmax+1) = sty
-               ylo(i,jmax+1) = sty
-            end do
-         end if
+         do i = imin-1,imax+1
+            ltest = vad(i,jmax+1) .lt. zero
+            sty   = merge(s(i,jmax+1),ylo(i,jmax+1),ltest)
+            ltest = abs(vad(i,jmax+1)) .lt. eps
+            sty   = merge(half*(s(i,jmax+1)+ylo(i,jmax+1)), sty, ltest)
+            ylo(i,jmax+1) = sty
+            yhi(i,jmax+1) = sty
+         end do
       else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP&
              .or.ybc(2,2).eq.REFLECT_EVEN) then
          do i = imin-1,imax+1
@@ -4354,8 +4318,8 @@ contains
       REAL_T hx, hy, dt, dth, dthx, dthy
       REAL_T dx(SDIM)
       REAL_T eps,eps_for_bc
-      parameter( eps        = 1.0D-6 )
-      parameter( eps_for_bc = 1.0D-10 )
+      parameter( eps        = 1.0D-8 )
+      parameter( eps_for_bc = 1.0D-8 )
 
       integer DIMDEC(s)
       integer DIMDEC(work)

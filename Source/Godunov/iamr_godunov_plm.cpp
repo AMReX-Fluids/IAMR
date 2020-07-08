@@ -142,6 +142,7 @@ void godunov::predict_plm_y (Box const& bx_in, int ncomp,
     }
 }
 
+#if (AMREX_SPACEDIM == 3)
 void godunov::predict_plm_z (Box const& bx_in, int ncomp,
                             Array4<Real> const& Imz, Array4<Real> const& Ipz,
                             Array4<Real const> const& q,
@@ -201,3 +202,4 @@ void godunov::predict_plm_z (Box const& bx_in, int ncomp,
         });
     }
 }
+#endif

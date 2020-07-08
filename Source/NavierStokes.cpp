@@ -614,35 +614,35 @@ NavierStokes::predict_velocity (Real  dt)
 
 
 
-    for (MFIter mfi(u_mac[0],false); mfi.isValid(); ++mfi)
-    {
-        Box bx = mfi.validbox();
-        const auto umac =  u_mac[0].array(mfi);
-        const auto vmac =  u_mac[1].array(mfi);
-        const auto wmac =  u_mac[2].array(mfi);
+    // for (MFIter mfi(u_mac[0],false); mfi.isValid(); ++mfi)
+    // {
+    //     Box bx = mfi.validbox();
+    //     const auto umac =  u_mac[0].array(mfi);
+    //     const auto vmac =  u_mac[1].array(mfi);
+    //     const auto wmac =  u_mac[2].array(mfi);
 
-        amrex::ParallelFor(bx,
-        [umac,vmac,wmac]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            //std::printf("MAC VEL AT %d %d %d %e %e %e \n", i, j, k, umac(i,j,k), vmac(i,j,k), wmac(i,j,k));
-            if (i==25 and j==0 and k==3 )
-            {
-                std::printf("VMAC AT %d %d %d %e \n", i, j, k, vmac(i,j,k));
-            }
-        });
-    }
+    //     amrex::ParallelFor(bx,
+    //     [umac,vmac,wmac]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    //     {
+    //         //std::printf("MAC VEL AT %d %d %d %e %e %e \n", i, j, k, umac(i,j,k), vmac(i,j,k), wmac(i,j,k));
+    //         if (i==25 and j==0 and k==3 )
+    //         {
+    //             std::printf("VMAC AT %d %d %d %e \n", i, j, k, vmac(i,j,k));
+    //         }
+    //     });
+    // }
 
 #endif
 
-    Print() << "norm0(u,v,w) MAC = "
-            << u_mac[0].norm0(0,0,false,true) << " "
-            << u_mac[1].norm0(0,0,false,true) << " "
-            << u_mac[2].norm0(0,0,false,true) << std::endl;
+    // Print() << "norm0(u,v,w) MAC = "
+    //         << u_mac[0].norm0(0,0,false,true) << " "
+    //         << u_mac[1].norm0(0,0,false,true) << " "
+    //         << u_mac[2].norm0(0,0,false,true) << std::endl;
 
-    Print() << "norm1(u,v,w) MAC = "
-            << u_mac[0].norm1(0,geom.periodicity(),true) << " "
-            << u_mac[1].norm1(0,geom.periodicity(),true) << " "
-            << u_mac[2].norm1(0,geom.periodicity(),true) << std::endl;
+    // Print() << "norm1(u,v,w) MAC = "
+    //         << u_mac[0].norm1(0,geom.periodicity(),true) << " "
+    //         << u_mac[1].norm1(0,geom.periodicity(),true) << " "
+    //         << u_mac[2].norm1(0,geom.periodicity(),true) << std::endl;
     return dt*tempdt;
 }
 
