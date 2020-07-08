@@ -2881,8 +2881,8 @@ NavierStokesBase::restart (Amr&          papa,
 
 void
 NavierStokesBase::scalar_advection_update (Real dt,
-					   int  first_scalar,
-					   int  last_scalar)
+                                           int  first_scalar,
+                                           int  last_scalar)
 {
     BL_PROFILE("NavierStokesBase::scalar_advection_update()");
 
@@ -3542,7 +3542,7 @@ NavierStokesBase::velocity_advection (Real dt)
     MultiFab& Gp = getGradP();
     Gp.FillBoundary(geom.periodicity());
 #else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
     getGradP(Gp, state[Press_Type].prevTime());
 #endif
 
@@ -3564,7 +3564,7 @@ NavierStokesBase::velocity_advection (Real dt)
     MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
     create_mac_rhs(divu_fp,1,prev_time,dt);
 
-    MultiFab fluxes[BL_SPACEDIM];
+    MultiFab fluxes[AMREX_SPACEDIM];
 
     if (do_reflux)
     {
@@ -3615,7 +3615,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                    << "Calling getForce..." << '\n';
                 }
 
-                getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+                getForce(tforces,bx,1,Xvel,AMREX_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
                 godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
 
@@ -3626,15 +3626,15 @@ NavierStokesBase::velocity_advection (Real dt)
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
                     const Box& ebx = amrex::surroundingNodes(bx,d);
-                    cfluxes[d].resize(ebx,BL_SPACEDIM+1);
-                    edgstate[d].resize(ebx,BL_SPACEDIM+1);
+                    cfluxes[d].resize(ebx,AMREX_SPACEDIM+1);
+                    edgstate[d].resize(ebx,AMREX_SPACEDIM+1);
                 }
 
                 //
                 // Loop over the velocity components.
                 //
-                S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
-                S.copy<RunOn::Host>(Umf[U_mfi],0,0,BL_SPACEDIM);
+                S.resize(grow(bx,Godunov::hypgrow()),AMREX_SPACEDIM);
+                S.copy<RunOn::Host>(Umf[U_mfi],0,0,AMREX_SPACEDIM);
 
                 FArrayBox& divufab = divu_fp[U_mfi];
                 FArrayBox& aofsfab = (*aofs)[U_mfi];
@@ -3643,7 +3643,7 @@ NavierStokesBase::velocity_advection (Real dt)
                        FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
                        FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
 
-                for (int comp = 0 ; comp < BL_SPACEDIM ; comp++ )
+                for (int comp = 0 ; comp < AMREX_SPACEDIM ; comp++ )
                 {
                     int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
 
@@ -3700,7 +3700,7 @@ NavierStokesBase::velocity_advection (Real dt)
                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                           math_bcs, geom  );
 
-	 // don't think this is needed here any more. Godunov sets covered vals now...
+         // don't think this is needed here any more. Godunov sets covered vals now...
          EB_set_covered(*aofs, 0.);
 
          if (do_reflux)
@@ -3716,15 +3716,15 @@ NavierStokesBase::velocity_advection (Real dt)
     if (do_reflux)
     {
         if (level > 0 )
-	{
-            for (int d = 0; d < BL_SPACEDIM; d++)
+        {
+            for (int d = 0; d < AMREX_SPACEDIM; d++)
                 advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
-	}
+        }
         if(level < finest_level)
-	{
-            for (int i = 0; i < BL_SPACEDIM; i++)
+        {
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
                 getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
-	}
+        }
     }
 }
 
@@ -3751,11 +3751,11 @@ NavierStokesBase::velocity_update (Real dt)
     {
       if (do_mom_diff == 0)
       {
-	amrex::Print() << "... update velocities \n";
+         amrex::Print() << "... update velocities \n";
       }
       else
       {
-	amrex::Print() << "... update momenta \n";
+         amrex::Print() << "... update momenta \n";
       }
     }
 
@@ -3772,8 +3772,8 @@ NavierStokesBase::velocity_update (Real dt)
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
-	 exit(0);
+          amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+          exit(0);
        }
     }
 }
@@ -3796,17 +3796,17 @@ NavierStokesBase::velocity_advection_update (Real dt)
     // Changing Gp to a pointer causes problems for non-EB ...
     // Think issue was need to use MultiFab::Copy; plain Copy was going someplace funny
     // MultiFab* Gp;
-      // if (do_mom_diff == 1){
-      // 	//need to make a copy of gradp
-      // 	Gp->define(grids,dmap,BL_SPACEDIM,1);
-      // 	Copy(*Gp,*gradp,0,0,3,0);
-      // }
-      // else{
-      // 	Gp = gradp.get();
-      // }
+    // if (do_mom_diff == 1){
+    // 	//need to make a copy of gradp
+    // 	Gp->define(grids,dmap,BL_SPACEDIM,1);
+    // 	Copy(*Gp,*gradp,0,0,3,0);
+    // }
+    // else{
+    // 	Gp = gradp.get();
+    // }
 #else
-      MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-      getGradP(Gp, prev_pres_time);
+    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
+    getGradP(Gp, prev_pres_time);
 #endif
 
     MultiFab& halftime = get_rho_half_time();
@@ -3881,22 +3881,21 @@ NavierStokesBase::velocity_advection_update (Real dt)
     }
 }
 
-    for (int sigma = 0; sigma < BL_SPACEDIM; sigma++)
+    for (int sigma = 0; sigma < AMREX_SPACEDIM; sigma++)
     {
        if (U_old.contains_nan(sigma,1,0))
        {
-	 amrex::Print() << "Old velocity " << sigma << " contains Nans" << '\n';
+          amrex::Print() << "Old velocity " << sigma << " contains Nans" << '\n';
        }
        if (U_new.contains_nan(sigma,1,0))
        {
          for(MFIter mfi(U_new); mfi.isValid(); ++mfi){
              if(U_new[mfi].contains_nan<RunOn::Host>(mfi.validbox(),sigma,1)){
-		            FArrayBox tmp(mfi.validbox(),1);
+                FArrayBox tmp(mfi.validbox(),1);
                 tmp.copy<RunOn::Host>(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
-
-		}
+             }
          }
-	 amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+         amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
        }
     }
 }
@@ -3916,7 +3915,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         const int  xvel           = Xvel;
 
         int              ng(1);
-	MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
+        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
         MultiFab    tforces(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
 
         //
@@ -3958,14 +3957,14 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         //
         // Compute viscous terms
         //
-	if (be_cn_theta != 1.0)
+        if (be_cn_theta != 1.0)
         {
-	    getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
+          getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
         }
         else
-	{
-	    visc_terms.setVal(0);
-	}
+        {
+          visc_terms.setVal(0);
+        }
 
         //
         // Assemble RHS
@@ -4012,7 +4011,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 
 Real
 NavierStokesBase::volWgtSum (const std::string& name,
-			     Real               time)
+                             Real               time)
 {
     Real        sum = 0.0;
     const Real* dx  = geom.CellSize();
