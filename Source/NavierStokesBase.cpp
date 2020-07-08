@@ -13,6 +13,7 @@
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 #include <NAVIERSTOKESBASE_F.H>
+#include <NSB_K.H>
 
 #include <PROB_NS_F.H>
 
@@ -1379,6 +1380,7 @@ NavierStokesBase::estTimeStep ()
     }
 
     // Rescale force  
+    // FIXME: separate MFiter loops here, but once getForce is GPU ready, merge.
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1845,25 +1847,30 @@ NavierStokesBase::init (AmrLevel &old)
     //       since we haven't yet defined a new pressure at the lower level.
     //
     {
-	FillPatchIterator fpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
-	const MultiFab& mf_fpi = fpi.get_mf();
+       FillPatchIterator fpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
+       const MultiFab& mf_fpi = fpi.get_mf();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(mf_fpi,true); mfi.isValid(); ++mfi)
-	{
-	  const Box& vbx  = mfi.tilebox();
-	  const FArrayBox& pfab = mf_fpi[mfi];
-
-	  P_old[mfi].copy<RunOn::Host>(pfab,vbx,0,vbx,0,1);
-	  P_new[mfi].copy<RunOn::Host>(pfab,vbx,0,vbx,0,1);
-	}
+       for (MFIter mfi(mf_fpi,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+       {
+         const Box& bx  = mfi.tilebox();
+          const auto& p_arr = mf_fpi.array(mfi);
+          const auto& p_o = P_old.array(mfi);
+          const auto& p_n = P_new.array(mfi);
+          amrex::ParallelFor(bx, [p_arr, p_o, p_n] 
+          AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+          {
+             p_o(i,j,k) = p_arr(i,j,k);
+             p_n(i,j,k) = p_arr(i,j,k);
+          });
+       }
     }
 
     if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
     {
         MultiFab& Dpdt_new = get_new_data(Dpdt_Type);
-	FillPatch(old,Dpdt_new,0,cur_pres_time,Dpdt_Type,0,1);
+        FillPatch(old,Dpdt_new,0,cur_pres_time,Dpdt_Type,0,1);
     }
     //
     // Get best divu and dSdt data.
@@ -1871,12 +1878,12 @@ NavierStokesBase::init (AmrLevel &old)
     if (have_divu)
     {
         MultiFab& Divu_new = get_new_data(Divu_Type);
-	FillPatch(old,Divu_new,0,cur_time,Divu_Type,0,1);
+        FillPatch(old,Divu_new,0,cur_time,Divu_Type,0,1);
 
         if (have_dsdt)
         {
             MultiFab& Dsdt_new = get_new_data(Dsdt_Type);
-	    FillPatch(old,Dsdt_new,0,cur_time,Dsdt_Type,0,1);
+            FillPatch(old,Dsdt_new,0,cur_time,Dsdt_Type,0,1);
         }
     }
 
