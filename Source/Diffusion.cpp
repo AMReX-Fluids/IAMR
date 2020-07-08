@@ -470,9 +470,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
           auto const& rhs      = Rhs.array(Smfi);
           auto const& solution = Soln.array(Smfi);
           auto const& snew     = S_new[0]->array(Smfi,sigma);
-          auto const& sold     = S_old[0]->array(Smfi,sigma);
-          auto const& rhoHalf  = (rho_flag == 1) ? rho_half.array(Smfi) : Soln.array(Smfi);
-          auto const& rho_old  = Rho_old[0]->array(Smfi,Rho_comp);
+	  Array4<Real> dummy;
+          auto const& sold     = (solve_mode == PREDICTOR) ? S_old[0]->array(Smfi,sigma) : dummy; 
+          auto const& rhoHalf  = (rho_flag == 1) ? rho_half.array(Smfi) : dummy;
+          auto const& rho_old  = (rho_flag == 3) ? Rho_old[0]->array(Smfi,Rho_comp) : dummy;
           auto const& alpha    = (has_alpha) ? alpha_in->array(Smfi,alpha_in_comp+icomp) : Soln.array(Smfi);
           auto const& deltarhs = (has_delta_rhs) ? delta_rhs->array(Smfi,rhsComp+icomp) : Soln.array(Smfi);
           Real dtinv = 1.0/dt;
