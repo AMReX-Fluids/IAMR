@@ -403,10 +403,10 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
                                 - (0.25*l_dt/dz)*(w_ad(i  ,j  ,k+1)+w_ad(i  ,j,k))*
                                                  (zylo(i  ,j  ,k+1)-zylo(i  ,j,k));
 #else
-        Real stl = xlo(i,j,k,n) - (0.5*l_dt/dy)*(v_ad(i-1,j+1,k  )+v_ad(i-1,j,k))*
-                                                ( ylo(i-1,j+1,k  )+ ylo(i-1,j,k));
-        Real sth = xhi(i,j,k,n) - (0.5*l_dt/dy)*(v_ad(i  ,j+1,k  )+v_ad(i  ,j,k))*
-                                                ( ylo(i  ,j+1,k  )+ ylo(i  ,j,k));
+        Real stl = xlo(i,j,k,n) - (0.25*l_dt/dy)*(v_ad(i-1,j+1,k  )+v_ad(i-1,j,k))*
+                                                 ( ylo(i-1,j+1,k  )+ ylo(i-1,j,k));
+        Real sth = xhi(i,j,k,n) - (0.25*l_dt/dy)*(v_ad(i  ,j+1,k  )+v_ad(i  ,j,k))*
+                                                 ( ylo(i  ,j+1,k  )+ ylo(i  ,j,k));
 #endif
 
         if (!l_use_forces_in_trans) {
@@ -435,6 +435,10 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real st = ( (stl+sth) >= 0.) ? stl : sth;
         bool ltm = ( (stl <= 0. && sth >= 0.) || (std::abs(stl+sth) < small_vel) );
         qx(i,j,k) = ltm ? 0. : st;
+        if (i==127 and j==63 and k==0 )
+        {
+            std::printf("i,j,k,umac,st = %4d %4d %4d %e %e\n", i, j, k, qx(i,j,k), st);
+        }
     });
 
     //
@@ -501,10 +505,10 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
                                 - (0.25*l_dt/dz)*(w_ad(i  ,j  ,k+1)+w_ad(i,j  ,k))*
                                                  (zxlo(i  ,j  ,k+1)-zxlo(i,j  ,k));
 #else
-        Real stl = ylo(i,j,k,n) - (0.5*l_dt/dx)*(u_ad(i+1,j-1,k  )+u_ad(i,j-1,k))*
-                                                ( xlo(i+1,j-1,k  )- xlo(i,j-1,k));
-        Real sth = yhi(i,j,k,n) - (0.5*l_dt/dx)*(u_ad(i+1,j  ,k  )+u_ad(i,j ,k))*
-                                                ( xlo(i+1,j  ,k  )- xlo(i,j ,k));
+        Real stl = ylo(i,j,k,n) - (0.25*l_dt/dx)*(u_ad(i+1,j-1,k  )+u_ad(i,j-1,k))*
+                                                 ( xlo(i+1,j-1,k  )- xlo(i,j-1,k));
+        Real sth = yhi(i,j,k,n) - (0.25*l_dt/dx)*(u_ad(i+1,j  ,k  )+u_ad(i,j ,k))*
+                                                 ( xlo(i+1,j  ,k  )- xlo(i,j ,k));
 #endif
 
         if (!l_use_forces_in_trans) {

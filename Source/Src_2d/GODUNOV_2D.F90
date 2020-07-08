@@ -870,6 +870,10 @@ contains
                      ltx = ltx .or. (abs(stxlo(i)+stxhi(i)) .lt. eps)
                      stx = merge(stxlo(i),stxhi(i),(stxlo(i)+stxhi(i)) .ge. 0.0d0)
                      xstate(i,j,L) = merge(0.d0,stx,ltx)
+                     if ( (n+L-1.eq.XVEL) .and. i==127 .and. j==63 ) then
+                        write(6,'(A,3(I4,X),2(ES13.6))') "i,j,k,umac,st = ",i,j,0,xstate(i,j,L),stx
+                        flush(6)
+                     endif
                   end do
                else
                   do i = imin, imax+1

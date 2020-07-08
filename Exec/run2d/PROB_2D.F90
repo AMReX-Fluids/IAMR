@@ -117,7 +117,10 @@ contains
 #endif
 
       read(untin,fortin)
-      if (isioproc .eq. 1) write(6,fortin)
+      if (isioproc .eq. 1) then
+	write(6,fortin)
+        flush(6)
+      endif		
       close(unit=untin)
 
 #ifdef BL_DO_FLCT
