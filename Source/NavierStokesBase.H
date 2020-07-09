@@ -207,10 +207,6 @@ public:
 
     static int DoTrac2();
 
-#if !defined(AMREX_USE_CUDA)
-protected:
-#endif
-
     NavierStokesBase ();
 
     NavierStokesBase (amrex::Amr&            papa,
@@ -493,10 +489,6 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase protected embedded boundary functions              //
     ////////////////////////////////////////////////////////////////////////////
-
-#if !defined(AMREX_USE_CUDA)
-private:
-#endif
 
     void buildMetrics (); // 1-D metric arrays for RZ
     //
