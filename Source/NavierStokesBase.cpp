@@ -3380,14 +3380,14 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 //
 void
 NavierStokesBase::SyncProjInterp (MultiFab& phi,
-				  int       c_lev,
-				  MultiFab& P_new,
-				  MultiFab& P_old,
-				  int       f_lev,
-				  IntVect&  ratio,
-				  bool      first_crse_step_after_initial_iters,
-				  Real      cur_crse_pres_time,
-				  Real      prev_crse_pres_time)
+                                  int       c_lev,
+                                  MultiFab& P_new,
+                                  MultiFab& P_old,
+                                  int       f_lev,
+                                  IntVect&  ratio,
+                                  bool      first_crse_step_after_initial_iters,
+                                  Real      cur_crse_pres_time,
+                                  Real      prev_crse_pres_time)
 {
     BL_PROFILE("NavierStokesBase:::SyncProjInterp()");
 
@@ -3403,7 +3403,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         crse_ba.set(i,node_bilinear_interp.CoarseBox(P_grids[i],ratio));
 
     // None  of these 3 are actually used by node_bilinear_interp()
-    Vector<BCRec> bc(BL_SPACEDIM);
+    Vector<BCRec> bc(AMREX_SPACEDIM);
     const Geometry& fgeom   = parent->Geom(f_lev);
     const Geometry& cgeom   = parent->Geom(c_lev);
 
@@ -3433,7 +3433,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Real    prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
 
     if (state[Press_Type].descriptor()->timeType() ==
-	StateDescriptor::Point && first_crse_step_after_initial_iters)
+        StateDescriptor::Point && first_crse_step_after_initial_iters)
     {
         const Real time_since_zero  = cur_crse_pres_time - prev_crse_pres_time;
         const Real dt_to_prev_time  = prev_fine_pres_time - prev_crse_pres_time;
@@ -3442,50 +3442,52 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         const Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	{
-	  FArrayBox     fine_phi;
+        for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+             const Box&  bx     = mfi.tilebox();
+             FArrayBox fine_phi(bx,1);
+             Elixir fine_phi_i = fine_phi.elixir();
+             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
+                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
+                                         0,Press_Type,RunOn::Gpu);
 
-	  for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
-          {
-	    const Box&  fbx     = mfi.tilebox();
-
-            fine_phi.resize(fbx,1);
-            fine_phi.setVal<RunOn::Host>(1.e200);
-            node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
-                                        fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type,RunOn::Cpu);
-
-            fine_phi.mult<RunOn::Host>(cur_mult_factor);
-            P_new[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
-            fine_phi.mult<RunOn::Host>(prev_mult_factor);
-            P_old[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
-	  }
-	}
+             auto const& f_phi    = fine_phi.array();
+             auto const& p_new    = P_new.array(mfi);
+             auto const& p_old    = P_old.array(mfi);
+             amrex::ParallelFor(bx, [f_phi, p_old, p_new, cur_mult_factor, prev_mult_factor]
+             AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+             {
+                 p_new(i,j,k) += f_phi(i,j,k) * cur_mult_factor;
+                 p_old(i,j,k) += f_phi(i,j,k) * prev_mult_factor;
+             });
+        }
     }
     else
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-      {
-        FArrayBox     fine_phi;
-
-	for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-	    const Box&  fbx     = mfi.tilebox();
+           const Box&  bx     = mfi.tilebox();
+           FArrayBox fine_phi(bx,1);
+           Elixir fine_phi_i = fine_phi.elixir();
+           node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
+                                       fine_phi.box(),ratio,cgeom,fgeom,bc,
+                                       0,Press_Type,RunOn::Gpu);
 
-            fine_phi.resize(fbx,1);
-            fine_phi.setVal<RunOn::Host>(1.e200);
-            node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
-                                        fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type,RunOn::Cpu);
-
-            P_new[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
-            P_old[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
+           auto const& f_phi    = fine_phi.array();
+           auto const& p_new    = P_new.array(mfi);
+           auto const& p_old    = P_old.array(mfi);
+           amrex::ParallelFor(bx, [f_phi, p_old, p_new]
+           AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+           {
+               p_new(i,j,k) += f_phi(i,j,k);
+               p_old(i,j,k) += f_phi(i,j,k);
+           });
         }
-      }
     }
 #ifdef AMREX_USE_EB
     // FIXME? - this can probably go after new interpolation is implemented
