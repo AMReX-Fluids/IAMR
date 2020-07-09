@@ -741,7 +741,9 @@ MacProj::mac_sync_compute (int                   level,
             //
             Rho.copy<RunOn::Host>(S,Density,0,1);
 
-            ns_level.getForce(tforces,bx,1,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
+            const Box& forcebx = grow(bx,1);
+            tforces.resize(forcebx,NUM_STATE);
+            ns_level.getForce(tforces,forcebx,1,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
 
             //
             // Compute total forcing terms.
@@ -751,6 +753,7 @@ MacProj::mac_sync_compute (int                   level,
                                       scal_visc_terms[Smfi], 0, divu, 0, Rho, 0, 1);
             if (use_forces_in_trans)
             {
+                tvelforces.resize(forcebx,AMREX_SPACEDIM);
                 ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi],Smf[Smfi],Density);
                 godunov->Sum_tf_gp_visc(tvelforces,0,vel_visc_terms[Smfi],0,Gp[Smfi],0,Rho,0);
             }
