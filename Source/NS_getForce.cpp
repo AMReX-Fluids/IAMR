@@ -53,8 +53,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
 
    }
 
-   force.resize(grow(bx,ngrow),ncomp);
-
    const Real* VelDataPtr  = Vel.dataPtr();
    const Real* ScalDataPtr = Scal.dataPtr(scalScomp);
 
