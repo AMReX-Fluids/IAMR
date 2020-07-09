@@ -207,8 +207,6 @@ public:
 
     static int DoTrac2();
 
-protected:
-
     NavierStokesBase ();
 
     NavierStokesBase (amrex::Amr&            papa,
@@ -228,15 +226,15 @@ protected:
     //
     // Get the forcing term.
     //
-    void getForce (amrex::FArrayBox&       force,
-                   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-                   const amrex::Real       time,
-                   const amrex::FArrayBox& Vel,
-                   const amrex::FArrayBox& Scal,
-                   int              scalScomp);
+    virtual void getForce (amrex::FArrayBox&       force,
+                           const amrex::Box&      bx,
+                           int              ngrow,
+                           int              strt_comp,
+                           int              num_comp,
+                           const amrex::Real       time,
+                           const amrex::FArrayBox& Vel,
+                           const amrex::FArrayBox& Scal,
+                           int              scalScomp);
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
@@ -491,8 +489,6 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase protected embedded boundary functions              //
     ////////////////////////////////////////////////////////////////////////////
-
-private:
 
     void buildMetrics (); // 1-D metric arrays for RZ
     //
