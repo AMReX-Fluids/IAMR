@@ -3915,9 +3915,9 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         const Real prev_time      = state[State_Type].prevTime();
         const int  xvel           = Xvel;
 
-        int              ng(1);
-        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
-        MultiFab    tforces(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
+        int   ngrow = 1;
+        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
+        MultiFab    tforces(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
 
         //
         // Get grad(p)
@@ -3926,30 +3926,28 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         MultiFab& Gp = *gradp;
 #else
         const Real prev_pres_time = state[Press_Type].prevTime();
-        MultiFab         Gp(grids,dmap,AMREX_SPACEDIM,ng,MFInfo(),Factory());
+        MultiFab         Gp(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
         getGradP(Gp, prev_pres_time);
 #endif
 
         //
         // Compute additional forcing terms
         //
-        tforces.setVal(0.0,1);
+        tforces.setVal(0.0);
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+        for (MFIter mfi(tforces,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            for (MFIter mfi(tforces,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            const auto& bx = mfi.tilebox();
+                  auto& tforces_fab = tforces[mfi];
+            if (getForceVerbose)
             {
-                const auto& bx = mfi.tilebox();
-                      auto& tforces_fab = tforces[mfi];
-                if (getForceVerbose)
-                {
-                    amrex::Print() << "---" << '\n'
-                                   << "G - initial velocity diffusion update:" << '\n'
-                                   << "Calling getForce..." << '\n';
-                }
-                getForce(tforces_fab,bx,0,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
+                amrex::Print() << "---" << '\n'
+                               << "G - initial velocity diffusion update:" << '\n'
+                               << "Calling getForce..." << '\n';
             }
+            getForce(tforces_fab,bx,0,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
         }
 
         //
@@ -3967,44 +3965,41 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         //
         // Assemble RHS
         //
-
-        // Set tforces = tforces + visc - Gp
-        MultiFab::Add(tforces, visc_terms, 0, 0, AMREX_SPACEDIM, 0);
-        MultiFab::Subtract(tforces, Gp, 0, 0, AMREX_SPACEDIM, 0);
-
-        // If NOT solving for momentum, divide tforces for Rho
-        if (!(do_mom_diff==1))
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(tforces,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            for (int idim(0); idim < AMREX_SPACEDIM; ++idim )
-                MultiFab::Divide(tforces, Rh, 0, idim, 1, 0);
-        }
-
-        // Subtract convective term from tforces
-        // WARNING: I think it is assumed that the convective term
-        // may or may not account for rho depending on do_mom_diff
-        // so no need to account for rho here
-        MultiFab::Subtract(tforces, *aofs, 0, xvel, AMREX_SPACEDIM, 0);
-
-        if (do_mom_diff==1)
-        {
-            // If solving for momentum, set U_new=dt*tforces
-            // Then set u_new += rho_old*u_old = rho_old*u_old + dt*tforce
-            // Finally divide u_new by rho_new to recover velocities
-            MultiFab::Copy(U_new, tforces, 0, Xvel, AMREX_SPACEDIM, 0);
-            U_new.mult(dt);
-            for (int idim(0); idim < AMREX_SPACEDIM; ++idim )
-            {
-                MultiFab::AddProduct(U_new, rho_ptime, 0, U_old, xvel+idim, xvel+idim, 1, 0);
-                MultiFab::Divide(U_new, rho_ctime, 0, xvel+idim, 1, 0);
-            }
-        }
-        else
-        {
-            // Then set u_new = u_old + dt*tforces
-            MultiFab::LinComb(U_new, 1.0, U_old, xvel, dt, tforces, 0, xvel, AMREX_SPACEDIM, 0);
+           const Box& bx = mfi.tilebox();
+           auto const& force   = tforces.array(mfi);
+           auto const& viscT   = visc_terms.array(mfi);
+           auto const& gradp   = Gp.array(mfi);
+           auto const& rhohalf = Rh.array(mfi);
+           auto const& rho_old = rho_ptime.array(mfi);
+           auto const& rho_new = rho_ctime.array(mfi);
+           auto const& vel_old = U_old.array(mfi,xvel);
+           auto const& vel_new = U_new.array(mfi,xvel);
+           auto const& advT    = aofs->array(mfi,xvel);
+           int mom_diff = do_mom_diff;
+           amrex::ParallelFor(bx, AMREX_SPACEDIM, [force,viscT,gradp,rhohalf,advT,rho_old,rho_new,vel_old,vel_new,mom_diff,dt]
+           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+           {
+              // Set force += (visc - Gp) / rho_half - aofs
+              force(i,j,k,n) += viscT(i,j,k,n) - gradp(i,j,k,n);
+              if ( !mom_diff ) {
+                 force(i,j,k,n) /= rhohalf(i,j,k);
+              }
+              force(i,j,k,n) -= advT(i,j,k,n);
+              // if mom_diff : U_new = (force* dt + U_old * rho_old) / rho_new
+              // else        : U_new = U_old + force* dt
+              if ( mom_diff ) {
+                 vel_new(i,j,k,n) = (force(i,j,k,n) * dt + vel_old(i,j,k,n) * rho_old(i,j,k)) / rho_new(i,j,k);
+              } else {
+                 vel_new(i,j,k,n) = vel_old(i,j,k,n) + force(i,j,k,n) * dt;
+              }
+           });
         }
     }
-
 }
 
 Real
@@ -4059,23 +4054,25 @@ NavierStokesBase::volWgtSum (const std::string& name,
     });
 #else
     const Real* dom_lo = geom.ProbLo();
-    Real sm = amrex::ReduceSum(*mf, 0, [vol, volWgtSum_sub_dz, volWgtSum_sub_Rcyl, dx, dom_lo]
+    const Real sub_dz = volWgtSum_sub_dz;
+    const Real sub_Rcyl = volWgtSum_sub_Rcyl;
+    Real sm = amrex::ReduceSum(*mf, 0, [vol, sub_dz, sub_Rcyl, dx, dom_lo]
     AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& mf_arr) -> Real
     {
         Real sum = 0.0;
-        if ( volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0 ) {
+        if ( sub_dz > 0 && sub_Rcyl > 0 ) {
            // TODO : test this in 2D
            const auto lo = amrex::lbound(bx);
            const auto hi = amrex::ubound(bx);
            for       (int k = lo.z; k <= hi.z; ++k) {
               Real z = dom_lo[2] + (k+0.5_rt) * dx[2];
-              if ( z <= volWgtSum_sub_dz ) {
+              if ( z <= sub_dz ) {
                  for    (int j = lo.y; j <= hi.y; ++j) {
                     Real y = dom_lo[1] + (j+0.5_rt) * dx[1];
                     for (int i = lo.x; i <= hi.x; ++i) {
                        Real x = dom_lo[0] + (i+0.5_rt) * dx[0];
                        Real r = std::sqrt(x*x + y*y);
-                       if ( r <= volWgtSum_sub_Rcyl ) {
+                       if ( r <= sub_Rcyl ) {
                           sum += mf_arr(i,j,k) * vol;
                        }
                     } 
