@@ -4050,7 +4050,7 @@ NavierStokesBase::volWgtSum (const std::string& name,
     // TODO set the cases for RZ, but it needs the radius to be somewhere in managed memory and so on
     Real vol = D_TERM(dx[0],*dx[1],*dx[2]);
 #ifdef AMREX_USE_EB
-    if ( (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0) || rz_flag ) {
+    if ( (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0) ) {
         amrex::Abort("EB volWgtSum currently only works over entire cartesian domain.");
     }
     Real sm = amrex::ReduceSum(*mf, *volfrac, 0, [vol]
