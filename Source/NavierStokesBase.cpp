@@ -1072,18 +1072,18 @@ NavierStokesBase::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
 
     if (have_divu)
     {
-	FillPatch(*this,rhs,nGrow,time,Divu_Type,sCompDivU,nCompDivU,sCompDivU);
+       FillPatch(*this,rhs,nGrow,time,Divu_Type,sCompDivU,nCompDivU,sCompDivU);
     }
     else
     {
-        rhs.setVal(0.);
+       rhs.setVal(0.);
     }
 
     if (have_dsdt)
     {
-	FillPatchIterator fpi(*this,rhs,nGrow,time,Dsdt_Type,sCompDsdt,nCompDsdt);
-	const MultiFab& mf = fpi.get_mf();
-	MultiFab::Saxpy(rhs, 0.5*dt, mf, 0, sCompDsdt, nCompDsdt, nGrow);
+       FillPatchIterator fpi(*this,rhs,nGrow,time,Dsdt_Type,sCompDsdt,nCompDsdt);
+       const MultiFab& mf = fpi.get_mf();
+       MultiFab::Saxpy(rhs, 0.5*dt, mf, 0, sCompDsdt, nCompDsdt, nGrow);
     }
 }
 
@@ -3587,7 +3587,6 @@ NavierStokesBase::velocity_advection (Real dt)
         //
         FillPatchIterator Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
         FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-
         MultiFab& Rmf=Rho_fpi.get_mf();
         MultiFab& Smf=S_fpi.get_mf();
 
@@ -3719,12 +3718,12 @@ NavierStokesBase::velocity_advection (Real dt)
         if (level > 0 )
         {
             for (int d = 0; d < AMREX_SPACEDIM; d++)
-                advflux_reg->FineAdd(fluxes[d],d,0,0,BL_SPACEDIM,dt);
+                advflux_reg->FineAdd(fluxes[d],d,0,0,AMREX_SPACEDIM,dt);
         }
         if(level < finest_level)
         {
             for (int i = 0; i < AMREX_SPACEDIM; i++)
-                getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,BL_SPACEDIM,-dt);
+                getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,AMREX_SPACEDIM,-dt);
         }
     }
 }
@@ -3810,16 +3809,18 @@ NavierStokesBase::velocity_advection_update (Real dt)
     getGradP(Gp, prev_pres_time);
 #endif
 
-    MultiFab& halftime = get_rho_half_time();
+    MultiFab& Rh = get_rho_half_time();
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 {
-    FArrayBox  tforces, S;
-    for (MFIter Rhohalf_mfi(halftime,true); Rhohalf_mfi.isValid(); ++Rhohalf_mfi)
+    FArrayBox  tforces, S, VelFAB, ScalFAB;
+    for (MFIter mfi(Rh,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        const int i = Rhohalf_mfi.index();
-        const Box& bx = Rhohalf_mfi.tilebox();
+        const Box& bx = mfi.tilebox();
+        VelFAB.resize(bx,AMREX_SPACEDIM);
+        ScalFAB.resize(bx,NUM_SCALARS);
 
         //
         // Need to do some funky half-time stuff.
@@ -3828,56 +3829,80 @@ NavierStokesBase::velocity_advection_update (Real dt)
            amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
         // Average the mac face velocities to get cell centred velocities.
-        //
-	//FIXME - need to address this for EB
-        FArrayBox Vel(amrex::grow(bx,0),BL_SPACEDIM);
-        FORT_AVERAGE_EDGE_STATES(BL_TO_FORTRAN_ANYD(Vel),
-                                 BL_TO_FORTRAN_ANYD(u_mac[0][Rhohalf_mfi]),
-                                 BL_TO_FORTRAN_ANYD(u_mac[1][Rhohalf_mfi]),
-#if (AMREX_SPACEDIM==3)
-                                 BL_TO_FORTRAN_ANYD(u_mac[2][Rhohalf_mfi]),
-#endif
-                                 &getForceVerbose);
-        //
         // Average the new and old time to get Crank-Nicholson half time approximation.
         //
-        FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-        Scal.copy<RunOn::Host>(U_old[Rhohalf_mfi],bx,Density,bx,0,NUM_SCALARS);
-        Scal.plus<RunOn::Host>(U_new[Rhohalf_mfi],bx,Density,0,NUM_SCALARS);
-        Scal.mult<RunOn::Host>(0.5,bx,0,NUM_SCALARS);
+        //FIXME - need to address this for EB
+        auto const& vel  = VelFAB.array();
+        auto const& scal = ScalFAB.array();
+        Elixir vel_i = VelFAB.elixir();
+        Elixir scal_i = ScalFAB.elixir();
+        D_TERM(auto const& umac = u_mac[0].array(mfi);,
+               auto const& vmac = u_mac[1].array(mfi);,
+               auto const& wmac = u_mac[2].array(mfi););
+        auto const& scal_o = U_old.array(mfi,Density);
+        auto const& scal_n = U_new.array(mfi,Density);
+        const int numscal = NUM_SCALARS;
+        amrex::ParallelFor(bx, [vel,D_DECL(umac,vmac,wmac),scal, scal_o, scal_n, numscal]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+           edg2cen_average(i,j,k,D_DECL(umac,vmac,wmac),vel);
+           for (int n = 0; n < numscal; n++) {
+              scal(i,j,k,n) = 0.5 * ( scal_o(i,j,k,n) + scal_n(i,j,k,n) );
+           }
+        });
 
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         tforces.resize(bx,AMREX_SPACEDIM);
-        getForce(tforces,bx,0,Xvel,AMREX_SPACEDIM,half_time,Vel,Scal,0);
+        getForce(tforces,bx,0,Xvel,AMREX_SPACEDIM,half_time,VelFAB,ScalFAB,0);
 
         //
         // Do following only at initial iteration--per JBB.
         //
-        if (initial_iter && is_diffusive[Xvel])
-            tforces.setVal<RunOn::Host>(0);
-
-	     //why is this on a grown box?
-	     const Box& sbx = Rhohalf_mfi.growntilebox();
-        S.resize(sbx,BL_SPACEDIM);
-        S.copy<RunOn::Host>(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
-
-        if (do_mom_diff == 1)
-        {
-            for (int d = 0; d < BL_SPACEDIM; d++)
-            {
-                Gp[Rhohalf_mfi].mult<RunOn::Host>(halftime[i],bx,0,d,1);
-                tforces.mult<RunOn::Host>(halftime[i],bx,0,d,1);
-                S.mult<RunOn::Host>(rho_ptime[Rhohalf_mfi],bx,0,d,1);
-            }
+        if (initial_iter && is_diffusive[Xvel]) {
+           auto const& force  = tforces.array();
+           amrex::ParallelFor(bx, [force]
+           AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+           {
+               force(i,j,k) = 0.0;
+           });
         }
 
-        godunov->Add_aofs_tf_gp(S,U_new[Rhohalf_mfi],Aofs[Rhohalf_mfi],tforces,
-                                Gp[Rhohalf_mfi],halftime[i],bx,dt);
+        //why is this on a grown box?
+        const Box& sbx = mfi.growntilebox();
+        S.resize(sbx,AMREX_SPACEDIM);
+        auto const& s_arr    = S.array();
+        auto const& vel_old  = U_old.array(mfi);
+        auto const& gradp    = Gp.array(mfi);
+        auto const& force    = tforces.array();
+        auto const& rho_old  = rho_ptime.array(mfi);
+        auto const& rho_h    = Rh.array(mfi);
+        int mom_diff = do_mom_diff;
+        amrex::ParallelFor(bx, AMREX_SPACEDIM, [s_arr,vel_old,gradp,rho_old,rho_h,force,mom_diff]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            s_arr(i,j,k,n) = vel_old(i,j,k,n);
+            if ( mom_diff ) {
+               gradp(i,j,k,n) *= rho_h(i,j,k);
+               force(i,j,k,n) *= rho_h(i,j,k);
+               s_arr(i,j,k,n) *= rho_old(i,j,k);
+            }
+        });
+#ifdef AMREX_USE_CUDA
+        Gpu::streamSynchronize();
+#endif
+
+        godunov->Add_aofs_tf_gp(S,U_new[mfi],Aofs[mfi],tforces,
+                                Gp[mfi],Rh[mfi],bx,dt);
         if (do_mom_diff == 1)
         {
-            for (int d = 0; d < BL_SPACEDIM; d++)
-                U_new[Rhohalf_mfi].divide<RunOn::Host>(rho_ctime[Rhohalf_mfi],bx,0,d,1);
+           auto const& vel_new = U_new.array(mfi);
+           auto const& rho_new = rho_ctime.array(mfi);
+           amrex::ParallelFor(bx, AMREX_SPACEDIM, [vel_new,rho_new]
+           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+           {
+              vel_new(i,j,k,n) /= rho_new(i,j,k);
+           });
         }
     }
 }
@@ -3890,13 +3915,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
        }
        if (U_new.contains_nan(sigma,1,0))
        {
-         for(MFIter mfi(U_new); mfi.isValid(); ++mfi){
-             if(U_new[mfi].contains_nan<RunOn::Host>(mfi.validbox(),sigma,1)){
-                FArrayBox tmp(mfi.validbox(),1);
-                tmp.copy<RunOn::Host>(U_new[mfi],mfi.validbox(),sigma,mfi.validbox(),0,1);
-             }
-         }
-         amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+          amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
        }
     }
 }
