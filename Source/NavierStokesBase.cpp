@@ -1343,7 +1343,7 @@ NavierStokesBase::estTimeStep ()
     Real        estdt         = 1.0e+20;
 
     const Real  cur_pres_time = state[Press_Type].curTime();
-    MultiFab&   U_new         = get_new_data(State_Type);
+    MultiFab&   S_new         = get_new_data(State_Type);
 
     Vector<Real> u_max(AMREX_SPACEDIM);
     Vector<Real> f_max(AMREX_SPACEDIM);
@@ -1359,7 +1359,7 @@ NavierStokesBase::estTimeStep ()
     //
     // Find local max of velocity
     //
-    u_max = U_new.norm0({AMREX_D_DECL(0,1,2)},0,true,true);
+    u_max = S_new.norm0({AMREX_D_DECL(0,1,2)},0,true,true);
 
     //
     // Compute forcing terms: in this case this means external forces and grad(p)
@@ -1373,24 +1373,16 @@ NavierStokesBase::estTimeStep ()
 #endif
     for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        const auto& bx          = mfi.tilebox();
-        const auto  cur_time    = state[State_Type].curTime();
-              auto& tforces_fab = tforces[mfi];
-        if (getForceVerbose)
-            amrex::Print() << "---" << '\n'
-                           << "H - est Time Step:" << '\n'
-                           << "Calling getForce..." << '\n';
-        getForce(tforces_fab,bx,n_grow,0,AMREX_SPACEDIM,cur_time,U_new[mfi],U_new[mfi],Density);
-    }
+       const auto& bx          = mfi.tilebox();
+       const auto  cur_time    = state[State_Type].curTime();
+             auto& tforces_fab = tforces[mfi];
 
-    // Rescale force  
-    // FIXME: separate MFiter loops here, but once getForce is GPU ready, merge.
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-       const auto& bx    = mfi.tilebox();
+       if (getForceVerbose)
+           amrex::Print() << "---" << '\n'
+                          << "H - est Time Step:" << '\n'
+                          << "Calling getForce..." << '\n';
+       getForce(tforces_fab,bx,n_grow,0,AMREX_SPACEDIM,cur_time,S_new[mfi],S_new[mfi],Density);
+
        const auto& rho   = rho_ctime.array(mfi);  
        const auto& gradp = Gp.array(mfi); 
        const auto& force = tforces.array(mfi);
@@ -2997,7 +2989,8 @@ NavierStokesBase::scalar_advection_update (Real dt,
                Scal.mult<RunOn::Host>(0.5,bx);
 
                if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
-                  getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
+               tforces.resize(bx,1);
+               getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
 
                godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                     Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
@@ -3621,7 +3614,9 @@ NavierStokesBase::velocity_advection (Real dt)
                                    << "Calling getForce..." << '\n';
                 }
 
-                getForce(tforces,bx,1,Xvel,AMREX_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+                const Box& forcebx = grow(bx,1);
+                tforces.resize(forcebx,AMREX_SPACEDIM);
+                getForce(tforces,forcebx,1,Xvel,AMREX_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
                 godunov->Sum_tf_gp_visc(tforces,visc_terms[U_mfi],Gp[U_mfi],rho_ptime[U_mfi]);
 
@@ -3820,7 +3815,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
 #pragma omp parallel
 #endif
 {
-
     FArrayBox  tforces, S;
     for (MFIter Rhohalf_mfi(halftime,true); Rhohalf_mfi.isValid(); ++Rhohalf_mfi)
     {
@@ -3854,7 +3848,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
-        getForce(tforces,bx,0,Xvel,BL_SPACEDIM,half_time,Vel,Scal,0);
+        tforces.resize(bx,AMREX_SPACEDIM);
+        getForce(tforces,bx,0,Xvel,AMREX_SPACEDIM,half_time,Vel,Scal,0);
 
         //
         // Do following only at initial iteration--per JBB.
@@ -3862,8 +3857,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (initial_iter && is_diffusive[Xvel])
             tforces.setVal<RunOn::Host>(0);
 
-	//why is this on a grown box?
-	   const Box& sbx = Rhohalf_mfi.growntilebox();
+	     //why is this on a grown box?
+	     const Box& sbx = Rhohalf_mfi.growntilebox();
         S.resize(sbx,BL_SPACEDIM);
         S.copy<RunOn::Host>(U_old[Rhohalf_mfi],sbx,0,sbx,0,BL_SPACEDIM);
 
@@ -3943,20 +3938,17 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
-            FArrayBox tforces_fab;
             for (MFIter mfi(tforces,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const auto& bx = mfi.tilebox();
-
+                      auto& tforces_fab = tforces[mfi];
                 if (getForceVerbose)
                 {
                     amrex::Print() << "---" << '\n'
                                    << "G - initial velocity diffusion update:" << '\n'
                                    << "Calling getForce..." << '\n';
                 }
-
                 getForce(tforces_fab,bx,0,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
-                tforces[mfi].copy<RunOn::Host>(tforces_fab,bx,0,bx,0,AMREX_SPACEDIM);
             }
         }
 
@@ -3969,7 +3961,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         }
         else
         {
-          visc_terms.setVal(0);
+          visc_terms.setVal(0.0);
         }
 
         //
