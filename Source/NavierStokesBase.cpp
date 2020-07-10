@@ -3881,42 +3881,35 @@ NavierStokesBase::velocity_advection_update (Real dt)
            });
         }
 
+        // Update velocity
         //why is this on a grown box?
-        const Box& sbx = mfi.growntilebox();
-        S.resize(sbx,AMREX_SPACEDIM);
-        auto const& s_arr    = S.array();
         auto const& vel_old  = U_old.array(mfi);
+        auto const& vel_new  = U_new.array(mfi);
         auto const& gradp    = Gp.array(mfi);
         auto const& force    = tforces.array();
+        auto const& advec    = Aofs.array(mfi);
         auto const& rho_old  = rho_ptime.array(mfi);
-        auto const& rho_h    = Rh.array(mfi);
+        auto const& rho_new  = rho_ctime.array(mfi);
+        auto const& rho_Half = Rh.array(mfi);
         int mom_diff = do_mom_diff;
-        amrex::ParallelFor(bx, AMREX_SPACEDIM, [s_arr,vel_old,gradp,rho_old,rho_h,force,mom_diff]
+        amrex::ParallelFor(bx, AMREX_SPACEDIM, [vel_old,vel_new,gradp,force,advec,rho_old,rho_new,rho_Half,mom_diff,dt]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            s_arr(i,j,k,n) = vel_old(i,j,k,n);
+            Real velold = vel_old(i,j,k,n);
+
             if ( mom_diff ) {
-               gradp(i,j,k,n) *= rho_h(i,j,k);
-               force(i,j,k,n) *= rho_h(i,j,k);
-               s_arr(i,j,k,n) *= rho_old(i,j,k);
+               gradp(i,j,k,n) *= rho_Half(i,j,k);
+               force(i,j,k,n) *= rho_Half(i,j,k);
+               velold *= rho_old(i,j,k);
+            }
+            vel_new(i,j,k,n) = velold - dt * advec(i,j,k,n)
+                                      + dt * force(i,j,k,n) / rho_Half(i,j,k)
+                                      - dt * gradp(i,j,k,n) / rho_Half(i,j,k);
+
+            if ( mom_diff ) {
+               vel_new(i,j,k,n) /= rho_new(i,j,k);
             }
         });
-#ifdef AMREX_USE_CUDA
-        Gpu::streamSynchronize();
-#endif
-
-        godunov->Add_aofs_tf_gp(S,U_new[mfi],Aofs[mfi],tforces,
-                                Gp[mfi],Rh[mfi],bx,dt);
-        if (do_mom_diff == 1)
-        {
-           auto const& vel_new = U_new.array(mfi);
-           auto const& rho_new = rho_ctime.array(mfi);
-           amrex::ParallelFor(bx, AMREX_SPACEDIM, [vel_new,rho_new]
-           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-           {
-              vel_new(i,j,k,n) /= rho_new(i,j,k);
-           });
-        }
     }
 }
 
