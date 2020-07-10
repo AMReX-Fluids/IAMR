@@ -365,7 +365,7 @@ NavierStokesBase::set_body_state(MultiFab& S)
 
   // Need a local copy of body_state that's not a static attribute of the class
   GpuArray<amrex::Real,nc> body_state_lcl;
-  for (int n; n < nc; n++) {
+  for (int n = 0; n < nc; n++) {
      body_state_lcl[n] = body_state[n];
   }
 
