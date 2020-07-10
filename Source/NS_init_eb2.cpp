@@ -6,6 +6,7 @@ using namespace amrex;
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
+#include <NSB_K.H>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
@@ -362,19 +363,25 @@ NavierStokesBase::set_body_state(MultiFab& S)
   int nc = S.nComp();
   int covered_val = -1;
 
+  // Need a local copy of body_state that's not a static attribute of the class
+  GpuArray<amrex::Real,nc> body_state_lcl;
+  for (int n; n < nc; n++) {
+     body_state_lcl[n] = body_state[n];
+  }
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-  for (MFIter mfi(S,true); mfi.isValid(); ++mfi)
+  for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
-    const Box& vbox = mfi.validbox();
-    fort_set_body_state(vbox.loVect(), vbox.hiVect(),
-                      BL_TO_FORTRAN_ANYD(S[mfi]),
-                      BL_TO_FORTRAN_ANYD(ebmask[mfi]),
-                      &(body_state[0]),&nc,&covered_val);
+    const Box& bx = mfi.tilebox();
+    auto const& state = S.array(mfi);
+    auto const& mask = ebmask.array(mfi);
+    amrex::ParallelFor(bx, [state,mask,nc,covered_val,body_state_lcl]
+    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        set_body_state(i,j,k,nc,body_state_lcl,covered_val,mask,state);
+    });
   }
 }
-
-
-
 #endif
