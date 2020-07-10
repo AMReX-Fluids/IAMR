@@ -794,14 +794,9 @@ contains
                   end if
                end do
 
-               if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
-                  stxhi(imin) = s(imin-1,j,L)
+               if (bc(1,1).eq.EXT_DIR) then
+                  if (n+L-1.eq.XVEL) stxhi(imin) = s(imin-1,j,L)
                   stxlo(imin) = s(imin-1,j,L)
-               else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).ge.0.d0) then
-                  stxhi(imin) = s(imin-1,j,L)
-                  stxlo(imin) = s(imin-1,j,L)
-               else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j).lt.0.d0) then
-                  stxlo(imin) = stxhi(imin)
                else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
                   if (n+L-1.eq.XVEL) then
                      if (velpred.eq.1) then
@@ -829,14 +824,9 @@ contains
                   stxlo(imin) = stxhi(imin)
                end if
 
-               if (bc(1,2).eq.EXT_DIR .and. velpred.eq.1) then
-                  stxlo(imax+1) = s(imax+1,j,L)
+               if (bc(1,2).eq.EXT_DIR) then
+                  if (n+L-1.eq.XVEL stxlo(imax+1) = s(imax+1,j,L)
                   stxhi(imax+1) = s(imax+1,j,L)
-               else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).le.0.d0) then
-                  stxlo(imax+1) = s(imax+1,j,L)
-                  stxhi(imax+1) = s(imax+1,j,L)
-               else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j).gt.0.d0) then
-                  stxhi(imax+1) = stxlo(imax+1)
                else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                   if (n+L-1.eq.XVEL) then
                      if (velpred.eq.1) then
@@ -912,14 +902,9 @@ contains
                   end if
                end do
 
-               if (bc(2,1).eq.EXT_DIR .and. velpred .eq. 1) then
-                  styhi(jmin) = s(i,jmin-1,L)
+               if (bc(2,1).eq.EXT_DIR) then
+                  if (n+L-1.eq.YVEL) styhi(jmin) = s(i,jmin-1,L)
                   stylo(jmin) = s(i,jmin-1,L)
-               else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).ge.0.d0) then
-                  styhi(jmin) = s(i,jmin-1,L)
-                  stylo(jmin) = s(i,jmin-1,L)
-               else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin).lt.0.d0) then
-                  stylo(jmin) = styhi(jmin)
                else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
                   if (n+L-1.eq.YVEL) then
                      if (velpred.eq.1) then
@@ -947,14 +932,9 @@ contains
                   stylo(jmin) = 0.d0
                end if
 
-               if (bc(2,2).eq.EXT_DIR .and. velpred .eq. 1) then
-                  stylo(jmax+1) = s(i,jmax+1,L)
+               if (bc(2,2).eq.EXT_DIR) then
+                  if (n+L-1.eq.YVEL) stylo(jmax+1) = s(i,jmax+1,L)
                   styhi(jmax+1) = s(i,jmax+1,L)
-               else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).le.0.d0) then
-                  stylo(jmax+1) = s(i,jmax+1,L)
-                  styhi(jmax+1) = s(i,jmax+1,L)
-               else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1).gt.0.d0) then
-                  styhi(jmax+1) = stylo(jmax+1)
                else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
                   if (n+L-1.eq.YVEL) then
                      if (velpred.eq.1) then
@@ -1466,12 +1446,8 @@ contains
 
       if (xbc(1,1).eq.EXT_DIR) then
          do j = jmin-1,jmax+1
-            ltest = uad(imin,j) .gt. zero
-            stx   = merge(s(imin-1,j),xhi(imin,j),ltest)
-            ltest = abs(uad(imin,j)) .lt. eps
-            stx   = merge(half*(xhi(imin,j)+s(imin-1,j)),stx,ltest)
-            xlo(imin,j) = stx
-            xhi(imin,j) = stx
+            xlo(imin,j) = s(imin-1,j)
+            if (n.eq.XVEL) xhi(imin,j) = s(imin-1,j)
          end do
       else if (xbc(1,1).eq.FOEXTRAP.or.xbc(1,1).eq.HOEXTRAP&
              .or.xbc(1,1).eq.REFLECT_EVEN) then
@@ -1487,12 +1463,8 @@ contains
 
       if (xbc(1,2).eq.EXT_DIR) then
          do j = jmin-1,jmax+1
-            ltest = uad(imax+1,j) .lt. zero
-            stx   = merge(s(imax+1,j),xlo(imax+1,j),ltest)
-            ltest = abs(uad(imax+1,j)) .lt. eps
-            stx   = merge(half*(s(imax+1,j)+xlo(imax+1,j)), stx, ltest)
-            xlo(imax+1,j) = stx
-            xhi(imax+1,j) = stx
+            if (n.eq.XVEL) xlo(imax+1,j) = s(imax+1,j)
+            xhi(imax+1,j) = s(imax+1,j)
          end do
       else if (xbc(1,2).eq.FOEXTRAP.or.xbc(1,2).eq.HOEXTRAP&
              .or.xbc(1,2).eq.REFLECT_EVEN) then
@@ -1544,12 +1516,8 @@ contains
 
       if (ybc(2,1).eq.EXT_DIR) then
          do i = imin-1,imax+1
-            ltest = vad(i,jmin) .gt. eps
-            sty   = merge(s(i,jmin-1),yhi(i,jmin),ltest)
-            ltest = abs(vad(i,jmin)) .lt. eps
-            sty   = merge(half*(s(i,jmin-1)+yhi(i,jmin)), sty, ltest)
-            ylo(i,jmin) = sty
-            yhi(i,jmin) = sty
+            ylo(i,jmin) = s(i,jmin-1)
+            if (n.eq.YVEL) yhi(i,jmin) = s(i,jmin-1)
          end do
       else if (ybc(2,1).eq.FOEXTRAP.or.ybc(2,1).eq.HOEXTRAP&
              .or.ybc(2,1).eq.REFLECT_EVEN) then
@@ -1565,12 +1533,8 @@ contains
 
       if (ybc(2,2).eq.EXT_DIR) then
          do i = imin-1,imax+1
-            ltest = vad(i,jmax+1) .lt. zero
-            sty   = merge(s(i,jmax+1),ylo(i,jmax+1),ltest)
-            ltest = abs(vad(i,jmax+1)) .lt. eps
-            sty   = merge(half*(s(i,jmax+1)+ylo(i,jmax+1)), sty, ltest)
-            ylo(i,jmax+1) = sty
-            yhi(i,jmax+1) = sty
+            if (n.eq.YVEL) ylo(i,jmax+1) = s(i,jmax+1)
+            yhi(i,jmax+1) = s(i,jmax+1)
          end do
       else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP&
              .or.ybc(2,2).eq.REFLECT_EVEN) then
