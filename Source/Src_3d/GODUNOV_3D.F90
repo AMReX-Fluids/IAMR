@@ -1611,14 +1611,9 @@ contains
 
                end do
 
-               if (bc(1,1).eq.EXT_DIR .and. velpred.eq.1) then
-                  stxhi(imin) = s(imin-1,j,k,L)
+               if (bc(1,1).eq.EXT_DIR) then
                   stxlo(imin) = s(imin-1,j,k,L)
-               else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).ge.0.0d0) then
-                  stxhi(imin) = s(imin-1,j,k,L)
-                  stxlo(imin) = s(imin-1,j,k,L)
-               else if (bc(1,1).eq.EXT_DIR .and. uad(imin,j,k).lt.0.0d0) then
-                  stxlo(imin) = stxhi(imin)
+                  if ((n+L-1).eq.XVEL)  stxhi(imin) = stxlo(imin)
                else if (bc(1,1).eq.FOEXTRAP.or.bc(1,1).eq.HOEXTRAP) then
                   if ((n+L-1).eq.XVEL) then
                      if (velpred.eq.1) then
@@ -1651,14 +1646,9 @@ contains
                   stxhi(imin) = 0.0d0
                   stxlo(imin) = 0.0d0
                end if
-               if (bc(1,2).eq.EXT_DIR .and. velpred.eq.1) then
-                  stxlo(imax+1) = s(imax+1,j,k,L)
+               if (bc(1,2).eq.EXT_DIR ) then
+                  if ((n+L-1).eq.XVEL) stxlo(imax+1) = s(imax+1,j,k,L)
                   stxhi(imax+1) = s(imax+1,j,k,L)
-               else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j,k).le.0.0d0) then
-                  stxlo(imax+1) = s(imax+1,j,k,L)
-                  stxhi(imax+1) = s(imax+1,j,k,L)
-               else if (bc(1,2).eq.EXT_DIR .and. uad(imax+1,j,k).gt.0.0d0) then
-                  stxhi(imax+1) = stxlo(imax+1)
                else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                   if ((n+L-1).eq.XVEL) then
                      if (velpred.eq.1) then
@@ -1735,14 +1725,9 @@ contains
 
                end do
 
-               if (bc(2,1).eq.EXT_DIR .and. velpred.eq.1) then
-                  styhi(jmin) = s(i,jmin-1,k,L)
+               if (bc(2,1).eq.EXT_DIR) then
+                   if ((n+L-1).eq.YVEL) styhi(jmin) = s(i,jmin-1,k,L)
                   stylo(jmin) = s(i,jmin-1,k,L)
-               else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin,k).ge.0.0d0) then
-                  styhi(jmin) = s(i,jmin-1,k,L)
-                  stylo(jmin) = s(i,jmin-1,k,L)
-               else if (bc(2,1).eq.EXT_DIR .and. vad(i,jmin,k).lt.0.0d0) then
-                  stylo(jmin) = styhi(jmin)
                else if (bc(2,1).eq.FOEXTRAP.or.bc(2,1).eq.HOEXTRAP) then
                   if ((n+L-1).eq.YVEL) then
                      if (velpred.eq.1) then
@@ -1776,14 +1761,9 @@ contains
                   stylo(jmin) = 0.0d0
                end if
 
-               if (bc(2,2).eq.EXT_DIR .and. velpred.eq.1) then
-                  stylo(jmax+1) = s(i,jmax+1,k,L)
+               if (bc(2,2).eq.EXT_DIR) then
+                  if ((n+L-1).eq.YVEL) stylo(jmax+1) = s(i,jmax+1,k,L)
                   styhi(jmax+1) = s(i,jmax+1,k,L)
-               else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1,k).le.0.0d0) then
-                  stylo(jmax+1) = s(i,jmax+1,k,L)
-                  styhi(jmax+1) = s(i,jmax+1,k,L)
-               else if (bc(2,2).eq.EXT_DIR .and. vad(i,jmax+1,k).gt.0.0d0) then
-                  styhi(jmax+1) = stylo(jmax+1)
                else if (bc(2,2).eq.FOEXTRAP.or.bc(2,2).eq.HOEXTRAP) then
                   if ((n+L-1).eq.YVEL) then
                      if (velpred.eq.1) then
@@ -1861,14 +1841,9 @@ contains
 
                end do
 
-               if (bc(3,1).eq.EXT_DIR .and. velpred.eq.1) then
+               if (bc(3,1).eq.EXT_DIR ) then
                   stzlo(kmin) = s(i,j,kmin-1,L)
-                  stzhi(kmin) = s(i,j,kmin-1,L)
-               else if (bc(3,1).eq.EXT_DIR .and. wad(i,j,kmin).ge.0.0d0) then
-                  stzlo(kmin) = s(i,j,kmin-1,L)
-                  stzhi(kmin) = s(i,j,kmin-1,L)
-               else if (bc(3,1).eq.EXT_DIR .and. wad(i,j,kmin).lt.0.0d0) then
-                  stzlo(kmin) = stzhi(kmin)
+                  if ((n+L-1).eq.ZVEL) stzhi(kmin) = s(i,j,kmin-1,L)
                else if (bc(3,1).eq.FOEXTRAP.or.bc(3,1).eq.HOEXTRAP) then
                   if ((n+L-1).eq.ZVEL) then
                      if (velpred.eq.1) then
@@ -1895,14 +1870,9 @@ contains
                   stzlo(kmin) = 0.0d0
                   stzhi(kmin) = 0.0d0
                end if
-               if (bc(3,2).eq.EXT_DIR .and. velpred.eq.1) then
-                  stzlo(kmax+1) = s(i,j,kmax+1,L)
+               if (bc(3,2).eq.EXT_DIR) then
+                  if ((n+L-1).eq.ZVEL) stzlo(kmax+1) = s(i,j,kmax+1,L)
                   stzhi(kmax+1) = s(i,j,kmax+1,L)
-               else if (bc(3,2).eq.EXT_DIR .and. wad(i,j,kmax+1).le.0.0d0) then
-                  stzlo(kmax+1) = s(i,j,kmax+1,L)
-                  stzhi(kmax+1) = s(i,j,kmax+1,L)
-               else if (bc(3,2).eq.EXT_DIR .and. wad(i,j,kmax+1).gt.0.0d0) then
-                  stzhi(kmax+1) = stzlo(kmax+1)
                else if (bc(3,2).eq.FOEXTRAP.or.bc(3,2).eq.HOEXTRAP) then
                   if ((n+L-1).eq.ZVEL) then
                      if (velpred.eq.1) then
@@ -3827,12 +3797,8 @@ contains
       if (xbc(1,1).eq.EXT_DIR) then
          do j = jmin-1,jmax+1
             do k = kmin-1,kmax+1
-               ltest = uad(imin,j,k) .gt. zero
-               stx   = merge(s(imin-1,j,k),xhi(imin,j,k),ltest)
-               ltest = abs(uad(imin,j,k)) .lt. eps
-               stx   = merge(half*(xhi(imin,j,k)+s(imin-1,j,k)),stx,ltest)
-               xlo(imin,j,k) = stx
-               xhi(imin,j,k) = stx
+               xlo(imin,j,k) = s(imin-1,j,k)
+               if (n.eq.XVEL)  xhi(imin,j,k) = xlo(imin,j,k)
             end do
          end do
       else if (xbc(1,1).eq.FOEXTRAP.or.xbc(1,1).eq.HOEXTRAP &
@@ -3856,12 +3822,8 @@ contains
       if (xbc(1,2).eq.EXT_DIR) then
          do j = jmin-1,jmax+1
             do k = kmin-1,kmax+1
-               ltest = uad(imax+1,j,k) .lt. zero
-               stx   = merge(s(imax+1,j,k),xlo(imax+1,j,k),ltest)
-               ltest = abs(uad(imax+1,j,k)) .lt. eps
-               stx   = merge(half*(s(imax+1,j,k)+xlo(imax+1,j,k)), stx, ltest)
-               xlo(imax+1,j,k) = stx
-               xhi(imax+1,j,k) = stx
+               xhi(imax+1,j,k) = s(imax+1,j,k)
+               if (n.eq.XVEL) xlo(imax+1,j,k) = xhi(imax+1,j,k)
             end do
          end do
       else if (xbc(1,2).eq.FOEXTRAP.or.xbc(1,2).eq.HOEXTRAP &
@@ -3939,12 +3901,8 @@ contains
       if (ybc(2,1).eq.EXT_DIR) then
          do i = imin-1,imax+1
             do k = kmin-1,kmax+1
-               ltest = vad(i,jmin,k) .gt. eps
-               sty   = merge(s(i,jmin-1,k),yhi(i,jmin,k),ltest)
-               ltest = abs(vad(i,jmin,k)) .lt. eps
-               sty   = merge(half*(s(i,jmin-1,k)+yhi(i,jmin,k)), sty, ltest)
-               ylo(i,jmin,k) = sty
-               yhi(i,jmin,k) = sty
+               ylo(i,jmin,k) = s(i,jmin-1,k)
+               if (n.eq.YVEL) yhi(i,jmin,k) = ylo(i,jmin,k)
             end do
          end do
       else if (ybc(2,1).eq.FOEXTRAP.or.ybc(2,1).eq.HOEXTRAP &
@@ -3968,12 +3926,8 @@ contains
       if (ybc(2,2).eq.EXT_DIR) then
          do i = imin-1,imax+1
             do k = kmin-1,kmax+1
-               ltest = vad(i,jmax+1,k) .lt. zero
-               sty   = merge(s(i,jmax+1,k),ylo(i,jmax+1,k),ltest)
-               ltest = abs(vad(i,jmax+1,k)) .lt. eps
-               sty   = merge(half*(s(i,jmax+1,k)+ylo(i,jmax+1,k)), sty, ltest)
-               ylo(i,jmax+1,k) = sty
-               yhi(i,jmax+1,k) = sty
+               yhi(i,jmax+1,k) = s(i,jmax+1,k)
+               if (n.eq.YVEL) ylo(i,jmax+1,k) = yhi(i,jmax+1,k)
             end do
          end do
       else if (ybc(2,2).eq.FOEXTRAP.or.ybc(2,2).eq.HOEXTRAP &
@@ -4050,12 +4004,8 @@ contains
          ! if ( n .eq. ZVEL ) then
          do i = imin-1,imax+1
             do j = jmin-1,jmax+1
-               ltest = wad(i,j,kmin) .gt. 0.0D0
-               stz   = merge(s(i,j,kmin-1),zhi(i,j,kmin),ltest)
-               ltest = abs(wad(i,j,kmin)) .lt. eps
-               stz   = merge(half*(zhi(i,j,kmin)+s(i,j,kmin-1)),stz,ltest)
-               zhi(i,j,kmin) = stz
-               zlo(i,j,kmin) = stz
+               zlo(i,j,kmin) = s(i,j,kmin-1)
+               if (n.eq.ZVEL) zhi(i,j,kmin) = zlo(i,j,kmin)
             end do
          end do
       else if (zbc(3,1).eq.FOEXTRAP.or.zbc(3,1).eq.HOEXTRAP &
@@ -4079,12 +4029,8 @@ contains
       if (zbc(3,2).eq.EXT_DIR) then
          do i = imin-1,imax+1
             do j = jmin-1,jmax+1
-               ltest = wad(i,j,kmax+1) .lt. zero
-               stz   = merge(s(i,j,kmax+1),zlo(i,j,kmax+1),ltest)
-               ltest = abs(wad(i,j,kmax+1)) .lt. eps
-               stz   = merge(half*(s(i,j,kmax+1)+zlo(i,j,kmax+1)),stz,ltest)
-               zhi(i,j,kmax+1) = stz
-               zlo(i,j,kmax+1) = stz
+               zhi(i,j,kmax+1) = s(i,j,kmax+1)
+               if (n.eq.ZVEL) zlo(i,j,kmax+1) = zhi(i,j,kmax+1)
             end do
          end do
       else if (zbc(3,2).eq.FOEXTRAP.or.zbc(3,2).eq.HOEXTRAP &
