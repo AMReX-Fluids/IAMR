@@ -97,8 +97,6 @@ void godunov::predict_plm_y (Box const& bx_in, int ncomp,
     const int domain_jlo = domain_box.smallEnd(1);
     const int domain_jhi = domain_box.bigEnd(1);
 
-    //Print()<< "DOMLO, DOMHI = " << domain_jlo << " " << domain_jhi << std::endl;
-
     // At an ext_dir boundary, the boundary value is on the face, not cell center.
     auto extdir_lohi = has_extdir_or_ho(h_bcrec.data(), ncomp,  static_cast<int>(Direction::y));
     bool has_extdir_lo = extdir_lohi.first;

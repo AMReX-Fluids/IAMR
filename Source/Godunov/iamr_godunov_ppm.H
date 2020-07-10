@@ -679,13 +679,14 @@ void Godunov_ppm_fpu_z (const int i, const int j, const int k, const int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_trans_xbc(const int i, const int j, const int k, const int n,
-                              const amrex::Array4<const amrex::Real> &s,
-                                    amrex::Real &lo,
-                                    amrex::Real &hi,
-                                    amrex::Real &uedge,
-                              const int bclo, const int bchi,
-                              const int domlo, const int domhi)
+void Godunov_trans_xbc (const int i, const int j, const int k, const int n,
+                        const amrex::Array4<const amrex::Real> &s,
+                        amrex::Real &lo,
+                        amrex::Real &hi,
+                        amrex::Real &uedge,
+                        const int bclo, const int bchi,
+                        const int domlo, const int domhi,
+                        const bool is_velocity )
 {
     using namespace amrex;
 
@@ -695,10 +696,8 @@ void Godunov_trans_xbc(const int i, const int j, const int k, const int n,
     {
         if (bclo==BCType::ext_dir)
         {
-            Real avg = 0.5 * (s(domlo-1,j,k,n) + hi);
-            hi = uedge > 0. ? s(domlo-1,j,k,n) : hi;
-            hi = std::abs(uedge) < small_vel ? avg : hi;
-            lo = hi;
+            lo = s(domlo-1,j,k,n);
+            if( n == XVEL and is_velocity ) hi=lo;
         }
         else if(bclo == BCType::foextrap || bclo == BCType::hoextrap || bclo == BCType::reflect_even)
         {
@@ -716,10 +715,8 @@ void Godunov_trans_xbc(const int i, const int j, const int k, const int n,
     {
         if (bchi==BCType::ext_dir)
         {
-            Real avg = 0.5 * ( s(domhi+1,j,k,n) + lo );
-            lo = uedge < 0.? s(domhi+1,j,k,n) : lo;
-            lo = std::abs(uedge) < small_vel ? avg : lo;
-            hi = lo;
+            hi = s(domhi+1,j,k,n) ;
+            if( n ==XVEL and is_velocity ) lo=hi;
         }
         else if (bchi == BCType::foextrap || bchi == BCType::hoextrap || bchi == BCType::reflect_even)
         {
@@ -734,13 +731,14 @@ void Godunov_trans_xbc(const int i, const int j, const int k, const int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_trans_ybc(const int i, const int j, const int k, const int n,
-                              const amrex::Array4<const amrex::Real> &s,
-                                    amrex::Real &lo,
-                                    amrex::Real &hi,
-                                    amrex::Real vedge,
-                              const int bclo, const int bchi,
-                              const int domlo, const int domhi)
+void Godunov_trans_ybc ( const int i, const int j, const int k, const int n,
+                         const amrex::Array4<const amrex::Real> &s,
+                         amrex::Real &lo,
+                         amrex::Real &hi,
+                         amrex::Real vedge,
+                         const int bclo, const int bchi,
+                         const int domlo, const int domhi,
+                         const bool is_velocity )
 {
     using namespace amrex;
 
@@ -750,10 +748,8 @@ void Godunov_trans_ybc(const int i, const int j, const int k, const int n,
     {
         if (bclo==BCType::ext_dir)
         {
-            Real avg = 0.5 * ( s(i,domlo-1,k,n) + hi );
-            hi = vedge > 0. ?  s(i,domlo-1,k,n) : hi;
-            hi = std::abs(vedge) < small_vel ? avg : hi;
-            lo = hi;
+            lo = s(i,domlo-1,k,n);
+            if ( n == YVEL and is_velocity ) hi = lo;
         }
         else if (bclo == BCType::foextrap || bclo == BCType::hoextrap || bclo == BCType::reflect_even)
         {
@@ -771,10 +767,8 @@ void Godunov_trans_ybc(const int i, const int j, const int k, const int n,
     {
         if (bchi==BCType::ext_dir)
         {
-            Real avg = 0.5 * ( s(i,domhi+1,k,n) + lo );
-            lo = vedge < 0.0 ? s(i,domhi+1,k,n) : lo;
-            lo = std::abs(vedge) < small_vel ? avg : lo;
-            hi = lo;
+            hi = s(i,domhi+1,k,n);
+            if( n == YVEL and is_velocity ) lo = hi ;
         }
         else if (bchi == BCType::foextrap || bchi == BCType::hoextrap || bchi == BCType::reflect_even)
         {
@@ -790,12 +784,13 @@ void Godunov_trans_ybc(const int i, const int j, const int k, const int n,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Godunov_trans_zbc(const int i, const int j, const int k, const int n,
-                              const amrex::Array4<const amrex::Real> &s,
-                                    amrex::Real &lo,
-                                    amrex::Real &hi,
-                                    amrex::Real wedge,
-                              const int bclo, const int bchi,
-                              const int domlo, const int domhi)
+                       const amrex::Array4<const amrex::Real> &s,
+                       amrex::Real &lo,
+                       amrex::Real &hi,
+                       amrex::Real wedge,
+                       const int bclo, const int bchi,
+                       const int domlo, const int domhi,
+                       const bool is_velocity)
 {
     using namespace amrex;
 
@@ -805,10 +800,8 @@ void Godunov_trans_zbc(const int i, const int j, const int k, const int n,
     {
         if (bclo==BCType::ext_dir)
         {
-            Real avg = 0.5 * ( s(i,j,domlo-1,n) + hi );
-            hi = wedge > 0. ? s(i,j,domlo-1,n) : hi;
-            hi = std::abs(wedge) < small_vel ? avg : hi;
-            lo = hi;
+            lo =s(i,j,domlo-1,n);
+            if ( n == ZVEL and is_velocity ) hi = lo;
         }
         else if (bclo == BCType::foextrap || bclo == BCType::hoextrap || bclo == BCType::reflect_even)
         {
@@ -826,10 +819,8 @@ void Godunov_trans_zbc(const int i, const int j, const int k, const int n,
     {
         if (bchi==BCType::ext_dir)
         {
-            Real avg = 0.5*( s(i,j,domhi+1,n) + lo );
-            lo = wedge < 0. ? s(i,j,domhi+1,n) : lo;
-            lo = std::abs(wedge) < small_vel ? avg : lo;
-            hi = lo;
+            hi = s(i,j,domhi+1,n);
+            if ( n == ZVEL and is_velocity ) lo = hi ;
         }
         else if (bchi == BCType::foextrap || bchi == BCType::hoextrap || bchi == BCType::reflect_even)
         {
@@ -848,15 +839,16 @@ void Godunov_cc_xbc_lo(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &uedge,
-                       const int bclo, const int domlo, const bool velpred =false)
+                       const int bclo, const int domlo, const bool is_velocity )
 {
     using namespace amrex;
 
     if (i == domlo)
     {
-        if (bclo == BCType::ext_dir && ( uedge(i, j, k) >= 0. || velpred ) )
+        if (bclo == BCType::ext_dir)
         {
-            hi = s(domlo-1, j, k, n);
+            lo = s(domlo-1, j, k, n);
+            if ( n==XVEL and is_velocity ) hi=lo;
         }
         else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
                   bclo == BCType::reflect_even ||
@@ -876,16 +868,16 @@ void Godunov_cc_xbc_hi(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &uedge,
-                       const int bchi, const int domhi, const bool velpred=false )
+                       const int bchi, const int domhi, const bool is_velocity )
 {
     using namespace amrex;
 
     if (i == domhi+1)
     {
-        if (bchi == BCType::ext_dir &&  ( uedge(i, j, k) <= 0. || velpred ) )
+        if (bchi == BCType::ext_dir)
         {
-            lo = s(domhi+1, j, k, n);
-            hi = lo;
+            hi = s(domhi+1, j, k, n);
+            if ( n==XVEL and is_velocity ) lo = hi;
         }
         else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
                   bchi == BCType::reflect_even ||
@@ -906,16 +898,16 @@ void Godunov_cc_ybc_lo(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &vedge,
-                       const int bclo, const int domlo, const bool velpred=false )
+                       const int bclo, const int domlo, const bool is_velocity )
 {
     using namespace amrex;
 
     if (j == domlo)
     {
-        if (bclo == BCType::ext_dir && ( vedge(i, j, k) >= 0. || velpred ) )
+        if (bclo == BCType::ext_dir)
         {
-            hi = s(i, domlo-1, k, n);
-            lo = hi;
+            lo = s(i, domlo-1, k, n);
+            if ( n==YVEL and is_velocity ) hi=lo;
         }
         else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
                   bclo == BCType::reflect_even ||
@@ -934,16 +926,16 @@ void Godunov_cc_ybc_hi(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4<const amrex::Real> &vedge,
-                       const int bchi, const int domhi, const bool velpred=false )
+                       const int bchi, const int domhi, const bool is_velocity)
 {
     using namespace amrex;
 
     if (j == domhi+1)
     {
-        if (bchi == BCType::ext_dir && ( vedge(i, j, k) <= 0. || velpred ) )
+        if (bchi == BCType::ext_dir)
         {
-            lo = s(i, domhi+1, k, n);
-            hi = lo;
+            hi = s(i, domhi+1, k, n);
+            if ( n==YVEL and is_velocity ) lo=hi;
         }
         else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
                   bchi == BCType::reflect_even ||
@@ -964,16 +956,16 @@ void Godunov_cc_zbc_lo(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &wedge,
-                       const int bclo, const int domlo, const bool velpred=false )
+                       const int bclo, const int domlo, const bool is_velocity )
 {
     using namespace amrex;
 
     if (k == domlo)
     {
-        if (bclo == BCType::ext_dir && ( wedge(i, j, k) >= 0. || velpred ) )
+        if (bclo == BCType::ext_dir)
         {
-            hi = s(i, j, domlo-1, n);
-            lo = hi;
+            lo = s(i, j, domlo-1, n);
+            if ( n==ZVEL and is_velocity ) hi=lo;
         }
 
         else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
@@ -994,16 +986,16 @@ void Godunov_cc_zbc_hi(const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo, amrex::Real &hi,
                        const amrex::Array4< const amrex::Real> &wedge,
-                       const int bchi, const int domhi, const bool velpred=false )
+                       const int bchi, const int domhi, const bool is_velocity )
 {
     using namespace amrex;
 
     if (k == domhi+1)
     {
-        if (bchi == BCType::ext_dir && ( wedge(i, j, k) <= 0. || velpred ) )
+        if (bchi == BCType::ext_dir)
         {
-            lo = s(i,j,domhi+1, n);
-            hi = lo;
+            hi = s(i,j,domhi+1, n);
+            if ( n==ZVEL and is_velocity ) lo=hi;
         }
         else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
                   bchi == BCType::reflect_even ||

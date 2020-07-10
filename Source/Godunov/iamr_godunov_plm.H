@@ -8,6 +8,7 @@
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_Array.H>
 #include <iomanip>
+#include <iamr_godunov_constants.H>
 
 namespace {
 
@@ -19,7 +20,8 @@ void Godunov_plm_fpu_x (const int i, const int j, const int k, const int n,
                         const amrex::Array4<const amrex::Real> &S,
                         const amrex::Real& umac,
                         const amrex::BCRec bc,
-                        const int domain_ilo, const int domain_ihi)
+                        const int domain_ilo, const int domain_ihi,
+                        const bool is_velocity )
 {
     using namespace amrex;
     {
@@ -32,20 +34,39 @@ void Godunov_plm_fpu_x (const int i, const int j, const int k, const int n,
 
         if (i == domain_ilo && (bc.lo(0) == BCType::ext_dir))
         {
-            upls = S(i-1,j,k,n);
             umns = S(i-1,j,k,n);
+
+            if ( n==XVEL and is_velocity )
+            {
+              upls = S(i-1,j,k,n);
+            }
+            else
+            {
+                upls = S(i  ,j,k,n) + 0.5 * (-1.0 - umac * dt/dx) *
+                    incflo_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+            }
+
         }
         else if (i == domain_ihi+1 && (bc.hi(0) == BCType::ext_dir))
         {
             upls = S(i  ,j,k,n);
-            umns = S(i  ,j,k,n);
+
+            if ( n==XVEL and is_velocity )
+            {
+                umns = S(i,j,k,n);
+            }
+            else
+            {
+                umns = S(i-1,j,k,n) + 0.5 * ( 1.0 - umac * dt/dx) *
+                    incflo_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+            }
         }
         else
         {
             upls = S(i  ,j,k,n) + 0.5 * (-1.0 - umac * dt/dx) *
-               incflo_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+                incflo_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
             umns = S(i-1,j,k,n) + 0.5 * ( 1.0 - umac * dt/dx) *
-               incflo_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+                incflo_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
         }
 
         Ip = umns;
@@ -61,7 +82,8 @@ void Godunov_plm_fpu_y (const int i, const int j, const int k, const int n,
                         const amrex::Array4<const amrex::Real> &S,
                         const amrex::Real& vmac,
                         const amrex::BCRec bc,
-                        const int domain_jlo, const int domain_jhi)
+                        const int domain_jlo, const int domain_jhi,
+                        const bool is_velocity )
 {
     using namespace amrex;
     {
@@ -74,13 +96,29 @@ void Godunov_plm_fpu_y (const int i, const int j, const int k, const int n,
 
         if (j == domain_jlo && (bc.lo(1) == BCType::ext_dir))
         {
-            vpls = S(i,j-1,k,n);
             vmns = S(i,j-1,k,n);
+            if ( n==YVEL and is_velocity )
+            {
+                vpls = S(i,j-1,k,n);
+            }
+            else
+            {
+                vpls = S(i,j  ,k,n) + 0.5 * (-1.0 - vmac * dt/dy) *
+                    incflo_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+            }
         }
         else if (j == domain_jhi+1 && (bc.hi(1) == BCType::ext_dir))
         {
             vpls = S(i,j  ,k,n);
-            vmns = S(i,j  ,k,n);
+            if ( n==YVEL and is_velocity )
+            {
+                vmns = S(i,j  ,k,n);
+            }
+            else
+            {
+                vmns = S(i,j-1,k,n) + 0.5 * ( 1.0 - vmac * dt/dy) *
+                    incflo_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+            }
         }
         else
         {
@@ -103,7 +141,8 @@ void Godunov_plm_fpu_z (const int i, const int j, const int k, const int n,
                         const amrex::Array4<const amrex::Real> &S,
                         const amrex::Real& wmac,
                         const amrex::BCRec bc,
-                        const int domain_klo, const int domain_khi)
+                        const int domain_klo, const int domain_khi,
+                        const bool is_velocity )
 {
     using namespace amrex;
     {
@@ -116,13 +155,29 @@ void Godunov_plm_fpu_z (const int i, const int j, const int k, const int n,
 
         if (k == domain_klo && (bc.lo(2) == BCType::ext_dir))
         {
-            wpls = S(i,j,k-1,n);
             wmns = S(i,j,k-1,n);
+            if ( ZVEL==2 and is_velocity )
+            {
+                wpls = S(i,j,k-1,n);
+            }
+            else
+            {
+                wpls = S(i,j,k  ,n) + 0.5 * (-1.0 - wmac * dt/dz) *
+                    incflo_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+            }
         }
         else if (k == domain_khi+1 && (bc.hi(2) == BCType::ext_dir))
         {
             wpls = S(i,j,k  ,n);
-            wmns = S(i,j,k  ,n);
+            if ( ZVEL==2 and is_velocity )
+            {
+                wmns = S(i,j,k  ,n);
+            }
+            else
+            {
+                wmns = S(i,j,k-1,n) + 0.5 * ( 1.0 - wmac * dt/dz) *
+                    incflo_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+            }
         }
         else
         {
