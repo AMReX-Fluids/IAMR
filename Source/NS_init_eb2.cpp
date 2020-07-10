@@ -363,11 +363,8 @@ NavierStokesBase::set_body_state(MultiFab& S)
   int nc = S.nComp();
   int covered_val = -1;
 
-  // Need a local copy of body_state that's not a static attribute of the class
-  AsyncArray<amrex::Real,nc> body_state_lcl;
-  for (int n = 0; n < nc; n++) {
-     body_state_lcl[n] = body_state[n];
-  }
+  // Need a GPU copy of body_state that's not a static attribute of the NSB class
+  AsyncArray<amrex::Real> body_state_lcl(body_state.data(),nc);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -377,10 +374,11 @@ NavierStokesBase::set_body_state(MultiFab& S)
     const Box& bx = mfi.tilebox();
     auto const& state = S.array(mfi);
     auto const& mask = ebmask.array(mfi);
-    amrex::ParallelFor(bx, [state,mask,nc,covered_val,body_state_lcl]
+    Real* state_lcl = body_state_lcl.data();
+    amrex::ParallelFor(bx, [state,mask,nc,covered_val,state_lcl]
     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        set_body_state(i,j,k,nc,body_state_lcl.data(),covered_val,mask,state);
+        set_body_state_k(i,j,k,nc,state_lcl,covered_val,mask,state);
     });
   }
 }

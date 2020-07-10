@@ -25,12 +25,12 @@ edg2cen_average(int i, int j, int k,
 AMREX_GPU_HOST_DEVICE
 inline
 void
-set_body_state(int i, int j, int k,
-               int ncomp,
-               amrex::Real                   const b [],
-               int                           bval,
-               amrex::Array4<int>            const& mask,
-               amrex::Array4<amrex::Real>    const& state) noexcept
+set_body_state_k(int i, int j, int k,
+                 int ncomp,
+                 amrex::Real                   const b [],
+                 int                           bval,
+                 amrex::Array4<int>            const& mask,
+                 amrex::Array4<amrex::Real>    const& state) noexcept
 {
    using namespace amrex::literals;
 
