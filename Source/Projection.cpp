@@ -91,7 +91,7 @@ Projection::Initialize ()
 
     pp.query("proj_2",              proj_2);
     if (!proj_2)
-	amrex::Abort("Must use proj_2==1 due to new gravity and outflow stuff. proj_2!=1 no longer supported.");
+   amrex::Abort("Must use proj_2==1 due to new gravity and outflow stuff. proj_2!=1 no longer supported.");
 
     pp.query("Pcode",               P_code);
     if (P_code >=0 )
@@ -192,15 +192,15 @@ Projection::install_anelastic_coefficient (int                   level,
 
 void
 Projection::build_anelastic_coefficient (int      level,
-					 Real**& _anel_coeff)
+                Real**& _anel_coeff)
 {
   const BoxArray& grids = parent->getLevel(level).boxArray();
   const int N = grids.size();
   _anel_coeff = new Real*[N];
   for (int i = 0; i < grids.size(); i++)
   {
-    const int jlo = grids[i].smallEnd(BL_SPACEDIM-1)-anel_grow;
-    const int jhi = grids[i].bigEnd(BL_SPACEDIM-1)+anel_grow;
+    const int jlo = grids[i].smallEnd(AMREX_SPACEDIM-1)-anel_grow;
+    const int jhi = grids[i].bigEnd(AMREX_SPACEDIM-1)+anel_grow;
     const int len = jhi - jlo + 1;
 
     _anel_coeff[i] = new Real[len];
@@ -269,8 +269,8 @@ Projection::level_project (int             level,
     // must fill bndry cells in pressure with computable values
     // even though they are not used in calculation.
     //
-    U_old.setBndry(BogusValue,Xvel,BL_SPACEDIM);
-    U_new.setBndry(BogusValue,Xvel,BL_SPACEDIM);
+    U_old.setBndry(BogusValue,Xvel,AMREX_SPACEDIM);
+    U_new.setBndry(BogusValue,Xvel,AMREX_SPACEDIM);
     P_old.setBndry(BogusValue);
     P_new.setBndry(BogusValue);
 
@@ -283,9 +283,9 @@ Projection::level_project (int             level,
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
         LevelData[level]->setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,
-                                                Xvel,Xvel,BL_SPACEDIM);
+                                                Xvel,Xvel,AMREX_SPACEDIM);
         LevelData[level]->setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
-                                                Xvel,Xvel,BL_SPACEDIM);
+                                                Xvel,Xvel,AMREX_SPACEDIM);
     }
 
     const BoxArray& grids   = LevelData[level]->boxArray();
@@ -308,19 +308,24 @@ Projection::level_project (int             level,
     //       a new pressure at level-1.
     if (level != 0)
     {
-	LevelData[level]->FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
+   LevelData[level]->FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
     }
 
     const int nGrow = (level == 0  ?  0  :  -1);
     //
     // MultiFab::setVal() won't work here bc nGrow could be <0
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.growntilebox(nGrow);
-        P_new[mfi].setVal<RunOn::Host>(0.0,bx,0,1);
+       const Box& bx = mfi.growntilebox(nGrow);
+       auto const& pnew = P_new.array(mfi);  
+       amrex::ParallelFor(bx, [pnew]
+       AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+       {
+          pnew(i,j,k) = 0.0;
+       });
     }
 
     //
@@ -338,7 +343,7 @@ Projection::level_project (int             level,
     }
 
     const Real dt_inv = 1./dt;
-    U_new.mult(dt_inv,0,BL_SPACEDIM,1);
+    U_new.mult(dt_inv,0,AMREX_SPACEDIM,1);
     if (have_divu)
       divusource->mult(dt_inv,0,1,divusource->nGrow());
 
@@ -347,31 +352,24 @@ Projection::level_project (int             level,
     MultiFab& Gp = ns->getGradP();
     Gp.FillBoundary(geom.periodicity());
 #else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
     ns->getGradP(Gp, prev_pres_time);
 #endif
 
-
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(rho_half,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rho_half,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.growntilebox(1);
-	const FArrayBox& rhofab = rho_half[mfi];
-
-#ifdef AMREX_USE_EB
-	FArrayBox Gpfab(bx,BL_SPACEDIM);
-	Gpfab.copy<RunOn::Host>((Gp)[mfi],0,0,BL_SPACEDIM);
-#else
-	FArrayBox& Gpfab = Gp[mfi];
-#endif
-
-	for (int i = 0; i < BL_SPACEDIM; i++) {
-	  Gpfab.divide<RunOn::Host>(rhofab,bx,0,i,1);
-	}
-
-	U_new[mfi].plus<RunOn::Host>(Gpfab,bx,0,0,BL_SPACEDIM);
+       const Box& bx = mfi.growntilebox(1);
+       const auto& rho_h = rho_half.array(mfi);
+       const auto& gradp = Gp.array(mfi);
+       const auto& u_new = U_new.array(mfi);
+       amrex::ParallelFor(bx, AMREX_SPACEDIM, [rho_h,gradp,u_new]
+       AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+       {
+          u_new(i,j,k,n) += gradp(i,j,k,n) / rho_h(i,j,k);
+       });
     }
 
     //
@@ -408,8 +406,8 @@ Projection::level_project (int             level,
     // *after* everything has been done to them.
     //
     if (geom.isAnyPeriodic()) {
-	    U_new.FillBoundary(0, BL_SPACEDIM, geom.periodicity());
-	    rho_half.FillBoundary(0, 1, geom.periodicity());
+       U_new.FillBoundary(0, AMREX_SPACEDIM, geom.periodicity());
+       rho_half.FillBoundary(0, 1, geom.periodicity());
     }
     //
     // Add the contribution from the un-projected V to syncregisters.
@@ -458,15 +456,15 @@ Projection::level_project (int             level,
             radMultScal(level,*divusource);
         }
         const int nghost = 0;
-	divusource->mult(-1.0,0,1,nghost);
+   divusource->mult(-1.0,0,1,nghost);
 
-	rhcc[level] = divusource.get();
+   rhcc[level] = divusource.get();
     }
 
     bool proj2 = true;
     doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol,
-			  proj_abs_tol, proj2,
-			  sync_resid_crse.get(), sync_resid_fine.get());
+           proj_abs_tol, proj2,
+           sync_resid_crse.get(), sync_resid_fine.get());
 
     //
     // Note: this must occur *after* the projection has been done
@@ -489,13 +487,13 @@ Projection::level_project (int             level,
           //
           // Increment sync registers between level and level-1.
           //
-	 // invrat is 1/crse_dt_ratio for both proj_2 and !proj_2, but for different reasons.
-	 // For !proj_2, this is because the fine residue is added to the sync register
-	 //    for each fine step.
-	 // For proj_2, this is because the level projection works on U/dt, not dU/dt,
-	 //    and dt on the fine level is crse_dt_ratio times smaller than dt one the
-	 //    coarse level.
-	  const Real invrat = 1.0/(double)crse_dt_ratio;
+    // invrat is 1/crse_dt_ratio for both proj_2 and !proj_2, but for different reasons.
+    // For !proj_2, this is because the fine residue is added to the sync register
+    //    for each fine step.
+    // For proj_2, this is because the level projection works on U/dt, not dU/dt,
+    //    and dt on the fine level is crse_dt_ratio times smaller than dt one the
+    //    coarse level.
+     const Real invrat = 1.0/(double)crse_dt_ratio;
           const Geometry& crse_geom = parent->Geom(level-1);
           fine_sync_reg->FineAdd(*sync_resid_fine,crse_geom,invrat);
        }
@@ -510,7 +508,7 @@ Projection::level_project (int             level,
     //
     // un = dt*un
     //
-    U_new.mult(dt,0,BL_SPACEDIM,1);
+    U_new.mult(dt,0,AMREX_SPACEDIM,1);
 
     if (verbose)
     {
@@ -519,8 +517,8 @@ Projection::level_project (int             level,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::level_project(): lev: " << level
-		       << ", time: " << run_time << '\n';
+   amrex::Print() << "Projection::level_project(): lev: " << level
+             << ", time: " << run_time << '\n';
     }
 }
 
@@ -548,7 +546,7 @@ Projection::MLsyncProject (int             c_lev,
                            int             crse_iteration,
                            int             crse_dt_ratio,
                            const Geometry& crse_geom,
-                           bool		   pressure_time_is_interval,
+                           bool        pressure_time_is_interval,
                            bool first_crse_step_after_initial_iters,
                            Real             cur_crse_pres_time,
                            Real            prev_crse_pres_time,
@@ -625,7 +623,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     // // restrict_level(v_crse, v_fine, ratio);
     // amrex::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
-    //                      0, BL_SPACEDIM, ratio);
+    //                      0, AMREX_SPACEDIM, ratio);
 
     ns->average_down(*sig[c_lev+1],*sig[c_lev],0,sig[c_lev]->nComp());
     // // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
@@ -719,8 +717,8 @@ Projection::MLsyncProject (int             c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::MLsyncProject(): levels = " << c_lev << ", " << c_lev+1
-		       << ", time: " << run_time << '\n';
+   amrex::Print() << "Projection::MLsyncProject(): levels = " << c_lev << ", " << c_lev+1
+             << ", time: " << run_time << '\n';
     }
 }
 
@@ -776,12 +774,12 @@ Projection::initialVelocityProject (int  c_lev,
             LevelData[lev]->get_old_data(Press_Type).setVal(0.0);
         }
 
-	// MLNodeLaplacian does not take any ghost cells from rhcc or sig.
-	// copies only valid cells and fills ghosts internally.
-	// However, vel and phi are assumed to have 1 ghost cell in MLMG.
-	// set outflow bcs fills vel and phi using 1 ghost cell from sig (holding rho)
-	// and rhcc (holding divu)
-	const int nghost = (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu) ? 1 : 0;
+   // MLNodeLaplacian does not take any ghost cells from rhcc or sig.
+   // copies only valid cells and fills ghosts internally.
+   // However, vel and phi are assumed to have 1 ghost cell in MLMG.
+   // set outflow bcs fills vel and phi using 1 ghost cell from sig (holding rho)
+   // and rhcc (holding divu)
+   const int nghost = (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu) ? 1 : 0;
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
@@ -794,7 +792,7 @@ Projection::initialVelocityProject (int  c_lev,
 
             if (rho_wgt_vel_proj)
             {
-	      if ( nghost > 0 ){
+         if ( nghost > 0 ){
                 LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
                 AmrLevel& amr_level = parent->getLevel(lev);
@@ -808,14 +806,14 @@ Projection::initialVelocityProject (int  c_lev,
                     amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
                                                     Density,Density,1);
                 }
-	      }
+         }
 
-	      MultiFab::Copy(*sig[lev],
-			     LevelData[lev]->get_new_data(State_Type),
-			     Density,
-			     0,
-			     1,
-			     nghost);
+         MultiFab::Copy(*sig[lev],
+              LevelData[lev]->get_new_data(State_Type),
+              Density,
+              0,
+              1,
+              nghost);
             }
             else
             {
@@ -827,7 +825,7 @@ Projection::initialVelocityProject (int  c_lev,
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
-            vel[lev]->setBndry(BogusValue,Xvel,BL_SPACEDIM);
+            vel[lev]->setBndry(BogusValue,Xvel,AMREX_SPACEDIM);
             //
             // Set the physical boundary values.
             //
@@ -838,8 +836,8 @@ Projection::initialVelocityProject (int  c_lev,
             Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
             for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-            {	      
-                amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
+            {        
+                amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,AMREX_SPACEDIM);
             }
 
             if (have_divu)
@@ -848,10 +846,10 @@ Projection::initialVelocityProject (int  c_lev,
                 if (!LevelData[lev]->isStateVariable("divu", Divu_Type, Divu))
                     amrex::Error("Projection::initialVelocityProject(): Divu not found");
 
-		NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-		BL_ASSERT(!(ns == 0));
+      NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+      BL_ASSERT(!(ns == 0));
 
-		rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
+      rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
             }
         }
   
@@ -946,7 +944,7 @@ Projection::initialVelocityProject (int  c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::initialVelocityProject(): time: " << run_time << '\n';
+   amrex::Print() << "Projection::initialVelocityProject(): time: " << run_time << '\n';
     }
 }
 
@@ -957,7 +955,7 @@ Projection::initialPressureProject (int  c_lev)
     int f_lev = parent->finestLevel();
     if (verbose) {
       amrex::Print() << "Projection::initialPressureProject(): levels = " << c_lev
-		     << "  " << f_lev << '\n';
+           << "  " << f_lev << '\n';
     }
 
     const Real strt_time = ParallelDescriptor::second();
@@ -974,7 +972,7 @@ Projection::initialPressureProject (int  c_lev)
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev]->boxArray();
         const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
-	sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),LevelData[lev]->Factory()));
+   sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),LevelData[lev]->Factory()));
 
         AmrLevel& amr_level = parent->getLevel(lev);
 
@@ -985,9 +983,9 @@ Projection::initialPressureProject (int  c_lev)
         Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
         const Geometry& geom = parent->Geom(lev);
-	// fill ghost cells... call FillBoundary (fills interior bndry)
-	// first to get reasonable data in corner cells
-	S_new.FillBoundary(Density,1,geom.periodicity());
+   // fill ghost cells... call FillBoundary (fills interior bndry)
+   // first to get reasonable data in corner cells
+   S_new.FillBoundary(Density,1,geom.periodicity());
         for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
         {
             amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
@@ -1020,10 +1018,10 @@ Projection::initialPressureProject (int  c_lev)
     for (lev = c_lev; lev <= f_lev; lev++) {
         const BoxArray& grids = vel[lev]->boxArray();
         const DistributionMapping& dmap = vel[lev]->DistributionMap();
-	raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, dmap, BL_SPACEDIM, 1,MFInfo(),LevelData[lev]->Factory())));
+   raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, dmap, AMREX_SPACEDIM, 1,MFInfo(),LevelData[lev]->Factory())));
         vel[lev] = raii.back().get();
-        vel[lev]->setVal(0.0    , 0            , BL_SPACEDIM-1, 1);
-        vel[lev]->setVal(gravity, BL_SPACEDIM-1, 1            , 1);
+        vel[lev]->setVal(0.0    , 0            , AMREX_SPACEDIM-1, 1);
+        vel[lev]->setVal(gravity, AMREX_SPACEDIM-1, 1            , 1);
     }
 
     //
@@ -1067,7 +1065,7 @@ Projection::initialPressureProject (int  c_lev)
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::initialPressureProject(): time: " << run_time << '\n';
+   amrex::Print() << "Projection::initialPressureProject(): time: " << run_time << '\n';
     }
 
 }
@@ -1146,11 +1144,11 @@ Projection::initialSyncProject (int       c_lev,
                 amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
             }
 
-	    // Needed for set_outflow_bcs(). MLMG ignores rh ghost cells.
+       // Needed for set_outflow_bcs(). MLMG ignores rh ghost cells.
             const int nghost = 1;
             rhcc[lev].reset(new MultiFab(amr_level.boxArray(),
-					 amr_level.DistributionMap(),
-					 1,nghost,MFInfo(),amr_level.Factory()));
+                            amr_level.DistributionMap(),
+                            1,nghost,MFInfo(),amr_level.Factory()));
             MultiFab* rhcclev = rhcc[lev].get();
             rhcclev->setVal(0);
 
@@ -1162,16 +1160,19 @@ Projection::initialSyncProject (int       c_lev,
             std::unique_ptr<MultiFab> dsdt (ns->getDivCond(nghost,strt_time+dt));
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(*rhcclev,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*rhcclev,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-       	        const Box& bx = mfi.growntilebox();
-	        FArrayBox& dsdtfab = (*dsdt)[mfi];
-
-                dsdtfab.minus<RunOn::Host>((*divu)[mfi],bx,bx,0,0,1);
-                dsdtfab.mult<RunOn::Host>(dt_inv,bx);
-                (*rhcclev)[mfi].copy<RunOn::Host>(dsdtfab,bx,0,bx,0,1);
+               const Box& bx = mfi.growntilebox();
+               const auto& du       = divu->array(mfi);
+               const auto& dsdt_arr = dsdt->array(mfi);
+               const auto& rhcc     = rhcclev->array(mfi);
+               amrex::ParallelFor(bx, [du,dsdt_arr,rhcc,dt_inv]
+               AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+               {
+                  rhcc(i,j,k) = ( dsdt_arr(i,j,k) - du(i,j,k) ) * dt_inv;
+               });
             }
         }
     }
@@ -1181,9 +1182,9 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++)
     {
-        vel[lev]->setBndry(BogusValue,Xvel,BL_SPACEDIM);
+        vel[lev]->setBndry(BogusValue,Xvel,AMREX_SPACEDIM);
         MultiFab &u_o = LevelData[lev]->get_old_data(State_Type);
-        u_o.setBndry(BogusValue,Xvel,BL_SPACEDIM);
+        u_o.setBndry(BogusValue,Xvel,AMREX_SPACEDIM);
         sig[lev]->setBndry(BogusValue);
     }
 
@@ -1201,8 +1202,8 @@ Projection::initialSyncProject (int       c_lev,
 
         for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
         {
-            LevelData[lev]->setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,Xvel,Xvel,BL_SPACEDIM);
-            LevelData[lev]->setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,BL_SPACEDIM);
+            LevelData[lev]->setPhysBoundaryValues(S_old[mfi],State_Type,prev_time,Xvel,Xvel,AMREX_SPACEDIM);
+            LevelData[lev]->setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,AMREX_SPACEDIM);
         }
 
         MultiFab& u_o = LevelData[lev]->get_old_data(State_Type);
@@ -1232,21 +1233,21 @@ Projection::initialSyncProject (int       c_lev,
       const DistributionMapping& crse_dmap = vel[lev-1]->DistributionMap();
       const DistributionMapping& fine_dmap = vel[lev  ]->DistributionMap();
 
-      MultiFab v_crse(crse_grids, crse_dmap, BL_SPACEDIM, 1, MFInfo(), LevelData[lev-1]->Factory());
-      MultiFab v_fine(fine_grids, fine_dmap, BL_SPACEDIM, 1, MFInfo(), LevelData[lev]->Factory());
+      MultiFab v_crse(crse_grids, crse_dmap, AMREX_SPACEDIM, 1, MFInfo(), LevelData[lev-1]->Factory());
+      MultiFab v_fine(fine_grids, fine_dmap, AMREX_SPACEDIM, 1, MFInfo(), LevelData[lev]->Factory());
 
       const Geometry& fine_geom = parent->Geom(lev  );
       const Geometry& crse_geom = parent->Geom(lev-1);
 
-      MultiFab::Copy(v_crse, *vel[lev-1], 0, 0, BL_SPACEDIM, 1);
-      MultiFab::Copy(v_fine, *vel[lev  ], 0, 0, BL_SPACEDIM, 1);
+      MultiFab::Copy(v_crse, *vel[lev-1], 0, 0, AMREX_SPACEDIM, 1);
+      MultiFab::Copy(v_fine, *vel[lev  ], 0, 0, AMREX_SPACEDIM, 1);
 
       NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev-1]);
       ns->average_down(v_fine, v_crse, 0, v_crse.nComp());
       // amrex::average_down(v_fine,v_crse,fine_geom,crse_geom,
       //                      0, v_crse.nComp(), parent->refRatio(lev-1));
 
-      MultiFab::Copy(*vel[lev-1], v_crse, 0, 0, BL_SPACEDIM, 1);
+      MultiFab::Copy(*vel[lev-1], v_crse, 0, 0, AMREX_SPACEDIM, 1);
     }
 
     //
@@ -1286,7 +1287,7 @@ Projection::initialSyncProject (int       c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::initialSyncProject(): time: " << run_time << '\n';
+        amrex::Print() << "Projection::initialSyncProject(): time: " << run_time << '\n';
     }
 }
 
@@ -1320,23 +1321,20 @@ void
 Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
                               const Box &grd )
 {
-    BL_ASSERT(Unew.nComp() >= BL_SPACEDIM);
-    BL_ASSERT(Uold.nComp() >= BL_SPACEDIM);
+    BL_ASSERT(Unew.nComp() >= AMREX_SPACEDIM);
+    BL_ASSERT(Uold.nComp() >= AMREX_SPACEDIM);
     BL_ASSERT(Unew.contains(grd) == true);
     BL_ASSERT(Uold.contains(grd) == true);
 
-    const int*  lo    = grd.loVect();
-    const int*  hi    = grd.hiVect();
-    const int*  uo_lo = Uold.loVect();
-    const int*  uo_hi = Uold.hiVect();
-    const Real* uold  = Uold.dataPtr(0);
-    const int*  un_lo = Unew.loVect();
-    const int*  un_hi = Unew.hiVect();
-    const Real* unew  = Unew.dataPtr(0);
-
-    vel_to_accel(lo, hi,
-                      unew, ARLIM(un_lo), ARLIM(un_hi),
-                      uold, ARLIM(uo_lo), ARLIM(uo_hi), &alpha );
+    const auto& unew = Unew.array();
+    const auto& uold = Uold.array();
+    const Real dt_inv = 1.0/alpha;
+    amrex::ParallelFor(grd, AMREX_SPACEDIM, [unew,uold,dt_inv]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+       unew(i,j,k,n) -= uold(i,j,k,n);
+       unew(i,j,k,n) *= dt_inv;
+    });
 }
 
 //
@@ -1371,7 +1369,7 @@ Projection::scaleVar (int             which_call,
     if (sig != 0)
         BL_ASSERT(sig->nComp() == 1);
     if (vel != 0)
-        BL_ASSERT(vel->nComp() >= BL_SPACEDIM);
+        BL_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
 
     //
     // Convert sigma from rho to anel_coeff/rho if not INITIAL_PRESS.
@@ -1398,7 +1396,7 @@ Projection::scaleVar (int             which_call,
     // Scale velocity by anel_coeff if it exists
     //
     if (vel != 0 && anel_coeff[level] != 0)
-      for (int n = 0; n < BL_SPACEDIM; n++)
+      for (int n = 0; n < AMREX_SPACEDIM; n++)
         AnelCoeffMult(level,*vel,n);
 }
 
@@ -1422,7 +1420,7 @@ Projection::rescaleVar (int             which_call,
     if (sig != 0)
         BL_ASSERT(sig->nComp() == 1);
     if (vel != 0)
-        BL_ASSERT(vel->nComp() >= BL_SPACEDIM);
+        BL_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
 
     if (which_call  != INITIAL_PRESS && sig != 0 &&
         anel_coeff[level] != 0) AnelCoeffDiv(level,*sig,0);
@@ -1435,12 +1433,12 @@ Projection::rescaleVar (int             which_call,
             radDiv(level,*sig,0);
         if (vel != 0)
         {
-            for (int n = 0; n < BL_SPACEDIM; n++)
+            for (int n = 0; n < AMREX_SPACEDIM; n++)
                 radDiv(level,*vel,n);
         }
     }
     if (vel != 0 && anel_coeff[level] != 0)
-      for (int n = 0; n < BL_SPACEDIM; n++)
+      for (int n = 0; n < AMREX_SPACEDIM; n++)
         AnelCoeffDiv(level,*vel,n);
     //
     // Convert sigma from 1/rho to rho
@@ -1459,7 +1457,7 @@ void
 Projection::radMultScal (int       level,
                          MultiFab& mf)
 {
-#if (BL_SPACEDIM < 3)
+#if (AMREX_SPACEDIM < 3)
     BL_ASSERT(radius_grow >= mf.nGrow());
 
     const Box& domain = parent->Geom(level).Domain();
@@ -1480,12 +1478,12 @@ Projection::radMultScal (int       level,
         const int* datlo = mf[mfmfi].loVect();
         const int* dathi = mf[mfmfi].hiVect();
         Real* rad        = &(*radius[level])[mfmfi.index()][0];
-	const Box& gbx = mfmfi.validbox();
+   const Box& gbx = mfmfi.validbox();
         int rlo   = (gbx.loVect())[0]-radius_grow;
         int rhi   = (gbx.hiVect())[0]+radius_grow;
 
         radmpyscal(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
-		   domlo,domhi,rad,&rlo,&rhi);
+         domlo,domhi,rad,&rlo,&rhi);
     }
 #endif
 }
@@ -1494,7 +1492,7 @@ void
 Projection::radMultVel (int       level,
                         MultiFab& mf)
 {
-#if (BL_SPACEDIM < 3)
+#if (AMREX_SPACEDIM < 3)
     BL_ASSERT(radius_grow >= mf.nGrow());
 
     const Box& domain = parent->Geom(level).Domain();
@@ -1504,25 +1502,25 @@ Projection::radMultVel (int       level,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (int n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
       for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
        {
            BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-	   const Box& bx = mfmfi.growntilebox();
-	   const int* lo = bx.loVect();
-	   const int* hi = bx.hiVect();
-	   Real* dat        = mf[mfmfi].dataPtr(n);
-	   const int* datlo = mf[mfmfi].loVect();
-	   const int* dathi = mf[mfmfi].hiVect();
-	   Real* rad        = &(*radius[level])[mfmfi.index()][0];
-	   const Box& gbx = mfmfi.validbox();
-	   int rlo   = (gbx.loVect())[0]-radius_grow;
-	   int rhi   = (gbx.hiVect())[0]+radius_grow;
+      const Box& bx = mfmfi.growntilebox();
+      const int* lo = bx.loVect();
+      const int* hi = bx.hiVect();
+      Real* dat        = mf[mfmfi].dataPtr(n);
+      const int* datlo = mf[mfmfi].loVect();
+      const int* dathi = mf[mfmfi].hiVect();
+      Real* rad        = &(*radius[level])[mfmfi.index()][0];
+      const Box& gbx = mfmfi.validbox();
+      int rlo   = (gbx.loVect())[0]-radius_grow;
+      int rhi   = (gbx.hiVect())[0]+radius_grow;
 
-	   radmpyvel(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
-		     domlo,domhi,rad,&rlo,&rhi,&n);
+      radmpyvel(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
+           domlo,domhi,rad,&rlo,&rhi,&n);
        }
     }
 #endif
@@ -1537,7 +1535,7 @@ Projection::radDiv (int       level,
                     MultiFab& mf,
                     int       comp)
 {
-#if (BL_SPACEDIM < 3)
+#if (AMREX_SPACEDIM < 3)
     BL_ASSERT(comp >= 0 && comp < mf.nComp());
     BL_ASSERT(radius_grow >= mf.nGrow());
 
@@ -1554,19 +1552,19 @@ Projection::radDiv (int       level,
     {
         BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
-	const Box& bx = mfmfi.growntilebox();
-	const int* lo = bx.loVect();
-	const int* hi = bx.hiVect();
-	Real* dat        = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	Real* rad        = &(*radius[level])[mfmfi.index()][0];
-	const Box& gbx = mfmfi.validbox();
-	int rlo   = (gbx.loVect())[0]-radius_grow;
-	int rhi   = (gbx.hiVect())[0]+radius_grow;
+   const Box& bx = mfmfi.growntilebox();
+   const int* lo = bx.loVect();
+   const int* hi = bx.hiVect();
+   Real* dat        = mf[mfmfi].dataPtr(comp);
+   const int* datlo = mf[mfmfi].loVect();
+   const int* dathi = mf[mfmfi].hiVect();
+   Real* rad        = &(*radius[level])[mfmfi.index()][0];
+   const Box& gbx = mfmfi.validbox();
+   int rlo   = (gbx.loVect())[0]-radius_grow;
+   int rhi   = (gbx.hiVect())[0]+radius_grow;
 
         fort_raddiv(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
-		    domlo,domhi,rad,&rlo,&rhi,&bogus_value);
+          domlo,domhi,rad,&rlo,&rhi,&bogus_value);
 
     }
 #endif
@@ -1597,16 +1595,16 @@ Projection::AnelCoeffMult (int       level,
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	//const int anel_len = std::size(anel_coeff[level][mfmfi.index()]);
-	const Box& gbx = mfmfi.validbox();
-	int anel_lo   = (gbx.loVect())[BL_SPACEDIM-1]-anel_grow;
-	int anel_hi   = (gbx.hiVect())[BL_SPACEDIM-1]+anel_grow;
+   const int* datlo = mf[mfmfi].loVect();
+   const int* dathi = mf[mfmfi].hiVect();
+   //const int anel_len = std::size(anel_coeff[level][mfmfi.index()]);
+   const Box& gbx = mfmfi.validbox();
+   int anel_lo   = (gbx.loVect())[AMREX_SPACEDIM-1]-anel_grow;
+   int anel_hi   = (gbx.hiVect())[AMREX_SPACEDIM-1]+anel_grow;
 
-	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
-		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
-		     &bogus_value,&mult);
+   anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
+           anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
+           &bogus_value,&mult);
     }
 }
 
@@ -1635,15 +1633,15 @@ Projection::AnelCoeffDiv (int       level,
         const int* lo = bx.loVect();
         const int* hi = bx.hiVect();
         Real* dat     = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	const Box& gbx = mfmfi.validbox();
-	int anel_lo   = (gbx.loVect())[BL_SPACEDIM-1]-anel_grow;
-	int anel_hi   = (gbx.hiVect())[BL_SPACEDIM-1]+anel_grow;
+   const int* datlo = mf[mfmfi].loVect();
+   const int* dathi = mf[mfmfi].hiVect();
+   const Box& gbx = mfmfi.validbox();
+   int anel_lo   = (gbx.loVect())[AMREX_SPACEDIM-1]-anel_grow;
+   int anel_hi   = (gbx.hiVect())[AMREX_SPACEDIM-1]+anel_grow;
 
-	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
-		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
-		     &bogus_value,&mult);
+   anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
+           anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
+           &bogus_value,&mult);
 
     }
 }
@@ -1655,7 +1653,7 @@ Projection::AnelCoeffDiv (int       level,
 void
 Projection::initialVorticityProject (int c_lev)
 {
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
   int f_lev = parent->finestLevel();
 
   if (verbose) {
@@ -1695,7 +1693,7 @@ Projection::initialVorticityProject (int c_lev)
     {
         u_real[lev].reset(new MultiFab(parent->getLevel(lev).boxArray(),
                                        parent->getLevel(lev).DistributionMap(),
-                                       BL_SPACEDIM, 1));
+                                       AMREX_SPACEDIM, 1));
         u_real[lev]->setVal(0);
         //
         // The vorticity is stored in the new pressure variable for now.
@@ -1709,12 +1707,11 @@ Projection::initialVorticityProject (int c_lev)
 #pragma omp parallel
 #endif
       for (MFIter mfi(*rhnd[lev],true); mfi.isValid(); ++mfi)
-        {
-	  // rhnd has ng=0 as declared above
-	  const Box& bx = mfi.tilebox();
-
-	  (*rhnd[lev])[mfi].setVal<RunOn::Host>(0,bx);
-	  (*rhnd[lev])[mfi].copy<RunOn::Host>(P_new[mfi], bx, 0, bx, 0, 1);
+      {
+         // rhnd has ng=0 as declared above
+         const Box& bx = mfi.tilebox();
+         (*rhnd[lev])[mfi].setVal<RunOn::Host>(0,bx);
+         (*rhnd[lev])[mfi].copy<RunOn::Host>(P_new[mfi], bx, 0, bx, 0, 1);
         }
     }
 
@@ -1722,7 +1719,7 @@ Projection::initialVorticityProject (int c_lev)
     // Set BC for vorticity solve, save a copy of orig ones
     //
     BCRec phys_bc_save(phys_bc->lo(),phys_bc->hi());
-    for (int i=0; i<BL_SPACEDIM; ++i) {
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
       phys_bc->setLo(i,Outflow);
       phys_bc->setHi(i,Outflow);
       if (geom.isPeriodic(i)) {
@@ -1761,9 +1758,9 @@ Projection::initialVorticityProject (int c_lev)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (int n = 0; n < BL_SPACEDIM; n++)
-	{
-	  for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
+        for (int n = 0; n < AMREX_SPACEDIM; n++)
+   {
+     for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
             {
                 const Box& box = mfi.tilebox();
                 if (add_vort_proj)
@@ -1781,7 +1778,7 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Restore bcs
     //
-    for (int i=0; i<BL_SPACEDIM; ++i) {
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
       phys_bc->setLo(i,phys_bc_save.lo()[i]);
       phys_bc->setHi(i,phys_bc_save.hi()[i]);
     }
@@ -1792,7 +1789,7 @@ Projection::initialVorticityProject (int c_lev)
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::initialVorticityProject(): time: " << run_time << '\n';
+   amrex::Print() << "Projection::initialVorticityProject(): time: " << run_time << '\n';
     }
 
 #else
@@ -1828,8 +1825,8 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 amrex::surroundingNodes(amrex::bdryNode(domainC, outFaces[iface], ncStripWidth));
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
-	    // FIXME: this size may need adjusting
-	    ba.maxSize(32);
+       // FIXME: this size may need adjusting
+       ba.maxSize(32);
 
             DistributionMapping dm{ba};
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
@@ -1887,11 +1884,11 @@ Projection::getGradP (FArrayBox& p_fab,
     const Real* p_dat  = p_fab.dataPtr();
     const Real* gp_dat = gp.dataPtr();
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
     int is_full = 0;
     gradp(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx,
                &is_full);
-#elif (BL_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
     gradp(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx);
 #endif
 }
@@ -1918,10 +1915,10 @@ Projection::set_outflow_bcs (int        which_call,
       amrex::Print() << "...setting outflow bcs for the nodal projection ... " << '\n';
 
     bool        hasOutFlow;
-    Orientation outFaces[2*BL_SPACEDIM];
-    Orientation outFacesAtThisLevel[maxlev][2*BL_SPACEDIM];
+    Orientation outFaces[2*AMREX_SPACEDIM];
+    Orientation outFacesAtThisLevel[maxlev][2*AMREX_SPACEDIM];
 
-    int fine_level[2*BL_SPACEDIM];
+    int fine_level[2*AMREX_SPACEDIM];
 
     int numOutFlowFacesAtAllLevels;
     int numOutFlowFaces[maxlev];
@@ -1936,7 +1933,7 @@ Projection::set_outflow_bcs (int        which_call,
 //    const int nCompPhi    = 1;
 //    const int srcCompVel  = Xvel;
 //    const int srcCompDivu = 0;
-//    const int   nCompVel  = BL_SPACEDIM;
+//    const int   nCompVel  = AMREX_SPACEDIM;
 //    const int   nCompDivu = 1;
 
     //
@@ -1944,7 +1941,7 @@ Projection::set_outflow_bcs (int        which_call,
     // by boxes at this level (skip if doesnt touch, and bomb if only partially
     // covered).
     //
-    Box state_strip[maxlev][2*BL_SPACEDIM];
+    Box state_strip[maxlev][2*AMREX_SPACEDIM];
 
     int icount[maxlev];
     for (int i=0; i < maxlev; i++) icount[i] = 0;
@@ -1973,7 +1970,7 @@ Projection::set_outflow_bcs (int        which_call,
             temp_state_strip.shift(outDir,ccStripWidth);
         }
         // Grow the box by one tangentially in order to get velocity bc's.
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
           if (dir != outDir) temp_state_strip.grow(dir,1);
 
         const BoxArray& Lgrids               = parent->getLevel(lev).boxArray();
@@ -2055,37 +2052,40 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
     const int ncStripWidth = 1;
 
-    FArrayBox  rho[2*BL_SPACEDIM];
-    FArrayBox dsdt[2*BL_SPACEDIM];
-    FArrayBox dudt[1][2*BL_SPACEDIM];
-    FArrayBox phi_fine_strip[2*BL_SPACEDIM];
+    FArrayBox  rho[2*AMREX_SPACEDIM];
+    FArrayBox dsdt[2*AMREX_SPACEDIM];
+    FArrayBox dudt[1][2*AMREX_SPACEDIM];
+    FArrayBox phi_fine_strip[2*AMREX_SPACEDIM];
 
     const int ngrow = 1;
 
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
         dsdt[iface].resize(state_strip[iface],1);
-        dudt[0][iface].resize(state_strip[iface],BL_SPACEDIM);
+        dudt[0][iface].resize(state_strip[iface],AMREX_SPACEDIM);
 
         rho[iface].resize(state_strip[iface],1);
 
         (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
 
-	Box phi_strip =
-            amrex::surroundingNodes(amrex::bdryNode(domain,
-						    outFacesAtThisLevel[iface],
-						    ncStripWidth));
+        Box phi_strip = amrex::surroundingNodes(amrex::bdryNode(domain,
+                                                outFacesAtThisLevel[iface],
+                                                ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
-        phi_fine_strip[iface].setVal<RunOn::Host>(0.);
+        if (Gpu::inLaunchRegion()) {
+           phi_fine_strip[iface].setVal<RunOn::Gpu>(0.);
+        } else {
+           phi_fine_strip[iface].setVal<RunOn::Cpu>(0.);
+        }
     }
 
     ProjOutFlowBC projBC;
     // These bcs just get passed into rhogbc() for all vals of which_call
-    int        lo_bc[BL_SPACEDIM];
-    int        hi_bc[BL_SPACEDIM];
+    int        lo_bc[AMREX_SPACEDIM];
+    int        hi_bc[AMREX_SPACEDIM];
     // change from phys_bcs of Inflow, SlipWall, etc.
     // to mathematical bcs of EXT_DIR, FOEXTRAP, etc.
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
       const int* lbc = phys_bc->lo();
       const int* hbc = phys_bc->hi();
@@ -2104,16 +2104,20 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     {
         Vel_in->FillBoundary();
 
-	for (int iface = 0; iface < numOutFlowFaces; iface++)
-	    (*Vel_in).copyTo(dudt[0][iface],0,0,BL_SPACEDIM,1);
-
-	if (have_divu) {
+        for (int iface = 0; iface < numOutFlowFaces; iface++)
+            (*Vel_in).copyTo(dudt[0][iface],0,0,AMREX_SPACEDIM,1);
+        
+        if (have_divu) {
             for (int iface = 0; iface < numOutFlowFaces; iface++)
                 (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
-	} else {
+        } else {
             for (int iface = 0; iface < numOutFlowFaces; iface++)
-                dsdt[iface].setVal<RunOn::Host>(0.);
-	}
+              if (Gpu::inLaunchRegion()) {
+                 dsdt[iface].setVal<RunOn::Gpu>(0.);
+              } else {
+                 dsdt[iface].setVal<RunOn::Cpu>(0.);
+              }
+        }
 
         projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
                          parent->Geom(lev),
@@ -2121,7 +2125,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                          numOutFlowFaces, lo_bc, hi_bc, gravity);
     }
 
-    for (int i = 0; i < 2*BL_SPACEDIM; i++)
+    for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
     {
         rho[i].clear();
         dsdt[i].clear();
@@ -2131,18 +2135,24 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
         BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
-	// FIXME: this size may need adjusting
-	phi_fine_strip_ba.maxSize(32);
+        // FIXME: this size may need adjusting
+        phi_fine_strip_ba.maxSize(32);
         DistributionMapping dm {phi_fine_strip_ba};
         MultiFab phi_fine_strip_mf(phi_fine_strip_ba,dm,1,0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(phi_fine_strip_mf); mfi.isValid(); ++mfi) {
-	    const Box& bx = mfi.validbox();
-	    BL_ASSERT((phi_fine_strip[iface].box()).contains(bx));
-	      phi_fine_strip_mf[mfi].copy<RunOn::Host>(phi_fine_strip[iface],bx,0,bx,0,1);
+        for (MFIter mfi(phi_fine_strip_mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+          const Box& bx = mfi.tilebox();
+          BL_ASSERT((phi_fine_strip[iface].box()).contains(bx));
+          const auto& phi_f_mf = phi_fine_strip_mf.array(mfi); 
+          const auto& phi_f    = phi_fine_strip[iface].array();
+          amrex::ParallelFor(bx, [phi_f_mf,phi_f]
+          AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+          {
+             phi_f_mf(i,j,k) = phi_f(i,j,k);
+          });
         }
 
         phi[lev]->copy(phi_fine_strip_mf);
@@ -2167,7 +2177,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                                         const Vector<MultiFab*>& rhcc,
                                         const Vector<MultiFab*>& rhnd,
                                         Real rel_tol, Real abs_tol,
-					bool proj2,
+                                        bool proj2,
                                         MultiFab* sync_resid_crse,
                                         MultiFab* sync_resid_fine,
                                         bool doing_initial_vortproj)
@@ -2203,7 +2213,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     if (!rhcc.empty() )
     {
         AMREX_ALWAYS_ASSERT(rhcc[c_lev]->boxArray().ixType().cellCentered());
-	// MLNodeLaplacian only uses vaild cells from rhcc and rhnd; fills ghost cells internally
+   // MLNodeLaplacian only uses vaild cells from rhcc and rhnd; fills ghost cells internally
         // BL_ASSERT(rhcc[c_lev]->nGrow() == 1);
         // BL_ASSERT(rhcc[f_lev]->nGrow() == 1);
     }
@@ -2372,37 +2382,37 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 
     const Geometry& geom = parent->Geom(lev);
 
-    for (int idir=0; idir<BL_SPACEDIM; idir++) {
+    for (int idir=0; idir<AMREX_SPACEDIM; idir++) {
 
       if (lo_bc[idir] != Inflow && hi_bc[idir] != Inflow) {
-	vel[lev]->setBndry(0.0, Xvel+idir, 1);
+   vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
-	//fixme: is it worth the overhead to have threads here?
+   //fixme: is it worth the overhead to have threads here?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
-	  int i = mfi.index();
+   for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
+     int i = mfi.index();
 
-	  FArrayBox& v_fab = (*vel[lev])[mfi];
+     FArrayBox& v_fab = (*vel[lev])[mfi];
 
-	  const Box& reg = grids[i];
-	  const Box& bxg1 = amrex::grow(reg,1);
-	  BoxList bxlist(reg);
+     const Box& reg = grids[i];
+     const Box& bxg1 = amrex::grow(reg,1);
+     BoxList bxlist(reg);
 
-	  //If tiling only need to redefine these (all the rest can stay the same):
-	  // const Box& bxg1 = mfi.growntilebox(1);
-	  // const Box& tile = mfi.tilebox();
-	  // BoxList bxlist(tile);
+     //If tiling only need to redefine these (all the rest can stay the same):
+     // const Box& bxg1 = mfi.growntilebox(1);
+     // const Box& tile = mfi.tilebox();
+     // BoxList bxlist(tile);
 
-	  if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	    Box bx;                // bx is the region we *protect* from zero'ing
-	    bx = amrex::adjCellLo(reg, idir);
+     if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
+       Box bx;                // bx is the region we *protect* from zero'ing
+       bx = amrex::adjCellLo(reg, idir);
 
-	    if (inflowCorner) {
+       if (inflowCorner) {
 
-              for (int odir = 0; odir < BL_SPACEDIM; odir++) {
+              for (int odir = 0; odir < AMREX_SPACEDIM; odir++) {
                  if (odir != idir)
                  {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
@@ -2410,17 +2420,17 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
                     if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
               }
-	    }
-	    bxlist.push_back(bx);
-	  }
+       }
+       bxlist.push_back(bx);
+     }
 
-	  if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	    Box bx;                // bx is the region we *protect* from zero'ing
-	    bx = amrex::adjCellHi(reg, idir);
+     if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
+       Box bx;                // bx is the region we *protect* from zero'ing
+       bx = amrex::adjCellHi(reg, idir);
 
-	    if (inflowCorner) {
+       if (inflowCorner) {
 
-              for (int odir = 0; odir < BL_SPACEDIM; odir++) {
+              for (int odir = 0; odir < AMREX_SPACEDIM; odir++) {
                  if (odir != idir)
                  {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
@@ -2428,20 +2438,24 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
                     if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
                  }
               }
-	    }
+       }
 
-	    bxlist.push_back(bx);
-	  }
+       bxlist.push_back(bx);
+     }
 
-	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist);
+     BoxList bxlist2 = amrex::complementIn(bxg1, bxlist);
 
-	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
+     for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
             Box ovlp = *it & v_fab.box();
             if (ovlp.ok()) {
-              v_fab.setVal<RunOn::Host>(0.0, ovlp, Xvel+idir, 1);
+              if (Gpu::inLaunchRegion()) {
+                 v_fab.setVal<RunOn::Gpu>(0.0, ovlp, Xvel+idir, 1);
+              } else {
+                 v_fab.setVal<RunOn::Cpu>(0.0, ovlp, Xvel+idir, 1);
+              }
             }
-	  }
-	}
+     }
+   }
       }
     }
 

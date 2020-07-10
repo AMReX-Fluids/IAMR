@@ -176,7 +176,6 @@ public:
                           amrex::FArrayBox& gp,
                           const amrex::Box& gpbox_to_fill,
                           const amrex::Real* dx);
-protected:
     //
     // Read parameters from the input file.
     //
