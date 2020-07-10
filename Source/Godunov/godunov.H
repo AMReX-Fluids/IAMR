@@ -10,8 +10,6 @@
 
 namespace godunov {
 
-    constexpr amrex::Real small_vel = 1e-8;
-
     void predict_godunov ( amrex::MultiFab const& vel,
                            amrex::MultiFab const& vel_forces,
                            D_DECL( amrex::MultiFab& u_mac,

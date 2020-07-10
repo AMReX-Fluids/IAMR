@@ -7,14 +7,13 @@
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_Array.H>
 #include <iomanip>
+#include <iamr_godunov_constants.H>
 
 /* This header file contains the inlined __host__ __device__ functions required for
    the scalar advection routines for 3D Godunov. It also contains function declarations
    for controlling host functions.  */
 
 namespace {
-
-constexpr amrex::Real small_vel = 1e-8;
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real vanLeer(const amrex::Real a, const amrex::Real b, const amrex::Real c)

@@ -12,3 +12,5 @@ CEXE_sources += iamr_godunov_ppm.cpp
 
 CEXE_headers += iamr_godunov_plm.H
 CEXE_headers += iamr_godunov_ppm.H
+
+CEXE_headers += iamr_godunov_constants.H
