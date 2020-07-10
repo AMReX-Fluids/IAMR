@@ -3220,7 +3220,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 #endif
 
-    // Coarse box could expand beyond the extent of fine box depending on the interpolation type, so initialize here
     cdataMF.copy(CrseSync, src_comp, 0, num_comp);
 
     //
