@@ -259,10 +259,20 @@ NavierStokesBase::initialize_eb2_structs() {
     int iLocal = mfi.LocalIndex();
 
     if (typ == FabType::regular) {
-      mfab.setVal<RunOn::Host>(1);
+      const auto& mask = ebmask.array(mfi);
+      amrex::ParallelFor(tbox, [mask]
+      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+      {
+          mask(i,j,k) = 1;
+      });
     }
     else if (typ == FabType::covered) {
-      mfab.setVal<RunOn::Host>(-1);
+      const auto& mask = ebmask.array(mfi);
+      amrex::ParallelFor(tbox, [mask]
+      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+      {
+          mask(i,j,k) = -1;
+      });
     }
     else if (typ == FabType::singlevalued) {
       int Ncut = 0;
