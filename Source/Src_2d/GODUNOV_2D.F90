@@ -825,7 +825,7 @@ contains
                end if
 
                if (bc(1,2).eq.EXT_DIR) then
-                  if (n+L-1.eq.XVEL stxlo(imax+1) = s(imax+1,j,L)
+                  if (n+L-1.eq.XVEL) stxlo(imax+1) = s(imax+1,j,L)
                   stxhi(imax+1) = s(imax+1,j,L)
                else if (bc(1,2).eq.FOEXTRAP.or.bc(1,2).eq.HOEXTRAP) then
                   if (n+L-1.eq.XVEL) then
