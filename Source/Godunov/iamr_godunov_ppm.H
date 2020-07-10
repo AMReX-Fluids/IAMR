@@ -851,8 +851,7 @@ void Godunov_cc_xbc_lo(const int i, const int j, const int k, const int n,
             if ( n==XVEL and is_velocity ) hi=lo;
         }
         else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
-                  bclo == BCType::reflect_even ||
-                  (bclo == BCType::ext_dir && uedge(i, j, k) < 0) )
+                  bclo == BCType::reflect_even )
             lo = hi;
 
         else if (bclo == BCType::reflect_odd)
@@ -880,8 +879,7 @@ void Godunov_cc_xbc_hi(const int i, const int j, const int k, const int n,
             if ( n==XVEL and is_velocity ) lo = hi;
         }
         else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
-                  bchi == BCType::reflect_even ||
-                  (bchi == BCType::ext_dir && uedge(i, j, k) > 0) )
+                  bchi == BCType::reflect_even )
             hi = lo;
 
         else if (bchi == BCType::reflect_odd)
@@ -910,8 +908,7 @@ void Godunov_cc_ybc_lo(const int i, const int j, const int k, const int n,
             if ( n==YVEL and is_velocity ) hi=lo;
         }
         else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
-                  bclo == BCType::reflect_even ||
-                  (bclo == BCType::ext_dir && vedge(i, j, k) < 0) )
+                  bclo == BCType::reflect_even )
             lo = hi;
 
         else if (bclo == BCType::reflect_odd){
@@ -938,8 +935,7 @@ void Godunov_cc_ybc_hi(const int i, const int j, const int k, const int n,
             if ( n==YVEL and is_velocity ) lo=hi;
         }
         else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
-                  bchi == BCType::reflect_even ||
-                  (bchi == BCType::ext_dir && vedge(i, j, k) > 0) )
+                  bchi == BCType::reflect_even )
             hi = lo;
 
         else if(bchi == BCType::reflect_odd)
@@ -969,8 +965,7 @@ void Godunov_cc_zbc_lo(const int i, const int j, const int k, const int n,
         }
 
         else if ( bclo == BCType::foextrap || bclo == BCType::hoextrap ||
-                  bclo == BCType::reflect_even ||
-                  (bclo == BCType::ext_dir && wedge(i, j, k) < 0) )
+                  bclo == BCType::reflect_even )
             lo = hi;
 
         else if(bclo == BCType::reflect_odd)
@@ -998,8 +993,7 @@ void Godunov_cc_zbc_hi(const int i, const int j, const int k, const int n,
             if ( n==ZVEL and is_velocity ) lo=hi;
         }
         else if ( bchi == BCType::foextrap || bchi == BCType::hoextrap ||
-                  bchi == BCType::reflect_even ||
-                  (bchi == BCType::ext_dir && wedge(i, j, k) > 0) )
+                  bchi == BCType::reflect_even )
             hi = lo;
 
         else if(bchi == BCType::reflect_odd)
