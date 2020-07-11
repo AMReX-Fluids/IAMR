@@ -76,8 +76,11 @@ void godunov::predict_godunov ( MultiFab const& vel,
 
             if (use_ppm)
             {
-                // godunov::predict_ppm( bxg1, AMREX_SPACEDIM, Imx, Ipx, Imy, Ipy, Imz, Ipz, a_vel, a_vel,
-                //                       geom, l_dt, d_bcrec);
+                godunov::predict_ppm( bxg1, AMREX_SPACEDIM,
+                                      D_DECL(Imx, Imy, Imz),
+                                      D_DECL(Ipx, Ipy, Ipz),
+                                      a_vel, a_vel,
+                                      geom, l_dt, d_bcrec);
             }
             else
             {
