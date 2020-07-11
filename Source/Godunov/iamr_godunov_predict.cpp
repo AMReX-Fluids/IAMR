@@ -31,9 +31,9 @@ void godunov::predict_godunov ( MultiFab const& vel,
         {
             Box const& bx = mfi.tilebox();
             Box const& bxg1 = amrex::grow(bx,1);
-            Box const& xbx = mfi.nodaltilebox(0);
-            Box const& ybx = mfi.nodaltilebox(1);
-            Box const& zbx = mfi.nodaltilebox(2);
+            D_TERM( Box const& xbx = mfi.nodaltilebox(0);,
+                    Box const& ybx = mfi.nodaltilebox(1);,
+                    Box const& zbx = mfi.nodaltilebox(2);)
 
             D_TERM(Array4<Real> const& a_umac = u_mac.array(mfi);,
                    Array4<Real> const& a_vmac = v_mac.array(mfi);,
@@ -61,14 +61,17 @@ void godunov::predict_godunov ( MultiFab const& vel,
             p +=         Imz.size();
             Array4<Real> Ipz = makeArray4(p,bxg1,ncomp);
             p +=         Ipz.size();
-#endif
             Array4<Real> u_ad = makeArray4(p,Box(bx).grow(1,1).grow(2,1).surroundingNodes(0),1);
             p +=         u_ad.size();
             Array4<Real> v_ad = makeArray4(p,Box(bx).grow(0,1).grow(2,1).surroundingNodes(1),1);
             p +=         v_ad.size();
-#if (AMREX_SPACEDIM==3)
             Array4<Real> w_ad = makeArray4(p,Box(bx).grow(0,1).grow(1,1).surroundingNodes(2),1);
             p +=         w_ad.size();
+#else
+            Array4<Real> u_ad = makeArray4(p,Box(bx).grow(1,1).surroundingNodes(0),1);
+            p +=         u_ad.size();
+            Array4<Real> v_ad = makeArray4(p,Box(bx).grow(0,1).surroundingNodes(1),1);
+            p +=         v_ad.size();
 #endif
 
             if (use_ppm)
@@ -94,6 +97,11 @@ void godunov::predict_godunov ( MultiFab const& vel,
                                    D_DECL(Ipx, Ipy, Ipz),
                                    a_vel, a_f,
                                    domain, l_dt, d_bcrec, use_forces_in_trans);
+
+            // amrex::ParallelFor(xbx, [u_ad] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            // {
+            //     std::printf("i,j,k,uad = %4d %4d %4d %14.6E\n",i,j,k,u_ad(i,j,k));
+            // });
 
             predict_godunov_on_box(bx, ncomp,
                                    D_DECL(xbx, ybx, zbx),
@@ -235,9 +243,14 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
            Real dy = dx_arr[1];,
            Real dz = dx_arr[2];);
 
-    D_TERM(Box xebox = Box(bx).grow(1,1).grow(2,1).surroundingNodes(0);,
-           Box yebox = Box(bx).grow(0,1).grow(2,1).surroundingNodes(1);,
-           Box zebox = Box(bx).grow(0,1).grow(1,1).surroundingNodes(2););
+#if (AMREX_SPACEDIM==3)
+    Box xebox = Box(bx).grow(1,1).grow(2,1).surroundingNodes(0);
+    Box yebox = Box(bx).grow(0,1).grow(2,1).surroundingNodes(1);
+    Box zebox = Box(bx).grow(0,1).grow(1,1).surroundingNodes(2);
+#else
+    Box xebox = Box(bx).grow(1,1).surroundingNodes(0);
+    Box yebox = Box(bx).grow(0,1).surroundingNodes(1);
+#endif
 
     Array4<Real> xlo = makeArray4(p, xebox, ncomp);
     p += xlo.size();
@@ -246,8 +259,8 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
     Array4<Real> ylo = makeArray4(p, yebox, ncomp);
     p += ylo.size();
     Array4<Real> yhi = makeArray4(p, yebox, ncomp);
-#if (AMREX_SPACEDIM==3)
     p += yhi.size();
+#if (AMREX_SPACEDIM==3)
     Array4<Real> zlo = makeArray4(p, zebox, ncomp);
     p += zlo.size();
     Array4<Real> zhi = makeArray4(p, zebox, ncomp);
@@ -343,10 +356,12 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
     //
     // X-Flux
     //
-#if (AMREX_SPACEDIM==3)
+
     Box const xbxtmp = Box(xbx).enclosedCells().grow(0,1);
+#if (AMREX_SPACEDIM==3)
     Array4<Real> yzlo = makeArray4(Ipy.dataPtr(), amrex::surroundingNodes(xbxtmp,1), 1);
     Array4<Real> zylo = makeArray4(Ipz.dataPtr(), amrex::surroundingNodes(xbxtmp,2), 1);
+
     // Add d/dy term to z-faces
     // Start with {zlo,zhi} --> {zylo, zyhi} and upwind using w_ad to {zylo}
     // Add d/dz to y-faces
@@ -387,6 +402,30 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
         yzlo(i,j,k) = fu*st + (1.0 - fu) * 0.5 * (l_yzhi + l_yzlo);
     });
+#else
+    Array4<Real> yzlo = makeArray4(Ipy.dataPtr(), amrex::surroundingNodes(xbxtmp,1), 1);
+
+    // Add d/dy term to z-faces
+    // Start with {zlo,zhi} --> {zylo, zyhi} and upwind using w_ad to {zylo}
+    // Add d/dz to y-faces
+    // Start with {ylo,yhi} --> {yzlo, yzhi} and upwind using v_ad to {yzlo}
+    amrex::ParallelFor(Box(yzlo),
+    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        constexpr int n = 0;
+        const auto bc = pbc[n];
+        Real l_yzlo, l_yzhi;
+
+        l_yzlo = ylo(i,j,k,n);
+        l_yzhi = yhi(i,j,k,n);
+
+        Real vad = v_ad(i,j,k);
+        Godunov_trans_ybc(i, j, k, n, q, l_yzlo, l_yzhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y, true);
+
+        Real st = (vad >= 0.) ? l_yzlo : l_yzhi;
+        Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
+        yzlo(i,j,k) = fu*st + (1.0 - fu) * 0.5 * (l_yzhi + l_yzlo);
+    });
 #endif
     //
     amrex::ParallelFor(xbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -404,9 +443,9 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
                                                  (zylo(i  ,j  ,k+1)-zylo(i  ,j,k));
 #else
         Real stl = xlo(i,j,k,n) - (0.25*l_dt/dy)*(v_ad(i-1,j+1,k  )+v_ad(i-1,j,k))*
-                                                 ( ylo(i-1,j+1,k  )+ ylo(i-1,j,k));
+                                                 (yzlo(i-1,j+1,k  )-yzlo(i-1,j,k));
         Real sth = xhi(i,j,k,n) - (0.25*l_dt/dy)*(v_ad(i  ,j+1,k  )+v_ad(i  ,j,k))*
-                                                 ( ylo(i  ,j+1,k  )+ ylo(i  ,j,k));
+                                                 (yzlo(i  ,j+1,k  )-yzlo(i  ,j,k));
 #endif
 
         if (!l_use_forces_in_trans) {
@@ -444,8 +483,8 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
     //
     // Y-Flux
     //
-#if (AMREX_SPACEDIM==3)
     Box const ybxtmp = Box(ybx).enclosedCells().grow(1,1);
+#if (AMREX_SPACEDIM==3)
     Array4<Real> xzlo = makeArray4(Ipy.dataPtr(), amrex::surroundingNodes(ybxtmp,0), 1);
     Array4<Real> zxlo = makeArray4(Ipz.dataPtr(), amrex::surroundingNodes(ybxtmp,2), 1);
 
@@ -489,6 +528,26 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
         Real fu = (std::abs(wad) < small_vel) ? 0.0 : 1.0;
         zxlo(i,j,k) = fu*st + (1.0 - fu) * 0.5 * (l_zxhi + l_zxlo);
     });
+#else
+    Array4<Real> xzlo = makeArray4(Ipy.dataPtr(), amrex::surroundingNodes(ybxtmp,0), 1);
+    amrex::ParallelFor(Box(xzlo),
+    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        constexpr int n = 1;
+        const auto bc = pbc[n];
+        Real l_xzlo, l_xzhi;
+
+        l_xzlo = xlo(i,j,k,n);
+        l_xzhi = xhi(i,j,k,n);
+
+        Real uad = u_ad(i,j,k);
+        Godunov_trans_xbc(i, j, k, n, q, l_xzlo, l_xzhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x, true);
+
+
+        Real st = (uad >= 0.) ? l_xzlo : l_xzhi;
+        Real fu = (std::abs(uad) < small_vel) ? 0.0 : 1.0;
+        xzlo(i,j,k) = fu*st + (1.0 - fu) * 0.5 * (l_xzhi + l_xzlo);
+    });
 #endif
     //
     amrex::ParallelFor(ybx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -506,9 +565,9 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
                                                  (zxlo(i  ,j  ,k+1)-zxlo(i,j  ,k));
 #else
         Real stl = ylo(i,j,k,n) - (0.25*l_dt/dx)*(u_ad(i+1,j-1,k  )+u_ad(i,j-1,k))*
-                                                 ( xlo(i+1,j-1,k  )- xlo(i,j-1,k));
-        Real sth = yhi(i,j,k,n) - (0.25*l_dt/dx)*(u_ad(i+1,j  ,k  )+u_ad(i,j ,k))*
-                                                 ( xlo(i+1,j  ,k  )- xlo(i,j ,k));
+                                                 (xzlo(i+1,j-1,k  )-xzlo(i,j-1,k));
+        Real sth = yhi(i,j,k,n) - (0.25*l_dt/dx)*(u_ad(i+1,j  ,k  )+u_ad(i,j  ,k))*
+                                                 (xzlo(i+1,j  ,k  )-xzlo(i,j  ,k));
 #endif
 
         if (!l_use_forces_in_trans) {

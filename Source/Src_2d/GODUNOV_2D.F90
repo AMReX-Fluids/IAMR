@@ -142,6 +142,15 @@ contains
          tfy,tfy_lo,tfy_hi,&
          dt, dx, use_forces_in_trans, ppm_type)
 
+    ! block
+    !    integer i,j
+    !    do j = uwlo(2), uwhi(2)
+    !       do i = uwlo(1), uwhi(1)
+    !          write(6,"('i,j,k,uad = ',3(I4,X),ES14.6)") i,j,0,uad(i,j)
+    !          flush(6)
+    !       end do
+    !    end do
+    ! end block
     ! Note that the final edge velocites are are resolved using the average of the velocities predicted from both
     ! sides (including the transverse terms resolved using uad,vad from above).
 
@@ -773,9 +782,9 @@ contains
          if ((velpred.ne.1) .or. (n+L-1.eq.XVEL)) then
             do j = jmin,jmax
                do i = imin-1,imax+1
-                  tr = half*&
-                       (vad(i,j+1)+vad(i,j))*&
-                       (ylo(i,j+1)-ylo(i,j))/hy
+                  tr =  half*&
+                        (vad(i,j+1)+vad(i,j))*&
+                        (ylo(i,j+1)-ylo(i,j))/hy
 
                   if (ppm_type .gt. 0) then
                      stxlo(i+1) = Ipx(i,j)&

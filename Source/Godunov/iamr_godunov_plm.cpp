@@ -40,7 +40,11 @@ void godunov::predict_plm_x (Box const& bx_in, int ncomp,
     bool has_extdir_lo = extdir_lohi.first;
     bool has_extdir_hi = extdir_lohi.second;
 
+#if (AMREX_SPACEDIM==3)
     Box xebox = Box(bx_in).grow(1,1).grow(2,1).surroundingNodes(0);
+#else
+    Box xebox = Box(bx_in).grow(1,1).surroundingNodes(0);
+#endif
 
     if ((has_extdir_lo and domain_ilo >= xebox.smallEnd(0)-1) or
         (has_extdir_hi and domain_ihi <= xebox.bigEnd(0)))
@@ -88,7 +92,12 @@ void godunov::predict_plm_y (Box const& bx_in, int ncomp,
                             Vector<BCRec> const& h_bcrec,
                             BCRec const* pbc)
 {
+
+#if (AMREX_SPACEDIM==3)
     Box yebox = Box(bx_in).grow(0,1).grow(2,1).surroundingNodes(1);
+#else
+    Box yebox = Box(bx_in).grow(0,1).surroundingNodes(1);
+#endif
 
     const Real dy = geom.CellSize(1);
     const Real dtdy = dt/dy;
