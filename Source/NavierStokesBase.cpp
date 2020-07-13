@@ -3126,7 +3126,7 @@ set_bc_new (int*            bc_new,
         {
             for (int crse = 0, N = cgrids.size(); crse < N; crse++)
             {
-		const Box& bx = cgrids[crse];
+                const Box& bx = cgrids[crse];
                 const int* c_lo = bx.loVect();
                 const int* c_hi = bx.hiVect();
 
@@ -3152,18 +3152,18 @@ set_bc_new (int*            bc_new,
 //
 void
 NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
-			      int            c_lev,
-			      MultiFab&      FineSync,
-			      int            f_lev,
-			      IntVect&       ratio,
-			      int            src_comp,
-			      int            dest_comp,
-			      int            num_comp,
-			      int            increment,
-			      Real           dt_clev,
-			      int**          bc_orig_qty,
-			      SyncInterpType which_interp,
-			      int            state_comp)
+                              int            c_lev,
+                              MultiFab&      FineSync,
+                              int            f_lev,
+                              IntVect&       ratio,
+                              int            src_comp,
+                              int            dest_comp,
+                              int            num_comp,
+                              int            increment,
+                              Real           dt_clev,
+                              int**          bc_orig_qty,
+                              SyncInterpType which_interp,
+                              int            state_comp)
 {
     BL_PROFILE("NavierStokesBase::SyncInterp()");
 
@@ -3174,21 +3174,21 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 #ifdef AMREX_USE_EB
     switch (which_interp)
     {
-      // As with the non-EB case, both of these point to the same interpolater
-    case CellCons_T:     interpolater = &eb_cell_cons_interp;    break;
-    case CellConsLin_T:  interpolater = &eb_lincc_interp;        break;
-    default:
-      amrex::Abort("NavierStokesBase::SyncInterp(): EB currently requires Cell Conservative interpolater. \n");
+       // As with the non-EB case, both of these point to the same interpolater
+       case CellCons_T:     interpolater = &eb_cell_cons_interp;    break;
+       case CellConsLin_T:  interpolater = &eb_lincc_interp;        break;
+       default:
+       amrex::Abort("NavierStokesBase::SyncInterp(): EB currently requires Cell Conservative interpolater. \n");
     }
 #else
     switch (which_interp)
     {
-    case PC_T:           interpolater = &pc_interp;           break;
-    case CellCons_T:     interpolater = &cell_cons_interp;    break;
-    case CellConsLin_T:  interpolater = &lincc_interp;        break;
-    case CellConsProt_T: interpolater = &protected_interp;    break;
-    default:
-        amrex::Abort("NavierStokesBase::SyncInterp(): how did this happen \n");
+       case PC_T:           interpolater = &pc_interp;           break;
+       case CellCons_T:     interpolater = &cell_cons_interp;    break;
+       case CellConsLin_T:  interpolater = &lincc_interp;        break;
+       case CellConsProt_T: interpolater = &protected_interp;    break;
+       default:
+       amrex::Abort("NavierStokesBase::SyncInterp(): how did this happen \n");
     }
 #endif
 
@@ -3220,12 +3220,8 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 #endif
 
-
-
-    // Coarse box could expand beyond the extent of fine box depending on the interpolation type, so initialize here
-    cdataMF.setVal(0);
-
     cdataMF.copy(CrseSync, src_comp, 0, num_comp);
+
     //
     // Set physical boundary conditions in cdataMF.
     //
@@ -3251,15 +3247,14 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 #pragma omp parallel
 #endif
     {
-      int* bc_new = new int[2*BL_SPACEDIM*(src_comp+num_comp)];
-
+      int* bc_new = new int[2*AMREX_SPACEDIM*(src_comp+num_comp)];
       for (MFIter mfi(cdataMF,true); mfi.isValid(); ++mfi)
       {
 
         FArrayBox&  cdata   = cdataMF[mfi];
         const int*  clo     = cdata.loVect();
         const int*  chi     = cdata.hiVect();
-	const Box&  bx      = mfi.tilebox();
+        const Box&  bx      = mfi.tilebox();
         RealBox     gridloc = RealBox(bx,fine_level.geom.CellSize(),fine_level.geom.ProbLo());
         const int*  lo      = bx.loVect();
         const int*  hi      = bx.hiVect();
@@ -3268,11 +3263,10 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
         for (int n = 0; n < num_comp; n++)
         {
           set_bc_new(bc_new,n,src_comp,lo,hi,cdomlo,cdomhi,cgrids,bc_orig_qty);
-
-	  filcc_tile(ARLIM(lo),ARLIM(hi),
-		     cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
-		     cdomlo, cdomhi, dx_crse, xlo,
-		     &(bc_new[2*BL_SPACEDIM*(n+src_comp)]));
+          filcc_tile(ARLIM(lo),ARLIM(hi),
+                     cdata.dataPtr(n), ARLIM(clo), ARLIM(chi),
+                     cdomlo, cdomhi, dx_crse, xlo,
+                     &(bc_new[2*AMREX_SPACEDIM*(n+src_comp)]));
         }
       }
       delete [] bc_new;
@@ -3300,78 +3294,95 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-#ifndef AMREX_USE_EB
-      FArrayBox    fdata;
-#endif
-      Vector<BCRec> bc_interp(num_comp);
-      int* bc_new = new int[2*BL_SPACEDIM*(src_comp+num_comp)];
-
-      for (MFIter mfi(FineSync,true); mfi.isValid(); ++mfi)
+      for (MFIter mfi(FineSync,TilingIfNotGPU()); mfi.isValid(); ++mfi)
       {
-	  FArrayBox& cdata = cdataMF[mfi];
-	  // cdataMF has no ghost cells
-	  const Box&  fbx     = mfi.tilebox();
-	  const Box cbx = interpolater->CoarseBox(fbx,ratio);
-	  const int* clo   = cbx.loVect();
-	  const int* chi   = cbx.hiVect();
+         FArrayBox& cdata = cdataMF[mfi];
+         const Box&  bx   = mfi.tilebox();
+         const Box cbx    = interpolater->CoarseBox(bx,ratio);
+         const int* clo   = cbx.loVect();
+         const int* chi   = cbx.hiVect();
 
 #ifdef AMREX_USE_EB
-	  EBFArrayBox fdata(flags[mfi],fbx,num_comp,FineSync[mfi].arena());
+         EBFArrayBox fdata(flags[mfi],bx,num_comp,FineSync[mfi].arena());
 #else
-	  fdata.resize(fbx, num_comp);
+         FArrayBox fdata(bx, num_comp);
 #endif
-	  //
-	  // Set the boundary condition array for interpolation.
-	  //
-	  for (int n = 0; n < num_comp; n++)
-	  {
-	      set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
-	  }
+         Elixir fdata_i = fdata.elixir();
+         //
+         // Set the boundary condition array for interpolation.
+         //
+         Vector<BCRec> bc_interp(num_comp);
+         int* bc_new = new int[2*AMREX_SPACEDIM*(src_comp+num_comp)];
+         for (int n = 0; n < num_comp; n++)
+         {
+             set_bc_new(bc_new,n,src_comp,clo,chi,cdomlo,cdomhi,cgrids,bc_orig_qty);
+         }
 
-	  for (int n = 0; n < num_comp; n++)
-	  {
-	      for (int dir = 0; dir < BL_SPACEDIM; dir++)
-	      {
-		  int bc_index = (n+src_comp)*(2*BL_SPACEDIM) + dir;
-		  bc_interp[n].setLo(dir,bc_new[bc_index]);
-		  bc_interp[n].setHi(dir,bc_new[bc_index+BL_SPACEDIM]);
-	      }
-	  }
+         for (int n = 0; n < num_comp; n++)
+         {
+            for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+            {
+               int bc_index = (n+src_comp)*(2*AMREX_SPACEDIM) + dir;
+               bc_interp[n].setLo(dir,bc_new[bc_index]);
+               bc_interp[n].setHi(dir,bc_new[bc_index+AMREX_SPACEDIM]);
+            }
+         }
 
-	  //        ScaleCrseSyncInterp(cdata, c_lev, num_comp);
+         //ScaleCrseSyncInterp(cdata, c_lev, num_comp);
 
-	  interpolater->interp(cdata,0,fdata,0,num_comp,fbx,ratio,
-			       cgeom,fgeom,bc_interp,src_comp,State_Type,RunOn::Cpu);
+         interpolater->interp(cdata,0,fdata,0,num_comp,bx,ratio,
+                              cgeom,fgeom,bc_interp,src_comp,State_Type,RunOn::Gpu);
 
-	  //        reScaleFineSyncInterp(fdata, f_lev, num_comp);
+         //reScaleFineSyncInterp(fdata, f_lev, num_comp);
 
-	  if (increment)
-	  {
-	      fdata.mult<RunOn::Host>(dt_clev);
+         if (increment)
+         {
+            auto const& finedata    = fdata.array();
+            auto const& coarsedata  = cdata.array();
+            int scale_coarse = (interpolater == &protected_interp) ? 1 : 0;
+            amrex::ParallelFor(bx, num_comp, [finedata,coarsedata,dt_clev, scale_coarse]
+            AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+            {
+               finedata(i,j,k,n) *= dt_clev;
+               if ( scale_coarse ) {
+                  coarsedata(i,j,k,n) *= dt_clev; 
+               }
+            });
 
-	      if (interpolater == &protected_interp)
-	      {
-		  cdata.mult<RunOn::Host>(dt_clev,cbx);
-		  FArrayBox& fine_state = (*fine_stateMF)[mfi];
-		  interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
-					num_comp,fbx,ratio,
-					cgeom,fgeom,bc_interp,RunOn::Cpu);
+            if (interpolater == &protected_interp)
+            {
+               FArrayBox& fine_state = (*fine_stateMF)[mfi];
+               interpolater->protect(cdata,0,fdata,0,fine_state,state_comp,
+                                     num_comp,bx,ratio,
+                                     cgeom,fgeom,bc_interp,RunOn::Gpu);
+            }
 
-		  Real dt_clev_inv = 1./dt_clev;
-		  cdata.mult<RunOn::Host>(dt_clev_inv,cbx);
-	      }
-
-	      FineSync[mfi].plus<RunOn::Host>(fdata,fbx,0,dest_comp,num_comp);
-	  }
-	  else
-	  {
-	      FineSync[mfi].copy<RunOn::Host>(fdata,fbx,0,fbx,dest_comp,num_comp);
-	  }
-      }
-    delete [] bc_new;
+            auto const& fsync       = FineSync.array(mfi,dest_comp);
+            Real dt_clev_inv = 1./dt_clev;
+            amrex::ParallelFor(bx, num_comp, [finedata,fsync,coarsedata,dt_clev_inv,scale_coarse]
+            AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+            {
+               if ( scale_coarse ) {
+                  coarsedata(i,j,k,n) *= dt_clev_inv;
+               }
+               fsync(i,j,k,n) += finedata(i,j,k,n);
+            });
+         }
+         else
+         {
+            auto const& finedata    = fdata.array();
+            auto const& fsync       = FineSync.array(mfi,dest_comp);
+            amrex::ParallelFor(bx, num_comp, [finedata,fsync]
+            AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+            {
+               fsync(i,j,k,n) = finedata(i,j,k,n);
+            });
+         }
+         delete [] bc_new;
+       }
     }
 }
 
@@ -3380,14 +3391,14 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 //
 void
 NavierStokesBase::SyncProjInterp (MultiFab& phi,
-				  int       c_lev,
-				  MultiFab& P_new,
-				  MultiFab& P_old,
-				  int       f_lev,
-				  IntVect&  ratio,
-				  bool      first_crse_step_after_initial_iters,
-				  Real      cur_crse_pres_time,
-				  Real      prev_crse_pres_time)
+                                  int       c_lev,
+                                  MultiFab& P_new,
+                                  MultiFab& P_old,
+                                  int       f_lev,
+                                  IntVect&  ratio,
+                                  bool      first_crse_step_after_initial_iters,
+                                  Real      cur_crse_pres_time,
+                                  Real      prev_crse_pres_time)
 {
     BL_PROFILE("NavierStokesBase:::SyncProjInterp()");
 
@@ -3403,7 +3414,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         crse_ba.set(i,node_bilinear_interp.CoarseBox(P_grids[i],ratio));
 
     // None  of these 3 are actually used by node_bilinear_interp()
-    Vector<BCRec> bc(BL_SPACEDIM);
+    Vector<BCRec> bc(AMREX_SPACEDIM);
     const Geometry& fgeom   = parent->Geom(f_lev);
     const Geometry& cgeom   = parent->Geom(c_lev);
 
@@ -3433,7 +3444,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Real    prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
 
     if (state[Press_Type].descriptor()->timeType() ==
-	StateDescriptor::Point && first_crse_step_after_initial_iters)
+        StateDescriptor::Point && first_crse_step_after_initial_iters)
     {
         const Real time_since_zero  = cur_crse_pres_time - prev_crse_pres_time;
         const Real dt_to_prev_time  = prev_fine_pres_time - prev_crse_pres_time;
@@ -3442,50 +3453,52 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
         const Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	{
-	  FArrayBox     fine_phi;
+        for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+             const Box&  bx     = mfi.tilebox();
+             FArrayBox fine_phi(bx,1);
+             Elixir fine_phi_i = fine_phi.elixir();
+             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
+                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
+                                         0,Press_Type,RunOn::Gpu);
 
-	  for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
-          {
-	    const Box&  fbx     = mfi.tilebox();
-
-            fine_phi.resize(fbx,1);
-            fine_phi.setVal<RunOn::Host>(1.e200);
-            node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
-                                        fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type,RunOn::Cpu);
-
-            fine_phi.mult<RunOn::Host>(cur_mult_factor);
-            P_new[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
-            fine_phi.mult<RunOn::Host>(prev_mult_factor);
-            P_old[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
-	  }
-	}
+             auto const& f_phi    = fine_phi.array();
+             auto const& p_new    = P_new.array(mfi);
+             auto const& p_old    = P_old.array(mfi);
+             amrex::ParallelFor(bx, [f_phi, p_old, p_new, cur_mult_factor, prev_mult_factor]
+             AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+             {
+                 p_new(i,j,k) += f_phi(i,j,k) * cur_mult_factor;
+                 p_old(i,j,k) += f_phi(i,j,k) * prev_mult_factor;
+             });
+        }
     }
     else
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-      {
-        FArrayBox     fine_phi;
-
-	for (MFIter mfi(P_new,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-	    const Box&  fbx     = mfi.tilebox();
+           const Box&  bx     = mfi.tilebox();
+           FArrayBox fine_phi(bx,1);
+           Elixir fine_phi_i = fine_phi.elixir();
+           node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
+                                       fine_phi.box(),ratio,cgeom,fgeom,bc,
+                                       0,Press_Type,RunOn::Gpu);
 
-            fine_phi.resize(fbx,1);
-            fine_phi.setVal<RunOn::Host>(1.e200);
-            node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
-                                        fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                        0,Press_Type,RunOn::Cpu);
-
-            P_new[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
-            P_old[mfi].plus<RunOn::Host>(fine_phi,fbx,0,0);
+           auto const& f_phi    = fine_phi.array();
+           auto const& p_new    = P_new.array(mfi);
+           auto const& p_old    = P_old.array(mfi);
+           amrex::ParallelFor(bx, [f_phi, p_old, p_new]
+           AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+           {
+               p_new(i,j,k) += f_phi(i,j,k);
+               p_old(i,j,k) += f_phi(i,j,k);
+           });
         }
-      }
     }
 #ifdef AMREX_USE_EB
     // FIXME? - this can probably go after new interpolation is implemented
@@ -3868,42 +3881,35 @@ NavierStokesBase::velocity_advection_update (Real dt)
            });
         }
 
+        // Update velocity
         //why is this on a grown box?
-        const Box& sbx = mfi.growntilebox();
-        S.resize(sbx,AMREX_SPACEDIM);
-        auto const& s_arr    = S.array();
         auto const& vel_old  = U_old.array(mfi);
+        auto const& vel_new  = U_new.array(mfi);
         auto const& gradp    = Gp.array(mfi);
         auto const& force    = tforces.array();
+        auto const& advec    = Aofs.array(mfi);
         auto const& rho_old  = rho_ptime.array(mfi);
-        auto const& rho_h    = Rh.array(mfi);
+        auto const& rho_new  = rho_ctime.array(mfi);
+        auto const& rho_Half = Rh.array(mfi);
         int mom_diff = do_mom_diff;
-        amrex::ParallelFor(bx, AMREX_SPACEDIM, [s_arr,vel_old,gradp,rho_old,rho_h,force,mom_diff]
+        amrex::ParallelFor(bx, AMREX_SPACEDIM, [vel_old,vel_new,gradp,force,advec,rho_old,rho_new,rho_Half,mom_diff,dt]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            s_arr(i,j,k,n) = vel_old(i,j,k,n);
+            Real velold = vel_old(i,j,k,n);
+
             if ( mom_diff ) {
-               gradp(i,j,k,n) *= rho_h(i,j,k);
-               force(i,j,k,n) *= rho_h(i,j,k);
-               s_arr(i,j,k,n) *= rho_old(i,j,k);
+               gradp(i,j,k,n) *= rho_Half(i,j,k);
+               force(i,j,k,n) *= rho_Half(i,j,k);
+               velold *= rho_old(i,j,k);
+            }
+            vel_new(i,j,k,n) = velold - dt * advec(i,j,k,n)
+                                      + dt * force(i,j,k,n) / rho_Half(i,j,k)
+                                      - dt * gradp(i,j,k,n) / rho_Half(i,j,k);
+
+            if ( mom_diff ) {
+               vel_new(i,j,k,n) /= rho_new(i,j,k);
             }
         });
-#ifdef AMREX_USE_CUDA
-        Gpu::streamSynchronize();
-#endif
-
-        godunov->Add_aofs_tf_gp(S,U_new[mfi],Aofs[mfi],tforces,
-                                Gp[mfi],Rh[mfi],bx,dt);
-        if (do_mom_diff == 1)
-        {
-           auto const& vel_new = U_new.array(mfi);
-           auto const& rho_new = rho_ctime.array(mfi);
-           amrex::ParallelFor(bx, AMREX_SPACEDIM, [vel_new,rho_new]
-           AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-           {
-              vel_new(i,j,k,n) /= rho_new(i,j,k);
-           });
-        }
     }
 }
 

@@ -180,15 +180,15 @@ MacProj::install_anelastic_coefficient (int               level,
 }
 void
 MacProj::build_anelastic_coefficient (int      level,
-				      Real**& _anel_coeff)
+                                      Real**& _anel_coeff)
 {
     const BoxArray& grids = parent->getLevel(level).boxArray();
     const int N = grids.size();
     _anel_coeff = new Real*[N];
     for (int i = 0; i < grids.size(); i++)
     {
-        const int jlo = grids[i].smallEnd(BL_SPACEDIM-1)-anel_grow;
-        const int jhi = grids[i].bigEnd(BL_SPACEDIM-1)+anel_grow;
+        const int jlo = grids[i].smallEnd(AMREX_SPACEDIM-1)-anel_grow;
+        const int jhi = grids[i].bigEnd(AMREX_SPACEDIM-1)+anel_grow;
         const int len = jhi - jlo + 1;
 
         _anel_coeff[i] = new Real[len];
@@ -370,12 +370,12 @@ MacProj::mac_project (int             level,
 
     Rhs.copy(divu);
 
-    MultiFab area_tmp[BL_SPACEDIM];
+    MultiFab area_tmp[AMREX_SPACEDIM];
     if (anel_coeff[level] != 0) {
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
-	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
-	}
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
+        MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
+    }
         scaleArea(level,area_tmp,anel_coeff[level]);
     }
 
@@ -406,7 +406,7 @@ MacProj::mac_project (int             level,
 
             mr.setVal(0.0);
 
-            for (int dir = 0; dir < BL_SPACEDIM; dir++)
+            for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
             {
                 mr.CrseInit(u_mac[dir],area[dir],dir,0,0,1,-1.0);
             }
@@ -453,8 +453,8 @@ MacProj::mac_sync_solve (int       level,
                          MultiFab& rho_half,
                          const BCRec& rho_math_bc,
                          IntVect&  fine_ratio,
-			 Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
-			 MultiFab* Rhs_increment )
+                         Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
+                         MultiFab* Rhs_increment )
 {
     BL_ASSERT(level < finest_level);
 
@@ -508,18 +508,23 @@ MacProj::mac_sync_solve (int       level,
     baf.coarsen(fine_ratio);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     // fixme? Should do some real tests to see if tiling here is a win or not
-    for (MFIter Rhsmfi(Rhs,true); Rhsmfi.isValid(); ++Rhsmfi)
+    for (MFIter mfi(Rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        BL_ASSERT(grids[Rhsmfi.index()].contains(Rhsmfi.tilebox()) );
+        BL_ASSERT(grids[mfi.index()].contains(mfi.tilebox()) );
 
-        const std::vector< std::pair<int,Box> >& isects = baf.intersections(Rhsmfi.tilebox());
+        const std::vector< std::pair<int,Box> >& isects = baf.intersections(mfi.tilebox());
 
+        auto const& rhs = Rhs.array(mfi);  
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
-            Rhs[Rhsmfi].setVal<RunOn::Host>(0.0,isects[ii].second,0);
+            amrex::ParallelFor(isects[ii].second, [rhs]
+            AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+               rhs(i,j,k) = 0.0;
+            });
         }
     }
 
@@ -535,13 +540,13 @@ MacProj::mac_sync_solve (int       level,
     //
     const Real rhs_scale = 2.0/dt;
 
-    MultiFab area_tmp[BL_SPACEDIM];
+    MultiFab area_tmp[AMREX_SPACEDIM];
     if (anel_coeff[level] != 0) {
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
-	    MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
-	}
-        scaleArea(level,area_tmp,anel_coeff[level]);
+       for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+           area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
+           MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
+       }
+       scaleArea(level,area_tmp,anel_coeff[level]);
     }
 
     const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
@@ -551,7 +556,7 @@ MacProj::mac_sync_solve (int       level,
     //
     mlmg_mac_sync_solve(parent,*phys_bc, rho_math_bc, level, mac_sync_tol, mac_abs_tol,
                         rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi,
-			Ucorr, verbose);
+                        Ucorr, verbose);
 
     if (verbose)
     {
@@ -578,7 +583,7 @@ MacProj::mac_sync_solve (int       level,
 //
 void
 MacProj::mac_sync_compute (int                   level,
-			   Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
+                           Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            MultiFab*             u_mac,
                            MultiFab&             Vsync,
                            MultiFab&             Ssync,
@@ -593,7 +598,7 @@ MacProj::mac_sync_compute (int                   level,
                            bool                  modify_reflux_normal_vel,
                            int                   do_mom_diff,
                            const Vector<int>&    increment_sync,
-			   bool                  update_fluxreg)
+                           bool                  update_fluxreg)
 {
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
@@ -604,7 +609,7 @@ MacProj::mac_sync_compute (int                   level,
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom                = parent->Geom(level);
     const Real*     dx                  = geom.CellSize();
-    const int       numscal             = NUM_STATE - BL_SPACEDIM;
+    const int       numscal             = NUM_STATE - AMREX_SPACEDIM;
     NavierStokesBase&   ns_level        = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
@@ -613,7 +618,7 @@ MacProj::mac_sync_compute (int                   level,
 
     //NOTE
     // Visc terms, GradP, forces not used in EB advection algorithm
-    MultiFab vel_visc_terms(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
+    MultiFab vel_visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),ns_level.Factory());
     MultiFab scal_visc_terms(grids,dmap,numscal,1,MFInfo(),ns_level.Factory());
 
     vel_visc_terms.setVal(0,1);  // Initialize to make calls below safe
@@ -625,20 +630,20 @@ MacProj::mac_sync_compute (int                   level,
     {
         bool do_get_visc_terms = false;
 
-        for (int i=0; i < BL_SPACEDIM; ++i)
+        for (int i=0; i < AMREX_SPACEDIM; ++i)
             if (increment_sync.empty() || increment_sync[i]==1)
                 do_get_visc_terms = true;
 
         if (do_get_visc_terms || use_forces_in_trans)
-            ns_level.getViscTerms(vel_visc_terms,Xvel,BL_SPACEDIM,prev_time);
+            ns_level.getViscTerms(vel_visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
 
         do_get_visc_terms = false;
-        for (int i=BL_SPACEDIM; i < increment_sync.size(); ++i)
+        for (int i=AMREX_SPACEDIM; i < increment_sync.size(); ++i)
             if (increment_sync.empty() || increment_sync[i]==1)
                 do_get_visc_terms = true;
 
         if (do_get_visc_terms)
-            ns_level.getViscTerms(scal_visc_terms,BL_SPACEDIM,numscal,prev_time);
+            ns_level.getViscTerms(scal_visc_terms,AMREX_SPACEDIM,numscal,prev_time);
     }
 
 #ifdef AMREX_USE_EB
@@ -648,7 +653,7 @@ MacProj::mac_sync_compute (int                   level,
 #else
     const int  nghost  = 0;
 
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1,MFInfo(),ns_level.Factory());
+    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),ns_level.Factory());
     ns_level.getGradP(Gp, prev_pres_time);
 #endif
 
@@ -719,7 +724,7 @@ MacProj::mac_sync_compute (int                   level,
     {
         Vector<int> ns_level_bc;
         FArrayBox tforces, tvelforces, U;
-        FArrayBox flux[BL_SPACEDIM], Rho;
+        FArrayBox flux[AMREX_SPACEDIM], Rho;
 
         for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
         {
@@ -749,7 +754,7 @@ MacProj::mac_sync_compute (int                   level,
             // Compute total forcing terms.
             //
             godunov->Sum_tf_gp_visc(tforces, 0, vel_visc_terms[Smfi], 0, Gp[Smfi], 0, Rho, 0);
-            godunov->Sum_tf_divu_visc(S, BL_SPACEDIM, tforces, BL_SPACEDIM, numscal,
+            godunov->Sum_tf_divu_visc(S, AMREX_SPACEDIM, tforces, AMREX_SPACEDIM, numscal,
                                       scal_visc_terms[Smfi], 0, divu, 0, Rho, 0, 1);
             if (use_forces_in_trans)
             {
@@ -777,13 +782,13 @@ MacProj::mac_sync_compute (int                   level,
             {
                 if (increment_sync.empty() || increment_sync[comp]==1)
                 {
-                    const int  sync_ind = comp < BL_SPACEDIM ? comp  : comp-BL_SPACEDIM;
-                    FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
+                    const int  sync_ind = comp < AMREX_SPACEDIM ? comp  : comp-BL_SPACEDIM;
+                    FArrayBox& temp     = comp < AMREX_SPACEDIM ? u_sync : s_sync;
                     ns_level_bc         = ns_level.fetchBCArray(State_Type,bx,comp,1);
 
                     int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
 
-                    if (do_mom_diff == 1 && comp < BL_SPACEDIM)
+                    if (do_mom_diff == 1 && comp < AMREX_SPACEDIM)
                     {
                         rhoS.copy<RunOn::Host>(Smf[Smfi],gbx,comp,gbx,comp,1);
                         rhoS.mult<RunOn::Host>(Smf[Smfi],gbx,gbx,Density,comp,1);
@@ -795,7 +800,7 @@ MacProj::mac_sync_compute (int                   level,
                         Sp = &Smf[Smfi];
                     }
 
-                    for (int d=0; d<BL_SPACEDIM; ++d)
+                    for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
                         const Box& ebx = amrex::surroundingNodes(bx,d);
                         flux[d].resize(ebx,BL_SPACEDIM+1);
@@ -857,18 +862,18 @@ MacProj::mac_sync_compute (int                   level,
 //
 void
 MacProj::mac_sync_compute (int                    level,
-			   Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
+                           Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            MultiFab&              Sync,
                            int                    comp,
                            int                    s_ind,
                            MultiFab* const*       sync_edges,
-			   int                    eComp,
+                           int                    eComp,
                            MultiFab&              rho_half,
                            FluxRegister*          adv_flux_reg,
                            Vector<AdvectionForm>&  advectionType,
-			   bool                   modify_reflux_normal_vel,
+                           bool                   modify_reflux_normal_vel,
                            Real                   dt,
-			   bool                   update_fluxreg)
+                           bool                   update_fluxreg)
 {
     if (modify_reflux_normal_vel)
         amrex::Abort("modify_reflux_normal_vel is no longer supported");
@@ -993,69 +998,52 @@ MacProj::check_div_cond (int      level,
     const MultiFab& volume       = ns_level.Volume();
     const MultiFab* area         = ns_level.Area();
 
-    Real sum = 0.0;
-
+    MultiFab dmac(volume.boxArray(),volume.DistributionMap(),1,0);
+   
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sum)
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+    for (MFIter mfi(dmac,TilingIfNotGPU());mfi.isValid();++mfi)
     {
-        FArrayBox dmac;
+        const Box& bx = mfi.tilebox();
+        auto const& cc_divu   = dmac.array(mfi);
+        D_TERM(auto const& ux_e = U_edge[0].array(mfi);,
+               auto const& uy_e = U_edge[1].array(mfi);,
+               auto const& uz_e = U_edge[2].array(mfi););
+        D_TERM(auto const& xarea  = area[0].array(mfi);,
+               auto const& yarea  = area[1].array(mfi);,
+               auto const& zarea  = area[2].array(mfi););
+        auto const& vol       = volume.array(mfi);
 
-        for (MFIter U_edge0mfi(U_edge[0],true);U_edge0mfi.isValid();++U_edge0mfi)
+        amrex::ParallelFor(bx, [cc_divu,D_DECL(ux_e,uy_e,uz_e),
+                                        D_DECL(xarea,yarea,zarea), vol]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
         {
-            const Box& bx = U_edge0mfi.tilebox(IntVect::Zero);
-
-            dmac.resize(bx,1);
-
-            const FArrayBox& uxedge = U_edge[0][U_edge0mfi];
-            const FArrayBox& uyedge = U_edge[1][U_edge0mfi];
-            const FArrayBox& xarea  = area[0][U_edge0mfi];
-            const FArrayBox& yarea  = area[1][U_edge0mfi];
-            const FArrayBox& vol    = volume[U_edge0mfi];
-
-            DEF_LIMITS(dmac,dmac_dat,dlo,dhi);
-            DEF_CLIMITS(uxedge,ux_dat,uxlo,uxhi);
-            DEF_CLIMITS(uyedge,uy_dat,uylo,uyhi);
-            DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
-            DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
-            DEF_CLIMITS(vol,vol_dat,vlo,vhi);
-
-#if (BL_SPACEDIM == 2)
-            macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),bx.loVect(),bx.hiVect(),
-                   ux_dat,ARLIM(uxlo),ARLIM(uxhi),
-                   uy_dat,ARLIM(uylo),ARLIM(uyhi),
-                   ax_dat,ARLIM(axlo),ARLIM(axhi),
-                   ay_dat,ARLIM(aylo),ARLIM(ayhi),
-                   vol_dat,ARLIM(vlo),ARLIM(vhi));
-#endif
-
-#if (BL_SPACEDIM == 3)
-            const FArrayBox& uzedge = U_edge[2][U_edge0mfi];
-            DEF_CLIMITS(uzedge,uz_dat,uzlo,uzhi);
-            const FArrayBox& zarea = area[2][U_edge0mfi];
-            DEF_CLIMITS(zarea,az_dat,azlo,azhi);
-
-            macdiv(dmac_dat,ARLIM(dlo),ARLIM(dhi),bx.loVect(),bx.hiVect(),
-                   ux_dat,ARLIM(uxlo),ARLIM(uxhi),
-                   uy_dat,ARLIM(uylo),ARLIM(uyhi),
-                   uz_dat,ARLIM(uzlo),ARLIM(uzhi),
-                   ax_dat,ARLIM(axlo),ARLIM(axhi),
-                   ay_dat,ARLIM(aylo),ARLIM(ayhi),
-                   az_dat,ARLIM(azlo),ARLIM(azhi),
-                   vol_dat,ARLIM(vlo),ARLIM(vhi));
-#endif
-
-            sum += dmac.sum<RunOn::Host>(0);
-        }
+            cc_divu(i,j,k) = D_TERM(  xarea(i+1,j,k)*ux_e(i+1,j,k) - xarea(i,j,k)*ux_e(i,j,k),
+                                    + yarea(i,j+1,k)*uy_e(i,j+1,k) - yarea(i,j,k)*uy_e(i,j,k),
+                                    + zarea(i,j,k+1)*uz_e(i,j,k+1) - zarea(i,j,k)*uz_e(i,j,k));
+            cc_divu(i,j,k) /= vol(i,j,k);
+        });
     }
+
+    Real sm = amrex::ReduceSum(dmac, 0, []
+    AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& dmac_arr) -> Real
+    {
+        Real tmp = 0.0;
+        AMREX_LOOP_3D(bx, i, j, k,
+        {
+            tmp += dmac_arr(i,j,k);
+        });
+        return tmp;
+    });
 
     if (verbose)
     {
         const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-        ParallelDescriptor::ReduceRealSum(sum,IOProc);
+        ParallelDescriptor::ReduceRealSum(sm,IOProc);
 
-        amrex::Print().SetPrecision(15) << "SUM of DIV(U_edge) = " << sum << '\n';
+        amrex::Print().SetPrecision(15) << "SUM of DIV(U_edge) = " << sm << '\n';
     }
 }
 
@@ -1143,7 +1131,11 @@ MacProj::set_outflow_bcs (int             level,
             divudat[iface].resize(ccBoxArray[iface], 1);
             phidat[iface].resize(phiBoxArray[iface], 1);
 
-            phidat[iface].setVal<RunOn::Host>(0.0);
+            if (Gpu::inLaunchRegion()) {
+               phidat[iface].setVal<RunOn::Gpu>(0.0);
+            } else {
+               phidat[iface].setVal<RunOn::Cpu>(0.0);
+            }
             divu.copyTo(divudat[iface]);
             S.copyTo(rhodat[iface], Density, 0, 1);
         }
@@ -1182,15 +1174,20 @@ MacProj::set_outflow_bcs (int             level,
         // not the valid regions.
         //
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for ( int iface = 0; iface < nOutFlowTouched; ++iface )
         {
             for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
             {
                 Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
-                if (ovlp.ok())
-                    (*mac_phi)[mfi].copy<RunOn::Host>(phidat[iface],ovlp,0,ovlp,0,1);
+                if (ovlp.ok()) {
+                   if (Gpu::inLaunchRegion()) {
+                      (*mac_phi)[mfi].copy<RunOn::Gpu>(phidat[iface],ovlp,0,ovlp,0,1);
+                   } else {
+                      (*mac_phi)[mfi].copy<RunOn::Cpu>(phidat[iface],ovlp,0,ovlp,0,1);
+                   }
+                }
             }
         }
     }

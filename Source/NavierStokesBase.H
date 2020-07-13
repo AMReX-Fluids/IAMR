@@ -555,7 +555,6 @@ public:
 //
 // Data
 //
-protected:
 
     // fixme? for now, volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
