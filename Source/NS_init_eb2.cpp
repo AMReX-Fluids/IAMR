@@ -248,10 +248,14 @@ NavierStokesBase::initialize_eb2_structs() {
   
   auto const& flags = ebfactory.getMultiEBCellFlagFab();
 
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
   for (MFIter mfi(*volfrac, false); mfi.isValid(); ++mfi)
   {
     BaseFab<int>& mfab = ebmask[mfi];
     const Box tbox = mfi.growntilebox();
+    const Box bx = mfi.tilebox();
     const FArrayBox& vfab = (*volfrac)[mfi];
     const EBCellFlagFab& flagfab = flags[mfi];
     
@@ -260,7 +264,7 @@ NavierStokesBase::initialize_eb2_structs() {
 
     if (typ == FabType::regular) {
       const auto& mask = ebmask.array(mfi);
-      amrex::ParallelFor(tbox, [mask]
+      amrex::ParallelFor(bx, [mask]
       AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
           mask(i,j,k) = 1;
@@ -268,7 +272,7 @@ NavierStokesBase::initialize_eb2_structs() {
     }
     else if (typ == FabType::covered) {
       const auto& mask = ebmask.array(mfi);
-      amrex::ParallelFor(tbox, [mask]
+      amrex::ParallelFor(bx, [mask]
       AMREX_GPU_DEVICE (int i, int j, int k) noexcept
       {
           mask(i,j,k) = -1;
