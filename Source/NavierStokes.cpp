@@ -2450,8 +2450,8 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
 
     // MultiFab *visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
   
-    // For non-const viscosity, this where the interp from cell-center/centroid
-    // to faces would take place. 
+    // For non-const viscosity, uncomment above and add interp from
+    // cell-center/centroid to faces. 
     // But here we simply do constant viscosity.
 
     for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
@@ -2482,10 +2482,10 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
                               const int ncomp)
 {
     BL_ASSERT(state_comp > Density);
-    //
-    // Pick correct diffusivity component
-    //
-    int diff_comp = state_comp - Density - 1;
+    // //
+    // // Pick correct component in the diffn/diffnp1 array
+    // //
+    // int diff_comp = state_comp - Density - 1;
     // //
     // // Select time level to work with (N or N+1)
     // //
@@ -2494,13 +2494,13 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     
     // MultiFab *diff = (whichTime == AmrOldTime ? diffn_cc : diffnp1_cc);
 
-    // For non-const diffusivity, this where the interp from cell-center/centroid
-    // to faces would take place. 
+    // For non-const diffusivity, uncomment above and add interp from
+    // cell-center/centroid to faces. 
     // But here we simply do constant diffusivity.
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-      diffusivity[dir]->setVal(visc_coef[diff_comp], dst_comp, ncomp, diffusivity[dir]->nGrow());
+      diffusivity[dir]->setVal(visc_coef[state_comp], dst_comp, ncomp, diffusivity[dir]->nGrow());
     }
 }
 
