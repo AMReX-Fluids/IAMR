@@ -540,6 +540,8 @@ NavierStokes::predict_velocity (Real  dt)
             if (getForceVerbose) {
                 Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
             }
+	    const Box& forcebx = grow(bx,1);
+	    tforces.resize(forcebx,AMREX_SPACEDIM);
             getForce(tforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 
             //
@@ -698,6 +700,8 @@ NavierStokes::scalar_advection (Real dt,
                     Print() << "---" << '\n' << "C - scalar advection:" << '\n'
                             << " Calling getForce..." << '\n';
                 }
+		const Box& forcebx = grow(bx,1);
+		tforces.resize(forcebx,num_scalars);
                 getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
 
                 for (int d=0; d<BL_SPACEDIM; ++d)
