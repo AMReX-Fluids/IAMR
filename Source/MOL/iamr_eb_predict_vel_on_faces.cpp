@@ -67,8 +67,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       Real delta_y = yf  - yc;,
                       Real delta_z = zf  - zc;);
 
-               Real cc_umax = std::max(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
-               Real cc_umin = std::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
+               Real cc_umax = amrex::max(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
+               Real cc_umin = amrex::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
 
                // Compute slopes of component "0" of a_vcc
                const auto& slopes_eb_hi = iamr_slopes_extdir_eb(D_DECL(i,j,k), 0, a_vcc, a_ccc,
@@ -82,7 +82,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_hi[1];
 #endif
 
-               upls = std::max(std::min(upls, cc_umax), cc_umin);
+               upls = amrex::max(amrex::min(upls, cc_umax), cc_umin);
 
                D_TERM(xc = a_ccc(i-1,j,k,0);, // centroid of cell (i-1,j,k)
                       yc = a_ccc(i-1,j,k,1);,
@@ -104,7 +104,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_lo[1];
 #endif
 
-               umns = std::max(std::min(umns, cc_umax), cc_umin);
+               umns = amrex::max(amrex::min(umns, cc_umax), cc_umin);
 
                if ( umns < 0.0 && upls > 0.0 ) {
                   a_u(i,j,k) = 0.0;
@@ -147,8 +147,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       Real delta_y = yf  - yc;,
                       Real delta_z = zf  - zc;);
 
-               Real cc_umax = std::max(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
-               Real cc_umin = std::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
+               Real cc_umax = amrex::max(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
+               Real cc_umin = amrex::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
 
                // Compute slopes of component "0" of a_vcc
                const auto slopes_eb_hi = iamr_slopes_eb(D_DECL(i,j,k),0,a_vcc,a_ccc,a_flag);
@@ -162,7 +162,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_hi[1];
 #endif
 
-               upls = std::max(std::min(upls, cc_umax), cc_umin);
+               upls = amrex::max(amrex::min(upls, cc_umax), cc_umin);
 
                D_TERM(xc = a_ccc(i-1,j,k,0);, // centroid of cell (i-1,j,k)
                       yc = a_ccc(i-1,j,k,1);,
@@ -184,7 +184,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_lo[1];
 #endif
 
-               umns = std::max(std::min(umns, cc_umax), cc_umin);
+               umns = amrex::max(amrex::min(umns, cc_umax), cc_umin);
 
                if ( umns < 0.0 && upls > 0.0 ) {
                   a_u(i,j,k) = 0.0;
@@ -226,8 +226,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       Real delta_y = 0.5 + yc;,
                       Real delta_z = zf  - zc;);
 
-               Real cc_vmax = std::max(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
-               Real cc_vmin = std::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
+               Real cc_vmax = amrex::max(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
+               Real cc_vmin = amrex::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
 
                // Compute slopes of component "1" of a_vcc
                const auto& slopes_eb_hi = iamr_slopes_extdir_eb(D_DECL(i,j,k),1,a_vcc,a_ccc,a_flag,bc,domain_box);
@@ -241,7 +241,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             - delta_y * slopes_eb_hi[1];
 #endif
 
-               vpls = std::max(std::min(vpls, cc_vmax), cc_vmin);
+               vpls = amrex::max(amrex::min(vpls, cc_vmax), cc_vmin);
 
                D_TERM(xc = a_ccc(i,j-1,k,0);, // centroid of cell (i,j-1,k)
                       yc = a_ccc(i,j-1,k,1);,
@@ -263,7 +263,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_lo[1];
 #endif
 
-               vmns = std::max(std::min(vmns, cc_vmax), cc_vmin);
+               vmns = amrex::max(amrex::min(vmns, cc_vmax), cc_vmin);
 
                if ( vmns < 0.0 && vpls > 0.0 ) {
                   a_v(i,j,k) = 0.0;
@@ -306,8 +306,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       Real delta_y = 0.5 + yc;,
                       Real delta_z = zf  - zc;);
 
-               Real cc_vmax = std::max(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
-               Real cc_vmin = std::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
+               Real cc_vmax = amrex::max(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
+               Real cc_vmin = amrex::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
 
                // Compute slopes of component "1" of a_vcc
                const auto slopes_eb_hi = iamr_slopes_eb(D_DECL(i,j,k),1,a_vcc,a_ccc,a_flag);
@@ -321,7 +321,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             - delta_y * slopes_eb_hi[1];
 #endif
 
-               vpls = std::max(std::min(vpls, cc_vmax), cc_vmin);
+               vpls = amrex::max(amrex::min(vpls, cc_vmax), cc_vmin);
 
                D_TERM(xc = a_ccc(i,j-1,k,0);,// centroid of cell (i,j-1,k)
                       yc = a_ccc(i,j-1,k,1);,
@@ -343,7 +343,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_lo[1];
 #endif
 
-               vmns = std::max(std::min(vmns, cc_vmax), cc_vmin);
+               vmns = amrex::max(amrex::min(vmns, cc_vmax), cc_vmin);
 
                if ( vmns < 0.0 && vpls > 0.0 ) {
                   a_v(i,j,k) = 0.0;
@@ -384,8 +384,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real delta_y = yf  - yc;
                Real delta_z = 0.5 + zc;
 
-               Real cc_wmax = std::max(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
-               Real cc_wmin = std::min(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
+               Real cc_wmax = amrex::max(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
+               Real cc_wmin = amrex::min(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
 
                // Compute slopes of component "2" of a_vcc
                const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,2,a_vcc,a_ccc,a_flag,bc,domain_box);
@@ -394,7 +394,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_hi[1]
                                             - delta_z * slopes_eb_hi[2];
 
-               wpls = std::max(std::min(wpls, cc_wmax), cc_wmin);
+               wpls = amrex::max(amrex::min(wpls, cc_wmax), cc_wmin);
 
                xc = a_ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
                yc = a_ccc(i,j,k-1,1);
@@ -411,7 +411,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_lo[1]
                                             + delta_z * slopes_eb_lo[2];
 
-               wmns = std::max(std::min(wmns, cc_wmax), cc_wmin);
+               wmns = amrex::max(amrex::min(wmns, cc_wmax), cc_wmin);
 
                if ( wmns < 0.0 && wpls > 0.0 ) {
                   a_w(i,j,k) = 0.0;
@@ -452,8 +452,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real delta_y = yf  - yc;
                Real delta_z = 0.5 + zc;
 
-               Real cc_wmax = std::max(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
-               Real cc_wmin = std::min(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
+               Real cc_wmax = amrex::max(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
+               Real cc_wmin = amrex::min(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
 
                // Compute slopes of component "2" of a_vcc
                const auto slopes_eb_hi = iamr_slopes_eb(i,j,k,2,a_vcc,a_ccc,a_flag);
@@ -462,7 +462,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_hi[1]
                                             - delta_z * slopes_eb_hi[2];
 
-               wpls = std::max(std::min(wpls, cc_wmax), cc_wmin);
+               wpls = amrex::max(amrex::min(wpls, cc_wmax), cc_wmin);
 
                xc = a_ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
                yc = a_ccc(i,j,k-1,1);
@@ -479,7 +479,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                                             + delta_y * slopes_eb_lo[1]
                                             + delta_z * slopes_eb_lo[2];
 
-               wmns = std::max(std::min(wmns, cc_wmax), cc_wmin);
+               wmns = amrex::max(amrex::min(wmns, cc_wmax), cc_wmin);
 
                if ( wmns < 0.0 && wpls > 0.0 ) {
                   a_w(i,j,k) = 0.0;
