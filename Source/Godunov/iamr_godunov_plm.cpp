@@ -59,9 +59,9 @@ void godunov::predict_plm_x (Box const& bx_in, int ncomp,
                               (bc.hi(0) == BCType::hoextrap);
 
             Real upls = q(i  ,j,k,n) + 0.5 * (-1.0 - vcc(i  ,j,k,0) * dtdx) *
-                incflo_ho_xslope_extdir(i,j,k,n,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                iamr_ho_xslope_extdir(i,j,k,n,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
             Real umns = q(i-1,j,k,n) + 0.5 * ( 1.0 - vcc(i-1,j,k,0) * dtdx) *
-                incflo_ho_xslope_extdir(i-1,j,k,n,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                iamr_ho_xslope_extdir(i-1,j,k,n,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
 
             Ipx(i-1,j,k,n) = umns;
             Imx(i  ,j,k,n) = upls;
@@ -73,9 +73,9 @@ void godunov::predict_plm_x (Box const& bx_in, int ncomp,
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real upls = q(i  ,j,k,n) + 0.5 * (-1.0 - vcc(i  ,j,k,0) * dtdx) *
-                incflo_ho_xslope(i  ,j,k,n,q);
+                iamr_ho_xslope(i  ,j,k,n,q);
             Real umns = q(i-1,j,k,n) + 0.5 * ( 1.0 - vcc(i-1,j,k,0) * dtdx) *
-                incflo_ho_xslope(i-1,j,k,n,q);
+                iamr_ho_xslope(i-1,j,k,n,q);
 
             Ipx(i-1,j,k,n) = umns;
             Imx(i  ,j,k,n) = upls;
@@ -124,9 +124,9 @@ void godunov::predict_plm_y (Box const& bx_in, int ncomp,
                               (bc.hi(1) == BCType::hoextrap);
 
             Real vpls = q(i,j  ,k,n) + 0.5 * (-1.0 - vcc(i,j  ,k,1) * dtdy) *
-                incflo_ho_yslope_extdir(i,j,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                iamr_ho_yslope_extdir(i,j,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
             Real vmns = q(i,j-1,k,n) + 0.5 * ( 1.0 - vcc(i,j-1,k,1) * dtdy) *
-                incflo_ho_yslope_extdir(i,j-1,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                iamr_ho_yslope_extdir(i,j-1,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
 
             Ipy(i,j-1,k,n) = vmns;
             Imy(i,j  ,k,n) = vpls;
@@ -138,9 +138,9 @@ void godunov::predict_plm_y (Box const& bx_in, int ncomp,
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real vpls = q(i,j  ,k,n) + 0.5 * (-1.0 - vcc(i,j  ,k,1) * dtdy) *
-                incflo_ho_yslope(i,j  ,k,n,q);
+                iamr_ho_yslope(i,j  ,k,n,q);
             Real vmns = q(i,j-1,k,n) + 0.5 * ( 1.0 - vcc(i,j-1,k,1) * dtdy) *
-                incflo_ho_yslope(i,j-1,k,n,q);
+                iamr_ho_yslope(i,j-1,k,n,q);
 
             Ipy(i,j-1,k,n) = vmns;
             Imy(i,j  ,k,n) = vpls;
@@ -186,9 +186,9 @@ void godunov::predict_plm_z (Box const& bx_in, int ncomp,
                               (bc.hi(2) == BCType::hoextrap);
 
             Real wpls = q(i,j,k  ,n) + 0.5 * (-1.0 - vcc(i,j,k  ,2) * dtdz) *
-                incflo_ho_zslope_extdir(i,j,k,n,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                iamr_ho_zslope_extdir(i,j,k,n,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
             Real wmns = q(i,j,k-1,n) + 0.5 * ( 1.0 - vcc(i,j,k-1,2) * dtdz) *
-                incflo_ho_zslope_extdir(i,j,k-1,n,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                iamr_ho_zslope_extdir(i,j,k-1,n,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
 
             Ipz(i,j,k-1,n) = wmns;
             Imz(i,j,k  ,n) = wpls;
@@ -200,9 +200,9 @@ void godunov::predict_plm_z (Box const& bx_in, int ncomp,
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real wpls = q(i,j,k  ,n) + 0.5 * (-1.0 - vcc(i,j,k  ,2) * dtdz) *
-                incflo_ho_zslope(i,j,k  ,n,q);
+                iamr_ho_zslope(i,j,k  ,n,q);
             Real wmns = q(i,j,k-1,n) + 0.5 * ( 1.0 - vcc(i,j,k-1,2) * dtdz) *
-                incflo_ho_zslope(i,j,k-1,n,q);
+                iamr_ho_zslope(i,j,k-1,n,q);
 
             Ipz(i,j,k-1,n) = wmns;
             Imz(i,j,k  ,n) = wpls;

@@ -1,5 +1,5 @@
-#ifndef INCFLO_CONVECTION_K_H_
-#define INCFLO_CONVECTION_K_H_
+#ifndef IAMR_CONVECTION_K_H_
+#define IAMR_CONVECTION_K_H_
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFArrayBox.H>
@@ -11,7 +11,7 @@
 namespace {
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real incflo_ho_xslope (int i, int j, int k, int n,
+amrex::Real iamr_ho_xslope (int i, int j, int k, int n,
                               amrex::Array4<amrex::Real const> const& q) noexcept
 {
     amrex::Real dlft, drgt, dcen, dfm, dfp, dlim, dsgn, dtemp;
@@ -48,7 +48,7 @@ amrex::Real incflo_ho_xslope (int i, int j, int k, int n,
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real incflo_ho_xslope_extdir (int i, int j, int k, int n,
+amrex::Real iamr_ho_xslope_extdir (int i, int j, int k, int n,
                                      amrex::Array4<amrex::Real const> const& q,
                                      bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
@@ -117,7 +117,7 @@ amrex::Real incflo_ho_xslope_extdir (int i, int j, int k, int n,
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real incflo_ho_yslope (int i, int j, int k, int n,
+amrex::Real iamr_ho_yslope (int i, int j, int k, int n,
                               amrex::Array4<amrex::Real const> const& q) noexcept
 {
     amrex::Real dlft, drgt, dcen, dfm, dfp, dlim, dsgn, dtemp;
@@ -151,7 +151,7 @@ amrex::Real incflo_ho_yslope (int i, int j, int k, int n,
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real incflo_ho_yslope_extdir (int i, int j, int k, int n,
+amrex::Real iamr_ho_yslope_extdir (int i, int j, int k, int n,
                                      amrex::Array4<amrex::Real const> const& q,
                                      bool edlo, bool edhi, int domlo, int domhi) noexcept
 {
@@ -221,7 +221,7 @@ amrex::Real incflo_ho_yslope_extdir (int i, int j, int k, int n,
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real incflo_ho_zslope (int i, int j, int k, int n,
+amrex::Real iamr_ho_zslope (int i, int j, int k, int n,
                               amrex::Array4<amrex::Real const> const& q) noexcept
 {
     amrex::Real dlft, drgt, dcen, dfm, dfp, dlim, dsgn, dtemp;
@@ -257,7 +257,7 @@ amrex::Real incflo_ho_zslope (int i, int j, int k, int n,
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-amrex::Real incflo_ho_zslope_extdir (int i, int j, int k, int n,
+amrex::Real iamr_ho_zslope_extdir (int i, int j, int k, int n,
                                      amrex::Array4<amrex::Real const> const& q,
                                      bool edlo, bool edhi, int domlo, int domhi) noexcept
 {

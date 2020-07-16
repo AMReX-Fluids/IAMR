@@ -43,7 +43,7 @@ void Godunov_plm_fpu_x (const int i, const int j, const int k, const int n,
             else
             {
                 upls = S(i  ,j,k,n) + 0.5 * (-1.0 - umac * dt/dx) *
-                    incflo_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+                    iamr_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
             }
 
         }
@@ -58,15 +58,15 @@ void Godunov_plm_fpu_x (const int i, const int j, const int k, const int n,
             else
             {
                 umns = S(i-1,j,k,n) + 0.5 * ( 1.0 - umac * dt/dx) *
-                    incflo_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+                    iamr_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
             }
         }
         else
         {
             upls = S(i  ,j,k,n) + 0.5 * (-1.0 - umac * dt/dx) *
-                incflo_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+                iamr_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
             umns = S(i-1,j,k,n) + 0.5 * ( 1.0 - umac * dt/dx) *
-                incflo_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+                iamr_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
         }
 
         Ip = umns;
@@ -104,7 +104,7 @@ void Godunov_plm_fpu_y (const int i, const int j, const int k, const int n,
             else
             {
                 vpls = S(i,j  ,k,n) + 0.5 * (-1.0 - vmac * dt/dy) *
-                    incflo_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+                    iamr_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
             }
         }
         else if (j == domain_jhi+1 && (bc.hi(1) == BCType::ext_dir))
@@ -117,15 +117,15 @@ void Godunov_plm_fpu_y (const int i, const int j, const int k, const int n,
             else
             {
                 vmns = S(i,j-1,k,n) + 0.5 * ( 1.0 - vmac * dt/dy) *
-                    incflo_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+                    iamr_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
             }
         }
         else
         {
             vpls = S(i,j  ,k,n) + 0.5 * (-1.0 - vmac * dt/dy) *
-                incflo_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+                iamr_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
             vmns = S(i,j-1,k,n) + 0.5 * ( 1.0 - vmac * dt/dy) *
-                incflo_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+                iamr_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
         }
 
         Ip = vmns;
@@ -163,7 +163,7 @@ void Godunov_plm_fpu_z (const int i, const int j, const int k, const int n,
             else
             {
                 wpls = S(i,j,k  ,n) + 0.5 * (-1.0 - wmac * dt/dz) *
-                    incflo_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+                    iamr_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
             }
         }
         else if (k == domain_khi+1 && (bc.hi(2) == BCType::ext_dir))
@@ -176,15 +176,15 @@ void Godunov_plm_fpu_z (const int i, const int j, const int k, const int n,
             else
             {
                 wmns = S(i,j,k-1,n) + 0.5 * ( 1.0 - wmac * dt/dz) *
-                    incflo_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+                    iamr_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
             }
         }
         else
         {
             wpls = S(i,j,k  ,n) + 0.5 * (-1.0 - wmac * dt/dz) *
-                incflo_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+                iamr_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
             wmns = S(i,j,k-1,n) + 0.5 * ( 1.0 - wmac * dt/dz) *
-                incflo_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+                iamr_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
         }
 
         Ip = wmns;
