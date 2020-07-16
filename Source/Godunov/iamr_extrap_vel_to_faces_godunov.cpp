@@ -6,7 +6,7 @@
 
 using namespace amrex;
 
-void godunov::predict_godunov ( MultiFab const& vel,
+void godunov::ExtrapVelToFaces ( MultiFab const& vel,
                                 MultiFab const& vel_forces,
                                 D_DECL( MultiFab& u_mac,
                                         MultiFab& v_mac,
@@ -100,11 +100,6 @@ void godunov::predict_godunov ( MultiFab const& vel,
                                    D_DECL(Ipx, Ipy, Ipz),
                                    a_vel, a_f,
                                    domain, l_dt, d_bcrec, use_forces_in_trans);
-
-            // amrex::ParallelFor(xbx, [u_ad] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            // {
-            //     std::printf("i,j,k,uad = %4d %4d %4d %14.6E\n",i,j,k,u_ad(i,j,k));
-            // });
 
             predict_godunov_on_box(bx, ncomp,
                                    D_DECL(xbx, ybx, zbx),

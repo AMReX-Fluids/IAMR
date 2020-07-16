@@ -5,7 +5,7 @@
 CEXE_headers += godunov.H
 CEXE_headers += iamr_slopes_godunov_K.H
 
-CEXE_sources += iamr_godunov_predict.cpp
+CEXE_sources += iamr_extrap_vel_to_faces_godunov.cpp
 # CEXE_sources += iamr_godunov_advection.cpp
 CEXE_sources += iamr_godunov_plm.cpp
 CEXE_sources += iamr_godunov_ppm.cpp

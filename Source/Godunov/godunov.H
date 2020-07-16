@@ -10,14 +10,14 @@
 
 namespace godunov {
 
-    void predict_godunov ( amrex::MultiFab const& vel,
-                           amrex::MultiFab const& vel_forces,
-                           D_DECL( amrex::MultiFab& u_mac,
-                                   amrex::MultiFab& v_mac,
-                                   amrex::MultiFab& w_mac ),
-                           const amrex::Vector<amrex::BCRec> & h_bcrec,
-                           const amrex::Geometry& geom, amrex::Real l_dt,
-                           bool use_ppm, bool use_forces_in_trans);
+    void ExtrapVelToFaces ( amrex::MultiFab const& vel,
+                            amrex::MultiFab const& vel_forces,
+                            D_DECL( amrex::MultiFab& u_mac,
+                                    amrex::MultiFab& v_mac,
+                                    amrex::MultiFab& w_mac ),
+                            const amrex::Vector<amrex::BCRec> & h_bcrec,
+                            const amrex::Geometry& geom, amrex::Real l_dt,
+                            bool use_ppm, bool use_forces_in_trans);
 
 
     void predict_plm_x (amrex::Box const& bx, int ncomp,
