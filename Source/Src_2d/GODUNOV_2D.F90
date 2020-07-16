@@ -741,7 +741,7 @@ contains
             do j = jmin,jmax+1
                do i = imin-1,imax+1
                   ylo(i,j) = Ipy(i,j-1)
-                  yhi(i,j) = Ipy(i,j  )
+                  yhi(i,j) = Imy(i,j  )
                end do
             end do
          else
