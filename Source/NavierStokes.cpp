@@ -528,9 +528,9 @@ NavierStokes::predict_velocity (Real  dt)
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
 
-    ParmParse pp("debug_flags");
-    int new_algo = 1;
-    pp.query("new_algo", new_algo);
+    // ParmParse pp("debug_flags");
+    // int new_algo = 1;
+    // pp.query("new_algo", new_algo);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -576,26 +576,26 @@ NavierStokes::predict_velocity (Real  dt)
         //
         // Compute MAC velocities
         //
-        for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-        {
-            Box bx=U_mfi.tilebox();
-            FArrayBox& Ufab = Umf[U_mfi];
+        // for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+        // {
+        //     Box bx=U_mfi.tilebox();
+        //     FArrayBox& Ufab = Umf[U_mfi];
 
-            D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-                   bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-                   bndry[2] = fetchBCArray(State_Type,bx,2,1););
+        //     D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+        //            bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+        //            bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-            //  1. compute slopes
-            //  2. trace state to cell edges   !!! ANN: uncomment this for IAMR behavior
-            if (not new_algo)
-            {
-                Print() << "USING OLD ALGO" << std::endl;
-                godunov->ExtrapVelToFaces(bx, dx, dt,
-                                          D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                                          D_DECL(bndry[0],        bndry[1],        bndry[2]),
-                                          Ufab, forcing_term[U_mfi]);
-            }
-        }
+        //     //  1. compute slopes
+        //     //  2. trace state to cell edges   !!! ANN: uncomment this for IAMR behavior
+        //     if (not new_algo)
+        //     {
+        //         Print() << "USING OLD ALGO" << std::endl;
+        //         godunov->ExtrapVelToFaces(bx, dx, dt,
+        //                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
+        //                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
+        //                                   Ufab, forcing_term[U_mfi]);
+        //     }
+        // }
 
     } // end OMP parallel region
 
@@ -603,14 +603,12 @@ NavierStokes::predict_velocity (Real  dt)
     math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
 
-    if (new_algo)
-    {
-        Print() << "USING NEW ALGO" << std::endl;
-        // ANN: uncomment this for incflo behavior
-        godunov -> ExtrapVelToFaces( Umf, forcing_term,
-                                     D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                     math_bcs, geom, dt);
-    }
+    // if (new_algo)
+    // {
+    godunov -> ExtrapVelToFaces( Umf, forcing_term,
+                                 D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                                 math_bcs, geom, dt);
+    // }
 
 
 
