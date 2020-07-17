@@ -76,7 +76,7 @@ public:      // public access functions
 #if (BL_SPACEDIM == 3 )
                       amrex::FArrayBox &areaz, amrex::FArrayBox &wedge, amrex::FArrayBox &zflux,
 #endif
-                      amrex::FArrayBox &U,
+                      // amrex::FArrayBox &U,
                       amrex::FArrayBox &S,
                       amrex::FArrayBox &tforces, amrex::FArrayBox& divu,
                       int fab_ind,

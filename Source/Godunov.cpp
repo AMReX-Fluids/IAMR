@@ -240,7 +240,7 @@ Godunov::AdvectState (const Box&  box,
                       FArrayBox&  wedge,
                       FArrayBox&  zflux,
 #endif
-                      FArrayBox&  U,
+                      // FArrayBox&  U,
                       FArrayBox&  S,
                       FArrayBox&  tforces,
                       FArrayBox&  divu,
