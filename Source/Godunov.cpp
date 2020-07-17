@@ -240,7 +240,6 @@ Godunov::AdvectState (const Box&  box,
                       FArrayBox&  wedge,
                       FArrayBox&  zflux,
 #endif
-                      // FArrayBox&  U,
                       FArrayBox&  S,
                       FArrayBox&  tforces,
                       FArrayBox&  divu,
@@ -250,7 +249,6 @@ Godunov::AdvectState (const Box&  box,
                       int         iconserv,
                       int         state_ind,
                       const int*  bc,
-                      AdvectionScheme scheme,
                       FArrayBox&  vol)
 {
      //Compute edge states for an advected quantity.

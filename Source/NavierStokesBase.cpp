@@ -3720,7 +3720,7 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
                                          S_term[U_mfi], forcing_term[U_mfi], (*aofs)[U_mfi], comp,
                                          (*aofs)[U_mfi],comp, use_conserv_diff,
-                                         comp,bndry[comp].dataPtr(),FPU,volume[U_mfi]);
+                                         comp,bndry[comp].dataPtr(),volume[U_mfi]);
                     if (do_reflux)
                     {
                         for (int d = 0; d < AMREX_SPACEDIM; d++)

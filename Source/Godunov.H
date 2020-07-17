@@ -83,7 +83,7 @@ public:      // public access functions
                       amrex::FArrayBox &aofs,
                       int aofs_ind,
                       int iconserv, int state_ind, const int *bc,
-                      AdvectionScheme scheme, amrex::FArrayBox &vol );
+                      amrex::FArrayBox &vol );
 
     // compute the advective derivative from fluxes
     void ComputeAofs (const amrex::Box& grd,
