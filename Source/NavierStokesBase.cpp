@@ -10,6 +10,8 @@
 #include <iamr_mol.H>
 #endif
 
+#include <godunov.H>
+
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 #include <NAVIERSTOKESBASE_F.H>
@@ -3619,6 +3621,18 @@ NavierStokesBase::velocity_advection (Real dt)
             edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
         }
 
+        ParmParse pp("debug_flags");
+        int new_algo = 1;
+        pp.query("new_algo", new_algo);
+        if (new_algo)
+        {
+            Print() << "NEW ALGO" << std::endl;
+        }
+        else
+        {
+            Print() << "OLD ALGO" << std::endl;
+        }
+
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -3695,6 +3709,16 @@ NavierStokesBase::velocity_advection (Real dt)
                 S_term[U_mfi].copy<RunOn::Host>(S);
             }
 
+            Vector<BCRec> math_bcs(AMREX_SPACEDIM);
+            math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
+
+            amrex::Gpu::DeviceVector<int> iconserv;
+            iconserv.resize(AMREX_SPACEDIM, 0);
+
+            for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+                iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+
+
             //
             // Compute Aofs
             //
@@ -3703,36 +3727,87 @@ NavierStokesBase::velocity_advection (Real dt)
 
                 const Box& bx=U_mfi.tilebox();
 
-                AMREX_D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-                             bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-                             bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-                for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+                if (new_algo)
                 {
-                    int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+                    FArrayBox tmpfab(amrex::grow(bx,1), 14*AMREX_SPACEDIM+1); // only one component: ncomponents*14+1
 
-                    // WARNING: FPU argument is not used because FPU is by default in AdvectState
-                    godunov->AdvectState(bx, dx, dt,
-                                         area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],
-                                         area[1][U_mfi], u_mac[1][U_mfi], cfluxes[1][U_mfi],
-#if (AMREX_SPACEDIM == 3)
-                                         area[2][U_mfi], u_mac[2][U_mfi], cfluxes[2][U_mfi],
-#endif
-                                         S_term[U_mfi], forcing_term[U_mfi], (*aofs)[U_mfi], comp,
-                                         (*aofs)[U_mfi],comp, use_conserv_diff,
-                                         comp,bndry[comp].dataPtr(),volume[U_mfi]);
-                    if (do_reflux)
+                    godunov::compute_godunov_advection(bx, AMREX_SPACEDIM,
+                                                       aofs->array(U_mfi,Xvel),
+                                                       S_term.array(U_mfi),
+                                                       u_mac[0].array(U_mfi),
+                                                       u_mac[1].array(U_mfi),
+                                                       u_mac[2].array(U_mfi),
+                                                       forcing_term.array(U_mfi),
+                                                       geom, dt, &math_bcs[0],
+                                                       iconserv.data(),
+                                                       tmpfab.dataPtr(), false, true);
+
+                    Gpu::streamSynchronize();
+                }
+                else
+                {
+
+                    for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                     {
-                        for (int d = 0; d < AMREX_SPACEDIM; d++)
+                        int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+
+
+                        AMREX_D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+                                     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+                                     bndry[2] = fetchBCArray(State_Type,bx,2,1););
+
+
+                        // WARNING: FPU argument is not used because FPU is by default in AdvectState
+                        godunov->AdvectState(bx, dx, dt,
+                                             area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],
+                                             area[1][U_mfi], u_mac[1][U_mfi], cfluxes[1][U_mfi],
+#if (AMREX_SPACEDIM == 3)
+                                             area[2][U_mfi], u_mac[2][U_mfi], cfluxes[2][U_mfi],
+#endif
+                                             S_term[U_mfi], forcing_term[U_mfi], (*aofs)[U_mfi], comp,
+                                             (*aofs)[U_mfi],comp, use_conserv_diff,
+                                             comp,bndry[comp].dataPtr(),volume[U_mfi]);
+
+
+                        if (do_reflux)
                         {
-                            const Box& ebx = U_mfi.nodaltilebox(d);
-                            fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,comp,1);
+                            for (int d = 0; d < AMREX_SPACEDIM; d++)
+                            {
+                                const Box& ebx = U_mfi.nodaltilebox(d);
+                                fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,comp,1);
+                            }
                         }
                     }
                 }
             }
 
         } // end OMP region
+
+
+        for (MFIter mfi(*aofs,false); mfi.isValid(); ++mfi)
+        {
+            Box bx = mfi.validbox();
+            const auto& aofs_arr = aofs->array(mfi);
+
+            amrex::ParallelFor(bx, [aofs_arr]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                std::printf("AOFS AT %d %d %d %e %e %e \n", i, j, k, aofs_arr(i,j,k,0),aofs_arr(i,j,k,1),aofs_arr(i,j,k,2));
+                                   // if (i==127 and j==63 and k==0 )
+                                   // {
+                                   //     std::printf("VMAC AT %d %d %d %e \n", i, j, k, umac(i,j,k));
+                                   // }
+            });
+        }
+
+        Print() << "norm0(aofs) MAC = "
+                << aofs -> norm0(0,0,false,true) << " "
+                << aofs -> norm0(1,0,false,true) << " "
+                << aofs -> norm0(2,0,false,true) << std::endl;
+
+        Print() << "norm1(u,v,w) MAC = "
+                << aofs -> norm1(0,geom.periodicity(),true) << " "
+                << aofs -> norm1(1,geom.periodicity(),true) << " "
+                << aofs -> norm1(2,geom.periodicity(),true) << std::endl;
 #else
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

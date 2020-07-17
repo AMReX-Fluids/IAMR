@@ -487,22 +487,20 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
     {
         if (iconserv[n])
         {
-            dqdt(i,j,k,n) = dxinv[0]*( umac(i  ,j,k)*qx(i  ,j,k,n) -
-                                       umac(i+1,j,k)*qx(i+1,j,k,n) )
-                +           dxinv[1]*( vmac(i,j  ,k)*qy(i,j  ,k,n) -
-                                       vmac(i,j+1,k)*qy(i,j+1,k,n))
-                +           dxinv[2]*( wmac(i,j,k  )*qz(i,j,k  ,n) -
-                                       wmac(i,j,k+1)*qz(i,j,k+1,n) );
+            dqdt(i,j,k,n) =  dxinv[0]*( umac(i+1,j,k)*qx(i+1,j,k,n) -
+                                        umac(i  ,j,k)*qx(i  ,j,k,n) )
+                +            dxinv[1]*( vmac(i,j+1,k)*qy(i,j+1,k,n) -
+                                        vmac(i,j  ,k)*qy(i,j  ,k,n) )
+                +            dxinv[2]*( wmac(i,j,k+1)*qz(i,j,k+1,n) -
+                                        wmac(i,j,k  )*qz(i,j,k  ,n) );
         } else {
-            dqdt(i,j,k,n) = 0.5*dxinv[0]*(umac(i,j,k  ) + umac(i+1,j  ,k  ))
-                *                        (qx  (i,j,k,n) - qx  (i+1,j  ,k  ,n))
-                +           0.5*dxinv[1]*(vmac(i,j,k  ) + vmac(i  ,j+1,k  ))
-                *                        (qy  (i,j,k,n) - qy  (i  ,j+1,k  ,n))
-                +           0.5*dxinv[2]*(wmac(i,j,k  ) + wmac(i  ,j  ,k+1))
-                *                        (qz  (i,j,k,n) - qz  (i  ,j  ,k+1,n));
+            dqdt(i,j,k,n) = 0.5*dxinv[0]*(umac(i+1,j,k  ) + umac(i,j,k  ))
+                *                        (qx  (i+1,j,k,n) - qx  (i,j,k,n))
+                +           0.5*dxinv[1]*(vmac(i,j+1,k  ) + vmac(i,j,k  ))
+                *                        (qy  (i,j+1,k,n) - qy  (i,j,k,n))
+                +           0.5*dxinv[2]*(wmac(i,j,k+1  ) + wmac(i,j,k  ))
+                *                        (qz  (i,j,k+1,n) - qz  (i,j,k,n));
        }
-
-        dqdt(i,j,k,n) = - dqdt(i,j,k,n);
 
     });
 }
