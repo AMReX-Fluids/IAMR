@@ -578,14 +578,14 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         if ( (j==dlo.y) and (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap) )
         {
-#ifndef ALLOWXINFLOW
+#ifndef ALLOWYINFLOW
             sth = amrex::min(sth,0.);
 #endif
             stl = sth;
         }
         if ( (j==dhi.y+1) and (bc.hi(1) == BCType::foextrap || bc.hi(1) == BCType::hoextrap) )
         {
-#ifndef ALLOWXINFLOW
+#ifndef ALLOWYINFLOW
             stl = amrex::max(stl,0.);
 #endif
             sth = stl;
@@ -673,14 +673,14 @@ void godunov::predict_godunov_on_box (Box const& bx, int ncomp,
 
         if ( (k==dlo.z) and (bc.lo(2) == BCType::foextrap || bc.lo(2) == BCType::hoextrap) )
         {
-#ifndef ALLOWXINFLOW
+#ifndef ALLOWZINFLOW
             sth = amrex::min(sth,0.);
 #endif
             stl = sth;
         }
         if ( (k==dhi.z+1) and (bc.hi(2) == BCType::foextrap || bc.hi(2) == BCType::hoextrap) )
         {
-#ifndef ALLOWXINFLOW
+#ifndef ALLOWZINFLOW
             stl = amrex::max(stl,0.);
 #endif
             sth = stl;
