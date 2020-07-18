@@ -579,8 +579,7 @@ MOL::AreaWeightFluxes( D_DECL( Box const& xbx,
                        int ncomp,
                        const Real* dx )
 {
-
-    Real  area[AMREX_SPACEDIM];
+    Array<Real,AMREX_SPACEDIM> area;
 #if ( AMREX_SPACEDIM == 3 )
     area[0] = dx[1]*dx[2];
     area[1] = dx[0]*dx[2];
@@ -884,8 +883,7 @@ MOL::EB_AreaWeightFluxes ( D_DECL( Box const& xbx,
                            int ncomp,
                            const Real* dx )
 {
-
-    Real  area[AMREX_SPACEDIM];
+    Array<Real,AMREX_SPACEDIM> area;
 #if ( AMREX_SPACEDIM == 3 )
     area[0] = dx[1]*dx[2];
     area[1] = dx[0]*dx[2];
