@@ -2599,6 +2599,13 @@ contains
                do i = imin,  imax+1
                   xlo(i,j,k) = s(i-1,j,k,L) + (half  - dthx*uedge(i,j,k))*sx(i-1,j,k)
                   xhi(i,j,k) = s(i,  j,k,L) + (-half - dthx*uedge(i,j,k))*sx(i,  j,k)
+                  if (i==imin .and. bc(1,1,L).eq.EXT_DIR) then
+                     xlo(i,j,k) = s(i-1,j,k,L)
+                     if ((n+L-1).eq.XVEL) xhi(i,j,k) = s(i-1,j,k,L)
+                  else if (i==imax+1 .and. bc(1,2,L).eq.EXT_DIR) then
+                     xhi(i,j,k) = s(i,  j,k,L)
+                     if ((n+L-1).eq.XVEL) xlo(i,j,k) = s(i,  j,k,L)
+                  endif
                end do
             end do
          end do
@@ -2657,6 +2664,13 @@ contains
                do i = imin-1,imax+1
                   ylo(i,j,k) = s(i,j-1,k,L) + (half  - dthy*vedge(i,j,k))*sy(i,j-1,k)
                   yhi(i,j,k) = s(i,j, k,L)  + (-half - dthy*vedge(i,j,k))*sy(i,j, k)
+                  if (j==jmin .and. bc(2,1,L).eq.EXT_DIR) then
+                     ylo(i,j,k) = s(i,j-1,k,L)
+                     if ((n+L-1).eq.YVEL) yhi(i,j,k) = s(i,j-1,k,L)
+                  else if (j==jmax+1 .and. bc(2,2,L).eq.EXT_DIR) then
+                     yhi(i,j,k) = s(i,  j,k,L)
+                     if ((n+L-1).eq.YVEL) ylo(i,j,k) = s(i,  j,k,L)
+                  endif
                end do
             end do
          end do
@@ -2715,6 +2729,13 @@ contains
                do i = imin-1,imax+1
                   zlo(i,j,k) = s(i,j,k-1,L) + (half  - dthz*wedge(i,j,k))*sz(i,j,k-1)
                   zhi(i,j,k) = s(i,j,k  ,L) + (-half - dthz*wedge(i,j,k))*sz(i,j,k  )
+                  if (k==kmin .and. bc(3,1,L).eq.EXT_DIR) then
+                     zlo(i,j,k) = s(i,j,k-1,L)
+                     if ((n+L-1).eq.ZVEL) zhi(i,j,k) = s(i,j,k-1,L)
+                  else if (k==kmax+1 .and. bc(3,2,L).eq.EXT_DIR) then
+                     zhi(i,j,k) = s(i,  j,k,L)
+                     if ((n+L-1).eq.ZVEL) zlo(i,j,k) = s(i,  j,k,L)
+                  endif
                end do
             end do
          end do
