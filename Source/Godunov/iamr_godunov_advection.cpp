@@ -9,6 +9,9 @@ void
 godunov::compute_godunov_advection (Box const& bx, int ncomp,
                                     Array4<Real> const& dqdt,
                                     Array4<Real const> const& q,
+                                    Array4<Real> const& q_x,
+                                    Array4<Real> const& q_y,
+                                    Array4<Real> const& q_z,
                                     Array4<Real const> const& umac,
                                     Array4<Real const> const& vmac,
                                     Array4<Real const> const& wmac,
@@ -81,7 +84,6 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
             Godunov_ppm_fpu_z(i, j, k, n, l_dt, dz, Imz(i,j,k,n), Ipz(i,j,k,n),
                               q, wmac, pbc[n], dlo.z, dhi.z);
         });
-
     // Use PLM to generate Im and Ip */
     } else {
 
@@ -283,6 +285,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Real temp = (umac(i,j,k) >= 0.) ? stl : sth;
         temp = (std::abs(umac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         qx(i,j,k,n) = temp;
+        q_x(i,j,k,n) = temp*dy*dz*umac(i,j,k);
     });
 
     //
@@ -382,6 +385,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Real temp = (vmac(i,j,k) >= 0.) ? stl : sth;
         temp = (std::abs(vmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         qy(i,j,k,n) = temp;
+        q_y(i,j,k,n) = temp*dx*dz*vmac(i,j,k);
     });
 
     //
@@ -480,6 +484,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Real temp = (wmac(i,j,k) >= 0.) ? stl : sth;
         temp = (std::abs(wmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         qz(i,j,k,n) = temp;
+        q_z(i,j,k,n) = temp*dx*dy*wmac(i,j,k);
     });
 
     amrex::ParallelFor(bx, ncomp,

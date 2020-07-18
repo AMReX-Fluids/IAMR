@@ -3618,6 +3618,7 @@ NavierStokesBase::velocity_advection (Real dt)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
             cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
+            cfluxes[i].setVal(0.0);
             edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
         }
 
@@ -3734,6 +3735,9 @@ NavierStokesBase::velocity_advection (Real dt)
                     godunov::compute_godunov_advection(bx, AMREX_SPACEDIM,
                                                        aofs->array(U_mfi,Xvel),
                                                        S_term.array(U_mfi),
+                                                       cfluxes[0].array(U_mfi),
+                                                       cfluxes[1].array(U_mfi),
+                                                       cfluxes[2].array(U_mfi),
                                                        u_mac[0].array(U_mfi),
                                                        u_mac[1].array(U_mfi),
                                                        u_mac[2].array(U_mfi),
