@@ -3690,10 +3690,6 @@ NavierStokesBase::velocity_advection (Real dt)
                 // FArrayBox& divufab = divu_fp[U_mfi];
                 // FArrayBox& aofsfab = (*aofs)[U_mfi];
 
-                // D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][U_mfi];,
-                //        FArrayBox& u_mac_fab1 = u_mac[1][U_mfi];,
-                //        FArrayBox& u_mac_fab2 = u_mac[2][U_mfi];);
-
                 for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                 {
                     int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
@@ -3717,7 +3713,10 @@ NavierStokesBase::velocity_advection (Real dt)
             iconserv.resize(AMREX_SPACEDIM, 0);
 
             for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+            {
                 iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+                //Print() << "iconserv = " << iconserv[comp] << std::endl;
+            }
 
 
             //
@@ -3732,6 +3731,11 @@ NavierStokesBase::velocity_advection (Real dt)
                 {
                     FArrayBox tmpfab(amrex::grow(bx,1), 14*AMREX_SPACEDIM+1); // only one component: ncomponents*14+1
 
+                    //
+                    //
+                    //  ATTENTION!!!!!!!! DT IS SET TO 0.0 RIGHT NOW
+                    //
+                    //
                     godunov::compute_godunov_advection(bx, AMREX_SPACEDIM,
                                                        aofs->array(U_mfi,Xvel),
                                                        S_term.array(U_mfi),
@@ -3742,15 +3746,26 @@ NavierStokesBase::velocity_advection (Real dt)
                                                        u_mac[1].array(U_mfi),
                                                        u_mac[2].array(U_mfi),
                                                        forcing_term.array(U_mfi),
-                                                       geom, dt, &math_bcs[0],
+                                                       geom, 0.0, &math_bcs[0],
                                                        iconserv.data(),
                                                        tmpfab.dataPtr(), false, true);
 
                     Gpu::streamSynchronize();
+
+                    if (do_reflux)
+                    {
+                        for (int d = 0; d < AMREX_SPACEDIM; d++)
+                        {
+                            const Box& ebx = U_mfi.nodaltilebox(d);
+                            fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,0,AMREX_SPACEDIM);
+                        }
+                    }
+
                 }
                 else
                 {
 
+                    Print() << "NEW ALGORITHM ==================" << std::endl;
                     for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                     {
                         int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
@@ -3760,9 +3775,13 @@ NavierStokesBase::velocity_advection (Real dt)
                                      bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                                      bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-
+                    //
+                    //
+                    //  ATTENTION!!!!!!!! DT IS SET TO 0.0 RIGHT NOW
+                    //
+                    //
                         // WARNING: FPU argument is not used because FPU is by default in AdvectState
-                        godunov->AdvectState(bx, dx, dt,
+                        godunov->AdvectState(bx, dx, 0.0,
                                              area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],
                                              area[1][U_mfi], u_mac[1][U_mfi], cfluxes[1][U_mfi],
 #if (AMREX_SPACEDIM == 3)
@@ -3788,30 +3807,31 @@ NavierStokesBase::velocity_advection (Real dt)
         } // end OMP region
 
 
-        for (MFIter mfi(*aofs,false); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cfluxes[0],false); mfi.isValid(); ++mfi)
         {
             Box bx = mfi.validbox();
-            const auto& aofs_arr = aofs->array(mfi);
-
-            amrex::ParallelFor(bx, [aofs_arr]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            const auto& cf0 = fluxes[0].array(mfi);
+            // const auto& cf1 = cfluxes[1].array(mfi);
+            // const auto& cf2 = cfluxes[2].array(mfi);
+            amrex::ParallelFor(bx, [cf0]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                std::printf("AOFS AT %d %d %d %e %e %e \n", i, j, k, aofs_arr(i,j,k,0),aofs_arr(i,j,k,1),aofs_arr(i,j,k,2));
-                                   // if (i==127 and j==63 and k==0 )
-                                   // {
-                                   //     std::printf("VMAC AT %d %d %d %e \n", i, j, k, umac(i,j,k));
-                                   // }
+                //std::printf("CF1 AT %d %d %d %e %e %e \n", i, j, k, cf0(i,j,k,0),cf0(i,j,k,1),cf0(i,j,k,2));
+                if (i==1 and j==13 and k==3 )
+                {
+                    std::printf("Flux xx AT %d %d %d %e \n", i, j, k, cf0(i,j,k,0));
+                }
             });
         }
 
-        Print() << "norm0(aofs) MAC = "
-                << aofs -> norm0(0,0,false,true) << " "
-                << aofs -> norm0(1,0,false,true) << " "
-                << aofs -> norm0(2,0,false,true) << std::endl;
+        // Print() << "norm0(aofs) MAC = "
+        //         << aofs -> norm0(0,0,false,true) << " "
+        //         << aofs -> norm0(1,0,false,true) << " "
+        //         << aofs -> norm0(2,0,false,true) << std::endl;
 
-        Print() << "norm1(u,v,w) MAC = "
-                << aofs -> norm1(0,geom.periodicity(),true) << " "
-                << aofs -> norm1(1,geom.periodicity(),true) << " "
-                << aofs -> norm1(2,geom.periodicity(),true) << std::endl;
+        // Print() << "norm1(u,v,w) MAC = "
+        //         << aofs -> norm1(0,geom.periodicity(),true) << " "
+        //         << aofs -> norm1(1,geom.periodicity(),true) << " "
+        //         << aofs -> norm1(2,geom.periodicity(),true) << std::endl;
 #else
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

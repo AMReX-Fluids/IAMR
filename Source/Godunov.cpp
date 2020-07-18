@@ -256,6 +256,7 @@ Godunov::AdvectState (const Box&  box,
     const int state_fidx = state_ind+1;
     const int nc = 1;
 
+    Print() << "INSIDE AdvectState >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << std::endl;
     extrap_state_to_faces(box.loVect(),box.hiVect(),
                           BL_TO_FORTRAN_N_ANYD(S,fab_ind), &nc,
                           BL_TO_FORTRAN_N_ANYD(tforces,fab_ind),
