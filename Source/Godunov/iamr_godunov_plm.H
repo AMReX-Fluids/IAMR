@@ -156,7 +156,7 @@ void Godunov_plm_fpu_z (const int i, const int j, const int k, const int n,
         if (k == domain_klo && (bc.lo(2) == BCType::ext_dir))
         {
             wmns = S(i,j,k-1,n);
-            if ( ZVEL==2 and is_velocity )
+            if ( n == ZVEL and is_velocity )
             {
                 wpls = S(i,j,k-1,n);
             }
@@ -169,7 +169,7 @@ void Godunov_plm_fpu_z (const int i, const int j, const int k, const int n,
         else if (k == domain_khi+1 && (bc.hi(2) == BCType::ext_dir))
         {
             wpls = S(i,j,k  ,n);
-            if ( ZVEL==2 and is_velocity )
+            if ( n == ZVEL and is_velocity )
             {
                 wmns = S(i,j,k  ,n);
             }
