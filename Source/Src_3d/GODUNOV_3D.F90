@@ -3383,9 +3383,9 @@ contains
                stzhi(kmin) = zero
             end if
 
-            if (bc(3,1,L).eq.EXT_DIR ) then
-               stzlo(kmin) = s(i,j,kmin-1,L)
-               if ((n+L-1).eq.ZVEL) stzhi(kmin) = s(i,j,kmin-1,L)
+            if (bc(3,2,L).eq.EXT_DIR ) then
+               if ((n+L-1).eq.ZVEL) stzlo(kmax+1) = s(i,j,kmax+1,L)
+               stzhi(kmax+1) = s(i,j,kmax+1,L)
             else if (bc(3,2,L).eq.FOEXTRAP.or.bc(3,2,L).eq.HOEXTRAP) then
                if ((n+L-1).eq.ZVEL) then
                   if (wedge(i,j,kmax+1).le.zero) then
