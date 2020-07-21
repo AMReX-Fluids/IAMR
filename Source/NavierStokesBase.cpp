@@ -3746,9 +3746,9 @@ NavierStokesBase::velocity_advection (Real dt)
                                                        u_mac[1].array(U_mfi),
                                                        u_mac[2].array(U_mfi),
                                                        forcing_term.array(U_mfi),
-                                                       geom, 0.0, &math_bcs[0],
+                                                       geom, dt, &math_bcs[0],
                                                        iconserv.data(),
-                                                       tmpfab.dataPtr(), false, true);
+                                                       tmpfab.dataPtr(), true, true);
 
                     Gpu::streamSynchronize();
 
@@ -3765,7 +3765,6 @@ NavierStokesBase::velocity_advection (Real dt)
                 else
                 {
 
-                    Print() << "NEW ALGORITHM ==================" << std::endl;
                     for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                     {
                         int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
@@ -3781,7 +3780,7 @@ NavierStokesBase::velocity_advection (Real dt)
                     //
                     //
                         // WARNING: FPU argument is not used because FPU is by default in AdvectState
-                        godunov->AdvectState(bx, dx, 0.0,
+                        godunov->AdvectState(bx, dx, dt,
                                              area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],
                                              area[1][U_mfi], u_mac[1][U_mfi], cfluxes[1][U_mfi],
 #if (AMREX_SPACEDIM == 3)
