@@ -1118,7 +1118,13 @@ contains
             do i = imin,  imax+1
                xlo(i,j) = s(i-1,j,L) + (half - dthx*uedge(i,j))*sx(i-1,j)
                xhi(i,j) = s(i,  j,L) - (half + dthx*uedge(i,j))*sx(i,  j)
-
+               if (i==imin .and. bc(1,1,L).eq.EXT_DIR) then
+                  xlo(i,j) = s(i-1,j,L)
+                  if ((n+L-1).eq.XVEL) xhi(i,j) = s(i-1,j,L)
+               else if (i==imax+1 .and. bc(1,2,L).eq.EXT_DIR) then
+                  xhi(i,j) = s(i,  j, L)
+                  if ((n+L-1).eq.XVEL) xlo(i,j) = s(i,  j,L)
+               endif
 ! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG COMPUTE XLO ',i,j,xlo(i,j),s(i-1,j,L),uedge(i,j),sx(i-1,j)
@@ -1173,7 +1179,13 @@ contains
             do i = imin-1,imax+1
                ylo(i,j) = s(i,j-1,L) + (half - dthy*vedge(i,j))*sy(i,j-1)
                yhi(i,j) = s(i,j  ,L) - (half + dthy*vedge(i,j))*sy(i,j)
-
+               if (j==jmin .and. bc(2,1,L).eq.EXT_DIR) then
+                  ylo(i,j) = s(i,j-1,L)
+                  if ((n+L-1).eq.YVEL) yhi(i,j) = s(i,j-1,L)
+               else if (j==jmax+1 .and. bc(2,2,L).eq.EXT_DIR) then
+                  yhi(i,j) = s(i,  j,L)
+                  if ((n+L-1).eq.YVEL) ylo(i,j) = s(i,  j,L)
+               endif
 ! EM_DEBUG
 !if ((i < 4) .and.((j > 14).and.(j < 18))) then
 !write(*,*) 'DEBUG COMPUTE YLO ',i,j,ylo(i,j),s(i,j-1,L),vedge(i,j),sy(i,j-1)
@@ -1256,13 +1268,12 @@ contains
                end if
             end do
 
-            if (bc(1,1,L).eq.EXT_DIR .and. uedge(imin,j).ge.0.d0) then
-               stxhi(imin) = s(imin-1,j,L)
-               stxlo(imin) = s(imin-1,j,L)
-            else if (bc(1,1,L).eq.EXT_DIR .and. uedge(imin,j).lt.0.d0) then
-               stxlo(imin) = stxhi(imin)
-            else if (bc(1,1,L).eq.FOEXTRAP.or.bc(1,1,L).eq.HOEXTRAP) then
-               if (n.eq.XVEL) then
+
+               if (bc(1,1,L).eq.EXT_DIR) then
+                  if (n+L-1.eq.XVEL) stxhi(imin) = s(imin-1,j,L)
+                  stxlo(imin) = s(imin-1,j,L)
+               else if (bc(1,1,L).eq.FOEXTRAP.or.bc(1,1,L).eq.HOEXTRAP) then
+                  if (n+L-1.eq.XVEL) then
                   if (uedge(imin,j).ge.0.d0) then
 #ifndef ALLOWXINFLOW
 !c     prevent backflow
@@ -1279,13 +1290,12 @@ contains
                stxhi(imin) = 0.d0
                stxlo(imin) = 0.d0
             end if
-            if (bc(1,2,L).eq.EXT_DIR .and. uedge(imax+1,j).le.0.d0) then
-               stxlo(imax+1) = s(imax+1,j,L)
+
+            if (bc(1,2,L).eq.EXT_DIR) then
+               if (n+L-1.eq.XVEL) stxlo(imax+1) = s(imax+1,j,L)
                stxhi(imax+1) = s(imax+1,j,L)
-            else if (bc(1,2,L).eq.EXT_DIR .and. uedge(imax+1,j).gt.0.d0) then
-               stxhi(imax+1) = stxlo(imax+1)
             else if (bc(1,2,L).eq.FOEXTRAP.or.bc(1,2,L).eq.HOEXTRAP) then
-               if (n.eq.XVEL) then
+               if (n+L-1.eq.XVEL) then
                   if (uedge(imax+1,j).le.0.d0) then
 #ifndef ALLOWXINFLOW
 !c     prevent backflow
@@ -1360,13 +1370,11 @@ contains
 
             end do
 
-            if (bc(2,1,L).eq.EXT_DIR .and. vedge(i,jmin).ge.0.d0) then
-               styhi(jmin) = s(i,jmin-1,L)
+            if (bc(2,1,L).eq.EXT_DIR) then
+               if (n+L-1.eq.YVEL) styhi(jmin) = s(i,jmin-1,L)
                stylo(jmin) = s(i,jmin-1,L)
-            else if (bc(2,1,L).eq.EXT_DIR .and. vedge(i,jmin).lt.0.d0) then
-               stylo(jmin) = styhi(jmin)
             else if (bc(2,1,L).eq.FOEXTRAP.or.bc(2,1,L).eq.HOEXTRAP) then
-               if (n.eq.YVEL) then
+               if (n+L-1.eq.YVEL) then
                   if (vedge(i,jmin).ge.0.d0) then
 #ifndef ALLOWYINFLOW
 !c     prevent backflow
@@ -1384,13 +1392,11 @@ contains
                stylo(jmin) = 0.d0
             end if
 
-            if (bc(2,2,L).eq.EXT_DIR .and. vedge(i,jmax+1).le.0.d0) then
-               stylo(jmax+1) = s(i,jmax+1,L)
+            if (bc(2,2,L).eq.EXT_DIR) then
+               if (n+L-1.eq.YVEL) stylo(jmax+1) = s(i,jmax+1,L)
                styhi(jmax+1) = s(i,jmax+1,L)
-            else if (bc(2,2,L).eq.EXT_DIR .and. vedge(i,jmax+1).gt.0.d0) then
-               styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2,L).eq.FOEXTRAP.or.bc(2,2,L).eq.HOEXTRAP) then
-               if (n.eq.YVEL) then
+                  if (n+L-1.eq.YVEL) then
                   if (vedge(i,jmax+1).le.0.d0) then
 #ifndef ALLOWYINFLOW
 !c     prevent backflow
