@@ -1203,8 +1203,8 @@ contains
             end do
          end do
          if (iconserv(L) .eq. 1) then
-           do j = jmin-1,jmax+1
-            do i = imin,  imax+1
+           do j = jmin,jmax+1
+            do i = imin-1,  imax+1
                ylo(i,j) = ylo(i,j) - dth*s(i,j-1,L)*divu(i,j-1)
                yhi(i,j) = yhi(i,j) - dth*s(i,j  ,L)*divu(i,j  )
             end do
