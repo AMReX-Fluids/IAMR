@@ -1240,19 +1240,8 @@ contains
                       + s(i,j,L)*(vedge(i,j+1)-vedge(i,j))/hy&
                       - s(i,j,L)*divu(i,j)
                else
-                  if (vedge(i,j)*vedge(i,j+1).le.0.d0) then
-                     vbar = 0.5d0*(vedge(i,j)+vedge(i,j+1))
-                     if (vbar.lt.0.d0) then
-                        inc = 1
-                     else
-                        inc = 0
-                     endif
-                     tr = vbar*(s(i,j+inc,L)-s(i,j+inc-1,L))/hy
-                  else
-                     tr = half*(vedge(i,j+1) + vedge(i,j)) *&
+                  st = - half*(vedge(i,j+1) + vedge(i,j)) *&
                          (  ylo(i,j+1) - ylo(i,j)  ) / hy
-                  endif
-                  st =  -tr
                endif
 
                if (ppm_type .gt. 0) then
@@ -1340,19 +1329,8 @@ contains
 
                else
 
-                  if (uedge(i,j)*uedge(i+1,j).le.0.d0) then
-                     ubar = 0.5d0*(uedge(i,j)+uedge(i+1,j))
-                     if (ubar.lt.0.d0) then
-                        inc = 1
-                     else
-                        inc = 0
-                     endif
-                     tr = ubar*(s(i+inc,j,L)-s(i+inc-1,j,L))/hx
-                  else
-                     tr = half*(uedge(i+1,j) + uedge(i,j)) *&
+                  st  = - half*(uedge(i+1,j) + uedge(i,j)) *&
                                 (xlo(i+1,j) -   xlo(i,j)  ) / hx
-                  endif
-                  st = -tr
 
                endif
 
