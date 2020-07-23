@@ -3786,7 +3786,7 @@ NavierStokesBase::velocity_advection (Real dt)
 #if (AMREX_SPACEDIM == 3)
                                              area[2][U_mfi], u_mac[2][U_mfi], cfluxes[2][U_mfi],
 #endif
-                                             S_term[U_mfi], forcing_term[U_mfi], (*aofs)[U_mfi], comp,
+                                             S_term[U_mfi], forcing_term[U_mfi], divu_fp[U_mfi], comp,
                                              (*aofs)[U_mfi],comp, use_conserv_diff,
                                              comp,bndry[comp].dataPtr(),volume[U_mfi]);
 
