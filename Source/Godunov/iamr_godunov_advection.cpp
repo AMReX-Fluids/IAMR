@@ -359,7 +359,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         qx(i,j,k,n) = temp;
         q_x(i,j,k,n) = temp*dy*umac(i,j,k);
 #if (AMREX_SPACEDIM==3)
-        q_x(i,j,k,n) *= dz
+        q_x(i,j,k,n) *= dz;
 #endif
     });
 
