@@ -1389,10 +1389,10 @@ NavierStokesBase::estTimeStep ()
        amrex::ParallelFor(bx, [rho, gradp, force] 
        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
        {
-          Real rho_pt = rho(i,j,k);
+          Real rho_inv = 1.0/rho(i,j,k);
           for (int n = 0; n < AMREX_SPACEDIM; n++) {
-             force(i,j,k,n) += gradp(i,j,k,n);
-             force(i,j,k,n) *= rho_pt;
+             force(i,j,k,n) -= gradp(i,j,k,n);
+             force(i,j,k,n) *= rho_inv;
           } 
        });
     }
