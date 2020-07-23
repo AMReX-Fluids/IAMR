@@ -19,6 +19,17 @@ enum AdvectionScheme {PRE_MAC, FPU, BDS};
 class Godunov {
 public:      // public access functions
 
+    // flags
+
+    static int verbose;
+    static int use_forces_in_trans;
+
+// algorithm control parameters
+
+    static int  slope_order;
+    static int  ppm_type;
+    static int  corner_couple;
+
     // =============================================================
     // Setup functions follow
     // =============================================================
@@ -231,16 +242,16 @@ protected:   // protected data members
     amrex::Box zflux_bx;
 #endif
 
-// flags
+// // flags
 
-    static int verbose;
-    static int use_forces_in_trans;
+//     static int verbose;
+//     static int use_forces_in_trans;
 
-// algorithm control parameters
+// // algorithm control parameters
 
-    static int  slope_order;
-    static int  ppm_type;
-    static int  corner_couple;
+//     static int  slope_order;
+//     static int  ppm_type;
+//     static int  corner_couple;
 
 };
 

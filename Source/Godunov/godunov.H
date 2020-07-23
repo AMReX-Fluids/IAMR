@@ -119,8 +119,8 @@ namespace godunov {
                                     amrex::Real dt,
                                     amrex::BCRec const* d_bcrec,
                                     int const* iconserv,
-                                    amrex::Real* p, bool use_ppm, bool is_velocity,
-                                    bool use_forces_in_trans);
+                                    amrex::Real* p, const bool use_ppm, bool is_velocity,
+                                    const bool use_forces_in_trans);
 
 } // namespace godunov
 

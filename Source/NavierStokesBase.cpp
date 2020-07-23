@@ -3749,7 +3749,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                                        forcing_term.array(U_mfi),
                                                        geom, dt, &math_bcs[0],
                                                        iconserv.data(),
-                                                       tmpfab.dataPtr(), true, true, false);
+                                                       tmpfab.dataPtr(), (Godunov::ppm_type > 0), true, Godunov::use_forces_in_trans);
 
                     Gpu::streamSynchronize();
 
