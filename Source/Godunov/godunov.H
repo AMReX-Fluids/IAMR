@@ -113,6 +113,7 @@ namespace godunov {
                                     AMREX_D_DECL(amrex::Array4<amrex::Real const> const& umac,
                                                  amrex::Array4<amrex::Real const> const& vmac,
                                                  amrex::Array4<amrex::Real const> const& wmac),
+                                    amrex::Array4<amrex::Real const> const& divu,
                                     amrex::Array4<amrex::Real const> const& fq,
                                     amrex::Geometry geom,
                                     amrex::Real dt,

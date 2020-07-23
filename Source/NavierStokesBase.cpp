@@ -3729,7 +3729,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
                 if (new_algo)
                 {
-                    FArrayBox tmpfab(amrex::grow(bx,1), 14*AMREX_SPACEDIM+1); // only one component: ncomponents*14+1
+                    FArrayBox tmpfab(amrex::grow(bx,1), 14*AMREX_SPACEDIM); // only one component: ncomponents*14
 
                     //
                     //
@@ -3745,6 +3745,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                                        AMREX_D_DECL(u_mac[0].array(U_mfi),
                                                                     u_mac[1].array(U_mfi),
                                                                     u_mac[2].array(U_mfi)),
+                                                       divu_fp.array(U_mfi),
                                                        forcing_term.array(U_mfi),
                                                        geom, dt, &math_bcs[0],
                                                        iconserv.data(),

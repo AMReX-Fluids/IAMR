@@ -15,6 +15,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
                                     AMREX_D_DECL( Array4<Real const> const& umac,
                                                   Array4<Real const> const& vmac,
                                                   Array4<Real const> const& wmac),
+                                    Array4<Real const> const& divu,
                                     Array4<Real const> const& fq,
                                     Geometry geom,
                                     Real l_dt,
@@ -77,8 +78,6 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
     Array4<Real> zhi = makeArray4(p, zebox, ncomp);
     p +=         zhi.size();
 #endif
-    Array4<Real> divu = makeArray4(p, bxg1, 1);
-    p +=         divu.size();
     Array4<Real> xyzlo = makeArray4(p, bxg1, ncomp);
     p +=         xyzlo.size();
     Array4<Real> xyzhi = makeArray4(p, bxg1, ncomp);
@@ -127,9 +126,6 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
 #endif
     }
 
-    amrex::ParallelFor(Box(divu), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-        divu(i,j,k) = 0.0;
-    });
 
     amrex::ParallelFor(
         xebox, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
