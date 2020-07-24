@@ -209,9 +209,6 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
 #endif
         );
 
-    AMREX_D_TERM( Array4<Real> xedge = Imx;,
-                  Array4<Real> yedge = Imy;,
-                  Array4<Real> zedge = Imz;);
 
     // We can reuse the space in Ipx, Ipy and Ipz.
 
@@ -231,7 +228,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Godunov_corner_couple_zy(l_zylo, l_zyhi,
                                  i, j, k, n, l_dt, dy, iconserv[n],
                                  zlo(i,j,k,n), zhi(i,j,k,n),
-                                 q, divu, vmac, yedge);
+                                 q, divu, vmac, Imy);
 
         Real wad = wmac(i,j,k);
         Godunov_trans_zbc(i, j, k, n, q, l_zylo, l_zyhi, wad, bc.lo(2), bc.hi(2), dlo.z, dhi.z, is_velocity);
@@ -248,7 +245,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Godunov_corner_couple_yz(l_yzlo, l_yzhi,
                                  i, j, k, n, l_dt, dz, iconserv[n],
                                  ylo(i,j,k,n), yhi(i,j,k,n),
-                                 q, divu, wmac, zedge);
+                                 q, divu, wmac, Imz);
 
         Real vad = vmac(i,j,k);
         Godunov_trans_ybc(i, j, k, n, q, l_yzlo, l_yzhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
@@ -379,7 +376,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Godunov_corner_couple_xz(l_xzlo, l_xzhi,
                                  i, j, k, n, l_dt, dz, iconserv[n],
                                  xlo(i,j,k,n),  xhi(i,j,k,n),
-                                 q, divu, wmac, zedge);
+                                 q, divu, wmac, Imz);
 
         Real uad = umac(i,j,k);
         Godunov_trans_xbc(i, j, k, n, q, l_xzlo, l_xzhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
@@ -396,7 +393,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Godunov_corner_couple_zx(l_zxlo, l_zxhi,
                                  i, j, k, n, l_dt, dx, iconserv[n],
                                  zlo(i,j,k,n), zhi(i,j,k,n),
-                                 q, divu, umac, xedge);
+                                 q, divu, umac, Imx);
 
         Real wad = wmac(i,j,k);
         Godunov_trans_zbc(i, j, k, n, q, l_zxlo, l_zxhi, wad, bc.lo(2), bc.hi(2), dlo.z, dhi.z, is_velocity);
@@ -527,7 +524,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Godunov_corner_couple_xy(l_xylo, l_xyhi,
                                  i, j, k, n, l_dt, dy, iconserv[n],
                                  xlo(i,j,k,n), xhi(i,j,k,n),
-                                 q, divu, vmac, yedge);
+                                 q, divu, vmac, Imy);
 
         Real uad = umac(i,j,k);
         Godunov_trans_xbc(i, j, k, n, q, l_xylo, l_xyhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
@@ -544,7 +541,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Godunov_corner_couple_yx(l_yxlo, l_yxhi,
                                  i, j, k, n, l_dt, dx, iconserv[n],
                                  ylo(i,j,k,n), yhi(i,j,k,n),
-                                 q, divu, umac, xedge);
+                                 q, divu, umac, Imx);
 
         Real vad = vmac(i,j,k);
         Godunov_trans_ybc(i, j, k, n, q, l_yxlo, l_yxhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
