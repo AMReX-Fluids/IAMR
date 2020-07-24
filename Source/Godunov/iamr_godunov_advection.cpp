@@ -9,9 +9,6 @@ void
 godunov::compute_godunov_advection (Box const& bx, int ncomp,
                                     Array4<Real> const& dqdt,
                                     Array4<Real const> const& q,
-                                    AMREX_D_DECL( Array4<Real> const& qx,
-                                                  Array4<Real> const& qy,
-                                                  Array4<Real> const& qz),
                                     AMREX_D_DECL( Array4<Real> const& xedge,
                                                   Array4<Real> const& yedge,
                                                   Array4<Real> const& zedge),
@@ -213,18 +210,6 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
 #endif
         );
 
-    Real  area[AMREX_SPACEDIM];
-    Real  volume;
-#if ( AMREX_SPACEDIM == 3 )
-    area[0] = dy*dz;
-    area[1] = dx*dz;
-    area[2] = dx*dy;
-    volume  = dx*dy*dz;
-#else
-    area[0] = dx;
-    area[1] = dy;
-    volume  = dx*dy;
-#endif
     // We can reuse the space in Ipx, Ipy and Ipz.
 
     //
@@ -368,7 +353,6 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Real temp = (umac(i,j,k) >= 0.) ? stl : sth;
         temp = (std::abs(umac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         xedge(i,j,k,n) = temp;
-        qx(i,j,k,n)    = umac(i,j,k) * xedge(i,j,k,n) * area[0];
     });
 
     //
@@ -512,7 +496,6 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Real temp = (vmac(i,j,k) >= 0.) ? stl : sth;
         temp = (std::abs(vmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         yedge(i,j,k,n) = temp;
-        qy(i,j,k,n)    = yedge(i,j,k,n) * vmac(i,j,k) * area[1];
     });
 
 #if (AMREX_SPACEDIM==3)
@@ -620,55 +603,7 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         Real temp = (wmac(i,j,k) >= 0.) ? stl : sth;
         temp = (std::abs(wmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         zedge(i,j,k,n) = temp;
-        qz(i,j,k,n)    = zedge(i,j,k,n) * wmac(i,j,k) * area[2];
     });
 #endif
 
-    //
-    //  Compute Aofs
-    //
-    Real qvol = 1.0/volume;
-#if (AMREX_SPACEDIM==3)
-    amrex::ParallelFor(bx, ncomp,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-
-        if (iconserv[n])
-        {
-            dqdt(i,j,k,n) =  ( qx(i+1,j,k,n) -  qx(i,j,k,n) +
-                               qy(i,j+1,k,n) -  qy(i,j,k,n) +
-                               qz(i,j,k+1,n) -  qz(i,j,k,n) ) * qvol ;
-        }
-        else
-        {
-            dqdt(i,j,k,n) = 0.5*dxinv[0]*( umac(i+1,j,k  ) +  umac(i,j,k  ))
-                *                        (xedge(i+1,j,k,n) - xedge(i,j,k,n))
-                +           0.5*dxinv[1]*( vmac(i,j+1,k  ) +  vmac(i,j,k  ))
-                *                        (yedge(i,j+1,k,n) - yedge(i,j,k,n))
-                +           0.5*dxinv[2]*( wmac(i,j,k+1  ) +  wmac(i,j,k  ))
-                *                        (zedge(i,j,k+1,n) - zedge(i,j,k,n));
-       }
-
-    });
-
-#else
-   amrex::ParallelFor(bx, ncomp,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        if (iconserv[n])
-        {
-            dqdt(i,j,k,n) =  ( qx(i+1,j,k,n) -  qx(i,j,k,n) +
-                               qy(i,j+1,k,n) -  qy(i,j,k,n) ) * qvol ;
-        }
-        else
-        {
-            dqdt(i,j,k,n) = 0.5*dxinv[0]*( umac(i+1,j,k  ) +  umac(i,j,k  ))
-                *                        (xedge(i+1,j,k,n) - xedge(i,j,k,n))
-                +           0.5*dxinv[1]*( vmac(i,j+1,k  ) +  vmac(i,j,k  ))
-                *                        (yedge(i,j+1,k,n) - yedge(i,j,k,n));
-       }
-
-    });
-
-#endif
 }

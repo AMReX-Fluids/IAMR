@@ -32,6 +32,34 @@ namespace godunov {
                        const bool use_forces_in_trans,
                        const bool is_velocity  );
 
+
+    void ComputeFluxes ( amrex::Box const& bx,
+                         AMREX_D_DECL( amrex::Array4<amrex::Real> const& fx,
+                                       amrex::Array4<amrex::Real> const& fy,
+                                       amrex::Array4<amrex::Real> const& fz),
+                         AMREX_D_DECL( amrex::Array4<amrex::Real const> const& umac,
+                                       amrex::Array4<amrex::Real const> const& vmac,
+                                       amrex::Array4<amrex::Real const> const& wmac),
+                         AMREX_D_DECL( amrex::Array4<amrex::Real const> const& xedge,
+                                       amrex::Array4<amrex::Real const> const& yedge,
+                                       amrex::Array4<amrex::Real const> const& zedge),
+                         amrex::Geometry const& geom, const int ncomp );
+
+
+    void ComputeDivergence ( amrex::Box const& bx,
+                             amrex::Array4<amrex::Real> const& div,
+                             AMREX_D_DECL( amrex::Array4<amrex::Real const> const& fx,
+                                           amrex::Array4<amrex::Real const> const& fy,
+                                           amrex::Array4<amrex::Real const> const& fz),
+                             AMREX_D_DECL( amrex::Array4<amrex::Real const> const& xed,
+                                           amrex::Array4<amrex::Real const> const& yed,
+                                           amrex::Array4<amrex::Real const> const& zed),
+                             AMREX_D_DECL( amrex::Array4<amrex::Real const> const& umac,
+                                           amrex::Array4<amrex::Real const> const& vmac,
+                                           amrex::Array4<amrex::Real const> const& wmac),
+                             const int ncomp, amrex::Geometry const& geom,
+                             int const* iconserv );
+
     void ExtrapVelToFaces ( amrex::MultiFab const& vel,
                             amrex::MultiFab const& vel_forces,
                             AMREX_D_DECL( amrex::MultiFab& u_mac,
@@ -129,9 +157,6 @@ namespace godunov {
     void compute_godunov_advection (amrex::Box const& bx, int ncomp,
                                     amrex::Array4<amrex::Real> const& dqdt,
                                     amrex::Array4<amrex::Real const> const& q,
-                                    AMREX_D_DECL(amrex::Array4<amrex::Real> const& q_x,
-                                                 amrex::Array4<amrex::Real> const& q_y,
-                                                 amrex::Array4<amrex::Real> const& q_z),
                                     AMREX_D_DECL(amrex::Array4<amrex::Real> const& xedge,
                                                  amrex::Array4<amrex::Real> const& yedge,
                                                  amrex::Array4<amrex::Real> const& zedge),
