@@ -1,7 +1,8 @@
-#include "iamr_godunov_plm.H"
-#include "iamr_godunov_ppm.H"
 #include <NS_util.H>
+#include <iamr_ppm_godunov.H>
+#include <iamr_plm_godunov.H>
 #include <iamr_godunov.H>
+#include <iamr_godunov_K.H>
 #include <iomanip>
 
 using namespace amrex;
@@ -76,20 +77,20 @@ void godunov::ExtrapVelToFaces ( MultiFab const& vel,
 
             if (use_ppm)
             {
-                godunov::predict_ppm( bxg1, AMREX_SPACEDIM,
-                                      D_DECL(Imx, Imy, Imz),
-                                      D_DECL(Ipx, Ipy, Ipz),
-                                      a_vel, a_vel,
-                                      geom, l_dt, d_bcrec);
+                PPM::predict_ppm( bxg1, AMREX_SPACEDIM,
+                                  AMREX_D_DECL(Imx, Imy, Imz),
+                                  AMREX_D_DECL(Ipx, Ipy, Ipz),
+                                  a_vel, a_vel,
+                                  geom, l_dt, d_bcrec);
             }
             else
             {
-                godunov::predict_plm_x( bx, AMREX_SPACEDIM, Imx, Ipx, a_vel, a_vel,
+                PLM::predict_plm_x( bx, AMREX_SPACEDIM, Imx, Ipx, a_vel, a_vel,
                                         geom, l_dt, h_bcrec, d_bcrec);
-                godunov::predict_plm_y( bx, AMREX_SPACEDIM, Imy, Ipy, a_vel, a_vel,
+                PLM::predict_plm_y( bx, AMREX_SPACEDIM, Imy, Ipy, a_vel, a_vel,
                                         geom, l_dt, h_bcrec, d_bcrec);
 #if (AMREX_SPACEDIM==3)
-                godunov::predict_plm_z( bx, AMREX_SPACEDIM, Imz, Ipz, a_vel, a_vel,
+                PLM::predict_plm_z( bx, AMREX_SPACEDIM, Imz, Ipz, a_vel, a_vel,
                                         geom, l_dt, h_bcrec, d_bcrec);
 #endif
             }

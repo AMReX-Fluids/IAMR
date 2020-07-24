@@ -1,20 +1,20 @@
-#include <iamr_godunov_ppm.H>
-#include <iamr_godunov.H>
+#include <iamr_ppm_godunov.H>
 
 using namespace amrex;
 
-void godunov::predict_ppm (Box const& bx, int ncomp,
-                           D_DECL( Array4<Real> const& Imx,
-                                   Array4<Real> const& Imy,
-                                   Array4<Real> const& Imz),
-                           D_DECL( Array4<Real> const& Ipx,
-                                   Array4<Real> const& Ipy,
-                                   Array4<Real> const& Ipz),
-                           Array4<Real const> const& q,
-                           Array4<Real const> const& vel,
-                           Geometry geom,
-                           Real dt,
-                           BCRec const* pbc)
+void
+PPM::predict_ppm (Box const& bx, int ncomp,
+                  AMREX_D_DECL( Array4<Real> const& Imx,
+                                Array4<Real> const& Imy,
+                                Array4<Real> const& Imz),
+                  AMREX_D_DECL( Array4<Real> const& Ipx,
+                                Array4<Real> const& Ipy,
+                                Array4<Real> const& Ipz),
+                  Array4<Real const> const& q,
+                  Array4<Real const> const& vel,
+                  Geometry geom,
+                  Real dt,
+                  BCRec const* pbc)
 {
     const Box& domain = geom.Domain();
     const Dim3 dlo = amrex::lbound(domain);

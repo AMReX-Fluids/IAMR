@@ -69,47 +69,6 @@ namespace godunov {
                             const amrex::Geometry& geom, amrex::Real l_dt,
                             bool use_ppm, bool use_forces_in_trans);
 
-
-    void predict_plm_x (amrex::Box const& bx, int ncomp,
-                        amrex::Array4<amrex::Real> const& Imx, amrex::Array4<amrex::Real> const& Ipx,
-                        amrex::Array4<amrex::Real const> const& q,
-                        amrex::Array4<amrex::Real  const> const& vcc,
-                        const amrex::Geometry& geom,
-                        amrex::Real dt,
-                        amrex::Vector<amrex::BCRec> const& h_bcrec,
-                        amrex::BCRec const* d_bcrec);
-
-    void predict_plm_y (amrex::Box const& bx, int ncomp,
-                        amrex::Array4<amrex::Real> const& Imy, amrex::Array4<amrex::Real> const& Ipy,
-                        amrex::Array4<amrex::Real const> const& q,
-                        amrex::Array4<amrex::Real  const> const& vcc,
-                        const amrex::Geometry& geom,
-                        amrex::Real dt,
-                        amrex::Vector<amrex::BCRec> const& h_bcrec,
-                        amrex::BCRec const* d_bcrec);
-
-    void predict_plm_z (amrex::Box const& bx, int ncomp,
-                        amrex::Array4<amrex::Real> const& Imz, amrex::Array4<amrex::Real> const& Ipz,
-                        amrex::Array4<amrex::Real const> const& q,
-                        amrex::Array4<amrex::Real  const> const& vcc,
-                        const amrex::Geometry& geom,
-                        amrex::Real dt,
-                        amrex::Vector<amrex::BCRec> const& h_bcrec,
-                        amrex::BCRec const* d_bcrec);
-
-    void predict_ppm (amrex::Box const& bx, int ncomp,
-                      D_DECL(amrex::Array4<amrex::Real> const& Imx,
-                             amrex::Array4<amrex::Real> const& Imy,
-                             amrex::Array4<amrex::Real> const& Imz),
-                      D_DECL(amrex::Array4<amrex::Real> const& Ipx,
-                             amrex::Array4<amrex::Real> const& Ipy,
-                             amrex::Array4<amrex::Real> const& Ipz),
-                      amrex::Array4<amrex::Real const> const& q,
-                      amrex::Array4<amrex::Real const> const& vel,
-                      amrex::Geometry geom,
-                      amrex::Real dt,
-                      amrex::BCRec const* d_bcrec);
-
     void make_trans_velocities (D_DECL(amrex::Box const& xbx,
                                        amrex::Box const& ybx,
                                        amrex::Box const& zbx),
@@ -154,24 +113,22 @@ namespace godunov {
                                  bool use_forces_in_trans,
                                  amrex::Real* p);
 
-    void compute_godunov_advection (amrex::Box const& bx, int ncomp,
-                                    amrex::Array4<amrex::Real> const& dqdt,
-                                    amrex::Array4<amrex::Real const> const& q,
-                                    AMREX_D_DECL(amrex::Array4<amrex::Real> const& xedge,
-                                                 amrex::Array4<amrex::Real> const& yedge,
-                                                 amrex::Array4<amrex::Real> const& zedge),
-                                    const bool know_edgestate,
-                                    AMREX_D_DECL(amrex::Array4<amrex::Real const> const& umac,
-                                                 amrex::Array4<amrex::Real const> const& vmac,
-                                                 amrex::Array4<amrex::Real const> const& wmac),
-                                    amrex::Array4<amrex::Real const> const& divu,
-                                    amrex::Array4<amrex::Real const> const& fq,
-                                    amrex::Geometry geom,
-                                    amrex::Real dt,
-                                    amrex::BCRec const* d_bcrec,
-                                    int const* iconserv,
-                                    amrex::Real* p, const bool use_ppm, bool is_velocity,
-                                    const bool use_forces_in_trans);
+    void ComputeEdgeState ( amrex::Box const& bx, int ncomp,
+                            amrex::Array4<amrex::Real const> const& q,
+                            AMREX_D_DECL(amrex::Array4<amrex::Real> const& xedge,
+                                         amrex::Array4<amrex::Real> const& yedge,
+                                         amrex::Array4<amrex::Real> const& zedge),
+                            AMREX_D_DECL(amrex::Array4<amrex::Real const> const& umac,
+                                         amrex::Array4<amrex::Real const> const& vmac,
+                                         amrex::Array4<amrex::Real const> const& wmac),
+                            amrex::Array4<amrex::Real const> const& divu,
+                            amrex::Array4<amrex::Real const> const& fq,
+                            amrex::Geometry geom,
+                            amrex::Real dt,
+                            amrex::BCRec const* d_bcrec,
+                            int const* iconserv,
+                            const bool use_ppm, bool is_velocity,
+                            const bool use_forces_in_trans);
 
 }
 

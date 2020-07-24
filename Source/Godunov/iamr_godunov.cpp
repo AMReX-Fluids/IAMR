@@ -55,20 +55,20 @@ godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                       const auto& v = vmac.const_array(mfi);,
                       const auto& w = wmac.const_array(mfi););
 
-        compute_godunov_advection( bx, ncomp,
-                                   aofs.array(mfi,aofs_comp),
-                                   state.array(mfi,state_comp),
-                                   AMREX_D_DECL( xed, yed, zed ),
-                                   known_edgestate,
-                                   AMREX_D_DECL( u, v, w ),
-                                   divu.array(mfi),
-                                   fq.array(mfi,fq_comp),
-                                   geom, dt, &bcs[0],
-                                   iconserv.data(),
-                                   tmpfab.dataPtr(),
-                                   use_ppm,
-                                   is_velocity,
-                                   use_forces_in_trans);
+        if (not known_edgestate)
+        {
+            ComputeEdgeState( bx, ncomp,
+                              state.array(mfi,state_comp),
+                              AMREX_D_DECL( xed, yed, zed ),
+                              AMREX_D_DECL( u, v, w ),
+                              divu.array(mfi),
+                              fq.array(mfi,fq_comp),
+                              geom, dt, &bcs[0],
+                              iconserv.data(),
+                              use_ppm,
+                              use_forces_in_trans,
+                              is_velocity );
+        }
 
         ComputeFluxes( bx, AMREX_D_DECL( fx, fy, fz ),
                        AMREX_D_DECL( u, v, w ),
@@ -82,6 +82,8 @@ godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                            AMREX_D_DECL( xed, yed, zed ),
                            AMREX_D_DECL( u, v, w ),
                            ncomp, geom, iconserv.data() );
+
+        Gpu::streamSynchronize();
     }
 
 }

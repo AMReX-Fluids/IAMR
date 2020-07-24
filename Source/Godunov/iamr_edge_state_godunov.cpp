@@ -1,34 +1,37 @@
-#include "iamr_godunov_plm.H"
-#include "iamr_godunov_ppm.H"
-
+#include <iamr_plm_godunov.H>
+#include <iamr_ppm_godunov.H>
 #include <iamr_godunov.H>
+#include <iamr_godunov_K.H>
+
 
 using namespace amrex;
 
 void
-godunov::compute_godunov_advection (Box const& bx, int ncomp,
-                                    Array4<Real> const& dqdt,
-                                    Array4<Real const> const& q,
-                                    AMREX_D_DECL( Array4<Real> const& xedge,
-                                                  Array4<Real> const& yedge,
-                                                  Array4<Real> const& zedge),
-                                    const bool known_edgestate,
-                                    AMREX_D_DECL( Array4<Real const> const& umac,
-                                                  Array4<Real const> const& vmac,
-                                                  Array4<Real const> const& wmac),
-                                    Array4<Real const> const& divu,
-                                    Array4<Real const> const& fq,
-                                    Geometry geom,
-                                    Real l_dt,
-                                    BCRec const* pbc, int const* iconserv,
-                                    Real* p, bool use_ppm, bool is_velocity,
-                                    bool use_forces_in_trans)
+godunov::ComputeEdgeState (Box const& bx, int ncomp,
+                           Array4<Real const> const& q,
+                           AMREX_D_DECL( Array4<Real> const& xedge,
+                                         Array4<Real> const& yedge,
+                                         Array4<Real> const& zedge),
+                           AMREX_D_DECL( Array4<Real const> const& umac,
+                                         Array4<Real const> const& vmac,
+                                         Array4<Real const> const& wmac),
+                           Array4<Real const> const& divu,
+                           Array4<Real const> const& fq,
+                           Geometry geom,
+                           Real l_dt,
+                           BCRec const* pbc, int const* iconserv,
+                           bool use_ppm,
+                           bool use_forces_in_trans,
+                           bool is_velocity)
 {
     AMREX_D_TERM( Box const& xbx = amrex::surroundingNodes(bx,0);,
                   Box const& ybx = amrex::surroundingNodes(bx,1);,
                   Box const& zbx = amrex::surroundingNodes(bx,2););
 
     Box const& bxg1 = amrex::grow(bx,1);
+
+    FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
+    Real* p   = tmpfab.dataPtr();
 
 #if (AMREX_SPACEDIM==3)
     Box xebox = Box(xbx).grow(1,1).grow(2,1);
@@ -91,13 +94,13 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         amrex::ParallelFor(bxg1, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Godunov_ppm_fpu_x(i, j, k, n, l_dt, dx, Imx(i,j,k,n), Ipx(i,j,k,n),
-                              q, umac, pbc[n], dlo.x, dhi.x);
-            Godunov_ppm_fpu_y(i, j, k, n, l_dt, dy, Imy(i,j,k,n), Ipy(i,j,k,n),
-                              q, vmac, pbc[n], dlo.y, dhi.y);
+            PPM::Godunov_ppm_fpu_x(i, j, k, n, l_dt, dx, Imx(i,j,k,n), Ipx(i,j,k,n),
+                                   q, umac, pbc[n], dlo.x, dhi.x);
+            PPM::Godunov_ppm_fpu_y(i, j, k, n, l_dt, dy, Imy(i,j,k,n), Ipy(i,j,k,n),
+                                   q, vmac, pbc[n], dlo.y, dhi.y);
 #if (AMREX_SPACEDIM==3)
-            Godunov_ppm_fpu_z(i, j, k, n, l_dt, dz, Imz(i,j,k,n), Ipz(i,j,k,n),
-                              q, wmac, pbc[n], dlo.z, dhi.z);
+            PPM::Godunov_ppm_fpu_z(i, j, k, n, l_dt, dz, Imz(i,j,k,n), Ipz(i,j,k,n),
+                                   q, wmac, pbc[n], dlo.z, dhi.z);
 #endif
         });
     // Use PLM to generate Im and Ip */
@@ -108,22 +111,22 @@ godunov::compute_godunov_advection (Box const& bx, int ncomp,
         amrex::ParallelFor(xebox, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Godunov_plm_fpu_x(i, j, k, n, l_dt, dx, Imx(i,j,k,n), Ipx(i-1,j,k,n),
-                              q, umac(i,j,k), pbc[n], dlo.x, dhi.x, is_velocity);
+            PLM::Godunov_plm_fpu_x(i, j, k, n, l_dt, dx, Imx(i,j,k,n), Ipx(i-1,j,k,n),
+                                   q, umac(i,j,k), pbc[n], dlo.x, dhi.x, is_velocity);
         });
 
         amrex::ParallelFor(yebox, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Godunov_plm_fpu_y(i, j, k, n, l_dt, dy, Imy(i,j,k,n), Ipy(i,j-1,k,n),
-                              q, vmac(i,j,k), pbc[n], dlo.y, dhi.y, is_velocity);
+            PLM::Godunov_plm_fpu_y(i, j, k, n, l_dt, dy, Imy(i,j,k,n), Ipy(i,j-1,k,n),
+                                   q, vmac(i,j,k), pbc[n], dlo.y, dhi.y, is_velocity);
         });
 #if (AMREX_SPACEDIM==3)
         amrex::ParallelFor(zebox, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            Godunov_plm_fpu_z(i, j, k, n, l_dt, dz, Imz(i,j,k,n), Ipz(i,j,k-1,n),
-                              q, wmac(i,j,k), pbc[n], dlo.z, dhi.z, is_velocity);
+            PLM::Godunov_plm_fpu_z(i, j, k, n, l_dt, dz, Imz(i,j,k,n), Ipz(i,j,k-1,n),
+                                   q, wmac(i,j,k), pbc[n], dlo.z, dhi.z, is_velocity);
         });
 #endif
     }
