@@ -1,9 +1,5 @@
-//
-//  Godunov.H
-//
-
-#ifndef godunov_H
-#define godunov_H
+#ifndef IAMR_GODUNOV_H
+#define IAMR_GODUNOV_H
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BCRec.H>
@@ -126,6 +122,6 @@ namespace godunov {
                                     amrex::Real* p, const bool use_ppm, bool is_velocity,
                                     const bool use_forces_in_trans);
 
-} // namespace godunov
+}
 
-#endif /* Godunov_H */
+#endif

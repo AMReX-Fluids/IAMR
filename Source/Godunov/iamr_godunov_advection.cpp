@@ -1,7 +1,7 @@
 #include "iamr_godunov_plm.H"
 #include "iamr_godunov_ppm.H"
 
-#include <godunov.H>
+#include <iamr_godunov.H>
 
 using namespace amrex;
 

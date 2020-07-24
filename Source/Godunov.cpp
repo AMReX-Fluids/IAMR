@@ -10,7 +10,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_MultiFab.H>
 #include <Godunov.H>
-#include <godunov.H>
+#include <iamr_godunov.H>
 #include <GODUNOV_F.H>
 
 #include <algorithm>

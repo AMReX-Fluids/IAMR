@@ -10,7 +10,7 @@
 #include <iamr_mol.H>
 #endif
 
-#include <godunov.H>
+#include <iamr_godunov.H>
 
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>

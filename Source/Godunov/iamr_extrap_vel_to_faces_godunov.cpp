@@ -1,7 +1,7 @@
 #include "iamr_godunov_plm.H"
 #include "iamr_godunov_ppm.H"
 #include <NS_util.H>
-#include <godunov.H>
+#include <iamr_godunov.H>
 #include <iomanip>
 
 using namespace amrex;
