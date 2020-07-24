@@ -3603,7 +3603,7 @@ NavierStokesBase::velocity_advection (Real dt)
         const Real* dx = geom.CellSize();
 
         MultiFab cfluxes[AMREX_SPACEDIM];
-        MultiFab edgstate[AMREX_SPACEDIM];
+        MultiFab edgestate[AMREX_SPACEDIM];
         int ngrow = 1;
 
         MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
@@ -3619,7 +3619,7 @@ NavierStokesBase::velocity_advection (Real dt)
             const BoxArray& ba = getEdgeBoxArray(i);
             cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
             cfluxes[i].setVal(0.0);
-            edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
+            edgestate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
         }
 
         ParmParse pp("debug_flags");
@@ -3718,7 +3718,6 @@ NavierStokesBase::velocity_advection (Real dt)
                 //Print() << "iconserv = " << iconserv[comp] << std::endl;
             }
 
-
             //
             // Compute Aofs
             //
@@ -3742,6 +3741,10 @@ NavierStokesBase::velocity_advection (Real dt)
                                                        AMREX_D_DECL( cfluxes[0].array(U_mfi),
                                                                      cfluxes[1].array(U_mfi),
                                                                      cfluxes[2].array(U_mfi)),
+                                                       AMREX_D_DECL( edgestate[0].array(U_mfi),
+                                                                     edgestate[1].array(U_mfi),
+                                                                     edgestate[2].array(U_mfi)),
+                                                       false,
                                                        AMREX_D_DECL(u_mac[0].array(U_mfi),
                                                                     u_mac[1].array(U_mfi),
                                                                     u_mac[2].array(U_mfi)),
