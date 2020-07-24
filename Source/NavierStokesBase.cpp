@@ -3715,74 +3715,50 @@ NavierStokesBase::velocity_advection (Real dt)
             for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
             {
                 iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
-                //Print() << "iconserv = " << iconserv[comp] << std::endl;
             }
 
-            //
-            // Compute Aofs
-            //
-            for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+            if (new_algo)
             {
 
-                const Box& bx=U_mfi.tilebox();
+                godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
+                                     S_term, 0,
+                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                     AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                                     forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
+                                     (Godunov::ppm_type > 0), Godunov::use_forces_in_trans, true);
 
-                if (new_algo)
+                if (do_reflux)
                 {
-                    FArrayBox tmpfab(amrex::grow(bx,1), 14*AMREX_SPACEDIM); // only one component: ncomponents*14
-
-                    //
-                    //
-                    //  ATTENTION!!!!!!!! DT IS SET TO 0.0 RIGHT NOW
-                    //
-                    //
-                    godunov::compute_godunov_advection(bx, AMREX_SPACEDIM,
-                                                       aofs->array(U_mfi,Xvel),
-                                                       S_term.array(U_mfi),
-                                                       AMREX_D_DECL( cfluxes[0].array(U_mfi),
-                                                                     cfluxes[1].array(U_mfi),
-                                                                     cfluxes[2].array(U_mfi)),
-                                                       AMREX_D_DECL( edgestate[0].array(U_mfi),
-                                                                     edgestate[1].array(U_mfi),
-                                                                     edgestate[2].array(U_mfi)),
-                                                       false,
-                                                       AMREX_D_DECL(u_mac[0].array(U_mfi),
-                                                                    u_mac[1].array(U_mfi),
-                                                                    u_mac[2].array(U_mfi)),
-                                                       divu_fp.array(U_mfi),
-                                                       forcing_term.array(U_mfi),
-                                                       geom, dt, &math_bcs[0],
-                                                       iconserv.data(),
-                                                       tmpfab.dataPtr(), (Godunov::ppm_type > 0), true, Godunov::use_forces_in_trans);
-
-                    Gpu::streamSynchronize();
-
-                    if (do_reflux)
-                    {
-                        for (int d = 0; d < AMREX_SPACEDIM; d++)
-                        {
-                            const Box& ebx = U_mfi.nodaltilebox(d);
-                            fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,0,AMREX_SPACEDIM);
-                        }
-                    }
-
+                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                        MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
                 }
-                else
+
+                // if (do_reflux)
+                // {
+                //     for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+                //         for (int d = 0; d < AMREX_SPACEDIM; d++)
+                //         {
+                //             const Box& ebx = U_mfi.nodaltilebox(d);
+                //             fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,0,AMREX_SPACEDIM);
+
+                //         }
+                // }
+            }
+            else
+            {
+                for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
                 {
 
+                    const Box& bx=U_mfi.tilebox();
                     for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                     {
                         int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
-
 
                         AMREX_D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
                                      bndry[1] = fetchBCArray(State_Type,bx,1,1);,
                                      bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-                    //
-                    //
-                    //  ATTENTION!!!!!!!! DT IS SET TO 0.0 RIGHT NOW
-                    //
-                    //
                         // WARNING: FPU argument is not used because FPU is by default in AdvectState
                         godunov->AdvectState(bx, dx, dt,
                                              area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],

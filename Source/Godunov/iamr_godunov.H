@@ -6,6 +6,32 @@
 
 namespace godunov {
 
+
+    void ComputeAofs ( amrex::MultiFab& aofs, const int aofs_comp, const int ncomp,
+                       amrex::MultiFab const& state, const int state_comp,
+                       AMREX_D_DECL( amrex::MultiFab const& umac,
+                                     amrex::MultiFab const& vmac,
+                                     amrex::MultiFab const& wmac),
+                       AMREX_D_DECL( amrex::MultiFab& xedge,
+                                     amrex::MultiFab& yedge,
+                                     amrex::MultiFab& zedge),
+                       const int  edge_comp,
+                       const bool known_edgestate,
+                       AMREX_D_DECL( amrex::MultiFab& xfluxes,
+                                     amrex::MultiFab& yfluxes,
+                                     amrex::MultiFab& zfluxes),
+                       int fluxes_comp,
+                       amrex::MultiFab const& fq,
+                       const int fq_comp,
+                       amrex::MultiFab const& divu,
+                       amrex::Vector<amrex::BCRec> const& bcs,
+                       amrex::Geometry const& geom,
+                       amrex::Gpu::DeviceVector<int>& iconserv,
+                       const amrex::Real dt,
+                       const bool use_ppm,
+                       const bool use_forces_in_trans,
+                       const bool is_velocity  );
+
     void ExtrapVelToFaces ( amrex::MultiFab const& vel,
                             amrex::MultiFab const& vel_forces,
                             AMREX_D_DECL( amrex::MultiFab& u_mac,

@@ -1,5 +1,5 @@
 CEXE_headers += iamr_godunov.H
-#CEXE_sources += iamr_godunov.cpp
+CEXE_sources += iamr_godunov.cpp
 
 CEXE_headers += iamr_slopes_godunov_K.H
 
