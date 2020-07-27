@@ -4048,10 +4048,11 @@ NavierStokesBase::volWgtSum (const std::string& name,
         BoxArray    baf;
         baf = parent->boxArray(level+1);
         baf.coarsen(fine_ratio);
-        std::vector< std::pair<int,Box> > isects;
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+{
+	std::vector< std::pair<int,Box> > isects;
         for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
            auto const& fabarr = mf->array(mfi);
@@ -4065,6 +4066,7 @@ NavierStokesBase::volWgtSum (const std::string& name,
               });
            }
         }
+}
     }
 
     // Use amrex::ReduceSum
