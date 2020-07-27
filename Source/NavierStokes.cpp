@@ -507,7 +507,7 @@ NavierStokes::predict_velocity (Real  dt)
     {
         cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
     }
-    Real tempdt = std::min(change_max,cfl/cflmax);
+    Real tempdt = cflmax==0 ? change_max : std::min(change_max,cfl/cflmax);
 
 
 #if AMREX_USE_EB
