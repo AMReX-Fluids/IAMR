@@ -40,7 +40,7 @@ struct DummyFill           // Set 0.0 on EXT_DIR, nothing otherwise.
              if ((bc[idir] == amrex::BCType::ext_dir) and (iv[idir] < domlo[idir])) {
                 dest(iv, dcomp+n) = 0.0;
              }
-             if ((bc[idir + AMREX_SPACEDIM] == amrex::BCType::ext_dir) and (iv[idir] < domhi[idir])) {
+             if ((bc[idir + AMREX_SPACEDIM] == amrex::BCType::ext_dir) and (iv[idir] > domhi[idir])) {
                 dest(iv, dcomp+n) = 0.0;
              }
           }
