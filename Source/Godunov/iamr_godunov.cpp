@@ -83,7 +83,7 @@ godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                            AMREX_D_DECL( u, v, w ),
                            ncomp, geom, iconserv.data() );
 
-        Gpu::streamSynchronize();
+        Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
 }

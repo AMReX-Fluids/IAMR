@@ -136,7 +136,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         xebox, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real uad = umac(i,j,k);
-            Real fux = (std::abs(uad) < small_vel)? 0. : 1.;
+            Real fux = (amrex::Math::abs(uad) < small_vel)? 0. : 1.;
             bool uval = uad >= 0.;
             Real lo = Ipx(i-1,j,k,n);
             Real hi = Imx(i  ,j,k,n);
@@ -161,7 +161,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         yebox, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real vad = vmac(i,j,k);
-            Real fuy = (std::abs(vad) < small_vel)? 0. : 1.;
+            Real fuy = (amrex::Math::abs(vad) < small_vel)? 0. : 1.;
             bool vval = vad >= 0.;
             Real lo = Ipy(i,j-1,k,n);
             Real hi = Imy(i,j  ,k,n);
@@ -188,7 +188,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         zebox, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real wad = wmac(i,j,k);
-            Real fuz = (std::abs(wad) < small_vel) ? 0. : 1.;
+            Real fuz = (amrex::Math::abs(wad) < small_vel) ? 0. : 1.;
             bool wval = wad >= 0.;
             Real lo = Ipz(i,j,k-1,n);
             Real hi = Imz(i,j,k  ,n);
@@ -237,7 +237,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         Godunov_trans_zbc(i, j, k, n, q, l_zylo, l_zyhi, wad, bc.lo(2), bc.hi(2), dlo.z, dhi.z, is_velocity);
 
         Real st = (wad >= 0.) ? l_zylo : l_zyhi;
-        Real fu = (std::abs(wad) < small_vel) ? 0.0 : 1.0;
+        Real fu = (amrex::Math::abs(wad) < small_vel) ? 0.0 : 1.0;
         zylo(i,j,k,n) = fu*st + (1.0 - fu) * 0.5 * (l_zyhi + l_zylo);
     },
     Box(yzlo), ncomp,
@@ -254,7 +254,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         Godunov_trans_ybc(i, j, k, n, q, l_yzlo, l_yzhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
 
         Real st = (vad >= 0.) ? l_yzlo : l_yzhi;
-        Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
+        Real fu = (amrex::Math::abs(vad) < small_vel) ? 0.0 : 1.0;
         yzlo(i,j,k,n) = fu*st + (1.0 - fu) * 0.5 * (l_yzhi + l_yzlo);
     });
 #else
@@ -335,8 +335,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         }
 
         auto bc = pbc[n];
-        Godunov_cc_xbc_lo(i, j, k, n, q, stl, sth, umac, bc.lo(0), dlo.x, is_velocity);
-        Godunov_cc_xbc_hi(i, j, k, n, q, stl, sth, umac, bc.hi(0), dhi.x, is_velocity);
+        SetXEdgeBCs(i, j, k, n, q, stl, sth, umac, bc.lo(0), dlo.x, bc.hi(0), dhi.x, is_velocity);
 
         if ( (i==dlo.x) and (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap) )
         {
@@ -354,7 +353,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         }
 
         Real temp = (umac(i,j,k) >= 0.) ? stl : sth;
-        temp = (std::abs(umac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
+        temp = (amrex::Math::abs(umac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         xedge(i,j,k,n) = temp;
     });
 
@@ -380,7 +379,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         Godunov_trans_xbc(i, j, k, n, q, l_xzlo, l_xzhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
 
         Real st = (uad >= 0.) ? l_xzlo : l_xzhi;
-        Real fu = (std::abs(uad) < small_vel) ? 0.0 : 1.0;
+        Real fu = (amrex::Math::abs(uad) < small_vel) ? 0.0 : 1.0;
         xzlo(i,j,k,n) = fu*st + (1.0 - fu) * 0.5 * (l_xzhi + l_xzlo);
     },
     Box(zxlo), ncomp,
@@ -397,7 +396,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         Godunov_trans_zbc(i, j, k, n, q, l_zxlo, l_zxhi, wad, bc.lo(2), bc.hi(2), dlo.z, dhi.z, is_velocity);
 
         Real st = (wad >= 0.) ? l_zxlo : l_zxhi;
-        Real fu = (std::abs(wad) < small_vel) ? 0.0 : 1.0;
+        Real fu = (amrex::Math::abs(wad) < small_vel) ? 0.0 : 1.0;
         zxlo(i,j,k,n) = fu*st + (1.0 - fu) * 0.5 * (l_zxhi + l_zxlo);
     });
 #else
@@ -478,8 +477,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
       }
 
         auto bc = pbc[n];
-        Godunov_cc_ybc_lo(i, j, k, n, q, stl, sth, vmac, bc.lo(1), dlo.y, is_velocity);
-        Godunov_cc_ybc_hi(i, j, k, n, q, stl, sth, vmac, bc.hi(1), dhi.y, is_velocity);
+        SetYEdgeBCs(i, j, k, n, q, stl, sth, vmac, bc.lo(1), dlo.y, bc.hi(1), dhi.y, is_velocity);
 
         if ( (j==dlo.y) and (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap) )
         {
@@ -497,7 +495,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         }
 
         Real temp = (vmac(i,j,k) >= 0.) ? stl : sth;
-        temp = (std::abs(vmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
+        temp = (amrex::Math::abs(vmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         yedge(i,j,k,n) = temp;
     });
 
@@ -523,7 +521,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         Godunov_trans_xbc(i, j, k, n, q, l_xylo, l_xyhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
 
         Real st = (uad >= 0.) ? l_xylo : l_xyhi;
-        Real fu = (std::abs(uad) < small_vel) ? 0.0 : 1.0;
+        Real fu = (amrex::Math::abs(uad) < small_vel) ? 0.0 : 1.0;
         xylo(i,j,k,n) = fu*st + (1.0 - fu) * 0.5 * (l_xyhi + l_xylo);
     },
     Box(yxlo), ncomp,
@@ -540,7 +538,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         Godunov_trans_ybc(i, j, k, n, q, l_yxlo, l_yxhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
 
         Real st = (vad >= 0.) ? l_yxlo : l_yxhi;
-        Real fu = (std::abs(vad) < small_vel) ? 0.0 : 1.0;
+        Real fu = (amrex::Math::abs(vad) < small_vel) ? 0.0 : 1.0;
         yxlo(i,j,k,n) = fu*st + (1.0 - fu) * 0.5 * (l_yxhi + l_yxlo);
     });
     //
@@ -585,8 +583,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         }
 
         auto bc = pbc[n];
-        Godunov_cc_zbc_lo(i, j, k, n, q, stl, sth, wmac, bc.lo(2),  dlo.z, is_velocity);
-        Godunov_cc_zbc_hi(i, j, k, n, q, stl, sth, wmac, bc.hi(2), dhi.z, is_velocity);
+        SetZEdgeBCs(i, j, k, n, q, stl, sth, wmac, bc.lo(2), dlo.z, bc.hi(2), dhi.z, is_velocity);
 
         if ( (k==dlo.z) and (bc.lo(2) == BCType::foextrap || bc.lo(2) == BCType::hoextrap) )
         {
@@ -604,7 +601,7 @@ godunov::ComputeEdgeState (Box const& bx, int ncomp,
         }
 
         Real temp = (wmac(i,j,k) >= 0.) ? stl : sth;
-        temp = (std::abs(wmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
+        temp = (amrex::Math::abs(wmac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
         zedge(i,j,k,n) = temp;
     });
 #endif

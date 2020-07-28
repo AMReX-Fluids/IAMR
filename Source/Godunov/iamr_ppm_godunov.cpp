@@ -21,7 +21,7 @@ PPM::predict_ppm (Box const& bx, int ncomp,
     const Dim3 dhi = amrex::ubound(domain);
 
     const auto dx = geom.CellSizeArray();
-    D_TERM( Real l_dtdx = dt / dx[0];,
+    AMREX_D_TERM( Real l_dtdx = dt / dx[0];,
             Real l_dtdy = dt / dx[1];,
             Real l_dtdz = dt / dx[2];);
 
