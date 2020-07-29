@@ -12,32 +12,32 @@
 
 namespace PLM {
 
-    void predict_plm_x (amrex::Box const& bx, int ncomp,
-                        amrex::Array4<amrex::Real> const& Imx, amrex::Array4<amrex::Real> const& Ipx,
-                        amrex::Array4<amrex::Real const> const& q,
-                        amrex::Array4<amrex::Real  const> const& vcc,
-                        const amrex::Geometry& geom,
-                        amrex::Real dt,
-                        amrex::Vector<amrex::BCRec> const& h_bcrec,
-                        amrex::BCRec const* d_bcrec);
+void PredictVelOnXFace ( amrex::Box const& bx, int ncomp,
+                         amrex::Array4<amrex::Real> const& Imx, amrex::Array4<amrex::Real> const& Ipx,
+                         amrex::Array4<amrex::Real const> const& q,
+                         amrex::Array4<amrex::Real  const> const& vcc,
+                         const amrex::Geometry& geom,
+                         amrex::Real dt,
+                         amrex::Vector<amrex::BCRec> const& h_bcrec,
+                         amrex::BCRec const* d_bcrec);
 
-    void predict_plm_y (amrex::Box const& bx, int ncomp,
-                        amrex::Array4<amrex::Real> const& Imy, amrex::Array4<amrex::Real> const& Ipy,
-                        amrex::Array4<amrex::Real const> const& q,
-                        amrex::Array4<amrex::Real  const> const& vcc,
-                        const amrex::Geometry& geom,
-                        amrex::Real dt,
-                        amrex::Vector<amrex::BCRec> const& h_bcrec,
-                        amrex::BCRec const* d_bcrec);
+void PredictVelOnYFace ( amrex::Box const& bx, int ncomp,
+                         amrex::Array4<amrex::Real> const& Imy, amrex::Array4<amrex::Real> const& Ipy,
+                         amrex::Array4<amrex::Real const> const& q,
+                         amrex::Array4<amrex::Real  const> const& vcc,
+                         const amrex::Geometry& geom,
+                         amrex::Real dt,
+                         amrex::Vector<amrex::BCRec> const& h_bcrec,
+                         amrex::BCRec const* d_bcrec);
 
-    void predict_plm_z (amrex::Box const& bx, int ncomp,
-                        amrex::Array4<amrex::Real> const& Imz, amrex::Array4<amrex::Real> const& Ipz,
-                        amrex::Array4<amrex::Real const> const& q,
-                        amrex::Array4<amrex::Real  const> const& vcc,
-                        const amrex::Geometry& geom,
-                        amrex::Real dt,
-                        amrex::Vector<amrex::BCRec> const& h_bcrec,
-                        amrex::BCRec const* d_bcrec);
+void PredictVelOnZFace ( amrex::Box const& bx, int ncomp,
+                         amrex::Array4<amrex::Real> const& Imz, amrex::Array4<amrex::Real> const& Ipz,
+                         amrex::Array4<amrex::Real const> const& q,
+                         amrex::Array4<amrex::Real  const> const& vcc,
+                         const amrex::Geometry& geom,
+                         amrex::Real dt,
+                         amrex::Vector<amrex::BCRec> const& h_bcrec,
+                         amrex::BCRec const* d_bcrec);
 
 
 // This version is called after the MAC projection

@@ -3,18 +3,18 @@
 using namespace amrex;
 
 void
-PPM::predict_ppm (Box const& bx, int ncomp,
-                  AMREX_D_DECL( Array4<Real> const& Imx,
-                                Array4<Real> const& Imy,
-                                Array4<Real> const& Imz),
-                  AMREX_D_DECL( Array4<Real> const& Ipx,
-                                Array4<Real> const& Ipy,
-                                Array4<Real> const& Ipz),
-                  Array4<Real const> const& q,
-                  Array4<Real const> const& vel,
-                  Geometry geom,
-                  Real dt,
-                  BCRec const* pbc)
+PPM::PredictVelOnFaces (Box const& bx, int ncomp,
+                        AMREX_D_DECL( Array4<Real> const& Imx,
+                                      Array4<Real> const& Imy,
+                                      Array4<Real> const& Imz),
+                        AMREX_D_DECL( Array4<Real> const& Ipx,
+                                      Array4<Real> const& Ipy,
+                                      Array4<Real> const& Ipz),
+                        Array4<Real const> const& q,
+                        Array4<Real const> const& vel,
+                        Geometry geom,
+                        Real dt,
+                        BCRec const* pbc)
 {
     const Box& domain = geom.Domain();
     const Dim3 dlo = amrex::lbound(domain);

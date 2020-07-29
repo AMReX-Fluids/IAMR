@@ -22,14 +22,14 @@ namespace {
 }
 
 void
-PLM::predict_plm_x ( Box const& bx_in, int ncomp,
-                     Array4<Real> const& Imx, Array4<Real> const& Ipx,
-                     Array4<Real const> const& q,
-                     Array4<Real const> const& vcc,
-                     const Geometry& geom,
-                     Real dt,
-                     Vector<BCRec> const& h_bcrec,
-                     BCRec const* pbc)
+PLM::PredictVelOnXFace ( Box const& bx_in, int ncomp,
+                         Array4<Real> const& Imx, Array4<Real> const& Ipx,
+                         Array4<Real const> const& q,
+                         Array4<Real const> const& vcc,
+                         const Geometry& geom,
+                         Real dt,
+                         Vector<BCRec> const& h_bcrec,
+                         BCRec const* pbc)
 {
     const Real dx = geom.CellSize(0);
     const Real dtdx = dt/dx;
@@ -87,14 +87,14 @@ PLM::predict_plm_x ( Box const& bx_in, int ncomp,
 }
 
 void
-PLM::predict_plm_y (Box const& bx_in, int ncomp,
-                    Array4<Real> const& Imy, Array4<Real> const& Ipy,
-                    Array4<Real const> const& q,
-                    Array4<Real const> const& vcc,
-                    const Geometry& geom,
-                    Real dt,
-                    Vector<BCRec> const& h_bcrec,
-                    BCRec const* pbc)
+PLM::PredictVelOnYFace (Box const& bx_in, int ncomp,
+                        Array4<Real> const& Imy, Array4<Real> const& Ipy,
+                        Array4<Real const> const& q,
+                        Array4<Real const> const& vcc,
+                        const Geometry& geom,
+                        Real dt,
+                        Vector<BCRec> const& h_bcrec,
+                        BCRec const* pbc)
 {
 
 #if (AMREX_SPACEDIM==3)
@@ -155,14 +155,14 @@ PLM::predict_plm_y (Box const& bx_in, int ncomp,
 
 #if (AMREX_SPACEDIM == 3)
 void
-PLM::predict_plm_z (Box const& bx_in, int ncomp,
-                    Array4<Real> const& Imz, Array4<Real> const& Ipz,
-                    Array4<Real const> const& q,
-                    Array4<Real const> const& vcc,
-                    const Geometry& geom,
-                    Real dt,
-                    Vector<BCRec> const& h_bcrec,
-                    BCRec const* pbc)
+PLM::PredictVelOnZFace ( Box const& bx_in, int ncomp,
+                         Array4<Real> const& Imz, Array4<Real> const& Ipz,
+                         Array4<Real const> const& q,
+                         Array4<Real const> const& vcc,
+                         const Geometry& geom,
+                         Real dt,
+                         Vector<BCRec> const& h_bcrec,
+                         BCRec const* pbc)
 {
     Box zebox = Box(bx_in).grow(0,1).grow(1,1).surroundingNodes(2);
 

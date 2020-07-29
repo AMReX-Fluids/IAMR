@@ -16,14 +16,14 @@
 namespace {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_trans_xbc (const int i, const int j, const int k, const int n,
-                        const amrex::Array4<const amrex::Real> &s,
-                        amrex::Real &lo,
-                        amrex::Real &hi,
-                        amrex::Real &uedge,
-                        const int bclo, const int bchi,
-                        const int domlo, const int domhi,
-                        const bool is_velocity )
+void SetTransTermXBCs (const int i, const int j, const int k, const int n,
+                       const amrex::Array4<const amrex::Real> &s,
+                       amrex::Real &lo,
+                       amrex::Real &hi,
+                       amrex::Real &uedge,
+                       const int bclo, const int bchi,
+                       const int domlo, const int domhi,
+                       const bool is_velocity )
 {
     using namespace amrex;
 
@@ -68,14 +68,14 @@ void Godunov_trans_xbc (const int i, const int j, const int k, const int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_trans_ybc ( const int i, const int j, const int k, const int n,
-                         const amrex::Array4<const amrex::Real> &s,
-                         amrex::Real &lo,
-                         amrex::Real &hi,
-                         amrex::Real vedge,
-                         const int bclo, const int bchi,
-                         const int domlo, const int domhi,
-                         const bool is_velocity )
+void SetTransTermYBCs ( const int i, const int j, const int k, const int n,
+                        const amrex::Array4<const amrex::Real> &s,
+                        amrex::Real &lo,
+                        amrex::Real &hi,
+                        amrex::Real vedge,
+                        const int bclo, const int bchi,
+                        const int domlo, const int domhi,
+                        const bool is_velocity )
 {
     using namespace amrex;
 
@@ -120,14 +120,14 @@ void Godunov_trans_ybc ( const int i, const int j, const int k, const int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_trans_zbc(const int i, const int j, const int k, const int n,
-                       const amrex::Array4<const amrex::Real> &s,
-                       amrex::Real &lo,
-                       amrex::Real &hi,
-                       amrex::Real wedge,
-                       const int bclo, const int bchi,
-                       const int domlo, const int domhi,
-                       const bool is_velocity)
+void SetTransTermZBCs(const int i, const int j, const int k, const int n,
+                      const amrex::Array4<const amrex::Real> &s,
+                      amrex::Real &lo,
+                      amrex::Real &hi,
+                      amrex::Real wedge,
+                      const int bclo, const int bchi,
+                      const int domlo, const int domhi,
+                      const bool is_velocity)
 {
     using namespace amrex;
 

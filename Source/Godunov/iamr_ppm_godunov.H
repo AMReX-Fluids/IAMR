@@ -24,18 +24,18 @@ amrex::Real vanLeer(const amrex::Real a, const amrex::Real b, const amrex::Real 
 namespace PPM {
 
 
-void predict_ppm (amrex::Box const& bx, int ncomp,
-                  AMREX_D_DECL(amrex::Array4<amrex::Real> const& Imx,
-                               amrex::Array4<amrex::Real> const& Imy,
-                               amrex::Array4<amrex::Real> const& Imz),
-                  AMREX_D_DECL(amrex::Array4<amrex::Real> const& Ipx,
-                               amrex::Array4<amrex::Real> const& Ipy,
-                               amrex::Array4<amrex::Real> const& Ipz),
-                  amrex::Array4<amrex::Real const> const& q,
-                  amrex::Array4<amrex::Real const> const& vel,
-                  amrex::Geometry geom,
-                  amrex::Real dt,
-                  amrex::BCRec const* d_bcrec);
+void PredictVelOnFaces (amrex::Box const& bx, int ncomp,
+                        AMREX_D_DECL(amrex::Array4<amrex::Real> const& Imx,
+                                     amrex::Array4<amrex::Real> const& Imy,
+                                     amrex::Array4<amrex::Real> const& Imz),
+                        AMREX_D_DECL(amrex::Array4<amrex::Real> const& Ipx,
+                                     amrex::Array4<amrex::Real> const& Ipy,
+                                     amrex::Array4<amrex::Real> const& Ipz),
+                        amrex::Array4<amrex::Real const> const& q,
+                        amrex::Array4<amrex::Real const> const& vel,
+                        amrex::Geometry geom,
+                        amrex::Real dt,
+                        amrex::BCRec const* d_bcrec);
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
