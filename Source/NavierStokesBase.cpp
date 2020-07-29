@@ -3268,7 +3268,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
        Vector<BCRec> bx_bcrec(num_comp);
        set_bcrec_new(bx_bcrec,num_comp,src_comp,bx,cdomain,cgrids,bc_orig_qty);
-       gpu_bndry_func(bx,data,0,num_comp,geom,0.0,bx_bcrec,0,0);
+       gpu_bndry_func(bx,data,0,num_comp,cgeom,0.0,bx_bcrec,0,0);
     }
     cdataMF.EnforcePeriodicity(cgeom.periodicity());
 
