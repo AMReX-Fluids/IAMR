@@ -22,16 +22,16 @@ PPM::PredictVelOnFaces (Box const& bx, int ncomp,
 
     const auto dx = geom.CellSizeArray();
     AMREX_D_TERM( Real l_dtdx = dt / dx[0];,
-            Real l_dtdy = dt / dx[1];,
-            Real l_dtdz = dt / dx[2];);
+                  Real l_dtdy = dt / dx[1];,
+                  Real l_dtdz = dt / dx[2];);
 
     amrex::ParallelFor(bx, AMREX_SPACEDIM,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-        Godunov_ppm_pred_x(i,j,k,n,l_dtdx,vel(i,j,k,0),q,Imx,Ipx,pbc[n],dlo.x,dhi.x);
-        Godunov_ppm_pred_y(i,j,k,n,l_dtdy,vel(i,j,k,1),q,Imy,Ipy,pbc[n],dlo.y,dhi.y);
+        PredictVelOnXFace(i,j,k,n,l_dtdx,vel(i,j,k,0),q,Imx,Ipx,pbc[n],dlo.x,dhi.x);
+        PredictVelOnYFace(i,j,k,n,l_dtdy,vel(i,j,k,1),q,Imy,Ipy,pbc[n],dlo.y,dhi.y);
 #if (AMREX_SPACEDIM==3)
-        Godunov_ppm_pred_z(i,j,k,n,l_dtdz,vel(i,j,k,2),q,Imz,Ipz,pbc[n],dlo.z,dhi.z);
+        PredictVelOnZFace(i,j,k,n,l_dtdz,vel(i,j,k,2),q,Imz,Ipz,pbc[n],dlo.z,dhi.z);
 #endif
     });
 }

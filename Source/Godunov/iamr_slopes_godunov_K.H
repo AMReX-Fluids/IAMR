@@ -219,7 +219,7 @@ amrex::Real iamr_ho_yslope_extdir (int i, int j, int k, int n,
 
 }
 
-
+#if (AMREX_SPACEDIM==3)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real iamr_ho_zslope (int i, int j, int k, int n,
                               amrex::Array4<amrex::Real const> const& q) noexcept
@@ -323,6 +323,6 @@ amrex::Real iamr_ho_zslope_extdir (int i, int j, int k, int n,
 
     return dsgn*amrex::min(dlim, amrex::Math::abs(dtemp));
 }
-
+#endif
 }
 #endif

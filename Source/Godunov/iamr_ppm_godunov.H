@@ -39,12 +39,12 @@ void PredictVelOnFaces (amrex::Box const& bx, int ncomp,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_xbc(const int i, const int j, const int k, const int n,
-                     amrex::Real &sm, amrex::Real &sp,
-                     amrex::Real &sedge1, amrex::Real &sedge2,
-                     const amrex::Array4<const amrex::Real> &s,
-                     const int bclo, const int bchi,
-                     const int domlo, const int domhi)
+void SetXBCs ( const int i, const int j, const int k, const int n,
+               amrex::Real &sm, amrex::Real &sp,
+               amrex::Real &sedge1, amrex::Real &sedge2,
+               const amrex::Array4<const amrex::Real> &s,
+               const int bclo, const int bchi,
+               const int domlo, const int domhi)
 {
     using namespace amrex;
 
@@ -118,12 +118,12 @@ void Godunov_ppm_xbc(const int i, const int j, const int k, const int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_ybc(const int i, const int j, const int k, const int n,
-                           amrex::Real &sm, amrex::Real &sp,
-                           amrex::Real &sedge1, amrex::Real &sedge2,
-                           const amrex::Array4<const amrex::Real> &s,
-                           const int bclo, const int bchi,
-                           const int domlo, const int domhi)
+void SetYBCs ( const int i, const int j, const int k, const int n,
+               amrex::Real &sm, amrex::Real &sp,
+               amrex::Real &sedge1, amrex::Real &sedge2,
+               const amrex::Array4<const amrex::Real> &s,
+               const int bclo, const int bchi,
+               const int domlo, const int domhi)
 {
     using namespace amrex;
 
@@ -196,13 +196,14 @@ void Godunov_ppm_ybc(const int i, const int j, const int k, const int n,
     }
 }
 
+#if (AMREX_SPACEDIM==3)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_zbc(const int i, const int j, const int k, const int n,
-                           amrex::Real &sm, amrex::Real &sp,
-                           amrex::Real &sedge1, amrex::Real &sedge2,
-                           const amrex::Array4<const amrex::Real> &s,
-                           const int bclo, const int bchi,
-                           const int domlo, const int domhi)
+void SetZBCs ( const int i, const int j, const int k, const int n,
+               amrex::Real &sm, amrex::Real &sp,
+               amrex::Real &sedge1, amrex::Real &sedge2,
+               const amrex::Array4<const amrex::Real> &s,
+               const int bclo, const int bchi,
+               const int domlo, const int domhi)
 {
     using namespace amrex;
 
@@ -278,17 +279,19 @@ void Godunov_ppm_zbc(const int i, const int j, const int k, const int n,
         }
     }
 }
+#endif
+
 
 // Right now only ppm type 1 is supported on GPU
 // This version is called before the MAC projection, when we use the cell-centered velocity
 //      for upwinding
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_pred_x(const int i, const int j, const int k, const int n,
-                        const amrex::Real dtdx, const amrex::Real v_ad,
-                        const amrex::Array4<const amrex::Real> &S,
-                        const amrex::Array4<amrex::Real> &Im,
-                        const amrex::Array4<amrex::Real> &Ip,
-                        const amrex::BCRec bc, const int domlo, const int domhi)
+void PredictVelOnXFace ( const int i, const int j, const int k, const int n,
+                         const amrex::Real dtdx, const amrex::Real v_ad,
+                         const amrex::Array4<const amrex::Real> &S,
+                         const amrex::Array4<amrex::Real> &Im,
+                         const amrex::Array4<amrex::Real> &Ip,
+                         const amrex::BCRec bc, const int domlo, const int domhi)
 {
     using namespace amrex;
 
@@ -328,7 +331,7 @@ void Godunov_ppm_pred_x(const int i, const int j, const int k, const int n,
       else if (amrex::Math::abs(sedge1-S(i,j,k,n)) >=  2.0*amrex::Math::abs(sedge2-s0))
         sm = 3.0*s0 - 2.0*sedge2;
 
-    Godunov_ppm_xbc(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(0), bc.hi(0), domlo, domhi);
+    SetXBCs(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(0), bc.hi(0), domlo, domhi);
 
     amrex::Real s6 = 6.0*s0 - 3.0*(sm + sp);
 
@@ -351,12 +354,12 @@ void Godunov_ppm_pred_x(const int i, const int j, const int k, const int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_pred_y(const int i, const int j, const int k, const int n,
-                        const amrex::Real dtdy, const amrex::Real v_ad,
-                        const amrex::Array4<const amrex::Real> &S,
-                        const amrex::Array4<amrex::Real> &Im,
-                        const amrex::Array4<amrex::Real> &Ip,
-                        const amrex::BCRec bc, const int domlo, const int domhi)
+void PredictVelOnYFace ( const int i, const int j, const int k, const int n,
+                         const amrex::Real dtdy, const amrex::Real v_ad,
+                         const amrex::Array4<const amrex::Real> &S,
+                         const amrex::Array4<amrex::Real> &Im,
+                         const amrex::Array4<amrex::Real> &Ip,
+                         const amrex::BCRec bc, const int domlo, const int domhi)
 {
     using namespace amrex;
 
@@ -396,7 +399,7 @@ void Godunov_ppm_pred_y(const int i, const int j, const int k, const int n,
       else if (amrex::Math::abs(sedge1-S(i,j,k,n)) >= 2.0*amrex::Math::abs(sedge2-s0))
         sm = 3.0*s0 - 2.0*sedge2;
 
-    Godunov_ppm_ybc(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(1), bc.hi(1), domlo, domhi);
+    SetYBCs(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(1), bc.hi(1), domlo, domhi);
 
     amrex::Real s6 = 6.0*s0- 3.0*(sm + sp);
 
@@ -418,13 +421,14 @@ void Godunov_ppm_pred_y(const int i, const int j, const int k, const int n,
     }
 }
 
+#if (AMREX_SPACEDIM==3)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_pred_z(const int i, const int j, const int k, const int n,
-                        const amrex::Real dtdz, const amrex::Real v_ad,
-                        const amrex::Array4<const amrex::Real> &S,
-                        const amrex::Array4<amrex::Real> &Im,
-                        const amrex::Array4<amrex::Real> &Ip,
-                        const amrex::BCRec bc, const int domlo, const int domhi)
+void PredictVelOnZFace ( const int i, const int j, const int k, const int n,
+                         const amrex::Real dtdz, const amrex::Real v_ad,
+                         const amrex::Array4<const amrex::Real> &S,
+                         const amrex::Array4<amrex::Real> &Im,
+                         const amrex::Array4<amrex::Real> &Ip,
+                         const amrex::BCRec bc, const int domlo, const int domhi)
 {
     using namespace amrex;
 
@@ -464,7 +468,7 @@ void Godunov_ppm_pred_z(const int i, const int j, const int k, const int n,
       else if (amrex::Math::abs(sedge1-S(i,j,k,n)) >= 2.0*amrex::Math::abs(sedge2-s0))
         sm = 3.0*s0 - 2.0*sedge2;
 
-    Godunov_ppm_zbc(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(2), bc.hi(2), domlo, domhi);
+    SetZBCs(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(2), bc.hi(2), domlo, domhi);
 
     amrex::Real s6 = 6.0*s0- 3.0*(sm + sp);
 
@@ -486,17 +490,19 @@ void Godunov_ppm_pred_z(const int i, const int j, const int k, const int n,
     }
 }
 
+#endif
+
 // Right now only ppm type 1 is supported on GPU
 // This version is called after the MAC projection, when we use the MAC-projected velocity
 //      for upwinding
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_fpu_x (const int i, const int j, const int k, const int n,
-                        const amrex::Real dt, const amrex::Real dx,
-                        amrex::Real& Im, amrex::Real& Ip,
-                        const amrex::Array4<const amrex::Real> &S,
-                        const amrex::Array4<const amrex::Real> &vel_edge,
-                        const amrex::BCRec bc,
-                        const int domlo, const int domhi)
+void PredictStateOnXFace ( const int i, const int j, const int k, const int n,
+                           const amrex::Real dt, const amrex::Real dx,
+                           amrex::Real& Im, amrex::Real& Ip,
+                           const amrex::Array4<const amrex::Real> &S,
+                           const amrex::Array4<const amrex::Real> &vel_edge,
+                           const amrex::BCRec bc,
+                           const int domlo, const int domhi)
 {
     {
     using namespace amrex;
@@ -537,7 +543,7 @@ void Godunov_ppm_fpu_x (const int i, const int j, const int k, const int n,
     else if (amrex::Math::abs(sedge1-S(i,j,k,n)) >=  2.0*amrex::Math::abs(sedge2-s0))
       sm = 3.0*s0 - 2.0*sedge2;
 
-    Godunov_ppm_xbc(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(0), bc.hi(0), domlo, domhi);
+    SetXBCs(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(0), bc.hi(0), domlo, domhi);
 
     Real s6 = 6.0*s0 - 3.0*(sm + sp);
 
@@ -557,13 +563,13 @@ void Godunov_ppm_fpu_x (const int i, const int j, const int k, const int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_fpu_y (const int i, const int j, const int k, const int n,
-                        const amrex::Real dt, const amrex::Real dx,
-                        amrex::Real& Im, amrex::Real& Ip,
-                        const amrex::Array4<const amrex::Real> &S,
-                        const amrex::Array4<const amrex::Real> &vel_edge,
-                        const amrex::BCRec bc,
-                        const int domlo, const int domhi)
+void PredictStateOnYFace ( const int i, const int j, const int k, const int n,
+                           const amrex::Real dt, const amrex::Real dx,
+                           amrex::Real& Im, amrex::Real& Ip,
+                           const amrex::Array4<const amrex::Real> &S,
+                           const amrex::Array4<const amrex::Real> &vel_edge,
+                           const amrex::BCRec bc,
+                           const int domlo, const int domhi)
 {
     {
     using namespace amrex;
@@ -604,7 +610,7 @@ void Godunov_ppm_fpu_y (const int i, const int j, const int k, const int n,
     else if (amrex::Math::abs(sedge1-S(i,j,k,n)) >= 2.0*amrex::Math::abs(sedge2-s0))
         sm = 3.0*s0 - 2.0*sedge2;
 
-    Godunov_ppm_ybc(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(1), bc.hi(1), domlo, domhi);
+    SetYBCs(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(1), bc.hi(1), domlo, domhi);
 
     amrex::Real s6 = 6.0*s0- 3.0*(sm + sp);
 
@@ -623,14 +629,16 @@ void Godunov_ppm_fpu_y (const int i, const int j, const int k, const int n,
     }
 }
 
+
+#if (AMREX_SPACEDIM==3)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void Godunov_ppm_fpu_z (const int i, const int j, const int k, const int n,
-                        const amrex::Real dt, const amrex::Real dx,
-                        amrex::Real& Im, amrex::Real& Ip,
-                        const amrex::Array4<const amrex::Real> &S,
-                        const amrex::Array4<const amrex::Real> &vel_edge,
-                        const amrex::BCRec bc,
-                        const int domlo, const int domhi)
+void PredictStateOnZFace ( const int i, const int j, const int k, const int n,
+                           const amrex::Real dt, const amrex::Real dx,
+                           amrex::Real& Im, amrex::Real& Ip,
+                           const amrex::Array4<const amrex::Real> &S,
+                           const amrex::Array4<const amrex::Real> &vel_edge,
+                           const amrex::BCRec bc,
+                           const int domlo, const int domhi)
 {
     {
     using namespace amrex;
@@ -671,7 +679,7 @@ void Godunov_ppm_fpu_z (const int i, const int j, const int k, const int n,
     else if (amrex::Math::abs(sedge1-S(i,j,k,n)) >= 2.0*amrex::Math::abs(sedge2-s0))
         sm = 3.0*s0 - 2.0*sedge2;
 
-    Godunov_ppm_zbc(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(2), bc.hi(2), domlo, domhi);
+    SetZBCs(i, j, k, n, sm, sp, sedge1, sedge2, S, bc.lo(2), bc.hi(2), domlo, domhi);
 
     Real s6 = 6.0*s0- 3.0*(sm + sp);
     Real sigmap = amrex::Math::abs(vel_edge(i,j,k+1))*dt/dx;
@@ -688,7 +696,7 @@ void Godunov_ppm_fpu_z (const int i, const int j, const int k, const int n,
         Im = S(i,j,k,n);
     }
 }
-
+#endif
 
 
 }

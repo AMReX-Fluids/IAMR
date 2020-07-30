@@ -60,11 +60,11 @@ namespace godunov {
                              const int ncomp, amrex::Geometry const& geom,
                              int const* iconserv );
 
-    void ExtrapVelToFaces ( amrex::MultiFab const& vel,
-                            amrex::MultiFab const& vel_forces,
-                            AMREX_D_DECL( amrex::MultiFab& u_mac,
-                                          amrex::MultiFab& v_mac,
-                                          amrex::MultiFab& w_mac ),
+    void ExtrapVelToFaces ( amrex::MultiFab const& a_vel,
+                            amrex::MultiFab const& a_forces,
+                            AMREX_D_DECL( amrex::MultiFab& a_umac,
+                                          amrex::MultiFab& a_vmac,
+                                          amrex::MultiFab& a_wmac ),
                             const amrex::Vector<amrex::BCRec> & h_bcrec,
                             const amrex::Geometry& geom, amrex::Real l_dt,
                             bool use_ppm, bool use_forces_in_trans);
