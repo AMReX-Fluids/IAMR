@@ -174,15 +174,6 @@ public:      // public access functions
 
     static int hypgrow ();
 
-    // =============================================================
-    // Source term functions follow
-    // =============================================================
-    void Sum_tf_gp_visc ( amrex::Box                        const& bx,
-                          amrex::Array4<amrex::Real>        const& tforces,
-                          amrex::Array4<amrex::Real const>  const& visc,
-                          amrex::Array4<amrex::Real const>  const& gp,
-                          amrex::Array4<amrex::Real const>  const& rho ) const;
-
 
   //================ for debugging purposes this is made public
     // internal FABS

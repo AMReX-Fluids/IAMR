@@ -581,25 +581,6 @@ Godunov::maxchng_velmag ( MultiFab const&  u_old,
     return max_change;
 }
 
-//
-// Compute total source term for velocities, weighted by rho.
-//
-// tforces = (tforces + visc - gp)/rho
-//
-void
-Godunov::Sum_tf_gp_visc ( Box const&                 bx,
-                          Array4<Real>        const& tforces,
-                          Array4<Real const>  const& visc,
-                          Array4<Real const>  const& gp,
-                          Array4<Real const>  const& rho ) const
-{
-    amrex::ParallelFor(bx, AMREX_SPACEDIM, [tforces, visc, gp, rho]
-    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        tforces(i,j,k,n) = ( tforces(i,j,k,n) + visc(i,j,k,n)
-                             - gp(i,j,k,n) ) / rho(i,j,k);
-    });
-}
 
 
 

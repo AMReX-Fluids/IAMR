@@ -558,12 +558,16 @@ NavierStokes::predict_velocity (Real  dt)
             // Compute the total forcing.
             //
             auto const& tf   = tforces.array();
-            auto const& visc = visc_terms[U_mfi].const_array(Xvel);
-            auto const& gp   = Gp[U_mfi].const_array();
-            auto const& rho  = rho_ptime[U_mfi].const_array();
+            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+            auto const& gp   = Gp.const_array(U_mfi);
+            auto const& rho  = rho_ptime.const_array(U_mfi);
             auto const  gbx  = grow(bx,ngrow);
 
-            godunov->Sum_tf_gp_visc(gbx, tf, visc, gp, rho);
+            amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+            });
 
             // Copy to forcing_term MF
             forcing_term[U_mfi].copy<RunOn::Host>(tforces);

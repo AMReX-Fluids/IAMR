@@ -3661,13 +3661,20 @@ NavierStokesBase::velocity_advection (Real dt)
 
                 getForce(tforces,bx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
+                //
+                // Compute the total forcing.
+                //
                 auto const& tf   = tforces.array();
-                auto const& visc = visc_terms[U_mfi].const_array(Xvel);
-                auto const& gp   = Gp[U_mfi].const_array();
-                auto const& rho  = rho_ptime[U_mfi].const_array();
+                auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+                auto const& gp   = Gp.const_array(U_mfi);
+                auto const& rho  = rho_ptime.const_array(U_mfi);
                 auto const  gbx  = grow(bx,ngrow);
 
-                godunov->Sum_tf_gp_visc(gbx, tf, visc, gp, rho);
+                amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+                });
 
 
                 //
@@ -3676,8 +3683,6 @@ NavierStokesBase::velocity_advection (Real dt)
                 S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
                 S.copy<RunOn::Host>(Umf[U_mfi],0,0,BL_SPACEDIM);
 
-                // FArrayBox& divufab = divu_fp[U_mfi];
-                // FArrayBox& aofsfab = (*aofs)[U_mfi];
 
                 for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                 {
