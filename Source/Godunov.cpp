@@ -602,36 +602,6 @@ Godunov::Sum_tf_gp_visc ( Box const&                 bx,
 }
 
 
-void
-Godunov::Sum_tf_divu_visc ( amrex::Box                        const& bx,
-                            amrex::Array4<amrex::Real>        const& tforces,
-                            amrex::Array4<amrex::Real const>  const& visc,
-                            amrex::Array4<amrex::Real const>  const& divu,
-                            amrex::Array4<amrex::Real const>  const& S,
-                            amrex::Array4<amrex::Real const>  const& rho,
-                            int ncomp, int iconserv ) const
-{
-
-    if (iconserv == 1)
-    {
-        amrex::ParallelFor(bx, ncomp, [tforces, visc, S, divu]
-        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-        {
-            tforces(i,j,k,n) = tforces(i,j,k,n) + visc(i,j,k,n)
-                                 - S(i,j,k,n) * divu(i,j,k);
-        });
-    }
-    else
-    {
-        amrex::ParallelFor(bx, ncomp, [tforces, visc, rho]
-        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-        {
-            tforces(i,j,k,n) = ( tforces(i,j,k,n) + visc(i,j,k,n) ) / rho(i,j,k);
-        });
-    }
-
-}
-
 
 bool
 Godunov::are_any(const Vector<AdvectionForm>& advectionType,

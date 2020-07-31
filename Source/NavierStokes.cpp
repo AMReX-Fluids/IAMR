@@ -712,8 +712,6 @@ NavierStokes::scalar_advection (Real dt,
             edgestate[i].define(ba, dmap, num_scalars, nghost);
         }
 
-
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -724,67 +722,50 @@ NavierStokes::scalar_advection (Real dt,
             {
                 const Box bx = S_mfi.tilebox();
 
-                if (getForceVerbose) {
+                if (getForceVerbose)
+                {
                     Print() << "---" << '\n' << "C - scalar advection:" << '\n'
                             << " Calling getForce..." << '\n';
                 }
+
                 getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
 
-                // for (int d=0; d<BL_SPACEDIM; ++d)
-                // {
-                //     const Box& ebx = amrex::surroundingNodes(bx,d);
-                //     cfluxes[d].resize(ebx,num_scalars);
-                //     edgstate[d].resize(ebx,num_scalars);
-                // }
-
-                for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
-                    int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
-
+                for (int i=0; i<num_scalars; ++i)
+                {
+                    // FIXME: Loop rqd b/c function does not take array conserv_diff
                     auto const& tf    = tforces.array(i);
-                    auto const& visc  = visc_terms[S_mfi].const_array(i);
-                    auto const& rho   = rho_ptime[S_mfi].const_array();
-                    auto const& divU  = (*divu_fp)[S_mfi].const_array();
-                    auto const& scal  = Smf[S_mfi].array(i);
-                    auto const  grown_box  = grow(bx,nGrowF);
+                    auto const& visc  = visc_terms.const_array(S_mfi,i);
+                    auto const  gbx   = grow(bx,nGrowF);
 
+                    if (advectionType[fscalar+i] == Conservative)
+                    {
+                        auto const& divu  = divu_fp -> const_array(S_mfi);
+                        auto const& S     = Smf.array(S_mfi);
 
-                    godunov->Sum_tf_divu_visc(grown_box, tf, visc, divU, scal, rho, 1, use_conserv_diff);
+                        amrex::ParallelFor(bx, [tf, visc, S, divu]
+                        AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+                        {
+                            tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
+                        });
+                    }
+                    else
+                    {
+                        auto const& rho   = rho_ptime.const_array(S_mfi);
+
+                        amrex::ParallelFor(bx, [tf, visc, rho]
+                        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
+                        });
+                    }
 
                 }
+
                 // Copy to forcing_term MF
                 forcing_term[S_mfi].copy<RunOn::Host>(tforces);
             }
 
         } // OMP parallel loop
-
-// #define _OLD_ALGO_ 1
-// #if _OLD_ALGO_
-//         Vector<int> state_bc;
-//         for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
-//         {
-//             const Box bx = S_mfi.tilebox();
-
-//             state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
-
-//             godunov->AdvectScalars(bx, dx, dt,
-//                                    D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
-//                                    D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
-//                                    D_DECL( cfluxes[0][S_mfi],  cfluxes[1][S_mfi],  cfluxes[2][S_mfi]), 0,
-//                                    D_DECL( edgestate[0][S_mfi], edgestate[1][S_mfi],edgestate[2][S_mfi]), 0,
-//                                    Smf[S_mfi], 0, num_scalars, forcing_term[S_mfi], 0, (*divu_fp)[S_mfi], 0,
-//                                    (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
-
-
-//             if (do_reflux) {
-//                 for (int d=0; d<BL_SPACEDIM; ++d) {
-//                     const Box& ebx = S_mfi.nodaltilebox(d);
-//                     (fluxes[d])[S_mfi].copy<RunOn::Host>(cfluxes[d][S_mfi],ebx,0,ebx,0,num_scalars);
-//                 }
-//             }
-//         }
-// #else
-
-//         Print() << "NEW ALGO SCALARS" << std::endl;
 
         Vector<BCRec> math_bcs(num_scalars);
         math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
@@ -809,14 +790,9 @@ NavierStokes::scalar_advection (Real dt,
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
         }
-// #endif
-
-//         for (int ns = 0; ns < num_scalars; ++ns)
-//             Print() << "norm1(aofs) of scalar " << ns << " = "
-//                     << aofs ->norm1(fscalar+ns,geom.periodicity(),true)
-//                     << std::endl;
-
 #endif
+
+
     } // FillPathIterator
 
     delete divu_fp;
