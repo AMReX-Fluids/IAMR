@@ -90,7 +90,97 @@ godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 
 
 
+void
+godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
+                           MultiFab const& state, const int state_comp,
+                           AMREX_D_DECL( MultiFab const& umac,
+                                         MultiFab const& vmac,
+                                         MultiFab const& wmac),
+                           AMREX_D_DECL( MultiFab const& ucorr,
+                                         MultiFab const& vcorr,
+                                         MultiFab const& wcorr),
+                           AMREX_D_DECL( MultiFab& xedge,
+                                         MultiFab& yedge,
+                                         MultiFab& zedge),
+                           const int  edge_comp,
+                           const bool known_edgestate,
+                           AMREX_D_DECL( MultiFab& xfluxes,
+                                         MultiFab& yfluxes,
+                                         MultiFab& zfluxes),
+                           int fluxes_comp,
+                           MultiFab const& fq,
+                           const int fq_comp,
+                           MultiFab const& divu,
+                           Vector<BCRec> const& bcs,
+                           Geometry const& geom,
+                           Gpu::DeviceVector<int>& iconserv,
+                           const Real dt,
+                           const bool use_ppm,
+                           const bool use_forces_in_trans,
+                           const bool is_velocity  )
+{
+    BL_PROFILE("Godunov::ComputeAofs()");
 
+    for (MFIter mfi(aofs,true); mfi.isValid(); ++mfi)
+    {
+
+        const Box& bx   = mfi.tilebox();
+        Box const& bxg1 = amrex::grow(bx,1);
+
+        FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
+
+        //
+        // Get handlers to Array4
+        //
+        AMREX_D_TERM( const auto& fx = xfluxes.array(mfi,fluxes_comp);,
+                      const auto& fy = yfluxes.array(mfi,fluxes_comp);,
+                      const auto& fz = zfluxes.array(mfi,fluxes_comp););
+
+        AMREX_D_TERM( const auto& xed = xedge.array(mfi,edge_comp);,
+                      const auto& yed = yedge.array(mfi,edge_comp);,
+                      const auto& zed = zedge.array(mfi,edge_comp););
+
+        AMREX_D_TERM( const auto& uc = ucorr.const_array(mfi);,
+                      const auto& vc = vcorr.const_array(mfi);,
+                      const auto& wc = wcorr.const_array(mfi););
+
+        if (not known_edgestate)
+        {
+
+            AMREX_D_TERM( const auto& u = umac.const_array(mfi);,
+                          const auto& v = vmac.const_array(mfi);,
+                          const auto& w = wmac.const_array(mfi););
+
+            ComputeEdgeState( bx, ncomp,
+                              state.array(mfi,state_comp),
+                              AMREX_D_DECL( xed, yed, zed ),
+                              AMREX_D_DECL( u, v, w ),
+                              divu.array(mfi),
+                              fq.array(mfi,fq_comp),
+                              geom, dt, &bcs[0],
+                              iconserv.data(),
+                              use_ppm,
+                              use_forces_in_trans,
+                              is_velocity );
+        }
+
+        ComputeFluxes( bx, AMREX_D_DECL( fx, fy, fz ),
+                       AMREX_D_DECL( uc, vc, wc ),
+                       AMREX_D_DECL( xed, yed, zed ),
+                       geom, ncomp );
+
+
+        ComputeDivergence( bx,
+                           aofs.array(mfi,aofs_comp),
+                           AMREX_D_DECL( fx, fy, fz ),
+                           AMREX_D_DECL( xed, yed, zed ),
+                           AMREX_D_DECL( uc, vc, wc ),
+                           ncomp, geom, iconserv.data() );
+
+        Gpu::streamSynchronize();  // otherwise we might be using too much memory
+    }
+
+}
 
 
 void
