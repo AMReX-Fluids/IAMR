@@ -170,12 +170,10 @@ godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                        geom, ncomp );
 
 
-        ComputeDivergence( bx,
-                           aofs.array(mfi,aofs_comp),
-                           AMREX_D_DECL( fx, fy, fz ),
-                           AMREX_D_DECL( xed, yed, zed ),
-                           AMREX_D_DECL( uc, vc, wc ),
-                           ncomp, geom, iconserv.data() );
+        ComputeSyncDivergence( bx,
+                               aofs.array(mfi,aofs_comp),
+                               AMREX_D_DECL( fx, fy, fz ),
+                               ncomp, geom );
 
         Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
@@ -300,5 +298,36 @@ godunov::ComputeDivergence ( Box const& bx,
                 ;
        }
 
+    });
+}
+
+
+void
+godunov::ComputeSyncDivergence ( Box const& bx,
+                                 Array4<Real> const& div,
+                                 AMREX_D_DECL( Array4<Real const> const& fx,
+                                               Array4<Real const> const& fy,
+                                               Array4<Real const> const& fz),
+                                 const int ncomp, Geometry const& geom )
+{
+
+    const auto dxinv = geom.InvCellSizeArray();
+
+#if (AMREX_SPACEDIM==3)
+    Real qvol = dxinv[0] * dxinv[1] * dxinv[2];
+#else
+    Real qvol = dxinv[0] * dxinv[1];
+#endif
+
+    amrex::ParallelFor(bx, ncomp,[=]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        div(i,j,k,n) +=  qvol * (
+              fx(i+1,j,k,n) -  fx(i,j,k,n)
+            + fy(i,j+1,k,n) -  fy(i,j,k,n)
+#if (AMREX_SPACEDIM==3)
+            + fz(i,j,k+1,n) -  fz(i,j,k,n)
+#endif
+            );
     });
 }

@@ -88,6 +88,13 @@ namespace godunov {
                              const int ncomp, amrex::Geometry const& geom,
                              int const* iconserv );
 
+    void ComputeSyncDivergence ( amrex::Box const& bx,
+                                 amrex::Array4<amrex::Real> const& div,
+                                 AMREX_D_DECL( amrex::Array4<amrex::Real const> const& fx,
+                                               amrex::Array4<amrex::Real const> const& fy,
+                                               amrex::Array4<amrex::Real const> const& fz),
+                                 const int ncomp, amrex::Geometry const& geom );
+
     void ExtrapVelToFaces ( amrex::MultiFab const& a_vel,
                             amrex::MultiFab const& a_forces,
                             AMREX_D_DECL( amrex::MultiFab& a_umac,

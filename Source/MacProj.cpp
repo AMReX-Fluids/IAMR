@@ -14,6 +14,8 @@
 #include <iamr_mol.H>
 #endif
 
+#include <iamr_godunov.H>
+
 //fixme, for writesingle level plotfile
 #include<AMReX_PlotFileUtil.H>
 
@@ -710,135 +712,278 @@ MacProj::mac_sync_compute (int                   level,
         }
     }
 #else
-    //
-    // non-EB algorithm
-    //
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+
+
+    Print() << "NEW SYNC ALGO" << std::endl;
+
+    const int ncomp  = 1; // Number of components to process at once
+    const int ngrow  = 1; // Number of ghost nodes
+    MultiFab edgestate[AMREX_SPACEDIM];
+    MultiFab cfluxes[AMREX_SPACEDIM];
+    MultiFab forcing_term(grids, dmap, NUM_STATE, ngrow);
+
+    for (int i(0); i < AMREX_SPACEDIM; i++)
     {
-        Vector<int> ns_level_bc;
-        FArrayBox tforces, tvelforces, U;
-        FArrayBox flux[BL_SPACEDIM], Rho;
+        const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
+        cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, ngrow);
+        cfluxes[i].setVal(0.0);
+        edgestate[i].define(ba, dmap, AMREX_SPACEDIM, ngrow);
+    }
 
-        for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
+    // Store momenta multifab if conservative approach is used,
+    // i.e. rho* u.
+    // We make it with AMREX_SPACEDIM components instead of only one
+    // (loop below is done component by component) because ComputeSyncAofs will
+    // need to know which component of velocity is being processed.
+    MultiFab momenta;
+    if  (do_mom_diff == 1)
+    {
+        momenta.define(grids,dmap, AMREX_SPACEDIM, Smf.nGrow());
+        MultiFab::Copy(momenta,Smf,0,0,AMREX_SPACEDIM, Smf.nGrow());
+        for (int d=0; d < AMREX_SPACEDIM; ++d )
+            MultiFab::Multiply( momenta, Smf, Density, d, 1, Smf.nGrow());
+    }
+
+
+    //
+    // Compute forcing terms for all component
+    //
+    for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
+    {
+        FArrayBox tforces;
+        const Box& bx  = Smfi.tilebox();
+        ns_level.getForce(tforces,bx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
+        forcing_term[Smfi].copy<RunOn::Host>(tforces);
+    }
+
+
+
+    for (int comp = 0; comp < NUM_STATE; ++comp)
+    {
+        if (increment_sync.empty() || increment_sync[comp]==1)
         {
-            const int i     = Smfi.index();
-            FArrayBox& S    = Smf[Smfi];
-            FArrayBox& divu = (*divu_fp)[Smfi];
-            const Box& bx   = Smfi.tilebox();
-            const int ngrow = 1;
-            //
-            // Step 1: compute ucorr = grad(phi)/rhonph -- Now done in mac_sync_solve()
-            //
-            // Create storage for corrective velocities.
-            //
-            Rho.resize(amrex::grow(bx,ngrow),1);
 
             //
-            // Step 2: compute Mac correction by calling GODUNOV box
+            // Compute total forcing term
             //
-            // Get needed data.
-            //
-            Rho.copy<RunOn::Host>(S,Density,0,1);
-
-            ns_level.getForce(tforces,bx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
-
-            //
-            // Compute total forcing terms.
-            //
-            auto const& vtf   = tforces.array();
-            auto const& stf   = tforces.array(AMREX_SPACEDIM);
-            auto const& vvisc = vel_visc_terms[Smfi].const_array(Xvel);
-            auto const& svisc = scal_visc_terms[Smfi].const_array(0);
-            auto const& gp    = Gp[Smfi].const_array();
-            auto const& rho   = Rho.const_array();
-            auto const& divU  = divu.const_array();
-            auto const& scal  = S.array(AMREX_SPACEDIM);
-            auto const  grown_box  = grow(bx,ngrow);
-
-            godunov->Sum_tf_gp_visc(grown_box, vtf, vvisc, gp, rho);
-
-            godunov->Sum_tf_divu_visc(grown_box, stf, svisc, divU, scal, rho, numscal, 1);
-
-            if (use_forces_in_trans)
+            for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
             {
-                ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi],Smf[Smfi],Density);
-                auto const& tvf = tvelforces.array();
-                godunov->Sum_tf_gp_visc(grown_box, tvf, vvisc, gp, rho);
-            }
-            //
-            // Get the sync FABS.
-            //
-            FArrayBox& u_sync = Vsync[Smfi];
-            FArrayBox& s_sync = Ssync[Smfi];
+                const Box& bx  = Smfi.tilebox();
 
-            D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][Smfi];,
-                   FArrayBox& u_mac_fab1 = u_mac[1][Smfi];,
-                   FArrayBox& u_mac_fab2 = u_mac[2][Smfi];);
-            //
-            // Loop over state components and compute the sync advective component.
-            //
-            FArrayBox* Sp;
-            Box gbx = grow(Smfi.tilebox(),Smf.nGrow());
-            FArrayBox rhoS(gbx,BL_SPACEDIM);
+                FArrayBox Rho;
+                Rho.resize(amrex::grow(bx,ngrow),1);
+                Rho.copy<RunOn::Host>(Smf[Smfi],Density,0,1);
 
-            for (int comp = 0; comp < NUM_STATE; comp++)
-            {
-                if (increment_sync.empty() || increment_sync[comp]==1)
+                //
+                // Compute total forcing terms.
+                //
+                auto const& tf    = forcing_term.array(Smfi,comp);
+                auto const& rho   = Rho.const_array();
+                auto const  gbx   = grow(bx,ngrow);
+
+                if (comp < AMREX_SPACEDIM)  // Velocity/Momenta
                 {
-                    const int  sync_ind = comp < BL_SPACEDIM ? comp  : comp-BL_SPACEDIM;
-                    FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
-                    ns_level_bc         = ns_level.fetchBCArray(State_Type,bx,comp,1);
+                    auto const& visc = vel_visc_terms[Smfi].const_array(comp);
+                    auto const& gp   = Gp[Smfi].const_array(comp);
 
-                    int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+                    amrex::ParallelFor(gbx, [tf, visc, gp, rho]
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
+                    });
 
-                    if (do_mom_diff == 1 && comp < BL_SPACEDIM)
-                    {
-                        rhoS.copy<RunOn::Host>(Smf[Smfi],gbx,comp,gbx,comp,1);
-                        rhoS.mult<RunOn::Host>(Smf[Smfi],gbx,gbx,Density,comp,1);
-                        Sp = &rhoS;
-                        tforces.mult<RunOn::Host>(Smf[Smfi],tforces.box(),tforces.box(),Density,comp,1);
-                    }
-                    else
-                    {
-                        Sp = &Smf[Smfi];
-                    }
+                    if ( not (do_mom_diff == 1 ) )
+                        forcing_term[Smfi].divide<RunOn::Host>(Rho);
 
-                    for (int d=0; d<BL_SPACEDIM; ++d)
+                }
+                else  // Scalars
+                {
+                    auto const& visc = scal_visc_terms[Smfi].const_array(comp-AMREX_SPACEDIM);
+                    auto const& S    = Smf.const_array(Smfi,comp);
+                    auto const& divu = divu_fp -> const_array(Smfi);
+                    amrex::ParallelFor(bx, [tf, visc, S, divu]
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
-                        const Box& ebx = amrex::surroundingNodes(bx,d);
-                        flux[d].resize(ebx,BL_SPACEDIM+1);
-                    }
-
-                    godunov->SyncAdvect(bx, dx, dt, level,
-                                        area[0][i], u_mac_fab0, (*Ucorr[0])[Smfi], flux[0],
-                                        area[1][i], u_mac_fab1, (*Ucorr[1])[Smfi], flux[1],
-#if (BL_SPACEDIM == 3)
-                                        area[2][i], u_mac_fab2, (*Ucorr[2])[Smfi], flux[2],
-#endif
-                                        S, *Sp, tforces, divu, comp, temp, sync_ind,
-                                        use_conserv_diff, comp,
-                                        ns_level_bc.dataPtr(), FPU, volume[i]);
-                    //
-                    // NOTE: the signs here are opposite from VELGOD.
-                    // NOTE: fluxes expected to be in extensive form.
-                    //
-                    if (level > 0 && update_fluxreg)
-                    {
-                        for (int d = 0; d < BL_SPACEDIM; d++){
-                            const Box& ebx = Smfi.nodaltilebox(d);
-                            fluxes[d][Smfi].copy<RunOn::Host>(flux[d],ebx,0,ebx,comp,1);
-                        }
-                    }
+                        tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
+                    });
                 }
             }
+
+
             //
-            // Multiply the sync term by dt -- now done in the calling routine.
+            // Perform sync
             //
+            auto math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
+
+            // Select sync MF and its component for processing
+            const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
+            MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
+            const bool is_velocity = comp < AMREX_SPACEDIM ? true   : false;
+
+            const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
+
+            amrex::Gpu::DeviceVector<int> iconserv;
+            iconserv.resize(1, 0);
+            iconserv[0] = (advectionType[comp] == Conservative) ? 1 : 0;
+
+            godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+                                     Q, comp,
+                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                     AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                                     forcing_term, comp, *divu_fp,
+                                     math_bcs, geom, iconserv, dt,
+                                     (Godunov::ppm_type>0), Godunov::use_forces_in_trans, is_velocity );
+
+            if (level > 0 && update_fluxreg)
+            {
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    MultiFab::Copy(fluxes[d], cfluxes[d], 0, comp, 1, ngrow );
+            }
+
         }
-    } //end OMP parallel region
-#endif
+
+    }
+
+
+
+//     Print() << "OLD SYNC ALGO" << std::endl;
+
+
+//     //
+//     // non-EB algorithm
+//     //
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     {
+//         Vector<int> ns_level_bc;
+//         FArrayBox tforces, tvelforces, U;
+//         FArrayBox flux[BL_SPACEDIM], Rho;
+
+//         for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
+//         {
+//             const int i     = Smfi.index();
+//             FArrayBox& S    = Smf[Smfi];
+//             FArrayBox& divu = (*divu_fp)[Smfi];
+//             const Box& bx   = Smfi.tilebox();
+//             const int ngrow = 1;
+//             //
+//             // Step 1: compute ucorr = grad(phi)/rhonph -- Now done in mac_sync_solve()
+//             //
+//             // Create storage for corrective velocities.
+//             //
+//             Rho.resize(amrex::grow(bx,ngrow),1);
+
+//             //
+//             // Step 2: compute Mac correction by calling GODUNOV box
+//             //
+//             // Get needed data.
+//             //
+//             Rho.copy<RunOn::Host>(S,Density,0,1);
+
+//             // Are we sure we pass Smf instead of passing rho???? (second to last argument)
+//             ns_level.getForce(tforces,bx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
+
+//             //
+//             // Compute total forcing terms.
+//             //
+//             auto const& vtf   = tforces.array();
+//             auto const& stf   = tforces.array(AMREX_SPACEDIM);
+//             auto const& vvisc = vel_visc_terms[Smfi].const_array(Xvel);
+//             auto const& svisc = scal_visc_terms[Smfi].const_array(0);
+//             auto const& gp    = Gp[Smfi].const_array();
+//             auto const& rho   = Rho.const_array();
+//             auto const& divU  = divu.const_array();
+//             auto const& scal  = S.array(AMREX_SPACEDIM);
+//             auto const  grown_box  = grow(bx,ngrow);
+
+//             godunov->Sum_tf_gp_visc(grown_box, vtf, vvisc, gp, rho);
+
+//             godunov->Sum_tf_divu_visc(grown_box, stf, svisc, divU, scal, rho, numscal, 1);
+
+//             //
+//             // Get the sync FABS.
+//             //
+//             FArrayBox& u_sync = Vsync[Smfi];
+//             FArrayBox& s_sync = Ssync[Smfi];
+
+//             D_TERM(FArrayBox& u_mac_fab0 = u_mac[0][Smfi];,
+//                    FArrayBox& u_mac_fab1 = u_mac[1][Smfi];,
+//                    FArrayBox& u_mac_fab2 = u_mac[2][Smfi];);
+//             //
+//             // Loop over state components and compute the sync advective component.
+//             //
+//             FArrayBox* Sp;
+//             Box gbx = grow(Smfi.tilebox(),Smf.nGrow());
+//             FArrayBox rhoS(gbx,BL_SPACEDIM);
+
+//             for (int comp = 0; comp < NUM_STATE; comp++)
+//             {
+//                 if (increment_sync.empty() || increment_sync[comp]==1)
+//                 {
+//                     const int  sync_ind = comp < BL_SPACEDIM ? comp  : comp-BL_SPACEDIM;
+//                     FArrayBox& temp     = comp < BL_SPACEDIM ? u_sync : s_sync;
+//                     ns_level_bc         = ns_level.fetchBCArray(State_Type,bx,comp,1);
+
+//                     int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+
+//                     if (do_mom_diff == 1 && comp < BL_SPACEDIM)
+//                     {
+//                         rhoS.copy<RunOn::Host>(Smf[Smfi],gbx,comp,gbx,comp,1);
+//                         rhoS.mult<RunOn::Host>(Smf[Smfi],gbx,gbx,Density,comp,1);
+//                         Sp = &rhoS;
+//                         tforces.mult<RunOn::Host>(Smf[Smfi],tforces.box(),tforces.box(),Density,comp,1);
+//                     }
+//                     else
+//                     {
+//                         Sp = &Smf[Smfi];
+//                     }
+
+//                     for (int d=0; d<BL_SPACEDIM; ++d)
+//                     {
+//                         const Box& ebx = amrex::surroundingNodes(bx,d);
+//                         flux[d].resize(ebx,BL_SPACEDIM+1);
+//                     }
+//                     forcing_term[Smfi].copy<RunOn::Host>(tforces);
+
+//                     godunov->SyncAdvect(bx, dx, dt, level,
+//                                         area[0][i], u_mac_fab0, (*Ucorr[0])[Smfi], flux[0],
+//                                         area[1][i], u_mac_fab1, (*Ucorr[1])[Smfi], flux[1],
+// #if (BL_SPACEDIM == 3)
+//                                         area[2][i], u_mac_fab2, (*Ucorr[2])[Smfi], flux[2],
+// #endif
+//                                         S, *Sp, tforces, divu, comp, temp, sync_ind,
+//                                         use_conserv_diff, comp,
+//                                         ns_level_bc.dataPtr(), FPU, volume[i]);
+//                     //
+//                     // NOTE: the signs here are opposite from VELGOD.
+//                     // NOTE: fluxes expected to be in extensive form.
+//                     //
+//                     if (level > 0 && update_fluxreg)
+//                     {
+//                         for (int d = 0; d < BL_SPACEDIM; d++){
+//                             const Box& ebx = Smfi.nodaltilebox(d);
+//                             fluxes[d][Smfi].copy<RunOn::Host>(flux[d],ebx,0,ebx,comp,1);
+//                         }
+//                     }
+//                 }
+//             }
+//             //
+//             // Multiply the sync term by dt -- now done in the calling routine.
+//             //
+//         }
+//     } //end OMP parallel region
+// #endif
+// #endif
+
+    for (int comp = 0; comp < NUM_STATE; comp++)
+        Print() << "norm1(tf) for comp "
+                << comp << " = "
+                << forcing_term.norm1(comp,geom.periodicity(),true)
+                << std::endl;
+
 
     if (level > 0 && update_fluxreg){
         const Real mlt =  -1.0/( (double) parent->nCycle(level));
