@@ -611,7 +611,7 @@ MacProj::mac_sync_compute (int                   level,
     const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
     Godunov*        godunov             = ns_level.godunov;
-    bool            use_forces_in_trans = godunov->useForcesInTrans() ? true : false;
+    bool            use_forces_in_trans = Godunov::use_forces_in_trans ? true : false;
 
     //NOTE
     // Visc terms, GradP, forces not used in EB advection algorithm
@@ -909,8 +909,11 @@ MacProj::mac_sync_compute (int                    level,
     const int  nghost  = 0;
 #endif
 
+    const int  ncomp   = 1;         // Number of components to process at once
+
     MultiFab fluxes[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) {
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
         fluxes[i].define(ba, dmap, 1, nghost, MFInfo(),ns_level.Factory());
     }
@@ -925,7 +928,7 @@ MacProj::mac_sync_compute (int                    level,
     // Use a block here so all temporaries will go out of scope once
     // it is done being executed
     {
-        const int  ncomp   = 1;         // Number of components to process at once
+
         Vector<BCRec>  math_bcs(ncomp);
         const Box& domain = geom.Domain();
 
@@ -947,60 +950,36 @@ MacProj::mac_sync_compute (int                    level,
     //
     // non-EB algorithm
     //
-    Godunov godunov;
+
+    // Bogus arguments -- they will not be used since we don't need to recompute the edge states
+    Vector<BCRec>  bcs;
+    Gpu::DeviceVector<int> iconserv;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
     {
-        FArrayBox flux[BL_SPACEDIM];
+        const Box& bx = Syncmfi.tilebox();
 
-        for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
+        godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+                                 MultiFab(), s_ind,                      // this is not used when known_edgestate = true
+                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                 AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+                                 AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+                                 MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
+                                 bcs, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
+
+
+    }
+
+#endif
+
+    if (level > 0 && update_fluxreg)
+    {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            const Box& bx = Syncmfi.tilebox();
-
-            //
-            // Step 2: compute Mac correction by advecting the edge states.
-            //
-            D_TERM(flux[0].resize(amrex::surroundingNodes(bx,0),1);,
-                   flux[1].resize(amrex::surroundingNodes(bx,1),1);,
-                   flux[2].resize(amrex::surroundingNodes(bx,2),1););
-
-            D_TERM(flux[0].copy<RunOn::Host>((*sync_edges[0])[Syncmfi],eComp,0,1);,
-                   flux[1].copy<RunOn::Host>((*sync_edges[1])[Syncmfi],eComp,0,1);,
-                   flux[2].copy<RunOn::Host>((*sync_edges[2])[Syncmfi],eComp,0,1););
-
-            int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
-
-            godunov.ComputeSyncAofs(bx,
-                                    area[0][Syncmfi],
-                                    (*Ucorr[0])[Syncmfi], flux[0],
-                                    area[1][Syncmfi],
-                                    (*Ucorr[1])[Syncmfi], flux[1],
-#if (BL_SPACEDIM == 3)
-                                    area[2][Syncmfi],
-                                    (*Ucorr[2])[Syncmfi], flux[2],
-#endif
-                                    volume[Syncmfi], Sync[Syncmfi],
-                                    s_ind, use_conserv_diff);
-
-            //
-            // NOTE: the signs here are opposite from VELGOD.
-            // NOTE: fluxes expected to be in extensive form.
-            //
-            if (level > 0 && update_fluxreg)
-            {
-                for (int d = 0; d < BL_SPACEDIM; d++){
-                    const Box& ebx = Syncmfi.nodaltilebox(d);
-                    fluxes[d][Syncmfi].copy<RunOn::Host>(flux[d],ebx,0,ebx,0,1);
-                }
-            }
-        }
-    }//end OMP parallel region
-#endif
-
-    if (level > 0 && update_fluxreg){
-        for (int d = 0; d < BL_SPACEDIM; d++){
             adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
         }
     }

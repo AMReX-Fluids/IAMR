@@ -2415,14 +2415,50 @@ NavierStokesBase::steadyState()
         return false; // If nothing to compare to, must not yet be steady :)
     }
 
-    MultiFab&   U_old         = get_old_data(State_Type);
-    MultiFab&   U_new         = get_new_data(State_Type);
+    MultiFab&   u_old = get_old_data(State_Type);
+    MultiFab&   u_new = get_new_data(State_Type);
 
     //
     // Estimate the maximum change in velocity magnitude since previous
     // iteration
     //
-    Real  max_change  = godunov->maxchng_velmag(U_old,U_new);
+    Real max_change = 0.0;
+
+    ReduceOps<ReduceOpMax> reduce_op;
+    ReduceData<Real> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+
+    // Do not OpenMP-fy this loop for now
+    // Unclear how to keep OpenMP and GPU implementation
+    // from messing with each other
+    for (MFIter mfi(u_old,true); mfi.isValid(); ++mfi)
+    {
+        const auto& bx   = mfi.tilebox();
+        const auto& uold = u_old[mfi].array();
+        const auto& unew = u_new[mfi].array();
+
+        reduce_op.eval(bx, reduce_data, [uold, unew]
+        AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            Real uold_mag = 0.0;
+            Real unew_mag = 0.0;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+            {
+                uold_mag += uold(i,j,k,d)*uold(i,j,k,d);
+                unew_mag += unew(i,j,k,d)*unew(i,j,k,d);
+            }
+
+            uold_mag = std::sqrt(uold_mag);
+            unew_mag = std::sqrt(unew_mag);
+
+            return std::abs(unew_mag-uold_mag);
+        });
+
+        max_change = std::max(amrex::get<0>(reduce_data.value()),
+                              max_change);
+    }
+
+    ParallelDescriptor::ReduceRealMax(max_change);
 
     //
     // System is classified as steady if the maximum change is smaller than
@@ -3091,8 +3127,13 @@ NavierStokesBase::sync_setup (MultiFab*& DeltaSsync)
 {
     BL_ASSERT(DeltaSsync == 0);
 
-    int nconserved = Godunov::how_many(advectionType, Conservative,
-                                       BL_SPACEDIM, NUM_STATE-BL_SPACEDIM);
+    int nconserved = 0;
+
+    for (int comp = AMREX_SPACEDIM; comp < NUM_STATE; ++comp)
+    {
+        if (advectionType[comp] == Conservative)
+            ++nconserved;
+    }
 
     if (nconserved > 0 && level < parent->finestLevel())
     {
@@ -3713,61 +3754,21 @@ NavierStokesBase::velocity_advection (Real dt)
             iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
         }
 
-        if (new_algo)
+        godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
+                             S_term, 0,
+                             AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                             AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                             AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                             forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
+                             (Godunov::ppm_type > 0), Godunov::use_forces_in_trans, true);
+
+        if (do_reflux)
         {
-
-            godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
-                                 S_term, 0,
-                                 AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                 AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                 AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                                 forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
-                                 (Godunov::ppm_type > 0), Godunov::use_forces_in_trans, true);
-
-            if (do_reflux)
-            {
-                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
-            }
-
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
         }
-        else
-        {
-            for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-            {
-
-                const Box& bx=U_mfi.tilebox();
-                for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
-                {
-                    int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
-
-                    AMREX_D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-                                 bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-                                 bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-                    // WARNING: FPU argument is not used because FPU is by default in AdvectState
-                    godunov->AdvectState(bx, dx, dt,
-                                         area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],
-                                         area[1][U_mfi], u_mac[1][U_mfi], cfluxes[1][U_mfi],
-#if (AMREX_SPACEDIM == 3)
-                                         area[2][U_mfi], u_mac[2][U_mfi], cfluxes[2][U_mfi],
-#endif
-                                         S_term[U_mfi], forcing_term[U_mfi], divu_fp[U_mfi], comp,
-                                         (*aofs)[U_mfi],comp, use_conserv_diff,
-                                         comp,bndry[comp].dataPtr(),volume[U_mfi]);
 
 
-                    if (do_reflux)
-                    {
-                        for (int d = 0; d < AMREX_SPACEDIM; d++)
-                        {
-                            const Box& ebx = U_mfi.nodaltilebox(d);
-                            fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,comp,1);
-                        }
-                    }
-                }
-            }
-        }
 
 
 #else
