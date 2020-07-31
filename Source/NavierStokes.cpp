@@ -30,6 +30,8 @@
 
 #include <AMReX_buildInfo.H>
 
+#include <iamr_godunov.H>
+
 using namespace amrex;
 
 namespace
@@ -528,10 +530,6 @@ NavierStokes::predict_velocity (Real  dt)
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
 
-    // ParmParse pp("debug_flags");
-    // int new_algo = 1;
-    // pp.query("new_algo", new_algo);
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -571,82 +569,17 @@ NavierStokes::predict_velocity (Real  dt)
             forcing_term[U_mfi].copy<RunOn::Host>(tforces);
         }
 
-        forcing_term.setVal(0.0, forcing_term.nGrow());
-
-        //
-        // Compute MAC velocities
-        //
-        // for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-        // {
-        //     Box bx=U_mfi.tilebox();
-        //     FArrayBox& Ufab = Umf[U_mfi];
-
-        //     D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-        //            bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-        //            bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-        //     //  1. compute slopes
-        //     //  2. trace state to cell edges   !!! ANN: uncomment this for IAMR behavior
-        //     if (not new_algo)
-        //     {
-        //         Print() << "USING OLD ALGO" << std::endl;
-        //         godunov->ExtrapVelToFaces(bx, dx, dt,
-        //                                   D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-        //                                   D_DECL(bndry[0],        bndry[1],        bndry[2]),
-        //                                   Ufab, forcing_term[U_mfi]);
-        //     }
-        // }
-
     } // end OMP parallel region
 
     Vector<BCRec> math_bcs(AMREX_SPACEDIM);
     math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
-
-    // if (new_algo)
-    // {
-    godunov -> ExtrapVelToFaces( Umf, forcing_term,
-                                 D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                 math_bcs, geom, dt);
-    // }
-
-
-
-    for (MFIter mfi(u_mac[0],false); mfi.isValid(); ++mfi)
-    {
-        Box bx = mfi.validbox();
-        D_TERM(const auto umac =  u_mac[0].array(mfi);,
-               const auto vmac =  u_mac[1].array(mfi);,
-               const auto wmac =  u_mac[2].array(mfi););
-
-        amrex::ParallelFor(bx,[D_DECL(umac,vmac,wmac)]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-        {
-            // std::printf("MAC VEL AT %d %d %d %e %e %e \n", i, j, k, D_DECL(umac(i,j,k), vmac(i,j,k), wmac(i,j,k)));
-            if (i==127 and j==63 and k==0 )
-            {
-                std::printf("VMAC AT %d %d %d %e \n", i, j, k, umac(i,j,k));
-            }
-        });
-    }
+    //velpred=1 only, use_minion=1, ppm_type, slope_order
+    godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                               math_bcs, geom, dt, (Godunov::ppm_type>0), Godunov::use_forces_in_trans );
 
 #endif
-    Print() << "norm0(u,v) MAC = "
-            << u_mac[0].norm0(0,0,false,true) << " "
-            << u_mac[1].norm0(0,0,false,true) << std::endl;
 
-    Print() << "norm1(u,v) MAC = "
-            << u_mac[0].norm1(0,geom.periodicity(),true) << " "
-            << u_mac[1].norm1(0,geom.periodicity(),true) << std::endl;
-
-    // Print() << "norm0(u,v,w) MAC = "
-    //         << u_mac[0].norm0(0,0,false,true) << " "
-    //         << u_mac[1].norm0(0,0,false,true) << " "
-    //         << u_mac[2].norm0(0,0,false,true) << std::endl;
-
-    // Print() << "norm1(u,v,w) MAC = "
-    //         << u_mac[0].norm1(0,geom.periodicity(),true) << " "
-    //         << u_mac[1].norm1(0,geom.periodicity(),true) << " "
-    //         << u_mac[2].norm1(0,geom.periodicity(),true) << std::endl;
     return dt*tempdt;
 }
 
@@ -765,16 +698,27 @@ NavierStokes::scalar_advection (Real dt,
         //////////////////////////////////////////////////////////////////////////////
         //  NON-EB ALGORITHM
         //////////////////////////////////////////////////////////////////////////////
+        MultiFab cfluxes[AMREX_SPACEDIM];
+        MultiFab edgestate[AMREX_SPACEDIM];
+        MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nGrowF );
+
+        // NO Gghost nodes???
+        int nghost = 0;
+        for (int i(0); i < AMREX_SPACEDIM; i++)
+        {
+            const BoxArray& ba = getEdgeBoxArray(i);
+            cfluxes[i].define(ba, dmap, num_scalars, nghost);
+            cfluxes[i].setVal(0.0);
+            edgestate[i].define(ba, dmap, num_scalars, nghost);
+        }
+
+
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         {
-
-            Vector<int> state_bc;
             FArrayBox tforces;
-            FArrayBox cfluxes[BL_SPACEDIM];
-            FArrayBox edgstate[BL_SPACEDIM];
 
             for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
             {
@@ -786,12 +730,12 @@ NavierStokes::scalar_advection (Real dt,
                 }
                 getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
 
-                for (int d=0; d<BL_SPACEDIM; ++d)
-                {
-                    const Box& ebx = amrex::surroundingNodes(bx,d);
-                    cfluxes[d].resize(ebx,num_scalars);
-                    edgstate[d].resize(ebx,num_scalars);
-                }
+                // for (int d=0; d<BL_SPACEDIM; ++d)
+                // {
+                //     const Box& ebx = amrex::surroundingNodes(bx,d);
+                //     cfluxes[d].resize(ebx,num_scalars);
+                //     edgstate[d].resize(ebx,num_scalars);
+                // }
 
                 for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
                     int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
@@ -807,25 +751,71 @@ NavierStokes::scalar_advection (Real dt,
                     godunov->Sum_tf_divu_visc(grown_box, tf, visc, divU, scal, rho, 1, use_conserv_diff);
 
                 }
-
-                state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
-
-                godunov->AdvectScalars(bx, dx, dt,
-                                       D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
-                                       D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
-                                       D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
-                                       D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
-                                       Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
-                                       (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
-
-                if (do_reflux) {
-                  for (int d=0; d<BL_SPACEDIM; ++d) {
-                    const Box& ebx = S_mfi.nodaltilebox(d);
-                    (fluxes[d])[S_mfi].copy<RunOn::Host>(cfluxes[d],ebx,0,ebx,0,num_scalars);
-                  }
-                }
+                // Copy to forcing_term MF
+                forcing_term[S_mfi].copy<RunOn::Host>(tforces);
             }
+
         } // OMP parallel loop
+
+// #define _OLD_ALGO_ 1
+// #if _OLD_ALGO_
+//         Vector<int> state_bc;
+//         for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
+//         {
+//             const Box bx = S_mfi.tilebox();
+
+//             state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
+
+//             godunov->AdvectScalars(bx, dx, dt,
+//                                    D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
+//                                    D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
+//                                    D_DECL( cfluxes[0][S_mfi],  cfluxes[1][S_mfi],  cfluxes[2][S_mfi]), 0,
+//                                    D_DECL( edgestate[0][S_mfi], edgestate[1][S_mfi],edgestate[2][S_mfi]), 0,
+//                                    Smf[S_mfi], 0, num_scalars, forcing_term[S_mfi], 0, (*divu_fp)[S_mfi], 0,
+//                                    (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
+
+
+//             if (do_reflux) {
+//                 for (int d=0; d<BL_SPACEDIM; ++d) {
+//                     const Box& ebx = S_mfi.nodaltilebox(d);
+//                     (fluxes[d])[S_mfi].copy<RunOn::Host>(cfluxes[d][S_mfi],ebx,0,ebx,0,num_scalars);
+//                 }
+//             }
+//         }
+// #else
+
+//         Print() << "NEW ALGO SCALARS" << std::endl;
+
+        Vector<BCRec> math_bcs(num_scalars);
+        math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
+
+        amrex::Gpu::DeviceVector<int> iconserv;
+        iconserv.resize(num_scalars, 0);
+        for (int comp = 0; comp < num_scalars; ++comp)
+        {
+            iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
+        }
+
+        godunov::ComputeAofs(*aofs, fscalar, num_scalars,
+                             Smf, 0,
+                             AMREX_D_DECL( u_mac[0], u_mac[1], u_mac[2] ),
+                             AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,
+                             AMREX_D_DECL( cfluxes[0], cfluxes[1], cfluxes[2] ), 0,
+                             forcing_term, 0, *divu_fp, math_bcs, geom, iconserv,
+                             dt, (Godunov::ppm_type>0), Godunov::use_forces_in_trans, false );
+
+        if (do_reflux)
+        {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
+        }
+// #endif
+
+//         for (int ns = 0; ns < num_scalars; ++ns)
+//             Print() << "norm1(aofs) of scalar " << ns << " = "
+//                     << aofs ->norm1(fscalar+ns,geom.periodicity(),true)
+//                     << std::endl;
+
 #endif
     } // FillPathIterator
 

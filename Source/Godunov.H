@@ -48,13 +48,6 @@ public:      // public access functions
                            D_DECL(const amrex::Vector<int>& ubc, const amrex::Vector<int>& vbc, const amrex::Vector<int>& wbc),
                            const amrex::FArrayBox&  U,
                            amrex::FArrayBox&  tforces);
-    void ExtrapVelToFaces ( const amrex::MultiFab& vel,
-                            amrex::MultiFab const& tforces,
-                            D_DECL( amrex::MultiFab& u_mac,
-                                    amrex::MultiFab& v_mac,
-                                    amrex::MultiFab& w_mac ),
-                            const amrex::Vector<amrex::BCRec> & h_bcrec,
-                            const amrex::Geometry& geom, amrex::Real dt );
 
     void AdvectScalars(const amrex::Box&  box,
                        const amrex::Real* dx,

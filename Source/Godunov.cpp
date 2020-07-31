@@ -137,25 +137,6 @@ Godunov::ExtrapVelToFaces (const amrex::Box&  box,
 }
 
 
-void
-Godunov::ExtrapVelToFaces ( const MultiFab& vel,
-                            MultiFab const& tforces,
-                            D_DECL( MultiFab& u_mac,
-                                    MultiFab& v_mac,
-                                    MultiFab& w_mac ),
-                            const Vector<BCRec> & h_bcrec,
-                            const Geometry& geom, Real dt )
-{
-    if (ppm_type > 1)
-    {
-        amrex::Abort("Godunov::ExtrapVelToFaces works for ppm_type=={0,1}. ppm_type==2 is deprecated");
-    }
-
-    //velpred=1 only, use_minion=1, ppm_type, slope_order
-    godunov::ExtrapVelToFaces( vel, tforces,  D_DECL( u_mac, v_mac, w_mac ),
-                               h_bcrec, geom, dt, (ppm_type>0), use_forces_in_trans );
-}
-
 
 void
 Godunov::AdvectScalars(const Box&  box,

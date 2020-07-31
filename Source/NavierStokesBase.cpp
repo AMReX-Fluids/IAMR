@@ -3635,16 +3635,15 @@ NavierStokesBase::velocity_advection (Real dt)
         }
 
 
+        Vector<int> bndry[AMREX_SPACEDIM];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         {
-            Vector<int> bndry[AMREX_SPACEDIM];
+
             FArrayBox tforces;
             FArrayBox S;
-            // FArrayBox cfluxes[AMREX_SPACEDIM];
-            // FArrayBox edgstate[AMREX_SPACEDIM];
-
 
             //
             // Compute forcing
@@ -3670,16 +3669,6 @@ NavierStokesBase::velocity_advection (Real dt)
 
                 godunov->Sum_tf_gp_visc(gbx, tf, visc, gp, rho);
 
-                // D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-                //        bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-                //        bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-                // for (int d=0; d<AMREX_SPACEDIM; ++d)
-                // {
-                //     const Box& ebx = amrex::surroundingNodes(bx,d);
-                //     cfluxes[d].resize(ebx,BL_SPACEDIM+1);
-                //     edgstate[d].resize(ebx,BL_SPACEDIM+1);
-                // }
 
                 //
                 // Loop over the velocity components.
@@ -3705,112 +3694,77 @@ NavierStokesBase::velocity_advection (Real dt)
                 forcing_term[U_mfi].copy<RunOn::Host>(tforces);
                 S_term[U_mfi].copy<RunOn::Host>(S);
             }
+        } // end OMP region
 
-            Vector<BCRec> math_bcs(AMREX_SPACEDIM);
-            math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
 
-            amrex::Gpu::DeviceVector<int> iconserv;
-            iconserv.resize(AMREX_SPACEDIM, 0);
+        Vector<BCRec> math_bcs(AMREX_SPACEDIM);
+        math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
 
-            for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+        amrex::Gpu::DeviceVector<int> iconserv;
+        iconserv.resize(AMREX_SPACEDIM, 0);
+
+        for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+        {
+            iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+        }
+
+        if (new_algo)
+        {
+
+            godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
+                                 S_term, 0,
+                                 AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                 AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                 AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                                 forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
+                                 (Godunov::ppm_type > 0), Godunov::use_forces_in_trans, true);
+
+            if (do_reflux)
             {
-                iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+                for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                    MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
             }
 
-            if (new_algo)
+        }
+        else
+        {
+            for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
             {
 
-                godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
-                                     S_term, 0,
-                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                                     forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
-                                     (Godunov::ppm_type > 0), Godunov::use_forces_in_trans, true);
-
-                if (do_reflux)
+                const Box& bx=U_mfi.tilebox();
+                for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                 {
-                    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                        MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
-                }
+                    int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
 
-                // if (do_reflux)
-                // {
-                //     for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-                //         for (int d = 0; d < AMREX_SPACEDIM; d++)
-                //         {
-                //             const Box& ebx = U_mfi.nodaltilebox(d);
-                //             fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,0,AMREX_SPACEDIM);
+                    AMREX_D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
+                                 bndry[1] = fetchBCArray(State_Type,bx,1,1);,
+                                 bndry[2] = fetchBCArray(State_Type,bx,2,1););
 
-                //         }
-                // }
-            }
-            else
-            {
-                for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-                {
-
-                    const Box& bx=U_mfi.tilebox();
-                    for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
-                    {
-                        int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
-
-                        AMREX_D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-                                     bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-                                     bndry[2] = fetchBCArray(State_Type,bx,2,1););
-
-                        // WARNING: FPU argument is not used because FPU is by default in AdvectState
-                        godunov->AdvectState(bx, dx, dt,
-                                             area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],
-                                             area[1][U_mfi], u_mac[1][U_mfi], cfluxes[1][U_mfi],
+                    // WARNING: FPU argument is not used because FPU is by default in AdvectState
+                    godunov->AdvectState(bx, dx, dt,
+                                         area[0][U_mfi], u_mac[0][U_mfi], cfluxes[0][U_mfi],
+                                         area[1][U_mfi], u_mac[1][U_mfi], cfluxes[1][U_mfi],
 #if (AMREX_SPACEDIM == 3)
-                                             area[2][U_mfi], u_mac[2][U_mfi], cfluxes[2][U_mfi],
+                                         area[2][U_mfi], u_mac[2][U_mfi], cfluxes[2][U_mfi],
 #endif
-                                             S_term[U_mfi], forcing_term[U_mfi], divu_fp[U_mfi], comp,
-                                             (*aofs)[U_mfi],comp, use_conserv_diff,
-                                             comp,bndry[comp].dataPtr(),volume[U_mfi]);
+                                         S_term[U_mfi], forcing_term[U_mfi], divu_fp[U_mfi], comp,
+                                         (*aofs)[U_mfi],comp, use_conserv_diff,
+                                         comp,bndry[comp].dataPtr(),volume[U_mfi]);
 
 
-                        if (do_reflux)
+                    if (do_reflux)
+                    {
+                        for (int d = 0; d < AMREX_SPACEDIM; d++)
                         {
-                            for (int d = 0; d < AMREX_SPACEDIM; d++)
-                            {
-                                const Box& ebx = U_mfi.nodaltilebox(d);
-                                fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,comp,1);
-                            }
+                            const Box& ebx = U_mfi.nodaltilebox(d);
+                            fluxes[d][U_mfi].copy<RunOn::Host>(cfluxes[d][U_mfi],ebx,0,ebx,comp,1);
                         }
                     }
                 }
             }
-
-        } // end OMP region
-
-
-        for (MFIter mfi(cfluxes[0],false); mfi.isValid(); ++mfi)
-        {
-            Box bx = mfi.validbox();
-            const auto& cf0 = fluxes[0].array(mfi);
-            // const auto& cf1 = cfluxes[1].array(mfi);
-            // const auto& cf2 = cfluxes[2].array(mfi);
-            amrex::ParallelFor(bx, [cf0]  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
-                //std::printf("CF1 AT %d %d %d %e %e %e \n", i, j, k, cf0(i,j,k,0),cf0(i,j,k,1),cf0(i,j,k,2));
-                if (i==1 and j==13 and k==3 )
-                {
-                    std::printf("Flux xx AT %d %d %d %e \n", i, j, k, cf0(i,j,k,0));
-                }
-            });
         }
 
-        // Print() << "norm0(aofs) MAC = "
-        //         << aofs -> norm0(0,0,false,true) << " "
-        //         << aofs -> norm0(1,0,false,true) << " "
-        //         << aofs -> norm0(2,0,false,true) << std::endl;
 
-        // Print() << "norm1(u,v,w) MAC = "
-        //         << aofs -> norm1(0,geom.periodicity(),true) << " "
-        //         << aofs -> norm1(1,geom.periodicity(),true) << " "
-        //         << aofs -> norm1(2,geom.periodicity(),true) << std::endl;
 #else
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
