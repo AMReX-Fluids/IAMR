@@ -3246,7 +3246,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 #endif
 
-    cdataMF.copy(CrseSync, src_comp, 0, num_comp);
+    cdataMF.copy(CrseSync, src_comp, 0, num_comp, cgeom.periodicity());
 
     //
     // Set physical boundary conditions in cdataMF.
@@ -3270,7 +3270,6 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
        set_bcrec_new(bx_bcrec,num_comp,src_comp,bx,cdomain,cgrids,bc_orig_qty);
        gpu_bndry_func(bx,data,0,num_comp,cgeom,0.0,bx_bcrec,0,0);
     }
-    cdataMF.EnforcePeriodicity(cgeom.periodicity());
 
     //
     // Interpolate from cdataMF to fdata and update FineSync.
