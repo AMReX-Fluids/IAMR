@@ -579,7 +579,7 @@ NavierStokes::predict_velocity (Real  dt)
     math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
 
     //velpred=1 only, use_minion=1, ppm_type, slope_order
-    godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+    Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                                math_bcs, geom, dt, godunov_use_ppm,
                                godunov_use_forces_in_trans );
 
@@ -782,7 +782,7 @@ NavierStokes::scalar_advection (Real dt,
             iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
         }
 
-        godunov::ComputeAofs(*aofs, fscalar, num_scalars,
+        Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
                              Smf, 0,
                              AMREX_D_DECL( u_mac[0], u_mac[1], u_mac[2] ),
                              AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,

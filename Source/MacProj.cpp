@@ -825,7 +825,7 @@ MacProj::mac_sync_compute (int                   level,
             iconserv.resize(1, 0);
             iconserv[0] = (advectionType[comp] == Conservative) ? 1 : 0;
 
-            godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+            Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
                                      Q, comp,
                                      AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                      AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
@@ -962,7 +962,7 @@ MacProj::mac_sync_compute (int                    level,
     {
         const Box& bx = Syncmfi.tilebox();
 
-        godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+        Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
                                  MultiFab(), s_ind,                      // this is not used when known_edgestate = true
                                  AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
                                  AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),

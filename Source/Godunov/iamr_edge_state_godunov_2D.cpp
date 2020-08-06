@@ -7,7 +7,7 @@
 using namespace amrex;
 
 void
-godunov::ComputeEdgeState (Box const& bx, int ncomp,
+Godunov::ComputeEdgeState (Box const& bx, int ncomp,
                            Array4<Real const> const& q,
                            Array4<Real> const& xedge,
                            Array4<Real> const& yedge,

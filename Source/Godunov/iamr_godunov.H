@@ -4,7 +4,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BCRec.H>
 
-namespace godunov {
+namespace Godunov {
 
 
     void ComputeAofs ( amrex::MultiFab& aofs, const int aofs_comp, const int ncomp,

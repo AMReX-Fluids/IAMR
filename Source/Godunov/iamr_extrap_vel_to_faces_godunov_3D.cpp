@@ -8,7 +8,7 @@
 using namespace amrex;
 
 void
-godunov::ExtrapVelToFaces ( MultiFab const& a_vel,
+Godunov::ExtrapVelToFaces ( MultiFab const& a_vel,
                             MultiFab const& a_forces,
                             MultiFab& a_umac,
                             MultiFab& a_vmac,
@@ -102,7 +102,7 @@ godunov::ExtrapVelToFaces ( MultiFab const& a_vel,
 }
 
 void
-godunov::ComputeAdvectiveVel ( Box const& xbx,
+Godunov::ComputeAdvectiveVel ( Box const& xbx,
                                Box const& ybx,
                                Box const& zbx,
                                Array4<Real> const& u_ad,
@@ -192,7 +192,7 @@ godunov::ComputeAdvectiveVel ( Box const& xbx,
 }
 
 void
-godunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
+Godunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
                                  Box const& xbx,
                                  Box const& ybx,
                                  Box const& zbx,

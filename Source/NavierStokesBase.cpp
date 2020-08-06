@@ -3726,7 +3726,7 @@ NavierStokesBase::velocity_advection (Real dt)
             iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
         }
 
-        godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
+        Godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
                              S_term, 0,
                              AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,

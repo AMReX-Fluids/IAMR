@@ -5,7 +5,7 @@ using namespace amrex;
 
 
 void
-godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
+Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                        MultiFab const& state, const int state_comp,
                        AMREX_D_DECL( MultiFab const& umac,
                                      MultiFab const& vmac,
@@ -91,7 +91,7 @@ godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 
 
 void
-godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
+Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                            MultiFab const& state, const int state_comp,
                            AMREX_D_DECL( MultiFab const& umac,
                                          MultiFab const& vmac,
@@ -182,7 +182,7 @@ godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 
 
 void
-godunov::ComputeFluxes ( Box const& bx,
+Godunov::ComputeFluxes ( Box const& bx,
                          AMREX_D_DECL( Array4<Real> const& fx,
                                        Array4<Real> const& fy,
                                        Array4<Real> const& fz),
@@ -248,7 +248,7 @@ godunov::ComputeFluxes ( Box const& bx,
 
 
 void
-godunov::ComputeDivergence ( Box const& bx,
+Godunov::ComputeDivergence ( Box const& bx,
                              Array4<Real> const& div,
                              AMREX_D_DECL( Array4<Real const> const& fx,
                                            Array4<Real const> const& fy,
@@ -303,7 +303,7 @@ godunov::ComputeDivergence ( Box const& bx,
 
 
 void
-godunov::ComputeSyncDivergence ( Box const& bx,
+Godunov::ComputeSyncDivergence ( Box const& bx,
                                  Array4<Real> const& div,
                                  AMREX_D_DECL( Array4<Real const> const& fx,
                                                Array4<Real const> const& fy,
