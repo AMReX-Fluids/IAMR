@@ -43,18 +43,6 @@ public:      // public access functions
     // destruct the advection object
     ~Godunov();
 
-
-    // correct a conservatively-advected scalar for under-over shoots
-    void ConservativeScalMinMax( amrex::FArrayBox &Sold, amrex::FArrayBox &Snew,
-                                 int ind_old_s, int ind_old_rho,
-                                 int ind_new_s, int ind_new_rho,
-                                 const int *bc, const amrex::Box &grd );
-
-    // correct a convectively-advected scalar for under-over shoots
-    void ConvectiveScalMinMax( amrex::FArrayBox &Sold, amrex::FArrayBox &Snew,
-                               int ind_old, int ind_new,
-                               const int *bc, const amrex::Box &grd );
-
     // =============================================================
     // Diagnostic functions follow
     // =============================================================

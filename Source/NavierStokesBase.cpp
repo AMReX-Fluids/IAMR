@@ -2953,8 +2953,8 @@ NavierStokesBase::scalar_advection_update (Real dt,
         //
         // Call ScalMinMax to avoid overshoots in density.
         //
-      if (do_denminmax)
-      {
+        if (do_denminmax)
+        {
 	    //
             // Must do FillPatch here instead of MF iterator because we need the
             // boundary values in the old data (especially at inflow)
@@ -2967,23 +2967,11 @@ NavierStokesBase::scalar_advection_update (Real dt,
             FillPatchIterator S_fpi(*this,S_old,1,prev_time,State_Type,Density,1);
             MultiFab& Smf=S_fpi.get_mf();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-{
-            Vector<int> state_bc;
-	    for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.tilebox();
-                state_bc = fetchBCArray(State_Type,bx,Density,1);
-                godunov->ConservativeScalMinMax(Smf[mfi],S_new[mfi],
-                                                index_old_s, index_old_rho,
-                                                index_new_s, index_new_rho,
-                                                state_bc.dataPtr(),bx);
-            }
-}
-      }
-      ++sComp;
+            ConservativeScalMinMax(S_new, index_new_s, index_new_rho,
+                                   Smf,   index_old_s, index_old_rho);
+
+        }
+        ++sComp;
     }
 
     if (sComp <= last_scalar)
@@ -3058,37 +3046,24 @@ NavierStokesBase::scalar_advection_update (Real dt,
         FillPatchIterator S_fpi(*this,S_old,1,prev_time,State_Type,Density,num_scalars);
         MultiFab& Smf=S_fpi.get_mf();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-{
-        Vector<int> state_bc;
-	for (MFIter mfi(Smf,true); mfi.isValid();++mfi)
+        for (int sigma = sComp; sigma <= last_scalar; sigma++)
         {
-            const Box& bx = mfi.tilebox();
-            for (int sigma = sComp; sigma <= last_scalar; sigma++)
-            {
-                const int index_new_s   = sigma;
-                const int index_new_rho = Density;
-                const int index_old_s   = index_new_s   - Density;
-                const int index_old_rho = index_new_rho - Density;
+            const int index_new_s   = sigma;
+            const int index_new_rho = Density;
+            const int index_old_s   = index_new_s   - Density;
+            const int index_old_rho = index_new_rho - Density;
 
-                state_bc = fetchBCArray(State_Type,bx,sigma,1);
-                if (advectionType[sigma] == Conservative)
-                {
-		    godunov->ConservativeScalMinMax(Smf[mfi],S_new[mfi],
-                                                    index_old_s, index_old_rho,
-                                                    index_new_s, index_new_rho,
-                                                    state_bc.dataPtr(),bx);
-                }
-                else if (advectionType[sigma] == NonConservative)
-                {
-                    godunov->ConvectiveScalMinMax(Smf[mfi],S_new[mfi],index_old_s,sigma,
-                                                  state_bc.dataPtr(),bx);
-                }
+            if (advectionType[sigma] == Conservative)
+            {
+                ConservativeScalMinMax(S_new, index_new_s, index_new_rho,
+                                       Smf,   index_old_s, index_old_rho);
+            }
+            else if (advectionType[sigma] == NonConservative)
+            {
+                ConvectiveScalMinMax(S_new, index_new_s, Smf, index_old_s);
             }
         }
-}
+
     }
 }
 
@@ -4955,4 +4930,109 @@ NavierStokesBase::printMaxValues (bool new_data)
 {
     printMaxVel(new_data);
     printMaxGp(new_data);
+}
+
+
+//
+// Correct a conservatively-advected scalar for under-over shoots.
+//
+void
+NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const int snew_comp, const int new_density_comp,
+                                           amrex::MultiFab const& Sold, const int sold_comp, const int old_density_comp )
+{
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(Snew,true); mfi.isValid(); ++mfi)
+    {
+
+        const auto& bx = mfi.tilebox();
+
+        const auto& sn   = Snew.array(mfi,snew_comp);
+        const auto& so   = Sold.const_array(mfi,sold_comp);
+        const auto& rhon = Snew.const_array(mfi,new_density_comp);
+        const auto& rhoo = Sold.const_array(mfi,old_density_comp);
+
+        amrex::ParallelFor(bx, [sn, so, rhon, rhoo]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real smn = 0.0;
+            Real smx = 0.0;
+
+#if (AMREX_SPACEDIM==3)
+            int ks = -1;
+            int ke =  1;
+#else
+            int ks = 0;
+            int ke = 0;
+#endif
+
+            for (int kk = ks; kk <= ke; ++kk)
+            {
+                for (int jj = -1; jj <= 1; ++jj)
+                {
+                    for (int ii = -1; ii <= 1; ++ii)
+                    {
+                        smn =  amrex::min(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                        smx =  amrex::max(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                    }
+                }
+            }
+
+            sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k)/rhon(i,j,k), smn), smx ) * rhon(i,j,k);
+        });
+    }
+}
+
+
+
+//
+// Correct a convectively-advected  scalar for under-over shoots.
+//
+void
+NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int snew_comp,
+                                         amrex::MultiFab const& Sold, const int sold_comp )
+{
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(Snew,true); mfi.isValid(); ++mfi)
+    {
+
+        const auto& bx = mfi.tilebox();
+
+        const auto& sn   = Snew.array(mfi,snew_comp);
+        const auto& so   = Sold.const_array(mfi,sold_comp);
+
+        amrex::ParallelFor(bx, [sn, so]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            Real smn = 0.0;
+            Real smx = 0.0;
+
+#if (AMREX_SPACEDIM==3)
+            int ks = -1;
+            int ke =  1;
+#else
+            int ks = 0;
+            int ke = 0;
+#endif
+
+            for (int kk = ks; kk <= ke; ++kk)
+            {
+                for (int jj = -1; jj <= 1; ++jj)
+                {
+                    for (int ii = -1; ii <= 1; ++ii)
+                    {
+                        smn =  amrex::min(smn, so(i+ii,j+jj,k+kk));
+                        smx =  amrex::max(smn, so(i+ii,j+jj,k+kk));
+                    }
+                }
+            }
+
+            sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k), smn), smx );
+        });
+    }
 }

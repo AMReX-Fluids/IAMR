@@ -541,6 +541,17 @@ private:
 
     };
 
+    //
+    // Correct a conservatively-advected scalar for under-over shoots.
+    //
+    void ConservativeScalMinMax ( amrex::MultiFab& Snew, const int snew_comp, const int new_density_comp,
+                                  amrex::MultiFab const& Sold, const int sold_comp, const int old_density_comp );
+
+    //
+    // Correct a convectively-advected scalar for under-over shoots.
+    //
+    void ConvectiveScalMinMax ( amrex::MultiFab& Snew, const int snew_comp,
+                                amrex::MultiFab const& Sold, const int sold_comp );
 #ifdef AMREX_USE_EB
 
     void init_eb (const amrex::Geometry& level_geom, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
