@@ -580,7 +580,8 @@ NavierStokes::predict_velocity (Real  dt)
 
     //velpred=1 only, use_minion=1, ppm_type, slope_order
     godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                               math_bcs, geom, dt, (Godunov::ppm_type>0), Godunov::use_forces_in_trans );
+                               math_bcs, geom, dt, godunov_use_ppm,
+                               godunov_use_forces_in_trans );
 
 #endif
 
@@ -787,7 +788,7 @@ NavierStokes::scalar_advection (Real dt,
                              AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,
                              AMREX_D_DECL( cfluxes[0], cfluxes[1], cfluxes[2] ), 0,
                              forcing_term, 0, *divu_fp, math_bcs, geom, iconserv,
-                             dt, (Godunov::ppm_type>0), Godunov::use_forces_in_trans, false );
+                             dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
 
         if (do_reflux)
         {

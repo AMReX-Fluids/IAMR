@@ -119,6 +119,9 @@ int  NavierStokesBase::do_mom_diff            = 0;
 int  NavierStokesBase::predict_mom_together   = 0;
 bool NavierStokesBase::def_harm_avg_cen2edge  = false;
 
+bool NavierStokesBase::godunov_use_ppm = false;
+bool NavierStokesBase::godunov_use_forces_in_trans = false;
+
 #ifdef AMREX_USE_EB
 int          NavierStokesBase::refine_cutcells     = 1;
 bool         NavierStokesBase::eb_initialized      = false;
@@ -474,9 +477,7 @@ NavierStokesBase::Initialize ()
     pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
     pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
-
     // Are we going to do velocity or momentum update?
-
     pp.query("do_mom_diff",do_mom_diff);
     pp.query("predict_mom_together",predict_mom_together);
 
@@ -491,6 +492,13 @@ NavierStokesBase::Initialize ()
 #ifdef AMREX_PARTICLES
     read_particle_params ();
 #endif
+
+    //
+    // Get godunov options
+    //
+    ParmParse pp2("godunov");
+    pp2.query("use_ppm",             godunov_use_ppm);
+    pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
@@ -723,14 +731,14 @@ NavierStokesBase::advance_setup (Real time,
 
 #ifdef AMREX_USE_EB
     //Slopes in x-direction
-    m_xslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_xslopes.define(grids, dmap, AMREX_SPACEDIM, godunov_hyp_grow, MFInfo(), Factory());
     m_xslopes.setVal(0.);
     // Slopes in y-direction
-    m_yslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_yslopes.define(grids, dmap, AMREX_SPACEDIM, godunov_hyp_grow, MFInfo(), Factory());
     m_yslopes.setVal(0.);
 #if (AMREX_SPACEDIM > 2)
     // Slopes in z-direction
-    m_zslopes.define(grids, dmap, AMREX_SPACEDIM, Godunov::hypgrow(), MFInfo(), Factory());
+    m_zslopes.define(grids, dmap, AMREX_SPACEDIM, godunov_hyp_grow, MFInfo(), Factory());
     m_zslopes.setVal(0.);
 #endif
 #endif
@@ -3603,14 +3611,14 @@ NavierStokesBase::velocity_advection (Real dt)
     // Compute the advective forcing.
     //
     {
-        FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+        FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
         MultiFab& Umf=U_fpi.get_mf();
 
 #ifndef AMREX_USE_EB
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  NON-EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         //
-        FillPatchIterator Rho_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Density,1);
+        FillPatchIterator Rho_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Density,1);
         FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
 
         MultiFab& Rmf=Rho_fpi.get_mf();
@@ -3623,7 +3631,7 @@ NavierStokesBase::velocity_advection (Real dt)
         int ngrow = 1;
 
         MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
-        MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  Godunov::hypgrow());
+        MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  godunov_hyp_grow);
 
         // Why in the original code it does this:
         //
@@ -3696,7 +3704,7 @@ NavierStokesBase::velocity_advection (Real dt)
                 //
                 // Loop over the velocity components.
                 //
-                S.resize(grow(bx,Godunov::hypgrow()),BL_SPACEDIM);
+                S.resize(grow(bx,godunov_hyp_grow),BL_SPACEDIM);
                 S.copy<RunOn::Host>(Umf[U_mfi],0,0,BL_SPACEDIM);
 
 
@@ -3735,7 +3743,7 @@ NavierStokesBase::velocity_advection (Real dt)
                              AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                              forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
-                             (Godunov::ppm_type > 0), Godunov::use_forces_in_trans, true);
+                             godunov_use_ppm, godunov_use_forces_in_trans, true);
 
         if (do_reflux)
         {

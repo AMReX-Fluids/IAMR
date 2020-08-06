@@ -207,6 +207,9 @@ public:
 
     static int DoTrac2();
 
+    static bool GodunovUsePPM () {return godunov_use_ppm;};
+    static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;};
+
 protected:
 
     NavierStokesBase ();
@@ -359,7 +362,7 @@ protected:
     void velocity_update (amrex::Real dt);
 
     void velocity_advection_update (amrex::Real dt);
-    
+
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
@@ -765,8 +768,8 @@ protected:
     static int  do_LES;             // To activate LES modelling
     static int  getLESVerbose;      // Does exactly what it says on the tin
     static std::string LES_model;   // To choose a LES model
-    static amrex::Real smago_Cs_cst;       // A parameter for the Smagorinsky model, usually set to 0.18    
-    static amrex::Real sigma_Cs_cst;       // A parameter for the Sigma model, usually set to 1.5 
+    static amrex::Real smago_Cs_cst;       // A parameter for the Smagorinsky model, usually set to 0.18
+    static amrex::Real sigma_Cs_cst;       // A parameter for the Sigma model, usually set to 1.5
     //
     // Member when pressure defined at points in time rather than interval
     //
@@ -809,6 +812,14 @@ protected:
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
+
+    //
+    // Controls Godunov solver
+    //
+    static bool godunov_use_ppm;
+    static bool godunov_use_forces_in_trans;
+    static const int  godunov_hyp_grow = 3;
+
 };
 
 #endif

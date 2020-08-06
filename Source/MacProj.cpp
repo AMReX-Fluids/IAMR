@@ -611,7 +611,7 @@ MacProj::mac_sync_compute (int                   level,
     const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
     Godunov*        godunov             = ns_level.godunov;
-    bool            use_forces_in_trans = Godunov::use_forces_in_trans ? true : false;
+    bool            use_forces_in_trans = ns_level.GodunovUseForcesInTrans();
 
     //NOTE
     // Visc terms, GradP, forces not used in EB advection algorithm
@@ -834,7 +834,8 @@ MacProj::mac_sync_compute (int                   level,
                                      AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                                      forcing_term, comp, *divu_fp,
                                      math_bcs, geom, iconserv, dt,
-                                     (Godunov::ppm_type>0), Godunov::use_forces_in_trans, is_velocity );
+                                     ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
+                                     is_velocity );
 
             if (level > 0 && update_fluxreg)
             {
