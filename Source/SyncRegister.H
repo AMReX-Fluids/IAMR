@@ -34,7 +34,7 @@ public:
 
 private:
 
-    amrex::FabSet  bndry_mask[2*BL_SPACEDIM];
+    amrex::FabSet  bndry_mask[2*AMREX_SPACEDIM];
     amrex::IntVect ratio;
 };
 
