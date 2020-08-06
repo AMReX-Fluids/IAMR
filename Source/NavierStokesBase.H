@@ -12,7 +12,6 @@
 #include <Diffusion.H>
 #include <AMReX_ErrorList.H>
 #include <AMReX_FluxRegister.H>
-#include <Godunov.H>
 #include <MacProj.H>
 #include <Projection.H>
 #include <SyncRegister.H>
@@ -209,6 +208,7 @@ public:
 
     static bool GodunovUsePPM () {return godunov_use_ppm;};
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;};
+    static int  GodunovHypgrow () {return godunov_hyp_grow;};
 
 protected:
 
@@ -537,12 +537,6 @@ private:
     void init_additional_state_types ();
     //
     amrex::Real initialTimeStep ();
-    //
-    void SetGodunov () {
-
-    if (godunov == 0) godunov = new Godunov();
-
-    };
 
     //
     // Correct a conservatively-advected scalar for under-over shoots.
@@ -683,7 +677,6 @@ protected:
     //
     // Static objects.
     //
-    static Godunov*    godunov;
     static amrex::ErrorList   err_list;
     static amrex::BCRec       phys_bc;
     static Projection* projector;
@@ -706,7 +699,7 @@ protected:
     static int  sum_interval;         // number of timesteps for conservation stats
     static int  turb_interval;        // number of timesteps for turbulence stats
     static int  jet_interval;         // number of timesteps for turbulence stats for the round jet
-    static int  jet_interval_split;  // cell divisor for each dimension in numerical integration
+    static int  jet_interval_split;   // cell divisor for each dimension in numerical integration
     //
     // Internal parameters for options.
     //

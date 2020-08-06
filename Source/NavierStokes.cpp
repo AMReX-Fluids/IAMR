@@ -478,7 +478,7 @@ NavierStokes::predict_velocity (Real  dt)
 	  visc_terms.setVal(0);
     }
 
-    FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+    FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
 
     // Floor small values of states to be extrapolated
@@ -487,7 +487,7 @@ NavierStokes::predict_velocity (Real  dt)
 #endif
     for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        Box gbx=mfi.growntilebox(godunov_hyp_grow);
         auto const& fab_a = Umf.array(mfi);
         AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
         {
@@ -639,7 +639,7 @@ NavierStokes::scalar_advection (Real dt,
     // Compute the advective forcing.
     //
     {
-        FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
+        FillPatchIterator S_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,fscalar,num_scalars);
         MultiFab& Smf=S_fpi.get_mf();
 
         // Floor small values of states to be extrapolated
@@ -648,7 +648,7 @@ NavierStokes::scalar_advection (Real dt,
 #endif
         for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
         {
-            Box gbx=mfi.growntilebox(Godunov::hypgrow());
+            Box gbx=mfi.growntilebox(godunov_hyp_grow);
             auto fab = Smf.array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( gbx, num_scalars, i, j, k, n,
             {
@@ -657,7 +657,7 @@ NavierStokes::scalar_advection (Real dt,
             });
         }
 
-        FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+        FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
         const MultiFab& Umf=U_fpi.get_mf();
 
 

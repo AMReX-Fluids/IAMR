@@ -23,7 +23,6 @@
 
 using namespace amrex;
 
-Godunov*    NavierStokesBase::godunov       = 0;
 ErrorList   NavierStokesBase::err_list;
 BCRec       NavierStokesBase::phys_bc;
 Projection* NavierStokesBase::projector     = 0;
@@ -269,10 +268,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
                                    parent->finestLevel(),radius_grow);
     }
     projector->install_level(level,this,&radius);
-    //
-    // Set up the godunov box.
-    //
-    SetGodunov();
+
     //
     // Set up diffusion.
     //
@@ -335,9 +331,6 @@ NavierStokesBase::variableCleanUp ()
 {
     desc_lst.clear();
     derive_lst.clear();
-
-    delete godunov;
-    godunov = 0;
 
     err_list.clear();
 
@@ -2834,10 +2827,6 @@ NavierStokesBase::restart (Amr&          papa,
                                    parent->finestLevel(),radius_grow);
     }
     projector->install_level(level, this, &radius);
-    //
-    // Set the godunov box.
-    //
-    SetGodunov();
 
     if (mac_projector == 0)
     {

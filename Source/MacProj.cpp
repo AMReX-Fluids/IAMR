@@ -610,7 +610,6 @@ MacProj::mac_sync_compute (int                   level,
     NavierStokesBase&   ns_level        = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
-    Godunov*        godunov             = ns_level.godunov;
     bool            use_forces_in_trans = ns_level.GodunovUseForcesInTrans();
 
     //NOTE
@@ -666,7 +665,7 @@ MacProj::mac_sync_compute (int                   level,
         fluxes[i].define(ba, dmap, NUM_STATE, nghost, MFInfo(),ns_level.Factory());
     }
 
-    FillPatchIterator S_fpi(ns_level,vel_visc_terms,Godunov::hypgrow(),
+    FillPatchIterator S_fpi(ns_level,vel_visc_terms,ns_level.GodunovHypgrow(),
                             prev_time,State_Type,0,NUM_STATE);
     MultiFab& Smf = S_fpi.get_mf();
 
