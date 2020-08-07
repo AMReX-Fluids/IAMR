@@ -51,14 +51,14 @@ calc_gradp(int i, int j, int k,
            amrex::Array4<const amrex::Real>             const& p,
            amrex::Array4<amrex::Real>                   const& gp) noexcept
 {
-   gp(i,j,k,0) = space_scale * dxinv[0] * AMREX_D_TERM(  p(i+1,j  ,k  )-p(i  ,j  ,k  ),
-                                                       + p(i+1,j+1,k  )-p(i  ,j+1,k  ),
-                                                       + p(i+1,j  ,k+1)-p(i  ,j  ,k+1)
-                                                       + p(i+1,j+1,k+1)-p(i  ,j+1,k+1));
-   gp(i,j,k,1) = space_scale * dxinv[1] * AMREX_D_TERM(  p(i  ,j+1,k  )-p(i  ,j  ,k  ),
-                                                       + p(i+1,j+1,k  )-p(i+1,j  ,k  ),
-                                                       + p(i  ,j+1,k+1)-p(i  ,j  ,k+1)
-                                                       + p(i+1,j+1,k+1)-p(i+1,j  ,k+1));
+   gp(i,j,k,0) = space_scale * dxinv[0] * ( AMREX_D_TERM(  p(i+1,j  ,k  )-p(i  ,j  ,k  ),
+                                                         + p(i+1,j+1,k  )-p(i  ,j+1,k  ),
+                                                         + p(i+1,j  ,k+1)-p(i  ,j  ,k+1)
+                                                         + p(i+1,j+1,k+1)-p(i  ,j+1,k+1)));
+   gp(i,j,k,1) = space_scale * dxinv[1] * ( AMREX_D_TERM(  p(i  ,j+1,k  )-p(i  ,j  ,k  ),
+                                                         + p(i+1,j+1,k  )-p(i+1,j  ,k  ),
+                                                         + p(i  ,j+1,k+1)-p(i  ,j  ,k+1)
+                                                         + p(i+1,j+1,k+1)-p(i+1,j  ,k+1)));
 #if ( AMREX_SPACEDIM == 3 )
    gp(i,j,k,2) = space_scale * dxinv[2] *             (  p(i  ,j  ,k+1)-p(i  ,j  ,k  )
                                                        + p(i+1,j  ,k+1)-p(i+1,j  ,k  )
