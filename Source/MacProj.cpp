@@ -754,12 +754,9 @@ MacProj::mac_sync_compute (int                   level,
     //
     for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
     {
-        FArrayBox tforces;
-        const Box& bx  = Smfi.tilebox();
-        ns_level.getForce(tforces,bx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
-        forcing_term[Smfi].copy<RunOn::Host>(tforces);
+        const auto gbx = grow(Smfi.tilebox(),ngrow);
+        ns_level.getForce(forcing_term[Smfi],gbx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
     }
-
 
 
     for (int comp = 0; comp < NUM_STATE; ++comp)

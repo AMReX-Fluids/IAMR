@@ -530,50 +530,38 @@ NavierStokes::predict_velocity (Real  dt)
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
 
+    //
+    // Compute forcing
+    //
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
     {
-        FArrayBox tforces;
-        Vector<int> bndry[BL_SPACEDIM];
+        Box bx=U_mfi.tilebox();
+        FArrayBox& Ufab = Umf[U_mfi];
+        auto const  gbx  = grow(bx,ngrow);
 
-
-        //
-        // Compute forcing
-        //
-        for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
-        {
-            Box bx=U_mfi.tilebox();
-            FArrayBox& Ufab = Umf[U_mfi];
-            auto const  gbx  = grow(bx,ngrow);
-            //const int ngrow = 1;
-
-            if (getForceVerbose) {
-                Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
-            }
-
-            tforces.resize(gbx,AMREX_SPACEDIM);
-            getForce(tforces,gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
-
-            //
-            // Compute the total forcing.
-            //
-            auto const& tf   = tforces.array();
-            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
-            auto const& gp   = Gp.const_array(U_mfi);
-            auto const& rho  = rho_ptime.const_array(U_mfi);
-
-            amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
-            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
-            });
-
-            // Copy to forcing_term MF
-            forcing_term[U_mfi].copy<RunOn::Host>(tforces);
+        if (getForceVerbose) {
+            Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
         }
 
-    } // end OMP parallel region
+        getForce(forcing_term[U_mfi],gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+
+        //
+        // Compute the total forcing.
+        //
+        auto const& tf   = forcing_term.array(U_mfi);
+        auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+        auto const& gp   = Gp.const_array(U_mfi);
+        auto const& rho  = rho_ptime.const_array(U_mfi);
+
+        amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+        });
+    }
 
     Vector<BCRec> math_bcs(AMREX_SPACEDIM);
     math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
@@ -705,7 +693,7 @@ NavierStokes::scalar_advection (Real dt,
         //////////////////////////////////////////////////////////////////////////////
         MultiFab cfluxes[AMREX_SPACEDIM];
         MultiFab edgestate[AMREX_SPACEDIM];
-        MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nGrowF );
+        MultiFab forcing_term( grids, dmap, num_scalars, nGrowF );
 
         // NO Gghost nodes???
         int nghost = 0;
@@ -720,59 +708,52 @@ NavierStokes::scalar_advection (Real dt,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+        for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
         {
-            FArrayBox tforces;
+            const Box bx = S_mfi.tilebox();
+            auto const  gbx = grow(bx,nGrowF);
 
-            for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
+            if (getForceVerbose)
             {
-                const Box bx = S_mfi.tilebox();
-                auto const  gbx   = grow(bx,nGrowF);
-
-                if (getForceVerbose)
-                {
-                    Print() << "---" << '\n' << "C - scalar advection:" << '\n'
-                            << " Calling getForce..." << '\n';
-                }
-
-                tforces.resize(gbx,num_scalars);
-                getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
-
-                for (int i=0; i<num_scalars; ++i)
-                {
-                    // FIXME: Loop rqd b/c function does not take array conserv_diff
-                    auto const& tf    = tforces.array(i);
-                    auto const& visc  = visc_terms.const_array(S_mfi,i);
-
-
-                    if (advectionType[fscalar+i] == Conservative)
-                    {
-                        auto const& divu  = divu_fp -> const_array(S_mfi);
-                        auto const& S     = Smf.array(S_mfi);
-
-                        amrex::ParallelFor(bx, [tf, visc, S, divu]
-                        AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-                        {
-                            tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
-                        });
-                    }
-                    else
-                    {
-                        auto const& rho   = rho_ptime.const_array(S_mfi);
-
-                        amrex::ParallelFor(bx, [tf, visc, rho]
-                        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                        {
-                            tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
-                        });
-                    }
-
-                }
-
-                // Copy to forcing_term MF
-                forcing_term[S_mfi].copy<RunOn::Host>(tforces);
+                Print() << "---" << '\n' << "C - scalar advection:" << '\n'
+                        << " Calling getForce..." << '\n';
             }
 
-        } // OMP parallel loop
+            getForce( forcing_term[S_mfi],gbx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
+
+            for (int i=0; i<num_scalars; ++i)
+            {
+                // FIXME: Loop rqd b/c function does not take array conserv_diff
+                auto const& tf    = forcing_term.array(S_mfi,i);
+                auto const& visc  = visc_terms.const_array(S_mfi,i);
+
+
+                if (advectionType[fscalar+i] == Conservative)
+                {
+                    auto const& divu  = divu_fp -> const_array(S_mfi);
+                    auto const& S     = Smf.array(S_mfi);
+
+                    amrex::ParallelFor(bx, [tf, visc, S, divu]
+                    AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+                    {
+                        tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
+                    });
+                }
+                else
+                {
+                    auto const& rho   = rho_ptime.const_array(S_mfi);
+
+                    amrex::ParallelFor(bx, [tf, visc, rho]
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    {
+                        tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
+                    });
+                }
+
+            }
+
+        }
+
 
         Vector<BCRec> math_bcs(num_scalars);
         math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
