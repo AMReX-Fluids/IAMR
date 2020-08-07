@@ -3635,19 +3635,6 @@ NavierStokesBase::velocity_advection (Real dt)
             edgestate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
         }
 
-        ParmParse pp("debug_flags");
-        int new_algo = 1;
-        pp.query("new_algo", new_algo);
-        if (new_algo)
-        {
-            Print() << "NEW ALGO" << std::endl;
-        }
-        else
-        {
-            Print() << "OLD ALGO" << std::endl;
-        }
-
-
         Vector<int> bndry[AMREX_SPACEDIM];
 
 #ifdef _OPENMP

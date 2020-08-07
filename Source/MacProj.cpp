@@ -847,12 +847,6 @@ MacProj::mac_sync_compute (int                   level,
     }
 #endif
 
-    for (int comp = 0; comp < NUM_STATE; comp++)
-        Print() << "norm1(tf) for comp "
-                << comp << " = "
-                << forcing_term.norm1(comp,geom.periodicity(),true)
-                << std::endl;
-
 
     if (level > 0 && update_fluxreg){
         const Real mlt =  -1.0/( (double) parent->nCycle(level));
