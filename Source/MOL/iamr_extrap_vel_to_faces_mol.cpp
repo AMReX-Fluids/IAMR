@@ -53,7 +53,7 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
             Box const& bx = mfi.tilebox();
             EBCellFlagFab const& flagfab = flags[mfi];
             Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
-            auto const typ = flagfab.getType(amrex::grow(bx,1));
+            auto const typ = flagfab.getType(amrex::grow(bx,2));
             if (typ == FabType::covered)
             {
                 amrex::ParallelFor(ubx, [u] AMREX_GPU_DEVICE (int i, int j, int k) noexcept { u(i,j,k) = 0.0; });

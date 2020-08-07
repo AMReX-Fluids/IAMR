@@ -120,3 +120,19 @@ Assortment of minor bug fixes
 Tiling/GPU improvements
 AMReX interface updates
 Minor EB improvements
+
+6/1/20
+Various EB improvements
+Change default dt scaling in sync diffusion solve for PeleLM usage
+Various checks on number of ghost cells and divide by zeros.
+
+7/1/20
+Small tiling additions
+Small bug fixes, and minor EB and transport improvements
+
+8/3/20
+Volume weighted sum fixes
+Tiling fixes to estTimeStep
+Minor GPU fixes, particularly for linear solvers
+amrex::Math updates
+Various small bugfixes

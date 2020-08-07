@@ -6,6 +6,7 @@ using namespace amrex;
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF.H>
+#include <NSB_K.H>
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
@@ -121,9 +122,10 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto pr = EB2::translate(EB2::lathe(polys), {lenx*0.5, leny*0.5, 0.});
 
     auto gshop = EB2::makeShop(pr);
-    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
-  } else if (geom_type == "Piston-Cylinder") {
-
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+  }
+  else if (geom_type == "Piston-Cylinder")
+  {
     EB2::SplineIF Piston;
 
     std::vector<amrex::RealVect> splpts;
@@ -156,8 +158,10 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     //auto PistonCylinder = EB2::makeIntersection(revolvePiston, cylinder);
     auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
     auto gshop = EB2::makeShop(PistonCylinder);
-    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
-  } else if (geom_type == "Line-Piston-Cylinder") {
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+  }
+  else if (geom_type == "Line-Piston-Cylinder")
+  {
     EB2::SplineIF Piston;
     std::vector<amrex::RealVect> lnpts;
     amrex::RealVect p;
@@ -204,16 +208,77 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto revolvePiston  = EB2::lathe(Piston);
     auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
     auto gshop = EB2::makeShop(PistonCylinder);
-    EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
   }
-  else {
-#endif
+  else if (geom_type == "Inflow-Pipe")
+  {
+    
+    // Initialise parameters
+    int direction1 = 2;
+    int direction2 = 2;
+    Real radius1 = 0.018;
+    Real radius2 = 0.007;
+    Real height1 = 0.01;
+    Real height2 = 0.01;
+    Vector<Real> centervec1(3);
+    Vector<Real> centervec2(3);
 
-    EB2::Build(geom, required_coarsening_level, max_coarsening_level, 4);
+    // Get information from inputs file.
+    ParmParse pp("pipe");
 
-#if BL_SPACEDIM > 2
+    pp.query("direction1", direction1);
+    pp.query("direction2", direction2);
+    pp.query("radius1", radius1);
+    pp.query("radius2", radius2);
+    pp.query("height1", height1);
+    pp.query("height2", height2);
+    pp.getarr("center1", centervec1, 0, 3);
+    pp.getarr("center2", centervec2, 0, 3);
+    Array<Real, 3> center1 = {centervec1[0], centervec1[1], centervec1[2]};
+    Array<Real, 3> center2 = {centervec2[0], centervec2[1], centervec2[2]};
+
+    // Compute distance between cylinder centres
+    Real offset = 0.0;
+    for(int i = 0; i < 3; i++)
+        offset += pow(center1[i] - center2[i], 2);
+    offset = sqrt(offset);
+
+    // Print info about cylinders
+    amrex::Print() << " CYLINDER 1" << std::endl;
+    amrex::Print() << " Direction:       " << direction1 << std::endl;
+    amrex::Print() << " Radius:    " << radius1 << std::endl;
+    amrex::Print() << " Center:    "
+                   << center1[0] << ", " << center1[1] << ", " << center1[2] << std::endl;
+
+    amrex::Print() << " CYLINDER 2" << std::endl;
+    amrex::Print() << " Direction:       " << direction2 << std::endl;
+    amrex::Print() << " Radius:    " << radius2 << std::endl;
+    amrex::Print() << " Center:    "
+                   << center2[0] << ", " << center2[1] << ", " << center2[2] << std::endl;
+
+    amrex::Print() << "\n Offset:          " << offset << std::endl;
+
+        // Build the implicit function as a union of two cylinders
+    EB2::CylinderIF cyl1(radius1, height1, direction1, center1, false);
+    EB2::CylinderIF cyl2(radius2, height2, direction2, center2, false);
+//    auto twocylinders = EB2::makeUnion(cyl1, cyl2);
+
+    auto twocylinders = EB2::makeDifference(cyl1, cyl2);
+
+    // Generate GeometryShop
+    auto gshop = EB2::makeShop(twocylinders);
+
+    // Build index space
+    int max_level_here = 0;
+    int max_coarsening_level = 100;
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+
   }
+  else
 #endif
+  {
+    EB2::Build(geom, required_coarsening_level, max_coarsening_level);
+  }
 }
 
 void
@@ -247,10 +312,14 @@ NavierStokesBase::initialize_eb2_structs() {
   
   auto const& flags = ebfactory.getMultiEBCellFlagFab();
 
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
   for (MFIter mfi(*volfrac, false); mfi.isValid(); ++mfi)
   {
     BaseFab<int>& mfab = ebmask[mfi];
     const Box tbox = mfi.growntilebox();
+    const Box bx = mfi.tilebox();
     const FArrayBox& vfab = (*volfrac)[mfi];
     const EBCellFlagFab& flagfab = flags[mfi];
     
@@ -258,10 +327,20 @@ NavierStokesBase::initialize_eb2_structs() {
     int iLocal = mfi.LocalIndex();
 
     if (typ == FabType::regular) {
-      mfab.setVal<RunOn::Host>(1);
+      const auto& mask = ebmask.array(mfi);
+      amrex::ParallelFor(bx, [mask]
+      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+      {
+          mask(i,j,k) = 1;
+      });
     }
     else if (typ == FabType::covered) {
-      mfab.setVal<RunOn::Host>(-1);
+      const auto& mask = ebmask.array(mfi);
+      amrex::ParallelFor(bx, [mask]
+      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+      {
+          mask(i,j,k) = -1;
+      });
     }
     else if (typ == FabType::singlevalued) {
       int Ncut = 0;
@@ -362,19 +441,23 @@ NavierStokesBase::set_body_state(MultiFab& S)
   int nc = S.nComp();
   int covered_val = -1;
 
+  // Need a GPU copy of body_state that's not a static attribute of the NSB class
+  AsyncArray<amrex::Real> body_state_lcl(body_state.data(),nc);
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-  for (MFIter mfi(S,true); mfi.isValid(); ++mfi)
+  for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
-    const Box& vbox = mfi.validbox();
-    fort_set_body_state(vbox.loVect(), vbox.hiVect(),
-                      BL_TO_FORTRAN_ANYD(S[mfi]),
-                      BL_TO_FORTRAN_ANYD(ebmask[mfi]),
-                      &(body_state[0]),&nc,&covered_val);
+    const Box& bx = mfi.tilebox();
+    auto const& state = S.array(mfi);
+    auto const& mask = ebmask.array(mfi);
+    Real* state_lcl = body_state_lcl.data();
+    amrex::ParallelFor(bx, [state,mask,nc,covered_val,state_lcl]
+    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+        set_body_state_k(i,j,k,nc,state_lcl,covered_val,mask,state);
+    });
   }
 }
-
-
-
 #endif

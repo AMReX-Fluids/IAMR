@@ -77,7 +77,7 @@ main (int   argc,
     AmrLevel::SetEBMaxGrowCells(4,4,4);
 
     //decide who should own max_coasening_level later
-    int max_coarsening_level = 4;
+    int max_coarsening_level = 100;
     pp.query("max_coarsening_level", max_coarsening_level);
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
 		   max_coarsening_level);

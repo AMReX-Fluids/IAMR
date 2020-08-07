@@ -34,26 +34,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
                             const FArrayBox& Scal,
                             int              scalScomp)
 {
-   if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
-      amrex::Print() << "NavierStokesBase::getForce(): Entered..." << std::endl 
-                     << "time      = " << time << std::endl
-                     << "scomp     = " << scomp << std::endl
-                     << "ncomp     = " << ncomp << std::endl
-                     << "ngrow     = " << ngrow << std::endl
-                     << "scalScomp = " << scalScomp << std::endl;
-
-   if (scomp==0)
-       if  (ncomp==3) amrex::Print() << "Doing velocities only" << std::endl;
-       else           amrex::Print() << "Doing all components" << std::endl;
-   else if (scomp==3)
-       if  (ncomp==1) amrex::Print() << "Doing density only" << std::endl;
-       else           amrex::Print() << "Doing all scalars" << std::endl;
-   else if (scomp==4) amrex::Print() << "Doing tracer only" << std::endl;
-   else               amrex::Print() << "Doing individual scalar" << std::endl;
-
-   }
-
-   force.resize(grow(bx,ngrow),ncomp);
 
    const Real* VelDataPtr  = Vel.dataPtr();
    const Real* ScalDataPtr = Scal.dataPtr(scalScomp);
@@ -69,6 +49,22 @@ NavierStokesBase::getForce (FArrayBox&       force,
    const int   nscal    = NUM_SCALARS;
 
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
+      amrex::Print() << "NavierStokesBase::getForce(): Entered..." << std::endl 
+                     << "time      = " << time << std::endl
+                     << "scomp     = " << scomp << std::endl
+                     << "ncomp     = " << ncomp << std::endl
+                     << "ngrow     = " << ngrow << std::endl
+                     << "scalScomp = " << scalScomp << std::endl;
+
+      if (scomp==0)
+	if  (ncomp==3) amrex::Print() << "Doing velocities only" << std::endl;
+	else           amrex::Print() << "Doing all components" << std::endl;
+      else if (scomp==3)
+	if  (ncomp==1) amrex::Print() << "Doing density only" << std::endl;
+	else           amrex::Print() << "Doing all scalars" << std::endl;
+      else if (scomp==4) amrex::Print() << "Doing tracer only" << std::endl;
+      else               amrex::Print() << "Doing individual scalar" << std::endl;
+
 #if (AMREX_SPACEDIM == 3)
       amrex::Print() << "NavierStokesBase::getForce(): Force Domain:" << std::endl;
       amrex::Print() << "(" << f_lo[0] << "," << f_lo[1] << "," << f_lo[2] << ") - "
@@ -154,7 +150,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
       for (int n=0; n<NUM_SCALARS; n++) 
          amrex::Print() << "Scal " << n << " min/max " << scalmin[n] 
                         << " / " << scalmax[n] << std::endl;
-   }
+   } //end if(getForceVerbose)
 
    RealBox gridloc = RealBox(bx,geom.CellSize(),geom.ProbLo());
 

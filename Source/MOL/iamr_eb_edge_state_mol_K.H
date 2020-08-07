@@ -52,8 +52,8 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                amrex::Real delta_y = yf  - yc;,
                amrex::Real delta_z = zf  - zc;);
 
-        amrex::Real cc_qmax = std::max(q(i,j,k,n),q(i-1,j,k,n));
-        amrex::Real cc_qmin = std::min(q(i,j,k,n),q(i-1,j,k,n));
+        amrex::Real cc_qmax = amrex::max(q(i,j,k,n),q(i-1,j,k,n));
+        amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i-1,j,k,n));
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_hi = iamr_slopes_extdir_eb( D_DECL(i, j, k), n, q, ccc, flag, d_bcrec, domain);
@@ -67,7 +67,7 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                         + delta_y * slopes_eb_hi[1];
 #endif
 
-        qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+        qpls = amrex::max(amrex::min(qpls, cc_qmax), cc_qmin);
 
         D_TERM(xc = ccc(i-1,j,k,0);, // centroid of cell (i-1,j,k)
                yc = ccc(i-1,j,k,1);,
@@ -89,7 +89,7 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                         + delta_y * slopes_eb_lo[1];
 #endif
 
-        qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+        qmns = amrex::max(amrex::min(qmns, cc_qmax), cc_qmin);
 
         if (umac(i,j,k) > small_vel)
         {
@@ -134,8 +134,8 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
            amrex::Real delta_y = yf  - yc;,
            amrex::Real delta_z = zf  - zc;);
 
-    amrex::Real cc_qmax = std::max(q(i,j,k,n),q(i-1,j,k,n));
-    amrex::Real cc_qmin = std::min(q(i,j,k,n),q(i-1,j,k,n));
+    amrex::Real cc_qmax = amrex::max(q(i,j,k,n),q(i-1,j,k,n));
+    amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i-1,j,k,n));
 
     // Compute slopes of component "n" of q
     const auto& slopes_eb_hi = iamr_slopes_eb( D_DECL(i, j, k), n, q, ccc, flag);
@@ -149,7 +149,7 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
                                     + delta_y * slopes_eb_hi[1];
 #endif
 
-    qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+    qpls = amrex::max(amrex::min(qpls, cc_qmax), cc_qmin);
 
     D_TERM(xc = ccc(i-1,j,k,0);, // centroid of cell (i-1,j,k)
            yc = ccc(i-1,j,k,1);,
@@ -171,7 +171,7 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
                                     + delta_y * slopes_eb_lo[1];
 #endif
 
-    qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+    qmns = amrex::max(amrex::min(qmns, cc_qmax), cc_qmin);
 
 
     amrex::Real qs;
@@ -235,8 +235,8 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                amrex::Real delta_y = 0.5 + yc;,
                amrex::Real delta_z = zf  - zc;);
 
-        amrex::Real cc_qmax = std::max(q(i,j,k,n),q(i,j-1,k,n));
-        amrex::Real cc_qmin = std::min(q(i,j,k,n),q(i,j-1,k,n));
+        amrex::Real cc_qmax = amrex::max(q(i,j,k,n),q(i,j-1,k,n));
+        amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j-1,k,n));
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_hi = iamr_slopes_extdir_eb( D_DECL(i, j, k), n, q, ccc, flag, d_bcrec, domain);
@@ -250,7 +250,7 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                         - delta_y * slopes_eb_hi[1];
 #endif
 
-        qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+        qpls = amrex::max(amrex::min(qpls, cc_qmax), cc_qmin);
 
         D_TERM(xc = ccc(i,j-1,k,0);, // centroid of cell (i,j-1,k)
                yc = ccc(i,j-1,k,1);,
@@ -272,7 +272,7 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                         + delta_y * slopes_eb_lo[1];
 #endif
 
-        qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+        qmns = amrex::max(amrex::min(qmns, cc_qmax), cc_qmin);
 
         if (vmac(i,j,k) > small_vel)
         {
@@ -319,8 +319,8 @@ amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
            amrex::Real delta_y = 0.5 + yc;,
            amrex::Real delta_z = zf  - zc;);
 
-    amrex::Real cc_qmax = std::max(q(i,j,k,n),q(i,j-1,k,n));
-    amrex::Real cc_qmin = std::min(q(i,j,k,n),q(i,j-1,k,n));
+    amrex::Real cc_qmax = amrex::max(q(i,j,k,n),q(i,j-1,k,n));
+    amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j-1,k,n));
 
     // Compute slopes of component "n" of q
     const auto& slopes_eb_hi = iamr_slopes_eb( D_DECL(i, j, k), n, q, ccc, flag);
@@ -334,7 +334,7 @@ amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
                                     - delta_y * slopes_eb_hi[1];
 #endif
 
-    qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+    qpls = amrex::max(amrex::min(qpls, cc_qmax), cc_qmin);
 
     D_TERM(xc = ccc(i,j-1,k,0);, // centroid of cell (i,j-1,k)
            yc = ccc(i,j-1,k,1);,
@@ -356,7 +356,7 @@ amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
                                     + delta_y * slopes_eb_lo[1];
 #endif
 
-    qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+    qmns = amrex::max(amrex::min(qmns, cc_qmax), cc_qmin);
 
     amrex::Real qs;
 
@@ -418,8 +418,8 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
         amrex::Real delta_y = yf  - yc;
         amrex::Real delta_z = 0.5 + zc;
 
-        amrex::Real cc_qmax = std::max(q(i,j,k,n),q(i,j,k-1,n));
-        amrex::Real cc_qmin = std::min(q(i,j,k,n),q(i,j,k-1,n));
+        amrex::Real cc_qmax = amrex::max(q(i,j,k,n),q(i,j,k-1,n));
+        amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j,k-1,n));
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,q,ccc,flag,d_bcrec,domain);
@@ -428,7 +428,7 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
                                         + delta_y * slopes_eb_hi[1]
                                         - delta_z * slopes_eb_hi[2];
 
-        qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+        qpls = amrex::max(amrex::min(qpls, cc_qmax), cc_qmin);
 
         xc = ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
         yc = ccc(i,j,k-1,1);
@@ -445,7 +445,7 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
                                         + delta_y * slopes_eb_lo[1]
                                         + delta_z * slopes_eb_lo[2];
 
-        qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+        qmns = amrex::max(amrex::min(qmns, cc_qmax), cc_qmin);
 
         if (wmac(i,j,k) > small_vel)
         {
@@ -487,8 +487,8 @@ amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
     amrex::Real delta_y = yf  - yc;
     amrex::Real delta_z = 0.5 + zc;
 
-    amrex::Real cc_qmax = std::max(q(i,j,k,n),q(i,j,k-1,n));
-    amrex::Real cc_qmin = std::min(q(i,j,k,n),q(i,j,k-1,n));
+    amrex::Real cc_qmax = amrex::max(q(i,j,k,n),q(i,j,k-1,n));
+    amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j,k-1,n));
 
     // Compute slopes of component "n" of q
     const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,q,ccc,flag);
@@ -497,7 +497,7 @@ amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
                                     + delta_y * slopes_eb_hi[1]
                                     - delta_z * slopes_eb_hi[2];
 
-    qpls = std::max(std::min(qpls, cc_qmax), cc_qmin);
+    qpls = amrex::max(amrex::min(qpls, cc_qmax), cc_qmin);
 
     xc = ccc(i,j,k-1,0); // centroid of cell (i,j,k-1)
     yc = ccc(i,j,k-1,1);
@@ -514,7 +514,7 @@ amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
                                     + delta_y * slopes_eb_lo[1]
                                     + delta_z * slopes_eb_lo[2];
 
-    qmns = std::max(std::min(qmns, cc_qmax), cc_qmin);
+    qmns = amrex::max(amrex::min(qmns, cc_qmax), cc_qmin);
 
     amrex::Real qs;
 

@@ -556,8 +556,8 @@ contains
 !c     ::::: local variables
 !c
       integer :: i, j, n
-      REAL_T  :: dx, dy, d_sq, r_sq, u_vort, v_vort 
-      REAL_T  :: x, y, r
+      REAL_T  :: dx, dy, d_sq, r_sq, u_vort, v_vort
+      REAL_T  :: x, y
       REAL_T  :: hx, hy
 
 #include <probdata.H>
@@ -598,11 +598,11 @@ contains
                      vel(i,j,2) = -meanFlowMag + v_vort
                END SELECT
 
-               scal(i,j,1) = merge(denfact,one,r.lt.radblob)
+               scal(i,j,1) = denfact
                do n = 2,nscal-1
                   scal(i,j,n) = one
-               end do                  
-               scal(i,j,nscal) = merge(one,zero,r.lt.radblob)
+               end do
+               scal(i,j,nscal) = one
             end do
          end do
 

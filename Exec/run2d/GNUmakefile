@@ -20,6 +20,8 @@ PROFILE     = FALSE
 
 USE_CUDA = FALSE
 
+USE_SENSEI_INSITU = FALSE
+
 EBASE = amr
 
 Bpack   := ./Make.package

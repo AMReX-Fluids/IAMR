@@ -231,15 +231,15 @@ protected:
     //
     // Get the forcing term.
     //
-    void getForce (amrex::FArrayBox&       force,
-                   const amrex::Box&      bx,
-                   int              ngrow,
-                   int              strt_comp,
-                   int              num_comp,
-                   const amrex::Real       time,
-                   const amrex::FArrayBox& Vel,
-                   const amrex::FArrayBox& Scal,
-                   int              scalScomp);
+    virtual void getForce (amrex::FArrayBox&       force,
+                           const amrex::Box&      bx,
+                           int              ngrow,
+                           int              strt_comp,
+                           int              num_comp,
+                           const amrex::Real       time,
+                           const amrex::FArrayBox& Vel,
+                           const amrex::FArrayBox& Scal,
+                           int              scalScomp);
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
@@ -351,7 +351,10 @@ protected:
 
     void sync_setup (amrex::MultiFab*& DeltaSsync);
     void sync_cleanup (amrex::MultiFab*& DeltaSsync);
-
+    //
+    // Grow by nGrow and fillpatch the MAC-projected velocities.
+    //
+    void create_umac_grown (int nGrow);
     //
     // Advect velocities.
     //
@@ -421,14 +424,14 @@ protected:
     //
     virtual amrex::Real estTimeStep ();
 
-    virtual void getViscosity (amrex::MultiFab* viscosity[BL_SPACEDIM],
+    virtual void getViscosity (amrex::MultiFab*  viscosity[BL_SPACEDIM],
 			       const amrex::Real time) = 0;
     //
     // Compute viscous terms.
     //
     virtual void getViscTerms (amrex::MultiFab& visc_terms,
-			       int       src_comp,
-			       int       num_comp,
+			       int              src_comp,
+			       int              num_comp,
 			       amrex::Real      time) = 0;
     //
     virtual void mac_sync () = 0;
@@ -492,17 +495,11 @@ protected:
     //    NavierStokesBase protected embedded boundary functions              //
     ////////////////////////////////////////////////////////////////////////////
 
-private:
-
     void buildMetrics (); // 1-D metric arrays for RZ
     //
     // Compute dpdt
     //
     void calcDpdt();
-    //
-    // Grow by nGrow and fillpatch the MAC-projected velocities.
-    //
-    void create_umac_grown (int nGrow);
     //
     NavierStokesBase& getLevel (int lev) {
 	return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
@@ -568,7 +565,6 @@ private:
 //
 // Data
 //
-protected:
 
     // fixme? for now, volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
@@ -588,20 +584,6 @@ protected:
     // Pressure gradients
     std::unique_ptr<amrex::MultiFab> gradp ;
 
-  //fixme? taking a guess that i'll need this other data cribbed from CNS
-    // amrex::iMultiFab level_mask;
-
-    // amrex::EBFluxRegister flux_reg;
-
-    // static constexpr int level_mask_interior   = 0; // valid cells
-    // static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
-    // static constexpr int level_mask_notcovered = 2; // ghost cells not covered
-    // static constexpr int level_mask_physbnd    = 3; // outside domain
-
-    amrex::MultiFab m_xslopes;
-    amrex::MultiFab m_yslopes;
-    amrex::MultiFab m_zslopes;
-
 #endif
 
     //
@@ -617,8 +599,8 @@ protected:
     //
     // arrays for variable viscosity and diffusivity
     //
-    FluxBoxes fb_viscn, fb_viscnp1, fb_diffn, fb_diffnp1;
-    amrex::MultiFab **viscn, **viscnp1, **diffn, **diffnp1;
+    amrex::MultiFab *diffn_cc, *diffnp1_cc;
+    amrex::MultiFab *viscn_cc, *viscnp1_cc;
     //
     // Sync update quantities.
     //
