@@ -793,7 +793,11 @@ protected:
     //
     static bool godunov_use_ppm;
     static bool godunov_use_forces_in_trans;
+#ifdef AMREX_USE_EB
+    static const int  godunov_hyp_grow = 4;
+#else
     static const int  godunov_hyp_grow = 3;
+#endif
 
 };
 
