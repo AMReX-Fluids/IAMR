@@ -18,7 +18,3 @@ F90EXE_sources += GODUNOV_$(DIM)D.F90 \
                 DIFFUSION_$(DIM)D.F90 SLABSTAT_NS_$(DIM)D.F90 \
 		MACPROJ_$(DIM)D.F90 \
                 ARRAYLIM_$(DIM)D.F90 NavierStokesBase_$(DIM)D.F90
-
-ifndef ATMOS_MACOP
-  F90EXE_sources += MACOPERATOR_$(DIM)D.F90
-endif

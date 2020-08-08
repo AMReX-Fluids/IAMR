@@ -3,8 +3,8 @@
 #include <AMReX_FluxRegister.H>
 #include <SyncRegister.H>
 //#include <NAVIERSTOKES_F.H>
-#include <SYNCREG_F.H>
 #include <AMReX_BLProfiler.H>
+#include <NSB_K.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -290,7 +290,7 @@ SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Re
 {
     BL_PROFILE("SyncRegister::CrseInit()");
 
-    setVal(0);
+    setVal(0.0);
 
     Sync_resid_crse.mult(mult);
 
@@ -301,14 +301,14 @@ SyncRegister::CrseInit (MultiFab& Sync_resid_crse, const Geometry& crse_geom, Re
 }
 
 void
-SyncRegister::CompAdd (MultiFab& Sync_resid_fine, 
-                       const Geometry& fine_geom, const Geometry& crse_geom, 
+SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
+                       const Geometry& fine_geom, const Geometry& crse_geom,
                        const BoxArray& Pgrids, Real mult)
 {
     BL_PROFILE("SyncRegister::CompAdd()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
       Vector<IntVect> pshifts(27);
@@ -316,7 +316,6 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 
       for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
       {
-         //const Box& sync_box = mfi.tilebox();
          const Box& sync_box = mfi.validbox();
 
          Pgrids.intersections(sync_box,isects);
@@ -365,7 +364,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
     Sync_resid_crse.setVal(0.0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
        FArrayBox cbndfab;
@@ -375,12 +374,11 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
           {
              FArrayBox& finefab = Sync_resid_fine[mfi];
              FArrayBox& crsefab = Sync_resid_crse[mfi];
+
              auto const& crsefab_a = crsefab.array();
+             auto const& finefab_a = finefab.array();
 
              const Box& finebox  = finefab.box();
-             const int* resid_lo = finebox.loVect();
-             const int* resid_hi = finebox.hiVect();
-
              const Box& crsebox  = crsefab.box();
 
              Box bndbox = crsebox;
@@ -396,14 +394,14 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 cbndfab.resize(bndbox, 1);
                 auto const& cbndfab_a = cbndfab.array();
                 Elixir cbndfab_e = cbndfab.elixir();
+                amrex::GpuArray<int,AMREX_SPACEDIM> rratio = {D_DECL(ratio[0],ratio[1],ratio[2])};
 
-                const int* clo = bndbox.loVect();
-                const int* chi = bndbox.hiVect();
-
-                srcrsereg(finefab.dataPtr(),
-                          ARLIM(resid_lo),ARLIM(resid_hi),
-                          cbndfab.dataPtr(),ARLIM(clo),ARLIM(chi),
-                          clo,chi,&dir,ratio.getVect());
+                // TODO: this doesn't work on GPU. Will probably need to redo this completely ...
+                //amrex::launch(bndbox, [finebox,dir,rratio,finefab_a,cbndfab_a]
+                //AMREX_GPU_DEVICE (Box const& tbx)
+                //{
+                   srcrsereg_k(bndbox,finebox,dir,rratio,finefab_a, cbndfab_a);
+                //});
 
                 for (int n = 0; n < AMREX_SPACEDIM; ++n)
                 {
@@ -441,8 +439,8 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 const auto& ovlp = crsefab.box() & cbndfab.box();
                 if (ovlp.ok())
                 {
-                  amrex::ParallelFor(ovlp,
-                  [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                  amrex::ParallelFor(ovlp, [crsefab_a,cbndfab_a]
+                  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                   {
                      crsefab_a(i,j,k) += cbndfab_a(i,j,k);
                   });
