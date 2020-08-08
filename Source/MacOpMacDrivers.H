@@ -2,7 +2,7 @@
 #ifndef _MACOPMACDRIVERS_H_
 #define _MACOPMACDRIVERS_H_
 
-#include <MacOperator.H>
+#include <AMReX_AmrLevel.H>
 
 #define COVERED_VAL 1.0e40
 //====================================================================
