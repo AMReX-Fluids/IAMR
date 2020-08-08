@@ -12,7 +12,6 @@
 #include <AMReX_Extrapolater.H>
 #include <AMReX_ParmParse.H>
 #include <NavierStokes.H>
-#include <AMReX_MultiGrid.H>
 #include <NAVIERSTOKES_F.H>
 #include <AMReX_BLProfiler.H>
 #include <PROB_NS_F.H>

@@ -30,9 +30,7 @@ FEXE_headers += SYNCREG_F.H PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
 # Disconnect MacOperators for different mass continuity.
 #
 ifndef ATMOS_MACOP
-  CEXE_sources += MacOperator.cpp
-  CEXE_headers += MacOperator.H MacOpMacDrivers.H
-  FEXE_headers += MACOPERATOR_F.H
+  CEXE_headers += MacOpMacDrivers.H
 endif
 
 CEXE_headers += iamr_constants.H

@@ -20,8 +20,8 @@ INCLUDE_LOCATIONS += $(Blocs)
 #These are the directories in BoxLib
 
 Pdirs   := Base AmrCore Amr Boundary
-Pdirs   += LinearSolvers/C_CellMG  LinearSolvers/C_TensorMG  \
-           LinearSolvers/MLMG LinearSolvers/Projections
+Pdirs   += LinearSolvers/MLMG LinearSolvers/Projections
+           
 
 ifeq ($(USE_PARTICLES),TRUE)
   Pdirs += Particle
