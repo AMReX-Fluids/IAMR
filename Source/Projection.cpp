@@ -9,6 +9,7 @@
 #include <PROJECTION_F.H>
 #include <NAVIERSTOKES_F.H>
 #include <ProjOutFlowBC.H>
+#include <NSB_K.H>
 
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
@@ -450,15 +451,13 @@ Projection::level_project (int             level,
     Vector<MultiFab*> rhcc;
     if (have_divu)
     {
-        rhcc.resize(maxlev);
-
-        if (is_rz == 1) {
-            radMultScal(level,*divusource);
-        }
-        const int nghost = 0;
-   divusource->mult(-1.0,0,1,nghost);
-
-   rhcc[level] = divusource.get();
+       rhcc.resize(maxlev);
+       if (is_rz == 1) {
+          radMultScal(level,*divusource);
+       }
+       const int nghost = 0;
+       divusource->mult(-1.0,0,1,nghost);
+       rhcc[level] = divusource.get();
     }
 
     bool proj2 = true;
@@ -1167,11 +1166,11 @@ Projection::initialSyncProject (int       c_lev,
                const Box& bx = mfi.growntilebox();
                const auto& du       = divu->array(mfi);
                const auto& dsdt_arr = dsdt->array(mfi);
-               const auto& rhcc     = rhcclev->array(mfi);
-               amrex::ParallelFor(bx, [du,dsdt_arr,rhcc,dt_inv]
+               const auto& rhcc_arr = rhcclev->array(mfi);
+               amrex::ParallelFor(bx, [du,dsdt_arr,rhcc_arr,dt_inv]
                AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                {
-                  rhcc(i,j,k) = ( dsdt_arr(i,j,k) - du(i,j,k) ) * dt_inv;
+                  rhcc_arr(i,j,k) = ( dsdt_arr(i,j,k) - du(i,j,k) ) * dt_inv;
                });
             }
         }
@@ -1825,29 +1824,32 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 amrex::surroundingNodes(amrex::bdryNode(domainC, outFaces[iface], ncStripWidth));
             phiC_strip.grow(nGrow);
             BoxArray ba(phiC_strip);
-       // FIXME: this size may need adjusting
-       ba.maxSize(32);
+
+            // FIXME: this size may need adjusting
+            ba.maxSize(32);
 
             DistributionMapping dm{ba};
             MultiFab phi_crse_strip(ba, dm, nCompPhi, 0);
             phi_crse_strip.setVal(0);
+            const auto& phi_f_arr = phi_fine_strip[iface].array();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(phi_crse_strip); mfi.isValid(); ++mfi)
             {
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
-
                 if (ovlp.ok())
                 {
                     FArrayBox& cfab = phi_crse_strip[mfi];
-                    fort_putdown (BL_TO_FORTRAN(cfab),
-                                  BL_TO_FORTRAN(phi_fine_strip[iface]),
-                                  ovlp.loVect(), ovlp.hiVect(), ratio.getVect());
+                    const auto& phi_c_arr = phi_crse_strip.array(mfi);
+                    ParallelFor(ovlp, [phi_c_arr,phi_f_arr,ratio]
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+                    {
+                       phi_c_arr(i,j,k) = phi_f_arr(i*ratio[0],j*ratio[1],k*ratio[2]);
+                    });
                 }
             }
-
             phi[lev]->copy(phi_crse_strip);
         }
     }
@@ -1875,22 +1877,15 @@ Projection::getGradP (FArrayBox& p_fab,
     //
     BL_ASSERT(amrex::enclosedCells(p_fab.box()).contains(gpbox_to_fill));
 
-    const int*  plo    = p_fab.loVect();
-    const int*  phi    = p_fab.hiVect();
-    const int*  glo    = gp.box().loVect();
-    const int*  ghi    = gp.box().hiVect();
-    const int*   lo    = gpbox_to_fill.loVect();
-    const int*   hi    = gpbox_to_fill.hiVect();
-    const Real* p_dat  = p_fab.dataPtr();
-    const Real* gp_dat = gp.dataPtr();
-
-#if (AMREX_SPACEDIM == 2)
-    int is_full = 0;
-    gradp(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx,
-               &is_full);
-#elif (AMREX_SPACEDIM == 3)
-    gradp(p_dat,ARLIM(plo),ARLIM(phi),gp_dat,ARLIM(glo),ARLIM(ghi),lo,hi,dx);
-#endif
+    auto const& p_arr  = p_fab.array();
+    auto const& gp_arr = gp.array();
+    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dxinv = {D_DECL(1.0/dx[0],1.0/dx[1],1.0/dx[2])};
+    Real scale_gp = (AMREX_SPACEDIM == 2) ? 0.5 : 0.25;
+    amrex::ParallelFor(gpbox_to_fill, [p_arr,gp_arr,scale_gp,dxinv]
+    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+       calc_gradp(i,j,k,scale_gp,dxinv,p_arr,gp_arr);
+    });
 }
 
 void
