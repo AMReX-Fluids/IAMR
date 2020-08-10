@@ -1225,17 +1225,18 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // on fine edges overlaying coarse edges.
             //
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(fine_src); mfi.isValid(); ++mfi)
             {
                 const int  nComp = 1;
                 const Box& fbox  = fine_src[mfi].box();
-                const int* rat   = crse_ratio.getVect();
-                edge_interp(fbox.loVect(), fbox.hiVect(), &nComp, rat, &idim,
-                                 fine_src[mfi].dataPtr(),
-                                 ARLIM(fine_src[mfi].loVect()),
-                                 ARLIM(fine_src[mfi].hiVect()));
+                auto const& fine_arr = fine_src.array(mfi);
+                amrex::GpuArray<int,AMREX_SPACEDIM> c_ratio = {D_DECL(crse_ratio[0],crse_ratio[1],crse_ratio[2])};
+                amrex::launch(fbox, [fine_arr,nComp,c_ratio,idim]
+                AMREX_GPU_DEVICE (Box const& tbx) {
+                    edge_interp_k(tbx, nComp, idim, c_ratio, fine_arr);
+                });
             }
 
             MultiFab u_mac_save(u_mac[idim].boxArray(),u_mac[idim].DistributionMap(),1,0,MFInfo(),Factory());
