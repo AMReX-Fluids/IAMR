@@ -1130,7 +1130,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
 
         f_bnd_ba = c_bnd_ba; f_bnd_ba.refine(crse_ratio);
 
-        for (int n = 0; n < BL_SPACEDIM; ++n)
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
             //
             // crse_src & fine_src must have same parallel distribution.
@@ -1140,8 +1140,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
             //
             BoxArray crse_src_ba(c_bnd_ba), fine_src_ba(f_bnd_ba);
 
-            crse_src_ba.surroundingNodes(n);
-            fine_src_ba.surroundingNodes(n);
+            crse_src_ba.surroundingNodes(idim);
+            fine_src_ba.surroundingNodes(idim);
 
             const int N = fine_src_ba.size();
 
@@ -1157,11 +1157,11 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // This DM won't be put into the cache.
             dm.KnapSackProcessorMap(wgts,ParallelDescriptor::NProcs());
 
-	    // FIXME
-	    // Declaring in this way doesn't work. I think it's because the box arrays
-	    // have been changed and each src box is not completely contained within a
-	    // single box in the Factory's BA
-	    // For now, coarse-fine boundary doesn't intersect EB, so should be okay...
+            // FIXME
+            // Declaring in this way doesn't work. I think it's because the box arrays
+            // have been changed and each src box is not completely contained within a
+            // single box in the Factory's BA
+            // For now, coarse-fine boundary doesn't intersect EB, so should be okay...
             // MultiFab crse_src(crse_src_ba, dm, 1, 0, MFInfo(), getLevel(level-1).Factory());
             // MultiFab fine_src(fine_src_ba, dm, 1, 0, MFInfo(), Factory());
             MultiFab crse_src(crse_src_ba, dm, 1, 0);
@@ -1172,8 +1172,8 @@ NavierStokesBase::create_umac_grown (int nGrow)
             //
             // We want to fill crse_src from lower level u_mac including u_mac's grow cells.
             //
-	    const MultiFab& u_macLL = getLevel(level-1).u_mac[n];
-	    crse_src.copy(u_macLL,0,0,1,1,0);
+            const MultiFab& u_macLL = getLevel(level-1).u_mac[idim];
+            crse_src.copy(u_macLL,0,0,1,1,0);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1182,14 +1182,35 @@ NavierStokesBase::create_umac_grown (int nGrow)
             {
                 const int  nComp = 1;
                 const Box& box   = crse_src[mfi].box();
-                const int* rat   = crse_ratio.getVect();
-                pc_edge_interp(box.loVect(), box.hiVect(), &nComp, rat, &n,
-                                       crse_src[mfi].dataPtr(),
-                                       ARLIM(crse_src[mfi].loVect()),
-                                       ARLIM(crse_src[mfi].hiVect()),
-                                       fine_src[mfi].dataPtr(),
-                                       ARLIM(fine_src[mfi].loVect()),
-                                       ARLIM(fine_src[mfi].hiVect()));
+                auto const& crs_arr  = crse_src.array(mfi);
+                auto const& fine_arr = fine_src.array(mfi);
+                amrex::GpuArray<int,AMREX_SPACEDIM> c_ratio = {D_DECL(crse_ratio[0],crse_ratio[1],crse_ratio[2])};
+                ParallelFor(box,[crs_arr,fine_arr,idim,c_ratio]
+                AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                   int idx[3] = {i*c_ratio[0],j*c_ratio[1],k*c_ratio[2]};
+#if ( AMREX_SPACEDIM == 2 )
+                   // dim1 are the complement of idim
+                   int dim1 = ( idim == 0 ) ? 1 : 0;
+                   for (int n1 = 0; n1 < c_ratio[dim1]; n1++) {
+                      int id[3] = {idx[0],idx[1],idx[2]};
+                      id[dim1] += n1;
+                      fine_arr(id[0],id[1],id[2]) = crs_arr(i,j,k);
+                   }
+#elif ( AMREX_SPACEDIM == 3 )
+                   // dim1 and dim2 are the complements of idim
+                   int dim1 = ( idim != 0 ) ? 0 : 1 ;
+                   int dim2 = ( idim != 0 ) ? ( ( idim == 2 ) ? 1 : 2 ) : 2 ;
+                   for (int n1 = 0; n1 < c_ratio[dim1]; n1++) {
+                      for (int n2 = 0; n2 < c_ratio[dim2]; n2++) {
+                         int id[3] = {idx[0],idx[1],idx[2]};
+                         id[dim1] += n1;
+                         id[dim2] += n2;
+                         fine_arr(id[0],id[1],id[2]) = crs_arr(i,j,k);
+                      }
+                   }
+#endif
+                });
             }
             crse_src.clear();
             //
@@ -1197,7 +1218,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // this level u_mac valid only on surrounding faces of valid
             // region - this op will not fill grow region.
             //
-            fine_src.copy(u_mac[n]);
+            fine_src.copy(u_mac[idim]);
             //
             // Interpolate unfilled grow cells using best data from
             // surrounding faces of valid region, and pc-interpd data
@@ -1211,16 +1232,16 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 const int  nComp = 1;
                 const Box& fbox  = fine_src[mfi].box();
                 const int* rat   = crse_ratio.getVect();
-                edge_interp(fbox.loVect(), fbox.hiVect(), &nComp, rat, &n,
+                edge_interp(fbox.loVect(), fbox.hiVect(), &nComp, rat, &idim,
                                  fine_src[mfi].dataPtr(),
                                  ARLIM(fine_src[mfi].loVect()),
                                  ARLIM(fine_src[mfi].hiVect()));
             }
 
-	    MultiFab u_mac_save(u_mac[n].boxArray(),u_mac[n].DistributionMap(),1,0,MFInfo(),Factory());
-	    u_mac_save.copy(u_mac[n]);
-	    u_mac[n].copy(fine_src,0,0,1,0,nGrow);
-	    u_mac[n].copy(u_mac_save);
+            MultiFab u_mac_save(u_mac[idim].boxArray(),u_mac[idim].DistributionMap(),1,0,MFInfo(),Factory());
+            u_mac_save.copy(u_mac[idim]);
+            u_mac[idim].copy(fine_src,0,0,1,0,nGrow);
+            u_mac[idim].copy(u_mac_save);
         }
     }
     //
