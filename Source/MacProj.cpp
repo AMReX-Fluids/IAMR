@@ -794,7 +794,7 @@ MacProj::mac_sync_compute (int                   level,
                     });
 
                     if ( not (do_mom_diff == 1 ) )
-                        forcing_term[Smfi].divide<RunOn::Host>(Rho);
+                        forcing_term[Smfi].divide<RunOn::Host>(Rho,0,comp,1);
 
                 }
                 else  // Scalars
@@ -841,7 +841,7 @@ MacProj::mac_sync_compute (int                   level,
             if (level > 0 && update_fluxreg)
             {
                 for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    MultiFab::Copy(fluxes[d], cfluxes[d], 0, comp, 1, ngrow );
+                    MultiFab::Copy(fluxes[d], cfluxes[d], 0, comp, 1, nghost );
             }
 
         }
