@@ -19,7 +19,7 @@ module navierstokes_2d_module
 
   private 
 
-  public fort_maxval
+  public fort_maxval, cen2edg
   
 contains
 
@@ -49,5 +49,84 @@ contains
        end do
 
      end subroutine fort_maxval
+
+!c ::
+!c :: ----------------------------------------------------------
+!c :: This routine fills an edge-centered fab from a cell-centered
+!c :: fab using simple linear interpolation.
+!c ::
+!c :: INPUTS / OUTPUTS:
+!c ::  lo,hi      => index limits of the of the cell-centered fab
+!c ::  DIMS(cfab) => index limits of the cell-centered fab
+!c ::  cfab       => cell-centered data
+!c ::  DIMS(efab) => index limits of the edge-centered fab
+!c ::  efab       => edge-centered fab to fill
+!c ::  n!c         => Number of components in the fab to fill
+!c ::  dir        => direction data needs to be shifted to get to edges
+!c :: ----------------------------------------------------------
+!c ::
+      subroutine cen2edg(lo, hi, &
+          DIMS(cfab), cfab,&
+          DIMS(efab), efab, nc, dir,&
+          isharm) bind(C,name="cen2edg")
+      implicit none
+      integer lo(SDIM), hi(SDIM), nc, dir, isharm
+      integer DIMDEC(cfab)
+      integer DIMDEC(efab)
+      REAL_T  cfab(DIMV(cfab), nc)
+      REAL_T  efab(DIMV(efab), nc)
+
+      integer i,j,n
+
+      if ( isharm .eq. 0 ) then
+         if (dir .EQ. 0) then
+            do n = 1,nc
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     efab(i,j,n) = half*(cfab(i,j,n) + cfab(i-1,j,n))
+                  end do
+               end do
+            end do
+         else
+            do n = 1,nc
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     efab(i,j,n) = half*(cfab(i,j,n) + cfab(i,j-1,n))
+                  end do
+               end do
+            end do
+         end if
+      else
+         if (dir .EQ. 0) then
+            do n = 1,nc
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     if((cfab(i,j,n) * cfab(i-1,j,n)).gt.zero)then
+                        efab(i,j,n)&
+                            = 2*(cfab(i,j,n) * cfab(i-1,j,n))/&
+                            (cfab(i,j,n) + cfab(i-1,j,n))
+                     else
+                        efab(i,j,n)=zero
+                     endif
+                  end do
+               end do
+            end do
+         else
+            do n = 1,nc
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     if((cfab(i,j,n) * cfab(i,j-1,n)).gt.zero)then
+                        efab(i,j,n)&
+                            = 2*(cfab(i,j,n) * cfab(i,j-1,n))/&
+                            (cfab(i,j,n) + cfab(i,j-1,n))
+                     else
+                        efab(i,j,n)=zero
+                     endif
+                  end do
+               end do
+            end do
+         end if
+      end if
+    end subroutine cen2edg
 
   end module navierstokes_2d_module

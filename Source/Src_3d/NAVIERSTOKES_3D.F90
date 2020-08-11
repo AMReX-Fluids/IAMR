@@ -22,7 +22,7 @@ module navierstokes_3d_module
 #ifdef SUMJET
             sum_jet, &
 #endif
-            fort_maxval
+            fort_maxval, cen2edg
   
 contains
 
@@ -667,4 +667,121 @@ contains
 
        end subroutine fort_maxval
 
+!c-----------------------------------------------------------------------
+!c     This routine fills an edge-centered fab from a cell-centered
+!c     fab using simple linear interpolation.
+!c
+!c     INPUTS / OUTPUTS:
+!c     lo,hi      => index limits of the region of the edge-centered fab
+!c                   to be filled
+!c     DIMS(cfab) => index limits of the cell-centered fab
+!c     cfab       => cell-centered data
+!c     DIMS(efab) => index limits of the edge-centered fab
+!c     efab       => edge-centered fab to fill
+!c     nc         => Number of components in the fab to fill
+!c     dir        => direction data needs to be shifted to get to edges
+!c-----------------------------------------------------------------------
+!c
+      subroutine cen2edg(lo, hi, &
+          DIMS(cfab), cfab, &
+          DIMS(efab), efab, nc, dir, isharm &
+          ) bind(C,name="cen2edg")
+          
+      implicit none
+
+      integer lo(SDIM), hi(SDIM), nc, dir, isharm
+      integer DIMDEC(cfab)
+      integer DIMDEC(efab)
+      REAL_T  cfab(DIMV(cfab), nc)
+      REAL_T  efab(DIMV(efab), nc)
+      integer i,j,k,n
+
+      if ( isharm .eq. 0 ) then
+         if (dir .EQ. 0) then
+            do n = 1,nc
+               do k = lo(3), hi(3)
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i-1,j,k,n))
+                     end do
+                  end do
+               end do
+            end do
+         else if (dir .EQ. 1) then
+            do n = 1,nc
+               do k = lo(3), hi(3)
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j-1,k,n))
+                     end do
+                  end do
+               end do
+            end do
+         else if (dir .EQ. 2) then
+            do n = 1,nc
+               do k = lo(3), hi(3)
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        efab(i,j,k,n) = half*(cfab(i,j,k,n) + cfab(i,j,k-1,n))
+                     end do
+                  end do
+               end do
+            end do
+         end if
+      else
+         if (dir .EQ. 0) then
+            do n = 1,nc
+               do k = lo(3), hi(3)
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        if((cfab(i,j,k,n) * cfab(i-1,j,k,n)) .gt.zero) &
+                            then
+                           efab(i,j,k,n) = &
+                               2*(cfab(i,j,k,n) * cfab(i-1,j,k,n))/ &
+                               (cfab(i,j,k,n) + cfab(i-1,j,k,n))
+                        else
+                           efab(i,j,k,n) = zero
+                        endif
+                     end do
+                  end do
+               end do
+            end do
+         else if (dir .EQ. 1) then
+            do n = 1,nc
+               do k = lo(3), hi(3)
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        if((cfab(i,j,k,n) * cfab(i,j-1,k,n)).gt.zero) &
+                            then
+                           efab(i,j,k,n) = &
+                               2*(cfab(i,j,k,n) * cfab(i,j-1,k,n))/ &
+                               (cfab(i,j,k,n) + cfab(i,j-1,k,n))
+                        else
+                           efab(i,j,k,n) = zero
+                        endif
+                     end do
+                  end do
+               end do
+            end do
+         else if (dir .EQ. 2) then
+            do n = 1,nc
+               do k = lo(3), hi(3)
+                  do j = lo(2), hi(2)
+                     do i = lo(1), hi(1)
+                        if((cfab(i,j,k,n) * cfab(i,j,k-1,n)).gt.zero) &
+                            then
+                           efab(i,j,k,n) = &
+                               2*(cfab(i,j,k,n) * cfab(i,j,k-1,n))/ &
+                               (cfab(i,j,k,n) + cfab(i,j,k-1,n))
+                        else
+                           efab(i,j,k,n) = zero
+                        endif
+                     end do
+                  end do
+               end do
+            end do
+         end if
+      end if
+
+      end subroutine cen2edg
 end module navierstokes_3d_module
