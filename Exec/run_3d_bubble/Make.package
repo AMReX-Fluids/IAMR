@@ -1,5 +1,0 @@
-
-FEXE_headers += probdata.H PROB_NS_F.H
-F90EXE_sources += PROB_3D.F90
-F90EXE_sources += MAKE_FORCE_3D.F90 
-F90EXE_sources += NS_error_3d.F90
