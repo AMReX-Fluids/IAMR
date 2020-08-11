@@ -7,7 +7,6 @@
 #include <AMReX_BLProfiler.H>
 #include <Projection.H>
 #include <PROJECTION_F.H>
-#include <NAVIERSTOKES_F.H>
 #include <ProjOutFlowBC.H>
 #include <NSB_K.H>
 

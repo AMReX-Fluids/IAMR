@@ -10,11 +10,6 @@
 extern "C" {
 #endif
 
-    void vel_to_accel (const int* lo, const int* hi,
-                            const amrex::Real* unew, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
-                            const amrex::Real* dt );
-    
     void accel_to_vel (const int* lo, const int* hi,
                             const amrex::Real* uold, ARLIM_P(u_lo), ARLIM_P(u_hi),
                             const amrex::Real* dt,
