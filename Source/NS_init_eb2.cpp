@@ -273,7 +273,96 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 
-  }
+  } else if (geom_type == "NASA-LDI") {
+     bool inside = true;
+     bool outside = false;
+
+     // Combustor chamber
+     EB2::BoxIF chamber({0.0, -0.0258, -0.0258}, {0.3, 0.0258, 0.0258}, inside);
+
+     // Inlet tube
+     EB2::CylinderIF inlettube(0.01125,-1.0,0,{-0.03, 0.0, 0.0}, inside);
+     EB2::CylinderIF inletplane(0.0125,-1.0,0,{-0.03, 0.0, 0.0}, inside);
+     EB2::CylinderIF insert(0.00365,0.048,0,{-0.03, 0.0, 0.0}, outside);
+     EB2::CylinderIF insertSwirler(0.0044,0.008,0,{-0.000, 0.0, 0.0}, outside);
+
+     // Convergent/divergent
+     Real scaleFact;
+     scaleFact = 0.25;
+ 
+     EB2::SplineIF Conv_div, Div_div, Insert_div;
+     amrex::RealVect p;
+     std::vector<amrex::RealVect> lnpts;
+
+     p = amrex::RealVect(D_DECL(-0.001*scaleFact, 0.001*scaleFact, 0.0));
+     lnpts.push_back(p);
+     p = amrex::RealVect(D_DECL(0.0*scaleFact, 0.0*scaleFact, 0.0));
+     lnpts.push_back(p);
+     Conv_div.addLineElement(lnpts);
+     auto inletouter  = EB2::lathe(Conv_div);
+     auto FullGeom2   = EB2::makeUnion(inlettube,inletouter);
+     auto InletConv   = EB2::translate(FullGeom2,{-0.00085,0.0,0.0});
+
+     lnpts.clear();
+     p = amrex::RealVect(D_DECL(0.01*scaleFact, 0.01*scaleFact, 0.0));
+     lnpts.push_back(p);
+     p = amrex::RealVect(D_DECL(0.0*scaleFact, 0.0*scaleFact, 0.0));
+     lnpts.push_back(p);
+     Div_div.addLineElement(lnpts);
+     auto inletouter2  = EB2::lathe(Div_div);
+     auto Diverg   = EB2::makeUnion(inletplane,inletouter2);
+     auto InletDiv   = EB2::translate(Diverg,{-0.013,0.0,0.0});
+
+     auto FullInlet =  EB2::makeIntersection(InletConv,InletDiv);
+
+     lnpts.clear();
+     p = amrex::RealVect(D_DECL(0.0*scaleFact, 0.0*scaleFact, 0.0));
+     lnpts.push_back(p);
+     p = amrex::RealVect(D_DECL(-0.001*scaleFact, 0.001*scaleFact, 0.0));
+     lnpts.push_back(p);
+     Insert_div.addLineElement(lnpts);
+     auto insertCut  = EB2::lathe(Insert_div);
+     auto insertCut2   = EB2::translate(insertCut,{-0.006,0.0,0.0});
+     auto insertCut3   = EB2::makeIntersection(insert,insertCut2);
+     EB2::PlaneIF plane({-0.00715, 0.0, 0.}, {-1.0,0.0, 0.});
+     auto insertCut4   = EB2::makeIntersection(plane,insertCut3);
+
+     auto FullInletWithInsert = EB2::makeUnion(insertCut4,FullInlet);
+
+     auto ExternGeom = EB2::makeIntersection(FullInletWithInsert,chamber);
+
+     // Up to that point, it works ! Now need the swirler ...
+     auto Helix = EB2::makeIntersection(EB2::PlaneIF({0.0005, 0.0005, 0.},
+                                                    {      -1.,    -1., 0.}),
+                                       EB2::PlaneIF({-0.0005, -0.0005, 0.},
+                                                    {1., 1., 0.}),
+                                       EB2::PlaneIF({0.004, 0.00, 0.},
+                                                    {-1., 0., 0.}), 
+                                       EB2::PlaneIF({-0.004, 0.00, 0.},
+                                                    {1., 0., 0.}),
+                                       EB2::PlaneIF({0., 0.00, 0.},
+                                                    {0., 0., 1.}));
+     auto HelixSingle = EB2::makeUnion(Helix,EB2::CylinderIF(0.01125,-1.0,0,{-0.03, 0.0, 0.0}, inside));
+     auto Helix1 = EB2::makeUnion(HelixSingle,insertSwirler);
+     auto Helix2 = EB2::rotate(Helix1,1.57079632679,0);
+     auto Helix3 = EB2::rotate(Helix2,1.57079632679,0);
+     auto Helix4 = EB2::rotate(Helix3,1.57079632679,0);
+     auto Swirler = EB2::makeUnion(Helix1,Helix2,Helix3,Helix4);
+
+     auto SwirlerInPlace = EB2::makeIntersection(EB2::PlaneIF({-0.001, 0.0, 0.},
+                                                              {-1., 0, 0.}),
+                                          EB2::translate(Swirler,{-0.02,0.0,0.0}));
+
+     auto FinalGeom = EB2::makeUnion(ExternGeom,
+                                    SwirlerInPlace);
+
+     auto FullGeom = EB2::makeIntersection(FinalGeom,
+                                           EB2::PlaneIF({-0.03, 0.0, 0.},{1., 0, 0.}),
+                                           EB2::PlaneIF({0.3, 0.0, 0.},{-1., 0, 0.}));
+
+     auto gshop = EB2::makeShop(FullGeom);
+     EB2::Build(gshop, geom, 1, 1,1);
+  } 
   else
 #endif
   {
