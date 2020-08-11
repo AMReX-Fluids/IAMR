@@ -647,32 +647,41 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getViscTerms(scal_visc_terms,AMREX_SPACEDIM,numscal,prev_time);
     }
 
+
+    const int  ncomp = 1;         // Number of components to process at once
+
 #ifdef AMREX_USE_EB
     const int  nghost  = 2;
-
     MultiFab& Gp = ns_level.getGradP();
 #else
     const int  nghost  = 0;
-
     MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),ns_level.Factory());
     ns_level.getGradP(Gp, prev_pres_time);
 #endif
 
+    //
+    // Prep MFs to store fluxes and edge states
+    //
+    MultiFab fluxes[AMREX_SPACEDIM];
+    MultiFab edgestate[AMREX_SPACEDIM];
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+    {
+        const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
+        fluxes[i].define(ba, dmap, NUM_STATE, nghost, MFInfo(), ns_level.Factory());
+        edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
+    }
+
     std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(1,prev_time));
+
+    FillPatchIterator S_fpi(ns_level,vel_visc_terms,ns_level.GodunovHypgrow(),
+                            prev_time,State_Type,0,NUM_STATE);
+
+    MultiFab& Smf = S_fpi.get_mf();
 
     //
     // Compute the mac sync correction.
     //
-    MultiFab fluxes[AMREX_SPACEDIM];
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-        const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, NUM_STATE, nghost, MFInfo(),ns_level.Factory());
-    }
-
-    FillPatchIterator S_fpi(ns_level,vel_visc_terms,ns_level.GodunovHypgrow(),
-                            prev_time,State_Type,0,NUM_STATE);
-    MultiFab& Smf = S_fpi.get_mf();
 
 
 #ifdef AMREX_USE_EB
@@ -682,16 +691,9 @@ MacProj::mac_sync_compute (int                   level,
     // Use a block here so all temporaries will go out of scope once
     // it is done being executed
     {
-        MultiFab edgestate[AMREX_SPACEDIM];
-        const int  ncomp   = 1;         // Number of components to process at once
+        //MultiFab edgestate[AMREX_SPACEDIM];
         Vector<BCRec>  math_bcs(ncomp);
         const Box& domain = geom.Domain();
-
-        for (int i = 0; i < AMREX_SPACEDIM; ++i)
-        {
-            const BoxArray& ba = ns_level.getEdgeBoxArray(i);
-            edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
-        }
 
         for (int comp = 0; comp < NUM_STATE; ++comp)
         {
@@ -717,22 +719,8 @@ MacProj::mac_sync_compute (int                   level,
     }
 #else
 
-
-    Print() << "NEW SYNC ALGO" << std::endl;
-
-    const int ncomp  = 1; // Number of components to process at once
     const int ngrow  = 1; // Number of ghost nodes
-    MultiFab edgestate[AMREX_SPACEDIM];
-    MultiFab cfluxes[AMREX_SPACEDIM];
     MultiFab forcing_term(grids, dmap, NUM_STATE, ngrow);
-
-    for (int i(0); i < AMREX_SPACEDIM; i++)
-    {
-        const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, ngrow);
-        cfluxes[i].setVal(0.0);
-        edgestate[i].define(ba, dmap, AMREX_SPACEDIM, ngrow);
-    }
 
     // Store momenta multifab if conservative approach is used,
     // i.e. rho* u.
@@ -832,17 +820,11 @@ MacProj::mac_sync_compute (int                   level,
                                      AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                      AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                      AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                                     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                      forcing_term, comp, *divu_fp,
                                      math_bcs, geom, iconserv, dt,
                                      ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
                                      is_velocity );
-
-            if (level > 0 && update_fluxreg)
-            {
-                for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                    MultiFab::Copy(fluxes[d], cfluxes[d], 0, comp, 1, nghost );
-            }
 
         }
 
@@ -850,11 +832,15 @@ MacProj::mac_sync_compute (int                   level,
 #endif
 
 
-    if (level > 0 && update_fluxreg){
+    if (level > 0 && update_fluxreg)
+    {
         const Real mlt =  -1.0/( (double) parent->nCycle(level));
-        for (int d = 0; d < BL_SPACEDIM; d++){
-            for (int comp = 0; comp < NUM_STATE; comp++){
-                if (increment_sync.empty() || increment_sync[comp]==1){
+        for (int d = 0; d < AMREX_SPACEDIM; ++d)
+        {
+            for (int comp = 0; comp < NUM_STATE; ++comp)
+            {
+                if (increment_sync.empty() || increment_sync[comp]==1)
+                {
                     adv_flux_reg->FineAdd(fluxes[d],d,comp,comp,1,-dt);
                 }
             }
