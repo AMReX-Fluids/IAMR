@@ -216,6 +216,12 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     :
     AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
+    //
+    // 8/2020 - Neither MLMG nor IAMR fully support rz 
+    //
+    if ( level_geom.IsRZ() )
+      amrex::Abort("RZ geometry is not currently supported");
+  
     if(!additional_state_types_initialized) {
         init_additional_state_types();
     }
@@ -2552,23 +2558,6 @@ NavierStokesBase::post_init_state ()
     const int finest_level = parent->finestLevel();
     const Real divu_time   = have_divu ? state[Divu_Type].curTime()
                                        : state[Press_Type].curTime();
-
-    //
-    // Make sure we're not trying to use ref_ratio=4
-    // MLMG does not support rr=4 yet
-    //
-    // Derived class PeleLM seems to also use this function , so it's a
-    // convienient place for the test, even though it's not the most
-    // logical place to put the check
-    int maxlev = parent->maxLevel();
-    for (int i = 0; i<maxlev; i++)
-    {
-      const int rr = parent->MaxRefRatio(i);
-      if (rr == 4)
-      {
-	amrex::Abort("Refinement ratio of 4 not currently supported.\n");
-      }
-    }
 
     if (do_init_vort_proj)
     {
