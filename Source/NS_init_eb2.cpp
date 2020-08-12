@@ -1,6 +1,4 @@
-
 #include <NavierStokesBase.H>
-#include <NAVIERSTOKESBASE_F.H>
 using namespace amrex;
 
 #ifdef AMREX_USE_EB

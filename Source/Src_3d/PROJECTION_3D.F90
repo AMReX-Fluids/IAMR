@@ -18,37 +18,9 @@ module projection_3d_module
 
   private
 
-  public ::  vel_to_accel, anelcoeffmpy
+  public ::  anelcoeffmpy
 
 contains
-
-  subroutine vel_to_accel( lo, hi, &
-          unew,DIMS(unew), &
-          uold,DIMS(uold), &
-          dt ) bind(C,name="vel_to_accel")
-!c     
-!c     This function converts unew into an acceleration
-!c
-      implicit none
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dt
-      integer    DIMDEC(unew),DIMDEC(uold)
-      REAL_T     uold(DIMV(uold),SDIM)
-      REAL_T     unew(DIMV(unew),SDIM)
-
-      integer i, j, k, n
-
-      do n = 1, SDIM
-         do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  unew(i,j,k,n) = (unew(i,j,k,n)-uold(i,j,k,n))/dt
-               end do
-            end do
-         end do
-      end do
-
-      end subroutine vel_to_accel
 
       subroutine anelcoeffmpy (lo,hi,a,DIMS(a),domlo,domhi, &
                                anel_coeff,anel_lo,anel_hi,bogus_value,mult) &

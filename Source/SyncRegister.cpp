@@ -2,7 +2,6 @@
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_FluxRegister.H>
 #include <SyncRegister.H>
-//#include <NAVIERSTOKES_F.H>
 #include <AMReX_BLProfiler.H>
 #include <NSB_K.H>
 
