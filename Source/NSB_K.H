@@ -324,7 +324,7 @@ edge_interp_k(amrex::Box const& bx,
             amrex::Real df = fine(idx_1[0],idx_1[1],idx_1[2],comp) - fine(idx_2[0],idx_2[1],idx_2[2],comp);
             for (int nd = 1; nd < ratio[dir]; nd++) {
                amrex::Real val = fine(idx_2[0],idx_2[1],idx_2[2],comp) + df * nd / ratio[dir];
-               for (int nd1 = amrex::max(d1,d1lo); nd1 <= amrex::min(d1+ratio[dim1]-1,d1hi); nd1++) {
+               for (int nd1 = d1; nd1 < d1+ratio[dim1]; nd1++) {
                   idx[dir] = d + nd;
                   idx[dim1] = nd1;
                   fine(idx[0],idx[1],idx[2],comp) = val;
@@ -347,8 +347,8 @@ edge_interp_k(amrex::Box const& bx,
                amrex::Real df = fine(idx_1[0],idx_1[1],idx_1[2],comp) - fine(idx_2[0],idx_2[1],idx_2[2],comp);
                for (int nd = 1; nd < ratio[dir]; nd++) {
                   amrex::Real val = fine(idx_2[0],idx_2[1],idx_2[2],comp) + df * nd / ratio[dir];
-                  for (int nd1 = amrex::max(d1,d1lo); nd1 <= amrex::min(d1+ratio[dim1]-1,d1hi); nd1++) {
-                     for (int nd2 = amrex::max(d2,d2lo); nd2 <= amrex::min(d2+ratio[dim2]-1,d2hi); nd2++) {
+                  for (int nd1 = d1; nd1 < d1+ratio[dim1]; nd1++) {
+                     for (int nd2 = d2; nd2 < d2+ratio[dim2]; nd2++) {
                         idx[dir] = d + nd;
                         idx[dim1] = nd1;
                         idx[dim2] = nd2;
