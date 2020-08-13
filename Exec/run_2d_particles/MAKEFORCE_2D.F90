@@ -10,22 +10,25 @@
 #include <PROB_NS_F.H>
 #include <AMReX_ArrayLim.H>
 
-module make_force_2d_moldule
+#define SDIM 2
+
+module MakeForce_2D_module
 
   use amrex_fort_module, only : dim=>amrex_spacedim
-
+  
   implicit none
 
   private
 
   public :: FORT_MAKEFORCE
-  
+
 contains
 
-!
 ! ::: -----------------------------------------------------------
-!     This routine add the forcing terms to the momentum equation
-
+!
+!     This is a dummy routine to add the forcing terms to the momentum equation
+!     It should be overwritten in the local run folder.  
+!
    subroutine FORT_MAKEFORCE( time, &
                               force, f_lo, f_hi,&
                               vel, v_lo, v_hi,&
@@ -46,7 +49,7 @@ contains
       REAL_T  :: xlo(3), xhi(3)
       REAL_T  :: gravity
       REAL_T, dimension(f_lo(1):f_hi(1),f_lo(2):f_hi(2),f_lo(3):f_hi(3),scomp:scomp+ncomp-1) :: force
-      REAL_T, dimension(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3),0:dim-1) :: vel
+      REAL_T, dimension(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3),0:SDIM-1) :: vel
       REAL_T, dimension(s_lo(1):s_hi(1),s_lo(2):s_hi(2),s_lo(3):s_hi(3),0:nscal-1) :: scal
 
 ! Local
@@ -117,7 +120,6 @@ contains
             endif
          enddo
       endif
+   end subroutine FORT_MAKEFORCE
 
-    end subroutine FORT_MAKEFORCE
-
-  end module make_force_2d_moldule
+end module MakeForce_2D_module
