@@ -14,6 +14,8 @@
 
 module MakeForce_2D_module
 
+  use amrex_fort_module, only : dim=>amrex_spacedim
+  
   implicit none
 
   private
