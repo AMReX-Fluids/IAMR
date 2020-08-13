@@ -21,7 +21,7 @@ module prob_2D_module
   private
 
   public :: amrex_probinit, FORT_INITDATA, initvort, initpervort, &
-            FORT_AVERAGE_EDGE_STATES, FORT_MVERROR, &
+            FORT_MVERROR, &
             FORT_DENFILL, FORT_ADVFILL, FORT_ADV2FILL, FORT_TEMPFILL, &
             FORT_XVELFILL, FORT_YVELFILL, FORT_PRESFILL, FORT_DIVUFILL, &
             FORT_DSDTFILL
@@ -246,74 +246,6 @@ contains
       end do
 
     end subroutine initpervort
-
-!=========================================================
-!  This routine averages the mac face velocities for makeforce at half time
-!=========================================================
-
-   subroutine FORT_AVERAGE_EDGE_STATES( vel, v_lo, v_hi,&
-                                        umacx, ux_lo, ux_hi,&
-                                        umacy, uy_lo, uy_hi,&
-#if ( AMREX_SPACEDIM == 3 )
-                                        umacz, uz_lo, uz_hi,&
-#endif
-                                        getForceVerbose)&
-                                        bind(C, name="FORT_AVERAGE_EDGE_STATES")
-
-      implicit none
-
-      integer :: v_lo(3), v_hi(3)
-      integer :: ux_lo(3), ux_hi(3)
-      integer :: uy_lo(3), uy_hi(3)
-#if ( AMREX_SPACEDIM == 3 )
-      integer :: uz_lo(3), uz_hi(3)
-#endif
-      integer :: getForceVerbose
-      REAL_T, dimension(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3), dim) :: vel
-      REAL_T, dimension(ux_lo(1):ux_hi(1),ux_lo(2):ux_hi(2),ux_lo(3):ux_hi(3)) :: umacx
-      REAL_T, dimension(uy_lo(1):uy_hi(1),uy_lo(2):uy_hi(2),uy_lo(3):uy_hi(3)) :: umacy
-#if ( AMREX_SPACEDIM == 3 )
-      REAL_T, dimension(uz_lo(1):uz_hi(1),uz_lo(2):uz_hi(2),uz_lo(3):uz_hi(3)) :: umacz
-#endif
-
-      REAL_T  :: velmin(3)
-      REAL_T  :: velmax(3)
-      integer :: isioproc
-
-      integer :: i, j, k, n
-
-      do n = 1, dim
-         velmin(n) = 1.d234
-         velmax(n) = -1.d234
-      enddo
-
-      do k = v_lo(3), v_hi(3)
-         do j = v_lo(2), v_hi(2)
-            do i = v_lo(1), v_hi(1)
-               vel(i,j,k,1) = half*(umacx(i,j,k)+umacx(i+1,j,k))
-               vel(i,j,k,2) = half*(umacy(i,j,k)+umacy(i,j+1,k))
-#if ( AMREX_SPACEDIM == 3 )
-               vel(i,j,k,3) = half*(umacz(i,j,k)+umacz(i,j,k+1))
-#endif
-               do n = 1, dim
-                  velmin(n) = min(velmin(n),vel(i,j,k,n))
-                  velmax(n) = max(velmax(n),vel(i,j,k,n))
-               enddo
-            enddo
-         enddo
-      enddo
-
-      if (getForceVerbose.gt.0) then
-         call bl_pd_is_ioproc(isioproc)
-         if (isioproc.eq.1) then
-            do n = 1, dim
-               write (6,*) "mac velmin (",n,") = ",velmin(n)
-               write (6,*) "mac velmax (",n,") = ",velmax(n)
-            enddo
-         endif
-      endif
-
-   end subroutine FORT_AVERAGE_EDGE_STATES
 
 !::: -----------------------------------------------------------
 !::: This routine will tag high error cells based on the 
