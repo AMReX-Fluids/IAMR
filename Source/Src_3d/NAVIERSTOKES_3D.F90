@@ -18,120 +18,13 @@ module navierstokes_3d_module
 
   private 
 
-  public :: gradp, fort_putdown, sumturb, &
+  public :: sumturb, &
 #ifdef SUMJET
             sum_jet, &
 #endif
-            fort_maxval, summass, summass_eb, summass_cyl, cen2edg, edge_interp, &
-            pc_edge_interp, filcc_tile
+            fort_maxval, cen2edg, FORT_AVERAGE_EDGE_STATES
   
 contains
-
-      subroutine gradp ( &
-          p,DIMS(p), &
-          gp,DIMS(gp), &
-          lo,hi,dx)bind(C,name="gradp")
-!c ::
-!c :: ----------------------------------------------------------
-!c :: Compute a cell centered gradient from a node
-!c :: centered field.  Returns all components of GRADP
-!c :: ----------------------------------------------------------
-!c ::
-      implicit none
-
-      integer DIMDEC(p)  
-      integer DIMDEC(gp)  
-      integer lo(SDIM),  hi(SDIM)
-      REAL_T  dx(SDIM)
-      REAL_T  p(DIMV(p))
-      REAL_T  gp(DIMV(gp),SDIM)
-      integer i,j,k
-      REAL_T  ddx, ddy, ddz
-
-      ddx = fourth/dx(1)
-      ddy = fourth/dx(2)
-      ddz = fourth/dx(3)
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               gp(i,j,k,1) = ddx*( &
-                   p(i+1,j,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i,j+1,k  )+ &
-                   p(i+1,j,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i,j+1,k+1))
-            end do
-         end do
-      end do
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               gp(i,j,k,2) = ddy*( &
-                   p(i,j+1,k  )-p(i,j,k  )+p(i+1,j+1,k  )-p(i+1,j,k  )+ &
-                   p(i,j+1,k+1)-p(i,j,k+1)+p(i+1,j+1,k+1)-p(i+1,j,k+1))
-            end do
-         end do
-      end do
-
-      do k = lo(3), hi(3)
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               gp(i,j,k,3) = ddz*( &
-                   p(i,  j,k+1)-p(i,  j,k)+p(i,  j+1,k+1)-p(i,  j+1,k)+ &
-                   p(i+1,j,k+1)-p(i+1,j,k)+p(i+1,j+1,k+1)-p(i+1,j+1,k))
-            end do
-         end do
-      end do
-
-      end subroutine gradp 
-
-!c :: ----------------------------------------------------------
-!c :: Replace coarse grid pressure data with corresponding
-!c :: fine grid pressure data.
-!c ::
-!c :: INPUTS / OUTPUTS:
-!c ::  crse      <=  coarse grid data
-!c ::  DIMS(crse) => index limits of crse
-!c ::  fine       => fine grid data
-!c ::  DIMS(fine) => index limits of fine
-!c ::  lo,hi      => index limits of overlap (crse grid)
-!c ::  ratios     => refinement ratio
-!c ::
-!c :: NOTE:
-!c ::  Assumes pressure fields are node based
-!c :: ----------------------------------------------------------
-!c ::
-      subroutine fort_putdown (crse,DIMS(crse), &
-     			           fine,DIMS(fine),lo,hi,ratios)&
-                     bind(C,name="fort_putdown")
-
-      implicit none
-
-      integer  DIMDEC(crse)
-      integer  DIMDEC(fine)
-      integer  lo(SDIM), hi(SDIM)
-      integer  ratios(SDIM)
-      REAL_T   crse(DIMV(crse))
-      REAL_T   fine(DIMV(fine))
-
-      integer  ic, jc, kc, i, j, k
-      integer  lratx, lraty, lratz
-
-      lratx = ratios(1)
-      lraty = ratios(2)
-      lratz = ratios(3)
-
-      do kc = lo(3), hi(3)
-         k = lratz*kc
-         do jc = lo(2), hi(2)
-            j = lraty*jc
-            do ic = lo(1), hi(1)
-               i = lratx*ic
-               crse(ic,jc,kc) = fine(i,j,k)
-            end do
-         end do
-      end do
-
-      end subroutine fort_putdown 
 
 !c ::
 !c :: ----------------------------------------------------------
@@ -774,147 +667,6 @@ contains
 
        end subroutine fort_maxval
 
-!c :: ----------------------------------------------------------
-!c :: SUMMASS
-!c ::             MASS = sum{ vol(i,j)*rho(i,j) }
-!c ::
-!c :: INPUTS / OUTPUTS:
-!c ::  rho        => density field
-!c ::  DIMS(rho)  => index limits of rho aray
-!c ::  lo,hi      => index limits of grid interior
-!c ::  delta	 => cell size
-!c ::  mass      <=  total mass
-!c ::  r		 => radius at cell center
-!c ::  tmp        => temp column array
-!c :: ----------------------------------------------------------
-!c ::
-       subroutine summass(rho,DIMS(rho),DIMS(grid),delta,mass)&
-                          bind(C,name="summass")
-
-       implicit none
-
-       integer DIMDEC(rho)
-       integer DIMDEC(grid)
-       REAL_T  mass, delta(SDIM)
-       REAL_T  rho(DIMV(rho))
-
-       integer i, j, k
-       REAL_T  vol
-
-       vol = delta(1)*delta(2)*delta(3)
-
-       mass = zero
-
-       do k = ARG_L3(grid), ARG_H3(grid)
-          do j = ARG_L2(grid), ARG_H2(grid)
-             do i = ARG_L1(grid), ARG_H1(grid)
-                mass = mass + rho(i,j,k)
-             end do
-          end do
-       end do
-
-       mass = vol*mass
-
-       end subroutine summass
-
-       
-!c :: ----------------------------------------------------------
-!c :: SUMMASS
-!c ::             MASS = sum{ vol(i,j)*rho(i,j) }
-!c ::
-!c :: INPUTS / OUTPUTS:
-!c ::  rho        => density field
-!c ::  DIMS(rho)  => index limits of rho aray
-!c ::  lo,hi      => index limits of grid interior
-!c ::  delta	 => cell size
-!c ::  mass      <=  total mass
-!c ::  r		 => radius at cell center
-!c ::  tmp        => temp column array
-!c :: ----------------------------------------------------------
-!c ::
-       subroutine summass_eb(rho,DIMS(rho),DIMS(grid),vf,DIMS(vf),delta,mass)&
-            bind(C,name="summass_eb")
-
-       implicit none
-
-       integer DIMDEC(rho)
-       integer DIMDEC(vf)
-       integer DIMDEC(grid)
-       REAL_T  mass, delta(SDIM)
-       REAL_T  rho(DIMV(rho))
-       REAL_T  vf(DIMV(vf))
-
-       integer i, j, k
-       REAL_T  vol
-
-       vol = delta(1)*delta(2)*delta(3)
-
-       mass = zero
-
-       do k = ARG_L3(grid), ARG_H3(grid)
-          do j = ARG_L2(grid), ARG_H2(grid)
-             do i = ARG_L1(grid), ARG_H1(grid)
-                mass = mass +  vf(i,j,k)*rho(i,j,k)
-             end do
-          end do
-       end do
-
-       mass = vol*mass
-
-     end subroutine summass_eb
-
-!c :: ----------------------------------------------------------
-!c :: SUMMASSCYL
-!c ::    MASS = sum{ vol(i,j,k)*rho(i,j,k) } over subregion cylinder
-!c ::
-!c :: INPUTS / OUTPUTS:
-!c ::  rho        => density field
-!c ::  DIMS(rho)  => index limits of rho aray
-!c ::  lo,hi      => index limits of grid interior
-!c ::  delta	 => cell size
-!c ::  mass      <=  total mass
-!c ::  r		 => radius at cell center
-!c ::  tmp        => temp column array
-!c :: ----------------------------------------------------------
-!c ::
-       subroutine summass_cyl(rho,DIMS(rho),DIMS(grid),delta, &
-                              plo,vws_dz,vws_Rcyl,mass) &
-                              bind(C,name="summass_cyl")
-
-       implicit none
-
-       integer DIMDEC(rho)
-       integer DIMDEC(grid)
-       REAL_T  mass, delta(SDIM), plo(SDIM), vws_dz, vws_Rcyl
-       REAL_T  rho(DIMV(rho))
-
-       integer i, j, k
-       REAL_T  vol, x, y, z, r
-
-       vol = delta(1)*delta(2)*delta(3)
-
-       mass = zero
-
-       do k = ARG_L3(grid), ARG_H3(grid)
-          z = plo(3) + (k+half)*delta(3)
-          if (z-plo(3) .le. vws_dz) then
-             do j = ARG_L2(grid), ARG_H2(grid)
-                y = plo(2) + (j+half)*delta(2) 
-                do i = ARG_L1(grid), ARG_H1(grid)
-                   x = plo(1) + (i+half)*delta(1)
-                   r = SQRT(x*x + y*y)
-                   if (r .le. vws_Rcyl) then
-                      mass = mass + rho(i,j,k)
-                   end if
-                end do
-             end do
-          end if
-       end do
-
-       mass = vol*mass
-
-       end subroutine summass_cyl
-
 !c-----------------------------------------------------------------------
 !c     This routine fills an edge-centered fab from a cell-centered
 !c     fab using simple linear interpolation.
@@ -1032,202 +784,75 @@ contains
       end if
 
       end subroutine cen2edg
-      
-!c-----------------------------------------------------------------------
 
-      subroutine edge_interp (flo, fhi, nc, ratio, dir, &
-          fine, fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2)&
-           bind(C,name="edge_interp")
-           
+!c     
+!c     
+!c     ::: -----------------------------------------------------------
+!c     
+!c     This routine averages the mac face velocities for makeforce at half time
+
+   subroutine FORT_AVERAGE_EDGE_STATES( vel, v_lo, v_hi,&
+                                        umacx, ux_lo, ux_hi,&
+                                        umacy, uy_lo, uy_hi,&
+#if ( AMREX_SPACEDIM == 3 )
+                                        umacz, uz_lo, uz_hi,&
+#endif
+                                        getForceVerbose)&
+                                        bind(C, name="FORT_AVERAGE_EDGE_STATES")
+
       implicit none
-      integer flo(0:3-1), fhi(0:3-1), nc, ratio(0:3-1), dir
-      integer fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2
-      DOUBLE PRECISION &
-          fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
-      integer i,j,k,n,P,M,L
-      DOUBLE PRECISION val, df
-!c
-!c     Do linear in dir, pc transverse to dir, leave alone the fine values
-!c     lining up with coarse edges--assume these have been set to hold the 
-!c     values you want to interpolate to the rest.
-!c
-      if (dir.eq.0) then
-         do n=1,nc
-            do k=flo(2),fhi(2),ratio(2)
-               do j=flo(1),fhi(1),ratio(1)
-                  do i=flo(0),fhi(0)-ratio(dir),ratio(0)
-                     df = fine(i+ratio(dir),j,k,n)-fine(i,j,k,n)
-                     do M=1,ratio(dir)-1
-                        val = fine(i,j,k,n) &
-                            + df*dble(M)/dble(ratio(dir))
-                        do P=MAX(j,flo(1)),MIN(j+ratio(1)-1,fhi(1))
-                           do L=MAX(k,flo(2)),MIN(k+ratio(2)-1,fhi(2))
-                              fine(i+M,P,L,n) = val
-                           enddo
-                        enddo
-                     enddo                     
-                  enddo
+
+      integer :: v_lo(3), v_hi(3)
+      integer :: ux_lo(3), ux_hi(3)
+      integer :: uy_lo(3), uy_hi(3)
+#if ( AMREX_SPACEDIM == 3 )
+      integer :: uz_lo(3), uz_hi(3)
+#endif
+      integer :: getForceVerbose
+      REAL_T, dimension(v_lo(1):v_hi(1),v_lo(2):v_hi(2),v_lo(3):v_hi(3), SDIM) :: vel
+      REAL_T, dimension(ux_lo(1):ux_hi(1),ux_lo(2):ux_hi(2),ux_lo(3):ux_hi(3)) :: umacx
+      REAL_T, dimension(uy_lo(1):uy_hi(1),uy_lo(2):uy_hi(2),uy_lo(3):uy_hi(3)) :: umacy
+#if ( AMREX_SPACEDIM == 3 )
+      REAL_T, dimension(uz_lo(1):uz_hi(1),uz_lo(2):uz_hi(2),uz_lo(3):uz_hi(3)) :: umacz
+#endif
+
+      REAL_T  :: velmin(3)
+      REAL_T  :: velmax(3)
+      integer :: isioproc
+
+      integer :: i, j, k, n
+
+      do n = 1, SDIM
+         velmin(n) = 1.d234
+         velmax(n) = -1.d234
+      enddo
+
+      do k = v_lo(3), v_hi(3)
+         do j = v_lo(2), v_hi(2)
+            do i = v_lo(1), v_hi(1)
+               vel(i,j,k,1) = half*(umacx(i,j,k)+umacx(i+1,j,k))
+               vel(i,j,k,2) = half*(umacy(i,j,k)+umacy(i,j+1,k))
+#if ( AMREX_SPACEDIM == 3 )
+               vel(i,j,k,3) = half*(umacz(i,j,k)+umacz(i,j,k+1))
+#endif
+               do n = 1, SDIM
+                  velmin(n) = min(velmin(n),vel(i,j,k,n))
+                  velmax(n) = max(velmax(n),vel(i,j,k,n))
                enddo
             enddo
          enddo
-      else if (dir.eq.1) then
-         do n=1,nc
-            do k=flo(2),fhi(2),ratio(2)
-               do j=flo(1),fhi(1)-ratio(dir),ratio(1)
-                  do i=flo(0),fhi(0)
-                     df = fine(i,j+ratio(dir),k,n)-fine(i,j,k,n)
-                     do M=1,ratio(dir)-1
-                        val = fine(i,j,k,n) &
-                            + df*dble(M)/dble(ratio(dir))
-                        do P=MAX(i,flo(0)),MIN(i+ratio(0)-1,fhi(0))
-                           do L=MAX(k,flo(2)),MIN(k+ratio(2)-1,fhi(2))
-                              fine(P,j+M,L,n) = val
-                           enddo
-                        enddo
-                     enddo                     
-                  enddo
-               enddo
+      enddo
+
+      if (getForceVerbose.gt.0) then
+         call bl_pd_is_ioproc(isioproc)
+         if (isioproc.eq.1) then
+            do n = 1, SDIM
+               write (6,*) "mac velmin (",n,") = ",velmin(n)
+               write (6,*) "mac velmax (",n,") = ",velmax(n)
             enddo
-         enddo
-      else
-         do n=1,nc
-            do k=flo(2),fhi(2)-ratio(dir),ratio(2)
-               do j=flo(1),fhi(1),ratio(1)
-                  do i=flo(0),fhi(0),ratio(0)
-                     df = fine(i,j,k+ratio(dir),n)-fine(i,j,k,n)
-                     do M=1,ratio(dir)-1
-                        val = fine(i,j,k,n) &
-                            + df*dble(M)/dble(ratio(dir))
-                        do P=MAX(i,flo(0)),MIN(i+ratio(0)-1,fhi(0))
-                           do L=MAX(j,flo(1)),MIN(j+ratio(1)-1,fhi(1))
-                              fine(P,L,k+M,n) = val
-                           enddo
-                        enddo
-                     enddo                     
-                  enddo
-               enddo
-            enddo
-         enddo
+         endif
       endif
-      end subroutine edge_interp
-      
-!c-----------------------------------------------------------------------
 
-      subroutine pc_edge_interp(lo, hi, nc, ratio, dir, &
-          crse, crse_l0, crse_l1, crse_l2, crse_h0, crse_h1, crse_h2, &
-          fine, fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2)&
-          bind(C,name="pc_edge_interp")
-          
-      implicit none
-      integer lo(3),hi(3), nc, ratio(0:3-1), dir
-      integer crse_l0, crse_l1, crse_l2, crse_h0, crse_h1, crse_h2
-      integer fine_l0, fine_l1, fine_l2, fine_h0, fine_h1, fine_h2
-      DOUBLE PRECISION crse(crse_l0:crse_h0,crse_l1:crse_h1,crse_l2:crse_h2,nc)
-      DOUBLE PRECISION fine(fine_l0:fine_h0,fine_l1:fine_h1,fine_l2:fine_h2,nc)
-      integer i,j,k,ii,jj,kk,n,L, P
-!c
-!c     For edge-based data, fill fine values with piecewise-constant interp of coarse data.
-!c     Operate only on faces that overlap--ie, only fill the fine faces that make up each
-!c     coarse face, leave the in-between faces alone.
-!c
-      if (dir.eq.0) then
-         do n=1,nc
-            do k=lo(3),hi(3)
-               kk = ratio(2)*k
-               do j=lo(2),hi(2)
-                  jj = ratio(1)*j
-                  do i=lo(1),hi(1)
-                     ii = ratio(0)*i
-                     do P=0,ratio(2)-1
-                        do L=0,ratio(1)-1
-                           fine(ii,jj+L,kk+P,n) = crse(i,j,k,n)
-                        enddo
-                     enddo
-                  enddo
-               enddo
-            enddo
-         enddo
-      else if (dir.eq.1) then
-         do n=1,nc
-            do k=lo(3),hi(3)
-               kk = ratio(2)*k
-               do j=lo(2),hi(2)
-                  jj = ratio(1)*j
-                  do i=lo(1),hi(1)
-                     ii = ratio(0)*i
-                     do P=0,ratio(2)-1
-                        do L=0,ratio(0)-1
-                           fine(ii+L,jj,kk+P,n) = crse(i,j,k,n)
-                        enddo
-                     enddo
-                  enddo
-               enddo
-            enddo
-         enddo
-      else
-         do n=1,nc
-            do k=lo(3),hi(3)
-               kk = ratio(2)*k
-               do j=lo(2),hi(2)
-                  jj = ratio(1)*j
-                  do i=lo(1),hi(1)
-                     ii = ratio(0)*i
-                     do P=0,ratio(1)-1
-                        do L=0,ratio(0)-1
-                           fine(ii+L,jj+P,kk,n) = crse(i,j,k,n)
-                        enddo
-                     enddo
-                  enddo
-               enddo
-            enddo
-         enddo
-      endif
-      end subroutine pc_edge_interp
-      
-      
-! ::: -----------------------------------------------------------
-! ::: This routine is intended to be a generic fill function
-! ::: for cell-centered data.  It knows how to extrapolate
-! ::: and reflect data and is used to supplement the problem-specific
-! ::: fill functions which call it.
-! ::: 
-! ::: INPUTS/OUTPUTS:
-! ::: q           <=  array to fill
-! ::: lo,hi        => index extent of loops
-! ::: q_l,q_h      => index extent of q array
-! ::: domlo,domhi  => index extent of problem domain
-! ::: dx           => cell spacing
-! ::: xlo          => physical location of lower left hand
-! :::	              corner of q array
-! ::: bc	   => array of boundary flags bc(SPACEDIM,lo:hi)
-! ::: 
-! ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
-! ::: -----------------------------------------------------------
+   end subroutine FORT_AVERAGE_EDGE_STATES
 
-    subroutine filcc_tile(l1,l2,l3,h1,h2,h3,q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,&
-         domlo,domhi,dx,xlo,bc) bind(C,name="filcc_tile")
-
-      use amrex_filcc_module, only: filccn
-      
-      implicit none
-
-      integer    l1,l2,l3,h1,h2,h3
-      integer    q_l1, q_l2, q_l3, q_h1, q_h2, q_h3
-      integer    domlo(SDIM), domhi(SDIM)
-      integer    bc(SDIM,2)
-      REAL_T     xlo(SDIM), dx(SDIM)
-      REAL_T     q(q_l1:q_h1,q_l2:q_h2,q_l3:q_h3)
-
-      integer :: q_lo(3), q_hi(3)
-      integer    lo(3),hi(3)
-      
-      lo   = [l1, l2, l3]
-      hi   = [h1, h2, h3]
-      q_lo = [q_l1, q_l2, q_l3]
-      q_hi = [q_h1, q_h2, q_h3]
-
-      call filccn(lo, hi, q, q_lo, q_hi, 1, domlo, domhi, dx, xlo, bc)
-
-    end subroutine filcc_tile
-    
 end module navierstokes_3d_module

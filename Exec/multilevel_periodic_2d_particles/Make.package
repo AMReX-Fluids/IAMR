@@ -1,5 +1,0 @@
-
-FEXE_headers += probdata.H PROB_F.H
-FEXE_sources += PROB_$(DIM)D.F 
-FEXE_sources += MAKE_FORCE_$(DIM)D.F 
-FEXE_sources += NS_FILL_$(DIM)D.F 

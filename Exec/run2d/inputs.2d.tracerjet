@@ -21,7 +21,7 @@ amr.max_level			= 0 # maximum number of levels of refinement
 #*******************************************************************************
 
 # Sets the "NavierStokes" code to not be verbose
-ns.v                    = 0
+ns.v                    = 1
 
 #*******************************************************************************
 
@@ -39,6 +39,9 @@ amr.plot_int			= 10
 ns.cfl                  = 0.5  # CFL number used to set dt
 
 #*******************************************************************************
+
+#Provide guess for initial timestep
+ns.init_dt = 0.01
 
 # Factor by which the first time is shrunk relative to CFL constraint
 ns.init_shrink          = 0.3  # factor which multiplies the very first time step

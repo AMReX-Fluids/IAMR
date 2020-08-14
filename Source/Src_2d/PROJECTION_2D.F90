@@ -25,39 +25,10 @@ module projection_2d_module
 
   private 
 
-  public :: vel_to_accel, radmpyscal, radmpyvel, fort_raddiv, &
+  public :: radmpyscal, radmpyvel, fort_raddiv, &
             anelcoeffmpy
   
 contains
-
-      subroutine vel_to_accel( lo, hi, &
-          unew,DIMS(unew),&
-          uold,DIMS(uold),&
-          dt ) bind(C,name="vel_to_accel")
-!c     
-!c     This function converts unew into an acceleration
-!c
-      implicit none
-      integer    lo(SDIM), hi(SDIM)
-      REAL_T     dt
-      integer    DIMDEC(unew),DIMDEC(uold)
-      REAL_T     uold(DIMV(uold),SDIM)
-      REAL_T     unew(DIMV(unew),SDIM)
-     
-      integer i, j, n
-      REAL_T dt_inv
-   
-      dt_inv = one/dt
-
-      do n = 1, SDIM
-         do j = lo(2), hi(2)
-            do i = lo(1), hi(1)
-               unew(i,j,n) = (unew(i,j,n)-uold(i,j,n))*dt_inv
-            end do
-         end do
-      end do
-
-    end subroutine vel_to_accel
 
     subroutine radmpyscal(lo,hi,a,DIMS(a),domlo,domhi,r,rlo,rhi) &
          bind(C,name="radmpyscal")

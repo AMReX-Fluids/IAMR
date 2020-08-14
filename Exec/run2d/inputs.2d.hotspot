@@ -6,8 +6,6 @@
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
-#fabarray.mfiter_tile_size = 8 8 8
-
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
@@ -26,14 +24,12 @@ ns.do_temp_ref = 1
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 16 32 
-amr.n_cell 		= 64 128
+amr.n_cell 		= 32 32
 amr.max_grid_size	= 32
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-#amr.max_level		= 4 # maximum number of levels of refinement
 amr.max_level		= 1 # maximum number of levels of refinement
 
 #*******************************************************************************
@@ -79,14 +75,12 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 #*******************************************************************************
 
 # Viscosity coefficient 
-#ns.vel_visc_coef        = 0.001
-ns.vel_visc_coef        = 0
+ns.vel_visc_coef        = 0.001
 
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-#ns.scal_diff_coefs      = 0.001
-ns.scal_diff_coefs      = 0.0
+ns.scal_diff_coefs      = 0.001
 
 #*******************************************************************************
 
@@ -101,12 +95,12 @@ amr.probin_file 	= probin.2d.hotspot
 #*******************************************************************************
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
-geometry.coord_sys   =  1
+geometry.coord_sys   =  0
 
 #*******************************************************************************
 
 # Physical dimensions of the low end of the domain.
-geometry.prob_lo     =  0. 0. 
+geometry.prob_lo     =  -1. 0. 
 
 # Physical dimensions of the high end of the domain.
 geometry.prob_hi     =  1. 2. 
@@ -119,7 +113,7 @@ geometry.is_periodic =  0 0
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 3 4  
+ns.lo_bc             = 4 4  
 
 # Boundary conditions on the high end of the domain.
 ns.hi_bc             = 4 4  
@@ -127,17 +121,6 @@ ns.hi_bc             = 4 4
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
-
-#*******************************************************************************
-
-# For solver reasons, use multigrid iterations as the bottom solve.
-# mg.usecg = 1
-
-#*******************************************************************************
-
-# Factor by which grids must be coarsenable.
-amr.blocking_factor     = 8
-amr.grid_eff = 0.95
 
 #*******************************************************************************
 

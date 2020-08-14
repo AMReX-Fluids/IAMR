@@ -1,5 +1,5 @@
 
-FEXE_headers += probdata.H PROB_F.H
+FEXE_headers += probdata.H
 F90EXE_sources += PROB_$(DIM)D.F90
 
 ifeq (${USE_SWIRL_DATA}, TRUE)

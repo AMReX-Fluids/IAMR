@@ -278,4 +278,88 @@ srcrsereg_k(amrex::Box const& bx,
    fine(idx[0],idx[1],idx[2]) *= threefourths;
 #endif
 }
+
+AMREX_GPU_HOST_DEVICE
+inline
+void
+edge_interp_k(amrex::Box const& bx,
+              int                                   ncomp,
+              int                                   dir,
+              amrex::GpuArray<int,AMREX_SPACEDIM>   const& ratio,
+              amrex::Array4<amrex::Real>            const& fine) noexcept
+{
+   using namespace amrex::literals;
+
+   const auto lo = amrex::lbound(bx);
+   const auto hi = amrex::ubound(bx);
+   int idlo[3] = {D_DECL(lo.x,lo.y,lo.z)};
+   int idhi[3] = {D_DECL(hi.x,hi.y,hi.z)};
+
+   // Get the "other" dimension(s)
+#if ( AMREX_SPACEDIM == 2 )
+   int dim1 = ( dir == 0 ) ? 1 : 0;
+   int d1lo = idlo[dim1];
+   int d1hi = idhi[dim1];
+#elif ( AMREX_SPACEDIM == 3 )
+   int dim1 = ( dir != 0 ) ? 0 : 1;
+   int dim2 = ( dir != 0 ) ? ( ( dir == 2 ) ? 1 : 2 ) : 2;
+   int d1lo = idlo[dim1];
+   int d1hi = idhi[dim1];
+   int d2lo = idlo[dim2];
+   int d2hi = idhi[dim2];
+#endif
+
+   int idx[3] = {0};
+   int idx_1[3] = {0};
+   int idx_2[3] = {0};
+
+#if ( AMREX_SPACEDIM == 2 )
+   for (int comp = 0; comp < ncomp; comp++) {
+      for (int d1 = d1lo; d1 <= d1hi; d1 += ratio[dim1]) {
+         idx_1[dim1] = d1;
+         idx_2[dim1] = d1;
+         for (int d = idlo[dir]; d <= idhi[dir] - ratio[dir]; d += ratio[dir]) {
+            idx_1[dir] = d + ratio[dir];
+            idx_2[dir] = d;
+            amrex::Real df = fine(idx_1[0],idx_1[1],idx_1[2],comp) - fine(idx_2[0],idx_2[1],idx_2[2],comp);
+            for (int nd = 1; nd < ratio[dir]; nd++) {
+               amrex::Real val = fine(idx_2[0],idx_2[1],idx_2[2],comp) + df * nd / ratio[dir];
+               for (int nd1 = d1; nd1 < d1+ratio[dim1]; nd1++) {
+                  idx[dir] = d + nd;
+                  idx[dim1] = nd1;
+                  fine(idx[0],idx[1],idx[2],comp) = val;
+               }
+            }
+         }
+      }
+   }
+#elif ( AMREX_SPACEDIM == 3 )
+   for (int comp = 0; comp < ncomp; comp++) {
+      for (int d2 = d2lo; d2 <= d2hi; d2 += ratio[dim2]) {
+         idx_1[dim2] = d2;
+         idx_2[dim2] = d2;
+         for (int d1 = d1lo; d1 <= d1hi; d1 += ratio[dim1]) {
+            idx_1[dim1] = d1;
+            idx_2[dim1] = d1;
+            for (int d = idlo[dir]; d <= idhi[dir] - ratio[dir]; d += ratio[dir]) {
+               idx_1[dir] = d + ratio[dir];
+               idx_2[dir] = d;
+               amrex::Real df = fine(idx_1[0],idx_1[1],idx_1[2],comp) - fine(idx_2[0],idx_2[1],idx_2[2],comp);
+               for (int nd = 1; nd < ratio[dir]; nd++) {
+                  amrex::Real val = fine(idx_2[0],idx_2[1],idx_2[2],comp) + df * nd / ratio[dir];
+                  for (int nd1 = d1; nd1 < d1+ratio[dim1]; nd1++) {
+                     for (int nd2 = d2; nd2 < d2+ratio[dim2]; nd2++) {
+                        idx[dir] = d + nd;
+                        idx[dim1] = nd1;
+                        idx[dim2] = nd2;
+                        fine(idx[0],idx[1],idx[2],comp) = val;
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+#endif
+}
 #endif
