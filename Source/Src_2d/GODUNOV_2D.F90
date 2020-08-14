@@ -1383,7 +1383,7 @@ contains
             else if (bc(1,1,L).eq.EXT_DIR .and. uedge(imin,j).lt.0.d0) then
                stxlo(imin) = stxhi(imin)
             else if (bc(1,1,L).eq.FOEXTRAP.or.bc(1,1,L).eq.HOEXTRAP) then
-               if (n.eq.XVEL) then
+               if (n+L-1.eq.XVEL) then
                   if (uedge(imin,j).ge.0.d0) then
 #ifndef ALLOWXINFLOW
 !c     prevent backflow
@@ -1406,7 +1406,7 @@ contains
             else if (bc(1,2,L).eq.EXT_DIR .and. uedge(imax+1,j).gt.0.d0) then
                stxhi(imax+1) = stxlo(imax+1)
             else if (bc(1,2,L).eq.FOEXTRAP.or.bc(1,2,L).eq.HOEXTRAP) then
-               if (n.eq.XVEL) then
+               if (n+L-1.eq.XVEL) then
                   if (uedge(imax+1,j).le.0.d0) then
 #ifndef ALLOWXINFLOW
 !c     prevent backflow
@@ -1487,7 +1487,7 @@ contains
             else if (bc(2,1,L).eq.EXT_DIR .and. vedge(i,jmin).lt.0.d0) then
                stylo(jmin) = styhi(jmin)
             else if (bc(2,1,L).eq.FOEXTRAP.or.bc(2,1,L).eq.HOEXTRAP) then
-               if (n.eq.YVEL) then
+               if (L+n-1.eq.YVEL) then
                   if (vedge(i,jmin).ge.0.d0) then
 #ifndef ALLOWYINFLOW
 !c     prevent backflow
@@ -1511,7 +1511,7 @@ contains
             else if (bc(2,2,L).eq.EXT_DIR .and. vedge(i,jmax+1).gt.0.d0) then
                styhi(jmax+1) = stylo(jmax+1)
             else if (bc(2,2,L).eq.FOEXTRAP.or.bc(2,2,L).eq.HOEXTRAP) then
-               if (n.eq.YVEL) then
+               if (n+L-1.eq.YVEL) then
                   if (vedge(i,jmax+1).le.0.d0) then
 #ifndef ALLOWYINFLOW
 !c     prevent backflow
