@@ -1,6 +1,5 @@
 #include <iamr_mol.H>
 #include <iamr_constants.H>
-#include <NS_util.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_MultiCutFab.H>
 #endif
