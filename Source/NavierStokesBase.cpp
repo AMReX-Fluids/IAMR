@@ -3846,6 +3846,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         tforces.resize(bx,AMREX_SPACEDIM);
+        Elixir tf_i = tforces.elixir();
         getForce(tforces,bx,0,Xvel,AMREX_SPACEDIM,half_time,VelFAB,ScalFAB,0);
 
         //
@@ -3861,7 +3862,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
         }
 
         // Update velocity
-        //why is this on a grown box?
         auto const& vel_old  = U_old.array(mfi);
         auto const& vel_new  = U_new.array(mfi);
         auto const& gradp    = Gp.array(mfi);
