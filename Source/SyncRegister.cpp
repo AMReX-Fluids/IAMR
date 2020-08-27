@@ -364,7 +364,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 
     constexpr Real fourThirds   = 4._rt / 3._rt;
     constexpr Real threeFourths = 3._rt / 4._rt;
-    
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -374,7 +374,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
        { 
            int dim1 = ( dir != 0 ) ? 0 : 1;
            int dim2 = ( dir != 0 ) ? ( ( dir == 2 ) ? 1 : 2 ) : 2;
-           
+
            for (MFIter mfi(Sync_resid_fine,false); mfi.isValid(); ++mfi)
            {
              FArrayBox& finefab = Sync_resid_fine[mfi];
@@ -407,7 +407,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                         finefab.mult(0.5_rt,fbndboxHi,0,1);
                     }
                 }
-                
+
                 cbndfab.resize(cbndbox, 1);
                 auto const& cbndfab_a = cbndfab.array();
                 Elixir cbndfab_e = cbndfab.elixir();
@@ -421,7 +421,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                     int idxc[3] = {ic, jc, kc};
                     int idxf[3];
                     Real denom = rratio[dir] / (rratio[0]*rratio[0] * rratio[1]*rratio[1]);
-                    for (int m=0; m<rratio[dim1]; ++m) {                        
+                    for (int m=0; m<rratio[dim1]; ++m) {
                         Real coeff = (rratio[dim1] - m) * denom;
                         if (m==0) coeff *= 0.5_rt;
                         idxf[dir]  = rratio[dir] *idxc[dir];
@@ -447,7 +447,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                     int idxf[3];
                     Real denom = rratio[dir] / (Real)(rratio[0]*rratio[0] * rratio[1]*rratio[1] * rratio[2]*rratio[2]);
                     for (int n=0; n<rratio[dim2]; ++n) {
-                        for (int m=0; m<rratio[dim1]; ++m) {                        
+                        for (int m=0; m<rratio[dim1]; ++m) {
                             Real coeff = (rratio[dim1] - m) * (rratio[dim2] - n) * denom;
                             if (n==0) coeff *= 0.5_rt;
                             if (m==0) coeff *= 0.5_rt;
