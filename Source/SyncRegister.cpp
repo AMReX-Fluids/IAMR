@@ -347,7 +347,6 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
     FineAdd(Sync_resid_fine,crse_geom,mult);
 }
 
-#include <AMReX_VisMF.H>
 void
 SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Real mult)
 {
@@ -415,23 +414,23 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 amrex::GpuArray<int,AMREX_SPACEDIM> rratio = {D_DECL(ratio[0],ratio[1],ratio[2])};
 
 #if AMREX_SPACEDIM == 2
-                ParallelFor(crsebox,
+                ParallelFor(cbndbox,
                 [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
                 {
+                    cbndfab_a(ic,jc,kc) = 0;
                     int idxc[3] = {ic, jc, kc};
                     int idxf[3];
                     Real denom = rratio[dir] / (rratio[0]*rratio[0] * rratio[1]*rratio[1]);
                     for (int m=0; m<rratio[dim1]; ++m) {                        
                         Real coeff = (rratio[dim1] - m) * denom;
-                            if (m==0) coeff *= 0.5_rt;
-                            idxf[dir]  = rratio[dir] *idxc[dir];
-                            idxf[dim1] = rratio[dim1]*idxc[dim1];
-                            int idxf0[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]=idxf[dim1]+m;
-                            int idxf1[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]=idxf[dim1]-m;
-                            crsefab_a(ic,jc,kc) += coeff *
-                                ( finefab_a(idxf0[0],idxf0[1],idxf0[2]) +
-                                  finefab_a(idxf1[0],idxf1[1],idxf1[2]) );
-                        }
+                        if (m==0) coeff *= 0.5_rt;
+                        idxf[dir]  = rratio[dir] *idxc[dir];
+                        idxf[dim1] = rratio[dim1]*idxc[dim1];
+                        int idxf0[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]+=m;
+                        int idxf1[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]-=m;
+                        cbndfab_a(ic,jc,kc) += coeff *
+                            ( finefab_a(idxf0[0],idxf0[1],idxf0[2]) +
+                              finefab_a(idxf1[0],idxf1[1],idxf1[2]) );
                     }
                 });
 #else
@@ -440,12 +439,13 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 IntVect ivUL(ivLL); ivUL[dim2]=ivUR[dim2]; finefab(ivUL,0) *= fourThirds;
                 IntVect ivLR(ivUR); ivLR[dim2]=ivLL[dim2]; finefab(ivLR,0) *= fourThirds;
 
-                ParallelFor(crsebox,
+                ParallelFor(cbndbox,
                 [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
                 {
+                    cbndfab_a(ic,jc,kc) = 0;
                     int idxc[3] = {ic, jc, kc};
                     int idxf[3];
-                    Real denom = rratio[dir] / (rratio[0]*rratio[0] * rratio[1]*rratio[1] * rratio[2]*rratio[2]);
+                    Real denom = rratio[dir] / (Real)(rratio[0]*rratio[0] * rratio[1]*rratio[1] * rratio[2]*rratio[2]);
                     for (int n=0; n<rratio[dim2]; ++n) {
                         for (int m=0; m<rratio[dim1]; ++m) {                        
                             Real coeff = (rratio[dim1] - m) * (rratio[dim2] - n) * denom;
@@ -458,7 +458,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                             int idxf1[3] = {idxf[0], idxf[1], idxf[2]}; idxf1[dim1]-=m; idxf1[dim2]+=n;
                             int idxf2[3] = {idxf[0], idxf[1], idxf[2]}; idxf2[dim1]+=m; idxf2[dim2]-=n;
                             int idxf3[3] = {idxf[0], idxf[1], idxf[2]}; idxf3[dim1]-=m; idxf3[dim2]-=n;
-                            crsefab_a(ic,jc,kc) += coeff *
+                            cbndfab_a(ic,jc,kc) += coeff *
                                 ( finefab_a(idxf0[0],idxf0[1],idxf0[2]) +
                                   finefab_a(idxf1[0],idxf1[1],idxf1[2]) +
                                   finefab_a(idxf2[0],idxf2[1],idxf2[2]) +
@@ -483,7 +483,6 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                         finefab.mult(2.0_rt,fbndboxHi,0,1);
                     }
                 }
-                
                 for (int n = 0; n < AMREX_SPACEDIM; ++n)
                 {
                    if (!crse_geom.isPeriodic(n))
@@ -526,17 +525,14 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                      crsefab_a(i,j,k) += cbndfab_a(i,j,k);
                   });
                 }
-            }
-         }
-      }
-   }
+             }
+           }
+       }
+    }
 
-VisMF::Write(Sync_resid_crse,"JUNK");
-Abort();
-
-   for (OrientationIter face; face; ++face)
-   {
-      bndry[face()].plusFrom(Sync_resid_crse,0,0,0,1,crse_geom.periodicity());
-   }
+    for (OrientationIter face; face; ++face)
+    {
+        bndry[face()].plusFrom(Sync_resid_crse,0,0,0,1,crse_geom.periodicity());
+    }
 }
 
