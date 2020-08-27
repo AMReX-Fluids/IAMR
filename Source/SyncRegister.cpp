@@ -375,8 +375,8 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         const Box& finebox  = mfi.validbox();
         GpuArray<int,3> flo = finebox.loVect3d();
         GpuArray<int,3> fhi = finebox.hiVect3d();
-        ParallelFor(mfi.tilebox(),
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,fourThirds]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
                              || j==flo[1] || j==fhi[1],
@@ -436,7 +436,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 amrex::GpuArray<int,AMREX_SPACEDIM> rratio = {D_DECL(ratio[0],ratio[1],ratio[2])};
 
 #if AMREX_SPACEDIM == 2
-                ParallelFor(cbndbox,
+                ParallelFor(cbndbox,  [rratio,cbndfab_a,finefab_a,dir,dim1]
                 [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
                 {
                     cbndfab_a(ic,jc,kc) = 0;
@@ -456,8 +456,8 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                     }
                 });
 #else
-                ParallelFor(cbndbox,
-                [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
+                ParallelFor(cbndbox, [rratio,cbndfab_a,finefab_a,dir,dim1,dim2]
+                AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
                 {
                     cbndfab_a(ic,jc,kc) = 0;
                     int idxc[3] = {ic, jc, kc};
@@ -541,8 +541,8 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         const Box& finebox  = mfi.validbox();
         GpuArray<int,3> flo = finebox.loVect3d();
         GpuArray<int,3> fhi = finebox.hiVect3d();
-        ParallelFor(mfi.tilebox(),
-        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,threeFourths]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
                              || j==flo[1] || j==fhi[1],
