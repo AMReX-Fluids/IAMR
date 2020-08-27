@@ -362,8 +362,8 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
     MultiFab Sync_resid_crse(cba, Sync_resid_fine.DistributionMap(), 1, 0);
     Sync_resid_crse.setVal(0.0);
 
-    constexpr Real fourThirds   = 4._rt / 3._rt;
-    constexpr Real threeFourths = 3._rt / 4._rt;
+    constexpr Real twoThirds   = 2._rt / 3._rt;
+    constexpr Real threeHalves = 3._rt / 2._rt;
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -394,7 +394,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 (i==fhi[0] && j==flo[1] && k==fhi[2]) ||
                 (i==fhi[0] && j==fhi[1] && k==fhi[2]))
             {
-                finefab_a(i,j,k) *= fourThirds;
+                finefab_a(i,j,k) *= twoThirds;
             }
 #endif
         });
@@ -560,7 +560,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 (i==fhi[0] && j==flo[1] && k==fhi[2]) ||
                 (i==fhi[0] && j==fhi[1] && k==fhi[2]))
             {
-                finefab_a(i,j,k) *= threeFourths;
+                finefab_a(i,j,k) *= threeHalves;
             }
 #endif
         });
