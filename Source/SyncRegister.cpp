@@ -368,7 +368,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Sync_resid_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         FArrayBox& finefab = Sync_resid_fine[mfi];
         auto const& finefab_a = finefab.array();
@@ -410,7 +410,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
            int dim1 = ( dir != 0 ) ? 0 : 1;
            int dim2 = ( dir != 0 ) ? ( ( dir == 2 ) ? 1 : 2 ) : 2;
 
-           for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+           for (MFIter mfi(Sync_resid_fine,false); mfi.isValid(); ++mfi)
            {
              FArrayBox& finefab = Sync_resid_fine[mfi];
              FArrayBox& crsefab = Sync_resid_crse[mfi];
@@ -534,7 +534,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Sync_resid_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         FArrayBox& finefab = Sync_resid_fine[mfi];
         auto const& finefab_a = finefab.array();
