@@ -368,6 +368,41 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& finefab = Sync_resid_fine[mfi];
+        auto const& finefab_a = finefab.array();
+        const Box& finebox  = mfi.validbox();
+        GpuArray<int,3> flo = finebox.loVect3d();
+        GpuArray<int,3> fhi = finebox.hiVect3d();
+        ParallelFor(mfi.tilebox(),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
+                             || j==flo[1] || j==fhi[1],
+                             || k==flo[2] || k==fhi[2]))
+            {
+                finefab_a(i,j,k) *= 0.5_rt;
+            }
+#if AMREX_SPACEDIM == 3
+            if ((i==flo[0] && j==flo[1] && k==flo[2]) ||
+                (i==flo[0] && j==fhi[1] && k==flo[2]) ||
+                (i==flo[0] && j==flo[1] && k==fhi[2]) ||
+                (i==flo[0] && j==fhi[1] && k==fhi[2]) ||
+                (i==fhi[0] && j==flo[1] && k==flo[2]) ||
+                (i==fhi[0] && j==fhi[1] && k==flo[2]) ||
+                (i==fhi[0] && j==flo[1] && k==fhi[2]) ||
+                (i==fhi[0] && j==fhi[1] && k==fhi[2]))
+            {
+                finefab_a(i,j,k) *= fourThirds;
+            }
+#endif
+        });
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
     {
        FArrayBox cbndfab;
        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
@@ -375,7 +410,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
            int dim1 = ( dir != 0 ) ? 0 : 1;
            int dim2 = ( dir != 0 ) ? ( ( dir == 2 ) ? 1 : 2 ) : 2;
 
-           for (MFIter mfi(Sync_resid_fine,false); mfi.isValid(); ++mfi)
+           for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
            {
              FArrayBox& finefab = Sync_resid_fine[mfi];
              FArrayBox& crsefab = Sync_resid_crse[mfi];
@@ -395,19 +430,6 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 } else {
                    cbndbox.setRange(dir,crsebox.bigEnd(dir),1);
                 }
-                Box fbndbox = ::refine(cbndbox,ratio);
-                for (int tdir = 0; tdir < AMREX_SPACEDIM; tdir++)
-                {
-                    Box fbndboxLo = fbndbox;
-                    Box fbndboxHi = fbndbox;
-                    if (tdir != dir) {
-                        fbndboxLo.setRange(tdir,fbndbox.smallEnd(tdir),1);
-                        fbndboxHi.setRange(tdir,fbndbox.bigEnd(tdir),1);
-                        finefab.mult(0.5_rt,fbndboxLo,0,1);
-                        finefab.mult(0.5_rt,fbndboxHi,0,1);
-                    }
-                }
-
                 cbndfab.resize(cbndbox, 1);
                 auto const& cbndfab_a = cbndfab.array();
                 Elixir cbndfab_e = cbndfab.elixir();
@@ -434,11 +456,6 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                     }
                 });
 #else
-                IntVect ivLL = fbndbox.smallEnd();         finefab(ivLL,0) *= fourThirds;
-                IntVect ivUR = fbndbox.bigEnd();           finefab(ivUR,0) *= fourThirds;
-                IntVect ivUL(ivLL); ivUL[dim2]=ivUR[dim2]; finefab(ivUL,0) *= fourThirds;
-                IntVect ivLR(ivUR); ivLR[dim2]=ivLL[dim2]; finefab(ivLR,0) *= fourThirds;
-
                 ParallelFor(cbndbox,
                 [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
                 {
@@ -466,23 +483,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                         }
                     }
                 });
-
-                finefab(ivLL,0) *= threeFourths;
-                finefab(ivUR,0) *= threeFourths;
-                finefab(ivUL,0) *= threeFourths;
-                finefab(ivLR,0) *= threeFourths;
 #endif
-                for (int tdir = 0; tdir < AMREX_SPACEDIM; tdir++)
-                {
-                    Box fbndboxLo = fbndbox;
-                    Box fbndboxHi = fbndbox;
-                    if (tdir != dir) {
-                        fbndboxLo.setRange(tdir,fbndbox.smallEnd(tdir),1);
-                        fbndboxHi.setRange(tdir,fbndbox.bigEnd(tdir),1);
-                        finefab.mult(2.0_rt,fbndboxLo,0,1);
-                        finefab.mult(2.0_rt,fbndboxHi,0,1);
-                    }
-                }
                 for (int n = 0; n < AMREX_SPACEDIM; ++n)
                 {
                    if (!crse_geom.isPeriodic(n))
@@ -528,6 +529,41 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
              }
            }
        }
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& finefab = Sync_resid_fine[mfi];
+        auto const& finefab_a = finefab.array();
+        const Box& finebox  = mfi.validbox();
+        GpuArray<int,3> flo = finebox.loVect3d();
+        GpuArray<int,3> fhi = finebox.hiVect3d();
+        ParallelFor(mfi.tilebox(),
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
+                             || j==flo[1] || j==fhi[1],
+                             || k==flo[2] || k==fhi[2]))
+            {
+                finefab_a(i,j,k) *= 2._rt;
+            }
+#if AMREX_SPACEDIM == 3
+            if ((i==flo[0] && j==flo[1] && k==flo[2]) ||
+                (i==flo[0] && j==fhi[1] && k==flo[2]) ||
+                (i==flo[0] && j==flo[1] && k==fhi[2]) ||
+                (i==flo[0] && j==fhi[1] && k==fhi[2]) ||
+                (i==fhi[0] && j==flo[1] && k==flo[2]) ||
+                (i==fhi[0] && j==fhi[1] && k==flo[2]) ||
+                (i==fhi[0] && j==flo[1] && k==fhi[2]) ||
+                (i==fhi[0] && j==fhi[1] && k==fhi[2]))
+            {
+                finefab_a(i,j,k) *= threeFourths;
+            }
+#endif
+        });
     }
 
     for (OrientationIter face; face; ++face)
