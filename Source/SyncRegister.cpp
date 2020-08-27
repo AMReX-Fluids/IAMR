@@ -420,7 +420,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                     cbndfab_a(ic,jc,kc) = 0;
                     int idxc[3] = {ic, jc, kc};
                     int idxf[3];
-                    Real denom = rratio[dir] / (rratio[0]*rratio[0] * rratio[1]*rratio[1]);
+                    Real denom = rratio[dir] / (Real)(rratio[0]*rratio[0] * rratio[1]*rratio[1]);
                     for (int m=0; m<rratio[dim1]; ++m) {
                         Real coeff = (rratio[dim1] - m) * denom;
                         if (m==0) coeff *= 0.5_rt;
