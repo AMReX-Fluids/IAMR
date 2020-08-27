@@ -34,7 +34,6 @@ using namespace amrex;
 namespace
 {
     bool initialized = false;
-    static Real THERMO_cp = 1004.6;
 }
 
 void
@@ -2157,6 +2156,8 @@ NavierStokes::calc_divu (Real      time,
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
 	    MultiFab& tmf = temp_fpi.get_mf();
 
+	    Real THERMO_cp = 1004.6;
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2183,7 +2184,7 @@ NavierStokes::calc_divu (Real      time,
 		{
 		  auto vfrac = ebfactory.getVolFrac().const_array(rho_mfi);
 
-		  amrex::ParallelFor(bx, [div, rho, temp, vfrac]
+		  amrex::ParallelFor(bx, [div, rho, temp, vfrac, THERMO_cp]
 		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 		  {
 		    if ( vfrac(i,j,k) > 0.0 )
@@ -2199,10 +2200,9 @@ NavierStokes::calc_divu (Real      time,
 		else
 #endif
 		{
-		  amrex::ParallelFor(bx, [div, rho, temp]
+		  amrex::ParallelFor(bx, [div, rho, temp, THERMO_cp]
 		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 		  {
-		    // Real THERMO_cp_inv = 1.0 / 1004.6;
 		    div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k)*THERMO_cp );
 		  });
 		}
