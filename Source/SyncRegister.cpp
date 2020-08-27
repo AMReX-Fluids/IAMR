@@ -346,7 +346,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 
     FineAdd(Sync_resid_fine,crse_geom,mult);
 }
-
+#include <AMReX_VisMF.H>
 void
 SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Real mult)
 {
@@ -386,10 +386,20 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
             {
                 finefab_a(i,j,k) *= 0.5_rt;
             }
-#elseif AMREX_SPACEDIM == 3
-            if (i==flo[0] || i==fhi[0] ||
-                j==flo[1] || j==fhi[1] ||
-                k==flo[2] || k==fhi[2])
+#elif AMREX_SPACEDIM == 3
+            if ((j==flo[1] && k==flo[2]) ||
+                (j==fhi[1] && k==flo[2]) ||
+                (i==flo[0] && j==flo[1]) ||
+                (i==fhi[0] && j==flo[1]) ||
+                (j==fhi[1] && k==flo[2]) ||
+                (j==fhi[1] && k==fhi[2]) ||
+                (i==flo[0] && j==fhi[1]) ||
+                (i==fhi[0] && j==fhi[1]) ||
+                (i==flo[0] && k==flo[2]) ||
+                (i==flo[0] && k==fhi[2]) ||
+                (i==fhi[0] && k==flo[2]) ||
+                (i==fhi[0] && k==fhi[2]))
+
             {
                 finefab_a(i,j,k) *= 0.5_rt;
             }
@@ -559,10 +569,20 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
             {
                 finefab_a(i,j,k) *= 2._rt;
             }
-#elseif AMREX_SPACEDIM == 3
-            if (i==flo[0] || i==fhi[0] ||
-                j==flo[1] || j==fhi[1] ||
-                k==flo[2] || k==fhi[2])
+#elif AMREX_SPACEDIM == 3
+            if ((j==flo[1] && k==flo[2]) ||
+                (j==fhi[1] && k==flo[2]) ||
+                (i==flo[0] && j==flo[1]) ||
+                (i==fhi[0] && j==flo[1]) ||
+                (j==fhi[1] && k==flo[2]) ||
+                (j==fhi[1] && k==fhi[2]) ||
+                (i==flo[0] && j==fhi[1]) ||
+                (i==fhi[0] && j==fhi[1]) ||
+                (i==flo[0] && k==flo[2]) ||
+                (i==flo[0] && k==fhi[2]) ||
+                (i==fhi[0] && k==flo[2]) ||
+                (i==fhi[0] && k==fhi[2]))
+
             {
                 finefab_a(i,j,k) *= 2._rt;
             }
