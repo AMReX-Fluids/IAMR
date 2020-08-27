@@ -375,7 +375,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         const Box& finebox  = mfi.validbox();
         GpuArray<int,3> flo = finebox.loVect3d();
         GpuArray<int,3> fhi = finebox.hiVect3d();
-        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,fourThirds]
+        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,twoThirds]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
@@ -449,7 +449,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                         idxf[dir]  = rratio[dir] *idxc[dir];
                         idxf[dim1] = rratio[dim1]*idxc[dim1];
                         int idxf0[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]+=m;
-                        int idxf1[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]-=m;
+                        int idxf1[3] = {idxf[0], idxf[1], idxf[2]}; idxf1[dim1]-=m;
                         cbndfab_a(ic,jc,kc) += coeff *
                             ( finefab_a(idxf0[0],idxf0[1],idxf0[2]) +
                               finefab_a(idxf1[0],idxf1[1],idxf1[2]) );
@@ -541,7 +541,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         const Box& finebox  = mfi.validbox();
         GpuArray<int,3> flo = finebox.loVect3d();
         GpuArray<int,3> fhi = finebox.hiVect3d();
-        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,threeFourths]
+        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,threeHalves]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
