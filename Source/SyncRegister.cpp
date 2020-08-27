@@ -347,6 +347,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
     FineAdd(Sync_resid_fine,crse_geom,mult);
 }
 
+#include <AMReX_VisMF.H>
 void
 SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Real mult)
 {
@@ -362,6 +363,9 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
     MultiFab Sync_resid_crse(cba, Sync_resid_fine.DistributionMap(), 1, 0);
     Sync_resid_crse.setVal(0.0);
 
+    constexpr Real fourThirds   = 4._rt / 3._rt;
+    constexpr Real threeFourths = 3._rt / 4._rt;
+    
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -369,8 +373,11 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
        FArrayBox cbndfab;
        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
        { 
-          for (MFIter mfi(Sync_resid_fine); mfi.isValid(); ++mfi)
-          {
+           int dim1 = ( dir != 0 ) ? 0 : 1;
+           int dim2 = ( dir != 0 ) ? ( ( dir == 2 ) ? 1 : 2 ) : 2;
+           
+           for (MFIter mfi(Sync_resid_fine,false); mfi.isValid(); ++mfi)
+           {
              FArrayBox& finefab = Sync_resid_fine[mfi];
              FArrayBox& crsefab = Sync_resid_crse[mfi];
 
@@ -380,28 +387,103 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
              const Box& finebox  = finefab.box();
              const Box& crsebox  = crsefab.box();
 
-             Box bndbox = crsebox;
+             Box cbndbox = crsebox;
 
              for (int side=0; side<2; ++side)
              {
                 if (side == 0) {
-                   bndbox.setRange(dir,crsebox.smallEnd(dir),1);
+                   cbndbox.setRange(dir,crsebox.smallEnd(dir),1);
                 } else {
-                   bndbox.setRange(dir,crsebox.bigEnd(dir),1);
+                   cbndbox.setRange(dir,crsebox.bigEnd(dir),1);
                 }
-
-                cbndfab.resize(bndbox, 1);
+                Box fbndbox = ::refine(cbndbox,ratio);
+                for (int tdir = 0; tdir < AMREX_SPACEDIM; tdir++)
+                {
+                    Box fbndboxLo = fbndbox;
+                    Box fbndboxHi = fbndbox;
+                    if (tdir != dir) {
+                        fbndboxLo.setRange(tdir,fbndbox.smallEnd(tdir),1);
+                        fbndboxHi.setRange(tdir,fbndbox.bigEnd(tdir),1);
+                        finefab.mult(0.5_rt,fbndboxLo,0,1);
+                        finefab.mult(0.5_rt,fbndboxHi,0,1);
+                    }
+                }
+                
+                cbndfab.resize(cbndbox, 1);
                 auto const& cbndfab_a = cbndfab.array();
                 Elixir cbndfab_e = cbndfab.elixir();
                 amrex::GpuArray<int,AMREX_SPACEDIM> rratio = {D_DECL(ratio[0],ratio[1],ratio[2])};
 
-                // TODO: this doesn't work on GPU. Will probably need to redo this completely ...
-                //amrex::launch(bndbox, [finebox,dir,rratio,finefab_a,cbndfab_a]
-                //AMREX_GPU_DEVICE (Box const& tbx)
-                //{
-                   srcrsereg_k(bndbox,finebox,dir,rratio,finefab_a, cbndfab_a);
-                //});
+#if AMREX_SPACEDIM == 2
+                ParallelFor(crsebox,
+                [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
+                {
+                    int idxc[3] = {ic, jc, kc};
+                    int idxf[3];
+                    Real denom = rratio[dir] / (rratio[0]*rratio[0] * rratio[1]*rratio[1]);
+                    for (int m=0; m<rratio[dim1]; ++m) {                        
+                        Real coeff = (rratio[dim1] - m) * denom;
+                            if (m==0) coeff *= 0.5_rt;
+                            idxf[dir]  = rratio[dir] *idxc[dir];
+                            idxf[dim1] = rratio[dim1]*idxc[dim1];
+                            int idxf0[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]=idxf[dim1]+m;
+                            int idxf1[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]=idxf[dim1]-m;
+                            crsefab_a(ic,jc,kc) += coeff *
+                                ( finefab_a(idxf0[0],idxf0[1],idxf0[2]) +
+                                  finefab_a(idxf1[0],idxf1[1],idxf1[2]) );
+                        }
+                    }
+                });
+#else
+                IntVect ivLL = fbndbox.smallEnd();         finefab(ivLL,0) *= fourThirds;
+                IntVect ivUR = fbndbox.bigEnd();           finefab(ivUR,0) *= fourThirds;
+                IntVect ivUL(ivLL); ivUL[dim2]=ivUR[dim2]; finefab(ivUL,0) *= fourThirds;
+                IntVect ivLR(ivUR); ivLR[dim2]=ivLL[dim2]; finefab(ivLR,0) *= fourThirds;
 
+                ParallelFor(crsebox,
+                [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
+                {
+                    int idxc[3] = {ic, jc, kc};
+                    int idxf[3];
+                    Real denom = rratio[dir] / (rratio[0]*rratio[0] * rratio[1]*rratio[1] * rratio[2]*rratio[2]);
+                    for (int n=0; n<rratio[dim2]; ++n) {
+                        for (int m=0; m<rratio[dim1]; ++m) {                        
+                            Real coeff = (rratio[dim1] - m) * (rratio[dim2] - n) * denom;
+                            if (n==0) coeff *= 0.5_rt;
+                            if (m==0) coeff *= 0.5_rt;
+                            idxf[dir]  = rratio[dir] *idxc[dir];
+                            idxf[dim2] = rratio[dim2]*idxc[dim2];
+                            idxf[dim1] = rratio[dim1]*idxc[dim1];
+                            int idxf0[3] = {idxf[0], idxf[1], idxf[2]}; idxf0[dim1]+=m; idxf0[dim2]+=n;
+                            int idxf1[3] = {idxf[0], idxf[1], idxf[2]}; idxf1[dim1]-=m; idxf1[dim2]+=n;
+                            int idxf2[3] = {idxf[0], idxf[1], idxf[2]}; idxf2[dim1]+=m; idxf2[dim2]-=n;
+                            int idxf3[3] = {idxf[0], idxf[1], idxf[2]}; idxf3[dim1]-=m; idxf3[dim2]-=n;
+                            crsefab_a(ic,jc,kc) += coeff *
+                                ( finefab_a(idxf0[0],idxf0[1],idxf0[2]) +
+                                  finefab_a(idxf1[0],idxf1[1],idxf1[2]) +
+                                  finefab_a(idxf2[0],idxf2[1],idxf2[2]) +
+                                  finefab_a(idxf3[0],idxf3[1],idxf3[2]) );
+                        }
+                    }
+                });
+
+                finefab(ivLL,0) *= threeFourths;
+                finefab(ivUR,0) *= threeFourths;
+                finefab(ivUL,0) *= threeFourths;
+                finefab(ivLR,0) *= threeFourths;
+#endif
+                for (int tdir = 0; tdir < AMREX_SPACEDIM; tdir++)
+                {
+                    Box fbndboxLo = fbndbox;
+                    Box fbndboxHi = fbndbox;
+                    if (tdir != dir) {
+                        fbndboxLo.setRange(tdir,fbndbox.smallEnd(tdir),1);
+                        fbndboxHi.setRange(tdir,fbndbox.bigEnd(tdir),1);
+                        finefab.mult(2.0_rt,fbndboxLo,0,1);
+                        finefab.mult(2.0_rt,fbndboxHi,0,1);
+                    }
+                }
+                
                 for (int n = 0; n < AMREX_SPACEDIM; ++n)
                 {
                    if (!crse_geom.isPeriodic(n))
@@ -412,7 +494,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                        //
                        Box domlo(crse_node_domain);
                        domlo.setRange(n,crse_node_domain.smallEnd(n),1);
-                       domlo &= bndbox;
+                       domlo &= cbndbox;
                        if (domlo.ok()) {
                           amrex::ParallelFor(domlo, [cbndfab_a]
                           AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -423,7 +505,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 
                       Box domhi(crse_node_domain);
                       domhi.setRange(n,crse_node_domain.bigEnd(n),1);
-                      domhi &= bndbox;
+                      domhi &= cbndbox;
                       if (domhi.ok()) {
                           amrex::ParallelFor(domhi, [cbndfab_a]
                           AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -448,6 +530,9 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
          }
       }
    }
+
+VisMF::Write(Sync_resid_crse,"JUNK");
+Abort();
 
    for (OrientationIter face; face; ++face)
    {
