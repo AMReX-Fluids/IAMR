@@ -378,13 +378,21 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,twoThirds]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
-                             || j==flo[1] || j==fhi[1],
-                             || k==flo[2] || k==fhi[2]))
+#if AMREX_SPACEDIM == 2
+            if ((i==flo[0] && j==flo[1]) ||
+                (i==flo[0] && j==fhi[1]) ||
+                (i==fhi[0] && j==flo[1]) ||
+                (i==fhi[0] && j==fhi[1]))
             {
                 finefab_a(i,j,k) *= 0.5_rt;
             }
-#if AMREX_SPACEDIM == 3
+#elseif AMREX_SPACEDIM == 3
+            if (i==flo[0] || i==fhi[0] ||
+                j==flo[1] || j==fhi[1] ||
+                k==flo[2] || k==fhi[2]))
+            {
+                finefab_a(i,j,k) *= 0.5_rt;
+            }
             if ((i==flo[0] && j==flo[1] && k==flo[2]) ||
                 (i==flo[0] && j==fhi[1] && k==flo[2]) ||
                 (i==flo[0] && j==flo[1] && k==fhi[2]) ||
@@ -541,16 +549,24 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         const Box& finebox  = mfi.validbox();
         GpuArray<int,3> flo = finebox.loVect3d();
         GpuArray<int,3> fhi = finebox.hiVect3d();
-        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,threeHalves]
+        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,twoThirds]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if (AMREX_D_TERM(i==flo[0] || i==fhi[0],
-                             || j==flo[1] || j==fhi[1],
-                             || k==flo[2] || k==fhi[2]))
+#if AMREX_SPACEDIM == 2
+            if ((i==flo[0] && j==flo[1]) ||
+                (i==flo[0] && j==fhi[1]) ||
+                (i==fhi[0] && j==flo[1]) ||
+                (i==fhi[0] && j==fhi[1]))
             {
                 finefab_a(i,j,k) *= 2._rt;
             }
-#if AMREX_SPACEDIM == 3
+#elseif AMREX_SPACEDIM == 3
+            if (i==flo[0] || i==fhi[0] ||
+                j==flo[1] || j==fhi[1] ||
+                k==flo[2] || k==fhi[2])
+            {
+                finefab_a(i,j,k) *= 2._rt;
+            }
             if ((i==flo[0] && j==flo[1] && k==flo[2]) ||
                 (i==flo[0] && j==fhi[1] && k==flo[2]) ||
                 (i==flo[0] && j==flo[1] && k==fhi[2]) ||
@@ -565,7 +581,6 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 #endif
         });
     }
-
     for (OrientationIter face; face; ++face)
     {
         bndry[face()].plusFrom(Sync_resid_crse,0,0,0,1,crse_geom.periodicity());
