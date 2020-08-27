@@ -437,7 +437,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 
 #if AMREX_SPACEDIM == 2
                 ParallelFor(cbndbox,  [rratio,cbndfab_a,finefab_a,dir,dim1]
-                [=] AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
+                AMREX_GPU_DEVICE (int ic, int jc, int kc) noexcept
                 {
                     cbndfab_a(ic,jc,kc) = 0;
                     int idxc[3] = {ic, jc, kc};
