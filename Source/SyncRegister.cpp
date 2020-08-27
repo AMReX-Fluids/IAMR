@@ -389,7 +389,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 #elseif AMREX_SPACEDIM == 3
             if (i==flo[0] || i==fhi[0] ||
                 j==flo[1] || j==fhi[1] ||
-                k==flo[2] || k==fhi[2]))
+                k==flo[2] || k==fhi[2])
             {
                 finefab_a(i,j,k) *= 0.5_rt;
             }
@@ -407,7 +407,6 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
 #endif
         });
     }
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
