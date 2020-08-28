@@ -346,7 +346,7 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
 
     FineAdd(Sync_resid_fine,crse_geom,mult);
 }
-#include <AMReX_VisMF.H>
+
 void
 SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Real mult)
 {
