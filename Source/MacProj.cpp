@@ -740,12 +740,19 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute forcing terms for all component
     //
-    for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
     {
-        const auto gbx = grow(Smfi.tilebox(),ngrow);
-        ns_level.getForce(forcing_term[Smfi],gbx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
+        FArrayBox tforces;
+        for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
+        {
+            const auto gbx = grow(Smfi.tilebox(),ngrow);
+            tforces.resize(gbx,NUM_STATE);
+            ns_level.getForce(tforces,gbx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
+            forcing_term[Smfi].copy<RunOn::Host>(tforces,0,0,NUM_STATE);
+        }
     }
-
 
     for (int comp = 0; comp < NUM_STATE; ++comp)
     {

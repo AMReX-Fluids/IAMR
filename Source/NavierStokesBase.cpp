@@ -221,11 +221,11 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
     //
-    // 8/2020 - Neither MLMG nor IAMR fully support rz 
+    // 8/2020 - Neither MLMG nor IAMR fully support rz
     //
     if ( level_geom.IsRZ() )
       amrex::Abort("RZ geometry is not currently supported");
-  
+
     if(!additional_state_types_initialized) {
         init_additional_state_types();
     }
@@ -3599,53 +3599,61 @@ NavierStokesBase::velocity_advection (Real dt)
         // Compute forcing
         //
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
         {
-            const Box& bx=U_mfi.tilebox();
-            auto const  gbx = grow(bx,ngrow);
+            FArrayBox tforces;
 
-            if (getForceVerbose)
+            for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
             {
-                amrex::Print() << "---" << '\n'
-                               << "B - velocity advection:" << '\n'
-                               << "Calling getForce..." << '\n';
-            }
-            getForce(forcing_term[U_mfi],gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+                const Box& bx=U_mfi.tilebox();
+                auto const  gbx = grow(bx,ngrow);
+                tforces.resize(gbx,AMREX_SPACEDIM);
 
-            //
-            // Compute the total forcing.
-            //
-            auto const& tf   = forcing_term.array(U_mfi);
-            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
-            auto const& gp   = Gp.const_array(U_mfi);
-            auto const& rho  = rho_ptime.const_array(U_mfi);
-
-            amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
-            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
-            });
-
-            //
-            // Loop over the velocity components.
-            //
-            auto const hypbox = grow(bx,godunov_hyp_grow);
-            S_term[U_mfi].copy<RunOn::Host>(Umf[U_mfi],0,0,AMREX_SPACEDIM);
-
-            for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
-            {
-                int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
-
-                if (do_mom_diff == 1)
+                if (getForceVerbose)
                 {
-                    S_term[U_mfi].mult<RunOn::Host>(Rmf[U_mfi],hypbox,hypbox,0,comp,1);
-                    forcing_term[U_mfi].mult<RunOn::Host>(rho_ptime[U_mfi],gbx,gbx,0,comp,1);
+                    amrex::Print() << "---" << '\n'
+                                   << "B - velocity advection:" << '\n'
+                                   << "Calling getForce..." << '\n';
                 }
-            }
+                getForce(tforces,gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
+                //
+                // Compute the total forcing.
+                //
+                auto const& tf   = tforces.array();
+                auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+                auto const& gp   = Gp.const_array(U_mfi);
+                auto const& rho  = rho_ptime.const_array(U_mfi);
+
+                amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+                });
+
+                forcing_term[U_mfi].copy<RunOn::Host>(tforces,0,0,AMREX_SPACEDIM);
+
+                //
+                // Loop over the velocity components.
+                //
+                auto const hypbox = grow(bx,godunov_hyp_grow);
+                S_term[U_mfi].copy<RunOn::Host>(Umf[U_mfi],0,0,AMREX_SPACEDIM);
+
+                for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+                {
+                    int use_conserv_diff = (advectionType[comp] == Conservative) ? true : false;
+
+                    if (do_mom_diff == 1)
+                    {
+                        S_term[U_mfi].mult<RunOn::Host>(Rmf[U_mfi],hypbox,hypbox,0,comp,1);
+                        forcing_term[U_mfi].mult<RunOn::Host>(rho_ptime[U_mfi],gbx,gbx,0,comp,1);
+                    }
+                }
+
+            }
         }
+
 
         Vector<BCRec> math_bcs(AMREX_SPACEDIM);
         math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
