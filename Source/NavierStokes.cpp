@@ -433,6 +433,26 @@ NavierStokes::advance (Real time,
 }
 
 //
+// Floor small values of states to be extrapolated
+//
+void
+NavierStokes::floor(MultiFab& mf){
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        auto const& fab_a = mf.array(mfi);
+        AMREX_PARALLEL_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
+        {
+            auto& val = fab_a(i,j,k,n);
+            val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
+        });
+    }
+}
+
+//
 // Predict the edge velocities which go into forming u_mac.  This
 // function also returns an estimate of dt for use in variable timesteping.
 //
@@ -470,19 +490,7 @@ NavierStokes::predict_velocity (Real  dt)
     MultiFab& Umf=U_fpi.get_mf();
 
     // Floor small values of states to be extrapolated
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        Box gbx=mfi.growntilebox(Godunov::hypgrow());
-        auto const& fab_a = Umf.array(mfi);
-        AMREX_PARALLEL_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
-        {
-            auto& val = fab_a(i,j,k,n);
-            val = std::abs(val) > 1.e-20 ? val : 0;
-        });
-    }
+    floor(Umf);
 
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
     MultiFab& Smf=S_fpi.get_mf();
@@ -611,19 +619,7 @@ NavierStokes::scalar_advection (Real dt,
         MultiFab& Smf=S_fpi.get_mf();
 
         // Floor small values of states to be extrapolated
-#ifdef _OPENMP
-#pragma omp parallel  if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(Smf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            Box gbx=mfi.growntilebox(Godunov::hypgrow());
-            auto fab = Smf.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( gbx, num_scalars, i, j, k, n,
-            {
-                auto& val = fab(i,j,k,n);
-                val = std::abs(val) > 1.e-20 ? val : 0;
-            });
-        }
+	floor(Smf);
 
         FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
         const MultiFab& Umf=U_fpi.get_mf();

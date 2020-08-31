@@ -41,6 +41,11 @@ public:
 
     virtual ~NavierStokes ();
 
+    //
+    // Floor small values of states to be extrapolated
+    //
+    void floor(amrex::MultiFab& mf);
+
     ////////////////////////////////////////////////////////////////////////////
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
