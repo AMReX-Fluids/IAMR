@@ -533,33 +533,40 @@ NavierStokes::predict_velocity (Real  dt)
     // Compute forcing
     //
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
     {
-        Box bx=U_mfi.tilebox();
-        FArrayBox& Ufab = Umf[U_mfi];
-        auto const  gbx  = grow(bx,ngrow);
+        FArrayBox tforces;
 
-        if (getForceVerbose) {
-            Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
-        }
-
-        getForce(forcing_term[U_mfi],gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
-
-        //
-        // Compute the total forcing.
-        //
-        auto const& tf   = forcing_term.array(U_mfi);
-        auto const& visc = visc_terms.const_array(U_mfi,Xvel);
-        auto const& gp   = Gp.const_array(U_mfi);
-        auto const& rho  = rho_ptime.const_array(U_mfi);
-
-        amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
-        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
         {
-            tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
-        });
+            Box bx=U_mfi.tilebox();
+            FArrayBox& Ufab = Umf[U_mfi];
+            auto const  gbx  = grow(bx,ngrow);
+            tforces.resize(gbx,AMREX_SPACEDIM);
+
+            if (getForceVerbose) {
+                Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
+            }
+
+            getForce(tforces,gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+
+            //
+            // Compute the total forcing.
+            //
+            auto const& tf   = tforces.array();
+            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+            auto const& gp   = Gp.const_array(U_mfi);
+            auto const& rho  = rho_ptime.const_array(U_mfi);
+
+            amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+            });
+
+            forcing_term[U_mfi].copy<RunOn::Host>(tforces,0,0,AMREX_SPACEDIM);
+        }
     }
 
     Vector<BCRec> math_bcs(AMREX_SPACEDIM);
