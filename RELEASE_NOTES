@@ -136,3 +136,11 @@ Tiling fixes to estTimeStep
 Minor GPU fixes, particularly for linear solvers
 amrex::Math updates
 Various small bugfixes
+
+9/1/20
+Various memory, GPU, and EB-related improvements
+Minor code re-org
+Updates to various test problems
+Add aborts for ref_ratio=4 or rz (not currently supported)
+Remove dependency on C_CellMG in amrex and older solvers
+Various replacements of fortran kernels to C++
