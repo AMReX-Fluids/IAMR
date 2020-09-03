@@ -41,6 +41,11 @@ public:
 
     virtual ~NavierStokes ();
 
+    //
+    // Floor small values of states to be extrapolated
+    //
+    void floor(amrex::MultiFab& mf);
+
     ////////////////////////////////////////////////////////////////////////////
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
@@ -85,6 +90,30 @@ public:
                           int  iteration,
                           int  ncycle) override;
 
+    ////////////////////////////////////////////////////////////////////////////
+    //    NavierStokesBase public virtual functions                                  //
+    ////////////////////////////////////////////////////////////////////////////
+
+    //
+    // Compute the mac sync correction.
+    //
+    virtual void mac_sync () override;
+    //
+    // Reflux function.
+    //
+    virtual void reflux () override;
+    //
+    // Calculate divU, which sets them to zero by default.
+    //
+    virtual void calc_divu (amrex::Real      time,
+			    amrex::Real      dt,
+			    amrex::MultiFab& fab) override;
+    //
+    // Calculate dSdT, which sets them to zero by default.
+    //
+    virtual void calc_dsdt (amrex::Real      time,
+			    amrex::Real      dt,
+			    amrex::MultiFab& fab) override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public static functions                                //
@@ -110,7 +139,6 @@ public:
     void scalar_advection (amrex::Real dt,
                            int  first_scalar,
                            int  last_scalar);
-  
 protected:
 
     ////////////////////////////////////////////////////////////////////////////
@@ -118,18 +146,6 @@ protected:
     ////////////////////////////////////////////////////////////////////////////
 
     virtual void avgDown () override; // Average down for all the state types.
-    //
-    // Calculate divU, which sets them to zero by default.
-    //
-    virtual void calc_divu (amrex::Real      time,
-			    amrex::Real      dt,
-			    amrex::MultiFab& fab) override;
-    //
-    // Calculate dSdT, which sets them to zero by default.
-    //
-    virtual void calc_dsdt (amrex::Real      time,
-			    amrex::Real      dt,
-			    amrex::MultiFab& fab) override;
     //
     // Calculate nonuniform viscosity and diffusivity
     //
@@ -149,14 +165,6 @@ protected:
 			       int       src_comp, 
 			       int       num_comp,
 			       amrex::Real      time) override;
-    //
-    // Compute the mac sync correction.
-    //
-    virtual void mac_sync () override;
-    //
-    // Reflux function.
-    //
-    virtual void reflux () override;
     //
     virtual void sum_integrated_quantities () override;
     //
