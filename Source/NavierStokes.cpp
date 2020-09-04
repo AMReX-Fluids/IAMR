@@ -437,6 +437,9 @@ NavierStokes::advance (Real time,
 //
 void
 NavierStokes::floor(MultiFab& mf){
+
+  int ncomp = mf.nComp();
+    
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -444,7 +447,7 @@ NavierStokes::floor(MultiFab& mf){
     {
         Box gbx=mfi.growntilebox(Godunov::hypgrow());
         auto const& fab_a = mf.array(mfi);
-        AMREX_PARALLEL_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
+        AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
         {
             auto& val = fab_a(i,j,k,n);
             val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
