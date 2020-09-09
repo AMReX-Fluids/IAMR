@@ -259,13 +259,52 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
         // Build the implicit function as a union of two cylinders
     EB2::CylinderIF cyl1(radius1, height1, direction1, center1, false);
     EB2::CylinderIF cyl2(radius2, height2, direction2, center2, false);
-//    auto twocylinders = EB2::makeUnion(cyl1, cyl2);
 
     auto twocylinders = EB2::makeDifference(cyl1, cyl2);
 
     // Generate GeometryShop
     auto gshop = EB2::makeShop(twocylinders);
 
+    // Build index space
+    int max_level_here = 0;
+    int max_coarsening_level = 100;
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+
+  }
+  else if (geom_type == "Mixing-Pipe")
+  {
+
+    // Initialise parameters
+    int direction = 1;
+    Real radius = 0.018;
+    Real height = 0.01;
+    bool internal_flow = true; 
+    Vector<Real> centervec(3);
+
+    // Get information from inputs file.
+    ParmParse pp("pipe");
+
+    pp.query("direction", direction);
+    pp.query("radius", radius);
+    pp.query("height", height);
+    pp.getarr("center", centervec, 0, 3);
+    pp.query("internal_flow", internal_flow);
+    Array<Real, 3> center = {centervec[0], centervec[1], centervec[2]};
+
+    // Print info about cylinders
+    amrex::Print() << " CYLINDER " << std::endl;
+    amrex::Print() << " Direction:       " << direction << std::endl;
+    amrex::Print() << " Radius:    " << radius << std::endl;
+    amrex::Print() << " Center:    "
+                   << center[0] << ", " << center[1] << ", " << center[2] << std::endl;
+
+
+
+        // Build the implicit function as a union of two cylinders
+    EB2::CylinderIF cyl(radius, height, direction, center, internal_flow);
+
+    // Generate GeometryShop
+    auto gshop = EB2::makeShop(cyl);
     // Build index space
     int max_level_here = 0;
     int max_coarsening_level = 100;
