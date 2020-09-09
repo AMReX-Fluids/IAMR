@@ -280,6 +280,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     int direction = 1;
     Real radius = 0.018;
     Real height = 0.01;
+    bool internal_flow = true; 
     Vector<Real> centervec(3);
 
     // Get information from inputs file.
@@ -289,6 +290,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     pp.query("radius", radius);
     pp.query("height", height);
     pp.getarr("center", centervec, 0, 3);
+    pp.query("internal_flow", internal_flow);
     Array<Real, 3> center = {centervec[0], centervec[1], centervec[2]};
 
     // Print info about cylinders
@@ -301,7 +303,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
 
 
         // Build the implicit function as a union of two cylinders
-    EB2::CylinderIF cyl(radius, height, direction, center, true);
+    EB2::CylinderIF cyl(radius, height, direction, center, internal_flow);
 
     // Generate GeometryShop
     auto gshop = EB2::makeShop(cyl);
