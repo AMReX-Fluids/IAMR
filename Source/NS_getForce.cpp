@@ -164,7 +164,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
    //
    if ( scomp<AMREX_SPACEDIM ){
      AMREX_ALWAYS_ASSERT(scomp==Xvel);
-     AMREX_ALWAYS_ASSERT(ncomp==AMREX_SPACEDIM);
+     AMREX_ALWAYS_ASSERT(ncomp>=AMREX_SPACEDIM);
    }
    if ( scomp==Xvel ){
      //
