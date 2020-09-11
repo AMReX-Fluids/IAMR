@@ -723,7 +723,7 @@ MacProj::mac_sync_compute (int                   level,
 #endif
     {
         Vector<int> ns_level_bc;
-        FArrayBox tforces, tvelforces, U;
+        FArrayBox tforces, U;
         FArrayBox flux[AMREX_SPACEDIM], Rho;
 
         for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
@@ -756,12 +756,6 @@ MacProj::mac_sync_compute (int                   level,
             godunov->Sum_tf_gp_visc(tforces, 0, vel_visc_terms[Smfi], 0, Gp[Smfi], 0, Rho, 0);
             godunov->Sum_tf_divu_visc(S, AMREX_SPACEDIM, tforces, AMREX_SPACEDIM, numscal,
                                       scal_visc_terms[Smfi], 0, divu, 0, Rho, 0, 1);
-            if (use_forces_in_trans)
-            {
-                tvelforces.resize(forcebx,AMREX_SPACEDIM);
-                ns_level.getForce(tvelforces,bx,1,Xvel,BL_SPACEDIM,prev_time,Smf[Smfi],Smf[Smfi],Density);
-                godunov->Sum_tf_gp_visc(tvelforces,0,vel_visc_terms[Smfi],0,Gp[Smfi],0,Rho,0);
-            }
             //
             // Get the sync FABS.
             //
