@@ -1392,14 +1392,7 @@ NavierStokesBase::estTimeStep ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    // Disable tiling here for now.
-    // During GPU updates to the following MFIter, a tiling bug was
-    // introduced (for IAMR but not PeleLM) when a temporary force fab
-    // was removed. When getForce() is updated for GPU, it can be 
-    // re-written so the temporary is not needed, and TilingIFNotGPU
-    // will be put back.
-    //    for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    for (MFIter mfi(rho_ctime,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
        const auto& bx          = mfi.tilebox();
        const auto  cur_time    = state[State_Type].curTime();
@@ -3884,7 +3877,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         const Real prev_time      = state[State_Type].prevTime();
         const int  xvel           = Xvel;
 
-        int   ngrow = 1;
+        int   ngrow = 0;
         MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
         MultiFab    tforces(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
 
