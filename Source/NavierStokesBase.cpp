@@ -891,6 +891,47 @@ NavierStokesBase::buildMetrics ()
 #endif
 }
 
+//
+// Default dSdt is set to zero.
+//
+void
+NavierStokesBase::calc_dsdt (Real      /*time*/,
+                         Real      dt,
+                         MultiFab& dsdt)
+{
+    if (have_divu && have_dsdt)
+    {
+      // Don't think we need this here, but then will have uninitialized ghost cells
+      //dsdt.setVal(0);
+
+        if (do_temp)
+        {
+            MultiFab& Divu_new = get_new_data(Divu_Type);
+            MultiFab& Divu_old = get_old_data(Divu_Type);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+	    for (MFIter mfi(dsdt,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+	        const Box&  bx      = mfi.tilebox();
+		auto const& div_new = Divu_new.array(mfi);
+		auto const& div_old = Divu_old.array(mfi);
+		auto const& dsdtarr = dsdt.array(mfi);
+
+		amrex::ParallelFor(bx, [div_new, div_old, dsdtarr, dt]
+	        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	        {
+		  dsdtarr(i,j,k) = ( div_new(i,j,k) - div_old(i,j,k) )/ dt;
+		});
+            }
+        }
+	else
+	{
+	    dsdt.setVal(0);
+	}
+    }
+}
+
 void
 NavierStokesBase::calcDpdt ()
 {
@@ -1985,9 +2026,6 @@ NavierStokesBase::init_additional_state_types ()
 
     int _Divu = -1;
     int dummy_Divu_Type;
-    //
-    // FIXME-- have divu was already set to zero...
-    // also check have_dsdt
     have_divu = 0;
     have_divu = isStateVariable("divu", dummy_Divu_Type, _Divu);
     have_divu = have_divu && dummy_Divu_Type == Divu_Type;

@@ -91,7 +91,7 @@ public:
                           int  ncycle) override;
 
     ////////////////////////////////////////////////////////////////////////////
-    //    NavierStokesBase public virtual functions                                  //
+    //    NavierStokesBase public virtual functions                           //
     ////////////////////////////////////////////////////////////////////////////
 
     //
@@ -108,12 +108,6 @@ public:
     virtual void calc_divu (amrex::Real      time,
 			    amrex::Real      dt,
 			    amrex::MultiFab& fab) override;
-    //
-    // Calculate dSdT, which sets them to zero by default.
-    //
-    virtual void calc_dsdt (amrex::Real      time,
-			    amrex::Real      dt,
-			    amrex::MultiFab& fab) override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public static functions                                //
@@ -128,6 +122,10 @@ public:
     //
     static void variableCleanUp ();
 
+    ////////////////////////////////////////////////////////////////////////////
+    //    NavierStokes public functions                                       //
+    ////////////////////////////////////////////////////////////////////////////
+  
     //
     // Predict face velocities (before projection), estimate current cfl
     // from t^n cell-centered velocities (plus cfl and change_max)
@@ -139,6 +137,7 @@ public:
     void scalar_advection (amrex::Real dt,
                            int  first_scalar,
                            int  last_scalar);
+
 protected:
 
     ////////////////////////////////////////////////////////////////////////////

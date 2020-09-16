@@ -2214,48 +2214,6 @@ NavierStokes::calc_divu (Real      time,
     }
 }
 
-//
-// Default dSdt is set to zero.
-//
-
-void
-NavierStokes::calc_dsdt (Real      /*time*/,
-                         Real      dt,
-                         MultiFab& dsdt)
-{
-    if (have_divu && have_dsdt)
-    {
-      // Don't think we need this here, but then will have uninitialized ghost cells
-      //dsdt.setVal(0);
-
-        if (do_temp)
-        {
-            MultiFab& Divu_new = get_new_data(Divu_Type);
-            MultiFab& Divu_old = get_old_data(Divu_Type);
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-	    for (MFIter mfi(dsdt,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-	        const Box&  bx      = mfi.tilebox();
-		auto const& div_new = Divu_new.array(mfi);
-		auto const& div_old = Divu_old.array(mfi);
-		auto const& dsdtarr = dsdt.array(mfi);
-
-		amrex::ParallelFor(bx, [div_new, div_old, dsdtarr, dt]
-	        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-       	        {
-		  dsdtarr(i,j,k) = ( div_new(i,j,k) - div_old(i,j,k) )/ dt;
-		});
-            }
-        }
-	else
-	{
-	    dsdt.setVal(0);
-	}
-    }
-}
-
 void
 NavierStokes::getViscTerms (MultiFab& visc_terms,
                             int       src_comp,
