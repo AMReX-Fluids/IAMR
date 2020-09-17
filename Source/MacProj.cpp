@@ -750,6 +750,9 @@ MacProj::mac_sync_compute (int                   level,
             tforces.resize(forcebx,NUM_STATE);
             ns_level.getForce(tforces,forcebx,1,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
 
+	    //fixme? - Do we need a Gpu sync here to ensure force is totally filled before Sums below
+	    // if not, we need an elixir for tforces
+
             //
             // Compute total forcing terms.
             //

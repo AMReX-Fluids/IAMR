@@ -46,7 +46,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
    const int*  v_hi     = Vel.hiVect();
    const int*  s_lo     = Scal.loVect();
    const int*  s_hi     = Scal.hiVect();
-   const int   nscal    = NUM_SCALARS;
 
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
       amrex::Print() << "NavierStokesBase::getForce(): Entered..." << std::endl 
@@ -155,10 +154,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
    RealBox gridloc = RealBox(bx,geom.CellSize(),geom.ProbLo());
 
    // Here's the meat
-   auto const& frc  = force.array(scomp);
-   auto const& vel  = Vel.array();
-   auto const& scal = Scal.array(scalScomp);
-
    //
    // Velocity forcing
    //
@@ -166,12 +161,16 @@ NavierStokesBase::getForce (FArrayBox&       force,
      AMREX_ALWAYS_ASSERT(scomp==Xvel);
      AMREX_ALWAYS_ASSERT(ncomp>=AMREX_SPACEDIM);
    }
+
    if ( scomp==Xvel ){
      //
      // TODO: add some switch for user-supplied/problem-dependent forcing
      //
+     auto const& frc  = force.array(scomp);
+     auto const& scal = Scal.array(scalScomp);
+
      if ( std::abs(grav) > 0.0001) {
-       amrex::ParallelFor(bx, [frc, vel, scal, grav]
+       amrex::ParallelFor(bx, [frc, scal, grav]
        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
        {
 	 frc(i,j,k,0) = 0.0_rt;
@@ -184,30 +183,23 @@ NavierStokesBase::getForce (FArrayBox&       force,
        });
      }
      else {
-       force.setVal(0.0, bx, Xvel, AMREX_SPACEDIM);
+       force.setVal<RunOn::Gpu>(0.0, bx, Xvel, AMREX_SPACEDIM);
      }
    }
    //
    // Scalar forcing
    //
    if ( scomp >= AMREX_SPACEDIM ) {
-     // Doing only scalars 
-     force.setVal(0.0, bx, 0, ncomp);
+     // Doing only scalars
+
+     force.setVal<RunOn::Gpu>(0.0, bx, 0, ncomp);
    }
    else if ( scomp+ncomp > AMREX_SPACEDIM) {
-     // Doing scalars with vel 
-     force.setVal(0.0, bx, Density, ncomp-Density);
+     // Doing scalars with vel
+
+     force.setVal<RunOn::Gpu>(0.0, bx, Density, ncomp-Density);
    }
      
-   // FORT_MAKEFORCE (&time,
-   //                 BL_TO_FORTRAN_ANYD(force),
-   //                 BL_TO_FORTRAN_ANYD(Vel),
-   //                 BL_TO_FORTRAN_N_ANYD(Scal,scalScomp),
-   //                 dx,
-   //                 gridloc.lo(),
-   //                 gridloc.hi(),
-   //                 &grav,&scomp,&ncomp,&nscal,&getForceVerbose);
-
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
       Vector<Real> forcemin(ncomp);
       Vector<Real> forcemax(ncomp);

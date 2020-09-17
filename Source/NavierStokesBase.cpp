@@ -1978,9 +1978,6 @@ NavierStokesBase::init_additional_state_types ()
 
     int _Divu = -1;
     int dummy_Divu_Type;
-    //
-    // FIXME-- have divu was already set to zero...
-    // also check have_dsdt
     have_divu = 0;
     have_divu = isStateVariable("divu", dummy_Divu_Type, _Divu);
     have_divu = have_divu && dummy_Divu_Type == Divu_Type;
@@ -2972,6 +2969,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
                // Average the mac face velocities to get cell centred velocities
                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
                FArrayBox Vel(amrex::grow(bx,0),AMREX_SPACEDIM);
+	       //Elixir velx = Vel.elixir();
                FORT_AVERAGE_EDGE_STATES(BL_TO_FORTRAN_ANYD(Vel),
                                         BL_TO_FORTRAN_ANYD(u_mac[0][Rho_mfi]),
                                         BL_TO_FORTRAN_ANYD(u_mac[1][Rho_mfi]),
@@ -2984,13 +2982,21 @@ NavierStokesBase::scalar_advection_update (Real dt,
                // Average the new and old time to get Crank-Nicholson half time approximation.
                //
                FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
+	       //Elixir selx = Scal.elixir();
                Scal.copy<RunOn::Host>(S_old[Rho_mfi],bx,Density,bx,0,NUM_SCALARS);
                Scal.plus<RunOn::Host>(S_new[Rho_mfi],bx,Density,0,NUM_SCALARS);
                Scal.mult<RunOn::Host>(0.5,bx);
 
                if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
-               tforces.resize(bx,1);
+
+	       tforces.resize(bx,1);
+	       //Elixir felx = tforces.elixir();
                getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
+
+	       // Need to make sure tforces is totally filled before calling Add_aofs_tf,
+	       // which is only on CPU right now.
+	       // No need for elixirs if we have sync
+	       amrex::Gpu::synchronize();
 
                godunov->Add_aofs_tf(S_old[Rho_mfi],S_new[Rho_mfi],sigma,1,
                                     Aofs[Rho_mfi],sigma,tforces,0,bx,dt);
@@ -3758,7 +3764,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 #endif
 
     MultiFab& Rh = get_rho_half_time();
-
+    
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -3854,11 +3860,11 @@ NavierStokesBase::velocity_advection_update (Real dt)
     {
        if (U_old.contains_nan(sigma,1,0))
        {
-          amrex::Print() << "Old velocity " << sigma << " contains Nans" << '\n';
+          amrex::Print() << "VAU: Old velocity " << sigma << " contains Nans" << '\n';
        }
        if (U_new.contains_nan(sigma,1,0))
        {
-          amrex::Print() << "New velocity " << sigma << " contains Nans" << '\n';
+          amrex::Print() << "VAU: New velocity " << sigma << " contains Nans" << '\n';
        }
     }
 }
