@@ -447,7 +447,7 @@ NavierStokes::floor(MultiFab& mf){
 #endif
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        Box gbx=mfi.growntilebox(godunov_hyp_grow);
         auto const& fab_a = mf.array(mfi);
         AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
         {

@@ -210,8 +210,8 @@ public:
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;};
     static int  GodunovHypgrow () {return godunov_hyp_grow;};
 
-protected:
-
+    //////////////////////////////////////////////////////////////////
+  
     NavierStokesBase ();
 
     NavierStokesBase (amrex::Amr&            papa,
