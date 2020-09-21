@@ -107,7 +107,7 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
         AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
         AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
 #else
-        AtA[0][0]*AtA[1][1] - AtA[1][0]*AtA[1][0];
+        AtA[0][0]*AtA[1][1] - AtA[0][1]*AtA[0][1];
 #endif
 
     D_TERM( amrex::Real xs = 0.0;,

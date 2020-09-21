@@ -26,8 +26,8 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     amrex::Real qs;
     int  domlo = domain.smallEnd(0);
     int  domhi = domain.bigEnd(0);
-    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir || d_bcrec[n].lo(0) == amrex::BCType::hoextrap;
-    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir || d_bcrec[n].hi(0) == amrex::BCType::hoextrap;
+    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir;
+    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir;
 
     if ( extlo and i <= domlo)
     {
@@ -139,7 +139,6 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
 
     // Compute slopes of component "n" of q
     const auto& slopes_eb_hi = iamr_slopes_eb( D_DECL(i, j, k), n, q, ccc, flag);
-
 #if (AMREX_SPACEDIM==3)
     amrex::Real qpls = q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
                                     + delta_y * slopes_eb_hi[1]
@@ -148,7 +147,6 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
     amrex::Real qpls = q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
                                     + delta_y * slopes_eb_hi[1];
 #endif
-
     qpls = amrex::max(amrex::min(qpls, cc_qmax), cc_qmin);
 
     D_TERM(xc = ccc(i-1,j,k,0);, // centroid of cell (i-1,j,k)
@@ -209,8 +207,8 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     amrex::Real qs;
     int domlo = domain.smallEnd(1);
     int domhi = domain.bigEnd(1);
-    bool extlo = d_bcrec[n].lo(1) == amrex::BCType::ext_dir || d_bcrec[n].lo(1) == amrex::BCType::hoextrap;
-    bool exthi = d_bcrec[n].hi(1) == amrex::BCType::ext_dir || d_bcrec[n].hi(1) == amrex::BCType::hoextrap;
+    bool extlo = d_bcrec[n].lo(1) == amrex::BCType::ext_dir;
+    bool exthi = d_bcrec[n].hi(1) == amrex::BCType::ext_dir;
 
     if ( extlo and j <= domlo)
     {
@@ -394,8 +392,8 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
     amrex::Real qs;
     int domlo = domain.smallEnd(2);
     int domhi = domain.bigEnd(2);
-    bool extlo = d_bcrec[n].lo(2) == amrex::BCType::ext_dir || d_bcrec[n].lo(2) == amrex::BCType::hoextrap;
-    bool exthi = d_bcrec[n].hi(2) == amrex::BCType::ext_dir || d_bcrec[n].hi(2) == amrex::BCType::hoextrap;
+    bool extlo = d_bcrec[n].lo(2) == amrex::BCType::ext_dir;
+    bool exthi = d_bcrec[n].hi(2) == amrex::BCType::ext_dir;
 
     if ( extlo and k <= domlo)
     {

@@ -70,13 +70,11 @@ MOL::ComputeEdgeState (const Box& bx,
         amrex::ParallelFor(ubx, ncomp, [d_bcrec_ptr,q,domain_ilo,domain_ihi,umac,xedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            bool extdir_ilo = ( d_bcrec_ptr[n].lo(0) == BCType::ext_dir )
-                or ( d_bcrec_ptr[n].lo(0) == BCType::hoextrap );
-            bool extdir_ihi = ( d_bcrec_ptr[n].hi(0) == BCType::ext_dir )
-                or ( d_bcrec_ptr[n].hi(0) == BCType::hoextrap );
+	    bool extdir_ilo = ( d_bcrec_ptr[n].lo(0) == BCType::ext_dir );
+	    bool extdir_ihi = ( d_bcrec_ptr[n].hi(0) == BCType::ext_dir );
 
             xedge(i,j,k,n) = iamr_xedge_state_mol_extdir( i, j, k, n, q, umac,
-                                                          extdir_ilo, extdir_ihi,
+                                                          d_bcrec_ptr,
                                                           domain_ilo, domain_ihi );
 
         });
@@ -100,13 +98,11 @@ MOL::ComputeEdgeState (const Box& bx,
         amrex::ParallelFor(vbx, ncomp, [d_bcrec_ptr,q,domain_jlo,domain_jhi,vmac,yedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == BCType::ext_dir)
-                or (d_bcrec_ptr[n].lo(1) == BCType::hoextrap);
-            bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == BCType::ext_dir)
-                or (d_bcrec_ptr[n].hi(1) == BCType::hoextrap);
+            bool extdir_jlo = (d_bcrec_ptr[n].lo(1) == BCType::ext_dir);
+	    bool extdir_jhi = (d_bcrec_ptr[n].hi(1) == BCType::ext_dir);
 
             yedge(i,j,k,n) = iamr_yedge_state_mol_extdir( i, j, k, n, q, vmac,
-                                                          extdir_jlo, extdir_jhi,
+							  d_bcrec_ptr,
                                                           domain_jlo, domain_jhi );
         });
     }
@@ -131,13 +127,11 @@ MOL::ComputeEdgeState (const Box& bx,
         amrex::ParallelFor(wbx, ncomp, [d_bcrec_ptr,q,domain_klo,domain_khi,wmac,zedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            bool extdir_klo = (d_bcrec_ptr[n].lo(2) == BCType::ext_dir)
-                or (d_bcrec_ptr[n].lo(2) == BCType::hoextrap);
-            bool extdir_khi = (d_bcrec_ptr[n].hi(2) == BCType::ext_dir)
-                or (d_bcrec_ptr[n].hi(2) == BCType::hoextrap);
+            bool extdir_klo = (d_bcrec_ptr[n].lo(2) == BCType::ext_dir);
+	    bool extdir_khi = (d_bcrec_ptr[n].hi(2) == BCType::ext_dir);
 
             zedge(i,j,k,n) = iamr_zedge_state_mol_extdir( i, j, k, n, q, wmac,
-                                                          extdir_klo, extdir_khi,
+							  d_bcrec_ptr,
                                                           domain_klo, domain_khi );
         });
     }
