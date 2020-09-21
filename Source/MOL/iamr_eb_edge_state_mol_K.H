@@ -1,7 +1,7 @@
 #ifndef IAMR_EB_EDGE_STATE_MOL_K_H_
 #define IAMR_EB_EDGE_STATE_MOL_K_H_
 
-#include <iamr_eb_slopes_K.H>
+#include <iamr_eb_slopes_mol_K.H>
 #include <AMReX_BCRec.H>
 #include <iamr_constants.H>
 

@@ -1,7 +1,7 @@
 #ifndef IAMR_EDGE_STATE_MOL_K_H_
 #define IAMR_EDGE_STATE_MOL_K_H_
 
-#include <iamr_slopes_K.H>
+#include <iamr_slopes_mol_K.H>
 #include <iamr_constants.H>
 
 namespace {

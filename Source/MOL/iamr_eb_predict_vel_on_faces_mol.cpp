@@ -1,4 +1,4 @@
-#include <iamr_eb_slopes_K.H>
+#include <iamr_eb_slopes_mol_K.H>
 #include <iamr_constants.H>
 #include <iamr_mol.H>
 
