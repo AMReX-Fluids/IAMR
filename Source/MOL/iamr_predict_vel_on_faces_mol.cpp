@@ -1,6 +1,6 @@
-#include <iamr_slopes_mol_K.H>
 #include <iamr_constants.H>
 #include <iamr_mol.H>
+#include <AMReX_Slopes_K.H>
 
 using namespace amrex;
 
@@ -48,11 +48,14 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     // X direction
     //
 
+    //slope order
+    int order = 2;
+
     // At an ext_dir boundary, the boundary value is on the face, not cell center
     if ((extdir_or_ho_ilo and domain_ilo >= ubx.smallEnd(0)-1) or
         (extdir_or_ho_ihi and domain_ihi <= ubx.bigEnd(0)))
     {
-        amrex::ParallelFor(ubx, [vcc, extdir_ilo,extdir_ihi,extdir_or_ho_ilo,extdir_or_ho_ihi,domain_ilo,domain_ihi,u]
+        amrex::ParallelFor(ubx, [vcc,order,extdir_ilo,extdir_ihi,extdir_or_ho_ilo,extdir_or_ho_ihi,domain_ilo,domain_ihi,u]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 	    if (extdir_ilo and i == domain_ilo) {
@@ -61,10 +64,10 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
                 u(i,j,k) = vcc(i,j,k,0);
             } else {
 
-	      Real upls = vcc(i,j,k,0) - 0.5 * iamr_xslope_extdir
-		(i,j,k,0,vcc, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
-	      Real umns = vcc(i-1,j,k,0) + 0.5 * iamr_xslope_extdir
-		(i-1,j,k,0, vcc, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+	      Real upls = vcc(i,j,k,0) - 0.5 * amrex_calc_xslope_extdir
+		(i,j,k,0,order,vcc, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+	      Real umns = vcc(i-1,j,k,0) + 0.5 * amrex_calc_xslope_extdir
+		(i-1,j,k,0,order,vcc, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
             if (umns < 0.0 and upls > 0.0) {
                 u(i,j,k) = 0.0;
             } else {
@@ -82,11 +85,11 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     }
     else
     {
-        amrex::ParallelFor(ubx, [vcc,u]
+        amrex::ParallelFor(ubx, [vcc,order,u]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real upls = vcc(i  ,j,k,0) - 0.5 * iamr_xslope(i  ,j,k,0,vcc);
-            Real umns = vcc(i-1,j,k,0) + 0.5 * iamr_xslope(i-1,j,k,0,vcc);
+            Real upls = vcc(i  ,j,k,0) - 0.5 * amrex_calc_xslope(i  ,j,k,0,order,vcc);
+	    Real umns = vcc(i-1,j,k,0) + 0.5 * amrex_calc_xslope(i-1,j,k,0,order,vcc);
             if (umns < 0.0 and upls > 0.0) {
                 u(i,j,k) = 0.0;
             } else {
@@ -110,7 +113,7 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     if ((extdir_or_ho_jlo and domain_jlo >= vbx.smallEnd(1)-1) or
         (extdir_or_ho_jhi and domain_jhi <= vbx.bigEnd(1)))
     {
-        amrex::ParallelFor(vbx, [vcc,extdir_jlo,extdir_jhi,extdir_or_ho_jlo,extdir_or_ho_jhi,domain_jlo,domain_jhi,v]
+        amrex::ParallelFor(vbx, [vcc,order,extdir_jlo,extdir_jhi,extdir_or_ho_jlo,extdir_or_ho_jhi,domain_jlo,domain_jhi,v]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 	    if (extdir_jlo and j == domain_jlo) {
@@ -119,10 +122,10 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
                 v(i,j,k) = vcc(i,j,k,1);
             } else {
 
-	      Real vpls = vcc(i,j,k,1) - 0.5 * iamr_yslope_extdir
-		(i,j,k,1,vcc, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
-	      Real vmns = vcc(i,j-1,k,1) + 0.5 * iamr_yslope_extdir
-                (i,j-1,k,1,vcc, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+	      Real vpls = vcc(i,j,k,1) - 0.5 * amrex_calc_yslope_extdir
+		(i,j,k,1,order,vcc, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+	      Real vmns = vcc(i,j-1,k,1) + 0.5 * amrex_calc_yslope_extdir
+                (i,j-1,k,1,order,vcc, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
             if (vmns < 0.0 and vpls > 0.0) {
                 v(i,j,k) = 0.0;
             } else {
@@ -140,11 +143,11 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     }
     else
     {
-        amrex::ParallelFor(vbx, [vcc,v]
+        amrex::ParallelFor(vbx, [vcc,order,v]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real vpls = vcc(i,j  ,k,1) - 0.5 * iamr_yslope(i,j  ,k,1,vcc);
-            Real vmns = vcc(i,j-1,k,1) + 0.5 * iamr_yslope(i,j-1,k,1,vcc);
+	    Real vpls = vcc(i,j  ,k,1) - 0.5 * amrex_calc_yslope(i,j  ,k,1,order,vcc);
+            Real vmns = vcc(i,j-1,k,1) + 0.5 * amrex_calc_yslope(i,j-1,k,1,order,vcc);
             if (vmns < 0.0 and vpls > 0.0) {
                 v(i,j,k) = 0.0;
             } else {
@@ -168,7 +171,7 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     if ((extdir_or_ho_klo and domain_klo >= wbx.smallEnd(2)-1) or
         (extdir_or_ho_khi and domain_khi <= wbx.bigEnd(2)))
     {
-      amrex::ParallelFor(wbx, [vcc,extdir_klo,extdir_khi,extdir_or_ho_klo,extdir_or_ho_khi,domain_klo,domain_khi,w]
+      amrex::ParallelFor(wbx, [vcc,order,extdir_klo,extdir_khi,extdir_or_ho_klo,extdir_or_ho_khi,domain_klo,domain_khi,w]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 	    if (extdir_klo and k == domain_klo) {
@@ -177,10 +180,10 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
                 w(i,j,k) = vcc(i,j,k,2);
             } else {
 
-	      Real wpls = vcc(i,j,k,2) - 0.5 * iamr_zslope_extdir
-                (i,j,k,2,vcc, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
-	      Real wmns = vcc(i,j,k-1,2) + 0.5 * iamr_zslope_extdir
-		(i,j,k-1,2,vcc, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+	      Real wpls = vcc(i,j,k,2) - 0.5 * amrex_calc_zslope_extdir
+                (i,j,k,2,order,vcc, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+	      Real wmns = vcc(i,j,k-1,2) + 0.5 * amrex_calc_zslope_extdir
+		(i,j,k-1,2,order,vcc, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
             if (wmns < 0.0 and wpls > 0.0) {
                 w(i,j,k) = 0.0;
             } else {
@@ -198,11 +201,11 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
     }
     else
     {
-        amrex::ParallelFor(wbx, [vcc,w]
+        amrex::ParallelFor(wbx, [vcc,order,w]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real wpls = vcc(i,j,k  ,2) - 0.5 * iamr_zslope(i,j,k  ,2,vcc);
-            Real wmns = vcc(i,j,k-1,2) + 0.5 * iamr_zslope(i,j,k-1,2,vcc);
+            Real wpls = vcc(i,j,k  ,2) - 0.5 * amrex_calc_zslope(i,j,k  ,2,order,vcc);
+            Real wmns = vcc(i,j,k-1,2) + 0.5 * amrex_calc_zslope(i,j,k-1,2,order,vcc);
             if (wmns < 0.0 and wpls > 0.0) {
                 w(i,j,k) = 0.0;
             } else {

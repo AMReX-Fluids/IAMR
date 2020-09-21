@@ -1,7 +1,7 @@
 #ifndef IAMR_EDGE_STATE_MOL_K_H_
 #define IAMR_EDGE_STATE_MOL_K_H_
 
-#include <iamr_slopes_mol_K.H>
+#include <AMReX_Slopes_K.H>
 #include <iamr_constants.H>
 
 namespace {
@@ -36,9 +36,9 @@ amrex::Real iamr_xedge_state_mol_extdir ( int i, int j, int k, int n,
     else
     {
         amrex::Real qpls = q(i  ,j,k,n) - 0.5 *
-	  iamr_xslope_extdir( i  , j, k, n, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
+	  amrex_calc_xslope_extdir( i  , j, k, n, order, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
         amrex::Real qmns = q(i-1,j,k,n) + 0.5 *
-	  iamr_xslope_extdir( i-1, j, k, n, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
+	  amrex_calc_xslope_extdir( i-1, j, k, n, order, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
 
         if ( umac(i,j,k) > small_vel)
         {
@@ -62,9 +62,12 @@ amrex::Real iamr_xedge_state_mol ( int i, int j, int k, int n,
                                    amrex::Array4<amrex::Real const> const& q,
                                    amrex::Array4<amrex::Real const> const& umac ) noexcept
 {
+    //slope order
+    int order = 2;
+
     amrex::Real qs;
-    amrex::Real qpls = q(i  ,j,k,n) - 0.5 * iamr_xslope( i  , j, k, n, q );
-    amrex::Real qmns = q(i-1,j,k,n) + 0.5 * iamr_xslope( i-1, j, k, n, q );
+    amrex::Real qpls = q(i  ,j,k,n) - 0.5 * amrex_calc_xslope( i  , j, k, n, order, q );
+    amrex::Real qmns = q(i-1,j,k,n) + 0.5 * amrex_calc_xslope( i-1, j, k, n, order, q );
 
     if ( umac(i,j,k) > small_vel)
     {
@@ -112,9 +115,9 @@ amrex::Real iamr_yedge_state_mol_extdir ( int i, int j, int k, int n,
     else
     {
         amrex::Real qpls = q(i,j  ,k,n) - 0.5 *
-	  iamr_yslope_extdir( i, j  , k, n, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
+	  amrex_calc_yslope_extdir( i, j  , k, n, order, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
         amrex::Real qmns = q(i,j-1,k,n) + 0.5 *
-	  iamr_yslope_extdir( i, j-1, k, n, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
+	  amrex_calc_yslope_extdir( i, j-1, k, n, order, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
 
         if ( vmac(i,j,k) > small_vel)
         {
@@ -140,9 +143,12 @@ amrex::Real iamr_yedge_state_mol ( int i, int j, int k, int n,
                                    amrex::Array4<amrex::Real const> const& q,
                                    amrex::Array4<amrex::Real const> const& vmac ) noexcept
 {
+    //slope order
+    int order = 2;
+
     amrex::Real qs;
-    amrex::Real qpls = q(i,j  ,k,n) - 0.5 * iamr_yslope( i, j  , k, n, q );
-    amrex::Real qmns = q(i,j-1,k,n) + 0.5 * iamr_yslope( i, j-1, k, n, q );
+    amrex::Real qpls = q(i,j  ,k,n) - 0.5 * amrex_calc_yslope( i, j  , k, n, order, q );
+    amrex::Real qmns = q(i,j-1,k,n) + 0.5 * amrex_calc_yslope( i, j-1, k, n, order, q );
 
     if ( vmac(i,j,k) > small_vel)
     {
@@ -170,6 +176,9 @@ amrex::Real iamr_zedge_state_mol_extdir ( int i, int j, int k, int n,
 					  amrex::BCRec const* const d_bcrec,
 					  int domlo, int domhi) noexcept
 {
+    //slope order
+    int order = 2;
+
     amrex::Real qs;
 
     bool edlo = (d_bcrec[n].lo(2) == amrex::BCType::ext_dir);
@@ -189,9 +198,9 @@ amrex::Real iamr_zedge_state_mol_extdir ( int i, int j, int k, int n,
     else
     {
         amrex::Real qpls = q(i,j,k  ,n) - 0.5 *
-	  iamr_zslope_extdir( i, j, k  , n, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
+	  amrex_calc_zslope_extdir( i, j, k  , n, order, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
         amrex::Real qmns = q(i,j,k-1,n) + 0.5 *
-	  iamr_zslope_extdir( i, j, k-1, n, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
+	  amrex_calc_zslope_extdir( i, j, k-1, n, order, q, extdir_or_ho_lo, extdir_or_ho_hi, domlo, domhi );
 
         if ( wmac(i,j,k) > small_vel)
         {
@@ -217,9 +226,12 @@ amrex::Real iamr_zedge_state_mol ( int i, int j, int k, int n,
                                    amrex::Array4<amrex::Real const> const& q,
                                    amrex::Array4<amrex::Real const> const& wmac ) noexcept
 {
+    //slope order
+    int order = 2;
+
     amrex::Real qs;
-    amrex::Real qpls = q(i,j,k  ,n) - 0.5 * iamr_zslope( i, j, k  , n, q );
-    amrex::Real qmns = q(i,j,k-1,n) + 0.5 * iamr_zslope( i, j, k-1, n, q );
+    amrex::Real qpls = q(i,j,k  ,n) - 0.5 * amrex_calc_zslope( i, j, k  , n, order, q );
+    amrex::Real qmns = q(i,j,k-1,n) + 0.5 * amrex_calc_zslope( i, j, k-1, n, order, q );
 
     if ( wmac(i,j,k) > small_vel)
     {
