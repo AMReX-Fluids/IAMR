@@ -63,6 +63,13 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
 
                             du[lc] = 0.0;
                         }
+	    //fixme
+	    if ( i==36 && j==55 )
+	      amrex::Print().SetPrecision(15)<<lc<<": du="<<du[lc]
+				      <<" stateA="<<state(i+ii,j+jj,0,n)
+				      <<" stateB="<<state(i,j,0,n)
+				      <<std::endl;
+	    //	    
 
                         lc++;
                     }
@@ -101,6 +108,13 @@ iamr_slopes_eb (D_DECL(int i, int j, int k), int n,
 
     }
 
+    //Fill in symmetric otherwise unfilled values get used below
+    AtA[1][0] = AtA[0][1];
+#ifdef (AMREX_SPACEDIM==3)
+    AtA[2][0] = AtA[0][2];
+    AtA[2][1] = AtA[1][2];
+#endif
+    
     amrex::Real detAtA =
 #if (AMREX_SPACEDIM==3)
         AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
