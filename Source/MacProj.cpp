@@ -944,24 +944,16 @@ MacProj::mac_sync_compute (int                    level,
     Vector<BCRec>  bcs;
     Gpu::DeviceVector<int> iconserv;
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter Syncmfi(Sync,true); Syncmfi.isValid(); ++Syncmfi)
-    {
-        const Box& bx = Syncmfi.tilebox();
+    Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+                             MultiFab(), s_ind,                      // this is not used when known_edgestate = true
+                             AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+                             AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                             AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+                             AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+                             MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
+                             bcs, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
 
-        Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                 MultiFab(), s_ind,                      // this is not used when known_edgestate = true
-                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                 AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                                 AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                                 MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                                 bcs, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
-
-
-    }
+    
 
 #endif
 
