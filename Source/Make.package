@@ -41,15 +41,13 @@ ifeq ($(USE_EB), TRUE)
 endif
 #
 
-CEXE_sources += NavierStokesBase.cpp Projection.cpp MacProj.cpp Godunov.cpp Diffusion.cpp
+CEXE_sources += NavierStokesBase.cpp Projection.cpp MacProj.cpp Diffusion.cpp
 
 CEXE_sources += NS_LES.cpp
 
-CEXE_headers += Projection.H MacProj.H Godunov.H Diffusion.H NavierStokesBase.H FluxBoxes.H
+CEXE_headers += Projection.H MacProj.H Diffusion.H NavierStokesBase.H FluxBoxes.H
 
-F90EXE_sources += GODUNOV_F.F90
-
-FEXE_headers += DERIVE_F.H GODCOMM_F.H GODUNOV_F.H PROJECTION_F.H \
+FEXE_headers += DERIVE_F.H  PROJECTION_F.H \
                             DIFFUSION_F.H NAVIERSTOKES_F.H \
                             SLABSTAT_NS_F.H
 FEXE_headers += NS_error_F.H

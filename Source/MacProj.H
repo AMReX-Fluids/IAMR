@@ -7,7 +7,13 @@
 #include <AMReX_Amr.H>
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
-#include <Godunov.H>
+// #include <NavierStokesBase.H>
+
+
+//
+// A useful enumeration of the forms for the advective terms
+//
+enum AdvectionForm {Conservative = 0, NonConservative};
 
 class MacProj
 {
