@@ -184,6 +184,11 @@ NavierStokesBase::getForce (FArrayBox&       force,
      }
      else {
        force.setVal<RunOn::Gpu>(0.0, bx, Xvel, AMREX_SPACEDIM);
+       // amrex::ParallelFor(bx, AMREX_SPACEDIM, [frc]
+       // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+       // {
+       // 	 frc(i,j,k,n) = 0.0_rt;
+       // });
      }
    }
    //
@@ -191,13 +196,23 @@ NavierStokesBase::getForce (FArrayBox&       force,
    //
    if ( scomp >= AMREX_SPACEDIM ) {
      // Doing only scalars
-
      force.setVal<RunOn::Gpu>(0.0, bx, 0, ncomp);
+     // auto const& frc  = force.array();
+     // amrex::ParallelFor(bx, ncomp, [frc]
+     // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+     // {
+     // 	 frc(i,j,k,n) = 0.0_rt;
+     // });
    }
    else if ( scomp+ncomp > AMREX_SPACEDIM) {
      // Doing scalars with vel
-
      force.setVal<RunOn::Gpu>(0.0, bx, Density, ncomp-Density);
+     // auto const& frc  = force.array(Density);
+     // amrex::ParallelFor(bx, ncomp-Density, [frc]
+     // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+     // {
+     // 	 frc(i,j,k,n) = 0.0_rt;
+     // });
    }
      
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
