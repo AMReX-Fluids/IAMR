@@ -853,7 +853,7 @@ NavierStokesBase::buildMetrics ()
     }
 #endif
 
-    // fixme? for now, volume and area are intentionally without EB knowledge
+    // volume and area are intentionally without EB knowledge
     volume.clear();
     volume.define(grids,dmap,1,GEOM_GROW);
     geom.GetVolume(volume);
@@ -2633,7 +2633,7 @@ void
 NavierStokesBase::post_timestep (int crse_iteration)
 {
 
-  BL_PROFILE("NavierStokesBase::post_timestep()");
+    BL_PROFILE("NavierStokesBase::post_timestep()");
 
     const int finest_level = parent->finestLevel();
 
@@ -3316,12 +3316,11 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
             }
 
             auto const& fsync       = FineSync.array(mfi,dest_comp);
-            Real dt_clev_inv = 1./dt_clev;
-            amrex::ParallelFor(bx, num_comp, [finedata,fsync,coarsedata,dt_clev_inv,scale_coarse]
+            amrex::ParallelFor(bx, num_comp, [finedata,fsync,coarsedata,dt_clev,scale_coarse]
             AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
             {
                if ( scale_coarse ) {
-                  coarsedata(i,j,k,n) *= dt_clev_inv;
+                  coarsedata(i,j,k,n) /= dt_clev;
                }
                fsync(i,j,k,n) += finedata(i,j,k,n);
             });
@@ -3852,7 +3851,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
                                           + dt * force(i,j,k,n) / rho_Half(i,j,k)
                                           - dt * gradp(i,j,k,n) / rho_Half(i,j,k);
             }
-        });
+	});
     }
 }
 
