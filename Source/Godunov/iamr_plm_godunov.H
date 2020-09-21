@@ -1,13 +1,12 @@
 #ifndef IAMR_PLM_GODUNOV_H
 #define IAMR_PLM_GODUNOV_H
 
-#include <iamr_slopes_godunov_K.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_Array.H>
-#include <iomanip>
+#include <AMReX_Slopes_K.H>
 #include <iamr_constants_godunov.H>
 
 namespace PLM {
@@ -61,6 +60,8 @@ void PredictStateOnXFace ( const int i, const int j, const int k, const int n,
 
         Real upls, umns;
 
+        int order = 4;
+
         if (i == domain_ilo && (bc.lo(0) == BCType::ext_dir))
         {
             umns = S(i-1,j,k,n);
@@ -72,7 +73,7 @@ void PredictStateOnXFace ( const int i, const int j, const int k, const int n,
             else
             {
                 upls = S(i  ,j,k,n) + 0.5 * (-1.0 - umac * dt/dx) *
-                    iamr_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+               amrex_calc_xslope_extdir(i  ,j,k,n,order,S,extdir_or_ho_ilo,extdir_or_ho_ihi,domain_ilo,domain_ihi);
             }
 
         }
@@ -87,15 +88,15 @@ void PredictStateOnXFace ( const int i, const int j, const int k, const int n,
             else
             {
                 umns = S(i-1,j,k,n) + 0.5 * ( 1.0 - umac * dt/dx) *
-                    iamr_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+               amrex_calc_xslope_extdir(i-1,j,k,n,order,S,extdir_or_ho_ilo,extdir_or_ho_ihi,domain_ilo,domain_ihi);
             }
         }
         else
         {
             upls = S(i  ,j,k,n) + 0.5 * (-1.0 - umac * dt/dx) *
-                iamr_ho_xslope_extdir(i  ,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+               amrex_calc_xslope_extdir(i  ,j,k,n,order,S,extdir_or_ho_ilo,extdir_or_ho_ihi,domain_ilo,domain_ihi);
             umns = S(i-1,j,k,n) + 0.5 * ( 1.0 - umac * dt/dx) *
-                iamr_ho_xslope_extdir(i-1,j,k,n,S, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
+               amrex_calc_xslope_extdir(i-1,j,k,n,order,S,extdir_or_ho_ilo,extdir_or_ho_ihi,domain_ilo,domain_ihi);
         }
 
         Ip = umns;
@@ -123,8 +124,9 @@ void PredictStateOnYFace ( const int i, const int j, const int k, const int n,
 
         Real vpls, vmns;
 
-        if (j == domain_jlo && (bc.lo(1) == BCType::ext_dir))
-        {
+        int order = 4; 
+
+        if (j == domain_jlo && (bc.lo(1) == BCType::ext_dir)) {
             vmns = S(i,j-1,k,n);
             if ( n==YVEL and is_velocity )
             {
@@ -133,7 +135,7 @@ void PredictStateOnYFace ( const int i, const int j, const int k, const int n,
             else
             {
                 vpls = S(i,j  ,k,n) + 0.5 * (-1.0 - vmac * dt/dy) *
-                    iamr_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+                 amrex_calc_yslope_extdir(i,j  ,k,n,order,S,extdir_or_ho_jlo,extdir_or_ho_jhi,domain_jlo,domain_jhi);
             }
         }
         else if (j == domain_jhi+1 && (bc.hi(1) == BCType::ext_dir))
@@ -146,15 +148,15 @@ void PredictStateOnYFace ( const int i, const int j, const int k, const int n,
             else
             {
                 vmns = S(i,j-1,k,n) + 0.5 * ( 1.0 - vmac * dt/dy) *
-                    iamr_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+               amrex_calc_yslope_extdir(i,j-1,k,n,order,S,extdir_or_ho_jlo,extdir_or_ho_jhi,domain_jlo,domain_jhi);
             }
         }
         else
         {
             vpls = S(i,j  ,k,n) + 0.5 * (-1.0 - vmac * dt/dy) *
-                iamr_ho_yslope_extdir(i,j  ,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+               amrex_calc_yslope_extdir(i,j  ,k,n,order,S,extdir_or_ho_jlo,extdir_or_ho_jhi,domain_jlo,domain_jhi);
             vmns = S(i,j-1,k,n) + 0.5 * ( 1.0 - vmac * dt/dy) *
-                iamr_ho_yslope_extdir(i,j-1,k,n,S, extdir_or_ho_jlo, extdir_or_ho_jhi, domain_jlo, domain_jhi);
+               amrex_calc_yslope_extdir(i,j-1,k,n,order,S,extdir_or_ho_jlo,extdir_or_ho_jhi,domain_jlo,domain_jhi);
         }
 
         Ip = vmns;
@@ -183,8 +185,9 @@ void PredictStateOnZFace ( const int i, const int j, const int k, const int n,
 
         Real wpls, wmns;
 
-        if (k == domain_klo && (bc.lo(2) == BCType::ext_dir))
-        {
+        int order = 4; 
+
+        if (k == domain_klo && (bc.lo(2) == BCType::ext_dir)) {
             wmns = S(i,j,k-1,n);
             if ( n == ZVEL and is_velocity )
             {
@@ -193,7 +196,7 @@ void PredictStateOnZFace ( const int i, const int j, const int k, const int n,
             else
             {
                 wpls = S(i,j,k  ,n) + 0.5 * (-1.0 - wmac * dt/dz) *
-                    iamr_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+                  amrex_calc_zslope_extdir(i,j,k  ,n,order,S,extdir_or_ho_klo,extdir_or_ho_khi,domain_klo,domain_khi);
             }
         }
         else if (k == domain_khi+1 && (bc.hi(2) == BCType::ext_dir))
@@ -206,15 +209,15 @@ void PredictStateOnZFace ( const int i, const int j, const int k, const int n,
             else
             {
                 wmns = S(i,j,k-1,n) + 0.5 * ( 1.0 - wmac * dt/dz) *
-                    iamr_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+                 amrex_calc_zslope_extdir(i,j,k-1,n,order,S,extdir_or_ho_klo,extdir_or_ho_khi,domain_klo,domain_khi);
             }
         }
         else
         {
             wpls = S(i,j,k  ,n) + 0.5 * (-1.0 - wmac * dt/dz) *
-                iamr_ho_zslope_extdir(i,j,k  ,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+               amrex_calc_zslope_extdir(i,j,k  ,n,order,S,extdir_or_ho_klo,extdir_or_ho_khi,domain_klo,domain_khi);
             wmns = S(i,j,k-1,n) + 0.5 * ( 1.0 - wmac * dt/dz) *
-                iamr_ho_zslope_extdir(i,j,k-1,n,S, extdir_or_ho_klo, extdir_or_ho_khi, domain_klo, domain_khi);
+               amrex_calc_zslope_extdir(i,j,k-1,n,order,S,extdir_or_ho_klo,extdir_or_ho_khi,domain_klo,domain_khi);
         }
 
         Ip = wmns;
