@@ -36,7 +36,6 @@ using namespace amrex;
 namespace
 {
     bool initialized = false;
-    static Real THERMO_cp = 1004.6;
 }
 
 void
@@ -181,16 +180,8 @@ NavierStokes::initData ()
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
 	    amrData.FillVar(tmp, level, plotnames[idX+i], 0);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	    for (MFIter mfi(tmp,true); mfi.isValid(); ++mfi)
-	    {
-	        const Box& bx = mfi.tilebox();
-                FArrayBox& tfab = tmp[mfi];
-                tfab.mult(velocity_plotfile_scale, bx, 0, 1);
-                S_new[mfi].plus(tfab, bx, 0, Xvel+i, 1);
-	    }
+
+	    MultiFab::Saxpy(S_new, velocity_plotfile_scale, tmp, 0, Xvel+i, 1, 0)
 
 	    amrData.FlushGrids(idX+i);
         }
@@ -444,6 +435,29 @@ NavierStokes::advance (Real time,
 }
 
 //
+// Floor small values of states to be extrapolated
+//
+void
+NavierStokes::floor(MultiFab& mf){
+
+  int ncomp = mf.nComp();
+    
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        auto const& fab_a = mf.array(mfi);
+        AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
+        {
+            auto& val = fab_a(i,j,k,n);
+            val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
+        });
+    }
+}
+
+//
 // Predict the edge velocities which go into forming u_mac.  This
 // function also returns an estimate of dt for use in variable timesteping.
 //
@@ -481,19 +495,7 @@ NavierStokes::predict_velocity (Real  dt)
     MultiFab& Umf=U_fpi.get_mf();
 
     // Floor small values of states to be extrapolated
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        Box gbx=mfi.growntilebox(godunov_hyp_grow);
-        auto const& fab_a = Umf.array(mfi);
-        AMREX_HOST_DEVICE_FOR_4D ( gbx, BL_SPACEDIM, i, j, k, n,
-        {
-            auto& val = fab_a(i,j,k,n);
-            val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
-        });
-    }
+    floor(Umf);
 
     FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
     MultiFab& Smf=S_fpi.get_mf();
@@ -637,19 +639,7 @@ NavierStokes::scalar_advection (Real dt,
         MultiFab& Smf=S_fpi.get_mf();
 
         // Floor small values of states to be extrapolated
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(Smf,true); mfi.isValid(); ++mfi)
-        {
-            Box gbx=mfi.growntilebox(godunov_hyp_grow);
-            auto fab = Smf.array(mfi);
-            AMREX_HOST_DEVICE_FOR_4D ( gbx, num_scalars, i, j, k, n,
-            {
-                auto& val = fab(i,j,k,n);
-                val = std::abs(val) > 1.e-20 ? val : 0;
-            });
-        }
+        floor(Smf);
 
         FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
         const MultiFab& Umf=U_fpi.get_mf();
@@ -933,7 +923,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
         const bool add_old_time_divFlux = true;
 
         const int betaComp = 0;
-        const int visc_coef_comp = sigma;
         const int Rho_comp = Density;
 	const int bc_comp  = sigma;
 
@@ -1128,7 +1117,7 @@ NavierStokes::MaxVal (const std::string& name,
         const Real* dat = fab.dataPtr();
         const int*  dlo = fab.loVect();
         const int*  dhi = fab.hiVect();
-	      const Box&  bx  = grids[i];
+	const Box&  bx  = grids[i];
         const int*  lo  = bx.loVect();
         const int*  hi  = bx.hiVect();
 
@@ -1817,23 +1806,23 @@ NavierStokes::mac_sync ()
       {
 	iconserved++;
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        {
-	  FArrayBox delta_ssync;
+	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+	{
+	    const Box&  bx       = mfi.tilebox();
+	    auto const& rho      = S_new.array(mfi,Density);
+	    auto const& Snew     = S_new.array(mfi,istate);
+	    auto const& dSsync   = DeltaSsync->array(mfi);
+	    auto const& drhosync = Ssync.array(mfi,Density-AMREX_SPACEDIM);
+	    auto const& ssync    = Ssync.array(mfi,istate-AMREX_SPACEDIM);
 
-	  for (MFIter Smfi(S_new,true); Smfi.isValid(); ++Smfi)
-	  {
-	    const Box& bx = Smfi.tilebox();
-
-            delta_ssync.resize(bx,1);
-            // FIXME MSD: Combine these
-            delta_ssync.copy<RunOn::Host>(S_new[Smfi], bx, istate, bx, 0, 1);
-            delta_ssync.divide<RunOn::Host>(S_new[Smfi], bx, Density, 0, 1);
-            delta_ssync.mult<RunOn::Host>(Ssync[Smfi],bx,Density-BL_SPACEDIM,0,1);
-            (*DeltaSsync)[Smfi].copy<RunOn::Host>(delta_ssync,bx,0,bx,iconserved,1);
-            Ssync[Smfi].minus<RunOn::Host>(delta_ssync,bx,0,istate-BL_SPACEDIM,1);
-          }
+	    amrex::ParallelFor(bx, [rho, Snew, dSsync, drhosync, ssync, iconserved ]
+	    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	    {
+	      dSsync(i,j,k,iconserved) = Snew(i,j,k) * drhosync(i,j,k) / rho(i,j,k);
+	      ssync(i,j,k) -= dSsync(i,j,k);
+	    });
 	}
       }
     }
@@ -1841,18 +1830,20 @@ NavierStokes::mac_sync ()
     if (do_mom_diff == 1)
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-      for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
+      for (MFIter mfi(rho_ctime, TilingIfNotGPU()); mfi.isValid(); ++mfi)
       {
-	FArrayBox&       vfab   = Vsync[Vsyncmfi];
-	const FArrayBox& rhofab = rho_ctime[Vsyncmfi];
-	const Box&       bx     = Vsyncmfi.tilebox();
-
-        // FIXME MSD: Combine these
-	D_TERM(vfab.divide<RunOn::Host>(rhofab,bx,0,Xvel,1);,
-	       vfab.divide<RunOn::Host>(rhofab,bx,0,Yvel,1);,
-	       vfab.divide<RunOn::Host>(rhofab,bx,0,Zvel,1););
+	const Box& bx = mfi.tilebox();
+	auto const& rho_c    = rho_ctime.array(mfi);
+	auto const& vsync    = Vsync.array(mfi,Xvel);
+	amrex::ParallelFor(bx, [rho_c, vsync]
+	AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+	  for (int n = 0; n < AMREX_SPACEDIM; n++) {
+	    vsync(i,j,k,n) /= rho_c(i,j,k);
+	  }
+	});
       }
     }
     //
@@ -1931,7 +1922,6 @@ NavierStokes::mac_sync ()
         MultiFab *alpha_in = 0;
         const int alphaComp = 0;
         int betaComp = 0;
-        int visc_coef_comp = state_ind;
 
         diffuse_comp[0] = is_diffusive[BL_SPACEDIM+sigma];
 
@@ -1984,31 +1974,14 @@ NavierStokes::mac_sync ()
       if (istate != Density && advectionType[istate] == Conservative)
       {
 	iconserved++;
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter SsyncMfi(Ssync,true); SsyncMfi.isValid(); ++SsyncMfi)
-        {
-	  const Box& bx = SsyncMfi.tilebox();
-	  Ssync[SsyncMfi].plus<RunOn::Host>((*DeltaSsync)[SsyncMfi], bx,
-                                            iconserved, istate-BL_SPACEDIM, 1);
-	}
+
+	MultiFab::Add(Ssync,*DeltaSsync,iconserved,istate-AMREX_SPACEDIM,1,0);
       }
     }
     //
     // Add the sync correction to the state.
     //
-    for (int sigma  = 0; sigma < numscal; sigma++)
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter S_newmfi(S_new,true); S_newmfi.isValid(); ++S_newmfi)
-      {
-	S_new[S_newmfi].plus<RunOn::Host>(Ssync[S_newmfi],S_newmfi.tilebox(),
-                                          sigma,BL_SPACEDIM+sigma,1);
-      }
-    }
+    MultiFab::Add(S_new,Ssync,0,AMREX_SPACEDIM,numscal,0);
     //
     // Update rho_ctime after rho is updated with Ssync.
     //
@@ -2046,13 +2019,7 @@ NavierStokes::mac_sync ()
 		 numscal,1,mult,sync_bc.dataPtr());
 
       MultiFab& Sf_new = fine_lev.get_new_data(State_Type);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(Sf_new,true); mfi.isValid(); ++mfi){
-	const Box& bx = mfi.tilebox();
-	Sf_new[mfi].plus<RunOn::Host>(sync_incr[mfi],bx,0,Density,numscal);
-      }
+      MultiFab::Add(Sf_new,sync_incr,0,Density,numscal,0);
 
       fine_lev.make_rho_curr_time();
       fine_lev.incrRhoAvg(sync_incr,Density-BL_SPACEDIM,1.0);
@@ -2098,35 +2065,28 @@ NavierStokes::reflux ()
     if (do_mom_diff == 0)
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
-        {
-            FArrayBox&       vfab  = Vsync[Vsyncmfi];
-            const FArrayBox& rhfab = Rh[Vsyncmfi];
-	    const Box&       bx    = Vsyncmfi.tilebox();
+      for (MFIter mfi(Vsync,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+         const Box&  bx      = mfi.tilebox();
+         auto const& vsync   = Vsync.array(mfi);
+         auto const& rhohalf = Rh.array(mfi);
 
-            // FIXME MSD: Combine these
-            D_TERM(vfab.divide<RunOn::Host>(rhfab,bx,0,Xvel,1);,
-                   vfab.divide<RunOn::Host>(rhfab,bx,0,Yvel,1);,
-                   vfab.divide<RunOn::Host>(rhfab,bx,0,Zvel,1););
-        }
+         amrex::ParallelFor(bx, AMREX_SPACEDIM, [vsync, rhohalf]
+         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+         {
+            vsync(i,j,k,n) /= rhohalf(i,j,k);
+         });
+      }
     }
 
-    for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
+    for (int istate = AMREX_SPACEDIM; istate < NUM_STATE; istate++)
     {
-        if (advectionType[istate] == NonConservative)
-        {
-            const int sigma = istate -  BL_SPACEDIM;
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-            for (MFIter Ssyncmfi(Ssync,true); Ssyncmfi.isValid(); ++Ssyncmfi)
-            {
-		const Box& bx = Ssyncmfi.tilebox();
-                Ssync[Ssyncmfi].divide<RunOn::Host>(Rh[Ssyncmfi],bx,0,sigma,1);
-            }
-        }
+      if (advectionType[istate] == NonConservative)
+      {
+	MultiFab::Divide(Ssync,Rh,0,istate-AMREX_SPACEDIM,1,0);
+      }
     }
 
     fr_adv.Reflux(Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
@@ -2140,27 +2100,34 @@ NavierStokes::reflux ()
 
     baf.coarsen(fine_ratio);
 
-    // fixme: Tile? Perhaps just OMP? problem dependent?
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter Vsyncmfi(Vsync,true); Vsyncmfi.isValid(); ++Vsyncmfi)
-    {
-        const int i     = Vsyncmfi.index();
-        FArrayBox& vfab = Vsync[Vsyncmfi];
-        FArrayBox& sfab = Ssync[Vsyncmfi];
+   {
+      std::vector< std::pair<int,Box> > isects;
+      for (MFIter mfi(Vsync,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+         const Box& bx = mfi.growntilebox();
+         auto const& vsync   = Vsync.array(mfi);
+         auto const& ssync   = Ssync.array(mfi);
+         int nstate          = NUM_STATE;
 
-        BL_ASSERT(grids[i].contains(Vsyncmfi.tilebox()));
+         baf.intersections(bx,isects);
 
-	const std::vector< std::pair<int,Box> >& isects =  baf.intersections(Vsyncmfi.tilebox());
-
-        for (int ii = 0, N = isects.size(); ii < N; ii++)
-        {
-          // FIXME MSD: Combine these
-          vfab.setVal<RunOn::Host>(0,isects[ii].second,0,BL_SPACEDIM);
-          sfab.setVal<RunOn::Host>(0,isects[ii].second,0,NUM_STATE-BL_SPACEDIM);
+         for (int it = 0, N = isects.size(); it < N; it++) {
+            amrex::ParallelFor(isects[it].second, [vsync, ssync, nstate]
+            AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+               for (int n = 0; n < AMREX_SPACEDIM; n++) {
+                  vsync(i,j,k,n) = 0.0;
+               }
+               for (int n = 0; n < nstate-AMREX_SPACEDIM; n++) {
+                  ssync(i,j,k,n) = 0.0;
+               }
+            });
         }
-    }
+      }
+   }
 }
 
 //
@@ -2173,7 +2140,6 @@ NavierStokes::avgDown ()
     if (level == parent->finestLevel())
         return;
 
-    NavierStokes&   crse_lev = getLevel(level  );
     NavierStokes&   fine_lev = getLevel(level+1);
     //
     // Average down the states at the new time.
@@ -2190,27 +2156,7 @@ NavierStokes::avgDown ()
     MultiFab&       P_fine_init = fine_lev.get_new_data(Press_Type);
     MultiFab&       P_fine_avg  = fine_lev.p_avg;
     MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
-    // const BoxArray& P_fgrids    = fine_lev.state[Press_Type].boxArray();
 
-    // FIXME? Doesn't work. Get error:
-    //0::Assertion `ebflag.box().contains(amrex::enclosedCells(bx))' failed, file "../../../amrex_fork/amrex_tensorFlux/Src/EB/AMReX_EBFArrayBox.cpp", line 23 !!!
-    //
-    // BoxArray crse_P_fine_BA = P_fgrids; crse_P_fine_BA.coarsen(fine_ratio);
-    // MultiFab crse_P_fine(crse_P_fine_BA,fine_lev.DistributionMap(),1,0,MFInfo(),fine_lev.Factory());
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//     for (MFIter mfi(crse_P_fine,true); mfi.isValid(); ++mfi)
-//     {
-// 	const Box& bx = mfi.tilebox();
-
-// 	injectDown(bx,crse_P_fine[mfi],P_fine[mfi],fine_ratio);
-//     }
-//     P_crse.copy(crse_P_fine, parent->Geom(level).periodicity());
-
-//     crse_P_fine.clear();
-
-    // This ignores EB, but *think* it should be okay because nodes are directly copied
     // NOTE: this fills ghost cells, but amrex::average_down does not.
     amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
     //
@@ -2229,8 +2175,6 @@ NavierStokes::avgDown ()
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
 
 	average_down(Dsdt_fine, Dsdt_crse, 0, 1);
-	//amrex::average_down(Dsdt_fine, Dsdt_crse, fine_lev.geom, crse_lev.geom,
-	//		    0, 1, fine_ratio);
     }
     //
     // Fill rho_ctime at the current and finer levels with the correct data.
@@ -2247,14 +2191,15 @@ NavierStokes::avgDown ()
 
 void
 NavierStokes::calc_divu (Real      time,
-                         Real      dt,
+                         Real      /*dt*/,
                          MultiFab& divu)
 {
     BL_PROFILE("NavierStokes::calc_divu()");
 
     if (have_divu)
     {
-        divu.setVal(0);
+      // Don't think we need this here, but then ghost cells are uninitialized
+      // divu.setVal(0);
 
         if (do_temp && visc_coef[Temp] > 0.0)
         {
@@ -2267,62 +2212,63 @@ NavierStokes::calc_divu (Real      time,
 
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
 	    MultiFab& tmf = temp_fpi.get_mf();
-#ifdef AMREX_USE_EB
-	    EB_set_covered(tmf,COVERED_VAL);
-#endif
+
+	    Real THERMO_cp = 1004.6;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for ( MFIter rho_mfi(rhotime,true); rho_mfi.isValid(); ++rho_mfi)
+            for ( MFIter rho_mfi(rhotime,TilingIfNotGPU()); rho_mfi.isValid(); ++rho_mfi)
             {
-                FArrayBox& divufab = divu[rho_mfi];
-		const Box& bx = rho_mfi.tilebox();
-
-                // FIXME MSD: Combine these
-                divufab.divide<RunOn::Host>(rhotime[rho_mfi],bx,0,0,1);
-                divufab.divide<RunOn::Host>(tmf[rho_mfi],bx,0,0,1);
-            }
+	        const Box&  bx  = rho_mfi.tilebox();
+		auto const& div = divu.array(rho_mfi);
+		auto const& rho = rhotime.array(rho_mfi);
+		auto const& temp = tmf.array(rho_mfi);
 #ifdef AMREX_USE_EB
-	    EB_set_covered(divu,COVERED_VAL);
+		auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+		auto const& flagfab = ebfactory.getMultiEBCellFlagFab()[rho_mfi];
+		auto const& flag    = flagfab.const_array();
+
+		if (flagfab.getType(bx) == FabType::covered)
+		{
+		  amrex::ParallelFor(bx, [div]
+		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+		  {
+		    div( i, j, k ) = COVERED_VAL;
+		  });
+		}
+		else if (flagfab.getType(bx) != FabType::regular)
+		{
+		  auto vfrac = ebfactory.getVolFrac().const_array(rho_mfi);
+
+		  amrex::ParallelFor(bx, [div, rho, temp, vfrac, THERMO_cp]
+		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+		  {
+		    if ( vfrac(i,j,k) > 0.0 )
+		    {
+		      div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k)*THERMO_cp );
+		    }
+		    else
+		    {
+		      div(i,j,k) = COVERED_VAL;
+		    }
+		  });
+		}
+		else
 #endif
-	    //            Real THERMO_cp_inv = 1.0 / 1004.6;
-            divu.mult(1/THERMO_cp);
-
+		{
+		  amrex::ParallelFor(bx, [div, rho, temp, THERMO_cp]
+		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+		  {
+		    div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k)*THERMO_cp );
+		  });
+		}
+	    }
         }
-    }
-}
-
-//
-// Default dSdt is set to zero.
-//
-
-void
-NavierStokes::calc_dsdt (Real      time,
-                         Real      dt,
-                         MultiFab& dsdt)
-{
-    if (have_divu && have_dsdt)
-    {
-        dsdt.setVal(0);
-
-        if (do_temp)
-        {
-            MultiFab& Divu_new = get_new_data(Divu_Type);
-            MultiFab& Divu_old = get_old_data(Divu_Type);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-            for (MFIter mfi(dsdt,true); mfi.isValid(); ++mfi)
-            {
-                const Box& vbx     = mfi.tilebox();
-                FArrayBox& dsdtfab = dsdt[mfi];
-                // FIXME MSD: Combine these
-                dsdtfab.copy<RunOn::Host>(Divu_new[mfi],vbx,0,vbx,0,1);
-                dsdtfab.minus<RunOn::Host>(Divu_old[mfi],vbx,0,0,1);
-                dsdtfab.divide<RunOn::Host>(dt,vbx,0,1);
-            }
-        }
+	else
+	{
+	  divu.setVal(0);
+	}
     }
 }
 
@@ -2443,9 +2389,9 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 //
 void
 NavierStokes::calcViscosity (const Real time,
-                             const Real dt,
-                             const int  iteration,
-                             const int  ncycle)
+                             const Real /*dt*/,
+                             const int  /*iteration*/,
+                             const int  /*ncycle*/)
 {
     if (is_diffusive[Xvel])
     {

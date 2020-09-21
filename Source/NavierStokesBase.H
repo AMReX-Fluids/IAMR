@@ -221,9 +221,9 @@ protected:
                       const amrex::DistributionMapping& dm,
 		      amrex::Real            time);
 
-    ////////////////////////////////////////////////////////////////////////////
-    //    NavierStokesBase protected functions                                //
-    ////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    //    NavierStokesBase functions                                //
+    //////////////////////////////////////////////////////////////////
 
     void advance_cleanup (int iteration,int ncycle);
 
@@ -389,9 +389,9 @@ protected:
 #endif
 #endif
 
-    ////////////////////////////////////////////////////////////////////////////
-    //    NavierStokesBase protected virtual functions                        //
-    ////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////
+    //    NavierStokesBase virtual functions                        //
+    //////////////////////////////////////////////////////////////////
 
     virtual void advance_setup (amrex::Real time,
 				amrex::Real dt,
@@ -403,9 +403,6 @@ protected:
     virtual void calc_divu (amrex::Real      time,
 			    amrex::Real      dt,
 			    amrex::MultiFab& fab) = 0;
-    virtual void calc_dsdt (amrex::Real      time,
-			    amrex::Real      dt,
-			    amrex::MultiFab& dsdt) = 0;
     //
     // Calculate nonuniform viscosity and diffusivity
     //
@@ -453,7 +450,7 @@ protected:
     virtual void velocity_diffusion_update (amrex::Real dt) = 0;
 
     ////////////////////////////////////////////////////////////////////////////
-    //    NavierStokesBase protected static functions                         //
+    //    NavierStokesBase static functions                                   //
     ////////////////////////////////////////////////////////////////////////////
 
     static void variableCleanUp (); // Cleanup data descriptors at end of run.
@@ -492,14 +489,16 @@ protected:
     void printMaxValues (bool new_data = true);
 
     ////////////////////////////////////////////////////////////////////////////
-    //    NavierStokesBase protected embedded boundary functions              //
-    ////////////////////////////////////////////////////////////////////////////
 
     void buildMetrics (); // 1-D metric arrays for RZ
     //
     // Compute dpdt
     //
     void calcDpdt();
+    //
+    void calc_dsdt (amrex::Real      time,
+		    amrex::Real      dt,
+		    amrex::MultiFab& dsdt);
     //
     NavierStokesBase& getLevel (int lev) {
 	return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
