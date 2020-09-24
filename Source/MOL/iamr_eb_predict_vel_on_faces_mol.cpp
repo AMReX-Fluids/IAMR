@@ -1,6 +1,6 @@
-#include <iamr_eb_slopes_K.H>
 #include <iamr_constants.H>
 #include <iamr_mol.H>
+#include <AMReX_EB_slopes_K.H>
 
 using namespace amrex;
 
@@ -32,13 +32,22 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
     const int  domain_khi = domain_box.bigEnd(2);
 #endif
 
-    bool extdir_ilo = (bc[0].lo(0) == BCType::ext_dir) || (bc[0].lo(0) == BCType::hoextrap);
-    bool extdir_ihi = (bc[0].hi(0) == BCType::ext_dir) || (bc[0].hi(0) == BCType::hoextrap);
-    bool extdir_jlo = (bc[1].lo(1) == BCType::ext_dir) || (bc[1].lo(1) == BCType::hoextrap);
-    bool extdir_jhi = (bc[1].lo(1) == BCType::ext_dir) || (bc[1].lo(1) == BCType::hoextrap);
+    bool extdir_or_ho_ilo = (bc[0].lo(0) == BCType::ext_dir) || (bc[0].lo(0) == BCType::hoextrap);
+    bool extdir_or_ho_ihi = (bc[0].hi(0) == BCType::ext_dir) || (bc[0].hi(0) == BCType::hoextrap);
+    bool extdir_or_ho_jlo = (bc[1].lo(1) == BCType::ext_dir) || (bc[1].lo(1) == BCType::hoextrap);
+    bool extdir_or_ho_jhi = (bc[1].lo(1) == BCType::ext_dir) || (bc[1].lo(1) == BCType::hoextrap);
 #if (AMREX_SPACEDIM==3)
-    bool extdir_klo = (bc[2].lo(2) == BCType::ext_dir) || (bc[2].lo(2) == BCType::hoextrap);
-    bool extdir_khi = (bc[2].lo(2) == BCType::ext_dir) || (bc[2].lo(2) == BCType::hoextrap);
+    bool extdir_or_ho_klo = (bc[2].lo(2) == BCType::ext_dir) || (bc[2].lo(2) == BCType::hoextrap);
+    bool extdir_or_ho_khi = (bc[2].lo(2) == BCType::ext_dir) || (bc[2].lo(2) == BCType::hoextrap);
+#endif
+
+    bool extdir_ilo = (bc[0].lo(0) == BCType::ext_dir);
+    bool extdir_ihi = (bc[0].hi(0) == BCType::ext_dir);
+    bool extdir_jlo = (bc[1].lo(1) == BCType::ext_dir);
+    bool extdir_jhi = (bc[1].lo(1) == BCType::ext_dir);
+#if (AMREX_SPACEDIM==3)
+    bool extdir_klo = (bc[2].lo(2) == BCType::ext_dir);
+    bool extdir_khi = (bc[2].lo(2) == BCType::ext_dir);
 #endif
 
     // At an ext_dir boundary, the boundary value is on the face, not cell center.
@@ -46,14 +55,20 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
     // ****************************************************************************
     // Predict to x-faces
     // ****************************************************************************
-    if ((extdir_ilo and domain_ilo >= a_ubx.smallEnd(0)-1) or
-        (extdir_ihi and domain_ihi <= a_ubx.bigEnd(0)))
+    if ((extdir_or_ho_ilo and domain_ilo >= a_ubx.smallEnd(0)-1) or
+        (extdir_or_ho_ihi and domain_ihi <= a_ubx.bigEnd(0)))
     {
         amrex::ParallelFor(Box(a_ubx),
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (a_flag(i,j,k).isConnected(-1,0,0))
             {
+	      if (extdir_ilo and i == domain_ilo) {
+		  a_u(i,j,k) = a_vcc(i-1,j,k,0);
+               } else if (extdir_ihi and i == domain_ihi+1) {
+                   a_u(i,j,k) = a_vcc(i,j,k,0);
+               } else {	       
+	      
                Real yf = a_fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
 #if (AMREX_SPACEDIM==3)
                Real zf = a_fcx(i,j,k,1);
@@ -71,8 +86,14 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real cc_umin = amrex::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
 
                // Compute slopes of component "0" of a_vcc
-               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(D_DECL(i,j,k), 0, a_vcc, a_ccc,
-                                                                a_flag, bc, domain_box );
+		const auto& slopes_eb_hi =
+		  amrex_calc_slopes_extdir_eb(i,j,k, 0, a_vcc, a_ccc,
+					      AMREX_D_DECL(a_fcx,a_fcy,a_fcz), a_flag,
+					      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
+					      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
+					      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
+					      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+
 #if (AMREX_SPACEDIM==3)
                Real upls = a_vcc(i  ,j,k,0) - delta_x * slopes_eb_hi[0]
                                             + delta_y * slopes_eb_hi[1]
@@ -93,8 +114,14 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       delta_z = zf  - zc;);
 
                // Compute slopes of component "0" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(D_DECL(i-1,j,k),0,a_vcc,a_ccc,a_flag,
-                                                                bc, domain_box);
+		const auto& slopes_eb_lo =
+		  amrex_calc_slopes_extdir_eb(i-1,j,k,0,a_vcc,a_ccc,
+					      AMREX_D_DECL(a_fcx,a_fcy,a_fcz), a_flag,
+					      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+					      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+					      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+					      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+
 #if (AMREX_SPACEDIM==3)
                Real umns = a_vcc(i-1,j,k,0) + delta_x * slopes_eb_lo[0]
                                             + delta_y * slopes_eb_lo[1]
@@ -115,13 +142,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                   } else                           { a_u(i,j,k) = upls;
                   }
                }
-
-               if (extdir_ilo and i == domain_ilo) {
-                   a_u(i,j,k) = a_vcc(i-1,j,k,0);
-               } else if (extdir_ihi and i == domain_ihi+1) {
-                   a_u(i,j,k) = a_vcc(i,j,k,0);
                }
-
             } else {
                a_u(i,j,k) = 0.0;
             }
@@ -151,7 +172,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real cc_umin = amrex::min(a_vcc(i,j,k,0), a_vcc(i-1,j,k,0));
 
                // Compute slopes of component "0" of a_vcc
-               const auto slopes_eb_hi = iamr_slopes_eb(D_DECL(i,j,k),0,a_vcc,a_ccc,a_flag);
+               const auto slopes_eb_hi = amrex_calc_slopes_eb(i,j,k,0,a_vcc,a_ccc,a_flag);
 
 #if (AMREX_SPACEDIM==3)
                Real upls = a_vcc(i  ,j,k,0) - delta_x * slopes_eb_hi[0]
@@ -173,7 +194,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       delta_z = zf  - zc;);
 
                // Compute slopes of component "0" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_eb(D_DECL(i-1,j,k),0,a_vcc,a_ccc,a_flag);
+               const auto& slopes_eb_lo =
+		 amrex_calc_slopes_eb(i-1,j,k,0,a_vcc,a_ccc,a_flag);
 
 #if (AMREX_SPACEDIM==3)
                Real umns = a_vcc(i-1,j,k,0) + delta_x * slopes_eb_lo[0]
@@ -205,14 +227,20 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
     // ****************************************************************************
     // Predict to y-faces
     // ****************************************************************************
-    if ((extdir_jlo and domain_jlo >= a_vbx.smallEnd(1)-1) or
-        (extdir_jhi and domain_jhi <= a_vbx.bigEnd(1)))
+    if ((extdir_or_ho_jlo and domain_jlo >= a_vbx.smallEnd(1)-1) or
+        (extdir_or_ho_jhi and domain_jhi <= a_vbx.bigEnd(1)))
     {
         amrex::ParallelFor(Box(a_vbx),
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (a_flag(i,j,k).isConnected(0,-1,0))
             {
+               if (extdir_jlo and j == domain_jlo) {
+                   a_v(i,j,k) = a_vcc(i,j-1,k,1);
+               } else if (extdir_jhi and j == domain_jhi+1) {
+                   a_v(i,j,k) = a_vcc(i,j,k,1);
+               } else {
+
                Real xf = a_fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
 #if (AMREX_SPACEDIM==3)
                Real zf = a_fcy(i,j,k,1);
@@ -230,7 +258,14 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real cc_vmin = amrex::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
 
                // Compute slopes of component "1" of a_vcc
-               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(D_DECL(i,j,k),1,a_vcc,a_ccc,a_flag,bc,domain_box);
+		 const auto& slopes_eb_hi =
+		   amrex_calc_slopes_extdir_eb(i,j,k,1,a_vcc,a_ccc,
+					       AMREX_D_DECL(a_fcx,a_fcy,a_fcz),a_flag,
+					       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+					       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+					       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+					       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+	       
 
 #if (AMREX_SPACEDIM==3)
                Real vpls = a_vcc(i,j  ,k,1) + delta_x * slopes_eb_hi[0]
@@ -252,7 +287,13 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       delta_z = zf  - zc;);
 
                // Compute slopes of component "1" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(D_DECL(i,j-1,k),1,a_vcc,a_ccc,a_flag,bc, domain_box);
+		 const auto& slopes_eb_lo =
+		   amrex_calc_slopes_extdir_eb(i,j-1,k,1,a_vcc,a_ccc,
+					       AMREX_D_DECL(a_fcx,a_fcy,a_fcz),a_flag,
+					       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+					       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+					       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+					       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
 #if (AMREX_SPACEDIM==3)
                Real vmns = a_vcc(i,j-1,k,1) + delta_x * slopes_eb_lo[0]
@@ -274,13 +315,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                   } else                           { a_v(i,j,k) = vpls;
                   }
                }
-
-               if (extdir_jlo and j == domain_jlo) {
-                   a_v(i,j,k) = a_vcc(i,j-1,k,1);
-               } else if (extdir_jhi and j == domain_jhi+1) {
-                   a_v(i,j,k) = a_vcc(i,j,k,1);
                }
-
             } else {
                a_v(i,j,k) = 0.0;
             }
@@ -310,7 +345,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real cc_vmin = amrex::min(a_vcc(i,j,k,1), a_vcc(i,j-1,k,1));
 
                // Compute slopes of component "1" of a_vcc
-               const auto slopes_eb_hi = iamr_slopes_eb(D_DECL(i,j,k),1,a_vcc,a_ccc,a_flag);
+               const auto slopes_eb_hi =
+		 amrex_calc_slopes_eb(i,j,k,1,a_vcc,a_ccc,a_flag);
 
 #if (AMREX_SPACEDIM==3)
                Real vpls = a_vcc(i,j  ,k,1) + delta_x * slopes_eb_hi[0]
@@ -332,7 +368,8 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                       delta_z = zf  - zc;);
 
                // Compute slopes of component "1" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_eb(D_DECL(i,j-1,k),1,a_vcc,a_ccc,a_flag);
+               const auto& slopes_eb_lo =
+		 amrex_calc_slopes_eb(i,j-1,k,1,a_vcc,a_ccc,a_flag);
 
 #if (AMREX_SPACEDIM==3)
                Real vmns = a_vcc(i,j-1,k,1) + delta_x * slopes_eb_lo[0]
@@ -365,14 +402,20 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
     // ****************************************************************************
     // Predict to z-faces
     // ****************************************************************************
-    if ((extdir_klo and domain_klo >= a_wbx.smallEnd(2)-1) or
-        (extdir_khi and domain_khi <= a_wbx.bigEnd(2)))
+    if ((extdir_or_ho_klo and domain_klo >= a_wbx.smallEnd(2)-1) or
+        (extdir_or_ho_khi and domain_khi <= a_wbx.bigEnd(2)))
     {
         amrex::ParallelFor(Box(a_wbx),
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (a_flag(i,j,k).isConnected(0,0,-1))
             {
+	        if (extdir_or_ho_klo and k == domain_klo) {
+                    a_w(i,j,k) = a_vcc(i,j,k-1,2);
+                } else if (extdir_or_ho_khi and k == domain_khi+1) {
+                    a_w(i,j,k) = a_vcc(i,j,k,2);
+                } else {
+
                Real xf = a_fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
                Real yf = a_fcz(i,j,k,1);
 
@@ -388,7 +431,14 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real cc_wmin = amrex::min(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
 
                // Compute slopes of component "2" of a_vcc
-               const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,2,a_vcc,a_ccc,a_flag,bc,domain_box);
+		  const auto& slopes_eb_hi =
+		    amrex_calc_slopes_extdir_eb(i,j,k,2,a_vcc,a_ccc,
+						AMREX_D_DECL(a_fcx,a_fcy,a_fcz),a_flag,
+						AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+						AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+						AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+						AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+
 
                Real wpls = a_vcc(i,j,k  ,2) + delta_x * slopes_eb_hi[0]
                                             + delta_y * slopes_eb_hi[1]
@@ -405,7 +455,13 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                delta_z = 0.5 - zc;
 
                // Compute slopes of component "2" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j,k-1,2,a_vcc,a_ccc,a_flag,bc,domain_box);
+		  const auto& slopes_eb_lo =
+		    amrex_calc_slopes_extdir_eb(i,j,k-1,2,a_vcc,a_ccc,
+						AMREX_D_DECL(a_fcx,a_fcy,a_fcz),a_flag,
+						AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+						AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+						AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+						AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
                Real wmns = a_vcc(i,j,k-1,2) + delta_x * slopes_eb_lo[0]
                                             + delta_y * slopes_eb_lo[1]
@@ -422,13 +478,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                   } else                           { a_w(i,j,k) = wpls;
                   }
                }
-
-                if (extdir_klo and k == domain_klo) {
-                    a_w(i,j,k) = a_vcc(i,j,k-1,2);
-                } else if (extdir_khi and k == domain_khi+1) {
-                    a_w(i,j,k) = a_vcc(i,j,k,2);
                 }
-
             } else {
                a_w(i,j,k) = 0.0;
             }
@@ -456,7 +506,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                Real cc_wmin = amrex::min(a_vcc(i,j,k,2), a_vcc(i,j,k-1,2));
 
                // Compute slopes of component "2" of a_vcc
-               const auto slopes_eb_hi = iamr_slopes_eb(i,j,k,2,a_vcc,a_ccc,a_flag);
+               const auto slopes_eb_hi = amrex_calc_slopes_eb(i,j,k,2,a_vcc,a_ccc,a_flag);
 
                Real wpls = a_vcc(i,j,k  ,2) + delta_x * slopes_eb_hi[0]
                                             + delta_y * slopes_eb_hi[1]
@@ -473,7 +523,7 @@ MOL::EB_PredictVelOnFaces ( Box const& a_ccbx,
                delta_z = 0.5 - zc;
 
                // Compute slopes of component "2" of a_vcc
-               const auto& slopes_eb_lo = iamr_slopes_eb(i,j,k-1,2,a_vcc,a_ccc,a_flag);
+               const auto& slopes_eb_lo = amrex_calc_slopes_eb(i,j,k-1,2,a_vcc,a_ccc,a_flag);
 
                Real wmns = a_vcc(i,j,k-1,2) + delta_x * slopes_eb_lo[0]
                                             + delta_y * slopes_eb_lo[1]

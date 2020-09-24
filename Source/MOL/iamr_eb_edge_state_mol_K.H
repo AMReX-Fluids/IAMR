@@ -1,7 +1,7 @@
 #ifndef IAMR_EB_EDGE_STATE_MOL_K_H_
 #define IAMR_EB_EDGE_STATE_MOL_K_H_
 
-#include <iamr_eb_slopes_K.H>
+#include <AMReX_EB_slopes_K.H>
 #include <AMReX_BCRec.H>
 #include <iamr_constants.H>
 
@@ -12,7 +12,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                              amrex::Array4<amrex::Real const> const& q,
                                              amrex::Array4<amrex::Real const> const& umac,
-                                             amrex::Array4<amrex::Real const> const& fcx,
+					     AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+							  amrex::Array4<amrex::Real const> const& fcy,
+							  amrex::Array4<amrex::Real const> const& fcz),
                                              amrex::Array4<amrex::Real const> const& ccc,
                                              amrex::Array4<amrex::EBCellFlag const> const& flag,
                                              amrex::BCRec const* const d_bcrec,
@@ -26,8 +28,8 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     amrex::Real qs;
     int  domlo = domain.smallEnd(0);
     int  domhi = domain.bigEnd(0);
-    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir || d_bcrec[n].lo(0) == amrex::BCType::hoextrap;
-    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir || d_bcrec[n].hi(0) == amrex::BCType::hoextrap;
+    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir; 
+    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir; 
 
     if ( extlo and i <= domlo)
     {
@@ -39,6 +41,15 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     }
     else
     {
+        const int domain_ilo = domain.smallEnd(0);
+	const int domain_ihi = domain.bigEnd(0);
+	const int domain_jlo = domain.smallEnd(1);
+	const int domain_jhi = domain.bigEnd(1);
+#if (AMREX_SPACEDIM == 3)
+	const int domain_klo = domain.smallEnd(2);
+	const int domain_khi = domain.bigEnd(2);
+#endif
+
         amrex::Real yf = fcx(i,j,k,0); // local (y,z) of centroid of z-face we are extrapolating to
 #if (AMREX_SPACEDIM==3)
         amrex::Real zf = fcx(i,j,k,1);
@@ -55,8 +66,27 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
         amrex::Real cc_qmax = amrex::max(q(i,j,k,n),q(i-1,j,k,n));
         amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i-1,j,k,n));
 
-        // Compute slopes of component "n" of q
-        const auto& slopes_eb_hi = iamr_slopes_extdir_eb( D_DECL(i, j, k), n, q, ccc, flag, d_bcrec, domain);
+	AMREX_D_TERM(bool extdir_or_ho_ilo = (d_bcrec[n].lo(0) == amrex::BCType::ext_dir) or
+		                             (d_bcrec[n].lo(0) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_jlo = (d_bcrec[n].lo(1) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].lo(1) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_klo = (d_bcrec[n].lo(2) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].lo(2) == amrex::BCType::hoextrap););
+
+	AMREX_D_TERM(bool extdir_or_ho_ihi = (d_bcrec[n].hi(0) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(0) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_jhi = (d_bcrec[n].hi(1) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(1) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_khi = (d_bcrec[n].hi(2) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(2) == amrex::BCType::hoextrap););
+
+	const auto& slopes_eb_hi =
+	  amrex_calc_slopes_extdir_eb(i, j, k, n, q, ccc,
+				      AMREX_D_DECL(fcx,fcy,fcz), flag,
+				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qpls = q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
@@ -78,7 +108,13 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                 delta_z = zf  - zc;);
 
         // Compute slopes of component "n" of q
-        const auto& slopes_eb_lo = iamr_slopes_extdir_eb( D_DECL(i-1, j, k), n, q, ccc, flag, d_bcrec, domain);
+        const auto& slopes_eb_lo =
+	  amrex_calc_slopes_extdir_eb(i-1, j, k, n, q, ccc,
+				      AMREX_D_DECL(fcx,fcy,fcz), flag,
+				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
+				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
+				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
+				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qmns = q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
@@ -120,7 +156,7 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
     const int k = 0;
 #endif
 
-    // local (y,z) of centroid of z-face we are extrapolating to
+    // local (y,z) of centroid of x-face we are extrapolating to
     amrex::Real yf = fcx(i,j,k,0);
 #if (AMREX_SPACEDIM==3)
     amrex::Real zf = fcx(i,j,k,1);
@@ -138,7 +174,7 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
     amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i-1,j,k,n));
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_hi = iamr_slopes_eb( D_DECL(i, j, k), n, q, ccc, flag);
+    const auto& slopes_eb_hi = amrex_calc_slopes_eb(i, j, k, n, q, ccc, flag);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qpls = q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
@@ -160,7 +196,7 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
            delta_z = zf  - zc;);
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_lo = iamr_slopes_eb( D_DECL(i-1, j, k), n, q, ccc, flag);
+    const auto& slopes_eb_lo = amrex_calc_slopes_eb(i-1, j, k, n, q, ccc, flag);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qmns = q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
@@ -196,7 +232,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                              amrex::Array4<amrex::Real const> const& q,
                                              amrex::Array4<amrex::Real const> const& vmac,
+					     AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
                                              amrex::Array4<amrex::Real const> const& fcy,
+							  amrex::Array4<amrex::Real const> const& fcz),
                                              amrex::Array4<amrex::Real const> const& ccc,
                                              amrex::Array4<amrex::EBCellFlag const> const& flag,
                                              amrex::BCRec const* const d_bcrec,
@@ -209,8 +247,8 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     amrex::Real qs;
     int domlo = domain.smallEnd(1);
     int domhi = domain.bigEnd(1);
-    bool extlo = d_bcrec[n].lo(1) == amrex::BCType::ext_dir || d_bcrec[n].lo(1) == amrex::BCType::hoextrap;
-    bool exthi = d_bcrec[n].hi(1) == amrex::BCType::ext_dir || d_bcrec[n].hi(1) == amrex::BCType::hoextrap;
+    bool extlo = d_bcrec[n].lo(1) == amrex::BCType::ext_dir;
+    bool exthi = d_bcrec[n].hi(1) == amrex::BCType::ext_dir;
 
     if ( extlo and j <= domlo)
     {
@@ -222,6 +260,29 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     }
     else
     {
+        const int domain_ilo = domain.smallEnd(0);
+	const int domain_ihi = domain.bigEnd(0);
+	const int domain_jlo = domain.smallEnd(1);
+	const int domain_jhi = domain.bigEnd(1);
+#if (AMREX_SPACEDIM == 3)
+	const int domain_klo = domain.smallEnd(2);
+	const int domain_khi = domain.bigEnd(2);
+#endif
+	
+	AMREX_D_TERM(bool extdir_or_ho_ilo = (d_bcrec[n].lo(0) == amrex::BCType::ext_dir) or
+		                             (d_bcrec[n].lo(0) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_jlo = (d_bcrec[n].lo(1) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].lo(1) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_klo = (d_bcrec[n].lo(2) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].lo(2) == amrex::BCType::hoextrap););
+
+	AMREX_D_TERM(bool extdir_or_ho_ihi = (d_bcrec[n].hi(0) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(0) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_jhi = (d_bcrec[n].hi(1) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(1) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_khi = (d_bcrec[n].hi(2) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(2) == amrex::BCType::hoextrap););
+
         amrex::Real xf = fcy(i,j,k,0); // local (x,z) of centroid of z-face we are extrapolating to
 #if (AMREX_SPACEDIM==3)
         amrex::Real zf = fcy(i,j,k,1);
@@ -239,7 +300,13 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
         amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j-1,k,n));
 
         // Compute slopes of component "n" of q
-        const auto& slopes_eb_hi = iamr_slopes_extdir_eb( D_DECL(i, j, k), n, q, ccc, flag, d_bcrec, domain);
+        const auto& slopes_eb_hi =
+	  amrex_calc_slopes_extdir_eb(i, j, k, n, q, ccc,
+				      AMREX_D_DECL(fcx,fcy,fcz), flag,
+				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
+				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
+				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
+				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qpls = q(i  ,j,k,n) + delta_x * slopes_eb_hi[0]
@@ -261,7 +328,13 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                delta_z = zf  - zc;);
 
         // Compute slopes of component "n" of q
-        const auto& slopes_eb_lo = iamr_slopes_extdir_eb( D_DECL(i, j-1, k), n, q, ccc, flag, d_bcrec, domain);
+        const auto& slopes_eb_lo =
+	  amrex_calc_slopes_extdir_eb(i, j-1, k, n, q, ccc,
+				      AMREX_D_DECL(fcx,fcy,fcz), flag,
+				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
+				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
+				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
+				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qmns = q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
@@ -323,7 +396,7 @@ amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
     amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j-1,k,n));
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_hi = iamr_slopes_eb( D_DECL(i, j, k), n, q, ccc, flag);
+    const auto& slopes_eb_hi = amrex_calc_slopes_eb(i, j, k, n, q, ccc, flag);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qpls = q(i  ,j,k,n) + delta_x * slopes_eb_hi[0]
@@ -345,7 +418,7 @@ amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
            delta_z = zf  - zc;);
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_lo = iamr_slopes_eb( D_DECL(i, j-1, k), n, q, ccc, flag);
+    const auto& slopes_eb_lo = amrex_calc_slopes_eb(i, j-1, k, n, q, ccc, flag);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qmns = q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
@@ -385,7 +458,9 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
                                              amrex::Array4<amrex::Real const> const& q,
                                              amrex::Array4<amrex::Real const> const& wmac,
-                                             amrex::Array4<amrex::Real const> const& fcz,
+					     AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+							  amrex::Array4<amrex::Real const> const& fcy,
+							  amrex::Array4<amrex::Real const> const& fcz),
                                              amrex::Array4<amrex::Real const> const& ccc,
                                              amrex::Array4<amrex::EBCellFlag const> const& flag,
                                              amrex::BCRec const* const d_bcrec,
@@ -394,8 +469,8 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
     amrex::Real qs;
     int domlo = domain.smallEnd(2);
     int domhi = domain.bigEnd(2);
-    bool extlo = d_bcrec[n].lo(2) == amrex::BCType::ext_dir || d_bcrec[n].lo(2) == amrex::BCType::hoextrap;
-    bool exthi = d_bcrec[n].hi(2) == amrex::BCType::ext_dir || d_bcrec[n].hi(2) == amrex::BCType::hoextrap;
+    bool extlo = d_bcrec[n].lo(2) == amrex::BCType::ext_dir;
+    bool exthi = d_bcrec[n].hi(2) == amrex::BCType::ext_dir;
 
     if ( extlo and k <= domlo)
     {
@@ -407,6 +482,29 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
     }
     else
     {
+        const int domain_ilo = domain.smallEnd(0);
+	const int domain_ihi = domain.bigEnd(0);
+	const int domain_jlo = domain.smallEnd(1);
+	const int domain_jhi = domain.bigEnd(1);
+#if (AMREX_SPACEDIM == 3)
+	const int domain_klo = domain.smallEnd(2);
+	const int domain_khi = domain.bigEnd(2);
+#endif
+
+	AMREX_D_TERM(bool extdir_or_ho_ilo = (d_bcrec[n].lo(0) == amrex::BCType::ext_dir) or
+		                             (d_bcrec[n].lo(0) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_jlo = (d_bcrec[n].lo(1) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].lo(1) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_klo = (d_bcrec[n].lo(2) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].lo(2) == amrex::BCType::hoextrap););
+
+	AMREX_D_TERM(bool extdir_or_ho_ihi = (d_bcrec[n].hi(0) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(0) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_jhi = (d_bcrec[n].hi(1) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(1) == amrex::BCType::hoextrap);,
+		     bool extdir_or_ho_khi = (d_bcrec[n].hi(2) == amrex::BCType::ext_dir) or
+                                             (d_bcrec[n].hi(2) == amrex::BCType::hoextrap););
+
         amrex::Real xf = fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
         amrex::Real yf = fcz(i,j,k,1);
 
@@ -422,7 +520,13 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
         amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j,k-1,n));
 
         // Compute slopes of component "n" of q
-        const auto& slopes_eb_hi = iamr_slopes_extdir_eb(i,j,k,n,q,ccc,flag,d_bcrec,domain);
+        const auto& slopes_eb_hi =
+	  amrex_calc_slopes_extdir_eb(i,j,k,n,q,ccc,
+				      AMREX_D_DECL(fcx,fcy,fcz), flag,
+				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
+				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
+				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
+				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
         amrex::Real qpls = q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
                                         + delta_y * slopes_eb_hi[1]
@@ -439,7 +543,13 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
         delta_z = 0.5 - zc;
 
         // Compute slopes of component "n" of q
-        const auto& slopes_eb_lo = iamr_slopes_extdir_eb(i,j,k-1,n,q,ccc,flag,d_bcrec,domain);
+        const auto& slopes_eb_lo =
+	  amrex_calc_slopes_extdir_eb(i,j,k-1,n,q,ccc,
+				      AMREX_D_DECL(fcx,fcy,fcz),flag,
+				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
+				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
+				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
+				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
 
         amrex::Real qmns = q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
                                         + delta_y * slopes_eb_lo[1]
@@ -491,7 +601,7 @@ amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
     amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j,k-1,n));
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_hi = iamr_slopes_eb(i,j,k,n,q,ccc,flag);
+    const auto& slopes_eb_hi = amrex_calc_slopes_eb(i,j,k,n,q,ccc,flag);
 
     amrex::Real qpls = q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
                                     + delta_y * slopes_eb_hi[1]
@@ -508,7 +618,7 @@ amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
     delta_z = 0.5 - zc;
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_lo = iamr_slopes_eb(i,j,k-1,n,q,ccc,flag);
+    const auto& slopes_eb_lo = amrex_calc_slopes_eb(i,j,k-1,n,q,ccc,flag);
 
     amrex::Real qmns = q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
                                     + delta_y * slopes_eb_lo[1]

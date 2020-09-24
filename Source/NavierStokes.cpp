@@ -29,6 +29,8 @@
 
 #include <AMReX_buildInfo.H>
 
+#include <iamr_godunov.H>
+
 using namespace amrex;
 
 namespace
@@ -445,7 +447,7 @@ NavierStokes::floor(MultiFab& mf){
 #endif
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        Box gbx=mfi.growntilebox(Godunov::hypgrow());
+        Box gbx=mfi.growntilebox(godunov_hyp_grow);
         auto const& fab_a = mf.array(mfi);
         AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
         {
@@ -489,7 +491,7 @@ NavierStokes::predict_velocity (Real  dt)
 	  visc_terms.setVal(0);
     }
 
-    FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+    FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
 
     // Floor small values of states to be extrapolated
@@ -523,45 +525,60 @@ NavierStokes::predict_velocity (Real  dt)
     //
     // Non-EB version
     //
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
+    const int ngrow = 1;
+    MultiFab Gp(grids, dmap, AMREX_SPACEDIM,ngrow);
     getGradP(Gp, prev_pres_time);
 
+    MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
+
+    //
+    // Compute forcing
+    //
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         FArrayBox tforces;
-        Vector<int> bndry[BL_SPACEDIM];
 
-        for (MFIter U_mfi(Umf,true); U_mfi.isValid(); ++U_mfi)
+        for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
         {
             Box bx=U_mfi.tilebox();
             FArrayBox& Ufab = Umf[U_mfi];
+            auto const  gbx  = grow(bx,ngrow);
+            tforces.resize(gbx,AMREX_SPACEDIM);
 
             if (getForceVerbose) {
                 Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
             }
-	    const Box& forcebx = grow(bx,1);
-	    tforces.resize(forcebx,AMREX_SPACEDIM);
-            getForce(tforces,forcebx,1,Xvel,BL_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+
+            getForce(tforces,gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
 
             //
             // Compute the total forcing.
             //
-            godunov->Sum_tf_gp_visc(tforces,0,visc_terms[U_mfi],0,Gp[U_mfi],0,rho_ptime[U_mfi],0);
+            auto const& tf   = tforces.array();
+            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+            auto const& gp   = Gp.const_array(U_mfi);
+            auto const& rho  = rho_ptime.const_array(U_mfi);
 
-            D_TERM(bndry[0] = fetchBCArray(State_Type,bx,0,1);,
-                   bndry[1] = fetchBCArray(State_Type,bx,1,1);,
-                   bndry[2] = fetchBCArray(State_Type,bx,2,1););
+            amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+            });
 
-            //  1. compute slopes
-            //  2. trace state to cell edges
-            godunov->ExtrapVelToFaces(bx, dx, dt,
-                                      D_DECL(u_mac[0][U_mfi], u_mac[1][U_mfi], u_mac[2][U_mfi]),
-                                      D_DECL(bndry[0],        bndry[1],        bndry[2]),
-                                      Ufab, tforces);
+            forcing_term[U_mfi].copy<RunOn::Host>(tforces,0,0,AMREX_SPACEDIM);
         }
-    } // end OMP parallel region
+    }
+
+    Vector<BCRec> math_bcs(AMREX_SPACEDIM);
+    math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
+
+    //velpred=1 only, use_minion=1, ppm_type, slope_order
+    Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                               math_bcs, geom, dt, godunov_use_ppm,
+                               godunov_use_forces_in_trans );
+
 #endif
 
     return dt*tempdt;
@@ -618,13 +635,13 @@ NavierStokes::scalar_advection (Real dt,
     // Compute the advective forcing.
     //
     {
-        FillPatchIterator S_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,fscalar,num_scalars);
+        FillPatchIterator S_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,fscalar,num_scalars);
         MultiFab& Smf=S_fpi.get_mf();
 
         // Floor small values of states to be extrapolated
 	floor(Smf);
 
-        FillPatchIterator U_fpi(*this,visc_terms,Godunov::hypgrow(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+        FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
         const MultiFab& Umf=U_fpi.get_mf();
 
 
@@ -670,60 +687,99 @@ NavierStokes::scalar_advection (Real dt,
         //////////////////////////////////////////////////////////////////////////////
         //  NON-EB ALGORITHM
         //////////////////////////////////////////////////////////////////////////////
+        MultiFab cfluxes[AMREX_SPACEDIM];
+        MultiFab edgestate[AMREX_SPACEDIM];
+        MultiFab forcing_term( grids, dmap, num_scalars, nGrowF );
+
+        // NO Gghost nodes???
+        int nghost = 0;
+        for (int i(0); i < AMREX_SPACEDIM; i++)
+        {
+            const BoxArray& ba = getEdgeBoxArray(i);
+            cfluxes[i].define(ba, dmap, num_scalars, nghost);
+            cfluxes[i].setVal(0.0);
+            edgestate[i].define(ba, dmap, num_scalars, nghost);
+        }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
-
-            Vector<int> state_bc;
             FArrayBox tforces;
-            FArrayBox cfluxes[BL_SPACEDIM];
-            FArrayBox edgstate[BL_SPACEDIM];
 
-            for (MFIter S_mfi(Smf,true); S_mfi.isValid(); ++S_mfi)
+            for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
             {
                 const Box bx = S_mfi.tilebox();
+                auto const  gbx = grow(bx,nGrowF);
+                tforces.resize(gbx,num_scalars);
 
-                if (getForceVerbose) {
+                if (getForceVerbose)
+                {
                     Print() << "---" << '\n' << "C - scalar advection:" << '\n'
                             << " Calling getForce..." << '\n';
                 }
-		const Box& forcebx = grow(bx,1);
-		tforces.resize(forcebx,num_scalars);
-                getForce(tforces,forcebx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
 
-                for (int d=0; d<BL_SPACEDIM; ++d)
+                getForce( tforces,gbx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
+
+                for (int i=0; i<num_scalars; ++i)
                 {
-                    const Box& ebx = amrex::surroundingNodes(bx,d);
-                    cfluxes[d].resize(ebx,num_scalars);
-                    edgstate[d].resize(ebx,num_scalars);
+                    // FIXME: Loop rqd b/c function does not take array conserv_diff
+                    auto const& tf    = tforces.array(i);
+                    auto const& visc  = visc_terms.const_array(S_mfi,i);
+
+
+                    if (advectionType[fscalar+i] == Conservative)
+                    {
+                        auto const& divu  = divu_fp -> const_array(S_mfi);
+                        auto const& S     = Smf.array(S_mfi);
+
+                        amrex::ParallelFor(bx, [tf, visc, S, divu]
+                        AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+                        {
+                            tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
+                        });
+                }
+                    else
+                    {
+                        auto const& rho   = rho_ptime.const_array(S_mfi);
+
+                        amrex::ParallelFor(bx, [tf, visc, rho]
+                        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        {
+                            tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
+                        });
                 }
 
-                for (int i=0; i<num_scalars; ++i) { // FIXME: Loop rqd b/c function does not take array conserv_diff
-                    int use_conserv_diff = (advectionType[fscalar+i] == Conservative) ? 1 : 0;
-                    godunov->Sum_tf_divu_visc(Smf[S_mfi],i,tforces,i,1,visc_terms[S_mfi],i,
-                                              (*divu_fp)[S_mfi],0,rho_ptime[S_mfi],0,use_conserv_diff);
                 }
 
-                state_bc = fetchBCArray(State_Type,bx,fscalar,num_scalars);
-
-                godunov->AdvectScalars(bx, dx, dt,
-                                       D_DECL(  area[0][S_mfi],  area[1][S_mfi],  area[2][S_mfi]),
-                                       D_DECL( u_mac[0][S_mfi], u_mac[1][S_mfi], u_mac[2][S_mfi]), 0,
-                                       D_DECL(      cfluxes[0],      cfluxes[1],      cfluxes[2]), 0,
-                                       D_DECL(     edgstate[0],     edgstate[1],     edgstate[2]), 0,
-                                       Smf[S_mfi], 0, num_scalars, tforces, 0, (*divu_fp)[S_mfi], 0,
-                                       (*aofs)[S_mfi], fscalar, advectionType, state_bc, FPU, volume[S_mfi]);
-
-                if (do_reflux) {
-                  for (int d=0; d<BL_SPACEDIM; ++d) {
-                    const Box& ebx = S_mfi.nodaltilebox(d);
-                    (fluxes[d])[S_mfi].copy<RunOn::Host>(cfluxes[d],ebx,0,ebx,0,num_scalars);
-                  }
-                }
+                forcing_term[S_mfi].copy<RunOn::Host>(tforces,0,0,num_scalars);
             }
-        } // OMP parallel loop
+        }
+
+
+        Vector<BCRec> math_bcs(num_scalars);
+        math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
+
+        amrex::Gpu::DeviceVector<int> iconserv;
+        iconserv.resize(num_scalars, 0);
+        for (int comp = 0; comp < num_scalars; ++comp)
+        {
+            iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
+                  }
+
+        Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
+                             Smf, 0,
+                             AMREX_D_DECL( u_mac[0], u_mac[1], u_mac[2] ),
+                             AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,
+                             AMREX_D_DECL( cfluxes[0], cfluxes[1], cfluxes[2] ), 0,
+                             forcing_term, 0, *divu_fp, math_bcs, geom, iconserv,
+                             dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
+
+        if (do_reflux)
+        {
+            for (int d = 0; d < AMREX_SPACEDIM; ++d)
+                MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
+                }
 #endif
     } // FillPathIterator
 
@@ -2210,48 +2266,6 @@ NavierStokes::calc_divu (Real      time,
 	else
 	{
 	  divu.setVal(0);
-	}
-    }
-}
-
-//
-// Default dSdt is set to zero.
-//
-
-void
-NavierStokes::calc_dsdt (Real      /*time*/,
-                         Real      dt,
-                         MultiFab& dsdt)
-{
-    if (have_divu && have_dsdt)
-    {
-      // Don't think we need this here, but then will have uninitialized ghost cells
-      //dsdt.setVal(0);
-
-        if (do_temp)
-        {
-            MultiFab& Divu_new = get_new_data(Divu_Type);
-            MultiFab& Divu_old = get_old_data(Divu_Type);
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-	    for (MFIter mfi(dsdt,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-            {
-	        const Box&  bx      = mfi.tilebox();
-		auto const& div_new = Divu_new.array(mfi);
-		auto const& div_old = Divu_old.array(mfi);
-		auto const& dsdtarr = dsdt.array(mfi);
-
-		amrex::ParallelFor(bx, [div_new, div_old, dsdtarr, dt]
-	        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-       	        {
-		  dsdtarr(i,j,k) = ( div_new(i,j,k) - div_old(i,j,k) )/ dt;
-		});
-            }
-        }
-	else
-	{
-	    dsdt.setVal(0);
 	}
     }
 }
