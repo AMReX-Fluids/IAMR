@@ -144,7 +144,8 @@ amrex::Real iamr_ho_yslope (int i, int j, int k, int n,
     drgt = qp - qj;
     dcen = 0.5*(dlft+drgt);
     dsgn = std::copysign(1.e0, dcen);
-
+    dlim = (dlft*drgt >= 0.0) ? 2.0*amrex::min(amrex::Math::abs(dlft), amrex::Math::abs(drgt)) : 0.0;
+    
     dtemp  = 4.0/3.0*dcen - 1.0/6.0*(dfp + dfm);
     return dsgn*amrex::min(dlim, amrex::Math::abs(dtemp));
 }
