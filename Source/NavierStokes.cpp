@@ -709,8 +709,7 @@ NavierStokes::scalar_advection (Real dt,
 
             for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
             {
-                const Box bx = S_mfi.tilebox();
-                auto const  gbx = grow(bx,nGrowF);
+                const Box& gbx = S_mfi.growntilebox(nGrowF);
                 tforces.resize(gbx,num_scalars);
 
                 if (getForceVerbose)
@@ -733,7 +732,7 @@ NavierStokes::scalar_advection (Real dt,
                         auto const& divu  = divu_fp -> const_array(S_mfi);
                         auto const& S     = Smf.array(S_mfi);
 
-                        amrex::ParallelFor(bx, [tf, visc, S, divu]
+                        amrex::ParallelFor(gbx, [tf, visc, S, divu]
                         AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
                         {
                             tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
@@ -743,7 +742,7 @@ NavierStokes::scalar_advection (Real dt,
                     {
                         auto const& rho   = rho_ptime.const_array(S_mfi);
 
-                        amrex::ParallelFor(bx, [tf, visc, rho]
+                        amrex::ParallelFor(gbx, [tf, visc, rho]
                         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                         {
                             tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
