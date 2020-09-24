@@ -15,8 +15,6 @@
 
 #include <AMReX_NodalProjector.H>
 
-//fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -308,7 +306,7 @@ Projection::level_project (int             level,
     //       a new pressure at level-1.
     if (level != 0)
     {
-   LevelData[level]->FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
+      LevelData[level]->FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
     }
 
     const int nGrow = (level == 0  ?  0  :  -1);
@@ -356,6 +354,14 @@ Projection::level_project (int             level,
     ns->getGradP(Gp, prev_pres_time);
 #endif
 
+#ifndef NDEBUG
+#ifdef AMREX_USE_EB
+      // fixme - deal with case where covered cells are set to zero
+      //   there's probably a better way to handle this..
+      EB_set_covered(rho_half,0,1,1,1.2345e40);
+#endif
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -368,7 +374,7 @@ Projection::level_project (int             level,
        amrex::ParallelFor(bx, AMREX_SPACEDIM, [rho_h,gradp,u_new]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
-          u_new(i,j,k,n) += gradp(i,j,k,n) / rho_h(i,j,k);
+	   u_new(i,j,k,n) += gradp(i,j,k,n) / rho_h(i,j,k);
        });
     }
 
@@ -618,15 +624,8 @@ Projection::MLsyncProject (int             c_lev,
 
     NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[c_lev]);
     ns->average_down(*vel[c_lev+1],*vel[c_lev],0,AMREX_SPACEDIM);
-    //
-    // // restrict_level(v_crse, v_fine, ratio);
-    // amrex::average_down(*vel[c_lev+1],*vel[c_lev],fine_geom,crse_geom,
-    //                      0, AMREX_SPACEDIM, ratio);
 
     ns->average_down(*sig[c_lev+1],*sig[c_lev],0,sig[c_lev]->nComp());
-    // // restrict_level(*sig[c_lev], *sig[c_lev+1], ratio);
-    // amrex::average_down(*sig[c_lev+1],*sig[c_lev],fine_geom,crse_geom,
-    //                        0, sig[c_lev]->nComp(), ratio);
 
     MultiFab* sync_resid_crse = 0;
     std::unique_ptr<MultiFab> sync_resid_fine;
@@ -1374,6 +1373,13 @@ Projection::scaleVar (int             which_call,
     // nghosts info needed to avoid divide by zero.
     //
     if (sig != 0) {
+#ifndef NDEBUG
+#ifdef AMREX_USE_EB
+      // fixme - deal with case where covered cells are set to zero
+      //   there's probably a better way to handle this..
+      EB_set_covered(*sig,0,1,sig->nGrow(),1.2345e40);
+#endif
+#endif
       sig->invert(1.0,sig_nghosts);
       if (which_call  != INITIAL_PRESS &&
           anel_coeff[level] != 0) AnelCoeffMult(level,*sig,0);

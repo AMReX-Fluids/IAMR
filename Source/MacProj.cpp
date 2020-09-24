@@ -519,7 +519,7 @@ MacProj::mac_sync_solve (int       level,
 
         const std::vector< std::pair<int,Box> >& isects = baf.intersections(mfi.tilebox());
 
-        auto const& rhs = Rhs.array(mfi);
+        auto const& rhs = Rhs.array(mfi);  
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
             amrex::ParallelFor(isects[ii].second, [rhs]
@@ -668,7 +668,7 @@ MacProj::mac_sync_compute (int                   level,
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, NUM_STATE, nghost, MFInfo(), ns_level.Factory());
+        fluxes[i].define(ba, dmap, NUM_STATE, nghost, MFInfo(),ns_level.Factory());
         edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
     }
 
@@ -676,7 +676,6 @@ MacProj::mac_sync_compute (int                   level,
 
     FillPatchIterator S_fpi(ns_level,vel_visc_terms,ns_level.GodunovHypgrow(),
                             prev_time,State_Type,0,NUM_STATE);
-
     MultiFab& Smf = S_fpi.get_mf();
 
     //
@@ -691,7 +690,6 @@ MacProj::mac_sync_compute (int                   level,
     // Use a block here so all temporaries will go out of scope once
     // it is done being executed
     {
-        //MultiFab edgestate[AMREX_SPACEDIM];
         Vector<BCRec>  math_bcs(ncomp);
         const Box& domain = geom.Domain();
 
@@ -718,6 +716,9 @@ MacProj::mac_sync_compute (int                   level,
         }
     }
 #else
+    //
+    // non-EB algorithm
+    //
 
     const int ngrow  = 1; // Number of ghost nodes
     MultiFab forcing_term(grids, dmap, NUM_STATE, ngrow);
@@ -750,12 +751,13 @@ MacProj::mac_sync_compute (int                   level,
             const auto gbx = grow(Smfi.tilebox(),ngrow);
             tforces.resize(gbx,NUM_STATE);
             ns_level.getForce(tforces,gbx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
+	    //fixme? - need to check on this for GPU
             forcing_term[Smfi].copy<RunOn::Host>(tforces,0,0,NUM_STATE);
         }
     }
 
     for (int comp = 0; comp < NUM_STATE; ++comp)
-    {
+        {
         if (increment_sync.empty() || increment_sync[comp]==1)
         {
 
@@ -770,9 +772,9 @@ MacProj::mac_sync_compute (int                   level,
                 Rho.resize(amrex::grow(bx,ngrow),1);
                 Rho.copy<RunOn::Host>(Smf[Smfi],Density,0,1);
 
-                //
-                // Compute total forcing terms.
-                //
+            //
+            // Compute total forcing terms.
+            //
                 auto const& tf    = forcing_term.array(Smfi,comp);
                 auto const& rho   = Rho.const_array();
                 auto const  gbx   = grow(bx,ngrow);
@@ -784,16 +786,16 @@ MacProj::mac_sync_compute (int                   level,
 
                     amrex::ParallelFor(gbx, [tf, visc, gp, rho]
                     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                    {
+            {
                         tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
                     });
 
                     if ( not (do_mom_diff == 1 ) )
                         forcing_term[Smfi].divide<RunOn::Host>(Rho,0,comp,1);
 
-                }
+                    }
                 else  // Scalars
-                {
+                    {
                     auto const& visc = scal_visc_terms[Smfi].const_array(comp-AMREX_SPACEDIM);
                     auto const& S    = Smf.const_array(Smfi,comp);
                     auto const& divu = divu_fp -> const_array(Smfi);
@@ -803,12 +805,12 @@ MacProj::mac_sync_compute (int                   level,
                         tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
                     });
                 }
-            }
+                    }
 
 
-            //
+                    //
             // Perform sync
-            //
+                    //
             auto math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
 
             // Select sync MF and its component for processing
@@ -833,9 +835,8 @@ MacProj::mac_sync_compute (int                   level,
                                      ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
                                      is_velocity );
 
-        }
-
-    }
+                        }
+                    }
 #endif
 
 
@@ -953,12 +954,12 @@ MacProj::mac_sync_compute (int                    level,
                              MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
                              bcs, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
 
-    
+
 
 #endif
 
-    if (level > 0 && update_fluxreg)
-    {
+            if (level > 0 && update_fluxreg)
+            {
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
@@ -978,7 +979,7 @@ MacProj::check_div_cond (int      level,
     const MultiFab* area         = ns_level.Area();
 
     MultiFab dmac(volume.boxArray(),volume.DistributionMap(),1,0);
-
+   
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -996,7 +997,7 @@ MacProj::check_div_cond (int      level,
 
         amrex::ParallelFor(bx, [cc_divu,D_DECL(ux_e,uy_e,uz_e),
                                         D_DECL(xarea,yarea,zarea), vol]
-        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
         {
             cc_divu(i,j,k) = D_TERM(  xarea(i+1,j,k)*ux_e(i+1,j,k) - xarea(i,j,k)*ux_e(i,j,k),
                                     + yarea(i,j+1,k)*uy_e(i,j+1,k) - yarea(i,j,k)*uy_e(i,j,k),

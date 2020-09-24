@@ -639,7 +639,7 @@ NavierStokes::scalar_advection (Real dt,
         MultiFab& Smf=S_fpi.get_mf();
 
         // Floor small values of states to be extrapolated
-        floor(Smf);
+	floor(Smf);
 
         FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
         const MultiFab& Umf=U_fpi.get_mf();
@@ -737,7 +737,7 @@ NavierStokes::scalar_advection (Real dt,
                         {
                             tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
                         });
-                    }
+                }
                     else
                     {
                         auto const& rho   = rho_ptime.const_array(S_mfi);
@@ -747,7 +747,7 @@ NavierStokes::scalar_advection (Real dt,
                         {
                             tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
                         });
-                    }
+                }
 
                 }
 
@@ -764,7 +764,7 @@ NavierStokes::scalar_advection (Real dt,
         for (int comp = 0; comp < num_scalars; ++comp)
         {
             iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
-        }
+                  }
 
         Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
                              Smf, 0,
@@ -778,10 +778,8 @@ NavierStokes::scalar_advection (Real dt,
         {
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
-        }
+                }
 #endif
-
-
     } // FillPathIterator
 
     delete divu_fp;
