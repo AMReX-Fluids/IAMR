@@ -1404,7 +1404,6 @@ NavierStokesBase::estTimeStep ()
     }
 
     const Real  small         = 1.0e-8;
-    const int   n_grow        = 0;
     Real        estdt         = 1.0e+20;
 
     const Real  cur_pres_time = state[Press_Type].curTime();
@@ -1431,7 +1430,7 @@ NavierStokesBase::estTimeStep ()
     // Viscous terms not included since Crack-Nicholson is unconditionally stable
     // so no need to account for explicit part of viscous term
     //
-    MultiFab tforces(grids,dmap,AMREX_SPACEDIM,n_grow,MFInfo(),Factory());
+    MultiFab tforces(grids,dmap,AMREX_SPACEDIM,0,MFInfo(),Factory());
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1446,7 +1445,7 @@ NavierStokesBase::estTimeStep ()
            amrex::Print() << "---" << '\n'
                           << "H - est Time Step:" << '\n'
                           << "Calling getForce..." << '\n';
-       getForce(tforces_fab,bx,n_grow,0,AMREX_SPACEDIM,cur_time,S_new[mfi],S_new[mfi],Density);
+       getForce(tforces_fab,bx,0,0,AMREX_SPACEDIM,cur_time,S_new[mfi],S_new[mfi],Density);
 
        const auto& rho   = rho_ctime.array(mfi);  
        const auto& gradp = Gp.array(mfi); 
@@ -3017,7 +3016,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
             for (int sigma = sComp; sigma <= last_scalar; sigma++)
             {
                // Need to do some funky half-time stuff
-               if (getForceVerbose)
+	       if (getForceVerbose)
                   amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
 
                // Average the mac face velocities to get cell centred velocities
@@ -3043,16 +3042,16 @@ NavierStokesBase::scalar_advection_update (Real dt,
                tforces.resize(bx,1);
                getForce(tforces,bx,0,sigma,1,halftime,Vel,Scal,0);
 
-                  const auto& Snew = S_new[Rho_mfi].array(sigma);
-                  const auto& Sold = S_old[Rho_mfi].const_array(sigma);
-                  const auto& aofs = Aofs[Rho_mfi].const_array(sigma);
-                  const auto& tf   = tforces.const_array();
-
-                  amrex::ParallelFor(bx, [ Snew, Sold, aofs, tf, dt]
-                  AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-                  {
-                      Snew(i,j,k) = Sold(i,j,k) + dt * ( tf(i,j,k) -aofs(i,j,k) );
-                  });
+	       const auto& Snew = S_new[Rho_mfi].array(sigma);
+	       const auto& Sold = S_old[Rho_mfi].const_array(sigma);
+	       const auto& aofs = Aofs[Rho_mfi].const_array(sigma);
+	       const auto& tf   = tforces.const_array();
+	       
+	       amrex::ParallelFor(bx, [ Snew, Sold, aofs, tf, dt]
+	       AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+               {
+		 Snew(i,j,k) = Sold(i,j,k) + dt * ( tf(i,j,k) -aofs(i,j,k) );
+               });
 
                // Either need this synchronize here, or elixirs. Not sure if it matters which
 	       amrex::Gpu::synchronize();
@@ -3633,13 +3632,10 @@ NavierStokesBase::velocity_advection (Real dt)
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
-            FArrayBox tforces;
-
             for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
             {
-                const Box& bx=U_mfi.tilebox();
-                auto const  gbx = grow(bx,ngrow);
-                tforces.resize(gbx,AMREX_SPACEDIM);
+                const Box&  bx = U_mfi.tilebox();
+                auto const gbx = U_mfi.growntilebox(ngrow);
 
                 if (getForceVerbose)
                 {
@@ -3647,12 +3643,13 @@ NavierStokesBase::velocity_advection (Real dt)
                                    << "B - velocity advection:" << '\n'
                                    << "Calling getForce..." << '\n';
                 }
-                getForce(tforces,gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Umf[U_mfi],Smf[U_mfi],0);
+                getForce(forcing_term[U_mfi],gbx,ngrow,Xvel,AMREX_SPACEDIM,
+			 prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
                 //
                 // Compute the total forcing.
                 //
-                auto const& tf   = tforces.array();
+                auto const& tf   = forcing_term.array(U_mfi,Xvel);
                 auto const& visc = visc_terms.const_array(U_mfi,Xvel);
                 auto const& gp   = Gp.const_array(U_mfi);
                 auto const& rho  = rho_ptime.const_array(U_mfi);
@@ -3663,12 +3660,10 @@ NavierStokesBase::velocity_advection (Real dt)
                     tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
                 });
 
-                forcing_term[U_mfi].copy<RunOn::Host>(tforces,0,0,AMREX_SPACEDIM);
-
                 //
                 // Loop over the velocity components.
                 //
-                auto const hypbox = grow(bx,godunov_hyp_grow);
+                auto const hypbox = U_mfi.growntilebox(godunov_hyp_grow);
                 S_term[U_mfi].copy<RunOn::Host>(Umf[U_mfi],0,0,AMREX_SPACEDIM);
 
                 for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
@@ -3680,7 +3675,7 @@ NavierStokesBase::velocity_advection (Real dt)
                         S_term[U_mfi].mult<RunOn::Host>(Rmf[U_mfi],hypbox,hypbox,0,comp,1);
                         forcing_term[U_mfi].mult<RunOn::Host>(rho_ptime[U_mfi],gbx,gbx,0,comp,1);
                     }
-                    }
+		}
 
             }
         }
@@ -3705,11 +3700,11 @@ NavierStokesBase::velocity_advection (Real dt)
                              forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
                              godunov_use_ppm, godunov_use_forces_in_trans, true);
 
-                    if (do_reflux)
-                    {
+	if (do_reflux)
+	{
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
-                        }
+	}
 
 
 
@@ -3955,9 +3950,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         const Real prev_time      = state[State_Type].prevTime();
         const int  xvel           = Xvel;
 
-        // fixme - do we really need a grow cell?  The MFIters below only seem 
-        // operate on the tilebox
-        int   ngrow = 1;
+        int   ngrow = 0;
         MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
         MultiFab    tforces(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
 

@@ -720,7 +720,7 @@ MacProj::mac_sync_compute (int                   level,
     // non-EB algorithm
     //
 
-    const int ngrow  = 1; // Number of ghost nodes
+    const int ngrow  = 1; // Recall fluxes have 0 ghost cells, so only need 1 here
     MultiFab forcing_term(grids, dmap, NUM_STATE, ngrow);
 
     // Store momenta multifab if conservative approach is used,
@@ -748,69 +748,72 @@ MacProj::mac_sync_compute (int                   level,
         FArrayBox tforces;
         for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
         {
-            const auto gbx = grow(Smfi.tilebox(),ngrow);
-            tforces.resize(gbx,NUM_STATE);
-            ns_level.getForce(tforces,gbx,ngrow,0,NUM_STATE,prev_time,Smf[Smfi],Smf[Smfi],Density);
-	    //fixme? - need to check on this for GPU
-            forcing_term[Smfi].copy<RunOn::Host>(tforces,0,0,NUM_STATE);
+            const auto gbx = Smfi.growntilebox(ngrow);
+
+            ns_level.getForce(forcing_term[Smfi],gbx,ngrow,0,NUM_STATE,
+			      prev_time,Smf[Smfi],Smf[Smfi],Density);
         }
     }
 
     for (int comp = 0; comp < NUM_STATE; ++comp)
-        {
+    {
         if (increment_sync.empty() || increment_sync[comp]==1)
         {
 
             //
             // Compute total forcing term
             //
-            for (MFIter Smfi(Smf,true); Smfi.isValid(); ++Smfi)
+            for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
             {
-                const Box& bx  = Smfi.tilebox();
+                auto const  gbx   = Smfi.growntilebox(ngrow);
 
-                FArrayBox Rho;
-                Rho.resize(amrex::grow(bx,ngrow),1);
-                Rho.copy<RunOn::Host>(Smf[Smfi],Density,0,1);
-
-            //
-            // Compute total forcing terms.
-            //
+                //
+		// Compute total forcing terms.
+		//
                 auto const& tf    = forcing_term.array(Smfi,comp);
-                auto const& rho   = Rho.const_array();
-                auto const  gbx   = grow(bx,ngrow);
 
                 if (comp < AMREX_SPACEDIM)  // Velocity/Momenta
                 {
                     auto const& visc = vel_visc_terms[Smfi].const_array(comp);
                     auto const& gp   = Gp[Smfi].const_array(comp);
 
-                    amrex::ParallelFor(gbx, [tf, visc, gp, rho]
-                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-            {
+		    if ( do_mom_diff == 0 )
+		    {
+		      auto const& rho   = Smf[Smfi].const_array(Density);
+				      
+		      amrex::ParallelFor(gbx, [tf, visc, gp, rho]
+                      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+		      {
                         tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
-                    });
-
-                    if ( not (do_mom_diff == 1 ) )
-                        forcing_term[Smfi].divide<RunOn::Host>(Rho,0,comp,1);
-
-                    }
+                        tf(i,j,k)  /= rho(i,j,k);
+                      });
+		    }
+		    else
+		    {
+		      amrex::ParallelFor(gbx, [tf, visc, gp]
+                      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+		      {
+                        tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
+                      });
+		    }
+		}
                 else  // Scalars
-                    {
+		{
                     auto const& visc = scal_visc_terms[Smfi].const_array(comp-AMREX_SPACEDIM);
                     auto const& S    = Smf.const_array(Smfi,comp);
                     auto const& divu = divu_fp -> const_array(Smfi);
-                    amrex::ParallelFor(bx, [tf, visc, S, divu]
+                    amrex::ParallelFor(gbx, [tf, visc, S, divu]
                     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
                         tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
                     });
                 }
-                    }
+	    }
 
 
-                    //
+	    //
             // Perform sync
-                    //
+	    //
             auto math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
 
             // Select sync MF and its component for processing
@@ -835,8 +838,8 @@ MacProj::mac_sync_compute (int                   level,
                                      ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
                                      is_velocity );
 
-                        }
-                    }
+	}
+    }
 #endif
 
 

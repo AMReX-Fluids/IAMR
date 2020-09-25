@@ -538,25 +538,23 @@ NavierStokes::predict_velocity (Real  dt)
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox tforces;
-
         for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
         {
             Box bx=U_mfi.tilebox();
             FArrayBox& Ufab = Umf[U_mfi];
-            auto const  gbx  = grow(bx,ngrow);
-            tforces.resize(gbx,AMREX_SPACEDIM);
+            auto const  gbx = U_mfi.growntilebox(ngrow);
 
             if (getForceVerbose) {
                 Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
             }
 
-            getForce(tforces,gbx,ngrow,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+            getForce(forcing_term[U_mfi],gbx,ngrow,Xvel,AMREX_SPACEDIM,
+		     prev_time,Ufab,Smf[U_mfi],0);
 
             //
             // Compute the total forcing.
             //
-            auto const& tf   = tforces.array();
+            auto const& tf   = forcing_term.array(U_mfi,Xvel);
             auto const& visc = visc_terms.const_array(U_mfi,Xvel);
             auto const& gp   = Gp.const_array(U_mfi);
             auto const& rho  = rho_ptime.const_array(U_mfi);
@@ -566,8 +564,6 @@ NavierStokes::predict_velocity (Real  dt)
             {
                 tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
             });
-
-            forcing_term[U_mfi].copy<RunOn::Host>(tforces,0,0,AMREX_SPACEDIM);
         }
     }
 
@@ -710,7 +706,6 @@ NavierStokes::scalar_advection (Real dt,
             for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
             {
                 const Box& gbx = S_mfi.growntilebox(nGrowF);
-                tforces.resize(gbx,num_scalars);
 
                 if (getForceVerbose)
                 {
@@ -718,12 +713,13 @@ NavierStokes::scalar_advection (Real dt,
                             << " Calling getForce..." << '\n';
                 }
 
-                getForce( tforces,gbx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi],0);
+                getForce(forcing_term[S_mfi],gbx,nGrowF,0,num_scalars,
+			 prev_time,Umf[S_mfi],Smf[S_mfi],0);
 
                 for (int i=0; i<num_scalars; ++i)
                 {
                     // FIXME: Loop rqd b/c function does not take array conserv_diff
-                    auto const& tf    = tforces.array(i);
+		    auto const& tf    = forcing_term.array(S_mfi,i);
                     auto const& visc  = visc_terms.const_array(S_mfi,i);
 
 
@@ -737,7 +733,7 @@ NavierStokes::scalar_advection (Real dt,
                         {
                             tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
                         });
-                }
+		    }
                     else
                     {
                         auto const& rho   = rho_ptime.const_array(S_mfi);
@@ -747,11 +743,9 @@ NavierStokes::scalar_advection (Real dt,
                         {
                             tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
                         });
-                }
+		    }
 
                 }
-
-                forcing_term[S_mfi].copy<RunOn::Host>(tforces,0,0,num_scalars);
             }
         }
 
@@ -764,7 +758,7 @@ NavierStokes::scalar_advection (Real dt,
         for (int comp = 0; comp < num_scalars; ++comp)
         {
             iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
-                  }
+	}
 
         Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
                              Smf, 0,
@@ -778,7 +772,7 @@ NavierStokes::scalar_advection (Real dt,
         {
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
-                }
+	}
 #endif
     } // FillPathIterator
 
