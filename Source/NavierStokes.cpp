@@ -685,7 +685,7 @@ NavierStokes::scalar_advection (Real dt,
         //////////////////////////////////////////////////////////////////////////////
         MultiFab cfluxes[AMREX_SPACEDIM];
         MultiFab edgestate[AMREX_SPACEDIM];
-        MultiFab forcing_term( grids, dmap, num_scalars, nGrowF );
+	MultiFab forcing_term( grids, dmap, num_scalars, nGrowF );
 
         // NO Gghost nodes???
         int nghost = 0;
@@ -713,17 +713,17 @@ NavierStokes::scalar_advection (Real dt,
                             << " Calling getForce..." << '\n';
                 }
 
-                getForce(forcing_term[S_mfi],gbx,nGrowF,0,num_scalars,
+                getForce(forcing_term[S_mfi],gbx,nGrowF,fscalar,num_scalars,
 			 prev_time,Umf[S_mfi],Smf[S_mfi],0);
 
-                for (int i=0; i<num_scalars; ++i)
+                for (int n=0; n<num_scalars; ++n)
                 {
                     // FIXME: Loop rqd b/c function does not take array conserv_diff
-		    auto const& tf    = forcing_term.array(S_mfi,i);
-                    auto const& visc  = visc_terms.const_array(S_mfi,i);
+		    auto const& tf    = forcing_term.array(S_mfi,n);
+                    auto const& visc  = visc_terms.const_array(S_mfi,n);
 
 
-                    if (advectionType[fscalar+i] == Conservative)
+                    if (advectionType[fscalar+n] == Conservative)
                     {
                         auto const& divu  = divu_fp -> const_array(S_mfi);
                         auto const& S     = Smf.array(S_mfi);
@@ -731,7 +731,7 @@ NavierStokes::scalar_advection (Real dt,
                         amrex::ParallelFor(gbx, [tf, visc, S, divu]
                         AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
                         {
-                            tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
+			    tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
                         });
 		    }
                     else
