@@ -32,7 +32,8 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
-    for (MFIter mfi(aofs,true); mfi.isValid(); ++mfi)
+    //FIXME - check on adding tiling here
+    for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
     {
 
         const Box& bx   = mfi.tilebox();
@@ -121,7 +122,8 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
-    for (MFIter mfi(aofs,true); mfi.isValid(); ++mfi)
+    //FIXME - check on adding tiling here
+    for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
     {
 
         const Box& bx   = mfi.tilebox();
