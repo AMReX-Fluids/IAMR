@@ -418,7 +418,6 @@ NavierStokesBase::Initialize ()
     pp.query("do_trac2",                 do_trac2         );
     pp.query("do_cons_trac",             do_cons_trac     );
     pp.query("do_cons_trac2",            do_cons_trac2    );
-    int initial_do_sync_proj =           do_sync_proj;
     pp.query("do_sync_proj",             do_sync_proj     );
     pp.query("do_reflux",                do_reflux        );
     pp.query("modify_reflux_normal_vel", modify_reflux_normal_vel);
@@ -1230,7 +1229,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
 #endif
             for (MFIter mfi(crse_src); mfi.isValid(); ++mfi)
             {
-                const int  nComp = 1;
                 const Box& box   = crse_src[mfi].box();
                 auto const& crs_arr  = crse_src.array(mfi);
                 auto const& fine_arr = fine_src.array(mfi);
@@ -2145,7 +2143,6 @@ NavierStokesBase::level_sync (int crse_iteration)
     BL_PROFILE_REGION_START("R::NavierStokesBase::level_sync()");
     BL_PROFILE("NavierStokesBase::level_sync()");
 
-    const Real*     dx            = geom.CellSize();
     IntVect         ratio         = parent->refRatio(level);
     const int       finest_level  = parent->finestLevel();
     int             crse_dt_ratio = parent->nCycle(level);

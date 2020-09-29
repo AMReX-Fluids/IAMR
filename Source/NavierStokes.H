@@ -177,13 +177,6 @@ protected:
     static void Finalize ();
 
 private:
-
-    void center_to_edge_plain (const amrex::FArrayBox& ccfab,
-                               amrex::FArrayBox&       ecfab,
-			       const amrex::Box&       bx,
-			       int              sComp,
-                               int              dComp,
-                               int              nComp);
    
     void diffuse_velocity_setup (amrex::Real       dt,
 				 amrex::MultiFab*& delta_rhs,
