@@ -144,3 +144,8 @@ Updates to various test problems
 Add aborts for ref_ratio=4 or rz (not currently supported)
 Remove dependency on C_CellMG in amrex and older solvers
 Various replacements of fortran kernels to C++
+
+10/1/20
+Various GPU updates
+Advection updates and bux fixes
+Other bugxies to miscellaneous routines
