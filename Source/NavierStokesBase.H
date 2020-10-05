@@ -186,6 +186,14 @@ public:
 
     amrex::Vector<amrex::BCRec> fetchBCArray (int State_Type, int scomp, int ncomp);
 
+    amrex::Vector<amrex::BCRec> const& get_bcrec_velocity () const noexcept { return m_bcrec_velocity; }
+    amrex::Vector<amrex::BCRec> const& get_bcrec_scalars () const noexcept { return m_bcrec_scalars; }
+
+    amrex::BCRec const* get_bcrec_velocity_d_ptr () const noexcept {
+        return m_bcrec_velocity_d.dataPtr(); }
+    amrex::BCRec const* get_bcrec_scalars_d_ptr () const noexcept {
+        return m_bcrec_scalars_d.dataPtr(); }
+
     //
     // Select appropriate AMReX average_down() based on EB/non-EB and dimensionality
     // for use in derived classes and Projection sync fns and initial vel proj
@@ -589,11 +597,20 @@ public:
     // MAC edge velocities.
     //
     amrex::MultiFab* u_mac;
+    int  umac_n_grow;
     //
     // Advective update terms.
     //
     amrex::MultiFab* aofs;
-
+    //
+    // BC info for advection
+    //
+    amrex::Vector<amrex::BCRec> m_bcrec_velocity;
+    amrex::Vector<amrex::BCRec> m_bcrec_scalars;
+    // NOTE that DeviceVector reverts to amrex::Vector if !AMREX_USE_GPU
+    amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_velocity_d;
+    amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_scalars_d;
+  
     Diffusion* diffusion;
     //
     // arrays for variable viscosity and diffusivity
@@ -651,10 +668,6 @@ public:
     // Intersection of current amrex::BoxArray with that from before regrid.
     //
     amrex::BoxArray old_intersect_new;
-    //
-    // Controls for particle subcycling
-    //
-    int  umac_n_grow;
     //
     // Static objects.
     //

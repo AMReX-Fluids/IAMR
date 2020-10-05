@@ -515,12 +515,9 @@ NavierStokes::predict_velocity (Real  dt)
 
 #if AMREX_USE_EB
 
-    Vector<BCRec> math_bcs(AMREX_SPACEDIM);
-    math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
-
     MOL::ExtrapVelToFaces( Umf,
                            D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                           geom, math_bcs );
+                           geom, m_bcrec_velocity );
 #else
     //
     // Non-EB version
@@ -567,13 +564,10 @@ NavierStokes::predict_velocity (Real  dt)
         }
     }
 
-    Vector<BCRec> math_bcs(AMREX_SPACEDIM);
-    math_bcs = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
-
     //velpred=1 only, use_minion=1, ppm_type, slope_order
     Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                               math_bcs, geom, dt, godunov_use_ppm,
-                               godunov_use_forces_in_trans );
+                               m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt,
+			       godunov_use_ppm, godunov_use_forces_in_trans );
 
 #endif
 
@@ -648,10 +642,6 @@ NavierStokes::scalar_advection (Real dt,
 
         const Box& domain = geom.Domain();
 
-        Vector<BCRec> math_bc(num_scalars);
-        math_bc = fetchBCArray(State_Type,fscalar,num_scalars);
-
-
         MultiFab cfluxes[AMREX_SPACEDIM];
         MultiFab edgstate[AMREX_SPACEDIM];
         int nghost = 2;
@@ -663,14 +653,11 @@ NavierStokes::scalar_advection (Real dt,
             edgstate[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
         }
 
-        Vector<BCRec> math_bcs(num_scalars);
-        math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
-
         MOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                          D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                         math_bcs, geom  );
+                         m_bcrec_scalars, m_bcrec_scalars.dataPtr(), geom  );
 
         if (do_reflux)
         {
@@ -749,11 +736,8 @@ NavierStokes::scalar_advection (Real dt,
             }
         }
 
-
-        Vector<BCRec> math_bcs(num_scalars);
-        math_bcs = fetchBCArray(State_Type, fscalar, num_scalars);
-
         amrex::Gpu::DeviceVector<int> iconserv;
+	// does this actually put data in GPU memory?
         iconserv.resize(num_scalars, 0);
         for (int comp = 0; comp < num_scalars; ++comp)
         {
@@ -765,8 +749,8 @@ NavierStokes::scalar_advection (Real dt,
                              AMREX_D_DECL( u_mac[0], u_mac[1], u_mac[2] ),
                              AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,
                              AMREX_D_DECL( cfluxes[0], cfluxes[1], cfluxes[2] ), 0,
-                             forcing_term, 0, *divu_fp, math_bcs, geom, iconserv,
-                             dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
+                             forcing_term, 0, *divu_fp, m_bcrec_scalars.dataPtr(),
+			     geom, iconserv, dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
 
         if (do_reflux)
         {

@@ -17,6 +17,7 @@
 #include <NAVIERSTOKES_F.H>
 #include <AMReX_filcc_f.H>
 #include <NSB_K.H>
+#include <NS_util.H>
 
 #include <PROB_NS_F.H>
 
@@ -244,7 +245,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
         p_avg.define(P_grids,dmap,1,0,MFInfo(),Factory());
     }
 
-    //
+    // FIXME -
     // rho_half is passed into level_project to be used as sigma in the MLMG
     // solve, but MLMG doesn't copy any ghost cells, it fills what it needs itself.
     // does rho_half still need any ghost cells?
@@ -325,6 +326,22 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
                                     &phys_bc,radius_grow);
     }
     mac_projector->install_level(level,this);
+
+    //
+    // Initialize BCRec for use with advection
+    //
+    m_bcrec_velocity.resize(AMREX_SPACEDIM);
+    m_bcrec_velocity = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
+
+    m_bcrec_velocity_d.resize(AMREX_SPACEDIM);
+    m_bcrec_velocity_d = convertToDeviceVector(m_bcrec_velocity);
+
+    m_bcrec_scalars.resize(NUM_SCALARS);
+    m_bcrec_scalars = fetchBCArray(State_Type,Density,NUM_SCALARS);
+
+    m_bcrec_scalars_d.resize(NUM_SCALARS);
+    m_bcrec_scalars_d = convertToDeviceVector(m_bcrec_scalars);
+
 }
 
 NavierStokesBase::~NavierStokesBase ()
@@ -2288,7 +2305,7 @@ void
 NavierStokesBase::make_rho_curr_time ()
 {
     const Real curr_time = state[State_Type].curTime();
-
+    
     FillPatch(*this,rho_ctime,1,curr_time,State_Type,Density,1,0);
 
 #ifdef AMREX_USE_EB
@@ -2932,6 +2949,21 @@ NavierStokesBase::restart (Amr&          papa,
 
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
+
+    //
+    // Initialize BCRec for use with advection
+    //
+    m_bcrec_velocity.resize(AMREX_SPACEDIM);
+    m_bcrec_velocity = fetchBCArray(State_Type,Xvel,AMREX_SPACEDIM);
+
+    m_bcrec_velocity_d.resize(AMREX_SPACEDIM);
+    m_bcrec_velocity_d = convertToDeviceVector(m_bcrec_velocity);
+
+    m_bcrec_scalars.resize(NUM_SCALARS);
+    m_bcrec_scalars = fetchBCArray(State_Type,Density,NUM_SCALARS);
+
+    m_bcrec_scalars_d.resize(NUM_SCALARS);
+    m_bcrec_scalars_d = convertToDeviceVector(m_bcrec_scalars);
 }
 
 void
@@ -3678,9 +3710,6 @@ NavierStokesBase::velocity_advection (Real dt)
         }
 
 
-        Vector<BCRec> math_bcs(AMREX_SPACEDIM);
-        math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
-
         amrex::Gpu::DeviceVector<int> iconserv;
         iconserv.resize(AMREX_SPACEDIM, 0);
 
@@ -3694,7 +3723,7 @@ NavierStokesBase::velocity_advection (Real dt)
                              AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             forcing_term, 0, divu_fp, math_bcs, geom, iconserv, dt,
+                             forcing_term, 0, divu_fp, m_bcrec_velocity_d.dataPtr(), geom, iconserv, dt,
                              godunov_use_ppm, godunov_use_forces_in_trans, true);
 
 	if (do_reflux)
@@ -3722,14 +3751,11 @@ NavierStokesBase::velocity_advection (Real dt)
              edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
          }
 
-         Vector<BCRec> math_bcs(AMREX_SPACEDIM);
-         math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
-
          MOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, Umf, 0,
                           D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                           D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
                           D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                          math_bcs, geom  );
+                          m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom  );
 
          // don't think this is needed here any more. Godunov sets covered vals now...
          EB_set_covered(*aofs, 0.);

@@ -40,7 +40,8 @@ MOL::ComputeEdgeState (const Box& bx,
                                Array4<Real const> const& vmac,
                                Array4<Real const> const& wmac),
                        const Box&       domain,
-                       const Vector<BCRec>& bcs)
+                       const Vector<BCRec>& bcs,
+                       const        BCRec * d_bcrec_ptr)
 {
     const int domain_ilo = domain.smallEnd(0);
     const int domain_ihi = domain.bigEnd(0);
@@ -54,10 +55,6 @@ MOL::ComputeEdgeState (const Box& bx,
     D_TERM( const Box& ubx = amrex::surroundingNodes(bx,0);,
             const Box& vbx = amrex::surroundingNodes(bx,1);,
             const Box& wbx = amrex::surroundingNodes(bx,2););
-
-    const auto bc = bcs.dataPtr();
-    auto d_bcrec  = convertToDeviceVector(bcs);
-    BCRec const* d_bcrec_ptr = d_bcrec.data();
 
     // At an ext_dir boundary, the boundary value is on the face, not cell center.
     auto extdir_lohi = has_extdir_or_ho(bcs.dataPtr(), ncomp, 0);
@@ -154,6 +151,7 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
                                    Array4<Real const> const& wmac),
                            const Box&       domain,
                            const Vector<BCRec>& bcs,
+			   const        BCRec * d_bcrec_ptr,
                            D_DECL( Array4<Real const> const& fcx,
                                    Array4<Real const> const& fcy,
                                    Array4<Real const> const& fcz),
@@ -164,10 +162,6 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     D_TERM( const Box& ubx = amrex::surroundingNodes(bx,0);,
             const Box& vbx = amrex::surroundingNodes(bx,1);,
             const Box& wbx = amrex::surroundingNodes(bx,2););
-
-    const auto bc = bcs.dataPtr();
-    auto d_bcrec  = convertToDeviceVector(bcs);
-    BCRec const* d_bcrec_ptr = d_bcrec.data();
 
     // ****************************************************************************
     // Predict to x-faces

@@ -17,7 +17,7 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
                                 MultiFab& a_vmac,
                                 MultiFab& a_wmac ),
                         const Geometry&  a_geom,
-                        const amrex::Vector<amrex::BCRec>& a_bcs )
+			const amrex::Vector<amrex::BCRec>& a_bcs)
 {
     BL_PROFILE("Godunov::ExtrapVelToFaces");
 
@@ -30,8 +30,6 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
 #endif
 
     Box const& domain = a_geom.Domain();
-    Gpu::DeviceVector<BCRec> bcs_device = convertToDeviceVector(a_bcs);
-    const BCRec* bcs_ptr = bcs_device.dataPtr();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -71,15 +69,14 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
                 Array4<Real const> const& ccc = ccent.const_array(mfi);
 
                 MOL::EB_PredictVelOnFaces(bx,D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,flagarr,
-                                          D_DECL(fcx,fcy,fcz),ccc,a_geom, bcs_ptr);
+                                          D_DECL(fcx,fcy,fcz),ccc,a_geom, a_bcs.dataPtr());
             }
             else
 #endif
             {
-                MOL::PredictVelOnFaces(D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_geom,bcs_ptr);
+	      MOL::PredictVelOnFaces(D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_geom,a_bcs.dataPtr());
             }
-        }
+            }
     }
 
 }
-

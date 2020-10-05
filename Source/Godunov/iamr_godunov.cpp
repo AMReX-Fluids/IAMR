@@ -22,7 +22,7 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                        MultiFab const& fq,
                        const int fq_comp,
                        MultiFab const& divu,
-                       Vector<BCRec> const& bcs,
+                       BCRec const* d_bc,
                        Geometry const& geom,
                        Gpu::DeviceVector<int>& iconserv,
                        const Real dt,
@@ -58,16 +58,13 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 
         if (not known_edgestate)
         {
-	    auto d_bc  = convertToDeviceVector(bcs);
-	    BCRec const* d_bc_ptr = d_bc.data();
-
             ComputeEdgeState( bx, ncomp,
                               state.array(mfi,state_comp),
                               AMREX_D_DECL( xed, yed, zed ),
                               AMREX_D_DECL( u, v, w ),
                               divu.array(mfi),
                               fq.array(mfi,fq_comp),
-                              geom, dt, d_bc_ptr,
+                              geom, dt, d_bc,
                               iconserv.data(),
                               use_ppm,
                               use_forces_in_trans,
@@ -115,7 +112,7 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                            MultiFab const& fq,
                            const int fq_comp,
                            MultiFab const& divu,
-                           Vector<BCRec> const& bcs,
+                           BCRec const* d_bc,
                            Geometry const& geom,
                            Gpu::DeviceVector<int>& iconserv,
                            const Real dt,
@@ -156,16 +153,13 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                           const auto& v = vmac.const_array(mfi);,
                           const auto& w = wmac.const_array(mfi););
 
-	    auto d_bc  = convertToDeviceVector(bcs);
-	    BCRec const* d_bc_ptr = d_bc.data();
-
             ComputeEdgeState( bx, ncomp,
                               state.array(mfi,state_comp),
                               AMREX_D_DECL( xed, yed, zed ),
                               AMREX_D_DECL( u, v, w ),
                               divu.array(mfi),
                               fq.array(mfi,fq_comp),
-                              geom, dt, d_bc_ptr,
+                              geom, dt, d_bc,
                               iconserv.data(),
                               use_ppm,
                               use_forces_in_trans,
