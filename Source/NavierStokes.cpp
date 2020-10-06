@@ -737,8 +737,8 @@ NavierStokes::scalar_advection (Real dt,
         }
 
         amrex::Gpu::DeviceVector<int> iconserv;
-	// does this actually put data in GPU memory?
         iconserv.resize(num_scalars, 0);
+	// does this actually put data in GPU memory?
         for (int comp = 0; comp < num_scalars; ++comp)
         {
             iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
@@ -749,7 +749,7 @@ NavierStokes::scalar_advection (Real dt,
                              AMREX_D_DECL( u_mac[0], u_mac[1], u_mac[2] ),
                              AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,
                              AMREX_D_DECL( cfluxes[0], cfluxes[1], cfluxes[2] ), 0,
-                             forcing_term, 0, *divu_fp, m_bcrec_scalars.dataPtr(),
+                             forcing_term, 0, *divu_fp, m_bcrec_scalars_d.dataPtr(),
 			     geom, iconserv, dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
 
         if (do_reflux)
