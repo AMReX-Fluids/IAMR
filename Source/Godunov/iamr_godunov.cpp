@@ -37,9 +37,10 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
     {
 
         const Box& bx   = mfi.tilebox();
-        Box const& bxg1 = amrex::grow(bx,1);
+        //Box const& bxg1 = amrex::grow(bx,1);
 
-        FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
+	// FIXME - do we want to make use of this tempprary?
+        //FArrayBox tmpfab(bxg1, (4*AMREX_SPACEDIM + 2)*ncomp);
 
         //
         // Get handlers to Array4
@@ -76,15 +77,18 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                        AMREX_D_DECL( xed, yed, zed ),
                        geom, ncomp );
 
+	// FIXME - do we need a stream sync here, since divergence uses Fluxes +/- 1?
+        //Gpu::streamSynchronize();  // otherwise we might be using too much memory
 
-        ComputeDivergence( bx,
+	ComputeDivergence( bx,
                            aofs.array(mfi,aofs_comp),
                            AMREX_D_DECL( fx, fy, fz ),
                            AMREX_D_DECL( xed, yed, zed ),
                            AMREX_D_DECL( u, v, w ),
                            ncomp, geom, iconserv.data() );
 
-        Gpu::streamSynchronize();  // otherwise we might be using too much memory
+	// Fixme - Don't need sync if don't have temporaries, right?
+        //Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
 }
@@ -122,14 +126,16 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
+
     //FIXME - check on adding tiling here
     for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
     {
 
         const Box& bx   = mfi.tilebox();
-        Box const& bxg1 = amrex::grow(bx,1);
+        //Box const& bxg1 = amrex::grow(bx,1);
 
-        FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
+	// FIXME - do we want to make use of this tempprary?
+        // FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
 
         //
         // Get handlers to Array4
@@ -177,7 +183,8 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                AMREX_D_DECL( fx, fy, fz ),
                                ncomp, geom );
 
-        Gpu::streamSynchronize();  // otherwise we might be using too much memory
+	// Don't need sync if don't have temporaries, right?
+        //Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
 }
@@ -272,7 +279,7 @@ Godunov::ComputeDivergence ( Box const& bx,
 #else
     Real qvol = dxinv[0] * dxinv[1];
 #endif
-
+    
     amrex::ParallelFor(bx, ncomp,[=]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
@@ -289,7 +296,7 @@ Godunov::ComputeDivergence ( Box const& bx,
         }
         else
         {
-            div(i,j,k,n) = 0.5*dxinv[0]*( umac(i+1,j,k  ) +  umac(i,j,k  ))
+	    div(i,j,k,n) = 0.5*dxinv[0]*( umac(i+1,j,k  ) +  umac(i,j,k  ))
                 *                       (  xed(i+1,j,k,n) -   xed(i,j,k,n))
                 +          0.5*dxinv[1]*( vmac(i,j+1,k  ) +  vmac(i,j,k  ))
                 *                       (  yed(i,j+1,k,n) -   yed(i,j,k,n))

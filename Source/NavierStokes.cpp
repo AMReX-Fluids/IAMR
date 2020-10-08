@@ -93,15 +93,16 @@ NavierStokes::initData ()
     MultiFab&   P_new    = get_new_data(Press_Type);
     const Real  cur_time = state[State_Type].curTime();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel  if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter snewmfi(S_new,true); snewmfi.isValid(); ++snewmfi)
+    for (MFIter snewmfi(S_new,TilingIfNotGPU()); snewmfi.isValid(); ++snewmfi)
     {
         const Box& vbx = snewmfi.tilebox();
 
         FArrayBox& Sfab = S_new[snewmfi];
         FArrayBox& Pfab = P_new[snewmfi];
 
+	//fixme -- change to GPU once initdata is updated
         Sfab.setVal<RunOn::Host>(0.0,snewmfi.growntilebox(),0,S_new.nComp());
         Pfab.setVal<RunOn::Host>(0.0,snewmfi.grownnodaltilebox(-1,P_new.nGrow()));
 
@@ -560,6 +561,7 @@ NavierStokes::predict_velocity (Real  dt)
             AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+
             });
         }
     }
@@ -743,6 +745,10 @@ NavierStokes::scalar_advection (Real dt,
         {
             iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
 	}
+    //fixme
+    Print()<<"UMAC... "<<std::endl;
+    print_state(u_mac[1],IntVect(23,9),-1,IntVect(1,1));
+    
 
         Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
                              Smf, 0,
@@ -930,17 +936,27 @@ NavierStokes::scalar_diffusion_update (Real dt,
 
 	    for (MFIter fmfi(*fluxn[d]); fmfi.isValid(); ++fmfi)
 	    {
-	      const Box& ebox = (*fluxn[d])[fmfi].box();//fmfi.tilebox();
+	      const Box& ebox = (*fluxn[d])[fmfi].box();
 
 	      fluxtot.resize(ebox,1);
-	      fluxtot.copy<RunOn::Host>((*fluxn[d])[fmfi],ebox,0,ebox,0,1);
-	      fluxtot.plus<RunOn::Host>((*fluxnp1[d])[fmfi],ebox,0,0,1);
+	      Elixir fdata_i = fluxtot.elixir();
+
+	      auto const& ftot = fluxtot.array();
+	      auto const& fn   = fluxn[d]->array(fmfi);
+	      auto const& fnp1 = fluxnp1[d]->array(fmfi);
+
+	      amrex::ParallelFor(ebox, [ftot, fn, fnp1 ]
+	      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	      {
+		ftot(i,j,k) = fn(i,j,k) + fnp1(i,j,k);
+	      });
 
 	      if (level < parent->finestLevel())
-		fluxes[fmfi].copy<RunOn::Host>(fluxtot);
+		fluxes[fmfi].copy<RunOn::Gpu>(fluxtot);
 
+	      //fixme - not sure what FineAdd does exactly, presumable okay wo sync here
 	      if (level > 0)
-		getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt,RunOn::Host);
+		getViscFluxReg().FineAdd(fluxtot,d,fmfi.index(),0,sigma,1,dt,RunOn::Gpu);
 	    }
 
 	    if (level < parent->finestLevel())
