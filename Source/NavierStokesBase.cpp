@@ -1239,7 +1239,9 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // We want to fill crse_src from lower level u_mac including u_mac's grow cells.
             //
             const MultiFab& u_macLL = getLevel(level-1).u_mac[idim];
-            crse_src.copy(u_macLL,0,0,1,1,0);
+            crse_src.copy(u_macLL,0,0,1,u_macLL.nGrow(),0);
+
+	    const amrex::GpuArray<int,AMREX_SPACEDIM> c_ratio = {D_DECL(crse_ratio[0],crse_ratio[1],crse_ratio[2])};
 
 	    //
 	    // Fill fine values with piecewise-constant interp of coarse data.
@@ -1255,7 +1257,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 auto const& crs_arr  = crse_src.array(mfi);
                 auto const& fine_arr = fine_src.array(mfi);
 
-                amrex::GpuArray<int,AMREX_SPACEDIM> c_ratio = {D_DECL(crse_ratio[0],crse_ratio[1],crse_ratio[2])};
                 ParallelFor(box,[crs_arr,fine_arr,idim,c_ratio]
                 AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
@@ -1282,7 +1283,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
                    }
 #endif
                 });
-            } // mfiter destructor includes Gpu::synchronize() I think
+            } 
             crse_src.clear();
             //
             // Replace pc-interpd fine data with preferred u_mac data at
@@ -1303,7 +1304,6 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 const int  nComp = 1;
                 const Box& fbox  = fine_src[mfi].box();
                 auto const& fine_arr = fine_src.array(mfi);
-                amrex::GpuArray<int,AMREX_SPACEDIM> c_ratio = {D_DECL(crse_ratio[0],crse_ratio[1],crse_ratio[2])};
 
 		if (fbox.type(0) == IndexType::NODE)
 	        {
@@ -2361,11 +2361,6 @@ NavierStokesBase::mac_project (Real      time,
                                density_math_bc[0], increment_vel_register);
 
     create_umac_grown(ngrow);
-    //fixme
-    Print()<<"UMAC umac grown... "<<std::endl;
-    print_state(u_mac[1],IntVect(23,9),-1,IntVect(1,1));
-
-
 
     if (verbose)
     {
@@ -3116,8 +3111,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 	       const auto& Sold = S_old[Rho_mfi].const_array(sigma);
 	       const auto& advc = Aofs[Rho_mfi].const_array(sigma);
 	       const auto& tf   = tforces.const_array();
-	       //fixme - delete sigma
-	       amrex::ParallelFor(bx, [ Snew, Sold, advc, tf, dt, sigma]
+	       amrex::ParallelFor(bx, [ Snew, Sold, advc, tf, dt]
 	       AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
                {
 		 Snew(i,j,k) = Sold(i,j,k) + dt * ( tf(i,j,k) - advc(i,j,k) );
@@ -3165,9 +3159,18 @@ NavierStokesBase::scalar_advection_update (Real dt,
     }
 
     //
-    // Check for NANs in solution
+    // Check the max of Snew and for NANs in solution
     //
-    // for (int sigma = Density; sigma < NUM_SCALARS; sigma++)
+    // static int count=0; count++;
+    // VisMF::Write(S_new,"sn_"+std::to_string(count));
+    // for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
+    // {
+    //   std::cout << count <<" , comp = " << sigma << ", max(S_new)  = "
+    // 		<< S_new.norm0( sigma, 0, false, true )
+    // 		<< std::endl;
+    // }
+
+    // for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     // {
     //    if (S_old.contains_nan(sigma,1,0))
     //    {

@@ -37,10 +37,6 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
     {
 
         const Box& bx   = mfi.tilebox();
-        //Box const& bxg1 = amrex::grow(bx,1);
-
-	// FIXME - do we want to make use of this tempprary?
-        //FArrayBox tmpfab(bxg1, (4*AMREX_SPACEDIM + 2)*ncomp);
 
         //
         // Get handlers to Array4
@@ -77,9 +73,6 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                        AMREX_D_DECL( xed, yed, zed ),
                        geom, ncomp );
 
-	// FIXME - do we need a stream sync here, since divergence uses Fluxes +/- 1?
-        //Gpu::streamSynchronize();  // otherwise we might be using too much memory
-
 	ComputeDivergence( bx,
                            aofs.array(mfi,aofs_comp),
                            AMREX_D_DECL( fx, fy, fz ),
@@ -87,8 +80,9 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                            AMREX_D_DECL( u, v, w ),
                            ncomp, geom, iconserv.data() );
 
-	// Fixme - Don't need sync if don't have temporaries, right?
-        //Gpu::streamSynchronize();  // otherwise we might be using too much memory
+	// Note this sync is needed since ComputeEdgeState() contains temporaries
+	// Not sure it's really needed when known_edgestate==true
+        Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
 }
@@ -132,10 +126,6 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
     {
 
         const Box& bx   = mfi.tilebox();
-        //Box const& bxg1 = amrex::grow(bx,1);
-
-	// FIXME - do we want to make use of this tempprary?
-        // FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
 
         //
         // Get handlers to Array4
@@ -183,8 +173,9 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                AMREX_D_DECL( fx, fy, fz ),
                                ncomp, geom );
 
-	// Don't need sync if don't have temporaries, right?
-        //Gpu::streamSynchronize();  // otherwise we might be using too much memory
+	// Note this sync is needed since ComputeEdgeState() contains temporaries
+	// Not sure it's really needed when known_edgestate==true
+        Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
 }

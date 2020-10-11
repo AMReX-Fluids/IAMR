@@ -690,8 +690,6 @@ NavierStokes::scalar_advection (Real dt,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
-            FArrayBox tforces;
-
             for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
             {
                 const Box& gbx = S_mfi.growntilebox(nGrowF);
@@ -745,9 +743,6 @@ NavierStokes::scalar_advection (Real dt,
         {
             iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
 	}
-    //fixme
-    Print()<<"UMAC... "<<std::endl;
-    print_state(u_mac[1],IntVect(23,9),-1,IntVect(1,1));
     
 
         Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
