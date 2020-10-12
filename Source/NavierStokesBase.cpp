@@ -3750,20 +3750,16 @@ NavierStokesBase::velocity_advection (Real dt)
                 auto const& visc = visc_terms.const_array(U_mfi,Xvel);
                 auto const& gp   = Gp.const_array(U_mfi);
                 auto const& rho  = rho_ptime.const_array(U_mfi);
+		auto const hypbox = U_mfi.growntilebox(godunov_hyp_grow);
 
-                amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
-                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                {
-                    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
-                });
+		if ( do_mom_diff )
+		{
+		  amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
+                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                  {
+		    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
+		  });
 
-                auto const hypbox = U_mfi.growntilebox(godunov_hyp_grow);
-		if ( do_mom_diff==0 )
-		{
-		  S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],0,0,AMREX_SPACEDIM);
-		}
-		else
-		{
 		  auto const& dens = Rmf.const_array(U_mfi);
 		  auto const& vel  = Umf.const_array(U_mfi);
 		  auto const& st   = S_term.array(U_mfi);
@@ -3773,12 +3769,16 @@ NavierStokesBase::velocity_advection (Real dt)
 		  {
                     st(i,j,k,n) = vel(i,j,k,n) * dens(i,j,k);
 		  });
-
-		  amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, rho ]
-		  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+		}
+		else
+		{
+		  amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
+                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
 		  {
-                    tf(i,j,k,n) *= rho(i,j,k);
+		    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
 		  });
+
+		  S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],hypbox,0,hypbox,0,AMREX_SPACEDIM);
 		}
             }
         }
