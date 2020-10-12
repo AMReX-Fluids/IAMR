@@ -3670,7 +3670,7 @@ NavierStokesBase::velocity_advection (Real dt)
                     if (do_mom_diff == 1)
                     {
                         S_term[U_mfi].mult<RunOn::Host>(Rmf[U_mfi],hypbox,hypbox,0,comp,1);
-			forcing_term[U_mfi].mult<RunOn::Host>(rh_ptime[U_mfi],gbx,gbx,0,comp,1);
+			forcing_term[U_mfi].mult<RunOn::Host>(rho_ptime[U_mfi],gbx,gbx,0,comp,1);
                     }
 		}
             }
