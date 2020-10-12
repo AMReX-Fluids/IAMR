@@ -240,14 +240,13 @@ public:
     // Get the forcing term.
     //
     virtual void getForce (amrex::FArrayBox&       force,
-                           const amrex::Box&      bx,
-                           int              ngrow,
-                           int              strt_comp,
-                           int              num_comp,
+                           const amrex::Box&       bx,
+                           int                     strt_comp,
+                           int                     num_comp,
                            const amrex::Real       time,
                            const amrex::FArrayBox& Vel,
                            const amrex::FArrayBox& Scal,
-                           int              scalScomp);
+                           int                     scalScomp);
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);

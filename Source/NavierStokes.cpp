@@ -546,7 +546,7 @@ NavierStokes::predict_velocity (Real  dt)
                 Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
             }
 
-            getForce(forcing_term[U_mfi],gbx,ngrow,Xvel,AMREX_SPACEDIM,
+            getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,
 		     prev_time,Ufab,Smf[U_mfi],0);
 
             //
@@ -700,7 +700,7 @@ NavierStokes::scalar_advection (Real dt,
                             << " Calling getForce..." << '\n';
                 }
 
-                getForce(forcing_term[S_mfi],gbx,nGrowF,fscalar,num_scalars,
+                getForce(forcing_term[S_mfi],gbx,fscalar,num_scalars,
 			 prev_time,Umf[S_mfi],Smf[S_mfi],0);
 
                 for (int n=0; n<num_scalars; ++n)

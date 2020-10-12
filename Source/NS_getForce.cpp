@@ -26,7 +26,6 @@ using namespace amrex;
 void
 NavierStokesBase::getForce (FArrayBox&       force,
                             const Box&       bx,
-                            int              ngrow,
                             int              scomp,
                             int              ncomp,
                             const Real       time,
@@ -52,7 +51,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
                      << "time      = " << time << std::endl
                      << "scomp     = " << scomp << std::endl
                      << "ncomp     = " << ncomp << std::endl
-                     << "ngrow     = " << ngrow << std::endl
                      << "scalScomp = " << scalScomp << std::endl;
 
       if (scomp==0)
@@ -64,6 +62,8 @@ NavierStokesBase::getForce (FArrayBox&       force,
       else if (scomp==4) amrex::Print() << "Doing tracer only" << std::endl;
       else               amrex::Print() << "Doing individual scalar" << std::endl;
 
+      amrex::Print() << "NavierStokesBase::getForce(): Filling Force on box:"
+		     << bx << std::endl;
 #if (AMREX_SPACEDIM == 3)
       amrex::Print() << "NavierStokesBase::getForce(): Force Domain:" << std::endl;
       amrex::Print() << "(" << f_lo[0] << "," << f_lo[1] << "," << f_lo[2] << ") - "

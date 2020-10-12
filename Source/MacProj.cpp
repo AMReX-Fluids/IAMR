@@ -758,7 +758,7 @@ MacProj::mac_sync_compute (int                   level,
         {
             const auto gbx = Smfi.growntilebox(ngrow);
 
-            ns_level.getForce(forcing_term[Smfi],gbx,ngrow,0,NUM_STATE,
+            ns_level.getForce(forcing_term[Smfi],gbx,0,NUM_STATE,
 			      prev_time,Smf[Smfi],Smf[Smfi],Density);
         }
     }
