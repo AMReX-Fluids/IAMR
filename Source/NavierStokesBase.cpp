@@ -3661,7 +3661,7 @@ NavierStokesBase::velocity_advection (Real dt)
                 // Loop over the velocity components.
                 //
                 auto const hypbox = U_mfi.growntilebox(godunov_hyp_grow);
-                S_term[U_mfi].copy<RunOn::Host>(Umf[U_mfi],0,0,AMREX_SPACEDIM);
+                S_term[U_mfi].copy<RunOn::Host>(Umf[U_mfi],hypbox,0,hypbox,0,AMREX_SPACEDIM);
 
                 for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
                 {
@@ -3670,13 +3670,11 @@ NavierStokesBase::velocity_advection (Real dt)
                     if (do_mom_diff == 1)
                     {
                         S_term[U_mfi].mult<RunOn::Host>(Rmf[U_mfi],hypbox,hypbox,0,comp,1);
-                        forcing_term[U_mfi].mult<RunOn::Host>(rho_ptime[U_mfi],gbx,gbx,0,comp,1);
+			forcing_term[U_mfi].mult<RunOn::Host>(rh_ptime[U_mfi],gbx,gbx,0,comp,1);
                     }
 		}
-
             }
         }
-
 
         Vector<BCRec> math_bcs(AMREX_SPACEDIM);
         math_bcs = fetchBCArray(State_Type, Xvel, AMREX_SPACEDIM);
