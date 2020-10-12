@@ -99,6 +99,8 @@ eb2.sphere_radius = 0.10
 eb2.sphere_center =  -0.001 0.0 .85
 eb2.sphere_has_fluid_inside = 0
 
+eb2.small_volfrac = 1.e-6
+
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
