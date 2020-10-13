@@ -66,7 +66,7 @@ ProjOutFlowBC::Initialize ()
     //
     // Set defaults here !!!
     //
-    ProjOutFlowBC::tol     = 1.0e-10; 
+    ProjOutFlowBC::tol     = 1.0e-10;
     ProjOutFlowBC::abs_tol = 5.0e-10;
 
     ParmParse pp("projoutflow");
@@ -91,12 +91,12 @@ ProjOutFlowBC::Finalize ()
     outflowbc_initialized = false;
 }
 
-void 
+void
 ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                           FArrayBox        divuMF[2*BL_SPACEDIM],
                           FArrayBox        rhoMF[2*BL_SPACEDIM],
                           FArrayBox        phiMF[2*BL_SPACEDIM],
-                          const Geometry&   geom, 
+                          const Geometry&   geom,
                           Orientation*      outFaces,
                           int               numOutFlowFaces,
                           const int*        lo_bc,
@@ -107,12 +107,12 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
   computeBC (velMF,divuMF,rhoMF,phiMF,geom,outFaces,numOutFlowFaces,lo_bc,hi_bc,gravity);
 }
 
-void 
+void
 ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                           FArrayBox        divuMF[2*BL_SPACEDIM],
                           FArrayBox        rhoMF[2*BL_SPACEDIM],
                           FArrayBox        phiMF[2*BL_SPACEDIM],
-                          const Geometry&   geom, 
+                          const Geometry&   geom,
                           Orientation*      outFaces,
                           int               numOutFlowFaces,
                           const int*        lo_bc,
@@ -291,12 +291,12 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     //
     //   Note numRegions = 1 or 2, those are the only possibilities.
     //
-    for (int ireg = 0; ireg < numRegions; ireg++) 
+    for (int ireg = 0; ireg < numRegions; ireg++)
     {
         //
         // Define connected region.  In both 2-d and 3-d, if there are
         // multiple outflow faces and it's not just two across from
-        // each other, then the multiple faces form a *single* 
+        // each other, then the multiple faces form a *single*
         // connected region.
         //
         int zeroAll = zeroIt[ireg];
@@ -319,7 +319,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 #endif
             if (numRegions == 1)
             {
-                for (int i=0; i < numOutFlowFaces; i++) 
+                for (int i=0; i < numOutFlowFaces; i++)
                     faces2[i] = int(outFaces[i]);
 #if (BL_SPACEDIM == 2)
                 numOutFlowFacesInRegion = numOutFlowFaces;
@@ -340,7 +340,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             int length = 0;
             Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3;
             Real *r0,*r1,*r2,*r3;
-            for (int i=0; i < numOutFlowFacesInRegion; i++) 
+            for (int i=0; i < numOutFlowFacesInRegion; i++)
             {
                 if (faces2[i] == 0)
                 {
@@ -376,7 +376,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             hiconn[BL_SPACEDIM-1] = 0;
             Box connected_region(loconn,hiconn);
             FArrayBox ccE_conn(connected_region,1);
-  
+
             hiconn[0] = length;
             Box nodal_connected_region(loconn,hiconn);
             FArrayBox x(nodal_connected_region,1);
@@ -386,7 +386,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             ccE_conn.setVal<RunOn::Host>(1.e200);
 
             int per = 0;
-            if ( (numOutFlowFaces == 1) || 
+            if ( (numOutFlowFaces == 1) ||
                  (numRegions == 2) ) per = isPeriodicFiltered[ireg][0];
 
             fill_oned(&lenx,&leny,&length,faces2,&numOutFlowFacesInRegion,
@@ -405,7 +405,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
 
             Real *phiptr0,*phiptr1,*phiptr2,*phiptr3;
 
-            for (int i=0; i < numOutFlowFacesInRegion; i++) 
+            for (int i=0; i < numOutFlowFacesInRegion; i++)
             {
                 if (faces2[i] == 0) {
                     phiptr0 = phiMF[i].dataPtr();
@@ -453,7 +453,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             int length = 0;
             int  width = lenz;
             Real *ccEptr0,*ccEptr1,*ccEptr2,*ccEptr3,*ccEptr4,*ccEptr5;
-            for (int i=0; i < numOutFlowFaces; i++) 
+            for (int i=0; i < numOutFlowFaces; i++)
             {
                 if (faces2[i] == 0) {
                     ccEptr0 = ccExt[i].dataPtr();
@@ -491,7 +491,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             hiconn[BL_SPACEDIM-1] = 0;
             Box connected_region(loconn,hiconn);
             FArrayBox ccE_conn(connected_region,BL_SPACEDIM+1);
- 
+
             hiconn[0] = length;
             hiconn[1] = width;
             Box nodal_connected_region(loconn,hiconn);
@@ -502,13 +502,13 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                            faces2,&numOutFlowFaces,
                            ccEptr0, ccEptr1, ccEptr2, ccEptr3, ccEptr4, ccEptr5,
                            ccE_conn.dataPtr());
-      
+
             FArrayBox rhs_temp, beta;
-  
+
             int* per = new int[2];
             per[0] = (numOutFlowFaces == 2*BL_SPACEDIM) ? 1 : 0;
             per[1] = isPeriodic[BL_SPACEDIM-1];
-        
+
             computeCoefficients(rhs_temp,beta,ccE_conn,connected_region,dxFiltered[0],per);
             //
             // Need phi to have ghost cells.
@@ -517,7 +517,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
             FArrayBox phi(phiGhostBox,1);
             phi.setVal<RunOn::Host>(0);
             phi.copy<RunOn::Host>(phiFiltered);
-      
+
             Box grownRhs = OutFlowBC::SemiGrow(rhs_temp.box(),1,BL_SPACEDIM-1);
             FArrayBox rhs(grownRhs,1);
             rhs.setVal<RunOn::Host>(0);
@@ -527,28 +527,28 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                                      dxFiltered[0],per);
 
             proj_mg.solve(tol,abs_tol,2,2,proj_mg.MaxIters(),proj_mg.Verbose());
-      
+
             DEF_BOX_LIMITS(phi,phi_lo,phi_hi);
 
             Real *phiptr0,*phiptr1,*phiptr2,*phiptr3,*phiptr4,*phiptr5;
 
-            for (int i=0; i < numOutFlowFaces; i++) 
+            for (int i=0; i < numOutFlowFaces; i++)
             {
                 if (faces2[i] == 0) {
                     phiptr0 = phiMF[i].dataPtr();
-                } else 
+                } else
                     if (faces2[i] == 1) {
                         phiptr1 = phiMF[i].dataPtr();
-                    } else 
+                    } else
                         if (faces2[i] == 2) {
                             phiptr2 = phiMF[i].dataPtr();
-                        } else 
+                        } else
                             if (faces2[i] == 3) {
                                 phiptr3 = phiMF[i].dataPtr();
-                            } else 
+                            } else
                                 if (faces2[i] == 4) {
                                     phiptr4 = phiMF[i].dataPtr();
-                                } else 
+                                } else
                                     if (faces2[i] == 5) {
                                         phiptr5 = phiMF[i].dataPtr();
                                     }
@@ -564,7 +564,7 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
     {
         const int* domlo  = domain.loVect();
         const int* domhi  = domain.hiVect();
-        for (int iface = 0; iface < numOutFlowFaces; iface++) 
+        for (int iface = 0; iface < numOutFlowFaces; iface++)
         {
             int face          = int(outFaces[iface]);
             int outDir        = outFaces[iface].coordDir();
@@ -576,15 +576,15 @@ ProjOutFlowBC::computeBC (FArrayBox       velMF[][2*BL_SPACEDIM],
                             phiPtr,ARLIM(philo),ARLIM(phihi),
                             &face,&gravity,dx,domlo,domhi,
                             lo_bc,hi_bc);
-  
+
         }
     }
 }
 
-void 
+void
 ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
                             FArrayBox*         phiMF,
-                            const Geometry&    geom, 
+                            const Geometry&    geom,
                             Orientation*       outFaces,
                             int                numOutFlowFaces,
                             Real               gravity,
@@ -603,10 +603,10 @@ ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
 
 	int face          = int(outFaces[iface]);
 	int outDir        = outFaces[iface].coordDir();
-	
+
 	DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
 	DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
-	
+
 	if (outDir != (BL_SPACEDIM-1))
 	  rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
 		 phiPtr,ARLIM(philo),ARLIM(phihi),
@@ -617,7 +617,7 @@ ProjOutFlowBC::computeRhoG (FArrayBox*         rhoMF,
 }
 
 #if (BL_SPACEDIM == 3)
-void 
+void
 ProjOutFlowBC::computeCoefficients (FArrayBox&   rhs,
                                     FArrayBox&   beta,
                                     FArrayBox&   ccExt,
@@ -627,7 +627,7 @@ ProjOutFlowBC::computeCoefficients (FArrayBox&   rhs,
 {
     Box rhsBox  = semiSurroundingNodes(faceBox,BL_SPACEDIM-1);
     Box betaBox = OutFlowBC::SemiGrow(faceBox,1,BL_SPACEDIM-1);
-  
+
     beta.resize(betaBox,1);
     rhs.resize(rhsBox,1);
 
@@ -740,7 +740,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
         newphi->setVal<RunOn::Host>(0);
         newresid->setVal<RunOn::Host>(0);
         newbeta->setVal<RunOn::Host>(0);
-   
+
         DEF_BOX_LIMITS(domain,dom_lo,dom_hi);
         DEF_BOX_LIMITS(newdomain,new_lo,new_hi);
         DEF_LIMITS(*beta,betaPtr,beta_lo,beta_hi);
@@ -750,7 +750,7 @@ ProjOutFlowBC_MG::ProjOutFlowBC_MG (const Box& Domain,
                      newbetaPtr,ARLIM(newbeta_lo),ARLIM(newbeta_hi),
                      dom_lo,dom_hi,new_lo,new_hi,isPeriodic);
 
-        next = new ProjOutFlowBC_MG(newdomain,newphi,newrhs,newresid, 
+        next = new ProjOutFlowBC_MG(newdomain,newphi,newrhs,newresid,
                                     newbeta,newh,isPeriodic);
     }
 }
@@ -784,7 +784,7 @@ ProjOutFlowBC_MG::residual ()
     return rnorm;
 }
 
-void 
+void
 ProjOutFlowBC_MG::step (int nGSRB)
 {
     if (cgwork.isAllocated())
@@ -798,7 +798,7 @@ ProjOutFlowBC_MG::step (int nGSRB)
         DEF_LIMITS(*resid,residPtr,resid_lo,resid_hi);
         DEF_LIMITS(dest0,dest0Ptr,dest0_lo,dest0_hi);
         DEF_LIMITS(*rhs,rhsPtr,rhs_lo,rhs_hi);
-        DEF_LIMITS(*beta, betaPtr, beta_lo,beta_hi); 
+        DEF_LIMITS(*beta, betaPtr, beta_lo,beta_hi);
         DEF_BOX_LIMITS(cgwork,cg_lo,cg_hi);
 
         solvehg(phiPtr,ARLIM(phi_lo),ARLIM(phi_hi),
@@ -819,7 +819,7 @@ ProjOutFlowBC_MG::step (int nGSRB)
     }
 }
 
-void 
+void
 ProjOutFlowBC_MG::Restrict ()
 {
     DEF_BOX_LIMITS(domain,lo,hi);
@@ -828,8 +828,8 @@ ProjOutFlowBC_MG::Restrict ()
     DEF_LIMITS(*(next->theRhs()),rescPtr,resc_lo,resc_hi);
 
     next->theRhs()->setVal<RunOn::Host>(0);
-  
-    fort_restrict(residPtr,ARLIM(resid_lo),ARLIM(resid_hi), 
+
+    fort_restrict(residPtr,ARLIM(resid_lo),ARLIM(resid_hi),
                   rescPtr, ARLIM(resc_lo),ARLIM(resc_hi),
                   lo,hi,loc,hic,isPeriodic);
 }
@@ -840,7 +840,7 @@ ProjOutFlowBC_MG::interpolate ()
     FArrayBox temp(phi->box(),1);
 
     temp.setVal<RunOn::Host>(0);
-    
+
     DEF_BOX_LIMITS(domain,lo,hi);
     DEF_BOX_LIMITS(next->theDomain(),loc,hic);
     DEF_LIMITS(*phi,phiPtr,phi_lo,phi_hi);
@@ -849,9 +849,9 @@ ProjOutFlowBC_MG::interpolate ()
     DEF_LIMITS(*beta,betaPtr,beta_lo,beta_hi);
 
     interp(phiPtr, ARLIM(phi_lo),ARLIM(phi_hi),
-                tempPtr, ARLIM(temp_lo),ARLIM(temp_hi), 
-                deltacPtr, ARLIM(deltac_lo),ARLIM(deltac_hi), 
-                betaPtr, ARLIM(beta_lo),ARLIM(beta_hi), 
+                tempPtr, ARLIM(temp_lo),ARLIM(temp_hi),
+                deltacPtr, ARLIM(deltac_lo),ARLIM(deltac_hi),
+                betaPtr, ARLIM(beta_lo),ARLIM(beta_hi),
                 lo,hi,loc,hic,isPeriodic);
 }
 

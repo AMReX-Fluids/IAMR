@@ -210,7 +210,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
   }
   else if (geom_type == "Inflow-Pipe")
   {
-    
+
     // Initialise parameters
     int direction1 = 2;
     int direction2 = 2;
@@ -278,7 +278,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     int direction = 1;
     Real radius = 0.018;
     Real height = 0.01;
-    bool internal_flow = true; 
+    bool internal_flow = true;
     Vector<Real> centervec(3);
 
     // Get information from inputs file.
@@ -311,11 +311,138 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 
   }
-  else
+
 #endif
-  {
-    EB2::Build(geom, required_coarsening_level, max_coarsening_level);
+#if(AMREX_SPACEDIM == 2)
+ if(geom_type == "oil_spill")
+{
+
+    std::cout << "Here" << std::endl;
+    // create union of two thin boxes to represent a tank wall with a hole
+    bool inside = false;
+    Vector<Real> loVec1, hiVec1, loVec2, hiVec2;
+
+    ParmParse pp("oil_spill");
+    pp.getarr("lo_vec1", loVec1);
+    pp.getarr("hi_vec1", hiVec1);
+    pp.getarr("lo_vec2", loVec2);
+    pp.getarr("hi_vec1", hiVec2);
+    std::cout << loVec1[0] << " " << loVec1[1] << " " << hiVec1[0] << " " << hiVec1[1] << std::endl;
+    std::cout << loVec2[0] << " " << loVec2[1] << " " << hiVec2[0] << " " << hiVec2[1] << std::endl;
+    Real dx = geom.CellSize(0);
+    Real y1 =       6.0*dx;
+    Real y2 =      10.0*dx;
+    Real y3 = 0.4;// - 4.0*dx;
+    EB2::BoxIF box1({1.50, 0.0}, {1.52500000001, y1}, inside);
+    EB2::BoxIF box2({1.50,  y2}, {1.52500000001, y3}, inside);
+    auto twoBoxes = EB2::makeUnion(box1, box2);
+    auto gshop = EB2::makeShop(twoBoxes);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+}
+else if(geom_type == "threePhaseSep")
+{
+    bool inside = true;
+    Array<Real,AMREX_SPACEDIM> centre{1.0, 0.5}; //Centre of the sphere
+    EB2::PlaneIF topwall({AMREX_D_DECL(1.0,0.4,0.0)},
+                         {AMREX_D_DECL(0.0 ,-1.0,0.0)});
+    EB2::PlaneIF btmwall({AMREX_D_DECL(1.0,0.0,0.0)},
+                         {AMREX_D_DECL(0.0 ,1.0,0.0)});
+     EB2::BoxIF box({-0.5, 0.874}, {0.2, 0.926}, inside);
+    EB2::SphereIF circ(1.0, centre, inside);
+    auto tank = EB2::makeIntersection(topwall, circ);
+    auto gshop = EB2::makeShop(tank);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+}
+
+else if(geom_type == "VFM")
+{
+    bool inside = true;
+    EB2::BoxIF box1({-0.1, -0.021001}, {0.323001, 0.021001}, inside);
+    EB2::BoxIF box2({0.00323, -0.015}, {0.435, 0.015}, inside);
+    EB2::BoxIF box3({0.43499, -0.021001}, {1.0001, 0.021001}, inside);
+
+    EB2::PlaneIF plane1({AMREX_D_DECL(0.42, 0.015, 0.0)},
+        {AMREX_D_DECL(      1.0,      0.0, 0.0)});
+    EB2::PlaneIF plane2({AMREX_D_DECL(0.42, 0.015, 0.0)},
+                 {AMREX_D_DECL(1, -3.0, 0.0)});
+    EB2::PlaneIF plane3({AMREX_D_DECL(0.435, 0.021, 0.0)},
+                 {AMREX_D_DECL(      0.0,       -1.0, 0.0)});
+    EB2::PlaneIF plane4({AMREX_D_DECL(0.4199, -0.015, 0.0)},
+        {AMREX_D_DECL(      -1.0,      0.0, 0.0)});
+    EB2::PlaneIF plane5({AMREX_D_DECL(0.4199, -0.015, 0.0)},
+                 {AMREX_D_DECL(1, 3.0, 0.0)});
+    EB2::PlaneIF plane6({AMREX_D_DECL(0.435, -0.021, 0.0)},
+                 {AMREX_D_DECL(      0.0,       1.0, 0.0)});
+
+
+     EB2::PlaneIF plane7({AMREX_D_DECL(0.323, 0.02001, 0.0)},
+                     {AMREX_D_DECL(      1.0,      0.0, 0.0)});
+     EB2::PlaneIF plane8({AMREX_D_DECL(0.40, 0.014999, 0.0)},
+                     {AMREX_D_DECL(     1.0,      15.4, 0.0)});
+     EB2::PlaneIF plane9({AMREX_D_DECL(0.40, 0.015, 0.0)},
+                     {AMREX_D_DECL(     0.0,      1.0, 0.0)});
+     EB2::PlaneIF plane10({AMREX_D_DECL(0.40, -0.014999, 0.0)},
+                     {AMREX_D_DECL(     1.0,      -15.4, 0.0)});
+     EB2::PlaneIF plane11({AMREX_D_DECL(0.40, -0.014999, 0.0)},
+                     {AMREX_D_DECL(     0.0,      -1.0, 0.0)});
+
+     auto ramp = EB2::makeIntersection(plane1, plane2, plane3);
+     auto ramp2 = EB2::makeIntersection(plane1, plane5, plane6);
+     auto ramp3 = EB2::makeIntersection(plane7, plane8, plane9);
+     auto ramp4 = EB2::makeIntersection(plane7, plane10, plane11);
+    auto tworamps = EB2::makeUnion(makeComplement(ramp), makeComplement(ramp2));
+    auto tworamps2 =EB2::makeUnion((ramp3),(ramp4));
+    auto VFM = EB2::makeIntersection(box1, box2, tworamps, tworamps2, box3);
+    auto gshop = EB2::makeShop( VFM);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level,10);
+}
+else if(geom_type == "t_junction")
+{
+    bool inside = true;
+    EB2::BoxIF box1({-0.1, -0.0095}, {0.240, 0.0095}, inside);
+    EB2::BoxIF box2({0.239, -0.0125}, {7.5, 0.0125}, inside);
+    EB2::BoxIF box3({0.15, -0.07}, {0.169, 0.0}, inside);
+
+
+
+    auto VFM = EB2::makeIntersection(box1, box2, box3);
+    auto gshop = EB2::makeShop(VFM);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level,10);
+}
+#endif
+#if(AMREX_SPACEDIM == 3)
+else if(geom_type == "soliton3d")
+{
+    bool inside = false;
+    EB2::BoxIF box1({2.0, -0.3, 0.05}, {4.0,-0.147, 0.350001}, inside);
+    EB2::BoxIF box2({3.25, -0.2, 0.15}, {3.75,0.0, 0.25}, true);
+    EB2::SphereIF cyl(0.1, {3.0, -0.147, 0.2}, true);
+    auto boxcyl = EB2::makeIntersection(box1, (box2), cyl);
+    auto gshop = EB2::makeShop(boxcyl);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level, 10);
+}
+#else
+else if(geom_type == "soliton2d")
+{
+    bool inside = false;
+    Array<Real,AMREX_SPACEDIM> centre{3.0, -0.047}; //Centre of the sphere
+    EB2::BoxIF box1({2.0, -0.3}, {4.0,-0.047}, inside);
+    EB2::BoxIF box2({3.25, -0.11}, {3.75,0.0}, true);
+    EB2::SphereIF circ(0.1, centre, true);
+    auto boxcyl = EB2::makeIntersection(box1, (box2), circ);
+    auto gshop = EB2::makeShop(boxcyl);
+    EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level, 10);
+}
+#endif
+    else
+    {
+        EB2::Build(geom, required_coarsening_level, max_coarsening_level, 4);
+
+    }
+
+#if BL_SPACEDIM > 2
   }
+ #endif
 }
 
 void
@@ -331,14 +458,14 @@ NavierStokesBase::initialize_eb2_structs() {
 
   amrex::Print() << "Initializing EB2 structs" << std::endl;
 
-  // NOTE: THIS NEEDS TO BE REPLACED WITH A FLAGFAB 
-  
+  // NOTE: THIS NEEDS TO BE REPLACED WITH A FLAGFAB
+
   // n.b., could set this to 1 if geometry is all_regular as an optimization
   no_eb_in_domain = 0;
 
   //  1->regular, 0->irregular, -1->covered, 2->outside
   ebmask.define(grids, dmap,  1, 0);
-  
+
   const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
 
   // These are the data sources
@@ -346,7 +473,7 @@ NavierStokesBase::initialize_eb2_structs() {
   bndrycent = &(ebfactory.getBndryCent());
   areafrac = ebfactory.getAreaFrac();
   facecent = ebfactory.getFaceCent();
-  
+
   auto const& flags = ebfactory.getMultiEBCellFlagFab();
 
 #ifdef _OPENMP
@@ -359,7 +486,7 @@ NavierStokesBase::initialize_eb2_structs() {
     const Box bx = mfi.tilebox();
     const FArrayBox& vfab = (*volfrac)[mfi];
     const EBCellFlagFab& flagfab = flags[mfi];
-    
+
     FabType typ = flagfab.getType(tbox);
     int iLocal = mfi.LocalIndex();
 
@@ -383,15 +510,15 @@ NavierStokesBase::initialize_eb2_structs() {
       int Ncut = 0;
       for (BoxIterator bit(tbox); bit.ok(); ++bit) {
         const EBCellFlag& flag = flagfab(bit(), 0);
-    
+
         if (!(flag.isRegular() || flag.isCovered())) {
           Ncut++;
         }
       }
-    
+
       for (BoxIterator bit(tbox); bit.ok(); ++bit) {
         const EBCellFlag& flag = flagfab(bit(), 0);
-    
+
         if (!(flag.isRegular() || flag.isCovered())) {
           if (mfab.box().contains(bit())) mfab(bit()) = 0;
         } else {
@@ -408,7 +535,7 @@ NavierStokesBase::initialize_eb2_structs() {
     else {
       amrex::Print() << "unknown (or multivalued) fab type" << std::endl;
       amrex::Abort();
-    }   
+    }
   }
 }
 
@@ -416,8 +543,8 @@ void
 NavierStokesBase::define_body_state()
 {
   if (no_eb_in_domain) return;
-  
-  // Scan over data and find a point in the fluid to use to 
+
+  // Scan over data and find a point in the fluid to use to
   // set computable values in cells outside the domain
   if (!body_state_set)
   {
@@ -425,7 +552,7 @@ NavierStokesBase::define_body_state()
     const MultiFab& S = get_new_data(State_Type);
     BL_ASSERT(S.boxArray() == ebmask.boxArray());
     BL_ASSERT(S.DistributionMap() == ebmask.DistributionMap());
-  
+
     body_state.resize(S.nComp(),0);
     for (MFIter mfi(S,false); mfi.isValid() && !foundPt; ++mfi)
     {
@@ -433,8 +560,8 @@ NavierStokesBase::define_body_state()
       const BaseFab<int>& m = ebmask[mfi];
       const FArrayBox& fab = S[mfi];
       BL_ASSERT(m.box().contains(vbox));
-  
-      // TODO: Remove this dog and do this work in fortran 
+
+      // TODO: Remove this dog and do this work in fortran
       for (BoxIterator bit(vbox); bit.ok() && !foundPt; ++bit)
       {
         const IntVect& iv = bit();
@@ -447,7 +574,7 @@ NavierStokesBase::define_body_state()
         }
       }
     }
-  
+
     // Find proc with lowest rank to find valid point, use that for all
     std::vector<int> found(ParallelDescriptor::NProcs(),0);
     found[ParallelDescriptor::MyProc()] = (int)foundPt;

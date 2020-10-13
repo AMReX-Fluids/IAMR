@@ -4,6 +4,7 @@
 
 #include <NavierStokesBase.H>
 #include <AMReX_LevelBld.H>
+#include <vector>
 
 class NSBld
     :
@@ -125,7 +126,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public functions                                       //
     ////////////////////////////////////////////////////////////////////////////
-  
+
     //
     // Predict face velocities (before projection), estimate current cfl
     // from t^n cell-centered velocities (plus cfl and change_max)
@@ -161,7 +162,7 @@ protected:
     // Compute viscous terms.
     //
     virtual void getViscTerms (amrex::MultiFab& visc_terms,
-			       int       src_comp, 
+			       int       src_comp,
 			       int       num_comp,
 			       amrex::Real      time) override;
     //
@@ -177,11 +178,31 @@ protected:
     static void Finalize ();
 
 private:
-   
+
+    void initialState(amrex::FArrayBox& statein, const amrex::Box& bx,
+    amrex::RealBox gridloc, const amrex::Real* dx, int testNumber);
+
+    amrex::Vector<amrex::Vector<double>> readDataFile();
+
+    void
+    lookUpData(amrex::Vector<amrex::Vector<double>>& solitonData,
+     double& x, double& y, amrex::Vector<double>& cellData);
+
+    void computeIntHeight(amrex::FArrayBox& statein, const amrex::Box& bx,
+    amrex::RealBox gridloc, const amrex::Real* dx);
+
+
+    void center_to_edge_plain (const amrex::FArrayBox& ccfab,
+                               amrex::FArrayBox&       ecfab,
+			       const amrex::Box&       bx,
+			       int              sComp,
+                               int              dComp,
+                               int              nComp);
+
     void diffuse_velocity_setup (amrex::Real       dt,
 				 amrex::MultiFab*& delta_rhs,
 				 amrex::MultiFab**& viscn,
-				 amrex::MultiFab**& viscnp1); 
+				 amrex::MultiFab**& viscnp1);
 
     void getDiffusivity (amrex::MultiFab*  diffusivity[BL_SPACEDIM],
 			 const amrex::Real time,
@@ -189,7 +210,7 @@ private:
 			 const int  dst_comp,
 			 const int  num_comp);
 
-    NavierStokes& getLevel (int lev) { 
+    NavierStokes& getLevel (int lev) {
 	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
     }
 

@@ -13,8 +13,9 @@ using namespace amrex;
 
 static Box the_same_box (const Box& b)    { return b;                 }
 static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
+static Box grow_box_by_two (const Box& b) { return amrex::grow(b,2); }
 
-// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc 
+// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc
 //                      are now all defined in NS_BC.H in iamrlib
 
 static
@@ -110,26 +111,26 @@ set_pressure_bc (BCRec&       bc,
     }
 }
 
-static 
-void 
+static
+void
 set_divu_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         bc.setLo(i,divu_bc[lo_bc[i]]);
         bc.setHi(i,divu_bc[hi_bc[i]]);
     }
 }
 
-static 
-void 
+static
+void
 set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         bc.setLo(i,dsdt_bc[lo_bc[i]]);
         bc.setHi(i,dsdt_bc[hi_bc[i]]);
@@ -157,9 +158,21 @@ NavierStokes::variableSetUp ()
     //
     NUM_STATE = Density + 1;
     int Trac = NUM_STATE++;
+    int nTrac = 1;
+    // int intHeight = NUM_STATE++;
     int Trac2;
+    int Trac3;
     if (do_trac2)
-	Trac2 = NUM_STATE++;
+    {
+        Trac2 = NUM_STATE++;
+        nTrac = 2;
+    }
+    if (do_trac3)
+    {
+        Trac3 = NUM_STATE++;
+        nTrac = 3;
+    }
+
     if (do_temp) NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
 
@@ -191,7 +204,7 @@ NavierStokes::variableSetUp ()
                            StateDescriptor::Point,1,NUM_STATE,
                            &cell_cons_interp);
 #endif
-    
+
     set_x_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
 
@@ -210,12 +223,20 @@ NavierStokes::variableSetUp ()
 
     set_scalar_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Trac,"tracer",bc,BndryFunc(FORT_ADVFILL));
+    // set_scalar_bc(bc,phys_bc);
+    // desc_lst.setComponent(State_Type,intHeight,"intHeight",bc,BndryFunc(FORT_ADVFILL));
 
     if (do_trac2)
     {
        set_scalar_bc(bc,phys_bc);
        desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,BndryFunc(FORT_ADV2FILL));
     }
+    if (do_trac3)
+    {
+       set_scalar_bc(bc,phys_bc);
+       desc_lst.setComponent(State_Type,Trac3,"tracer3",bc,BndryFunc(FORT_ADV3FILL));
+    }
+
     //
     // **************  DEFINE TEMPERATURE  ********************
     //
@@ -303,7 +324,7 @@ NavierStokes::variableSetUp ()
 			       &cell_cons_interp);
 	set_divu_bc(bc,phys_bc);
 	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
-	
+
 	// stick Dsdt_Type on the end of the descriptor list
 	Dsdt_Type = desc_lst.size();
 	int nGrowDsdt = 0;
@@ -319,7 +340,12 @@ NavierStokes::variableSetUp ()
     // mod grad rho
     //
     derive_lst.add("modgradrho",IndexType::TheCellType(),1,dermodgradrho,grow_box_by_one);
-    derive_lst.addComponent("modgradrho",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("modgradrho",desc_lst,State_Type,Trac,1);
+    derive_lst.addComponent("modgradrho",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+
+
+    derive_lst.add("curvature",IndexType::TheCellType(),1,derCurv,grow_box_by_one);
+    derive_lst.addComponent("curvature",desc_lst,State_Type,Trac,1);
 
 #if (BL_SPACEDIM==3)
     //
@@ -342,6 +368,9 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("mag_vort",IndexType::TheCellType(),1,DeriveFunc3D(dermgvort),grow_box_by_one);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+
+
+
 #if (BL_SPACEDIM == 3)
     //
     //  vorticity vector field
@@ -377,7 +406,7 @@ NavierStokes::variableSetUp ()
     derive_lst.add("gradpy",IndexType::TheCellType(),1,DeriveFunc3D(dergrdpy),the_same_box);
     derive_lst.addComponent("gradpy",desc_lst,Press_Type,Pressure,1);
     //
-    // magnitude of pressure gradient 
+    // magnitude of pressure gradient
     //
     derive_lst.add("gradp",IndexType::TheCellType(),1,dergrdp,the_same_box);
     derive_lst.addComponent("gradp",desc_lst,Press_Type,Pressure,1);
@@ -469,7 +498,7 @@ NavierStokes::variableSetUp ()
     // Pressure stuff for the jet on-the-fly integration (note need to grow for slope reconstruction of *derivatives*)
     //
     derive_lst.add("JetPresVars",IndexType::TheCellType(),16,derjetpresvars,grow_box_by_one);
-    derive_lst.addComponent("JetPresVars",desc_lst,Press_Type,Pressure,1); 
+    derive_lst.addComponent("JetPresVars",desc_lst,Press_Type,Pressure,1);
 #endif
 //3D
 #endif

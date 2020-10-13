@@ -16,7 +16,8 @@
 #include <AMReX_BLProfiler.H>
 #include <PROB_NS_F.H>
 #include <NS_util.H>
-
+#include <AMReX_BCUtil.H>
+#include <AMReX_MultiFabUtil.H>
 #ifdef BL_USE_VELOCITY
 #include <AMReX_DataServices.H>
 #include <AMReX_AmrData.H>
@@ -87,11 +88,18 @@ NavierStokes::initData ()
     //
     // Initialize the state and the pressure.
     //
+    int testNumber;
+    ParmParse pp("ns");
+    pp.query("testNumber", testNumber);
     int         ns       = NUM_STATE - BL_SPACEDIM;
     const Real* dx       = geom.CellSize();
     MultiFab&   S_new    = get_new_data(State_Type);
     MultiFab&   P_new    = get_new_data(Press_Type);
     const Real  cur_time = state[State_Type].curTime();
+    Vector<Vector<double>> solitonInit;
+    Vector<double> cellData(3);
+
+    solitonInit = readDataFile();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -113,13 +121,61 @@ NavierStokes::initData ()
         const int* p_lo    = Pfab.loVect();
         const int* p_hi    = Pfab.hiVect();
 
-        FORT_INITDATA (&level,&cur_time,lo,hi,&ns,
-                       Sfab.dataPtr(Xvel),
-                       Sfab.dataPtr(BL_SPACEDIM),
-                       ARLIM(s_lo), ARLIM(s_hi),
-                       Pfab.dataPtr(),
-                       ARLIM(p_lo), ARLIM(p_hi),
-                       dx,gridloc.lo(),gridloc.hi() );
+        // FORT_INITDATA (&level,&cur_time,lo,hi,&ns,
+        //                Sfab.dataPtr(Xvel),
+        //                Sfab.dataPtr(BL_SPACEDIM),
+        //                ARLIM(s_lo), ARLIM(s_hi),
+        //                Pfab.dataPtr(),
+        //                ARLIM(p_lo), ARLIM(p_hi),
+        //                dx,gridloc.lo(),gridloc.hi() );
+        if(testNumber == 16)
+        {
+            Array4<Real> const& stateArray = Sfab.array();
+            Dim3 lo = lbound(vbx);
+            Dim3 hi = ubound(vbx);
+            const Real* xlo = gridloc.lo();
+            const Real* xhi = gridloc.hi();
+            Real x, y;
+            for(int i = lo.x; i <= hi.x; i++)
+            {
+                for(int j = lo.y; j <= hi.y; j++)
+                {
+                    for(int k = lo.z; k <= hi.z; k++)
+                    {
+                        x = xlo[0] + dx[0]*((i-lo.x) + 0.5);
+                        y = xlo[1] + dx[1]*((j-lo.y) + 0.5);
+                        // if(y < 0)
+                        // {
+                        //     stateArray(i,j,k,Density) = 999.2;
+                        //
+                        // }
+                        // else
+                        // {
+                        //     stateArray(i,j,k,Density) = 1.225;
+                        //
+                        // }
+                        lookUpData(solitonInit, x, y, cellData);
+                        stateArray(i,j,k,Density) = cellData[0];
+                        stateArray(i,j,k,Xvel) = cellData[1];
+                        stateArray(i,j,k,Yvel) = cellData[2];
+                        if(cellData[0] == 1000.0)
+                        {
+                            stateArray(i,j,k,Tracer) = 0.0;
+                        }
+                        else
+                        {
+                            stateArray(i,j,k,Tracer) = 1.0;
+
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            initialState(Sfab, vbx, gridloc, dx, testNumber);
+        }
+
     }
 
 #ifdef AMREX_USE_EB
@@ -226,6 +282,936 @@ NavierStokes::initData ()
 #endif
 }
 
+
+Vector<Vector<double>>
+NavierStokes::readDataFile()
+{
+    // For the specific case of the soltion wave, where
+    // initial data is generated from a different script file
+    std::ifstream solitonInitDat;
+    double iRead = 0.0;
+    double xRead = 0.0;
+    double yRead = 0.0; double rhoRead = 0.0; double uRead = 0.0;
+    double vRead =0.0; double pRead = 0.0;
+    Vector<double> x, y, rho, u, v;
+    int Np, Nv;
+    Vector<Vector<double>> solitonData;
+    solitonInitDat.open("plotuv.dat");
+
+    while(solitonInitDat >> iRead >> xRead >> yRead >> rhoRead
+        >> uRead >> vRead >> pRead)
+    {
+        x.push_back(xRead);
+        y.push_back(yRead);
+        rho.push_back(rhoRead);
+        u.push_back(uRead);
+        v.push_back(vRead);
+    }
+
+    solitonInitDat.close();
+    Nv = 5;
+    Np = x.size();
+
+    solitonData.resize(Nv, Vector<double>(Np));
+
+    for(int i = 0; i < Np; i++)
+    {
+        solitonData[0][i] = x[i];
+        solitonData[1][i] = y[i];
+        solitonData[2][i] = rho[i];
+        solitonData[3][i] = u[i];
+        solitonData[4][i] = v[i];
+        // std::cout << x[i] << " ";
+    }
+
+    return solitonData;
+}
+
+
+void
+NavierStokes::lookUpData(Vector<Vector<double>>& solitonData, double& x, double& y,
+    Vector<double>& cellData)
+{
+
+//std::cout << "Looking up data for soliton test case..." << std::endl;
+    int Np = solitonData[0].size();
+    int xInd = 0;
+    int yInd = 0;
+    int ind = 0;
+    double yDat;
+    double xDat;
+    Vector<Real> diffY(Np);
+    Vector<Real> diffX(Np);
+    Vector<Real> diff(Np);
+    for(int i = 0; i < Np; i++)
+    {
+        xDat = solitonData[0][i];
+        yDat = solitonData[1][i];
+        diffX[i] = fabs(xDat - x);
+        diffY[i] = fabs(yDat - y);
+        diff[i] = sqrt((xDat-x)*(xDat-x) + (yDat-y)*(yDat-y));
+    }
+
+    xInd = std::distance(std::begin(diffX),
+        std::min_element(std::begin(diffX), std::end(diffX)));
+    yInd = std::distance(std::begin(diffY),
+        std::min_element(std::begin(diffY), std::end(diffY)));
+    ind = std::distance(std::begin(diff),
+        std::min_element(std::begin(diff), std::end(diff)));
+    // if(xInd == yInd)
+    // {
+        cellData[0] = solitonData[2][ind];
+        cellData[1] = solitonData[3][ind];
+        cellData[2] = solitonData[4][ind];
+        // std::cout << x << " " << y << " " <<
+        //     solitonData[0][ind] << " " << solitonData[1][ind] << std::endl;
+
+    // }
+
+
+    //std::cout << "Successfully read in soliton data." << std::endl;
+
+}
+
+void
+NavierStokes::initialState(FArrayBox& statein, const Box& bx,
+    RealBox gridloc, const Real* dx, int testNumber)
+{
+    Array4<Real> const& stateArray = statein.array();
+    Dim3 lo = lbound(bx);
+    Dim3 hi = ubound(bx);
+    const Real* xlo = gridloc.lo();
+    const Real* xhi = gridloc.hi();
+    Real x, y;
+
+    // std::cout << "Break ";
+    for(int i = lo.x; i <= hi.x; i++)
+    {
+        for(int j = lo.y; j <= hi.y; j++)
+        {
+            for(int k = lo.z; k <= hi.z; k++)
+            {
+                // x = dx[0]*(i+0.5);
+                // y = dx[1]*(j+0.5);
+                x = xlo[0] + dx[0]*((i-lo.x) + 0.5);
+                y = xlo[1] + dx[1]*((j-lo.y) + 0.5);
+                if(testNumber == 0)
+                {
+                    // Rayleigh Problem or Stokes First Problem:
+                    stateArray(i,j,Xvel) = 0.0;
+                    stateArray(i,j,Density) = 1.0;
+                    if(x < 0.5)
+                    {
+                        stateArray(i,j,Yvel) = -1.0;
+                    }
+                    else
+                    {
+                        // std::cout << "Break" << std::endl;
+                        stateArray(i,j,Yvel) = 1.0;
+                    }
+                }
+
+                else if(testNumber == 1)
+                {
+                    // Poiseuille flow
+                    stateArray(i,j,Xvel) = 0.0;
+                    stateArray(i,j,Yvel) = 0.0;
+                    stateArray(i,j,Density) = 1.0;
+                }
+
+                else if(testNumber == 2)
+                {
+                    // Periodic shear layer from Bell, Colella and Glaz 1989
+                    stateArray(i,j,k, Xvel) = tanh(30.0*(0.25-fabs(y-0.5)));
+                    stateArray(i,j,k, Yvel) = 0.05*sin(2*M_PI*x);
+                    stateArray(i,j,k, Density) = 1.0;
+
+                }
+                else if(testNumber == 3)
+                {
+                    // Two-dimensional shear layer from Chien et al., 1995
+                    double rho1 = 1.0;
+                    double rho2 = 7.0;
+                    double f = 1.0;
+                    double fm = 0.5;
+                    double rhom, um;
+                    double u1 = 1.45;
+                    double u2 = 0.55;
+                    double lRho = (rho1-rho2)/(rho1+rho2);
+                    double l = (u1-u2)/(u1+u2);
+                    double delta = 6.0;
+
+                    rhom = (rho1+rho2)/2.0;
+                    um = (u1+u2)/2.0;
+
+                    stateArray(i,j,Density) = rhom*(1+lRho*tanh(2*y/delta));
+                    stateArray(i,j,Xvel) = um*(1+l*tanh(2*y/delta));
+                    stateArray(i,j,Yvel) = 0.0;
+                    stateArray(i,j,Tracer) = 0.0;//0.5*(1+tanh(2*y/delta));
+
+
+                }
+
+                else if(testNumber == 4)
+                {
+                    // same test as above but for water and air.
+                    ParmParse pp("ns");
+
+                    double rhoL, rhoG, uL, uG;
+                    pp.query("rhoL", rhoL);
+                    pp.query("rhoG", rhoG);
+                    pp.query("uG", uG);
+                    pp.query("uL", uL);
+                    double mu1 = 1.77625e-5;
+                    double mu2 = 1.1377e-3;
+                    double rhom, um, mum;
+                    double lRho = (rhoG-rhoL)/(rhoG+rhoL);
+                    double l = (uG-uL)/(uG+uL);
+                    double lMu = (mu1-mu2)/(mu1+mu2);
+                    double delta = 6.0;
+
+                    rhom = (rhoL+rhoG)/2.0;
+                    um = (uL+uG)/2.0;
+                    mum = (mu1+mu2)/2.0;
+
+                    stateArray(i,j,k,Density) = rhom*(1+lRho*tanh(2*y/delta));
+                    stateArray(i,j,k, Xvel) = um*(1+l*tanh(2*y/delta));
+                    stateArray(i,j,Tracer) = 0.5*(1+tanh(2*y/delta));
+
+                    stateArray(i,j,Yvel) = 0.0;
+
+                }
+                else if(testNumber == 5)
+                {
+                    // same test as above but for water and air.
+                    ParmParse pp("ns");
+
+                    double rho2;
+                    double rho1;
+                    pp.query("rho1", rho1);
+                    pp.query("rho2", rho2);
+
+                    double mu1 = 1.77625e-5;
+                    double mu2 = 1.1377e-3;
+                    double r = 0.0015;
+                    double x0 = 0.0035;
+                    double y0 = 0.004;
+                    double dist = sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
+
+                    stateArray(i,j, k, Xvel) = 0.0;
+                    stateArray(i,j, k, Yvel) = 0.0;
+                    stateArray(i,j, k, Density) = rho1 + 0.5*(rho2-rho1)*(1-tanh(10000.0*(dist-r)));
+                    stateArray(i,j, k, Tracer) = 0.5*(1-tanh(10000.0*(dist-r)));
+                    // if(dist < r)
+                    // {
+                    //     stateArray(i,j, k, Tracer) = 1.0;
+                    //     // stateArray(i,j, k, Viscosity) = mu1;
+                    //     stateArray(i,j, k, Density) = rho2;
+                    // }
+                    // else
+                    // {
+                    //     stateArray(i,j, k, Tracer) = 0.0;
+                    //     // stateArray(i,j, k, Viscosity) = mu2;
+                    //     stateArray(i,j, k, Density) = rho1;
+                    // }
+
+                }
+                else if(testNumber == 6)
+                {
+                    double rho1 = 1.14;
+                    double rho2 = 1000.0;
+                    double mu1 = 1.77625e-5;
+                    double mu2 = 1.1377e-3;
+                    double u1 = 6.532;
+                    double u2 = 0.532;
+
+                    if(y > 0)
+                    {
+                        stateArray(i,j, Density) = rho1;
+                        // stateArray(i,j, Viscosity) = mu1;
+                        stateArray(i,j, Tracer) = 1.0;
+                        stateArray(i,j, Xvel) = u1;
+                    }
+                    else
+                    {
+                        stateArray(i,j, Density) = rho2;
+                        // stateArray(i,j,Viscosity) = mu2;
+                        stateArray(i,j, Tracer) = 0.0;
+                        stateArray(i,j, Xvel) = u2;
+                    }
+
+                    stateArray(i,j, Yvel) = 0.0;
+                }
+                else if(testNumber == 7)
+                {
+                    double rho1 = 1.0;
+                    double rho2 = 1000.0;
+                    double mu1 = 1.77625e-5;
+                    double mu2 = 1.1377e-3;
+                    double u1 = 0.1;
+                    double u2 = 0.01;
+                    double epsilon = 0.025;
+                    double ySurf = 0.25 + epsilon*cos(2.0*M_PI*x);
+                    if(y < ySurf)
+                    {
+                        stateArray(i, j, Density) = rho2;
+                        stateArray(i, j, Tracer) = 1.0;
+                    }
+                    else
+                    {
+                       stateArray(i, j, Density) = rho1;
+                       stateArray(i, j, Tracer) = 0.0;
+                    }
+
+                    stateArray(i, j, Xvel) = 0.0;
+                    stateArray(i, j, Yvel) = 0.0;
+                    // stateArray(i, j, Viscosity) = 0.0;
+
+
+                }
+
+                else if(testNumber == 8)
+                {
+                    double Lx = 0.01;
+                    ParmParse pp("ns");
+
+                    double rhoG, muG;
+                    double rhoL, muL;
+                    pp.query("rhoG", rhoG);
+                    pp.query("rhoL", rhoL);
+                    pp.query("muG", muG);
+                    pp.query("muL", muL);
+
+                    double pertHeight = 2.0*Lx + 0.05*Lx*cos(2.0*M_PI*x/Lx);
+
+                    stateArray(i, j, k, Density) = rhoG + 0.5*(rhoL-rhoG)*(1+tanh((y-pertHeight)/(0.0005)));
+                    stateArray(i,j, k,  Tracer) = 1.0 - 0.5*(1+tanh((y-pertHeight)/(0.0005)));
+                    // stateArray(i,j, k,  Tracer2) = muG + 0.5*(muL-muG)*(1+tanh((y-pertHeight)/0.05));
+                    // stateArray(i, j, Viscosity) = mu1 + 0.5*(mu2-mu1)*(1+tanh((y-pertHeight)/0.001));
+                    // if(y < pertHeight)
+                    // {
+                    //     stateArray(i,j, Tracer) = 1.0;
+                    //     // stateArray(i,j,Density) = rhoG;
+                    // }
+                    // else
+                    // {
+                    //     stateArray(i, j, Tracer) = 0.0;
+                    //     // stateArray(i,j, Density) = rhoL;
+                    // }
+
+
+                }
+
+                else if(testNumber == 9)
+                {
+                    ParmParse pp("ns");
+
+                    double rho2;
+                    double rho1;
+                    int do_variable_den = 0;
+                    pp.query("rho1", rho1);
+                    pp.query("rho2", rho2);
+                    double x0 = 0.0;
+                    double y0 = 0.0;
+                    double f = 0.5;
+                    double r = sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
+                    double R = 0.4;
+                    double psi = atan2((y-y0),(x-x0));
+                    double uPsi;
+                    if(r < 0.2 && r >= 0)
+                    {
+                        uPsi = 5.0*r;
+                    }
+                    else if(r < 0.4 && r >= 0.2)
+                    {
+                        uPsi = 2.0-5.0*r;
+                    }
+                    else
+                    {
+                        uPsi = 0.0;
+                    }
+
+                    stateArray(i,j,k, Xvel) = -1.0*uPsi*sin(psi);
+                    stateArray(i,j,k, Yvel) = uPsi*cos(psi);
+
+                    // stateArray(i,j,k, Density) = f*rho1 + (1-f)*rho2;
+                    // stateArray(i,j,k, Tracer) = 0.5;
+                    stateArray(i,j, k, Density) = rho1 + 0.5*(rho2-rho1)*(1-tanh(50.0*(r-R)));
+                    stateArray(i,j, k, Tracer) = 0.5*(1-tanh(50.0*(r-R)));
+
+                }
+                else if(testNumber == 10)
+                {
+                    ParmParse pp("ns");
+
+                    double rho2;
+                    double rho1;
+                    int do_variable_den = 0;
+                    pp.query("rho1", rho1);
+                    pp.query("rho2", rho2);
+                    double x0 = 0.0;
+                    double y0 = 0.0;
+                    double f = 0.5;
+                    double r = sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
+                    double R = 0.4;
+                    double psi = atan2((y-y0),(x-x0));
+                    double uPsi;
+                    if(r < 0.2 && r >= 0)
+                    {
+                        uPsi = 5.0*r;
+                    }
+                    else if(r < 0.4 && r >= 0.2)
+                    {
+                        uPsi = 2.0-5.0*r;
+                    }
+                    else
+                    {
+                        uPsi = 0.0;
+                    }
+
+                    stateArray(i,j,k, Xvel) = -1.0*uPsi*sin(psi) + 0.3;
+                    stateArray(i,j,k, Yvel) = uPsi*cos(psi);
+
+                    // stateArray(i,j,k, Density) = f*rho1 + (1-f)*rho2;
+                    // stateArray(i,j,k, Tracer) = f;
+                    stateArray(i,j, k, Density) = rho1 + 0.5*(rho2-rho1)*(1-tanh(50.0*(r-R)));
+                    stateArray(i,j, k, Tracer) = 0.5*(1-tanh(50.0*(r-R)));
+
+                }
+
+                else if(testNumber == 11)
+                {
+                    // Boeck et al. (2007) Sect 4.3, balanced density
+                    // ligament formation
+                    double rhoG, rhoL, uG, uL, ampl, lbda;
+                    Vector<double> domhi(BL_SPACEDIM);
+                    Vector<double> domlo(BL_SPACEDIM);
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhoG", rhoG);
+                    pp.query("rhoL", rhoL);
+                    pp.query("uG", uG);
+                    pp.query("uL", uL);
+                    pp.query("ampl", ampl);
+                    pp.query("lbda", lbda);
+                    ppGeom.getarr("prob_hi", domhi, 0, BL_SPACEDIM);
+                    ppGeom.getarr("prob_lo", domlo, 0, BL_SPACEDIM);
+                    double Lx = domhi[0]-domlo[0];
+                    double deltaG = 0.2*Lx;
+                    double lRho = (rhoG-rhoL)/(rhoG+rhoL);
+                    double l = (uG-uL)/(uG+uL);
+                    double rhom = (rhoL+rhoG)/2.0;
+                    double um = (uL+uG)/2.0;
+                    double delta = 0.01;
+                    double pertHeight = 0.05*Lx*cos(2.0*M_PI*x/Lx);
+
+                    // stateArray(i,j,k, Density) = rhom*(1+lRho*tanh(2*y/delta));
+                    // stateArray(i,j,k,Xvel) = um*(1+l*tanh(2*y/delta));
+                    // stateArray(i,j,k,Tracer) = 0.5*(1+tanh(2*y/delta));
+                    // stateArray(i,j,k,Density) = rhoG;
+                    if(y < 0)
+                    {
+                        stateArray(i,j,k,Xvel) = uL;
+                        stateArray(i,j,k,Tracer) = 0.0;
+                        stateArray(i,j,k,Density) = rhoL;
+
+                    }
+                    else if(y >= 0 && y < deltaG)
+                    {
+                        stateArray(i,j,k,Xvel) = uG;//(uG/deltaG)*y;
+                        stateArray(i,j,k,Density) = rhoG;
+                        stateArray(i,j,k, Tracer) = 1.0;
+                    }
+                    else
+                    {
+                        stateArray(i,j,k,Xvel) = uG;
+                        stateArray(i,j,k, Tracer) = 1.0;
+                        stateArray(i,j,k,Density) = rhoG;
+
+                    }
+                    stateArray(i,j,k,Yvel) = ampl*sin(2.0*M_PI*(x+0.5)/lbda);
+
+
+                }
+
+                else if(testNumber == 12)
+                {
+                    //Boeck case E
+                    double rhoG, rhoL, uG, uL, circ;
+                    Vector<double> domhi(BL_SPACEDIM);
+                    Vector<double> domlo(BL_SPACEDIM);
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhoG", rhoG);
+                    pp.query("rhoL", rhoL);
+                    pp.query("uG", uG);
+                    pp.query("uL", uL);
+                    pp.query("circ", circ);
+                    ppGeom.getarr("prob_hi", domhi, 0, BL_SPACEDIM);
+                    ppGeom.getarr("prob_lo", domlo, 0, BL_SPACEDIM);
+                    double Lx = domhi[0]-domlo[0];
+                    double Rc = Lx*4e-2;
+                    double uPsi, y0;
+                    double lbda = 0.5;
+                    Vector<double> xVort(4), yVort(4);
+                    Vector<double> dist(4);
+                    Vector<double> psi(4);
+                    double omega = ((uG-uL)*Lx*circ)/(Rc*Rc);
+                    y0 =Lx/4.0;
+                    //double omega = 0.90625;
+
+                    if(y < Lx/3)// && r0 >= Rc && r1 >= Rc && r2 >= Rc && r3 >= Rc)
+                    {
+                        stateArray(i,j,k,Xvel) = uL*erf((Lx/3-y)/(0.2*Lx));
+                        stateArray(i,j,k,Tracer) = 0.0;
+                        stateArray(i,j,k,Density) = rhoL;
+
+                    }
+
+                    // else if(y >= Lx/3 && y < Lx/3 + 0.2*Lx)
+                    // {
+                    //     stateArray(i,j,k,Xvel) = uG*erf((y-Lx/3)/(0.1*Lx));
+                    //     stateArray(i,j,k, Tracer) = 1.0;
+                    //     stateArray(i,j,k,Density) = rhoG;
+                    // }
+                    else
+                    {
+                        stateArray(i,j,k,Xvel) = uG*erf((y-Lx/3)/(0.1*Lx));
+                        stateArray(i,j,k, Tracer) = 1.0;
+                        stateArray(i,j,k,Density) = rhoG;
+                    }
+
+                    // stateArray(i,j,k,Yvel) = 0.025*sin(2.0*M_PI*(x+0.5)/lbda);
+
+                    //
+                    xVort[0] = 0.15*Lx;
+                    xVort[1] = 0.35*Lx;
+                    xVort[2] = 0.65*Lx;
+                    xVort[3] = 0.85*Lx;
+                    // yVort[0] = 0.2*Lx;
+                    // yVort[1] = 0.1*Lx;
+                    // yVort[2] = 0.2*Lx;
+                    // yVort[3] = 0.1*Lx;
+                    for(int n = 0; n < 4; n++)
+                    {
+                        // xVort[n] = (n+1)*0.2*Lx;
+                        yVort[n] = y0;
+                        // yVort[n] = (n == 0 || n == 2) ? 0.2*Lx : 0.1*Lx;
+                        // xVort[n] = (n == 1 || n == 3) ? 0.25*Lx : 0.75*Lx;
+                        dist[n] = sqrt((x-xVort[n])*(x-xVort[n]) + (y-yVort[n])*(y-yVort[n]));
+                        psi[n] = atan2((y-yVort[n]), (x-xVort[n]));
+
+                        if(dist[n] <= Rc)
+                        {
+                           uPsi =  pow(-1.0,n)*omega*dist[n];
+                            stateArray(i,j,k,Xvel) = -1.0*uPsi*sin(psi[n]);
+                            stateArray(i,j,k,Yvel) = uPsi*cos(psi[n]);
+                        }
+
+
+                    }
+
+
+
+
+                }
+
+
+                else if(testNumber == 13)
+                {
+                    double rhoG, rhoL, uG, uL, circ;
+                    Vector<double> domhi(BL_SPACEDIM);
+                    Vector<double> domlo(BL_SPACEDIM);
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhoG", rhoG);
+                    pp.query("rhoL", rhoL);
+                    pp.query("uG", uG);
+                    pp.query("uL", uL);
+                    pp.query("circ", circ);
+                    ppGeom.getarr("prob_hi", domhi, 0, BL_SPACEDIM);
+                    ppGeom.getarr("prob_lo", domlo, 0, BL_SPACEDIM);
+                    double Lx = domhi[0]-domlo[0];
+                    double Rc = Lx*4e-2;
+                    double uPsi, y0;
+                    double lbda = 0.5;
+                    Vector<double> xVort(4), yVort(4);
+                    Vector<double> dist(4);
+                    Vector<double> psi(4);
+                    double omega = ((uG-uL)*Lx*circ)/(Rc*Rc);
+                    y0 =Lx/4.0;
+                    //double omega = 0.90625;
+
+                    if(y < Lx/3)// && r0 >= Rc && r1 >= Rc && r2 >= Rc && r3 >= Rc)
+                    {
+                        stateArray(i,j,k,Xvel) = uL;//*erf((Lx/3-y)/(0.2*Lx));
+                        stateArray(i,j,k,Tracer) = 0.0;
+                        stateArray(i,j,k,Density) = rhoL;
+
+                    }
+
+                    else if(y >= Lx/3 && y < Lx/3 + 0.2*Lx)
+                    {
+                        stateArray(i,j,k,Xvel) = uG*(y-Lx/3)/(0.2*Lx);//*erf((y-Lx/3)/(0.1*Lx));
+                        stateArray(i,j,k, Tracer) = 1.0;
+                        stateArray(i,j,k,Density) = rhoG;
+                    }
+                    else
+                    {
+                        stateArray(i,j,k,Xvel) = uG;//*(y-Lx/3)/(0.2*Lx);//*erf((y-Lx/3)/(0.1*Lx));
+                        stateArray(i,j,k, Tracer) = 1.0;
+                        stateArray(i,j,k,Density) = rhoG;
+                    }
+
+                    // stateArray(i,j,k,Yvel) = 0.025*sin(2.0*M_PI*(x+0.5)/lbda);
+
+                    //
+                    xVort[0] = 0.15*Lx;
+                    xVort[1] = 0.35*Lx;
+                    xVort[2] = 0.65*Lx;
+                    xVort[3] = 0.85*Lx;
+                    // yVort[0] = 0.2*Lx;
+                    // yVort[1] = 0.1*Lx;
+                    // yVort[2] = 0.2*Lx;
+                    // yVort[3] = 0.1*Lx;
+                    for(int n = 0; n < 4; n++)
+                    {
+                        // xVort[n] = (n+1)*0.2*Lx;
+                        yVort[n] = y0;
+                        // yVort[n] = (n == 0 || n == 2) ? 0.2*Lx : 0.1*Lx;
+                        // xVort[n] = (n == 1 || n == 3) ? 0.25*Lx : 0.75*Lx;
+                        dist[n] = sqrt((x-xVort[n])*(x-xVort[n]) + (y-yVort[n])*(y-yVort[n]));
+                        psi[n] = atan2((y-yVort[n]), (x-xVort[n]));
+
+                        if(dist[n] <= Rc)
+                        {
+                            uPsi = (n == 1 || n == 2) ? omega*dist[n] : -1.0*omega*dist[n];
+                            // uPsi =  pow(-1.0,n+1)*omega*dist[n];
+                            stateArray(i,j,k,Xvel) = -1.0*uPsi*sin(psi[n]);
+                            stateArray(i,j,k,Yvel) = uPsi*cos(psi[n]);
+                        }
+
+
+                    }
+                }
+
+                else if(testNumber == 14)
+                {
+                    // Dam break
+                    double rhoG, rhoL, uG, uL, circ, x0, y0;
+                    Vector<double> domhi(BL_SPACEDIM);
+                    Vector<double> domlo(BL_SPACEDIM);
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhoG", rhoG);
+                    pp.query("rhoL", rhoL);
+                    pp.query("x0", x0);
+                    pp.query("y0", y0);
+
+                    if(x <= x0 && y <= y0)
+                    {
+                        // stateArray(i, j, k, Density) = rhoL + 0.5*(rhoG-rhoL)*(1+tanh((y-0.6)/(0.0005)));
+                        stateArray(i,j,k, Density) = rhoL;
+                        stateArray(i,j,k, Tracer) = 0.0;
+                        if(do_trac3)
+                        {
+                            if(y <= 0.5*y0)
+                            {
+                                stateArray(i,j,k, Tracer3)  = 1.0;
+                            }
+                            else
+                            {
+                                stateArray(i,j,k, Tracer2)  = 1.0;
+
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        stateArray(i,j,k, Density) = rhoG;
+                        stateArray(i,j,k, Tracer)  = 1.0;
+                    }
+                }
+
+                else if(testNumber == 15)
+                {
+                    double rhoG, rhoL, hL;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhoG", rhoG);
+                    pp.query("rhoL", rhoL);
+                    pp.query("hL", hL);
+                    if(y <= hL)
+                    {
+                        stateArray(i,j,k, Density) = rhoL;
+                        stateArray(i,j,k, Tracer) = 0.0;
+                    }
+                    else
+                    {
+                        stateArray(i,j,k, Density) = rhoG;
+                        stateArray(i,j,k, Tracer) = 1.0;
+                    }
+                    stateArray(i,j,k, Xvel) = 1.0;
+                }
+
+                else if(testNumber == 17)
+                {
+                    double rhoG, rhoL, H, h, L0;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhoG", rhoG);
+                    pp.query("rhoL", rhoL);
+                    pp.query("H", H);
+                    pp.query("hB", h);
+                    pp.query("L0", L0);
+
+                    if(x < L0 && y < H)
+                    {
+                        stateArray(i,j,k, Density) = rhoL;
+                        stateArray(i,j,k, Tracer) = 0.0;
+                        stateArray(i,j,k, Tracer2) = 1.0;
+                        stateArray(i,j,k, Tracer3) = 0.0;
+                    }
+
+                    else if(x >= L0 && y < h)
+                    {
+                        stateArray(i,j,k, Density) = rhoL;
+                        stateArray(i,j,k, Tracer) = 0.0;
+                        stateArray(i,j,k, Tracer2) = 0.0;
+                        stateArray(i,j,k, Tracer3) = 1.0;
+                    }
+                    else
+                    {
+                        stateArray(i,j,k, Density) = rhoG;
+                        stateArray(i,j,k, Tracer) = 1.0;
+                        stateArray(i,j,k, Tracer2) = 0.0;
+                        stateArray(i,j,k, Tracer3) = 0.0;
+                    }
+
+                }
+
+                else if(testNumber == 18)
+                {
+                    //Equilibrium rod, surface tension validation
+                    double rho1, rho2, sigma, R, x0, y0;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rho1",    rho1);
+                    pp.query("rho2",    rho2);
+                    pp.query("R",          R);
+                    pp.query("sigma",   sigma);
+                    pp.query("x0",         x0);
+                    pp.query("y0",         y0);
+                    double dist = sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
+
+                    stateArray(i,j, k, Density) = rho1 + 0.5*(rho2-rho1)*(1-tanh(1000.0*(dist-R)));
+                    stateArray(i,j, k, Tracer) = 0.5*(1-tanh(1000.0*(dist-R)));
+
+                    stateArray(i,j, k, Xvel) = 0.0;
+                    stateArray(i,j, k, Yvel) = 0.0;
+                    // if(dist < R)
+                    // {
+                    //     stateArray(i,j, k, Tracer) = 1.0;
+                    //     // stateArray(i,j, k, Viscosity) = mu1;
+                    //     stateArray(i,j, k, Density) = rho2;
+                    // }
+                    // else
+                    // {
+                    //     stateArray(i,j, k, Tracer) = 0.0;
+                    //     // stateArray(i,j, k, Viscosity) = mu2;
+                    //     stateArray(i,j, k, Density) = rho1;
+                    // }
+                }
+                else if(testNumber == 19)
+                {
+                    //Equilibrium rod, surface tension validation
+                    double rho1, rho2, sigma, R, x0, y0;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rho1",    rho1);
+                    pp.query("rho2",    rho2);
+                    pp.query("R",          R);
+                    pp.query("sigma",   sigma);
+                    pp.query("x0",         x0);
+                    pp.query("y0",         y0);
+                    double dist = sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
+                    if(do_trac3)
+                    {
+                        if(y < y0)
+                        {
+                            // stateArray(i,j, k, Tracer) = 0.0;
+                            stateArray(i,j, k, Tracer2) = 1.0 - 0.5*(1-tanh(2500.0*(dist-R)));
+                            stateArray(i,j, k, Tracer3) = 0.0;
+                            // stateArray(i,j, k, Density) = rho1;
+                        }
+                        else
+                        {
+                            stateArray(i,j, k, Tracer3) = 1.0 - 0.5*(1-tanh(2500.0*(dist-R)));
+                            stateArray(i,j, k, Tracer2) = 0.0;
+                            // stateArray(i,j, k, Tracer) = 0.0;
+                            // stateArray(i,j, k, Density) = rho1;
+                        }
+                        stateArray(i,j, k, Density) = rho1 + 0.5*(rho2-rho1)*(1-tanh(2500.0*(dist-R)));
+                        // if(nTrac == 3)
+                        // {
+                        stateArray(i,j, k, Tracer) = 0.5*(1-tanh(2500.0*(dist-R)));
+                    }
+                    else
+                    {
+                        stateArray(i,j, k, Density) = rho1 + 0.5*(rho2-rho1)*(1-tanh(2500.0*(dist-R)));
+                        // if(nTrac == 3)
+                        // {
+                        stateArray(i,j, k, Tracer) = 0.5*(1-tanh(2500.0*(dist-R)));
+                    }
+
+                }
+
+                else if(testNumber == 20)
+                {
+                    double rhow, rhoo, rhog;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhow",    rhow);
+                    pp.query("rhoo",    rhoo);
+                    pp.query("rhog",    rhog);
+                    double wallthck = 0.01;
+                    double w1 = 0.50;
+                    double h1 = 0.1; double h2 = 0.25;
+                    if(x <= w1)
+                    {
+                        stateArray(i,j, k, Tracer) = 1.0;
+                        stateArray(i,j, k, Density) = rhow;
+                    }
+                    else
+                    {
+                        stateArray(i,j, k, Tracer2) =  1.0;
+                        stateArray(i,j, k, Density) = rhoo;
+
+                    }
+
+                }
+                else if(testNumber == 21)
+                {
+                    double rhow, rhoo, rhog;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhow",    rhow);
+                    pp.query("rhoo",    rhoo);
+                    pp.query("rhog",    rhog);
+                    double wallthck = 0.01;
+                    double w1 = 1.50;
+                    double h1 = 0.1; double h2 = 0.25;
+                    if(y <= h1 && x <= w1)
+                    {
+                        stateArray(i,j, k, Tracer2) = 1.0;
+                        stateArray(i,j, k, Density) = rhow;
+                    }
+                    else if(x  > w1 && y <= h2)
+                    {
+                        stateArray(i,j, k, Tracer3) = 1.0;
+                        stateArray(i,j, k, Density) = rhoo;
+                    }
+                    else
+                    {
+                        stateArray(i,j, k, Tracer) = 1.0;
+                        stateArray(i,j, k, Density) = rhog;
+
+                    }
+                }
+                else if(testNumber == 22)
+                {
+                    double rhow, rhoo, rhog, h;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rhow",    rhow);
+                    pp.query("rhoo",    rhoo);
+                    pp.query("rhog",    rhog);
+                    pp.query("h", h);
+                    if(y <= h)
+                    {
+                        stateArray(i,j, k, Density) = rhow;
+                        stateArray(i,j, k, Tracer2) = 1.0;
+                    }
+                    else if(y <= 2.0*h && y > h)
+                    {
+                        stateArray(i,j, k, Density) = rhoo;
+                        stateArray(i,j, k, Tracer3) = 1.0;
+                    }
+                    else
+                    {
+                        stateArray(i,j, k, Density) = rhog;
+                        stateArray(i,j, k, Tracer) = 1.0;
+                    }
+                    // stateArray(i,j, k, Yvel) = 0.1;
+
+                }
+
+                else if(testNumber == 23)
+                {
+                    //Oscillating bubble
+                    double rho1, rho2, sigma, R, x0, y0;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rho1",    rho1);
+                    pp.query("rho2",    rho2);
+                    pp.query("R",          R);
+                    pp.query("sigma",   sigma);
+                    pp.query("x0",         x0);
+                    pp.query("y0",         y0);
+                    double dist = sqrt(((x-x0)*(x-x0))/(0.2*0.2)+((y-y0)*(y-y0))/(0.12*0.12));
+
+                        stateArray(i,j, k, Density) = rho1 + 0.5*(rho2-rho1)*(1-tanh(50.0*(dist-1.0)));
+
+                            stateArray(i,j, k, Tracer) = 1.0-0.5*(1-tanh(50.0*(dist-1.0)));
+                            stateArray(i,j, k, Tracer2) = 0.5*(1-tanh(50.0*(dist-1.0)));
+
+                }
+
+                else if(testNumber == 24)
+                {
+                    double rho1, rho2, sigma, R, x0, y0;
+                    ParmParse pp("ns");
+                    ParmParse ppGeom("geometry");
+                    pp.query("rho1",    rho1);
+                    pp.query("rho2",    rho2);
+                    pp.query("R",          R);
+                    pp.query("sigma",   sigma);
+                    pp.query("x0",         x0);
+                    pp.query("y0",         y0);
+
+                    if(fabs(x-x0) <= R && fabs(y-y0) <= R)
+                    {
+                        stateArray(i,j, k, Density) = rho1;
+                        stateArray(i,j,k,Tracer2)   = 1.0;
+                        stateArray(i,j, k, Tracer) = 0.0;
+
+                    }
+                    else
+                    {
+                        stateArray(i,j, k, Density) = rho2;
+                        stateArray(i,j, k, Tracer) = 1.0;
+                        stateArray(i,j,k,Tracer2)   = 0.0;
+
+                    }
+
+                }
+                else if(testNumber == 25)
+                {
+                    ParmParse pp("ns");
+                    double rhow = 0.0;
+                    pp.query("rhow",    rhow);
+                    stateArray(i,j,k, Density) = rhow;
+                    stateArray(i,j,k, Tracer) = 1.0;
+                    stateArray(i,j,k, Xvel) = 0.0;
+                    stateArray(i,j,k, Yvel) = 0.0;
+                }
+            }
+        }
+    }
+    // std::cout << "Break" << std::endl;
+}
+
 //
 // ADVANCE FUNCTIONS
 //
@@ -267,6 +1253,9 @@ NavierStokes::initData ()
 //
 // Compute a timestep at a level. Return largest safe timestep.
 //
+
+
+
 
 Real
 NavierStokes::advance (Real time,
@@ -371,6 +1360,43 @@ NavierStokes::advance (Real time,
     {
 	scalar_update(dt,first_scalar+1,last_scalar);
     }
+//
+//     MultiFab& S_new = get_new_data(State_Type);
+//     const Real* dx       = geom.CellSize();
+//     MultiFab&   P_new    = get_new_data(Press_Type);
+//     const Real  cur_time = state[State_Type].curTime();
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     for (MFIter snewmfi(S_new,true); snewmfi.isValid(); ++snewmfi)
+//     {
+//         const Box& vbx = snewmfi.tilebox();
+//
+//         FArrayBox& Sfab = S_new[snewmfi];
+//         FArrayBox& Pfab = P_new[snewmfi];
+//
+//         Sfab.setVal<RunOn::Host>(0.0,snewmfi.growntilebox(),0,S_new.nComp());
+//         Pfab.setVal<RunOn::Host>(0.0,snewmfi.grownnodaltilebox(-1,P_new.nGrow()));
+//
+//         RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
+//         const int* lo      = vbx.loVect();
+//         const int* hi      = vbx.hiVect();
+//         const int* s_lo    = Sfab.loVect();
+//         const int* s_hi    = Sfab.hiVect();
+//         const int* p_lo    = Pfab.loVect();
+//         const int* p_hi    = Pfab.hiVect();
+//
+//         // FORT_INITDATA (&level,&cur_time,lo,hi,&ns,
+//         //                Sfab.dataPtr(Xvel),
+//         //                Sfab.dataPtr(BL_SPACEDIM),
+//         //                ARLIM(s_lo), ARLIM(s_hi),
+//         //                Pfab.dataPtr(),
+//         //                ARLIM(p_lo), ARLIM(p_hi),
+//         //                dx,gridloc.lo(),gridloc.hi() );
+//         computeIntHeight(Sfab, vbx, gridloc, dx);
+//
+//     }
+
     //
     // S appears in rhs of the velocity update, so we better do it now.
     //
@@ -435,13 +1461,44 @@ NavierStokes::advance (Real time,
 }
 
 //
-// Floor small values of states to be extrapolated
+void
+NavierStokes::computeIntHeight(FArrayBox& statein, const Box& bx,
+    RealBox gridloc, const Real* dx)
+{
+    Array4<Real> const& stateArray = statein.array();
+    Dim3 lo = lbound(bx);
+    Dim3 hi = ubound(bx);
+    const Real* xlo = gridloc.lo();
+    const Real* xhi = gridloc.hi();
+    Real x, y;
+    for(int i = lo.x; i <= hi.x; i++)
+    {
+        for(int j = lo.y; j < hi.y; j++)
+        {
+            for(int k = lo.z; k <= hi.z; k++)
+            {
+                // x = dx[0]*(i+0.5);
+                // y = dx[1]*(j+0.5);
+                x = xlo[0] + dx[0]*((i-lo.x) + 0.5);
+                y = xlo[1] + dx[1]*((j-lo.y) + 0.5);
+
+                if(stateArray(i,j,k,Tracer) <= 0.5 && stateArray(i,j+1,k,Tracer) > 0.5)
+                {
+                    stateArray(lo.x,j,k,Tracer+1) = y;
+                }
+            }
+        }
+    }
+}
+//
+// Predict the edge velocities which go into forming u_mac.  This
+// function also returns an estimate of dt for use in variable timesteping.
 //
 void
 NavierStokes::floor(MultiFab& mf){
 
   int ncomp = mf.nComp();
-    
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -457,10 +1514,6 @@ NavierStokes::floor(MultiFab& mf){
     }
 }
 
-//
-// Predict the edge velocities which go into forming u_mac.  This
-// function also returns an estimate of dt for use in variable timesteping.
-//
 
 Real
 NavierStokes::predict_velocity (Real  dt)
@@ -497,8 +1550,14 @@ NavierStokes::predict_velocity (Real  dt)
     // Floor small values of states to be extrapolated
     floor(Umf);
 
-    FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+    FillPatchIterator S_fpi(*this,visc_terms,6,prev_time,State_Type,Density,NUM_SCALARS);
     MultiFab& Smf=S_fpi.get_mf();
+    // MultiFab SAlias(Smf, amrex::make_alias,0,Smf.nComp());
+    // const BoxArray& ba = Smf.boxArray();
+    // const DistributionMapping& dm = Smf.DistributionMap();
+    // MultiFab SBorder(ba, dm, Smf.nComp(),12);
+
+    MultiFab scalGradFab(grids, dmap, 3*nTrac, 4);
 
     //
     // Compute "grid cfl number" based on cell-centered time-n velocities
@@ -538,18 +1597,29 @@ NavierStokes::predict_velocity (Real  dt)
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
+        FArrayBox tforces;
+        Vector<int> bndry[BL_SPACEDIM];
+        for(MFIter SGmfi(scalGradFab,true); SGmfi.isValid(); ++SGmfi)
+        {
+            const Box& bx = SGmfi.tilebox();
+            computeScalarGradient(Smf[SGmfi], scalGradFab[SGmfi], bx, dx, Smf.nComp());
+        }
+
         for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
         {
             Box bx=U_mfi.tilebox();
-            FArrayBox& Ufab = Umf[U_mfi];
-            auto const  gbx = U_mfi.growntilebox(ngrow);
+            auto const gbx=U_mfi.growntilebox(ngrow);
 
+            FArrayBox& Ufab = Umf[U_mfi];
+            // tforces.resize(gbx,BL_SPACEDIM);
             if (getForceVerbose) {
                 Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
             }
 
-            getForce(forcing_term[U_mfi],gbx,ngrow,Xvel,AMREX_SPACEDIM,
-		     prev_time,Ufab,Smf[U_mfi],0);
+	    // const Box& forcebx = grow(bx,1);
+        // 	    tforces.resize(forcebx,AMREX_SPACEDIM);
+        getForce(forcing_term[U_mfi],gbx,1,Xvel,BL_SPACEDIM,prev_time,
+            Ufab,Smf[U_mfi],scalGradFab[U_mfi],0);
 
             //
             // Compute the total forcing.
@@ -580,7 +1650,9 @@ NavierStokes::predict_velocity (Real  dt)
     return dt*tempdt;
 }
 
-//
+
+
+
 // This routine advects the scalars
 //
 
@@ -631,14 +1703,18 @@ NavierStokes::scalar_advection (Real dt,
     // Compute the advective forcing.
     //
     {
-        FillPatchIterator S_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,fscalar,num_scalars);
+        FillPatchIterator S_fpi(*this,visc_terms,godunov_hyp_grow+6,prev_time,State_Type,fscalar,num_scalars);
         MultiFab& Smf=S_fpi.get_mf();
 
         // Floor small values of states to be extrapolated
 	floor(Smf);
+    MultiFab SBorder(grids, dmap, NUM_STATE,godunov_hyp_grow+3,MFInfo(), Factory());
+    MultiFab scalGradFab(grids, dmap, 3*nTrac, godunov_hyp_grow+4);
+    FillPatch(*this, SBorder, godunov_hyp_grow+3, prev_time, State_Type, 0, NUM_STATE);
 
         FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
         const MultiFab& Umf=U_fpi.get_mf();
+
 
 
 #ifdef AMREX_USE_EB
@@ -701,20 +1777,27 @@ NavierStokes::scalar_advection (Real dt,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
+            for(MFIter SGmfi(scalGradFab,true); SGmfi.isValid(); ++SGmfi)
+            {
+                const Box& bx = SGmfi.tilebox();
+                computeScalarGradient(Smf[SGmfi], scalGradFab[SGmfi], bx, dx, Smf.nComp());
+            }
+            Vector<int> state_bc;
             FArrayBox tforces;
 
             for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
             {
-                const Box& gbx = S_mfi.growntilebox(nGrowF);
-
                 if (getForceVerbose)
                 {
                     Print() << "---" << '\n' << "C - scalar advection:" << '\n'
                             << " Calling getForce..." << '\n';
                 }
+                const Box& gbx = S_mfi.growntilebox(nGrowF);
+                		// tforces.resize(forcebx,num_scalars);
+        // getForce(tforces,bx,nGrowF,fscalar,num_scalars,prev_time,Umf[S_mfi],Smf[S_mfi], scalGradFab[S_mfi],0);
 
                 getForce(forcing_term[S_mfi],gbx,nGrowF,fscalar,num_scalars,
-			 prev_time,Umf[S_mfi],Smf[S_mfi],0);
+			 prev_time,Umf[S_mfi],Smf[S_mfi],scalGradFab[S_mfi],0);
 
                 for (int n=0; n<num_scalars; ++n)
                 {
@@ -2378,12 +3461,26 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 // for EB) and getViscosity/Diffusivity should interpolate those to faces (or
 // face-centroids for EB).
 //
+
+
+
+
 void
 NavierStokes::calcViscosity (const Real time,
                              const Real /*dt*/,
                              const int  /*iteration*/,
                              const int  /*ncycle*/)
 {
+    double muG = 0.0;
+    double muL = 0.0;
+    double muL2 = 0.0;
+    int do_variable_visc = 0;
+    int do_three_fluid = 0;
+    ParmParse pp("ns");
+    pp.query("muG", muG);
+    pp.query("muL", muL);
+    pp.query("muL2", muL2);
+    pp.query("do_variable_visc", do_variable_visc);
     if (is_diffusive[Xvel])
     {
         if (visc_coef[Xvel] >= 0.0)
@@ -2391,8 +3488,75 @@ NavierStokes::calcViscosity (const Real time,
             auto whichTime = which_time(State_Type,time);
             BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
-            auto visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
-	    visc->setVal(visc_coef[Xvel], 0, visc->nComp(), visc->nGrow());
+            MultiFab& visc = (whichTime == AmrOldTime ? *viscn_cc : *viscnp1_cc);
+               MultiFab& S = (whichTime == AmrOldTime) ? get_old_data(State_Type) : get_new_data(State_Type);
+
+            FillPatchIterator fpi(*this,S,1,time,State_Type,0,S.nComp());
+            MultiFab& S_cc = fpi.get_mf();
+            MultiFab viscL(visc, amrex::make_alias, 0, visc.nComp());
+            MultiFab trac_fab;
+            trac_fab.define(grids, dmap, 1, S.nGrow());
+            MultiFab::Copy(trac_fab, S, Tracer, 0, 1, S.nGrow());
+            trac_fab.FillBoundary(geom.periodicity());
+            trac_fab.mult((muG-muL), 0, trac_fab.nComp(), trac_fab.nGrow());
+            viscL.setVal(muL);
+
+            if(do_variable_visc)
+            {
+                // visc.plus(viscL,0, 1, visc.nGrow());
+                // visc.plus(trac_fab,0, 1, visc.nGrow());
+                #ifdef _OPENMP
+                #pragma omp parallel if (Gpu::notInLaunchRegion())
+                #endif
+                   for (MFIter mfi(S_cc, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                   {
+                      const Box& gbx = mfi.growntilebox();
+                      auto lo = lbound(gbx);
+                      auto hi = ubound(gbx);
+                      auto const& rho    = S_cc.array(mfi,Density);
+                      auto const& Trac       = S_cc.array(mfi,Tracer);
+                      auto const& Trac2       = S_cc.array(mfi,Tracer2);
+                      // Array4<Real>  Trac3;
+                      // if(do_trac3)
+                      // {
+                          auto const& Trac3       = S_cc.array(mfi,Tracer3);
+                      // }
+                      auto const& mu      = visc.array(mfi);
+                      for(int i = lo.x; i <= hi.x; i++)
+                      {
+                          for(int j = lo.y; j <= hi.y; j++)
+                          {
+                              for(int k = lo.z; k <= hi.z; k++)
+                              {
+                                  if(do_trac3)
+                                  {
+                                      mu(i,j,k) = muG*Trac(i,j,k,0) + muL*Trac2(i,j,k,0)
+                                        + muL2*Trac3(i,j,k,0);
+                                        // if(mu(i,j,k) < fmin(muL, fmin(muL2, muG))){ mu(i,j,k) = fmin(muL, fmin(muL2, muG)); }
+                                        // else if(mu(i,j,k) > fmax(muL, fmax(muL2, muG))) { mu(i,j,k) = fmax(muL, fmax(muL2, muG)); }
+
+                                  }
+                                  else
+                                  {
+                                      mu(i,j,k) = muL + (muG-muL)*Trac(i,j,k,0);
+                                      if(mu(i,j,k) < fmin(muL, muG)){ mu(i,j,k) = fmin(muL, muG); }
+                                      else if(mu(i,j,k) > fmax(muL, muG)) { mu(i,j,k) = fmax(muL, muG); }
+
+                                  }
+                              }
+
+                          }
+                      }
+                    }
+              // MultiFab::LinComb(*visc, 1.0, viscL, 0, (muG-muL), face_trac_fabs[dir], 0, 0, visc[dir]->nComp(), visc[dir]->nGrow());
+
+            }
+            else
+            {
+                visc.setVal(visc_coef[Xvel], 0, visc.nComp(), visc.nGrow());
+
+            }
+
         }
         else
 	{
@@ -2400,6 +3564,7 @@ NavierStokes::calcViscosity (const Real time,
         }
     }
 }
+
 
 void
 NavierStokes::calcDiffusivity (const Real time)
@@ -2436,25 +3601,65 @@ NavierStokes::calcDiffusivity (const Real time)
     }
 }
 
+
+
+
 void
 NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
                             const Real time)
 {
+    ParmParse pp("ns");
+    int do_variable_visc = 0;
+    pp.query("do_variable_visc", do_variable_visc);
+
     // //
     // // Select time level to work with (N or N+1)
     // //
-    // const TimeLevel whichTime = which_time(State_Type,time);
-    // BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+    if(do_variable_visc)
+    {
 
-    // MultiFab *visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
+    const TimeLevel whichTime = which_time(State_Type,time);
+    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
+    MultiFab *visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
+   const Box& domain = geom.Domain();
+
+   #ifdef AMREX_USE_EB
+      // EB : use EB CCentroid -> FCentroid
+      auto math_bc = fetchBCArray(State_Type,0,1);
+      EB_interp_CellCentroid_to_FaceCentroid(*visc, D_DECL(*viscosity[0],*viscosity[1],*viscosity[2]),
+                                             0, 0, 1, geom, math_bc);
+      EB_set_covered_faces({D_DECL(viscosity[0],viscosity[1],viscosity[2])},0.0);
+   #else
+    #ifdef _OPENMP
+    #pragma omp parallel if (Gpu::notInLaunchRegion())
+    #endif
+       for (MFIter mfi(*visc,TilingIfNotGPU()); mfi.isValid();++mfi)
+       {
+          for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+          {
+             const Box ebx = mfi.nodaltilebox(dir);
+             const Box& edomain = amrex::surroundingNodes(domain,dir);
+             const auto& visc_c  = (*visc)[mfi];
+             auto& visc_ed = (*viscosity[dir])[mfi];
+
+             center_to_edge_plain(visc_c, visc_ed, ebx,0,0, viscosity[dir]->nComp());
+         }
+        }
+
+    #endif
+    }
+    else
+    {
+        for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+          viscosity[dir]->setVal(visc_coef[Xvel], 0, viscosity[dir]->nComp(), viscosity[dir]->nGrow());
+        }
+    }
     // For non-const viscosity, uncomment above and add interp from
     // cell-center/centroid to faces.
     // But here we simply do constant viscosity.
 
-    for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
-      viscosity[dir]->setVal(visc_coef[Xvel], 0, viscosity[dir]->nComp(), viscosity[dir]->nGrow());
-    }
+
 
     if (do_LES)
     {
@@ -2500,4 +3705,51 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     {
       diffusivity[dir]->setVal(visc_coef[state_comp], dst_comp, ncomp, diffusivity[dir]->nGrow());
     }
+}
+
+
+void
+NavierStokes::center_to_edge_plain (const FArrayBox& ccfab,
+                                    FArrayBox&       ecfab,
+				    const Box&       bx,
+                                    int              sComp,
+                                    int              dComp,
+                                    int              nComp)
+{
+    //
+    // This routine fills an edge-centered FAB from a cell-centered FAB.
+    // It assumes that the data in all cells of the cell-centered FAB is
+    // valid and totally ignores any concept of boundary conditions.
+    // It is assummed that the cell-centered FAB fully contains the
+    // edge-centered FAB.  If anything special needs to be done at boundaries,
+    // a varient of this routine needs to be written.  See
+    // HeatTransfer::center_to_edge_fancy().
+    //
+    const Box&      ccbox = ccfab.box();
+    const IndexType ixt   = ecfab.box().ixType();
+    //
+    // Get direction for interpolation to edges
+    //
+    int dir = -1;
+    for (int d = 0; d < BL_SPACEDIM; d++)
+        if (ixt.test(d))
+            dir = d;
+    //
+    // Miscellanious checks
+    //
+    BL_ASSERT(!(ixt.cellCentered()) && !(ixt.nodeCentered()));
+    BL_ASSERT(grow(ccbox,-BASISV(dir)).contains(enclosedCells(bx)));
+    BL_ASSERT(sComp+nComp <= ccfab.nComp() && dComp+nComp <= ecfab.nComp());
+
+    //
+    // Shift cell-centered data to edges
+    //
+    const int isharm = def_harm_avg_cen2edge;
+
+    cen2edg(bx.loVect(), bx.hiVect(),
+	    ARLIM(ccfab.loVect()), ARLIM(ccfab.hiVect()),
+	    ccfab.dataPtr(sComp),
+	    ARLIM(ecfab.loVect()), ARLIM(ecfab.hiVect()),
+	    ecfab.dataPtr(dComp),
+	    &nComp, &dir, &isharm);
 }

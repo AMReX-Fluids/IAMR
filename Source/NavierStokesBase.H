@@ -205,6 +205,7 @@ public:
     static amrex::Real getGravity () { return gravity; }
 
     static int DoTrac2();
+    static int DoTrac3();
 
     static bool GodunovUsePPM () {return godunov_use_ppm;};
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;};
@@ -225,22 +226,43 @@ public:
     //    NavierStokesBase functions                                //
     //////////////////////////////////////////////////////////////////
 
+    void computeMaxGrad(const amrex::FArrayBox& statein, amrex::FArrayBox& rhoGradIn,
+    const amrex::Box& bx, const amrex::Real* dx,
+      amrex::Vector<amrex::Real>& rhoGradMax, amrex::Vector<int>& compVars);
+
+    void performTaggingRhoGrad(amrex::Array4<char>& tagfabArray, const amrex::Box& tilebx,
+        const amrex::FArrayBox& statein,  const amrex::FArrayBox& rhoGradIn,
+            amrex::Vector<amrex::Real>& rhoGradMax, const amrex::Real* dx, const int tagComps);
+    //
+    void computeScalarGradient(const amrex::FArrayBox& statein, amrex::FArrayBox& scalGrad, const amrex::Box& bx,
+        const amrex::Real* dx, const int nComp);
+
     void advance_cleanup (int iteration,int ncycle);
 
     void diffuse_scalar_setup (int sigma, int& rho_flag);
     //
     // Get the forcing term.
     //
-    virtual void getForce (amrex::FArrayBox&       force,
-                           const amrex::Box&      bx,
-                           int              ngrow,
-                           int              strt_comp,
-                           int              num_comp,
-                           const amrex::Real       time,
-                           const amrex::FArrayBox& Vel,
-                           const amrex::FArrayBox& Scal,
-                           int              scalScomp);
-    //
+    // void getForce (amrex::FArrayBox&       force,
+    //                const amrex::Box&      bx,
+    //                int              ngrow,
+    //                int              strt_comp,
+    //                int              num_comp,
+    //                const amrex::Real       time,
+    //                const amrex::FArrayBox& Vel,
+    //                const amrex::FArrayBox& Scal,
+    //                int              scalScomp);
+   void getForce (amrex::FArrayBox&       force,
+                               const amrex::Box&       bx,
+                               int              ngrow,
+                               int              scomp,
+                               int              ncomp,
+                               const amrex::Real       time,
+                               const amrex::FArrayBox& Vel,
+                               const amrex::FArrayBox& Scal,
+                               const amrex::FArrayBox& scalGrad,
+                               int              scalScomp);
+   // //  //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
         return *advflux_reg;
@@ -714,8 +736,11 @@ public:
     //
     static int  Tracer;
     static int  Tracer2;
+    static int  Tracer3;
+    static int  nTrac;
     static int  Temp;
     static int  do_trac2;
+    static int  do_trac3;
     static int  do_temp;
     static int  do_cons_trac;
     static int  do_cons_trac2;

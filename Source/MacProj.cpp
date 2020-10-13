@@ -18,7 +18,6 @@
 
 //fixme, for writesingle level plotfile
 #include<AMReX_PlotFileUtil.H>
-
 using namespace amrex;
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)      \
@@ -357,6 +356,21 @@ MacProj::mac_project (int             level,
     const MultiFab& rhotime = ns.get_rho(time);
     MultiFab::Copy(S, rhotime, 0, Density, 1, 1);
 
+    // #ifdef _OPENMP
+    // #pragma omp parallel if (Gpu::notInLaunchRegion())
+    // #endif
+    //         for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    //         {
+    //             const Box& bx        = mfi.tilebox();
+    //             auto const& Sfab    = S.array(mfi);
+    //             // Real   dt_inv = 1.0/dt_for_dpdt;
+    //             amrex::ParallelFor(bx, [Sfab]
+    //             AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+    //             {
+    //                Sfab(i,j,k,0) = fmax(Sfab(i,j,k,0), 0.1);
+    //             });
+    //         }
+
     if (OutFlowBC::HasOutFlowBC(phys_bc) && have_divu && do_outflow_bcs) {
         set_outflow_bcs(level, mac_phi, u_mac, S, divu);
     }
@@ -519,7 +533,7 @@ MacProj::mac_sync_solve (int       level,
 
         const std::vector< std::pair<int,Box> >& isects = baf.intersections(mfi.tilebox());
 
-        auto const& rhs = Rhs.array(mfi);  
+        auto const& rhs = Rhs.array(mfi);
         for (int ii = 0, N = isects.size(); ii < N; ii++)
         {
             amrex::ParallelFor(isects[ii].second, [rhs]
@@ -571,18 +585,6 @@ MacProj::mac_sync_solve (int       level,
     }
 }
 
-//
-// After solving for mac_sync_phi in mac_sync_solve(), we
-// can now do the sync advect step.  This consists of two steps
-//
-// 1. compute u_corr as the gradient of mac_sync_phi --- Now part of mac_sync_solve
-// 2. compute advective tendency of u_corr and
-//    add into Vsync or Ssync
-//
-// If increment_sync is non-null, the (i-BL_SPACEDIM)-th component
-// of (*Ssync) is incremented only when increment[i]==1
-// This is useful if that component gets incrmnted in a non-standard way.
-//
 void
 MacProj::mac_sync_compute (int                   level,
                            Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
@@ -672,16 +674,27 @@ MacProj::mac_sync_compute (int                   level,
         edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
     }
 
-    std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(1,prev_time));
-
-    FillPatchIterator S_fpi(ns_level,vel_visc_terms,ns_level.GodunovHypgrow(),
+    FillPatchIterator S_fpi(ns_level,vel_visc_terms,ns_level.GodunovHypgrow()+6,
                             prev_time,State_Type,0,NUM_STATE);
     MultiFab& Smf = S_fpi.get_mf();
+    // MultiFab& S_old = ns_level.get_old_data(State_Type);
+    // MultiFab SBorder(grids, dmap, numscal,Godunov::hypgrow()+6);
+    std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(1,prev_time));
 
-    //
-    // Compute the mac sync correction.
-    //
+    #if (AMREX_SPACEDIM == 3)
+    MultiFab scalGradFab(grids, dmap, 4*ns_level.nTrac, ns_level.GodunovHypgrow()+4);
+    #else
+    MultiFab scalGradFab(grids, dmap, 3*ns_level.nTrac, ns_level.GodunovHypgrow()+4);
+    #endif
 
+    // MultiFab scalGradFab(grids, dmap, 3*ns_level.nTrac, Godunov::hypgrow()+4);
+
+    // MultiFab::Copy(SBorder, Smf, 0, 0, numscal,Smf.nGrow());
+    int SBcomp = Smf.nComp();
+    // std::cout << "Smf.nComp() = " << Smf.nComp() << std::endl;
+    // SBorder.FillBoundary(geom.periodicity());
+    // AmrLevel::FillPatch(ns_level, SBorder, 6, prev_time, State_Type, 0, numscal);
+    // AmrLevel::FillPatch(ns_level, SBorder, 2, prev_time, State_Type, 0, Smf.nComp());
 
 #ifdef AMREX_USE_EB
     //
@@ -745,126 +758,138 @@ MacProj::mac_sync_compute (int                   level,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox tforces;
+        Vector<int> ns_level_bc;
+        FArrayBox tforces, tvelforces, U;
+        FArrayBox flux[AMREX_SPACEDIM], Rho;
+
+        for(MFIter SBmfi(scalGradFab,true); SBmfi.isValid(); ++SBmfi)
+        {
+            const Box& bx = SBmfi.tilebox();
+            ns_level.computeScalarGradient(Smf[SBmfi], scalGradFab[SBmfi], bx, dx, SBcomp);
+        }
+    }
+    #ifdef _OPENMP
+    #pragma omp parallel if (Gpu::notInLaunchRegion())
+    #endif
+        {
         for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
         {
             const auto gbx = Smfi.growntilebox(ngrow);
 
             ns_level.getForce(forcing_term[Smfi],gbx,ngrow,0,NUM_STATE,
-			      prev_time,Smf[Smfi],Smf[Smfi],Density);
+			      prev_time,Smf[Smfi],Smf[Smfi],scalGradFab[Smfi],Density);
         }
-    }
-
-    for (int comp = 0; comp < NUM_STATE; ++comp)
-    {
-        if (increment_sync.empty() || increment_sync[comp]==1)
-        {
-
-            //
-            // Compute total forcing term
-            //
-            for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
-            {
-                auto const  gbx   = Smfi.growntilebox(ngrow);
-
-                //
-		// Compute total forcing terms.
-		//
-                auto const& tf    = forcing_term.array(Smfi,comp);
-
-                if (comp < AMREX_SPACEDIM)  // Velocity/Momenta
-                {
-                    auto const& visc = vel_visc_terms[Smfi].const_array(comp);
-                    auto const& gp   = Gp[Smfi].const_array(comp);
-
-		    if ( do_mom_diff == 0 )
-		    {
-		      auto const& rho   = Smf[Smfi].const_array(Density);
-				      
-		      amrex::ParallelFor(gbx, [tf, visc, gp, rho]
-                      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-		      {
-                        tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
-                        tf(i,j,k)  /= rho(i,j,k);
-                      });
-		    }
-		    else
-		    {
-		      amrex::ParallelFor(gbx, [tf, visc, gp]
-                      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-		      {
-                        tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
-                      });
-		    }
-		}
-                else  // Scalars
-		{
-                    auto const& visc = scal_visc_terms[Smfi].const_array(comp-AMREX_SPACEDIM);
-                    auto const& S    = Smf.const_array(Smfi,comp);
-                    auto const& divu = divu_fp -> const_array(Smfi);
-                    amrex::ParallelFor(gbx, [tf, visc, S, divu]
-                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                    {
-                        tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
-                    });
-                }
-	    }
-
-
-	    //
-            // Perform sync
-	    //
-            auto math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
-
-            // Select sync MF and its component for processing
-            const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
-            MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
-            const bool is_velocity = comp < AMREX_SPACEDIM ? true   : false;
-
-            const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
-
-            amrex::Gpu::DeviceVector<int> iconserv;
-            iconserv.resize(1, 0);
-            iconserv[0] = (advectionType[comp] == Conservative) ? 1 : 0;
-
-            Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                     Q, comp,
-                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     forcing_term, comp, *divu_fp,
-                                     math_bcs, geom, iconserv, dt,
-                                     ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
-                                     is_velocity );
-
-	}
-    }
-#endif
-
-
-    if (level > 0 && update_fluxreg)
-    {
-        const Real mlt =  -1.0/( (double) parent->nCycle(level));
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            for (int comp = 0; comp < NUM_STATE; ++comp)
-            {
-                if (increment_sync.empty() || increment_sync[comp]==1)
-                {
-                    adv_flux_reg->FineAdd(fluxes[d],d,comp,comp,1,-dt);
-                }
-            }
-            //
-            // Include grad_phi(aka Ucorr) in the mac registers corresponding
-            // to the next coarsest interface.
-            //
-            mac_reg[level]->FineAdd(*Ucorr[d],area[d],d,0,0,1,mlt);
         }
-    }
+
+        for (int comp = 0; comp < NUM_STATE; ++comp)
+           {
+               if (increment_sync.empty() || increment_sync[comp]==1)
+               {
+
+                   //
+                   // Compute total forcing term
+                   //
+                   for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
+                   {
+                       auto const  gbx   = Smfi.growntilebox(ngrow);
+
+                       //
+       		// Compute total forcing terms.
+       		//
+                       auto const& tf    = forcing_term.array(Smfi,comp);
+
+                       if (comp < AMREX_SPACEDIM)  // Velocity/Momenta
+                       {
+                           auto const& visc = vel_visc_terms[Smfi].const_array(comp);
+                           auto const& gp   = Gp[Smfi].const_array(comp);
+
+       		    if ( do_mom_diff == 0 )
+       		    {
+       		      auto const& rho   = Smf[Smfi].const_array(Density);
+
+       		      amrex::ParallelFor(gbx, [tf, visc, gp, rho]
+                             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+       		      {
+                               tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
+                               tf(i,j,k)  /= rho(i,j,k);
+                             });
+       		    }
+       		    else
+       		    {
+       		      amrex::ParallelFor(gbx, [tf, visc, gp]
+                             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+       		      {
+                               tf(i,j,k)  += visc(i,j,k) - gp(i,j,k);
+                             });
+       		    }
+       		}
+                       else  // Scalars
+       		{
+                           auto const& visc = scal_visc_terms[Smfi].const_array(comp-AMREX_SPACEDIM);
+                           auto const& S    = Smf.const_array(Smfi,comp);
+                           auto const& divu = divu_fp -> const_array(Smfi);
+                           amrex::ParallelFor(gbx, [tf, visc, S, divu]
+                           AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                           {
+                               tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
+                           });
+                       }
+       	    }
+
+
+       	    //
+                   // Perform sync
+       	    //
+                   auto math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
+
+                   // Select sync MF and its component for processing
+                   const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
+                   MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
+                   const bool is_velocity = comp < AMREX_SPACEDIM ? true   : false;
+
+                   const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
+
+                   amrex::Gpu::DeviceVector<int> iconserv;
+                   iconserv.resize(1, 0);
+                   iconserv[0] = (advectionType[comp] == Conservative) ? 1 : 0;
+
+                   Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+                                            Q, comp,
+                                            AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                            AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                            AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                            AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                            forcing_term, comp, *divu_fp,
+                                            math_bcs, geom, iconserv, dt,
+                                            ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
+                                            is_velocity );
+
+       	}
+           }
+       #endif
+
+
+           if (level > 0 && update_fluxreg)
+           {
+               const Real mlt =  -1.0/( (double) parent->nCycle(level));
+               for (int d = 0; d < AMREX_SPACEDIM; ++d)
+               {
+                   for (int comp = 0; comp < NUM_STATE; ++comp)
+                   {
+                       if (increment_sync.empty() || increment_sync[comp]==1)
+                       {
+                           adv_flux_reg->FineAdd(fluxes[d],d,comp,comp,1,-dt);
+                       }
+                   }
+                   //
+                   // Include grad_phi(aka Ucorr) in the mac registers corresponding
+                   // to the next coarsest interface.
+                   //
+                   mac_reg[level]->FineAdd(*Ucorr[d],area[d],d,0,0,1,mlt);
+               }
+           }
 }
 
-//
 // This routine does a sync advect step for a single
 // scalar component. Unlike the preceding routine, the
 // half-time edge states are passed in from the calling routine.
@@ -982,7 +1007,7 @@ MacProj::check_div_cond (int      level,
     const MultiFab* area         = ns_level.Area();
 
     MultiFab dmac(volume.boxArray(),volume.DistributionMap(),1,0);
-   
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1000,7 +1025,7 @@ MacProj::check_div_cond (int      level,
 
         amrex::ParallelFor(bx, [cc_divu,D_DECL(ux_e,uy_e,uz_e),
                                         D_DECL(xarea,yarea,zarea), vol]
-        AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cc_divu(i,j,k) = D_TERM(  xarea(i+1,j,k)*ux_e(i+1,j,k) - xarea(i,j,k)*ux_e(i,j,k),
                                     + yarea(i,j+1,k)*uy_e(i,j+1,k) - yarea(i,j,k)*uy_e(i,j,k),
@@ -1175,6 +1200,55 @@ MacProj::set_outflow_bcs (int             level,
         }
     }
 }
+
+
+// void
+// MacProj::computeScalarGradient(const FArrayBox& statein, FArrayBox& scalGrad, const Box& bx,
+//     const Real* dx)
+// {
+//     Array4<Real const> const& stateArray = statein.array();
+//     Dim3 lo = lbound(bx);
+//     Dim3 hi = ubound(bx);
+//     Real rhoL, rhoC, rhoR, rhoU, rhoD, rhoLU, rhoLD, rhoRU, rhoRD;
+//     Real dRho_dx, dRho_dy, d2Rhodx2, d2Rhody2, d2Rhodydx, magn, curv;
+//     Real temp = 0.0;
+//     Array4<Real> const& scalGradArr = scalGrad.array();
+//
+//     for(int i = lo.x; i <= hi.x; i++)
+//     {
+//         for(int j = lo.y; j <= hi.y; j++)
+//         {
+//             for(int k = lo.z; k <= hi.z; k++)
+//             {
+//                 rhoL = stateArray(i-1,j,k,3);
+//                 rhoC = stateArray(i, j, k, 3);
+//                 rhoR = stateArray(i+1, j, k, 3);
+//                 rhoU = stateArray(i, j+1, k, 3);
+//                 rhoD = stateArray(i, j-1, k, 3);
+//                 rhoLU = stateArray(i-1,j+1,k,3);
+//                 rhoLD = stateArray(i-1,j-1,k,3);
+//                 rhoRU = stateArray(i+1,j+1,k,3);
+//                 rhoRD = stateArray(i+1,j-1,k,3);
+//                 dRho_dx = (rhoR-rhoL)/(2.0*dx[0]);
+//                 dRho_dy = (rhoU-rhoD)/(2.0*dx[1]);
+//                 d2Rhodx2 = (rhoR-2.0*rhoC+rhoL)/(dx[0]*dx[0]);
+//                 d2Rhody2 = (rhoU-2.0*rhoC+rhoD)/(dx[1]*dx[1]);
+//                 d2Rhodydx = (rhoRU-rhoRD-rhoLU+rhoLD)/(4.0*dx[0]*dx[1]);
+//                 magn = dRho_dx*dRho_dx + dRho_dy*dRho_dy;
+//                 curv = -1.0*(dRho_dx*dRho_dx*d2Rhody2 - 2.0*dRho_dx*dRho_dy*d2Rhodydx
+//                     + dRho_dy*dRho_dy*d2Rhodx2)/(magn*sqrt(magn));
+//
+//                 scalGradArr(i,j,k,0) = dRho_dx;
+//                 scalGradArr(i,j,k,1) = dRho_dy;
+//                 scalGradArr(i,j,k,2) = curv;
+//                 // if(i == hi.x){std::cout << rhoGrad(i,j,k,0) << " ";}
+//             }
+//         }
+//     }
+//     // std::cout << "Break" << " ";
+//
+// }
+
 
 //
 // Structure used by test_umac_periodic().

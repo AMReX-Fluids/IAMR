@@ -12,7 +12,7 @@
      void FORT_INITDATA (const int* level, const amrex::Real* time,
                          const int* lo, const int* hi,
                          const int* nscal,
-                         amrex::Real* vel, amrex::Real* scal, 
+                         amrex::Real* vel, amrex::Real* scal,
                          ARLIM_P(s_lo), ARLIM_P(s_hi),
                          amrex::Real* press,
                          ARLIM_P(p_lo), ARLIM_P(p_hi),
@@ -23,12 +23,12 @@
                          const int* dom_lo, const int* dom_hi,
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
-     
+
      void FORT_YVELFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
- 
+
      void FORT_ZVELFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
                          const amrex::Real* dx, const amrex::Real* grd_lo,
@@ -39,12 +39,16 @@
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
 
-     void FORT_ADVFILL  (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
+     void FORT_ADVFILL  (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
 
-     void FORT_ADV2FILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
+     void FORT_ADV2FILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                         const int* dom_lo, const int* dom_hi,
+                         const amrex::Real* dx, const amrex::Real* grd_lo,
+                         const amrex::Real* time, const int* bc);
+     void FORT_ADV3FILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
@@ -54,7 +58,7 @@
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
 
-     void FORT_TEMPFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi), 
+     void FORT_TEMPFILL (amrex::Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
                          const int* dom_lo, const int* dom_hi,
                          const amrex::Real* dx, const amrex::Real* grd_lo,
                          const amrex::Real* time, const int* bc);
@@ -81,9 +85,10 @@
                                 BL_FORT_FAB_ARG_ANYD(force),
                           const BL_FORT_FAB_ARG_ANYD(vel),
                           const BL_FORT_FAB_ARG_ANYD(scal),
+                          // const BL_FORT_FAB_ARG_ANYD(scalgrad),
                           const amrex::Real* dx,
                           const amrex::Real* xlo, const amrex::Real* xhi,
-                          const amrex::Real* gravity,
+                          const amrex::Real* gravity, const amrex::Real* sigma,
                           const int* scomp, const int* ncomp, const int* nscal,
                           const int* getForceVerbose);
 

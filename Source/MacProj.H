@@ -102,7 +102,8 @@ public:
     void test_umac_periodic (int level, amrex::MultiFab* u_mac);
 
     void scaleArea (int level, amrex::MultiFab* area, amrex::Real** anel_coeff);
-
+    // void computeScalarGradient(const amrex::FArrayBox& statein, amrex::FArrayBox& scalGrad, const amrex::Box& bx,
+    //     const amrex::Real* dx);
     //
     // Test the divergence constraint.
     //

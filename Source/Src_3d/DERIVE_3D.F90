@@ -1462,6 +1462,49 @@ contains
 
       end subroutine dermodgradrho
 
+
+      subroutine derCurv (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
+                              lo,hi,domlo,domhi,delta,xlo,time,dt, &
+                              bc,level,grid_no) bind(C,name="derCurv")
+                              
+      implicit none
+!c
+!c     This routine will derive the modulus of the density gradients
+!c
+      integer    lo(SDIM), hi(SDIM)
+      integer    DIMDEC(e)
+      integer    DIMDEC(dat)
+      integer    domlo(SDIM), domhi(SDIM)
+      integer    nv, ncomp
+      integer    bc(SDIM,2,ncomp)
+      REAL_T     delta(SDIM), xlo(SDIM)
+      REAL_T     time, dt
+      REAL_T     e(DIMV(e),nv)
+      REAL_T     dat(DIMV(dat),ncomp)
+      integer    level, grid_no
+
+      integer    i,j,k
+      REAL_T     drdx, drdy, drdz, tdx, tdy, tdz
+
+      tdx = 1.0d0/(two*delta(1))
+      tdy = 1.0d0/(two*delta(2))
+      tdz = 1.0d0/(two*delta(3))
+
+      do k = lo(3), hi(3)
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               drdx = (dat(i+1,j,k,1)-dat(i-1,j,k,1))*tdx
+               drdy = (dat(i,j+1,k,1)-dat(i,j-1,k,1))*tdy
+               drdz = (dat(i,j,k+1,1)-dat(i,j,k-1,1))*tdz
+               e(i,j,k,1) = sqrt( drdx*drdx + drdy*drdy + drdz*drdz )
+            end do
+         end do
+      end do
+
+      end subroutine derCurv
+
+
+
       subroutine derudotlapu (e,DIMS(e),nv,dat,DIMS(dat),ncomp, &
                               lo,hi,domlo,domhi,delta,xlo,time,dt, &
                               bc,level,grid_no) &

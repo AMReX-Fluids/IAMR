@@ -37,11 +37,12 @@ main (int   argc,
     int  num_steps;
     Real strt_time;
     Real stop_time;
+	std::ofstream runTimeOut;
 
     ParmParse pp;
 
-    max_step  = -1; 
-    num_steps = -1; 
+    max_step  = -1;
+    num_steps = -1;
     strt_time =  0.0;
     stop_time = -1.0;
 
@@ -74,7 +75,10 @@ main (int   argc,
     //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
     // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var?
     // Using incflo values here
-    AmrLevel::SetEBMaxGrowCells(4,4,4);
+
+    // HACK HACK HACK
+    // Need to set number of grow cells to 8 not 4
+    AmrLevel::SetEBMaxGrowCells(10,10,10);
 
     //decide who should own max_coasening_level later
     int max_coarsening_level = 100;
@@ -82,7 +86,7 @@ main (int   argc,
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
 		   max_coarsening_level);
 #endif
-		   
+
     amrptr->init(strt_time,stop_time);
 
     if (num_steps > 0)
@@ -148,7 +152,9 @@ main (int   argc,
     BL_PROFILE_SET_RUN_TIME(run_stop);
     BL_PROFILE_FINALIZE();
 
-
+	runTimeOut.open("runTimeOutAMR2.dat", std::fstream::app);
+	runTimeOut << run_stop << std::endl;
+	runTimeOut.close();
     amrex::Finalize();
 
     return 0;

@@ -1,5 +1,4 @@
 
-
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <NavierStokesBase.H>
@@ -318,7 +317,7 @@ Projection::level_project (int             level,
     for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
        const Box& bx = mfi.growntilebox(nGrow);
-       auto const& pnew = P_new.array(mfi);  
+       auto const& pnew = P_new.array(mfi);
        amrex::ParallelFor(bx, [pnew]
        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
        {
@@ -737,7 +736,7 @@ Projection::initialVelocityProject (int  c_lev,
       if ( verbose ) Print()<<"Returning from initalVelocityProject() without projecting because init_vel_iter<=0\n";
       return;
     }
-    
+
     if (verbose)
     {
         amrex::Print() << "Projection::initialVelocityProject(): levels = " << c_lev
@@ -833,7 +832,7 @@ Projection::initialVelocityProject (int  c_lev,
             Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
             for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-            {        
+            {
                 amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,AMREX_SPACEDIM);
             }
 
@@ -849,7 +848,7 @@ Projection::initialVelocityProject (int  c_lev,
       rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
             }
         }
-  
+
         if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
         {
             set_outflow_bcs(INITIAL_VEL,phi,vel,
@@ -870,7 +869,7 @@ Projection::initialVelocityProject (int  c_lev,
         // Project
         //
         //
-                
+
         bool proj2 = true;
         if (!have_divu)
         {
@@ -894,7 +893,7 @@ Projection::initialVelocityProject (int  c_lev,
                                   {},
                                   proj_tol, proj_abs_tol, proj2, 0, 0);
         }
-        
+
         //
         // Unscale initial projection variables.
         //
@@ -1849,7 +1848,7 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                     FArrayBox& cfab = phi_crse_strip[mfi];
                     const auto& phi_c_arr = phi_crse_strip.array(mfi);
                     ParallelFor(ovlp, [phi_c_arr,phi_f_arr,ratio]
-                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
                        phi_c_arr(i,j,k) = phi_f_arr(i*ratio[0],j*ratio[1],k*ratio[2]);
                     });
@@ -2106,7 +2105,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
         for (int iface = 0; iface < numOutFlowFaces; iface++)
             (*Vel_in).copyTo(dudt[0][iface],0,0,AMREX_SPACEDIM,1);
-        
+
         if (have_divu) {
             for (int iface = 0; iface < numOutFlowFaces; iface++)
                 (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
@@ -2146,7 +2145,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         for (MFIter mfi(phi_fine_strip_mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
           const Box& bx = mfi.tilebox();
           BL_ASSERT((phi_fine_strip[iface].box()).contains(bx));
-          const auto& phi_f_mf = phi_fine_strip_mf.array(mfi); 
+          const auto& phi_f_mf = phi_fine_strip_mf.array(mfi);
           const auto& phi_f    = phi_fine_strip[iface].array();
           amrex::ParallelFor(bx, [phi_f_mf,phi_f]
           AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -2310,7 +2309,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
-//  nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+ nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction)
     {
@@ -2331,7 +2330,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     nodal_projector.project(phi_rebase,rel_tol,abs_tol);
-    
+
 #ifdef AMREX_USE_EB
         Vector< NavierStokesBase* > ns(nlevel);
         Vector< MultiFab* > Gp(nlevel);

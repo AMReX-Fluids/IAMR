@@ -60,5 +60,3 @@ void FORT_MVERROR
   }
 #endif
 #endif
-
-
