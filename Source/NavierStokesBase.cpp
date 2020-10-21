@@ -5016,7 +5016,7 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(Snew,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Snew,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 
         const auto& bx = mfi.tilebox();
@@ -5029,8 +5029,8 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
         amrex::ParallelFor(bx, [sn, so, rhon, rhoo]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real smn = 0.0;
-            Real smx = 0.0;
+            Real smn = std::numeric_limits<Real>::max();
+            Real smx = std::numeric_limits<Real>::min();
 
 #if (AMREX_SPACEDIM==3)
             int ks = -1;
@@ -5047,7 +5047,7 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
                     for (int ii = -1; ii <= 1; ++ii)
                     {
                         smn =  amrex::min(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
-                        smx =  amrex::max(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                        smx =  amrex::max(smx, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
                     }
                 }
             }
@@ -5070,7 +5070,7 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(Snew,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(Snew,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 
         const auto& bx = mfi.tilebox();
@@ -5081,8 +5081,8 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
         amrex::ParallelFor(bx, [sn, so]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            Real smn = 0.0;
-            Real smx = 0.0;
+            Real smn = std::numeric_limits<Real>::max();
+            Real smx = std::numeric_limits<Real>::min();
 
 #if (AMREX_SPACEDIM==3)
             int ks = -1;
@@ -5099,7 +5099,7 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
                     for (int ii = -1; ii <= 1; ++ii)
                     {
                         smn =  amrex::min(smn, so(i+ii,j+jj,k+kk));
-                        smx =  amrex::max(smn, so(i+ii,j+jj,k+kk));
+                        smx =  amrex::max(smx, so(i+ii,j+jj,k+kk));
                     }
                 }
             }
