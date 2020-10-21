@@ -21,6 +21,7 @@ namespace MOL {
                                amrex::MultiFab& zfluxes),
                        int fluxes_comp,
                        amrex::Vector<amrex::BCRec> const& bcs,
+		                     amrex::BCRec  const* d_bcrec_ptr,
                        amrex::Geometry const& geom);
 
     void ComputeSyncAofs ( amrex::MultiFab& aofs, int aofs_comp, int ncomp,
@@ -41,6 +42,7 @@ namespace MOL {
                                    amrex::MultiFab& zfluxes),
                            int fluxes_comp,
                            amrex::Vector<amrex::BCRec> const& bcs,
+			   amrex::BCRec  const* d_bcrec_ptr,
                            amrex::Geometry const& geom);
 
 
@@ -54,7 +56,8 @@ namespace MOL {
                                    amrex::Array4<amrex::Real const> const& vmac,
                                    amrex::Array4<amrex::Real const> const& wmac),
                            amrex::Box const&       domain,
-                           amrex::Vector<amrex::BCRec> const& bcs);
+                           amrex::Vector<amrex::BCRec> const& bcs,
+			                 amrex::BCRec  const* d_bcrec_ptr);
 
     void ComputeFluxes ( amrex::Box const& bx,
                          D_DECL( amrex::Array4<amrex::Real> const& fx,
@@ -80,7 +83,7 @@ namespace MOL {
                                    amrex::MultiFab& vmac,
                                    amrex::MultiFab& wmac ),
                             const amrex::Geometry&  a_geom,
-                            const amrex::Vector<amrex::BCRec>& a_bcs );
+                            const amrex::Vector<amrex::BCRec>& a_bcs);
 
     void PredictVelOnFaces ( D_DECL( amrex::Box const& ubx,
                                      amrex::Box const& vbx,
@@ -91,17 +94,6 @@ namespace MOL {
                              amrex::Array4<amrex::Real const > const& vcc,
                              const amrex::Geometry&  geom,
                              const amrex::BCRec* bcs );
-
-    void SetMacBCs ( amrex::Box const& domain,
-                     D_DECL( amrex::Box const& ubx,
-                             amrex::Box const& vbx,
-                             amrex::Box const& wbx ),
-                     D_DECL( amrex::Array4<amrex::Real> const& u,
-                             amrex::Array4<amrex::Real> const& v,
-                             amrex::Array4<amrex::Real> const& w ),
-                     amrex::Array4<amrex::Real const > const& vel,
-                     const amrex::Vector<amrex::BCRec>& bcs );
-
 
     void AreaWeightFluxes ( D_DECL( const amrex::Box& xbx,
 				    const amrex::Box& ybx,
@@ -127,6 +119,7 @@ namespace MOL {
                                        amrex::Array4<amrex::Real const> const& wmac),
                                amrex::Box const&       domain,
                                amrex::Vector<amrex::BCRec> const& bcs,
+ 			                     amrex::BCRec  const* d_bcrec_ptr,
                                D_DECL( amrex::Array4<amrex::Real const> const& fcx,
                                        amrex::Array4<amrex::Real const> const& fcy,
                                        amrex::Array4<amrex::Real const> const& fcz),

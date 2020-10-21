@@ -68,9 +68,9 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
 		(i,j,k,0,order,vcc, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
 	      Real umns = vcc(i-1,j,k,0) + 0.5 * amrex_calc_xslope_extdir
 		(i-1,j,k,0,order,vcc, extdir_or_ho_ilo, extdir_or_ho_ihi, domain_ilo, domain_ihi);
-            if (umns < 0.0 and upls > 0.0) {
+	      if (umns < 0.0 and upls > 0.0) {
                 u(i,j,k) = 0.0;
-            } else {
+	      } else {
                 Real avg = 0.5 * (upls + umns);
                 if (std::abs(avg) < small_vel) {
                     u(i,j,k) = 0.0;
@@ -79,7 +79,7 @@ MOL::PredictVelOnFaces (  D_DECL( Box const& ubx,
                 } else {
                     u(i,j,k) = upls;
                 }
-            }
+	      }
             }
         });
     }

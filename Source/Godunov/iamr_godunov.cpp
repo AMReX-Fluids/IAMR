@@ -1,5 +1,5 @@
 #include <iamr_godunov.H>
-
+#include <NS_util.H>
 
 using namespace amrex;
 
@@ -22,7 +22,7 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                        MultiFab const& fq,
                        const int fq_comp,
                        MultiFab const& divu,
-                       Vector<BCRec> const& bcs,
+                       BCRec const* d_bc,
                        Geometry const& geom,
                        Gpu::DeviceVector<int>& iconserv,
                        const Real dt,
@@ -37,9 +37,6 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
     {
 
         const Box& bx   = mfi.tilebox();
-        Box const& bxg1 = amrex::grow(bx,1);
-
-        FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
 
         //
         // Get handlers to Array4
@@ -64,7 +61,7 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                               AMREX_D_DECL( u, v, w ),
                               divu.array(mfi),
                               fq.array(mfi,fq_comp),
-                              geom, dt, &bcs[0],
+                              geom, dt, d_bc,
                               iconserv.data(),
                               use_ppm,
                               use_forces_in_trans,
@@ -76,14 +73,15 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                        AMREX_D_DECL( xed, yed, zed ),
                        geom, ncomp );
 
-
-        ComputeDivergence( bx,
+	ComputeDivergence( bx,
                            aofs.array(mfi,aofs_comp),
                            AMREX_D_DECL( fx, fy, fz ),
                            AMREX_D_DECL( xed, yed, zed ),
                            AMREX_D_DECL( u, v, w ),
                            ncomp, geom, iconserv.data() );
 
+	// Note this sync is needed since ComputeEdgeState() contains temporaries
+	// Not sure it's really needed when known_edgestate==true
         Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
@@ -112,7 +110,7 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                            MultiFab const& fq,
                            const int fq_comp,
                            MultiFab const& divu,
-                           Vector<BCRec> const& bcs,
+                           BCRec const* d_bc,
                            Geometry const& geom,
                            Gpu::DeviceVector<int>& iconserv,
                            const Real dt,
@@ -122,14 +120,12 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
+
     //FIXME - check on adding tiling here
     for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
     {
 
         const Box& bx   = mfi.tilebox();
-        Box const& bxg1 = amrex::grow(bx,1);
-
-        FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
 
         //
         // Get handlers to Array4
@@ -159,7 +155,7 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                               AMREX_D_DECL( u, v, w ),
                               divu.array(mfi),
                               fq.array(mfi,fq_comp),
-                              geom, dt, &bcs[0],
+                              geom, dt, d_bc,
                               iconserv.data(),
                               use_ppm,
                               use_forces_in_trans,
@@ -177,6 +173,8 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                AMREX_D_DECL( fx, fy, fz ),
                                ncomp, geom );
 
+	// Note this sync is needed since ComputeEdgeState() contains temporaries
+	// Not sure it's really needed when known_edgestate==true
         Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
@@ -272,7 +270,7 @@ Godunov::ComputeDivergence ( Box const& bx,
 #else
     Real qvol = dxinv[0] * dxinv[1];
 #endif
-
+    
     amrex::ParallelFor(bx, ncomp,[=]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
@@ -289,7 +287,7 @@ Godunov::ComputeDivergence ( Box const& bx,
         }
         else
         {
-            div(i,j,k,n) = 0.5*dxinv[0]*( umac(i+1,j,k  ) +  umac(i,j,k  ))
+	    div(i,j,k,n) = 0.5*dxinv[0]*( umac(i+1,j,k  ) +  umac(i,j,k  ))
                 *                       (  xed(i+1,j,k,n) -   xed(i,j,k,n))
                 +          0.5*dxinv[1]*( vmac(i,j+1,k  ) +  vmac(i,j,k  ))
                 *                       (  yed(i,j+1,k,n) -   yed(i,j,k,n))

@@ -13,14 +13,12 @@ Godunov::ExtrapVelToFaces ( MultiFab const& a_vel,
                             MultiFab& a_umac,
                             MultiFab& a_vmac,
                             const Vector<BCRec> & h_bcrec,
+			    const        BCRec  * d_bcrec,
                             const Geometry& geom, Real l_dt,
                             bool use_ppm, bool use_forces_in_trans)
 {
     Box const& domain = geom.Domain();
     const Real* dx    = geom.CellSize();
-
-    Gpu::DeviceVector<BCRec> bcs_device = convertToDeviceVector(h_bcrec);
-    const BCRec* d_bcrec = bcs_device.dataPtr();
 
     const int ncomp = AMREX_SPACEDIM;
 #ifdef _OPENMP

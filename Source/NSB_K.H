@@ -5,22 +5,6 @@
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
-AMREX_GPU_HOST_DEVICE
-inline
-void
-edg2cen_average(int i, int j, int k,
-                AMREX_D_DECL(amrex::Array4<const amrex::Real> const& efab_x,
-                             amrex::Array4<const amrex::Real> const& efab_y,
-                             amrex::Array4<const amrex::Real> const& efab_z),
-                amrex::Array4<      amrex::Real> const& cfab) noexcept
-{
-   using namespace amrex::literals;
-
-   AMREX_D_TERM(cfab(i,j,k,0) = 0.5_rt * ( efab_x(i,j,k) + efab_x(i+1,j,k) );,
-                cfab(i,j,k,1) = 0.5_rt * ( efab_y(i,j,k) + efab_y(i,j+1,k) );,
-                cfab(i,j,k,2) = 0.5_rt * ( efab_z(i,j,k) + efab_z(i,j,k+1) ););
-
-}
 
 AMREX_GPU_HOST_DEVICE
 inline
@@ -66,88 +50,53 @@ calc_gradp(int i, int j, int k,
                                                        + p(i+1,j+1,k+1)-p(i+1,j+1,k  ));
 #endif
 }
-
-AMREX_GPU_HOST_DEVICE
-inline
-void
-edge_interp_k(amrex::Box const& bx,
-              int                                   ncomp,
-              int                                   dir,
-              amrex::GpuArray<int,AMREX_SPACEDIM>   const& ratio,
-              amrex::Array4<amrex::Real>            const& fine) noexcept
+//
+// Do linear in dir, pc transverse to dir, leave alone the fine values
+// lining up with coarse edges--assume these have been set to hold the
+// values you want to interpolate to the rest.
+//
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_interp_x (int i, int j, int k, int n, amrex::Array4<amrex::Real> const& fine,
+	       amrex::GpuArray<int,AMREX_SPACEDIM>   const& ratio) noexcept
 {
-   using namespace amrex::literals;
+    int rmod = i%ratio[0];
 
-   const auto lo = amrex::lbound(bx);
-   const auto hi = amrex::ubound(bx);
-   int idlo[3] = {D_DECL(lo.x,lo.y,lo.z)};
-   int idhi[3] = {D_DECL(hi.x,hi.y,hi.z)};
+    if ( rmod != 0 )
+    {
+      int ii = amrex::coarsen(i,ratio[0]);
+      amrex::Real const w = static_cast<amrex::Real>(i-ii*ratio[0]) * (amrex::Real(1.)/ratio[0]);
+      rmod = std::abs(rmod);
+      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i-rmod,j,k,n) + w * fine(i+(ratio[0]-rmod),j,k,n);
+    }
+}
 
-   // Get the "other" dimension(s)
-#if ( AMREX_SPACEDIM == 2 )
-   int dim1 = ( dir == 0 ) ? 1 : 0;
-   int d1lo = idlo[dim1];
-   int d1hi = idhi[dim1];
-#elif ( AMREX_SPACEDIM == 3 )
-   int dim1 = ( dir != 0 ) ? 0 : 1;
-   int dim2 = ( dir != 0 ) ? ( ( dir == 2 ) ? 1 : 2 ) : 2;
-   int d1lo = idlo[dim1];
-   int d1hi = idhi[dim1];
-   int d2lo = idlo[dim2];
-   int d2hi = idhi[dim2];
-#endif
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_interp_y (int i, int j, int k, int n, amrex::Array4<amrex::Real> const& fine,
+	       amrex::GpuArray<int,AMREX_SPACEDIM>   const& ratio) noexcept
+{
+    int rmod = j%ratio[1];
 
-   int idx[3] = {0};
-   int idx_1[3] = {0};
-   int idx_2[3] = {0};
+    if ( rmod != 0 )
+    {
+      int jj = amrex::coarsen(j,ratio[1]);
+      amrex::Real const w = static_cast<amrex::Real>(j-jj*ratio[1]) * (amrex::Real(1.)/ratio[1]);
+      rmod = std::abs(rmod);
+      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i,j-rmod,k,n) + w * fine(i,j+(ratio[1]-rmod),k,n);
+    }
+}
 
-#if ( AMREX_SPACEDIM == 2 )
-   for (int comp = 0; comp < ncomp; comp++) {
-      for (int d1 = d1lo; d1 <= d1hi; d1 += ratio[dim1]) {
-         idx_1[dim1] = d1;
-         idx_2[dim1] = d1;
-         for (int d = idlo[dir]; d <= idhi[dir] - ratio[dir]; d += ratio[dir]) {
-            idx_1[dir] = d + ratio[dir];
-            idx_2[dir] = d;
-            amrex::Real df = fine(idx_1[0],idx_1[1],idx_1[2],comp) - fine(idx_2[0],idx_2[1],idx_2[2],comp);
-            for (int nd = 1; nd < ratio[dir]; nd++) {
-               amrex::Real val = fine(idx_2[0],idx_2[1],idx_2[2],comp) + df * nd / ratio[dir];
-               for (int nd1 = d1; nd1 < d1+ratio[dim1]; nd1++) {
-                  idx[dir] = d + nd;
-                  idx[dim1] = nd1;
-                  fine(idx[0],idx[1],idx[2],comp) = val;
-               }
-            }
-         }
-      }
-   }
-#elif ( AMREX_SPACEDIM == 3 )
-   for (int comp = 0; comp < ncomp; comp++) {
-      for (int d2 = d2lo; d2 <= d2hi; d2 += ratio[dim2]) {
-         idx_1[dim2] = d2;
-         idx_2[dim2] = d2;
-         for (int d1 = d1lo; d1 <= d1hi; d1 += ratio[dim1]) {
-            idx_1[dim1] = d1;
-            idx_2[dim1] = d1;
-            for (int d = idlo[dir]; d <= idhi[dir] - ratio[dir]; d += ratio[dir]) {
-               idx_1[dir] = d + ratio[dir];
-               idx_2[dir] = d;
-               amrex::Real df = fine(idx_1[0],idx_1[1],idx_1[2],comp) - fine(idx_2[0],idx_2[1],idx_2[2],comp);
-               for (int nd = 1; nd < ratio[dir]; nd++) {
-                  amrex::Real val = fine(idx_2[0],idx_2[1],idx_2[2],comp) + df * nd / ratio[dir];
-                  for (int nd1 = d1; nd1 < d1+ratio[dim1]; nd1++) {
-                     for (int nd2 = d2; nd2 < d2+ratio[dim2]; nd2++) {
-                        idx[dir] = d + nd;
-                        idx[dim1] = nd1;
-                        idx[dim2] = nd2;
-                        fine(idx[0],idx[1],idx[2],comp) = val;
-                     }
-                  }
-               }
-            }
-         }
-      }
-   }
-#endif
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+face_interp_z (int i, int j, int k, int n, amrex::Array4<amrex::Real> const& fine,
+	       amrex::GpuArray<int,AMREX_SPACEDIM>   const& ratio) noexcept
+{
+    int rmod = k%ratio[2];
+
+    if ( rmod != 0 )
+    {
+      int kk = amrex::coarsen(k,ratio[2]);
+      amrex::Real const w = static_cast<amrex::Real>(k-kk*ratio[2]) * (amrex::Real(1.)/ratio[2]);
+      rmod = std::abs(rmod);
+      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i,j,k-rmod,n) + w * fine(i,j,k+(ratio[2]-rmod),n);
+    }
 }
 #endif

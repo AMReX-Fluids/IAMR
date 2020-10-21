@@ -24,7 +24,7 @@ namespace Godunov {
                        amrex::MultiFab const& fq,
                        const int fq_comp,
                        amrex::MultiFab const& divu,
-                       amrex::Vector<amrex::BCRec> const& bcs,
+                       amrex::BCRec const* d_bc,
                        amrex::Geometry const& geom,
                        amrex::Gpu::DeviceVector<int>& iconserv,
                        const amrex::Real dt,
@@ -52,7 +52,7 @@ namespace Godunov {
                            amrex::MultiFab const& fq,
                            const int fq_comp,
                            amrex::MultiFab const& divu,
-                           amrex::Vector<amrex::BCRec> const& bcs,
+                           amrex::BCRec const* d_bc,
                            amrex::Geometry const& geom,
                            amrex::Gpu::DeviceVector<int>& iconserv,
                            const amrex::Real dt,
@@ -101,6 +101,7 @@ namespace Godunov {
                                           amrex::MultiFab& a_vmac,
                                           amrex::MultiFab& a_wmac ),
                             const amrex::Vector<amrex::BCRec> & h_bcrec,
+			    const               amrex::BCRec  * d_bcrec,
                             const amrex::Geometry& geom, amrex::Real l_dt,
                             bool use_ppm, bool use_forces_in_trans);
 

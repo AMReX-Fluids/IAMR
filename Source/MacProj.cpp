@@ -703,15 +703,23 @@ MacProj::mac_sync_compute (int                   level,
                 // Select sync MF and its component for processing
                 const int  sync_comp = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
                 MultiFab*  sync_ptr  = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
+		// Using fetchBCArray seems a better option than this.
+		// Vector<BCRec> const& bcs  = comp < AMREX_SPACEDIM
+		// 				   ? ns_level.get_bcrec_velocity()
+		// 				   : ns_level.get_bcrec_scalars();
+		// // create a single element amrex::Vector 
+		// Vector<BCRec> const& math_bcs= {bcs[sync_comp]};
 
+		BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
+						   ? ns_level.get_bcrec_velocity_d_ptr()
+						   : ns_level.get_bcrec_scalars_d_ptr();
 
                 MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
                                      D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                      D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                      D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                      D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     math_bcs, geom  );
-
+                                     math_bcs, &d_bcrec_ptr[sync_comp], geom  );
             }
         }
     }
@@ -750,7 +758,7 @@ MacProj::mac_sync_compute (int                   level,
         {
             const auto gbx = Smfi.growntilebox(ngrow);
 
-            ns_level.getForce(forcing_term[Smfi],gbx,ngrow,0,NUM_STATE,
+            ns_level.getForce(forcing_term[Smfi],gbx,0,NUM_STATE,
 			      prev_time,Smf[Smfi],Smf[Smfi],Density);
         }
     }
@@ -814,12 +822,14 @@ MacProj::mac_sync_compute (int                   level,
 	    //
             // Perform sync
 	    //
-            auto math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
 
             // Select sync MF and its component for processing
             const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
             MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
             const bool is_velocity = comp < AMREX_SPACEDIM ? true   : false;
+	    BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
+					       ? &(ns_level.get_bcrec_velocity_d_ptr())[sync_comp]
+					       : &(ns_level.get_bcrec_scalars_d_ptr())[sync_comp];
 
             const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
 
@@ -834,7 +844,7 @@ MacProj::mac_sync_compute (int                   level,
                                      AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                      AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                      forcing_term, comp, *divu_fp,
-                                     math_bcs, geom, iconserv, dt,
+                                     d_bcrec_ptr, geom, iconserv, dt,
                                      ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
                                      is_velocity );
 
@@ -922,21 +932,19 @@ MacProj::mac_sync_compute (int                    level,
     // it is done being executed
     {
 
-        Vector<BCRec>  math_bcs(ncomp);
         const Box& domain = geom.Domain();
 
-	// Get BCs for this component
-	// FIXME?  *think* comp should be okay here. Seems comp is the state index
-	// and not the index for Sync.
-	math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
-
+	// Bogus arguments -- they will not be used since we don't need to recompute the edge states
+	Vector<BCRec>  bcs;
+	BCRec  const* d_bcrec_ptr = NULL;
+	  
 	MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
 			     Sync, s_ind, // this is not used when we pass edge states
 			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
 			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
 			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-			     math_bcs, geom  );
+			     bcs, d_bcrec_ptr, geom  );
 
     }
 #else
@@ -945,7 +953,7 @@ MacProj::mac_sync_compute (int                    level,
     //
 
     // Bogus arguments -- they will not be used since we don't need to recompute the edge states
-    Vector<BCRec>  bcs;
+    BCRec  const* d_bcrec_ptr = NULL;
     Gpu::DeviceVector<int> iconserv;
 
     Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
@@ -955,7 +963,7 @@ MacProj::mac_sync_compute (int                    level,
                              AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
                              AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
                              MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                             bcs, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
+                             d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
 
 
 
