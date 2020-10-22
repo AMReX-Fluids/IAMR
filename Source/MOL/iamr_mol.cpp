@@ -788,8 +788,7 @@ MOL::Redistribute (  Box const& bx, int ncomp,
                 {
                     for (int ii = -1; ii <= 1; ++ii)
                     {
-                        if ( (ii != 0 or jj != 0 or kk != 0) and
-                             flag(i,j,k).isConnected(ii,jj,kk) and
+                        if ( flag(i,j,k).isConnected(ii,jj,kk) and
                              dbox.contains(IntVect(D_DECL(i+ii,j+jj,k+kk))))
                         {
                             Real wted_vf = vfrac(i+ii,j+jj,k+kk) * wgt(i+ii,j+jj,k+kk);
