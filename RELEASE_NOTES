@@ -149,3 +149,7 @@ Various replacements of fortran kernels to C++
 Various GPU updates
 Advection updates and bux fixes
 Other bugxies to miscellaneous routines
+
+11/2/20
+Various GPU updates for BCRec and create_umac_Grown
+Minor tiling fixes
