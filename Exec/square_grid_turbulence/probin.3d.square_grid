@@ -4,8 +4,8 @@
   probtype = 32
   denfact  = 1.
   adv_dir  = 1
-  adv_vel  = 3.75
-  vorterr = 1.e-2
+  adv_vel  = 2.5
+  vorterr = 500
   adverr  = 0.1
 
  /
