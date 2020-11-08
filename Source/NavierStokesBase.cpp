@@ -278,16 +278,15 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
 
 #ifdef AMREX_USE_EB
-
     init_eb(level_geom, bl, dm);
-
+#endif
+    
     //fixme? not 100% sure this is the right place
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
     gradp->setVal(0.);
 
     //FIXME --- this fn is really similar to restart()... work on that later
-#endif
-
+    
     //
     // Set up reflux registers.
     //
@@ -1010,20 +1009,18 @@ NavierStokesBase::checkPoint (const std::string& dir,
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 
+    // Need to add gradp in the checkpoint
+    std::string LevelDir, FullPath;
+    LevelDirectoryNames(dir, LevelDir, FullPath);
+    std::string gradp_mf_fullpath = FullPath + "/gradp";
+    VisMF::Write(*gradp,gradp_mf_fullpath,how);
+
 #ifdef AMREX_PARTICLES
     if (level == 0)
     {
         if (NSPC != 0)
             NSPC->Checkpoint(dir,the_ns_particle_file_name);
     }
-#endif
-
-# ifdef AMREX_USE_EB
-// Need to add gradp in the checkpoint
-   std::string LevelDir, FullPath;
-   LevelDirectoryNames(dir, LevelDir, FullPath);
-   std::string gradp_mf_fullpath = FullPath + "/gradp";
-   VisMF::Write(*gradp,gradp_mf_fullpath,how);
 #endif
 }
 
@@ -1469,13 +1466,8 @@ NavierStokesBase::estTimeStep ()
     Vector<Real> u_max(AMREX_SPACEDIM);
     Vector<Real> f_max(AMREX_SPACEDIM);
 
-#ifdef AMREX_USE_EB
     MultiFab& Gp = getGradP();
     Gp.FillBoundary(geom.periodicity());
-#else
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
-    getGradP(Gp, cur_pres_time);
-#endif
 
     //
     // Find local max of velocity
@@ -1705,142 +1697,6 @@ NavierStokesBase::getDsdt (int ngrow, Real time)
     }
 
     return dsdt;
-}
-
-
-void
-NavierStokesBase::getGradP (MultiFab& gp, Real      time)
-{
-    BL_PROFILE("NavierStokesBase::getGradP()");
-
-    const int   NGrow = gp.nGrow();
-    MultiFab&   P_old = get_old_data(Press_Type);
-    const Real* dx    = geom.CellSize();
-
-    if (level > 0 && state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-    {
-        //
-        // We want to be sure the intersection of old and new grids is
-        // entirely contained within gp.boxArray()
-        //
-        BL_ASSERT(gp.boxArray() == grids);
-
-        {
-            const BoxArray& pBA = state[Press_Type].boxArray();
-            MultiFab pMF(pBA,dmap,1,NGrow);
-
-            if (time == getLevel(level-1).state[Press_Type].prevTime() ||
-                time == getLevel(level-1).state[Press_Type].curTime())
-            {
-                FillCoarsePatch(pMF,0,time,Press_Type,0,1,NGrow);
-            }
-            else
-            {
-                Real crse_time;
-
-                if (time > getLevel(level-1).state[State_Type].prevTime())
-                {
-                    crse_time = getLevel(level-1).state[Press_Type].curTime();
-                }
-                else
-                {
-                    crse_time = getLevel(level-1).state[Press_Type].prevTime();
-                }
-
-                FillCoarsePatch(pMF,0,crse_time,Press_Type,0,1,NGrow);
-
-                MultiFab dpdtMF(pBA,dmap,1,NGrow);
-
-                FillCoarsePatch(dpdtMF,0,time,Dpdt_Type,0,1,NGrow);
-
-                Real dt_temp = time - crse_time;
-
-                dpdtMF.mult(dt_temp,0,1,NGrow);
-
-                pMF.plus(dpdtMF,0,1,NGrow);
-            }
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-            for (MFIter mfi(gp, true); mfi.isValid(); ++mfi)
-            {
-              const Box& bx=mfi.growntilebox();
-              Projection::getGradP(pMF[mfi],gp[mfi],bx,dx);
-            }
-        }
-        //
-        // We've now got good coarse data everywhere in gp.
-        //
-        MultiFab gpTmp(gp.boxArray(),gp.DistributionMap(),1,NGrow);
-
-        {
-           FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
-           MultiFab& pMF = P_fpi.get_mf();
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-           for (MFIter mfi(gpTmp, true); mfi.isValid(); ++mfi)
-           {
-             const Box& bx=mfi.growntilebox();
-             Projection::getGradP(pMF[mfi],gpTmp[mfi],bx,dx);
-           }
-        }
-        //
-        // Now must decide which parts of gpTmp to copy to gp.
-        //
-        const int M = old_intersect_new.size();
-
-        BoxArray fineBA(M);
-
-        for (int j = 0; j < M; j++)
-        {
-            Box bx = old_intersect_new[j];
-
-            for (int i = 0; i < BL_SPACEDIM; i++)
-            {
-                if (!geom.isPeriodic(i))
-                {
-                    if (bx.smallEnd(i) == geom.Domain().smallEnd(i))
-                        bx.growLo(i,NGrow);
-                    if (bx.bigEnd(i) == geom.Domain().bigEnd(i))
-                        bx.growHi(i,NGrow);
-                }
-            }
-
-            fineBA.set(j,bx);
-        }
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(gpTmp,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            auto isects = fineBA.intersections(mfi.growntilebox());
-            auto const& gp_ar    = gp.array(mfi);
-            auto const& gpTmp_ar = gpTmp.array(mfi);
-            for (int ii = 0, N = isects.size(); ii < N; ii++)
-            {
-                const Box& ovlp = isects[ii].second;
-                amrex::ParallelFor(ovlp, [gp_ar,gpTmp_ar]
-                AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    gp_ar(i,j,k) = gpTmp_ar(i,j,k);
-                });
-            }
-        }
-        gp.EnforcePeriodicity(geom.periodicity());
-    } else {
-        FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
-        MultiFab& pMF = P_fpi.get_mf();
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(gp, true); mfi.isValid(); ++mfi)
-        {
-           BL_ASSERT(amrex::grow(grids[mfi.index()],NGrow) == gp[mfi].box());
-           Projection::getGradP(pMF[mfi],gp[mfi],mfi.growntilebox(),dx);
-        }
-    }
 }
 
 //
@@ -2920,8 +2776,6 @@ NavierStokesBase::restart (Amr&          papa,
     mac_projector->install_level(level,this);
 
     const BoxArray& P_grids = state[Press_Type].boxArray();
-#ifdef AMREX_USE_EB
-    init_eb(parent->Geom(level), grids, dmap);
 
     //fixme? not 100% sure this is the right place
     // note --- this fn is really similar to constructor
@@ -2938,6 +2792,9 @@ NavierStokesBase::restart (Amr&          papa,
     gradp_mf_fullpath += "/gradp";
     const char *faHeader = 0;
     VisMF::Read(*gradp, gradp_mf_fullpath, faHeader);
+
+#ifdef AMREX_USE_EB
+    init_eb(parent->Geom(level), grids, dmap);
 #endif
 
     //
@@ -3666,13 +3523,8 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Compute viscosity components.
     //
-#ifdef AMREX_USE_EB
     MultiFab& Gp = getGradP();
     Gp.FillBoundary(geom.periodicity());
-#else
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
-    getGradP(Gp, state[Press_Type].prevTime());
-#endif
 
     MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
 
@@ -3934,13 +3786,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
     MultiFab&  Aofs           = *aofs;
     const Real prev_pres_time = state[Press_Type].prevTime();
 
-#ifdef AMREX_USE_EB
     MultiFab& Gp=*gradp;
     Gp.FillBoundary(geom.periodicity());
-#else
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
-    getGradP(Gp, prev_pres_time);
-#endif
 
     MultiFab& Rh = get_rho_half_time();
 
@@ -4090,13 +3937,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         //
         // Get grad(p)
         //
-#ifdef AMREX_USE_EB
         MultiFab& Gp = *gradp;
-#else
-        const Real prev_pres_time = state[Press_Type].prevTime();
-        MultiFab         Gp(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
-        getGradP(Gp, prev_pres_time);
-#endif
 
         //
         // Compute additional forcing terms
@@ -4971,13 +4812,7 @@ NavierStokesBase::printMaxVel (bool new_data)
 void
 NavierStokesBase::printMaxGp (bool new_data)
 {
-#ifdef AMREX_USE_EB
     MultiFab& Gp = getGradP();
-#else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-    const Real time = new_data ? state[Press_Type].curTime() : state[Press_Type].prevTime();
-    getGradP(Gp, time);
-#endif
     MultiFab& P  = new_data? get_new_data(Press_Type) : get_old_data(Press_Type);
 
 #if (AMREX_SPACEDIM==3)

@@ -172,11 +172,10 @@ public:
     //
     // Get pressure gradient data via fill-patching.
     //
-    void getGradP (amrex::MultiFab& gp, amrex::Real time);
+    amrex::MultiFab& getGradP() { return *gradp; }
 
 #ifdef AMREX_USE_EB
     const amrex::MultiFab* VolFrac () const { return volfrac; }
-    amrex::MultiFab& getGradP() { return *gradp; }
 #endif
     //
     // Boundary condition access functions.
@@ -572,9 +571,12 @@ public:
 // Data
 //
 
-    // fixme? for now, volume and area are intentionally without EB knowledge
+    // volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
     amrex::MultiFab area[BL_SPACEDIM];
+
+    // Pressure gradients
+    std::unique_ptr<amrex::MultiFab> gradp;
 
 #ifdef AMREX_USE_EB
 
@@ -586,9 +588,6 @@ public:
 
     std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> areafrac;
     std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> facecent;
-
-    // Pressure gradients
-    std::unique_ptr<amrex::MultiFab> gradp ;
 
 #endif
 

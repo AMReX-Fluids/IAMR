@@ -650,14 +650,8 @@ MacProj::mac_sync_compute (int                   level,
 
     const int  ncomp = 1;         // Number of components to process at once
 
-#ifdef AMREX_USE_EB
     const int  nghost  = 2;
     MultiFab& Gp = ns_level.getGradP();
-#else
-    const int  nghost  = 0;
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),ns_level.Factory());
-    ns_level.getGradP(Gp, prev_pres_time);
-#endif
 
     //
     // Prep MFs to store fluxes and edge states

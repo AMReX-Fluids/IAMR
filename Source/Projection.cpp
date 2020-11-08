@@ -345,14 +345,8 @@ Projection::level_project (int             level,
     if (have_divu)
       divusource->mult(dt_inv,0,1,divusource->nGrow());
 
-
-#ifdef AMREX_USE_EB
     MultiFab& Gp = ns->getGradP();
     Gp.FillBoundary(geom.periodicity());
-#else
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
-    ns->getGradP(Gp, prev_pres_time);
-#endif
 
 #ifndef NDEBUG
 #ifdef AMREX_USE_EB
@@ -905,12 +899,11 @@ Projection::initialVelocityProject (int  c_lev,
         {
             LevelData[lev]->get_old_data(Press_Type).setVal(0.);
             LevelData[lev]->get_new_data(Press_Type).setVal(0.);
-#ifdef AMREX_USE_EB
+
             // gradP updated in MLMGNodalProjection so need to reset to zero here
             NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
             MultiFab& Gp = ns->getGradP();
             Gp.setVal(0.);
-#endif
         }
 
         if (verbose)
@@ -1866,33 +1859,6 @@ Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& phi)
   amrex::Abort("Projection::getStreamFunction not implemented");
 }
 
-//
-// Given a nodal pressure P compute the pressure gradient at the
-// contained cell centers.
-
-void
-Projection::getGradP (FArrayBox& p_fab,
-                      FArrayBox& gp,
-                      const Box& gpbox_to_fill,
-                      const Real* dx)
-{
-    BL_PROFILE("Projection::getGradP()");
-    //
-    // Test to see if p_fab contains gpbox_to_fill
-    //
-    BL_ASSERT(amrex::enclosedCells(p_fab.box()).contains(gpbox_to_fill));
-
-    auto const& p_arr  = p_fab.array();
-    auto const& gp_arr = gp.array();
-    amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dxinv = {D_DECL(1.0/dx[0],1.0/dx[1],1.0/dx[2])};
-    Real scale_gp = (AMREX_SPACEDIM == 2) ? 0.5 : 0.25;
-    amrex::ParallelFor(gpbox_to_fill, [p_arr,gp_arr,scale_gp,dxinv]
-    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-       calc_gradp(i,j,k,scale_gp,dxinv,p_arr,gp_arr);
-    });
-}
-
 void
 Projection::set_outflow_bcs (int        which_call,
                              const Vector<MultiFab*>& phi,
@@ -2332,32 +2298,32 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     nodal_projector.project(phi_rebase,rel_tol,abs_tol);
     
-#ifdef AMREX_USE_EB
-        Vector< NavierStokesBase* > ns(nlevel);
-        Vector< MultiFab* > Gp(nlevel);
-        const auto gradphi = nodal_projector.getGradPhi();
-
-        for (int lev = 0; lev < nlevel; lev++)
-        {
-            ns[lev] = dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
-            //fixme is this assert needed?
-            BL_ASSERT(!(ns[lev]==0));
-            Gp[lev] = &(ns[lev]->getGradP());
-
-            // Do we need ghost cells here?
-            if ( proj2 )
-            {
-                MultiFab::Copy(*Gp[lev],*gradphi[lev], 0, 0, AMREX_SPACEDIM,
-                               gradphi[lev]->nGrow());
-            }
-            else
-            {
-                MultiFab::Add(*Gp[lev],*gradphi[lev], 0, 0, AMREX_SPACEDIM,
-                              gradphi[lev]->nGrow());
-            }
-        }
-#endif
-
+    //
+    // Update gradP
+    //
+    Vector< NavierStokesBase* > ns(nlevel);
+    Vector< MultiFab* > Gp(nlevel);
+    const auto gradphi = nodal_projector.getGradPhi();
+    
+    for (int lev = 0; lev < nlevel; lev++)
+    {
+      ns[lev] = dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
+      //fixme is this assert needed?
+      BL_ASSERT(!(ns[lev]==0));
+      Gp[lev] = &(ns[lev]->getGradP());
+      
+      // Do we need ghost cells here?
+      if ( proj2 )
+      {
+	MultiFab::Copy(*Gp[lev],*gradphi[lev], 0, 0, AMREX_SPACEDIM,
+		       gradphi[lev]->nGrow());
+      }
+      else
+      {
+	MultiFab::Add(*Gp[lev],*gradphi[lev], 0, 0, AMREX_SPACEDIM,
+		      gradphi[lev]->nGrow());
+      }
+    }
 }
 
 // Set velocity in ghost cells to zero except for inflow

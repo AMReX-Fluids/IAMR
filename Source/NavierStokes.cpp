@@ -523,10 +523,11 @@ NavierStokes::predict_velocity (Real  dt)
     //
     // Non-EB version
     //
-    const int ngrow = 1;
-    MultiFab Gp(grids, dmap, AMREX_SPACEDIM,ngrow);
-    getGradP(Gp, prev_pres_time);
+    MultiFab& Gp = getGradP();
+    // FIXME do we really need to keep calling fillBoudnary each time? here and in NSB
+    Gp.FillBoundary(geom.periodicity());
 
+    const int ngrow = 1;
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
 
     //
