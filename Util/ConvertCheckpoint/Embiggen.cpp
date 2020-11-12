@@ -427,12 +427,12 @@ std::cout << "DEBUG lev=    " << lev << std::endl;
       falRef.state.resize(ndesc);
       falRef.new_state.resize(ndesc);
 
-      for(int ii = 0; i < ndesc; i++) {
+      for(int ii = 0; ii < ndesc; ii++) {
         // ******* StateDescriptor::restart
 
         is >> falRef.state[ii].domain;
 
-        falRef.state[i].grids.readFrom(is);
+        falRef.state[ii].grids.readFrom(is);
 
         is >> falRef.state[ii].old_time.start;
         is >> falRef.state[ii].old_time.stop;
@@ -496,67 +496,6 @@ std::cout << "DEBUG lev=    " << lev << std::endl;
 
 
 
-/*
-    FakeAmrLevel &falRef_orig = fakeAmr.fakeAmrLevels[n];
-
-    // Compute the effective max_grid_size
-    int max_len = 0;
-    BoxArray g(fakeAmr.fakeAmrLevels[n].grids);
-    for (int b = 0; b < g.size(); b++)
-       for (int d = 0; d < BL_SPACEDIM; d++)
-         max_len = std::max(max_len, g[b].length(d));
-    max_grid_size = max_len;
-
-    // Add new level data
-    for(int lev(n-1); lev >= 0; lev--) {
-      FakeAmrLevel &falRef = fakeAmr.fakeAmrLevels[lev];
-      falRef.level = lev;
-
-      // This version breaks up the new coarser domain based on the computed max_grid_size
-      BoxArray new_grids(domain);
-      new_grids.maxSize(max_grid_size);
-
-      falRef.grids = new_grids;
-
-      falRef.geom.define(domain,&prob_domain,coord);
-
-      if(falRef.level > 0) 
-        falRef.crse_ratio = ref_ratio * IntVect::TheUnitVector();
-      falRef.fine_ratio = ref_ratio * IntVect::TheUnitVector();
-
-      falRef.state.resize(ndesc_save);
-      falRef.new_state.resize(ndesc_save);
-
-      for(int i = 0; i < ndesc_save; i++) {
-
-        falRef.state[i].domain = domain;
-        falRef.state[i].grids = falRef.grids;
-        falRef.state[i].new_time.start = falRef_orig.state[i].new_time.start;
-        falRef.state[i].new_time.stop  = falRef_orig.state[i].new_time.stop;
-        falRef.state[i].old_time.start = falRef.state[i].new_time.start - fakeAmr.dt_level[lev];
-        falRef.state[i].old_time.stop  = falRef.state[i].new_time.stop  - fakeAmr.dt_level[lev];
-
-        falRef.state[i].old_data = 0;
-        falRef.state[i].new_data = 0;
-
-        if (nsets_save[i] >= 1) {
-
-           int ncomp = falRef_orig.state[i].new_data->nComp();
-           int ngrow = falRef_orig.state[i].new_data->nGrow();
-
-	   DistributionMapping dmap {falRef.grids};
-           falRef.state[i].new_data = new MultiFab(falRef.grids, dmap, ncomp, ngrow);
-           falRef.state[i].new_data->setVal(0.);
-
-           if (nsets_save[i] == 2) {
-             falRef.state[i].old_data = new MultiFab(falRef.grids, dmap, ncomp, ngrow);
-             falRef.state[i].old_data->setVal(0.);
-           }
-
-        }
-      }
-    }
-*/
 
 }
 
@@ -578,34 +517,6 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
     }
     // Force other processors to wait till directory is built.
     ParallelDescriptor::Barrier();
-
-    // Copy some standard auxiliary files to the new checkpoint.
-    // Only one processor (the I/O processor) needs to do this.
-
-//    if (ParallelDescriptor::IOProcessor()) {
-
- //     std::ifstream oldCastroHeaderFile;
-
-//      std::string oldCastroHeaderName = inFileName + "/CastroHeader";
-//      oldCastroHeaderFile.open(oldCastroHeaderName.c_str(), std::ios::binary);
-
-//      if (oldCastroHeaderFile.good()) {
-
-//	std::ofstream newCastroHeaderFile;
-
-//	std::string newCastroHeaderName = outFileName + "/CastroHeader";
-//	newCastroHeaderFile.open(newCastroHeaderName.c_str(), std::ios::binary);
-
-//	if (newCastroHeaderFile.good()) {
-//	  newCastroHeaderFile << oldCastroHeaderFile.rdbuf();
-//	  newCastroHeaderFile.close();
-//	}
-
-//	oldCastroHeaderFile.close();
-
-//      }
-
-//    }
 
     // Write the main header file.
 
@@ -789,30 +700,6 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
 // ---------------------------------------------------------------
 static void ConvertData() {
 
-/*
-struct FakeAmr {
-ok  int                  finest_level;
-OK  Real                 cumtime;
-OK  Vector<Real>          dt_level;
-OK  Vector<int>           level_steps;
-OK  Vector<int>           level_count;
-OK  Vector<int>           n_cycle;
-OK  Vector<Real>          dt_min;
-OK  Vector<IntVect>       ref_ratio;
-OK  Vector<Geometry>      geom;
-  Vector<FakeAmrLevel> fakeAmrLevels;
-};
-
-
-    int level;                        // AMR level (0 is coarsest).
-    Geometry geom;                    // Geom at this level.
-    BoxArray grids;                   // Cell-centered locations of grids.
-    IntVect crse_ratio;               // Refinement ratio to coarser level.
-    IntVect fine_ratio;               // Refinement ratio to finer level.
-    Vector<FakeStateData> state;       // Array of state data.
-    Vector<FakeStateData> new_state;   // Array of new state data.
-
-*/
 
  fakeAmr_fine = fakeAmr;
 
@@ -838,60 +725,26 @@ if(ParallelDescriptor::IOProcessor()) {
        }
     }
 
-//Box bx = geom.Domain();
 
-/*
-         int ncomps = (falRef0.state[n].new_data)->nComp();
-         MultiFab * newNewData = new MultiFab(newgrids,newdm,ncomps,1);
 
-         newNewData->setVal(0.); 
+for (int lev = 0; lev <= mx_lev; lev++)
+   {  
 
-         if (star_at_center == 1)  
-            (falRef0.state[n].new_data)->shift(shift_iv[0]);
 
-         falRef0.state[n].new_data = newNewData;
-   
-//       newNewData->copy(*(falRef0.state[n].new_data),0,0,ncomps);
-*/
-
-   FakeAmrLevel &falRef0 = fakeAmr.fakeAmrLevels[0];
-   Box bx = fakeAmr.geom[0].Domain();
-   BoxArray ba = falRef0.grids;
+   FakeAmrLevel &falRef_coarse = fakeAmr.fakeAmrLevels[lev];
+   Box bx = fakeAmr.geom[lev].Domain();
+   BoxArray ba = falRef_coarse.grids;
    DistributionMapping dm{ba};
-std::cout << " DEBUG falRef0     grids is      " << falRef0.grids << std::endl;
-   int ncomps = (falRef0.state[0].old_data)->nComp();
-   MultiFab * newNewData = new MultiFab(ba,dm,ncomps,0);
-//MultiFab  newNewData(ba,dm,ncomps,0);
-   newNewData->setVal(0.); 
-
-//   falRef0.state[n].new_data = newNewData;
-   
-    newNewData->copy(*(falRef0.state[0].new_data),0,0,ncomps);
-
-//newNewData.copy(*(falRef0.state[0].new_data),0,0,ncomps);
-
-//   Box domain(fakeAmr.geom[0].Domain());
-//   BoxList(newgrid_list);
-   
-//MultiFab mf(ba, dm, ncomps, 0);
-
-VisMF::Write(*newNewData,"pouet");
-
 
 
 // HERE WE REFINE THE LEVEL IN FINE STRUCTURE
-    Box          domain_fine(fakeAmr_fine.geom[0].Domain());
-    RealBox prob_domain_fine(fakeAmr_fine.geom[0].ProbDomain());
-    int coord_fine = fakeAmr_fine.geom[0].Coord();
-
-
+    Box          domain_fine(fakeAmr_fine.geom[lev].Domain());
+    RealBox prob_domain_fine(fakeAmr_fine.geom[lev].ProbDomain());
+    int coord_fine = fakeAmr_fine.geom[lev].Coord();
     domain_fine.refine(user_ratio);
-    fakeAmr_fine.geom[0].define(domain_fine,&prob_domain_fine,coord_fine);
-
-//    fakeAmr_fine.ref_ratio[0] = IntVect::TheUnitVector() / user_ratio;
-
-    fakeAmr_fine.dt_level[0] = fakeAmr_fine.dt_level[0] / user_ratio;
-    fakeAmr_fine.dt_min[0] = fakeAmr_fine.dt_min[0] / user_ratio;
+    fakeAmr_fine.geom[lev].define(domain_fine,&prob_domain_fine,coord_fine);
+    fakeAmr_fine.dt_level[lev] = fakeAmr_fine.dt_level[lev] / user_ratio;
+    fakeAmr_fine.dt_min[lev] = fakeAmr_fine.dt_min[lev] / user_ratio;
 
  std::cout << "  " << std::endl;
  std::cout << " DEBUG REFINEMENT " << std::endl;
@@ -916,7 +769,7 @@ if(ParallelDescriptor::IOProcessor()) {
     }
 
 // NOW WE WORK ON DATA THAT ARE IN THE FakeAmrLevel structure
-FakeAmrLevel &falRef_fine = fakeAmr_fine.fakeAmrLevels[0];
+FakeAmrLevel &falRef_fine = fakeAmr_fine.fakeAmrLevels[lev];
 BoxArray new_grids = falRef_fine.grids;
 new_grids.refine(user_ratio);
 falRef_fine.grids = new_grids;
@@ -928,78 +781,73 @@ std::cout << " DEBUG fine_level     dx is      " << falRef_fine.geom.CellSize()[
 std::cout << " DEBUG fine_level     grids is      " << falRef_fine.grids << std::endl;
 std::cout << " DEBUG nstate      is      " << falRef_fine.state.size() << std::endl;
 
-      for(int i = 0; i < falRef_fine.state.size(); i++) {
-
-        falRef_fine.state[i].domain = domain_fine;
-        falRef_fine.state[i].grids = falRef_fine.grids;
-
-     }
 
 DistributionMapping dm_fine{new_grids};
-   MultiFab * newNewData_fine = new MultiFab(new_grids,dm_fine,ncomps,0);
 
-   newNewData_fine->setVal(0.);
 
-//    Interpolater* interpolater = 0;
-//interpolater = &pc_interp;
+for (int n = 0; n < falRef_coarse.state.size(); n++){
+
+// Assuming that OldState and NewState have the same number of components
+   int ncomps = (falRef_coarse.state[n].old_data)->nComp();
+
+   MultiFab * NewData_coarse = new MultiFab(ba,dm,ncomps,0);
+   MultiFab * OldData_coarse = new MultiFab(ba,dm,ncomps,0);
+   NewData_coarse -> setVal(0.); 
+   OldData_coarse -> setVal(0.);
+
+//   falRef_coarse.state[n].new_data = newNewData;
+   
+    NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps);
+    OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps);
+
+   falRef_fine.state[n].domain = domain_fine;
+   falRef_fine.state[n].grids = falRef_fine.grids;
+
+   MultiFab * NewData_fine = new MultiFab(new_grids,dm_fine,ncomps,0);
+   MultiFab * OldData_fine = new MultiFab(new_grids,dm_fine,ncomps,0);
+   NewData_fine->setVal(0.);
+   OldData_fine->setVal(0.);
+
 Interpolater*  interpolater = &pc_interp;
 
 
 const Geometry& fgeom = falRef_fine.geom;
-const Geometry& cgeom = falRef0.geom;
-IntVect toto(AMREX_D_DECL(user_ratio,user_ratio,user_ratio));
-//const IntVect& rr = fakeAmr.ref_ratio[0];
-const IntVect& rr = toto; 
+const Geometry& cgeom = falRef_coarse.geom;
+IntVect new_ratio(AMREX_D_DECL(user_ratio,user_ratio,user_ratio));
+const IntVect& rr = new_ratio; 
 
-
-//BoxArray cdataBA(new_grids.size());
-//const BoxArray& fgrids           = new_grids;
-//    for (int i = 0; i < fgrids.size(); i++) {
-//        cdataBA.set(i,interpolater->CoarseBox(fgrids[i],user_ratio));
-//    }
-
-//MultiFab cdataMF(cdataBA,dm_fine,ncomps,0);
-
-for (MFIter mfi(*newNewData_fine); mfi.isValid(); ++mfi)
+for (MFIter mfi(*NewData_fine); mfi.isValid(); ++mfi)
       {
-         FArrayBox& ffab = (*newNewData_fine)[mfi];
-         const FArrayBox& cfab = (*newNewData)[mfi];
+         FArrayBox& ffab = (*NewData_fine)[mfi];
+         const FArrayBox& cfab = (*NewData_coarse)[mfi];
          const Box&  bx   = mfi.tilebox();
-//     FArrayBox ffab(bx, ncomps);    
-//         const Box cbx    = interpolater->CoarseBox(bx,ratio);
-//auto const& ffab = newNewData_fine->array(mfi);
-//    auto const& cfab = newNewData->const_array(mfi);
  Vector<BCRec> bx_bcrec(ncomps);
-//set_bcrec_new(bx_bcrec,ncomps);
 
          interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
                               cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
 
 }
 
-VisMF::Write(*newNewData_fine,"pouet_fine");
+for (MFIter mfi(*OldData_fine); mfi.isValid(); ++mfi)
+      {
+         FArrayBox& ffab = (*OldData_fine)[mfi];
+         const FArrayBox& cfab = (*OldData_coarse)[mfi];
+         const Box&  bx   = mfi.tilebox();
+ Vector<BCRec> bx_bcrec(ncomps);
 
+         interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
+                              cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
 
-
-/*
-
-
-DistributionMapping dm_fine{new_grids};
-   MultiFab newNewData_fine(new_grids,dm_fine,ncomps,0);
-
-   newNewData_fine.setVal(0.);
-
-for (MFIter mfi(newNewData_fine); mfi.isValid(); ++mfi) {
-   const Box& bx = mfi.tilebox();
-    auto  const& ffab = newNewData_fine.array(mfi);
-    auto  const& cfab = newNewData.array(mfi);
-    amrex::ParallelFor(bx,  [=] 
-AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-        ffab(i,j,k) = cfab(amrex::coarsen(i,user_ratio),amrex::coarsen(j,user_ratio),amrex::coarsen(k,user_ratio));
-    });
 }
 
-*/
+falRef_fine.state[n].new_data = NewData_fine;
+falRef_fine.state[n].old_data = OldData_fine;
+
+VisMF::Write(*NewData_fine,"pouet_fine");
+
+}
+
+}
 
 VisMF::Write(*(fakeAmr_fine.fakeAmrLevels[0].state[0].new_data), "fine_new_data_lev0");
 
@@ -1007,293 +855,6 @@ VisMF::Write(*(fakeAmr_fine.fakeAmrLevels[0].state[0].new_data), "fine_new_data_
 }
 
 
-/*
-static void ConvertData() {
-
-   int max_level(fakeAmr.finest_level);
-
-   // Modify the "grids" boxarray *only* at level 0
-   // NOTE: must do this before re-defining domain below.
-
-   FakeAmrLevel &falRef0 = fakeAmr.fakeAmrLevels[0];
-   Box domain(fakeAmr.geom[0].Domain());
-   BoxList(newgrid_list);
-
-   int dlenx = domain.size()[0];
-#if (BL_SPACEDIM >= 2)
-   int dleny = domain.size()[1];
-#if (BL_SPACEDIM == 3)
-   int dlenz = domain.size()[1];
-#endif
-#endif
-
-   // We treat the r-z case with the star in the middle specially
-#if (BL_SPACEDIM == 2)
-   if (coord == 1 && star_at_center == 1)
-   {
-     for (int jy = 0; jy < grown_factor; jy++)
-      for (int jx = 0; jx < grown_factor; jx++)
-        for (int n = 0; n < falRef0.grids.size(); n++)
-        {
-          int shiftx(jx*dlenx);
-          int shifty(jy*dleny);
-          IntVect shift_box(D_DECL(shiftx,shifty,shiftz));
-
-          Box bx(falRef0.grids[n]);
-          bx.shift(shift_box);
-          newgrid_list.push_back(bx);
-        }
-
-      Box new_domain(fakeAmr.geom[0].Domain());
-      new_domain.refine(grown_factor);
-      newgrid_list.intersect(new_domain);
-
-      newgrid_list.maxSize(dlenx);
-
-   } else {
-#endif
-
-   if (star_at_center == 1 && grown_factor == 2) 
-   {
-   // Here we tile the domain with tiles smaller than the original domain --
-   //   we first tile with domain-sized pieces, then intersect with the new domain
-
-#if (BL_SPACEDIM == 3)
-   for (int jz = 0; jz < 3; jz++)
-#endif
-#if (BL_SPACEDIM >= 2)
-   for (int jy = 0; jy < 3; jy++)
-#endif
-    for (int jx = 0; jx < 3; jx++)
-      for (int n = 0; n < falRef0.grids.size(); n++) {
-        int shiftx(jx*dlenx - dlenx/2);
-#if (BL_SPACEDIM >= 2)
-        int shifty(jy*dleny - dleny/2);
-#if (BL_SPACEDIM == 3)
-        int shiftz(jz*dlenz - dlenz/2);
-#endif
-#endif
-        IntVect shift_box(D_DECL(shiftx,shifty,shiftz));
-
-        Box bx(falRef0.grids[n]);
-        bx.shift(shift_box);
-        newgrid_list.push_back(bx);
-      }
-
-      Box new_domain(fakeAmr.geom[0].Domain());
-      new_domain.refine(grown_factor);
-      newgrid_list.intersect(new_domain);
-
-   } else {
-   // Here we tile the domain with tiles the size of the original domain
-
-#if (BL_SPACEDIM == 3)
-   for (int jz = 0; jz < grown_factor; jz++) 
-#endif
-#if (BL_SPACEDIM >= 2)
-   for (int jy = 0; jy < grown_factor; jy++) 
-#endif
-    for (int jx = 0; jx < grown_factor; jx++) 
-      for (int n = 0; n < falRef0.grids.size(); n++) 
-      {
-        int shiftx(jx*dlenx);
-#if (BL_SPACEDIM >= 2)
-        int shifty(jy*dleny);
-#if (BL_SPACEDIM == 3)
-        int shiftz(jz*dlenz);
-#endif
-#endif
-        IntVect shift_box(D_DECL(shiftx,shifty,shiftz));
-
-        Box bx(falRef0.grids[n]);
-        bx.shift(shift_box);
-        newgrid_list.push_back(bx);
-      }
-
-   }  // end of star_at_center test
-
-#if (BL_SPACEDIM == 2)
-   }  // end of r-z test
-#endif
-
-   BoxArray newgrids(newgrid_list);
-   falRef0.grids = newgrids;
-
-   int nstatetypes = falRef0.state.size();
-
-   for (int n = 0; n < nstatetypes; n++) 
-      falRef0.state[n].grids = newgrids;
-
-   // Enlarge the ProbDomain (RealBox) of the geom at each level --
-   //   but we only have to do this at level 0 because they are
-   //   actually all the same copy 
-   RealBox rb(fakeAmr.geom[0].ProbDomain());
-
-   // If this is an octant then we always grow only in the high directions
-   if (star_at_center == 0)
-   {
-      // Here we grow only prob_hi, extending the domain in one direction.
-      // This works when the star's center is at the origin
-      for (int dm = 0; dm < BL_SPACEDIM; dm++) 
-         rb.setHi(dm,grown_factor*rb.hi(dm));
-   } 
-
-   // We treat the r-z case with the star in the middle specially
-#if (BL_SPACEDIM == 2)
-   else if (coord == 1)
-   {
-      // Here we grow only prob_hi in the r-direction, but both prob_hi
-      //   and prob_lo in the z-direction.
-     int dm = 0;
-     rb.setHi(dm,grown_factor*rb.hi(dm));
-
-     dm = 1;
-     Real dist   = 0.5 * (rb.hi(dm)-rb.lo(dm));
-     Real center = 0.5 * (rb.hi(dm)+rb.lo(dm));
-     Real newlo = center - grown_factor * dist;
-     Real newhi = center + grown_factor * dist;
-     rb.setLo(dm,newlo);
-     rb.setHi(dm,newhi);
-   }
-#endif
-
-   // This has star_at_center = 0 
-   else 
-   {
-      // Here we grow prob_lo and prob_hi, extending the domain in all directions.
-      // This works when the star's center is at the center of the domain.
-      for (int dm = 0; dm < BL_SPACEDIM; dm++) 
-      {
-         Real dist   = 0.5 * (rb.hi(dm)-rb.lo(dm));
-         Real center = 0.5 * (rb.hi(dm)+rb.lo(dm));
-         Real newlo = center - grown_factor * dist;
-         Real newhi = center + grown_factor * dist;
-         rb.setLo(dm,newlo);
-         rb.setHi(dm,newhi);
-      }
-   }
-
-   Geometry::ResetDefaultProbDomain(rb);
-   for (auto& g : fakeAmr.geom) {
-       g.ProbDomain(rb);
-   }
-   for (auto& l : fakeAmr.fakeAmrLevels) {
-       l.geom.ProbDomain(rb);
-   }
-
-   const Real* xlo = fakeAmr.geom[0].ProbLo();
-
-   // This sets the CoordSys member "offset" which should be identical to Geometry's problo
-   //    but isn't automatically set.
-   fakeAmr.geom[0].SetOffset(xlo);
-
-   IntVect shift_iv[max_level+1];
-
-   // Define the shift IntVect for later
-   if (star_at_center == 1)
-   {
-      if (coord == 1) // r-z
-      {
-         for (int i = 0; i <= max_level; i++) 
-         {
-            Box domain(fakeAmr.geom[i].Domain());
-            // We only handle grown_factor = 2
-            shift_iv[i][0] = 0;
-            shift_iv[i][1] = domain.size()[1] / 2;
-         }
-      } else if (coord == 0) { // x-y
-         for (int i = 0; i <= max_level; i++) 
-         {
-            Box domain(fakeAmr.geom[i].Domain());
-            if (grown_factor == 3) {
-               shift_iv[i] = domain.size();
-            } else if (grown_factor == 2) {
-               shift_iv[i] = domain.size() / 2;
-            }
-         }
-      }
-   } 
-
-   // Enlarge the Domain (Box) of the geom at each level
-   for (int i = 0; i <= max_level; i++) 
-   {
-      Box domain(fakeAmr.geom[i].Domain());
-      domain.refine(grown_factor);
-      fakeAmr.geom[i].Domain(domain);
-
-      FakeAmrLevel &falRef = fakeAmr.fakeAmrLevels[i];
-      falRef.geom.Domain(domain);
-   }
-
-   // Now fix the state data domain 
-   for (int i = 0; i <= max_level; i++) 
-   {
-      FakeAmrLevel &falRef = fakeAmr.fakeAmrLevels[i];
-      for (int n = 0; n < nstatetypes; n++) 
-         falRef.state[n].domain.refine(grown_factor);
-   }
-
-   DistributionMapping newdm {newgrids};
-
-   // We need to allocate a MultiFab for new data but don't need to fill it
-   for (int n = 0; n < nstatetypes; n++) 
-   {
-      if (falRef0.state[n].new_data != 0) {
-         int ncomps = (falRef0.state[n].new_data)->nComp();
-         MultiFab * newNewData = new MultiFab(newgrids,newdm,ncomps,1);
-
-         newNewData->setVal(0.); 
-
-         if (star_at_center == 1)  
-            (falRef0.state[n].new_data)->shift(shift_iv[0]);
-
-         falRef0.state[n].new_data = newNewData;
-   
-//       newNewData->copy(*(falRef0.state[n].new_data),0,0,ncomps);
-      }
-   } 
-
-   // If we have old_data as well as new_data
-   for (int n = 0; n < nstatetypes; n++) 
-   {
-      if (falRef0.state[n].old_data != 0) {
-         int ncomps = (falRef0.state[n].old_data)->nComp();
-         MultiFab * newOldData = new MultiFab(newgrids,newdm,ncomps,1);
-         newOldData->setVal(0.);
-
-         if (star_at_center == 1)  
-            (falRef0.state[n].old_data)->shift(shift_iv[0]);
-
-         falRef0.state[n].old_data = newOldData;
-
-//       newOldData->copy(*(falRef0.state[n].old_data),0,0,ncomps);
-      }
-   }
-
-   // Now shift the data at the higher levels
-   if (star_at_center == 1) {
-      for (int i = 1; i <= max_level; i++) 
-      {
-         FakeAmrLevel &falRef = fakeAmr.fakeAmrLevels[i];
-
-         // Shift the grids associated with each level
-         falRef.grids.shift(shift_iv[i]);
-
-         for (int n = 0; n < nstatetypes; n++) 
-         {
-            // Shift the grids associated with each StateData
-            falRef.state[n].grids.shift(shift_iv[i]);
-
-            // Shift the grids associated with the MultiFab in each StateData
-            if (falRef0.state[n].new_data != 0) 
-               (falRef.state[n].new_data)->shift(shift_iv[i]);
-            if (falRef0.state[n].old_data != 0) 
-               (falRef.state[n].old_data)->shift(shift_iv[i]);
-         }
-      }
-   }
-}
-*/
 
 
 
