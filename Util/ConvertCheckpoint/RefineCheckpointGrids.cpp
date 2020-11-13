@@ -823,16 +823,14 @@ amrex::Print() << "DEBUG domain_fine_state refined " << falRef_fine.state[n].dom
     NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps);
     OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps);
 
-//   falRef_fine.state[n].domain = domain_fine;
-//   falRef_fine.state[n].grids = falRef_fine.grids;
 
    MultiFab * NewData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
    MultiFab * OldData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
    NewData_fine->setVal(0.);
    OldData_fine->setVal(0.);
 
-Interpolater*  interpolater = &pc_interp;
-
+//Interpolater*  interpolater = &pc_interp;
+Interpolater*  interpolater = &cell_cons_interp;
 
 const Geometry& fgeom = falRef_fine.geom;
 const Geometry& cgeom = falRef_coarse.geom;
