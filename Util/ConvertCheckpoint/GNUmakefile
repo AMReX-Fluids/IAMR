@@ -14,7 +14,7 @@ USE_MPI     = FALSE
 
 COMP      = g++
 
-EBASE = Embiggen
+EBASE = RefineCheckpointGrids
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -39,6 +39,7 @@ CEXE_sources += $(EBASE).cpp
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 DEFINES += -DBL_PARALLEL_IO
 

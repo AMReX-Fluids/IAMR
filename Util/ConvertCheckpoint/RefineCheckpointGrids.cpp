@@ -430,9 +430,18 @@ std::cout << "DEBUG lev=    " << lev << std::endl;
       for(int ii = 0; ii < ndesc; ii++) {
         // ******* StateDescriptor::restart
 
+amrex::Print() << "DEBUG STRANGE ii = " << ii << std::endl;
+
         is >> falRef.state[ii].domain;
 
+amrex::Print() << "DEBUG STRANGE domain = " << falRef.state[ii].domain << std::endl;
+
+
+
         falRef.state[ii].grids.readFrom(is);
+
+amrex::Print() << "DEBUG STRANGE grids = " << falRef.state[ii].grids << std::endl;
+
 
         is >> falRef.state[ii].old_time.start;
         is >> falRef.state[ii].old_time.stop;
@@ -790,6 +799,19 @@ for (int n = 0; n < falRef_coarse.state.size(); n++){
 // Assuming that OldState and NewState have the same number of components
    int ncomps = (falRef_coarse.state[n].old_data)->nComp();
 
+BoxArray new_grids_state = falRef_fine.state[n].grids;
+amrex::Print() << "DEBUG new_grids_state " << new_grids_state << std::endl;
+new_grids_state.refine(user_ratio);
+amrex::Print() << "DEBUG new_grids_state refined " << new_grids_state << std::endl;
+
+falRef_fine.state[n].grids = new_grids_state;
+//Box          domain_fine_state(falRef_fine.state[n].domain);
+//domain_fine_state.refine(user_ratio);
+falRef_fine.state[n].domain.refine(user_ratio);
+//amrex::Print() << "DEBUG domain_fine_state refined " << domain_fine_state << std::endl;
+amrex::Print() << "DEBUG domain_fine_state refined " << falRef_fine.state[n].domain << std::endl;
+
+
    MultiFab * NewData_coarse = new MultiFab(ba,dm,ncomps,0);
    MultiFab * OldData_coarse = new MultiFab(ba,dm,ncomps,0);
    NewData_coarse -> setVal(0.); 
@@ -800,11 +822,11 @@ for (int n = 0; n < falRef_coarse.state.size(); n++){
     NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps);
     OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps);
 
-   falRef_fine.state[n].domain = domain_fine;
-   falRef_fine.state[n].grids = falRef_fine.grids;
+//   falRef_fine.state[n].domain = domain_fine;
+//   falRef_fine.state[n].grids = falRef_fine.grids;
 
-   MultiFab * NewData_fine = new MultiFab(new_grids,dm_fine,ncomps,0);
-   MultiFab * OldData_fine = new MultiFab(new_grids,dm_fine,ncomps,0);
+   MultiFab * NewData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,0);
+   MultiFab * OldData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,0);
    NewData_fine->setVal(0.);
    OldData_fine->setVal(0.);
 
@@ -821,7 +843,7 @@ for (MFIter mfi(*NewData_fine); mfi.isValid(); ++mfi)
          FArrayBox& ffab = (*NewData_fine)[mfi];
          const FArrayBox& cfab = (*NewData_coarse)[mfi];
          const Box&  bx   = mfi.tilebox();
- Vector<BCRec> bx_bcrec(ncomps);
+         Vector<BCRec> bx_bcrec(ncomps);
 
          interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
                               cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
