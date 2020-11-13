@@ -64,6 +64,7 @@ Vector<int> nsets_save(1);
 
 VisMF::How how = VisMF::OneFilePerCPU;
 
+int ngrow = 1; // WARNING: this works for IAMR with no EB, but this number may be different for EB
 
 // ---------------------------------------------------------------
 struct FakeStateData {
@@ -812,8 +813,8 @@ falRef_fine.state[n].domain.refine(user_ratio);
 amrex::Print() << "DEBUG domain_fine_state refined " << falRef_fine.state[n].domain << std::endl;
 
 
-   MultiFab * NewData_coarse = new MultiFab(ba,dm,ncomps,0);
-   MultiFab * OldData_coarse = new MultiFab(ba,dm,ncomps,0);
+   MultiFab * NewData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
+   MultiFab * OldData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
    NewData_coarse -> setVal(0.); 
    OldData_coarse -> setVal(0.);
 
@@ -825,8 +826,8 @@ amrex::Print() << "DEBUG domain_fine_state refined " << falRef_fine.state[n].dom
 //   falRef_fine.state[n].domain = domain_fine;
 //   falRef_fine.state[n].grids = falRef_fine.grids;
 
-   MultiFab * NewData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,0);
-   MultiFab * OldData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,0);
+   MultiFab * NewData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
+   MultiFab * OldData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
    NewData_fine->setVal(0.);
    OldData_fine->setVal(0.);
 
