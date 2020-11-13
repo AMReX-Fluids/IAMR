@@ -1,0 +1,115 @@
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            SIMULATION STOP            #
+#.......................................#
+#stop_time               =   100.0         # Max (simulated) time to evolve
+max_step                =  1           # Max number of time steps
+#max_step                =  2
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         TIME STEP COMPUTATION         #
+#.......................................#
+ns.cfl             = 0.5
+ns.init_shrink     = 0.1
+ns.init_dt         = 1.0e-3
+ns.change_max      = 1.1
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#            INPUT AND OUTPUT           #
+#.......................................#
+amr.plot_int            =   10          # Steps between plot files
+amr.check_int           =   10        # Steps between checkpoint files
+amr.restart             =   ""         # Checkpoint to restart from
+amr.derive_plot_vars    = avg_pressure mag_vort vort_x vort_y vort_z
+amr.v=1
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#               PHYSICS                 #
+#.......................................#
+ns.do_temp          = 1
+#ns.gravity          =   182.  0.  0.
+#ns.gravity          =   9.81
+#ns.gravity          =   0.01
+ns.gravity          =   0.0
+#ns.Fx               =   0.04167
+ns.Fx               =   0.
+ns.Fy               =   0.
+ns.Fz               =   0.
+ns.vel_visc_coef    = 1.0e-3
+ns.temp_cond_coef   = 1.5e-3
+ns.scal_diff_coefs  = 0.0
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        ADAPTIVE MESH REFINEMENT       #
+#.......................................#
+amr.n_cell              =   64 64 48    # Grid cells at coarsest AMRlevel
+amr.max_level           =   2           # Max AMR level in hierarchy
+amr.grid_eff            =   0.7
+amr.n_error_buf         =   1
+amr.max_grid_size_x     =   128
+amr.max_grid_size_y     =   128
+amr.max_grid_size_z     =   128
+amr.blocking_factor     =   16
+amr.ref_ratio		      =   2
+amr.regrid_int          =   1
+#amr.refine_grid_layout  =   1
+#ns.do_vorticity_ref = 1
+ns.do_reg_ref      = 1
+ns.refine_cutcells = 1
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              GEOMETRY                 #
+#.......................................#
+geometry.coord_sys      =   0
+geometry.prob_lo        = -0.04 -0.04 -0.03
+geometry.prob_hi        = 0.04 0.04 0.03
+geometry.is_periodic    =   1   1   1     # Periodicity x y z (0/1)
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+ns.lo_bc 	     	= 0 0 0
+ns.hi_bc   	    	= 0 0 0
+
+# EB stuff
+eb2.geom_type      = GoodPiston
+eb2.small_volfrac  = 1.0e-4
+
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              DEBUG                    #
+#.......................................#
+#amrex.fpe_trap_invalid = 1
+#amrex.fpe_trap_zero = 1
+#amrex.fpe_trap_overflow = 1
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#           SOLVER SETTINGS             #
+#.......................................#
+ns.init_iter       = 2
+ns.init_vel_iter   = 2
+ns.do_init_proj    = 1
+
+ns.visc_tol        = 1.0e-12
+ns.visc_abs_tol    = 1.0e-12  # tolerence for viscous solves
+
+nodal_proj.rtol    = 1.0e-12
+nodal_proj.atol    = 1.0e-12
+
+proj.proj_tol       = 1.0e-12  # tolerence for projections
+proj.proj_abs_tol   = 1.0e-12
+proj.sync_tol       = 1.0e-12 # tolerence for projections
+
+mac.mac_tol        = 1.0e-11 # tolerence for mac projections
+mac.mac_sync_tol   = 1.0e-11  # tolerence for mac SYNC projection
+mac.mac_abs_tol    = 1.0e-11
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#              VERBOSITY                #
+#.......................................#
+ns.v                    = 1 # NS solver
+proj.v                  = 2 # Nodal projection
+mac_proj.verbose        = 2 # MacProjector
+nodal_proj.verbose      = 2 # Nodal projection
+ns.getForceVerbose      = 0
+verbose                 = 1
