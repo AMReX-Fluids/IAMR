@@ -2034,6 +2034,17 @@ contains
               end do
            end do
          end do
+ 
+      else if (probtype .eq. 32) then
+
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  tag(i,j,k) = merge(set,tag(i,j,k),abs(vort(i,j,k,1)).gt.vorterr)
+               end do
+            end do
+         end do
+
 
       else
         print *,'DONT KNOW THIS PROBTYPE IN FORT_MVERROR ',probtype
