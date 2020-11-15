@@ -31,7 +31,7 @@
 #include <AMReX_LevelBld.H>
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Interpolater.H>
-
+#include <AMReX_Extrapolater.H>
 
 using namespace amrex;
 
@@ -241,6 +241,8 @@ std::cout << "DEBUG mx_lev is " << mx_lev << std::endl;
           std::cout << "Old checkpoint level    " << i << std::endl;
           std::cout << " ... domain is       " << fakeAmr.geom[i].Domain() << std::endl;
           std::cout << " ...     dx is       " << fakeAmr.geom[i].CellSize()[0] << std::endl;
+          std::cout << " ...  perio is       " << fakeAmr.geom[i].isPeriodic(0) << std::endl;
+          std::cout << " ...  perio is       " << fakeAmr.geom[i].isPeriodic(1) << std::endl;
           std::cout << "  " << std::endl;
        }
     }
@@ -472,6 +474,9 @@ amrex::Print() << "DEBUG STRANGE grids = " << falRef.state[ii].grids << std::end
            }
            FullPathName += mf_name;
            VisMF::Read(*(falRef.state[ii].new_data), FullPathName);
+if (ii==1) VisMF::Write(*(falRef.state[ii].new_data), "pouet_coarse");
+
+
         }
 
         // This reads the "old" data, if it's there
@@ -557,6 +562,10 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
                    << fakeAmr_fine.cumtime           << '\n'
                    << max_level                 << '\n'
                    << fakeAmr_fine.finest_level      << '\n';
+
+
+amrex::Print() << "EST CE QUE LE BUG EST ICI " << fakeAmr_fine.geom[0].isPeriodic(0) << std::endl;
+
         //
         // Write out problem domain.
         //
@@ -602,6 +611,11 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
       // Force other processors to wait till directory is built.
       ParallelDescriptor::Barrier();
 
+//amrex::Print() << "EST CE QUE LE BUG EST ICI " << falRef.geom.isPeriodic(0) << std::endl;
+//amrex::Print() << "EST CE QUE LE BUG EST ICI " << falRef.geom.isPeriodic(1) << std::endl;
+
+
+
       if(ParallelDescriptor::IOProcessor()) {
         os << lev << '\n' << falRef.geom  << '\n';
         falRef.grids.writeOn(os);
@@ -640,6 +654,7 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
 	    mf_name_old += OldSuffix;
             std::string mf_name_new = name;
 	    mf_name_new += NewSuffix;
+
 
             os << falRef.state[i].domain << '\n';
 
@@ -736,7 +751,6 @@ if(ParallelDescriptor::IOProcessor()) {
     }
 
 
-
 for (int lev = 0; lev <= mx_lev; lev++)
    {  
 
@@ -778,12 +792,19 @@ if(ParallelDescriptor::IOProcessor()) {
        }
     }
 
+const GpuArray<int,AMREX_SPACEDIM>& is_periodic_array = fakeAmr.geom[lev].isPeriodicArray();
+fakeAmr_fine.geom[lev].setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
+amrex::Print() << "CA VA PAS NON AGAIN" << fakeAmr_fine.geom[0].isPeriodic(0) << std::endl;
+
 // NOW WE WORK ON DATA THAT ARE IN THE FakeAmrLevel structure
 FakeAmrLevel &falRef_fine = fakeAmr_fine.fakeAmrLevels[lev];
 BoxArray new_grids = falRef_fine.grids;
 new_grids.refine(user_ratio);
 falRef_fine.grids = new_grids;
 falRef_fine.geom.define(domain_fine,&prob_domain_fine,coord_fine);
+
+
+falRef_fine.geom.setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
 
 
 std::cout << " DEBUG fine_level  domain is         " << falRef_fine.geom.Domain() << std::endl;
@@ -793,10 +814,11 @@ std::cout << " DEBUG nstate      is      " << falRef_fine.state.size() << std::e
 
 
 DistributionMapping dm_fine{new_grids};
-
+amrex::Print() << " falRef_coarse.state.size() = " << falRef_coarse.state.size() << std::endl;
 
 for (int n = 0; n < falRef_coarse.state.size(); n++){
 
+amrex::Print() << "WE ARE IN STATE n=" << n << std::endl;
 // Assuming that OldState and NewState have the same number of components
    int ncomps = (falRef_coarse.state[n].old_data)->nComp();
 
@@ -815,22 +837,29 @@ amrex::Print() << "DEBUG domain_fine_state refined " << falRef_fine.state[n].dom
 
    MultiFab * NewData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
    MultiFab * OldData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
-   NewData_coarse -> setVal(0.); 
-   OldData_coarse -> setVal(0.);
+   NewData_coarse -> setVal(10.); 
+   OldData_coarse -> setVal(10.);
 
 //   falRef_coarse.state[n].new_data = newNewData;
    
-    NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps);
-    OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps);
+//    NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps);
+//    OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps);
+  NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps,0,ngrow);
+    OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps,0,ngrow);
 
+for (MFIter mfi(*NewData_coarse); mfi.isValid(); ++mfi)
+      {
+//amrex::Print() << (*NewData_coarse)[mfi];
+}
 
    MultiFab * NewData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
    MultiFab * OldData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
-   NewData_fine->setVal(0.);
-   OldData_fine->setVal(0.);
+   NewData_fine->setVal(10.);
+   OldData_fine->setVal(10.);
 
 //Interpolater*  interpolater = &pc_interp;
 Interpolater*  interpolater = &cell_cons_interp;
+if ( n == 1)  interpolater = &node_bilinear_interp;
 
 const Geometry& fgeom = falRef_fine.geom;
 const Geometry& cgeom = falRef_coarse.geom;
@@ -861,10 +890,29 @@ for (MFIter mfi(*OldData_fine); mfi.isValid(); ++mfi)
 
 }
 
+//Extrapolater::FirstOrderExtrap(*NewData_fine, fgeom, 0, ncomps);
+//Extrapolater::FirstOrderExtrap(*OldData_fine, fgeom, 0, ncomps);
+
+NewData_fine->FillBoundary(fgeom.periodicity());
+OldData_fine->FillBoundary(fgeom.periodicity());
+
+
+for (MFIter mfi(*NewData_fine); mfi.isValid(); ++mfi)
+      {
+//amrex::Print() << (*NewData_fine)[mfi];
+}
+
 falRef_fine.state[n].new_data = NewData_fine;
 falRef_fine.state[n].old_data = OldData_fine;
 
-VisMF::Write(*NewData_fine,"pouet_fine");
+if (n == 1) VisMF::Write(*NewData_fine,"pouet_fine");
+
+
+amrex::Print() << "RAAAHH PERIO " << falRef_fine.geom.isPeriodic(0) << std::endl;
+amrex::Print() << "RAAAHH PERIO2 " << fgeom.isPeriodic(0) << std::endl;
+amrex::Print() << "RAAAHH PERIO " << falRef_fine.geom.isPeriodic(1) << std::endl;
+amrex::Print() << "RAAAHH PERIO2 " << fgeom.isPeriodic(1) << std::endl;
+
 
 }
 
