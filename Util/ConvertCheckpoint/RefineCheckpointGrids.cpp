@@ -12,10 +12,6 @@
 #include <vector>
 #include <string>
 
-#ifndef WIN32
-#include <unistd.h>
-#endif
-
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
@@ -119,9 +115,6 @@ static void ScanArguments() {
     if(pp.contains("checkout")) {
       pp.get("checkout", CheckFileOut);
     }
-    if(pp.contains("nfiles")) {
-      pp.get("nfiles", nFiles);
-    }
     if(pp.contains("verbose")) {
       pp.get("verbose", verbose);
     }
@@ -139,24 +132,8 @@ static void PrintUsage (char *progName) {
     cout << "Usage: " << progName << " checkin=filename "
          << "checkout=outfilename "  
          << "user_ratio= 2 or 4 "   
-         << "[nfiles=nfilesout] "
          << "[verbose=trueorfalse]" << endl;
     exit(1);
-}
-
-// ---------------------------------------------------------------
-static void
-set_bcrec_new (Vector<BCRec>  &bcrec,
-               int             ncomp)
-
-{
-   for (int n = 0; n < ncomp; n++) {
-      for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-      {
-         bcrec[n].setLo(dir,INT_DIR);
-         bcrec[n].setHi(dir,INT_DIR);
-      }
-   }
 }
 
 static void ReadCheckpointFile(const std::string& fileName) {
@@ -203,24 +180,6 @@ static void ReadCheckpointFile(const std::string& fileName) {
     is >> mx_lev;
     is >> fakeAmr.finest_level;
 
-    if(ParallelDescriptor::IOProcessor()) 
-       std::cout << "previous finest_lev is " << fakeAmr.finest_level <<  std::endl;
-std::cout << "DEBUG mx_lev is " << mx_lev << std::endl;
-
-
-//    // ADDING LEVELS 
-//    int n = num_new_levels;
-//    mx_lev = mx_lev + n;
-//    fakeAmr.finest_level = fakeAmr.finest_level + n;
-//
-//    if(ParallelDescriptor::IOProcessor()) {
-//       std::cout << "     new finest_lev is " << fakeAmr.finest_level << std::endl;
-//       std::cout << "previous     mx_lev is " << mx_lev-n << std::endl;
-//       std::cout << "     new     mx_lev is " << mx_lev << std::endl;
-//    }
-
-
-
     fakeAmr.geom.resize(mx_lev + 1);
     fakeAmr.ref_ratio.resize(mx_lev);
     fakeAmr.dt_level.resize(mx_lev + 1);
@@ -235,172 +194,50 @@ std::cout << "DEBUG mx_lev is " << mx_lev << std::endl;
       is >> fakeAmr.geom[i];
     }
 
-    if(ParallelDescriptor::IOProcessor()) {
-       std::cout << " " << std::endl;
-       for (i = 0; i <= mx_lev; i++) {
-          std::cout << "Old checkpoint level    " << i << std::endl;
-          std::cout << " ... domain is       " << fakeAmr.geom[i].Domain() << std::endl;
-          std::cout << " ...     dx is       " << fakeAmr.geom[i].CellSize()[0] << std::endl;
-          std::cout << " ...  perio is       " << fakeAmr.geom[i].isPeriodic(0) << std::endl;
-          std::cout << " ...  perio is       " << fakeAmr.geom[i].isPeriodic(1) << std::endl;
-          std::cout << "  " << std::endl;
-       }
-    }
-
-//    // Make sure current domain is divisible by 2*ref_ratio so length of coarsened domain is even
-//    Box dom0(fakeAmr.geom[0].Domain());
-//    for (int d = 0; d < BL_SPACEDIM; d++)
-//    {
-//      int dlen = dom0.size()[d];
-//      int scaled = dlen / (2*ref_ratio);
-//      if ( (scaled * 2 * ref_ratio) != dlen )
-//        amrex::Abort("must have domain divisible by 2*ref_ratio");
-//    }
-//
-//    if (grown_factor <= 1)  
-//        amrex::Abort("must have grown_factor > 1");
-
     for (i = 1; i <=  mx_lev; i++) {
       is >> fakeAmr.ref_ratio[i-1];
-std::cout << "DEBUG i=    " << i << std::endl;
-std::cout << " DEBUG ref_ratio is       " << fakeAmr.ref_ratio[i-1] << std::endl;
     }
     for (i = 0; i <= mx_lev; i++) {
       is >> fakeAmr.dt_level[i];
-std::cout << "DEBUG i=    " << i << std::endl;
-std::cout << " DEBUG dt_level is       " << fakeAmr.dt_level[i] << std::endl;
     }
-
-    if(ParallelDescriptor::IOProcessor()) {
-       std::cout << " " << std::endl;
-       for (i = 0; i <= mx_lev; i++) {
-          std::cout << "Old checkpoint level    " << i << std::endl;
-          if (i > 0){
-            std::cout << " ... ref_ratio is       " << fakeAmr.ref_ratio[i-1] << std::endl;
-          }
-          std::cout << " ...  dt_level is       " << fakeAmr.dt_level[i] << std::endl;
-          std::cout << "  " << std::endl;
-       }
-    }
-
-// UNTIL HERE IT LOOKS OK FOR 2AMR LEVELS
-
-/*
-    Box          domain(fakeAmr.geom[1].Domain());
-    RealBox prob_domain(fakeAmr.geom[1].ProbDomain());
-    coord = fakeAmr.geom[1].Coord();
-
-    // Define domain for new levels
-    domain.coarsen(ref_ratio);
-    fakeAmr.geom[0].define(domain,&prob_domain,coord);
-
-    // Define ref_ratio for new levels
-    fakeAmr.ref_ratio[0] = ref_ratio * IntVect::TheUnitVector();
-
-    // Define dt_level for new levels
-    fakeAmr.dt_level[0] = fakeAmr.dt_level[1] * ref_ratio;
-*/
-
 
     if (new_checkpoint_format) {
       for (i = 0; i <= mx_lev; i++) is >> fakeAmr.dt_min[i];
-//      fakeAmr.dt_min[0] = fakeAmr.dt_min[1] * ref_ratio;
     } else {
       for (i = 0; i <= mx_lev; i++) fakeAmr.dt_min[i] = fakeAmr.dt_level[i];
     }
 
-for (i = 0; i <= mx_lev; i++) {
-std::cout << "DEBUG i=    " << i << std::endl;
-std::cout << " DEBUG fakeAmr.dt_min is       " << fakeAmr.dt_min[i] << std::endl;
-    }
-
-/*
-Real test;
-is >> test;
-std::cout << " DEBUG  DEBUG      " << test << std::endl;
-is >> test;
-std::cout << " DEBUG  DEBUG      " << test << std::endl;
-is >> test;
-std::cout << " DEBUG  DEBUG      " << test << std::endl;
-is >> test;
-std::cout << " DEBUG  DEBUG      " << test << std::endl;
-is >> test;
-std::cout << " DEBUG  DEBUG      " << test << std::endl;
-*/
     // READING N_CYCLE, LEVEL_STEPS, LEVEL_COUNT
     for (i = 0; i <= mx_lev; i++) {
-is >> fakeAmr.n_cycle[i];
-//std::cout << "DEBUG i=    " << i << std::endl;
-//std::cout << " DEBUG n_cycle is       " << fakeAmr.n_cycle[i] << std::endl;
+      is >> fakeAmr.n_cycle[i];
     }
-
     for (i = 0; i <= mx_lev; i++) {
       is >> fakeAmr.level_steps[i];
-//std::cout << "DEBUG i=    " << i << std::endl;
-//std::cout << " DEBUG n_cycle is       " << fakeAmr.level_steps[i] << std::endl;
     }
     for (i = 0; i <= mx_lev; i++) {
       is >> fakeAmr.level_count[i];
-//std::cout << "DEBUG i=    " << i << std::endl;
-//std::cout << " DEBUG n_cycle is       " << fakeAmr.level_count[i] << std::endl;
     }
-
-
-
-    if(ParallelDescriptor::IOProcessor()) {
-       std::cout << " " << std::endl;
-       for (i = 0; i <= mx_lev; i++) {
-          std::cout << "Old checkpoint level    " << i << std::endl;
-            std::cout << " ... n_cycle is       " << fakeAmr.n_cycle[i] << std::endl;
-          std::cout << " ...  level_steps is       " << fakeAmr.level_steps[i] << std::endl;
-          std::cout << " ...  level_count is       " << fakeAmr.level_count[i] << std::endl;
-          std::cout << "  " << std::endl;
-       }
-    }
-
-
-// UNTIL HERE IT LOOKS OK FOR 2AMR LEVELS
-
-
-/*
-
-
-    // ADDING LEVELS
-
-    // n_cycle is always equal to 1 at the coarsest level 
-    fakeAmr.n_cycle[0] = 1;
-
-    // At the old coarsest level, which is now level 1, we set n_cycle to ref_ratio 
-    fakeAmr.n_cycle[1] = ref_ratio;
-
-    fakeAmr.level_steps[0] = fakeAmr.level_steps[1] / ref_ratio;  
-    if ( (fakeAmr.level_steps[0]*ref_ratio) != fakeAmr.level_steps[1] ) 
-       amrex::Abort("Number of steps in original checkpoint must be divisible by ref_ratio");
-
-    // level_count is how many steps we've taken at this level since the last regrid
-    if (fakeAmr.level_count[1] == fakeAmr.level_steps[1]) 
-    {
-       fakeAmr.level_count[0] = fakeAmr.level_steps[0];
-
-    // this is actually wrong but should work for now
-    } else {
-       fakeAmr.level_count[0] = std::min(fakeAmr.level_count[1],fakeAmr.level_steps[0]);;
-    }
-*/
-
 
     int ndesc_save;
 
     // READ LEVEL DATA
     for(int lev(0); lev <= fakeAmr.finest_level; ++lev) {
-     
-std::cout << "DEBUG lev=    " << lev << std::endl;
+    
+      if (ParallelDescriptor::IOProcessor()) {
+        if (lev == 0) {    
+           std::cout << " " << std::endl;
+           std::cout << " **************************************** " << std::endl;
+           std::cout << " " << std::endl;
+        }
+           std::cout << "Old checkpoint level    " << lev << std::endl;
+           std::cout << " ... domain is       " << fakeAmr.geom[lev].Domain() << std::endl;
+           std::cout << " ...     dx is       " << fakeAmr.geom[lev].CellSize()[0] << std::endl;
+           std::cout << "  " << std::endl;
+      }
  
       FakeAmrLevel &falRef = fakeAmr.fakeAmrLevels[lev];
 
       is >> falRef.level;
-//      falRef.level = falRef.level + n;
-
       is >> falRef.geom;
 
       falRef.fine_ratio = IntVect::TheUnitVector();
@@ -432,19 +269,8 @@ std::cout << "DEBUG lev=    " << lev << std::endl;
 
       for(int ii = 0; ii < ndesc; ii++) {
         // ******* StateDescriptor::restart
-
-amrex::Print() << "DEBUG STRANGE ii = " << ii << std::endl;
-
         is >> falRef.state[ii].domain;
-
-amrex::Print() << "DEBUG STRANGE domain = " << falRef.state[ii].domain << std::endl;
-
-
-
         falRef.state[ii].grids.readFrom(is);
-
-amrex::Print() << "DEBUG STRANGE grids = " << falRef.state[ii].grids << std::endl;
-
 
         is >> falRef.state[ii].old_time.start;
         is >> falRef.state[ii].old_time.stop;
@@ -474,9 +300,6 @@ amrex::Print() << "DEBUG STRANGE grids = " << falRef.state[ii].grids << std::end
            }
            FullPathName += mf_name;
            VisMF::Read(*(falRef.state[ii].new_data), FullPathName);
-if (ii==1) VisMF::Write(*(falRef.state[ii].new_data), "pouet_coarse");
-
-
         }
 
         // This reads the "old" data, if it's there
@@ -493,24 +316,9 @@ if (ii==1) VisMF::Write(*(falRef.state[ii].new_data), "pouet_coarse");
           VisMF::Read(*(falRef.state[ii].old_data), FullPathName);
         }
 
-
-
       }
 
-
     }
-
-//VisMF::Write(*(fakeAmr.fakeAmrLevels[0].state[0].new_data), "initial_new_data_lev0");
-//VisMF::Write(*(fakeAmr.fakeAmrLevels[1].state[0].new_data), "initial_new_data_lev1");
-//VisMF::Write(*(fakeAmr.fakeAmrLevels[0].state[0].old_data), "initial_old_data_lev0");
-//VisMF::Write(*(fakeAmr.fakeAmrLevels[1].state[0].old_data), "initial_old_data_lev1");
-
-
-
-// UNTIL HERE IT LOOKS OK FOR 2AMR LEVELS
-
-
-
 
 }
 
@@ -563,9 +371,6 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
                    << max_level                 << '\n'
                    << fakeAmr_fine.finest_level      << '\n';
 
-
-amrex::Print() << "EST CE QUE LE BUG EST ICI " << fakeAmr_fine.geom[0].isPeriodic(0) << std::endl;
-
         //
         // Write out problem domain.
         //
@@ -610,11 +415,6 @@ amrex::Print() << "EST CE QUE LE BUG EST ICI " << fakeAmr_fine.geom[0].isPeriodi
       }
       // Force other processors to wait till directory is built.
       ParallelDescriptor::Barrier();
-
-//amrex::Print() << "EST CE QUE LE BUG EST ICI " << falRef.geom.isPeriodic(0) << std::endl;
-//amrex::Print() << "EST CE QUE LE BUG EST ICI " << falRef.geom.isPeriodic(1) << std::endl;
-
-
 
       if(ParallelDescriptor::IOProcessor()) {
         os << lev << '\n' << falRef.geom  << '\n';
@@ -725,40 +525,16 @@ amrex::Print() << "EST CE QUE LE BUG EST ICI " << fakeAmr_fine.geom[0].isPeriodi
 // ---------------------------------------------------------------
 static void ConvertData() {
 
+  fakeAmr_fine = fakeAmr;
 
- fakeAmr_fine = fakeAmr;
+  int mx_lev = fakeAmr_fine.finest_level;
 
-int mx_lev = fakeAmr_fine.finest_level;
-
-if(ParallelDescriptor::IOProcessor()) {
-       std::cout << " " << std::endl;
-       std::cout << " DEBUG fine AMR finest_lev is    " << fakeAmr_fine.finest_level <<  std::endl;
-       std::cout << " DEBUG fine AMR cumtime is       " << fakeAmr_fine.cumtime << std::endl;
-       std::cout << "  " << std::endl;
-
-       for (int i = 0; i <= mx_lev; i++) {
-          std::cout << "DEBUG fine AMR  level       " << i << std::endl;
-          std::cout << " DEBUG dt_level is          " << fakeAmr_fine.dt_level[i] << std::endl;
-          std::cout << " DEBUG level_steps is       " << fakeAmr_fine.level_steps[i] << std::endl;
-          std::cout << " DEBUG level_count is       " << fakeAmr_fine.level_count[i] << std::endl;
-          std::cout << " DEBUG n_cycle is           " << fakeAmr_fine.n_cycle[i] << std::endl;
-          std::cout << " DEBUG dt_min is            " << fakeAmr_fine.dt_min[i] << std::endl;
-          if (i > 0 ) std::cout << " DEBUG ref_ratio is         " << fakeAmr_fine.ref_ratio[i-1] << std::endl;
-          std::cout << " DEBUG domain is       " << fakeAmr_fine.geom[i].Domain() << std::endl;
-          std::cout << " DEBUG     dx is       " << fakeAmr_fine.geom[i].CellSize()[0] << std::endl;
-          std::cout << "  " << std::endl;
-       }
-    }
-
-
-for (int lev = 0; lev <= mx_lev; lev++)
-   {  
-
-
-   FakeAmrLevel &falRef_coarse = fakeAmr.fakeAmrLevels[lev];
-   Box bx = fakeAmr.geom[lev].Domain();
-   BoxArray ba = falRef_coarse.grids;
-   DistributionMapping dm{ba};
+  for (int lev = 0; lev <= mx_lev; lev++)
+  {  
+    FakeAmrLevel &falRef_coarse = fakeAmr.fakeAmrLevels[lev];
+    Box bx = fakeAmr.geom[lev].Domain();
+    BoxArray ba = falRef_coarse.grids;
+    DistributionMapping dm{ba};
 
 
 // HERE WE REFINE THE LEVEL IN FINE STRUCTURE
@@ -770,162 +546,84 @@ for (int lev = 0; lev <= mx_lev; lev++)
     fakeAmr_fine.dt_level[lev] = fakeAmr_fine.dt_level[lev] / user_ratio;
     fakeAmr_fine.dt_min[lev] = fakeAmr_fine.dt_min[lev] / user_ratio;
 
- std::cout << "  " << std::endl;
- std::cout << " DEBUG REFINEMENT " << std::endl;
-if(ParallelDescriptor::IOProcessor()) {
-       std::cout << " " << std::endl;
-       std::cout << " DEBUG fine AMR finest_lev is    " << fakeAmr_fine.finest_level <<  std::endl;
-       std::cout << " DEBUG fine AMR cumtime is       " << fakeAmr_fine.cumtime << std::endl;
-       std::cout << "  " << std::endl;
-
-       for (int i = 0; i <= mx_lev; i++) {
-          std::cout << "DEBUG fine AMR  level       " << i << std::endl;
-          std::cout << " DEBUG dt_level is          " << fakeAmr_fine.dt_level[i] << std::endl;
-          std::cout << " DEBUG level_steps is       " << fakeAmr_fine.level_steps[i] << std::endl;
-          std::cout << " DEBUG level_count is       " << fakeAmr_fine.level_count[i] << std::endl;
-          std::cout << " DEBUG n_cycle is           " << fakeAmr_fine.n_cycle[i] << std::endl;
-          std::cout << " DEBUG dt_min is            " << fakeAmr_fine.dt_min[i] << std::endl;
-          if (i > 0 ) std::cout << " DEBUG ref_ratio is         " << fakeAmr_fine.ref_ratio[i-1] << std::endl;
-          std::cout << " DEBUG domain is       " << fakeAmr_fine.geom[i].Domain() << std::endl;
-          std::cout << " DEBUG     dx is       " << fakeAmr_fine.geom[i].CellSize()[0] << std::endl;
-          std::cout << "  " << std::endl;
-       }
-    }
-
-const GpuArray<int,AMREX_SPACEDIM>& is_periodic_array = fakeAmr.geom[lev].isPeriodicArray();
-fakeAmr_fine.geom[lev].setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
-amrex::Print() << "CA VA PAS NON AGAIN" << fakeAmr_fine.geom[0].isPeriodic(0) << std::endl;
+    const GpuArray<int,AMREX_SPACEDIM>& is_periodic_array = fakeAmr.geom[lev].isPeriodicArray();
+    fakeAmr_fine.geom[lev].setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
 
 // NOW WE WORK ON DATA THAT ARE IN THE FakeAmrLevel structure
-FakeAmrLevel &falRef_fine = fakeAmr_fine.fakeAmrLevels[lev];
-BoxArray new_grids = falRef_fine.grids;
-new_grids.refine(user_ratio);
-falRef_fine.grids = new_grids;
-falRef_fine.geom.define(domain_fine,&prob_domain_fine,coord_fine);
+    FakeAmrLevel &falRef_fine = fakeAmr_fine.fakeAmrLevels[lev];
+    BoxArray new_grids = falRef_fine.grids;
+    new_grids.refine(user_ratio);
+    falRef_fine.grids = new_grids;
+    falRef_fine.geom.define(domain_fine,&prob_domain_fine,coord_fine);
 
+    falRef_fine.geom.setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
 
-falRef_fine.geom.setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
+    DistributionMapping dm_fine{new_grids};
 
+    for (int n = 0; n < falRef_coarse.state.size(); n++){
 
-std::cout << " DEBUG fine_level  domain is         " << falRef_fine.geom.Domain() << std::endl;
-std::cout << " DEBUG fine_level     dx is      " << falRef_fine.geom.CellSize()[0] << std::endl;
-std::cout << " DEBUG fine_level     grids is      " << falRef_fine.grids << std::endl;
-std::cout << " DEBUG nstate      is      " << falRef_fine.state.size() << std::endl;
-
-
-DistributionMapping dm_fine{new_grids};
-amrex::Print() << " falRef_coarse.state.size() = " << falRef_coarse.state.size() << std::endl;
-
-for (int n = 0; n < falRef_coarse.state.size(); n++){
-
-amrex::Print() << "WE ARE IN STATE n=" << n << std::endl;
 // Assuming that OldState and NewState have the same number of components
-   int ncomps = (falRef_coarse.state[n].old_data)->nComp();
+      int ncomps = (falRef_coarse.state[n].old_data)->nComp();
 
-BoxArray new_grids_state = falRef_fine.state[n].grids;
-amrex::Print() << "DEBUG new_grids_state " << new_grids_state << std::endl;
-new_grids_state.refine(user_ratio);
-amrex::Print() << "DEBUG new_grids_state refined " << new_grids_state << std::endl;
+      BoxArray new_grids_state = falRef_fine.state[n].grids;
+      new_grids_state.refine(user_ratio);
 
-falRef_fine.state[n].grids = new_grids_state;
-//Box          domain_fine_state(falRef_fine.state[n].domain);
-//domain_fine_state.refine(user_ratio);
-falRef_fine.state[n].domain.refine(user_ratio);
-//amrex::Print() << "DEBUG domain_fine_state refined " << domain_fine_state << std::endl;
-amrex::Print() << "DEBUG domain_fine_state refined " << falRef_fine.state[n].domain << std::endl;
+      falRef_fine.state[n].grids = new_grids_state;
+      falRef_fine.state[n].domain.refine(user_ratio);
 
+      MultiFab * NewData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
+      MultiFab * OldData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
+      NewData_coarse -> setVal(10.); 
+      OldData_coarse -> setVal(10.);
 
-   MultiFab * NewData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
-   MultiFab * OldData_coarse = new MultiFab(ba,dm,ncomps,ngrow);
-   NewData_coarse -> setVal(10.); 
-   OldData_coarse -> setVal(10.);
+      NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps,0,ngrow);
+      OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps,0,ngrow);
 
-//   falRef_coarse.state[n].new_data = newNewData;
-   
-//    NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps);
-//    OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps);
-  NewData_coarse -> copy(*(falRef_coarse.state[n].new_data),0,0,ncomps,0,ngrow);
-    OldData_coarse -> copy(*(falRef_coarse.state[n].old_data),0,0,ncomps,0,ngrow);
+      MultiFab * NewData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
+      MultiFab * OldData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
+      NewData_fine->setVal(10.);
+      OldData_fine->setVal(10.);
 
-for (MFIter mfi(*NewData_coarse); mfi.isValid(); ++mfi)
+      Interpolater*  interpolater = &cell_cons_interp;
+      if ( n == 1)  interpolater = &node_bilinear_interp;
+
+      const Geometry& fgeom = falRef_fine.geom;
+      const Geometry& cgeom = falRef_coarse.geom;
+      IntVect new_ratio(AMREX_D_DECL(user_ratio,user_ratio,user_ratio));
+      const IntVect& rr = new_ratio; 
+
+      for (MFIter mfi(*NewData_fine); mfi.isValid(); ++mfi)
       {
-//amrex::Print() << (*NewData_coarse)[mfi];
-}
+        FArrayBox& ffab = (*NewData_fine)[mfi];
+        const FArrayBox& cfab = (*NewData_coarse)[mfi];
+        const Box&  bx   = mfi.tilebox();
+        Vector<BCRec> bx_bcrec(ncomps);
 
-   MultiFab * NewData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
-   MultiFab * OldData_fine = new MultiFab(new_grids_state,dm_fine,ncomps,ngrow);
-   NewData_fine->setVal(10.);
-   OldData_fine->setVal(10.);
+        interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
+                             cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
+      }
 
-//Interpolater*  interpolater = &pc_interp;
-Interpolater*  interpolater = &cell_cons_interp;
-if ( n == 1)  interpolater = &node_bilinear_interp;
-
-const Geometry& fgeom = falRef_fine.geom;
-const Geometry& cgeom = falRef_coarse.geom;
-IntVect new_ratio(AMREX_D_DECL(user_ratio,user_ratio,user_ratio));
-const IntVect& rr = new_ratio; 
-
-for (MFIter mfi(*NewData_fine); mfi.isValid(); ++mfi)
+      for (MFIter mfi(*OldData_fine); mfi.isValid(); ++mfi)
       {
-         FArrayBox& ffab = (*NewData_fine)[mfi];
-         const FArrayBox& cfab = (*NewData_coarse)[mfi];
-         const Box&  bx   = mfi.tilebox();
-         Vector<BCRec> bx_bcrec(ncomps);
+        FArrayBox& ffab = (*OldData_fine)[mfi];
+        const FArrayBox& cfab = (*OldData_coarse)[mfi];
+        const Box&  bx   = mfi.tilebox();
+        Vector<BCRec> bx_bcrec(ncomps);
 
-         interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
-                              cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
+        interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
+                             cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
 
+      }
+
+      NewData_fine->FillBoundary(fgeom.periodicity());
+      OldData_fine->FillBoundary(fgeom.periodicity());
+
+      falRef_fine.state[n].new_data = NewData_fine;
+      falRef_fine.state[n].old_data = OldData_fine;
+
+    }
+  }
 }
-
-for (MFIter mfi(*OldData_fine); mfi.isValid(); ++mfi)
-      {
-         FArrayBox& ffab = (*OldData_fine)[mfi];
-         const FArrayBox& cfab = (*OldData_coarse)[mfi];
-         const Box&  bx   = mfi.tilebox();
- Vector<BCRec> bx_bcrec(ncomps);
-
-         interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
-                              cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
-
-}
-
-//Extrapolater::FirstOrderExtrap(*NewData_fine, fgeom, 0, ncomps);
-//Extrapolater::FirstOrderExtrap(*OldData_fine, fgeom, 0, ncomps);
-
-NewData_fine->FillBoundary(fgeom.periodicity());
-OldData_fine->FillBoundary(fgeom.periodicity());
-
-
-for (MFIter mfi(*NewData_fine); mfi.isValid(); ++mfi)
-      {
-//amrex::Print() << (*NewData_fine)[mfi];
-}
-
-falRef_fine.state[n].new_data = NewData_fine;
-falRef_fine.state[n].old_data = OldData_fine;
-
-if (n == 1) VisMF::Write(*NewData_fine,"pouet_fine");
-
-
-amrex::Print() << "RAAAHH PERIO " << falRef_fine.geom.isPeriodic(0) << std::endl;
-amrex::Print() << "RAAAHH PERIO2 " << fgeom.isPeriodic(0) << std::endl;
-amrex::Print() << "RAAAHH PERIO " << falRef_fine.geom.isPeriodic(1) << std::endl;
-amrex::Print() << "RAAAHH PERIO2 " << fgeom.isPeriodic(1) << std::endl;
-
-
-}
-
-}
-
-VisMF::Write(*(fakeAmr_fine.fakeAmrLevels[0].state[0].new_data), "fine_new_data_lev0");
-
-
-}
-
-
-
-
 
 // ---------------------------------------------------------------
 int main(int argc, char *argv[]) {
@@ -943,10 +641,10 @@ int main(int argc, char *argv[]) {
       cout << " " << std::endl;
     }
 
-    // Read in the original checkpoint directory and add a coarser level covering the same domain 
+    // Read in the original checkpoint directory  
     ReadCheckpointFile(CheckFileIn);
 
-    // Enlarge the new level 0
+    // Interpolate to a finest grid
     ConvertData();
 
     // Write out the new checkpoint directory
