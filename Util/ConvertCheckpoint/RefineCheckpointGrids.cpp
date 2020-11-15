@@ -1,6 +1,10 @@
-
-// This is the version that reads a Checkpoint file
+// ---------------------------------------------------------------
+// This tool reads a Checkpoint file, interpolate to a finer grid
 // and writes it out again.
+// It is inspired from the Embiggening tool in the Castro distribution
+// Validated for IAMR 2D and multi-levels.
+// Please report bugs and problems to Emmanuel Motheau (emotheau@lbl.gov)
+// November 14 2020
 // ---------------------------------------------------------------
 #include <iomanip>
 #include <iostream>
@@ -315,11 +319,8 @@ static void ReadCheckpointFile(const std::string& fileName) {
           FullPathName += mf_name;
           VisMF::Read(*(falRef.state[ii].old_data), FullPathName);
         }
-
       }
-
     }
-
 }
 
 // ---------------------------------------------------------------
@@ -536,7 +537,6 @@ static void ConvertData() {
     BoxArray ba = falRef_coarse.grids;
     DistributionMapping dm{ba};
 
-
 // HERE WE REFINE THE LEVEL IN FINE STRUCTURE
     Box          domain_fine(fakeAmr_fine.geom[lev].Domain());
     RealBox prob_domain_fine(fakeAmr_fine.geom[lev].ProbDomain());
@@ -549,7 +549,7 @@ static void ConvertData() {
     const GpuArray<int,AMREX_SPACEDIM>& is_periodic_array = fakeAmr.geom[lev].isPeriodicArray();
     fakeAmr_fine.geom[lev].setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
 
-// NOW WE WORK ON DATA THAT ARE IN THE FakeAmrLevel structure
+// NOW WE WORK ON DATA THAT ARE IN THE fine FakeAmrLevel structure
     FakeAmrLevel &falRef_fine = fakeAmr_fine.fakeAmrLevels[lev];
     BoxArray new_grids = falRef_fine.grids;
     new_grids.refine(user_ratio);
