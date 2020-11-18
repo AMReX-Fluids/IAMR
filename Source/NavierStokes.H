@@ -177,6 +177,13 @@ protected:
     //    NavierStokes protected static functions                             //
     ////////////////////////////////////////////////////////////////////////////
 
+    virtual void errorEst (amrex::TagBoxArray& tags,
+                           int                 clearval,
+                           int                 tagval,
+                           amrex::Real         time,
+                           int                 n_error_buf,
+                           int                 ngrow) override;
+
     static void Initialize ();   // Read input file
     static void Finalize ();
 
@@ -216,6 +223,7 @@ private:
     //
     static void error_setup ();
 
+    static amrex::Vector<amrex::AMRErrorTag> errtags;
 };
 
 #endif /*_NavierStokes_H_*/
