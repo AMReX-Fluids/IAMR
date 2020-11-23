@@ -38,6 +38,8 @@ namespace
     bool initialized = false;
 }
 
+Vector<AMRErrorTag> NavierStokes::errtags;
+
 void
 NavierStokes::variableCleanUp ()
 {
@@ -2495,4 +2497,24 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     {
       diffusivity[dir]->setVal(visc_coef[state_comp], dst_comp, ncomp, diffusivity[dir]->nGrow());
     }
+}
+
+void
+NavierStokes::errorEst (TagBoxArray& tags,
+                        int          clearval,
+                        int          tagval,
+                        Real         time,
+                        int          n_error_buf,
+                        int          ngrow)
+{
+
+  NavierStokesBase::errorEst(tags,clearval,tagval,time,n_error_buf,ngrow);
+
+  for (int j=0; j<errtags.size(); ++j) {
+    std::unique_ptr<MultiFab> mf;
+    if (errtags[j].Field() != std::string()) {
+      mf = derive(errtags[j].Field(), time, errtags[j].NGrow());
+    }
+    errtags[j](tags,mf.get(),clearval,tagval,time,level,geom);
+  }
 }
