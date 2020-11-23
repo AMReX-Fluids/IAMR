@@ -20,8 +20,59 @@ https://ccse.lbl.gov/people/jbb/index.html
 \section{Tagging for Refinement}
 \label{sec:tagging}
 
-\iamr\ determines what zones should be tagged for refinement at the next 
-regridding step by using a set of built-in routines that test on 
+The dynamic creation and destruction of grid levels is a fundamental part of \iamr\ capabilities.
+At regular intervals (set by the user), each Amr level that is not the finest allowed for the run
+will invoke a ``regrid'' operation.  When invoked, a list of error tagging functions is traversed. For each,
+a field specific to that function is derived from the state over the level, and passed through a kernel
+that ``set'''s or ``clear'''s a flag on each cell.  The field and function for each error tagging quantity is
+identified in the setup phase of the code where the state descriptors are defined (i.e., in {\tt NS\_setup.cpp}).
+Each function in the list adds or removes to the list of cells tagged for refinement. This final list of tagged
+cells is sent to a grid generation routine, which uses the Berger-Rigoutsos algorithm to create rectangular grids
+which will define a new finer level (or set of levels).  State data is filled over these new grids, copying where
+possible, and interpolating from coarser level when no fine data is available.  Once this process is complete,
+the existing Amr level(s) is removed, the new one is inserted into the hierarchy, and the time integration
+continues.
+
+The traditional approach to setting up and controlling the regrid process involves explicitly
+creating (``hard coding'') a number of functions directly -- that is discussed below in section~\ref{sec:oldtagging}.
+\iamr\ also provides a limited capability to augment
+the standard set of error functions that is based entirely on runtime data specified in the inputs ({\tt ParmParse})
+data.  The following example portion of a ParmParse'd input file demonstrates the usage of this feature:
+
+\begin{verbatim}
+      amr.refinement_indicators = hi_rho lo_temp gradT
+
+      amr.high_rho.max_level = 3
+      amr.hi_rho.value_greater = 1.
+      amr.hi_rho.field_name = density
+
+      amr.lo_temp.max_level = 1
+      amr.lo_temp.value_less = 450
+      amr.lo_temp.field_name = temp
+
+      amr.gradT.max_level = 2
+      amr.gradT.adjacent_difference_greater = 20
+      amr.gradT.field_name = temp
+      amr.gradT.start_time = 0.001
+      amr.gradT.end_name = 0.002
+\end{verbatim}
+
+Here, we have added three new custom-named criteria -- {\tt hi\_rho}: cells with the desnity than 1;
+{\tt lo\_temp}: cells with T less than 450K, and {\tt gradT}: cells having a temperature difference of 20K from that of their
+immediate neighbor.  The first will trigger up to Amr level 3, the second only to level 1, and the third to level 2.
+The third will be active only when the problem time is between 0.001 and 0.002 seconds.
+
+Note that these additional user-created criteria operate in addition to those defined as defaults.  Also note that
+these can be modified between restarts of the code.  By default, the new criteria will take effect at the next
+scheduled regrid operation.  Alternatively, the user may restart with {\tt amr.regrid\_on\_restart = 1} in order to
+do a full (all-levels) regrid after reading the checkpoint data and before advancing any cells.
+
+
+\section{Older style refinement tagging}
+\label{sec:oldtagging}
+
+\iamr\ also determines what zones should be tagged for refinement at the next 
+regridding step using a set of built-in routines that test on 
 quantities such as the density and pressure and determining whether the 
 quantities themselves or their gradients pass a user-specified threshold. 
 This may then be extended if {\tt amr.n\_error\_buf} $> 0$ to a certain number 
