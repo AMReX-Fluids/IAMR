@@ -138,6 +138,15 @@ set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
 
 typedef StateDescriptor::BndryFunc BndryFunc;
 
+//
+// Get EB-aware interpolater when needed
+//
+#ifdef AMREX_USE_EB  
+  static auto& cc_interp = eb_cell_cons_interp;
+#else
+  static auto& cc_interp = cell_cons_interp;
+#endif
+
 void
 NavierStokes::variableSetUp ()
 {
@@ -179,18 +188,11 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE VELOCITY VARIABLES  ********************
     //
-    // FIXME? - cribbed from CNS
-#ifdef AMREX_USE_EB
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-    			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
-    			   &eb_cell_cons_interp,state_data_extrap,store_in_checkpoint);
-#else
-    desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-                           StateDescriptor::Point,1,NUM_STATE,
-                           &cell_cons_interp);
-#endif
+    			   StateDescriptor::Point,1,NUM_STATE,
+    			   &cc_interp,state_data_extrap,store_in_checkpoint);
     
     set_x_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
@@ -300,7 +302,7 @@ NavierStokes::variableSetUp ()
 	int nGrowDivu = 1;
 	desc_lst.addDescriptor(Divu_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,nGrowDivu,1,
-			       &cell_cons_interp);
+			       &cc_interp);
 	set_divu_bc(bc,phys_bc);
 	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
 	
@@ -309,7 +311,7 @@ NavierStokes::variableSetUp ()
 	int nGrowDsdt = 0;
 	desc_lst.addDescriptor(Dsdt_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,nGrowDsdt,1,
-			       &cell_cons_interp);
+			       &cc_interp);
 	set_dsdt_bc(bc,phys_bc);
 	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
     }
