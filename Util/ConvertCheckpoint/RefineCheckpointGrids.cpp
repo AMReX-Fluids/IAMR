@@ -541,10 +541,20 @@ static void ConvertData() {
     Box          domain_trgt(fakeAmr_trgt.geom[lev].Domain());
     RealBox prob_domain_trgt(fakeAmr_trgt.geom[lev].ProbDomain());
     int coord_trgt = fakeAmr_trgt.geom[lev].Coord();
-    domain_trgt.refine(user_ratio);
+
+// PUT IF HERE
+//    domain_trgt.refine(user_ratio);
+    domain_trgt.coarsen(user_ratio);
+
+
     fakeAmr_trgt.geom[lev].define(domain_trgt,&prob_domain_trgt,coord_trgt);
-    fakeAmr_trgt.dt_level[lev] = fakeAmr_trgt.dt_level[lev] / user_ratio;
-    fakeAmr_trgt.dt_min[lev] = fakeAmr_trgt.dt_min[lev] / user_ratio;
+
+// PUT IF HERE
+//    fakeAmr_trgt.dt_level[lev] = fakeAmr_trgt.dt_level[lev] / user_ratio;
+//    fakeAmr_trgt.dt_min[lev] = fakeAmr_trgt.dt_min[lev] / user_ratio;
+    fakeAmr_trgt.dt_level[lev] = fakeAmr_trgt.dt_level[lev] * user_ratio;
+    fakeAmr_trgt.dt_min[lev] = fakeAmr_trgt.dt_min[lev] * user_ratio;
+
 
     const GpuArray<int,AMREX_SPACEDIM>& is_periodic_array = fakeAmr_src.geom[lev].isPeriodicArray();
     fakeAmr_trgt.geom[lev].setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
@@ -552,7 +562,12 @@ static void ConvertData() {
 // NOW WE WORK ON DATA THAT ARE IN THE fine FakeAmrLevel structure
     FakeAmrLevel &falRef_trgt = fakeAmr_trgt.fakeAmrLevels[lev];
     BoxArray new_grids = falRef_trgt.grids;
-    new_grids.refine(user_ratio);
+
+// PUT IF HERE
+//    new_grids.refine(user_ratio);
+   new_grids.coarsen(user_ratio);
+
+
     falRef_trgt.grids = new_grids;
     falRef_trgt.geom.define(domain_trgt,&prob_domain_trgt,coord_trgt);
 
@@ -566,13 +581,19 @@ static void ConvertData() {
       int ncomps = (falRef_src.state[n].old_data)->nComp();
 
       BoxArray new_grids_state = falRef_trgt.state[n].grids;
-      new_grids_state.refine(user_ratio);
+      BoxArray save_grids_state = falRef_trgt.state[n].grids;
+// PUT IF HERE
+//      new_grids_state.refine(user_ratio);
+      new_grids_state.coarsen(user_ratio);
 
       falRef_trgt.state[n].grids = new_grids_state;
-      falRef_trgt.state[n].domain.refine(user_ratio);
 
-      MultiFab * NewData_src = new MultiFab(ba,dm,ncomps,ngrow);
-      MultiFab * OldData_src = new MultiFab(ba,dm,ncomps,ngrow);
+// PUT IF HERE
+//      falRef_trgt.state[n].domain.refine(user_ratio);
+      falRef_trgt.state[n].domain.coarsen(user_ratio);
+
+      MultiFab * NewData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow);
+      MultiFab * OldData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow);
       NewData_src -> setVal(10.); 
       OldData_src -> setVal(10.);
 
@@ -584,6 +605,20 @@ static void ConvertData() {
       NewData_trgt->setVal(10.);
       OldData_trgt->setVal(10.);
 
+IntVect new_ratio(AMREX_D_DECL(user_ratio,user_ratio,user_ratio));
+const IntVect& rr = new_ratio;
+
+amrex::Print() << std::endl;
+amrex::Print() << "DEBUG COMPONENT n= " << n  << std::endl;
+amrex::Print() << "DEBUG src boxarray  " << NewData_src->boxArray()  << std::endl;
+amrex::Print() << "DEBUG target boxarray  " << NewData_trgt->boxArray()  << std::endl;
+
+
+
+amrex::average_down (*NewData_src, *NewData_trgt,
+                     0,  ncomps, new_ratio);
+
+/*
       Interpolater*  interpolater = &cell_cons_interp;
       if ( n == 1)  interpolater = &node_bilinear_interp;
 
@@ -615,8 +650,10 @@ static void ConvertData() {
 
       }
 
-      NewData_trgt->FillBoundary(fgeom.periodicity());
-      OldData_trgt->FillBoundary(fgeom.periodicity());
+*/
+
+//      NewData_trgt->FillBoundary(fgeom.periodicity());
+//      OldData_trgt->FillBoundary(fgeom.periodicity());
 
       falRef_trgt.state[n].new_data = NewData_trgt;
       falRef_trgt.state[n].old_data = OldData_trgt;
