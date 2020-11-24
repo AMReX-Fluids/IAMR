@@ -59,6 +59,8 @@ bool verbose(true);
 int      user_ratio(1);
 int   max_grid_size(4096);
 const std::string CheckPointVersion = "CheckPointVersion_1.0";
+std::string interp_kind;
+
 
 Vector<int> nsets_save(1);
 
@@ -125,9 +127,15 @@ static void ScanArguments() {
     if(pp.contains("user_ratio")) {
       pp.get("user_ratio", user_ratio);
     }
+    if(pp.contains("interp_kind")) {
+      pp.get("interp_kind", interp_kind);
+    }
 
     if (user_ratio != 2 && user_ratio != 4)
        amrex::Abort("user_ratio must be 2 or 4");
+
+    if (interp_kind != "refine" && interp_kind != "coarsen" )
+       amrex::Abort("interp_kind must be set to `refine` or `coarsen`");
 
 }
 
@@ -135,7 +143,8 @@ static void ScanArguments() {
 static void PrintUsage (char *progName) {
     cout << "Usage: " << progName << " checkin=filename "
          << "checkout=outfilename "  
-         << "user_ratio= 2 or 4 "   
+         << "user_ratio= 2 or 4 "  
+         << "interp_kind= refine or coarsen " 
          << "[verbose=trueorfalse]" << endl;
     exit(1);
 }
@@ -542,19 +551,21 @@ static void ConvertData() {
     RealBox prob_domain_trgt(fakeAmr_trgt.geom[lev].ProbDomain());
     int coord_trgt = fakeAmr_trgt.geom[lev].Coord();
 
-// PUT IF HERE
-//    domain_trgt.refine(user_ratio);
-    domain_trgt.coarsen(user_ratio);
-
+    if (interp_kind == "refine"){
+       domain_trgt.refine(user_ratio);
+    } else {
+       domain_trgt.coarsen(user_ratio);
+    }
 
     fakeAmr_trgt.geom[lev].define(domain_trgt,&prob_domain_trgt,coord_trgt);
 
-// PUT IF HERE
-//    fakeAmr_trgt.dt_level[lev] = fakeAmr_trgt.dt_level[lev] / user_ratio;
-//    fakeAmr_trgt.dt_min[lev] = fakeAmr_trgt.dt_min[lev] / user_ratio;
-    fakeAmr_trgt.dt_level[lev] = fakeAmr_trgt.dt_level[lev] * user_ratio;
-    fakeAmr_trgt.dt_min[lev] = fakeAmr_trgt.dt_min[lev] * user_ratio;
-
+    if (interp_kind == "refine"){
+      fakeAmr_trgt.dt_level[lev] = fakeAmr_trgt.dt_level[lev] / user_ratio;
+      fakeAmr_trgt.dt_min[lev] = fakeAmr_trgt.dt_min[lev] / user_ratio;
+    } else {
+      fakeAmr_trgt.dt_level[lev] = fakeAmr_trgt.dt_level[lev] * user_ratio;
+      fakeAmr_trgt.dt_min[lev] = fakeAmr_trgt.dt_min[lev] * user_ratio;
+    }
 
     const GpuArray<int,AMREX_SPACEDIM>& is_periodic_array = fakeAmr_src.geom[lev].isPeriodicArray();
     fakeAmr_trgt.geom[lev].setPeriodicity({{AMREX_D_DECL(is_periodic_array[0],is_periodic_array[1],is_periodic_array[2])}});
@@ -563,9 +574,11 @@ static void ConvertData() {
     FakeAmrLevel &falRef_trgt = fakeAmr_trgt.fakeAmrLevels[lev];
     BoxArray new_grids = falRef_trgt.grids;
 
-// PUT IF HERE
-//    new_grids.refine(user_ratio);
-   new_grids.coarsen(user_ratio);
+    if (interp_kind == "refine"){
+      new_grids.refine(user_ratio);
+    } else {
+      new_grids.coarsen(user_ratio);
+    }
 
 
     falRef_trgt.grids = new_grids;
@@ -582,15 +595,20 @@ static void ConvertData() {
 
       BoxArray new_grids_state = falRef_trgt.state[n].grids;
       BoxArray save_grids_state = falRef_trgt.state[n].grids;
-// PUT IF HERE
-//      new_grids_state.refine(user_ratio);
-      new_grids_state.coarsen(user_ratio);
+
+      if (interp_kind == "refine"){
+        new_grids_state.refine(user_ratio);
+      } else {
+        new_grids_state.coarsen(user_ratio);
+      }
 
       falRef_trgt.state[n].grids = new_grids_state;
 
-// PUT IF HERE
-//      falRef_trgt.state[n].domain.refine(user_ratio);
-      falRef_trgt.state[n].domain.coarsen(user_ratio);
+       if (interp_kind == "refine"){
+         falRef_trgt.state[n].domain.refine(user_ratio);
+       } else {      
+         falRef_trgt.state[n].domain.coarsen(user_ratio);
+       }
 
       MultiFab * NewData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow);
       MultiFab * OldData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow);
@@ -605,55 +623,48 @@ static void ConvertData() {
       NewData_trgt->setVal(10.);
       OldData_trgt->setVal(10.);
 
-IntVect new_ratio(AMREX_D_DECL(user_ratio,user_ratio,user_ratio));
-const IntVect& rr = new_ratio;
-
-amrex::Print() << std::endl;
-amrex::Print() << "DEBUG COMPONENT n= " << n  << std::endl;
-amrex::Print() << "DEBUG src boxarray  " << NewData_src->boxArray()  << std::endl;
-amrex::Print() << "DEBUG target boxarray  " << NewData_trgt->boxArray()  << std::endl;
-
-
-
-amrex::average_down (*NewData_src, *NewData_trgt,
-                     0,  ncomps, new_ratio);
-
-/*
-      Interpolater*  interpolater = &cell_cons_interp;
-      if ( n == 1)  interpolater = &node_bilinear_interp;
-
-      const Geometry& fgeom = falRef_trgt.geom;
-      const Geometry& cgeom = falRef_src.geom;
       IntVect new_ratio(AMREX_D_DECL(user_ratio,user_ratio,user_ratio));
-      const IntVect& rr = new_ratio; 
+      const IntVect& rr = new_ratio;
 
-      for (MFIter mfi(*NewData_trgt); mfi.isValid(); ++mfi)
-      {
-        FArrayBox& ffab = (*NewData_trgt)[mfi];
-        const FArrayBox& cfab = (*NewData_src)[mfi];
-        const Box&  bx   = mfi.tilebox();
-        Vector<BCRec> bx_bcrec(ncomps);
+      if (interp_kind == "refine"){
 
-        interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
-                             cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
+        Interpolater*  interpolater = &cell_cons_interp;
+        if ( n == 1)  interpolater = &node_bilinear_interp;
+
+        const Geometry& fgeom = falRef_trgt.geom;
+        const Geometry& cgeom = falRef_src.geom;
+
+        for (MFIter mfi(*NewData_trgt); mfi.isValid(); ++mfi)
+        {
+          FArrayBox& ffab = (*NewData_trgt)[mfi];
+          const FArrayBox& cfab = (*NewData_src)[mfi];
+          const Box&  bx   = mfi.tilebox();
+          Vector<BCRec> bx_bcrec(ncomps);
+
+          interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
+                               cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
+        }
+
+        for (MFIter mfi(*OldData_trgt); mfi.isValid(); ++mfi)
+        {
+          FArrayBox& ffab = (*OldData_trgt)[mfi];
+          const FArrayBox& cfab = (*OldData_src)[mfi];
+          const Box&  bx   = mfi.tilebox();
+          Vector<BCRec> bx_bcrec(ncomps);
+
+          interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
+                               cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
+
+        }
+
+        NewData_trgt->FillBoundary(fgeom.periodicity());
+        OldData_trgt->FillBoundary(fgeom.periodicity());
+
+      } else {
+      
+        amrex::average_down (*NewData_src, *NewData_trgt,
+                             0,  ncomps, new_ratio);
       }
-
-      for (MFIter mfi(*OldData_trgt); mfi.isValid(); ++mfi)
-      {
-        FArrayBox& ffab = (*OldData_trgt)[mfi];
-        const FArrayBox& cfab = (*OldData_src)[mfi];
-        const Box&  bx   = mfi.tilebox();
-        Vector<BCRec> bx_bcrec(ncomps);
-
-        interpolater->interp(cfab,0,ffab,0,ncomps,bx,rr,
-                             cgeom,fgeom,bx_bcrec,0,0,RunOn::Host);
-
-      }
-
-*/
-
-//      NewData_trgt->FillBoundary(fgeom.periodicity());
-//      OldData_trgt->FillBoundary(fgeom.periodicity());
 
       falRef_trgt.state[n].new_data = NewData_trgt;
       falRef_trgt.state[n].old_data = OldData_trgt;
