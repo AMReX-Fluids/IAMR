@@ -37,6 +37,7 @@ main (int   argc,
     int  num_steps;
     Real strt_time;
     Real stop_time;
+    Real stop_interval;
 
     ParmParse pp;
 
@@ -44,11 +45,13 @@ main (int   argc,
     num_steps = -1; 
     strt_time =  0.0;
     stop_time = -1.0;
+    stop_interval = 0.;
 
     pp.query("max_step",  max_step);
     pp.query("num_steps", num_steps);
     pp.query("strt_time", strt_time);
     pp.query("stop_time", stop_time);
+    pp.query("stop_interval", stop_interval);
 
     if (strt_time < 0.0)
     {
@@ -84,6 +87,10 @@ main (int   argc,
 #endif
 		   
     amrptr->init(strt_time,stop_time);
+
+    // This feature stop the simulation at a specfic time 
+    // after the physical time of the checkpoint file 
+    if (stop_interval > 0.) stop_time = amrptr->cumTime() + stop_interval;
 
     if (num_steps > 0)
     {
