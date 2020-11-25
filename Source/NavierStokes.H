@@ -218,4 +218,29 @@ private:
 
 };
 
+
+// void cc_ext_fill (amrex::Box const& bx, amrex::FArrayBox& data,
+//                  const int dcomp, const int numcomp,
+//                  amrex::Geometry const& geom, const amrex::Real time,
+//                  const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+//                  const int scomp);
+
+void press_fill (amrex::Box const& bx, amrex::FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 amrex::Geometry const& geom, const amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                 const int scomp);
+
+void face_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 amrex::Geometry const& geom, const amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                 const int scomp);
+
+void dummy_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 amrex::Geometry const& geom, const amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                 const int scomp);
+
 #endif /*_NavierStokes_H_*/

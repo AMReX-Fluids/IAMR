@@ -1,8 +1,17 @@
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+//
 
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_MLNodeLaplacian.H>
+//for gradp fillpatch...
+#include <AMReX_FillPatchUtil.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBInterpolater.H>
+#endif
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
@@ -20,9 +29,6 @@
 #include <NS_util.H>
 
 #include <PROB_NS_F.H>
-
-//fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -78,6 +84,8 @@ int  NavierStokesBase::verbose     = 0;
 Real NavierStokesBase::gravity     = 0.0;
 int  NavierStokesBase::NUM_SCALARS = 0;
 int  NavierStokesBase::NUM_STATE   = 0;
+
+Vector<BCRec> NavierStokesBase::m_bcrec_gradp(AMREX_SPACEDIM);
 
 Vector<AdvectionForm> NavierStokesBase::advectionType;
 Vector<DiffusionForm> NavierStokesBase::diffusionType;
@@ -356,7 +364,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
     m_bcrec_scalars_d.resize(NUM_SCALARS);
     m_bcrec_scalars_d = convertToDeviceVector(m_bcrec_scalars);
-
 }
 
 NavierStokesBase::~NavierStokesBase ()
@@ -1467,7 +1474,6 @@ NavierStokesBase::estTimeStep ()
     Vector<Real> f_max(AMREX_SPACEDIM);
 
     MultiFab& Gp = getGradP();
-    Gp.FillBoundary(geom.periodicity());
 
     //
     // Find local max of velocity
@@ -1700,6 +1706,87 @@ NavierStokesBase::getDsdt (int ngrow, Real time)
 }
 
 //
+// Functions to get and FillPatch GradP
+//
+// void
+// NavierStokesBase::getGradP (MultiFab& gp, Real      time)
+// {
+//     BL_PROFILE("NavierStokesBase::getGradP()");
+
+//     const int   NGrow = gp.nGrow();
+//     MultiFab&   P_old = get_old_data(Press_Type);
+//     const Real* dx    = geom.CellSize();
+
+//     amrex::Abort("getGradP not written yet!\n");
+
+//     //
+//     // Write version that creates op and recomputes gradP and fills ghost cells
+//     //
+// }
+
+//
+// FIXME - pick up here. Want to check on what geom.Domain() is - is it phys domain?
+// to make sure DummyFill and bcrec is really the right htings here.
+//
+
+void NavierStokesBase::fillpatch_gradp (Real time, MultiFab& gp, int ng)
+{
+    const auto&     bcrec = m_bcrec_gradp;
+    
+    if (level == 0) {
+        PhysBCFunct<GpuBndryFuncFab<DummyFill> > physbc
+            (geom, bcrec, DummyFill{});
+        FillPatchSingleLevel(gp, IntVect(ng), time,
+                             {gradp.get()}, {time},
+                             0, 0, AMREX_SPACEDIM, geom, physbc, 0);
+    } else {
+        auto&        crse_lev = getLevel(level-1);
+	const Geometry& cgeom = parent->Geom(level-1);
+      
+	PhysBCFunct<GpuBndryFuncFab<DummyFill> > cphysbc
+            (cgeom, bcrec, DummyFill{});
+        PhysBCFunct<GpuBndryFuncFab<DummyFill> > fphysbc
+            (geom, bcrec, DummyFill{});
+#ifdef AMREX_USE_EB
+        Interpolater* mapper = (EBFactory(0).isAllRegular()) ?
+            (Interpolater*)(&cell_cons_interp) : (Interpolater*)(&eb_cell_cons_interp);
+#else
+        Interpolater* mapper = &cell_cons_interp;
+#endif
+        FillPatchTwoLevels(gp, IntVect(ng), time,
+                           {&(crse_lev.getGradP())},
+			   {crse_lev.state[Press_Type].curTime()}, //Need this to reflect the coarse level time!!!
+                           {gradp.get()}, {time},
+                           0, 0, AMREX_SPACEDIM, cgeom, geom,
+                           cphysbc, 0, fphysbc, 0,
+                           parent->refRatio(level-1), mapper, bcrec, 0);
+    }
+}
+void NavierStokesBase::fillcoarsepatch_gradp (int lev, Real time, MultiFab& gp, int ng)
+{
+    const auto&     bcrec = m_bcrec_gradp;
+    auto&        crse_lev = getLevel(level-1);
+    const Geometry& cgeom = parent->Geom(level-1);
+
+    PhysBCFunct<GpuBndryFuncFab<DummyFill> > cphysbc
+        (cgeom, bcrec, DummyFill{});
+    PhysBCFunct<GpuBndryFuncFab<DummyFill> > fphysbc
+        (geom, bcrec, DummyFill{});
+#ifdef AMREX_USE_EB
+    Interpolater* mapper = (EBFactory(0).isAllRegular()) ?
+        (Interpolater*)(&cell_cons_interp) : (Interpolater*)(&eb_cell_cons_interp);
+#else
+    Interpolater* mapper = &cell_cons_interp;
+#endif
+    amrex::InterpFromCoarseLevel(gp, IntVect(ng), time, // I *think* this is only ever for when crs and fine are at the same time...
+                                 crse_lev.getGradP(), 0, 0, AMREX_SPACEDIM,
+                                 cgeom, geom,
+                                 cphysbc, 0, fphysbc, 0,
+                                 parent->refRatio(level-1), mapper, bcrec, 0);
+}
+//////////////////
+
+//
 // Fill patch a state component.
 //
 MultiFab*
@@ -1848,6 +1935,9 @@ NavierStokesBase::init (AmrLevel &old)
         FillPatch(old,Dpdt_new,0,cur_pres_time,Dpdt_Type,0,1);
     }
     //
+    // FIXME Need to fillpatch Gp here
+    //
+    //
     // Get best divu and dSdt data.
     //
     if (have_divu)
@@ -1907,6 +1997,10 @@ NavierStokesBase::init ()
         FillCoarsePatch(get_new_data(Dpdt_Type),0,cur_time,Dpdt_Type,0,1);
 
     initOldPress();
+    
+    //
+    // FIXME Need to fillpatch Gp here
+    //
 
     //
     // Get best coarse divU and dSdt data.
@@ -3524,8 +3618,50 @@ NavierStokesBase::velocity_advection (Real dt)
     // Compute viscosity components.
     //
     MultiFab& Gp = getGradP();
-    Gp.FillBoundary(geom.periodicity());
 
+
+    //fixme
+    //    if (lev == 1){
+      static int count=0; count++;
+      Print()<<"Writing gp_"<<count<<level<<std::endl;
+      VisMF::Write(Gp,"gp_"+std::to_string(count));
+      // amrex::WriteSingleLevelPlotfile("gp_"+std::to_string(count)+std::to_string(level), Gp, {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
+	  //fixme - MF diff code to compare result from old code and tiled code
+	  {
+	    // read in result MF from unaltered version of code
+	    std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/gp_"+std::to_string(count);
+	    std::cout << "Reading " << name2 << std::endl;
+	    MultiFab mf2(Gp.boxArray(),dmap,Gp.nComp(),Gp.nGrow());
+	    VisMF::Read(mf2, name2);
+	    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+	    // Diff local MF and MF from unaltered code 
+	    MultiFab::Copy(mfdiff, Gp, 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+	    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+	    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	      std::cout << "WITHOUT ghost cells:\n";
+	      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,0) 
+			<< " and " << mfdiff.max(icomp,0);
+	      if (mfdiff.nComp() > 1) {
+		std::cout << " for component " << icomp;
+	      }
+	      std::cout << "." << std::endl;
+	    }
+	    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mfdiff.nGrow()) 
+			<< " and " << mfdiff.max(icomp,mfdiff.nGrow());
+	      if (mfdiff.nComp() > 1) {
+		std::cout << " for component " << icomp;
+	      }
+	      std::cout << "." << std::endl;
+	    }
+	    // write out difference MF for viewing: amrvis -mf 
+	    std::cout << "Writing mfdiff" << std::endl;
+	    VisMF::Write(mfdiff, "Gpdiff"+std::to_string(count));
+	  }
+      //}
+
+    
     MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
 
     // No need to compute this is we are using EB because we will
@@ -3724,6 +3860,33 @@ NavierStokesBase::velocity_advection (Real dt)
                 getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,AMREX_SPACEDIM,-dt);
         }
     }
+
+    //fixme - MF diff code to compare result from old code and tiled code
+	  {
+	    // read in result MF from unaltered version of code
+	    std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/aofs_"+std::to_string(count);
+	    std::cout << "Reading " << name2 << std::endl;
+	    MultiFab mf2(aofs->boxArray(),dmap,aofs->nComp(),aofs->nGrow());
+	    VisMF::Read(mf2, name2);
+	    MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+	    // Diff local MF and MF from unaltered code 
+	    MultiFab::Copy(mfdiff, *aofs, 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+	    mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+	    for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	      std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+			<< " and " << mfdiff.max(icomp,mf2.nGrow());
+	      if (mfdiff.nComp() > 1) {
+		std::cout << " for component " << icomp;
+	      }
+	      std::cout << "." << std::endl;
+	    }
+	    // write out difference MF for viewing: amrvis -mf 
+	    std::cout << "Writing mfdiff" << std::endl;
+	    VisMF::Write(mfdiff, "aofsdiff"+std::to_string(count));
+	  }
+	  ////end fixme
+
 }
 
 //
@@ -4748,6 +4911,116 @@ NavierStokesBase::fetchBCArray (int State_Type, int scomp, int ncomp)
     }
 
     return bc;
+}
+
+void
+NavierStokesBase::avgDown_StatePress()
+{
+    auto&   fine_lev = getLevel(level+1);
+
+    //
+    // Average down the states at the new time.
+    //
+    MultiFab& S_crse = get_new_data(State_Type);
+    MultiFab& S_fine = fine_lev.get_new_data(State_Type);
+
+    average_down(S_fine, S_crse, 0, S_crse.nComp());
+
+    //
+    // Fill rho_ctime at the current and finer levels with the correct data.
+    //
+    for (int lev = level; lev <= parent->finestLevel(); lev++)
+    {
+        getLevel(lev).make_rho_curr_time();
+    }
+    
+    //
+    // Now average down pressure over time n-(n+1) interval.
+    //
+    MultiFab&       P_crse      = get_new_data(Press_Type);
+    MultiFab&       P_fine_init = fine_lev.get_new_data(Press_Type);
+    MultiFab&       P_fine_avg  = fine_lev.p_avg;
+    MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
+
+    // NOTE: this fills ghost cells, but amrex::average_down does not.
+    amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
+
+    //
+    // Update grad P
+    //
+    LPInfo info;
+    info.setMaxCoarseningLevel(0);
+#ifdef AMREX_USE_EB
+    MLNodeLaplacian linop({geom}, {grids}, {dmap}, info, {Factory()});
+#else
+    MLNodeLaplacian linop ({geom}, {grids}, {dmap}, info);
+#endif
+    
+    // No call to set BCs because we're only calling getFluxes, which assumes 
+    // P has ghost cells filled. average_down_nodal90 above should done it.
+    
+    // Set sigma to -1 to get what we want out of getFluxes(), which computes
+    //    -sigma*grad(phi) 
+    MultiFab sigma(grids, dmap, 1, 1, MFInfo(), Factory());
+    sigma.setVal(-1.0);   
+    linop.setSigma(0, sigma);
+
+    linop.getFluxes({gradp.get()}, {&P_crse});
+
+    // Now fill ghost cells
+    fillpatch_gradp(state[Press_Type].curTime(), *gradp, gradp_grow);
+    
+    //fixme - MF diff code to compare results 
+    static int count=0;
+    ++count;
+    {
+      // read in result MF from unaltered version of code
+      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/pc_"+std::to_string(count);
+      std::cout << "Reading " << name2 << std::endl;
+      MultiFab mf2(P_crse.boxArray(),dmap,P_crse.nComp(),P_crse.nGrow());
+      VisMF::Read(mf2, name2);
+      MultiFab mfdiff(mf2.boxArray(), dmap, mf2.nComp(), mf2.nGrow());
+      // Diff local MF and MF from unaltered code 
+      MultiFab::Copy(mfdiff, P_crse, 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+		  << " and " << mfdiff.max(icomp,mf2.nGrow());
+	if (mfdiff.nComp() > 1) {
+	  std::cout << " for component " << icomp;
+	}
+	std::cout << "." << std::endl;
+      }
+      // write out difference MF for viewing: amrvis -mf 
+      std::cout << "Writing mfdiff" << std::endl;
+      VisMF::Write(mfdiff, "pc_diff"+std::to_string(count));
+    }
+    {
+      // read in result MF from unaltered version of code
+      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/pf_"+std::to_string(count);
+      std::cout << "Reading " << name2 << std::endl;
+      MultiFab mf2(P_fine.boxArray(),P_fine.DistributionMap(),P_fine.nComp(),P_fine.nGrow());
+      VisMF::Read(mf2, name2);
+      MultiFab mfdiff(mf2.boxArray(), P_fine.DistributionMap(), mf2.nComp(), mf2.nGrow());
+      // Diff local MF and MF from unaltered code 
+      MultiFab::Copy(mfdiff, P_fine, 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+		  << " and " << mfdiff.max(icomp,mf2.nGrow());
+	if (mfdiff.nComp() > 1) {
+	  std::cout << " for component " << icomp;
+	}
+	std::cout << "." << std::endl;
+      }
+      // write out difference MF for viewing: amrvis -mf 
+      std::cout << "Writing mfdiff" << std::endl;
+      VisMF::Write(mfdiff, "pf_diff"+std::to_string(count));
+    }
+    //// end fixme
+
 }
 
 void

@@ -1,3 +1,7 @@
+//fixme, for writesingle level plotfile
+#include<AMReX_PlotFileUtil.H>
+//
+
 //
 // "Divu_Type" means S, where divergence U = S
 // "Dsdt_Type" means pd S/pd t, where S is as above
@@ -311,6 +315,7 @@ NavierStokes::advance (Real time,
 
     //
     // Compute traced states for normal comp of velocity at half time level.
+    // Returns best estimate for new timestep.
     //
     Real dt_test = predict_velocity(dt);
     //
@@ -525,7 +530,7 @@ NavierStokes::predict_velocity (Real  dt)
     //
     MultiFab& Gp = getGradP();
     // FIXME do we really need to keep calling fillBoudnary each time? here and in NSB
-    Gp.FillBoundary(geom.periodicity());
+    //Gp.FillBoundary(geom.periodicity());
 
     const int ngrow = 1;
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
@@ -2127,25 +2132,19 @@ NavierStokes::avgDown ()
     if (level == parent->finestLevel())
         return;
 
-    NavierStokes&   fine_lev = getLevel(level+1);
+    auto&   fine_lev = getLevel(level+1);
+    
     //
-    // Average down the states at the new time.
+    // Average down the State and Pressure at the new time.
     //
-    MultiFab& S_crse = get_new_data(State_Type);
-    MultiFab& S_fine = fine_lev.get_new_data(State_Type);
+    avgDown_StatePress();
 
-    average_down(S_fine, S_crse, 0, S_crse.nComp());
+    //fixme
+    static int count=0; count++;
+    Print()<<"Writing gppt_"<<count<<level<<std::endl;
+    amrex::WriteSingleLevelPlotfile("gppt_"+std::to_string(count)+std::to_string(level), *gradp, {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
 
-    //
-    // Now average down pressure over time n-(n+1) interval.
-    //
-    MultiFab&       P_crse      = get_new_data(Press_Type);
-    MultiFab&       P_fine_init = fine_lev.get_new_data(Press_Type);
-    MultiFab&       P_fine_avg  = fine_lev.p_avg;
-    MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
 
-    // NOTE: this fills ghost cells, but amrex::average_down does not.
-    amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
     //
     // Next average down divu and dSdT at new time.
     //
@@ -2162,13 +2161,6 @@ NavierStokes::avgDown ()
         MultiFab& Dsdt_fine = fine_lev.get_new_data(Dsdt_Type);
 
 	average_down(Dsdt_fine, Dsdt_crse, 0, 1);
-    }
-    //
-    // Fill rho_ctime at the current and finer levels with the correct data.
-    //
-    for (int lev = level; lev <= parent->finestLevel(); lev++)
-    {
-        getLevel(lev).make_rho_curr_time();
     }
 }
 

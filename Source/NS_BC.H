@@ -23,6 +23,16 @@ static int press_bc[] =
     INT_DIR, FOEXTRAP, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
 };
 
+static int norm_gradp_bc[] =
+{
+    INT_DIR, FOEXTRAP, FOEXTRAP, REFLECT_ODD, FOEXTRAP, FOEXTRAP
+};
+
+static int tang_gradp_bc[] =
+{
+    INT_DIR, FOEXTRAP, FOEXTRAP, REFLECT_EVEN, FOEXTRAP, FOEXTRAP
+};
+
 static int temp_bc[] =
 {
     INT_DIR, EXT_DIR, HOEXTRAP, REFLECT_EVEN, REFLECT_EVEN, FOEXTRAP

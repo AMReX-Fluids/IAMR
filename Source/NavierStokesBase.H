@@ -34,6 +34,7 @@
 // NavierStokes::variableSetUp in NS_setup.cpp.
 //
 enum StateType {State_Type=0, Press_Type};
+//enum StateType {State_Type=0, Gradp_Type, Press_Type};
 
 //
 // Note: enumerated value NUM_STATE_TYPE no longer defined
@@ -46,6 +47,11 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
 
 enum PressureNames { Pressure=0 };
+// #if (BL_SPACEDIM == 2)
+// enum GradpNames  { Gradpx=0, Gradpy};
+// #else
+// enum GradpNames  { Gradpx=0, Gradpy, Gradpz};
+// #endif
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
 enum DpDtNames { Dpdt=0};
@@ -173,7 +179,8 @@ public:
     // Get pressure gradient data via fill-patching.
     //
     amrex::MultiFab& getGradP() { return *gradp; }
-
+    void fillpatch_gradp (amrex::Real time, amrex::MultiFab& gp, int ng);
+    void fillcoarsepatch_gradp (int lev, amrex::Real time, amrex::MultiFab& gp, int ng);
 #ifdef AMREX_USE_EB
     const amrex::MultiFab* VolFrac () const { return volfrac; }
 #endif
@@ -366,12 +373,18 @@ public:
     //
     void velocity_advection (amrex::Real dt);
     //
-    // Update velocities (or momentum) after advection.
+    // Update velocities (or momentum) with advection and diffusion terms.
     //
     void velocity_update (amrex::Real dt);
-
+    //
+    // Update velocities (or momentum) with advection terms.
+    //
     void velocity_advection_update (amrex::Real dt);
-
+    //
+    // Average down State_Type and Press_Type.
+    //
+    void avgDown_StatePress (); 
+  
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
@@ -577,11 +590,13 @@ public:
 
     // Pressure gradients
     std::unique_ptr<amrex::MultiFab> gradp;
-
+    static amrex::Vector<amrex::BCRec> m_bcrec_gradp;
+  
 #ifdef AMREX_USE_EB
 
     void set_body_state(amrex::MultiFab& S);
 
+  //fixme - don't really need to carry these around anymore....
     const amrex::MultiFab* volfrac;
     const amrex::MultiCutFab* bndrycent;
     amrex::FabArray<amrex::BaseFab<int>> ebmask;
@@ -792,12 +807,12 @@ public:
     //
     // static integer constants
     //
-  // FIXME?  do these need to be adjusted for EB??? see NUM_GROW above
+    // FIXME?  do these need to be adjusted for EB??? see NUM_GROW above
     static const int GEOM_GROW  = 1;
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
-
+    static const int gradp_grow = 1;
     //
     // Controls Godunov solver
     //
@@ -808,7 +823,6 @@ public:
 #else
     static const int  godunov_hyp_grow = 3;
 #endif
-
 };
 
 #endif

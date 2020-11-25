@@ -2248,6 +2248,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    // metric term stuff doesn't get used at all for nodal
     info.setMetricTerm(false);
 
     //
@@ -2277,6 +2278,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
 //  nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
+    
+// MLNodeLaplacian.define() will set is_rz based on geom. Do we really need this and
+    // the ability to set is_rz separately from inputs file?
+    // Also, what of LPInfo::has_metric_term? why not just use that instead of is_rz??
 #if (AMREX_SPACEDIM == 2)
     if (rz_correction)
     {
@@ -2296,7 +2301,85 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         nodal_projector.setSyncResidualCrse(sync_resid_crse, parent->refRatio(c_lev), parent->boxArray(c_lev+1));
     }
 
+    ///////fixme
+    static int count=0;
+    ++count;
+    {
+      // read in result MF from unaltered version of code
+      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/sig_"+std::to_string(count);
+      std::cout << "Reading " << name2 << std::endl;
+      MultiFab mf2(sigma_rebase[0]->boxArray(),sigma_rebase[0]->DistributionMap(),sigma_rebase[0]->nComp(),sigma_rebase[0]->nGrow());
+      VisMF::Read(mf2, name2);
+      MultiFab mfdiff(mf2.boxArray(), mf2.DistributionMap(), mf2.nComp(), mf2.nGrow());
+      // Diff local MF and MF from unaltered code 
+      MultiFab::Copy(mfdiff, *sigma_rebase[0], 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+		  << " and " << mfdiff.max(icomp,mf2.nGrow());
+	if (mfdiff.nComp() > 1) {
+	  std::cout << " for component " << icomp;
+	}
+	std::cout << "." << std::endl;
+      }
+      // write out difference MF for viewing: amrvis -mf 
+      std::cout << "Writing mfdiff" << std::endl;
+      VisMF::Write(mfdiff, "sig_diff"+std::to_string(count));
+    }
+    {
+      // read in result MF from unaltered version of code
+      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/vel_"+std::to_string(count);
+      std::cout << "Reading " << name2 << std::endl;
+      MultiFab mf2(vel_rebase[0]->boxArray(),vel_rebase[0]->DistributionMap(),vel_rebase[0]->nComp(),vel_rebase[0]->nGrow());
+      VisMF::Read(mf2, name2);
+      MultiFab mfdiff(mf2.boxArray(), mf2.DistributionMap(), mf2.nComp(), mf2.nGrow());
+      // Diff local MF and MF from unaltered code 
+      MultiFab::Copy(mfdiff, *vel_rebase[0], 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+		  << " and " << mfdiff.max(icomp,mf2.nGrow());
+	if (mfdiff.nComp() > 1) {
+	  std::cout << " for component " << icomp;
+	}
+	std::cout << "." << std::endl;
+      }
+      // write out difference MF for viewing: amrvis -mf 
+      std::cout << "Writing mfdiff" << std::endl;
+      VisMF::Write(mfdiff, "vel_diff"+std::to_string(count));
+    }
+    //////////
+
     nodal_projector.project(phi_rebase,rel_tol,abs_tol);
+
+    //fixme - MF diff code to compare results 
+    {
+      // read in result MF from unaltered version of code
+      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/pp_"+std::to_string(count);
+      std::cout << "Reading " << name2 << std::endl;
+      MultiFab mf2(phi_rebase[0]->boxArray(),phi_rebase[0]->DistributionMap(),phi_rebase[0]->nComp(),phi_rebase[0]->nGrow());
+      VisMF::Read(mf2, name2);
+      MultiFab mfdiff(mf2.boxArray(), mf2.DistributionMap(), mf2.nComp(), mf2.nGrow());
+      // Diff local MF and MF from unaltered code 
+      MultiFab::Copy(mfdiff, *phi_rebase[0], 0, 0, mfdiff.nComp(), mfdiff.nGrow());
+      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
+
+      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
+	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
+		  << " and " << mfdiff.max(icomp,mf2.nGrow());
+	if (mfdiff.nComp() > 1) {
+	  std::cout << " for component " << icomp;
+	}
+	std::cout << "." << std::endl;
+      }
+      // write out difference MF for viewing: amrvis -mf 
+      std::cout << "Writing mfdiff" << std::endl;
+      VisMF::Write(mfdiff, "pp_diff"+std::to_string(count));
+    }
+    ///
+
     
     //
     // Update gradP
@@ -2323,6 +2406,18 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 	MultiFab::Add(*Gp[lev],*gradphi[lev], 0, 0, AMREX_SPACEDIM,
 		      gradphi[lev]->nGrow());
       }
+
+      // MLMG does not fill any ghost cells for gradphi (aka fluxes). 
+      // FIXME? Could potentially fill them here and then not FillPatch Gp every time we use it
+      // P only get updated here, right?
+      Print()<<">>>>>PRESSURE:\n";
+      Print()<<">>>prv time : "<<(ns[lev]->state)[Press_Type].prevTime();
+      Print()<<"\n>>>cur time : "<<(ns[lev]->state)[Press_Type].curTime()<<std::endl;
+      Print()<<">>>>>STATE:\n";
+      Print()<<">>>prv time : "<<(ns[lev]->state)[State_Type].prevTime();
+      Print()<<"\n>>>cur time : "<<(ns[lev]->state)[State_Type].curTime()<<std::endl;
+      const Real& time = (ns[lev]->state)[Press_Type].curTime();
+      ns[lev]->fillpatch_gradp(time, *Gp[lev], Gp[lev]->nGrow());
     }
 }
 
@@ -2351,7 +2446,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
     for (int idir=0; idir<AMREX_SPACEDIM; idir++) {
 
       if (lo_bc[idir] != Inflow && hi_bc[idir] != Inflow) {
-   vel[lev]->setBndry(0.0, Xvel+idir, 1);
+	vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
    //fixme: is it worth the overhead to have threads here?

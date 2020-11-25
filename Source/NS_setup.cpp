@@ -112,6 +112,57 @@ set_pressure_bc (BCRec&       bc,
 
 static 
 void 
+set_gradpx_bc (BCRec&       bc,
+	       const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    bc.setLo(0,norm_gradp_bc[lo_bc[0]]);
+    bc.setHi(0,norm_gradp_bc[hi_bc[0]]);
+    bc.setLo(1,tang_gradp_bc[lo_bc[1]]);
+    bc.setHi(1,tang_gradp_bc[hi_bc[1]]);
+#if (BL_SPACEDIM == 3)
+    bc.setLo(2,tang_gradp_bc[lo_bc[2]]);
+    bc.setHi(2,tang_gradp_bc[hi_bc[2]]);
+#endif
+}
+
+static
+void
+set_gradpy_bc (BCRec&       bc,
+	       const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    bc.setLo(0,tang_gradp_bc[lo_bc[0]]);
+    bc.setHi(0,tang_gradp_bc[hi_bc[0]]);
+    bc.setLo(1,norm_gradp_bc[lo_bc[1]]);
+    bc.setHi(1,norm_gradp_bc[hi_bc[1]]);
+#if (BL_SPACEDIM == 3)
+    bc.setLo(2,tang_gradp_bc[lo_bc[2]]);
+    bc.setHi(2,tang_gradp_bc[hi_bc[2]]);
+#endif
+}
+
+#if (BL_SPACEDIM == 3)
+static
+void
+set_gradpz_bc (BCRec&       bc,
+	       const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    bc.setLo(0,tang_gradp_bc[lo_bc[0]]);
+    bc.setHi(0,tang_gradp_bc[hi_bc[0]]);
+    bc.setLo(1,tang_gradp_bc[lo_bc[1]]);
+    bc.setHi(1,tang_gradp_bc[hi_bc[1]]);
+    bc.setLo(2,norm_gradp_bc[lo_bc[2]]);
+    bc.setHi(2,norm_gradp_bc[hi_bc[2]]);
+}
+#endif
+
+static 
+void 
 set_divu_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
@@ -191,7 +242,7 @@ NavierStokes::variableSetUp ()
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-    			   StateDescriptor::Point,1,NUM_STATE,
+                           StateDescriptor::Point,1,NUM_STATE,
     			   &cc_interp,state_data_extrap,store_in_checkpoint);
     
     set_x_vel_bc(bc,phys_bc);
@@ -287,14 +338,62 @@ NavierStokes::variableSetUp ()
     //
     // ---- time derivative of pressure
     //
-    Dpdt_Type = desc_lst.length();
+    Dpdt_Type = desc_lst.size();
     desc_lst.addDescriptor(Dpdt_Type,IndexType::TheNodeType(),
                            StateDescriptor::Interval,1,1,
                            &node_bilinear_interp);
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,BndryFunc(FORT_PRESFILL));
 #endif
+    //
+    // ---- grad P
+    //
+    // FIXME? do we really want gradp in State? maybe better to just stash BCRec and
+    //  create FillPatch_gradp in NSB?
+    //
+    // NOTE these 2 bools are currently set to the default values in Amr/AMReX_StateDescriptor.H
+//     bool state_data_extrap = false;
+//     //
+//     // FIXME ----
+//     // maybe we're better off recomputing from P rather than reading from chk???
+//     //
+//     bool store_in_checkpoint = true;
+//     // fixme --- not sure if this what we want for EB
+//     int ngrow_gp = 1;
+//     desc_lst.addDescriptor(Gradp_Type,IndexType::TheCellType(),
+//     			   StateDescriptor::Point,ngrow_gp,AMREX_SPACEDIM,
+//     			   &cc_interp,state_data_extrap,store_in_checkpoint);
+//     amrex::StateDescriptor::BndryFunc gradp_bf(dummy_fill);
+//     gradp_bf.setRunOnGPU(true);
 
+    Vector<BCRec>       bcs(BL_SPACEDIM);
+    Vector<std::string> name(BL_SPACEDIM);
+
+    set_gradpx_bc(bc,phys_bc);
+    bcs[0]  = bc;
+    //name[0] = "gradpx";
+    
+    set_gradpy_bc(bc,phys_bc);
+    bcs[1]  = bc;
+    //name[1] = "gradpy";
+    
+#if(AMREX_SPACEDIM==3)
+    set_gradpz_bc(bc,phys_bc);
+    bcs[2]  = bc;
+    //name[2] = "gradpz";
+#endif
+
+    //desc_lst.setComponent(Gradp_Type, Gradpx, name, bcs,gradp_bf);
+
+    // instead of putting gradp in State, stash BCRec in NSB
+    //m_bcrec_gradp.resize(AMREX_SPACEDIM);
+    for ( int i = 0; i < AMREX_SPACEDIM; i++) {
+      m_bcrec_gradp[i] = bcs[i];
+    }
+      
+    //
+    // ---- Additions for using Temperature
+    //
     if (do_temp)
     {
 	// stick Divu_Type on the end of the descriptor list
@@ -363,13 +462,13 @@ NavierStokes::variableSetUp ()
     derive_lst.add("diveru",IndexType::TheCellType(),1,DeriveFunc3D(dermgdivu),grow_box_by_one);
     derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
-    // average pressure
+    // average pressure -- FIXME - need to update to use stored gradp
     //
     derive_lst.add("avg_pressure",IndexType::TheCellType(),1,DeriveFunc3D(deravgpres),
                    the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
     //
-    // pressure gradient in X direction
+    // pressure gradient in X direction ---FIXME 
     //
     derive_lst.add("gradpx",IndexType::TheCellType(),1,DeriveFunc3D(dergrdpx),the_same_box);
     derive_lst.addComponent("gradpx",desc_lst,Press_Type,Pressure,1);
