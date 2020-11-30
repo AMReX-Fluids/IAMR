@@ -107,8 +107,6 @@ public:
                         int             crse_iteration,
                         int             crse_dt_ratio,
                         const amrex::Geometry& crse_geom,
-                        bool		pressure_time_is_interval,
-                        bool		first_crse_step_after_initial_iters,
                         amrex::Real		 cur_crse_pres_time,
                         amrex::Real		prev_crse_pres_time,
                         amrex::Real		 cur_fine_pres_time,

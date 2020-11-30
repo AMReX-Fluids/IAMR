@@ -243,7 +243,7 @@ NavierStokes::variableSetUp ()
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-                           StateDescriptor::Point,1,NUM_STATE,
+    			   StateDescriptor::Point,1,NUM_STATE,
     			   &cc_interp,state_data_extrap,store_in_checkpoint);
     
     set_x_vel_bc(bc,phys_bc);
@@ -322,30 +322,13 @@ NavierStokes::variableSetUp ()
     //
     // ---- pressure
     //
-#if 1
     desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
                            StateDescriptor::Interval,1,1,
                            &node_bilinear_interp);
 
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
-#else
-    desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
-                           StateDescriptor::Point,1,1,
-                           &node_bilinear_interp,true);
 
-    set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
-    //
-    // ---- time derivative of pressure
-    //
-    Dpdt_Type = desc_lst.size();
-    desc_lst.addDescriptor(Dpdt_Type,IndexType::TheNodeType(),
-                           StateDescriptor::Interval,1,1,
-                           &node_bilinear_interp);
-    set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,BndryFunc(FORT_PRESFILL));
-#endif
     //
     // ---- grad P
     //
@@ -463,7 +446,7 @@ NavierStokes::variableSetUp ()
     derive_lst.add("diveru",IndexType::TheCellType(),1,DeriveFunc3D(dermgdivu),grow_box_by_one);
     derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
-    // average pressure -- FIXME - need to update to use stored gradp
+    // average pressure
     //
     derive_lst.add("avg_pressure",IndexType::TheCellType(),1,DeriveFunc3D(deravgpres),
                    the_same_box);

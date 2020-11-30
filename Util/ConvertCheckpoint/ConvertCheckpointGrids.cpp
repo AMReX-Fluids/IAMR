@@ -664,6 +664,10 @@ static void ConvertData() {
       
         amrex::average_down (*NewData_src, *NewData_trgt,
                              0,  ncomps, new_ratio);
+
+        amrex::average_down (*OldData_src, *OldData_trgt,
+                             0,  ncomps, new_ratio);
+
       }
 
       falRef_trgt.state[n].new_data = NewData_trgt;

@@ -126,10 +126,6 @@ std::string NavierStokesBase::LES_model                 = "Smagorinsky";
 Real        NavierStokesBase::smago_Cs_cst              = 0.18;
 Real        NavierStokesBase::sigma_Cs_cst              = 1.5;
 
-
-
-int  NavierStokesBase::Dpdt_Type = -1;
-
 int  NavierStokesBase::additional_state_types_initialized = 0;
 int  NavierStokesBase::Divu_Type                          = -1;
 int  NavierStokesBase::Dsdt_Type                          = -1;
@@ -288,13 +284,13 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 #ifdef AMREX_USE_EB
     init_eb(level_geom, bl, dm);
 #endif
-    
+
     //fixme? not 100% sure this is the right place
     gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
     gradp->setVal(0.);
 
     //FIXME --- this fn is really similar to restart()... work on that later
-    
+
     //
     // Set up reflux registers.
     //
@@ -808,13 +804,6 @@ NavierStokesBase::advance_setup (Real time,
         state[k].swapTimeLevels(dt);
     }
 
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-    {
-        const Real new_press_time = .5 * (state[State_Type].prevTime() +
-                                          state[State_Type].curTime());
-        state[Press_Type].setNewTimeLevel(new_press_time);
-    }
-
     make_rho_prev_time();
 
     // refRatio==4 is not currently supported
@@ -974,41 +963,6 @@ NavierStokesBase::calc_dsdt (Real      /*time*/,
 }
 
 void
-NavierStokesBase::calcDpdt ()
-{
-    BL_ASSERT(state[Press_Type].descriptor()->timeType() == StateDescriptor::Point);
-
-    MultiFab&  new_press   = get_new_data(Press_Type);
-    MultiFab&  old_press   = get_old_data(Press_Type);
-    MultiFab&  dpdt        = get_new_data(Dpdt_Type);
-    const Real dt_for_dpdt = state[Press_Type].curTime()-state[Press_Type].prevTime();
-
-    if (dt_for_dpdt != 0.0)
-    {
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(dpdt,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& bx        = mfi.tilebox();
-            auto const& p_new    = new_press.array(mfi);
-            auto const& p_old    = old_press.array(mfi);
-            auto const& dpdt_arr = dpdt.array(mfi);
-            Real   dt_inv = 1.0/dt_for_dpdt;
-            amrex::ParallelFor(bx, [dpdt_arr, p_old, p_new, dt_inv]
-            AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-            {
-               dpdt_arr(i,j,k) = dt_inv * (p_new(i,j,k) - p_old(i,j,k));
-            });
-        }
-    }
-    else
-    {
-        dpdt.setVal(0.0);
-    }
-}
-
-void
 NavierStokesBase::checkPoint (const std::string& dir,
 			      std::ostream&      os,
 			      VisMF::How         how,
@@ -1016,18 +970,20 @@ NavierStokesBase::checkPoint (const std::string& dir,
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 
-    // Need to add gradp in the checkpoint
-    std::string LevelDir, FullPath;
-    LevelDirectoryNames(dir, LevelDir, FullPath);
-    std::string gradp_mf_fullpath = FullPath + "/gradp";
-    VisMF::Write(*gradp,gradp_mf_fullpath,how);
-
 #ifdef AMREX_PARTICLES
     if (level == 0)
     {
         if (NSPC != 0)
             NSPC->Checkpoint(dir,the_ns_particle_file_name);
     }
+#endif
+
+# ifdef AMREX_USE_EB
+// Need to add gradp in the checkpoint
+   std::string LevelDir, FullPath;
+   LevelDirectoryNames(dir, LevelDir, FullPath);
+   std::string gradp_mf_fullpath = FullPath + "/gradp";
+   VisMF::Write(*gradp,gradp_mf_fullpath,how);
 #endif
 }
 
@@ -1903,11 +1859,6 @@ NavierStokesBase::init (AmrLevel &old)
     // Get best state and pressure data.
     //
     FillPatch(old,S_new,0,cur_time,State_Type,0,NUM_STATE);
-    //
-    // Note: we don't need to worry here about using FillPatch because
-    //       it will automatically use the "old dpdt" to interpolate,
-    //       since we haven't yet defined a new pressure at the lower level.
-    //
     {
        FillPatchIterator fpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
        const MultiFab& mf_fpi = fpi.get_mf();
@@ -1929,11 +1880,6 @@ NavierStokesBase::init (AmrLevel &old)
        }
     }
 
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-    {
-        MultiFab& Dpdt_new = get_new_data(Dpdt_Type);
-        FillPatch(old,Dpdt_new,0,cur_pres_time,Dpdt_Type,0,1);
-    }
     //
     // FIXME Need to fillpatch Gp here
     //
@@ -1992,9 +1938,6 @@ NavierStokesBase::init ()
     //
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
-
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-        FillCoarsePatch(get_new_data(Dpdt_Type),0,cur_time,Dpdt_Type,0,1);
 
     initOldPress();
     
@@ -2140,9 +2083,6 @@ NavierStokesBase::level_projector (Real dt,
                              get_rho_half_time(),crse_ptr,sync_reg,
                              crse_dt_ratio,iteration,have_divu);
 
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-        calcDpdt();
-
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::level_projector()");
 }
 
@@ -2228,16 +2168,12 @@ NavierStokesBase::level_sync (int crse_iteration)
     bool first_crse_step_after_initial_iters =
       (prev_crse_pres_time > state[State_Type].prevTime());
 
-    bool pressure_time_is_interval =
-      (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval);
     projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
 			     pres_fine,v_fine,cc_rhs_fine,
 			     Rh,rho_fine,Vsync,V_corr,
 			     phi,&rhs_sync_reg,crsr_sync_ptr,
 			     dt,ratio,crse_iteration,crse_dt_ratio,
-			     geom,pressure_time_is_interval,
-			     first_crse_step_after_initial_iters,
-			     cur_crse_pres_time,prev_crse_pres_time,
+			     geom,cur_crse_pres_time,prev_crse_pres_time,
 			     cur_fine_pres_time,prev_fine_pres_time);
     cc_rhs_crse.clear();
     cc_rhs_fine.clear();
@@ -2274,9 +2210,6 @@ NavierStokesBase::level_sync (int crse_iteration)
 		     first_crse_step_after_initial_iters,
 		     cur_crse_pres_time, prev_crse_pres_time);
     }
-
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-      calcDpdt();
 
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::level_sync()");
 }
@@ -2812,15 +2745,7 @@ NavierStokesBase::resetState (Real time,
     state[State_Type].setTimeLevel(time,dt_old,dt_new);
 
     initOldPress();
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval)
-    {
         state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
-    }
-    else if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-    {
-        state[Press_Type].setTimeLevel(time-.5*dt_old,dt_old,dt_old);
-        state[Dpdt_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
-    }
     //
     // Reset state types for divu not equal to zero.
     //
@@ -3181,15 +3106,7 @@ NavierStokesBase::setTimeLevel (Real time,
         }
     }
 
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Interval)
-    {
         state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
-    }
-    else if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-    {
-        state[Press_Type].setTimeLevel(time-.5*dt_old,dt_old,dt_old);
-        state[Dpdt_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
-    }
 }
 
 void
@@ -3510,40 +3427,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     const Real    cur_fine_pres_time  = fine_lev.state[Press_Type].curTime();
     const Real    prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
 
-    if (state[Press_Type].descriptor()->timeType() ==
-        StateDescriptor::Point && first_crse_step_after_initial_iters)
-    {
-        const Real time_since_zero  = cur_crse_pres_time - prev_crse_pres_time;
-        const Real dt_to_prev_time  = prev_fine_pres_time - prev_crse_pres_time;
-        const Real dt_to_cur_time   = cur_fine_pres_time - prev_crse_pres_time;
-        const Real cur_mult_factor  = dt_to_cur_time / time_since_zero;
-        const Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-             const Box&  bx     = mfi.tilebox();
-             FArrayBox fine_phi(bx,1);
-             Elixir fine_phi_i = fine_phi.elixir();
-             node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
-                                         fine_phi.box(),ratio,cgeom,fgeom,bc,
-                                         0,Press_Type,RunOn::Gpu);
-
-             auto const& f_phi    = fine_phi.array();
-             auto const& p_new    = P_new.array(mfi);
-             auto const& p_old    = P_old.array(mfi);
-             amrex::ParallelFor(bx, [f_phi, p_old, p_new, cur_mult_factor, prev_mult_factor]
-             AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-             {
-                 p_new(i,j,k) += f_phi(i,j,k) * cur_mult_factor;
-                 p_old(i,j,k) += f_phi(i,j,k) * prev_mult_factor;
-             });
-        }
-    }
-    else
-    {
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -3566,7 +3449,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
                p_old(i,j,k) += f_phi(i,j,k);
            });
         }
-    }
+
 #ifdef AMREX_USE_EB
     // FIXME? - this can probably go after new interpolation is implemented
     EB_set_covered(P_new,0.);
@@ -3661,7 +3544,7 @@ NavierStokesBase::velocity_advection (Real dt)
 	  }
       //}
 
-    
+
     MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
 
     // No need to compute this is we are using EB because we will
