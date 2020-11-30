@@ -271,31 +271,13 @@ NavierStokes::variableSetUp ()
     //
     // ---- pressure
     //
-#if 1
     desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
                            StateDescriptor::Interval,1,1,
                            &node_bilinear_interp);
 
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
-#else
-    desc_lst.addDescriptor(Press_Type,IndexType::TheNodeType(),
-                           StateDescriptor::Point,1,1,
-                           &node_bilinear_interp,true);
-
-    set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
-    //
-    // ---- time derivative of pressure
-    //
-    Dpdt_Type = desc_lst.length();
-    desc_lst.addDescriptor(Dpdt_Type,IndexType::TheNodeType(),
-                           StateDescriptor::Interval,1,1,
-                           &node_bilinear_interp);
-    set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Dpdt_Type,Dpdt,"dpdt",bc,BndryFunc(FORT_PRESFILL));
-#endif
-
+ 
     if (do_temp)
     {
 	// stick Divu_Type on the end of the descriptor list

@@ -550,11 +550,9 @@ Projection::MLsyncProject (int             c_lev,
                            int             crse_iteration,
                            int             crse_dt_ratio,
                            const Geometry& crse_geom,
-                           bool        pressure_time_is_interval,
-                           bool first_crse_step_after_initial_iters,
-                           Real             cur_crse_pres_time,
+                           Real            cur_crse_pres_time,
                            Real            prev_crse_pres_time,
-                           Real             cur_fine_pres_time,
+                           Real            cur_fine_pres_time,
                            Real            prev_fine_pres_time)
 {
     BL_PROFILE("Projection::MLsyncProject()");
@@ -670,37 +668,10 @@ Projection::MLsyncProject (int             c_lev,
     //
     AddPhi(pres_crse, *phi[c_lev]);
 
-    if (pressure_time_is_interval)
-    {
-        //
-        // Only update the most recent pressure.
-        //
-        AddPhi(pres_fine, *phi[c_lev+1]);
-    }
-    else
-    {
-        MultiFab& pres_fine_old = LevelData[c_lev+1]->get_old_data(Press_Type);
-
-        if (first_crse_step_after_initial_iters)
-        {
-            Real time_since_zero =  cur_crse_pres_time - prev_crse_pres_time;
-            Real dt_to_prev_time = prev_fine_pres_time - prev_crse_pres_time;
-            Real dt_to_cur_time  =  cur_fine_pres_time - prev_crse_pres_time;
-
-            Real cur_mult_factor = dt_to_cur_time / time_since_zero;
-            (*phi[c_lev+1]).mult(cur_mult_factor);
-            AddPhi(pres_fine, *phi[c_lev+1]);
-
-            Real prev_mult_factor = dt_to_prev_time / dt_to_cur_time;
-            (*phi[c_lev+1]).mult(prev_mult_factor);
-            AddPhi(pres_fine_old, *phi[c_lev+1]);
-        }
-        else
-        {
-            AddPhi(pres_fine    , *phi[c_lev+1]);
-            AddPhi(pres_fine_old, *phi[c_lev+1]);
-        }
-    }
+    //
+    // Only update the most recent pressure.
+    //
+    AddPhi(pres_fine, *phi[c_lev+1]);
     //
     // Add projected vel to new velocity.
     //

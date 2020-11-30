@@ -216,11 +216,6 @@ NavierStokes::initData ()
             get_new_data(Dsdt_Type).setVal(0);
     }
 
-    if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-    {
-        get_new_data(Dpdt_Type).setVal(0);
-    }
-
     is_first_step_after_regrid = false;
     old_intersect_new          = grids;
 
@@ -1689,11 +1684,6 @@ NavierStokes::post_init_press (Real&        dt_init,
     for (int k = 0; k <= finest_level; k++)
     {
         getLevel(k).setTimeLevel(strt_time,dt_save[k],dt_save[k]);
-        if (state[Press_Type].descriptor()->timeType() == StateDescriptor::Point)
-        {
-            getLevel(k).state[Press_Type].setNewTimeLevel(.5*dt_init);
-            getLevel(k).get_old_data(Dpdt_Type).setVal(0);
-        }
     }
 
     parent->setDtLevel(dt_save);

@@ -48,7 +48,6 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 enum PressureNames { Pressure=0 };
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
-enum DpDtNames { Dpdt=0};
 
 class NavierStokesBase
     :
@@ -499,10 +498,6 @@ public:
 
     void buildMetrics (); // 1-D metric arrays for RZ
     //
-    // Compute dpdt
-    //
-    void calcDpdt();
-    //
     void calc_dsdt (amrex::Real      time,
 		    amrex::Real      dt,
 		    amrex::MultiFab& dsdt);
@@ -756,10 +751,6 @@ public:
     static std::string LES_model;   // To choose a LES model
     static amrex::Real smago_Cs_cst;       // A parameter for the Smagorinsky model, usually set to 0.18
     static amrex::Real sigma_Cs_cst;       // A parameter for the Sigma model, usually set to 1.5
-    //
-    // Member when pressure defined at points in time rather than interval
-    //
-    static int  Dpdt_Type;
     //
     // Members for non-zero divu.
     //
