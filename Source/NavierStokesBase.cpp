@@ -1778,7 +1778,7 @@ NavierStokesBase::init (AmrLevel &old)
     // FIXME Need to fillpatch Gp here -- make sure to fill Gp's ghost cells
     // Think if we need to fill old too?
     MultiFab& Gp_new = get_new_data(Gradp_Type);
-    FillPatch(old,Gp_new,0,cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM,Gp_new.nGrow());
+    FillPatch(old,Gp_new,Gp_new.nGrow(),cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
     
     //
     // Get best divu and dSdt data.
@@ -4735,7 +4735,7 @@ NavierStokesBase::avgDown_StatePress()
 
     // Now fill ghost cells 
     const Real time = state[Gradp_Type].curTime();
-    FillPatch(*this,Gp,0,time,Gradp_Type,0,AMREX_SPACEDIM,Gp.nGrow());
+    FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);
     
     //fixme - MF diff code to compare results 
     static int count=0;

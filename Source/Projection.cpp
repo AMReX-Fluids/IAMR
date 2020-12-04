@@ -2381,7 +2381,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
       Print()<<"\n>>>cur time : "<<(ns.state)[Gradp_Type].curTime()<<std::endl;
 
       const Real& time = (ns.state)[Gradp_Type].curTime();
-      NavierStokesBase::FillPatch(ns, Gp, 0, time, Gradp_Type, 0, AMREX_SPACEDIM, Gp.nGrow());
+      NavierStokesBase::FillPatch(ns, Gp, Gp.nGrow(), time, Gradp_Type, 0, AMREX_SPACEDIM);
     }
 }
 
