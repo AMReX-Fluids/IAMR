@@ -780,7 +780,7 @@ NavierStokesBase::advance_setup (Real time,
     for (int k = 0; k < num_state_type; k++)
     {
 	bool has_old_data = state[k].hasOldData();
-	// does nothing if old_data==null
+	// does nothing if old_data!=null
         state[k].allocOldData();
 	if (! has_old_data) state[k].oldData().setVal(0.0);
 	// swaps pointers-- reuses space, but doesn't leave new with good data....
@@ -1837,7 +1837,7 @@ NavierStokesBase::init ()
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
 
-    // FIXME don't need this here. advance_setup will take care of filling old
+    // FIXME don't need this here? advance_setup will take care of filling old?
     initOldPress();
 
     //
@@ -1938,18 +1938,6 @@ NavierStokesBase::initOldPress ()
     MultiFab& P_old = get_old_data(Press_Type);
 
     MultiFab::Copy(P_old, P_new, 0, 0, P_old.nComp(), P_old.nGrow());
-}
-
-void
-NavierStokesBase::zeroNewPress ()
-{
-    get_new_data(Press_Type).setVal(0);
-}
-
-void
-NavierStokesBase::zeroOldPress ()
-{
-    get_old_data(Press_Type).setVal(0);
 }
 
 void

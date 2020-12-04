@@ -533,8 +533,6 @@ public:
     //
     void incrPAvg ();
     void initOldPress (); // Initialize old pressure with new
-    void zeroNewPress (); // Set new pressure to zero
-    void zeroOldPress (); // Set old pressure to zero
     //
     // Compile rho_avg in advance.
     //
