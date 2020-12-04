@@ -249,6 +249,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     // Alloc old_time pressure.
     //
     state[Press_Type].allocOldData();
+    state[Gradp_Type].allocOldData();
     //
     // Alloc space for density and temporary pressure variables.
     //
