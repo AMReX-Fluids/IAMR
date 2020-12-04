@@ -337,7 +337,7 @@ NavierStokes::variableSetUp ()
     // maybe we're better off recomputing rather than reading from chk? But then still have
     // FillPatch issue at coarse fine boundary; if want to interpolate in time, need an old and new
     desc_lst.addDescriptor(Gradp_Type,IndexType::TheCellType(),
-    			   StateDescriptor::Point,gradp_grow,AMREX_SPACEDIM,
+    			   StateDescriptor::Interval,gradp_grow,AMREX_SPACEDIM,
     			   &cc_interp,state_data_extrap,store_in_checkpoint);
     amrex::StateDescriptor::BndryFunc gradp_bf(dummy_fill);
     gradp_bf.setRunOnGPU(true);
