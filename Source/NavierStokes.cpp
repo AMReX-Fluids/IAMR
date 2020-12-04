@@ -128,7 +128,11 @@ NavierStokes::initData ()
                        ARLIM(p_lo), ARLIM(p_hi),
                        dx,gridloc.lo(),gridloc.hi() );
     }
-
+    //
+    // Initialize GradP
+    //
+    computeGradP(state[Press_Type].curTime());
+    
 #ifdef AMREX_USE_EB
     set_body_state(S_new);
 #endif

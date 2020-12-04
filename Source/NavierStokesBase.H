@@ -174,12 +174,10 @@ public:
     //
     // Get pressure gradient data via fill-patching.
     //
-    void getGradP (amrex::MultiFab& gp, amrex::Real time);
+    void computeGradP(amrex::Real time);
 
 #ifdef AMREX_USE_EB
     const amrex::MultiFab* VolFrac () const { return volfrac; }
-//FIXME - use AmrLevel fns inherited from StateData
-    amrex::MultiFab& getGradP() { return get_data(); }
 #endif
     //
     // Boundary condition access functions.

@@ -2992,7 +2992,9 @@ NavierStokesBase::setTimeLevel (Real time,
         }
     }
 
-        state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
+    state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
+
+    state[Gradp_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
 }
 
 void
@@ -4679,6 +4681,31 @@ NavierStokesBase::fetchBCArray (int State_Type, int scomp, int ncomp)
 }
 
 void
+NavierStokesBase::computeGradP(Real time)
+{
+    LPInfo info;
+    info.setMaxCoarseningLevel(0);
+    MLNodeLaplacian linop({geom}, {grids}, {dmap}, info, {&Factory()});
+    
+    // No call to set BCs because we're only calling getFluxes, which assumes 
+    // P already exists on surroundingNodes(Gp.validbox()).
+    
+    // Set sigma to -1 to get what we want out of getFluxes(), which computes
+    //    -sigma*grad(phi) 
+    MultiFab sigma(grids, dmap, 1, 1, MFInfo(), Factory());
+    sigma.setVal(-1.0);   
+    linop.setSigma(0, sigma);
+
+    MultiFab& Press = get_data(Press_Type, time);
+    MultiFab& Gp    = get_data(Gradp_Type, time);
+
+    linop.getFluxes({&Gp}, {&Press});
+
+    // Now fill ghost cells 
+    FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);
+}
+
+void
 NavierStokesBase::avgDown_StatePress()
 {
     auto&   fine_lev = getLevel(level+1);
@@ -4713,30 +4740,13 @@ NavierStokesBase::avgDown_StatePress()
     //
     // Update grad P
     //
-    LPInfo info;
-    info.setMaxCoarseningLevel(0);
-#ifdef AMREX_USE_EB
-    MLNodeLaplacian linop({geom}, {grids}, {dmap}, info, {Factory()});
-#else
-    MLNodeLaplacian linop ({geom}, {grids}, {dmap}, info);
-#endif
-    
-    // No call to set BCs because we're only calling getFluxes, which assumes 
-    // P has ghost cells filled. average_down_nodal() above should do it.
-    
-    // Set sigma to -1 to get what we want out of getFluxes(), which computes
-    //    -sigma*grad(phi) 
-    MultiFab sigma(grids, dmap, 1, 1, MFInfo(), Factory());
-    sigma.setVal(-1.0);   
-    linop.setSigma(0, sigma);
+    const Real time = state[Press_Type].curTime();
+    Print()<<"Press time "<<time<<std::endl;
+    Print()<<"Prev press time "<<state[Press_Type].prevTime()<<std::endl;
+    Print()<<"State time "<<state[State_Type].curTime()<<std::endl;
+    Print()<<"prev State time "<<state[State_Type].prevTime()<<std::endl;
+    computeGradP(time);
 
-    MultiFab& Gp = get_new_data(Gradp_Type);
-    linop.getFluxes({&Gp}, {&P_crse});
-
-    // Now fill ghost cells 
-    const Real time = state[Gradp_Type].curTime();
-    FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);
-    
     //fixme - MF diff code to compare results 
     static int count=0;
     ++count;
