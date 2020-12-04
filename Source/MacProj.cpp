@@ -651,7 +651,7 @@ MacProj::mac_sync_compute (int                   level,
     const int  ncomp = 1;         // Number of components to process at once
 
     const int  nghost  = 2;
-    MultiFab& Gp = ns_level.getGradP();
+    MultiFab& Gp = ns_level.get_old_data(Gradp_Type);
 
     //
     // Prep MFs to store fluxes and edge states

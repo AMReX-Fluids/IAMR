@@ -525,9 +525,7 @@ NavierStokes::predict_velocity (Real  dt)
     //
     // Non-EB version
     //
-    MultiFab& Gp = getGradP();
-    // FIXME do we really need to keep calling fillBoudnary each time? here and in NSB
-    //Gp.FillBoundary(geom.periodicity());
+    MultiFab& Gp = get_old_data(Gradp_Type);
 
     const int ngrow = 1;
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
@@ -1447,37 +1445,15 @@ NavierStokes::writePlotFile (const std::string& dir,
     //
     // Cull data from derived variables.
     //
-    Real plot_time;
-
     if (derive_names.size() > 0)
     {
 	for (std::list<std::string>::const_iterator it = derive_names.begin(), end = derive_names.end();
              it != end;
              ++it)
 	{
-            if (*it == "avg_pressure" ||
-                *it == "gradpx"       ||
-                *it == "gradpy"       ||
-                *it == "gradpz")
-            {
-                if (state[Press_Type].descriptor()->timeType() ==
-                    StateDescriptor::Interval)
-                {
-                    plot_time = cur_time;
-                }
-                else
-                {
-                    int f_lev = parent->finestLevel();
-                    plot_time = getLevel(f_lev).state[Press_Type].curTime();
-                }
-            }
-            else
-            {
-                plot_time = cur_time;
-            }
 	    const DeriveRec* rec = derive_lst.get(*it);
 	    ncomp = rec->numDerive();
-	    auto derive_dat = derive(*it,plot_time,nGrow);
+	    auto derive_dat = derive(*it,cur_time,nGrow);
 	    MultiFab::Copy(plotMF,*derive_dat,0,cnt,ncomp,nGrow);
 	    cnt += ncomp;
 	}
@@ -2125,7 +2101,6 @@ NavierStokes::avgDown ()
         return;
 
     auto&   fine_lev = getLevel(level+1);
-    
     //
     // Average down the State and Pressure at the new time.
     //
@@ -2134,7 +2109,7 @@ NavierStokes::avgDown ()
     //fixme
     static int count=0; count++;
     Print()<<"Writing gppt_"<<count<<level<<std::endl;
-    amrex::WriteSingleLevelPlotfile("gppt_"+std::to_string(count)+std::to_string(level), *gradp, {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
+    amrex::WriteSingleLevelPlotfile("gppt_"+std::to_string(count)+std::to_string(level), get_new_data(Gradp_Type), {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
 
 
     //

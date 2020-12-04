@@ -7,11 +7,6 @@
 #include <AMReX_Utility.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_MLNodeLaplacian.H>
-//for gradp fillpatch...
-#include <AMReX_FillPatchUtil.H>
-#ifdef AMREX_USE_EB
-#include <AMReX_EBInterpolater.H>
-#endif
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
@@ -84,8 +79,6 @@ int  NavierStokesBase::verbose     = 0;
 Real NavierStokesBase::gravity     = 0.0;
 int  NavierStokesBase::NUM_SCALARS = 0;
 int  NavierStokesBase::NUM_STATE   = 0;
-
-Vector<BCRec> NavierStokesBase::m_bcrec_gradp(AMREX_SPACEDIM);
 
 Vector<AdvectionForm> NavierStokesBase::advectionType;
 Vector<DiffusionForm> NavierStokesBase::diffusionType;
@@ -285,10 +278,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     init_eb(level_geom, bl, dm);
 #endif
 
-    //fixme? not 100% sure this is the right place
-    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    gradp->setVal(0.);
-
     //FIXME --- this fn is really similar to restart()... work on that later
 
     //
@@ -383,15 +372,6 @@ NavierStokesBase::~NavierStokesBase ()
     delete diffnp1_cc;
 
     delete diffusion;
-}
-
-void
-NavierStokesBase::allocOldData ()
-{
-    bool init_pres = !(state[Press_Type].hasOldData());
-    AmrLevel::allocOldData();
-    if (init_pres)
-        initOldPress();
 }
 
 void
@@ -799,8 +779,10 @@ NavierStokesBase::advance_setup (Real time,
     for (int k = 0; k < num_state_type; k++)
     {
 	bool has_old_data = state[k].hasOldData();
+	// does nothing if old_data==null
         state[k].allocOldData();
 	if (! has_old_data) state[k].oldData().setVal(0.0);
+	// swaps pointers-- reuses space, but doesn't leave new with good data....
         state[k].swapTimeLevels(dt);
     }
 
@@ -976,14 +958,6 @@ NavierStokesBase::checkPoint (const std::string& dir,
         if (NSPC != 0)
             NSPC->Checkpoint(dir,the_ns_particle_file_name);
     }
-#endif
-
-# ifdef AMREX_USE_EB
-// Need to add gradp in the checkpoint
-   std::string LevelDir, FullPath;
-   LevelDirectoryNames(dir, LevelDir, FullPath);
-   std::string gradp_mf_fullpath = FullPath + "/gradp";
-   VisMF::Write(*gradp,gradp_mf_fullpath,how);
 #endif
 }
 
@@ -1423,13 +1397,14 @@ NavierStokesBase::estTimeStep ()
     const Real  small         = 1.0e-8;
     Real        estdt         = 1.0e+20;
 
-    const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   S_new         = get_new_data(State_Type);
 
     Vector<Real> u_max(AMREX_SPACEDIM);
     Vector<Real> f_max(AMREX_SPACEDIM);
 
-    MultiFab& Gp = getGradP();
+    // FIXME - was at curr press time, but us this right now? I think so...
+    const Real  cur_gp_time = state[Gradp_Type].curTime();
+    MultiFab& Gp = get_new_data(Gradp_Type);
 
     //
     // Find local max of velocity
@@ -1662,87 +1637,6 @@ NavierStokesBase::getDsdt (int ngrow, Real time)
 }
 
 //
-// Functions to get and FillPatch GradP
-//
-// void
-// NavierStokesBase::getGradP (MultiFab& gp, Real      time)
-// {
-//     BL_PROFILE("NavierStokesBase::getGradP()");
-
-//     const int   NGrow = gp.nGrow();
-//     MultiFab&   P_old = get_old_data(Press_Type);
-//     const Real* dx    = geom.CellSize();
-
-//     amrex::Abort("getGradP not written yet!\n");
-
-//     //
-//     // Write version that creates op and recomputes gradP and fills ghost cells
-//     //
-// }
-
-//
-// FIXME - pick up here. Want to check on what geom.Domain() is - is it phys domain?
-// to make sure DummyFill and bcrec is really the right htings here.
-//
-
-void NavierStokesBase::fillpatch_gradp (Real time, MultiFab& gp, int ng)
-{
-    const auto&     bcrec = m_bcrec_gradp;
-    
-    if (level == 0) {
-        PhysBCFunct<GpuBndryFuncFab<DummyFill> > physbc
-            (geom, bcrec, DummyFill{});
-        FillPatchSingleLevel(gp, IntVect(ng), time,
-                             {gradp.get()}, {time},
-                             0, 0, AMREX_SPACEDIM, geom, physbc, 0);
-    } else {
-        auto&        crse_lev = getLevel(level-1);
-	const Geometry& cgeom = parent->Geom(level-1);
-      
-	PhysBCFunct<GpuBndryFuncFab<DummyFill> > cphysbc
-            (cgeom, bcrec, DummyFill{});
-        PhysBCFunct<GpuBndryFuncFab<DummyFill> > fphysbc
-            (geom, bcrec, DummyFill{});
-#ifdef AMREX_USE_EB
-        Interpolater* mapper = (EBFactory(0).isAllRegular()) ?
-            (Interpolater*)(&cell_cons_interp) : (Interpolater*)(&eb_cell_cons_interp);
-#else
-        Interpolater* mapper = &cell_cons_interp;
-#endif
-        FillPatchTwoLevels(gp, IntVect(ng), time,
-                           {&(crse_lev.getGradP())},
-			   {crse_lev.state[Press_Type].curTime()}, //Need this to reflect the coarse level time!!!
-                           {gradp.get()}, {time},
-                           0, 0, AMREX_SPACEDIM, cgeom, geom,
-                           cphysbc, 0, fphysbc, 0,
-                           parent->refRatio(level-1), mapper, bcrec, 0);
-    }
-}
-void NavierStokesBase::fillcoarsepatch_gradp (int lev, Real time, MultiFab& gp, int ng)
-{
-    const auto&     bcrec = m_bcrec_gradp;
-    auto&        crse_lev = getLevel(level-1);
-    const Geometry& cgeom = parent->Geom(level-1);
-
-    PhysBCFunct<GpuBndryFuncFab<DummyFill> > cphysbc
-        (cgeom, bcrec, DummyFill{});
-    PhysBCFunct<GpuBndryFuncFab<DummyFill> > fphysbc
-        (geom, bcrec, DummyFill{});
-#ifdef AMREX_USE_EB
-    Interpolater* mapper = (EBFactory(0).isAllRegular()) ?
-        (Interpolater*)(&cell_cons_interp) : (Interpolater*)(&eb_cell_cons_interp);
-#else
-    Interpolater* mapper = &cell_cons_interp;
-#endif
-    amrex::InterpFromCoarseLevel(gp, IntVect(ng), time, // I *think* this is only ever for when crs and fine are at the same time...
-                                 crse_lev.getGradP(), 0, 0, AMREX_SPACEDIM,
-                                 cgeom, geom,
-                                 cphysbc, 0, fphysbc, 0,
-                                 parent->refRatio(level-1), mapper, bcrec, 0);
-}
-//////////////////
-
-//
 // Fill patch a state component.
 //
 MultiFab*
@@ -1881,8 +1775,11 @@ NavierStokesBase::init (AmrLevel &old)
     }
 
     //
-    // FIXME Need to fillpatch Gp here
-    //
+    // FIXME Need to fillpatch Gp here -- make sure to fill Gp's ghost cells
+    // Think if we need to fill old too?
+    MultiFab& Gp_new = get_new_data(Gradp_Type);
+    FillPatch(old,Gp_new,0,cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM,Gp_new.nGrow());
+    
     //
     // Get best divu and dSdt data.
     //
@@ -1939,12 +1836,14 @@ NavierStokesBase::init ()
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
 
+    // FIXME don't need this here. advance_setup will take care of filling old
     initOldPress();
-    
-    //
-    // FIXME Need to fillpatch Gp here
-    //
 
+    //
+    // FIXME Need to fillCoarsepatch Gp here -- make sure to fill Gp's ghost cells
+    // need to think about if we need the old GP created too....
+    MultiFab& Gp_new = get_new_data(Gradp_Type);
+    FillCoarsePatch(Gp_new,0,cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM,Gp_new.nGrow());
     //
     // Get best coarse divU and dSdt data.
     //
@@ -2637,8 +2536,7 @@ NavierStokesBase::post_restart ()
 void
 NavierStokesBase::post_timestep (int crse_iteration)
 {
-
-  BL_PROFILE("NavierStokesBase::post_timestep()");
+    BL_PROFILE("NavierStokesBase::post_timestep()");
 
     const int finest_level = parent->finestLevel();
 
@@ -2744,8 +2642,13 @@ NavierStokesBase::resetState (Real time,
     state[State_Type].reset();
     state[State_Type].setTimeLevel(time,dt_old,dt_new);
 
+    //fixme -- don't think this is needed here because advance_setup will fill old
     initOldPress();
-        state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
+    state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
+    //
+    // FIXME --- need to set old Gp = new Gp here too?
+    //
+    state[Gradp_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
     //
     // Reset state types for divu not equal to zero.
     //
@@ -2795,23 +2698,6 @@ NavierStokesBase::restart (Amr&          papa,
     mac_projector->install_level(level,this);
 
     const BoxArray& P_grids = state[Press_Type].boxArray();
-
-    //fixme? not 100% sure this is the right place
-    // note --- this fn is really similar to constructor
-    //  need to make sure gradp is getting properly filled for this restart case?
-    //  incflo style advection does not use Gp in tracing states to edges,
-    //  don't think Gp is needed until the vel update after the projection.
-    // But ultimately we need gradp in the checkpoint file.
-    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-
-    std::string file=papa.theRestartFile();
-    std::string LevelDir, FullPath;
-    LevelDirectoryNames(file, LevelDir, FullPath);
-    std::string gradp_mf_fullpath = FullPath;
-    gradp_mf_fullpath += "/gradp";
-    const char *faHeader = 0;
-    VisMF::Read(*gradp, gradp_mf_fullpath, faHeader);
-
 #ifdef AMREX_USE_EB
     init_eb(parent->Geom(level), grids, dmap);
 #endif
@@ -3500,7 +3386,7 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Compute viscosity components.
     //
-    MultiFab& Gp = getGradP();
+    MultiFab& Gp = get_old_data(Gradp_Type);
 
 
     //fixme
@@ -3827,15 +3713,11 @@ NavierStokesBase::velocity_advection_update (Real dt)
 {
     BL_PROFILE("NavierStokesBase::velocity_advection_update()");
 
-    MultiFab&  U_old          = get_old_data(State_Type);
-    MultiFab&  U_new          = get_new_data(State_Type);
-    MultiFab&  Aofs           = *aofs;
-    const Real prev_pres_time = state[Press_Type].prevTime();
-
-    MultiFab& Gp=*gradp;
-    Gp.FillBoundary(geom.periodicity());
-
-    MultiFab& Rh = get_rho_half_time();
+    MultiFab&  U_old = get_old_data(State_Type);
+    MultiFab&  U_new = get_new_data(State_Type);
+    MultiFab&  Aofs  = *aofs;
+    MultiFab&  Gp    = get_old_data(Gradp_Type);
+    MultiFab&  Rh    = get_rho_half_time();
 
     MultiFab Vel(grids, dmap, AMREX_SPACEDIM, 0, MFInfo(), Factory());
     // Average mac velocity to cell-centers for use in generating external
@@ -3983,7 +3865,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         //
         // Get grad(p)
         //
-        MultiFab& Gp = *gradp;
+	MultiFab& Gp = get_old_data(Gradp_Type);
 
         //
         // Compute additional forcing terms
@@ -4840,7 +4722,7 @@ NavierStokesBase::avgDown_StatePress()
 #endif
     
     // No call to set BCs because we're only calling getFluxes, which assumes 
-    // P has ghost cells filled. average_down_nodal90 above should done it.
+    // P has ghost cells filled. average_down_nodal() above should do it.
     
     // Set sigma to -1 to get what we want out of getFluxes(), which computes
     //    -sigma*grad(phi) 
@@ -4848,10 +4730,12 @@ NavierStokesBase::avgDown_StatePress()
     sigma.setVal(-1.0);   
     linop.setSigma(0, sigma);
 
-    linop.getFluxes({gradp.get()}, {&P_crse});
+    MultiFab& Gp = get_new_data(Gradp_Type);
+    linop.getFluxes({&Gp}, {&P_crse});
 
-    // Now fill ghost cells
-    fillpatch_gradp(state[Press_Type].curTime(), *gradp, gradp_grow);
+    // Now fill ghost cells 
+    const Real time = state[Gradp_Type].curTime();
+    FillPatch(*this,Gp,0,time,Gradp_Type,0,AMREX_SPACEDIM,Gp.nGrow());
     
     //fixme - MF diff code to compare results 
     static int count=0;
@@ -4968,9 +4852,9 @@ NavierStokesBase::printMaxVel (bool new_data)
 void
 NavierStokesBase::printMaxGp (bool new_data)
 {
-    MultiFab& Gp = getGradP();
+    MultiFab& Gp = new_data? get_new_data(Gradp_Type) : get_old_data(Gradp_Type);
     MultiFab& P  = new_data? get_new_data(Press_Type) : get_old_data(Press_Type);
-
+    
 #if (AMREX_SPACEDIM==3)
     amrex::Print() << "max(abs(gpx/gpy/gpz/p)) = "
 #else

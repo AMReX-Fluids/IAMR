@@ -33,8 +33,7 @@
 // Determine what you want in the state -- Divu, Dsdt -- in
 // NavierStokes::variableSetUp in NS_setup.cpp.
 //
-enum StateType {State_Type=0, Press_Type};
-//enum StateType {State_Type=0, Gradp_Type, Press_Type};
+enum StateType {State_Type=0, Press_Type, Gradp_Type};
 
 //
 // Note: enumerated value NUM_STATE_TYPE no longer defined
@@ -47,11 +46,11 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
 
 enum PressureNames { Pressure=0 };
-// #if (BL_SPACEDIM == 2)
-// enum GradpNames  { Gradpx=0, Gradpy};
-// #else
-// enum GradpNames  { Gradpx=0, Gradpy, Gradpz};
-// #endif
+#if (BL_SPACEDIM == 2)
+enum GradpNames  { Gradpx=0, Gradpy};
+#else
+enum GradpNames  { Gradpx=0, Gradpy, Gradpz};
+#endif
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
 
@@ -70,8 +69,6 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     //    amrex::AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
-
-    virtual void allocOldData () override;
 
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
@@ -177,11 +174,12 @@ public:
     //
     // Get pressure gradient data via fill-patching.
     //
-    amrex::MultiFab& getGradP() { return *gradp; }
-    void fillpatch_gradp (amrex::Real time, amrex::MultiFab& gp, int ng);
-    void fillcoarsepatch_gradp (int lev, amrex::Real time, amrex::MultiFab& gp, int ng);
+    void getGradP (amrex::MultiFab& gp, amrex::Real time);
+
 #ifdef AMREX_USE_EB
     const amrex::MultiFab* VolFrac () const { return volfrac; }
+//FIXME - use AmrLevel fns inherited from StateData
+    amrex::MultiFab& getGradP() { return get_data(); }
 #endif
     //
     // Boundary condition access functions.
@@ -383,7 +381,7 @@ public:
     // Average down State_Type and Press_Type.
     //
     void avgDown_StatePress (); 
-  
+
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
                       int src_comp);
@@ -583,10 +581,6 @@ public:
     amrex::MultiFab volume;
     amrex::MultiFab area[BL_SPACEDIM];
 
-    // Pressure gradients
-    std::unique_ptr<amrex::MultiFab> gradp;
-    static amrex::Vector<amrex::BCRec> m_bcrec_gradp;
-  
 #ifdef AMREX_USE_EB
 
     void set_body_state(amrex::MultiFab& S);
@@ -705,16 +699,16 @@ public:
     //
     // Internal parameters for options.
     //
-    static int        radius_grow;
-    static int        verbose;
-    static amrex::Real       gravity;
-    static int        NUM_SCALARS;      // number of non-velocity components
-    static int        NUM_STATE;        // total number of state variables
+    static int          radius_grow;
+    static int          verbose;
+    static amrex::Real  gravity;
+    static int          NUM_SCALARS;      // number of non-velocity components
+    static int          NUM_STATE;        // total number of state variables
 #ifdef AMREX_USE_EB
-    static const int  NUM_GROW=4;         // number of ghost cells
-    static int refine_cutcells;
+    static const int    NUM_GROW=4;       // number of ghost cells
+    static int          refine_cutcells;
 #else
-    static const int  NUM_GROW=1;         // number of ghost cells
+    static const int    NUM_GROW=1;       // number of ghost cells
 #endif
     //
     // Controls over how the convective and diffusive terms are calculated
@@ -725,8 +719,8 @@ public:
     //
     // Viscosity parameters.
     //
-    static amrex::Vector<int>  is_diffusive;    // does variable diffuse?
-    static amrex::Vector<amrex::Real> visc_coef;       // const coef viscosity terms
+    static amrex::Vector<int>  is_diffusive;      // does variable diffuse?
+    static amrex::Vector<amrex::Real> visc_coef;  // const coef viscosity terms
     static amrex::Real        visc_tol;
     static amrex::Real        visc_abs_tol;
     static amrex::Real        be_cn_theta;
@@ -798,7 +792,7 @@ public:
     //
     // static integer constants
     //
-    // FIXME?  do these need to be adjusted for EB??? see NUM_GROW above
+  // FIXME?  do these need to be adjusted for EB??? see NUM_GROW above
     static const int GEOM_GROW  = 1;
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
@@ -814,6 +808,7 @@ public:
 #else
     static const int  godunov_hyp_grow = 3;
 #endif
+
 };
 
 #endif

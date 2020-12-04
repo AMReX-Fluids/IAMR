@@ -332,48 +332,34 @@ NavierStokes::variableSetUp ()
     //
     // ---- grad P
     //
-    // FIXME? do we really want gradp in State? maybe better to just stash BCRec and
-    //  create FillPatch_gradp in NSB?
     //
-    // NOTE these 2 bools are currently set to the default values in Amr/AMReX_StateDescriptor.H
-//     bool state_data_extrap = false;
-//     //
-//     // FIXME ----
-//     // maybe we're better off recomputing from P rather than reading from chk???
-//     //
-//     bool store_in_checkpoint = true;
-//     // fixme --- not sure if this what we want for EB
-//     int ngrow_gp = 1;
-//     desc_lst.addDescriptor(Gradp_Type,IndexType::TheCellType(),
-//     			   StateDescriptor::Point,ngrow_gp,AMREX_SPACEDIM,
-//     			   &cc_interp,state_data_extrap,store_in_checkpoint);
-//     amrex::StateDescriptor::BndryFunc gradp_bf(dummy_fill);
-//     gradp_bf.setRunOnGPU(true);
+    // FIXME ----
+    // maybe we're better off recomputing rather than reading from chk? But then still have
+    // FillPatch issue at coarse fine boundary; if want to interpolate in time, need an old and new
+    desc_lst.addDescriptor(Gradp_Type,IndexType::TheCellType(),
+    			   StateDescriptor::Point,gradp_grow,AMREX_SPACEDIM,
+    			   &cc_interp,state_data_extrap,store_in_checkpoint);
+    amrex::StateDescriptor::BndryFunc gradp_bf(dummy_fill);
+    gradp_bf.setRunOnGPU(true);
 
     Vector<BCRec>       bcs(BL_SPACEDIM);
     Vector<std::string> name(BL_SPACEDIM);
 
     set_gradpx_bc(bc,phys_bc);
     bcs[0]  = bc;
-    //name[0] = "gradpx";
+    name[0] = "gradpx";
     
     set_gradpy_bc(bc,phys_bc);
     bcs[1]  = bc;
-    //name[1] = "gradpy";
+    name[1] = "gradpy";
     
 #if(AMREX_SPACEDIM==3)
     set_gradpz_bc(bc,phys_bc);
     bcs[2]  = bc;
-    //name[2] = "gradpz";
+    name[2] = "gradpz";
 #endif
 
-    //desc_lst.setComponent(Gradp_Type, Gradpx, name, bcs,gradp_bf);
-
-    // instead of putting gradp in State, stash BCRec in NSB
-    //m_bcrec_gradp.resize(AMREX_SPACEDIM);
-    for ( int i = 0; i < AMREX_SPACEDIM; i++) {
-      m_bcrec_gradp[i] = bcs[i];
-    }
+    desc_lst.setComponent(Gradp_Type, Gradpx, name, bcs, gradp_bf);
       
     //
     // ---- Additions for using Temperature
@@ -452,7 +438,7 @@ NavierStokes::variableSetUp ()
                    the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
     //
-    // pressure gradient in X direction ---FIXME 
+    // pressure gradient in X direction ---FIXME use stored gradp
     //
     derive_lst.add("gradpx",IndexType::TheCellType(),1,DeriveFunc3D(dergrdpx),the_same_box);
     derive_lst.addComponent("gradpx",desc_lst,Press_Type,Pressure,1);

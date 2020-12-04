@@ -345,9 +345,8 @@ Projection::level_project (int             level,
     if (have_divu)
       divusource->mult(dt_inv,0,1,divusource->nGrow());
 
-    MultiFab& Gp = ns->getGradP();
-    Gp.FillBoundary(geom.periodicity());
-
+    MultiFab& Gp = ns->get_old_data(Gradp_Type);
+    
 #ifndef NDEBUG
 #ifdef AMREX_USE_EB
       // fixme - deal with case where covered cells are set to zero
@@ -544,9 +543,9 @@ Projection::MLsyncProject (int             c_lev,
                            int             crse_iteration,
                            int             crse_dt_ratio,
                            const Geometry& crse_geom,
-                           Real            cur_crse_pres_time,
+                           Real             cur_crse_pres_time,
                            Real            prev_crse_pres_time,
-                           Real            cur_fine_pres_time,
+                           Real             cur_fine_pres_time,
                            Real            prev_fine_pres_time)
 {
     BL_PROFILE("Projection::MLsyncProject()");
@@ -872,9 +871,8 @@ Projection::initialVelocityProject (int  c_lev,
             LevelData[lev]->get_new_data(Press_Type).setVal(0.);
 
             // gradP updated in MLMGNodalProjection so need to reset to zero here
-            NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-            MultiFab& Gp = ns->getGradP();
-            Gp.setVal(0.);
+            LevelData[lev]->get_old_data(Gradp_Type).setVal(0.);
+            LevelData[lev]->get_new_data(Gradp_Type).setVal(0.);
         }
 
         if (verbose)
@@ -2324,7 +2322,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     //////////
 
     nodal_projector.project(phi_rebase,rel_tol,abs_tol);
-
+    
     //fixme - MF diff code to compare results 
     {
       // read in result MF from unaltered version of code
@@ -2355,40 +2353,35 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     //
     // Update gradP
     //
-    Vector< NavierStokesBase* > ns(nlevel);
-    Vector< MultiFab* > Gp(nlevel);
     const auto gradphi = nodal_projector.getGradPhi();
-    
+
     for (int lev = 0; lev < nlevel; lev++)
     {
-      ns[lev] = dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
-      //fixme is this assert needed?
-      BL_ASSERT(!(ns[lev]==0));
-      Gp[lev] = &(ns[lev]->getGradP());
+      NavierStokesBase& ns = *dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
+      MultiFab& Gp = ns.get_new_data(Gradp_Type);
       
-      // Do we need ghost cells here?
       if ( proj2 )
       {
-	MultiFab::Copy(*Gp[lev],*gradphi[lev], 0, 0, AMREX_SPACEDIM,
-		       gradphi[lev]->nGrow());
+	MultiFab::Copy(Gp, *gradphi[lev], 0, 0, AMREX_SPACEDIM, 0);
       }
       else
       {
-	MultiFab::Add(*Gp[lev],*gradphi[lev], 0, 0, AMREX_SPACEDIM,
-		      gradphi[lev]->nGrow());
+	MultiFab& Gp_old = ns.get_old_data(Gradp_Type);
+	MultiFab::LinComb(Gp, 1.0, *gradphi[lev], 0, 1.0, Gp_old, 0,
+			  0, AMREX_SPACEDIM, 0);
       }
 
-      // MLMG does not fill any ghost cells for gradphi (aka fluxes). 
-      // FIXME? Could potentially fill them here and then not FillPatch Gp every time we use it
-      // P only get updated here, right?
+      // MLMG gradphi (aka fluxes) does not have any ghost cells. 
+      // FIXME? Fill them here and then don't FillPatch Gp every time we use it
       Print()<<">>>>>PRESSURE:\n";
-      Print()<<">>>prv time : "<<(ns[lev]->state)[Press_Type].prevTime();
-      Print()<<"\n>>>cur time : "<<(ns[lev]->state)[Press_Type].curTime()<<std::endl;
-      Print()<<">>>>>STATE:\n";
-      Print()<<">>>prv time : "<<(ns[lev]->state)[State_Type].prevTime();
-      Print()<<"\n>>>cur time : "<<(ns[lev]->state)[State_Type].curTime()<<std::endl;
-      const Real& time = (ns[lev]->state)[Press_Type].curTime();
-      ns[lev]->fillpatch_gradp(time, *Gp[lev], Gp[lev]->nGrow());
+      Print()<<">>>prv time : "<<(ns.state)[Press_Type].prevTime();
+      Print()<<"\n>>>cur time : "<<(ns.state)[Press_Type].curTime()<<std::endl;
+      Print()<<">>>>>GRADP:\n";
+      Print()<<">>>prv time : "<<(ns.state)[Gradp_Type].prevTime();
+      Print()<<"\n>>>cur time : "<<(ns.state)[Gradp_Type].curTime()<<std::endl;
+
+      const Real& time = (ns.state)[Gradp_Type].curTime();
+      NavierStokesBase::FillPatch(ns, Gp, 0, time, Gradp_Type, 0, AMREX_SPACEDIM, Gp.nGrow());
     }
 }
 
@@ -2417,7 +2410,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
     for (int idir=0; idir<AMREX_SPACEDIM; idir++) {
 
       if (lo_bc[idir] != Inflow && hi_bc[idir] != Inflow) {
-	vel[lev]->setBndry(0.0, Xvel+idir, 1);
+   vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
    //fixme: is it worth the overhead to have threads here?
