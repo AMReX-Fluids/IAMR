@@ -3737,6 +3737,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 	        vel_new(i,j,k,n) = velold - dt * advec(i,j,k,n)
                                           + dt * force(i,j,k,n) / rho_Half(i,j,k)
                                           - dt * gradp(i,j,k,n) / rho_Half(i,j,k);
+		}
             }
         });
     }
@@ -4610,6 +4611,9 @@ NavierStokesBase::computeGradP(Real time)
     LPInfo info;
     info.setMaxCoarseningLevel(0);
     MLNodeLaplacian linop({geom}, {grids}, {dmap}, info, {&Factory()});
+#ifdef AMREX_USE_EB
+    linop.buildIntegral();
+#endif
     
     // No call to set BCs because we're only calling getFluxes(), which
     // doesn't use them. P already exists on surroundingNodes(Gp.validbox()),
@@ -4617,7 +4621,7 @@ NavierStokesBase::computeGradP(Real time)
     
     // Set sigma to -1 to get what we want out of getFluxes(), which computes
     //    -sigma*grad(phi) 
-    MultiFab sigma(grids, dmap, 1, 1, MFInfo(), Factory());
+    MultiFab sigma(grids, dmap, 1, 0, MFInfo(), Factory());
     sigma.setVal(-1.0);   
     linop.setSigma(0, sigma);
 
