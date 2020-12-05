@@ -63,7 +63,7 @@ square_grid.dim_L0 = 0.1
 square_grid.ratio_t0_L0_cross = 1.886792452830189e-01
 square_grid.ratio_t0_stream_thickness = 0.25
 
-amr.derive_plot_vars = mag_vort avg_pressure gradpx gradpy gradpz
+amr.derive_plot_vars = mag_vort avg_pressure
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
