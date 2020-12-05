@@ -2110,12 +2110,6 @@ NavierStokes::avgDown ()
     //
     avgDown_StatePress();
 
-    //fixme
-    static int count=0; count++;
-    Print()<<"Writing gppt_"<<count<<level<<std::endl;
-    amrex::WriteSingleLevelPlotfile("gppt_"+std::to_string(count)+std::to_string(level), get_new_data(Gradp_Type), {AMREX_D_DECL("x","y","z")},geom, 0.0, 0);
-
-
     //
     // Next average down divu and dSdT at new time.
     //

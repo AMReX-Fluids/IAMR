@@ -2270,85 +2270,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
         nodal_projector.setSyncResidualCrse(sync_resid_crse, parent->refRatio(c_lev), parent->boxArray(c_lev+1));
     }
 
-    ///////fixme
-    static int count=0;
-    ++count;
-    {
-      // read in result MF from unaltered version of code
-      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/sig_"+std::to_string(count);
-      std::cout << "Reading " << name2 << std::endl;
-      MultiFab mf2(sigma_rebase[0]->boxArray(),sigma_rebase[0]->DistributionMap(),sigma_rebase[0]->nComp(),sigma_rebase[0]->nGrow());
-      VisMF::Read(mf2, name2);
-      MultiFab mfdiff(mf2.boxArray(), mf2.DistributionMap(), mf2.nComp(), mf2.nGrow());
-      // Diff local MF and MF from unaltered code 
-      MultiFab::Copy(mfdiff, *sigma_rebase[0], 0, 0, mfdiff.nComp(), mfdiff.nGrow());
-      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-
-      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-		  << " and " << mfdiff.max(icomp,mf2.nGrow());
-	if (mfdiff.nComp() > 1) {
-	  std::cout << " for component " << icomp;
-	}
-	std::cout << "." << std::endl;
-      }
-      // write out difference MF for viewing: amrvis -mf 
-      std::cout << "Writing mfdiff" << std::endl;
-      VisMF::Write(mfdiff, "sig_diff"+std::to_string(count));
-    }
-    {
-      // read in result MF from unaltered version of code
-      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/vel_"+std::to_string(count);
-      std::cout << "Reading " << name2 << std::endl;
-      MultiFab mf2(vel_rebase[0]->boxArray(),vel_rebase[0]->DistributionMap(),vel_rebase[0]->nComp(),vel_rebase[0]->nGrow());
-      VisMF::Read(mf2, name2);
-      MultiFab mfdiff(mf2.boxArray(), mf2.DistributionMap(), mf2.nComp(), mf2.nGrow());
-      // Diff local MF and MF from unaltered code 
-      MultiFab::Copy(mfdiff, *vel_rebase[0], 0, 0, mfdiff.nComp(), mfdiff.nGrow());
-      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-
-      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-		  << " and " << mfdiff.max(icomp,mf2.nGrow());
-	if (mfdiff.nComp() > 1) {
-	  std::cout << " for component " << icomp;
-	}
-	std::cout << "." << std::endl;
-      }
-      // write out difference MF for viewing: amrvis -mf 
-      std::cout << "Writing mfdiff" << std::endl;
-      VisMF::Write(mfdiff, "vel_diff"+std::to_string(count));
-    }
-    //////////
-
+    //
+    // Project to get new P and update velocity
+    //
     nodal_projector.project(phi_rebase,rel_tol,abs_tol);
-    
-    //fixme - MF diff code to compare results 
-    {
-      // read in result MF from unaltered version of code
-      std::string name2="/home/candace/CCSE/IAMR_dev/Exec/run3d/pp_"+std::to_string(count);
-      std::cout << "Reading " << name2 << std::endl;
-      MultiFab mf2(phi_rebase[0]->boxArray(),phi_rebase[0]->DistributionMap(),phi_rebase[0]->nComp(),phi_rebase[0]->nGrow());
-      VisMF::Read(mf2, name2);
-      MultiFab mfdiff(mf2.boxArray(), mf2.DistributionMap(), mf2.nComp(), mf2.nGrow());
-      // Diff local MF and MF from unaltered code 
-      MultiFab::Copy(mfdiff, *phi_rebase[0], 0, 0, mfdiff.nComp(), mfdiff.nGrow());
-      mfdiff.minus(mf2, 0, mfdiff.nComp(), mfdiff.nGrow());
-
-      for (int icomp = 0; icomp < mfdiff.nComp(); ++icomp) {
-	std::cout << "Min and max of the diff are " << mfdiff.min(icomp,mf2.nGrow()) 
-		  << " and " << mfdiff.max(icomp,mf2.nGrow());
-	if (mfdiff.nComp() > 1) {
-	  std::cout << " for component " << icomp;
-	}
-	std::cout << "." << std::endl;
-      }
-      // write out difference MF for viewing: amrvis -mf 
-      std::cout << "Writing mfdiff" << std::endl;
-      VisMF::Write(mfdiff, "pp_diff"+std::to_string(count));
-    }
-    ///
-
     
     //
     // Update gradP
@@ -2370,15 +2295,6 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 	MultiFab::LinComb(Gp, 1.0, *gradphi[lev], 0, 1.0, Gp_old, 0,
 			  0, AMREX_SPACEDIM, 0);
       }
-
-      // MLMG gradphi (aka fluxes) does not have any ghost cells. 
-      // FIXME? Fill them here and then don't FillPatch Gp every time we use it
-      Print()<<">>>>>PRESSURE:\n";
-      Print()<<">>>prv time : "<<(ns.state)[Press_Type].prevTime();
-      Print()<<"\n>>>cur time : "<<(ns.state)[Press_Type].curTime()<<std::endl;
-      Print()<<">>>>>GRADP:\n";
-      Print()<<">>>prv time : "<<(ns.state)[Gradp_Type].prevTime();
-      Print()<<"\n>>>cur time : "<<(ns.state)[Gradp_Type].curTime()<<std::endl;
 
       const Real& time = (ns.state)[Gradp_Type].curTime();
       NavierStokesBase::FillPatch(ns, Gp, Gp.nGrow(), time, Gradp_Type, 0, AMREX_SPACEDIM);

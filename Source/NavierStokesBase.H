@@ -524,15 +524,15 @@ public:
     // Get state data.
     //
     amrex::MultiFab* getState (int  ngrow,
-                        int  state_indx,
-                        int  strt_comp,
-                        int  num_comp,
-                        amrex::Real time);
+			       int  state_indx,
+			       int  strt_comp,
+			       int  num_comp,
+			       amrex::Real time);
     //
     // Compile p_avg in advance.
     //
     void incrPAvg ();
-    void initOldPress (); // Initialize old pressure with new
+    void initOldFromNew (amrex::Real type); // Initialize old with new
     //
     // Compile rho_avg in advance.
     //
