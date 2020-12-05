@@ -144,11 +144,6 @@ extern "C" {
                      const amrex::Real* time, const amrex::Real* dt, const int* bcrec,
                      const int* level, const int* grid_no) ;
 
-     void gradp_dir (const amrex::Real* p, ARLIM_P(p_lo), ARLIM_P(p_hi),
-                     const amrex::Real* gp, ARLIM_P(gp_lo), ARLIM_P(gp_hi),
-                     const int* lo, const int* hi, const int* dir,
-                     const amrex::Real* dx );
-
      void deravgpres (BL_FORT_FAB_ARG_ANYD(der),const int* nvar,
                       const BL_FORT_FAB_ARG_ANYD(data),const int* ncomp,
                       AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
@@ -166,32 +161,8 @@ extern "C" {
                    const amrex::Real* time, const amrex::Real* dt, const int* bcrec, 
                    const int* level, const int* grid_no) ;
 
-     void dergrdpx (BL_FORT_FAB_ARG_ANYD(der),const int* nvar,
-                    const BL_FORT_FAB_ARG_ANYD(data),const int* ncomp,
-                    AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
-                    AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
-                    const amrex::Real* delta, const amrex::Real* xlo,
-                    const amrex::Real* time, const amrex::Real* dt, const int* bcrec,
-                    const int* level, const int* grid_no) ;
-
-     void dergrdpy (BL_FORT_FAB_ARG_ANYD(der),const int* nvar,
-                    const BL_FORT_FAB_ARG_ANYD(data),const int* ncomp,
-                    AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
-                    AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
-                    const amrex::Real* delta, const amrex::Real* xlo,
-                    const amrex::Real* time, const amrex::Real* dt, const int* bcrec,
-                    const int* level, const int* grid_no) ;
-
 
 #if (BL_SPACEDIM == 3)
-     void dergrdpz (BL_FORT_FAB_ARG_ANYD(der),const int* nvar,
-                    const BL_FORT_FAB_ARG_ANYD(data),const int* ncomp,
-                    AMREX_ARLIM_P(vlo), AMREX_ARLIM_P(vhi),
-                    AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
-                    const amrex::Real* delta, const amrex::Real* xlo,
-                    const amrex::Real* time, const amrex::Real* dt, const int* bcrec,
-                    const int* level, const int* grid_no) ;
-
      void derradvel (amrex::Real* data, ARLIM_P(dat_lo), ARLIM_P(dat_hi),
                            const int* nvar, const amrex::Real* compdat,
 			   ARLIM_P(clo), ARLIM_P(chi), const int* ncomp,
