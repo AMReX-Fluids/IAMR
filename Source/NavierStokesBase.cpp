@@ -3737,7 +3737,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
 	        vel_new(i,j,k,n) = velold - dt * advec(i,j,k,n)
                                           + dt * force(i,j,k,n) / rho_Half(i,j,k)
                                           - dt * gradp(i,j,k,n) / rho_Half(i,j,k);
-		}
             }
         });
     }
