@@ -408,7 +408,9 @@ NavierStokes::advance (Real time,
         if (verbose)
         {
             Print() << "NavierStokes::advance(): before nodal projection " << std::endl;
-            printMaxValues();
+            printMaxVel();
+	    // New P, Gp get updated in the projector (below). Check old here.
+	    printMaxGp(false);
         }
 
         //
@@ -434,7 +436,7 @@ NavierStokes::advance (Real time,
 
     if (verbose)
     {
-        Print() << "NavierStokes::advance(): after velocity update" << std::endl;
+        Print() << "NavierStokes::advance(): exiting." << std::endl;
         printMaxValues();
     }
 
@@ -1645,7 +1647,7 @@ NavierStokes::post_init_press (Real&        dt_init,
             MultiFab& S_old = get_old_data(State_Type);
             MultiFab::Xpay(S_new, dt_init, S_old, Xvel, Xvel, AMREX_SPACEDIM, 0);
 
-            Print() << "After nodal projection:" << std::endl;
+            Print() << "After sync projection and avgDown:" << std::endl;
             printMaxValues();
         }
 
