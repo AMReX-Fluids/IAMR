@@ -701,6 +701,7 @@ public:
     static int          NUM_SCALARS;      // number of non-velocity components
     static int          NUM_STATE;        // total number of state variables
 #ifdef AMREX_USE_EB
+  // fixme --- not sure that NUM_GROW or refine_cutcells are still used...
     static const int    NUM_GROW=4;       // number of ghost cells
     static int          refine_cutcells;
 #else
@@ -793,7 +794,12 @@ public:
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
+#ifdef AMREX_USE_EB
+  // MOL doesn't require gradp ghost cells
+    static const int gradp_grow = 0;
+#else
     static const int gradp_grow = 1;
+#endif
     //
     // Controls Godunov solver
     //
