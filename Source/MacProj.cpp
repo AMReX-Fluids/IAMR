@@ -650,7 +650,11 @@ MacProj::mac_sync_compute (int                   level,
 
     const int  ncomp = 1;         // Number of components to process at once
 
+#ifdef AMREX_USE_EB
     const int  nghost  = 2;
+#else
+    const int  nghost  = 0;
+#endif
     MultiFab& Gp = ns_level.get_old_data(Gradp_Type);
 
     //
