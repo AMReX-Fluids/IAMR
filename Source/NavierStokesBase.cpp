@@ -2464,6 +2464,9 @@ NavierStokesBase::post_init_state ()
     {
       getLevel(k).avgDown();
     }
+    // FIXME -- avgDown() calls make_rho_curr_time(). Need to check PLM and remove this call
+    // Also, do we really need to call avgDown? vel gets avgDown in NodalProj, scalars shouldn't have been changed, but initialVelocityProject, right?
+    // do we just need this for making sure initData is consistent?
     make_rho_curr_time();
 
     if (do_init_proj && projector && (std::fabs(gravity)) > 0.){
@@ -2476,6 +2479,9 @@ NavierStokesBase::post_init_state ()
 
       if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
     }
+    // FIXME? Probabaly better to just to init old to zero in initData??? & fix up
+    // initialvelproj
+    //
     // make sure there's not NANs in old pressure field
     // end up with P_old = P_new as is the case when exiting initialPressureProject
     if(!do_init_proj){
@@ -2543,14 +2549,45 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (do_reflux && level < finest_level)
         reflux();
 
+    // FIXME --- why would pressure need to be averaged down here?
+    // get here at end of full integration of all levels. Level_project last
+    // done => no average down done for Press, but MLSyncProj will overwrite
+    // new..
     if (level < finest_level)
         avgDown();
 
+    //uses old GradP
     if (do_mac_proj && level < finest_level)
         mac_sync();
 
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
+
+
+    
+    //
+    // FIXME -- need to update GradP after P gets updated in level_sync
+    //does it go in level sync or here?
+    //
+    //Also need to look at avgDown and how it's used to determine how to
+    //deal with GradP -- probably doesn't need update every call, but does
+    //need to be updated after some...
+
+    //
+    // Update GradP to match corrected P
+    // fixme? could do this with one call to MLNodeLap...
+    if ( level == 0 && finest_level > 0 )
+    {
+      for ( int lev = 0; lev <= finest_level; lev++)
+      {
+	NavierStokesBase& ns =
+	  dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
+	const Real time = ns.state[Gradp_Type].curTime();
+	// NOTE this will fill ghost cells with FillPatch
+	ns.computeGradP(time);
+      }
+    }
+
     //
     // Test for conservation.
     //
@@ -4631,6 +4668,13 @@ NavierStokesBase::computeGradP(Real time)
 
     // Now fill ghost cells 
     FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);
+
+      //fixme
+    //   static int count= 0; count++;
+    // Print()<<"Writing out Computed Grad P at time= "<<time
+    // 	   <<"Gpsync_"+std::to_string(count)+std::to_string(level)<<std::endl;
+    //   VisMF::Write(Gp,"Gpsync_"+std::to_string(count)+std::to_string(level));
+
 }
 
 void
@@ -4638,6 +4682,13 @@ NavierStokesBase::avgDown_StatePress()
 {
     auto&   fine_lev = getLevel(level+1);
 
+    //
+    // FIXME??? Nodal Projection averages down vel, phi (in MLMG), and fluxes
+    // As far as the sync goes, it would seem that only the scalars need to
+    // be averaged down? What about MacSync - does that average_down rho?
+    // Does avgDown get used when it's not coming right after a ML Proj???
+    //
+    
     //
     // Average down the states at the new time.
     //
@@ -4653,6 +4704,9 @@ NavierStokesBase::avgDown_StatePress()
     {
         getLevel(lev).make_rho_curr_time();
     }
+
+    //FIXME -- need to think about whether P still needs to be averagedDown
+    // since NodalProj avg down for ML calls....
     
     //
     // Now average down pressure over time n-(n+1) interval.
@@ -4664,13 +4718,6 @@ NavierStokesBase::avgDown_StatePress()
 
     // NOTE: this fills ghost cells, but amrex::average_down does not.
     amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
-
-    //
-    // Update grad P
-    //
-    const Real time = state[Press_Type].curTime();
-    // NOTE this will fill ghost cells with FillPatch
-    computeGradP(time);
 }
 
 void
