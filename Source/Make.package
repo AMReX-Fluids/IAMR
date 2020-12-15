@@ -11,6 +11,9 @@ ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
   CEXE_sources += NS_error.cpp NS_setup.cpp NSBld.cpp NavierStokes.cpp
   CEXE_headers += NavierStokes.H
 
+  CEXE_sources += NS_derive.cpp NS_average.cpp
+  CEXE_headers += NS_derive.H
+
 endif
 
 CEXE_sources += NS_getForce.cpp

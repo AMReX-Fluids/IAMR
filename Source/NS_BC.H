@@ -38,6 +38,11 @@ static int dsdt_bc[] =
     INT_DIR, EXT_DIR, EXT_DIR, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
 };
 
+static int average_bc[] =
+{
+    INT_DIR, INT_DIR, INT_DIR, INT_DIR,      INT_DIR,      INT_DIR
+};
+
 static RegType project_bc [] =
 {
     interior, inflow, outflow, refWall, refWall, refWall

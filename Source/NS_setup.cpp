@@ -6,6 +6,7 @@
 #include <AMReX_ErrorList.H>
 #include <PROB_NS_F.H>
 #include <DERIVE_F.H>
+#include <NS_derive.H>
 #include <NS_error_F.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParmParse.H>
@@ -136,6 +137,21 @@ set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
         bc.setHi(i,dsdt_bc[hi_bc[i]]);
     }
 }
+
+static
+void
+set_average_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        bc.setLo(i,average_bc[lo_bc[i]]);
+        bc.setHi(i,average_bc[hi_bc[i]]);
+    }
+}
+
+
 
 typedef StateDescriptor::BndryFunc BndryFunc;
 
@@ -298,8 +314,47 @@ NavierStokes::variableSetUp ()
 	set_dsdt_bc(bc,phys_bc);
 	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
     }
+
+
+// TO DO MAKE A CHECK STATEMENT HERE: WE DONT WANT TO ALWAYS AVERAGE
+   {
+    Average_Type = desc_lst.size();
+    bool state_data_extrap = false;
+    bool store_in_checkpoint = true;
+    desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
+                           StateDescriptor::Point,0,BL_SPACEDIM,
+                           &cc_interp,state_data_extrap,store_in_checkpoint);
+
+    set_average_bc(bc,phys_bc);
+    desc_lst.setComponent(Average_Type,Xvel,"x_vel_average",bc,BndryFunc(FORT_DSDTFILL));
+
+    desc_lst.setComponent(Average_Type,Yvel,"y_vel_average",bc,BndryFunc(FORT_DSDTFILL));
+}
+
+
+
+
+
     //
     // **************  DEFINE DERIVED QUANTITIES ********************
+
+
+
+  Vector<std::string> var_names_ave(BL_SPACEDIM);
+  var_names_ave[0] = "x_vel_ave";
+  var_names_ave[1] = "y_vel_ave";
+// TO DO 3D
+  derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM,
+                 var_names_ave,der_vel_avg,the_same_box);
+  derive_lst.addComponent("velocity_average",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+
+
+
+
+
+
+
+
     //
     // mod grad rho
     //

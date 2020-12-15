@@ -118,9 +118,14 @@ std::string NavierStokesBase::LES_model                 = "Smagorinsky";
 Real        NavierStokesBase::smago_Cs_cst              = 0.18;
 Real        NavierStokesBase::sigma_Cs_cst              = 1.5;
 
+//amrex::Real NavierStokesBase::time_avg;
+amrex::Vector<amrex::Real> NavierStokesBase::time_avg;
+amrex::Vector<amrex::Real> NavierStokesBase::dt_avg;
+
 int  NavierStokesBase::additional_state_types_initialized = 0;
 int  NavierStokesBase::Divu_Type                          = -1;
 int  NavierStokesBase::Dsdt_Type                          = -1;
+int  NavierStokesBase::Average_Type                          = -1;
 int  NavierStokesBase::num_state_type                     = 2;
 int  NavierStokesBase::have_divu                          = 0;
 int  NavierStokesBase::have_dsdt                          = 0;
@@ -2624,6 +2629,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 #endif
 #endif
 
+
     if (level > 0) incrPAvg();
 
     old_intersect_new          = grids;
@@ -2662,6 +2668,17 @@ NavierStokesBase::post_timestep (int crse_iteration)
             mf[0].writeOn(ofs);
         }
     }
+
+    {
+      int flag_init = 0;
+      const amrex::Real dt_level = parent->dtLevel(level);
+amrex::Print() << " " << std::endl;
+amrex::Print() << " DEBUG CALLING TIME_AVERAGE ON LEVEL " << level << std::endl;
+      time_average(flag_init, NavierStokesBase::dt_avg[level], dt_level);
+amrex::Print() << " DEBUG AFTER TIME_AVERAGE  " << NavierStokesBase::dt_avg[level] << std::endl;
+
+    }
+
 }
 
 //

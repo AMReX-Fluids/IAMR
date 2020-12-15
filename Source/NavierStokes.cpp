@@ -1567,6 +1567,13 @@ NavierStokes::post_init (Real stop_time)
         sum_jet_quantities();
 #endif
 #endif
+
+// TO DO: PUT THAT IN RESTART
+    NavierStokesBase::time_avg.resize(finest_level); 
+    NavierStokesBase::dt_avg.resize(finest_level);
+    NavierStokesBase::dt_avg={0};
+    NavierStokesBase::time_avg={0};
+
 }
 
 //

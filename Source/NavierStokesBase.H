@@ -16,6 +16,7 @@
 #include <Projection.H>
 #include <SyncRegister.H>
 #include <AMReX_Utility.H>
+#include <AMReX.H>
 
 #ifdef AMREX_PARTICLES
 #include <AMReX_AmrParticles.H>
@@ -201,6 +202,8 @@ public:
 		      int scomp, int ncomp);
 
     void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
+
+    void time_average(int flag_init, amrex::Real& dt_avg, const amrex::Real& dt_level);
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
@@ -752,11 +755,18 @@ public:
     static amrex::Real smago_Cs_cst;       // A parameter for the Smagorinsky model, usually set to 0.18
     static amrex::Real sigma_Cs_cst;       // A parameter for the Sigma model, usually set to 1.5
     //
+    // Parameters for averaging
+    //
+//    static amrex::Real time_avg;  // Physical time between 2 averages (same for all levels)
+    static amrex::Vector<amrex::Real> time_avg;
+    static amrex::Vector<amrex::Real> dt_avg;
+    //
     // Members for non-zero divu.
     //
     static int  additional_state_types_initialized;
     static int  Divu_Type;
     static int  Dsdt_Type;
+    static int  Average_Type;
     static int  num_state_type;
     static int  have_divu;
     static int  have_dsdt;
