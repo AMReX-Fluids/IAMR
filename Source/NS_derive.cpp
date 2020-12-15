@@ -20,7 +20,7 @@ void der_vel_avg (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
     auto          der = derfab.array(dcomp);
 
 
-    amrex::Real inv_time = NavierStokesBase::time_avg[level];
+    amrex::Real inv_time = 1.0 / NavierStokesBase::time_avg[level];
 
     amrex::ParallelFor(bx, BL_SPACEDIM, [inv_time,der,in_dat]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept

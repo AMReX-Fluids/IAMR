@@ -2688,6 +2688,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
       const amrex::Real dt_level = parent->dtLevel(level);
       time_average(flag_init, time_avg[level], dt_avg[level], dt_level);
     }
+
 }
 
 //
