@@ -3,6 +3,7 @@
 //
 
 #include <NavierStokesBase.H>
+
 #include <AMReX_VisMF.H>
 
 
@@ -12,7 +13,7 @@ using namespace amrex;
 
 
 void
-NavierStokesBase::time_average(int flag_init, amrex::Real&  dt_avg, const Real& dt_level)
+NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Real&  dt_avg, const Real& dt_level)
 
 {
 
@@ -20,13 +21,82 @@ NavierStokesBase::time_average(int flag_init, amrex::Real&  dt_avg, const Real& 
     amrex::Print() << "\n  WE ARE IN THE NEW ROUTINE FOR TIME AVERAGE \n\n";
   }
 
-  amrex::Print() << " " << std::endl;
-  amrex::Print() << "DEBUG AVEGRAGE dt_level = " << dt_level << std::endl;
- amrex::Print() << "DEBUG AVEGRAGE before dt_avg = " << dt_avg << std::endl;
+  if (flag_init)
+  {
 
-  dt_avg = dt_avg + dt_level;
-   amrex::Print() << "DEBUG AVEGRAGE after dt_avg = " << dt_avg << std::endl;
+    dt_avg   = 0;
+    time_avg = 0;
 
+    amrex::Print() << " " << std::endl;
+    amrex::Print() << "DEBUG AVEGRAGE after INIT dt_avg = " << dt_avg << std::endl;
+    amrex::Print() << "DEBUG AVEGRAGE after INIT time_avg = " << time_avg << std::endl;
+
+
+MultiFab& Sstate = get_new_data(State_Type);
+     MultiFab& Savg   = get_new_data(Average_Type);
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif  
+      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+         const Box& bx = mfi.tilebox();
+         auto const& S_state = Sstate.array(mfi,Xvel);
+         auto const& S_avg   = Savg.array(mfi);
+
+         amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, dt_avg]
+         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+         {
+            S_avg(i,j,k,n) = S_state(i,j,k,n);
+         });
+      }
+
+
+  }
+  else
+  {
+
+    amrex::Print() << " " << std::endl;
+    amrex::Print() << "DEBUG AVEGRAGE dt_level = " << dt_level << std::endl;
+    amrex::Print() << "DEBUG AVEGRAGE before dt_avg = " << dt_avg << std::endl;
+
+    dt_avg = dt_avg + dt_level;
+    amrex::Print() << "DEBUG AVEGRAGE after dt_avg = " << dt_avg << std::endl;
+
+    int avg_interval = 1;
+    if (parent->levelSteps(0)%avg_interval == 0)
+    {
+      amrex::Print() << "DEBUG HELLO FROM MODULO " << std::endl;
+ 
+     MultiFab& Sstate = get_new_data(State_Type);
+     MultiFab& Savg   = get_new_data(Average_Type); 
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+         const Box& bx = mfi.tilebox();
+         auto const& S_state = Sstate.array(mfi,Xvel);
+         auto const& S_avg   = Savg.array(mfi);
+
+         amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, dt_avg]
+         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+         {
+            S_avg(i,j,k,n) = S_avg(i,j,k,n) + dt_avg * S_state(i,j,k,n);
+         });
+      }
+   
+
+  //      for (MFIter mfi(Savg,true); mfi.isValid(); ++mfi)
+  //      {
+  //       amrex::Print() << Savg[mfi];
+  //      }
+ 
+    }
+
+
+  }
   
 
 /*  

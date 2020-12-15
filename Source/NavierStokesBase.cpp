@@ -2670,11 +2670,11 @@ NavierStokesBase::post_timestep (int crse_iteration)
     }
 
     {
-      int flag_init = 0;
+      bool flag_init = false;
       const amrex::Real dt_level = parent->dtLevel(level);
 amrex::Print() << " " << std::endl;
 amrex::Print() << " DEBUG CALLING TIME_AVERAGE ON LEVEL " << level << std::endl;
-      time_average(flag_init, NavierStokesBase::dt_avg[level], dt_level);
+      time_average(flag_init, time_avg[level], dt_avg[level], dt_level);
 amrex::Print() << " DEBUG AFTER TIME_AVERAGE  " << NavierStokesBase::dt_avg[level] << std::endl;
 
     }
