@@ -1568,11 +1568,11 @@ NavierStokes::post_init (Real stop_time)
 #endif
 #endif
 
-// TO DO: PUT THAT IN RESTART
-    NavierStokesBase::time_avg.resize(finest_level+1); 
-    NavierStokesBase::dt_avg.resize(finest_level+1);
-
+    if (NavierStokesBase::avg_interval > 0)
     {
+      NavierStokesBase::time_avg.resize(finest_level+1); 
+      NavierStokesBase::dt_avg.resize(finest_level+1);
+
       bool flag_init = true;
       const amrex::Real dt_level = parent->dtLevel(level);
       time_average(flag_init, NavierStokesBase::time_avg[level], NavierStokesBase::dt_avg[level], dt_level);

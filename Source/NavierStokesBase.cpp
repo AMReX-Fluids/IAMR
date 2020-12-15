@@ -118,9 +118,9 @@ std::string NavierStokesBase::LES_model                 = "Smagorinsky";
 Real        NavierStokesBase::smago_Cs_cst              = 0.18;
 Real        NavierStokesBase::sigma_Cs_cst              = 1.5;
 
-//amrex::Real NavierStokesBase::time_avg;
 amrex::Vector<amrex::Real> NavierStokesBase::time_avg;
 amrex::Vector<amrex::Real> NavierStokesBase::dt_avg;
+int  NavierStokesBase::avg_interval                    = 0;
 
 int  NavierStokesBase::additional_state_types_initialized = 0;
 int  NavierStokesBase::Divu_Type                          = -1;
@@ -478,6 +478,8 @@ NavierStokesBase::Initialize ()
     pp.query("LES_model",                LES_model  );
     pp.query("smago_Cs_cst",             smago_Cs_cst  );
     pp.query("sigma_Cs_cst",             sigma_Cs_cst  );
+
+    pp.query("avg_interval",             avg_interval  );
 
 #ifdef AMREX_USE_EB
     pp.query("refine_cutcells", refine_cutcells);
@@ -2561,6 +2563,17 @@ NavierStokesBase::post_restart ()
     make_rho_prev_time();
     make_rho_curr_time();
 
+    if (avg_interval > 0)
+    {
+      const int   finest_level = parent->finestLevel();
+      NavierStokesBase::time_avg.resize(finest_level+1);
+      NavierStokesBase::dt_avg.resize(finest_level+1);
+    
+      bool flag_init = true;
+      const amrex::Real dt_level = parent->dtLevel(level);
+      time_average(flag_init, NavierStokesBase::time_avg[level], NavierStokesBase::dt_avg[level], dt_level);
+    }
+
 #ifdef AMREX_PARTICLES
     post_restart_particle ();
 #endif
@@ -2669,16 +2682,12 @@ NavierStokesBase::post_timestep (int crse_iteration)
         }
     }
 
+    if (avg_interval > 0)
     {
       bool flag_init = false;
       const amrex::Real dt_level = parent->dtLevel(level);
-amrex::Print() << " " << std::endl;
-amrex::Print() << " DEBUG CALLING TIME_AVERAGE ON LEVEL " << level << std::endl;
       time_average(flag_init, time_avg[level], dt_avg[level], dt_level);
-amrex::Print() << " DEBUG AFTER TIME_AVERAGE  " << NavierStokesBase::dt_avg[level] << std::endl;
-
     }
-
 }
 
 //

@@ -14,22 +14,20 @@ void der_vel_avg (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
     AMREX_ASSERT(derfab.box().contains(bx));
     AMREX_ASSERT(datfab.box().contains(bx));
     AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);
-    AMREX_ASSERT(datfab.nComp() >= BL_SPACEDIM);
+    AMREX_ASSERT(datfab.nComp() >= BL_SPACEDIM*2);
     AMREX_ASSERT(ncomp == BL_SPACEDIM);
     auto const in_dat = datfab.array();
     auto          der = derfab.array(dcomp);
 
 
-    amrex::ParallelFor(bx, BL_SPACEDIM,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        der(i,j,k,n) = in_dat(i,j,k,n);
-    });
-    amrex::Print() << " " << std::endl;
-    amrex::Print() << "DEBUG in der_vel_avg level = " << level << std::endl;
-    amrex::Print() << "DEBUG in der_vel_avg time_avg = " << NavierStokesBase::time_avg[level] << std::endl;
+    amrex::Real inv_time = NavierStokesBase::time_avg[level];
 
-    amrex::Print() << " " << std::endl;
+    amrex::ParallelFor(bx, BL_SPACEDIM, [inv_time,der,in_dat]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        der(i,j,k,n) = in_dat(i,j,k,n) * inv_time;
+        der(i,j,k,n+BL_SPACEDIM) = sqrt(in_dat(i,j,k,n+BL_SPACEDIM) * inv_time);
+    });
 
 }
 

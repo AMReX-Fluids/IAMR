@@ -315,46 +315,44 @@ NavierStokes::variableSetUp ()
 	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
     }
 
+    if (NavierStokesBase::avg_interval > 0)
+    {
+      Average_Type = desc_lst.size();
+      bool state_data_extrap = false;
+      bool store_in_checkpoint = false;
+      desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
+                             StateDescriptor::Point,0,BL_SPACEDIM*2,
+                             &cc_interp,state_data_extrap,store_in_checkpoint);
 
-// TO DO MAKE A CHECK STATEMENT HERE: WE DONT WANT TO ALWAYS AVERAGE
-   {
-    Average_Type = desc_lst.size();
-    bool state_data_extrap = false;
-    bool store_in_checkpoint = true;
-    desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
-                           StateDescriptor::Point,0,BL_SPACEDIM,
-                           &cc_interp,state_data_extrap,store_in_checkpoint);
+      set_average_bc(bc,phys_bc);
+      desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+#if (BL_SPACEDIM==3)
+      desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+#endif
 
-    set_average_bc(bc,phys_bc);
-    desc_lst.setComponent(Average_Type,Xvel,"x_vel_average",bc,BndryFunc(FORT_DSDTFILL));
+      Vector<std::string> var_names_ave(BL_SPACEDIM*2);
+      var_names_ave[Xvel] = "x_vel_average";
+      var_names_ave[Yvel] = "y_vel_average";
+#if (BL_SPACEDIM==3)
+      var_names_ave[Zvel] = "z_vel_average";
+#endif
+      var_names_ave[Xvel+BL_SPACEDIM] = "x_vel_rms";
+      var_names_ave[Yvel+BL_SPACEDIM] = "y_vel_rms";
+#if (BL_SPACEDIM==3)
+      var_names_ave[Zvel+BL_SPACEDIM] = "z_vel_rms";
+#endif
+      derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM*2,
+                     var_names_ave,der_vel_avg,the_same_box);
+      derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,BL_SPACEDIM*2);
 
-    desc_lst.setComponent(Average_Type,Yvel,"y_vel_average",bc,BndryFunc(FORT_DSDTFILL));
-}
-
-
-
-
+    }
 
     //
     // **************  DEFINE DERIVED QUANTITIES ********************
-
-
-
-  Vector<std::string> var_names_ave(BL_SPACEDIM);
-  var_names_ave[0] = "x_vel_ave";
-  var_names_ave[1] = "y_vel_ave";
-// TO DO 3D
-  derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM,
-                 var_names_ave,der_vel_avg,the_same_box);
-  derive_lst.addComponent("velocity_average",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-
-
-
-
-
-
-
-
     //
     // mod grad rho
     //

@@ -757,9 +757,9 @@ public:
     //
     // Parameters for averaging
     //
-//    static amrex::Real time_avg;  // Physical time between 2 averages (same for all levels)
     static amrex::Vector<amrex::Real> time_avg;
     static amrex::Vector<amrex::Real> dt_avg;
+    static int avg_interval;
     //
     // Members for non-zero divu.
     //
