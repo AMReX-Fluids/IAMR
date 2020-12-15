@@ -15,7 +15,7 @@ void der_vel_avg (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
     AMREX_ASSERT(datfab.box().contains(bx));
     AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);
     AMREX_ASSERT(datfab.nComp() >= BL_SPACEDIM*2);
-    AMREX_ASSERT(ncomp == BL_SPACEDIM);
+    AMREX_ASSERT(ncomp == BL_SPACEDIM*2);
     auto const in_dat = datfab.array();
     auto          der = derfab.array(dcomp);
 

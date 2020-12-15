@@ -319,7 +319,7 @@ NavierStokes::variableSetUp ()
     {
       Average_Type = desc_lst.size();
       bool state_data_extrap = false;
-      bool store_in_checkpoint = false;
+      bool store_in_checkpoint = true;
       desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
                              StateDescriptor::Point,0,BL_SPACEDIM*2,
                              &cc_interp,state_data_extrap,store_in_checkpoint);
