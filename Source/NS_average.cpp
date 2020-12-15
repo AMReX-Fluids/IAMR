@@ -10,7 +10,17 @@
 
 using namespace amrex;
 
-
+//--------------------------------------------------------------------
+// "On the fly" time averaging of the velocity
+//
+//  Just put ns.avg_interval = something (>0) to activate the feature.
+//  avg_interval controls the interval of time-steps when a solution is taken into account.
+//  The average is dumped in each plotfile.
+//
+//  Do not forget to add "velocity_average" in amr.derive_plot_vars.
+//  The averaging process starts from the initial/restart solution,
+//  this means that the averaging from previous runs are forgotten.
+//---------------------------------------------------------------------
 
 void
 NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Real&  dt_avg, const Real& dt_level)
