@@ -154,6 +154,12 @@ bool         NavierStokesBase::body_state_set      = false;
 std::vector<Real> NavierStokesBase::body_state;
 #endif
 
+//
+// For restart, is GradP in checkpoint file 
+//
+bool NavierStokesBase::gradp_in_checkpoint = true;
+
+
 namespace
 {
     bool initialized = false;
@@ -1403,8 +1409,6 @@ NavierStokesBase::estTimeStep ()
     Vector<Real> u_max(AMREX_SPACEDIM);
     Vector<Real> f_max(AMREX_SPACEDIM);
 
-    // FIXME - was at curr press time, but us this right now? I think so...
-    const Real  cur_gp_time = state[Gradp_Type].curTime();
     MultiFab& Gp = get_new_data(Gradp_Type);
 
     //
@@ -1776,8 +1780,9 @@ NavierStokesBase::init (AmrLevel &old)
     }
 
     //
-    // FIXME Need to fillpatch Gp here -- make sure to fill Gp's ghost cells
-    // Think if we need to fill old too?
+    // FIXME 
+    // Do we need to fill old too, like Pressure? Not sure P_old really needs filling
+    // because doesn't advance setup swap old and new?
     MultiFab& Gp_new = get_new_data(Gradp_Type);
     FillPatch(old,Gp_new,Gp_new.nGrow(),cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
     
@@ -1800,6 +1805,9 @@ NavierStokesBase::init (AmrLevel &old)
     is_first_step_after_regrid = true;
 }
 
+//
+// Fills a totally new level n with data interpolated from coarser level.
+//
 void
 NavierStokesBase::init ()
 {
@@ -2467,6 +2475,9 @@ NavierStokesBase::post_init_state ()
     // FIXME -- avgDown() calls make_rho_curr_time(). Need to check PLM and remove this call
     // Also, do we really need to call avgDown? vel gets avgDown in NodalProj, scalars shouldn't have been changed, but initialVelocityProject, right?
     // do we just need this for making sure initData is consistent?
+    //
+    // Also need to think about case with no initial iters....
+    
     make_rho_curr_time();
 
     if (do_init_proj && projector && (std::fabs(gravity)) > 0.){
@@ -2479,7 +2490,7 @@ NavierStokesBase::post_init_state ()
 
       if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
     }
-    // FIXME? Probabaly better to just to init old to zero in initData??? & fix up
+    // FIXME? Probabaly better to just init old to zero in initData??? & fix up
     // initialvelproj
     //
     // make sure there's not NANs in old pressure field
@@ -2552,11 +2563,11 @@ NavierStokesBase::post_timestep (int crse_iteration)
     // FIXME --- why would pressure need to be averaged down here?
     // get here at end of full integration of all levels. Level_project last
     // done => no average down done for Press, but MLSyncProj will overwrite
-    // new..
+    // new.. NONONO, MLSync computes a correction that's added to P on crse and fine
+    //and mac_sync uses GradP old...
     if (level < finest_level)
         avgDown();
 
-    //uses old GradP
     if (do_mac_proj && level < finest_level)
         mac_sync();
 
@@ -2566,10 +2577,8 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
     
     //
-    // FIXME -- need to update GradP after P gets updated in level_sync
-    //does it go in level sync or here?
-    //
-    //Also need to look at avgDown and how it's used to determine how to
+    // FIXME -- 
+    //need to look at avgDown and how it's used to determine how to
     //deal with GradP -- probably doesn't need update every call, but does
     //need to be updated after some...
 
@@ -2696,6 +2705,22 @@ NavierStokesBase::resetState (Real time,
     }
 }
 
+//
+// Old checkpoint files may not have Gradp_Type.
+// 
+//
+void
+NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
+{ 
+  //
+  // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.
+  // state_in_checkpoint is initialized to all true.
+  //
+  state_in_checkpoint[Gradp_Type] = 0;
+
+  gradp_in_checkpoint = false;
+}
+
 void
 NavierStokesBase::restart (Amr&          papa,
                            std::istream& is,
@@ -2703,9 +2728,27 @@ NavierStokesBase::restart (Amr&          papa,
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-#ifdef AMREX_USE_EB
-    amrex::Warning("Restart not tested with EB yet.");
-#endif
+    if ( !gradp_in_checkpoint )
+    {
+      Print()<<"WARNING! GradP not found in checkpoint file. Recomputing from Pressure."
+	     <<std::endl;
+
+      //
+      // define state[Gradp_Type] and
+      // Compute GradP from the Pressure
+      //
+      Real cur_time = state[Press_Type].curTime();
+      Real prev_time = state[Press_Type].prevTime();
+      Real dt = cur_time - prev_time;
+      state[Gradp_Type].define(geom.Domain(), grids, dmap, desc_lst[Gradp_Type],
+      			       cur_time, dt, Factory());
+      computeGradP(cur_time);
+
+      // now allocate the old data and fill
+      state[Gradp_Type].allocOldData();
+      computeGradP(prev_time);
+    }
+
     //
     // Build metric coefficients for RZ calculations.
     // Build volume and areas.
@@ -4651,20 +4694,14 @@ NavierStokesBase::computeGradP(Real time)
     linop.buildIntegral();
 #endif
     
-    // No call to set BCs because we're only calling getFluxes(), which
+    // No call to set BCs because we're only calling compGrad(), which
     // doesn't use them. P already exists on surroundingNodes(Gp.validbox()),
-    // and getFluxes() does not fill ghost cells
-    
-    // Set sigma to -1 to get what we want out of getFluxes(), which computes
-    //    -sigma*grad(phi) 
-    MultiFab sigma(grids, dmap, 1, 0, MFInfo(), Factory());
-    sigma.setVal(-1.0);   
-    linop.setSigma(0, sigma);
+    // and compGrad() does not fill ghost cells
 
     MultiFab& Press = get_data(Press_Type, time);
     MultiFab& Gp    = get_data(Gradp_Type, time);
 
-    linop.getFluxes({&Gp}, {&Press});
+    linop.compGrad(0, Gp, Press);
 
     // Now fill ghost cells 
     FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);

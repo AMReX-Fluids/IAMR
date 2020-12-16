@@ -120,8 +120,8 @@ public:
     //
     virtual int okToContinue () override;
     //
-	// Check whether simulation has reached steady state, i.e. whether the
-	// change from last iteration is below a prescribed threshold steady_tol.
+    // Check whether simulation has reached steady state, i.e. whether the
+    // change from last iteration is below a prescribed threshold steady_tol.
     //
     virtual int steadyState ();
     //
@@ -140,6 +140,11 @@ public:
     virtual void restart (amrex::Amr&          papa,
                           std::istream& is,
                           bool          bReadSpecial = false) override;
+    //
+    // Old checkpoint file may have different number of state types than the
+    // new source code.
+    //
+    virtual void set_state_in_checkpoint (amrex::Vector<int>& state_in_checkpoint) override;
     //
     // Set time levels of state data.
     //
@@ -810,6 +815,10 @@ public:
 #else
     static const int  godunov_hyp_grow = 3;
 #endif
+  //
+  // For restart, is GradP in checkpoint file 
+  //
+  static bool gradp_in_checkpoint;
 
 };
 
