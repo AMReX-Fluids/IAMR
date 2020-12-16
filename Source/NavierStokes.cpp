@@ -1573,7 +1573,7 @@ NavierStokes::post_init (Real stop_time)
 #endif
 #endif
 
-       if (NavierStokesBase::avg_interval > 0)
+    if (NavierStokesBase::avg_interval > 0)
     {
       const int   finest_level = parent->finestLevel();
       NavierStokesBase::time_avg.resize(finest_level+1);
@@ -1582,24 +1582,6 @@ NavierStokes::post_init (Real stop_time)
       const amrex::Real dt_level = parent->dtLevel(level);
       time_average(flag_init, NavierStokesBase::time_avg[level], NavierStokesBase::dt_avg[level], dt_level);
     }
-
-/*
-  MultiFab& Savg   = get_new_data(Average_Type);
-      MultiFab& Savg_old   = get_old_data(Average_Type);
-
-      amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
-      for (MFIter mfi(Savg_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-      {
-      amrex::Print() << Savg_old[mfi];
-      }
-amrex::Print() << std::endl << " DEBUG S_NEW " << std::endl;
-      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-      {
-      amrex::Print() << Savg[mfi];
-      }
-*/
-
-
 
 }
 

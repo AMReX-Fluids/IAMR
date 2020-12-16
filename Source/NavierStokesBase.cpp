@@ -797,13 +797,9 @@ NavierStokesBase::advance_setup (Real time,
     //
     // Set up state multifabs for the advance.
     //
-amrex::Print() << "/n RAAAAAHHHHH num_state_type " << num_state_type << "\n";
     for (int k = 0; k < num_state_type; k++)
     {
 	bool has_old_data = state[k].hasOldData();
-amrex::Print() << "/n RAAAAAHHHHH k " << k << "\n";
-amrex::Print() << "/n RAAAAAHHHHH has_old_data " << has_old_data << "\n";
-
         state[k].allocOldData();
 	if (! has_old_data) state[k].oldData().setVal(0.0);
         state[k].swapTimeLevels(dt);
@@ -2693,49 +2689,12 @@ NavierStokesBase::post_timestep (int crse_iteration)
         }
     }
 
-/*
-     MultiFab& Savg   = get_new_data(Average_Type);
-      MultiFab& Savg_old   = get_old_data(Average_Type);
-
-      amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
-      for (MFIter mfi(Savg_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-      {
-      amrex::Print() << Savg_old[mfi];
-      }
-amrex::Print() << std::endl << " DEBUG S_NEW " << std::endl;
-      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-      {
-      amrex::Print() << Savg[mfi];
-      }
-*/
-
-
-
-
     if (avg_interval > 0)
     {
       bool flag_init = false;
       const amrex::Real dt_level = parent->dtLevel(level);
       time_average(flag_init, time_avg[level], dt_avg[level], dt_level);
     }
-
-
-/*
-  MultiFab& Savg   = get_new_data(Average_Type);
-      MultiFab& Savg_old   = get_old_data(Average_Type);
-
-      amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
-      for (MFIter mfi(Savg_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-      {
-      amrex::Print() << Savg_old[mfi];
-      }
-amrex::Print() << std::endl << " DEBUG S_NEW " << std::endl;
-      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-      {
-      amrex::Print() << Savg[mfi];
-      }
-*/
-
 
 }
 
