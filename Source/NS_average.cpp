@@ -50,10 +50,10 @@ NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Re
        amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
-          S_avg(i,j,k,n) = S_state(i,j,k,n);
-          S_avg(i,j,k,n+BL_SPACEDIM) = S_state(i,j,k,n) * S_state(i,j,k,n);
-          S_avg_old(i,j,k,n) = S_avg(i,j,k,n);
-          S_avg_old(i,j,k,n+BL_SPACEDIM) = S_avg(i,j,k,n+BL_SPACEDIM);
+          S_avg(i,j,k,n) = 0.; //S_state(i,j,k,n);
+          S_avg(i,j,k,n+BL_SPACEDIM) = 0.; //S_state(i,j,k,n) * S_state(i,j,k,n);
+          S_avg_old(i,j,k,n) = 0.; //S_avg(i,j,k,n);
+          S_avg_old(i,j,k,n+BL_SPACEDIM) = 0.; //S_avg(i,j,k,n+BL_SPACEDIM);
        });
     }
 
@@ -82,8 +82,8 @@ NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Re
          amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg]
          AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
          {
-            S_avg(i,j,k,n) = S_avg(i,j,k,n) + dt_avg * S_state(i,j,k,n);
-            S_avg(i,j,k,n+BL_SPACEDIM) = S_avg(i,j,k,n+BL_SPACEDIM) + dt_avg * S_state(i,j,k,n) * S_state(i,j,k,n);
+            S_avg(i,j,k,n) = S_avg_old(i,j,k,n) + dt_avg * S_state(i,j,k,n);
+            S_avg(i,j,k,n+BL_SPACEDIM) = S_avg_old(i,j,k,n+BL_SPACEDIM) + dt_avg * S_state(i,j,k,n) * S_state(i,j,k,n);
             S_avg_old(i,j,k,n) = S_avg(i,j,k,n);
             S_avg_old(i,j,k,n+BL_SPACEDIM) = S_avg(i,j,k,n+BL_SPACEDIM);
          });
