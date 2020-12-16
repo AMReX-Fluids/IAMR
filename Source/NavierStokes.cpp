@@ -93,6 +93,10 @@ NavierStokes::initData ()
     const Real* dx       = geom.CellSize();
     MultiFab&   S_new    = get_new_data(State_Type);
     MultiFab&   P_new    = get_new_data(Press_Type);
+    if (avg_interval > 0){
+      MultiFab&   Save_new    = get_new_data(Average_Type);
+      Save_new.setVal(0.);
+    }
     const Real  cur_time = state[State_Type].curTime();
 #ifdef _OPENMP
 #pragma omp parallel  if (Gpu::notInLaunchRegion())
@@ -1525,6 +1529,7 @@ NavierStokes::derive (const std::string& name,
 void
 NavierStokes::post_init (Real stop_time)
 {
+
     if (level > 0)
         //
         // Nothing to sync up at level > 0.
@@ -1568,16 +1573,34 @@ NavierStokes::post_init (Real stop_time)
 #endif
 #endif
 
-    if (NavierStokesBase::avg_interval > 0)
+       if (NavierStokesBase::avg_interval > 0)
     {
-      NavierStokesBase::time_avg.resize(finest_level+1); 
+      const int   finest_level = parent->finestLevel();
+      NavierStokesBase::time_avg.resize(finest_level+1);
       NavierStokesBase::dt_avg.resize(finest_level+1);
-
       bool flag_init = true;
       const amrex::Real dt_level = parent->dtLevel(level);
       time_average(flag_init, NavierStokesBase::time_avg[level], NavierStokesBase::dt_avg[level], dt_level);
-
     }
+
+/*
+  MultiFab& Savg   = get_new_data(Average_Type);
+      MultiFab& Savg_old   = get_old_data(Average_Type);
+
+      amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
+      for (MFIter mfi(Savg_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg_old[mfi];
+      }
+amrex::Print() << std::endl << " DEBUG S_NEW " << std::endl;
+      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg[mfi];
+      }
+*/
+
+
+
 }
 
 //

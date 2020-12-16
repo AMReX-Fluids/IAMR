@@ -18,8 +18,6 @@ using namespace amrex;
 //  The average is dumped in each plotfile.
 //
 //  Do not forget to add "velocity_average" in amr.derive_plot_vars.
-//  The averaging process starts from the initial/restart solution,
-//  this means that the averaging from previous runs are forgotten.
 //---------------------------------------------------------------------
 
 void
@@ -32,7 +30,7 @@ NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Re
 
     dt_avg   = 0;
     time_avg = 0;
-
+/*
     MultiFab& Sstate = get_new_data(State_Type);
     MultiFab& Savg   = get_new_data(Average_Type);
     MultiFab& Savg_old   = get_old_data(Average_Type);
@@ -56,6 +54,22 @@ NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Re
           S_avg_old(i,j,k,n+BL_SPACEDIM) = 0.; //S_avg(i,j,k,n+BL_SPACEDIM);
        });
     }
+*/
+
+      MultiFab& Savg   = get_new_data(Average_Type);
+      MultiFab& Savg_old   = get_old_data(Average_Type);
+
+
+      amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
+      for (MFIter mfi(Savg_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg_old[mfi];
+      }
+amrex::Print() << std::endl << " DEBUG S_NEW " << std::endl;
+      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg[mfi];
+      }
 
   }
   else
@@ -69,6 +83,34 @@ NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Re
       MultiFab& Savg   = get_new_data(Average_Type); 
       MultiFab& Savg_old   = get_old_data(Average_Type);
 
+/*
+MultiFab& Stest   = get_old_data(Average_Type);
+Stest.setVal(0.);
+FillPatchIterator U_fpi(*this,Stest,0,state[Average_Type].curTime(),Average_Type,Xvel,BL_SPACEDIM*2);
+    MultiFab& Umf=U_fpi.get_mf();
+if (level > 0){
+
+amrex::Print() << std::endl << " DEBUG TEST NEW " << std::endl;
+      for (MFIter mfi(Umf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Umf[mfi];
+      }
+}
+*/
+
+
+      amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
+      for (MFIter mfi(Savg_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg_old[mfi];
+      }
+amrex::Print() << std::endl << " DEBUG S_NEW " << std::endl;
+      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg[mfi];
+      }
+
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -78,6 +120,10 @@ NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Re
          auto const& S_state = Sstate.array(mfi,Xvel);
          auto const& S_avg   = Savg.array(mfi);
          auto const& S_avg_old   = Savg_old.array(mfi);
+
+  //    amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
+  //    amrex::Print() << Savg_old[mfi];
+
 
          amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg]
          AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept

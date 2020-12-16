@@ -293,7 +293,7 @@ NavierStokes::variableSetUp ()
 
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
- 
+
     if (do_temp)
     {
 	// stick Divu_Type on the end of the descriptor list
