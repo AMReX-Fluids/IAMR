@@ -978,29 +978,30 @@ NavierStokesBase::checkPoint (const std::string& dir,
 {
   AmrLevel::checkPoint(dir, os, how, dump_old);
 
-  VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+  if (avg_interval > 0){
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-  if (ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor()) {
 
-    std::ofstream TImeAverageFile;
-    TImeAverageFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-    std::string TAFileName(dir + "/TimeAverage");
-    TImeAverageFile.open(TAFileName.c_str(), std::ofstream::out   |
-                  std::ofstream::trunc |
-                  std::ofstream::binary);
+      std::ofstream TImeAverageFile;
+      TImeAverageFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+      std::string TAFileName(dir + "/TimeAverage");
+      TImeAverageFile.open(TAFileName.c_str(), std::ofstream::out   |
+                    std::ofstream::trunc |
+                    std::ofstream::binary);
 
-    if( !TImeAverageFile.good()) {
-         amrex::FileOpenFailed(TAFileName);
-    }
+      if( !TImeAverageFile.good()) {
+           amrex::FileOpenFailed(TAFileName);
+      }
 
-    TImeAverageFile.precision(17);
+      TImeAverageFile.precision(17);
 
-    // write out title line
-    TImeAverageFile << "Writing time_average to checkpoint\n";
+      // write out title line
+      TImeAverageFile << "Writing time_average to checkpoint\n";
     
-              TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
+      TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
     }
-
+  }
 
 #ifdef AMREX_PARTICLES
     if (level == 0)
