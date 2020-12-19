@@ -33,7 +33,7 @@
 // Determine what you want in the state -- Divu, Dsdt -- in
 // NavierStokes::variableSetUp in NS_setup.cpp.
 //
-enum StateType {State_Type=0, Press_Type};
+enum StateType {State_Type=0, Press_Type, Average_Type};
 
 //
 // Note: enumerated value NUM_STATE_TYPE no longer defined
@@ -137,6 +137,11 @@ public:
     virtual void restart (amrex::Amr&          papa,
                           std::istream& is,
                           bool          bReadSpecial = false) override;
+    // Old checkpoint file may have different number of state types than the
+    // new source code.
+    //
+    virtual void set_state_in_checkpoint (amrex::Vector<int>& state_in_checkpoint) override;
+    
     //
     // Set time levels of state data.
     //
@@ -765,7 +770,6 @@ public:
     static int  additional_state_types_initialized;
     static int  Divu_Type;
     static int  Dsdt_Type;
-    static int  Average_Type;
     static int  num_state_type;
     static int  have_divu;
     static int  have_dsdt;
@@ -809,6 +813,8 @@ public:
 #else
     static const int  godunov_hyp_grow = 3;
 #endif
+
+    static bool average_in_checkpoint;
 
 };
 

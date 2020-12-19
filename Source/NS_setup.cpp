@@ -294,30 +294,8 @@ NavierStokes::variableSetUp ()
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
 
-    if (do_temp)
-    {
-	// stick Divu_Type on the end of the descriptor list
-	Divu_Type = desc_lst.size();
-	int nGrowDivu = 1;
-	desc_lst.addDescriptor(Divu_Type,IndexType::TheCellType(),
-                               StateDescriptor::Point,nGrowDivu,1,
-			       &cc_interp);
-	set_divu_bc(bc,phys_bc);
-	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
-	
-	// stick Dsdt_Type on the end of the descriptor list
-	Dsdt_Type = desc_lst.size();
-	int nGrowDsdt = 0;
-	desc_lst.addDescriptor(Dsdt_Type,IndexType::TheCellType(),
-                               StateDescriptor::Point,nGrowDsdt,1,
-			       &cc_interp);
-	set_dsdt_bc(bc,phys_bc);
-	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
-    }
-
     if (NavierStokesBase::avg_interval > 0)
     {
-      Average_Type = desc_lst.size();
       bool state_data_extrap = false;
       bool store_in_checkpoint = true;
       desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
@@ -349,6 +327,27 @@ NavierStokes::variableSetUp ()
                      var_names_ave,der_vel_avg,the_same_box);
       derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,BL_SPACEDIM*2);
 
+    }
+
+    if (do_temp)
+    {
+	// stick Divu_Type on the end of the descriptor list
+	Divu_Type = desc_lst.size();
+	int nGrowDivu = 1;
+	desc_lst.addDescriptor(Divu_Type,IndexType::TheCellType(),
+                               StateDescriptor::Point,nGrowDivu,1,
+			       &cc_interp);
+	set_divu_bc(bc,phys_bc);
+	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
+	
+	// stick Dsdt_Type on the end of the descriptor list
+	Dsdt_Type = desc_lst.size();
+	int nGrowDsdt = 0;
+	desc_lst.addDescriptor(Dsdt_Type,IndexType::TheCellType(),
+                               StateDescriptor::Point,nGrowDsdt,1,
+			       &cc_interp);
+	set_dsdt_bc(bc,phys_bc);
+	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
     }
 
     //

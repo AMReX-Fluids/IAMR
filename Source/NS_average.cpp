@@ -25,6 +25,22 @@ NavierStokesBase::time_average(bool flag_init, amrex::Real&  time_avg, amrex::Re
 
 {
 
+   MultiFab& Savg   = get_new_data(Average_Type);
+      MultiFab& Savg_old   = get_old_data(Average_Type);
+
+
+      amrex::Print() << std::endl << " DEBUG S_OLD " << std::endl;
+      for (MFIter mfi(Savg_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg_old[mfi];
+      }
+amrex::Print() << std::endl << " DEBUG S_NEW " << std::endl;
+      for (MFIter mfi(Savg,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      {
+      amrex::Print() << Savg[mfi];
+      }
+
+
   if (flag_init)
   {
 

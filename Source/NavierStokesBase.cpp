@@ -125,7 +125,6 @@ int  NavierStokesBase::avg_interval                    = 0;
 int  NavierStokesBase::additional_state_types_initialized = 0;
 int  NavierStokesBase::Divu_Type                          = -1;
 int  NavierStokesBase::Dsdt_Type                          = -1;
-int  NavierStokesBase::Average_Type                          = -1;
 int  NavierStokesBase::num_state_type                     = 2;
 int  NavierStokesBase::have_divu                          = 0;
 int  NavierStokesBase::have_dsdt                          = 0;
@@ -157,6 +156,13 @@ bool         NavierStokesBase::no_eb_in_domain     = true;
 bool         NavierStokesBase::body_state_set      = false;
 std::vector<Real> NavierStokesBase::body_state;
 #endif
+
+//
+// For restart, is Average in checkpoint file 
+//
+bool NavierStokesBase::average_in_checkpoint = true;
+
+
 
 namespace
 {
@@ -2562,6 +2568,21 @@ NavierStokesBase::post_regrid (int lbase,
 }
 
 //
+// Old checkpoint files may not have Gradp_Type.
+// 
+//
+void
+NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
+{ 
+  //
+  // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.
+  // state_in_checkpoint is initialized to all true.
+  //
+  state_in_checkpoint[Average_Type] = 0;
+
+  average_in_checkpoint = false;
+}
+//
 // Build any additional data structures after restart.
 //
 void
@@ -2739,6 +2760,30 @@ NavierStokesBase::restart (Amr&          papa,
                            bool          bReadSpecial)
 {
     AmrLevel::restart(papa,is,bReadSpecial);
+
+   if ( !average_in_checkpoint )
+    {
+      Print()<<"WARNING! Average not found in checkpoint file. Creating data"
+	     <<std::endl;
+
+      //
+      // define state[Gradp_Type] and
+      // Compute GradP from the Pressure
+      //
+      Real cur_time = state[State_Type].curTime();
+      Real prev_time = state[State_Type].prevTime();
+      Real dt = cur_time - prev_time;
+      state[Average_Type].define(geom.Domain(), grids, dmap, desc_lst[Average_Type],
+      			       cur_time, dt, Factory());
+
+      MultiFab& Savg   = get_new_data(Average_Type);
+      Savg.setVal(0.);
+      state[Average_Type].allocOldData();
+      MultiFab& Savg_old   = get_old_data(Average_Type);
+      Savg_old.setVal(0.);
+
+    }
+
 
 #ifdef AMREX_USE_EB
     amrex::Warning("Restart not tested with EB yet.");
