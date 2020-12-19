@@ -33,7 +33,7 @@
 // Determine what you want in the state -- Divu, Dsdt -- in
 // NavierStokes::variableSetUp in NS_setup.cpp.
 //
-enum StateType {State_Type=0, Press_Type, Average_Type};
+enum StateType {State_Type=0, Press_Type};
 
 //
 // Note: enumerated value NUM_STATE_TYPE no longer defined
@@ -770,6 +770,7 @@ public:
     static int  additional_state_types_initialized;
     static int  Divu_Type;
     static int  Dsdt_Type;
+    static int  Average_Type;
     static int  num_state_type;
     static int  have_divu;
     static int  have_dsdt;
