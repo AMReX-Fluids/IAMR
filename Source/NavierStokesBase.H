@@ -207,7 +207,7 @@ public:
 
     void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
 
-    void time_average(bool flag_init, amrex::Real& time_avg, amrex::Real& dt_avg, const amrex::Real& dt_level);
+    void time_average(amrex::Real& time_avg, amrex::Real& dt_avg, const amrex::Real& dt_level);
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
