@@ -412,7 +412,7 @@ NavierStokes::advance (Real time,
     }
 
 #ifdef AMREX_PARTICLES
-    if (theNSPC() != 0 and NavierStokes::initial_iter != true)
+    if (theNSPC() != 0 and NavierStokes::initial_step != true)
     {
         theNSPC()->AdvectWithUmac(u_mac, level, dt);
     }
