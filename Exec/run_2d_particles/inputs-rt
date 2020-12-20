@@ -15,8 +15,6 @@ system.regtest_reduction = 1
 max_step 		= 0
 max_step 		= 50
 
-ns.init_iter = 0
-
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 10.0
 
@@ -140,7 +138,7 @@ amr.blocking_factor 	= 4
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars 	= ALL # mag_vort particle_count
+amr.derive_plot_vars 	= NONE #ALL # mag_vort particle_count
 
 #*******************************************************************************
 
