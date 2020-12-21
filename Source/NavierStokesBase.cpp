@@ -2740,8 +2740,11 @@ NavierStokesBase::restart (Amr&          papa,
       Real cur_time = state[Press_Type].curTime();
       Real prev_time = state[Press_Type].prevTime();
       Real dt = cur_time - prev_time;
+      // Because P and Gp are Interval type, this is the time for define()
+      Real time = 0.5 * (prev_time + cur_time);
+
       state[Gradp_Type].define(geom.Domain(), grids, dmap, desc_lst[Gradp_Type],
-      			       cur_time, dt, Factory());
+			       time, dt, Factory());
       computeGradP(cur_time);
 
       // now allocate the old data and fill
