@@ -977,7 +977,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
 			      bool               dump_old)
 {
   AmrLevel::checkPoint(dir, os, how, dump_old);
-
+/*
   if (avg_interval > 0){
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -1002,7 +1002,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
       TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
     }
   }
-
+*/
 #ifdef AMREX_PARTICLES
     if (level == 0)
     {
@@ -2614,8 +2614,56 @@ NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
 void
 NavierStokesBase::post_restart ()
 {
-    make_rho_prev_time();
-    make_rho_curr_time();
+   make_rho_prev_time();
+   make_rho_curr_time();
+
+  if (avg_interval > 0){
+
+    const int   finest_level = parent->finestLevel();
+    NavierStokesBase::time_avg.resize(finest_level+1);
+    NavierStokesBase::dt_avg.resize(finest_level+1);
+
+  // We assume that if Average_Type is not present, we have just activated the start of averaging
+    if ( !average_in_checkpoint )
+    {
+      Print()<<"WARNING! Average not found in checkpoint file. Creating data"
+             <<std::endl;
+
+      Real cur_time = state[State_Type].curTime();
+      Real prev_time = state[State_Type].prevTime();
+      Real dt = cur_time - prev_time;
+      state[Average_Type].define(geom.Domain(), grids, dmap, desc_lst[Average_Type],
+                               cur_time, dt, Factory());
+
+      MultiFab& Savg   = get_new_data(Average_Type);
+      Savg.setVal(0.);
+      state[Average_Type].allocOldData();
+      MultiFab& Savg_old   = get_old_data(Average_Type);
+      Savg_old.setVal(0.);
+
+      NavierStokesBase::dt_avg[level]   = 0;
+      NavierStokesBase::time_avg[level] = 0;
+
+    }else{
+  // If Average_Type data were found, this means that we need to recover the value of time_average
+      std::string line;
+      std::string file=parent->theRestartFile();
+
+      std::string File(file + "/TimeAverage");
+      Vector<char> fileCharPtr;
+      ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+      std::string fileCharPtrString(fileCharPtr.dataPtr());
+      std::istringstream isp(fileCharPtrString, std::istringstream::in);
+
+      // read in title line
+      std::getline(isp, line);
+
+      isp >> NavierStokesBase::time_avg[level];
+      NavierStokesBase::dt_avg[level]   = 0;
+ 
+    }
+  }
+
 
 #ifdef AMREX_PARTICLES
     post_restart_particle ();
@@ -2774,55 +2822,6 @@ NavierStokesBase::restart (Amr&          papa,
                            bool          bReadSpecial)
 {
   AmrLevel::restart(papa,is,bReadSpecial);
-
-  if (avg_interval > 0){
-
-    const int   finest_level = parent->finestLevel();
-    NavierStokesBase::time_avg.resize(finest_level+1);
-    NavierStokesBase::dt_avg.resize(finest_level+1);
-
-  // We assume that if Average_Type is not present, we have just activated the start of averaging
-    if ( !average_in_checkpoint )
-    {
-      Print()<<"WARNING! Average not found in checkpoint file. Creating data"
-	     <<std::endl;
-
-      Real cur_time = state[State_Type].curTime();
-      Real prev_time = state[State_Type].prevTime();
-      Real dt = cur_time - prev_time;
-      state[Average_Type].define(geom.Domain(), grids, dmap, desc_lst[Average_Type],
-      			       cur_time, dt, Factory());
-
-      MultiFab& Savg   = get_new_data(Average_Type);
-      Savg.setVal(0.);
-      state[Average_Type].allocOldData();
-      MultiFab& Savg_old   = get_old_data(Average_Type);
-      Savg_old.setVal(0.);
-
-      NavierStokesBase::dt_avg[level]   = 0;
-      NavierStokesBase::time_avg[level] = 0;
-
-    }else{
-  // If Average_Type data were found, this means that we need to recover the value of time_average
-      std::string line;
-      std::string file=papa.theRestartFile();
-
-      std::string File(file + "/TimeAverage");
-      Vector<char> fileCharPtr;
-      ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
-      std::string fileCharPtrString(fileCharPtr.dataPtr());
-      std::istringstream isp(fileCharPtrString, std::istringstream::in);
-
-      // read in title line
-      std::getline(isp, line);
-
-      isp >> NavierStokesBase::time_avg[level];
-      NavierStokesBase::dt_avg[level]   = 0;
- 
-    }
-  }
-
-
 
 #ifdef AMREX_USE_EB
     amrex::Warning("Restart not tested with EB yet.");
