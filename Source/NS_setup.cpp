@@ -192,7 +192,7 @@ NavierStokes::variableSetUp ()
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-    			   StateDescriptor::Point,1,NUM_STATE,
+    			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
     			   &cc_interp,state_data_extrap,store_in_checkpoint);
     
     set_x_vel_bc(bc,phys_bc);
