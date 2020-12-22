@@ -977,7 +977,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
 			      bool               dump_old)
 {
   AmrLevel::checkPoint(dir, os, how, dump_old);
-/*
+
   if (avg_interval > 0){
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
@@ -1002,7 +1002,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
       TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
     }
   }
-*/
+
 #ifdef AMREX_PARTICLES
     if (level == 0)
     {
