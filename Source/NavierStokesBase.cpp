@@ -1269,14 +1269,14 @@ NavierStokesBase::create_umac_grown (int nGrow)
                 ParallelFor(box,[crs_arr,fine_arr,idim,c_ratio]
                 AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                   int idx[3] = {i*c_ratio[0],j*c_ratio[1],k*c_ratio[2]};
+		   int idx[3] = {D_DECL(i*c_ratio[0],j*c_ratio[1],k*c_ratio[2])};
 #if ( AMREX_SPACEDIM == 2 )
                    // dim1 are the complement of idim
                    int dim1 = ( idim == 0 ) ? 1 : 0;
                    for (int n1 = 0; n1 < c_ratio[dim1]; n1++) {
-                      int id[3] = {idx[0],idx[1],idx[2]};
+                      int id[3] = {idx[0],idx[1]};
                       id[dim1] += n1;
-                      fine_arr(id[0],id[1],id[2]) = crs_arr(i,j,k);
+                      fine_arr(id[0],id[1],0) = crs_arr(i,j,k);
                    }
 #elif ( AMREX_SPACEDIM == 3 )
                    // dim1 and dim2 are the complements of idim
