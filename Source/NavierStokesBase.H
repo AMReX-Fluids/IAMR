@@ -791,7 +791,6 @@ public:
     //
     // Running statistics controls
     //
-    static int  do_running_statistics;
     static amrex::Real volWgtSum_sub_origin_x;
     static amrex::Real volWgtSum_sub_origin_y;
     static amrex::Real volWgtSum_sub_origin_z;

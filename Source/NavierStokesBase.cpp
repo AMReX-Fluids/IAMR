@@ -135,7 +135,6 @@ int  NavierStokesBase::S_in_vel_diffusion                 = 0;
 int  NavierStokesBase::do_init_vort_proj                  = 0;
 int  NavierStokesBase::do_init_proj                       = 1;
 
-int  NavierStokesBase::do_running_statistics  = 0;
 Real NavierStokesBase::volWgtSum_sub_origin_x = 0;
 Real NavierStokesBase::volWgtSum_sub_origin_y = 0;
 Real NavierStokesBase::volWgtSum_sub_origin_z = 0;
@@ -518,11 +517,6 @@ NavierStokesBase::Initialize ()
     pp.query("Nbuf_outflow",Nbuf_outflow);
     BL_ASSERT(Nbuf_outflow >= 0);
     BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
-
-    //
-    // Check whether we are doing running statistics.
-    //
-    pp.query("do_running_statistics",do_running_statistics);
 
     // If dx,dy,dz,Rcyl<0 (default) the volWgtSum is computed over the entire domain
     pp.query("volWgtSum_sub_origin_x",volWgtSum_sub_origin_x);
@@ -2570,7 +2564,10 @@ NavierStokesBase::post_restart ()
     NavierStokesBase::time_avg.resize(finest_level+1);
     NavierStokesBase::dt_avg.resize(finest_level+1);
 
-  // We assume that if Average_Type is not present, we have just activated the start of averaging
+    //
+    // We assume that if Average_Type is not present, we have just activated
+    // the start of averaging
+    //
     if ( !average_in_checkpoint )
     {
       Print()<<"WARNING! Average not found in checkpoint file. Creating data"
@@ -2592,7 +2589,10 @@ NavierStokesBase::post_restart ()
       NavierStokesBase::time_avg[level] = 0;
 
     }else{
-  // If Average_Type data were found, this means that we need to recover the value of time_average
+      //
+      // If Average_Type data were found, this means that we need to recover the
+      // value of time_average
+      //
       std::string line;
       std::string file=parent->theRestartFile();
 
