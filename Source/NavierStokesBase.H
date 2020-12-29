@@ -177,9 +177,10 @@ public:
     //
     amrex::MultiFab* getDivCond (int ngrow, amrex::Real time);
     //
-    // Get pressure gradient data via fill-patching.
+    // Get pressure gradient data, fill-patch ghost cells.
     //
     void computeGradP(amrex::Real time);
+    void computeGradP(int clev, int flev);
 
 #ifdef AMREX_USE_EB
     const amrex::MultiFab* VolFrac () const { return volfrac; }

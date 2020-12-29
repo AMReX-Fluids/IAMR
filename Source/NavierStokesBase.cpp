@@ -2142,6 +2142,13 @@ NavierStokesBase::level_sync (int crse_iteration)
       SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio,
 		     first_crse_step_after_initial_iters,
 		     cur_crse_pres_time, prev_crse_pres_time);
+
+      // Update Gradp old and new, since both are corrected in SyncProjInterp
+      // FIXME? Unsure that updating old is really necessary
+      // NOTE this will fill ghost cells with FillPatch
+      flev.computeGradP(flev.state[Gradp_Type].prevTime());
+      flev.computeGradP(flev.state[Gradp_Type].curTime());
+
     }
 
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::level_sync()");
@@ -2474,6 +2481,7 @@ NavierStokesBase::post_init_state ()
 
     if (do_init_vort_proj)
     {
+        amrex::Abort("NavierStokesBase::post_init_state(): initialVorticityProject not tested with new Gradp!!! See comments Projection::initialVorticityProject.\n");
         //
 	// NOTE: this assumes have_divu == 0.
 	// Only used if vorticity is used to initialize the velocity field.
@@ -2508,13 +2516,6 @@ NavierStokesBase::post_init_state ()
     {
       getLevel(k).avgDown();
     }
-    // FIXME -- avgDown() calls make_rho_curr_time(). Need to check PLM and remove this call
-    // Also, do we really need to call avgDown? vel gets avgDown in NodalProj, scalars shouldn't have been changed, but initialVelocityProject, right?
-    // do we just need this for making sure initData is consistent?
-    //
-    // Also need to think about case with no initial iters....
-    
-    make_rho_curr_time();
 
     if (do_init_proj && projector && (std::fabs(gravity)) > 0.){
       //
@@ -2529,10 +2530,10 @@ NavierStokesBase::post_init_state ()
 
     // make sure there's not NANs in old pressure field
     // end up with P_old = P_new as is the case when exiting initialPressureProject
-    if(!do_init_proj){
-      MultiFab& p_old=get_old_data(Press_Type);
-      MultiFab& p_new=get_new_data(Press_Type);
-      MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
+    if(!do_init_proj)
+    {
+      initOldFromNew(Press_Type);
+      initOldFromNew(Gradp_Type);
     }
 
 }
@@ -2653,6 +2654,11 @@ NavierStokesBase::post_timestep (int crse_iteration)
     // done => no average down done for Press, but MLSyncProj will overwrite
     // new.. NONONO, MLSync computes a correction that's added to P on crse and fine
     //and mac_sync uses GradP old...
+    //
+    // FIXME -- 
+    //need to look at avgDown and how it's used to determine how to
+    //deal with GradP -- probably doesn't need update every call, but probably does
+    //need to be updated after some...
     if (level < finest_level)
         avgDown();
 
@@ -2662,28 +2668,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
 
-
-    
-    //
-    // FIXME -- 
-    //need to look at avgDown and how it's used to determine how to
-    //deal with GradP -- probably doesn't need update every call, but does
-    //need to be updated after some...
-
-    //
-    // Update GradP to match corrected P
-    // fixme? could do this with one call to MLNodeLap...
-    if ( level == 0 && finest_level > 0 )
-    {
-      for ( int lev = 0; lev <= finest_level; lev++)
-      {
-	NavierStokesBase& ns =
-	  dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
-	const Real time = ns.state[Gradp_Type].curTime();
-	// NOTE this will fill ghost cells with FillPatch
-	ns.computeGradP(time);
-      }
-    }
 
     //
     // Test for conservation.
@@ -2760,7 +2744,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
 //
 // Reset the time levels to time (time) and timestep dt.
-// This is done at the start of the timestep in the pressure iteration section.
+// This is done at the end of the timestep in the pressure iteration section.
 //
 void
 NavierStokesBase::resetState (Real time,
@@ -2773,13 +2757,13 @@ NavierStokesBase::resetState (Real time,
     state[State_Type].reset();
     state[State_Type].setTimeLevel(time,dt_old,dt_new);
 
-    //fixme -- don't understand why this is needed here because
-    // doesn't advance_setup set old = new???
+    //
+    // Set P & gradP old = new. This way we retain new after
+    // advance_setup() does swap(old,new).
+    //
     initOldFromNew(Press_Type);
     state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
-    //
-    // FIXME --- need to set old Gp = new Gp here too? doing so doesn't change anything, but initializing Pold does...
-    //
+
     initOldFromNew(Gradp_Type);
     state[Gradp_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
     //
@@ -4793,6 +4777,7 @@ NavierStokesBase::fetchBCArray (int State_Type, int scomp, int ncomp)
 //
 // Compute gradient of P and fill ghost cells with FillPatch
 //
+// FIXME --- perhaps these computeGradP fns belong in Projection.cpp?
 void
 NavierStokesBase::computeGradP(Real time)
 {
@@ -4814,13 +4799,57 @@ NavierStokesBase::computeGradP(Real time)
 
     // Now fill ghost cells 
     FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);
+}
 
-      //fixme
-    //   static int count= 0; count++;
-    // Print()<<"Writing out Computed Grad P at time= "<<time
-    // 	   <<"Gpsync_"+std::to_string(count)+std::to_string(level)<<std::endl;
-    //   VisMF::Write(Gp,"Gpsync_"+std::to_string(count)+std::to_string(level));
+//
+// Multilevel computeGradP at curTime.
+//
+void
+NavierStokesBase::computeGradP(int clev, int flev)
+{
+    LPInfo info;
+    info.setMaxCoarseningLevel(0);
 
+    for ( int lev = clev; lev <= flev; lev++ )
+    {
+        NavierStokesBase& ns =
+	  dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
+
+	ns.computeGradP(ns.state[Gradp_Type].curTime());
+    }
+
+    //NOT TESTED YET!!!
+    // FIXME --- set to false for now for comparisons with old way
+    //  maybe want to make a runtime switch?
+    bool avgDownGradP = false;
+    if ( avgDownGradP )
+    {
+        for ( int lev = flev-1; lev >= clev; --lev )
+        {
+	    Abort("WARNING!!! NSB::computeGradP: averaging down has not been tested\n");
+
+	    NavierStokesBase& ns_fine =
+	      dynamic_cast<NavierStokesBase&>(parent->getLevel(lev+1));
+	    NavierStokesBase& ns_crse =
+	      dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
+
+	    // Note that for P and Gp, crse and fine times do not match up
+	    // const TimeLevel whichTime = ns_crse.which_time(State_Type,time);
+
+	    // if (whichTime == ns_crse.AmrOldTime)
+	    // {
+	    //   MultiFab& gp_fine = ns_fine.get_old_data(Gradp_Type);
+	    //   MultiFab& gp_crse = ns_crse.get_old_data(Gradp_Type);
+	    // }
+	    // else if (whichTime == ns_crse.AmrNewTime)
+	    // {
+	      MultiFab& gp_fine = ns_fine.get_new_data(Gradp_Type);
+	      MultiFab& gp_crse = ns_crse.get_new_data(Gradp_Type);
+	    // }
+
+	    ns_crse.average_down(gp_fine, gp_crse, 0, AMREX_SPACEDIM);
+	}
+    }
 }
 
 void
