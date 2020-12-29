@@ -6,6 +6,7 @@
 #include <AMReX_ErrorList.H>
 #include <PROB_NS_F.H>
 #include <DERIVE_F.H>
+#include <NS_derive.H>
 #include <NS_error_F.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParmParse.H>
@@ -188,6 +189,20 @@ set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
     }
 }
 
+static
+void
+set_average_bc(BCRec& bc, const BCRec& phys_bc)
+{
+    const int* lo_bc = phys_bc.lo();
+    const int* hi_bc = phys_bc.hi();
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        bc.setLo(i,average_bc[lo_bc[i]]);
+        bc.setHi(i,average_bc[hi_bc[i]]);
+    }
+}
+
+
 typedef StateDescriptor::BndryFunc BndryFunc;
 
 //
@@ -243,9 +258,14 @@ NavierStokes::variableSetUp ()
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-    			   StateDescriptor::Point,1,NUM_STATE,
+    			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
     			   &cc_interp,state_data_extrap,store_in_checkpoint);
-    
+    // TODO: state does not really need to carry ghost cells, since it is the
+    // philosophy of IAMR to FillPatch before using.
+    // However, changing NUM_GROW here creates a problem for restarting from
+    // older checkpoint files with more ghost cells, so a workaround is
+    // needed.
+
     set_x_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
 
@@ -328,7 +348,7 @@ NavierStokes::variableSetUp ()
 
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
-
+ 
     //
     // ---- grad P
     //
@@ -384,6 +404,43 @@ NavierStokes::variableSetUp ()
 	set_dsdt_bc(bc,phys_bc);
 	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
     }
+
+    if (NavierStokesBase::avg_interval > 0)
+    { 
+      Average_Type = desc_lst.size();
+      bool state_data_extrap = false;
+      bool store_in_checkpoint = true;
+      desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
+                             StateDescriptor::Point,0,BL_SPACEDIM*2,
+                             &cc_interp,state_data_extrap,store_in_checkpoint);
+
+      set_average_bc(bc,phys_bc);
+      desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+#if (BL_SPACEDIM==3)
+      desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+#endif
+
+      Vector<std::string> var_names_ave(BL_SPACEDIM*2);
+      var_names_ave[Xvel] = "x_vel_average";
+      var_names_ave[Yvel] = "y_vel_average";
+#if (BL_SPACEDIM==3)
+      var_names_ave[Zvel] = "z_vel_average";
+#endif
+      var_names_ave[Xvel+BL_SPACEDIM] = "x_vel_rms";
+      var_names_ave[Yvel+BL_SPACEDIM] = "y_vel_rms";
+#if (BL_SPACEDIM==3)
+      var_names_ave[Zvel+BL_SPACEDIM] = "z_vel_rms";
+#endif
+      derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM*2,
+                     var_names_ave,der_vel_avg,the_same_box);
+      derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,BL_SPACEDIM*2);
+
+    }
+
     //
     // **************  DEFINE DERIVED QUANTITIES ********************
     //

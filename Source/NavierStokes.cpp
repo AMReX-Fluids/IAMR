@@ -97,6 +97,10 @@ NavierStokes::initData ()
     const Real* dx       = geom.CellSize();
     MultiFab&   S_new    = get_new_data(State_Type);
     MultiFab&   P_new    = get_new_data(Press_Type);
+    if (avg_interval > 0){
+      MultiFab&   Save_new    = get_new_data(Average_Type);
+      Save_new.setVal(0.);
+    }
     const Real  cur_time = state[State_Type].curTime();
 #ifdef _OPENMP
 #pragma omp parallel  if (Gpu::notInLaunchRegion())
@@ -423,7 +427,7 @@ NavierStokes::advance (Real time,
     }
 
 #ifdef AMREX_PARTICLES
-    if (theNSPC() != 0 and NavierStokes::initial_iter != true)
+    if (theNSPC() != 0 and NavierStokes::initial_step != true)
     {
         theNSPC()->AdvectWithUmac(u_mac, level, dt);
     }
@@ -1513,6 +1517,7 @@ NavierStokes::derive (const std::string& name,
 void
 NavierStokes::post_init (Real stop_time)
 {
+
     if (level > 0)
         //
         // Nothing to sync up at level > 0.
@@ -1555,6 +1560,18 @@ NavierStokes::post_init (Real stop_time)
         sum_jet_quantities();
 #endif
 #endif
+
+    if (NavierStokesBase::avg_interval > 0)
+    {
+      const int   finest_level = parent->finestLevel();
+      NavierStokesBase::time_avg.resize(finest_level+1);
+      NavierStokesBase::dt_avg.resize(finest_level+1);
+      NavierStokesBase::time_avg[level] = 0.;
+      NavierStokesBase::dt_avg[level] = 0.;
+      const amrex::Real dt_level = parent->dtLevel(level);
+      time_average(NavierStokesBase::time_avg[level], NavierStokesBase::dt_avg[level], dt_level);
+    }
+
 }
 
 //

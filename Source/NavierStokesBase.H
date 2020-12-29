@@ -140,6 +140,11 @@ public:
     virtual void restart (amrex::Amr&          papa,
                           std::istream& is,
                           bool          bReadSpecial = false) override;
+    // Old checkpoint file may have different number of state types than the
+    // new source code.
+    //
+    virtual void set_state_in_checkpoint (amrex::Vector<int>& state_in_checkpoint) override;
+    
     //
     // Old checkpoint file may have different number of state types than the
     // new source code.
@@ -208,6 +213,8 @@ public:
 		      int scomp, int ncomp);
 
     void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
+
+    void time_average(amrex::Real& time_avg, amrex::Real& dt_avg, const amrex::Real& dt_level);
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
@@ -762,11 +769,18 @@ public:
     static amrex::Real smago_Cs_cst;       // A parameter for the Smagorinsky model, usually set to 0.18
     static amrex::Real sigma_Cs_cst;       // A parameter for the Sigma model, usually set to 1.5
     //
+    // Parameters for averaging
+    //
+    static amrex::Vector<amrex::Real> time_avg;
+    static amrex::Vector<amrex::Real> dt_avg;
+    static int avg_interval;
+    //
     // Members for non-zero divu.
     //
     static int  additional_state_types_initialized;
     static int  Divu_Type;
     static int  Dsdt_Type;
+    static int  Average_Type;
     static int  num_state_type;
     static int  have_divu;
     static int  have_dsdt;
@@ -819,6 +833,8 @@ public:
   // For restart, is GradP in checkpoint file 
   //
   static bool gradp_in_checkpoint;
+
+    static bool average_in_checkpoint;
 
 };
 

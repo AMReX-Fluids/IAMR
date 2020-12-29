@@ -1,38 +1,31 @@
 
-# for regression testing
-
 #*******************************************************************************
-# INPUTS
+# INPUTS.2D.HOTSPOT
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
+ns.do_temp=1
+ns.temp_cond_coef=1.e-8
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 0
-max_step 		= 50
+max_step 		= 30
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 		= 10.0
+stop_time 		= 1.0
 
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
-
-#*******************************************************************************
-# PARTICLE INPUTS
-
-particles.particle_init_file = particle_file
-particles.timestamp_dir = particle_dir
-particles.timestamp_indices = 1
+# What to use for the refinement criterion
+ns.do_tracer_ref = 0
+ns.do_density_ref = 0
+ns.do_vorticity_ref = 0
+ns.do_temp_ref = 1
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 32 32
-amr.n_cell 		= 64 64
+amr.max_grid_size	= 32
 
 #*******************************************************************************
 
@@ -42,12 +35,12 @@ amr.max_level		= 1 # maximum number of levels of refinement
 #*******************************************************************************
 
 # Interval (in number of level l timesteps) between regridding
-amr.regrid_int		= 2 
+amr.regrid_int		= 2
 
 #*******************************************************************************
 
 # Refinement ratio as a function of level
-amr.ref_ratio		= 2 2 
+amr.ref_ratio		= 2 2 2 2
 
 #*******************************************************************************
 
@@ -62,13 +55,12 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.checkpoint_files_output = 0 
-amr.check_int		= 1000
+amr.check_int		= 1 
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 50
+amr.plot_int		= 1
 
 #*******************************************************************************
 
@@ -78,7 +70,7 @@ ns.cfl                  = 0.9  # CFL number used to set dt
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 1.0  # factor which multiplies the very first time step
+ns.init_shrink          = 0.3  # factor which multiplies the very first time step
 
 #*******************************************************************************
 
@@ -88,43 +80,43 @@ ns.vel_visc_coef        = 0.001
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.0
+ns.scal_diff_coefs      = 0.001
 
 #*******************************************************************************
 
-# Forcing term defaults to  rho * abs("gravity") "down"
-ns.gravity              = 0.0
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity              = -9.8
 
 #*******************************************************************************
 
 # Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin
+amr.probin_file 	= probin.2d.hotspot
 
 #*******************************************************************************
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
-geometry.coord_sys   =  0 
+geometry.coord_sys   =  0
 
 #*******************************************************************************
 
 # Physical dimensions of the low end of the domain.
-geometry.prob_lo     =  0. 0. 
+geometry.prob_lo     =  -1. 0. 
 
 # Physical dimensions of the high end of the domain.
-geometry.prob_hi     =  1. 1. 
+geometry.prob_hi     =  1. 2. 
 
 #*******************************************************************************
 
 #Set to 1 if periodic in that direction
-geometry.is_periodic =  1 1
+geometry.is_periodic =  0 0
 
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 0 0
+ns.lo_bc             = 4 4  
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             = 0 0
+ns.hi_bc             = 4 4  
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
@@ -132,23 +124,9 @@ ns.hi_bc             = 0 0
 
 #*******************************************************************************
 
-# Factor by which grids must be coarsenable. 
-amr.blocking_factor 	= 4
-
-#*******************************************************************************
-
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars 	= NONE #ALL # mag_vort particle_count
-
+amr.derive_plot_vars    = mag_vort   diveru   avg_pressure velocity_average
+amr.plot_vars = x_velocity y_velocity density tracer temp
 #*******************************************************************************
 
-# Grid efficiency (defaults to .70)
-amr.grid_eff = 0.75
-
-#*******************************************************************************
-
-proj.proj_tol = 1.e-12
-proj.proj_abs_tol = 1.e-15
-
-mg.v = 1
-
+ns.avg_interval = 1
