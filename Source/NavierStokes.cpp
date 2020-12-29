@@ -536,6 +536,13 @@ NavierStokes::predict_velocity (Real  dt)
     // Non-EB version
     //
     MultiFab& Gp = get_old_data(Gradp_Type);
+    // FillPatch Gp here, as crse data has been updated
+    // only really needed on the first step of the fine subcycle
+    // because level_project at this level fills Gp ghost cells.
+    // OR maybe better to not FP in level_proj for level>0 and do it
+    // once the first time it's needed, which is presumably here...
+    if ( level > 0 )
+      FillPatch(*this,Gp,Gp.nGrow(),prev_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
 
     const int ngrow = 1;
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
@@ -1673,7 +1680,11 @@ NavierStokes::post_init_press (Real&        dt_init,
             //
             // Reset state variables to initial time, but
             // do not reset pressure variable, only pressure time.
+	    // do not reset dsdt variable, only dsdt time.
             //
+	    // the reset of data is ultimately achieved via a swap and swap back to
+	    // preserve old_data. resetState ends up calling swap(old_data, new_data)
+	    // but then advance_setup also ends up calling swap(old_data, new_data)
             getLevel(k).resetState(strt_time, dt_init, dt_init);
         }
 
