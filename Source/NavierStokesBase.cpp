@@ -161,10 +161,10 @@ std::vector<Real> NavierStokesBase::body_state;
 //
 // For restart, is GradP in checkpoint file 
 //
-bool NavierStokesBase::gradp_in_checkpoint = true;
+int NavierStokesBase::gradp_in_checkpoint = -1;
 
 // is Average in checkpoint file 
-bool NavierStokesBase::average_in_checkpoint = true;
+int NavierStokesBase::average_in_checkpoint = -1;
 
 namespace
 {
@@ -540,11 +540,18 @@ NavierStokesBase::Initialize ()
 #endif
 
     //
+    // Get checkpoint info
+    //
+    pp.query("gradp_in_checkpoint", gradp_in_checkpoint);
+    pp.query("avg_in_checkpoint",   average_in_checkpoint);
+
+    //
     // Get godunov options
     //
     ParmParse pp2("godunov");
     pp2.query("use_ppm",             godunov_use_ppm);
     pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
+
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
@@ -2564,7 +2571,7 @@ NavierStokesBase::post_restart ()
     // We assume that if Average_Type is not present, we have just activated
     // the start of averaging
     //
-    if ( !average_in_checkpoint )
+    if ( average_in_checkpoint==0 )
     {
       Print()<<"WARNING! Average not found in checkpoint file. Creating data"
              <<std::endl;
@@ -2794,23 +2801,26 @@ NavierStokesBase::resetState (Real time,
 }
 
 //
-// Old checkpoint files may not have Gradp_Type.
+// Old checkpoint files may not have Gradp_Type and/or Average_Type.
 // 
-//
 void
 NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
-{ 
+{
+  //
+  // Abort if any of the NSB::*_in_checkpoint variables haven't been set by user.
+  //
+  if ( gradp_in_checkpoint<0 || average_in_checkpoint<0 )
+    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. If unsure,\n try setting both to 0.\n\n");
+
   //
   // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.
   // state_in_checkpoint is initialized to all true.
   //
-  state_in_checkpoint[Gradp_Type] = 0;
+  if ( gradp_in_checkpoint==0 )
+    state_in_checkpoint[Gradp_Type] = 0;
 
-  gradp_in_checkpoint = false;
-
-  state_in_checkpoint[Average_Type] = 0;
-
-  average_in_checkpoint = false;
+  if ( average_in_checkpoint==0 && avg_interval>0 )
+    state_in_checkpoint[Average_Type] = 0;
 }
 
 void
@@ -2818,9 +2828,13 @@ NavierStokesBase::restart (Amr&          papa,
                            std::istream& is,
                            bool          bReadSpecial)
 {
+    Print()<<"\nWARNING! Note that you can't drop data from the checkpoint file.\n"
+           <<" If your checkpoint file contains Average_Type, then your inputs\n"
+	   <<" must also specify ns.avg_interval>0.\n"<<std::endl;
+
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    if ( !gradp_in_checkpoint )
+    if ( gradp_in_checkpoint==0 )
     {
       Print()<<"WARNING! GradP not found in checkpoint file. Recomputing from Pressure."
 	     <<std::endl;

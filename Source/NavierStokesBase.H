@@ -826,9 +826,9 @@ public:
   //
   // For restart, is GradP in checkpoint file 
   //
-  static bool gradp_in_checkpoint;
+  static int gradp_in_checkpoint;
 
-    static bool average_in_checkpoint;
+  static int average_in_checkpoint;
 
 };
 
