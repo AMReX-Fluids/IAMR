@@ -140,11 +140,6 @@ public:
     virtual void restart (amrex::Amr&          papa,
                           std::istream& is,
                           bool          bReadSpecial = false) override;
-    // Old checkpoint file may have different number of state types than the
-    // new source code.
-    //
-    virtual void set_state_in_checkpoint (amrex::Vector<int>& state_in_checkpoint) override;
-    
     //
     // Old checkpoint file may have different number of state types than the
     // new source code.
