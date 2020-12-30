@@ -2527,9 +2527,10 @@ NavierStokesBase::post_init_state ()
 
       if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
     }
-
-    // make sure there's not NANs in old pressure field
-    // end up with P_old = P_new as is the case when exiting initialPressureProject
+    //
+    // Make sure there's not NANs in old pressure field.
+    // End up with P_old = P_new as is the case when exiting initialPressureProject
+    //
     if(!do_init_proj)
     {
       initOldFromNew(Press_Type);
@@ -2649,16 +2650,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (do_reflux && level < finest_level)
         reflux();
 
-    // FIXME --- why would pressure need to be averaged down here?
-    // get here at end of full integration of all levels. Level_project last
-    // done => no average down done for Press, but MLSyncProj will overwrite
-    // new.. NONONO, MLSync computes a correction that's added to P on crse and fine
-    //and mac_sync uses GradP old...
-    //
-    // FIXME -- 
-    //need to look at avgDown and how it's used to determine how to
-    //deal with GradP -- probably doesn't need update every call, but probably does
-    //need to be updated after some...
     if (level < finest_level)
         avgDown();
 
@@ -4858,13 +4849,6 @@ NavierStokesBase::avgDown_StatePress()
     auto&   fine_lev = getLevel(level+1);
 
     //
-    // FIXME??? Nodal Projection averages down vel, phi (in MLMG), and fluxes
-    // As far as the sync goes, it would seem that only the scalars need to
-    // be averaged down? What about MacSync - does that average_down rho?
-    // Does avgDown get used when it's not coming right after a ML Proj???
-    //
-    
-    //
     // Average down the states at the new time.
     //
     MultiFab& S_crse = get_new_data(State_Type);
@@ -4893,6 +4877,11 @@ NavierStokesBase::avgDown_StatePress()
 
     // NOTE: this fills ghost cells, but amrex::average_down does not.
     amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
+
+    //
+    // Do not average down Gradp or recompute here.
+    //
+
 }
 
 void

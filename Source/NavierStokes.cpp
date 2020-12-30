@@ -1639,7 +1639,7 @@ NavierStokes::post_init_press (Real&        dt_init,
         }
 
         //
-        // This constructs a guess at P, also sets p_old == p_new.
+        // Constructs a guess at P.
         //
         Vector<MultiFab*> sig(finest_level+1, nullptr);
 
@@ -1654,6 +1654,11 @@ NavierStokes::post_init_press (Real&        dt_init,
                                           strt_time,have_divu);
         }
 
+	// FIXME? -- TODO check if this is really needed here.
+	// All of State_type and Divu_Type gets reset.
+	// NodalProj averages down phi (sync is an increment) and Pnew coming in
+        // has been averaged down, so with linearity of average, P & Gp shouldn't need it
+	// Think we really only need to average down dsdt
         for (int k = finest_level-1; k >= 0; k--)
         {
             getLevel(k).avgDown();
@@ -1682,12 +1687,17 @@ NavierStokes::post_init_press (Real&        dt_init,
             // do not reset pressure variable, only pressure time.
 	    // do not reset dsdt variable, only dsdt time.
             //
-	    // the reset of data is ultimately achieved via a swap and swap back to
+	    // The reset of data is ultimately achieved via a swap and swap back to
 	    // preserve old_data. resetState ends up calling swap(old_data, new_data)
-	    // but then advance_setup also ends up calling swap(old_data, new_data)
+	    // but then advance_setup also ends up calling swap(old_data, new_data).
+            // Since pressure is not reset, after advance_setup, the next step will
+            // progress with p_old==p_new.
             getLevel(k).resetState(strt_time, dt_init, dt_init);
         }
 
+	// Make sure rho_ctime matches reset State
+	// FIXME? Why isn't this called on all levels when rho has been altered
+	// on all levels via advance, avgDown and resetState called on all levels.
         make_rho_curr_time();
 
         NavierStokes::initial_iter = false;
