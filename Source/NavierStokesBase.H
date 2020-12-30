@@ -764,6 +764,7 @@ public:
     static amrex::Vector<amrex::Real> time_avg;
     static amrex::Vector<amrex::Real> dt_avg;
     static int avg_interval;
+    static int compute_fluctuations;
     //
     // Members for non-zero divu.
     //

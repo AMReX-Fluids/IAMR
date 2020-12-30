@@ -121,7 +121,7 @@ Real        NavierStokesBase::sigma_Cs_cst              = 1.5;
 amrex::Vector<amrex::Real> NavierStokesBase::time_avg;
 amrex::Vector<amrex::Real> NavierStokesBase::dt_avg;
 int  NavierStokesBase::avg_interval                    = 0;
-
+int  NavierStokesBase::compute_fluctuations            = 0;
 int  NavierStokesBase::additional_state_types_initialized = 0;
 int  NavierStokesBase::Divu_Type                          = -1;
 int  NavierStokesBase::Dsdt_Type                          = -1;
@@ -487,6 +487,7 @@ NavierStokesBase::Initialize ()
     pp.query("sigma_Cs_cst",             sigma_Cs_cst  );
 
     pp.query("avg_interval",             avg_interval  );
+    pp.query("compute_fluctuations",     compute_fluctuations  );
 
 #ifdef AMREX_USE_EB
     pp.query("refine_cutcells", refine_cutcells);
