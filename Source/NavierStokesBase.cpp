@@ -1811,9 +1811,12 @@ NavierStokesBase::init (AmrLevel &old)
     }
 
     //
-    // FIXME 
+    // FIXME?
     // Do we need to fill old too, like Pressure? Not sure P_old really needs filling
     // because doesn't advance setup swap old and new?
+    // *Think* estTimeStep will look at new, and then advance_setup will swap new into
+    // old, so only need to fill new, right?
+    //
     MultiFab& Gp_new = get_new_data(Gradp_Type);
     FillPatch(old,Gp_new,Gp_new.nGrow(),cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
 
@@ -1886,8 +1889,9 @@ NavierStokesBase::init ()
     initOldFromNew(Press_Type);
 
     //
-    // FIXME Need to fillCoarsepatch Gp here -- make sure to fill Gp's ghost cells
-    // need to think about if we need the old GP created too....
+    // FIXME?
+    // Need to think about if we need the old GP created too. See comment in
+    // init(old) above.
     MultiFab& Gp_new = get_new_data(Gradp_Type);
     FillCoarsePatch(Gp_new,0,cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM,Gp_new.nGrow());
     //
@@ -5077,3 +5081,165 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
         });
     }
 }
+
+
+//
+// Predict the edge velocities which go into forming u_mac.  This
+// function also returns an estimate of dt for use in variable timesteping.
+//
+Real
+NavierStokesBase::predict_velocity (Real  dt)
+{
+   BL_PROFILE("PeleLM::predict_velocity()");
+   if (verbose) {
+      amrex::Print() << "... predict edge velocities\n";
+   }
+   //
+   // Get simulation parameters.
+   //
+   const int   nComp          = AMREX_SPACEDIM;
+   const Real* dx             = geom.CellSize();
+   const Real  prev_time      = state[State_Type].prevTime();
+   const Real  prev_pres_time = state[Press_Type].prevTime();
+   const Real  strt_time      = ParallelDescriptor::second();
+   //
+   // Compute viscous terms at level n.
+   // Ensure reasonable values in 1 grow cell.  Here, do extrap for
+   // c-f/phys boundary, since we have no interpolator fn, also,
+   // preserve extrap for corners at periodic/non-periodic intersections.
+   //
+
+   MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
+  
+   if (be_cn_theta != 1.0)
+   {
+      getViscTerms(visc_terms,Xvel,nComp,prev_time);
+   }
+   else
+   {
+      visc_terms.setVal(0.0);
+   }
+
+   FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+   MultiFab& Umf=U_fpi.get_mf();
+  
+   // Floor small values of states to be extrapolated
+   floor(Umf);
+
+   FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+   MultiFab& Smf=S_fpi.get_mf();
+
+   //
+   // Compute "grid cfl number" based on cell-centered time-n velocities
+   //
+   auto umax = VectorMaxAbs({&Umf},FabArrayBase::mfiter_tile_size,0,AMREX_SPACEDIM,Umf.nGrow());
+   Real cflmax = dt*umax[0]/dx[0];
+   for (int d=1; d<AMREX_SPACEDIM; ++d) {
+     cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
+   }
+   Real tempdt = cflmax==0 ? change_max : std::min(change_max,cfl/cflmax);
+  
+#if AMREX_USE_EB
+
+   MOL::ExtrapVelToFaces( Umf,
+                          AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                          geom, m_bcrec_velocity);
+
+#else
+   //
+   // Non-EB version
+   //
+    MultiFab& Gp = get_old_data(Gradp_Type);
+    // FillPatch Gp here, as crse data has been updated
+    // only really needed on the first step of the fine subcycle
+    // because level_project at this level fills Gp ghost cells.
+    // OR maybe better to not FP in level_proj for level>0 and do it
+    // once the first time it's needed, which is presumably here...
+    if ( level > 0 )
+      //FillPatch(*this,Gp,Gp.nGrow(),prev_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
+      // hack for comp with old way
+    computeGradP(prev_pres_time);
+
+    const int ngrow = 1;
+    MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
+
+    //
+    // Compute forcing
+    //
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
+        {
+            Box bx=U_mfi.tilebox();
+            FArrayBox& Ufab = Umf[U_mfi];
+            auto const  gbx = U_mfi.growntilebox(ngrow);
+
+            if (getForceVerbose) {
+                Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
+            }
+
+            getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+
+            //
+            // Compute the total forcing.
+            //
+            auto const& tf   = forcing_term.array(U_mfi,Xvel);
+            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+            auto const& gp   = Gp.const_array(U_mfi);
+            auto const& rho  = rho_ptime.const_array(U_mfi);
+
+            amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+            });
+        }
+    }
+
+    //velpred=1 only, use_minion=1, ppm_type, slope_order
+    Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                               m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt,
+			       godunov_use_ppm, godunov_use_forces_in_trans );
+
+#endif
+
+   if (verbose > 1)
+   {
+      const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+      Real      run_time = ParallelDescriptor::second() - strt_time;
+
+      ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+      Print() << "PeleLM::predict_velocity(): lev: " << level 
+              << ", time: " << run_time << '\n';
+   }
+
+   return dt*tempdt;
+}
+
+
+//
+// Floor small values of states to be extrapolated
+//
+void
+NavierStokesBase::floor(MultiFab& mf){
+
+  int ncomp = mf.nComp();
+    
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box gbx=mfi.growntilebox(godunov_hyp_grow);
+        auto const& fab_a = mf.array(mfi);
+        AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
+        {
+            auto& val = fab_a(i,j,k,n);
+            val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
+        });
+    }
+}
+

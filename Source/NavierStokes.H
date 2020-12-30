@@ -41,11 +41,6 @@ public:
 
     virtual ~NavierStokes ();
 
-    //
-    // Floor small values of states to be extrapolated
-    //
-    void floor(amrex::MultiFab& mf);
-
     ////////////////////////////////////////////////////////////////////////////
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
@@ -126,11 +121,6 @@ public:
     //    NavierStokes public functions                                       //
     ////////////////////////////////////////////////////////////////////////////
   
-    //
-    // Predict face velocities (before projection), estimate current cfl
-    // from t^n cell-centered velocities (plus cfl and change_max)
-    //
-    amrex::Real predict_velocity (amrex::Real dt);
     //
     // Advect scalars.
     //

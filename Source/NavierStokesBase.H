@@ -67,7 +67,7 @@ public:
     virtual ~NavierStokesBase ();
 
     ////////////////////////////////////////////////////////////////////////////
-    //    amrex::AmrLevel virtual functions                                          //
+    //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
 
     virtual void checkPoint (const std::string& dir,
@@ -372,6 +372,11 @@ public:
     //
     void create_umac_grown (int nGrow);
     //
+    // Predict face velocities (before projection), estimate current cfl
+    // from t^n cell-centered velocities (plus cfl and change_max)
+    //
+    amrex::Real predict_velocity (amrex::Real dt);
+    //
     // Advect velocities.
     //
     void velocity_advection (amrex::Real dt);
@@ -561,6 +566,11 @@ public:
     //
     void ConvectiveScalMinMax ( amrex::MultiFab& Snew, const int snew_comp,
                                 amrex::MultiFab const& Sold, const int sold_comp );
+    //
+    // Floor small values of states to be extrapolated
+    //
+    void floor(amrex::MultiFab& mf);
+
 #ifdef AMREX_USE_EB
 
     void init_eb (const amrex::Geometry& level_geom, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
