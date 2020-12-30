@@ -18,6 +18,10 @@ using namespace amrex;
 //  The average is dumped in each plotfile.
 //
 //  Do not forget to add "velocity_average" in amr.derive_plot_vars.
+//
+//  If "compute_fluctuations" is turned on, it is going to compute RMS of velocity fluctuations.
+//  The good practice is to start computing RMS of fluctuations 
+//  when the average of the velocity has reached convergence.
 //---------------------------------------------------------------------
 
 void
