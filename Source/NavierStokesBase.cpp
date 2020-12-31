@@ -119,6 +119,7 @@ Real        NavierStokesBase::smago_Cs_cst              = 0.18;
 Real        NavierStokesBase::sigma_Cs_cst              = 1.5;
 
 amrex::Vector<amrex::Real> NavierStokesBase::time_avg;
+amrex::Vector<amrex::Real> NavierStokesBase::time_avg_fluct;
 amrex::Vector<amrex::Real> NavierStokesBase::dt_avg;
 int  NavierStokesBase::avg_interval                    = 0;
 int  NavierStokesBase::compute_fluctuations            = 0;
@@ -1001,6 +1002,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
       TImeAverageFile << "Writing time_average to checkpoint\n";
     
       TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
+      TImeAverageFile << NavierStokesBase::time_avg_fluct[level] << "\n";
     }
   }
 
@@ -2622,6 +2624,7 @@ NavierStokesBase::post_restart ()
 
     const int   finest_level = parent->finestLevel();
     NavierStokesBase::time_avg.resize(finest_level+1);
+    NavierStokesBase::time_avg_fluct.resize(finest_level+1);
     NavierStokesBase::dt_avg.resize(finest_level+1);
 
   // We assume that if Average_Type is not present, we have just activated the start of averaging
@@ -2644,6 +2647,8 @@ NavierStokesBase::post_restart ()
 
       NavierStokesBase::dt_avg[level]   = 0;
       NavierStokesBase::time_avg[level] = 0;
+      NavierStokesBase::time_avg_fluct[level] = 0;
+
 
     }else{
   // If Average_Type data were found, this means that we need to recover the value of time_average
@@ -2660,6 +2665,7 @@ NavierStokesBase::post_restart ()
       std::getline(isp, line);
 
       isp >> NavierStokesBase::time_avg[level];
+      isp >> NavierStokesBase::time_avg_fluct[level];
       NavierStokesBase::dt_avg[level]   = 0;
  
     }
@@ -2777,7 +2783,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (avg_interval > 0)
     {
       const amrex::Real dt_level = parent->dtLevel(level);
-      time_average(time_avg[level], dt_avg[level], dt_level);
+      time_average(time_avg[level], time_avg_fluct[level], dt_avg[level], dt_level);
     }
 
 }

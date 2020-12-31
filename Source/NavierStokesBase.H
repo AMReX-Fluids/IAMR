@@ -207,7 +207,7 @@ public:
 
     void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
 
-    void time_average(amrex::Real& time_avg, amrex::Real& dt_avg, const amrex::Real& dt_level);
+    void time_average(amrex::Real& time_avg, amrex::Real& time_avg_fluct, amrex::Real& dt_avg, const amrex::Real& dt_level);
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public static functions                            //
@@ -762,6 +762,7 @@ public:
     // Parameters for averaging
     //
     static amrex::Vector<amrex::Real> time_avg;
+    static amrex::Vector<amrex::Real> time_avg_fluct;
     static amrex::Vector<amrex::Real> dt_avg;
     static int avg_interval;
     static int compute_fluctuations;

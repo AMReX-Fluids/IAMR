@@ -25,7 +25,7 @@ using namespace amrex;
 //---------------------------------------------------------------------
 
 void
-NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  dt_avg, const Real& dt_level)
+NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  time_avg_fluct, amrex::Real&  dt_avg, const Real& dt_level)
 
 {
   dt_avg = dt_avg + dt_level;
@@ -46,7 +46,7 @@ NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  dt_avg, con
        auto const& S_avg   = Savg.array(mfi);
        auto const& S_avg_old   = Savg_old.array(mfi);
 
-       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg, time_avg]
+       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg, time_avg, time_avg_fluct]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
           S_avg(i,j,k,n) = S_avg_old(i,j,k,n) + dt_avg * S_state(i,j,k,n);
@@ -64,6 +64,12 @@ NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  dt_avg, con
     }
 
     time_avg = time_avg + dt_avg;
+    if (compute_fluctuations == 1){
+      time_avg_fluct = time_avg_fluct + dt_avg;
+    }else{
+      time_avg_fluct = 0.;
+    }
+
     dt_avg = 0;
 
   }
