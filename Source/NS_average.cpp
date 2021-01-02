@@ -45,14 +45,15 @@ NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  time_avg_fl
        auto const& S_state = Sstate.array(mfi,Xvel);
        auto const& S_avg   = Savg.array(mfi);
        auto const& S_avg_old   = Savg_old.array(mfi);
+       int loc_compute_fluctuations = compute_fluctuations; //NavierStokesBase class cannot be accessed directly fron device
 
-       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg, time_avg, time_avg_fluct]
+       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg, time_avg, time_avg_fluct, loc_compute_fluctuations]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
           S_avg(i,j,k,n) = S_avg_old(i,j,k,n) + dt_avg * S_state(i,j,k,n);
           S_avg_old(i,j,k,n) = S_avg(i,j,k,n);
 
-          if (compute_fluctuations == 1){
+          if (loc_compute_fluctuations == 1){
             amrex::Real vel_prime = S_state(i,j,k,n) - (S_avg(i,j,k,n)/(time_avg + dt_avg));
             S_avg(i,j,k,n+BL_SPACEDIM) = S_avg_old(i,j,k,n+BL_SPACEDIM) + dt_avg * vel_prime * vel_prime;
           }
