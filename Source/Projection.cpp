@@ -460,9 +460,9 @@ Projection::level_project (int             level,
        rhcc[level] = divusource.get();
     }
 
-    bool update_gp = true;
+    bool increment_gp = false;
     doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol,
-			  proj_abs_tol, update_gp,
+			  proj_abs_tol, increment_gp,
                           sync_resid_crse.get(), sync_resid_fine.get());
 
     //
@@ -630,10 +630,10 @@ Projection::MLsyncProject (int             c_lev,
         sync_resid_fine->setVal(0.);
     }
 
-    bool update_gp = false;
+    bool increment_gp = true;
     doMLMGNodalProjection(c_lev, 2, vel,
                           amrex::GetVecOfPtrs(phi),
-                          sig, rhcc, rhnd_vec, sync_tol, proj_abs_tol, update_gp,
+                          sig, rhcc, rhnd_vec, sync_tol, proj_abs_tol, increment_gp,
                           sync_resid_crse, sync_resid_fine.get());
 
     //
@@ -666,10 +666,8 @@ Projection::MLsyncProject (int             c_lev,
     AddPhi(pres_fine, *phi[c_lev+1]);
 
     //
-    // Update Grad(P_new) to match corrected P
+    // Grad(P_new) incremented in doMLMGNodalProjection
     //
-    // NOTE this will fill ghost cells with FillPatch
-    ns->computeGradP(c_lev, c_lev+1);
 
     //
     // Add projected vel to new velocity.
@@ -839,14 +837,14 @@ Projection::initialVelocityProject (int  c_lev,
         //
         //
                 
-        bool update_gp = false;
+        bool increment_gp = false;
         if (!have_divu)
         {
             doMLMGNodalProjection(c_lev, f_lev-c_lev+1, vel, phi,
                                   amrex::GetVecOfPtrs(sig),
                                   {},
                                   {},
-                                  proj_tol, proj_abs_tol, update_gp, 0, 0);
+                                  proj_tol, proj_abs_tol, increment_gp, 0, 0);
         }
         else
         {
@@ -860,7 +858,7 @@ Projection::initialVelocityProject (int  c_lev,
                                   amrex::GetVecOfPtrs(sig),
                                   amrex::GetVecOfPtrs(rhcc),
                                   {},
-                                  proj_tol, proj_abs_tol, update_gp, 0, 0);
+                                  proj_tol, proj_abs_tol, increment_gp, 0, 0);
         }
         
         //
@@ -874,7 +872,6 @@ Projection::initialVelocityProject (int  c_lev,
             LevelData[lev]->get_old_data(Press_Type).setVal(0.);
             LevelData[lev]->get_new_data(Press_Type).setVal(0.);
 
-            // gradP updated in MLMGNodalProjection so need to reset to zero here
             LevelData[lev]->get_old_data(Gradp_Type).setVal(0.);
             LevelData[lev]->get_new_data(Gradp_Type).setVal(0.);
         }
@@ -997,12 +994,12 @@ Projection::initialPressureProject (int  c_lev)
     //
     // Project
     //
-    bool update_gp = true;
+    bool increment_gp = false;
     Vector<MultiFab*> rhcc(0);
     doMLMGNodalProjection(c_lev, f_lev-c_lev+1, vel, phi,
                           amrex::GetVecOfPtrs(sig),
                           rhcc, {},
-                          proj_tol, proj_abs_tol, update_gp, 0, 0);
+                          proj_tol, proj_abs_tol, increment_gp, 0, 0);
 
     //
     // Unscale initial projection variables.
@@ -1224,10 +1221,10 @@ Projection::initialSyncProject (int       c_lev,
         }
     }
 
-    bool update_gp = false;
+    bool increment_gp = true;
     doMLMGNodalProjection(c_lev, f_lev-c_lev+1, vel, phi, sig,
                           amrex::GetVecOfPtrs(rhcc),
-                          {}, proj_tol, proj_abs_tol, update_gp, 0, 0);
+                          {}, proj_tol, proj_abs_tol, increment_gp, 0, 0);
 
     //
     // Unscale initial sync projection variables.
@@ -1247,14 +1244,8 @@ Projection::initialSyncProject (int       c_lev,
     }
 
     //
-    // Update Grad(P_new) to match corrected P
-    // Only update new. NSB::resetState will take care of setting
-    // old = new
+    // Grad(P_new) incremented in doMLMGNodalProjection.
     //
-    NavierStokesBase& ns =
-      dynamic_cast<NavierStokesBase&>(parent->getLevel(c_lev));
-    // NOTE this will fill ghost cells with FillPatch
-    ns.computeGradP(c_lev, f_lev);
     
     if (verbose)
     {
@@ -2131,7 +2122,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
                                         const Vector<MultiFab*>& rhcc,
                                         const Vector<MultiFab*>& rhnd,
                                         Real rel_tol, Real abs_tol,
-                                        bool update_gp,
+                                        bool increment_gp,
                                         MultiFab* sync_resid_crse,
                                         MultiFab* sync_resid_fine,
                                         bool doing_initial_vortproj)
@@ -2304,13 +2295,29 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
       NavierStokesBase& ns = *dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
       MultiFab& Gp = ns.get_new_data(Gradp_Type);
       
-      if ( update_gp )
+      if ( increment_gp )
       {
+	//
+	// Add a correction to Gradp
+	//
+        MultiFab::Add(Gp, *gradphi[lev], 0, 0, AMREX_SPACEDIM, 0);
+      }
+      else
+      {
+	//
+	// Replace Gradp with the gradient(P) computed in MLMG
+	//
 	MultiFab::Copy(Gp, *gradphi[lev], 0, 0, AMREX_SPACEDIM, 0);
 
-	const Real& time = (ns.state)[Gradp_Type].curTime();
-	NavierStokesBase::FillPatch(ns, Gp, Gp.nGrow(), time, Gradp_Type, 0, AMREX_SPACEDIM);
       }
+      //
+      // FIXME - could we get away with only FillPatching in predict_velocity
+      // and initialPressureProject? I think this would depend on the definition
+      // of properly nested... For now, be safe and just fill them.
+      // Fill ghost cells
+      //
+      const Real& time = (ns.state)[Gradp_Type].curTime();
+      NavierStokesBase::FillPatch(ns, Gp, Gp.nGrow(), time, Gradp_Type, 0, AMREX_SPACEDIM);
     }
 }
 

@@ -2060,7 +2060,7 @@ NavierStokesBase::level_sync (int crse_iteration)
     }
 
     //
-    // Multilevel or single-level sync projection.
+    // Multilevel sync projection.
     //
     MultiFab& Rh = get_rho_half_time();
     MultiFab cc_rhs_crse, cc_rhs_fine;
@@ -2515,6 +2515,10 @@ NavierStokesBase::post_init_state ()
     //
     // Average velocity and scalar data down from finer levels
     // so that conserved data is consistant between levels.
+    // This might not be the most efficient way of doing things
+    // (since initialVelocityProject will average down vel, P and Gradp),
+    // but it does ensure everything is averaged down for all cases 
+    // (e.g. initialVelocityProject doesn't get called or init_vel_iter<=0).
     //
     for (int k = finest_level-1; k>= 0; k--)
     {
@@ -2654,6 +2658,17 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (do_reflux && level < finest_level)
         reflux();
 
+    //
+    // Average everything down, including P and Gradp.
+    // Even though the multilevel projections average down, only
+    // single level projections have been done for current timestep.
+    // The linearity of the average ensures that if we average down P
+    // and Gp here, then we may simply add the incremental correction
+    // (which get averaged down in amrex) during the sync projection. 
+    //
+    // avgDown also updates rho_ctime since it's needed for rho_half,
+    // which is used in the sync projection.
+    //
     if (level < finest_level)
         avgDown();
 
@@ -4868,9 +4883,6 @@ NavierStokesBase::avgDown_StatePress()
         getLevel(lev).make_rho_curr_time();
     }
 
-    //FIXME -- need to think about whether P still needs to be averagedDown
-    // since NodalProj avg down for ML calls....
-    
     //
     // Now average down pressure over time n-(n+1) interval.
     //
@@ -4883,9 +4895,12 @@ NavierStokesBase::avgDown_StatePress()
     amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
 
     //
-    // Do not average down Gradp or recompute here.
+    // Average down Gradp
     //
+    MultiFab& Gp_crse = get_new_data(Gradp_Type);
+    MultiFab& Gp_fine = fine_lev.get_new_data(Gradp_Type);
 
+    average_down(Gp_fine, Gp_crse, 0, Gp_crse.nComp());
 }
 
 void
@@ -4898,11 +4913,11 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
   //
 
 #ifdef AMREX_USE_EB
-
+  //
   // FIXME?
   // Assume we want EB to behave the same as non-EB in regards to dimensionality
-  // Not sure why we'd want 2D to be different than 3D
   // Note that 3D volume weighting doesn't exist for non-EB
+  //
 #if (AMREX_SPACEDIM == 3)
     // no volume weighting
     amrex::EB_average_down(S_fine, S_crse, scomp, ncomp, fine_ratio);
@@ -4914,7 +4929,9 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
 #endif
 
 #else
+    //
     // non-EB aware, uses volume weighting for 1D,2D but no volume weighting for 3D
+    //
     amrex::average_down(S_fine, S_crse,
 			this->getLevel(level+1).geom, this->getLevel(level).geom,
 			scomp, ncomp, fine_ratio);
@@ -5156,9 +5173,7 @@ NavierStokesBase::predict_velocity (Real  dt)
     // OR maybe better to not FP in level_proj for level>0 and do it
     // once the first time it's needed, which is presumably here...
     if ( level > 0 )
-      //FillPatch(*this,Gp,Gp.nGrow(),prev_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
-      // hack for comp with old way
-    computeGradP(prev_pres_time);
+      FillPatch(*this,Gp,Gp.nGrow(),prev_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
 
     const int ngrow = 1;
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );

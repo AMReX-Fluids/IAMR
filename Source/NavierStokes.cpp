@@ -1390,7 +1390,8 @@ NavierStokes::post_init (Real stop_time)
     Vector<int>  nc_save(finest_level+1);
     //
     // Ensure state is consistent, i.e. velocity field is non-divergent,
-    // Coarse levels are fine level averages, pressure is zero.
+    // pressure & Gradp have been initialized, Coarse levels are fine
+    // level averages.
     //
     post_init_state();
     //
@@ -1443,13 +1444,8 @@ NavierStokes::post_init_press (Real&        dt_init,
                                Vector<int>&  nc_save,
                                Vector<Real>& dt_save)
 {
-    if ( init_iter <= 0 ){
-      // make sure there's not NANs in old pressure field
-      // end up with P_old = P_new as is the case when doing initial iters
-      MultiFab& p_old=get_old_data(Press_Type);
-      MultiFab& p_new=get_new_data(Press_Type);
-      MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
-
+    if ( init_iter <= 0 )
+    {
       parent->setDtLevel(dt_save);
       parent->setNCycle(nc_save);
 
