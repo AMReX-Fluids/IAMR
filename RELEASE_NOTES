@@ -159,3 +159,7 @@ Creation from Embiggen of a tool to extrapolate coarse checkpoint file to a fine
 Add a "stop_interval" parameter to allow the simulation to stop at a specfic additional time interval after the physical time of a restart checkpoint file
 Remove Dpdt_Type and code related to Pressure temporal-centeredness at a Point (vs. Interval)
 Test case updates
+
+1/4/21
+Various bugfixes relating to CUDA, statistics, restarting.
+Several changes to support time-averaging statistics and diagnostics.
