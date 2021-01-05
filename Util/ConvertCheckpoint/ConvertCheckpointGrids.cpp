@@ -588,9 +588,22 @@ static void ConvertData() {
 
     DistributionMapping dm_trgt{new_grids};
 
+
+    int ngrow_loc;
+
     for (int n = 0; n < falRef_src.state.size(); n++){
 
-// Assuming that OldState and NewState have the same number of components
+      // We don't have the same number of ghost-cells for each data type
+      // Warning, this should be adapted for EB 
+      if ( n == falRef_src.state.size()-1){ // This is for Dsdt_Type
+        ngrow_loc = 0;
+      } else if (falRef_src.state.size() == 6 && n == 3){ // We have here a chkpoint file with averaged data +> Average_Type=3
+        ngrow_loc = 0;
+      }else{
+        ngrow_loc = ngrow;
+      }
+
+      // Assuming that OldState and NewState have the same number of components
       int ncomps = (falRef_src.state[n].old_data)->nComp();
 
       BoxArray new_grids_state = falRef_trgt.state[n].grids;
@@ -610,16 +623,17 @@ static void ConvertData() {
          falRef_trgt.state[n].domain.coarsen(user_ratio);
        }
 
-      MultiFab * NewData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow);
-      MultiFab * OldData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow);
+
+      MultiFab * NewData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow_loc);
+      MultiFab * OldData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow_loc);
       NewData_src -> setVal(10.); 
       OldData_src -> setVal(10.);
 
-      NewData_src -> copy(*(falRef_src.state[n].new_data),0,0,ncomps,0,ngrow);
-      OldData_src -> copy(*(falRef_src.state[n].old_data),0,0,ncomps,0,ngrow);
+      NewData_src -> copy(*(falRef_src.state[n].new_data),0,0,ncomps,0,ngrow_loc);
+      OldData_src -> copy(*(falRef_src.state[n].old_data),0,0,ncomps,0,ngrow_loc);
 
-      MultiFab * NewData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow);
-      MultiFab * OldData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow);
+      MultiFab * NewData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow_loc);
+      MultiFab * OldData_trgt = new MultiFab(new_grids_state,dm_trgt,ncomps,ngrow_loc);
       NewData_trgt->setVal(10.);
       OldData_trgt->setVal(10.);
 
