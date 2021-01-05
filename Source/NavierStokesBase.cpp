@@ -2796,7 +2796,7 @@ NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
   // Abort if any of the NSB::*_in_checkpoint variables haven't been set by user.
   //
   if ( gradp_in_checkpoint<0 || average_in_checkpoint<0 )
-    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. If unsure,\n try setting both to 0.\n\n");
+    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. If unsure,\n try setting both to 0.\n\n If you just activated Time Averaging, you should add \n  ns.avg_in_checkpoint=0 ns.gradp_in_checkpoint=1 \n\n");
 
   //
   // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.
