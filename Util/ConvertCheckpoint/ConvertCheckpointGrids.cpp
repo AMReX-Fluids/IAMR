@@ -63,7 +63,7 @@ std::string interp_kind;
 
 Real avg_time;
 Real avg_time_fluct;
-
+bool TimeAverageFile_exist = false;
 Vector<int> nsets_save(1);
 
 VisMF::How how = VisMF::OneFilePerCPU;
@@ -335,34 +335,24 @@ static void ReadCheckpointFile(const std::string& fileName) {
 
 
     // Reading the averaged times if we have the Average_Type in the checkpointfile
-    if (ndesc_save == 6){
-      std::string TimeAvg_File = fileName;
+    std::string TimeAvg_File = fileName;
 
-      TimeAvg_File += '/';
-      TimeAvg_File += "TimeAverage";
+    TimeAvg_File += '/';
+    TimeAvg_File += "TimeAverage";
 
-  amrex::Print() << "\n DEBUG DEBUG aTimeAvg_File " << TimeAvg_File << "\n";
+    VisMF::IO_Buffer io_buffer_avg(VisMF::IO_Buffer_Size);
 
-      VisMF::IO_Buffer io_buffer_avg(VisMF::IO_Buffer_Size);
-
-      std::ifstream is_avg;
-      is_avg.rdbuf()->pubsetbuf(io_buffer_avg.dataPtr(), io_buffer_avg.size());
-      is_avg.open(TimeAvg_File.c_str(), std::ios::in);
-      if( ! is.good()) {
-        amrex::FileOpenFailed(TimeAvg_File);
-      }
+    std::ifstream is_avg;
+    is_avg.rdbuf()->pubsetbuf(io_buffer_avg.dataPtr(), io_buffer_avg.size());
+    is_avg.open(TimeAvg_File.c_str(), std::ios::in);
+    if(  is_avg.good()) {
+      TimeAverageFile_exist = true;
 
       std::string first_line_avg;
       std::getline(is_avg,first_line_avg);
       is_avg >> avg_time;
       is_avg >> avg_time_fluct;     
-
-  amrex::Print() << "\n DEBUG DEBUG avg_time " << avg_time << "\n";
-  amrex::Print() << "\n DEBUG DEBUG avg_time_fluct " << avg_time_fluct << "\n";
     }
-
-
-
 
 }
 
@@ -565,7 +555,7 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
     FArrayBox::setFormat(thePrevFormat);
 
     // Writing time averaged data
-    if (ndesc_save == 6)
+    if (TimeAverageFile_exist)
     {
       const std::string ckfile = outFileName;
 
@@ -659,10 +649,14 @@ static void ConvertData() {
 
       // We don't have the same number of ghost-cells for each data type
       // Warning, this should be adapted for EB 
-      if ( n == falRef_src.state.size()-1){ // This is for Dsdt_Type
-        ngrow_loc = 0;
-      } else if (falRef_src.state.size() == 6 && n == 3){ // We have here a chkpoint file with averaged data +> Average_Type=3
-        ngrow_loc = 0;
+      if (falRef_src.state.size() == 4 && n == falRef_src.state.size()-1){
+        ngrow_loc = 0; // For this case, we just have Average_Type and no Divu_Type and Dsdt_type
+      }
+      else if (falRef_src.state.size() == 5 && n == falRef_src.state.size()-1){
+        ngrow_loc = 0; // For this case, we have Divu_Type and Dsdt_type, no Average_Type
+      } 
+      else if (falRef_src.state.size() == 6 && n >= falRef_src.state.size()-2){
+        ngrow_loc = 0; // Here we have both Average_Type and Divu and Dsdt types
       }else{
         ngrow_loc = ngrow;
       }
