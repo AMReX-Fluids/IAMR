@@ -197,7 +197,7 @@ Godunov::ComputeFluxes ( Box const& bx,
 
     const auto dx = geom.CellSizeArray();
 
-    Real area[AMREX_SPACEDIM];
+    GpuArray<Real,AMREX_SPACEDIM> area;
 #if ( AMREX_SPACEDIM == 3 )
     area[0] = dx[1]*dx[2];
     area[1] = dx[0]*dx[2];
