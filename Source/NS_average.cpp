@@ -18,10 +18,14 @@ using namespace amrex;
 //  The average is dumped in each plotfile.
 //
 //  Do not forget to add "velocity_average" in amr.derive_plot_vars.
+//
+//  If "compute_fluctuations" is turned on, it is going to compute RMS of velocity fluctuations.
+//  The good practice is to start computing RMS of fluctuations 
+//  when the average of the velocity has reached convergence.
 //---------------------------------------------------------------------
 
 void
-NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  dt_avg, const Real& dt_level)
+NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  time_avg_fluct, amrex::Real&  dt_avg, const Real& dt_level)
 
 {
   dt_avg = dt_avg + dt_level;
@@ -41,18 +45,32 @@ NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  dt_avg, con
        auto const& S_state = Sstate.array(mfi,Xvel);
        auto const& S_avg   = Savg.array(mfi);
        auto const& S_avg_old   = Savg_old.array(mfi);
+       int loc_compute_fluctuations = compute_fluctuations; //NavierStokesBase class cannot be accessed directly fron device
 
-       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg]
+       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg, time_avg, time_avg_fluct, loc_compute_fluctuations]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
           S_avg(i,j,k,n) = S_avg_old(i,j,k,n) + dt_avg * S_state(i,j,k,n);
-          S_avg(i,j,k,n+BL_SPACEDIM) = S_avg_old(i,j,k,n+BL_SPACEDIM) + dt_avg * S_state(i,j,k,n) * S_state(i,j,k,n);
           S_avg_old(i,j,k,n) = S_avg(i,j,k,n);
+
+          if (loc_compute_fluctuations == 1){
+            amrex::Real vel_prime = S_state(i,j,k,n) - (S_avg(i,j,k,n)/(time_avg + dt_avg));
+            S_avg(i,j,k,n+BL_SPACEDIM) = S_avg_old(i,j,k,n+BL_SPACEDIM) + dt_avg * vel_prime * vel_prime;
+          }
+          else{
+            S_avg(i,j,k,n+BL_SPACEDIM) = 0.;
+          }
           S_avg_old(i,j,k,n+BL_SPACEDIM) = S_avg(i,j,k,n+BL_SPACEDIM);
        });
     }
 
     time_avg = time_avg + dt_avg;
+    if (compute_fluctuations == 1){
+      time_avg_fluct = time_avg_fluct + dt_avg;
+    }else{
+      time_avg_fluct = 0.;
+    }
+
     dt_avg = 0;
 
   }

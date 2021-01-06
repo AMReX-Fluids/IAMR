@@ -120,9 +120,10 @@ Real        NavierStokesBase::smago_Cs_cst              = 0.18;
 Real        NavierStokesBase::sigma_Cs_cst              = 1.5;
 
 amrex::Vector<amrex::Real> NavierStokesBase::time_avg;
+amrex::Vector<amrex::Real> NavierStokesBase::time_avg_fluct;
 amrex::Vector<amrex::Real> NavierStokesBase::dt_avg;
 int  NavierStokesBase::avg_interval                    = 0;
-
+int  NavierStokesBase::compute_fluctuations            = 0;
 int  NavierStokesBase::additional_state_types_initialized = 0;
 int  NavierStokesBase::Divu_Type                          = -1;
 int  NavierStokesBase::Dsdt_Type                          = -1;
@@ -474,6 +475,7 @@ NavierStokesBase::Initialize ()
     pp.query("sigma_Cs_cst",             sigma_Cs_cst  );
 
     pp.query("avg_interval",             avg_interval  );
+    pp.query("compute_fluctuations",     compute_fluctuations  );
 
 #ifdef AMREX_USE_EB
     pp.query("refine_cutcells", refine_cutcells);
@@ -987,6 +989,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
       TImeAverageFile << "Writing time_average to checkpoint\n";
     
       TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
+      TImeAverageFile << NavierStokesBase::time_avg_fluct[level] << "\n";
     }
   }
 
@@ -2575,6 +2578,7 @@ NavierStokesBase::post_restart ()
 
     const int   finest_level = parent->finestLevel();
     NavierStokesBase::time_avg.resize(finest_level+1);
+    NavierStokesBase::time_avg_fluct.resize(finest_level+1);
     NavierStokesBase::dt_avg.resize(finest_level+1);
 
     //
@@ -2600,6 +2604,8 @@ NavierStokesBase::post_restart ()
 
       NavierStokesBase::dt_avg[level]   = 0;
       NavierStokesBase::time_avg[level] = 0;
+      NavierStokesBase::time_avg_fluct[level] = 0;
+
 
     }else{
       //
@@ -2619,6 +2625,7 @@ NavierStokesBase::post_restart ()
       std::getline(isp, line);
 
       isp >> NavierStokesBase::time_avg[level];
+      isp >> NavierStokesBase::time_avg_fluct[level];
       NavierStokesBase::dt_avg[level]   = 0;
  
     }
@@ -2747,7 +2754,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (avg_interval > 0)
     {
       const amrex::Real dt_level = parent->dtLevel(level);
-      time_average(time_avg[level], dt_avg[level], dt_level);
+      time_average(time_avg[level], time_avg_fluct[level], dt_avg[level], dt_level);
     }
 
 }
@@ -2804,7 +2811,7 @@ NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
   // Abort if any of the NSB::*_in_checkpoint variables haven't been set by user.
   //
   if ( gradp_in_checkpoint<0 || average_in_checkpoint<0 )
-    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. If unsure,\n try setting both to 0.\n\n");
+    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. If unsure,\n try setting both to 0.\n\n If you just activated Time Averaging, you should add \n  ns.avg_in_checkpoint=0 ns.gradp_in_checkpoint=1 \n\n");
 
   //
   // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.

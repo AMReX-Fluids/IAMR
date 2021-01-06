@@ -1426,11 +1426,13 @@ NavierStokes::post_init (Real stop_time)
     {
       const int   finest_level = parent->finestLevel();
       NavierStokesBase::time_avg.resize(finest_level+1);
+      NavierStokesBase::time_avg_fluct.resize(finest_level+1);
       NavierStokesBase::dt_avg.resize(finest_level+1);
       NavierStokesBase::time_avg[level] = 0.;
+      NavierStokesBase::time_avg_fluct[level] = 0.;
       NavierStokesBase::dt_avg[level] = 0.;
       const amrex::Real dt_level = parent->dtLevel(level);
-      time_average(NavierStokesBase::time_avg[level], NavierStokesBase::dt_avg[level], dt_level);
+      time_average(NavierStokesBase::time_avg[level], NavierStokesBase::time_avg_fluct[level], NavierStokesBase::dt_avg[level], dt_level);
     }
 
 }
