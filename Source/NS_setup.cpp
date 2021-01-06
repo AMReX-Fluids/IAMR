@@ -358,7 +358,7 @@ NavierStokes::variableSetUp ()
     // FillPatch issue at coarse fine boundary; if want to interpolate in time, need an old and new
     desc_lst.addDescriptor(Gradp_Type,IndexType::TheCellType(),
     			   StateDescriptor::Interval,gradp_grow,AMREX_SPACEDIM,
-    			   &cc_interp,state_data_extrap,store_in_checkpoint);
+			   &pc_interp,state_data_extrap,store_in_checkpoint);
     amrex::StateDescriptor::BndryFunc gradp_bf(dummy_fill);
     gradp_bf.setRunOnGPU(true);
 
