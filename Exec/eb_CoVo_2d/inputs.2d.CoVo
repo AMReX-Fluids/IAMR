@@ -33,7 +33,7 @@ stop_time 		= 0.02
 
 amr.check_int		= 0
 amr.plot_int		= 10
-amr.derive_plot_vars    = mag_vort avg_pressure gradpx gradpy
+amr.derive_plot_vars    = mag_vort avg_pressure
 
 #*******************************************************************************
 

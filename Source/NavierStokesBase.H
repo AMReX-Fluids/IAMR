@@ -33,7 +33,7 @@
 // Determine what you want in the state -- Divu, Dsdt -- in
 // NavierStokes::variableSetUp in NS_setup.cpp.
 //
-enum StateType {State_Type=0, Press_Type};
+enum StateType {State_Type=0, Press_Type, Gradp_Type};
 
 //
 // Note: enumerated value NUM_STATE_TYPE no longer defined
@@ -46,6 +46,11 @@ enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
 
 enum PressureNames { Pressure=0 };
+#if (BL_SPACEDIM == 2)
+enum GradpNames  { Gradpx=0, Gradpy};
+#else
+enum GradpNames  { Gradpx=0, Gradpy, Gradpz};
+#endif
 enum DivuNames { Divu=0};
 enum DsDtNames { Dsdt=0};
 
@@ -62,10 +67,8 @@ public:
     virtual ~NavierStokesBase ();
 
     ////////////////////////////////////////////////////////////////////////////
-    //    amrex::AmrLevel virtual functions                                          //
+    //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
-
-    virtual void allocOldData () override;
 
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
@@ -117,8 +120,8 @@ public:
     //
     virtual int okToContinue () override;
     //
-	// Check whether simulation has reached steady state, i.e. whether the
-	// change from last iteration is below a prescribed threshold steady_tol.
+    // Check whether simulation has reached steady state, i.e. whether the
+    // change from last iteration is below a prescribed threshold steady_tol.
     //
     virtual int steadyState ();
     //
@@ -137,11 +140,11 @@ public:
     virtual void restart (amrex::Amr&          papa,
                           std::istream& is,
                           bool          bReadSpecial = false) override;
+    //
     // Old checkpoint file may have different number of state types than the
     // new source code.
     //
     virtual void set_state_in_checkpoint (amrex::Vector<int>& state_in_checkpoint) override;
-    
     //
     // Set time levels of state data.
     //
@@ -174,13 +177,13 @@ public:
     //
     amrex::MultiFab* getDivCond (int ngrow, amrex::Real time);
     //
-    // Get pressure gradient data via fill-patching.
+    // Get pressure gradient data, fill-patch ghost cells.
     //
-    void getGradP (amrex::MultiFab& gp, amrex::Real time);
+    void computeGradP(amrex::Real time);
+    void computeGradP(int clev, int flev);
 
 #ifdef AMREX_USE_EB
     const amrex::MultiFab* VolFrac () const { return volfrac; }
-    amrex::MultiFab& getGradP() { return *gradp; }
 #endif
     //
     // Boundary condition access functions.
@@ -369,15 +372,26 @@ public:
     //
     void create_umac_grown (int nGrow);
     //
+    // Predict face velocities (before projection), estimate current cfl
+    // from t^n cell-centered velocities (plus cfl and change_max)
+    //
+    amrex::Real predict_velocity (amrex::Real dt);
+    //
     // Advect velocities.
     //
     void velocity_advection (amrex::Real dt);
     //
-    // Update velocities (or momentum) after advection.
+    // Update velocities (or momentum) with advection and diffusion terms.
     //
     void velocity_update (amrex::Real dt);
-
+    //
+    // Update velocities (or momentum) with advection terms.
+    //
     void velocity_advection_update (amrex::Real dt);
+    //
+    // Average down State_Type and Press_Type.
+    //
+    void avgDown_StatePress (); 
 
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
@@ -523,17 +537,15 @@ public:
     // Get state data.
     //
     amrex::MultiFab* getState (int  ngrow,
-                        int  state_indx,
-                        int  strt_comp,
-                        int  num_comp,
-                        amrex::Real time);
+			       int  state_indx,
+			       int  strt_comp,
+			       int  num_comp,
+			       amrex::Real time);
     //
     // Compile p_avg in advance.
     //
     void incrPAvg ();
-    void initOldPress (); // Initialize old pressure with new
-    void zeroNewPress (); // Set new pressure to zero
-    void zeroOldPress (); // Set old pressure to zero
+    void initOldFromNew (amrex::Real type); // Initialize old with new
     //
     // Compile rho_avg in advance.
     //
@@ -554,6 +566,11 @@ public:
     //
     void ConvectiveScalMinMax ( amrex::MultiFab& Snew, const int snew_comp,
                                 amrex::MultiFab const& Sold, const int sold_comp );
+    //
+    // Floor small values of states to be extrapolated
+    //
+    void floor(amrex::MultiFab& mf);
+
 #ifdef AMREX_USE_EB
 
     void init_eb (const amrex::Geometry& level_geom, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
@@ -574,7 +591,7 @@ public:
 // Data
 //
 
-    // fixme? for now, volume and area are intentionally without EB knowledge
+    // volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
     amrex::MultiFab area[BL_SPACEDIM];
 
@@ -582,15 +599,13 @@ public:
 
     void set_body_state(amrex::MultiFab& S);
 
+  //fixme - don't really need to carry these around anymore....
     const amrex::MultiFab* volfrac;
     const amrex::MultiCutFab* bndrycent;
     amrex::FabArray<amrex::BaseFab<int>> ebmask;
 
     std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> areafrac;
     std::array<const amrex::MultiCutFab*, AMREX_SPACEDIM> facecent;
-
-    // Pressure gradients
-    std::unique_ptr<amrex::MultiFab> gradp ;
 
 #endif
 
@@ -698,16 +713,17 @@ public:
     //
     // Internal parameters for options.
     //
-    static int        radius_grow;
-    static int        verbose;
-    static amrex::Real       gravity;
-    static int        NUM_SCALARS;      // number of non-velocity components
-    static int        NUM_STATE;        // total number of state variables
+    static int          radius_grow;
+    static int          verbose;
+    static amrex::Real  gravity;
+    static int          NUM_SCALARS;      // number of non-velocity components
+    static int          NUM_STATE;        // total number of state variables
 #ifdef AMREX_USE_EB
-    static const int  NUM_GROW=4;         // number of ghost cells
-    static int refine_cutcells;
+  // fixme --- not sure that NUM_GROW or refine_cutcells are still used...
+    static const int    NUM_GROW=4;       // number of ghost cells
+    static int          refine_cutcells;
 #else
-    static const int  NUM_GROW=1;         // number of ghost cells
+    static const int    NUM_GROW=1;       // number of ghost cells
 #endif
     //
     // Controls over how the convective and diffusive terms are calculated
@@ -718,8 +734,8 @@ public:
     //
     // Viscosity parameters.
     //
-    static amrex::Vector<int>  is_diffusive;    // does variable diffuse?
-    static amrex::Vector<amrex::Real> visc_coef;       // const coef viscosity terms
+    static amrex::Vector<int>  is_diffusive;      // does variable diffuse?
+    static amrex::Vector<amrex::Real> visc_coef;  // const coef viscosity terms
     static amrex::Real        visc_tol;
     static amrex::Real        visc_abs_tol;
     static amrex::Real        be_cn_theta;
@@ -783,7 +799,6 @@ public:
     //
     // Running statistics controls
     //
-    static int  do_running_statistics;
     static amrex::Real volWgtSum_sub_origin_x;
     static amrex::Real volWgtSum_sub_origin_y;
     static amrex::Real volWgtSum_sub_origin_z;
@@ -805,7 +820,12 @@ public:
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
-
+#ifdef AMREX_USE_EB
+  // MOL doesn't require gradp ghost cells
+    static const int gradp_grow = 0;
+#else
+    static const int gradp_grow = 1;
+#endif
     //
     // Controls Godunov solver
     //
@@ -816,8 +836,12 @@ public:
 #else
     static const int  godunov_hyp_grow = 3;
 #endif
+  //
+  // For restart, is GradP in checkpoint file 
+  //
+  static int gradp_in_checkpoint;
 
-    static bool average_in_checkpoint;
+  static int average_in_checkpoint;
 
 };
 

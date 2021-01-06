@@ -41,11 +41,6 @@ public:
 
     virtual ~NavierStokes ();
 
-    //
-    // Floor small values of states to be extrapolated
-    //
-    void floor(amrex::MultiFab& mf);
-
     ////////////////////////////////////////////////////////////////////////////
     //    AmrLevel virtual functions                                          //
     ////////////////////////////////////////////////////////////////////////////
@@ -126,11 +121,6 @@ public:
     //    NavierStokes public functions                                       //
     ////////////////////////////////////////////////////////////////////////////
   
-    //
-    // Predict face velocities (before projection), estimate current cfl
-    // from t^n cell-centered velocities (plus cfl and change_max)
-    //
-    amrex::Real predict_velocity (amrex::Real dt);
     //
     // Advect scalars.
     //
@@ -225,5 +215,30 @@ private:
 
     static amrex::Vector<amrex::AMRErrorTag> errtags;
 };
+
+
+// void cc_ext_fill (amrex::Box const& bx, amrex::FArrayBox& data,
+//                  const int dcomp, const int numcomp,
+//                  amrex::Geometry const& geom, const amrex::Real time,
+//                  const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+//                  const int scomp);
+
+void press_fill (amrex::Box const& bx, amrex::FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 amrex::Geometry const& geom, const amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                 const int scomp);
+
+void face_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 amrex::Geometry const& geom, const amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                 const int scomp);
+
+void dummy_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 amrex::Geometry const& geom, const amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                 const int scomp);
 
 #endif /*_NavierStokes_H_*/

@@ -25,7 +25,7 @@ ns.cfl               = 0.1
 amr.plot_int            =   20          # Steps between plot files
 amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   -1000        # Steps between checkpoint files
-amr.derive_plot_vars    =   mag_vort avg_pressure gradpx gradpy
+amr.derive_plot_vars    =   mag_vort avg_pressure
 amr.restart             =   ""          # Checkpoint to restart from
 amr.probin_file         = probin.2d.flow_past_cylinder-x_comp_PeleLM
 

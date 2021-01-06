@@ -8,7 +8,8 @@ ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
   # aren't implemented by inherited code.  In particular, LMC has its own
   # implementation of these routines.
   #
-  CEXE_sources += NS_error.cpp NS_setup.cpp NSBld.cpp NavierStokes.cpp
+  CEXE_sources += NS_error.cpp NS_setup.cpp NSBld.cpp NavierStokes.cpp \
+  	       	  NS_bcfill.cpp
   CEXE_headers += NavierStokes.H
 
 endif

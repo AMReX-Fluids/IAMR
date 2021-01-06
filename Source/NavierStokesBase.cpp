@@ -3,6 +3,7 @@
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_MLNodeLaplacian.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
@@ -135,7 +136,6 @@ int  NavierStokesBase::S_in_vel_diffusion                 = 0;
 int  NavierStokesBase::do_init_vort_proj                  = 0;
 int  NavierStokesBase::do_init_proj                       = 1;
 
-int  NavierStokesBase::do_running_statistics  = 0;
 Real NavierStokesBase::volWgtSum_sub_origin_x = 0;
 Real NavierStokesBase::volWgtSum_sub_origin_y = 0;
 Real NavierStokesBase::volWgtSum_sub_origin_z = 0;
@@ -160,11 +160,12 @@ std::vector<Real> NavierStokesBase::body_state;
 #endif
 
 //
-// For restart, is Average in checkpoint file 
+// For restart, is GradP in checkpoint file 
 //
-bool NavierStokesBase::average_in_checkpoint = true;
+int NavierStokesBase::gradp_in_checkpoint = -1;
 
-
+// is Average in checkpoint file 
+int NavierStokesBase::average_in_checkpoint = -1;
 
 namespace
 {
@@ -261,6 +262,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     // Alloc old_time pressure.
     //
     state[Press_Type].allocOldData();
+    state[Gradp_Type].allocOldData();
     //
     // Alloc space for density and temporary pressure variables.
     //
@@ -287,15 +289,10 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
 
 #ifdef AMREX_USE_EB
-
     init_eb(level_geom, bl, dm);
-
-    //fixme? not 100% sure this is the right place
-    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-    gradp->setVal(0.);
+#endif
 
     //FIXME --- this fn is really similar to restart()... work on that later
-#endif
 
     //
     // Set up reflux registers.
@@ -366,7 +363,6 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 
     m_bcrec_scalars_d.resize(NUM_SCALARS);
     m_bcrec_scalars_d = convertToDeviceVector(m_bcrec_scalars);
-
 }
 
 NavierStokesBase::~NavierStokesBase ()
@@ -390,15 +386,6 @@ NavierStokesBase::~NavierStokesBase ()
     delete diffnp1_cc;
 
     delete diffusion;
-}
-
-void
-NavierStokesBase::allocOldData ()
-{
-    bool init_pres = !(state[Press_Type].hasOldData());
-    AmrLevel::allocOldData();
-    if (init_pres)
-        initOldPress();
 }
 
 void
@@ -508,15 +495,11 @@ NavierStokesBase::Initialize ()
     pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
     if ( S_in_vel_diffusion ){
-#ifdef AMREX_USE_EB
       // Currently, we should use the TensorOp to compute the divU terms in divtau.
       // The code is still present to use the source term S instead of a numerically
       // computed divu, however, divmusi terms isn't EB-aware.
       // Perhaps one day a comparision would be interesting.
       amrex::Abort("S_in_vel_diffusion not currently supported.\n");
-#else
-      amrex::Warning("WARNING: S_in_vel_diffusion is probably not what you want anymore. \nSuggested option is now to set S_in_vel_diffusion=0 to allow the tensor diffusion solver to compute divU.");
-#endif
     }
     pp.query("be_cn_theta",be_cn_theta);
     if (be_cn_theta > 1.0 || be_cn_theta < .5)
@@ -532,11 +515,6 @@ NavierStokesBase::Initialize ()
     pp.query("Nbuf_outflow",Nbuf_outflow);
     BL_ASSERT(Nbuf_outflow >= 0);
     BL_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
-
-    //
-    // Check whether we are doing running statistics.
-    //
-    pp.query("do_running_statistics",do_running_statistics);
 
     // If dx,dy,dz,Rcyl<0 (default) the volWgtSum is computed over the entire domain
     pp.query("volWgtSum_sub_origin_x",volWgtSum_sub_origin_x);
@@ -564,11 +542,18 @@ NavierStokesBase::Initialize ()
 #endif
 
     //
+    // Get checkpoint info
+    //
+    pp.query("gradp_in_checkpoint", gradp_in_checkpoint);
+    pp.query("avg_in_checkpoint",   average_in_checkpoint);
+
+    //
     // Get godunov options
     //
     ParmParse pp2("godunov");
     pp2.query("use_ppm",             godunov_use_ppm);
     pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
+
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
@@ -809,8 +794,10 @@ NavierStokesBase::advance_setup (Real time,
     for (int k = 0; k < num_state_type; k++)
     {
 	bool has_old_data = state[k].hasOldData();
+	// does nothing if old_data!=null
         state[k].allocOldData();
 	if (! has_old_data) state[k].oldData().setVal(0.0);
+	// swaps pointers-- reuses space, but doesn't leave new with good data.
         state[k].swapTimeLevels(dt);
     }
 
@@ -978,7 +965,7 @@ NavierStokesBase::checkPoint (const std::string& dir,
 			      VisMF::How         how,
 			      bool               dump_old)
 {
-  AmrLevel::checkPoint(dir, os, how, dump_old);
+    AmrLevel::checkPoint(dir, os, how, dump_old);
 
   if (avg_interval > 0){
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -1012,14 +999,6 @@ NavierStokesBase::checkPoint (const std::string& dir,
         if (NSPC != 0)
             NSPC->Checkpoint(dir,the_ns_particle_file_name);
     }
-#endif
-
-# ifdef AMREX_USE_EB
-// Need to add gradp in the checkpoint
-   std::string LevelDir, FullPath;
-   LevelDirectoryNames(dir, LevelDir, FullPath);
-   std::string gradp_mf_fullpath = FullPath + "/gradp";
-   VisMF::Write(*gradp,gradp_mf_fullpath,how);
 #endif
 }
 
@@ -1459,19 +1438,12 @@ NavierStokesBase::estTimeStep ()
     const Real  small         = 1.0e-8;
     Real        estdt         = 1.0e+20;
 
-    const Real  cur_pres_time = state[Press_Type].curTime();
     MultiFab&   S_new         = get_new_data(State_Type);
 
     Vector<Real> u_max(AMREX_SPACEDIM);
     Vector<Real> f_max(AMREX_SPACEDIM);
 
-#ifdef AMREX_USE_EB
-    MultiFab& Gp = getGradP();
-    Gp.FillBoundary(geom.periodicity());
-#else
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
-    getGradP(Gp, cur_pres_time);
-#endif
+    MultiFab& Gp = get_new_data(Gradp_Type);
 
     //
     // Find local max of velocity
@@ -1703,29 +1675,6 @@ NavierStokesBase::getDsdt (int ngrow, Real time)
     return dsdt;
 }
 
-
-void
-NavierStokesBase::getGradP (MultiFab& gp, Real      time)
-{
-    BL_PROFILE("NavierStokesBase::getGradP()");
-
-    const int   NGrow = gp.nGrow();
-    MultiFab&   P_old = get_old_data(Press_Type);
-    const Real* dx    = geom.CellSize();
-
-    FillPatchIterator P_fpi(*this,P_old,NGrow,time,Press_Type,0,1);
-    MultiFab& pMF = P_fpi.get_mf();
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(gp, true); mfi.isValid(); ++mfi)
-    {
-	BL_ASSERT(amrex::grow(grids[mfi.index()],NGrow) == gp[mfi].box());
-	Projection::getGradP(pMF[mfi],gp[mfi],mfi.growntilebox(),dx);
-    }
-
-}
-
 //
 // Fill patch a state component.
 //
@@ -1864,6 +1813,16 @@ NavierStokesBase::init (AmrLevel &old)
        }
     }
 
+    //
+    // FIXME?
+    // Do we need to fill old too, like Pressure? Not sure P_old really needs filling
+    // because doesn't advance setup swap old and new?
+    // *Think* estTimeStep will look at new, and then advance_setup will swap new into
+    // old, so only need to fill new, right?
+    //
+    MultiFab& Gp_new = get_new_data(Gradp_Type);
+    FillPatch(old,Gp_new,Gp_new.nGrow(),cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
+
     if (avg_interval > 0){
       MultiFab& Save_new = get_new_data(Average_Type);
       FillPatch(old,Save_new,0,cur_time,Average_Type,0,BL_SPACEDIM*2);
@@ -1888,6 +1847,9 @@ NavierStokesBase::init (AmrLevel &old)
     is_first_step_after_regrid = true;
 }
 
+//
+// Fills a totally new level n with data interpolated from coarser level.
+//
 void
 NavierStokesBase::init ()
 {
@@ -1925,8 +1887,16 @@ NavierStokesBase::init ()
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
 
-    initOldPress();
+    // FIXME don't need this here? advance_setup will take care of filling old?
+    // Need to initGpOld too???
+    initOldFromNew(Press_Type);
 
+    //
+    // FIXME?
+    // Need to think about if we need the old GP created too. See comment in
+    // init(old) above.
+    MultiFab& Gp_new = get_new_data(Gradp_Type);
+    FillCoarsePatch(Gp_new,0,cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM,Gp_new.nGrow());
     //
     // Get best coarse divU and dSdt data.
     //
@@ -2014,24 +1984,12 @@ NavierStokesBase::initialTimeStep ()
 // pressure solver in Pnew, we need to copy it to Pold at the start.
 //
 void
-NavierStokesBase::initOldPress ()
+NavierStokesBase::initOldFromNew (Real type)
 {
-    MultiFab& P_new = get_new_data(Press_Type);
-    MultiFab& P_old = get_old_data(Press_Type);
+    MultiFab& new_t = get_new_data(type);
+    MultiFab& old_t = get_old_data(type);
 
-    MultiFab::Copy(P_old, P_new, 0, 0, P_old.nComp(), P_old.nGrow());
-}
-
-void
-NavierStokesBase::zeroNewPress ()
-{
-    get_new_data(Press_Type).setVal(0);
-}
-
-void
-NavierStokesBase::zeroOldPress ()
-{
-    get_old_data(Press_Type).setVal(0);
+    MultiFab::Copy(old_t, new_t, 0, 0, old_t.nComp(), old_t.nGrow());
 }
 
 void
@@ -2105,7 +2063,7 @@ NavierStokesBase::level_sync (int crse_iteration)
     }
 
     //
-    // Multilevel or single-level sync projection.
+    // Multilevel sync projection.
     //
     MultiFab& Rh = get_rho_half_time();
     MultiFab cc_rhs_crse, cc_rhs_fine;
@@ -2191,6 +2149,13 @@ NavierStokesBase::level_sync (int crse_iteration)
       SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio,
 		     first_crse_step_after_initial_iters,
 		     cur_crse_pres_time, prev_crse_pres_time);
+
+      // Update Gradp old and new, since both are corrected in SyncProjInterp
+      // FIXME? Unsure that updating old is really necessary
+      // NOTE this will fill ghost cells with FillPatch
+      flev.computeGradP(flev.state[Gradp_Type].prevTime());
+      flev.computeGradP(flev.state[Gradp_Type].curTime());
+
     }
 
     BL_PROFILE_REGION_STOP("R::NavierStokesBase::level_sync()");
@@ -2523,6 +2488,7 @@ NavierStokesBase::post_init_state ()
 
     if (do_init_vort_proj)
     {
+        amrex::Abort("NavierStokesBase::post_init_state(): initialVorticityProject not tested with new Gradp!!! See comments Projection::initialVorticityProject.\n");
         //
 	// NOTE: this assumes have_divu == 0.
 	// Only used if vorticity is used to initialize the velocity field.
@@ -2552,12 +2518,15 @@ NavierStokesBase::post_init_state ()
     //
     // Average velocity and scalar data down from finer levels
     // so that conserved data is consistant between levels.
+    // This might not be the most efficient way of doing things
+    // (since initialVelocityProject will average down vel, P and Gradp),
+    // but it does ensure everything is averaged down for all cases 
+    // (e.g. initialVelocityProject doesn't get called or init_vel_iter<=0).
     //
     for (int k = finest_level-1; k>= 0; k--)
     {
       getLevel(k).avgDown();
     }
-    make_rho_curr_time();
 
     if (do_init_proj && projector && (std::fabs(gravity)) > 0.){
       //
@@ -2569,12 +2538,14 @@ NavierStokesBase::post_init_state ()
 
       if (verbose) amrex::Print() << "done calling initialPressureProject" << std::endl;
     }
-    // make sure there's not NANs in old pressure field
-    // end up with P_old = P_new as is the case when exiting initialPressureProject
-    if(!do_init_proj){
-      MultiFab& p_old=get_old_data(Press_Type);
-      MultiFab& p_new=get_new_data(Press_Type);
-      MultiFab::Copy(p_old, p_new, 0, 0, 1, p_new.nGrow());
+    //
+    // Make sure there's not NANs in old pressure field.
+    // End up with P_old = P_new as is the case when exiting initialPressureProject
+    //
+    if(!do_init_proj)
+    {
+      initOldFromNew(Press_Type);
+      initOldFromNew(Gradp_Type);
     }
 
 }
@@ -2592,33 +2563,16 @@ NavierStokesBase::post_regrid (int lbase,
         NSPC->Redistribute(lbase);
     }
 #endif
-
-
 }
 
-//
-// Old checkpoint files may not have Gradp_Type.
-// 
-//
-void
-NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
-{ 
-  //
-  // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.
-  // state_in_checkpoint is initialized to all true.
-  //
-  state_in_checkpoint[Average_Type] = 0;
-
-  average_in_checkpoint = false;
-}
 //
 // Build any additional data structures after restart.
 //
 void
 NavierStokesBase::post_restart ()
 {
-   make_rho_prev_time();
-   make_rho_curr_time();
+    make_rho_prev_time();
+    make_rho_curr_time();
 
   if (avg_interval > 0){
 
@@ -2627,8 +2581,11 @@ NavierStokesBase::post_restart ()
     NavierStokesBase::time_avg_fluct.resize(finest_level+1);
     NavierStokesBase::dt_avg.resize(finest_level+1);
 
-  // We assume that if Average_Type is not present, we have just activated the start of averaging
-    if ( !average_in_checkpoint )
+    //
+    // We assume that if Average_Type is not present, we have just activated
+    // the start of averaging
+    //
+    if ( average_in_checkpoint==0 )
     {
       Print()<<"WARNING! Average not found in checkpoint file. Creating data"
              <<std::endl;
@@ -2651,7 +2608,10 @@ NavierStokesBase::post_restart ()
 
 
     }else{
-  // If Average_Type data were found, this means that we need to recover the value of time_average
+      //
+      // If Average_Type data were found, this means that we need to recover the
+      // value of time_average
+      //
       std::string line;
       std::string file=parent->theRestartFile();
 
@@ -2688,7 +2648,6 @@ NavierStokesBase::post_restart ()
 void
 NavierStokesBase::post_timestep (int crse_iteration)
 {
-
   BL_PROFILE("NavierStokesBase::post_timestep()");
 
     const int finest_level = parent->finestLevel();
@@ -2706,6 +2665,17 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (do_reflux && level < finest_level)
         reflux();
 
+    //
+    // Average everything down, including P and Gradp.
+    // Even though the multilevel projections average down, only
+    // single level projections have been done for current timestep.
+    // The linearity of the average ensures that if we average down P
+    // and Gp here, then we may simply add the incremental correction
+    // (which get averaged down in amrex) during the sync projection. 
+    //
+    // avgDown also updates rho_ctime since it's needed for rho_half,
+    // which is used in the sync projection.
+    //
     if (level < finest_level)
         avgDown();
 
@@ -2714,6 +2684,8 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
+
+
     //
     // Test for conservation.
     //
@@ -2739,7 +2711,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
     }
 #endif
 #endif
-
 
     if (level > 0) incrPAvg();
 
@@ -2790,7 +2761,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
 //
 // Reset the time levels to time (time) and timestep dt.
-// This is done at the start of the timestep in the pressure iteration section.
+// This is done at the end of the timestep in the pressure iteration section.
 //
 void
 NavierStokesBase::resetState (Real time,
@@ -2803,8 +2774,15 @@ NavierStokesBase::resetState (Real time,
     state[State_Type].reset();
     state[State_Type].setTimeLevel(time,dt_old,dt_new);
 
-    initOldPress();
+    //
+    // Set P & gradP old = new. This way we retain new after
+    // advance_setup() does swap(old,new).
+    //
+    initOldFromNew(Press_Type);
     state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
+
+    initOldFromNew(Gradp_Type);
+    state[Gradp_Type].setTimeLevel(time-dt_old,dt_old,dt_new);
     //
     // Reset state types for divu not equal to zero.
     //
@@ -2823,16 +2801,64 @@ NavierStokesBase::resetState (Real time,
     }
 }
 
+//
+// Old checkpoint files may not have Gradp_Type and/or Average_Type.
+// 
+void
+NavierStokesBase::set_state_in_checkpoint (Vector<int>& state_in_checkpoint)
+{
+  //
+  // Abort if any of the NSB::*_in_checkpoint variables haven't been set by user.
+  //
+  if ( gradp_in_checkpoint<0 || average_in_checkpoint<0 )
+    Abort("\n\n   Checkpoint file is missing one or more state types. Set both\n ns.gradp_in_checkpoint and ns.avg_in_checkpoint to identify missing\n data. Set to 1 if present in checkpoint, 0 if not present. If unsure,\n try setting both to 0.\n\n If you just activated Time Averaging, you should add \n  ns.avg_in_checkpoint=0 ns.gradp_in_checkpoint=1 \n\n");
+
+  //
+  // Tell AmrLevel which types are in the checkpoint, so it knows what to copy.
+  // state_in_checkpoint is initialized to all true.
+  //
+  if ( gradp_in_checkpoint==0 )
+    state_in_checkpoint[Gradp_Type] = 0;
+
+  if ( average_in_checkpoint==0 && avg_interval>0 )
+    state_in_checkpoint[Average_Type] = 0;
+}
+
 void
 NavierStokesBase::restart (Amr&          papa,
                            std::istream& is,
                            bool          bReadSpecial)
 {
-  AmrLevel::restart(papa,is,bReadSpecial);
+    Print()<<"\nWARNING! Note that you can't drop data from the checkpoint file.\n"
+           <<" If your checkpoint file contains Average_Type, then your inputs\n"
+	   <<" must also specify ns.avg_interval>0.\n"<<std::endl;
 
-#ifdef AMREX_USE_EB
-    amrex::Warning("Restart not tested with EB yet.");
-#endif
+    AmrLevel::restart(papa,is,bReadSpecial);
+
+    if ( gradp_in_checkpoint==0 )
+    {
+      Print()<<"WARNING! GradP not found in checkpoint file. Recomputing from Pressure."
+	     <<std::endl;
+
+      //
+      // define state[Gradp_Type] and
+      // Compute GradP from the Pressure
+      //
+      Real cur_time = state[Press_Type].curTime();
+      Real prev_time = state[Press_Type].prevTime();
+      Real dt = cur_time - prev_time;
+      // Because P and Gp are Interval type, this is the time for define()
+      Real time = 0.5 * (prev_time + cur_time);
+
+      state[Gradp_Type].define(geom.Domain(), grids, dmap, desc_lst[Gradp_Type],
+			       time, dt, Factory());
+      computeGradP(cur_time);
+
+      // now allocate the old data and fill
+      state[Gradp_Type].allocOldData();
+      computeGradP(prev_time);
+    }
+
     //
     // Build metric coefficients for RZ calculations.
     // Build volume and areas.
@@ -2856,22 +2882,6 @@ NavierStokesBase::restart (Amr&          papa,
     const BoxArray& P_grids = state[Press_Type].boxArray();
 #ifdef AMREX_USE_EB
     init_eb(parent->Geom(level), grids, dmap);
-
-    //fixme? not 100% sure this is the right place
-    // note --- this fn is really similar to constructor
-    //  need to make sure gradp is getting properly filled for this restart case?
-    //  incflo style advection does not use Gp in tracing states to edges,
-    //  don't think Gp is needed until the vel update after the projection.
-    // But ultimately we need gradp in the checkpoint file.
-    gradp.reset(new MultiFab(grids,dmap,BL_SPACEDIM,1, MFInfo(), Factory()));
-
-    std::string file=papa.theRestartFile();
-    std::string LevelDir, FullPath;
-    LevelDirectoryNames(file, LevelDir, FullPath);
-    std::string gradp_mf_fullpath = FullPath;
-    gradp_mf_fullpath += "/gradp";
-    const char *faHeader = 0;
-    VisMF::Read(*gradp, gradp_mf_fullpath, faHeader);
 #endif
 
     //
@@ -3165,6 +3175,8 @@ NavierStokesBase::setTimeLevel (Real time,
     }
 
     state[Press_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
+
+    state[Gradp_Type].setTimeLevel(time-dt_old,dt_old,dt_old);
 }
 
 void
@@ -3558,14 +3570,6 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Compute viscosity components.
     //
-#ifdef AMREX_USE_EB
-    MultiFab& Gp = getGradP();
-    Gp.FillBoundary(geom.periodicity());
-#else
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
-    getGradP(Gp, state[Press_Type].prevTime());
-#endif
-
     MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
 
     // No need to compute this is we are using EB because we will
@@ -3601,6 +3605,7 @@ NavierStokesBase::velocity_advection (Real dt)
     {
         FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
         MultiFab& Umf=U_fpi.get_mf();
+	MultiFab& Gp = get_old_data(Gradp_Type);
 
 #ifndef AMREX_USE_EB
         //
@@ -3824,16 +3829,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
     MultiFab&  U_old          = get_old_data(State_Type);
     MultiFab&  U_new          = get_new_data(State_Type);
     MultiFab&  Aofs           = *aofs;
-    const Real prev_pres_time = state[Press_Type].prevTime();
-
-#ifdef AMREX_USE_EB
-    MultiFab& Gp=*gradp;
-    Gp.FillBoundary(geom.periodicity());
-#else
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1);
-    getGradP(Gp, prev_pres_time);
-#endif
-
+    MultiFab&  Gp    = get_old_data(Gradp_Type);
     MultiFab& Rh = get_rho_half_time();
 
     MultiFab Vel(grids, dmap, AMREX_SPACEDIM, 0, MFInfo(), Factory());
@@ -3982,13 +3978,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         //
         // Get grad(p)
         //
-#ifdef AMREX_USE_EB
-        MultiFab& Gp = *gradp;
-#else
-        const Real prev_pres_time = state[Press_Type].prevTime();
-        MultiFab         Gp(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
-        getGradP(Gp, prev_pres_time);
-#endif
+	MultiFab& Gp = get_old_data(Gradp_Type);
 
         //
         // Compute additional forcing terms
@@ -4801,6 +4791,125 @@ NavierStokesBase::fetchBCArray (int State_Type, int scomp, int ncomp)
     return bc;
 }
 
+//
+// Compute gradient of P and fill ghost cells with FillPatch
+//
+// FIXME --- perhaps these computeGradP fns belong in Projection.cpp?
+void
+NavierStokesBase::computeGradP(Real time)
+{
+    LPInfo info;
+    info.setMaxCoarseningLevel(0);
+    MLNodeLaplacian linop({geom}, {grids}, {dmap}, info, {&Factory()});
+#ifdef AMREX_USE_EB
+    linop.buildIntegral();
+#endif
+    
+    // No call to set BCs because we're only calling compGrad(), which
+    // doesn't use them. P already exists on surroundingNodes(Gp.validbox()),
+    // and compGrad() does not fill ghost cells
+
+    MultiFab& Press = get_data(Press_Type, time);
+    MultiFab& Gp    = get_data(Gradp_Type, time);
+
+    linop.compGrad(0, Gp, Press);
+
+    // Now fill ghost cells 
+    FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);
+}
+
+//
+// Multilevel computeGradP at curTime.
+//
+void
+NavierStokesBase::computeGradP(int clev, int flev)
+{
+    LPInfo info;
+    info.setMaxCoarseningLevel(0);
+
+    for ( int lev = clev; lev <= flev; lev++ )
+    {
+        NavierStokesBase& ns =
+	  dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
+
+	ns.computeGradP(ns.state[Gradp_Type].curTime());
+    }
+
+    //NOT TESTED YET!!!
+    // FIXME --- set to false for now for comparisons with old way
+    //  maybe want to make a runtime switch?
+    bool avgDownGradP = false;
+    if ( avgDownGradP )
+    {
+        for ( int lev = flev-1; lev >= clev; --lev )
+        {
+	    Abort("WARNING!!! NSB::computeGradP: averaging down has not been tested\n");
+
+	    NavierStokesBase& ns_fine =
+	      dynamic_cast<NavierStokesBase&>(parent->getLevel(lev+1));
+	    NavierStokesBase& ns_crse =
+	      dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
+
+	    // Note that for P and Gp, crse and fine times do not match up
+	    // const TimeLevel whichTime = ns_crse.which_time(State_Type,time);
+
+	    // if (whichTime == ns_crse.AmrOldTime)
+	    // {
+	    //   MultiFab& gp_fine = ns_fine.get_old_data(Gradp_Type);
+	    //   MultiFab& gp_crse = ns_crse.get_old_data(Gradp_Type);
+	    // }
+	    // else if (whichTime == ns_crse.AmrNewTime)
+	    // {
+	      MultiFab& gp_fine = ns_fine.get_new_data(Gradp_Type);
+	      MultiFab& gp_crse = ns_crse.get_new_data(Gradp_Type);
+	    // }
+
+	    ns_crse.average_down(gp_fine, gp_crse, 0, AMREX_SPACEDIM);
+	}
+    }
+}
+
+void
+NavierStokesBase::avgDown_StatePress()
+{
+    auto&   fine_lev = getLevel(level+1);
+
+    //
+    // Average down the states at the new time.
+    //
+    MultiFab& S_crse = get_new_data(State_Type);
+    MultiFab& S_fine = fine_lev.get_new_data(State_Type);
+
+    average_down(S_fine, S_crse, 0, S_crse.nComp());
+
+    //
+    // Fill rho_ctime at the current and finer levels with the correct data.
+    //
+    for (int lev = level; lev <= parent->finestLevel(); lev++)
+    {
+        getLevel(lev).make_rho_curr_time();
+    }
+
+    //
+    // Now average down pressure over time n-(n+1) interval.
+    //
+    MultiFab&       P_crse      = get_new_data(Press_Type);
+    MultiFab&       P_fine_init = fine_lev.get_new_data(Press_Type);
+    MultiFab&       P_fine_avg  = fine_lev.p_avg;
+    MultiFab&       P_fine      = initial_step ? P_fine_init : P_fine_avg;
+
+    // NOTE: this fills ghost cells, but amrex::average_down does not.
+    amrex::average_down_nodal(P_fine,P_crse,fine_ratio);
+
+    //
+    // Average down Gradp
+    //
+    MultiFab& Gp_crse = get_new_data(Gradp_Type);
+    MultiFab& Gp_fine = fine_lev.get_new_data(Gradp_Type);
+
+    average_down(Gp_fine, Gp_crse, 0, Gp_crse.nComp());
+}
+
 void
 NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
 			       int scomp, int ncomp)
@@ -4811,11 +4920,11 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
   //
 
 #ifdef AMREX_USE_EB
-
+  //
   // FIXME?
   // Assume we want EB to behave the same as non-EB in regards to dimensionality
-  // Not sure why we'd want 2D to be different than 3D
   // Note that 3D volume weighting doesn't exist for non-EB
+  //
 #if (AMREX_SPACEDIM == 3)
     // no volume weighting
     amrex::EB_average_down(S_fine, S_crse, scomp, ncomp, fine_ratio);
@@ -4827,7 +4936,9 @@ NavierStokesBase::average_down(const MultiFab& S_fine, MultiFab& S_crse,
 #endif
 
 #else
+    //
     // non-EB aware, uses volume weighting for 1D,2D but no volume weighting for 3D
+    //
     amrex::average_down(S_fine, S_crse,
 			this->getLevel(level+1).geom, this->getLevel(level).geom,
 			scomp, ncomp, fine_ratio);
@@ -4863,13 +4974,7 @@ NavierStokesBase::printMaxVel (bool new_data)
 void
 NavierStokesBase::printMaxGp (bool new_data)
 {
-#ifdef AMREX_USE_EB
-    MultiFab& Gp = getGradP();
-#else
-    MultiFab Gp(grids,dmap,BL_SPACEDIM,1);
-    const Real time = new_data ? state[Press_Type].curTime() : state[Press_Type].prevTime();
-    getGradP(Gp, time);
-#endif
+    MultiFab& Gp = new_data? get_new_data(Gradp_Type) : get_old_data(Gradp_Type);
     MultiFab& P  = new_data? get_new_data(Press_Type) : get_old_data(Press_Type);
 
 #if (AMREX_SPACEDIM==3)
@@ -5000,3 +5105,163 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
         });
     }
 }
+
+
+//
+// Predict the edge velocities which go into forming u_mac.  This
+// function also returns an estimate of dt for use in variable timesteping.
+//
+Real
+NavierStokesBase::predict_velocity (Real  dt)
+{
+   BL_PROFILE("PeleLM::predict_velocity()");
+   if (verbose) {
+      amrex::Print() << "... predict edge velocities\n";
+   }
+   //
+   // Get simulation parameters.
+   //
+   const int   nComp          = AMREX_SPACEDIM;
+   const Real* dx             = geom.CellSize();
+   const Real  prev_time      = state[State_Type].prevTime();
+   const Real  prev_pres_time = state[Press_Type].prevTime();
+   const Real  strt_time      = ParallelDescriptor::second();
+   //
+   // Compute viscous terms at level n.
+   // Ensure reasonable values in 1 grow cell.  Here, do extrap for
+   // c-f/phys boundary, since we have no interpolator fn, also,
+   // preserve extrap for corners at periodic/non-periodic intersections.
+   //
+
+   MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
+  
+   if (be_cn_theta != 1.0)
+   {
+      getViscTerms(visc_terms,Xvel,nComp,prev_time);
+   }
+   else
+   {
+      visc_terms.setVal(0.0);
+   }
+
+   FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+   MultiFab& Umf=U_fpi.get_mf();
+  
+   // Floor small values of states to be extrapolated
+   floor(Umf);
+
+   FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+   MultiFab& Smf=S_fpi.get_mf();
+
+   //
+   // Compute "grid cfl number" based on cell-centered time-n velocities
+   //
+   auto umax = VectorMaxAbs({&Umf},FabArrayBase::mfiter_tile_size,0,AMREX_SPACEDIM,Umf.nGrow());
+   Real cflmax = dt*umax[0]/dx[0];
+   for (int d=1; d<AMREX_SPACEDIM; ++d) {
+     cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
+   }
+   Real tempdt = cflmax==0 ? change_max : std::min(change_max,cfl/cflmax);
+  
+#if AMREX_USE_EB
+
+   MOL::ExtrapVelToFaces( Umf,
+                          AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                          geom, m_bcrec_velocity);
+
+#else
+   //
+   // Non-EB version
+   //
+    MultiFab& Gp = get_old_data(Gradp_Type);
+    // FillPatch Gp here, as crse data has been updated
+    // only really needed on the first step of the fine subcycle
+    // because level_project at this level fills Gp ghost cells.
+    // OR maybe better to not FP in level_proj for level>0 and do it
+    // once the first time it's needed, which is presumably here...
+    if ( level > 0 )
+      FillPatch(*this,Gp,Gp.nGrow(),prev_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
+
+    const int ngrow = 1;
+    MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
+
+    //
+    // Compute forcing
+    //
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    {
+        for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
+        {
+            Box bx=U_mfi.tilebox();
+            FArrayBox& Ufab = Umf[U_mfi];
+            auto const  gbx = U_mfi.growntilebox(ngrow);
+
+            if (getForceVerbose) {
+                Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
+            }
+
+            getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+
+            //
+            // Compute the total forcing.
+            //
+            auto const& tf   = forcing_term.array(U_mfi,Xvel);
+            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+            auto const& gp   = Gp.const_array(U_mfi);
+            auto const& rho  = rho_ptime.const_array(U_mfi);
+
+            amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+            });
+        }
+    }
+
+    //velpred=1 only, use_minion=1, ppm_type, slope_order
+    Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                               m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt,
+			       godunov_use_ppm, godunov_use_forces_in_trans );
+
+#endif
+
+   if (verbose > 1)
+   {
+      const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+      Real      run_time = ParallelDescriptor::second() - strt_time;
+
+      ParallelDescriptor::ReduceRealMax(run_time,IOProc);
+
+      Print() << "PeleLM::predict_velocity(): lev: " << level 
+              << ", time: " << run_time << '\n';
+   }
+
+   return dt*tempdt;
+}
+
+
+//
+// Floor small values of states to be extrapolated
+//
+void
+NavierStokesBase::floor(MultiFab& mf){
+
+  int ncomp = mf.nComp();
+    
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        Box gbx=mfi.growntilebox(godunov_hyp_grow);
+        auto const& fab_a = mf.array(mfi);
+        AMREX_PARALLEL_FOR_4D ( gbx, ncomp, i, j, k, n,
+        {
+            auto& val = fab_a(i,j,k,n);
+            val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
+        });
+    }
+}
+
