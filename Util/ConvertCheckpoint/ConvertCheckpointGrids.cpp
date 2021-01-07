@@ -64,11 +64,11 @@ std::string interp_kind;
 Real avg_time;
 Real avg_time_fluct;
 bool TimeAverageFile_exist = false;
+int flag_eb = 0;
+
 Vector<int> nsets_save(1);
 
 VisMF::How how = VisMF::OneFilePerCPU;
-
-int ngrow = 1; // WARNING: this works for IAMR with no EB, but this number may be different for EB
 
 // ---------------------------------------------------------------
 struct FakeStateData {
@@ -132,7 +132,9 @@ static void ScanArguments() {
     if(pp.contains("interp_kind")) {
       pp.get("interp_kind", interp_kind);
     }
-
+    if(pp.contains("flag_eb")) {
+      pp.get("flag_eb", flag_eb);
+    }
     if (user_ratio != 2 && user_ratio != 4)
        amrex::Abort("user_ratio must be 2 or 4");
 
@@ -642,10 +644,17 @@ static void ConvertData() {
 
     DistributionMapping dm_trgt{new_grids};
 
-
     int ngrow_loc;
 
     for (int n = 0; n < falRef_src.state.size(); n++){
+
+      if (!flag_eb){
+        if(n <= 1) ngrow_loc = 1;
+        if(n == 2) ngrow_loc = 0;
+      }else{
+        if(n == 0) ngrow_loc = 4;
+        if(n == 1 || n == 2) ngrow_loc = 1;
+      }
 
       // We don't have the same number of ghost-cells for each data type
       // Warning, this should be adapted for EB 
@@ -657,9 +666,8 @@ static void ConvertData() {
       } 
       else if (falRef_src.state.size() == 6 && n >= falRef_src.state.size()-2){
         ngrow_loc = 0; // Here we have both Average_Type and Divu and Dsdt types
-      }else{
-        ngrow_loc = ngrow;
       }
+
 
       // Assuming that OldState and NewState have the same number of components
       int ncomps = (falRef_src.state[n].old_data)->nComp();
