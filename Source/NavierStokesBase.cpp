@@ -1783,7 +1783,7 @@ NavierStokesBase::init (AmrLevel &old)
     const Real    dt_old    = cur_time - prev_time;
     MultiFab&     S_new     = get_new_data(State_Type);
     MultiFab&     P_new     = get_new_data(Press_Type);
-    MultiFab&     P_old     = get_old_data(Press_Type);
+    MultiFab&     Gp_new    = get_new_data(Gradp_Type);
 
     setTimeLevel(cur_time,dt_old,dt_new);
 
@@ -1792,35 +1792,7 @@ NavierStokesBase::init (AmrLevel &old)
     // Get best state and pressure data.
     //
     FillPatch(old,S_new,0,cur_time,State_Type,0,NUM_STATE);
-    {
-       FillPatchIterator fpi(old,P_new,0,cur_pres_time,Press_Type,0,1);
-       const MultiFab& mf_fpi = fpi.get_mf();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-       for (MFIter mfi(mf_fpi,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-       {
-         const Box& bx  = mfi.tilebox();
-          const auto& p_arr = mf_fpi.array(mfi);
-          const auto& p_o = P_old.array(mfi);
-          const auto& p_n = P_new.array(mfi);
-          amrex::ParallelFor(bx, [p_arr, p_o, p_n] 
-          AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-          {
-             p_o(i,j,k) = p_arr(i,j,k);
-             p_n(i,j,k) = p_arr(i,j,k);
-          });
-       }
-    }
-
-    //
-    // FIXME?
-    // Do we need to fill old too, like Pressure? Not sure P_old really needs filling
-    // because doesn't advance setup swap old and new?
-    // *Think* estTimeStep will look at new, and then advance_setup will swap new into
-    // old, so only need to fill new, right?
-    //
-    MultiFab& Gp_new = get_new_data(Gradp_Type);
+    FillPatch(old,P_new,0,cur_pres_time,Press_Type,0,1);
     FillPatch(old,Gp_new,Gp_new.nGrow(),cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
 
     if (avg_interval > 0){
@@ -1855,6 +1827,7 @@ NavierStokesBase::init ()
 {
     MultiFab& S_new = get_new_data(State_Type);
     MultiFab& P_new = get_new_data(Press_Type);
+    MultiFab& Gp_new = get_new_data(Gradp_Type);
 
     BL_ASSERT(level > 0);
 
@@ -1886,16 +1859,6 @@ NavierStokesBase::init ()
     //
     FillCoarsePatch(S_new,0,cur_time,State_Type,0,NUM_STATE);
     FillCoarsePatch(P_new,0,cur_pres_time,Press_Type,0,1);
-
-    // FIXME don't need this here? advance_setup will take care of filling old?
-    // Need to initGpOld too???
-    initOldFromNew(Press_Type);
-
-    //
-    // FIXME?
-    // Need to think about if we need the old GP created too. See comment in
-    // init(old) above.
-    MultiFab& Gp_new = get_new_data(Gradp_Type);
     FillCoarsePatch(Gp_new,0,cur_pres_time,Gradp_Type,0,AMREX_SPACEDIM,Gp_new.nGrow());
     //
     // Get best coarse divU and dSdt data.
