@@ -1257,7 +1257,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 
       computeAlpha(acoef, scalars, a, b,
                    &rhsscale, alpha, alphaComp,
-                   rho_flag, &S, Rho_comp);
+                   rho_flag, &rho, Rho_comp);
       mlabec.setScalars(scalars.first, scalars.second);
       mlabec.setACoeffs(0, acoef);
     }
