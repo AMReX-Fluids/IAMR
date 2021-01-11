@@ -803,7 +803,7 @@ public:
     // Control velocity vs momentum update
     //
     static int  do_mom_diff;
-    static int  predict_mom_together;
+
     static bool def_harm_avg_cen2edge;
     //
     // static integer constants
@@ -814,7 +814,7 @@ public:
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
 #ifdef AMREX_USE_EB
-  // MOL doesn't require gradp ghost cells
+    // MOL doesn't require gradp ghost cells
     static const int gradp_grow = 0;
 #else
     static const int gradp_grow = 1;

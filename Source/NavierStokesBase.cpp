@@ -145,7 +145,6 @@ Real NavierStokesBase::volWgtSum_sub_dy       = -1;
 Real NavierStokesBase::volWgtSum_sub_dz       = -1;
 
 int  NavierStokesBase::do_mom_diff            = 0;
-int  NavierStokesBase::predict_mom_together   = 0;
 bool NavierStokesBase::def_harm_avg_cen2edge  = false;
 
 bool NavierStokesBase::godunov_use_ppm = false;
@@ -527,13 +526,6 @@ NavierStokesBase::Initialize ()
 
     // Are we going to do velocity or momentum update?
     pp.query("do_mom_diff",do_mom_diff);
-    pp.query("predict_mom_together",predict_mom_together);
-
-    if (do_mom_diff == 0 && predict_mom_together == 1)
-    {
-      amrex::Print() << "MAKES NO SENSE TO HAVE DO_MOM_DIFF=0 AND PREDICT_MOM_TOGETHER=1\n";
-      exit(0);
-    }
 
     pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
 
@@ -3503,11 +3495,6 @@ NavierStokesBase::velocity_advection (Real dt)
         }
         else
         {
-            if (predict_mom_together == 0)
-            {
-                amrex::Print() << "Must set predict_mom_together == 1 in NavierStokesBase." << '\n';
-                exit(0);
-            }
             amrex::Print() << "... advect momenta\n";
         }
     }
