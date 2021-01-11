@@ -52,8 +52,7 @@ CEXE_headers += NS_derive.H
 CEXE_headers += Projection.H MacProj.H Diffusion.H NavierStokesBase.H FluxBoxes.H
 
 FEXE_headers += DERIVE_F.H  PROJECTION_F.H \
-                            NAVIERSTOKES_F.H \
-                            SLABSTAT_NS_F.H
+                            NAVIERSTOKES_F.H 
 FEXE_headers += NS_error_F.H
 
 CEXE_sources += MLMG_Mac.cpp NS_util.cpp
