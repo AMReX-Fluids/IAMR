@@ -14,5 +14,4 @@ F90EXE_sources += PROJOUTFLOWBC_$(DIM)D.F90 \
                   MACOUTFLOWBC_$(DIM)D.F90
 
 F90EXE_sources += NAVIERSTOKES_$(DIM)D.F90 PROJECTION_$(DIM)D.F90 \
-                  SLABSTAT_NS_$(DIM)D.F90 MACPROJ_$(DIM)D.F90 \
-                  ARRAYLIM_$(DIM)D.F90
+                  MACPROJ_$(DIM)D.F90
