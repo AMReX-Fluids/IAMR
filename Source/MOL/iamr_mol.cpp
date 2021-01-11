@@ -67,7 +67,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     {
         auto const& bx = mfi.tilebox();
 	int ng_f = xfluxes.nGrow();
-	auto const& gtbx = mfi.growntilebox(ng_f);
 	D_TERM( const Box& xbx = mfi.grownnodaltilebox(0,ng_f);,
 		const Box& ybx = mfi.grownnodaltilebox(1,ng_f);,
 		const Box& zbx = mfi.grownnodaltilebox(2,ng_f); );
@@ -84,6 +83,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
         // Initialize covered cells
         auto const& flagfab = ebfactory.getMultiEBCellFlagFab()[mfi];
         auto const& flag    = flagfab.const_array();
+	auto const& gtbx = mfi.growntilebox(ng_f);
 
         if (flagfab.getType(gtbx) == FabType::covered)
         {

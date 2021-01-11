@@ -1012,8 +1012,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 
     if (verbose) amrex::Print() << "Diffusion::diffuse_tensor_Vsync ...\n";
 
-    const MultiFab* area   = navier_stokes->Area();
-
     MultiFab Rhs(grids,dmap,AMREX_SPACEDIM,0,MFInfo(),navier_stokes->Factory());
 
     MultiFab::Copy(Rhs,Vsync,0,0,AMREX_SPACEDIM,0);
@@ -1503,8 +1501,6 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
 #endif
    for (MFIter mfi(Soln, mfi_info); mfi.isValid(); ++mfi)
    {
-      Box bx = mfi.tilebox();
-
       D_TERM( const auto& fx = flxx.array(mfi);,
               const auto& fy = flxy.array(mfi);,
               const auto& fz = flxz.array(mfi););
@@ -1514,6 +1510,8 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
               const Box wbx = mfi.nodaltilebox(2););
 
 #ifdef AMREX_USE_EB
+      Box bx = mfi.tilebox();
+
       const EBFArrayBox&     cc_fab = static_cast<EBFArrayBox const&>(Soln[mfi]);
       const EBCellFlagFab&    flags = cc_fab.getEBCellFlagFab();
 

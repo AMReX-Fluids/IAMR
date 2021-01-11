@@ -360,10 +360,7 @@ public:
                          amrex::MultiFab& P_new,
                          amrex::MultiFab& P_old,
                          int       f_lev,
-                         amrex::IntVect&  ratio,
-                         bool      first_crse_step_after_initial_iters,
-                         amrex::Real      cur_crse_pres_time,
-                         amrex::Real      prev_crse_pres_time);
+                         amrex::IntVect&  ratio);
 
     void sync_setup (amrex::MultiFab*& DeltaSsync);
     void sync_cleanup (amrex::MultiFab*& DeltaSsync);
@@ -545,7 +542,7 @@ public:
     // Compile p_avg in advance.
     //
     void incrPAvg ();
-    void initOldFromNew (amrex::Real type); // Initialize old with new
+    void initOldFromNew (int type); // Initialize old with new
     //
     // Compile rho_avg in advance.
     //
@@ -676,10 +673,6 @@ public:
     // Radii for r-z calculations.
     //
     amrex::Vector< amrex::Vector<amrex::Real> > radius;
-    //
-    // Flag for doing first step after regrid
-    //
-    bool is_first_step_after_regrid;
     //
     // Intersection of current amrex::BoxArray with that from before regrid.
     //

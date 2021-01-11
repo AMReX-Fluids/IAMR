@@ -113,7 +113,6 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
   FArrayBox fab_tmp;
   for (MFIter mfi(Uvel,true); mfi.isValid(); ++mfi)
   {
-    Box bx = mfi.tilebox();
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
   

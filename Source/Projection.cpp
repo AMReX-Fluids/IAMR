@@ -286,8 +286,6 @@ Projection::level_project (int             level,
                                                 Xvel,Xvel,AMREX_SPACEDIM);
     }
 
-    const BoxArray& grids   = LevelData[level]->boxArray();
-    const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const BoxArray& P_grids = P_old.boxArray();
     const DistributionMapping& P_dmap = P_old.DistributionMap();
 
@@ -565,8 +563,6 @@ Projection::MLsyncProject (int             c_lev,
     //
     Vector<std::unique_ptr<MultiFab> > phi(maxlev);
 
-    const BoxArray& grids      = LevelData[c_lev]->boxArray();
-    const BoxArray& fine_grids = LevelData[c_lev+1]->boxArray();
     const BoxArray& Pgrids_crse = pres_crse.boxArray();
     const BoxArray& Pgrids_fine = pres_fine.boxArray();
     const DistributionMapping& Pdmap_crse = pres_crse.DistributionMap();
@@ -612,8 +608,6 @@ Projection::MLsyncProject (int             c_lev,
     rhcc[c_lev  ] = &cc_rhs_crse;
     rhcc[c_lev+1] = &cc_rhs_fine;
     rhnd_vec[c_lev] = &rhnd;
-
-    const Geometry& fine_geom = parent->Geom(c_lev+1);
 
     NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[c_lev]);
     ns->average_down(*vel[c_lev+1],*vel[c_lev],0,AMREX_SPACEDIM);
@@ -1198,9 +1192,6 @@ Projection::initialSyncProject (int       c_lev,
 
       MultiFab v_crse(crse_grids, crse_dmap, AMREX_SPACEDIM, 1, MFInfo(), LevelData[lev-1]->Factory());
       MultiFab v_fine(fine_grids, fine_dmap, AMREX_SPACEDIM, 1, MFInfo(), LevelData[lev]->Factory());
-
-      const Geometry& fine_geom = parent->Geom(lev  );
-      const Geometry& crse_geom = parent->Geom(lev-1);
 
       MultiFab::Copy(v_crse, *vel[lev-1], 0, 0, AMREX_SPACEDIM, 1);
       MultiFab::Copy(v_fine, *vel[lev  ], 0, 0, AMREX_SPACEDIM, 1);
@@ -1818,7 +1809,6 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 Box ovlp = amrex::coarsen(phi_fine_strip[iface].box(),ratio) & mfi.validbox();
                 if (ovlp.ok())
                 {
-                    FArrayBox& cfab = phi_crse_strip[mfi];
                     const auto& phi_c_arr = phi_crse_strip.array(mfi);
                     ParallelFor(ovlp, [phi_c_arr,phi_f_arr,ratio]
                     AMREX_GPU_DEVICE (int i, int j, int k) noexcept 

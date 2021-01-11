@@ -327,15 +327,10 @@ MacProj::mac_project (int             level,
 
     const BoxArray& grids      = LevelData[level]->boxArray();
     const DistributionMapping& dmap = LevelData[level]->DistributionMap();
-    const Geometry& geom       = parent->Geom(level);
-    const Real*     dx         = geom.CellSize();
     const int       max_level  = parent->maxLevel();
     MultiFab*       mac_phi    = 0;
     NavierStokesBase&   ns     = *(NavierStokesBase*) &(parent->getLevel(level));
-    const MultiFab& volume     = ns.Volume();
     const MultiFab* area_level = ns.Area();
-    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
-        : IntVect::TheZeroVector();
     //
     // If finest level possible no need to make permanent mac_phi for bcs.
     //
@@ -468,10 +463,7 @@ MacProj::mac_sync_solve (int       level,
     const BoxArray& grids      = LevelData[level]->boxArray();
     const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const Geometry& geom       = parent->Geom(level);
-    const Real*     dx         = geom.CellSize();
     const BoxArray& fine_boxes = LevelData[level+1]->boxArray();
-    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
-        : IntVect::TheZeroVector();
     const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab&     volume     = ns_level.Volume();
     const MultiFab*     area_level = ns_level.Area();
@@ -610,10 +602,8 @@ MacProj::mac_sync_compute (int                   level,
     const BoxArray& grids               = LevelData[level]->boxArray();
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom                = parent->Geom(level);
-    const Real*     dx                  = geom.CellSize();
     const int       numscal             = NUM_STATE - AMREX_SPACEDIM;
     NavierStokesBase&   ns_level        = *(NavierStokesBase*) &(parent->getLevel(level));
-    const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
     bool            use_forces_in_trans = ns_level.GodunovUseForcesInTrans();
 
@@ -901,8 +891,6 @@ MacProj::mac_sync_compute (int                    level,
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom         = parent->Geom(level);
     NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
-    const MultiFab& volume       = ns_level.Volume();
-    const MultiFab* area         = ns_level.Area();
 
 #ifdef AMREX_USE_EB
     const int  nghost  = 2;

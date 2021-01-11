@@ -29,8 +29,6 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
     auto const& ccent = fact.getCentroid();
 #endif
 
-    Box const& domain = a_geom.Domain();
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif

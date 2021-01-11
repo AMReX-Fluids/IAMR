@@ -228,7 +228,6 @@ NavierStokes::initData ()
             get_new_data(Dsdt_Type).setVal(0);
     }
 
-    is_first_step_after_regrid = false;
     old_intersect_new          = grids;
 
 #ifdef AMREX_PARTICLES
@@ -463,7 +462,6 @@ NavierStokes::scalar_advection (Real dt,
     // Get simulation parameters.
     //
     const int   num_scalars    = lscalar - fscalar + 1;
-    const Real* dx             = geom.CellSize();
     const Real  prev_time      = state[State_Type].prevTime();
 
     //
@@ -1424,7 +1422,6 @@ NavierStokes::post_init (Real stop_time)
 
     if (NavierStokesBase::avg_interval > 0)
     {
-      const int   finest_level = parent->finestLevel();
       NavierStokesBase::time_avg.resize(finest_level+1);
       NavierStokesBase::time_avg_fluct.resize(finest_level+1);
       NavierStokesBase::dt_avg.resize(finest_level+1);
@@ -1549,6 +1546,9 @@ NavierStokes::post_init_press (Real&        dt_init,
 	// Make sure rho_ctime matches reset State
 	// FIXME? Why isn't this called on all levels when rho has been altered
 	// on all levels via advance, avgDown and resetState called on all levels.
+	// Just testing things out with the regression tests shows that this is
+	// needed (for both EB and nonEB), just doing level 0 is fine, and moving it
+	// outside the init_iters loop is fine (no changes to any regression tests).
         make_rho_curr_time();
 
         NavierStokes::initial_iter = false;

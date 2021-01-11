@@ -485,7 +485,7 @@ NavierStokesBase::Initialize ()
     if (do_scalar_update_in_order) {
 	    const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
 	    scalarUpdateOrder.resize(n_scalar_update_order_vals);
-	    int got_scalar_update_order = pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
+	    pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
     }
 
     // Don't let init_shrink be greater than 1
@@ -1816,7 +1816,6 @@ NavierStokesBase::init (AmrLevel &old)
     }
 
     old_intersect_new          = amrex::intersect(grids,oldns->boxArray());
-    is_first_step_after_regrid = true;
 }
 
 //
@@ -1947,7 +1946,7 @@ NavierStokesBase::initialTimeStep ()
 // pressure solver in Pnew, we need to copy it to Pold at the start.
 //
 void
-NavierStokesBase::initOldFromNew (Real type)
+NavierStokesBase::initOldFromNew (int type)
 {
     MultiFab& new_t = get_new_data(type);
     MultiFab& old_t = get_old_data(type);
@@ -2068,9 +2067,6 @@ NavierStokesBase::level_sync (int crse_iteration)
     Real  cur_fine_pres_time = fine_lev.state[Press_Type].curTime();
     Real prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
 
-    bool first_crse_step_after_initial_iters =
-      (prev_crse_pres_time > state[State_Type].prevTime());
-
     projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
 			     pres_fine,v_fine,cc_rhs_fine,
 			     Rh,rho_fine,Vsync,V_corr,
@@ -2109,9 +2105,7 @@ NavierStokesBase::level_sync (int crse_iteration)
 
       SyncInterp(V_corr, level+1, U_new, lev, ratio,
 		 0, 0, BL_SPACEDIM, 1 , dt, fine_sync_bc.dataPtr());
-      SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio,
-		     first_crse_step_after_initial_iters,
-		     cur_crse_pres_time, prev_crse_pres_time);
+      SyncProjInterp(phi, level+1, P_new, P_old, lev, ratio);
 
       // Update Gradp old and new, since both are corrected in SyncProjInterp
       // FIXME? Unsure that updating old is really necessary
@@ -2678,7 +2672,6 @@ NavierStokesBase::post_timestep (int crse_iteration)
     if (level > 0) incrPAvg();
 
     old_intersect_new          = grids;
-    is_first_step_after_regrid = false;
 
     if (level == 0 && dump_plane >= 0)
     {
@@ -2895,7 +2888,6 @@ NavierStokesBase::restart (Amr&          papa,
     viscn_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
     viscnp1_cc = new MultiFab(grids, dmap, 1, 1, MFInfo(), Factory());
 
-    is_first_step_after_regrid = false;
     old_intersect_new          = grids;
 
     //
@@ -3412,10 +3404,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
                                   MultiFab& P_new,
                                   MultiFab& P_old,
                                   int       f_lev,
-                                  IntVect&  ratio,
-                                  bool      first_crse_step_after_initial_iters,
-                                  Real      cur_crse_pres_time,
-                                  Real      prev_crse_pres_time)
+                                  IntVect&  ratio)
 {
     BL_PROFILE("NavierStokesBase:::SyncProjInterp()");
 
@@ -3455,10 +3444,6 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     ///
     EB_set_covered(crse_phi,0.);
 #endif
-
-    NavierStokesBase& fine_lev        = getLevel(f_lev);
-    const Real    cur_fine_pres_time  = fine_lev.state[Press_Type].curTime();
-    const Real    prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -3830,7 +3815,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
         // Average the new and old time to get Crank-Nicholson half time approximation.
         //
         //FIXME - need to address this for EB
-        auto const& vel  = VelFAB.array();
         auto const& scal = ScalFAB.array();
         Elixir scal_i = ScalFAB.elixir();
         auto const& scal_o = U_old.array(mfi,Density);
@@ -5157,7 +5141,6 @@ NavierStokesBase::predict_velocity (Real  dt)
     {
         for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
         {
-            Box bx=U_mfi.tilebox();
             FArrayBox& Ufab = Umf[U_mfi];
             auto const  gbx = U_mfi.growntilebox(ngrow);
 
@@ -5183,7 +5166,6 @@ NavierStokesBase::predict_velocity (Real  dt)
         }
     }
 
-    //velpred=1 only, use_minion=1, ppm_type, slope_order
     Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                                m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt,
 			       godunov_use_ppm, godunov_use_forces_in_trans );
