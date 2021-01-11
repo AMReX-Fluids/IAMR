@@ -7,8 +7,6 @@
 #include <Diffusion.H>
 #include <NavierStokesBase.H>
 
-#include <DIFFUSION_F.H>
-
 #include <algorithm>
 #include <cfloat>
 #include <iomanip>
@@ -1382,25 +1380,6 @@ Diffusion::setViscosity(MLEBTensorOp&          tensorop,
 
     MultiFab cc_bcoef = MultiFab(beta_cc, amrex::make_alias, betaComp, 1);
     tensorop.setEBShearViscosity(0, cc_bcoef);
-
-    if (NavierStokesBase::S_in_vel_diffusion) {
-      // remove the "divmusi" terms by setting kappa = (2/3) mu
-      //
-      Print()<<"WARNING: Hack to get rid of divU terms ...\n";
-      Array<MultiFab,AMREX_SPACEDIM> kappa;
-      Real twothirds = 2.0/3.0;
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      {
-         kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
-         MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
-         kappa[idim].mult(twothirds);
-      }
-      tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
-      cc_bcoef.mult(twothirds);
-      tensorop.setEBBulkViscosity(0, cc_bcoef);
-      //put beta_cc back to normal
-      cc_bcoef.mult(3.0/2.0);
-    }
 }
 
 #else
@@ -1428,21 +1407,6 @@ Diffusion::setViscosity(MLTensorOp&            tensorop,
                  MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
                  MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
     tensorop.setShearViscosity(0, amrex::GetArrOfConstPtrs(face_bcoef));
-
-    if (NavierStokesBase::S_in_vel_diffusion) {
-      // remove the "divmusi" terms by setting kappa = (2/3) mu
-      //
-      Print()<<"WARNING: Hack to get rid of divU terms ...\n";
-      Array<MultiFab,AMREX_SPACEDIM> kappa;
-      Real twothirds = 2.0/3.0;
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      {
-         kappa[idim].define(face_bcoef[idim].boxArray(), face_bcoef[idim].DistributionMap(), 1, 0, MFInfo(),navier_stokes->Factory());
-         MultiFab::Copy(kappa[idim], face_bcoef[idim], 0, 0, 1, 0);
-         kappa[idim].mult(twothirds);
-      }
-      tensorop.setBulkViscosity(0, amrex::GetArrOfConstPtrs(kappa));
-    }
 }
 #endif
 
@@ -1868,48 +1832,6 @@ Diffusion::checkBeta (const MultiFab* const* beta,
     if (!allthere)
         amrex::Abort("Diffusion::checkBeta(): beta must be all non-0");
 }
-
-//
-// This routine computes the vector div beta SI, where I is the identity
-// tensor, S = div U, and beta is non-constant.
-//
-void
-Diffusion::compute_divmusi (Real                   time,
-                            const MultiFab* const* beta,
-                            MultiFab&              divmusi)
-{
-    const int     nGrowDU  = 1;
-    const Real*   dx       = navier_stokes->Geom().CellSize();
-    std::unique_ptr<MultiFab> divu_fp ( navier_stokes->getDivCond(nGrowDU,time) );
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter divmusimfi(divmusi,true); divmusimfi.isValid(); ++divmusimfi)
-    {
-        FArrayBox& divu = (*divu_fp)[divmusimfi];
-        const Box& box  = divmusimfi.tilebox();
-
-        DEF_CLIMITS((*beta[0])[divmusimfi],betax,betaxlo,betaxhi);
-        DEF_CLIMITS((*beta[1])[divmusimfi],betay,betaylo,betayhi);
-
-#if (AMREX_SPACEDIM==3)
-        DEF_CLIMITS((*beta[2])[divmusimfi],betaz,betazlo,betazhi);
-#endif
-
-        div_varmu_si(box.loVect(),box.hiVect(), dx,
-		     ARLIM(divu.loVect()), ARLIM(divu.hiVect()),
-		     divu.dataPtr(),
-		     ARLIM(betaxlo), ARLIM(betaxhi), betax,
-		     ARLIM(betaylo), ARLIM(betayhi), betay,
-#if (AMREX_SPACEDIM==3)
-		     ARLIM(betazlo), ARLIM(betazhi), betaz,
-#endif
-		     ARLIM(divmusi[divmusimfi].loVect()), ARLIM(divmusi[divmusimfi].hiVect()),
-		     divmusi[divmusimfi].dataPtr());
-    }
-}
-
 
 //
 // SAS: The following function is a temporary fix in the migration from

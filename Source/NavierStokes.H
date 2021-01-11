@@ -178,11 +178,6 @@ protected:
     static void Finalize ();
 
 private:
-   
-    void diffuse_velocity_setup (amrex::Real       dt,
-				 amrex::MultiFab*& delta_rhs,
-				 amrex::MultiFab**& viscn,
-				 amrex::MultiFab**& viscnp1); 
 
     void getDiffusivity (amrex::MultiFab*  diffusivity[BL_SPACEDIM],
 			 const amrex::Real time,

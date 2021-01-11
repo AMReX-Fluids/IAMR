@@ -786,7 +786,6 @@ public:
     static int  have_divu;
     static int  have_dsdt;
     static amrex::Real divu_relax_factor;
-    static int  S_in_vel_diffusion;
     static int  do_init_vort_proj;
     static int  do_init_proj;
     //

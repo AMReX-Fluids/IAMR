@@ -180,14 +180,6 @@ public:
     void checkBeta (const amrex::MultiFab* const* beta,
 		    int&                          allthere) const;
 
-    void compute_divmusi (amrex::Real                   time,
-			  const amrex::MultiFab* const* beta,
-			  amrex::MultiFab&              divmusi);
-
-    void compute_divmusi (amrex::Real      time,
-			  amrex::Real      mu,
-			  amrex::MultiFab& divmusi);
-
     int maxOrder () const;
     int tensorMaxOrder () const;
 

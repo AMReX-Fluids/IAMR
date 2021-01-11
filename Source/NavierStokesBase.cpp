@@ -132,7 +132,6 @@ int  NavierStokesBase::num_state_type                     = 2;
 int  NavierStokesBase::have_divu                          = 0;
 int  NavierStokesBase::have_dsdt                          = 0;
 Real NavierStokesBase::divu_relax_factor                  = 0.0;
-int  NavierStokesBase::S_in_vel_diffusion                 = 0;
 int  NavierStokesBase::do_init_vort_proj                  = 0;
 int  NavierStokesBase::do_init_proj                       = 1;
 
@@ -492,14 +491,6 @@ NavierStokesBase::Initialize ()
         amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
 
     pp.query("divu_relax_factor",divu_relax_factor);
-    pp.query("S_in_vel_diffusion",S_in_vel_diffusion);
-    if ( S_in_vel_diffusion ){
-      // Currently, we should use the TensorOp to compute the divU terms in divtau.
-      // The code is still present to use the source term S instead of a numerically
-      // computed divu, however, divmusi terms isn't EB-aware.
-      // Perhaps one day a comparision would be interesting.
-      amrex::Abort("S_in_vel_diffusion not currently supported.\n");
-    }
     pp.query("be_cn_theta",be_cn_theta);
     if (be_cn_theta > 1.0 || be_cn_theta < .5)
         amrex::Abort("NavierStokesBase::Initialize(): Must have be_cn_theta <= 1.0 && >= .5");

@@ -851,14 +851,7 @@ NavierStokes::velocity_diffusion_update (Real dt)
     {
         int rho_flag = (do_mom_diff == 0) ? 1 : 3;
 
-        MultiFab* delta_rhs = 0;
-        if (S_in_vel_diffusion && have_divu)
-        {
-            delta_rhs = new MultiFab(grids,dmap,BL_SPACEDIM,0, MFInfo(),Factory());
-            delta_rhs->setVal(0);
-        }
-
-	FluxBoxes fb_viscn, fb_viscnp1;
+ 	FluxBoxes fb_viscn, fb_viscnp1;
         MultiFab** loc_viscn   = 0;
         MultiFab** loc_viscnp1 = 0;
 
@@ -870,12 +863,8 @@ NavierStokes::velocity_diffusion_update (Real dt)
         loc_viscnp1 = fb_viscnp1.define(this);
         getViscosity(loc_viscnp1, viscTime);
 
-        diffuse_velocity_setup(dt, delta_rhs, loc_viscn, loc_viscnp1);
-
         diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
-                                    delta_rhs,loc_viscn,viscn_cc,loc_viscnp1,viscnp1_cc);
-
-        delete delta_rhs;
+                                    nullptr,loc_viscn,viscn_cc,loc_viscnp1,viscnp1_cc);
     }
 
     if (verbose)
@@ -887,49 +876,6 @@ NavierStokes::velocity_diffusion_update (Real dt)
 
 	Print() << "NavierStokes:velocity_diffusion_update(): lev: " << level
 		       << ", time: " << run_time << '\n';
-    }
-}
-
-void
-NavierStokes::diffuse_velocity_setup (Real       dt,
-                                      MultiFab*& delta_rhs,
-                                      MultiFab**& viscn,
-                                      MultiFab**& viscnp1)
-{
-    if (S_in_vel_diffusion && have_divu)
-    {
-        //
-        // Include div mu S*I terms in rhs
-        //  (i.e. make nonzero delta_rhs to add into RHS):
-        //
-        // The scalar and tensor solvers incorporate the relevant pieces of
-        //  of Div(tau), provided the flow is divergence-free.  However, if
-        //  Div(U) =/= 0, there is an additional piece not accounted for,
-        //  which is of the form A.Div(U).
-        //
-        // Now we only use the tensor solver.
-        // For history, before for constant viscosity, Div(tau)_i
-        //  = Lapacian(U_i) + mu/3 d[Div(U)]/dx_i.
-        // Now because  mu not constant,
-        //  Div(tau)_i = d[ mu(du_i/dx_j + du_j/dx_i) ]/dx_i - 2mu/3 d[Div(U)]/dx_i
-        //
-        // As a convenience, we treat this additional term as a "source" in
-        // the diffusive solve, computing Div(U) in the "normal" way we
-        // always do--via a call to calc_divu.  This routine computes delta_rhs
-        // if necessary, and stores it as an auxilliary rhs to the viscous solves.
-        // This is a little strange, but probably not bad.
-        //
-        const Real time = state[State_Type].prevTime();
-
-        MultiFab divmusi(grids,dmap,BL_SPACEDIM,0,MFInfo(),Factory());
-
-        diffusion->compute_divmusi(time,viscn,divmusi);
-        divmusi.mult((-2./3.)*(1.0-be_cn_theta),0,BL_SPACEDIM,0);
-                      (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
-
-        diffusion->compute_divmusi(time+dt,viscnp1,divmusi);
-        divmusi.mult((-2./3.)*be_cn_theta,0,BL_SPACEDIM,0);
-                (*delta_rhs).plus(divmusi,0,BL_SPACEDIM,0);
     }
 }
 
@@ -2155,21 +2101,6 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
 	auto viscosityCC = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
 
         diffusion->getTensorViscTerms(visc_terms,time,viscosity,viscosityCC,0);
-
-        //
-        // Add Div(u) term if desired, if this is velocity, and if Div(u)
-        // is nonzero.  If const-visc, term is mu.Div(u)/3, else
-        // it's -Div(mu.Div(u).I)*2/3
-        //
-        if (have_divu && S_in_vel_diffusion)
-        {
-            MultiFab divmusi(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
-
-            diffusion->compute_divmusi(time,viscosity,divmusi);
-            divmusi.mult((-2./3.),0,BL_SPACEDIM,0);
-
-            visc_terms.plus(divmusi,Xvel,BL_SPACEDIM,0);
-        }
     }
     //
     // Get Scalar Diffusive Terms
