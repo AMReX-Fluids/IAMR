@@ -144,7 +144,6 @@ Real NavierStokesBase::volWgtSum_sub_dy       = -1;
 Real NavierStokesBase::volWgtSum_sub_dz       = -1;
 
 int  NavierStokesBase::do_mom_diff            = 0;
-bool NavierStokesBase::def_harm_avg_cen2edge  = false;
 
 bool NavierStokesBase::godunov_use_ppm = false;
 bool NavierStokesBase::godunov_use_forces_in_trans = false;
@@ -517,8 +516,6 @@ NavierStokesBase::Initialize ()
 
     // Are we going to do velocity or momentum update?
     pp.query("do_mom_diff",do_mom_diff);
-
-    pp.query("harm_avg_cen2edge", def_harm_avg_cen2edge);
 
 #ifdef AMREX_PARTICLES
     read_particle_params ();

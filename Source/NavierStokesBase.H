@@ -802,8 +802,6 @@ public:
     // Control velocity vs momentum update
     //
     static int  do_mom_diff;
-
-    static bool def_harm_avg_cen2edge;
     //
     // static integer constants
     //
