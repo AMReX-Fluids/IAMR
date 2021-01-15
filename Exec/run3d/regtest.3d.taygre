@@ -12,9 +12,6 @@ system.regtest_reduction = 1
 #  not reached first.
 max_step 		= 2
 
-# Time at which calculation stops, if max_step is not reached first.
-stop_time 		= 6.0
-
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
@@ -40,8 +37,6 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-ns.sum_interval         = 1
-ns.init_iter            = 2
 
 #*******************************************************************************
 
@@ -51,6 +46,7 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.checkpoint_files_output = 0
 amr.check_int		= 5 
 amr.check_file          = chk
 
@@ -128,6 +124,3 @@ amr.derive_plot_vars = NONE
 #*******************************************************************************
 proj.proj_tol = 1.e-10
 proj.sync_tol = 1.e-8
-
-mg.v = 1
-

@@ -6,9 +6,7 @@
 # make omp reduction more consistent for regression testing
 system.regtest_reduction = 1
 
-# just testing
-godunov.ppm_type = 2
-mac.mac_sync_tol=1.e-10
+godunov.use_ppm = 1
 
 max_step                =  10
 stop_time 		=  -1
@@ -24,6 +22,7 @@ ns.do_tracer_ref        =  1
 ns.v                    =  1
 amr.v                   =  1
 
+amr.checkpoint_files_output = 0
 amr.check_int		=  1000
 amr.plot_int		=  10
 
