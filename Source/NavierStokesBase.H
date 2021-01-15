@@ -833,6 +833,12 @@ public:
 
   static int average_in_checkpoint;
 
+#ifdef AMREX_PARTICLES
+  //
+  // Put particle info in plotfile (using ParticleContainer::Checkpoint)?
+  //
+  static bool particles_in_plotfile;
+#endif
 };
 
 #endif

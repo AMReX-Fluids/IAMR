@@ -173,6 +173,8 @@ namespace
 }
 
 #ifdef AMREX_PARTICLES
+bool NavierStokesBase::particles_in_plotfile = false;
+
 namespace
 {
     //
@@ -4425,6 +4427,10 @@ NavierStokesBase::read_particle_params ()
     // Used in post_restart() to write out the file of particles.
     //
     ppp.query("particle_output_file", particle_output_file);
+    //
+    // Put particle info in plotfile (using ParticleContainer::Checkpoint)?
+    //
+    ppp.query("particles_in_plotfile", particles_in_plotfile);
 }
 
 void

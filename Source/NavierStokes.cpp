@@ -1288,6 +1288,19 @@ NavierStokes::writePlotFile (const std::string& dir,
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
     VisMF::Write(plotMF,TheFullPath,how,true);
+
+    //
+    // Put particles in plotfile?
+    // Used in regression testing, but also useful if you want to use
+    // AMReX's tool particle_compare without writing a full checkpoint
+    //
+#ifdef AMREX_PARTICLES
+    if (level == 0 && theNSPC() != 0 && particles_in_plotfile)
+    {
+      theNSPC()->Checkpoint(dir,"Particles");
+    }
+#endif
+
 }
 
 std::unique_ptr<MultiFab>
