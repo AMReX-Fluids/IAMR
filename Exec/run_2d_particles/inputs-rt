@@ -12,7 +12,6 @@ system.regtest_reduction = 1
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 0
 max_step 		= 50
 
 # Time at which calculation stops, if max_step is not reached first.
@@ -27,6 +26,7 @@ ns.do_tracer_ref = 1
 particles.particle_init_file = particle_file
 particles.timestamp_dir = particle_dir
 particles.timestamp_indices = 1
+particles.particles_in_plotfile = true
 
 #*******************************************************************************
 
