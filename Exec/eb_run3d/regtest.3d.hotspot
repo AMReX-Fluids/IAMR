@@ -10,15 +10,16 @@ ns.temp_cond_coef=1.e-4
 #  not reached first.
 max_step 		= 10
 
-# Time at which calculation stops, if max_step is not reached first.
-stop_time 		= 1.0
-
 # Use the tracer for the refinement criterion
 ns.do_temp_ref = 1
 
 # allow refinement at outflow boundary
 ns.do_refine_outflow = 1
 ns.do_derefine_outflow = 0
+
+# Correct scalars for over/under shoots during advective update
+ns.do_scalminmax=1
+ns.do_denminmax=1
 
 #*******************************************************************************
 
@@ -53,6 +54,7 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.checkpoint_files_output = 0
 amr.check_int		= 100 
 
 #*******************************************************************************
@@ -99,7 +101,7 @@ eb2.sphere_radius = 0.10
 eb2.sphere_center =  -0.001 0.0 .85
 eb2.sphere_has_fluid_inside = 0
 
-eb2.small_volfrac = 1.e-6
+eb2.small_volfrac = 1.e-5
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
