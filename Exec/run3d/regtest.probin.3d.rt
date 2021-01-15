@@ -6,7 +6,7 @@
   rt_den_1   = 1.5e7
   rt_den_2   = 8.44407300e+06
   rt_pertamp = 1.0
-  rt_nfreq   = 10
+  rt_nfreq   = 3
   rt_graddenerr = 1e+6
 
   vorterr    = 1000.
