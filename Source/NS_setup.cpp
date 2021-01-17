@@ -606,22 +606,6 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("PresVars",IndexType::TheCellType(),4,derpresvars,the_same_box);
     derive_lst.addComponent("PresVars",desc_lst,Press_Type,Pressure,1);
-#ifdef SUMJET
-    //
-    // Jet Variables - for integrating on the fly
-    //
-    derive_lst.add("JetVars",IndexType::TheCellType(),27,derjetvars,grow_box_by_one);
-    derive_lst.addComponent("JetVars",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("JetVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    derive_lst.addComponent("JetVars",desc_lst,State_Type,Trac,1);
-    if (do_trac2)
-	derive_lst.addComponent("JetVars",desc_lst,State_Type,Trac2,1);
-    //
-    // Pressure stuff for the jet on-the-fly integration (note need to grow for slope reconstruction of *derivatives*)
-    //
-    derive_lst.add("JetPresVars",IndexType::TheCellType(),16,derjetpresvars,grow_box_by_one);
-    derive_lst.addComponent("JetPresVars",desc_lst,Press_Type,Pressure,1); 
-#endif
 //3D
 #endif
 

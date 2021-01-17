@@ -18,16 +18,6 @@ extern "C" {
                        const amrex::Real* delta, amrex::Real* turb,
 		       int *ksize, int *turbVars);
 
-#if SUMJET
-    void sumjet (const amrex::Real* dat, const amrex::Real* pres,
-		      ARLIM_P(dat_lo), ARLIM_P(dat_hi),
-		      ARLIM_P(pres_lo), ARLIM_P(pres_hi),
-                      ARLIM_P(grid_lo), ARLIM_P(grid_hi),
-                      const amrex::Real* delta, amrex::Real* turb,
-		      int *levRsize, int *levKsize, int *rsize, int *ksize,
-		      int *jetVars, int* numSplit,
-		      const amrex::Real* xlo, const amrex::Real* xhi);
-#endif
 #endif
 
     void cen2edg(const int* lo, const int* hi, 

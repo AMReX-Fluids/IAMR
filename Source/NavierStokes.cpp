@@ -1370,13 +1370,6 @@ NavierStokes::post_init (Real stop_time)
     //
     if (turb_interval > 0)
         sum_turbulent_quantities();
-#ifdef SUMJET
-    //
-    // Derive turbulent statistics for the round jet
-    //
-    if (jet_interval > 0)
-        sum_jet_quantities();
-#endif
 #endif
 
     if (NavierStokesBase::avg_interval > 0)
