@@ -398,11 +398,6 @@ public:
     amrex::Real volWgtSum (const std::string& name,
                     amrex::Real               time);
 
-#if (BL_SPACEDIM == 3)
-    void sum_turbulent_quantities ();
-    void TurbSum (amrex::Real time, amrex::Real *tmp, int  ksize, int turbVars);
-#endif
-
     //////////////////////////////////////////////////////////////////
     //    NavierStokesBase virtual functions                        //
     //////////////////////////////////////////////////////////////////
@@ -690,7 +685,6 @@ public:
     static int  initial_step;         // flag for initial iterations
     static amrex::Real dt_cutoff;     // minimum dt allowed
     static int  sum_interval;         // number of timesteps for conservation stats
-    static int  turb_interval;        // number of timesteps for turbulence stats
     //
     // Internal parameters for options.
     //

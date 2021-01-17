@@ -1364,13 +1364,6 @@ NavierStokes::post_init (Real stop_time)
     //
     if (sum_interval > 0)
         sum_integrated_quantities();
-#if (BL_SPACEDIM==3)
-    //
-    // Derive turbulent statistics
-    //
-    if (turb_interval > 0)
-        sum_turbulent_quantities();
-#endif
 
     if (NavierStokesBase::avg_interval > 0)
     {

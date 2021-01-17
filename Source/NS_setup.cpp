@@ -596,12 +596,6 @@ NavierStokes::variableSetUp ()
     derive_lst.addComponent("forcez",desc_lst,State_Type,Xvel,BL_SPACEDIM);
 #endif
     //
-    // Turbulence Variable - for integrating on the fly
-    //
-    derive_lst.add("TurbVars",IndexType::TheCellType(),16,derturbvars,grow_box_by_one);
-    derive_lst.addComponent("TurbVars",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("TurbVars",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
     // Pressure stuff for on-the-fly integration
     //
     derive_lst.add("PresVars",IndexType::TheCellType(),4,derpresvars,the_same_box);
