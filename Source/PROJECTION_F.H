@@ -69,6 +69,13 @@ extern "C" {
                        amrex::Real* divgp, ARLIM_P(dglo), ARLIM_P(dghi),
                        const int* lo, const int* hi,
                        const amrex::Real* dx, const amrex::Real* mult, int* is_rz);
+
+    void rhogbc(const amrex::Real* rho, ARLIM_P(rho_lo), ARLIM_P(rho_hi),
+		const amrex::Real* phi, ARLIM_P(phi_lo), ARLIM_P(phi_hi), 
+		int * face, const amrex::Real* gravity, const amrex::Real* dx,
+		const int* domlo, const int* domhi,
+		const int* lo_bc, const int* hi_bc);
+
 #ifdef __cplusplus
 }
 #endif

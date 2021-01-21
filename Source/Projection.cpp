@@ -7,7 +7,7 @@
 #include <AMReX_BLProfiler.H>
 #include <Projection.H>
 #include <PROJECTION_F.H>
-#include <ProjOutFlowBC.H>
+#include <OutFlowBC.H>
 #include <NSB_K.H>
 
 #include <AMReX_MLMG.H>
@@ -1987,34 +1987,23 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
     const int ncStripWidth = 1;
 
-    FArrayBox  rho[2*AMREX_SPACEDIM];
-    FArrayBox dsdt[2*AMREX_SPACEDIM];
-    FArrayBox dudt[1][2*AMREX_SPACEDIM];
     FArrayBox phi_fine_strip[2*AMREX_SPACEDIM];
-
+    FArrayBox            rho[2*AMREX_SPACEDIM];
+    
     const int ngrow = 1;
 
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
-        dsdt[iface].resize(state_strip[iface],1);
-        dudt[0][iface].resize(state_strip[iface],AMREX_SPACEDIM);
-
-        rho[iface].resize(state_strip[iface],1);
-
-        (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
-
         Box phi_strip = amrex::surroundingNodes(amrex::bdryNode(domain,
                                                 outFacesAtThisLevel[iface],
                                                 ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
-        if (Gpu::inLaunchRegion()) {
-           phi_fine_strip[iface].setVal<RunOn::Gpu>(0.);
-        } else {
-           phi_fine_strip[iface].setVal<RunOn::Cpu>(0.);
-        }
+	phi_fine_strip[iface].setVal<RunOn::Gpu>(0.);
+
+	rho[iface].resize(state_strip[iface],1);
+	(*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
     }
 
-    ProjOutFlowBC projBC;
     // These bcs just get passed into rhogbc() for all vals of which_call
     int        lo_bc[AMREX_SPACEDIM];
     int        hi_bc[AMREX_SPACEDIM];
@@ -2028,45 +2017,13 @@ Projection::set_outflow_bcs_at_level (int          which_call,
       lo_bc[i]=scalar_bc[lbc[i]];
       hi_bc[i]=scalar_bc[hbc[i]];
     }
-    if (which_call == INITIAL_PRESS)
-    {
-        projBC.computeRhoG(rho,phi_fine_strip,
-                           parent->Geom(lev),
-                           outFacesAtThisLevel,numOutFlowFaces,gravity,
-                           lo_bc,hi_bc);
-    }
-    else
-    {
-        Vel_in->FillBoundary();
 
-        for (int iface = 0; iface < numOutFlowFaces; iface++)
-            (*Vel_in).copyTo(dudt[0][iface],0,0,AMREX_SPACEDIM,1);
-        
-        if (have_divu) {
-            for (int iface = 0; iface < numOutFlowFaces; iface++)
-                (*Divu_in).copyTo(dsdt[iface],0,0,1,1);
-        } else {
-            for (int iface = 0; iface < numOutFlowFaces; iface++)
-              if (Gpu::inLaunchRegion()) {
-                 dsdt[iface].setVal<RunOn::Gpu>(0.);
-              } else {
-                 dsdt[iface].setVal<RunOn::Cpu>(0.);
-              }
-        }
+    computeRhoG(rho,phi_fine_strip,
+		parent->Geom(lev),
+		outFacesAtThisLevel,numOutFlowFaces,gravity,
+		lo_bc,hi_bc);
 
-        projBC.computeBC(dudt, dsdt, rho, phi_fine_strip,
-                         parent->Geom(lev),
-                         outFacesAtThisLevel,
-                         numOutFlowFaces, lo_bc, hi_bc, gravity);
-    }
-
-    for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
-    {
-        rho[i].clear();
-        dsdt[i].clear();
-        dudt[0][i].clear();
-    }
-
+    // fixme - there's a cleaner way to do this
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
     {
         BoxArray phi_fine_strip_ba(phi_fine_strip[iface].box());
@@ -2100,6 +2057,86 @@ Projection::set_outflow_bcs_at_level (int          which_call,
     }
 }
 
+
+// void
+// ProjOutFlowBC::computeRhoG(FArrayBox*         rho,
+// 			   FArrayBox*         phi,
+// 			   const Geometry&    geom, 
+// 			   Orientation*       outFaces,
+// 			   int                numOutFlowFaces,
+// 			   Real               gravity,
+// 			   const int*         lo_bc,
+// 			   const int*         hi_bc)
+// {
+//     for (int iface = 0; iface < numOutFlowFaces; iface++)
+//     {     
+//       int face               = int(outFaces[iface]);
+//       int outDir             = outFaces[iface].coordDir();
+//       Orientation::Side side = outFaces[iface].faceDir();
+
+//       if (outDir == (AMREX_SPACEDIM-1)) {
+// 	if (side == Orientation::high) {
+// 	  // No hydrostatic pressure here, given IAMR definition of gravity.
+// 	  // Do nothing.
+// 	} else {
+// 	  amrex::Abort("ProjOutFlowBC::rhogBC : Simulation box has outflow boundary condition on the bottom and gravity != 0.");
+// 	}
+//       } else {
+// 	  rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+// 		 phiPtr,ARLIM(philo),ARLIM(phihi),
+// 		 &face,&gravity,dx,domlo,domhi,
+// 		 lo_bc,hi_bc);
+//       }
+
+//       // 3d checks to make sure boxlo/hi is at domlo/hi, but 2d doesn't...
+      
+//   //TODO: port code from PROJOUTFLOW_#D.F90
+//                // const Box& bx       = phi[iface].box();
+//                // const auto& phi_arr = phi[iface].array();
+//                // const auto& rho_arr = rho[iface].array();
+//                // amrex::ParallelFor(bx, [phi_arr,rho_arr,gravity,dx(2)]
+//                // AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+//                // {
+//                //    // do stuff
+//                // });
+//     }
+// }
+
+
+void 
+Projection::computeRhoG (FArrayBox*         rhoMF,
+			 FArrayBox*         phiMF,
+			 const Geometry&    geom, 
+			 Orientation*       outFaces,
+			 int                numOutFlowFaces,
+			 Real               gravity,
+			 const int*         lo_bc,
+			 const int*         hi_bc)
+
+{
+    const Real* dx    = geom.CellSize();
+    const Box& domain = geom.Domain();
+    const int* domlo  = domain.loVect();
+    const int* domhi  = domain.hiVect();
+
+    if (std::fabs(gravity) > 0.)
+    {
+      for (int iface = 0; iface < numOutFlowFaces; iface++) {
+
+	int face          = int(outFaces[iface]);
+	int outDir        = outFaces[iface].coordDir();
+	
+	DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
+	DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
+	
+	if (outDir != (BL_SPACEDIM-1))
+	  rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
+		 phiPtr,ARLIM(philo),ARLIM(phihi),
+		 &face,&gravity,dx,domlo,domhi,
+		 lo_bc,hi_bc);
+      }
+    }
+}
 
 //
 // Given vel, rhcc, rhnd, & sig, this solves Div (sig * Grad phi) = Div vel + (rhcc + rhnd).

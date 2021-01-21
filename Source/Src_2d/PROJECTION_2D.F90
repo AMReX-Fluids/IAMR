@@ -26,7 +26,7 @@ module projection_2d_module
   private 
 
   public :: radmpyscal, radmpyvel, fort_raddiv, &
-            anelcoeffmpy
+            anelcoeffmpy, rhogbc
   
 contains
 
@@ -410,4 +410,73 @@ contains
       end if
 
     end subroutine hgc2n
+
+!c *************************************************************************
+!c ** RHOGBC **
+!c *************************************************************************
+
+      subroutine rhogbc(rho,DIMS(rho),phi,DIMS(phi),&
+           face,gravity,dx,domlo,domhi,lo_bc,hi_bc) bind(C,name="rhogbc")
+!c
+!c    Compute the contribution of gravity to the boundary conditions
+!c      for phi at outflow faces only.
+!c
+      implicit none
+
+      integer DIMDEC(rho)
+      integer DIMDEC(phi)
+      integer face
+      integer domlo(2)
+      integer domhi(2)
+      integer lo_bc(2)
+      integer hi_bc(2)
+      REAL_T  rho(DIMV(rho))
+      REAL_T  phi(DIMV(phi))
+      REAL_T  dx(2)
+      REAL_T  gravity
+      
+!c     Local variables
+      integer i,j
+      REAL_T rhog
+      REAL_T rhoExt
+
+#define XLO 0
+#define YLO 1
+#define XHI 2
+#define YHI 3
+
+      if (face .eq. YLO .or. face .eq. YHI) &
+        call bl_abort('SHOULDNT BE IN RHOGBC WITH FACE IN Y-DIR')
+
+!c     Ok to only use low index of phi because phi is only one
+!c        node wide in i-direction.
+      i = ARG_L1(phi)
+
+      if (face .eq. XLO) then
+
+        rhog = zero
+        do j = ARG_H2(phi)-1,ARG_L2(phi),-1
+          rhoExt = half*(three*rho(i,j)-rho(i+1,j))
+          rhog = rhog - gravity * rhoExt * dx(2)
+          phi(i,j) = phi(i,j) + rhog
+        end do
+
+      else if (face .eq. XHI) then
+
+        rhog = zero
+        do j = ARG_H2(phi)-1,ARG_L2(phi),-1
+          rhoExt  = half*(three*rho(i-1,j)-rho(i-2,j))
+          rhog = rhog - gravity * rhoExt * dx(2)
+          phi(i,j) = phi(i,j) + rhog
+        end do
+
+      endif
+
+#undef XLO
+#undef YLO
+#undef XHI
+#undef YHI
+
+    end subroutine rhogbc
+
   end module projection_2d_module

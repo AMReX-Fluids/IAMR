@@ -8,7 +8,7 @@
 #include <MacOpMacDrivers.H>
 #include <NavierStokesBase.H>
 #include <MACPROJ_F.H>
-#include <MacOutFlowBC.H>
+#include <OutFlowBC.H>
 
 #ifdef AMREX_USE_EB
 #include <iamr_mol.H>
@@ -1049,7 +1049,6 @@ MacProj::set_outflow_bcs (int             level,
     const Box&        domain = parent->Geom(level).Domain();
     //
     // Create 1-wide cc box just outside boundary to hold phi.
-    // Create 1-wide cc box just inside  boundary to hold rho,u,divu.
     //
     BoxList ccBoxList, phiBoxList;
     // numOutFlowFaces gives the number of outflow faces on the entire
@@ -1093,58 +1092,9 @@ MacProj::set_outflow_bcs (int             level,
 
     if ( !ccBoxList.isEmpty() )
     {
-        BoxArray  ccBoxArray( ccBoxList);
         BoxArray phiBoxArray(phiBoxList);
-        ccBoxList.clear();
         phiBoxList.clear();
 
-        FArrayBox rhodat[2*BL_SPACEDIM];
-        FArrayBox divudat[2*BL_SPACEDIM];
-        FArrayBox phidat[2*BL_SPACEDIM];
-
-        for ( int iface = 0; iface < nOutFlowTouched; ++iface)
-        {
-            rhodat[iface].resize(ccBoxArray[iface], 1);
-            divudat[iface].resize(ccBoxArray[iface], 1);
-            phidat[iface].resize(phiBoxArray[iface], 1);
-
-            if (Gpu::inLaunchRegion()) {
-               phidat[iface].setVal<RunOn::Gpu>(0.0);
-            } else {
-               phidat[iface].setVal<RunOn::Cpu>(0.0);
-            }
-            divu.copyTo(divudat[iface]);
-            S.copyTo(rhodat[iface], Density, 0, 1);
-        }
-
-        // rhodat.copy(S, Density, 0, 1);
-        // divudat.copy(divu, 0, 0, 1);
-
-        //
-        // Load ec data.
-        //
-
-        FArrayBox uedat[BL_SPACEDIM][2*BL_SPACEDIM];
-        for (int i = 0; i < BL_SPACEDIM; ++i)
-        {
-            BoxArray edgeArray(ccBoxArray);
-            edgeArray.surroundingNodes(i);
-            for ( int iface = 0; iface < nOutFlowTouched; ++iface)
-            {
-                uedat[i][iface].resize(edgeArray[iface], 1);
-                u_mac[i].copyTo(uedat[i][iface], 0, 0, 1);
-            }
-        }
-
-        MacOutFlowBC macBC;
-
-        NavierStokesBase* ns_level = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
-        Real gravity = ns_level->getGravity();
-        const int* lo_bc = phys_bc->lo();
-        const int* hi_bc = phys_bc->hi();
-        macBC.computeBC(uedat, divudat, rhodat, phidat,
-                        geom, outFaces, nOutFlowTouched, lo_bc, hi_bc,
-                        umac_periodic_test_Tol, gravity);
         //
         // Must do this kind of copy instead of mac_phi->copy(phidat);
         // because we're copying onto the ghost cells of the FABs,
@@ -1157,13 +1107,9 @@ MacProj::set_outflow_bcs (int             level,
         {
             for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
             {
-                Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
+                Box ovlp = (*mac_phi)[mfi].box() & phiBoxArray[iface];
                 if (ovlp.ok()) {
-                   if (Gpu::inLaunchRegion()) {
-                      (*mac_phi)[mfi].copy<RunOn::Gpu>(phidat[iface],ovlp,0,ovlp,0,1);
-                   } else {
-                      (*mac_phi)[mfi].copy<RunOn::Cpu>(phidat[iface],ovlp,0,ovlp,0,1);
-                   }
+                      (*mac_phi)[mfi].setVal<RunOn::Gpu>(0,ovlp,0,1);
                 }
             }
         }

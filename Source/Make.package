@@ -16,17 +16,14 @@ endif
 
 CEXE_sources += NS_getForce.cpp
 
-CEXE_sources += ProjOutFlowBC.cpp \
-                MacOutFlowBC.cpp OutFlowBC.cpp
+CEXE_sources += OutFlowBC.cpp
 
 CEXE_sources += FluxBoxes.cpp
 
-CEXE_headers += MacOutFlowBC.H \
-                ProjOutFlowBC.H OutFlowBC.H
+CEXE_headers += OutFlowBC.H
 
 CEXE_headers += SyncRegister.H RegType.H
 
-FEXE_headers += PROJOUTFLOWBC_F.H MACOUTFLOWBC_F.H
 #
 # Disconnect MacOperators for different mass continuity.
 #
