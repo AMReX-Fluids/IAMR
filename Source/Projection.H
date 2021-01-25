@@ -239,9 +239,7 @@ public:
                       const amrex::Geometry&    geom,
                       amrex::Orientation*       outFaces,
                       int                numOutFlowFaces,
-                      amrex::Real               gravity,
-                      const int*         lo_bc,
-                      const int*         hi_bc);
+                      amrex::Real               gravity);
 
     void putDown(const amrex::Vector<amrex::MultiFab*>& phi, amrex::FArrayBox* phi_fine_strip,
 		 int c_lev, int f_lev, const amrex::Orientation* outFaces,

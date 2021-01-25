@@ -2004,24 +2004,10 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 	(*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
     }
 
-    // These bcs just get passed into rhogbc() for all vals of which_call
-    int        lo_bc[AMREX_SPACEDIM];
-    int        hi_bc[AMREX_SPACEDIM];
-    // change from phys_bcs of Inflow, SlipWall, etc.
-    // to mathematical bcs of EXT_DIR, FOEXTRAP, etc.
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-    {
-      const int* lbc = phys_bc->lo();
-      const int* hbc = phys_bc->hi();
-
-      lo_bc[i]=scalar_bc[lbc[i]];
-      hi_bc[i]=scalar_bc[hbc[i]];
-    }
-
-    computeRhoG(rho,phi_fine_strip,
-		parent->Geom(lev),
-		outFacesAtThisLevel,numOutFlowFaces,gravity,
-		lo_bc,hi_bc);
+    if (std::fabs(gravity) > 0.)
+      computeRhoG(rho,phi_fine_strip,
+		  parent->Geom(lev),
+		  outFacesAtThisLevel,numOutFlowFaces,gravity);
 
     // fixme - there's a cleaner way to do this
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
@@ -2058,84 +2044,447 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 }
 
 
-// void
-// ProjOutFlowBC::computeRhoG(FArrayBox*         rho,
-// 			   FArrayBox*         phi,
-// 			   const Geometry&    geom, 
-// 			   Orientation*       outFaces,
-// 			   int                numOutFlowFaces,
-// 			   Real               gravity,
-// 			   const int*         lo_bc,
-// 			   const int*         hi_bc)
-// {
-//     for (int iface = 0; iface < numOutFlowFaces; iface++)
-//     {     
-//       int face               = int(outFaces[iface]);
-//       int outDir             = outFaces[iface].coordDir();
-//       Orientation::Side side = outFaces[iface].faceDir();
-
-//       if (outDir == (AMREX_SPACEDIM-1)) {
-// 	if (side == Orientation::high) {
-// 	  // No hydrostatic pressure here, given IAMR definition of gravity.
-// 	  // Do nothing.
-// 	} else {
-// 	  amrex::Abort("ProjOutFlowBC::rhogBC : Simulation box has outflow boundary condition on the bottom and gravity != 0.");
-// 	}
-//       } else {
-// 	  rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
-// 		 phiPtr,ARLIM(philo),ARLIM(phihi),
-// 		 &face,&gravity,dx,domlo,domhi,
-// 		 lo_bc,hi_bc);
-//       }
-
-//       // 3d checks to make sure boxlo/hi is at domlo/hi, but 2d doesn't...
-      
-//   //TODO: port code from PROJOUTFLOW_#D.F90
-//                // const Box& bx       = phi[iface].box();
-//                // const auto& phi_arr = phi[iface].array();
-//                // const auto& rho_arr = rho[iface].array();
-//                // amrex::ParallelFor(bx, [phi_arr,rho_arr,gravity,dx(2)]
-//                // AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-//                // {
-//                //    // do stuff
-//                // });
-//     }
-// }
-
-
-void 
-Projection::computeRhoG (FArrayBox*         rhoMF,
-			 FArrayBox*         phiMF,
-			 const Geometry&    geom, 
-			 Orientation*       outFaces,
-			 int                numOutFlowFaces,
-			 Real               gravity,
-			 const int*         lo_bc,
-			 const int*         hi_bc)
-
+void
+Projection::computeRhoG(FArrayBox*         rhoFab,
+			FArrayBox*         phiFab,
+			const Geometry&    geom, 
+			Orientation*       outFaces,
+			int                numOutFlowFaces,
+			Real               gravity)
 {
-    const Real* dx    = geom.CellSize();
-    const Box& domain = geom.Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
-
-    if (std::fabs(gravity) > 0.)
+    AMREX_ASSERT(std::fabs(gravity) > 0.);
+  
+    for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
-      for (int iface = 0; iface < numOutFlowFaces; iface++) {
+      int outDir             = outFaces[iface].coordDir();
+      Orientation::Side side = outFaces[iface].faceDir();
 
-	int face          = int(outFaces[iface]);
-	int outDir        = outFaces[iface].coordDir();
-	
-	DEF_LIMITS(phiMF[iface], phiPtr,philo,phihi);
-	DEF_LIMITS(rhoMF[iface], rhoPtr,rholo,rhohi);
-	
-	if (outDir != (BL_SPACEDIM-1))
-	  rhogbc(rhoPtr,ARLIM(rholo),ARLIM(rhohi),
-		 phiPtr,ARLIM(philo),ARLIM(phihi),
-		 &face,&gravity,dx,domlo,domhi,
-		 lo_bc,hi_bc);
+      if (outDir == (AMREX_SPACEDIM-1))
+      {
+	  if (side == Orientation::high) {
+	    //
+	    // Hydrostatic pressure == 0 here, given IAMR definition of gravity.
+	    // Do nothing, since phi already initialized to zero
+	    //
+	  } else {
+	    amrex::Abort("Projection::computeRhoG : Simulation box has outflow boundary condition on the bottom and gravity != 0. If this is really the desired configuration, just comment out this Abort");
+	  }
       }
-    }
+      else // integrate rho * g* dh
+      {
+	  const auto   lo = amrex::lbound(phiFab[iface].box());
+	  const auto   hi = amrex::ubound(phiFab[iface].box());
+	  const auto& phi = phiFab[iface].array();
+	  const auto& rho = rhoFab[iface].array();
+	  const Real dh = geom.CellSize(AMREX_SPACEDIM-1);
+	  
+	  auto add_rhog = [gravity, dh] ( Real rho1, Real rho2,
+					  Real& rhog_i, Real& phi_i )
+	  {
+	    Real rhoExt = 0.5*(3.*rho1-rho2);
+	    rhog_i -= gravity * rhoExt * dh;
+	    phi_i  += rhog_i;
+	  };
+
+
+#if (AMREX_SPACEDIM == 2)
+	  //
+	  // Only possibilities are XLO face or XHI
+	  //
+	  // Ok to only use low index of phi because phi is only one
+	  // node wide in i-direction.
+	  //
+	  AMREX_ASSERT( lo.x==hi.x );
+	  int i = lo.x;
+	
+	  Real rhog = 0.;
+	  //
+	  // Note that the integral here prevents parallelization
+	  //
+	  if (side == Orientation::low)
+	  {
+	    for (int j = hi.y-1; j >= lo.y; j--) {
+	      add_rhog(rho(i,j,0),rho(i+1,j,0),rhog,phi(i,j,0));
+	    }
+	  }
+	  else
+	  {
+	    for (int j = hi.y-1; j >= lo.y; j--) {
+	      add_rhog(rho(i-1,j,0),rho(i-2,j,0),rhog,phi(i,j,0));
+	    }
+	  }
+#else
+	  const Box& domain = geom.Domain();
+	  const auto domlo = amrex::lbound(domain);
+	  const auto domhi = amrex::ubound(domain);
+	  
+	  // fixme? Could make use of NSB::m_bcrec_scalars here.
+	  int        lo_bc[AMREX_SPACEDIM];
+	  int        hi_bc[AMREX_SPACEDIM];
+	  //
+	  // change from phys_bcs of Inflow, SlipWall, etc.
+	  // to mathematical bcs of EXT_DIR, FOEXTRAP, etc.
+	  //
+	  for (int i = 0; i < AMREX_SPACEDIM; i++)
+	  {
+	      const int* lbc = phys_bc->lo();
+	      const int* hbc = phys_bc->hi();
+	      
+	      lo_bc[i]=scalar_bc[lbc[i]];
+	      hi_bc[i]=scalar_bc[hbc[i]];
+	  }
+
+	  //
+	  // fixme? - TODO: Could parallelize here by dividing the loop over i (or j)
+	  // only and thus the k integration stays intact. However, would want to move
+	  // this declaration of rho_i, rho_ii to ensure each k integration has it's own 
+	  // copy.
+	  //
+	  Real rho_i, rho_ii;
+	  
+	  if ( outDir == int(Direction::x) )
+	  {
+	      // 
+	      // Ok to only use low index of phi because phi is only one
+	      // node wide in i-direction.
+	      //
+	      AMREX_ASSERT( lo.x==hi.x );
+	      int i = lo.x;
+	      
+	      bool has_extdir_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::ext_dir);
+	      bool has_extdir_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::ext_dir);
+	      bool has_hoextrap_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::hoextrap);
+	      bool has_hoextrap_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::hoextrap);
+	      bool has_foextrap_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::foextrap);
+	      bool has_foextrap_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::foextrap);
+
+	      //
+	      // If there are any of the above mentioned bcs, then we'll need to handle
+	      // edges separately in accordance with those conditions, so set bounds for
+	      // loop over j accordingly.
+	      //
+	      int jlo, jhi;
+	      if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo ) {
+		jlo = lo.y+1;
+	      } else {
+		jlo = lo.y;
+	      }
+	      if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi ) {
+		jhi = hi.y-1;
+	      } else {
+		jhi = hi.y;
+	      }
+
+	      //
+	      // xlo face
+	      //
+	      if (side == Orientation::low)
+	      {
+		for (int j = jlo; j <= jhi; j++)
+		{
+		  Real rhog = 0.;
+		  
+		  for (int k = hi.z-1; k >= lo.z; k--) {
+		    rho_i  = 0.5 * (rho(i  ,j,k) + rho(i  ,j-1,k));
+		    rho_ii = 0.5 * (rho(i+1,j,k) + rho(i+1,j-1,k));
+		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		  }
+		}
+		//
+		// Now compute y-edges if needed
+		//
+		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+		{
+		  int j = lo.y; 
+		  Real rhog = 0.;
+		  
+		  if ( has_extdir_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i  = rho(i  ,j-1,k);
+		      rho_ii = rho(i+1,j-1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i  = 0.5*(3.*rho(i  ,j,k) - rho(i  ,j+1,k));
+		      rho_ii = 0.5*(3.*rho(i+1,j,k) - rho(i+1,j+1,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i  = rho(i  ,j,k);
+		      rho_ii = rho(i+1,j,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  }
+		}
+
+		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+		{
+		  int j = hi.y;
+		  Real rhog = 0;
+		  
+		  if ( has_extdir_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i  = rho(i  ,j,k);
+		      rho_ii = rho(i+1,j,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i  = 0.5*(3.*rho(i  ,j-1,k) - rho(i  ,j-2,k));
+		      rho_ii = 0.5*(3.*rho(i+1,j-1,k) - rho(i+1,j-2,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i  = rho(i  ,j-1,k);
+		      rho_ii = rho(i+1,j-1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } 
+		}
+	      }
+	      else // xhi face 
+	      {
+		for (int j = jlo; j <= jhi; j++)
+		{
+		  Real rhog = 0.;
+		  
+		  for (int k = hi.z-1; k >= lo.z; k--) {
+		    rho_i   = 0.5 * (rho(i-1,j,k) + rho(i-1,j-1,k));
+		    rho_ii = 0.5 * (rho(i-2,j,k) + rho(i-2,j-1,k));
+		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		  }
+		}
+		//
+		// Now compute y-edges if needed
+		//
+		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+		{
+		  int j = lo.y; 
+		  Real rhog = 0.;
+		  
+		  if ( has_extdir_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j-1,k);
+		      rho_ii = rho(i-2,j-1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = 0.5*(3.*rho(i-1,j,k) - rho(i-1,j+1,k));
+		      rho_ii = 0.5*(3.*rho(i-2,j,k) - rho(i-2,j+1,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j,k);
+		      rho_ii = rho(i-2,j,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } 
+		}
+
+		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+		{
+		  int j = hi.y;
+		  Real rhog = 0;
+		  
+		  if ( has_extdir_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j,k);
+		      rho_ii = rho(i-2,j,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = 0.5*(3.*rho(i-1,j-1,k) - rho(i-1,j-2,k));
+		      rho_ii = 0.5*(3.*rho(i-2,j-1,k) - rho(i-2,j-2,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j-1,k);
+		      rho_ii = rho(i-2,j-1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } 
+		}
+	      }
+	  }
+	  else // ( outDir == Direction::y ) 
+	  {
+	      //
+	      // Ok to only use low index of phi because phi is only one
+	      // node wide in i-direction.
+	      //
+	      AMREX_ASSERT( lo.y==hi.y );
+	      int j = lo.y;
+
+	      bool has_extdir_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::ext_dir);
+	      bool has_extdir_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::ext_dir);
+	      bool has_hoextrap_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::hoextrap);
+	      bool has_hoextrap_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::hoextrap);
+	      bool has_foextrap_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::foextrap);
+	      bool has_foextrap_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::foextrap);
+	      //
+	      // If there are any of the above mentioned bcs, then we'll need to handle
+	      // edges separately in accordance with those conditions, so set bounds for
+	      // loop over i accordingly.
+	      //
+	      int ilo, ihi;
+	      if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo ) {
+		ilo = lo.x+1;
+	      } else {
+		ilo = lo.x;
+	      }
+	      if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi ) {
+		ihi = hi.x-1;
+	      } else {
+		ihi = hi.x;
+	      }
+	      //
+	      // ylo face
+	      //
+	      if (side == Orientation::low)
+	      {
+		for (int i = ilo; i <= ihi; i++)
+		{
+		  Real rhog = 0.;
+		  
+		  for (int k = hi.z-1; k >= lo.z; k--) {
+		    rho_i   = 0.5 * (rho(i,j  ,k) + rho(i-1,j ,k));
+		    rho_ii = 0.5 * (rho(i,j+1,k) + rho(i-1,j+1,k));
+		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		  }
+		}
+		//
+		// Now compute x-edges if needed
+		//
+		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+		{
+		  int i = lo.x; 
+		  Real rhog = 0.;
+		  
+		  if ( has_extdir_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j  ,k);
+		      rho_ii = rho(i-1,j+1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = 0.5*(3.*rho(i,j  ,k) - rho(i+1,j  ,k));
+		      rho_ii = 0.5*(3.*rho(i,j+1,k) - rho(i+1,j+1,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i,j  ,k);
+		      rho_ii = rho(i,j+1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  }
+		}
+
+		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+		{
+		  int i = hi.x;
+		  Real rhog = 0;
+		  
+		  if ( has_extdir_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i,j  ,k);
+		      rho_ii = rho(i,j+1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = 0.5*(3.*rho(i-1,j  ,k) - rho(i-2,j  ,k));
+		      rho_ii = 0.5*(3.*rho(i-1,j+1,k) - rho(i-2,j+1,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j  ,k);
+		      rho_ii = rho(i-1,j+1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } 
+		}
+	      }
+	      else // yhi face 
+	      {
+		for (int i = ilo; i <= ihi; i++)
+		{
+		  Real rhog = 0.;
+		  
+		  for (int k = hi.z-1; k >= lo.z; k--) {
+		    rho_i   = 0.5 * (rho(i,j-1,k) + rho(i-1,j-1,k));
+		    rho_ii = 0.5 * (rho(i,j-1,k) + rho(i-1,j-2,k));
+		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		  }
+		}
+		//
+		// Now compute y-edges if needed
+		//
+		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+		{
+		  int i = lo.x; 
+		  Real rhog = 0.;
+		  
+		  if ( has_extdir_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j-1,k);
+		      rho_ii = rho(i-2,j-1,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = 0.5*(3.*rho(i,j-1,k) - rho(i+1,j-1,k));
+		      rho_ii = 0.5*(3.*rho(i,j-2,k) - rho(i+1,j-2,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_lo ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i,j-1,k);
+		      rho_ii = rho(i,j-2,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } 
+		}
+
+		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+		{
+		  int i = hi.x;
+		  Real rhog = 0;
+		  
+		  if ( has_extdir_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i,j-1,k);
+		      rho_ii = rho(i,j-2,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_hoextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = 0.5*(3.*rho(i-1,j-1,k) - rho(i-2,j-1,k));
+		      rho_ii = 0.5*(3.*rho(i-1,j-2,k) - rho(i-2,j-2,k));
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } else if ( has_foextrap_hi ) {
+		    for (int k = hi.z-1; k >= lo.z; k--) {
+		      rho_i   = rho(i-1,j-1,k);
+		      rho_ii = rho(i-1,j-2,k);
+		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+		    }
+		  } 
+		}
+	      } // endif over hi/low sides 
+	  } // endif over directions
+#endif
+      } // endif integrate rho*g*dh
+    } // end loop over outflow faces
 }
 
 //
