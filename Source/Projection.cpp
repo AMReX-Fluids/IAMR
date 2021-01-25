@@ -121,7 +121,7 @@ Projection::Projection (Amr*   _parent,
     do_sync_proj(_do_sync_proj)
 {
 
-    BL_ASSERT ( parent->finestLevel()+1 <= maxlev );
+    AMREX_ASSERT ( parent->finestLevel()+1 <= maxlev );
 
     Initialize();
 
@@ -250,8 +250,8 @@ Projection::level_project (int             level,
 {
     BL_PROFILE("Projection::level_project()");
 
-    BL_ASSERT(rho_half.nGrow() >= 1);
-    BL_ASSERT(U_new.nGrow() >= 1);
+    AMREX_ASSERT(rho_half.nGrow() >= 1);
+    AMREX_ASSERT(U_new.nGrow() >= 1);
 
     if (verbose) {
       amrex::Print() << "... Projection::level_project() at level " << level << '\n';
@@ -290,7 +290,7 @@ Projection::level_project (int             level,
     const DistributionMapping& P_dmap = P_old.DistributionMap();
 
     NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
-    BL_ASSERT(!(ns==0));
+    AMREX_ASSERT(!(ns==0));
 
     //
     //  NOTE: IT IS IMPORTANT TO DO THE BOUNDARY CONDITIONS BEFORE
@@ -420,7 +420,7 @@ Projection::level_project (int             level,
     vel[level] = &U_new;
     phi[level] = &P_new;
 
-    BL_ASSERT( 1 == rho_half.nGrow());
+    AMREX_ASSERT( 1 == rho_half.nGrow());
     sig[level] = &rho_half;
 
     //
@@ -804,7 +804,7 @@ Projection::initialVelocityProject (int  c_lev,
 		  amrex::Error("Projection::initialVelocityProject(): Divu not found");
 
 		NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-		BL_ASSERT(!(ns == 0));
+		AMREX_ASSERT(!(ns == 0));
 		
 		rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
             }
@@ -1111,7 +1111,7 @@ Projection::initialSyncProject (int       c_lev,
 
             NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(&parent->getLevel(lev));
 
-            BL_ASSERT(!(ns == 0));
+            AMREX_ASSERT(!(ns == 0));
 
             std::unique_ptr<MultiFab> divu (ns->getDivCond(nghost,strt_time));
             std::unique_ptr<MultiFab> dsdt (ns->getDivCond(nghost,strt_time+dt));
@@ -1265,7 +1265,7 @@ Projection::ConvertUnew (MultiFab&       Unew,
   for (MFIter Uoldmfi(Uold,true); Uoldmfi.isValid(); ++Uoldmfi)
   {
         const Box& bx=Uoldmfi.growntilebox(1);
-        BL_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
+        AMREX_ASSERT(grids[Uoldmfi.index()].contains(Uoldmfi.tilebox())==true);
 
         ConvertUnew(Unew[Uoldmfi],Uold[Uoldmfi],alpha,bx);
   }
@@ -1279,10 +1279,10 @@ void
 Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
                               const Box &grd )
 {
-    BL_ASSERT(Unew.nComp() >= AMREX_SPACEDIM);
-    BL_ASSERT(Uold.nComp() >= AMREX_SPACEDIM);
-    BL_ASSERT(Unew.contains(grd) == true);
-    BL_ASSERT(Uold.contains(grd) == true);
+    AMREX_ASSERT(Unew.nComp() >= AMREX_SPACEDIM);
+    AMREX_ASSERT(Uold.nComp() >= AMREX_SPACEDIM);
+    AMREX_ASSERT(Unew.contains(grd) == true);
+    AMREX_ASSERT(Uold.contains(grd) == true);
 
     const auto& unew = Unew.array();
     const auto& uold = Uold.array();
@@ -1318,16 +1318,16 @@ Projection::scaleVar (int             which_call,
                       MultiFab*       vel,
                       int             level)
 {
-    BL_ASSERT((which_call == INITIAL_VEL  ) ||
+    AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
               (which_call == INITIAL_PRESS) ||
               (which_call == INITIAL_SYNC ) ||
               (which_call == LEVEL_PROJ   ) ||
               (which_call == SYNC_PROJ    ) );
 
     if (sig != 0)
-        BL_ASSERT(sig->nComp() == 1);
+        AMREX_ASSERT(sig->nComp() == 1);
     if (vel != 0)
-        BL_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
+        AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
 
     //
     // Convert sigma from rho to anel_coeff/rho if not INITIAL_PRESS.
@@ -1376,16 +1376,16 @@ Projection::rescaleVar (int             which_call,
                         MultiFab*       vel,
                         int             level)
 {
-    BL_ASSERT((which_call == INITIAL_VEL  ) ||
+    AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
               (which_call == INITIAL_PRESS) ||
               (which_call == INITIAL_SYNC ) ||
               (which_call == LEVEL_PROJ   ) ||
               (which_call == SYNC_PROJ    ) );
 
     if (sig != 0)
-        BL_ASSERT(sig->nComp() == 1);
+        AMREX_ASSERT(sig->nComp() == 1);
     if (vel != 0)
-        BL_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
+        AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
 
     if (which_call  != INITIAL_PRESS && sig != 0 &&
         anel_coeff[level] != 0) AnelCoeffDiv(level,*sig,0);
@@ -1423,7 +1423,7 @@ Projection::radMultScal (int       level,
                          MultiFab& mf)
 {
 #if (AMREX_SPACEDIM < 3)
-    BL_ASSERT(radius_grow >= mf.nGrow());
+    AMREX_ASSERT(radius_grow >= mf.nGrow());
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
@@ -1434,7 +1434,7 @@ Projection::radMultScal (int       level,
 #endif
     for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
     {
-      BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
+      AMREX_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
       const Box& bx = mfmfi.growntilebox();
       const int* lo = bx.loVect();
@@ -1458,7 +1458,7 @@ Projection::radMultVel (int       level,
                         MultiFab& mf)
 {
 #if (AMREX_SPACEDIM < 3)
-    BL_ASSERT(radius_grow >= mf.nGrow());
+    AMREX_ASSERT(radius_grow >= mf.nGrow());
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
@@ -1471,7 +1471,7 @@ Projection::radMultVel (int       level,
     {
        for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
        {
-           BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
+           AMREX_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 	   
 	   const Box& bx = mfmfi.growntilebox();
 	   const int* lo = bx.loVect();
@@ -1501,8 +1501,8 @@ Projection::radDiv (int       level,
                     int       comp)
 {
 #if (AMREX_SPACEDIM < 3)
-    BL_ASSERT(comp >= 0 && comp < mf.nComp());
-    BL_ASSERT(radius_grow >= mf.nGrow());
+    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
+    AMREX_ASSERT(radius_grow >= mf.nGrow());
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
@@ -1515,7 +1515,7 @@ Projection::radDiv (int       level,
 #endif
     for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
     {
-        BL_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
+        AMREX_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
 
 	const Box& bx = mfmfi.growntilebox();
 	const int* lo = bx.loVect();
@@ -1543,8 +1543,8 @@ Projection::AnelCoeffMult (int       level,
                            MultiFab& mf,
                            int       comp)
 {
-    BL_ASSERT(anel_coeff[level] != 0);
-    BL_ASSERT(comp >= 0 && comp < mf.nComp());
+    AMREX_ASSERT(anel_coeff[level] != 0);
+    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
@@ -1581,8 +1581,8 @@ Projection::AnelCoeffDiv (int       level,
                           MultiFab& mf,
                           int       comp)
 {
-    BL_ASSERT(comp >= 0 && comp < mf.nComp());
-    BL_ASSERT(anel_coeff[level] != 0);
+    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
+    AMREX_ASSERT(anel_coeff[level] != 0);
 
     const Box& domain = parent->Geom(level).Domain();
     const int* domlo  = domain.loVect();
@@ -1674,8 +1674,8 @@ Projection::initialVorticityProject (int c_lev)
 	{
 	  // rhnd has ng=0 as declared above
 	  const Box& bx = mfi.tilebox();
-	  (*rhnd[lev])[mfi].setVal<RunOn::Host>(0,bx);
-	  (*rhnd[lev])[mfi].copy<RunOn::Host>(P_new[mfi], bx, 0, bx, 0, 1);
+	  (*rhnd[lev])[mfi].setVal<RunOn::Gpu>(0,bx);
+	  (*rhnd[lev])[mfi].copy<RunOn::Gpu>(P_new[mfi], bx, 0, bx, 0, 1);
 	}
     }
 
@@ -1732,11 +1732,11 @@ Projection::initialVorticityProject (int c_lev)
                 const Box& box = mfi.tilebox();
                 if (add_vort_proj)
                 {
-                  (*vel[lev])[mfi].plus<RunOn::Host>((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
+                  (*vel[lev])[mfi].plus<RunOn::Gpu>((*u_real[lev])[mfi],box,Xvel+n,Xvel+idx[n], 1);
                 }
                 else
                 {
-                  (*vel[lev])[mfi].copy<RunOn::Host>((*u_real[lev])[mfi],box,Xvel+n,box,Xvel+idx[n], 1);
+                  (*vel[lev])[mfi].copy<RunOn::Gpu>((*u_real[lev])[mfi],box,Xvel+n,box,Xvel+idx[n], 1);
                 }
             }
         }
@@ -1838,13 +1838,13 @@ Projection::set_outflow_bcs (int        which_call,
                              int        f_lev,
                              int        have_divu)
 {
-    BL_ASSERT((which_call == INITIAL_VEL  ) ||
+    AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
               (which_call == INITIAL_PRESS) ||
               (which_call == INITIAL_SYNC ) ||
               (which_call == LEVEL_PROJ   ) );
 
     if (which_call != LEVEL_PROJ)
-      BL_ASSERT(c_lev == 0);
+      AMREX_ASSERT(c_lev == 0);
 
     if (verbose)
       amrex::Print() << "...setting outflow bcs for the nodal projection ... " << '\n';
@@ -1912,7 +1912,7 @@ Projection::set_outflow_bcs (int        which_call,
         const Box&      valid_state_strip    = temp_state_strip & domain;
         const BoxArray  uncovered_outflow_ba = amrex::complementIn(valid_state_strip,Lgrids);
 
-        BL_ASSERT( !(uncovered_outflow_ba.size() &&
+        AMREX_ASSERT( !(uncovered_outflow_ba.size() &&
                      amrex::intersect(Lgrids,valid_state_strip).size()) );
 
         if ( !(uncovered_outflow_ba.size()) && fine_level[iface] == -1) {
@@ -1930,7 +1930,7 @@ Projection::set_outflow_bcs (int        which_call,
     }
 
     NavierStokesBase* ns0 = dynamic_cast<NavierStokesBase*>(LevelData[c_lev]);
-    BL_ASSERT(!(ns0 == 0));
+    AMREX_ASSERT(!(ns0 == 0));
 
     int Divu_Type, Divu;
     Real gravity = 0;
@@ -1981,7 +1981,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
                                       int          have_divu,
                                       Real         gravity)
 {
-    BL_ASSERT(dynamic_cast<NavierStokesBase*>(LevelData[lev]) != nullptr);
+    AMREX_ASSERT(dynamic_cast<NavierStokesBase*>(LevelData[lev]) != nullptr);
 
     Box domain = parent->Geom(lev).Domain();
 
@@ -2023,7 +2023,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 #endif
         for (MFIter mfi(phi_fine_strip_mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
           const Box& bx = mfi.tilebox();
-          BL_ASSERT((phi_fine_strip[iface].box()).contains(bx));
+          AMREX_ASSERT((phi_fine_strip[iface].box()).contains(bx));
           const auto& phi_f_mf = phi_fine_strip_mf.array(mfi); 
           const auto& phi_f    = phi_fine_strip[iface].array();
           amrex::ParallelFor(bx, [phi_f_mf,phi_f]
@@ -2510,42 +2510,32 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     Vector<MultiFab> vel_test(nlevel);
     Vector<MultiFab> phi_test(nlevel);
 
-    BL_ASSERT(vel[c_lev]->nGrow() >= 1);
-    BL_ASSERT(vel[f_lev]->nGrow() >= 1);
-    BL_ASSERT(phi[c_lev]->nGrow() == 1);
-    BL_ASSERT(phi[f_lev]->nGrow() == 1);
-    // MLMG does not copy any ghost cells from sig
-    // BL_ASSERT(sig[c_lev]->nGrow() == 1);
-    // BL_ASSERT(sig[f_lev]->nGrow() == 1);
+    AMREX_ASSERT(vel[c_lev]->nGrow() >= 1);
+    AMREX_ASSERT(vel[f_lev]->nGrow() >= 1);
+    AMREX_ASSERT(phi[c_lev]->nGrow() == 1);
+    AMREX_ASSERT(phi[f_lev]->nGrow() == 1);
+    // MLMG does not copy any ghost cells from sig, rhcc or rhnd; fills ghost cells internally 
+    // AMREX_ASSERT(sig[c_lev]->nGrow() == 1);
+    // AMREX_ASSERT(sig[f_lev]->nGrow() == 1);
 
-    BL_ASSERT(sig[c_lev]->nComp() == 1);
-    BL_ASSERT(sig[f_lev]->nComp() == 1);
+    AMREX_ASSERT(sig[c_lev]->nComp() == 1);
+    AMREX_ASSERT(sig[f_lev]->nComp() == 1);
 
     if (sync_resid_crse != 0) {
-        BL_ASSERT(nlevel == 1);
-        BL_ASSERT(c_lev < parent->finestLevel());
+        AMREX_ASSERT(nlevel == 1);
+        AMREX_ASSERT(c_lev < parent->finestLevel());
     }
 
     if (sync_resid_fine != 0) {
-        BL_ASSERT((nlevel == 1 || nlevel == 2));
-        BL_ASSERT(c_lev > 0);
+        AMREX_ASSERT((nlevel == 1 || nlevel == 2));
+        AMREX_ASSERT(c_lev > 0);
     }
 
     if (!rhcc.empty() )
-    {
         AMREX_ALWAYS_ASSERT(rhcc[c_lev]->boxArray().ixType().cellCentered());
-   // MLNodeLaplacian only uses vaild cells from rhcc and rhnd; fills ghost cells internally
-        // BL_ASSERT(rhcc[c_lev]->nGrow() == 1);
-        // BL_ASSERT(rhcc[f_lev]->nGrow() == 1);
-    }
 
     if (!rhnd.empty() )
-    {
         AMREX_ALWAYS_ASSERT(rhnd[c_lev]->boxArray().ixType().nodeCentered());
-        // Do we need these two checks ??? -- no, see above
-        // BL_ASSERT(rhnd[c_lev]->nGrow() == 1);
-        // BL_ASSERT(rhnd[f_lev]->nGrow() == 1);
-    }
 
     set_boundary_velocity(c_lev, nlevel, vel, true);
 
@@ -2784,11 +2774,7 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
 	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
             Box ovlp = *it & v_fab.box();
             if (ovlp.ok()) {
-              if (Gpu::inLaunchRegion()) {
 		v_fab.setVal<RunOn::Gpu>(0.0, ovlp, Xvel+idir, 1);
-              } else {
-		v_fab.setVal<RunOn::Cpu>(0.0, ovlp, Xvel+idir, 1);
-              }
             }
 	  }
 	}
