@@ -53,4 +53,4 @@ FEXE_headers += DERIVE_F.H  PROJECTION_F.H \
 FEXE_headers += NS_error_F.H
 
 CEXE_sources += MLMG_Mac.cpp NS_util.cpp
-CEXE_headers += MACPROJ_F.H NS_util.H
+CEXE_headers += NS_util.H

@@ -49,10 +49,6 @@ public:
 			const amrex::EBFArrayBoxFactory& _ebfactory);
 
 #endif
-    void install_anelastic_coefficient (int                        level,
-                                        amrex::Real                **anel_coeff);
-    void build_anelastic_coefficient (int                        level,
-				      amrex::Real**& anel_coeff);
     //
     // Compute the level projection in NavierStokes::advance.
     //
@@ -156,16 +152,6 @@ public:
     void radDiv (int       level,
                  amrex::MultiFab& mf,
                  int       comp);
-
-    //
-    // Multiply/divide a amrex::MultiFab by anel_coeff.
-    //
-    void AnelCoeffMult (int       level,
-                        amrex::MultiFab& mf,
-                        int       comp);
-    void AnelCoeffDiv (int       level,
-                       amrex::MultiFab& mf,
-                       int       comp);
     //
     // Read parameters from the input file.
     //
@@ -259,11 +245,6 @@ public:
     //
     int                    radius_grow;
     amrex::Vector< amrex::Vector< amrex::Vector<amrex::Real> > * > radius;
-    //
-    // Anelastic coefficient array.
-    //
-    static int                   anel_grow;
-    amrex::Vector<amrex::Real**> anel_coeff;
 
     //
     // Boundary objects.
