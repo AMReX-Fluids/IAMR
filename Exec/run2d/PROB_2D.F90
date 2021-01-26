@@ -18,8 +18,8 @@ module prob_2D_module
 
   private
 
-  public :: amrex_probinit, FORT_INITDATA, initbubble, initspin, &
-            initviscbench, initvort, initchannel, initpervort, &
+  public :: amrex_probinit, FORT_INITDATA, initbubble, &
+            initviscbench, initchannel, initpervort, &
             inithotspot, initrt, inittraceradvect, initfromrest, &
             init_taylorgreen, &
             FORT_DENERROR, &
@@ -195,20 +195,10 @@ contains
 
 #include <probdata.H>
 
-      if (probtype .eq. 1) then
-         call initspin(level,time,lo,hi,nscal, &
-          	       vel,scal,DIMS(state),press,DIMS(press), &
-                      dx,xlo,xhi)
-
-      else if (probtype .eq. 2) then
+      if (probtype .eq. 2) then
          call initbubble(level,time,lo,hi,nscal, &
           	         vel,scal,DIMS(state),press,DIMS(press), &
                         dx,xlo,xhi)
-
-      else if (probtype .eq. 3) then
-         call initvort(level,time,lo,hi,nscal, &
-          	       vel,scal,DIMS(state),press,DIMS(press), &
-                      dx,xlo,xhi)
 
       else if (probtype .eq. 4) then
          call initchannel(level,time,lo,hi,nscal, &
@@ -318,74 +308,6 @@ contains
       end subroutine initbubble
 !c
 !c ::: -----------------------------------------------------------
-!c
-      subroutine initspin(level,time,lo,hi,nscal, &
-     	 	          vel,scal,DIMS(state),press,DIMS(press), &
-                         dx,xlo,xhi) &
-                         bind(C, name="initspin")
-
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
-!c
-!c     ::::: local variables
-!c
-      integer i, j, n
-      REAL_T  x, y
-      REAL_T  hx, hy
-      REAL_T  dist
-      REAL_T  x_vel, y_vel
-      REAL_T  spx, spy, cpx, cpy
-
-#include <probdata.H>
-
-      hx = dx(1)
-      hy = dx(2)
-
-      if (adv_dir .eq. 1) then
-         x_vel = adv_vel
-         y_vel = zero
-      else if (adv_dir .eq. 2) then
-         x_vel = zero
-         y_vel = adv_vel
-      else 
-         write(6,*) "INITSPIN: adv_dir = ",adv_dir
-         stop
-      end if
-
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half)
-            spy = sin(Pi*y)
-            cpy = cos(Pi*y)
-            do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half)
-
-               spx = sin(Pi*x)
-               cpx = cos(Pi*x)
-
-               vel(i,j,1) = x_vel - velfact*two*spy*cpy*spx**2
-               vel(i,j,2) = y_vel + velfact*two*spx*cpx*spy**2
-
-               dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-
-               scal(i,j,1) = one + (denfact-one) * tanh(10.*(dist-radblob))
-               do n = 2,nscal-1
-                  scal(i,j,n) = one
-               end do                  
-               scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
-
-            end do
-         end do
-
-      end subroutine initspin
-!c
-!c ::: -----------------------------------------------------------
 !c ::: This case is an unsteady  viscous benchmark for which the 
 !c ::: exact solution is,
 !c :::     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
@@ -449,66 +371,6 @@ contains
       end do
 
       end subroutine initviscbench
-!c
-!c ::: -----------------------------------------------------------
-!c
-      subroutine initvort(level,time,lo,hi,nscal, &
-     	 	          vel,scal,DIMS(state),press,DIMS(press), &
-                         dx,xlo,xhi) &
-                         bind(C, name="initvort")
-                         
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
-!c
-!c     ::::: local variables
-!c
-      integer i, j, n
-      REAL_T  x, y, r
-      REAL_T  hx, hy
-      REAL_T  c, ux, uy
-      REAL_T  umagin, umagout, absu, sinth, costh
-      REAL_T  small, a, b, r0
-
-#include <probdata.H>
-
-      hx = dx(1)
-      hy = dx(2)
-      small = 1.0e-10
-
-      r0 = two/three * radvort
-      a = one / ((radvort - r0)*(two*radvort - r0))
-      b = a * radvort**2 * (radvort - r0)
-
-         do j = lo(2), hi(2)
-            y = xlo(2) + hy*(float(j-lo(2)) + half) - yblob
-            do i = lo(1), hi(1)
-               x = xlo(1) + hx*(float(i-lo(1)) + half) - xblob
-               r = sqrt(x**2 + y**2)
-!c              umagin = .5*r - 4*r**3
-!c              umagout = radvort*(.5*radvort - 4*radvort**3)/max(radvort,r)
-               umagin = velfact * (one - a*(r - r0)**2)
-               umagout = velfact * b/max(radvort,r)
-               absu = merge(umagout,umagin,(r - radvort) .ge. 0.0d0)
-               sinth = y/max(r,small*radvort)
-               costh = x/max(r,small*radvort)
-               vel(i,j,1) = -absu*sinth
-               vel(i,j,2) = absu*costh
-               scal(i,j,1) = merge(denfact,one,r.lt.radblob)
-               do n = 2,nscal-1
-                  scal(i,j,n) = one
-               end do                  
-               scal(i,j,nscal) = merge(one,zero,r.lt.radblob)
-            end do
-         end do
-
-      end subroutine initvort
 !c
 !c ::: -----------------------------------------------------------
 !c
