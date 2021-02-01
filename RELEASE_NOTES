@@ -163,3 +163,12 @@ Test case updates
 1/4/21
 Various bugfixes relating to CUDA, statistics, restarting.
 Several changes to support time-averaging statistics and diagnostics.
+
+2/1/21
+Change spatial discretization of multilevel grad(p)
+Checkpointing fixes
+Many small updates to several parts of the code, including:
+  -Diffusion:diffuse_Ssync
+  -InflowForce
+  -GPU fixes
+  -Outflow BC solvers
