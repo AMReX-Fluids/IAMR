@@ -2,7 +2,7 @@
 #include <NS_util.H>
 #include <iamr_edge_state_mol_K.H>
 
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
 #include <iamr_eb_edge_state_mol_K.H>
 #endif
 
