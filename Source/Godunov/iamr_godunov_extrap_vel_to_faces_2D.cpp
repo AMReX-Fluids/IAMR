@@ -1,6 +1,6 @@
 #include <NS_util.H>
-#include <iamr_ppm_godunov.H>
-#include <iamr_plm_godunov.H>
+#include <iamr_godunov_ppm.H>
+#include <iamr_godunov_plm.H>
 #include <iamr_godunov.H>
 #include <iamr_godunov_K.H>
 #include <iomanip>

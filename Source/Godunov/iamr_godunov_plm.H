@@ -1,14 +1,14 @@
 #ifndef IAMR_PLM_GODUNOV_H
 #define IAMR_PLM_GODUNOV_H
 
-#include <iamr_slopes_godunov_K.H>
+#include <iamr_godunov_slopes_K.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_Array.H>
 #include <iomanip>
-#include <iamr_constants_godunov.H>
+#include <iamr_godunov_constants.H>
 
 namespace PLM {
 
