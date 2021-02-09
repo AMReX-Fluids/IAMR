@@ -1,4 +1,4 @@
-#include <iamr_godunov_slopes_K.H>
+#include <AMReX_Slopes_K.H>
 #include <iamr_godunov_plm.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BCRec.H>
@@ -61,10 +61,12 @@ PLM::PredictVelOnXFace ( Box const& bx_in, int ncomp,
             bool extdir_ihi = (bc.hi(0) == BCType::ext_dir) or
                               (bc.hi(0) == BCType::hoextrap);
 
+            int order = 4;
+
             Real upls = q(i  ,j,k,n) + 0.5 * (-1.0 - vcc(i  ,j,k,0) * dtdx) *
-                iamr_ho_xslope_extdir(i,j,k,n,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                amrex_calc_xslope_extdir(i,j,k,n,order,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
             Real umns = q(i-1,j,k,n) + 0.5 * ( 1.0 - vcc(i-1,j,k,0) * dtdx) *
-                iamr_ho_xslope_extdir(i-1,j,k,n,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
+                amrex_calc_xslope_extdir(i-1,j,k,n,order,q, extdir_ilo, extdir_ihi, domain_ilo, domain_ihi);
 
             Ipx(i-1,j,k,n) = umns;
             Imx(i  ,j,k,n) = upls;
@@ -75,10 +77,12 @@ PLM::PredictVelOnXFace ( Box const& bx_in, int ncomp,
         amrex::ParallelFor(xebox, ncomp, [q,vcc,Ipx,Imx,dtdx]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
+            int order = 4;
+
             Real upls = q(i  ,j,k,n) + 0.5 * (-1.0 - vcc(i  ,j,k,0) * dtdx) *
-                iamr_ho_xslope(i  ,j,k,n,q);
+                amrex_calc_xslope(i  ,j,k,n,order,q);
             Real umns = q(i-1,j,k,n) + 0.5 * ( 1.0 - vcc(i-1,j,k,0) * dtdx) *
-                iamr_ho_xslope(i-1,j,k,n,q);
+                amrex_calc_xslope(i-1,j,k,n,order,q);
 
             Ipx(i-1,j,k,n) = umns;
             Imx(i  ,j,k,n) = upls;
@@ -127,10 +131,12 @@ PLM::PredictVelOnYFace (Box const& bx_in, int ncomp,
             bool extdir_jhi = (bc.hi(1) == BCType::ext_dir) or
                               (bc.hi(1) == BCType::hoextrap);
 
+            int order = 4;
+
             Real vpls = q(i,j  ,k,n) + 0.5 * (-1.0 - vcc(i,j  ,k,1) * dtdy) *
-                iamr_ho_yslope_extdir(i,j,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                amrex_calc_yslope_extdir(i,j,k,n,order,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
             Real vmns = q(i,j-1,k,n) + 0.5 * ( 1.0 - vcc(i,j-1,k,1) * dtdy) *
-                iamr_ho_yslope_extdir(i,j-1,k,n,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
+                amrex_calc_yslope_extdir(i,j-1,k,n,order,q, extdir_jlo, extdir_jhi, domain_jlo, domain_jhi);
 
             Ipy(i,j-1,k,n) = vmns;
             Imy(i,j  ,k,n) = vpls;
@@ -141,10 +147,12 @@ PLM::PredictVelOnYFace (Box const& bx_in, int ncomp,
         amrex::ParallelFor(yebox, ncomp, [q,vcc,Ipy,Imy,dtdy]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
+            int order = 4;
+
             Real vpls = q(i,j  ,k,n) + 0.5 * (-1.0 - vcc(i,j  ,k,1) * dtdy) *
-                iamr_ho_yslope(i,j  ,k,n,q);
+                amrex_calc_yslope(i,j  ,k,n,order,q);
             Real vmns = q(i,j-1,k,n) + 0.5 * ( 1.0 - vcc(i,j-1,k,1) * dtdy) *
-                iamr_ho_yslope(i,j-1,k,n,q);
+                amrex_calc_yslope(i,j-1,k,n,order,q);
 
             Ipy(i,j-1,k,n) = vmns;
             Imy(i,j  ,k,n) = vpls;
@@ -190,10 +198,12 @@ PLM::PredictVelOnZFace ( Box const& bx_in, int ncomp,
             bool extdir_khi = (bc.hi(2) == BCType::ext_dir) or
                               (bc.hi(2) == BCType::hoextrap);
 
+            int order = 4;
+
             Real wpls = q(i,j,k  ,n) + 0.5 * (-1.0 - vcc(i,j,k  ,2) * dtdz) *
-                iamr_ho_zslope_extdir(i,j,k,n,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                amrex_calc_zslope_extdir(i,j,k,n,order,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
             Real wmns = q(i,j,k-1,n) + 0.5 * ( 1.0 - vcc(i,j,k-1,2) * dtdz) *
-                iamr_ho_zslope_extdir(i,j,k-1,n,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
+                amrex_calc_zslope_extdir(i,j,k-1,n,order,q, extdir_klo, extdir_khi, domain_klo, domain_khi);
 
             Ipz(i,j,k-1,n) = wmns;
             Imz(i,j,k  ,n) = wpls;
@@ -204,10 +214,12 @@ PLM::PredictVelOnZFace ( Box const& bx_in, int ncomp,
         amrex::ParallelFor(zebox, ncomp, [q,vcc,Ipz,Imz,dtdz]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
+            int order = 4;
+
             Real wpls = q(i,j,k  ,n) + 0.5 * (-1.0 - vcc(i,j,k  ,2) * dtdz) *
-                iamr_ho_zslope(i,j,k  ,n,q);
+                amrex_calc_zslope(i,j,k  ,n,order,q);
             Real wmns = q(i,j,k-1,n) + 0.5 * ( 1.0 - vcc(i,j,k-1,2) * dtdz) *
-                iamr_ho_zslope(i,j,k-1,n,q);
+                amrex_calc_zslope(i,j,k-1,n,order,q);
 
             Ipz(i,j,k-1,n) = wmns;
             Imz(i,j,k  ,n) = wpls;

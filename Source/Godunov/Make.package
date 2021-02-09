@@ -6,8 +6,6 @@ CEXE_sources += iamr_godunov.cpp
 CEXE_sources += iamr_godunov_extrap_vel_to_faces_$(DIM)D.cpp
 CEXE_sources += iamr_godunov_edge_state_$(DIM)D.cpp
 
-CEXE_headers += iamr_godunov_slopes_K.H
-
 CEXE_headers += iamr_godunov_plm.H
 CEXE_sources += iamr_godunov_plm.cpp
 
