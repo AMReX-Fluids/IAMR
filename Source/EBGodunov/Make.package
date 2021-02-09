@@ -1,0 +1,9 @@
+CEXE_headers += EBGodunov.H
+
+CEXE_sources += incflo_ebgodunov_predict_$(DIM)D.cpp
+CEXE_sources += incflo_ebgodunov_advection_$(DIM)D.cpp
+CEXE_sources += incflo_ebgodunov_plm.cpp
+CEXE_sources += incflo_ebgodunov_plm_fpu.cpp
+
+CEXE_headers += incflo_ebgodunov_corner_couple.H
+CEXE_headers += incflo_ebgodunov_transverse_$(DIM)D_K.H
