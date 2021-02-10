@@ -4,7 +4,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 #These are the directories in IAMR
 
 Bdirs += Source
-Bdirs += Source/TurbInflow
 Bdirs += Source/Src_nd
 Bdirs += Source/Src_$(DIM)d
 Bdirs += Source/MOL
