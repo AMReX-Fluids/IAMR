@@ -527,7 +527,7 @@ public:
     // Compile p_avg in advance.
     //
     void incrPAvg ();
-    void initOldFromNew (int type); // Initialize old with new
+    void initOldFromNew (int type, int lev = -1); // Initialize old with new
     //
     // Compile rho_avg in advance.
     //
