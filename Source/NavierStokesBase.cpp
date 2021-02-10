@@ -4423,57 +4423,6 @@ NavierStokesBase::computeGradP(Real time)
     FillPatch(*this,Gp,Gp.nGrow(),time,Gradp_Type,0,AMREX_SPACEDIM);
 }
 
-//
-// Multilevel computeGradP at curTime.
-//
-void
-NavierStokesBase::computeGradP(int clev, int flev)
-{
-    LPInfo info;
-    info.setMaxCoarseningLevel(0);
-
-    for ( int lev = clev; lev <= flev; lev++ )
-    {
-        NavierStokesBase& ns =
-	  dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
-
-	ns.computeGradP(ns.state[Gradp_Type].curTime());
-    }
-
-    //NOT TESTED YET!!!
-    // FIXME --- set to false for now for comparisons with old way
-    //  maybe want to make a runtime switch?
-    bool avgDownGradP = false;
-    if ( avgDownGradP )
-    {
-        for ( int lev = flev-1; lev >= clev; --lev )
-        {
-	    Abort("WARNING!!! NSB::computeGradP: averaging down has not been tested\n");
-
-	    NavierStokesBase& ns_fine =
-	      dynamic_cast<NavierStokesBase&>(parent->getLevel(lev+1));
-	    NavierStokesBase& ns_crse =
-	      dynamic_cast<NavierStokesBase&>(parent->getLevel(lev));
-
-	    // Note that for P and Gp, crse and fine times do not match up
-	    // const TimeLevel whichTime = ns_crse.which_time(State_Type,time);
-
-	    // if (whichTime == ns_crse.AmrOldTime)
-	    // {
-	    //   MultiFab& gp_fine = ns_fine.get_old_data(Gradp_Type);
-	    //   MultiFab& gp_crse = ns_crse.get_old_data(Gradp_Type);
-	    // }
-	    // else if (whichTime == ns_crse.AmrNewTime)
-	    // {
-	      MultiFab& gp_fine = ns_fine.get_new_data(Gradp_Type);
-	      MultiFab& gp_crse = ns_crse.get_new_data(Gradp_Type);
-	    // }
-
-	    ns_crse.average_down(gp_fine, gp_crse, 0, AMREX_SPACEDIM);
-	}
-    }
-}
-
 void
 NavierStokesBase::avgDown_StatePress()
 {
