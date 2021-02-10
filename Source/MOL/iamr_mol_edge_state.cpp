@@ -1,9 +1,9 @@
 #include <iamr_mol.H>
 #include <NS_util.H>
-#include <iamr_edge_state_mol_K.H>
+#include <iamr_mol_edge_state_K.H>
 
 #if AMREX_USE_EB
-#include <iamr_eb_edge_state_mol_K.H>
+#include <iamr_mol_eb_edge_state_K.H>
 #endif
 
 
