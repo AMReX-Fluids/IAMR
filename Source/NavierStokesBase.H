@@ -228,7 +228,7 @@ public:
     static int  GodunovHypgrow () {return godunov_hyp_grow;};
 
     //////////////////////////////////////////////////////////////////
-  
+
     NavierStokesBase ();
 
     NavierStokesBase (amrex::Amr&            papa,
@@ -388,7 +388,7 @@ public:
     //
     // Average down State_Type and Press_Type.
     //
-    void avgDown_StatePress (); 
+    void avgDown_StatePress ();
 
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                       std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
@@ -608,7 +608,7 @@ public:
     // NOTE that DeviceVector reverts to amrex::Vector if !AMREX_USE_GPU
     amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_velocity_d;
     amrex::Gpu::DeviceVector<amrex::BCRec> m_bcrec_scalars_d;
-  
+
     Diffusion* diffusion;
     //
     // arrays for variable viscosity and diffusivity
@@ -801,6 +801,7 @@ public:
     //
     // Controls Godunov solver
     //
+    static bool use_godunov;
     static bool godunov_use_ppm;
     static bool godunov_use_forces_in_trans;
 #ifdef AMREX_USE_EB
@@ -809,7 +810,7 @@ public:
     static const int  godunov_hyp_grow = 3;
 #endif
   //
-  // For restart, is GradP in checkpoint file 
+  // For restart, is GradP in checkpoint file
   //
   static int gradp_in_checkpoint;
 

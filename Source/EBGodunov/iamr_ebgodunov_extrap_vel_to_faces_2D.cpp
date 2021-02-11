@@ -1,31 +1,32 @@
 //#include <NS_util.H>
-#include <iamr_plm_ebgodunov.H>
-#include <iamr_godunov.H>
+#include <iamr_ebgodunov_plm.H>
+#include <iamr_godunov_plm.H>
+// #include <iamr_godunov.H>
 #include <iamr_ebgodunov.H>
+#include <iamr_godunov.H>
 #include <iamr_godunov_K.H>
-#include <iamr_transverse_ebgodunov_2D_K.H>
+#include <iamr_ebgodunov_transverse_2D_K.H>
 //#include <iomanip>
 
 using namespace amrex;
 void
-EBGodunov::ExtrapVelToFaces ( MultiFab& u_mac, MultiFab& v_mac,
-                              MultiFab const& vel,
+EBGodunov::ExtrapVelToFaces ( MultiFab const& vel,
                               MultiFab const& vel_forces,
+                              MultiFab& u_mac, MultiFab& v_mac,
                               Vector<BCRec> const& h_bcrec,
                               BCRec  const* d_bcrec,
-                              EBFArrayBoxFactory const* ebfact,
                               Geometry& geom,
-                              Real l_dt )
+                              Real l_dt)
 {
     Box const& domain = geom.Domain();
     const Real* dx    = geom.CellSize();
 
-    auto const& flags = ebfact->getMultiEBCellFlagFab();
-    auto const& fcent = ebfact->getFaceCent();
-    auto const& ccent = ebfact->getCentroid();
-    auto const& vfrac = ebfact->getVolFrac();
-
-    auto const& areafrac = ebfact->getAreaFrac();
+    auto const& ebfact= dynamic_cast<EBFArrayBoxFactory const&>(vel.Factory());
+    auto const& flags = ebfact.getMultiEBCellFlagFab();
+    auto const& fcent = ebfact.getFaceCent();
+    auto const& ccent = ebfact.getCentroid();
+    auto const& vfrac = ebfact.getVolFrac();
+    auto const& areafrac = ebfact.getAreaFrac();
 
     const int ncomp = AMREX_SPACEDIM;
 #ifdef _OPENMP
@@ -372,10 +373,6 @@ EBGodunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
             }
         }
 
-
-        Godunov_cc_xbc_lo(i, j, k, n, q, stl, sth, bc.lo(0), dlo.x, true);
-        Godunov_cc_xbc_hi(i, j, k, n, q, stl, sth, bc.hi(0), dhi.x, true);
-
         SetXEdgeBCs(i, j, k, n, q, stl, sth, bc.lo(0), dlo.x, bc.hi(0), dhi.x, true);
 
         // Prevent backflow
@@ -493,8 +490,6 @@ EBGodunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
                 }
             }
         }
-
-
 
         SetYEdgeBCs(i, j, k, n, q, stl, sth, bc.lo(1), dlo.y, bc.hi(1), dhi.y, true);
 

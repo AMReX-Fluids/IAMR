@@ -1,5 +1,5 @@
 #include <AMReX_EB_slopes_K.H>
-#include <iamr_plm_ebgodunov.H>
+#include <iamr_ebgodunov_plm.H>
 
 using namespace amrex;
 
