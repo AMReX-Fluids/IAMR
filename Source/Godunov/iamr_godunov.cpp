@@ -203,8 +203,8 @@ Godunov::ComputeFluxes ( Box const& bx,
     area[1] = dx[0]*dx[2];
     area[2] = dx[0]*dx[1];
 #else
-    area[0] = dx[0];
-    area[1] = dx[1];
+    area[0] = dx[1];
+    area[1] = dx[0];
 #endif
 
     //
@@ -270,7 +270,7 @@ Godunov::ComputeDivergence ( Box const& bx,
 #else
     Real qvol = dxinv[0] * dxinv[1];
 #endif
-    
+
     amrex::ParallelFor(bx, ncomp,[=]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
