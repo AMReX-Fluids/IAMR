@@ -1,16 +1,96 @@
-//
-//  EBGodunov.H
-//
-
 #ifndef IAMR_EBGODUNOV_H
 #define IAMR_EBGODUNOV_H
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>
 
+
 namespace EBGodunov {
 
-    constexpr amrex::Real small_vel = 1.e-8;
+
+    void ComputeAofs ( amrex::MultiFab& aofs, const int aofs_comp, const int ncomp,
+                       amrex::MultiFab const& state, const int state_comp,
+                       AMREX_D_DECL( amrex::MultiFab const& umac,
+                                     amrex::MultiFab const& vmac,
+                                     amrex::MultiFab const& wmac),
+                       AMREX_D_DECL( amrex::MultiFab& xedge,
+                                     amrex::MultiFab& yedge,
+                                     amrex::MultiFab& zedge),
+                       const int  edge_comp,
+                       const bool known_edgestate,
+                       AMREX_D_DECL( amrex::MultiFab& xfluxes,
+                                     amrex::MultiFab& yfluxes,
+                                     amrex::MultiFab& zfluxes),
+                       int fluxes_comp,
+                       amrex::MultiFab const& fq,
+                       const int fq_comp,
+                       amrex::MultiFab const& divu,
+                       amrex::Vector<amrex::BCRec> const& h_bc,
+                       amrex::BCRec const* d_bc,
+                       amrex::Geometry const& geom,
+                       amrex::Gpu::DeviceVector<int>& iconserv,
+                       const amrex::Real dt,
+                       const bool is_velocity  );
+
+    // void ComputeSyncAofs ( amrex::MultiFab& aofs, const int aofs_comp, const int ncomp,
+    //                        amrex::MultiFab const& state, const int state_comp,
+    //                        AMREX_D_DECL( amrex::MultiFab const& umac,
+    //                                      amrex::MultiFab const& vmac,
+    //                                      amrex::MultiFab const& wmac),
+    //                        AMREX_D_DECL( amrex::MultiFab const& ucorr,
+    //                                      amrex::MultiFab const& vcorr,
+    //                                      amrex::MultiFab const& wcorr),
+    //                        AMREX_D_DECL( amrex::MultiFab& xedge,
+    //                                      amrex::MultiFab& yedge,
+    //                                      amrex::MultiFab& zedge),
+    //                        const int  edge_comp,
+    //                        const bool known_edgestate,
+    //                        AMREX_D_DECL( amrex::MultiFab& xfluxes,
+    //                                      amrex::MultiFab& yfluxes,
+    //                                      amrex::MultiFab& zfluxes),
+    //                        int fluxes_comp,
+    //                        amrex::MultiFab const& fq,
+    //                        const int fq_comp,
+    //                        amrex::MultiFab const& divu,
+    //                        amrex::BCRec const* d_bc,
+    //                        amrex::Geometry const& geom,
+    //                        amrex::Gpu::DeviceVector<int>& iconserv,
+    //                        const amrex::Real dt,
+    //                        const bool use_ppm,
+    //                        const bool use_forces_in_trans,
+    //                        const bool is_velocity  );
+
+
+    void ComputeFluxes ( amrex::Box const& bx,
+                         AMREX_D_DECL( amrex::Array4<amrex::Real> const& fx,
+                                       amrex::Array4<amrex::Real> const& fy,
+                                       amrex::Array4<amrex::Real> const& fz),
+                         AMREX_D_DECL( amrex::Array4<amrex::Real const> const& umac,
+                                       amrex::Array4<amrex::Real const> const& vmac,
+                                       amrex::Array4<amrex::Real const> const& wmac),
+                         AMREX_D_DECL( amrex::Array4<amrex::Real const> const& xedge,
+                                       amrex::Array4<amrex::Real const> const& yedge,
+                                       amrex::Array4<amrex::Real const> const& zedge),
+                         AMREX_D_DECL( amrex::Array4<amrex::Real const> const& apx,
+                                       amrex::Array4<amrex::Real const> const& apy,
+                                       amrex::Array4<amrex::Real const> const& apz),
+                         amrex::Geometry const& geom, const int ncomp,
+                         amrex::Array4<amrex::EBCellFlag const> const& flag);
+
+
+    void ComputeDivergence ( amrex::Box const& bx,
+                             amrex::Array4<amrex::Real> const& div,
+                             AMREX_D_DECL( amrex::Array4<amrex::Real const> const& fx,
+                                           amrex::Array4<amrex::Real const> const& fy,
+                                           amrex::Array4<amrex::Real const> const& fz),
+                             AMREX_D_DECL( amrex::Array4<amrex::Real const> const& xed,
+                                           amrex::Array4<amrex::Real const> const& yed,
+                                           amrex::Array4<amrex::Real const> const& zed),
+                             AMREX_D_DECL( amrex::Array4<amrex::Real const> const& umac,
+                                           amrex::Array4<amrex::Real const> const& vmac,
+                                           amrex::Array4<amrex::Real const> const& wmac),
+                             amrex::Array4<amrex::Real const> const& vfrac,
+                             const int ncomp, amrex::Geometry const& geom );
 
     void ExtrapVelToFaces ( amrex::MultiFab const& vel,
                             amrex::MultiFab const& vel_forces,
@@ -22,53 +102,6 @@ namespace EBGodunov {
                             amrex::Geometry& geom,
                             amrex::Real dt);
 
-
-    // void plm_fpu_x (amrex::Box const& bx, int ncomp,
-    //                 amrex::Array4<amrex::Real> const& Imx, amrex::Array4<amrex::Real> const& Ipx,
-    //                 amrex::Array4<amrex::Real const> const& q,
-    //                 amrex::Array4<amrex::Real  const> const& umac,
-    //                 amrex::Array4<amrex::EBCellFlag const> const& flag,
-    //                 amrex::Array4<amrex::Real const> const& vfrac,
-    //                 AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
-    //                              amrex::Array4<amrex::Real const> const& fcy,
-    //                              amrex::Array4<amrex::Real const> const& fcz),
-    //                 amrex::Array4<amrex::Real const> const& ccc,
-    //                 amrex::Geometry& geom,
-    //                 amrex::Real dt,
-    //                 amrex::Vector<amrex::BCRec> const& h_bcrec,
-    //                 amrex::BCRec const* d_bcrec, bool is_velocity);
-
-    // void plm_fpu_y (amrex::Box const& bx, int ncomp,
-    //                 amrex::Array4<amrex::Real> const& Imy, amrex::Array4<amrex::Real> const& Ipy,
-    //                 amrex::Array4<amrex::Real const> const& q,
-    //                 amrex::Array4<amrex::Real  const> const& vmac,
-    //                 amrex::Array4<amrex::EBCellFlag const> const& flag,
-    //                 amrex::Array4<amrex::Real const> const& vfrac,
-    //                 AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
-    //                              amrex::Array4<amrex::Real const> const& fcy,
-    //                              amrex::Array4<amrex::Real const> const& fcz),
-    //                 amrex::Array4<amrex::Real const> const& ccc,
-    //                 amrex::Geometry& geom,
-    //                 amrex::Real dt,
-    //                 amrex::Vector<amrex::BCRec> const& h_bcrec,
-    //                 amrex::BCRec const* d_bcrec, bool is_velocity);
-
-// #if (AMREX_SPACEDIM == 3)
-//     void plm_fpu_z (amrex::Box const& bx, int ncomp,
-//                     amrex::Array4<amrex::Real> const& Imz, amrex::Array4<amrex::Real> const& Ipz,
-//                     amrex::Array4<amrex::Real const> const& q,
-//                     amrex::Array4<amrex::Real  const> const& wmac,
-//                     amrex::Array4<amrex::EBCellFlag const> const& flag,
-//                     amrex::Array4<amrex::Real const> const& vfrac,
-//                     AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
-//                                  amrex::Array4<amrex::Real const> const& fcy,
-//                                  amrex::Array4<amrex::Real const> const& fcz),
-//                     amrex::Array4<amrex::Real const> const& ccc,
-//                     amrex::Geometry& geom,
-//                     amrex::Real dt,
-//                     amrex::Vector<amrex::BCRec> const& h_bcrec,
-//                     amrex::BCRec const* d_bcrec, bool is_velocity);
-// #endif
 
     void ComputeAdvectiveVel (AMREX_D_DECL(amrex::Box const& xbx,
                                            amrex::Box const& ybx,
@@ -110,7 +143,7 @@ namespace EBGodunov {
                                  amrex::Real dt,
                                  amrex::BCRec const* d_bcrec,
                                  amrex::Array4<amrex::EBCellFlag const> const& flag,
-                                 AMREX_D_DECL(amrex::Array4<amrex::Real const> const& epx,
+                                 AMREX_D_DECL(amrex::Array4<amrex::Real const> const& apx,
                                               amrex::Array4<amrex::Real const> const& apy,
                                               amrex::Array4<amrex::Real const> const& apz),
                                  amrex::Array4<amrex::Real const> const& vfrac,
@@ -118,6 +151,31 @@ namespace EBGodunov {
                                               amrex::Array4<amrex::Real const> const& fcy,
                                               amrex::Array4<amrex::Real const> const& fcz),
                                  amrex::Real* p);
+
+
+    void ComputeEdgeState ( amrex::Box const& bx, int ncomp,
+                            amrex::Array4<amrex::Real const> const& q,
+                            amrex::Array4<amrex::Real> const& xedge,
+                            amrex::Array4<amrex::Real> const& yedge,
+                            amrex::Array4<amrex::Real const> const& u_mac,
+                            amrex::Array4<amrex::Real const> const& v_mac,
+                            amrex::Array4<amrex::Real const> const& divu,
+                            amrex::Array4<amrex::Real const> const& fq,
+                            amrex::Geometry const& geom,
+                            amrex::Real l_dt,
+                            amrex::Vector<amrex::BCRec> const& h_bcrec,
+                            amrex::BCRec const*  pbc,
+                            int const* iconserv,
+                            amrex::Array4<amrex::EBCellFlag const> const& flag_arr,
+                            amrex::Array4<amrex::Real const> const& apx,
+                            amrex::Array4<amrex::Real const> const& apy,
+                            amrex::Array4<amrex::Real const> const& vfrac_arr,
+                            amrex::Array4<amrex::Real const> const& fcx,
+                            amrex::Array4<amrex::Real const> const& fcy,
+                            amrex::Array4<amrex::Real const> const& ccent_arr,
+                            bool is_velocity );
+
+
 
     // void compute_godunov_advection (amrex::Box const& bx, int ncomp,
     //                                 amrex::Array4<amrex::Real> const& dqdt,

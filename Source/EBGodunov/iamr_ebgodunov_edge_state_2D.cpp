@@ -1,45 +1,49 @@
-#include <Godunov.H>
-#include <EBGodunov.H>
-#include <incflo_godunov_trans_bc.H>
-
+#include <iamr_godunov_K.H>
+#include <iamr_ebgodunov.H>
+#include <iamr_ebgodunov_plm.H>
+// #include <iamr_godunov_trans_bc.H>
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBMultiFabUtil_2D_C.H>
 
 using namespace amrex;
 
 void
-ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
-                                      Array4<Real> const& dqdt,
-                                      Array4<Real const> const& q,
-                                      Array4<Real const> const& u_mac,
-                                      Array4<Real const> const& v_mac,
-                                      Array4<Real const> const& fq,
-                                      Array4<Real const> const& divu,
-                                      Real l_dt,
-                                      Vector<BCRec> const& h_bcrec,
-                                             BCRec const*  pbc,
-                                      int const* iconserv,
-                                      Real* p, 
-                                      Array4<EBCellFlag const> const& flag_arr,
-                                      AMREX_D_DECL(Array4<Real const> const& apx,
-                                                   Array4<Real const> const& apy,
-                                                   Array4<Real const> const& apz),
-                                      Array4<Real const> const& vfrac_arr,
-                                      AMREX_D_DECL(Array4<Real const> const& fcx,
-                                                   Array4<Real const> const& fcy,
-                                                   Array4<Real const> const& fcz),
-                                      Array4<Real const> const& ccent_arr,
-                                      Geometry& geom,
-                                      bool is_velocity )
+EBGodunov::ComputeEdgeState ( Box const& bx, int ncomp,
+                              Array4<Real const> const& q,
+                              Array4<Real> const& xedge,
+                              Array4<Real> const& yedge,
+                              Array4<Real const> const& u_mac,
+                              Array4<Real const> const& v_mac,
+                              Array4<Real const> const& divu,
+                              Array4<Real const> const& fq,
+                              Geometry const& geom,
+                              Real l_dt,
+                              Vector<amrex::BCRec> const& h_bcrec,
+                              BCRec const*  pbc,
+                              int const* iconserv,
+                              Array4<EBCellFlag const> const& flag_arr,
+                              Array4<Real const> const& apx,
+                              Array4<Real const> const& apy,
+                              Array4<Real const> const& vfrac_arr,
+                              Array4<Real const> const& fcx,
+                              Array4<Real const> const& fcy,
+                              Array4<Real const> const& ccent_arr,
+                              bool is_velocity )
 {
     Box const& xbx = amrex::surroundingNodes(bx,0);
     Box const& ybx = amrex::surroundingNodes(bx,1);
+
     Box const& bxg1 = amrex::grow(bx,1);
+
+    FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
+    Real* p   = tmpfab.dataPtr();
+
     Box xebox = Box(xbx).grow(1,1);
     Box yebox = Box(ybx).grow(0,1);
 
     const Real dx = geom.CellSize(0);
     const Real dy = geom.CellSize(1);
+
     Real dtdx = l_dt/dx;
     Real dtdy = l_dt/dy;
 
@@ -69,17 +73,18 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
     Array4<Real> xyzhi = makeArray4(p, bxg1, ncomp);
     p +=         xyzhi.size();
 
-    for (int n = 0; n < ncomp; n++) 
-       if (!iconserv[n]) amrex::Abort("Trying to update in non-conservative in ebgodunov");
+    for (int n = 0; n < ncomp; n++)
+       if (!iconserv[n]) amrex::Abort("EBGodunov does not support non-conservative form");
 
-    ebgodunov::plm_fpu_x (bx, ncomp, Imx, Ipx, q, u_mac,
-                          flag_arr, vfrac_arr,
-                          AMREX_D_DECL(fcx,fcy,fcz),ccent_arr,
-                          geom, l_dt, h_bcrec, pbc, is_velocity);
-    ebgodunov::plm_fpu_y (bx, ncomp, Imy, Ipy, q, v_mac, 
-                          flag_arr, vfrac_arr,
-                          AMREX_D_DECL(fcx,fcy,fcz),ccent_arr,
-                          geom, l_dt, h_bcrec, pbc, is_velocity);
+    EBPLM::PredictStateOnXFace( bx, ncomp, Imx, Ipx, q, u_mac,
+                                flag_arr, vfrac_arr,
+                                AMREX_D_DECL(fcx,fcy,fcz),ccent_arr,
+                                geom, l_dt, h_bcrec, pbc, is_velocity);
+
+    EBPLM::PredictStateOnYFace( bx, ncomp, Imy, Ipy, q, v_mac,
+                                flag_arr, vfrac_arr,
+                                AMREX_D_DECL(fcx,fcy,fcz),ccent_arr,
+                                geom, l_dt, h_bcrec, pbc, is_velocity);
 
     amrex::ParallelFor(
         xebox, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -91,11 +96,11 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
 
                 Real uad = u_mac(i,j,k);
 
-                auto bc = pbc[n];  
+                auto bc = pbc[n];
 
-                Godunov_trans_xbc(i, j, k, n, q, lo, hi, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
-    
-                xlo(i,j,k,n) = lo; 
+                SetTransTermXBCs(i, j, k, n, q, lo, hi, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
+
+                xlo(i,j,k,n) = lo;
                 xhi(i,j,k,n) = hi;
 
                 Real st = (uad >= 0.) ? lo : hi;
@@ -114,10 +119,10 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
                 Real hi = Imy(i,j  ,k,n);
 
                 Real vad = v_mac(i,j,k);
-    
+
                 auto bc = pbc[n];
 
-                Godunov_trans_ybc(i, j, k, n, q, lo, hi, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
+                SetTransTermYBCs(i, j, k, n, q, lo, hi, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
 
                 ylo(i,j,k,n) = lo;
                 yhi(i,j,k,n) = hi;
@@ -150,7 +155,7 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
             l_yzlo = ylo(i,j,k,n);
             l_yzhi = yhi(i,j,k,n);
             Real vad = v_mac(i,j,k);
-            Godunov_trans_ybc(i, j, k, n, q, l_yzlo, l_yzhi, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
+            SetTransTermYBCs(i, j, k, n, q, l_yzlo, l_yzhi, bc.lo(1), bc.hi(1), dlo.y, dhi.y, is_velocity);
 
             Real st = (vad >= 0.) ? l_yzlo : l_yzhi;
             Real fu = (amrex::Math::abs(vad) < small_vel) ? 0.0 : 1.0;
@@ -160,7 +165,6 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
         }
     });
     //
-    Array4<Real> qx = makeArray4(Ipx.dataPtr(), xbx, ncomp);
     amrex::ParallelFor(xbx, ncomp,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
@@ -183,7 +187,7 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
             }
 
             // If we can't compute good transverse terms, don't use any d/dt terms at all
-            if (apy(i,j,k) > 0. && apy(i,j+1,k) > 0.) 
+            if (apy(i,j,k) > 0. && apy(i,j+1,k) > 0.)
             {
                 Real quxh = (apx(i+1,j,k)*u_mac(i+1,j,k) - apx(i,j,k)*u_mac(i,j,k)) * q(i,j,k,n);
                 sth += ( - (0.5*dtdx) * quxh
@@ -192,19 +196,33 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
                 if (fq && vfrac_arr(i  ,j,k) > 0.)
                     sth += 0.5*l_dt*fq(i  ,j,k,n);
             }
- 
-            auto bc = pbc[n]; 
-            Godunov_cc_xbc_lo(i, j, k, n, q, stl, sth, bc.lo(0), dlo.x, is_velocity);
-            Godunov_cc_xbc_hi(i, j, k, n, q, stl, sth, bc.hi(0), dhi.x, is_velocity);
 
-            Real temp = (u_mac(i,j,k) >= 0.) ? stl : sth; 
+            auto bc = pbc[n];
+            SetXEdgeBCs(i, j, k, n, q, stl, sth, bc.lo(0), dlo.x, bc.hi(0), dhi.x, is_velocity);
+
+            if ( (i==dlo.x) and (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap) )
+            {
+#ifndef ALLOWXINFLOW
+                if ( u_mac(i,j,k) >= 0. and n==XVEL and is_velocity )  sth = amrex::min(sth,0.);
+#endif
+                stl = sth;
+            }
+            if ( (i==dhi.x+1) and (bc.hi(0) == BCType::foextrap || bc.hi(0) == BCType::hoextrap) )
+            {
+#ifndef ALLOWXINFLOW
+                if ( u_mac(i,j,k) <= 0. and n==XVEL and is_velocity ) stl = amrex::max(stl,0.);
+#endif
+                sth = stl;
+            }
+
+            Real temp = (u_mac(i,j,k) >= 0.) ? stl : sth;
             temp = (amrex::Math::abs(u_mac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
-            qx(i,j,k,n) = temp;
+            xedge(i,j,k,n) = temp;
 
         } else {
-            qx(i,j,k,n) = 0.;
+           xedge(i,j,k,n) = 0.;
         }
-    }); 
+    });
 
     //
     // Upwinding on x-faces to use as transverse terms for y-faces
@@ -224,7 +242,7 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
             l_xzhi = xhi(i,j,k,n);
 
             Real uad = u_mac(i,j,k);
-            Godunov_trans_xbc(i, j, k, n, q, l_xzlo, l_xzhi, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
+            SetTransTermXBCs(i, j, k, n, q, l_xzlo, l_xzhi, bc.lo(0), bc.hi(0), dlo.x, dhi.x, is_velocity);
 
             Real st = (uad >= 0.) ? l_xzlo : l_xzhi;
             Real fu = (amrex::Math::abs(uad) < small_vel) ? 0.0 : 1.0;
@@ -234,8 +252,6 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
         }
     });
     //
-
-    Array4<Real> qy = makeArray4(Ipy.dataPtr(), ybx, ncomp);
     amrex::ParallelFor(ybx, ncomp,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
@@ -250,13 +266,13 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
             if (apx(i,j-1,k) > 0. && apx(i+1,j-1,k) > 0.)
             {
                 Real qvyl = (apy(i,j,k)*v_mac(i,j,k) - apy(i,j-1,k)*v_mac(i,j-1,k)) * q(i,j-1,k,n);
-                stl += ( - (0.5*dtdy)*qvyl  
+                stl += ( - (0.5*dtdy)*qvyl
                          - (0.5*dtdx)*(apx(i+1,j-1,k)*xzlo(i+1,j-1,k  ,n)*u_mac(i+1,j-1,k  )
                                       -apx(i  ,j-1,k)*xzlo(i  ,j-1,k  ,n)*u_mac(i  ,j-1,k  )) ) / vfrac_arr(i,j-1,k);
                 if (fq && vfrac_arr(i,j-1,k) > 0.)
                     stl += 0.5*l_dt*fq(i,j-1,k,n);
             }
-    
+
             // If we can't compute good transverse terms, don't use any d/dt terms at all
             if (apx(i,j,k) > 0. && apx(i+1,j,k) > 0.)
             {
@@ -269,40 +285,29 @@ ebgodunov::compute_godunov_advection (Box const& bx, int ncomp,
             }
 
             auto bc = pbc[n];
-            Godunov_cc_ybc_lo(i, j, k, n, q, stl, sth, bc.lo(1), dlo.y, is_velocity);
-            Godunov_cc_ybc_hi(i, j, k, n, q, stl, sth, bc.hi(1), dhi.y, is_velocity);
+            SetYEdgeBCs(i, j, k, n, q, stl, sth, bc.lo(1), dlo.y, bc.hi(1), dhi.y, is_velocity);
 
-            Real temp = (v_mac(i,j,k) >= 0.) ? stl : sth; 
-            temp = (amrex::Math::abs(v_mac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp; 
-            qy(i,j,k,n) = temp;
-
-        } else {
-            qy(i,j,k,n) = 0.;
-        }
-    });
-
-    amrex::ParallelFor(bx, ncomp,
-    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        if (vfrac_arr(i,j,k) > 0.)
-        {
-            dqdt(i,j,k,n) = (dxinv[0]*( apx(i  ,j,k)*u_mac(i  ,j,k)*qx(i  ,j,k,n) -
-                                        apx(i+1,j,k)*u_mac(i+1,j,k)*qx(i+1,j,k,n) )
-                +            dxinv[1]*( apy(i  ,j,k)*v_mac(i,j  ,k)*qy(i,j  ,k,n) -
-                                        apy(i,j+1,k)*v_mac(i,j+1,k)*qy(i,j+1,k,n))) / vfrac_arr(i,j,k);
-#if 0
-            if (i == 15 && j == 95 && n == 0) 
+            if ( (j==dlo.y) and (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap) )
             {
-               amrex::Print() << " UPDATE " << IntVect(i,j) << " " << q(i,j,k,n) << " " << dqdt(i,j,k,n) << std::endl;
-               amrex::Print() << "   LO X: " << apx(i,j,k) << " " << u_mac(i,j,k) << " " << qx(i,j,k,n) << std::endl;
-               amrex::Print() << "   HI X: " << apx(i+1,j,k) << " " << u_mac(i+1,j,k) << " " << qx(i+1,j,k,n) << std::endl;
-               amrex::Print() << "   LO Y: " << apy(i,j,k) << " " << v_mac(i,j,k) << " " << qy(i,j,k,n) << std::endl;
-               amrex::Print() << "   HI Y: " << apy(i,j+1,k) << " " << v_mac(i,j+1,k) << " " << qy(i,j+1,k,n) << std::endl;
-               amrex::Print() << " " << std::endl;
-            }
+#ifndef ALLOWYINFLOW
+                if ( v_mac(i,j,k) >= 0. and n==YVEL and is_velocity ) sth = amrex::min(sth,0.);
 #endif
+                stl = sth;
+            }
+            if ( (j==dhi.y+1) and (bc.hi(1) == BCType::foextrap || bc.hi(1) == BCType::hoextrap) )
+            {
+#ifndef ALLOWYINFLOW
+                if ( v_mac(i,j,k) <= 0. and n==YVEL and is_velocity ) stl = amrex::max(stl,0.);
+#endif
+                sth = stl;
+            }
+            Real temp = (v_mac(i,j,k) >= 0.) ? stl : sth;
+            temp = (amrex::Math::abs(v_mac(i,j,k)) < small_vel) ? 0.5*(stl + sth) : temp;
+            yedge(i,j,k,n) = temp;
+
         } else {
-            dqdt(i,j,k,n) = 0.0;
+            yedge(i,j,k,n) = 0.;
         }
     });
+
 }

@@ -3525,28 +3525,11 @@ NavierStokesBase::velocity_advection (Real dt)
         MultiFab& Umf=U_fpi.get_mf();
 	MultiFab& Gp = get_old_data(Gradp_Type);
 
-#ifndef AMREX_USE_EB
-        //
-        // >>>>>>>>>>>>>>>>>>>>>>>>>>>  NON-EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        //
-        FillPatchIterator Rho_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Density,1);
-        FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-        MultiFab& Rmf=Rho_fpi.get_mf();
-        MultiFab& Smf=S_fpi.get_mf();
-
         MultiFab cfluxes[AMREX_SPACEDIM];
         MultiFab edgestate[AMREX_SPACEDIM];
-        int ngrow = 1;
 
-        MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
-	// fixme - sterm would be better as a pointer
-        MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  godunov_hyp_grow);
 
-        // Why in the original code it does this:
-        //
-        //
-        //
-        int nghost = 2;  // Do we need 2???
+        int nghost = 2;  // Do we need 2 also for non EB???
         for (int i = 0; i < AMREX_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
@@ -3555,124 +3538,133 @@ NavierStokesBase::velocity_advection (Real dt)
             edgestate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
         }
 
-        //
-        // Compute forcing
-        //
+
+        if (use_godunov)
+        {
+            //
+            // >>>>>>>>>>>>>>>>>>>>>>>>>>>  GODUNOV ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            //
+            FillPatchIterator Rho_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Density,1);
+            FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+            MultiFab& Rmf=Rho_fpi.get_mf();
+            MultiFab& Smf=S_fpi.get_mf();
+
+            int ngrow = 1;
+
+            MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
+            // fixme - sterm would be better as a pointer
+            MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  godunov_hyp_grow);
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        {
-            for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
             {
-                auto const gbx = U_mfi.growntilebox(ngrow);
-
-                if (getForceVerbose)
+                for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
                 {
-                    amrex::Print() << "---" << '\n'
-                                   << "B - velocity advection:" << '\n'
-                                   << "Calling getForce..." << '\n';
+                    auto const gbx = U_mfi.growntilebox(ngrow);
+
+                    if (getForceVerbose)
+                    {
+                        amrex::Print() << "---" << '\n'
+                                       << "B - velocity advection:" << '\n'
+                                       << "Calling getForce..." << '\n';
+                    }
+                    getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,
+                             prev_time,Umf[U_mfi],Smf[U_mfi],0);
+
+                    //
+                    // Compute the total forcing.
+                    //
+                    auto const& tf   = forcing_term.array(U_mfi,Xvel);
+                    auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+                    auto const& gp   = Gp.const_array(U_mfi);
+                    auto const& rho  = rho_ptime.const_array(U_mfi);
+                    auto const hypbox = U_mfi.growntilebox(godunov_hyp_grow);
+
+                    if ( do_mom_diff )
+                    {
+                        amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
+                        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                        {
+                            tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
+                        });
+
+                        auto const& dens = Rmf.const_array(U_mfi);
+                        auto const& vel  = Umf.const_array(U_mfi);
+                        auto const& st   = S_term.array(U_mfi);
+
+                        amrex::ParallelFor(hypbox, AMREX_SPACEDIM, [ dens, vel, st ]
+                        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                        {
+                            st(i,j,k,n) = vel(i,j,k,n) * dens(i,j,k);
+                        });
+                    }
+                    else
+                    {
+                        amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
+                        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                        {
+                            tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+                        });
+
+                        S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],hypbox,0,hypbox,0,AMREX_SPACEDIM);
+                    }
                 }
-                getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,
-			 prev_time,Umf[U_mfi],Smf[U_mfi],0);
-
-                //
-                // Compute the total forcing.
-                //
-                auto const& tf   = forcing_term.array(U_mfi,Xvel);
-                auto const& visc = visc_terms.const_array(U_mfi,Xvel);
-                auto const& gp   = Gp.const_array(U_mfi);
-                auto const& rho  = rho_ptime.const_array(U_mfi);
-		auto const hypbox = U_mfi.growntilebox(godunov_hyp_grow);
-
-		if ( do_mom_diff )
-		{
-		  amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
-                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                  {
-		    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
-		  });
-
-		  auto const& dens = Rmf.const_array(U_mfi);
-		  auto const& vel  = Umf.const_array(U_mfi);
-		  auto const& st   = S_term.array(U_mfi);
-
-		  amrex::ParallelFor(hypbox, AMREX_SPACEDIM, [ dens, vel, st ]
-		  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-		  {
-                    st(i,j,k,n) = vel(i,j,k,n) * dens(i,j,k);
-		  });
-		}
-		else
-		{
-		  amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
-                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-		  {
-		    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
-		  });
-
-		  S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],hypbox,0,hypbox,0,AMREX_SPACEDIM);
-		}
             }
-        }
 
-        amrex::Gpu::DeviceVector<int> iconserv;
-        iconserv.resize(AMREX_SPACEDIM, 0);
+            amrex::Gpu::DeviceVector<int> iconserv;
+            iconserv.resize(AMREX_SPACEDIM, 0);
 
-        for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
-        {
-            iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
-        }
+            for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+            {
+                iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+            }
 
-        Godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
-                             S_term, 0,
-                             AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                             AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                             AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             forcing_term, 0, divu_fp, m_bcrec_velocity_d.dataPtr(), geom, iconserv, dt,
-                             godunov_use_ppm, godunov_use_forces_in_trans, true);
-
-	if (do_reflux)
-	{
-            for (int d = 0; d < AMREX_SPACEDIM; ++d)
-                MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
-	}
-
-
-
-
+#ifndef AMREX_USE_EB
+            Godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
+                                 S_term, 0,
+                                 AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                 AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                 AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                                 forcing_term, 0, divu_fp, m_bcrec_velocity_d.dataPtr(), geom, iconserv, dt,
+                                 godunov_use_ppm, godunov_use_forces_in_trans, true);
 #else
-        //
-        // >>>>>>>>>>>>>>>>>>>>>>>>>>>  EB ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        //
-
-         MultiFab cfluxes[AMREX_SPACEDIM];
-         MultiFab edgstate[AMREX_SPACEDIM];
-         int nghost(2);
-
-         for (int i(0); i < AMREX_SPACEDIM; i++)
-         {
-             const BoxArray& ba = getEdgeBoxArray(i);
-             cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
-             edgstate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
-         }
-
-         MOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, Umf, 0,
-                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                          D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
-                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                          m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom  );
-
-         // don't think this is needed here any more. Godunov sets covered vals now...
-         EB_set_covered(*aofs, 0.);
-
-         if (do_reflux)
-         {
-             for (int d(0); d < AMREX_SPACEDIM; d++)
-                 MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
-
-         }
-
+            EBGodunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
+                                   S_term, 0,
+                                   AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                   AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                   AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                                   forcing_term, 0, divu_fp,
+                                   m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
+                                   geom, iconserv, dt, true);
 #endif
+
+        }
+        else
+        {
+            //
+            // >>>>>>>>>>>>>>>>>>>>>>>>>>>  MOL ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            //
+
+            MOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, Umf, 0,
+                             D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                             D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                             D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom  );
+
+#ifdef AMREX_USE_EB
+            // don't think this is needed here any more. Godunov sets covered vals now...
+            EB_set_covered(*aofs, 0.);
+#endif
+        }
+
+
+        if (do_reflux)
+        {
+            for (int d=0; d < AMREX_SPACEDIM; ++d)
+                MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
+        }
+
     } //end scope of FillPatchIter
 
     if (do_reflux)
@@ -4827,6 +4819,8 @@ NavierStokesBase::predict_velocity (Real  dt)
            }
        }
 
+       amrex::Print() << "max(abs(forcint))" <<  forcing_term.norm0(1,0,false,true) << std::endl;
+
 #ifndef AMREX_USE_EB
        Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                                   m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt,
@@ -4847,6 +4841,8 @@ NavierStokesBase::predict_velocity (Real  dt)
 
    }
 
+   amrex::Print() << "max(abs(u_mac)) "  <<  u_mac[0].norm0(0,0,false,true) << std::endl;
+   amrex::Print() << "max(abs(v_mac)) "  <<  u_mac[1].norm0(0,0,false,true) << std::endl;
 
    if (verbose > 1)
    {
