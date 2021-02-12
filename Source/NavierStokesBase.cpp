@@ -3877,7 +3877,6 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
         MultiFab&  U_new          = get_new_data(State_Type);
         MultiFab&  Rh             = get_rho_half_time();
         const Real prev_time      = state[State_Type].prevTime();
-        const int  xvel           = Xvel;
 
         int   ngrow = 0;
         MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,ngrow,MFInfo(),Factory());
@@ -3935,9 +3934,9 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
            auto const& rhohalf = Rh.array(mfi);
            auto const& rho_old = rho_ptime.array(mfi);
            auto const& rho_new = rho_ctime.array(mfi);
-           auto const& vel_old = U_old.array(mfi,xvel);
-           auto const& vel_new = U_new.array(mfi,xvel);
-           auto const& advT    = aofs->array(mfi,xvel);
+           auto const& vel_old = U_old.array(mfi,Xvel);
+           auto const& vel_new = U_new.array(mfi,Xvel);
+           auto const& advT    = aofs->array(mfi,Xvel);
            int mom_diff = do_mom_diff;
            amrex::ParallelFor(bx, AMREX_SPACEDIM, [force,viscT,gradp,rhohalf,advT,rho_old,rho_new,vel_old,vel_new,mom_diff,dt]
            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
