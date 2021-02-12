@@ -5,6 +5,7 @@
 #include <NavierStokesBase.H>
 #include <AMReX_LevelBld.H>
 
+
 class NSBld
     :
     public amrex::LevelBld
@@ -48,6 +49,10 @@ public:
     // Init grid data at problem start-up.
     //
     virtual void initData () override;
+    //
+    // Problem initialization functions and parameters
+    //
+#include "prob_init.H"
     //
     // Write plot file stuff to specified directory.
     //
@@ -112,15 +117,12 @@ public:
     // Define data descriptors.
     //
     static void variableSetUp ();
-    //
-    // Cleanup data descriptors at end of run.
-    //
-    static void variableCleanUp ();
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public functions                                       //
     ////////////////////////////////////////////////////////////////////////////
-  
+
+    void prob_initData();
     //
     // Advect scalars.
     //

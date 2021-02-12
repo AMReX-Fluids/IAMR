@@ -45,12 +45,6 @@ namespace
 Vector<AMRErrorTag> NavierStokes::errtags;
 
 void
-NavierStokes::variableCleanUp ()
-{
-    NavierStokesBase::variableCleanUp ();
-}
-
-void
 NavierStokes::Initialize ()
 {
     if (initialized) return;
@@ -93,79 +87,58 @@ NavierStokes::initData ()
     //
     // Initialize the state and the pressure.
     //
-    int         ns       = NUM_STATE - BL_SPACEDIM;
-    const Real* dx       = geom.CellSize();
-    MultiFab&   S_new    = get_new_data(State_Type);
-    MultiFab&   P_new    = get_new_data(Press_Type);
-    if (avg_interval > 0){
-      MultiFab&   Save_new    = get_new_data(Average_Type);
-      Save_new.setVal(0.);
-    }
-    const Real  cur_time = state[State_Type].curTime();
-#ifdef _OPENMP
-#pragma omp parallel  if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter snewmfi(S_new,TilingIfNotGPU()); snewmfi.isValid(); ++snewmfi)
-    {
-        const Box& vbx = snewmfi.tilebox();
-
-        FArrayBox& Sfab = S_new[snewmfi];
-        FArrayBox& Pfab = P_new[snewmfi];
-
-	//fixme -- change to GPU once initdata is updated
-        Sfab.setVal<RunOn::Host>(0.0,snewmfi.growntilebox(),0,S_new.nComp());
-        Pfab.setVal<RunOn::Host>(0.0,snewmfi.grownnodaltilebox(-1,P_new.nGrow()));
-
-        RealBox    gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
-        const int* lo      = vbx.loVect();
-        const int* hi      = vbx.hiVect();
-        const int* s_lo    = Sfab.loVect();
-        const int* s_hi    = Sfab.hiVect();
-        const int* p_lo    = Pfab.loVect();
-        const int* p_hi    = Pfab.hiVect();
-
-        FORT_INITDATA (&level,&cur_time,lo,hi,&ns,
-                       Sfab.dataPtr(Xvel),
-                       Sfab.dataPtr(BL_SPACEDIM),
-                       ARLIM(s_lo), ARLIM(s_hi),
-                       Pfab.dataPtr(),
-                       ARLIM(p_lo), ARLIM(p_hi),
-                       dx,gridloc.lo(),gridloc.hi() );
-    }
+    prob_initData();
+  
     //
     // Initialize GradP
     //
     computeGradP(state[Press_Type].curTime());
-    
+
+    //
+    // Initialize averaging, if using
+    //
+    if (avg_interval > 0){
+      MultiFab&   Save_new    = get_new_data(Average_Type);
+      Save_new.setVal(0.);
+    }
+
 #ifdef AMREX_USE_EB
-    set_body_state(S_new);
+    //
+    // Set EB covered cells to some typical value for that field 
+    // FIXME -- Not sure IAMR really needs this...   
+    {
+      MultiFab&   S_new    = get_new_data(State_Type);
+      set_body_state(S_new);
+    }
 #endif
 
 #ifdef BL_USE_VELOCITY
-    //
-    // We want to add the velocity from the supplied plotfile
-    // to what we already put into the velocity field via FORT_INITDATA.
-    //
-    // This code has a few drawbacks.  It assumes that the physical
-    // domain size of the current problem is the same as that of the
-    // one that generated the pltfile.  It also assumes that the pltfile
-    // has at least as many levels (with the same refinement ratios) as does
-    // the current problem.  If either of these are false this code is
-    // likely to core dump.
-    //
-    ParmParse pp("ns");
-
-    std::string velocity_plotfile;
-    pp.query("velocity_plotfile", velocity_plotfile);
-
-    std::string velocity_plotfile_xvel_name = "x_velocity";
-    pp.query("velocity_plotfile_xvel_name", velocity_plotfile_xvel_name);
-
-    Real velocity_plotfile_scale(1.0);
-    pp.query("velocity_plotfile_scale",velocity_plotfile_scale);
-
-    if (!velocity_plotfile.empty())
     {
+      //
+      // We want to add the velocity from the supplied plotfile
+      // to what we already put into the velocity field via FORT_INITDATA.
+      //
+      // This code has a few drawbacks.  It assumes that the physical
+      // domain size of the current problem is the same as that of the
+      // one that generated the pltfile.  It also assumes that the pltfile
+      // has at least as many levels (with the same refinement ratios) as does
+      // the current problem.  If either of these are false this code is
+      // likely to core dump.
+      //
+
+      ParmParse pp("ns");
+
+      std::string velocity_plotfile;
+      pp.query("velocity_plotfile", velocity_plotfile);
+
+      std::string velocity_plotfile_xvel_name = "x_velocity";
+      pp.query("velocity_plotfile_xvel_name", velocity_plotfile_xvel_name);
+
+      Real velocity_plotfile_scale(1.0);
+      pp.query("velocity_plotfile_scale",velocity_plotfile_scale);
+
+      if (!velocity_plotfile.empty())
+      {
         Print() << "initData: reading data from: " << velocity_plotfile << " ("
                 << velocity_plotfile_xvel_name << ")" << '\n';
 
@@ -191,7 +164,8 @@ NavierStokes::initData ()
 	      else
 	       Print() << "Found " << velocity_plotfile_xvel_name << ", idX = " << idX << '\n';
 
-        MultiFab tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
+	MultiFab& S_new = get_new_data(State_Type);
+        MultiFab  tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
         for (int i = 0; i < BL_SPACEDIM; i++)
         {
 	    amrData.FillVar(tmp, level, plotnames[idX+i], 0);
@@ -202,11 +176,18 @@ NavierStokes::initData ()
         }
 
 	Print() << "initData: finished init from velocity_plotfile" << '\n';
+      }
     }
 #endif /*BL_USE_VELOCITY*/
 
+    //
+    // Make rho MFs with filled ghost cells
+    // Not really sure why these are needed as opposed to just filling the
+    // the ghost cells in state and using that.
+    //
     make_rho_prev_time();
     make_rho_curr_time();
+
     //
     // Initialize divU and dSdt.
     //
@@ -220,9 +201,9 @@ NavierStokes::initData ()
         state[State_Type].setTimeLevel(curTime,dt,dt);
 
         //Make sure something reasonable is in diffn_ec
-        calcDiffusivity(cur_time);
+        calcDiffusivity(curTime);
 
-        calc_divu(cur_time,dtin,Divu_new);
+        calc_divu(curTime,dtin,Divu_new);
 
         if (have_dsdt)
             get_new_data(Dsdt_Type).setVal(0);
