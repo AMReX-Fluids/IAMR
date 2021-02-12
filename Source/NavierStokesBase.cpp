@@ -3553,7 +3553,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
             MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
             // fixme - sterm would be better as a pointer
-            MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  godunov_hyp_grow);
+            MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  godunov_hyp_grow, MFInfo(), Umf.Factory());
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())

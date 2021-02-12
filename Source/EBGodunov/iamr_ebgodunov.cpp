@@ -32,6 +32,8 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("EBGodunov::ComputeAofs()");
 
+    AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
+
     auto const& ebfact= dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
     auto const& flags = ebfact.getMultiEBCellFlagFab();
     auto const& fcent = ebfact.getFaceCent();
