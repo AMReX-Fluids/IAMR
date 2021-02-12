@@ -792,12 +792,8 @@ public:
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
-#ifdef AMREX_USE_EB
-    // MOL doesn't require gradp ghost cells
-    static const int gradp_grow = 0;
-#else
-    static const int gradp_grow = 1;
-#endif
+    static const int gradp_grow = 1; // Must have 1 for godunov and ebgodunov
+
     //
     // Controls Godunov solver
     //
