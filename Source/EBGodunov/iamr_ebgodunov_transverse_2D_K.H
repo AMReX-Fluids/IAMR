@@ -16,13 +16,13 @@ linear_interp (Real xout,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void create_transverse_terms_for_xface(int ic, int j, int k, 
+void create_transverse_terms_for_xface(int ic, int j, int k,
                                        Array4<Real const> const& v_ad,
                                        Array4<Real const> const& yhat,
                                        Array4<Real const> const& apy,
                                        Array4<Real const> const& fcy,
-                                       Real& trans_y, 
-                                       const Real l_dt, const Real dy)
+                                       Real& trans_y,
+                                       const Real dy)
 {
     Real v_tmp_j, v_tmp_jp1;
     Real y_hat_j, y_hat_jp1;
@@ -32,8 +32,8 @@ void create_transverse_terms_for_xface(int ic, int j, int k,
     {
         v_tmp_j = v_ad(ic,j,k);
         y_hat_j = yhat(ic,j,k);
-    } 
-    else 
+    }
+    else
     {
         // Tangential extrapolation in x-direction at j-1/2
         int jc    = j;
@@ -50,7 +50,7 @@ void create_transverse_terms_for_xface(int ic, int j, int k,
         v_tmp_jp1 = v_ad(ic,j+1,k);
         y_hat_jp1 = yhat(ic,j+1,k);
     }
-    else 
+    else
     {
         // Tangential extrapolation in x-direction at j+1/2
         int jc    = j+1;
@@ -65,13 +65,13 @@ void create_transverse_terms_for_xface(int ic, int j, int k,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void create_transverse_terms_for_yface(int i, int jc, int k, 
+void create_transverse_terms_for_yface(int i, int jc, int k,
                                        Array4<Real const> const& u_ad,
                                        Array4<Real const> const& xhat,
                                        Array4<Real const> const& apx,
                                        Array4<Real const> const& fcx,
-                                       Real& trans_x, 
-                                       const Real l_dt, const Real dx)
+                                       Real& trans_x,
+                                       const Real dx)
 {
     Real u_tmp_i, u_tmp_ip1;
     Real x_hat_i, x_hat_ip1;
@@ -81,8 +81,8 @@ void create_transverse_terms_for_yface(int i, int jc, int k,
     {
         u_tmp_i = u_ad(i,jc,k);
         x_hat_i = xhat(i,jc,k);
-    } 
-    else 
+    }
+    else
     {
         // Tangential extrapolation in y-direction at i-1/2
         int ic    = i;
@@ -99,7 +99,7 @@ void create_transverse_terms_for_yface(int i, int jc, int k,
         u_tmp_ip1 = u_ad(i+1,jc,k);
         x_hat_ip1 = xhat(i+1,jc,k);
     }
-    else 
+    else
     {
         // Tangential extrapolation in y-direction at i+1/2
         int ic = i+1;

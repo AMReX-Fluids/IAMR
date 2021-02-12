@@ -341,7 +341,7 @@ EBGodunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
                 // If either y-face is covered then don't include any dt-based terms
                 if (apy(ic,j,k) > 0.0 && apy(ic,j+1,k) > 0.0)
                 {
-                    create_transverse_terms_for_xface(ic,j,k,v_ad,yhat,apy,fcy,trans_y,l_dt,dy);
+                    create_transverse_terms_for_xface(ic,j,k,v_ad,yhat,apy,fcy,trans_y,dy);
 
                     stl += -0.5 * l_dt * trans_y;
                     stl +=  0.5 * l_dt * f(ic,j,k,n);
@@ -365,7 +365,7 @@ EBGodunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
                 // If either y-face is covered then don't include any dt-based terms
                 if (apy(ic,j,k) > 0.0 && apy(ic,j+1,k) > 0.0)
                 {
-                    create_transverse_terms_for_xface(ic,j,k,v_ad,yhat,apy,fcy,trans_y,l_dt,dy);
+                    create_transverse_terms_for_xface(ic,j,k,v_ad,yhat,apy,fcy,trans_y,dy);
 
                     sth += -0.5 * l_dt * trans_y;
                     sth +=  0.5 * l_dt * f(ic,j,k,n);
@@ -460,7 +460,7 @@ EBGodunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
                 // If either x-face is covered then don't include any dt-based terms
                 if (apx(i,jc,k) > 0.0 && apx(i+1,jc,k) > 0.0)
                 {
-                    create_transverse_terms_for_yface(i,jc,k,u_ad,xhat,apx,fcx,trans_x,l_dt,dx);
+                    create_transverse_terms_for_yface(i,jc,k,u_ad,xhat,apx,fcx,trans_x,dx);
 
                     stl += -0.5 * l_dt * trans_x;
                     stl +=  0.5 * l_dt * f(i,jc,k,n);
@@ -483,7 +483,7 @@ EBGodunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
                 // If either x-face is covered then don't include any dt-based terms
                 if (apx(i,jc,k) > 0.0 && apx(i+1,jc,k) > 0.0)
                 {
-                    create_transverse_terms_for_yface(i,jc,k,u_ad,xhat,apx,fcx,trans_x,l_dt,dx);
+                    create_transverse_terms_for_yface(i,jc,k,u_ad,xhat,apx,fcx,trans_x,dx);
 
                     sth += -0.5 * l_dt * trans_x;
                     sth +=  0.5 * l_dt * f(i,jc,k,n);
