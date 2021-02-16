@@ -3485,24 +3485,6 @@ NavierStokesBase::velocity_advection (Real dt)
     const int   finest_level   = parent->finestLevel();
     const Real  prev_time      = state[State_Type].prevTime();
 
-    //
-    // Compute viscosity components.
-    //
-    MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
-
-    // No need to compute this is we are using EB because we will
-    // not use Godunov.
-#ifndef AMREX_USE_EB
-    if (be_cn_theta != 1.0)
-    {
-        getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
-    }
-    else
-    {
-        visc_terms.setVal(0.,1);
-    }
-#endif
-
     MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
     create_mac_rhs(divu_fp,1,prev_time,dt);
 
@@ -3521,6 +3503,7 @@ NavierStokesBase::velocity_advection (Real dt)
     // Compute the advective forcing.
     //
     {
+        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
         FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
         MultiFab& Umf=U_fpi.get_mf();
 	MultiFab& Gp = get_old_data(Gradp_Type);
@@ -3555,6 +3538,18 @@ NavierStokesBase::velocity_advection (Real dt)
             // fixme - sterm would be better as a pointer
             MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  godunov_hyp_grow, MFInfo(), Umf.Factory());
 
+            //
+            // Compute viscosity components.
+            //
+            if (be_cn_theta != 1.0)
+            {
+                getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
+            }
+            else
+            {
+                visc_terms.setVal(0.,1);
+            }
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -3586,7 +3581,7 @@ NavierStokesBase::velocity_advection (Real dt)
                         amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                         {
-                            tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
+                            tf(i,j,k,n) =  ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
                         });
 
                         auto const& dens = Rmf.const_array(U_mfi);
