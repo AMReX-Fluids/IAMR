@@ -124,6 +124,9 @@ namespace EBGodunov {
                                  AMREX_D_DECL(amrex::Box const& xbx,
                                               amrex::Box const& ybx,
                                               amrex::Box const& zbx),
+                                 AMREX_D_DECL(amrex::Box const& xebx,
+                                              amrex::Box const& yebx,
+                                              amrex::Box const& zebx),
                                  AMREX_D_DECL(amrex::Array4<amrex::Real> const& qx,
                                               amrex::Array4<amrex::Real> const& qy,
                                               amrex::Array4<amrex::Real> const& qz),
@@ -146,7 +149,9 @@ namespace EBGodunov {
                                  AMREX_D_DECL(amrex::Array4<amrex::Real const> const& apx,
                                               amrex::Array4<amrex::Real const> const& apy,
                                               amrex::Array4<amrex::Real const> const& apz),
+#if (AMREX_SPACEDIM == 3)
                                  amrex::Array4<amrex::Real const> const& vfrac,
+#endif
                                  AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
                                               amrex::Array4<amrex::Real const> const& fcy,
                                               amrex::Array4<amrex::Real const> const& fcz),

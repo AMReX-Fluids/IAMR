@@ -4819,7 +4819,7 @@ NavierStokesBase::predict_velocity (Real  dt)
            }
        }
 
-       amrex::Print() << "max(abs(forcint))" <<  forcing_term.norm0(1,0,false,true) << std::endl;
+       amrex::Print() << "max(abs(forcing))" <<  forcing_term.norm0(1,0,false,true) << std::endl;
 
 #ifndef AMREX_USE_EB
        Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
