@@ -50,7 +50,7 @@ public:
     //
     virtual void initData () override;
     //
-    // Problem initialization functions and parameters
+    // Problem initialization functions
     //
 #include "prob_init.H"
     //
@@ -122,7 +122,6 @@ public:
     //    NavierStokes public functions                                       //
     ////////////////////////////////////////////////////////////////////////////
 
-    void prob_initData();
     //
     // Advect scalars.
     //

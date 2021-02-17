@@ -52,8 +52,8 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-diffuse.v = 0
-mac.v =0
+diffuse.v 		= 0
+mac.v     		= 0
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
@@ -132,12 +132,14 @@ ns.hi_bc             = 5 5 2
 
 #*******************************************************************************
 
+# Problem parameters
 prob.probtype = 6
 prob.blob_center = 0.0 0.0 1.7 
 prob.blob_radius = 0.2
-prob.denfact = 2.0
-# Can also set up a flow
-#prob.adv_dir = 0
-#prob.adv_vel = 0.0
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
 
 #*******************************************************************************
