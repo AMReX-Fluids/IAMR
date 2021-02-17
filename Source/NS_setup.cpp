@@ -16,7 +16,7 @@ using namespace amrex;
 static Box the_same_box (const Box& b)    { return b;                 }
 static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
 
-// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc 
+// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc
 //                      are now all defined in NS_BC.H in iamrlib
 
 static
@@ -112,8 +112,8 @@ set_pressure_bc (BCRec&       bc,
     }
 }
 
-static 
-void 
+static
+void
 set_gradpx_bc (BCRec&       bc,
 	       const BCRec& phys_bc)
 {
@@ -163,26 +163,26 @@ set_gradpz_bc (BCRec&       bc,
 }
 #endif
 
-static 
-void 
+static
+void
 set_divu_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         bc.setLo(i,divu_bc[lo_bc[i]]);
         bc.setHi(i,divu_bc[hi_bc[i]]);
     }
 }
 
-static 
-void 
+static
+void
 set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         bc.setLo(i,dsdt_bc[lo_bc[i]]);
         bc.setHi(i,dsdt_bc[hi_bc[i]]);
@@ -208,7 +208,7 @@ typedef StateDescriptor::BndryFunc BndryFunc;
 //
 // Get EB-aware interpolater when needed
 //
-#ifdef AMREX_USE_EB  
+#ifdef AMREX_USE_EB
   static auto& cc_interp = eb_cell_cons_interp;
 #else
   static auto& cc_interp = cell_cons_interp;
@@ -348,7 +348,7 @@ NavierStokes::variableSetUp ()
 
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
- 
+
     //
     // ---- grad P
     //
@@ -368,11 +368,11 @@ NavierStokes::variableSetUp ()
     set_gradpx_bc(bc,phys_bc);
     bcs[0]  = bc;
     name[0] = "gradpx";
-    
+
     set_gradpy_bc(bc,phys_bc);
     bcs[1]  = bc;
     name[1] = "gradpy";
-    
+
 #if(AMREX_SPACEDIM==3)
     set_gradpz_bc(bc,phys_bc);
     bcs[2]  = bc;
@@ -418,7 +418,7 @@ NavierStokes::variableSetUp ()
 
     }
 */
-      
+
     //
     // ---- Additions for using Temperature
     //
@@ -432,7 +432,7 @@ NavierStokes::variableSetUp ()
 			       &cc_interp);
 	set_divu_bc(bc,phys_bc);
 	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
-	
+
 	// stick Dsdt_Type on the end of the descriptor list
 	Dsdt_Type = desc_lst.size();
 	int nGrowDsdt = 0;
@@ -533,7 +533,7 @@ NavierStokes::variableSetUp ()
                    the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
     //
-    // magnitude of pressure gradient 
+    // magnitude of pressure gradient
     //
     derive_lst.add("gradp",IndexType::TheCellType(),1,dergrdp,the_same_box);
     derive_lst.addComponent("gradp",desc_lst,Press_Type,Pressure,1);

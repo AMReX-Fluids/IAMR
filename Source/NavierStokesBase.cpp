@@ -3503,8 +3503,8 @@ NavierStokesBase::velocity_advection (Real dt)
     // Compute the advective forcing.
     //
     {
-        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
-        FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
+        FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
         MultiFab& Umf=U_fpi.get_mf();
 	MultiFab& Gp = get_old_data(Gradp_Type);
 
@@ -3527,16 +3527,16 @@ NavierStokesBase::velocity_advection (Real dt)
             //
             // >>>>>>>>>>>>>>>>>>>>>>>>>>>  GODUNOV ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             //
-            FillPatchIterator Rho_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Density,1);
-            FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
+            FillPatchIterator Rho_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Density,1);
+            FillPatchIterator S_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Density,NUM_SCALARS);
             MultiFab& Rmf=Rho_fpi.get_mf();
             MultiFab& Smf=S_fpi.get_mf();
 
             int ngrow = 1;
 
-            MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
+            MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force() );
             // fixme - sterm would be better as a pointer
-            MultiFab S_term( grids, dmap, AMREX_SPACEDIM,  godunov_hyp_grow, MFInfo(), Umf.Factory());
+            MultiFab S_term( grids, dmap, AMREX_SPACEDIM, nghost_state(), MFInfo(), Umf.Factory());
 
             //
             // Compute viscosity components.
@@ -3556,7 +3556,9 @@ NavierStokesBase::velocity_advection (Real dt)
             {
                 for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
                 {
-                    auto const gbx = U_mfi.growntilebox(ngrow);
+
+                    auto const force_bx = U_mfi.growntilebox(nghost_force()); // Box for forcing term
+                    auto const state_bx = U_mfi.growntilebox(nghost_state()); // Box for state   terms
 
                     if (getForceVerbose)
                     {
@@ -3564,7 +3566,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                        << "B - velocity advection:" << '\n'
                                        << "Calling getForce..." << '\n';
                     }
-                    getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,
+                    getForce(forcing_term[U_mfi],force_bx,Xvel,AMREX_SPACEDIM,
                              prev_time,Umf[U_mfi],Smf[U_mfi],0);
 
                     //
@@ -3574,21 +3576,20 @@ NavierStokesBase::velocity_advection (Real dt)
                     auto const& visc = visc_terms.const_array(U_mfi,Xvel);
                     auto const& gp   = Gp.const_array(U_mfi);
                     auto const& rho  = rho_ptime.const_array(U_mfi);
-                    auto const hypbox = U_mfi.growntilebox(godunov_hyp_grow);
 
                     if ( do_mom_diff )
                     {
-                        amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
+                        amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                         {
-                            tf(i,j,k,n) =  ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
+                            tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
                         });
 
                         auto const& dens = Rmf.const_array(U_mfi);
                         auto const& vel  = Umf.const_array(U_mfi);
                         auto const& st   = S_term.array(U_mfi);
 
-                        amrex::ParallelFor(hypbox, AMREX_SPACEDIM, [ dens, vel, st ]
+                        amrex::ParallelFor(state_bx, AMREX_SPACEDIM, [ dens, vel, st ]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                         {
                             st(i,j,k,n) = vel(i,j,k,n) * dens(i,j,k);
@@ -3596,13 +3597,13 @@ NavierStokesBase::velocity_advection (Real dt)
                     }
                     else
                     {
-                        amrex::ParallelFor(gbx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
+                        amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                         {
                             tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
                         });
 
-                        S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],hypbox,0,hypbox,0,AMREX_SPACEDIM);
+                        S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],state_bx,0,state_bx,0,AMREX_SPACEDIM);
                     }
                 }
             }
@@ -4728,32 +4729,21 @@ NavierStokesBase::predict_velocity (Real  dt)
    const Real  prev_time      = state[State_Type].prevTime();
    const Real  prev_pres_time = state[Press_Type].prevTime();
    const Real  strt_time      = ParallelDescriptor::second();
+
    //
    // Compute viscous terms at level n.
    // Ensure reasonable values in 1 grow cell.  Here, do extrap for
    // c-f/phys boundary, since we have no interpolator fn, also,
    // preserve extrap for corners at periodic/non-periodic intersections.
    //
-
    MultiFab visc_terms(grids,dmap,nComp,1,MFInfo(), Factory());
 
-   if (be_cn_theta != 1.0)
-   {
-      getViscTerms(visc_terms,Xvel,nComp,prev_time);
-   }
-   else
-   {
-      visc_terms.setVal(0.0);
-   }
 
-   FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+   FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
    MultiFab& Umf=U_fpi.get_mf();
 
    // Floor small values of states to be extrapolated
    floor(Umf);
-
-   FillPatchIterator S_fpi(*this,visc_terms,1,prev_time,State_Type,Density,NUM_SCALARS);
-   MultiFab& Smf=S_fpi.get_mf();
 
    //
    // Compute "grid cfl number" based on cell-centered time-n velocities
@@ -4777,7 +4767,20 @@ NavierStokesBase::predict_velocity (Real  dt)
        if ( level > 0 )
            FillPatch(*this,Gp,Gp.nGrow(),prev_pres_time,Gradp_Type,0,AMREX_SPACEDIM);
 
+       if (be_cn_theta != 1.0)
+       {
+           getViscTerms(visc_terms,Xvel,nComp,prev_time);
+       }
+       else
+       {
+           visc_terms.setVal(0.0);
+       }
+
        const int ngrow = 1;
+
+       FillPatchIterator S_fpi(*this,visc_terms,ngrow,prev_time,State_Type,Density,NUM_SCALARS);
+       MultiFab& Smf=S_fpi.get_mf();
+
        MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, ngrow );
 
        //
@@ -4814,8 +4817,6 @@ NavierStokesBase::predict_velocity (Real  dt)
            }
        }
 
-       amrex::Print() << "max(abs(forcing))" <<  forcing_term.norm0(1,0,false,true) << std::endl;
-
 #ifndef AMREX_USE_EB
        Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                                   m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt,
@@ -4835,9 +4836,6 @@ NavierStokesBase::predict_velocity (Real  dt)
                               geom, m_bcrec_velocity);
 
    }
-
-   amrex::Print() << "max(abs(u_mac)) "  <<  u_mac[0].norm0(0,0,false,true) << std::endl;
-   amrex::Print() << "max(abs(v_mac)) "  <<  u_mac[1].norm0(0,0,false,true) << std::endl;
 
    if (verbose > 1)
    {
@@ -4875,4 +4873,28 @@ NavierStokesBase::floor(MultiFab& mf){
             val = amrex::Math::abs(val) > 1.e-20 ? val : 0;
         });
     }
+}
+
+int
+NavierStokesBase::nghost_state ()
+{
+#ifdef AMREX_USE_EB
+    auto const& ebfactory =
+        dynamic_cast<EBFArrayBoxFactory const&>((parent->getLevel(0)).Factory());
+    if (!ebfactory.isAllRegular())
+        return (use_godunov) ?  nghost_state_godunov_eb :  nghost_state_mol_eb;
+#endif
+    return (use_godunov) ? nghost_state_godunov :  nghost_state_mol;
+}
+
+int
+NavierStokesBase::nghost_force ()
+{
+#ifdef AMREX_USE_EB
+    auto const& ebfactory =
+        dynamic_cast<EBFArrayBoxFactory const&>((parent->getLevel(0)).Factory());
+    if (!ebfactory.isAllRegular())
+        return (use_godunov) ?  nghost_force_godunov_eb :  nghost_force_mol_eb;
+#endif
+    return (use_godunov) ? nghost_force_godunov :  nghost_force_mol;
 }

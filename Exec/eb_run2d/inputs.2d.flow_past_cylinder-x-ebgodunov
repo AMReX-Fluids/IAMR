@@ -15,6 +15,7 @@ ns.init_vel_iter = 0
 ns.visc_tol=1.0e-11
 ns.use_godunov=1 
 ns.do_mom_diff=1
+ns.do_cons_trac=1
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#

@@ -21,7 +21,7 @@ EBGodunov::ComputeEdgeState ( Box const& bx, int ncomp,
                               Vector<amrex::BCRec> const& h_bcrec,
                               BCRec const*  pbc,
                               int const* iconserv,
-                              // Here it passes in Real* p
+                              Real* p,
                               Array4<EBCellFlag const> const& flag_arr,
                               Array4<Real const> const& apx,
                               Array4<Real const> const& apy,
@@ -38,9 +38,6 @@ EBGodunov::ComputeEdgeState ( Box const& bx, int ncomp,
     // Start with above and grow 1 tangentially
     Box xebx = Box(xbx).grow(1,1);
     Box yebx = Box(ybx).grow(0,1);
-
-    FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
-    Real* p   = tmpfab.dataPtr();
 
     const Real dx = geom.CellSize(0);
     const Real dy = geom.CellSize(1);

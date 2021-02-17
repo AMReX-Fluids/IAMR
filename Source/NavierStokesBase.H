@@ -784,6 +784,26 @@ public:
     // Control velocity vs momentum update
     //
     static int  do_mom_diff;
+
+
+    //
+    // Functions and constants to manage number of ghost nodes
+    //
+    static const int nghost_state_godunov    = 3;
+    static const int nghost_state_godunov_eb = 5;
+    static const int nghost_state_mol        = 2;
+    static const int nghost_state_mol_eb     = 4;
+
+
+    static const int nghost_force_godunov    = 1;
+    static const int nghost_force_godunov_eb = 3;
+    static const int nghost_force_mol        = 0; // MOL doesn't require gradp ghost cells
+    static const int nghost_force_mol_eb     = 0; // and does not use forcing for convection
+
+    int nghost_state ();
+    int nghost_force ();
+
+
     //
     // static integer constants
     //
@@ -792,7 +812,12 @@ public:
     static const int PRESS_GROW = 1;
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
-    static const int gradp_grow = 1; // Must have 1 for godunov and ebgodunov
+#ifdef AMREX_USE_EB
+    // MOL doesn't require gradp ghost cells
+    static const int gradp_grow = std::max(nghost_force_godunov_eb,nghost_force_mol_eb);
+#else
+    static const int gradp_grow = std::max(nghost_force_godunov,nghost_force_mol);
+#endif
 
     //
     // Controls Godunov solver
@@ -805,6 +830,9 @@ public:
 #else
     static const int  godunov_hyp_grow = 3;
 #endif
+
+
+
   //
   // For restart, is GradP in checkpoint file
   //

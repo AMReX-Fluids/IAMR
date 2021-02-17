@@ -171,6 +171,7 @@ namespace EBGodunov {
                             amrex::Vector<amrex::BCRec> const& h_bcrec,
                             amrex::BCRec const*  pbc,
                             int const* iconserv,
+                            amrex::Real* p,
                             amrex::Array4<amrex::EBCellFlag const> const& flag_arr,
                             amrex::Array4<amrex::Real const> const& apx,
                             amrex::Array4<amrex::Real const> const& apy,

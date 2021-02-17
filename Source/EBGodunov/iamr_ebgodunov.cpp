@@ -1,5 +1,6 @@
 #include <iamr_ebgodunov.H>
 #include <iamr_godunov.H>
+#include <iamr_mol.H>
 // #include <NS_util.H>
 
 using namespace amrex;
@@ -95,6 +96,11 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
         }
         else     // EB Godunov
         {
+
+
+            Box gbx = bx;
+            gbx.grow(2);
+
             AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
                          Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
@@ -107,10 +113,14 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
             Array4<Real const> const& vfrac_arr = vfrac.const_array(mfi);
             auto const& flags_arr  = flags.const_array(mfi);
 
+            int ngrow = 4;
+            FArrayBox tmpfab(amrex::grow(bx,ngrow),  (4*AMREX_SPACEDIM + 2)*ncomp);
+            Elixir    eli = tmpfab.elixir();
+
 
             if (not known_edgestate)
             {
-                EBGodunov::ComputeEdgeState( bx, ncomp,
+                EBGodunov::ComputeEdgeState( gbx, ncomp,
                                              state.array(mfi,state_comp),
                                              AMREX_D_DECL( xed, yed, zed ),
                                              AMREX_D_DECL( u, v, w ),
@@ -118,6 +128,7 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                              fq.array(mfi,fq_comp),
                                              geom, dt, h_bc, d_bc,
                                              iconserv.data(),
+                                             tmpfab.dataPtr(),
                                              flags_arr,
                                              AMREX_D_DECL( apx, apy, apz ),
                                              vfrac_arr,
@@ -126,18 +137,25 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                              is_velocity );
             }
 
-            EBGodunov::ComputeFluxes( bx, AMREX_D_DECL( fx, fy, fz ),
+            EBGodunov::ComputeFluxes( gbx, AMREX_D_DECL( fx, fy, fz ),
                                       AMREX_D_DECL( u, v, w ),
                                       AMREX_D_DECL( xed, yed, zed ),
                                       AMREX_D_DECL( apx, apy, apz ),
                                       geom, ncomp, flags_arr );
 
-            EBGodunov::ComputeDivergence( bx,
-                                          aofs.array(mfi,aofs_comp),
+            // div at ncomp*3 to make space for the 3 redistribute temporaries
+            Array4<Real> divtmp_arr = tmpfab.array(ncomp*3);
+
+            EBGodunov::ComputeDivergence( gbx,
+                                          divtmp_arr,
                                           AMREX_D_DECL( fx, fy, fz ),
                                           AMREX_D_DECL( xed, yed, zed ),
                                           AMREX_D_DECL( u, v, w ),
                                           vfrac_arr, ncomp, geom );
+
+            Array4<Real> scratch = tmpfab.array(0);
+            MOL::Redistribute(bx, ncomp, aofs.array(mfi,aofs_comp), divtmp_arr, scratch,
+                              flags_arr, vfrac_arr, geom );
 
         }
 
