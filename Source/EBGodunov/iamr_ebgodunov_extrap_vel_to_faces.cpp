@@ -282,7 +282,7 @@ EBGodunov::ComputeAdvectiveVel ( AMREX_D_DECL(Box const& xbx,
             Real hi = Imz(i,j,k  ,n);
 
             auto bc = pbc[n];
-            Godunov_trans_zbc(i, j, k, n, vel, lo, hi, bc.lo(2), bc.hi(2), dlo.z, dhi.z, true);
+            SetTransTermZBCs(i, j, k, n, vel, lo, hi, bc.lo(2), bc.hi(2), dlo.z, dhi.z, true);
 
             Real st = ( (lo+hi) >= 0.) ? lo : hi;
             bool ltm = ( (lo <= 0. && hi >= 0.) || (amrex::Math::abs(lo+hi) < small_vel) );

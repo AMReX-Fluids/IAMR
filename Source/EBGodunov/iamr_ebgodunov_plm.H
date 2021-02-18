@@ -98,7 +98,7 @@ void PredictStateOnYFace ( amrex::Box const& bx, int ncomp,
                            amrex::BCRec const* d_bcrec, bool is_velocity);
 
 #if (AMREX_SPACEDIM == 3)
-void PredictStateOnYFace ( amrex::Box const& bx, int ncomp,
+void PredictStateOnZFace ( amrex::Box const& bx, int ncomp,
                            amrex::Array4<amrex::Real> const& Imz, amrex::Array4<amrex::Real> const& Ipz,
                            amrex::Array4<amrex::Real const> const& q,
                            amrex::Array4<amrex::Real  const> const& wmac,

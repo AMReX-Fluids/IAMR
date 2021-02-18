@@ -1,7 +1,6 @@
 #include <iamr_godunov_K.H>
 #include <iamr_ebgodunov.H>
 #include <iamr_ebgodunov_plm.H>
-// #include <iamr_godunov_trans_bc.H>
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBMultiFabUtil_2D_C.H>
 
@@ -85,8 +84,6 @@ EBGodunov::ComputeEdgeState ( Box const& bx, int ncomp,
            Imy(i,j,k,n) = i*1.e10 + j*1.e20 + k*1.30 + n*1.e4;
         });
 
-    for (int n = 0; n < ncomp; n++)
-       if (!iconserv[n]) amrex::Abort("EBGodunov does not support non-conservative form");
 
     EBPLM::PredictStateOnXFace( xebx, ncomp, Imx, Ipx, q, u_mac,
                                 flag_arr, vfrac_arr,
