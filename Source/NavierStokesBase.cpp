@@ -3485,8 +3485,8 @@ NavierStokesBase::velocity_advection (Real dt)
     const int   finest_level   = parent->finestLevel();
     const Real  prev_time      = state[State_Type].prevTime();
 
-    MultiFab divu_fp(grids,dmap,1,1,MFInfo(),Factory());
-    create_mac_rhs(divu_fp,1,prev_time,dt);
+    MultiFab divu_fp(grids,dmap,1,nghost_state(),MFInfo(),Factory());
+    create_mac_rhs(divu_fp,divu_fp.nGrow(),prev_time,dt);
 
     MultiFab fluxes[AMREX_SPACEDIM];
 
@@ -3596,6 +3596,11 @@ NavierStokesBase::velocity_advection (Real dt)
                         });
                     }
                     else
+#ifdef AMREX_USE_EB
+                    {
+                        amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
+                    }
+#else
                     {
                         amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -3605,6 +3610,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
                         S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],state_bx,0,state_bx,0,AMREX_SPACEDIM);
                     }
+#endif
                 }
             }
 

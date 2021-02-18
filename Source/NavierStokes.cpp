@@ -569,6 +569,11 @@ NavierStokes::scalar_advection (Real dt,
                             });
                         }
                         else
+#ifdef AMREX_USE_EB
+                        {
+                            amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
+                        }
+#else
                         {
                             auto const& rho   = rho_ptime.const_array(S_mfi);
 
@@ -578,6 +583,7 @@ NavierStokes::scalar_advection (Real dt,
                                 tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
                             });
                         }
+#endif
 
                     }
                 }
