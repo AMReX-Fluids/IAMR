@@ -1,0 +1,10 @@
+ &fortin
+
+  probtype = 12
+  vorterr  = .4
+  vorterr  = 1.7
+  vorterr  = 8.8
+  denfact = 1.
+  velfact = 1.
+
+ /

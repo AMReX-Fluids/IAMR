@@ -5,6 +5,12 @@ using namespace amrex;
  
 int NavierStokes::probtype = -1;
 
+// For now, define pi here, but maybe later make iamr_constants.H
+namespace {
+  constexpr Real Pi    = 3.141592653589793238462643383279502884197;
+  constexpr Real TwoPi = 2.0 * 3.141592653589793238462643383279502884197;
+}
+
 //
 // Initialize state and pressure with problem-specific data
 //
@@ -23,7 +29,8 @@ void NavierStokes::prob_initData ()
   
     pp.query("probtype",probtype);
     pp.query("density_ic",IC.density);
-
+    pp.query("direction",IC.direction);
+    
     Vector<Real> velocity(AMREX_SPACEDIM, 0.);
     pp.queryarr("velocity_ic",velocity,0,AMREX_SPACEDIM);
     AMREX_D_TERM(IC.v_x = velocity[0];,
@@ -36,6 +43,18 @@ void NavierStokes::prob_initData ()
     AMREX_D_TERM(IC.blob_x = blob_center[0];,
 		 IC.blob_y = blob_center[1];,
 		 IC.blob_z = blob_center[2];);
+
+    // For Rayleigh-Taylor problem
+    pp.query("rho_1",IC.rho_1);
+    pp.query("rho_2",IC.rho_2);
+    pp.query("tra_1",IC.tra_1);
+    pp.query("tra_2",IC.tra_2);
+    pp.query("interface_width",IC.interface_width);
+    pp.query("perturbation_amplitude",IC.pertamp);
+
+    // for Taylor-Green
+    pp.query("velocity_factor",IC.v_x);
+    
     //
     // Fill state and, optionally, pressure
     //
@@ -62,6 +81,7 @@ void NavierStokes::prob_initData ()
         {
 	  //
 	  // Start from rest, constant density of 1
+	  // Introduced for LidDrivenCavity problem
 	  //
 	  S_new[mfi].setVal<RunOn::Gpu>(1.0,Density);
 	}
@@ -73,13 +93,37 @@ void NavierStokes::prob_initData ()
 	}
         else if ( 4 == probtype )
 	{
-	  init_channel(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
-		       S_new.array(mfi, Density), nscal,
-		       domain, dx, problo, probhi, IC);
+	  init_constant_vel_rho(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+				S_new.array(mfi, Density), nscal,
+				domain, dx, problo, probhi, IC);
+	}
+        else if ( 5 == probtype )
+	{
+	  init_DoubleShearLayer(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+				  S_new.array(mfi, Density), nscal,
+				  domain, dx, problo, probhi, IC);
+	}
+        else if ( 7 == probtype )
+	{
+	  init_Euler(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+		     S_new.array(mfi, Density), nscal,
+		     domain, dx, problo, probhi, IC);
+	}
+        else if ( 10 == probtype )
+	{
+	  init_RayleighTaylor(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+			      S_new.array(mfi, Density), nscal,
+			      domain, dx, problo, probhi, IC);
+	}
+        else if ( 11 == probtype )
+	{
+	  init_TaylorGreen(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+			   S_new.array(mfi, Density), nscal,
+			   domain, dx, problo, probhi, IC);
 	}
 	else
         {
-            amrex::Abort("prob_init: unknown probtype");
+            amrex::Abort("NavierStokes::prob_init: unknown probtype");
         };
     }
 }
@@ -150,16 +194,16 @@ void NavierStokes::init_bubble (Box const& vbx,
   });
 }
 
-void NavierStokes::init_channel (Box const& vbx,
-				 Array4<Real> const& press,
-				 Array4<Real> const& vel,
-				 Array4<Real> const& scal,
-				 const int nscal,
-				 Box const& domain,
-				 GpuArray<Real, AMREX_SPACEDIM> const& dx,
-				 GpuArray<Real, AMREX_SPACEDIM> const& problo,
-				 GpuArray<Real, AMREX_SPACEDIM> const& probhi,
-				 InitialConditions IC)
+void NavierStokes::init_constant_vel_rho (Box const& vbx,
+					  Array4<Real> const& press,
+					  Array4<Real> const& vel,
+					  Array4<Real> const& scal,
+					  const int nscal,
+					  Box const& domain,
+					  GpuArray<Real, AMREX_SPACEDIM> const& dx,
+					  GpuArray<Real, AMREX_SPACEDIM> const& problo,
+					  GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+					  InitialConditions IC)
 {  
   const auto domlo = amrex::lbound(domain);
 
@@ -192,7 +236,239 @@ void NavierStokes::init_channel (Box const& vbx,
     scal(i,j,k,0) = IC.density;
       
     // Tracers
+    //scal(i,j,k,1) = dist < IC.blob_radius ? 1.0 : 0.0;
+    scal(i,j,k,1) = 0.5*(1.0-std::tanh(25.*(dist-IC.blob_radius)));
+    for ( int nt=2; nt<nscal; nt++)
+    {
+      scal(i,j,k,nt) = 1.0;
+    }
+  });
+}
+
+void NavierStokes::init_DoubleShearLayer (Box const& vbx,
+					    Array4<Real> const& press,
+					    Array4<Real> const& vel,
+					    Array4<Real> const& scal,
+					    const int nscal,
+					    Box const& domain,
+					    GpuArray<Real, AMREX_SPACEDIM> const& dx,
+					    GpuArray<Real, AMREX_SPACEDIM> const& problo,
+					    GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+					    InitialConditions IC)
+{  
+  const auto domlo = amrex::lbound(domain);
+
+  if ( !(IC.direction != 0 || IC.direction != 1) )
+    amrex::Abort("\n    init_DoubleShearLayer: Must set a direction with prob.direction = 0 or 1\n    in the inputs file.  Shear layer along the z-direction not yet written");
+  
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
+    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];
+#if (AMREX_SPACEDIM == 3)
+    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2];
+#endif
+
+    //
+    // Fill Velocity
+    //
+    if ( IC.direction == 1 )
+    {
+      // shear layer in y-dir
+      vel(i,j,k,0) = -.05*std::sin(Pi*y);
+      vel(i,j,k,1) = std::tanh(30.*(.5-amrex::Math::abs(x)));
+    }
+    else
+    {
+      // shear layer in x-dir
+      vel(i,j,k,0) = std::tanh(30.*(.5-amrex::Math::abs(y)));
+      vel(i,j,k,1) = .05*std::sin(Pi*x);
+    }
+    
+    Real dist = std::sqrt( (x-IC.blob_x)*(x-IC.blob_x)
+			  + (y-IC.blob_y)*(y-IC.blob_y)
+#if (AMREX_SPACEDIM == 3)
+			  + (z-IC.blob_z)*(z-IC.blob_z)
+#endif
+			  );
+
+    //
+    // Scalars, ordered as Density, Tracer(s)
+    //
+    scal(i,j,k,0) = IC.density;
+      
+    // Tracers
     scal(i,j,k,1) = dist < IC.blob_radius ? 1.0 : 0.0;
+    for ( int nt=2; nt<nscal; nt++)
+    {
+      scal(i,j,k,nt) = 1.0;
+    }
+  });
+}
+
+void NavierStokes::init_RayleighTaylor (Box const& vbx,
+					Array4<Real> const& press,
+					Array4<Real> const& vel,
+					Array4<Real> const& scal,
+					const int nscal,
+					Box const& domain,
+					GpuArray<Real, AMREX_SPACEDIM> const& dx,
+					GpuArray<Real, AMREX_SPACEDIM> const& problo,
+					GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+					InitialConditions IC)
+{  
+  const auto domlo = amrex::lbound(domain);
+
+  //
+  // Velocity already initialized to 0
+  //
+  
+  //
+  // Scalars, ordered as Density, Tracer(s), Temp (if using)
+  //
+  const Real splitx = 0.5*(problo[0] + probhi[0]);
+  const Real splity = 0.5*(problo[1] + probhi[1]);
+  const Real L_x    = probhi[0] - problo[0];
+  
+#if (AMREX_SPACEDIM == 2)
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
+    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];
+    
+    const Real r2d = amrex::min(amrex::Math::abs(x-splitx), 0.5*L_x);
+    const Real pertheight = 0.5 - IC.pertamp*(0.01*std::cos(2.0*Pi*r2d/L_x));
+    
+    scal(i,j,k,0) = IC.rho_1 + ((IC.rho_2-IC.rho_1)/2.0)*(1.0+std::tanh((y-pertheight)/IC.interface_width));
+    scal(i,j,k,1) = IC.tra_1 + ((IC.tra_2-IC.tra_1)/2.0)*(1.0+std::tanh((y-pertheight)/IC.interface_width));
+    for ( int nt=2; nt<nscal; nt++)
+    {
+      scal(i,j,k,nt) = 1.0;
+    }
+
+  });
+  
+#elif (AMREX_SPACEDIM == 3)
+  
+  const Real splitz = 0.5*(problo[2] + probhi[2]);
+  
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
+    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];
+    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2];
+    
+    const Real r2d = amrex::min(std::hypot((x-splitx),(y-splity)), 0.5*L_x);
+    const Real pertheight = splitz - IC.pertamp*std::cos(2.0*Pi*r2d/L_x);
+    
+    scal(i,j,k,0) = IC.rho_1 + ((IC.rho_2-IC.rho_1)/2.0)*(1.0+std::tanh((z-pertheight)/IC.interface_width));
+    scal(i,j,k,1) = IC.tra_1 + ((IC.tra_2-IC.tra_1)/2.0)*(1.0+std::tanh((z-pertheight)/IC.interface_width));
+    for ( int nt=2; nt<nscal; nt++)
+    {
+      scal(i,j,k,nt) = 1.0;
+    }
+
+  });
+#endif
+}
+ 
+void NavierStokes::init_TaylorGreen (Box const& vbx,
+				     Array4<Real> const& press,
+				     Array4<Real> const& vel,
+				     Array4<Real> const& scal,
+				     const int nscal,
+				     Box const& domain,
+				     GpuArray<Real, AMREX_SPACEDIM> const& dx,
+				     GpuArray<Real, AMREX_SPACEDIM> const& problo,
+				     GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+				     InitialConditions IC)
+{  
+  const auto domlo = amrex::lbound(domain);
+
+  if ( IC.v_x == 0.0 )
+    amrex::Abort("NavierStokes::init_TaylorGreen: Must provide prob.velocity_factor. If unsure, prob.velocity_factor = 1.0 is a good choice.");
+  
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
+    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];
+#if (AMREX_SPACEDIM == 3)
+    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2];
+#else
+    constexpr Real z = 0.0;
+#endif
+
+    //
+    // Fill Velocity
+    //
+    AMREX_D_TERM(vel(i,j,k,0) =  IC.v_x*std::sin(TwoPi*x) * std::cos(TwoPi*y) * std::cos(TwoPi*z);,
+		 vel(i,j,k,1) = -IC.v_x*std::cos(TwoPi*x) * std::sin(TwoPi*y) * std::cos(TwoPi*z);,
+		 vel(i,j,k,2) = 0.0;);
+
+    //
+    // Scalars, ordered as Density, Tracer(s)
+    //
+    scal(i,j,k,0) = IC.density;
+
+    // The theoretical pressure perturbation from p_0, provided viscosity=0
+    // With viscosity, must multipy by F^2(t) where F(t) = exp(-2*kinematic_visc*t)
+#if ( AMREX_SPACEDIM == 2 )
+    scal(i,j,k,1) = (IC.density*IC.v_x*IC.v_x/4.0)*(cos(2.0*TwoPi*x)+cos(2.0*TwoPi*y));
+#else
+    scal(i,j,k,1) = (IC.density*IC.v_x*IC.v_x/16.0)*(2.0+cos(2.0*TwoPi*z))*(cos(2.0*TwoPi*x)+cos(2.0*TwoPi*y));
+#endif
+    
+    // Tracers
+    for ( int nt=2; nt<nscal; nt++)
+    {
+      scal(i,j,k,nt) = 1.0;
+    }
+  });
+}
+
+void NavierStokes::init_Euler (Box const& vbx,
+			       Array4<Real> const& press,
+			       Array4<Real> const& vel,
+			       Array4<Real> const& scal,
+			       const int nscal,
+			       Box const& domain,
+			       GpuArray<Real, AMREX_SPACEDIM> const& dx,
+			       GpuArray<Real, AMREX_SPACEDIM> const& problo,
+			       GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+			       InitialConditions IC)
+{  
+  const auto domlo = amrex::lbound(domain);
+
+#if (AMREX_SPACEDIM != 3)
+    amrex::Abort("NavierStokes::init_Euler: This is a 3D problem, please recompile with DIM=3 in makefile");
+#endif
+
+  constexpr Real eps_input=0.05, rho_input=0.15;
+  constexpr Real beta_input=15.0, delta_input=0.0333;
+  constexpr Real kappa_input=500.0;
+
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0] - 0.5;
+    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1] - 0.5;
+    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2] - 0.5;
+
+    Real r_yz = std::sqrt(y*y+z*z);
+    
+    //
+    // Fill Velocity
+    //
+    vel(i,j,k,0) = tanh( (rho_input - r_yz) / delta_input);
+    vel(i,j,k,1) = 0.0;
+    vel(i,j,k,2) = eps_input * std::exp(-beta_input * (x*x + y*y) );
+
+        //
+    // Scalars, ordered as Density, Tracer(s)
+    //
+    scal(i,j,k,0) = IC.density;
+    scal(i,j,k,1) = std::exp( -kappa_input * (rho_input - r_yz)*(rho_input - r_yz) );
+
+    // Additional Tracer, if using
     for ( int nt=2; nt<nscal; nt++)
     {
       scal(i,j,k,nt) = 1.0;
