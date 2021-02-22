@@ -204,7 +204,8 @@ EBGodunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
             stl += - (0.25*l_dt/dy)*(v_ad(ic,j+1,k  )+v_ad(ic,j,k))*
                                     (yzlo(ic,j+1,k  )-yzlo(ic,j,k))
                    - (0.25*l_dt/dz)*(w_ad(ic,j  ,k+1)+w_ad(ic,j,k))*
-                                    (zylo(ic,j  ,k+1)-zylo(ic,j,k));
+                                    (zylo(ic,j  ,k+1)-zylo(ic,j,k))
+                   + 0.5 * l_dt * f(ic,j,k,n);
 
         // Only add dt-based terms if we can construct all transverse terms
         //    using non-covered faces
@@ -230,7 +231,8 @@ EBGodunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
              sth += - (0.25*l_dt/dy)*(v_ad(ic,j+1,k  )+v_ad(ic,j,k))*
                                      (yzlo(ic,j+1,k  )-yzlo(ic,j,k))
                     - (0.25*l_dt/dz)*(w_ad(ic,j  ,k+1)+w_ad(ic,j,k))*
-                                     (zylo(ic,j  ,k+1)-zylo(ic,j,k));
+                                     (zylo(ic,j  ,k+1)-zylo(ic,j,k))
+                 + 0.5 * l_dt * f(ic,j,k,n);
 
         // Only add dt-based terms if we can construct all transverse terms
         //    using non-covered faces
@@ -351,6 +353,7 @@ EBGodunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
                                     (xzlo(i+1,jc,k  )-xzlo(i,jc,k))
                    - (0.25*l_dt/dz)*(w_ad(i  ,jc,k+1)+w_ad(i,jc,k))*
                                     (zxlo(i  ,jc,k+1)-zxlo(i,jc,k));
+            stl +=  0.5 * l_dt * f(i,jc,k,n);
 
         // Only add dt-based terms if we can construct all transverse terms
         //    using non-covered faces
@@ -377,6 +380,7 @@ EBGodunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
                                     (xzlo(i+1,jc,k  )-xzlo(i,jc,k))
                    - (0.25*l_dt/dz)*(w_ad(i  ,jc,k+1)+w_ad(i,jc,k))*
                                     (zxlo(i  ,jc,k+1)-zxlo(i,jc,k));
+            sth +=  0.5 * l_dt * f(i,jc,k,n);
 
         // Only add dt-based terms if we can construct all transverse terms
         //    using non-covered faces
@@ -501,6 +505,7 @@ EBGodunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
                                     (xylo(i+1,j  ,kc)-xylo(i,j,kc))
                    - (0.25*l_dt/dy)*(v_ad(i  ,j+1,kc)+v_ad(i,j,kc))*
                                     (yxlo(i  ,j+1,kc)-yxlo(i,j,kc));
+            stl +=  0.5 * l_dt * f(i,j,kc,n);
 
         // Only add dt-based terms if we can construct all transverse terms
         //    using non-covered faces
@@ -527,7 +532,7 @@ EBGodunov::ExtrapVelToFacesOnBox ( Box const& bx, int ncomp,
                                     (xylo(i+1,j  ,kc)-xylo(i,j,kc))
                    - (0.25*l_dt/dy)*(v_ad(i  ,j+1,kc)+v_ad(i,j,kc))*
                                     (yxlo(i  ,j+1,kc)-yxlo(i,j,kc));
-
+            sth +=  0.5 * l_dt * f(i,j,kc,n);
         // Only add dt-based terms if we can construct all transverse terms
         //    using non-covered faces
         } else if (apx(i+1,j  ,kc) > 0. && apx(i,j,kc) > 0. &&
