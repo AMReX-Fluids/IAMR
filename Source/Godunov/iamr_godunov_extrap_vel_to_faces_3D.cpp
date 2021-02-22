@@ -74,11 +74,11 @@ Godunov::ExtrapVelToFaces ( MultiFab const& a_vel,
             }
             else
             {
-                PLM::PredictVelOnXFace( bx, AMREX_SPACEDIM, Imx, Ipx, vel, vel,
+                PLM::PredictVelOnXFace( Box(u_ad), AMREX_SPACEDIM, Imx, Ipx, vel, vel,
                                          geom, l_dt, h_bcrec, d_bcrec);
-                PLM::PredictVelOnYFace( bx, AMREX_SPACEDIM, Imy, Ipy, vel, vel,
+                PLM::PredictVelOnYFace( Box(v_ad), AMREX_SPACEDIM, Imy, Ipy, vel, vel,
                                         geom, l_dt, h_bcrec, d_bcrec);
-                PLM::PredictVelOnZFace( bx, AMREX_SPACEDIM, Imz, Ipz, vel, vel,
+                PLM::PredictVelOnZFace( Box(w_ad), AMREX_SPACEDIM, Imz, Ipz, vel, vel,
                                         geom, l_dt, h_bcrec, d_bcrec);
             }
 
