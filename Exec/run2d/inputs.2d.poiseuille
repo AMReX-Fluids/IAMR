@@ -2,11 +2,6 @@
 # INPUTS.2D.POISEUILLE
 #*******************************************************************************
 
-# turn on tiling for testing
-fabarray.mfiter_tile_size = 8 8 8 
-
-ns.do_denminmax = 1
-
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
@@ -24,29 +19,22 @@ ns.steady_tol 		= 1.0e-5
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 			= 128 64  
-amr.max_grid_size		= 16
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level			= 2 # maximum number of levels of refinement
+amr.max_level			= 0 # maximum number of levels of refinement
 
 ns.do_tracer_ref = 1
-mg.v = 0
+
+#*******************************************************************************
+
+# Set verbosity
+ns.v               = 10
 nodal_proj.verbose = 0
-proj.v = 0
-diffuse.v = 0
-
-
-#*******************************************************************************
-
-# Sets the "NavierStokes" code to not be verbose
-ns.v                    = 10
-
-#*******************************************************************************
-
-# Sets the "amr" code to be verbose
-amr.v                   = 1
+proj.v             = 0
+diffuse.v          = 0
+amr.v              = 1
 
 #*******************************************************************************
 
@@ -67,7 +55,6 @@ ns.cfl                  = 0.5  # CFL number used to set dt
 
 # Factor by which the first time is shrunk relative to CFL constraint
 ns.init_shrink          = 0.3  # factor which multiplies the very first time step
-ns.init_iter            = 0
 
 #*******************************************************************************
 
@@ -118,6 +105,17 @@ ns.hi_bc             	= 2 5
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# PROBLEM PARAMETERS           
+prob.probtype = 4
+prob.blob_center =  0.1 0.5 0.5
+prob.blob_radius =  0.1
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up constant flow
+prob.velocity_ic = 1.0 0. 0.
 
 #*******************************************************************************
 

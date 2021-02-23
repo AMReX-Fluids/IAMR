@@ -72,6 +72,17 @@ ns.lo_bc 	         	= 0 0
 ns.hi_bc   	         	= 0 0
 
 #*******************************************************************************
+# Problem parameters
+#*******************************************************************************
+
+prob.probtype = 5
+# set up shear layer along x-direction
+prob.direction = 0
+prob.blob_center = 0.0 0.0 
+prob.blob_radius = 0.4
+prob.density_ic = 1.0
+
+#*******************************************************************************
 # AMR
 #*******************************************************************************
 
@@ -121,14 +132,8 @@ diffuse.v 	       	= 1 	# Diffusion
 proj.proj_tol = 1.e-12
 proj.proj_abs_tol = 1.e-15
 
-
 #*******************************************************************************
 #            for testing                
 #*******************************************************************************
 # turn tiling on for testing
 fabarray.mfiter_tile_size = 8 8 8
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-amr.plt_ccse_regtest    =   1

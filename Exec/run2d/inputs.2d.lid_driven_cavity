@@ -111,6 +111,11 @@ ns.hi_bc             	= 5 5
 
 #*******************************************************************************
 
+# Initialize from rest with constant density = 1
+prob.probtype = 1
+
+#*******************************************************************************
+
 # Continue from checkpoint 
 # amr.restart 			= chk02607
 

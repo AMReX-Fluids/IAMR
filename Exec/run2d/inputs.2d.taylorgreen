@@ -96,7 +96,8 @@ geometry.coord_sys   =  0
 geometry.prob_lo     =  0.0 0.0 0.0
 
 # Physical dimensions of the high end of the domain.
-geometry.prob_hi     =  6.28318530717959 6.28318530717959
+#geometry.prob_hi     =  6.28318530717959 6.28318530717959A
+geometry.prob_hi     =  1.0 1.0 1.0
 
 #*******************************************************************************
 
@@ -117,6 +118,12 @@ ns.hi_bc             = 0 0 0
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 11
+prob.velocity_factor = 1.0
+
+#*******************************************************************************
+
 # Factor by which grids must be coarsenable.
 amr.blocking_factor     = 8
 
@@ -130,5 +137,4 @@ proj.v=4
 proj.proj_tol = 1.e-10
 proj.sync_tol = 1.e-8
 
-mg.v = 1
 

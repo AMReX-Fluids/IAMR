@@ -115,6 +115,11 @@ ns.hi_bc             = 0 0 0
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 7
+
+#*******************************************************************************
+
 # Factor by which grids must be coarsenable.
 amr.blocking_factor     = 8
 

@@ -124,8 +124,15 @@ ns.hi_bc             = 5 2
 
 #*******************************************************************************
 
-# For solver reasons, use multigrid iterations as the bottom solve.
-# mg.usecg = 1
+# Problem parameters
+prob.probtype = 6
+prob.blob_center = 0.0 0.65 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
 
 #*******************************************************************************
 
@@ -133,9 +140,3 @@ ns.hi_bc             = 5 2
 amr.blocking_factor     = 8
 amr.grid_eff = 0.95
 
-#*******************************************************************************
-
-# Add vorticity to the variables in the plot files.
-amr.derive_plot_vars = NONE
-
-#*******************************************************************************

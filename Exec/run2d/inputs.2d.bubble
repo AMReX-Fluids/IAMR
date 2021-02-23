@@ -119,6 +119,18 @@ ns.hi_bc             = 4 4
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 2
+prob.blob_center = 0.0 1.5 
+prob.blob_radius = 0.2
+# Background density is 1. Density is incresed by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
+
+#*******************************************************************************
+
 # Add vorticity to the variables in the plot files.
 amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
