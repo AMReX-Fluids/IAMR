@@ -30,7 +30,8 @@ void NavierStokes::prob_initData ()
     pp.query("probtype",probtype);
     pp.query("density_ic",IC.density);
     pp.query("direction",IC.direction);
-    
+    pp.query("interface_width",IC.interface_width);
+
     Vector<Real> velocity(AMREX_SPACEDIM, 0.);
     pp.queryarr("velocity_ic",velocity,0,AMREX_SPACEDIM);
     AMREX_D_TERM(IC.v_x = velocity[0];,
@@ -49,7 +50,6 @@ void NavierStokes::prob_initData ()
     pp.query("rho_2",IC.rho_2);
     pp.query("tra_1",IC.tra_1);
     pp.query("tra_2",IC.tra_2);
-    pp.query("interface_width",IC.interface_width);
     pp.query("perturbation_amplitude",IC.pertamp);
 
     // for Taylor-Green
@@ -180,15 +180,14 @@ void NavierStokes::init_bubble (Box const& vbx,
     if ( rise )
     {
       // Density for Hot/less dense bubble rising
-      scal(i,j,k,0) = 1.0/IC.density + 0.5*(1.0 - 1.0/IC.density) 
-	                               *(1.0 + std::tanh(40.*(dist - IC.blob_radius)));
+      scal(i,j,k,0) = 1.0/IC.density + 0.5*(1.0 - 1.0/IC.density)*(1.0 + std::tanh(40.*(dist - IC.blob_radius)/IC.interface_width));
       //Temp
       scal(i,j,k,nscal-1) = 1/scal(i,j,k,0);
     }
     else
     {
       // Density for dense bubble falling. 
-      scal(i,j,k,0) = 1.0 + 0.5*(IC.density-1.0)*(1.0-std::tanh(30.*(dist-IC.blob_radius)));
+      scal(i,j,k,0) = 1.0 + 0.5*(IC.density-1.0)*(1.0-std::tanh(30.*(dist-IC.blob_radius)/IC.interface_width));
     }
     
   });
@@ -237,7 +236,7 @@ void NavierStokes::init_constant_vel_rho (Box const& vbx,
       
     // Tracers
     //scal(i,j,k,1) = dist < IC.blob_radius ? 1.0 : 0.0;
-    scal(i,j,k,1) = 0.5*(1.0-std::tanh(25.*(dist-IC.blob_radius)));
+    scal(i,j,k,1) = 0.5*(1.0-std::tanh(25.*(dist-IC.blob_radius)/IC.interface_width));
     for ( int nt=2; nt<nscal; nt++)
     {
       scal(i,j,k,nt) = 1.0;
@@ -276,12 +275,12 @@ void NavierStokes::init_DoubleShearLayer (Box const& vbx,
     {
       // shear layer in y-dir
       vel(i,j,k,0) = -.05*std::sin(Pi*y);
-      vel(i,j,k,1) = std::tanh(30.*(.5-amrex::Math::abs(x)));
+      vel(i,j,k,1) = std::tanh(30.*(.5-amrex::Math::abs(x))/IC.interface_width);
     }
     else
     {
       // shear layer in x-dir
-      vel(i,j,k,0) = std::tanh(30.*(.5-amrex::Math::abs(y)));
+      vel(i,j,k,0) = std::tanh(30.*(.5-amrex::Math::abs(y))/IC.interface_width);
       vel(i,j,k,1) = .05*std::sin(Pi*x);
     }
     
@@ -372,6 +371,19 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
 #endif
 }
  
+// -----------------------------------------------------------
+// This case is an unsteady viscous benchmark for which the
+// exact solution in 2D is
+//     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
+//     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
+//     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
+// In Exec/benchmarks, there is a tool ViscBench2d.cpp that reads a
+// plot file and compares the solution against this exact solution.
+// This benchmark was originally derived by G.I. Taylor (Phil. Mag.,
+// Vol. 46, No. 274, pp. 671-674, 1923) and Ethier and Steinman
+// (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
+// the pressure field.
+//
 void NavierStokes::init_TaylorGreen (Box const& vbx,
 				     Array4<Real> const& press,
 				     Array4<Real> const& vel,
@@ -410,8 +422,7 @@ void NavierStokes::init_TaylorGreen (Box const& vbx,
     //
     scal(i,j,k,0) = IC.density;
 
-    // The theoretical pressure perturbation from p_0, provided viscosity=0
-    // With viscosity, must multipy by F^2(t) where F(t) = exp(-2*kinematic_visc*t)
+    // The theoretical pressure perturbation from p_0
 #if ( AMREX_SPACEDIM == 2 )
     scal(i,j,k,1) = (IC.density*IC.v_x*IC.v_x/4.0)*(cos(2.0*TwoPi*x)+cos(2.0*TwoPi*y));
 #else

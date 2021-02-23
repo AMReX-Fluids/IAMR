@@ -20,6 +20,8 @@ struct InitialConditions
   amrex::Real blob_y = 0.;
   amrex::Real blob_z = 0.;
 
+  amrex::Real interface_width = 1.0;
+
   // for DoubleShearLayer
   int direction = 0;
 
@@ -29,7 +31,6 @@ struct InitialConditions
   amrex::Real rho_2 = 2.0;
   amrex::Real tra_1 = 0.0;
   amrex::Real tra_2 = 1.0;
-  amrex::Real interface_width = 0.005;
   amrex::Real pertamp = 1.0;
 
 };

@@ -83,7 +83,7 @@ ns.hi_bc   	         	= 0 0
 #*******************************************************************************
 
 prob.probtype = 5
-# set up shear layer along x-direction
+# set up shear layer along y-direction
 prob.direction = 1
 prob.blob_center = 0.0 0.0 
 prob.blob_radius = 0.4

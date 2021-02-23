@@ -55,8 +55,7 @@ ns.hi_bc             = 0 0 4
 prob.probtype = 10
 prob.rho_1 = 1.5e7
 prob.rho_2 = 8.44407300e+06
-prob.width = 1.0
-#  rt_splitx   = 53.5
+prob.interface_width = 1.
   
 amr.blocking_factor     = 8
 amr.ref_ratio           = 2 2 2 2
