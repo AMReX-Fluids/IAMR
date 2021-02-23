@@ -151,6 +151,17 @@ amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 6
+prob.blob_center = 0.0 0.0 1.7 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
+
+#*******************************************************************************
 
 ns.getLESVerbose = 1
 ns.do_LES = 1

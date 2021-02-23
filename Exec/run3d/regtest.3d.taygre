@@ -3,9 +3,6 @@
 # INPUTS.3D.EULER
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
