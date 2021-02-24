@@ -4716,7 +4716,7 @@ NavierStokesBase::predict_velocity (Real  dt)
    }
    Real tempdt = cflmax==0 ? change_max : std::min(change_max,cfl/cflmax);
   
-#if AMREX_USE_EB
+#ifdef AMREX_USE_EB
 
    MOL::ExtrapVelToFaces( Umf,
                           AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
