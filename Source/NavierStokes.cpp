@@ -924,9 +924,6 @@ NavierStokes::sum_integrated_quantities ()
     Real trac = 0.0;
     Real energy = 0.0;
     Real mgvort = 0.0;
-#if (BL_SPACEDIM==3)
-    Real udotlapu = 0.0;
-#endif
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -935,20 +932,13 @@ NavierStokes::sum_integrated_quantities ()
 	trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
         mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
-#if (BL_SPACEDIM==3)
-        udotlapu += ns_level.volWgtSum("udotlapu",time);
-#endif
     }
 
     Print() << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
-    Print().SetPrecision(12) << "TIME= " << time << " KENG= " << energy << '\n';
+    Print().SetPrecision(12) << "TIME= " << time << " KINETIC ENERGY= " << energy << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
-    Print().SetPrecision(12) << "TIME= " << time << " ENERGY= " << energy << '\n';
-#if (BL_SPACEDIM==3)
-    Print().SetPrecision(12) << "TIME= " << time << " UDOTLAPU= " << udotlapu << '\n';
-#endif
 }
 
 void
