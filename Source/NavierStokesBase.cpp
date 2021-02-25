@@ -536,10 +536,11 @@ NavierStokesBase::Initialize ()
     //
     // Get godunov options
     //
+#ifndef AMREX_USE_EB
     ParmParse pp2("godunov");
     pp2.query("use_ppm",             godunov_use_ppm);
     pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
-
+#endif
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 
@@ -3547,7 +3548,7 @@ NavierStokesBase::velocity_advection (Real dt)
             }
             else
             {
-                visc_terms.setVal(0.,1);
+                visc_terms.setVal(0.0);
             }
 
 #ifdef _OPENMP
