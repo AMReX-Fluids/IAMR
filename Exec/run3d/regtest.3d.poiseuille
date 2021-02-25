@@ -3,9 +3,6 @@
 # INPUTS.3D.POISEUILLE for regression testing
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
 godunov.use_ppm = 1
 
 max_step                =  10
@@ -17,7 +14,11 @@ ns.steady_tol 		=  1.0e-4
 amr.n_cell              =  32 16 16
 
 amr.max_level           =  2
-ns.do_tracer_ref        =  1
+
+# Refinement criterion, presence of tracer
+amr.refinement_indicators = tracer
+amr.tracer.value_greater = 0.1
+amr.tracer.field_name = tracer
 
 ns.v                    =  1
 amr.v                   =  1

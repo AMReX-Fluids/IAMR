@@ -1,6 +1,4 @@
 
-# for regression testing
-
 #*******************************************************************************
 # INPUTS
 #*******************************************************************************
@@ -32,6 +30,10 @@ amr.n_cell 		= 64 64
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 1 # maximum number of levels of refinement
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  5.0
 
 #*******************************************************************************
 

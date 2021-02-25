@@ -12,7 +12,12 @@ max_step 		= 5
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 2.5
 
-ns.do_vorticity_ref = 1
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+
+amr.vorticity.vorticity_greater =  0.1
+#amr.vorticity.start_time = 0.001
+#amr.vorticity.end_name = 0.002
 
 #*******************************************************************************
 

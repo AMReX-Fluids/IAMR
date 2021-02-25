@@ -102,11 +102,6 @@ int         NavierStokesBase::do_derefine_outflow       = 1;
 int         NavierStokesBase::Nbuf_outflow              = 1;
 int         NavierStokesBase::do_denminmax              = 0;
 int         NavierStokesBase::do_scalminmax             = 0;
-int         NavierStokesBase::do_density_ref            = 0;
-int         NavierStokesBase::do_tracer_ref             = 0;
-int         NavierStokesBase::do_tracer2_ref            = 0;
-int         NavierStokesBase::do_vorticity_ref          = 0;
-int         NavierStokesBase::do_temp_ref               = 0;
 int         NavierStokesBase::do_scalar_update_in_order = 0;
 Vector<int>  NavierStokesBase::scalarUpdateOrder;
 int         NavierStokesBase::getForceVerbose           = 0;
@@ -448,11 +443,13 @@ NavierStokesBase::Initialize ()
     pp.query("do_mac_proj",              do_mac_proj      );
     pp.query("do_denminmax",             do_denminmax     );
     pp.query("do_scalminmax",            do_scalminmax    );
-    pp.query("do_density_ref",           do_density_ref   );
-    pp.query("do_tracer_ref",            do_tracer_ref    );
-    pp.query("do_tracer2_ref",           do_tracer2_ref   );
-    pp.query("do_vorticity_ref",         do_vorticity_ref );
-    pp.query("do_temp_ref",              do_temp_ref      );
+
+    if ( pp.countval("do_temp_ref") ||
+	 pp.countval("do_density_ref") ||
+	 pp.countval("do_tracer_ref") ||
+	 pp.countval("do_tracer2_ref") ||
+	 pp.countval("do_vorticity_ref") )
+      amrex::Abort("Refinement now implemented using refinement_indicators. For help, see Documentation or examples in /Exec");
 
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
@@ -1376,7 +1373,7 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
       if (!refine_cutcells) amrex::Abort("For now, cutcells must always exist at finest level.");
 
       // Refine on cut cells
-      if (refine_cutcells) // or if EB and CBF cross
+      if (refine_cutcells)
       {
         const MultiFab& S_new = get_new_data(State_Type);
         amrex::TagCutCells(tags, S_new);

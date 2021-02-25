@@ -732,11 +732,6 @@ public:
     static int  Nbuf_outflow;               //   outflow boundaries.
     static int  do_denminmax;               // The code for these was in NavierStokes.cpp,
     static int  do_scalminmax;              //   but the flags were not declared or read in.
-    static int  do_density_ref;             // Flags added for refinement control
-    static int  do_tracer_ref;
-    static int  do_tracer2_ref;
-    static int  do_vorticity_ref;
-    static int  do_temp_ref;
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
     static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin

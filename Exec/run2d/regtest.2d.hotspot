@@ -16,8 +16,18 @@ max_step 		= 5
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# What to use for the refinement criterion
-ns.do_temp_ref = 1
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp gradT
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.gradT.adjacent_difference_greater = 0.005
+amr.gradT.field_name = temp
+#amr.gradT.start_time = 0.001
+#amr.gradT.end_name = 0.002
+
 
 #*******************************************************************************
 

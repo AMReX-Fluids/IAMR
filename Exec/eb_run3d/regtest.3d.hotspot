@@ -10,13 +10,6 @@ ns.temp_cond_coef=1.e-4
 #  not reached first.
 max_step 		= 10
 
-# Use the tracer for the refinement criterion
-ns.do_temp_ref = 1
-
-# allow refinement at outflow boundary
-ns.do_refine_outflow = 1
-ns.do_derefine_outflow = 0
-
 # Correct scalars for over/under shoots during advective update
 ns.do_scalminmax=1
 ns.do_denminmax=1
@@ -30,6 +23,20 @@ amr.n_cell 		= 32 32 32 #128 128 128 #
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 2 # maximum number of levels of refinement
+
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp gradT
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.gradT.adjacent_difference_greater = 0.005
+amr.gradT.field_name = temp
+
+# allow refinement at outflow boundary
+ns.do_refine_outflow = 1
+ns.do_derefine_outflow = 0
 
 #*******************************************************************************
 

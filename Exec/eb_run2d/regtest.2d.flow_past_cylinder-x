@@ -35,6 +35,7 @@ ns.scal_diff_coefs       = 0.1
 #.......................................#
 amr.n_cell              =   96 32     # Grid cells at coarsest AMRlevel
 amr.max_level           =   1         # Max AMR level in hierarchy
+# Refinement around the EB by default
 amr.grid_eff            =   0.7
 amr.n_error_buf         =   8
 

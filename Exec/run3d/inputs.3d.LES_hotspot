@@ -3,12 +3,6 @@
 # INPUTS.3D.HOTSPOT - hot bubble rising
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-# test 0th order slopes
-godunov.slope_order = 1
-
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
@@ -21,10 +15,17 @@ max_step 		= 10
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 0
-ns.do_vorticity_ref = 0
-ns.do_temp_ref = 1
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp gradT
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.gradT.adjacent_difference_greater = 0.005
+amr.gradT.field_name = temp
+#amr.gradT.start_time = 0.001
+#amr.gradT.end_name = 0.002
 
 # allow refinement at outflow boundary
 ns.do_refine_outflow = 1
@@ -58,7 +59,7 @@ ns.v                    = 1
 diffuse.v = 0
 mac.v =0
 proj.v=1
-proj.Pcode = 0
+
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
@@ -133,11 +134,6 @@ ns.hi_bc             = 5 5 2
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
-
-#*******************************************************************************
-
-# For solver reasons, use multigrid iterations as the bottom solve.
-# mg.usecg = 1
 
 #*******************************************************************************
 

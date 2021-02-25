@@ -17,11 +17,11 @@ stop_time 		= 6.0
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 64 64 64
 amr.max_grid_size     = 1024
+
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 0 # maximum number of levels of refinement
-ns.do_vorticity_ref     = 0
 
 #*******************************************************************************
 

@@ -13,7 +13,9 @@ amr.n_cell              = 64 64 64
 
 amr.max_level           = 2
 
-ns.do_vorticity_ref     = 1
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  1000.0
 
 amr.regrid_int		= 2 
 

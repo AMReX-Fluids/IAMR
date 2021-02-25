@@ -16,7 +16,10 @@ amr.n_cell 		= 32 32 32
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 1 # maximum number of levels of refinement
-ns.do_vorticity_ref     = 1
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  0.1
 
 #*******************************************************************************
 

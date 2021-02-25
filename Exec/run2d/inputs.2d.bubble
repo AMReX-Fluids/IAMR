@@ -12,9 +12,16 @@ max_step 		= 10
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
-ns.do_vorticity_ref = 1
+# Refinement criterion, use vorticity and presence of tracer
+amr.refinement_indicators = tracer vorticity
+
+amr.tracer.value_greater = 0.1
+amr.tracer.field_name = tracer
+
+amr.vorticity.vorticity_greater = 1.0
+#amr.vorticity.start_time = 0.001
+#amr.vorticity.end_name = 0.002
+
 
 #*******************************************************************************
 
