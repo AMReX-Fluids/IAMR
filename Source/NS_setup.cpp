@@ -443,6 +443,8 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE DERIVED QUANTITIES ********************
     //
+    using namespace derive_functions;
+    
     //
     // kinetic energy
     //
