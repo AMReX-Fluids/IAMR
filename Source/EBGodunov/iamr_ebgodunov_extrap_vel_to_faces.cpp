@@ -18,6 +18,9 @@ EBGodunov::ExtrapVelToFaces ( MultiFab const& vel,
                               Geometry& geom,
                               Real l_dt)
 {
+    BL_PROFILE("EBGodunov::ExtrapVelToFaces()");
+    AMREX_ALWAYS_ASSERT(vel.hasEBFabFactory());
+
     Box const& domain = geom.Domain();
     const Real* dx    = geom.CellSize();
 

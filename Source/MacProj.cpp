@@ -676,7 +676,7 @@ MacProj::mac_sync_compute (int                   level,
     }
     else // GODUNOV ========================================================================================
     {
-        std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(1,prev_time));
+        std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(ns_level.nghost_force(),prev_time));
 
         MultiFab& Gp = ns_level.get_old_data(Gradp_Type);
 
