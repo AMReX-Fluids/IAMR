@@ -422,7 +422,18 @@ NavierStokes::variableSetUp ()
       desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
       desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
 #endif
+    }
 
+    //
+    // **************  DEFINE DERIVED QUANTITIES ********************
+    //
+    using namespace derive_functions;
+
+    if (NavierStokesBase::avg_interval > 0)
+    {
+      //
+      // Average and RMS velocity
+      //
       Vector<std::string> var_names_ave(BL_SPACEDIM*2);
       var_names_ave[Xvel] = "x_vel_average";
       var_names_ave[Yvel] = "y_vel_average";
@@ -437,14 +448,8 @@ NavierStokes::variableSetUp ()
       derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM*2,
                      var_names_ave,der_vel_avg,the_same_box);
       derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,BL_SPACEDIM*2);
-
     }
 
-    //
-    // **************  DEFINE DERIVED QUANTITIES ********************
-    //
-    using namespace derive_functions;
-    
     //
     // kinetic energy
     //
