@@ -486,3 +486,16 @@ void NavierStokes::init_Euler (Box const& vbx,
     }
   });
 }
+
+//
+// FIXME - currently AMReX requires this. Not sure how to skip
+// Amr::readProbinFile(), short of amr.probin_file = "" in every inputs file
+//
+extern "C" {
+    void amrex_probinit (const int* init,
+                         const int* name,
+                         const int* namelen,
+                         const amrex_real* problo,
+                         const amrex_real* probhi)
+    {}
+}

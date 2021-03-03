@@ -35,10 +35,6 @@
 //
 enum StateType {State_Type=0, Press_Type, Gradp_Type};
 
-//
-// Note: enumerated value NUM_STATE_TYPE no longer defined
-// use num_state_type (static int member of NavierStokes)
-//
 #if (BL_SPACEDIM == 2)
 enum StateNames  { Xvel=0, Yvel, Density};
 #else
@@ -461,11 +457,25 @@ public:
     //    NavierStokesBase static functions                                   //
     ////////////////////////////////////////////////////////////////////////////
 
-    static void variableCleanUp (); // Cleanup data descriptors at end of run.
-    static void Initialize ();   // Read input file common to IAMR and PeleLM
-    static void Initialize_specific ();   // Read input file specific to IAMR
+    //
+    // Cleanup data descriptors at end of run.
+    //
+    static void variableCleanUp ();
+    //
+    // Read input file common to IAMR and PeleLM
+    //
+    static void Initialize ();
+    //
+    // Read input file specific to IAMR or PLM
+    //
+    static void Initialize_specific (){
+      amrex::Abort("NavierStokesBase::Initialize_specific: This function must be implemented in derived class");
+    };
     static void Finalize ();
-    static void read_geometry (); // Set metrics
+    //
+    // Check for RZ geometry
+    //
+    static void read_geometry ();
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase particle functions                                 //

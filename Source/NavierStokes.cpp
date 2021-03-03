@@ -43,6 +43,8 @@ namespace
 }
 
 Vector<AMRErrorTag> NavierStokes::errtags;
+//FIXME - see NS.H
+GpuArray<GpuArray<Real, AMREX_SPACEDIM+4>, AMREX_SPACEDIM*2> NavierStokes::m_bc_values;
 
 void
 NavierStokes::Initialize ()
@@ -51,11 +53,269 @@ NavierStokes::Initialize ()
 
     NavierStokesBase::Initialize();
 
-    NavierStokesBase::Initialize_specific();
+    NavierStokes::Initialize_specific();
 
     amrex::ExecOnFinalize(NavierStokes::Finalize);
 
     initialized = true;
+}
+
+void
+NavierStokes::Initialize_specific ()
+{
+    // Will need to add more lines when more variables are added
+    int stateIdx = Density;
+    Tracer = ++stateIdx;
+    if (do_trac2)
+      Tracer2 = ++stateIdx;
+    if (do_temp)
+      Temp = ++stateIdx;
+
+    //
+    // Default BC values
+    //
+    int ntrac = do_trac2 ? 2 : 1;
+    for (OrientationIter face; face; ++face)
+    {
+      int ori = int(face());
+      AMREX_D_TERM(m_bc_values[ori][0] = 0.0;,
+		   m_bc_values[ori][1] = 0.0;,
+		   m_bc_values[ori][2] = 0.0;);
+      m_bc_values[ori][Density] = 1.0;
+      for ( int nc = 0; nc < ntrac; nc++ )
+	m_bc_values[ori][Tracer+nc] = 0.0;
+      if (do_temp)
+	m_bc_values[ori][Temp] = 1.0;
+    }
+
+    ParmParse pp("ns");
+
+    //
+    // Check for interger BC specification in inputs file (older style)
+    //
+    if ( pp.contains("lo_bc") )
+    {
+      Vector<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
+      pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
+      pp.getarr("hi_bc",hi_bc,0,BL_SPACEDIM);
+      for (int i = 0; i < BL_SPACEDIM; i++)
+      {
+	  phys_bc.setLo(i,lo_bc[i]);
+	  phys_bc.setHi(i,hi_bc[i]);
+      }
+    }
+
+    //
+    // Read string BC specifications and BC values
+    //
+    {
+      int bc_tmp[2*AMREX_SPACEDIM];
+      
+      auto f = [&bc_tmp] (std::string const& bcid, Orientation ori)
+      {	  
+	  ParmParse pp(bcid);
+	  std::string bc_type_in = "null";
+	  pp.query("type", bc_type_in);
+	  std::string bc_type = amrex::toLower(bc_type_in);
+
+	  if (bc_type == "no_slip_wall" or bc_type == "nsw")
+	  {
+	      amrex::Print() << bcid <<" set to no-slip wall.\n";
+
+	      bc_tmp[ori] = PhysBCType::noslipwall;
+
+	      // Note that m_bc_velocity defaults to 0 above so we are ok if
+	      //      queryarr finds nothing
+	      std::vector<Real> v;
+	      if (pp.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
+		// Here we make sure that we only use the tangential components
+		//      of a specified velocity field -- the wall is not allowed
+		//      to move in the normal direction
+                v[ori.coordDir()] = 0.0;
+                for (int i=0; i<AMREX_SPACEDIM; i++){
+		  m_bc_values[ori][Xvel+i] = v[i];
+                }
+	      }
+	  }
+	  else if (bc_type == "slip_wall" or bc_type == "sw")
+	  {
+	      amrex::Print() << bcid <<" set to slip wall.\n";
+
+	      bc_tmp[ori] = PhysBCType::slipwall;
+
+	      // These values are set by default above -
+	      //      note that we only actually use the zero value for the normal direction;
+	      //      the tangential components are set to be first order extrap
+	      // m_bc_velocity[ori] = {0.0, 0.0, 0.0};
+	  }
+	  else if (bc_type == "mass_inflow" or bc_type == "mi")
+	  {
+	      amrex::Print() << bcid << " set to mass inflow.\n";
+
+	      bc_tmp[ori] = PhysBCType::inflow;
+
+	      std::vector<Real> v;
+	      if (pp.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
+		for (int i=0; i<AMREX_SPACEDIM; i++){
+		  m_bc_values[ori][Xvel+i] = v[i];
+		}
+	      }
+
+	      pp.query("density", m_bc_values[ori][Density]);
+	      pp.query("tracer", m_bc_values[ori][Tracer]);
+	      if (do_trac2) {
+		if ( pp.countval("tracer") > 1 )
+		  amrex::Abort("NavierStokes::Initialize_specific: Please set tracer 2 inflow bc value with it's own entry in inputs file, e.g. xlo.tracer2 = bc_value");
+		pp.query("tracer2", m_bc_values[ori][Tracer2]);
+	      }
+	      if (do_temp)
+		pp.query("temp", m_bc_values[ori][Temp]);
+	  }
+	  else if (bc_type == "pressure_inflow" or bc_type == "pi")
+	  {
+	      amrex::Abort("NavierStokes::Initialize_specific: Pressure inflow boundary condition not yet implemented. If needed for your simulation, please contact us.");
+	      
+	      // amrex::Print() << bcid << " set to pressure inflow.\n";
+
+	      // bc_tmp[ori] = PhysBCType::pressure_inflow;
+
+	      // pp.get("pressure", m_bc_pressure[ori]);
+	  }
+	  else if (bc_type == "pressure_outflow" or bc_type == "po")
+          {
+	      amrex::Print() << bcid << " set to pressure outflow.\n";
+
+	      bc_tmp[ori] = PhysBCType::outflow;
+
+	      //pp.get("pressure", m_bc_pressure[ori]);
+	      Real tmp;
+	      pp.get("pressure", tmp);
+
+	      if ( tmp != 0. )
+		amrex::Abort("NavierStokes::Initialize_specific: Pressure outflow boundary condition != 0 not yet implemented. If needed for your simulation, please contact us.");
+	  }
+	  else if (bc_type == "symmetry" or bc_type == "sym")
+	  {
+	      amrex::Print() << bcid <<" set to symmetry.\n";
+
+	      bc_tmp[ori] = PhysBCType::symmetry;
+	  }
+	  else
+	  {
+	      bc_tmp[ori] = BCType::bogus;
+	  }
+
+	  if ( DefaultGeometry().isPeriodic(ori.coordDir()) ) {
+            if (bc_tmp[ori] == BCType::bogus || phys_bc.data()[ori] == PhysBCType::interior) {
+	      bc_tmp[ori] = PhysBCType::interior;
+            } else {
+	      std::cerr <<  " Wrong BC type for periodic boundary at "
+	                << bcid << ". Please correct inputs file."<<std::endl;
+	      amrex::Abort();
+            }
+	  }
+
+	  if ( bc_tmp[ori] == BCType::bogus && phys_bc.data()[ori] == BCType::bogus ) {
+	    std::cerr <<  " No valid BC type specificed for "
+	              << bcid  << ". Please correct inputs file."<<std::endl;
+	    amrex::Abort();
+	  }
+
+	  if ( bc_tmp[ori] != BCType::bogus && phys_bc.data()[ori] != BCType::bogus
+	       && bc_tmp[ori] != phys_bc.data()[ori] ) {
+	    std::cerr<<" Multiple conflicting BCs specified for "
+	             << bcid << ": "<<bc_tmp[ori]<<", "<<phys_bc.data()[ori]
+	             <<". Please correct inputs file."<<std::endl;
+	    amrex::Abort();
+	  }
+      };
+
+      f("xlo", Orientation(Direction::x,Orientation::low));
+      f("xhi", Orientation(Direction::x,Orientation::high));
+      f("ylo", Orientation(Direction::y,Orientation::low));
+      f("yhi", Orientation(Direction::y,Orientation::high));
+#if (AMREX_SPACEDIM == 3)
+      f("zlo", Orientation(Direction::z,Orientation::low));
+      f("zhi", Orientation(Direction::z,Orientation::high));
+#endif
+
+      // load bc types into phys_bc
+      for (int dir = 0; dir < BL_SPACEDIM; dir++)
+      {
+	  phys_bc.setLo(dir,bc_tmp[dir]);
+	  phys_bc.setHi(dir,bc_tmp[dir+AMREX_SPACEDIM]);
+      }
+    }
+
+    //fixme
+    for (OrientationIter face; face; ++face)
+    {
+      int ori = int(face());
+      Print()<<face()<<" : \n"
+	     <<"   vel = "<<m_bc_values[ori][0]<<" "<<m_bc_values[ori][1]<<"\n"
+	     <<"   den = "<<m_bc_values[ori][Density]<<"\n";
+      for ( int nc = 0; nc < ntrac; nc++ )
+	Print()<<"   trc = "<<m_bc_values[ori][Tracer+nc]<<"\n";
+      if (do_temp)
+	Print()<<"   tmp = "<<m_bc_values[ori][Temp];
+      Print()<<std::endl;
+      Print()<<std::endl;
+    }
+
+    //
+    // This checks for RZ and makes sure phys_bc is consistent with that.
+    //
+    read_geometry();
+
+    //
+    // Read viscous/diffusive parameters and array of viscous/diffusive coeffs.
+    // NOTE: at this point, we dont know number of state variables
+    //       so just read all values listed.
+    //
+
+    const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
+    const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
+    const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
+
+    if (n_vel_visc_coef != 1)
+        amrex::Abort("NavierStokesBase::Initialize(): Only one vel_visc_coef allowed");
+
+    if (do_temp && n_temp_cond_coef != 1)
+        amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
+
+    int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
+    if (do_temp)
+        n_visc++;
+    visc_coef.resize(n_visc);
+    is_diffusive.resize(n_visc);
+
+    pp.get("vel_visc_coef",visc_coef[0]);
+    for (int i = 1; i < BL_SPACEDIM; i++)
+      visc_coef[i] = visc_coef[0];
+    //
+    // Here we set the coefficient for density, which does not diffuse.
+    //
+    visc_coef[Density] = -1;
+    //
+    // Set the coefficients for the scalars, but temperature.
+    //
+    Vector<Real> scal_diff_coefs(n_scal_diff_coefs);
+    pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
+
+    int scalId = Density;
+
+    for (int i = 0; i < n_scal_diff_coefs; i++)
+    {
+        visc_coef[++scalId] = scal_diff_coefs[i];
+    }
+    //
+    // Set the coefficient for temperature.
+    //
+    if (do_temp)
+    {
+        Temp = ++scalId;
+        pp.get("temp_cond_coef",visc_coef[Temp]);
+    }
 }
 
 void
@@ -2251,6 +2511,12 @@ NavierStokes::errorEst (TagBoxArray& tags,
     if (errtags[j].Field() != std::string()) {
       mf = derive(errtags[j].Field(), time, errtags[j].NGrow());
     }
+    //
+    // Create a derive to use ABecLap to compute grad
+    // take level max here
+    // add into errtags info for relative threshold ...
+    //
     errtags[j](tags,mf.get(),clearval,tagval,time,level,geom);
   }
 }
+

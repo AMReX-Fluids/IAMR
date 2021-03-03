@@ -444,12 +444,12 @@ NavierStokesBase::Initialize ()
     pp.query("do_denminmax",             do_denminmax     );
     pp.query("do_scalminmax",            do_scalminmax    );
 
-    if ( pp.countval("do_temp_ref") ||
-	 pp.countval("do_density_ref") ||
-	 pp.countval("do_tracer_ref") ||
-	 pp.countval("do_tracer2_ref") ||
-	 pp.countval("do_vorticity_ref") )
-      amrex::Abort("Refinement now implemented using refinement_indicators. For help, see Documentation or examples in /Exec");
+    if ( pp.contains("do_temp_ref") ||
+	 pp.contains("do_density_ref") ||
+	 pp.contains("do_tracer_ref") ||
+	 pp.contains("do_tracer2_ref") ||
+	 pp.contains("do_vorticity_ref") )
+      amrex::Abort("ns.do_*_ref no longer valid. Refinement now implemented using refinement_indicators. For help, see Documentation or examples in /Exec");
 
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
@@ -532,138 +532,6 @@ NavierStokesBase::Initialize ()
 
     initialized = true;
 }
-
-// The following Initialize_specific is dedicated to read and set data
-// only specific for IAMR, because it conflicts with PeleLM.
-// PeleLM calls NavierStokesBase::Initialize() and its own PelelM::Initialize_specific ()
-void
-NavierStokesBase::Initialize_specific ()
-{
-    ParmParse pp("ns");
-
-    Vector<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
-    pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
-    pp.getarr("hi_bc",hi_bc,0,BL_SPACEDIM);
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-        phys_bc.setLo(i,lo_bc[i]);
-        phys_bc.setHi(i,hi_bc[i]);
-    }
-
-    read_geometry();
-    //
-    // Check phys_bc against possible periodic geometry
-    // if periodic, must have internal BC marked.
-    //
-    if (DefaultGeometry().isAnyPeriodic())
-    {
-        //
-        // Do idiot check.  Periodic means interior in those directions.
-        //
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (DefaultGeometry().isPeriodic(dir))
-            {
-                if (lo_bc[dir] != Interior)
-                {
-                    std::cerr << "NavierStokesBase::variableSetUp:periodic in direction "
-                              << dir
-                              << " but low BC is not Interior\n";
-                    amrex::Abort("NavierStokesBase::Initialize()");
-                }
-                if (hi_bc[dir] != Interior)
-                {
-                    std::cerr << "NavierStokesBase::variableSetUp:periodic in direction "
-                              << dir
-                              << " but high BC is not Interior\n";
-                    amrex::Abort("NavierStokesBase::Initialize()");
-                }
-            }
-        }
-    }
-
-    {
-        //
-        // Do idiot check.  If not periodic, should be no interior.
-        //
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (!DefaultGeometry().isPeriodic(dir))
-            {
-              if (lo_bc[dir] == Interior)
-              {
-                  std::cerr << "NavierStokesBase::variableSetUp:Interior bc in direction "
-                            << dir
-                            << " but not defined as periodic\n";
-                  amrex::Abort("NavierStokesBase::Initialize()");
-              }
-              if (hi_bc[dir] == Interior)
-              {
-                  std::cerr << "NavierStokesBase::variableSetUp:Interior bc in direction "
-                            << dir
-                            << " but not defined as periodic\n";
-                  amrex::Abort("NavierStokesBase::Initialize()");
-              }
-            }
-        }
-    }
-
-    //
-    // Read viscous/diffusive parameters and array of viscous/diffusive coeffs.
-    // NOTE: at this point, we dont know number of state variables
-    //       so just read all values listed.
-    //
-
-    const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
-    const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
-    const int n_scal_diff_coefs = pp.countval("scal_diff_coefs");
-
-    if (n_vel_visc_coef != 1)
-        amrex::Abort("NavierStokesBase::Initialize(): Only one vel_visc_coef allowed");
-
-    if (do_temp && n_temp_cond_coef != 1)
-        amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
-
-    int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
-    if (do_temp)
-        n_visc++;
-    visc_coef.resize(n_visc);
-    is_diffusive.resize(n_visc);
-
-    pp.get("vel_visc_coef",visc_coef[0]);
-    for (int i = 1; i < BL_SPACEDIM; i++)
-      visc_coef[i] = visc_coef[0];
-    //
-    // Here we set the coefficient for density, which does not diffuse.
-    //
-    visc_coef[Density] = -1;
-    //
-    // Set the coefficients for the scalars, but temperature.
-    //
-    Vector<Real> scal_diff_coefs(n_scal_diff_coefs);
-    pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
-
-    int scalId = Density;
-
-    // Will need to add more lines when more variables are added
-    Tracer = Density+1;
-    if (do_trac2)
-	    Tracer2 = Density+2;
-
-    for (int i = 0; i < n_scal_diff_coefs; i++)
-    {
-        visc_coef[++scalId] = scal_diff_coefs[i];
-    }
-    //
-    // Set the coefficient for temperature.
-    //
-    if (do_temp)
-    {
-	    Temp = ++scalId;
-	    pp.get("temp_cond_coef",visc_coef[Temp]);
-    }
-}
-
 
 void
 NavierStokesBase::Finalize ()
@@ -1321,45 +1189,6 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
 			    int          n_error_buf,
 			    int          ngrow)
 {
-    const int*  domain_lo = geom.Domain().loVect();
-    const int*  domain_hi = geom.Domain().hiVect();
-    const Real* dx        = geom.CellSize();
-    const Real* prob_lo   = geom.ProbLo();
-
-    for (int j = 0; j < err_list.size(); j++)
-    {
-        auto mf = derive(err_list[j].name(), time, err_list[j].nGrow());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
-        {
-	          const Box&  vbx     = mfi.tilebox();
-            RealBox     gridloc = RealBox(vbx,geom.CellSize(),geom.ProbLo());
-            Vector<int>  itags   = tags[mfi].tags();
-            int*        tptr    = itags.dataPtr();
-            const int*  tlo     = tags[mfi].box().loVect();
-            const int*  thi     = tags[mfi].box().hiVect();
-            const int*  lo      = vbx.loVect();
-            const int*  hi      = vbx.hiVect();
-            const Real* xlo     = gridloc.lo();
-            FArrayBox&  fab     = (*mf)[mfi];
-            Real*       dat     = fab.dataPtr();
-            const int*  dlo     = fab.box().loVect();
-            const int*  dhi     = fab.box().hiVect();
-            const int   ncomp   = fab.nComp();
-
-            err_list[j].errFunc()(tptr, ARLIM(tlo), ARLIM(thi), &tagval,
-                                  &clearval, dat, ARLIM(dlo), ARLIM(dhi),
-                                  lo,hi, &ncomp, domain_lo, domain_hi,
-                                  dx, xlo, prob_lo, &time, &level);
-            //
-            // Don't forget to set the tags in the TagBox.
-            //
-            tags[mfi].tags(itags);
-        }
-    }
-
 #ifdef AMREX_USE_EB
     // Enforce that the EB not cross the coarse-fine boundary
     const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());

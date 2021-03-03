@@ -118,6 +118,10 @@ public:
     //
     static void variableSetUp ();
 
+    // FIXME - need to size m_bc_values better.
+    //static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>, AMREX_SPACEDIM*2>
+    static auto get_bc_values () { return m_bc_values; }
+
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public functions                                       //
     ////////////////////////////////////////////////////////////////////////////
@@ -176,6 +180,7 @@ protected:
                            int                 ngrow) override;
 
     static void Initialize ();   // Read input file
+    static void Initialize_specific ();   // Read input file specific to IAMR
     static void Finalize ();
 
 private:
@@ -209,32 +214,22 @@ private:
     //
     static void error_setup ();
 
+    ///////////////////
+    // Private data  //
+    ///////////////////
+
+    //
+    // Holds info for dynamically generated error estimators
+    //
     static amrex::Vector<amrex::AMRErrorTag> errtags;
+
+    //
+    // Hold external Dirichlet BC values
+    //
+    // FIXME - dymanic size needed here. And fix in NavierStokes.cpp as well!
+    // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
+    static amrex::GpuArray<amrex::GpuArray<amrex::Real, AMREX_SPACEDIM+4>,
+    			   AMREX_SPACEDIM*2> m_bc_values;
 };
-
-
-// void cc_ext_fill (amrex::Box const& bx, amrex::FArrayBox& data,
-//                  const int dcomp, const int numcomp,
-//                  amrex::Geometry const& geom, const amrex::Real time,
-//                  const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-//                  const int scomp);
-
-void press_fill (amrex::Box const& bx, amrex::FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 amrex::Geometry const& geom, const amrex::Real time,
-                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-                 const int scomp);
-
-void face_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 amrex::Geometry const& geom, const amrex::Real time,
-                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-                 const int scomp);
-
-void dummy_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 amrex::Geometry const& geom, const amrex::Real time,
-                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-                 const int scomp);
 
 #endif /*_NavierStokes_H_*/

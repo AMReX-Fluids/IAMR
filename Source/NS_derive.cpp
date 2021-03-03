@@ -69,7 +69,7 @@ namespace derive_functions
 				+ in_dat(i+1,j+1,k)   + in_dat(i,j+1,k)
 #if (AMREX_SPACEDIM == 3 )
 				+ in_dat(i+1,j,k+1)   + in_dat(i,j,k+1)
-						   + in_dat(i+1,j+1,k+1) + in_dat(i,j+1,k+1)
+				+ in_dat(i+1,j+1,k+1) + in_dat(i,j+1,k+1)
 #endif
 				);
     });

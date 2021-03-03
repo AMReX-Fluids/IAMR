@@ -3,8 +3,8 @@
 #include <NavierStokes.H>
 #include <NS_BC.H>
 #include <RegType.H>
-#include <PROB_NS_F.H>
 #include <NS_derive.H>
+#include <NS_bcfill.H>
 #include <AMReX_FArrayBox.H>
 
 using namespace amrex;
@@ -12,8 +12,8 @@ using namespace amrex;
 static Box the_same_box (const Box& b)    { return b;                 }
 static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
 
-// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc 
-//                      are now all defined in NS_BC.H in iamrlib
+// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc,
+//       divu_bc, dsdt_bc are now all defined in IAMR/Source/NS_BC.H
 
 static
 void
@@ -215,12 +215,6 @@ NavierStokes::variableSetUp ()
 {
     BL_ASSERT(desc_lst.size() == 0);
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        phys_bc.setLo(dir,SlipWall);
-        phys_bc.setHi(dir,SlipWall);
-    }
-
     Initialize();
 
     BCRec bc;
@@ -263,28 +257,28 @@ NavierStokes::variableSetUp ()
     // needed.
 
     set_x_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
+    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,vel_fill);
 
     set_y_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,BndryFunc(FORT_YVELFILL));
+    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,vel_fill);
 
 #if (BL_SPACEDIM == 3)
     set_z_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,BndryFunc(FORT_ZVELFILL));
+    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,vel_fill);
 #endif
     //
     // **************  DEFINE SCALAR VARIABLES  ********************
     //
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Density,"density",bc,BndryFunc(FORT_DENFILL));
+    desc_lst.setComponent(State_Type,Density,"density",bc,state_fill);
 
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Trac,"tracer",bc,BndryFunc(FORT_ADVFILL));
+    desc_lst.setComponent(State_Type,Trac,"tracer",bc,state_fill);
 
     if (do_trac2)
     {
        set_scalar_bc(bc,phys_bc);
-       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,BndryFunc(FORT_ADV2FILL));
+       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,state_fill);
     }
     //
     // **************  DEFINE TEMPERATURE  ********************
@@ -292,7 +286,7 @@ NavierStokes::variableSetUp ()
     if (do_temp)
     {
         set_temp_bc(bc,phys_bc);
-        desc_lst.setComponent(State_Type,Temp,"temp",bc,BndryFunc(FORT_TEMPFILL));
+        desc_lst.setComponent(State_Type,Temp,"temp",bc,state_fill);
     }
 
     is_diffusive.resize(NUM_STATE);
@@ -343,7 +337,7 @@ NavierStokes::variableSetUp ()
                            &node_bilinear_interp);
 
     set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
+    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,press_fill);
  
     //
     // ---- grad P
@@ -389,7 +383,7 @@ NavierStokes::variableSetUp ()
                                StateDescriptor::Point,nGrowDivu,1,
 			       &cc_interp);
 	set_divu_bc(bc,phys_bc);
-	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
+	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,dummy_fill);
 	
 	// stick Dsdt_Type on the end of the descriptor list
 	Dsdt_Type = desc_lst.size();
@@ -398,7 +392,7 @@ NavierStokes::variableSetUp ()
                                StateDescriptor::Point,nGrowDsdt,1,
 			       &cc_interp);
 	set_dsdt_bc(bc,phys_bc);
-	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
+	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,dummy_fill);
     }
 
     //
@@ -414,13 +408,13 @@ NavierStokes::variableSetUp ()
                              &cc_interp,state_data_extrap,store_in_checkpoint);
 
       set_average_bc(bc,phys_bc);
-      desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,dummy_fill);
 #if (BL_SPACEDIM==3)
-      desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,dummy_fill);
 #endif
     }
 
@@ -459,12 +453,12 @@ NavierStokes::variableSetUp ()
     //
     // magnitude of vorticity
     //
-    derive_lst.add("mag_vort",IndexType::TheCellType(),1,DeriveFunc3D(dermgvort),grow_box_by_one);
+    derive_lst.add("mag_vort",IndexType::TheCellType(),1,dermgvort,grow_box_by_one);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // average pressure
     //
-    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,DeriveFunc3D(deravgpres),
+    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,deravgpres,
                    the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
 
