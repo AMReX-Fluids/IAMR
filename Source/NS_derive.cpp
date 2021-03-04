@@ -1,6 +1,8 @@
 #include <NavierStokesBase.H>
 #include "NS_derive.H"
-
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFArrayBox.H>
+#endif
 
 using namespace amrex;
 

@@ -33,8 +33,6 @@ ns.init_iter          	=  3    # number of initial iterations
 ns.vel_visc_coef        =  1.0
 ns.scal_diff_coefs      =  0.0
 
-amr.probin_file 		=  probin.3d.poiseuille
-
 geometry.coord_sys   	=  0
 
 geometry.prob_lo     	=  0. 0. 0.
@@ -50,6 +48,9 @@ ns.hi_bc             	=  2 5 5
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+# Boundary condition
+xlo.velocity            =   1.  0.  0.
 
 # PROBLEM PARAMETERS           
 prob.probtype = 4

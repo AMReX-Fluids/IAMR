@@ -29,8 +29,6 @@ ns.init_iter          	=  3    # number of initial iterations
 ns.vel_visc_coef        =  0.01
 ns.scal_diff_coefs      =  0.0
 
-amr.probin_file 		=  regtest.probin.3d.lid_driven_cavity
-
 geometry.coord_sys   	=  0
 
 geometry.prob_lo     	=  0. 0. 0.

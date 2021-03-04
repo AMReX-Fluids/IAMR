@@ -2,9 +2,6 @@
 # INPUTS.2D.PERIODIC_SHEAR_LAYER
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.2d.double_shear_layer
-
 #*******************************************************************************
 # WHEN SHOULD THE SIMULATION STOP?
 #*******************************************************************************

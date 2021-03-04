@@ -91,11 +91,6 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.2d.hotspot
-
-#*******************************************************************************
-
 # Embedded Boundary options
 #eb2.geom_type    =  all_regular
 eb2.geom_type     = sphere

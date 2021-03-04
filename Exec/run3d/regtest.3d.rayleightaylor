@@ -35,8 +35,6 @@ ns.init_iter            = 3
 ns.vel_visc_coef        = 0.0
 ns.scal_diff_coefs      = 0.0
 
-amr.probin_file 	= regtest.probin.3d.rt
-
 geometry.coord_sys   =  0
 
 geometry.prob_lo     =  0. 0. 35

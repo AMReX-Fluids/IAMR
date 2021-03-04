@@ -27,7 +27,6 @@ amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
 amr.derive_plot_vars    =   mag_vort avg_pressure
 amr.restart             =   ""          # Checkpoint to restart from
-amr.probin_file         = probin.2d.flow_past_cylinder-x
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
@@ -64,8 +63,10 @@ ns.lo_bc 	     	= 1 0 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	     	= 2 0 0
 
+xlo.velocity = 1. 0. 0.
+
 # Add cylinder
-eb2.geom_type               = sphere
+eb2.geom_type             = sphere
 eb2.sphere_radius         = 0.0021
 eb2.sphere_center         = -0.025  0.0
 eb2.sphere_has_fluid_inside=0

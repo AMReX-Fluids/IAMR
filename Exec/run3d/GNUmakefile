@@ -46,7 +46,6 @@ ifeq (${USE_VELOCITY}, TRUE)
   AMRVIS_DIR = $(AMREX_HOME)/Src/Extern/amrdata
 endif
 
-Bpack   := ./Make.package
 Blocs   := .
 
 include $(TOP)/Exec/Make.IAMR

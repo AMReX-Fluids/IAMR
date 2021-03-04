@@ -76,11 +76,6 @@ ns.scal_diff_coefs      = 0.0
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.3d.euler  
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
 geometry.coord_sys   =  0
 

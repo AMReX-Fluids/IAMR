@@ -23,9 +23,13 @@ amr.n_cell 			= 128 64
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level			= 0 # maximum number of levels of refinement
+amr.max_level			= 1 # maximum number of levels of refinement
 
-ns.do_tracer_ref = 1
+# Refinement criterion, use temperature
+amr.refinement_indicators = tracer
+
+amr.tracer.value_greater = .01
+amr.tracer.field_name = tracer
 
 #*******************************************************************************
 
@@ -73,11 +77,6 @@ ns.gravity              = 1.0
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 		= probin.2d.poiseuille 
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   	=  0
 
@@ -97,20 +96,33 @@ geometry.is_periodic 	=  0 0
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             	= 1 5 
+#ns.lo_bc             	= 1 5 
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             	= 2 5   
+#ns.hi_bc             	= 2 5   
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 
+# Boundary conditions
+ylo.type                =   "nsw"
+ylo.velocity            =   0.  0.  0.
+yhi.type                =   "nsw"
+yhi.velocity            =   0.  0.  0.
+xlo.type                =   "mass_inflow"
+xlo.velocity            =   1.  0.  0.
+xlo.density             =   1.
+xlo.tracer              =   0.
+xhi.type                =   "pressure_outflow"
+xhi.pressure            =   0.0
+
+
 #*******************************************************************************
 
 # PROBLEM PARAMETERS           
 prob.probtype = 4
-prob.blob_center =  0.1 0.5 0.5
+prob.blob_center =  0.15 0.5 0.5
 prob.blob_radius =  0.1
 # Constant density initial condition
 prob.density_ic = 1.0

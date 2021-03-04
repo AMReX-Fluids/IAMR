@@ -22,7 +22,6 @@ amr.plot_int            =   20          # Steps between plot files
 amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
 amr.restart             =   ""          # Checkpoint to restart from
-amr.probin_file         = probin.3d.flow_past_cylinder-x
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
@@ -53,6 +52,8 @@ geometry.is_periodic    =   0   0   1   # Periodicity x y z (0/1)
 ns.lo_bc 	     	= 1 5 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	      	= 2 5 0
+
+xlo.velocity = 1. 0. 0.
 
 # Add cylinder
 eb2.geom_type                 = cylinder

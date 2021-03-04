@@ -20,7 +20,6 @@ amr.plot_int            =   50          # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
 amr.derive_plot_vars = NONE
 amr.restart             =   ""          # Checkpoint to restart from
-amr.probin_file         = regtest.probin.2d.flow_past_cylinder-x
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
@@ -47,6 +46,9 @@ geometry.prob_hi       =   0.6  0.2  0.05  # Hi corner coordinates
 geometry.is_periodic   =   0    0    1   # Periodicity x y z (0/1)
 geometry.coord_sys     = 0
 
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        BOUNDARY CONDITIONS            #
+#.......................................#
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWal
@@ -54,6 +56,10 @@ geometry.coord_sys     = 0
 ns.lo_bc 	     	= 1 4 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	     	= 2 5 0
+
+xlo.velocity = 10. 0. 0.
+xlo.density  = 1.
+xlo.tracer   = 0.
 
 # Add cylinder
 eb2.geom_type               = sphere
