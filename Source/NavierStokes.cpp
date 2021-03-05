@@ -2503,28 +2503,3 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     }
 }
 
-void
-NavierStokes::errorEst (TagBoxArray& tags,
-                        int          clearval,
-                        int          tagval,
-                        Real         time,
-                        int          n_error_buf,
-                        int          ngrow)
-{
-
-  NavierStokesBase::errorEst(tags,clearval,tagval,time,n_error_buf,ngrow);
-
-  for (int j=0; j<errtags.size(); ++j) {
-    std::unique_ptr<MultiFab> mf;
-    if (errtags[j].Field() != std::string()) {
-      mf = derive(errtags[j].Field(), time, errtags[j].NGrow());
-    }
-    //
-    // Create a derive to use ABecLap to compute grad
-    // take level max here
-    // add into errtags info for relative threshold ...
-    //
-    errtags[j](tags,mf.get(),clearval,tagval,time,level,geom);
-  }
-}
-

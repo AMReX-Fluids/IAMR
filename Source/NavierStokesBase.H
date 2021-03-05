@@ -674,7 +674,6 @@ public:
     //
     // Static objects.
     //
-    static amrex::ErrorList   err_list;
     static amrex::BCRec       phys_bc;
     static Projection* projector;
     static MacProj*    mac_projector;

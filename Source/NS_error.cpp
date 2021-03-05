@@ -1,6 +1,5 @@
 
 #include <NavierStokes.H>
-#include <NS_error_F.H>
 #include <AMReX_ErrorList.H>
 #include <AMReX_ParmParse.H>
 
@@ -74,7 +73,8 @@ NavierStokes::error_setup()
             errtags.push_back(AMRErrorTag(info));
         }
 	// //
-	// // Could create a user defined function here as outlined below.
+	// // User defined error function:
+	// // Could create an AMRErrorTag::UserFunc as outlined below.
 	// // However, this only allows you to use one "field", i.e. one
 	// // component of State or a derived value (as defined in NS_setup.cpp).
 	// // For all cases I can think of, a better option is to create a
@@ -101,6 +101,37 @@ NavierStokes::error_setup()
     }
 
     //
-    // User-defined error estimation functions 
+    // For hard-coded error estimation function, that would go in
+    // NavierStokes::errorEst()
     //
+}
+
+
+void
+NavierStokes::errorEst (TagBoxArray& tags,
+                        int          clearval,
+                        int          tagval,
+                        Real         time,
+                        int          n_error_buf,
+                        int          ngrow)
+{
+
+  NavierStokesBase::errorEst(tags,clearval,tagval,time,n_error_buf,ngrow);
+
+  for (int j=0; j<errtags.size(); ++j) {
+    std::unique_ptr<MultiFab> mf;
+    if (errtags[j].Field() != std::string()) {
+      mf = derive(errtags[j].Field(), time, errtags[j].NGrow());
+    }
+    //
+    // Create a derive to use ABecLap to compute grad
+    // take level max here
+    // add into errtags info for relative threshold ...
+    //
+    errtags[j](tags,mf.get(),clearval,tagval,time,level,geom);
+  }
+
+  //
+  // If needed, hard-code error function here
+  //
 }

@@ -52,7 +52,6 @@ struct DummyFill           // Set 0.0 on EXT_DIR, nothing otherwise.
     }
 };
 
-ErrorList   NavierStokesBase::err_list;
 BCRec       NavierStokesBase::phys_bc;
 Projection* NavierStokesBase::projector     = 0;
 MacProj*    NavierStokesBase::mac_projector = 0;
@@ -384,8 +383,6 @@ NavierStokesBase::variableCleanUp ()
 {
     desc_lst.clear();
     derive_lst.clear();
-
-    err_list.clear();
 
     delete projector;
     projector = 0;
