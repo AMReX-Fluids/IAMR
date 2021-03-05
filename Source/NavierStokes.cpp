@@ -249,21 +249,6 @@ NavierStokes::Initialize_specific ()
 	}
       }
     }
-    
-    //fixme
-    for (OrientationIter face; face; ++face)
-    {
-      int ori = int(face());
-      Print()<<face()<<" : \n"
-	     <<"   vel = "<<m_bc_values[ori][0]<<" "<<m_bc_values[ori][1]<<"\n"
-	     <<"   den = "<<m_bc_values[ori][Density]<<"\n";
-      for ( int nc = 0; nc < ntrac; nc++ )
-	Print()<<"   trc = "<<m_bc_values[ori][Tracer+nc]<<"\n";
-      if (do_temp)
-	Print()<<"   tmp = "<<m_bc_values[ori][Temp];
-      Print()<<std::endl;
-      Print()<<std::endl;
-    }
 
     //
     // This checks for RZ and makes sure phys_bc is consistent with that.

@@ -13,8 +13,6 @@ stop_time 				= 2.0
 # Stop simulation when we reach steady-state?
 ns.stop_when_steady 	= 0
 ns.steady_tol 			= 1.0e-5
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
 
 #*******************************************************************************
 # CFL 
@@ -23,7 +21,7 @@ ns.do_tracer_ref = 1
 ns.cfl  		= 0.5  # CFL number used to set dt
 ns.init_shrink       	= 1.0  # factor which multiplies the very first time step
 #ns.change_max 	      	= 1.1  # maximum change for dt (NOTE: does not seem to be implemented)
-ns.init_iter 	      	= 0 #1    # number of initial iterations
+ns.init_iter 	      	= 1    # number of initial iterations
 ns.do_init_proj = 1
 
 #*******************************************************************************
@@ -92,8 +90,10 @@ prob.density_ic = 1.0
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		 	= 0
-# Refinement criterion
-ns.do_tracer_ref 		= 1
+# Refinement criterion, presence of tracer
+amr.refinement_indicators = tracer
+amr.tracer.value_greater  = 0.5
+amr.tracer.field_name     = tracer
 # Interval (in number of level l timesteps) between regridding
 amr.regrid_int			= 1 
 # Refinement ratio as a function of level

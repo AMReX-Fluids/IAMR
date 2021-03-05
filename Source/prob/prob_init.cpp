@@ -377,6 +377,8 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
 //     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
 //     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
 //     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
+// In 3D, the exact solution is
+//
 // In Exec/benchmarks, there is a tool ViscBench2d.cpp that reads a
 // plot file and compares the solution against this exact solution.
 // This benchmark was originally derived by G.I. Taylor (Phil. Mag.,
@@ -485,17 +487,4 @@ void NavierStokes::init_Euler (Box const& vbx,
       scal(i,j,k,nt) = 1.0;
     }
   });
-}
-
-//
-// FIXME - currently AMReX requires this. Not sure how to skip
-// Amr::readProbinFile(), short of amr.probin_file = "" in every inputs file
-//
-extern "C" {
-    void amrex_probinit (const int* init,
-                         const int* name,
-                         const int* namelen,
-                         const amrex_real* problo,
-                         const amrex_real* probhi)
-    {}
 }

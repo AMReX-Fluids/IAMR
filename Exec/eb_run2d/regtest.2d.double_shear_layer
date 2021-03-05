@@ -12,8 +12,6 @@ stop_time 				= 2.0
 # Stop simulation when we reach steady-state?
 ns.stop_when_steady 	= 0
 ns.steady_tol 			= 1.0e-5
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
 
 #*******************************************************************************
 # CFL 
