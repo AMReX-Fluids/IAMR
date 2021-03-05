@@ -91,7 +91,7 @@ NavierStokes::Initialize_specific ()
     ParmParse pp("ns");
 
     //
-    // Check for interger BC specification in inputs file (older style)
+    // Check for integer BC type specification in inputs file (older style)
     //
     if ( pp.contains("lo_bc") )
     {
@@ -113,9 +113,9 @@ NavierStokes::Initialize_specific ()
       
       auto f = [&bc_tmp] (std::string const& bcid, Orientation ori)
       {	  
-	  ParmParse pp(bcid);
+	  ParmParse pbc(bcid);
 	  std::string bc_type_in = "null";
-	  pp.query("type", bc_type_in);
+	  pbc.query("type", bc_type_in);
 	  std::string bc_type = amrex::toLower(bc_type_in);
 
 	  if (bc_type == "no_slip_wall" or bc_type == "nsw")
@@ -127,7 +127,7 @@ NavierStokes::Initialize_specific ()
 	      // Note that m_bc_velocity defaults to 0 above so we are ok if
 	      //      queryarr finds nothing
 	      std::vector<Real> v;
-	      if (pp.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
+	      if (pbc.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
 		// Here we make sure that we only use the tangential components
 		//      of a specified velocity field -- the wall is not allowed
 		//      to move in the normal direction
@@ -155,21 +155,21 @@ NavierStokes::Initialize_specific ()
 	      bc_tmp[ori] = PhysBCType::inflow;
 
 	      std::vector<Real> v;
-	      if (pp.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
+	      if (pbc.queryarr("velocity", v, 0, AMREX_SPACEDIM)) {
 		for (int i=0; i<AMREX_SPACEDIM; i++){
 		  m_bc_values[ori][Xvel+i] = v[i];
 		}
 	      }
 
-	      pp.query("density", m_bc_values[ori][Density]);
-	      pp.query("tracer", m_bc_values[ori][Tracer]);
+	      pbc.query("density", m_bc_values[ori][Density]);
+	      pbc.query("tracer", m_bc_values[ori][Tracer]);
 	      if (do_trac2) {
-		if ( pp.countval("tracer") > 1 )
+		if ( pbc.countval("tracer") > 1 )
 		  amrex::Abort("NavierStokes::Initialize_specific: Please set tracer 2 inflow bc value with it's own entry in inputs file, e.g. xlo.tracer2 = bc_value");
-		pp.query("tracer2", m_bc_values[ori][Tracer2]);
+		pbc.query("tracer2", m_bc_values[ori][Tracer2]);
 	      }
 	      if (do_temp)
-		pp.query("temp", m_bc_values[ori][Temp]);
+		pbc.query("temp", m_bc_values[ori][Temp]);
 	  }
 	  else if (bc_type == "pressure_inflow" or bc_type == "pi")
 	  {
@@ -179,7 +179,7 @@ NavierStokes::Initialize_specific ()
 
 	      // bc_tmp[ori] = PhysBCType::pressure_inflow;
 
-	      // pp.get("pressure", m_bc_pressure[ori]);
+	      // pbc.get("pressure", m_bc_pressure[ori]);
 	  }
 	  else if (bc_type == "pressure_outflow" or bc_type == "po")
           {
@@ -187,9 +187,9 @@ NavierStokes::Initialize_specific ()
 
 	      bc_tmp[ori] = PhysBCType::outflow;
 
-	      //pp.get("pressure", m_bc_pressure[ori]);
+	      //pbc.get("pressure", m_bc_pressure[ori]);
 	      Real tmp;
-	      pp.get("pressure", tmp);
+	      pbc.get("pressure", tmp);
 
 	      if ( tmp != 0. )
 		amrex::Abort("NavierStokes::Initialize_specific: Pressure outflow boundary condition != 0 not yet implemented. If needed for your simulation, please contact us.");
@@ -239,14 +239,17 @@ NavierStokes::Initialize_specific ()
       f("zhi", Orientation(Direction::z,Orientation::high));
 #endif
 
-      // load bc types into phys_bc
-      for (int dir = 0; dir < BL_SPACEDIM; dir++)
+      if ( bc_tmp[0] != BCType::bogus )
       {
+	// load bc types into phys_bc
+	for (int dir = 0; dir < BL_SPACEDIM; dir++)
+	{
 	  phys_bc.setLo(dir,bc_tmp[dir]);
 	  phys_bc.setHi(dir,bc_tmp[dir+AMREX_SPACEDIM]);
+	}
       }
     }
-
+    
     //fixme
     for (OrientationIter face; face; ++face)
     {
