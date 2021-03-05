@@ -118,7 +118,8 @@ NavierStokes::Initialize_specific ()
 	  pbc.query("type", bc_type_in);
 	  std::string bc_type = amrex::toLower(bc_type_in);
 
-	  if (bc_type == "no_slip_wall" or bc_type == "nsw")
+	  if (bc_type == "no_slip_wall" or bc_type == "nsw"
+	      or phys_bc.data()[ori] == PhysBCType::noslipwall)
 	  {
 	      amrex::Print() << bcid <<" set to no-slip wall.\n";
 
@@ -148,7 +149,8 @@ NavierStokes::Initialize_specific ()
 	      //      the tangential components are set to be first order extrap
 	      // m_bc_velocity[ori] = {0.0, 0.0, 0.0};
 	  }
-	  else if (bc_type == "mass_inflow" or bc_type == "mi")
+	  else if (bc_type == "mass_inflow" or bc_type == "mi"
+		   or phys_bc.data()[ori] == PhysBCType::inflow)
 	  {
 	      amrex::Print() << bcid << " set to mass inflow.\n";
 
@@ -181,15 +183,16 @@ NavierStokes::Initialize_specific ()
 
 	      // pbc.get("pressure", m_bc_pressure[ori]);
 	  }
-	  else if (bc_type == "pressure_outflow" or bc_type == "po")
+	  else if (bc_type == "pressure_outflow" or bc_type == "po"
+		   or phys_bc.data()[ori] == PhysBCType::outflow)
           {
 	      amrex::Print() << bcid << " set to pressure outflow.\n";
 
 	      bc_tmp[ori] = PhysBCType::outflow;
 
-	      //pbc.get("pressure", m_bc_pressure[ori]);
-	      Real tmp;
-	      pbc.get("pressure", tmp);
+	      //pbc.query("pressure", m_bc_pressure[ori]);
+	      Real tmp = 0.;
+	      pbc.query("pressure", tmp);
 
 	      if ( tmp != 0. )
 		amrex::Abort("NavierStokes::Initialize_specific: Pressure outflow boundary condition != 0 not yet implemented. If needed for your simulation, please contact us.");
@@ -239,16 +242,35 @@ NavierStokes::Initialize_specific ()
       f("zhi", Orientation(Direction::z,Orientation::high));
 #endif
 
-      if ( bc_tmp[0] != BCType::bogus )
+      if ( phys_bc.lo(0) == BCType::bogus )
       {
-	// load bc types into phys_bc
+	//
+	// Then valid BC types must be in bc_tmp.
+	// Load them into phys_bc.
+	//
 	for (int dir = 0; dir < BL_SPACEDIM; dir++)
 	{
 	  phys_bc.setLo(dir,bc_tmp[dir]);
 	  phys_bc.setHi(dir,bc_tmp[dir+AMREX_SPACEDIM]);
 	}
-      }
+      } // else, phys_bc already has valid BC types
     }
+
+    //fixme
+    // for (OrientationIter face; face; ++face)
+    // {
+    //   int ori = int(face());
+    //   Print()<<face()<<" : \n"
+    // 	     <<"   typ = "<<phys_bc.data()[ori]<<"\n"
+    // 	     <<"   vel = "<<m_bc_values[ori][0]<<" "<<m_bc_values[ori][1]<<"\n"
+    // 	     <<"   den = "<<m_bc_values[ori][Density]<<"\n";
+    //   for ( int nc = 0; nc < ntrac; nc++ )
+    // 	Print()<<"   trc = "<<m_bc_values[ori][Tracer+nc]<<"\n";
+    //   if (do_temp)
+    // 	Print()<<"   tmp = "<<m_bc_values[ori][Temp];
+    //   Print()<<std::endl;
+    //   Print()<<std::endl;
+    // }
 
     //
     // This checks for RZ and makes sure phys_bc is consistent with that.
