@@ -374,11 +374,9 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
 // -----------------------------------------------------------
 // This case is an unsteady viscous benchmark for which the
 // exact solution in 2D is
-//     u(x,y,t) = - Cos(Pi x) Sin(Pi y) Exp(-2 Pi^2 Nu t)
-//     v(x,y,t) =   Sin(Pi x) Cos(Pi y) Exp(-2 Pi^2 Nu t)
-//     p(x,y,t) = - {Cos(2 Pi x) + Cos(2 Pi y)} Exp(-4 Pi^2 Nu t) / 4
-// In 3D, the exact solution is
-//
+//     u(x,y,t) =   Sin(2 Pi x) Cos(2 Pi y) Exp(-2 (2Pi)^2 Nu t)
+//     v(x,y,t) = - Cos(2 Pi x) Sin(2 Pi y) Exp(-2 (2Pi)^2 Nu t)
+//     p(x,y,t) = - {Cos(4 Pi x) + Cos(4 Pi y)} Exp(-4 (2Pi)^2 Nu t) / 4
 // In Exec/benchmarks, there is a tool ViscBench2d.cpp that reads a
 // plot file and compares the solution against this exact solution.
 // This benchmark was originally derived by G.I. Taylor (Phil. Mag.,
@@ -475,7 +473,7 @@ void NavierStokes::init_Euler (Box const& vbx,
     vel(i,j,k,1) = 0.0;
     vel(i,j,k,2) = eps_input * std::exp(-beta_input * (x*x + y*y) );
 
-        //
+    //
     // Scalars, ordered as Density, Tracer(s)
     //
     scal(i,j,k,0) = IC.density;
