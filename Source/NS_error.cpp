@@ -49,22 +49,30 @@ NavierStokes::error_setup()
         }
 
         if (ppr.countval("value_greater")) {
-            Real value; ppr.get("value_greater",value);
+	    int num_val = ppr.countval("value_greater");
+	    Vector<Real> value(num_val);
+	    ppr.getarr("value_greater",value,0,num_val);
             std::string field; ppr.get("field_name",field);
             errtags.push_back(AMRErrorTag(value,AMRErrorTag::GREATER,field,info));
         }
         else if (ppr.countval("value_less")) {
-            Real value; ppr.get("value_less",value);
+	    int num_val = ppr.countval("value_less");
+	    Vector<Real> value(num_val);
+	    ppr.getarr("value_less",value,0,num_val);
             std::string field; ppr.get("field_name",field);
             errtags.push_back(AMRErrorTag(value,AMRErrorTag::LESS,field,info));
         }
         else if (ppr.countval("vorticity_greater")) {
-            Real value; ppr.get("vorticity_greater",value);
+	    int num_val = ppr.countval("vorticity_greater");
+	    Vector<Real> value(num_val);
+	    ppr.getarr("vorticity_greater",value,0,num_val);
             const std::string field="mag_vort";
             errtags.push_back(AMRErrorTag(value,AMRErrorTag::VORT,field,info));
         }
         else if (ppr.countval("adjacent_difference_greater")) {
-            Real value; ppr.get("adjacent_difference_greater",value);
+	    int num_val = ppr.countval("adjacent_difference_greater");
+	    Vector<Real> value(num_val);
+	    ppr.getarr("adjacent_difference_greater",value,0,num_val);
             std::string field; ppr.get("field_name",field);
             errtags.push_back(AMRErrorTag(value,AMRErrorTag::GRAD,field,info));
         }
