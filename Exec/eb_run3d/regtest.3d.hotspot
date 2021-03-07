@@ -25,14 +25,14 @@ amr.n_cell 		= 32 32 32 #128 128 128 #
 amr.max_level		= 2 # maximum number of levels of refinement
 
 # Refinement criterion, use temperature
-amr.refinement_indicators = hi_temp gradT
+amr.refinement_indicators = hi_temp Tdiff
 
 amr.hi_temp.max_level = 1
 amr.hi_temp.value_greater = 1.01
 amr.hi_temp.field_name = temp
 
-amr.gradT.adjacent_difference_greater = 0.005
-amr.gradT.field_name = temp
+amr.Tdiff.adjacent_difference_greater = 0.1 0.005
+amr.Tdiff.field_name = temp
 
 # allow refinement at outflow boundary
 ns.do_refine_outflow = 1

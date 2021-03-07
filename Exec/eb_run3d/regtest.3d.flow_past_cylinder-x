@@ -47,7 +47,7 @@ ns.lo_bc 	     	= 1 4 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	      	= 2 5 0
 
-xlo.velocity = 1. 0. 0.
+xlo.velocity = 10. 0. 0.
 
 # Add cylinder
 eb2.geom_type                 = cylinder

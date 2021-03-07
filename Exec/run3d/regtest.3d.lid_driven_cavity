@@ -46,7 +46,7 @@ ns.hi_bc             	=  5 5 5
 # 2 = Outflow            5 = NoSlipWall
 
 # Boundary condition
-yhi.velocity            =   1.  0.  0.
+zhi.velocity            =   1.  0.  0.
 
 # Initialize from rest with constant density = 1
 prob.probtype = 1

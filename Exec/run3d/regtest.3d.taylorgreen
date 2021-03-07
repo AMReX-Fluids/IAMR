@@ -19,7 +19,7 @@ amr.max_level		= 1 # maximum number of levels of refinement
 
 # Refinement criterion, use vorticity
 amr.refinement_indicators = vorticity
-amr.vorticity.vorticity_greater =  0.1
+amr.vorticity.vorticity_greater =  8.8
 
 #*******************************************************************************
 
