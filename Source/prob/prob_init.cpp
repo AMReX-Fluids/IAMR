@@ -65,9 +65,13 @@ void NavierStokes::prob_initData ()
     S_new.setVal(0.0);
     P_new.setVal(0.0);
 
+    // Integer indices of the lower left and upper right corners of the
+    // valid region of the entire domain.
     Box const&  domain = geom.Domain();
     auto const&     dx = geom.CellSizeArray();
+    // Physical coordinates of the lower left corner of the domain
     auto const& problo = geom.ProbLoArray();
+    // Physical coordinates of the upper right corner of the domain
     auto const& probhi = geom.ProbHiArray();
 
 #ifdef _OPENMP

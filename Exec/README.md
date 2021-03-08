@@ -1,7 +1,12 @@
 
-Included in the run directories /run2d, /run3d, /eb_run2d, and /eb_run3d
+Included in the run directories /run2d, /run3d, /eb_run2d, /eb_run3d,
+/run_2d_particles
 are sample inputs files that supply problem-dependent paramters for the
-calculations. Files starting with "regtest" are inputs files for IAMR's
+calculations.
+In the directories /eb_run2d and /eb_run3d are problems with embedded
+boundaries, and /run_2d_particles provides an example of using pasively
+advected particles. 
+Files starting with "regtest" are inputs files for IAMR's
 regression tests. IAMR/Test/README.md has more information about the
 regression tests, including how to set them up for your own IAMR fork.
 Note that the regression tests are designed to test the code, and
@@ -9,8 +14,9 @@ therefore might not always use the more physically meaningful parameters.
 
 There are a large number of options which can be specified from the inputs,
 as well as significant changes which can be made with relatively small
-changes to the program files, especially /Source/prob/prob_init.cpp and
-/Source/NS_setup.cpp. Most of the options which can be specified from the
+changes to the program files, especially /Source/prob/prob_init.cpp
+(see IAMR/UsersGuide for more thurough information).
+Most of the options which can be specified from the
 inputs files are left to their default values in the sample calculations.
 
 As a starting point for code changes: the initial data are specified 
@@ -20,10 +26,10 @@ set in the inputs file selects between these subroutines.  You may also,
 of course, write your own by modifying prob_init.cpp.
 
 The criteria used for error estimation can be specified in the inputs file
-for some of the most common choices (see Documentation), or more specialized
+for some of the most common choices (see IAMR/UsersGuide), or more specialized
 choices can be defined in NS_error.cpp. The estimation can depend on any or
 all of the state variables or derived quantities, which are specified in
-NS_setup.cpp.
+NS_setup.cpp and defined in NS_derive.cpp.
 
 This code is a research code, and is continually being modified and 
 improved  as our needs evolve.   Because the list of options is so 

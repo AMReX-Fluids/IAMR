@@ -12,8 +12,9 @@ using namespace amrex;
 static Box the_same_box (const Box& b)    { return b;                 }
 static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
 
-// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc,
-//       divu_bc, dsdt_bc are now all defined in IAMR/Source/NS_BC.H
+// NOTE: the int arrays that define the mapping from physical BCs to mathematical
+// (norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc)
+// are now all defined in IAMR/Source/NS_BC.H
 
 static
 void

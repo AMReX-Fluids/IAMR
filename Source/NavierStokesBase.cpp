@@ -446,7 +446,7 @@ NavierStokesBase::Initialize ()
 	 pp.contains("do_tracer_ref") ||
 	 pp.contains("do_tracer2_ref") ||
 	 pp.contains("do_vorticity_ref") )
-      amrex::Abort("ns.do_*_ref no longer valid. Refinement now implemented using refinement_indicators. For help, see Documentation or examples in /Exec");
+      amrex::Abort("ns.do_*_ref no longer supported. Refinement now implemented using refinement_indicators. For help, see UsersGuide or examples in /Exec");
 
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
