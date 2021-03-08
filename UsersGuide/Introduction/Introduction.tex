@@ -8,6 +8,10 @@ The core libraries for managing the subcycling AMR
 grids and communication are found in the \amrex\ library
 (see \url{https://github.com/AMReX-Codes/amrex}).
 
+Since \iamr\ leaverages heavily from the \amrex\ library,
+it's documentation (at https://amrex-codes.github.io/amrex/docs\_html/index.html)
+is a useful resource in addition to this User's Guide.
+
 The algorithm is described in the following paper (and references therein):
 \begin{itemize}
 
@@ -20,13 +24,13 @@ J.~Comp.~Phys., 142, pp. 1-46, 1998.
 
 Key software and algorithmic features of \iamr\ include:
 \begin{itemize}
-\item Written in {\sf cpp} and {\sf Fortran}.
 \item 2- and 3-D support
 \item Optional subcycling in time
 \item Support for particles
-\item Parallelization via flat MPI, hybrid MPI/OpenMP, or MPI/MPI
-\item Parallel I/O
-\item Plotfile format supported by {\tt VisIt}, {\tt yt}, and {\tt AmrVis}
+\item Representation of the complex geometry using the embedded boundary, or cut-cell, approach
+\item Hybrid parallelization via MPI+X where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems
+\item Parallel I/O using AMReX native I/O or HDF5
+\item Plotfile format supported by {\tt VisIt}, {\tt ParaView}, {\tt yt}, and {\tt AmrVis}
 \item Second-order projection methodology for enforcing the incompressibility constraint
 \item Several higher-order Godunov integration schemes for advection.
 \item Implicit viscosity
