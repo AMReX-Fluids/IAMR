@@ -35,7 +35,7 @@ static int tang_gradp_bc[] =
 
 static int temp_bc[] =
 {
-    INT_DIR, EXT_DIR, HOEXTRAP, REFLECT_EVEN, REFLECT_EVEN, FOEXTRAP
+    INT_DIR, EXT_DIR, HOEXTRAP, REFLECT_EVEN, REFLECT_EVEN, REFLECT_EVEN
 };
 
 static int divu_bc[] =
