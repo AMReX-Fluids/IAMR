@@ -16,8 +16,12 @@ using namespace amrex;
 //
 struct stateFill
 {
+    amrex::GpuArray<amrex::GpuArray<amrex::Real, NavierStokes::NUM_STATE_MAX>, AMREX_SPACEDIM*2> bcv;
+
     AMREX_GPU_HOST
-    constexpr stateFill () {}
+    constexpr stateFill ( amrex::GpuArray<amrex::GpuArray<amrex::Real, NavierStokes::NUM_STATE_MAX>,
+			                  AMREX_SPACEDIM*2> const& a_bcv)
+        : bcv(a_bcv) {}
 
 // iv                  : Cell index
 // dest, dcomp, numcomp: Fill numcomp components of dest starting from dcomp.
@@ -32,9 +36,8 @@ struct stateFill
     {
         using namespace amrex;
 
-	auto bcv = NavierStokes::get_bc_values();
-	
         // do something for external Dirichlet (BCType::ext_dir)
+
         const int i = iv[0];
         const int j = iv[1];
 #if (AMREX_SPACEDIM == 3)
@@ -87,7 +90,7 @@ void state_fill (Box const& bx, FArrayBox& data,
                  const Vector<BCRec>& bcr, const int bcomp,
                  const int scomp)
 {
-        GpuBndryFuncFab<stateFill> gpu_bndry_func(stateFill{});
+        GpuBndryFuncFab<stateFill> gpu_bndry_func(stateFill{NavierStokes::get_bc_values()});
         gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 
 }
@@ -99,10 +102,13 @@ void state_fill (Box const& bx, FArrayBox& data,
 struct velFill
 {
     int probtype;
+  amrex::GpuArray<amrex::GpuArray<amrex::Real, NavierStokes::NUM_STATE_MAX>, AMREX_SPACEDIM*2> bcv;
 
     AMREX_GPU_HOST
-    constexpr velFill (int a_probtype)
-      : probtype(a_probtype) {}
+    constexpr velFill (int a_probtype,
+		       amrex::GpuArray<amrex::GpuArray<amrex::Real, NavierStokes::NUM_STATE_MAX>,
+			                  AMREX_SPACEDIM*2> const& a_bcv)
+      : probtype(a_probtype), bcv(a_bcv) {}
 
     AMREX_GPU_DEVICE
     void operator() (const amrex::IntVect& iv, amrex::Array4<amrex::Real> const& vel,
@@ -114,9 +120,7 @@ struct velFill
         using namespace amrex;
 
 	// do something for external Dirichlet (BCType::ext_dir)
-	
-	auto bcv = NavierStokes::get_bc_values();
-			
+		
         const int i = iv[0];
         const int j = iv[1];
 #if (AMREX_SPACEDIM == 3)
@@ -182,7 +186,8 @@ void vel_fill (Box const& bx, FArrayBox& data,
 	       const int scomp)
 {
 
-    GpuBndryFuncFab<velFill> gpu_bndry_func(velFill{NavierStokes::probtype});
+    GpuBndryFuncFab<velFill> gpu_bndry_func(velFill{NavierStokes::probtype,
+	  NavierStokes::get_bc_values()});
     gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 
 }

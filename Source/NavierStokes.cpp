@@ -44,7 +44,7 @@ namespace
 
 Vector<AMRErrorTag> NavierStokes::errtags;
 //FIXME - see NS.H
-GpuArray<GpuArray<Real, AMREX_SPACEDIM+4>, AMREX_SPACEDIM*2> NavierStokes::m_bc_values;
+GpuArray<GpuArray<Real, NavierStokes::NUM_STATE_MAX>, AMREX_SPACEDIM*2> NavierStokes::m_bc_values;
 
 void
 NavierStokes::Initialize ()

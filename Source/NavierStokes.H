@@ -118,9 +118,12 @@ public:
     //
     static void variableSetUp ();
 
-    // FIXME - need to size m_bc_values better.
-    //static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>, AMREX_SPACEDIM*2>
-    static auto get_bc_values () { return m_bc_values; }
+    // FIXME? - size m_bc_values better.
+    // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
+    static constexpr int NUM_STATE_MAX = AMREX_SPACEDIM+4;
+    static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>, AMREX_SPACEDIM*2>
+    //static auto
+    get_bc_values () { return m_bc_values; }
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public functions                                       //
@@ -226,9 +229,10 @@ private:
     //
     // Hold external Dirichlet BC values
     //
-    // FIXME - dymanic size needed here. And fix in NavierStokes.cpp as well!
+    // FIXME? - dymanic size. And fix in NavierStokes.cpp NS_bcfill as well!
     // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
-    static amrex::GpuArray<amrex::GpuArray<amrex::Real, AMREX_SPACEDIM+4>,
+    //static amrex::GpuArray<amrex::GpuArray<amrex::Real, AMREX_SPACEDIM+4>,
+    static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>,
     			   AMREX_SPACEDIM*2> m_bc_values;
 };
 
