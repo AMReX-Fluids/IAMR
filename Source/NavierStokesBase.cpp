@@ -3307,10 +3307,10 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
 #ifdef AMREX_USE_EB
          EBFArrayBox fdata(flags[mfi],bx,num_comp,FineSync[mfi].arena());
+	 Elixir fdata_i = fdata.elixir();
 #else
-         FArrayBox fdata(bx, num_comp);
+         FArrayBox fdata(bx, num_comp, The_Async_Arena());
 #endif
-         Elixir fdata_i = fdata.elixir();
 
          //
          // Set the boundary condition array for interpolation.
@@ -3427,8 +3427,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
     for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	const Box&  bx     = mfi.tilebox();
-	FArrayBox fine_phi(bx,1);
-	Elixir fine_phi_i = fine_phi.elixir();
+	FArrayBox fine_phi(bx,1,The_Async_Arena());
 	node_bilinear_interp.interp(crse_phi[mfi],0,fine_phi,0,1,
 				    fine_phi.box(),ratio,cgeom,fgeom,bc,
 				    0,Press_Type,RunOn::Gpu);
@@ -3782,7 +3781,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         // Average the new and old time to get Crank-Nicholson half time approximation.
         //
         auto const& scal = ScalFAB.array();
-        Elixir scal_i = ScalFAB.elixir();
+	Elixir scal_i = ScalFAB.elixir(); //FIX ME problem here if using The_Async_Arena
         auto const& scal_o = U_old.array(mfi,Density);
         auto const& scal_n = U_new.array(mfi,Density);
         const int numscal = NUM_SCALARS;
@@ -3797,7 +3796,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         tforces.resize(bx,AMREX_SPACEDIM);
-        Elixir tf_i = tforces.elixir();
+	Elixir tf_i = tforces.elixir(); //FIX ME problem here if using The_Async_Arena
         getForce(tforces,bx,Xvel,AMREX_SPACEDIM,half_time,VelFAB,ScalFAB,0);
 
         //

@@ -788,7 +788,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
         if (do_reflux)
         {
 
-	  FArrayBox fluxtot;
 	  for (int d = 0; d < BL_SPACEDIM; d++)
           {
 	    MultiFab fluxes;
@@ -802,8 +801,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
 	    {
 	      const Box& ebox = (*fluxn[d])[fmfi].box();
 
-	      fluxtot.resize(ebox,1);
-	      Elixir fdata_i = fluxtot.elixir();
+              FArrayBox fluxtot(ebox, 1, The_Async_Arena());
 
 	      auto const& ftot = fluxtot.array();
 	      auto const& fn   = fluxn[d]->array(fmfi);
