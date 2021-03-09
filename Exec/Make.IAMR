@@ -11,6 +11,7 @@ Bdirs += Source/MOL
 Bdirs += Source/Godunov
 ifeq ($(USE_EB), TRUE)
 Bdirs += Source/EBGodunov
+Bdirs += Source/Redistribution
 endif
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
