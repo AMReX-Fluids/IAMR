@@ -2,6 +2,7 @@
 #include <iamr_constants.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_MultiCutFab.H>
+#include <iamr_redistribution.H>
 #endif
 
 using namespace amrex;
@@ -42,7 +43,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
     if ( !known_edgestate )
       // To compute edge states, need at least 2 more ghost cells in state than in
-      //  xedge 
+      //  xedge
       AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
 #ifdef AMREX_USE_EB
@@ -140,11 +141,11 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	      tmpbox = amrex::surroundingNodes(gbx);
 	      // Not sure if we really need 3(incflo) here or 2
 	      int ng_diff = 3-ng_f;
-	      if ( ng_diff>0 )  
+	      if ( ng_diff>0 )
 		tmpbox.grow(ng_diff);
 
 	      // Add space for the temporaries needed by Redistribute
-#if (AMREX_SPACEDIM == 3)	      
+#if (AMREX_SPACEDIM == 3)
 	      tmpcomp += ncomp;
 #else
 	      tmpcomp += 2*ncomp;
@@ -156,7 +157,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	    D_TERM( Array4<Real> fxtmp = tmpfab.array(0);,
 		    Array4<Real> fytmp = tmpfab.array(ncomp);,
 		    Array4<Real> fztmp = tmpfab.array(ncomp*2););
-	
+
 #ifdef AMREX_USE_EB
             if (!regular)
             {
@@ -206,9 +207,10 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
                 // Redistribute
 		Array4<Real> scratch = tmpfab.array(0);
-                Redistribute(bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr, scratch,
-			     flag, vfrac, geom);
-
+                Redistribution::Apply( bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr,
+                                       state.const_array(mfi, state_comp), scratch, flag,
+                                       AMREX_D_DECL(apx,apy,apz), vfrac,
+                                       AMREX_D_DECL(fx,fy,fz), ccc, geom, 1.0, "FluxRedist");
             }
             else
 #endif
@@ -279,7 +281,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
     if ( !known_edgestate )
       // To compute edge states, need at least 2 more ghost cells in state than in
-      //  xedge 
+      //  xedge
       AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
 #ifdef AMREX_USE_EB
@@ -310,7 +312,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
         D_TERM( Array4<Real> fx = xfluxes.array(mfi,fluxes_comp);,
                 Array4<Real> fy = yfluxes.array(mfi,fluxes_comp);,
                 Array4<Real> fz = zfluxes.array(mfi,fluxes_comp););
-	
+
 	D_TERM( Array4<Real> xed = xedge.array(mfi,edge_comp);,
 		Array4<Real> yed = yedge.array(mfi,edge_comp);,
 		Array4<Real> zed = zedge.array(mfi,edge_comp););
@@ -368,7 +370,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	      tmpbox.grow(3);
 
 	      // Add space for the temporaries needed by Redistribute
-#if (AMREX_SPACEDIM == 3)	      
+#if (AMREX_SPACEDIM == 3)
 	      tmpcomp += ncomp;
 #else
 	      tmpcomp += 2*ncomp;
@@ -433,8 +435,10 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
                 // Redistribute
 		Array4<Real> scratch = tmpfab.array(0);
-                Redistribute(bx, ncomp, divtmp_redist_arr, divtmp_arr, scratch,
-			     flag, vfrac, geom);
+                Redistribution::Apply( bx, ncomp,  divtmp_redist_arr, divtmp_arr,
+                                       state.const_array(mfi, state_comp), scratch, flag,
+                                       AMREX_D_DECL(apx,apy,apz), vfrac,
+                                       AMREX_D_DECL(fx,fy,fz), ccc, geom, 1.0, "FluxRedist");
 
                 // Sum contribution to sync aofs
                 auto const& aofs_arr = aofs.array(mfi, aofs_comp);
@@ -745,126 +749,6 @@ MOL::EB_ComputeDivergence ( Box const& bx,
     });
 
 }
-
-void
-MOL::Redistribute (  Box const& bx, int ncomp,
-                     Array4<Real> const& div,
-                     Array4<Real const> const& div_in,
-		     Array4<Real> const& scratch,
-                     Array4<EBCellFlag const> const& flag,
-                     Array4<Real const> const& vfrac,
-                     Geometry const& geom )
-{
-    const Box dbox = geom.growPeriodicDomain(2);
-
-    Box const& bxg1 = amrex::grow(bx,1);
-    Box const& bxg2 = amrex::grow(bx,2);
-
-    // Temporaries
-    Array4<Real>  tmp(scratch, 0);
-    Array4<Real>  delm(scratch, ncomp);
-    Array4<Real>  wgt(scratch, 2*ncomp);
-
-    // Weight by EB volume fraction
-    amrex::ParallelFor(bxg2, [wgt,dbox,vfrac]
-    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        wgt(i,j,k) = (dbox.contains(IntVect(D_DECL(i,j,k)))) ? vfrac(i,j,k) : 0.0;
-    });
-
-    amrex::ParallelFor(bxg1, ncomp, [flag, dbox, vfrac, div_in, tmp, delm, wgt]
-    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        if (flag(i,j,k).isSingleValued()) {
-            Real vtot = 0.0;
-            Real divnc = 0.0;
-#if (AMREX_SPACEDIM==3)
-            for (int kk = -1; kk <= 1; ++kk)
-#else
-                const int kk = 0;
-#endif
-            {
-                for (int jj = -1; jj <= 1; ++jj)
-                {
-                    for (int ii = -1; ii <= 1; ++ii)
-                    {
-                        if ( (ii != 0 or jj != 0 or kk != 0) and
-                             flag(i,j,k).isConnected(ii,jj,kk) and
-                             dbox.contains(IntVect(D_DECL(i+ii,j+jj,k+kk))))
-                        {
-                            Real wted_vf = vfrac(i+ii,j+jj,k+kk) * wgt(i+ii,j+jj,k+kk);
-                            vtot += wted_vf;
-                            divnc += wted_vf * div_in(i+ii,j+jj,k+kk,n);
-                        }
-                    }
-                }
-            }
-            divnc /= (vtot + 1.e-80);
-            Real optmp = (1.0-vfrac(i,j,k))*(divnc-div_in(i,j,k,n));
-            tmp(i,j,k,n) = optmp;
-            delm(i,j,k,n) = -vfrac(i,j,k)*optmp;
-        }
-        else
-        {
-            tmp(i,j,k,n) = 0.0;
-        }
-    });
-
-    amrex::ParallelFor(bxg1 & dbox, ncomp, [flag, vfrac, wgt, bx, tmp, delm]
-    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        if (flag(i,j,k).isSingleValued())
-        {
-            Real wtot = 0.0;
-#if (AMREX_SPACEDIM==3)
-            for (int kk = -1; kk <= 1; ++kk)
-#else
-                const int kk = 0;
-#endif
-            {
-                for (int jj = -1; jj <= 1; ++jj)
-                {
-                    for (int ii = -1; ii <= 1; ++ii)
-                    {
-                        if ((ii != 0 or jj != 0 or kk != 0) and
-                            flag(i,j,k).isConnected(ii,jj,kk))
-                        {
-                            wtot += vfrac(i+ii,j+jj,k+kk) * wgt(i+ii,j+jj,k+kk);
-                        }
-                    }
-                }
-            }
-
-            wtot = 1.0/(wtot+1.e-80);
-
-            Real dtmp = delm(i,j,k,n) * wtot;
-#if (AMREX_SPACEDIM==3)
-            for (int kk = -1; kk <= 1; ++kk)
-#endif
-            {
-                for (int jj = -1; jj <= 1; ++jj)
-                {
-                    for (int ii = -1; ii <= 1; ++ii)
-                    {
-                        if ((ii != 0 or jj != 0 or kk != 0) and
-                            bx.contains(IntVect(D_DECL(i+ii,j+jj,k+kk))) and
-                            flag(i,j,k).isConnected(ii,jj,kk))
-                        {
-                            Gpu::Atomic::Add(&tmp(i+ii,j+jj,k+kk,n), dtmp*wgt(i+ii,j+jj,k+kk));
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    amrex::ParallelFor(bx, ncomp, [div, div_in, tmp]
-    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        div(i,j,k,n) = div_in(i,j,k,n) + tmp(i,j,k,n);
-    });
-}
-
 
 void
 MOL::EB_AreaWeightFluxes ( D_DECL( Box const& xbx,

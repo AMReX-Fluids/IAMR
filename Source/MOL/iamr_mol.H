@@ -167,14 +167,6 @@ namespace MOL {
                                 const amrex::Geometry&  geom,
                                 const amrex::BCRec* bcs );
 
-    void Redistribute (  amrex::Box const& bx, int ncomp,
-                         amrex::Array4<amrex::Real> const& div,
-                         amrex::Array4<amrex::Real const> const& div_in,
-			 amrex::Array4<amrex::Real> const& scratch,
-                         amrex::Array4<amrex::EBCellFlag const> const& flag,
-                         amrex::Array4<amrex::Real const> const& vfrac,
-                         amrex::Geometry const& geom );
-
     void EB_AreaWeightFluxes ( D_DECL( const amrex::Box& xbx,
 				       const amrex::Box& ybx,
 				       const amrex::Box& zbx),

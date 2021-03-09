@@ -1,6 +1,6 @@
 #include <iamr_ebgodunov.H>
 #include <iamr_godunov.H>
-#include <iamr_mol.H>
+#include <iamr_redistribution.H>
 // #include <NS_util.H>
 
 using namespace amrex;
@@ -155,8 +155,10 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                           vfrac_arr, ncomp, geom );
 
             Array4<Real> scratch = tmpfab.array(0);
-            MOL::Redistribute(bx, ncomp, aofs.array(mfi,aofs_comp), divtmp_arr, scratch,
-                              flags_arr, vfrac_arr, geom );
+            Redistribution::Apply( bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr,
+                                   state.const_array(mfi, state_comp), scratch, flags_arr,
+                                   AMREX_D_DECL(apx,apy,apz), vfrac_arr,
+                                   AMREX_D_DECL(fx,fy,fz), ccent_arr, geom, 1.0, "FluxRedist");
 
         }
 
@@ -329,9 +331,11 @@ EBGodunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncom
                                           vfrac_arr, ncomp, geom );
 
             Array4<Real> scratch = tmpfab.array(0);
-            MOL::Redistribute(bx, ncomp, divtmp_redist_arr, divtmp_arr, scratch,
-                              flags_arr, vfrac_arr, geom );
 
+            Redistribution::Apply( bx, ncomp, divtmp_redist_arr, divtmp_arr,
+                                   state.const_array(mfi, state_comp), scratch, flags_arr,
+                                   AMREX_D_DECL(apx,apy,apz), vfrac_arr,
+                                   AMREX_D_DECL(fx,fy,fz), ccent_arr, geom, 1.0, "FluxRedist");
 
             // Sum contribution to sync aofs
             auto const& aofs_arr = aofs.array(mfi, aofs_comp);
