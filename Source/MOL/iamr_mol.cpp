@@ -210,7 +210,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 Redistribution::Apply( bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr,
                                        state.const_array(mfi, state_comp), scratch, flag,
                                        AMREX_D_DECL(apx,apy,apz), vfrac,
-                                       AMREX_D_DECL(fx,fy,fz), ccc, geom, 1.0, "FluxRedist");
+                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, 1.0, "FluxRedist");
             }
             else
 #endif
@@ -438,7 +438,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 Redistribution::Apply( bx, ncomp,  divtmp_redist_arr, divtmp_arr,
                                        state.const_array(mfi, state_comp), scratch, flag,
                                        AMREX_D_DECL(apx,apy,apz), vfrac,
-                                       AMREX_D_DECL(fx,fy,fz), ccc, geom, 1.0, "FluxRedist");
+                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, 1.0, "FluxRedist");
 
                 // Sum contribution to sync aofs
                 auto const& aofs_arr = aofs.array(mfi, aofs_comp);
