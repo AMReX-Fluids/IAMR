@@ -22,7 +22,8 @@ namespace MOL {
                        int fluxes_comp,
                        amrex::Vector<amrex::BCRec> const& bcs,
 		                     amrex::BCRec  const* d_bcrec_ptr,
-                       amrex::Geometry const& geom);
+                       amrex::Geometry const& geom,
+                       amrex::Real dt );
 
     void ComputeSyncAofs ( amrex::MultiFab& aofs, int aofs_comp, int ncomp,
                            amrex::MultiFab const& state, int state_comp,
@@ -43,7 +44,8 @@ namespace MOL {
                            int fluxes_comp,
                            amrex::Vector<amrex::BCRec> const& bcs,
 			   amrex::BCRec  const* d_bcrec_ptr,
-                           amrex::Geometry const& geom);
+                           amrex::Geometry const& geom,
+                           amrex::Real dt );
 
 
     void ComputeEdgeState (amrex::Box const& a_bx,

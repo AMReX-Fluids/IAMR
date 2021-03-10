@@ -670,7 +670,7 @@ MacProj::mac_sync_compute (int                   level,
                                      D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                      D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                      D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     math_bcs, &d_bcrec_ptr[sync_comp], geom  );
+                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, dt  );
             }
         }
     }
@@ -944,7 +944,7 @@ MacProj::mac_sync_compute (int                    level,
 			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
 			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-			     bcs, d_bcrec_ptr, geom  );
+			     bcs, d_bcrec_ptr, geom, dt  );
 
     }
 #else

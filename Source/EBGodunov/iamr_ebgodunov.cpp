@@ -158,7 +158,7 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
             Redistribution::Apply( bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr,
                                    state.const_array(mfi, state_comp), scratch, flags_arr,
                                    AMREX_D_DECL(apx,apy,apz), vfrac_arr,
-                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, 1.0, "FluxRedist");
+                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt, "FluxRedist");
 
         }
 
@@ -335,7 +335,7 @@ EBGodunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncom
             Redistribution::Apply( bx, ncomp, divtmp_redist_arr, divtmp_arr,
                                    state.const_array(mfi, state_comp), scratch, flags_arr,
                                    AMREX_D_DECL(apx,apy,apz), vfrac_arr,
-                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, 1.0, "FluxRedist");
+                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt, "FluxRedist");
 
             // Sum contribution to sync aofs
             auto const& aofs_arr = aofs.array(mfi, aofs_comp);
