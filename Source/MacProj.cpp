@@ -929,13 +929,11 @@ MacProj::mac_sync_compute (int                    level,
     //
     // Compute the mac sync correction.
     //
-#ifdef AMREX_USE_EB
-    //
-    // EB algorithm
-    //
-    // Use a block here so all temporaries will go out of scope once
-    // it is done being executed
+    if (!ns_level.use_godunov)
     {
+        //
+        // MOL algorithm
+        //
 
         const Box& domain = geom.Domain();
 
@@ -953,33 +951,45 @@ MacProj::mac_sync_compute (int                    level,
 #ifdef AMREX_USE_EB
                              , ns_level.redistribution_type
 #endif
-                             );
+            );
 
     }
+    else
+    {
+        //
+        // Godunov algorithm
+        //
+
+        // Bogus arguments -- they will not be used since we don't need to recompute the edge states
+        BCRec  const* d_bcrec_ptr = NULL;
+        Gpu::DeviceVector<int> iconserv;
+
+#ifdef AMREX_USE_EB
+        EBGodunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+                                   MultiFab(), s_ind,                      // this is not used when known_edgestate = true
+                                   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+                                   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                   AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+                                   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+                                   MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
+                                   {}, NULL,
+                                   geom, iconserv, dt, true,
+                                   ns_level.redistribution_type);
 #else
-    //
-    // non-EB algorithm
-    //
-
-    // Bogus arguments -- they will not be used since we don't need to recompute the edge states
-    BCRec  const* d_bcrec_ptr = NULL;
-    Gpu::DeviceVector<int> iconserv;
-
-    Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
-                             MultiFab(), s_ind,                      // this is not used when known_edgestate = true
-                             AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                             AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                             AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                             AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                             MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                             d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
-
-
-
+        Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+                                 MultiFab(), s_ind,                      // this is not used when known_edgestate = true
+                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                 AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+                                 AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+                                 MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
+                                 d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
 #endif
 
-            if (level > 0 && update_fluxreg)
-            {
+    }
+
+    if (level > 0 && update_fluxreg)
+    {
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
