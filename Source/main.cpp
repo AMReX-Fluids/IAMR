@@ -76,9 +76,9 @@ main (int   argc,
     // CNS::numGrow()= 5
     //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
     // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var?
-    // 4 ghost nodes would be enough for EB-MOL, but 5 are necessary for
-    // EB-godunov so we will use 5.
-    AmrLevel::SetEBMaxGrowCells(5,5,5);
+    // 4 ghost nodes would be enough for EB-MOL, but 6 are necessary for
+    // EB-godunov when StateRedist is used so we will use 6.
+    AmrLevel::SetEBMaxGrowCells(6,6,6);
 
     //decide who should own max_coasening_level later
     int max_coarsening_level = 100;
