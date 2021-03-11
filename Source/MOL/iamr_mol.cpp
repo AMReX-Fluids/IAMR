@@ -47,16 +47,10 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
             AMREX_ALWAYS_ASSERT(yfluxes.nGrow() == yedge.nGrow());,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
     if ( !known_edgestate )
-      // To compute edge states, need at least 2 more ghost cells in state than in
-      //  xedge
-      AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
-    // We need at least two ghost nodes for redistribution
-    D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
+
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
@@ -291,17 +285,10 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nGrow() == xedge.nGrow());,
             AMREX_ALWAYS_ASSERT(yfluxes.nGrow() == yedge.nGrow());,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
-    if ( !known_edgestate )
-      // To compute edge states, need at least 2 more ghost cells in state than in
-      //  xedge
-      AMREX_ALWAYS_ASSERT(state.nGrow() >= xedge.nGrow()+2);
 
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
     // We need at least two ghost nodes for redistribution
-    D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif

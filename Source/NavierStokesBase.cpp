@@ -3528,7 +3528,7 @@ NavierStokesBase::velocity_advection (Real dt)
         MultiFab edgestate[AMREX_SPACEDIM];
 
 
-        int nghost = 2;  // Do we need 2 also for non EB???
+        int nghost = nghost_state()-1;
         for (int i = 0; i < AMREX_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
@@ -4903,16 +4903,27 @@ int
 NavierStokesBase::nghost_state ()
 {
 #ifdef AMREX_USE_EB
-    return (use_godunov) ?  nghost_state_godunov_eb :  nghost_state_mol_eb;
+    if (use_godunov && redistribution_type == "StateRedist")
+        return 6;
+    else if (use_godunov && redistribution_type != "StateRedist")
+        return 5;
+    else if (!use_godunov && redistribution_type == "StateRedist")
+        return 5;
+    else
+        return 4;
 #endif
-    return (use_godunov) ? nghost_state_godunov :  nghost_state_mol;
+    return (use_godunov) ? 3 : 2;
 }
 
 int
 NavierStokesBase::nghost_force ()
 {
+    if (!use_godunov)
+        return 0;
 #ifdef AMREX_USE_EB
-    return (use_godunov) ?  nghost_force_godunov_eb :  nghost_force_mol_eb;
+    else if (redistribution_type == "StateRedist")
+        return 4;
 #endif
-    return (use_godunov) ? nghost_force_godunov :  nghost_force_mol;
+    else
+        return 3;
 }

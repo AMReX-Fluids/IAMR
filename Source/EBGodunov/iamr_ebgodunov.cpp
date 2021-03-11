@@ -103,7 +103,16 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 
 
             Box gbx = bx;
-            gbx.grow(2);
+            // We need 3 if we are doing state redistribution
+            if (redistribution_type == "StateRedist" ||
+                redistribution_type == "MergeRedist")
+                gbx.grow(3);
+            else if (redistribution_type == "FluxRedist")
+                gbx.grow(2);
+            else if (redistribution_type == "NoRedist")
+                gbx.grow(1);
+            else
+                amrex::Abort("Dont know this redistribution type");
 
             AMREX_D_TERM(Array4<Real const> const& fcx = fcent[0]->const_array(mfi);,
                          Array4<Real const> const& fcy = fcent[1]->const_array(mfi);,
@@ -118,6 +127,10 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
             auto const& flags_arr  = flags.const_array(mfi);
 
             int ngrow = 4;
+
+            if (redistribution_type=="StateRedist")
+                ++ngrow;
+
             FArrayBox tmpfab(amrex::grow(bx,ngrow),  (4*AMREX_SPACEDIM + 2)*ncomp);
             Elixir    eli = tmpfab.elixir();
 

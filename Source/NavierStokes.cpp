@@ -468,7 +468,7 @@ NavierStokes::scalar_advection (Real dt,
     MultiFab cfluxes[AMREX_SPACEDIM];
     MultiFab edgestate[AMREX_SPACEDIM];
 
-    int nghost = 2;  // Do we need 2 also for non EB???
+    int nghost = nghost_state()-1;  // Do we need 2 also for non EB???
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         const BoxArray& ba = getEdgeBoxArray(i);

@@ -813,10 +813,11 @@ public:
     static const int DIVU_GROW  = 1;
     static const int DSDT_GROW  = 1;
 #ifdef AMREX_USE_EB
-    // MOL doesn't require gradp ghost cells
-    static const int gradp_grow = std::max(nghost_force_godunov_eb,nghost_force_mol_eb);
+    // This must be consistent with what nghost_force returns for
+    // godunov
+    static const int gradp_grow = 4;
 #else
-    static const int gradp_grow = std::max(nghost_force_godunov,nghost_force_mol);
+    static const int gradp_grow = 3;
 #endif
 
     //
