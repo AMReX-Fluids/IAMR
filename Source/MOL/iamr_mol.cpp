@@ -26,7 +26,11 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                    Vector<BCRec> const& bcs,
 		          BCRec  const* d_bcrec_ptr,
                    Geometry const&  geom,
-                   Real dt )
+                   Real dt
+#ifdef AMREX_USE_EB
+                   , std::string redistribution_type
+#endif
+                  )
 {
     BL_PROFILE("MOL::ComputeAofs()");
 
@@ -211,7 +215,8 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 Redistribution::Apply( bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr,
                                        state.const_array(mfi, state_comp), scratch, flag,
                                        AMREX_D_DECL(apx,apy,apz), vfrac,
-                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt, "FluxRedist");
+                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt,
+                                       redistribution_type );
             }
             else
 #endif
@@ -266,7 +271,12 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                        Vector<BCRec> const& bcs,
 		              BCRec  const* d_bcrec_ptr,
                        Geometry const&  geom,
-                       Real dt )
+                       Real dt
+#ifdef AMREX_USE_EB
+                       , std::string redistribution_type
+#endif
+                  )
+
 {
     BL_PROFILE("MOL::ComputeSyncAofs()");
 
@@ -440,7 +450,8 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 Redistribution::Apply( bx, ncomp,  divtmp_redist_arr, divtmp_arr,
                                        state.const_array(mfi, state_comp), scratch, flag,
                                        AMREX_D_DECL(apx,apy,apz), vfrac,
-                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt, "FluxRedist");
+                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt,
+                                       redistribution_type );
 
                 // Sum contribution to sync aofs
                 auto const& aofs_arr = aofs.array(mfi, aofs_comp);

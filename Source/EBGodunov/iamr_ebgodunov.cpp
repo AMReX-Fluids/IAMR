@@ -29,7 +29,8 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                          Geometry const& geom,
                          Gpu::DeviceVector<int>& iconserv,
                          const Real dt,
-                         const bool is_velocity  )
+                         const bool is_velocity,
+                         std::string redistribution_type)
 {
     BL_PROFILE("EBGodunov::ComputeAofs()");
 
@@ -158,7 +159,8 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
             Redistribution::Apply( bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr,
                                    state.const_array(mfi, state_comp), scratch, flags_arr,
                                    AMREX_D_DECL(apx,apy,apz), vfrac_arr,
-                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt, "FluxRedist");
+                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt,
+                                   redistribution_type );
 
         }
 
@@ -197,7 +199,8 @@ EBGodunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncom
                              Geometry const& geom,
                              Gpu::DeviceVector<int>& iconserv,
                              const Real dt,
-                             const bool is_velocity  )
+                             const bool is_velocity,
+                             std::string redistribution_type )
 {
     BL_PROFILE("EBGodunov::ComputeAofs()");
 
@@ -335,7 +338,8 @@ EBGodunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncom
             Redistribution::Apply( bx, ncomp, divtmp_redist_arr, divtmp_arr,
                                    state.const_array(mfi, state_comp), scratch, flags_arr,
                                    AMREX_D_DECL(apx,apy,apz), vfrac_arr,
-                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt, "FluxRedist");
+                                   AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt,
+                                   redistribution_type );
 
             // Sum contribution to sync aofs
             auto const& aofs_arr = aofs.array(mfi, aofs_comp);

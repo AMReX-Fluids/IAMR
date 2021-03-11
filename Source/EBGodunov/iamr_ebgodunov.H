@@ -30,7 +30,8 @@ namespace EBGodunov {
                        amrex::Geometry const& geom,
                        amrex::Gpu::DeviceVector<int>& iconserv,
                        const amrex::Real dt,
-                       const bool is_velocity  );
+                       const bool is_velocity,
+                       std::string redistribution_type);
 
     void ComputeSyncAofs ( amrex::MultiFab& aofs, const int aofs_comp, const int ncomp,
                            amrex::MultiFab const& state, const int state_comp,
@@ -57,7 +58,8 @@ namespace EBGodunov {
                            amrex::Geometry const& geom,
                            amrex::Gpu::DeviceVector<int>& iconserv,
                            const amrex::Real dt,
-                           const bool is_velocity  );
+                           const bool is_velocity,
+                           std::string redistribution_type);
 
 
     void ComputeFluxes ( amrex::Box const& bx,

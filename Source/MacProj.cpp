@@ -670,7 +670,11 @@ MacProj::mac_sync_compute (int                   level,
                                      D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                      D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                      D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, dt  );
+                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, dt
+#ifdef AMREX_USE_EB
+                                     , ns_level.redistribution_type
+#endif
+                                     );
             }
         }
     }
@@ -836,7 +840,8 @@ MacProj::mac_sync_compute (int                   level,
                                            AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                            forcing_term, comp, *divu_fp,
                                            bcrec_ptr, d_bcrec_ptr,
-                                           geom, iconserv, dt, true);
+                                           geom, iconserv, dt, true,
+                                           ns_level.redistribution_type);
 #else
                 Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
                                          Q, comp,
@@ -944,7 +949,11 @@ MacProj::mac_sync_compute (int                    level,
 			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
 			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-			     bcs, d_bcrec_ptr, geom, dt  );
+			     bcs, d_bcrec_ptr, geom, dt
+#ifdef AMREX_USE_EB
+                             , ns_level.redistribution_type
+#endif
+                             );
 
     }
 #else
