@@ -74,8 +74,15 @@ Redistribution::MakeITracker ( Box const& bx,
 
            // We use small_norm as an offset just to break the tie when at 45 degrees ...
            // Note that x-direction is preferred, followed by y-direction
-           nz -= 2.*small_norm;
-           ny -= small_norm;
+           if (nz > 0)
+               nz -= 2.*small_norm;
+           else
+               nz += 2.*small_norm;
+
+           if (ny > 0)
+               ny -= small_norm;
+           else
+               ny += small_norm;
 
            bool xdir_mns_ok = (is_periodic_x || (i != domain.smallEnd(0)));
            bool xdir_pls_ok = (is_periodic_x || (i != domain.bigEnd(0)  ));
