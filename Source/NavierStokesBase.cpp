@@ -3654,7 +3654,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                    AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                                    forcing_term, 0, divu_fp,
                                    m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
-                                   geom, iconserv, dt, true);
+                                   geom, iconserv, dt, true, redistribution_type);
 #endif
 
         }
@@ -3668,7 +3668,11 @@ NavierStokesBase::velocity_advection (Real dt)
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt  );
+                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt
+#ifdef AMREX_USE_EB
+                             , redistribution_type
+#endif
+                             );
 
 #ifdef AMREX_USE_EB
             // don't think this is needed here any more. Godunov sets covered vals now...
