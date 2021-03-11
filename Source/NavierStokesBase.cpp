@@ -159,6 +159,7 @@ bool         NavierStokesBase::eb_initialized      = false;
 bool         NavierStokesBase::no_eb_in_domain     = true;
 bool         NavierStokesBase::body_state_set      = false;
 std::vector<Real> NavierStokesBase::body_state;
+std::string  NavierStokesBase::redistribution_type = "FluxRedist";
 #endif
 
 //
@@ -525,6 +526,8 @@ NavierStokesBase::Initialize ()
     read_particle_params ();
 #endif
 
+
+
     //
     // Get checkpoint info
     //
@@ -532,6 +535,17 @@ NavierStokesBase::Initialize ()
     pp.query("avg_in_checkpoint",   average_in_checkpoint);
 
     pp.query("use_godunov", use_godunov);
+
+    // Redistribution
+#ifdef AMREX_USE_EB
+    pp.query("redistribution_type", redistribution_type);
+    if (redistribution_type != "NoRedist" &&
+        redistribution_type != "FluxRedist" &&
+        // m_redistribution_type != "MergeRedist" &&  // Not supported for now
+        redistribution_type != "StateRedist")
+        // amrex::Abort("redistribution type must be NoRedist, FluxRedist, MergeRedist, or StateRedist");
+        amrex::Abort("redistribution type must be Noredist, FluxRedist, or StateRedist");
+#endif
 
     //
     // Get godunov options
@@ -541,6 +555,8 @@ NavierStokesBase::Initialize ()
     pp2.query("use_ppm",             godunov_use_ppm);
     pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
 #endif
+
+
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
 

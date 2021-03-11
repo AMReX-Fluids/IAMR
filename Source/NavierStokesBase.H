@@ -831,7 +831,10 @@ public:
     static const int  godunov_hyp_grow = 3;
 #endif
 
-
+#ifdef AMREX_USE_EB
+    // Controls redistribution
+    static std::string redistribution_type;
+#endif
 
   //
   // For restart, is GradP in checkpoint file
