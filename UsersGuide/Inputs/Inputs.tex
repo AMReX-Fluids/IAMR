@@ -158,7 +158,8 @@ x-direction.
 Note that \iamr\ allows walls to move tangentially, but not in the normal direction.
 
 Users can create more complex Dirichlet boundary condtions by writing
-their own fill function in {\tt NS\_bcfill.H} and then specifying which variables
+their own fill function in {\tt NS\_bcfill.H}, then using that function to create
+an {\tt amrex::StateDescriptor::BndryFunc} object and specifying which variables
 will use it in {\tt NS\_setup.cpp}. More information on boundary conditions is in
 section \ref{sec:physicalBCs}.
 

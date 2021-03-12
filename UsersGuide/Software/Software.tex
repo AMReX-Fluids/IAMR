@@ -241,7 +241,8 @@ the user supplies data to fill grow cells.
 \iamr\ provides the ability to specify constant Dirichlet BCs 
 in the inputs file (see section \ref{sec:dirichlet}).
 Users can create more complex Dirichlet boundary condtions by writing
-their own fill function in {\tt NS\_bcfill.H} and then specifying which variables
+their own fill function in {\tt NS\_bcfill.H}, then using that function to create
+an {\tt amrex::StateDescriptor::BndryFunc} object and specifying which variables
 will use it in {\tt NS\_setup.cpp}. 
 
 It is important to note that external Dirichlet boundary data is to be specified as 

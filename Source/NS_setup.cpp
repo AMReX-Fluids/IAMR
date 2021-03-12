@@ -257,29 +257,38 @@ NavierStokes::variableSetUp ()
     // older checkpoint files with more ghost cells, so a workaround is
     // needed.
 
+    BndryFunc vel_bf(vel_fill);
+    vel_bf.setRunOnGPU(true);
+
+    BndryFunc state_bf(state_fill);
+    state_bf.setRunOnGPU(true);
+
+    BndryFunc press_bf(press_bf);
+    press_bf.setRunOnGPU(true);
+
     set_x_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,vel_fill);
+    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,vel_bf);
 
     set_y_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,vel_fill);
+    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,vel_bf);
 
 #if (BL_SPACEDIM == 3)
     set_z_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,vel_fill);
+    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,vel_bf);
 #endif
     //
     // **************  DEFINE SCALAR VARIABLES  ********************
     //
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Density,"density",bc,state_fill);
+    desc_lst.setComponent(State_Type,Density,"density",bc,state_bf);
 
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Trac,"tracer",bc,state_fill);
+    desc_lst.setComponent(State_Type,Trac,"tracer",bc,state_bf);
 
     if (do_trac2)
     {
        set_scalar_bc(bc,phys_bc);
-       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,state_fill);
+       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,state_bf);
     }
     //
     // **************  DEFINE TEMPERATURE  ********************
@@ -287,7 +296,7 @@ NavierStokes::variableSetUp ()
     if (do_temp)
     {
         set_temp_bc(bc,phys_bc);
-        desc_lst.setComponent(State_Type,Temp,"temp",bc,state_fill);
+        desc_lst.setComponent(State_Type,Temp,"temp",bc,state_bf);
     }
 
     is_diffusive.resize(NUM_STATE);
@@ -338,7 +347,7 @@ NavierStokes::variableSetUp ()
                            &node_bilinear_interp);
 
     set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,press_fill);
+    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,press_bf);
  
     //
     // ---- grad P
