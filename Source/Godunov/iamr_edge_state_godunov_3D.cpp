@@ -31,6 +31,7 @@ Godunov::ComputeEdgeState (Box const& bx, int ncomp,
     Box const& bxg1 = amrex::grow(bx,1);
 
     FArrayBox tmpfab(amrex::grow(bx,1),  (4*AMREX_SPACEDIM + 2)*ncomp);
+    Elixir tmpeli = tmpfab.elixir();
     Real* p   = tmpfab.dataPtr();
 
     Box xebox = Box(xbx).grow(1,1).grow(2,1);

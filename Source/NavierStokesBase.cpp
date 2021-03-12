@@ -2793,6 +2793,8 @@ NavierStokesBase::scalar_advection_update (Real dt,
                // Average the new and old time to get Crank-Nicholson half time approximation.
                //
                FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
+	       // Scal protected from early destruction by Gpu::synchronize at end of loop.
+	       // so no elixir needed
 	       const auto& Snp1 = S_new[Rho_mfi].array(Density);
 	       const auto& Sn   = S_old[Rho_mfi].const_array(Density);
 	       const auto& Sarr = Scal.array();
@@ -2808,6 +2810,8 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
                if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
                tforces.resize(bx,1);
+	       // tforces protected from early destruction by Gpu::synchronize at end of loop.
+	       // so no elixir needed
                getForce(tforces,bx,sigma,1,halftime,Vel_fab,Scal,0);
 
 	       const auto& Snew = S_new[Rho_mfi].array(sigma);
@@ -3583,13 +3587,14 @@ NavierStokesBase::velocity_advection_update (Real dt)
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 {
-    FArrayBox  tforces, S, ScalFAB;
+    FArrayBox  tforces, ScalFAB;
 
     for (MFIter mfi(Rh,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         FArrayBox& VelFAB = Vel[mfi];
         ScalFAB.resize(bx,NUM_SCALARS);
+        Elixir scal_i = ScalFAB.elixir();
 
         //
         // Need to do some funky half-time stuff.
@@ -3600,7 +3605,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
         // Average the new and old time to get Crank-Nicholson half time approximation.
         //
         auto const& scal = ScalFAB.array();
-        Elixir scal_i = ScalFAB.elixir();
         auto const& scal_o = U_old.array(mfi,Density);
         auto const& scal_n = U_new.array(mfi,Density);
         const int numscal = NUM_SCALARS;
