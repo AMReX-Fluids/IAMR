@@ -151,7 +151,8 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 #endif
 	    }
 #endif
-	    FArrayBox tmpfab(tmpbox, tmpcomp,The_Async_Arena());
+	    FArrayBox tmpfab(tmpbox, tmpcomp);
+	    Elixir eli = tmpfab.elixir();
 
 	    D_TERM( Array4<Real> fxtmp = tmpfab.array(0);,
 		    Array4<Real> fytmp = tmpfab.array(ncomp);,
@@ -375,7 +376,8 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 #endif
 	    }
 #endif
-	    FArrayBox tmpfab(tmpbox, tmpcomp,The_Async_Arena());
+	    FArrayBox tmpfab(tmpbox, tmpcomp);
+	    Elixir eli = tmpfab.elixir();
 
 	    D_TERM( Array4<Real> fxtmp = tmpfab.array(0);,
 		    Array4<Real> fytmp = tmpfab.array(ncomp);,

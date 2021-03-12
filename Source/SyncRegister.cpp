@@ -145,7 +145,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
              Box mask_cells = amrex::enclosedCells(amrex::grow(fab.box(),1));
 
              tmpfab.resize(mask_cells,1);
-             Elixir tmpfab_i = tmpfab.elixir(); // FIX ME problem here with The_Async_Arena()
+             Elixir tmpfab_i = tmpfab.elixir();
              const auto& tmp_arr = tmpfab.array();
              amrex::ParallelFor(mask_cells, [tmp_arr]
              AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -447,7 +447,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
                 }
                 cbndfab.resize(cbndbox, 1);
                 auto const& cbndfab_a = cbndfab.array();
-                Elixir cbndfab_e = cbndfab.elixir(); // FIX ME problem here with The_Async_Arena()
+                Elixir cbndfab_e = cbndfab.elixir();
                 amrex::GpuArray<int,AMREX_SPACEDIM> rratio = {D_DECL(ratio[0],ratio[1],ratio[2])};
 
 #if AMREX_SPACEDIM == 2
