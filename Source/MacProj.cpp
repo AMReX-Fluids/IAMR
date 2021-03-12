@@ -677,7 +677,6 @@ MacProj::mac_sync_compute (int                   level,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox tforces;
         for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
         {
             const auto gbx = Smfi.growntilebox(ngrow);
