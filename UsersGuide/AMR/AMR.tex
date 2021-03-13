@@ -54,14 +54,21 @@ Available tests include
 \item ``vorticity'': $ |vorticity| >= 2^{level} * threshold$
 \end{itemize}
 
-The following example portions of a ParmParse'd input files demonstrate the usage of this feature.
+The following example portions of ParmParse'd input files demonstrate the usage of this feature.
+This first example tags all cells inside the region ((.25,.25)(.75,.75)):
 \begin{verbatim}
       amr.refinement_indicators = box
 
       amr.box.in_box_lo = .25 .25
       amr.box.in_box_hi = .75 .75
 \end{verbatim}
-This first example tags all cells inside the region ((.25,.25)(.75,.75)).
+The next example adds three user-named criteria -- 
+{\tt hi\_rho}: cells with density greater than 1;
+{\tt lo\_temp}: cells with T less than 450K that are inside the region ((.25,.25)(.75,.75));
+and {\tt Tdiff}: cells having a temperature difference of 20K
+or more from that of their
+immediate neighbor.  The first will trigger up to Amr level 3, the second only to level 1, and the third to level 2.
+The third will be active only when the problem time is between 0.001 and 0.002 seconds.
 \begin{verbatim}
       amr.refinement_indicators = hi_rho lo_temp Tdiff
 
@@ -81,14 +88,6 @@ This first example tags all cells inside the region ((.25,.25)(.75,.75)).
       amr.Tdiff.start_time = 0.001
       amr.Tdiff.end_name = 0.002
 \end{verbatim}
-This example adds three user-named criteria -- 
-{\tt hi\_rho}: cells with density greater than 1;
-{\tt lo\_temp}: cells with T less than 450K that are inside the region ((.25,.25)(.75,.75));
-and {\tt Tdiff}: cells having a temperature difference of 20K
-or more from that of their
-immediate neighbor.  The first will trigger up to Amr level 3, the second only to level 1, and the third to level 2.
-The third will be active only when the problem time is between 0.001 and 0.002 seconds.
-
 Note that these criteria can be modified between restarts of the code.
 By default, the new criteria will take effect at the next
 scheduled regrid operation.  Alternatively, the user may restart with {\tt amr.regrid\_on\_restart = 1} in order to
