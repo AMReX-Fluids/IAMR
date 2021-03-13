@@ -329,9 +329,7 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
   //
   // Scalars, ordered as Density, Tracer(s), Temp (if using)
   //
-  const Real splitx = 0.5*(problo[0] + probhi[0]);
-  const Real splity = 0.5*(problo[1] + probhi[1]);
-  const Real L_x    = probhi[0] - problo[0];
+  const Real Lx    = (probhi[0] - problo[0]);
   
 #if (AMREX_SPACEDIM == 2)
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -339,8 +337,8 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
     Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
     Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];
     
-    const Real r2d = amrex::min(amrex::Math::abs(x-splitx), 0.5*L_x);
-    const Real pertheight = 0.5 - IC.pertamp*(0.01*std::cos(2.0*Pi*r2d/L_x));
+    const Real pertheight = 0.5 + IC.pertamp*(std::cos(2.0*Pi*x/Lx)
+					      + std::cos(2.0*Pi*(Lx-x)/Lx));
     
     scal(i,j,k,0) = IC.rho_1 + ((IC.rho_2-IC.rho_1)/2.0)*(1.0+std::tanh((y-pertheight)/IC.interface_width));
     scal(i,j,k,1) = IC.tra_1 + ((IC.tra_2-IC.tra_1)/2.0)*(1.0+std::tanh((y-pertheight)/IC.interface_width));
@@ -353,16 +351,90 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
   
 #elif (AMREX_SPACEDIM == 3)
   
+  const Real Ly    = (probhi[1] - problo[1]);
   const Real splitz = 0.5*(problo[2] + probhi[2]);
+
+  Real rn;
+
+  // Create random amplitudes and phases for the perturbation
+  amrex::InitRandom(111397);
+  rn = amrex::Random();
+  const Real ranampl = 2.*(rn-0.5);
   
+  rn = amrex::Random();
+  const Real ranphse1 = 2.*Pi*rn; 
+  
+  rn = amrex::Random();
+  const Real ranphse2 = 2.*Pi*rn;
+
+  // const int nfreq = 3;
+  // Real ranampl[nfreq][nfreq];
+  // Real ranphse[nfreq][nfreq][2];
+
+  // {
+  //   const int max_phase = 1000;
+    
+  //   amrex::InitRandom(111397);
+  //   for (int i = 0; i < nfreq; i++) {
+  //     for (int j = 0; j < nfreq; j++) {
+  // 	rn = amrex::Random();
+  // 	ranampl(i,j) = 2.*(rn-0.5);
+
+  // 	rn = amrex::Random();
+  // 	ranphse(i,j,0) = 2.*Pi*rn; 
+
+  // 	rn = amrex::Random();
+  // 	ranphse(i,j,1) = 2.*Pi*rn;
+  //     }
+  //   }
+    
+  //   if ( nfreq > 1 ){
+  //     Real permin =  nfreq*nfreq;
+  //     Real permax = -permin;
+      
+  //     for (int i = 0; i < max_phase; i++){
+  // 	for (int j = 0; j < max_phase; j++) {
+  // 	  constexpr Real xtmp = 2.*Pi*i/Real(max_phase);
+  // 	  constexpr Real ytmp = 2.*Pi*j/Real(max_phase);
+  // 	  Real pert = 0.;
+
+  // 	  for (int n = 0; n < nfreq; n++) {
+  // 	    for (int m = 0; m < nfreq; m++) {
+  // 	      pert = pert + ranampl(n,m)
+  // 		* std::sin(2.*Pi*n*xtmp + ranphse(n,m,0) ) 
+  // 		* std::sin(2.*Pi*m*ytmp + ranphse(n,m,1) );
+  // 	    }
+  // 	  }
+	  
+  // 	  permin = amrex::min(permin, pert);
+  // 	  permax = amrex::max(permax, pert);
+  // 	}
+  //     }
+      
+  //     IC.pertamp = 2.*IC.pertamp/(permax - permin);
+  //   }
+  // }
+
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
   {
     Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
     Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];
     Real z = problo[2] + (k - domlo.z + 0.5)*dx[2];
+      
+    Real pert = ranampl * std::sin(2.0*Pi*x/Lx + ranphse1 )
+                        * std::sin(2.0*Pi*y/Ly + ranphse2 );
     
-    const Real r2d = amrex::min(std::hypot((x-splitx),(y-splity)), 0.5*L_x);
-    const Real pertheight = splitz - IC.pertamp*std::cos(2.0*Pi*r2d/L_x);
+    // for (int n = 0; n < nfreq; n++)
+    // {
+    //   for (int m = 0; m < nfreq; m++)
+    //   {
+    // 	pert = pert + ranampl(n,m)
+    // 	  * std::sin(2.0*Pi*n*x/Lx + ranphse(n,m,1) )
+    // 	  * std::sin(2.0*Pi*m*y/Ly + ranphse(n,m,2) );
+    //   }
+    // }
+    
+    Real pertheight = splitz - IC.pertamp*pert;
     
     scal(i,j,k,0) = IC.rho_1 + ((IC.rho_2-IC.rho_1)/2.0)*(1.0+std::tanh((z-pertheight)/IC.interface_width));
     scal(i,j,k,1) = IC.tra_1 + ((IC.tra_2-IC.tra_1)/2.0)*(1.0+std::tanh((z-pertheight)/IC.interface_width));
@@ -370,8 +442,8 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
     {
       scal(i,j,k,nt) = 1.0;
     }
-
   });
+
 #endif
 }
  

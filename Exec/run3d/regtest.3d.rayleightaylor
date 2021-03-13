@@ -55,7 +55,8 @@ ns.hi_bc             = 0 0 4
 prob.probtype = 10
 prob.rho_1 = 1.5e7
 prob.rho_2 = 8.44407300e+06
-prob.interface_width = 1.
+prob.interface_width = 1.5
+prob.perturbation_amplitude = 5
   
 amr.blocking_factor     = 8
 amr.ref_ratio           = 2 2 2 2
