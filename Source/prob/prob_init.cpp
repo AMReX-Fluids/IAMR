@@ -367,54 +367,6 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
   rn = amrex::Random();
   const Real ranphse2 = 2.*Pi*rn;
 
-  // const int nfreq = 3;
-  // Real ranampl[nfreq][nfreq];
-  // Real ranphse[nfreq][nfreq][2];
-
-  // {
-  //   const int max_phase = 1000;
-    
-  //   amrex::InitRandom(111397);
-  //   for (int i = 0; i < nfreq; i++) {
-  //     for (int j = 0; j < nfreq; j++) {
-  // 	rn = amrex::Random();
-  // 	ranampl(i,j) = 2.*(rn-0.5);
-
-  // 	rn = amrex::Random();
-  // 	ranphse(i,j,0) = 2.*Pi*rn; 
-
-  // 	rn = amrex::Random();
-  // 	ranphse(i,j,1) = 2.*Pi*rn;
-  //     }
-  //   }
-    
-  //   if ( nfreq > 1 ){
-  //     Real permin =  nfreq*nfreq;
-  //     Real permax = -permin;
-      
-  //     for (int i = 0; i < max_phase; i++){
-  // 	for (int j = 0; j < max_phase; j++) {
-  // 	  constexpr Real xtmp = 2.*Pi*i/Real(max_phase);
-  // 	  constexpr Real ytmp = 2.*Pi*j/Real(max_phase);
-  // 	  Real pert = 0.;
-
-  // 	  for (int n = 0; n < nfreq; n++) {
-  // 	    for (int m = 0; m < nfreq; m++) {
-  // 	      pert = pert + ranampl(n,m)
-  // 		* std::sin(2.*Pi*n*xtmp + ranphse(n,m,0) ) 
-  // 		* std::sin(2.*Pi*m*ytmp + ranphse(n,m,1) );
-  // 	    }
-  // 	  }
-	  
-  // 	  permin = amrex::min(permin, pert);
-  // 	  permax = amrex::max(permax, pert);
-  // 	}
-  //     }
-      
-  //     IC.pertamp = 2.*IC.pertamp/(permax - permin);
-  //   }
-  // }
-
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
   {
     Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
@@ -423,16 +375,6 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
       
     Real pert = ranampl * std::sin(2.0*Pi*x/Lx + ranphse1 )
                         * std::sin(2.0*Pi*y/Ly + ranphse2 );
-    
-    // for (int n = 0; n < nfreq; n++)
-    // {
-    //   for (int m = 0; m < nfreq; m++)
-    //   {
-    // 	pert = pert + ranampl(n,m)
-    // 	  * std::sin(2.0*Pi*n*x/Lx + ranphse(n,m,1) )
-    // 	  * std::sin(2.0*Pi*m*y/Ly + ranphse(n,m,2) );
-    //   }
-    // }
     
     Real pertheight = splitz - IC.pertamp*pert;
     

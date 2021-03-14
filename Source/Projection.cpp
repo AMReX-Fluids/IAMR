@@ -186,7 +186,6 @@ Projection::level_project (int             level,
                            Real            time,
                            Real            dt,
                            Real            cur_pres_time,
-                           Real            prev_pres_time,
                            const Geometry& geom,
                            MultiFab&       U_old,
                            MultiFab&       U_new,
@@ -493,11 +492,7 @@ Projection::MLsyncProject (int             c_lev,
                            IntVect&        ratio,
                            int             crse_iteration,
                            int             crse_dt_ratio,
-                           const Geometry& crse_geom,
-                           Real            cur_crse_pres_time,
-                           Real            prev_crse_pres_time,
-                           Real            cur_fine_pres_time,
-                           Real            prev_fine_pres_time)
+                           const Geometry& crse_geom)
 {
     BL_PROFILE("Projection::MLsyncProject()");
 
@@ -1684,7 +1679,7 @@ Projection::putDown (const Vector<MultiFab*>& phi,
 }
 
 void
-Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& phi)
+Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& /*phi*/)
 {
   amrex::Abort("Projection::getStreamFunction not implemented");
 }

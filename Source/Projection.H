@@ -56,7 +56,6 @@ public:
                         amrex::Real            time,
                         amrex::Real            dt,
                         amrex::Real            cur_pres_time,
-                        amrex::Real            prev_pres_time,
                         const amrex::Geometry& geom,
                         amrex::MultiFab&       U_old,
                         amrex::MultiFab&       U_new,
@@ -102,11 +101,7 @@ public:
                         amrex::IntVect&        ratio,
                         int             crse_iteration,
                         int             crse_dt_ratio,
-                        const amrex::Geometry& crse_geom,
-                        amrex::Real		 cur_crse_pres_time,
-                        amrex::Real		prev_crse_pres_time,
-                        amrex::Real		 cur_fine_pres_time,
-                        amrex::Real		prev_fine_pres_time);
+                        const amrex::Geometry& crse_geom);
     //
     // This projects an initial vorticity field to define a velocity field.
     //

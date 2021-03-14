@@ -2477,7 +2477,7 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
 
 void
 NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
-                              const Real time,
+                              const Real /*time*/,
                               const int state_comp,
                               const int dst_comp,
                               const int ncomp)

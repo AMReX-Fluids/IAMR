@@ -32,9 +32,9 @@ struct DummyFill           // Set 0.0 on EXT_DIR, nothing otherwise.
     AMREX_GPU_DEVICE
     void operator() (const IntVect& iv, Array4<Real> const& dest,
                      const int dcomp, const int numcomp,
-                     GeometryData const& geom, const Real time,
-                     const BCRec* bcr, const int bcomp,
-                     const int orig_comp) const
+                     GeometryData const& geom, const Real /*time*/,
+                     const BCRec* bcr, const int /*bcomp*/,
+                     const int /*orig_comp*/) const
     {
        const int* domlo = geom.Domain().loVect();
        const int* domhi = geom.Domain().hiVect();
@@ -557,7 +557,7 @@ NavierStokesBase::read_geometry ()
 }
 
 void
-NavierStokesBase::advance_setup (Real time,
+NavierStokesBase::advance_setup (Real /*time*/,
                                  Real dt,
 	                         int  iteration,
                                  int  ncycle)
@@ -683,7 +683,7 @@ NavierStokesBase::advance_setup (Real time,
 // Clean up after the advance function.
 //
 void
-NavierStokesBase::advance_cleanup (int iteration, int ncycle)
+NavierStokesBase::advance_cleanup (int /*iteration*/, int /*ncycle*/)
 {
     delete aofs;
     aofs = 0;
@@ -842,9 +842,9 @@ NavierStokesBase::checkPoint (const std::string& dir,
 
 void
 NavierStokesBase::computeInitialDt (int                   finest_level,
-				    int                   sub_cycle,
+				    int                   /*sub_cycle*/,
 				    Vector<int>&           n_cycle,
-				    const Vector<IntVect>& ref_ratio,
+				    const Vector<IntVect>& /*ref_ratio*/,
 				    Vector<Real>&          dt_level,
 				    Real                  stop_time)
 {
@@ -887,9 +887,9 @@ NavierStokesBase::computeInitialDt (int                   finest_level,
 
 void
 NavierStokesBase::computeNewDt (int                   finest_level,
-				int                   sub_cycle,
+				int                   /*sub_cycle*/,
 				Vector<int>&           n_cycle,
-				const Vector<IntVect>& ref_ratio,
+				const Vector<IntVect>& /*ref_ratio*/,
 				Vector<Real>&          dt_min,
 				Vector<Real>&          dt_level,
 				Real                  stop_time,
@@ -1180,11 +1180,11 @@ NavierStokesBase::diffuse_scalar_setup (int sigma, int& rho_flag)
 
 void
 NavierStokesBase::errorEst (TagBoxArray& tags,
-			    int          clearval,
-			    int          tagval,
-			    Real         time,
-			    int          n_error_buf,
-			    int          ngrow)
+			    int          /*clearval*/,
+			    int          /*tagval*/,
+			    Real         /*time*/,
+			    int          /*n_error_buf*/,
+			    int          /*ngrow*/)
 {
 #ifdef AMREX_USE_EB
     // Enforce that the EB not cross the coarse-fine boundary
@@ -1782,7 +1782,7 @@ NavierStokesBase::level_projector (Real dt,
     const Real cur_pres_time  = state[Press_Type].curTime();
     const Real prev_pres_time = state[Press_Type].prevTime();
 
-    projector->level_project(level,time,dt,cur_pres_time,prev_pres_time,
+    projector->level_project(level,time,dt,cur_pres_time,
                              geom,U_old,U_new,P_old,P_new,
                              get_rho_half_time(),crse_ptr,sync_reg,
                              crse_dt_ratio,iteration,have_divu);
@@ -1874,8 +1874,7 @@ NavierStokesBase::level_sync (int crse_iteration)
 			     Rh,rho_fine,Vsync,V_corr,
 			     phi,&rhs_sync_reg,crsr_sync_ptr,
 			     dt,ratio,crse_iteration,crse_dt_ratio,
-			     geom,cur_crse_pres_time,prev_crse_pres_time,
-			     cur_fine_pres_time,prev_fine_pres_time);
+			     geom);
     cc_rhs_crse.clear();
     cc_rhs_fine.clear();
     //
@@ -2316,7 +2315,7 @@ NavierStokesBase::post_init_state ()
 //
 void
 NavierStokesBase::post_regrid (int lbase,
-                               int new_finest)
+                               int /*new_finest*/)
 {
 #ifdef AMREX_PARTICLES
     if (NSPC && level == lbase)

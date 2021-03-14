@@ -293,11 +293,11 @@ void dummy_fill (Box const& bx, FArrayBox& data,
 //   }
 // };
 
-void press_fill (Box const& bx, FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 Geometry const& geom, const Real time,
-                 const Vector<BCRec>& bcr, const int bcomp,
-                 const int scomp)
+void press_fill (Box const& /*bx*/, FArrayBox& /*data*/,
+                 const int /*dcomp*/, const int /*numcomp*/,
+                 Geometry const& /*geom*/, const Real /*time*/,
+                 const Vector<BCRec>& /*bcr*/, const int /*bcomp*/,
+                 const int /*scomp*/)
 {
     amrex::Abort("press_fill: Need to write fill for external Dirichlet (BCType::ext_dir)");
 
