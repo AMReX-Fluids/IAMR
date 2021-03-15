@@ -63,7 +63,8 @@ This first example tags all cells inside the region ((.25,.25)(.75,.75)):
       amr.box.in_box_hi = .75 .75
 \end{verbatim}
 The next example adds three user-named criteria -- 
-{\tt hi\_rho}: cells with density greater than 1;
+{\tt hi\_rho}: cells with density greater than 1 on level 0, and greater than 2 on
+level 1 and higher;
 {\tt lo\_temp}: cells with T less than 450K that are inside the region ((.25,.25)(.75,.75));
 and {\tt Tdiff}: cells having a temperature difference of 20K
 or more from that of their
@@ -73,7 +74,7 @@ The third will be active only when the problem time is between 0.001 and 0.002 s
       amr.refinement_indicators = hi_rho lo_temp Tdiff
 
       amr.high_rho.max_level = 3
-      amr.hi_rho.value_greater = 1.
+      amr.hi_rho.value_greater = 1. 2.
       amr.hi_rho.field_name = density
 
       amr.lo_temp.max_level = 1
