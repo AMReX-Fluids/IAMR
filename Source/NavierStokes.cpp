@@ -481,6 +481,14 @@ NavierStokes::initData ()
 
     old_intersect_new          = grids;
 
+#ifdef AMREX_USE_EB
+    //
+    // Perform redistribution on initial fields
+    // This changes the input velocity fields
+    //
+    InitialRedistribution();
+#endif
+
 #ifdef AMREX_PARTICLES
     initParticleData ();
 #endif

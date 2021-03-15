@@ -12,6 +12,7 @@
 #include <AMReX_EBInterpolater.H>
 #include <AMReX_EBFArrayBox.H>
 #include <iamr_ebgodunov.H>
+#include <iamr_redistribution.H>
 #else
 #include <iamr_godunov.H>
 #endif
@@ -4702,3 +4703,57 @@ NavierStokesBase::nghost_force ()
     else
         return 3;
 }
+
+#ifdef AMREX_USE_EB
+void
+NavierStokesBase::InitialRedistribution ()
+{
+    // Next we must redistribute the initial solution if we are going to use
+    // MergeRedist or StateRedist redistribution schemes
+    if ( redistribution_type != "StateRedist" && redistribution_type != "MergeRedist")
+        return;
+
+    // Initial data are set at new time step
+    MultiFab& S_new = get_new_data(State_Type);
+    MultiFab tmp( grids, dmap, NUM_STATE, nghost_state(), MFInfo(), Factory() );
+
+    MultiFab::Copy(tmp, S_new, 0, 0, NUM_STATE, nghost_state());
+    EB_set_covered(tmp, 0.0);
+
+    for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+
+        auto const& fact =  dynamic_cast<EBFArrayBoxFactory const&>(S_new.Factory());
+
+        EBCellFlagFab const& flagfab = fact.getMultiEBCellFlagFab()[mfi];
+        Array4<EBCellFlag const> const& flag = flagfab.const_array();
+
+        if ( (flagfab.getType(amrex::grow(bx,1)) != FabType::covered) &&
+             (flagfab.getType(amrex::grow(bx,1)) != FabType::regular) )
+        {
+
+            amrex::Print() << "DOING THIS " << std::endl;
+            Array4<Real const> AMREX_D_DECL(fcx, fcy, fcz), ccc, vfrac, AMREX_D_DECL(apx, apy, apz);
+
+            AMREX_D_TERM(fcx = fact.getFaceCent()[0]->const_array(mfi);,
+                         fcy = fact.getFaceCent()[1]->const_array(mfi);,
+                         fcz = fact.getFaceCent()[2]->const_array(mfi););
+
+            ccc   = fact.getCentroid().const_array(mfi);
+
+            AMREX_D_TERM(apx = fact.getAreaFrac()[0]->const_array(mfi);,
+                         apy = fact.getAreaFrac()[1]->const_array(mfi);,
+                         apz = fact.getAreaFrac()[2]->const_array(mfi););
+
+            vfrac = fact.getVolFrac().const_array(mfi);
+
+            Redistribution::ApplyToInitialData( bx,NUM_STATE,
+                                                S_new.array(mfi), tmp.array(mfi),
+                                                flag, AMREX_D_DECL(apx, apy, apz), vfrac,
+                                                AMREX_D_DECL(fcx, fcy, fcz),
+                                                ccc, geom, redistribution_type);
+        }
+    }
+}
+#endif

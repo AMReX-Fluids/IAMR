@@ -569,6 +569,7 @@ public:
     void initialize_eb2_structs();
     void define_body_state();
 
+    void InitialRedistribution ();
 
     static bool ebInitialized();
     static bool eb_initialized;
