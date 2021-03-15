@@ -1,12 +1,13 @@
 \section{Parallelization}
+\label{sec:parallel}
 
-\amrex\ uses a hybrid MPI + OpenMP approach to parallelism.  The
-basic idea is that MPI is used to distribute individual boxes across
-nodes while OpenMP is used to distribute the work in local boxes to
-the cores within a node.  The OpenMP approach in \amrex\ is optionally
+\amrex\ uses a hybrid MPI + X approach to parallelism,
+where  X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
+The basic idea is that MPI is used to distribute individual boxes across
+nodes while X is used to distribute the work in local boxes
+within a node.  The OpenMP approach in \amrex\ is optionally
 based on {\em tiling} the box-based data structures.  Both the tiling and
 non-tiling approaches to work distribution are discussed below.
-
 
 \subsection{\amrex's Non-Tiling Approach In C++}
 \label{sec:amrex0}
@@ -17,10 +18,8 @@ At the highest abstraction level, we have {\tt MultiFab} (mulitple
 covers), including {\tt Box}es owned by other processors for the
 purpose of communication, an array of MPI ranks specifying which MPI
 processor owns each {\tt Box}, and an array of pointers to {\tt
-  FArrayBox}es owned by this MPI processor.  The real floating point
-data are stored for each {\tt FArrayBox} as one-dimensional arrays,
-and can thus be passed across languages, e.g. to Fortran subroutines
-for processing. A typical usage of {\tt MultiFab} is as follows,
+  FArrayBox}es owned by this MPI processor.
+A typical usage of {\tt MultiFab} is as follows,
 
 \begin{lstlisting}
   for (MFIter mfi(mf); mfi.isValid(); ++mfi) // Loop over boxes
@@ -28,21 +27,11 @@ for processing. A typical usage of {\tt MultiFab} is as follows,
     // Get the index space of this iteration
     const Box& box = mfi.validbox(); 
 
-    // Get a reference to the FAB, which contains data and box  
-    FArrayBox& fab = mf[mfi];  
+    // Get a reference to mf's data as a multidimensional array 
+    auto& data = mf.array(mfi);
 
-    // Get double* of the FAB 
-    double* a = fab.dataPtr();
-
-    // Get the index space for the data pointed by the double* 
-    // Note "abox" may have ghost cells, and is thus larger than 
-    // or equal to "box" obtained using mfi.validbox().
-    const Box& abox = fab.box();
-
-    // We can now pass the information to a Fortran routine,
-    // which reshapes double* a into a multi-dimensional array 
-    // with dimensions specified by the information in "abox".
-    // We will also pass "box", which specifies our "work" region.
+    // Loop over "box" to update data.
+    // On CPU/GPU systems, this loop executes on the GPU
   }
 \end{lstlisting}
 A few comments about this code
@@ -54,11 +43,6 @@ A few comments about this code
 \item {\tt box} as returned from {\tt mfi.validbox()} does not include
    ghost cells.  We can get the indices of the valid zones as {\tt
    box.loVect} and {\tt box.hiVect}.
-
-\item Instead of getting the data pointer explicitly (via {\tt fab.dataPtr()}),
-   \iamr\ often uses the preprocessor macro {\tt BL\_TO\_FORTRAN(x)} (defined
-   in {\tt ArrayLim.H}) to substitute in the data pointer and the {\tt lo}
-   and {\tt hi} indices of the multidimensional Fortran array (including ghost cells).
 \end{itemize}
 
 
@@ -74,9 +58,6 @@ separate tiling}---here the data storage in memory itself is changed
 to reflect how the tiling will be performed.  This is not considered
 in \amrex.
 
-We have recently introduced logical tiling into parts of \amrex.  
-Examples that demonstrate the syntax and usage can be found at 
-{\tt Tutorials/Tiling\_C}.
 In our logical tiling approach, a box is logically split into tiles,
 and a {\tt MFIter} loops over each tile in each box.  Note that the
 non-tiling iteration approach can be considered as a special case of
@@ -89,16 +70,10 @@ tiling with the tile size equal to the box size.
     // Get the index space of this iteration
     const Box& box = mfi.tilebox(); 
 
-    // Get a reference to the FAB, which contains data and box  
-    FArrayBox& fab = mf[mfi];  
+    // Get a reference to mf's data as a multidimensional array 
+    auto& data = mf.array(mfi);
 
-    // Get double* of the FAB 
-    double* a = fab.dataPtr();
-
-    // Get the index space for the data pointed by the double*.
-    const Box& abox = fab.box();
-
-    // We can now pass the information to a Fortran routine.
+    // Loop over "box" to update data.
   }
 \end{lstlisting}
 Note that the code is almost identical to the one in \S~\ref{sec:amrex0}.
@@ -117,14 +92,6 @@ globally.
 so we don't use it.  Instead, we use {\tt .tilebox()} to get the
 {\tt Box} (and corresponding {\tt lo} and {\tt hi}) for the {\em
 current tile}, not the entire data region.
-
-\item When passing into the Fortran routine, we still use the
-index space of the entire fab (including ghost cells), as seen in
-the {\tt abox} construction.
-
-The Fortran routine will declare a multidimensional array that is of
-the same size as the entire box, but only work on the index space
-identified by the tile-box ({\tt box}).
 \end{itemize}
 
 Let us consider an example.  Suppose there are four boxes---see
@@ -167,11 +134,10 @@ OpenMP can be used even when tiling is turned off.  In that case, the
 OpenMP granularity is at the box level (and good performance would need
 many boxes per MPI task).
 
-We also note that, independent of whether or not tiling is on, OpenMP
-threading can also be started within the function called inside the
-{\tt MFIter} loop, rather than at the {\tt MFIter} loop level.  This
-was the original way that threading was done in \iamr, but we are in
-the process of removing this approach in favor of tiling.
+While it is possible that, independent of whether or not tiling is on, OpenMP
+threading could also be started within the function/loop called inside the
+{\tt MFIter} loop, rather than at the {\tt MFIter} loop level, this
+is not the approach taken in \iamr.
 
 The tile size for the three spatial dimensions can be set by a
 parameter, e.g., {\tt fabarray.mfiter\_tile\_size = 1024000 8 8}.  A
@@ -203,11 +169,6 @@ work in the ghost cells of tiles.
 
 \subsection{Practical Details in Working with Tiling}
 
-With tiling, the OpenMP is now all in C++, and not in Fortran for all
-modules except reactions and initdata.  Note that the OpenMP pragma
-does not have a {\tt for}---this is not used when working with an
-iterator.
-
 It is the responsibility of the coder to make sure that the routines within
 a tiled region are safe to use with OpenMP.  In particular, note that:
 \begin{itemize}
@@ -229,41 +190,8 @@ cell=centered MultiFab, {\tt s}:
 \item When updating routines to work with tiling, we need to understand
 the distinction between the index-space of the entire box (which
 corresponds to the memory layout) and the index-space of the tile.
-
-  \begin{itemize}
-
-  \item In the C++ end, we pass (usually via the {\tt
-  BL\_TO\_FORTRAN()} macro) the {\tt loVect} and {\tt hiVect} of the
-  entire box (including ghost cells).  These are then used to allocate
-  the array in Fortran as:
-  \begin{lstlisting}
-    double precision :: a(a_l1:a_h1, a_l2:a_h2, ...)
-  \end{lstlisting}
-  When tiling is used, we do not want to loop as {\tt do a\_l1, a\_h1},
-  but instead we need to loop over the tiling region.  The indices of
-  the tiling region need to be passed into the Fortran routine
-  separately, and they come from the {\tt mfi.tilebox()} statement.
-
-  \item In Fortran, when initializing an array to 0, do so only over
-  the tile region, not for the entire box.  For a Fortran array {\tt a},
-  this means we cannot do:
-  \begin{lstlisting}
-  a = 0.0
-  a(:,:,:,:) = 0.0
-  \end{lstlisting}
-  but instead must do:
-  \begin{lstlisting}
-  a(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),:) = 0.0
-  \end{lstlisting}
-  where {\tt lo()} and {\tt hi()} are the index-space for the tile box
-  returned from {\tt mfi.tilebox()} in C++ and passed into the Fortran
-  routine.
-
-\item Look at {\tt r\_old\_s} in {\tt Exec/DustCollapse/probdata.f90} as an
-  example of how to declare a {\tt threadprivate} variable---this is then used
-  in {\tt sponge\_nd.f90}.
-
-\end{itemize}
+Inside the MFIter loop, make sure to only update over
+  the tile region, not for the entire box.
 
 \end{itemize}
 

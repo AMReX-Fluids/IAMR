@@ -22,7 +22,6 @@ amr.plot_int            =   20          # Steps between plot files
 amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
 amr.restart             =   ""          # Checkpoint to restart from
-amr.probin_file         = probin.3d.flow_past_cylinder-z
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
@@ -54,12 +53,26 @@ ns.lo_bc 	     	= 5 0 1
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	      	= 5 0 2
 
+zlo.velocity = 0. 0. 1.
+
 # Add cylinder
 eb2.geom_type                 = cylinder
 eb2.cylinder_has_fluid_inside = 0
 eb2.cylinder_radius           = 0.05
 eb2.cylinder_direction        = 1
 eb2.cylinder_center           = 0.2 0.0 0.15
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#          PROBLEM PARAMETERS           #
+#.......................................#
+
+prob.probtype = 4
+prob.blob_center =  0.05 0.0 -0.55
+prob.blob_radius =  0.04
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up a flow, defaults to zero
+prob.velocity_ic = 0. 0. 10.
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #

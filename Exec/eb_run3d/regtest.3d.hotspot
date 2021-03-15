@@ -10,13 +10,6 @@ ns.temp_cond_coef=1.e-4
 #  not reached first.
 max_step 		= 10
 
-# Use the tracer for the refinement criterion
-ns.do_temp_ref = 1
-
-# allow refinement at outflow boundary
-ns.do_refine_outflow = 1
-ns.do_derefine_outflow = 0
-
 # Correct scalars for over/under shoots during advective update
 ns.do_scalminmax=1
 ns.do_denminmax=1
@@ -30,6 +23,20 @@ amr.n_cell 		= 32 32 32 #128 128 128 #
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 2 # maximum number of levels of refinement
+
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp Tdiff
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.Tdiff.adjacent_difference_greater = 0.1 0.005
+amr.Tdiff.field_name = temp
+
+# allow refinement at outflow boundary
+ns.do_refine_outflow = 1
+ns.do_derefine_outflow = 0
 
 #*******************************************************************************
 
@@ -89,11 +96,6 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.3d.hotspot
-
-#*******************************************************************************
-
 # Embedded Boundary options
 #eb2.geom_type    =  all_regular
 eb2.geom_type     = sphere
@@ -133,16 +135,16 @@ ns.hi_bc             = 4 5 2
 
 #*******************************************************************************
 
+prob.probtype = 6
+prob.blob_center = 0.0 0.0 0.5 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
+
+#*******************************************************************************
+
 # Add vorticity to the variables in the plot files.
 amr.derive_plot_vars = NONE
-
-#*******************************************************************************
-#            for testing                
-#*******************************************************************************
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-amr.plt_ccse_regtest    =   1
-
-#*******************************************************************************

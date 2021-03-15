@@ -45,7 +45,6 @@ int  Projection::do_outflow_bcs      = 1;
 int  Projection::rho_wgt_vel_proj    = 0;
 int  Projection::make_sync_solvable  = 0;
 Real Projection::divu_minus_s_factor = 0.0;
-int  Projection::anel_grow           = 1;
 
 namespace
 {
@@ -116,7 +115,6 @@ Projection::Projection (Amr*   _parent,
     LevelData(_parent->finestLevel()+1),
     radius_grow(_radius_grow),
     radius(_parent->finestLevel()+1),
-    anel_coeff(_parent->finestLevel()+1),
     phys_bc(_phys_bc),
     do_sync_proj(_do_sync_proj)
 {
@@ -126,9 +124,6 @@ Projection::Projection (Amr*   _parent,
     Initialize();
 
     if (verbose) amrex::Print() << "Creating projector\n";
-
-    for (int lev = 0; lev <= parent->finestLevel(); lev++)
-       anel_coeff[lev] = 0;
 
 #ifdef AMREX_USE_EB
     // size the EB factory array
@@ -160,11 +155,6 @@ Projection::install_level (int                     level,
         radius.resize(finest_level+1);
     }
 
-    if (level > anel_coeff.size()-1) {
-       anel_coeff.resize(level+1);
-       anel_coeff[level] = 0;
-    }
-
     LevelData[level] = level_data;
     radius[level] = _radius;
 
@@ -173,45 +163,6 @@ Projection::install_level (int                     level,
       dynamic_cast<EBFArrayBoxFactory const&>(LevelData[level]->Factory());
     ebfactory[level] = &_ebfactory;
 #endif
-}
-
-void
-Projection::install_anelastic_coefficient (int                   level,
-                                           Real                **_anel_coeff)
-{
-  if (verbose) {
-    amrex::Print() << "Installing anel_coeff into projector level " << level << '\n';
-  }
-  if (level > anel_coeff.size()-1)
-    anel_coeff.resize(level+1);
-  anel_coeff[level] =  _anel_coeff;
-}
-
-
-void
-Projection::build_anelastic_coefficient (int      level,
-                Real**& _anel_coeff)
-{
-  const BoxArray& grids = parent->getLevel(level).boxArray();
-  const int N = grids.size();
-  _anel_coeff = new Real*[N];
-  for (int i = 0; i < grids.size(); i++)
-  {
-    const int jlo = grids[i].smallEnd(AMREX_SPACEDIM-1)-anel_grow;
-    const int jhi = grids[i].bigEnd(AMREX_SPACEDIM-1)+anel_grow;
-    const int len = jhi - jlo + 1;
-
-    _anel_coeff[i] = new Real[len];
-
-    // FIXME!
-    // This is just a placeholder for testing. Should create (problem
-    // dependent) build_coefficient function in problem directory
-    // ...Perhaps also need to worry about deleting anel_coeff
-    // Also not sure why Projection and MacProj have separate anel_coeff
-    // arrays, since they both appear to be cell centered.
-    for (int j=0; j<len; j++)
-      _anel_coeff[i][j] = 0.05*(jlo+j);
-  }
 }
 
 //
@@ -235,7 +186,6 @@ Projection::level_project (int             level,
                            Real            time,
                            Real            dt,
                            Real            cur_pres_time,
-                           Real            prev_pres_time,
                            const Geometry& geom,
                            MultiFab&       U_old,
                            MultiFab&       U_new,
@@ -542,11 +492,7 @@ Projection::MLsyncProject (int             c_lev,
                            IntVect&        ratio,
                            int             crse_iteration,
                            int             crse_dt_ratio,
-                           const Geometry& crse_geom,
-                           Real            cur_crse_pres_time,
-                           Real            prev_crse_pres_time,
-                           Real            cur_fine_pres_time,
-                           Real            prev_fine_pres_time)
+                           const Geometry& crse_geom)
 {
     BL_PROFILE("Projection::MLsyncProject()");
 
@@ -1330,7 +1276,7 @@ Projection::scaleVar (int             which_call,
         AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
 
     //
-    // Convert sigma from rho to anel_coeff/rho if not INITIAL_PRESS.
+    // Convert sigma from rho to 1/rho if not INITIAL_PRESS.
     // nghosts info needed to avoid divide by zero.
     //
     if (sig != 0) {
@@ -1342,8 +1288,6 @@ Projection::scaleVar (int             which_call,
 #endif
 #endif
       sig->invert(1.0,sig_nghosts);
-      if (which_call  != INITIAL_PRESS &&
-          anel_coeff[level] != 0) AnelCoeffMult(level,*sig,0);
     }
 
     //
@@ -1356,13 +1300,6 @@ Projection::scaleVar (int             which_call,
         if (vel != 0)
             radMultVel(level,*vel);
     }
-
-    //
-    // Scale velocity by anel_coeff if it exists
-    //
-    if (vel != 0 && anel_coeff[level] != 0)
-      for (int n = 0; n < AMREX_SPACEDIM; n++)
-        AnelCoeffMult(level,*vel,n);
 }
 
 //
@@ -1386,9 +1323,6 @@ Projection::rescaleVar (int             which_call,
         AMREX_ASSERT(sig->nComp() == 1);
     if (vel != 0)
         AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
-
-    if (which_call  != INITIAL_PRESS && sig != 0 &&
-        anel_coeff[level] != 0) AnelCoeffDiv(level,*sig,0);
     //
     // Divide by radius to rescale for RZ coordinates.
     //
@@ -1402,9 +1336,6 @@ Projection::rescaleVar (int             which_call,
                 radDiv(level,*vel,n);
         }
     }
-    if (vel != 0 && anel_coeff[level] != 0)
-      for (int n = 0; n < AMREX_SPACEDIM; n++)
-        AnelCoeffDiv(level,*vel,n);
     //
     // Convert sigma from 1/rho to rho
     // NOTE: this must come after division by r to be correct,
@@ -1533,81 +1464,6 @@ Projection::radDiv (int       level,
 
     }
 #endif
-}
-
-//
-// Multiply by anel_coeff if it is defined
-//
-void
-Projection::AnelCoeffMult (int       level,
-                           MultiFab& mf,
-                           int       comp)
-{
-    AMREX_ASSERT(anel_coeff[level] != 0);
-    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
-
-    const Box& domain = parent->Geom(level).Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
-
-    Real bogus_value = BogusValue;
-
-    int mult = 1;
-
-    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
-    {
-        const Box& bx = mfmfi.growntilebox();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        Real* dat     = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	//const int anel_len = std::size(anel_coeff[level][mfmfi.index()]);
-	const Box& gbx = mfmfi.validbox();
-	int anel_lo   = (gbx.loVect())[AMREX_SPACEDIM-1]-anel_grow;
-	int anel_hi   = (gbx.hiVect())[AMREX_SPACEDIM-1]+anel_grow;
-	
-	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
-		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
-		     &bogus_value,&mult);
-    }
-}
-
-//
-// Divide by anel_coeff if it is defined
-//
-void
-Projection::AnelCoeffDiv (int       level,
-                          MultiFab& mf,
-                          int       comp)
-{
-    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
-    AMREX_ASSERT(anel_coeff[level] != 0);
-
-    const Box& domain = parent->Geom(level).Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
-
-    Real bogus_value = BogusValue;
-
-    int mult = 0;
-
-    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
-    {
-        const Box& bx = mfmfi.growntilebox();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        Real* dat     = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	const Box& gbx = mfmfi.validbox();
-	int anel_lo   = (gbx.loVect())[AMREX_SPACEDIM-1]-anel_grow;
-	int anel_hi   = (gbx.hiVect())[AMREX_SPACEDIM-1]+anel_grow;
-	
-	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
-		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
-		     &bogus_value,&mult);	
-    }
 }
 
 //
@@ -1823,7 +1679,7 @@ Projection::putDown (const Vector<MultiFab*>& phi,
 }
 
 void
-Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& phi)
+Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& /*phi*/)
 {
   amrex::Abort("Projection::getStreamFunction not implemented");
 }

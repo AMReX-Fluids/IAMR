@@ -80,8 +80,12 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                            AMREX_D_DECL( u, v, w ),
                            ncomp, geom, iconserv.data() );
 
-	// Note this sync is needed since ComputeEdgeState() contains temporaries
-	// Not sure it's really needed when known_edgestate==true
+	//
+	// NOTE this sync cannot protect temporaries in ComputeEdgeState, ComputeFluxes
+	// or ComputeDivergence, since functions have their own scope. As soon as the
+	// CPU hits the end of the function, it will call the destructor for all
+	// temporaries created in that function.
+	// 
         Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 

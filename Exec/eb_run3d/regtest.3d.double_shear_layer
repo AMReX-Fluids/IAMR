@@ -2,9 +2,6 @@
 # INPUTS.3D.PERIODIC_SHEAR_LAYER
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.3d.double_shear_layer
-
 #*******************************************************************************
 # WHEN SHOULD THE SIMULATION STOP?
 #*******************************************************************************
@@ -15,8 +12,6 @@ stop_time 				= 2.0
 # Stop simulation when we reach steady-state?
 ns.stop_when_steady 	= 0
 ns.steady_tol 			= 1.0e-5
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
 
 #*******************************************************************************
 # CFL 
@@ -72,13 +67,26 @@ ns.lo_bc 	         	= 0 0 0
 ns.hi_bc   	         	= 0 0 0
 
 #*******************************************************************************
+# Problem parameters
+#*******************************************************************************
+
+prob.probtype = 5
+# set up shear layer along x-direction
+prob.direction = 0
+prob.blob_center = 0.0 0.0 0.0
+prob.blob_radius = 0.4
+prob.density_ic = 1.0
+
+#*******************************************************************************
 # AMR
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		 	= 1
-# Refinement criterion
-ns.do_tracer_ref 		= 1
+# Refinement criterion, presence of tracer
+amr.refinement_indicators = tracer
+amr.tracer.value_greater  = 0.5
+amr.tracer.field_name     = tracer
 # Interval (in number of level l timesteps) between regridding
 amr.regrid_int			= 1 
 # Refinement ratio as a function of level
@@ -120,13 +128,3 @@ diffuse.v 	       	= 0 	# Diffusion
 
 proj.proj_tol = 1.e-12
 proj.proj_abs_tol = 1.e-15
-
-
-#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
-#            for testing                #
-#.......................................#
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-amr.plt_ccse_regtest    =   1

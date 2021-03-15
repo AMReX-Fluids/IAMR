@@ -10,13 +10,8 @@
 max_step 		= 0
 max_step 		= 800
 
-ns.init_iter = 0
-
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 5.0
-
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
 
 #*******************************************************************************
 # PARTICLE INPUTS
@@ -41,6 +36,10 @@ amr.n_cell 		= 64 64
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 2 # maximum number of levels of refinement
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  5.0
 
 #*******************************************************************************
 
@@ -99,11 +98,6 @@ ns.gravity              = 0.0
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0 
 
@@ -134,6 +128,17 @@ ns.hi_bc             = 0 0
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 5
+# set up shear layer along x-direction
+prob.direction = 0
+prob.interface_width = 2
+prob.blob_center = 0.25 0.25 
+prob.blob_radius = 0.1
+prob.density_ic = 1.0
+
+#*******************************************************************************
+
 # Factor by which grids must be coarsenable. 
 amr.blocking_factor 	= 4
 
@@ -144,11 +149,9 @@ amr.derive_plot_vars 	= mag_vort particle_count
 
 #*******************************************************************************
 
-
 proj.v = 2
 nodal_proj.verbose = 1
 proj.proj_tol = 1.e-12
 proj.proj_abs_tol = 1.e-15
 
 mg.v = 0
-

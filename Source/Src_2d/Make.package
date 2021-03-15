@@ -1,13 +1,2 @@
-ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
-  #
-  # These files contain routines that may be overriden by code that
-  # inherits from NavierStokes.  They should only be included if they
-  # aren't implemented by inherited code.  In particular, LMC has its own
-  # implementation of these routines.
-  #
-  F90EXE_sources += DERIVE_$(DIM)D.F90
-endif
 
-
-F90EXE_sources += NAVIERSTOKES_$(DIM)D.F90 PROJECTION_$(DIM)D.F90 \
-                  MACPROJ_$(DIM)D.F90
+F90EXE_sources += NAVIERSTOKES_$(DIM)D.F90 PROJECTION_$(DIM)D.F90 

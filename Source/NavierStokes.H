@@ -5,6 +5,7 @@
 #include <NavierStokesBase.H>
 #include <AMReX_LevelBld.H>
 
+
 class NSBld
     :
     public amrex::LevelBld
@@ -48,6 +49,10 @@ public:
     // Init grid data at problem start-up.
     //
     virtual void initData () override;
+    //
+    // Problem initialization functions
+    //
+#include "prob_init.H"
     //
     // Write plot file stuff to specified directory.
     //
@@ -112,15 +117,18 @@ public:
     // Define data descriptors.
     //
     static void variableSetUp ();
-    //
-    // Cleanup data descriptors at end of run.
-    //
-    static void variableCleanUp ();
+
+    // FIXME? - size m_bc_values better.
+    // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
+    static constexpr int NUM_STATE_MAX = AMREX_SPACEDIM+4;
+    static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>, AMREX_SPACEDIM*2>
+    //static auto
+    get_bc_values () { return m_bc_values; }
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public functions                                       //
     ////////////////////////////////////////////////////////////////////////////
-  
+
     //
     // Advect scalars.
     //
@@ -175,6 +183,7 @@ protected:
                            int                 ngrow) override;
 
     static void Initialize ();   // Read input file
+    static void Initialize_specific ();   // Read input file specific to IAMR
     static void Finalize ();
 
 private:
@@ -208,32 +217,23 @@ private:
     //
     static void error_setup ();
 
+    ///////////////////
+    // Private data  //
+    ///////////////////
+
+    //
+    // Holds info for dynamically generated error estimators
+    //
     static amrex::Vector<amrex::AMRErrorTag> errtags;
+
+    //
+    // Hold external Dirichlet BC values
+    //
+    // FIXME? - dymanic size. And fix in NavierStokes.cpp NS_bcfill as well!
+    // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
+    //static amrex::GpuArray<amrex::GpuArray<amrex::Real, AMREX_SPACEDIM+4>,
+    static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>,
+    			   AMREX_SPACEDIM*2> m_bc_values;
 };
-
-
-// void cc_ext_fill (amrex::Box const& bx, amrex::FArrayBox& data,
-//                  const int dcomp, const int numcomp,
-//                  amrex::Geometry const& geom, const amrex::Real time,
-//                  const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-//                  const int scomp);
-
-void press_fill (amrex::Box const& bx, amrex::FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 amrex::Geometry const& geom, const amrex::Real time,
-                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-                 const int scomp);
-
-void face_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 amrex::Geometry const& geom, const amrex::Real time,
-                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-                 const int scomp);
-
-void dummy_fill  (amrex::Box const& bx, amrex::FArrayBox& data,
-                 const int dcomp, const int numcomp,
-                 amrex::Geometry const& geom, const amrex::Real time,
-                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
-                 const int scomp);
 
 #endif /*_NavierStokes_H_*/

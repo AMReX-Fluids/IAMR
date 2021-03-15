@@ -1,9 +1,0 @@
-
-&fortin
-
-  probtype = 12
-
-  adv_vel = 0.1d0
-  denfact = 1.225d0
-
-/
