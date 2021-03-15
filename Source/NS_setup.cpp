@@ -3,21 +3,18 @@
 #include <NavierStokes.H>
 #include <NS_BC.H>
 #include <RegType.H>
-#include <AMReX_ErrorList.H>
-#include <PROB_NS_F.H>
-#include <DERIVE_F.H>
 #include <NS_derive.H>
-#include <NS_error_F.H>
+#include <NS_bcfill.H>
 #include <AMReX_FArrayBox.H>
-#include <AMReX_ParmParse.H>
 
 using namespace amrex;
 
 static Box the_same_box (const Box& b)    { return b;                 }
 static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
 
-// NOTE: the int arrays norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc 
-//                      are now all defined in NS_BC.H in iamrlib
+// NOTE: the int arrays that define the mapping from physical BCs to mathematical
+// (norm_vel_bc, tang_vel_bc, scalar_bc, temp_bc, press_bc, divu_bc, dsdt_bc)
+// are now all defined in IAMR/Source/NS_BC.H
 
 static
 void
@@ -219,12 +216,6 @@ NavierStokes::variableSetUp ()
 {
     BL_ASSERT(desc_lst.size() == 0);
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
-    {
-        phys_bc.setLo(dir,SlipWall);
-        phys_bc.setHi(dir,SlipWall);
-    }
-
     Initialize();
 
     BCRec bc;
@@ -266,29 +257,38 @@ NavierStokes::variableSetUp ()
     // older checkpoint files with more ghost cells, so a workaround is
     // needed.
 
+    BndryFunc vel_bf(vel_fill);
+    vel_bf.setRunOnGPU(true);
+
+    BndryFunc state_bf(state_fill);
+    state_bf.setRunOnGPU(true);
+
+    BndryFunc press_bf(press_bf);
+    press_bf.setRunOnGPU(true);
+
     set_x_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,BndryFunc(FORT_XVELFILL));
+    desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,vel_bf);
 
     set_y_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,BndryFunc(FORT_YVELFILL));
+    desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,vel_bf);
 
 #if (BL_SPACEDIM == 3)
     set_z_vel_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,BndryFunc(FORT_ZVELFILL));
+    desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,vel_bf);
 #endif
     //
     // **************  DEFINE SCALAR VARIABLES  ********************
     //
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Density,"density",bc,BndryFunc(FORT_DENFILL));
+    desc_lst.setComponent(State_Type,Density,"density",bc,state_bf);
 
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Trac,"tracer",bc,BndryFunc(FORT_ADVFILL));
+    desc_lst.setComponent(State_Type,Trac,"tracer",bc,state_bf);
 
     if (do_trac2)
     {
        set_scalar_bc(bc,phys_bc);
-       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,BndryFunc(FORT_ADV2FILL));
+       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,state_bf);
     }
     //
     // **************  DEFINE TEMPERATURE  ********************
@@ -296,7 +296,7 @@ NavierStokes::variableSetUp ()
     if (do_temp)
     {
         set_temp_bc(bc,phys_bc);
-        desc_lst.setComponent(State_Type,Temp,"temp",bc,BndryFunc(FORT_TEMPFILL));
+        desc_lst.setComponent(State_Type,Temp,"temp",bc,state_bf);
     }
 
     is_diffusive.resize(NUM_STATE);
@@ -347,7 +347,7 @@ NavierStokes::variableSetUp ()
                            &node_bilinear_interp);
 
     set_pressure_bc(bc,phys_bc);
-    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,BndryFunc(FORT_PRESFILL));
+    desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,press_bf);
  
     //
     // ---- grad P
@@ -381,44 +381,6 @@ NavierStokes::variableSetUp ()
 
     desc_lst.setComponent(Gradp_Type, Gradpx, name, bcs, gradp_bf);
 
-/*
-    if (NavierStokesBase::avg_interval > 0)
-    {
-      Average_Type = desc_lst.size();
-      bool state_data_extrap = false;
-      bool store_in_checkpoint = true;
-      desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
-                             StateDescriptor::Point,0,BL_SPACEDIM*2,
-                             &cc_interp,state_data_extrap,store_in_checkpoint);
-
-      set_average_bc(bc,phys_bc);
-      desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
-#if (BL_SPACEDIM==3)
-      desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
-#endif
-
-      Vector<std::string> var_names_ave(BL_SPACEDIM*2);
-      var_names_ave[Xvel] = "x_vel_average";
-      var_names_ave[Yvel] = "y_vel_average";
-#if (BL_SPACEDIM==3)
-      var_names_ave[Zvel] = "z_vel_average";
-#endif
-      var_names_ave[Xvel+BL_SPACEDIM] = "x_vel_rms";
-      var_names_ave[Yvel+BL_SPACEDIM] = "y_vel_rms";
-#if (BL_SPACEDIM==3)
-      var_names_ave[Zvel+BL_SPACEDIM] = "z_vel_rms";
-#endif
-      derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM*2,
-                     var_names_ave,der_vel_avg,the_same_box);
-      derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,BL_SPACEDIM*2);
-
-    }
-*/
-      
     //
     // ---- Additions for using Temperature
     //
@@ -431,7 +393,7 @@ NavierStokes::variableSetUp ()
                                StateDescriptor::Point,nGrowDivu,1,
 			       &cc_interp);
 	set_divu_bc(bc,phys_bc);
-	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,BndryFunc(FORT_DIVUFILL));
+	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,dummy_fill);
 	
 	// stick Dsdt_Type on the end of the descriptor list
 	Dsdt_Type = desc_lst.size();
@@ -440,9 +402,12 @@ NavierStokes::variableSetUp ()
                                StateDescriptor::Point,nGrowDsdt,1,
 			       &cc_interp);
 	set_dsdt_bc(bc,phys_bc);
-	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,BndryFunc(FORT_DSDTFILL));
+	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,dummy_fill);
     }
 
+    //
+    // For using on-the-fly averaging
+    //
     if (NavierStokesBase::avg_interval > 0)
     {
       Average_Type = desc_lst.size();
@@ -453,15 +418,26 @@ NavierStokes::variableSetUp ()
                              &cc_interp,state_data_extrap,store_in_checkpoint);
 
       set_average_bc(bc,phys_bc);
-      desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,dummy_fill);
 #if (BL_SPACEDIM==3)
-      desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,BndryFunc(FORT_DSDTFILL));
-      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,BndryFunc(FORT_DSDTFILL));
+      desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,dummy_fill);
+      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,dummy_fill);
 #endif
+    }
 
+    //
+    // **************  DEFINE DERIVED QUANTITIES ********************
+    //
+    using namespace derive_functions;
+
+    if (NavierStokesBase::avg_interval > 0)
+    {
+      //
+      // Average and RMS velocity
+      //
       Vector<std::string> var_names_ave(BL_SPACEDIM*2);
       var_names_ave[Xvel] = "x_vel_average";
       var_names_ave[Yvel] = "y_vel_average";
@@ -476,132 +452,25 @@ NavierStokes::variableSetUp ()
       derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM*2,
                      var_names_ave,der_vel_avg,the_same_box);
       derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,BL_SPACEDIM*2);
-
     }
 
-    //
-    // **************  DEFINE DERIVED QUANTITIES ********************
-    //
-    // mod grad rho
-    //
-    derive_lst.add("modgradrho",IndexType::TheCellType(),1,dermodgradrho,grow_box_by_one);
-    derive_lst.addComponent("modgradrho",desc_lst,State_Type,Density,1);
-
-#if (BL_SPACEDIM==3)
-    //
-    // u dot laplacian u
-    //
-    derive_lst.add("udotlapu",IndexType::TheCellType(),1,derudotlapu,grow_box_by_one);
-    derive_lst.addComponent("udotlapu",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-#endif
     //
     // kinetic energy
     //
     derive_lst.add("energy",IndexType::TheCellType(),1,derkeng,the_same_box);
     derive_lst.addComponent("energy",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("energy",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-
-    derive_lst.add("mag_vel",IndexType::TheCellType(),1,dermvel,the_same_box);
-    derive_lst.addComponent("mag_vel",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // magnitude of vorticity
     //
-    derive_lst.add("mag_vort",IndexType::TheCellType(),1,DeriveFunc3D(dermgvort),grow_box_by_one);
+    derive_lst.add("mag_vort",IndexType::TheCellType(),1,dermgvort,grow_box_by_one);
     derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-#if (BL_SPACEDIM == 3)
-    //
-    //  vorticity vector field
-    //
-    derive_lst.add("vort_x",IndexType::TheCellType(),1,dervortx,grow_box_by_one);
-    derive_lst.addComponent("vort_x",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    derive_lst.add("vort_y",IndexType::TheCellType(),1,dervorty,grow_box_by_one);
-    derive_lst.addComponent("vort_y",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    derive_lst.add("vort_z",IndexType::TheCellType(),1,dervortz,grow_box_by_one);
-    derive_lst.addComponent("vort_z",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    derive_lst.add("DMagVort",IndexType::TheCellType(),1,derdmag,grow_box_by_one);
-    derive_lst.addComponent("DMagVort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-#endif
-    //
-    // divergence of velocity field
-    //
-    derive_lst.add("diveru",IndexType::TheCellType(),1,DeriveFunc3D(dermgdivu),grow_box_by_one);
-    derive_lst.addComponent("diveru",desc_lst,State_Type,Xvel,BL_SPACEDIM);
     //
     // average pressure
     //
-    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,DeriveFunc3D(deravgpres),
+    derive_lst.add("avg_pressure",IndexType::TheCellType(),1,deravgpres,
                    the_same_box);
     derive_lst.addComponent("avg_pressure",desc_lst,Press_Type,Pressure,1);
-    //
-    // magnitude of pressure gradient 
-    //
-    derive_lst.add("gradp",IndexType::TheCellType(),1,dergrdp,the_same_box);
-    derive_lst.addComponent("gradp",desc_lst,Press_Type,Pressure,1);
-
-#if (BL_SPACEDIM == 3)
-    //
-    // radial velocity
-    //
-    derive_lst.add("radial_velocity",IndexType::TheCellType(),1,derradvel,the_same_box);
-    derive_lst.addComponent("radial_velocity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // azimuthal velocity
-    //
-    derive_lst.add("azimuthal_velocity",IndexType::TheCellType(),1,derazivel,the_same_box);
-    derive_lst.addComponent("azimuthal_velocity",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // x_velocity in laboratory frame for rotating frame of refernce
-    //
-    derive_lst.add("x_velocity_rot",IndexType::TheCellType(),1,derxvelrot,the_same_box);
-    derive_lst.addComponent("x_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // y_velocity in laboratory frame for rotating frame of refernce
-    //
-    derive_lst.add("y_velocity_rot",IndexType::TheCellType(),1,deryvelrot,the_same_box);
-    derive_lst.addComponent("y_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // magnitude of velocity in laboratory frame for rotating frame of refernce
-    //
-    derive_lst.add("mag_velocity_rot",IndexType::TheCellType(),1,dermagvelrot,the_same_box);
-    derive_lst.addComponent("mag_velocity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // magnitude of vorticity in laboratory frame for rotating frame of refernce
-    //
-    derive_lst.add("mag_vorticity_rot",IndexType::TheCellType(),1,dermagvortrot,grow_box_by_one);
-    derive_lst.addComponent("mag_vorticity_rot",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-#if defined(DO_IAMR_FORCE)
-    //
-    // forcing - used to calculate the rate of injection of energy in probtype 14 (HIT)
-    //
-    derive_lst.add("forcing",IndexType::TheCellType(),1,derforcing,the_same_box);
-    derive_lst.addComponent("forcing",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("forcing",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // forcex - used to put the forcing term in the plot file
-    //
-    derive_lst.add("forcex",IndexType::TheCellType(),1,derforcex,the_same_box);
-    derive_lst.addComponent("forcex",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("forcex",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // forcey - used to put the forcing term in the plot file
-    //
-    derive_lst.add("forcey",IndexType::TheCellType(),1,derforcey,the_same_box);
-    derive_lst.addComponent("forcey",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("forcey",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-    //
-    // forcez - used to put the forcing term in the plot file
-    //
-    derive_lst.add("forcez",IndexType::TheCellType(),1,derforcez,the_same_box);
-    derive_lst.addComponent("forcez",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("forcez",desc_lst,State_Type,Xvel,BL_SPACEDIM);
-#endif
-    //
-    // Pressure stuff for on-the-fly integration
-    //
-    derive_lst.add("PresVars",IndexType::TheCellType(),4,derpresvars,the_same_box);
-    derive_lst.addComponent("PresVars",desc_lst,Press_Type,Pressure,1);
-//3D
-#endif
 
 #ifdef AMREX_PARTICLES
     //
@@ -621,73 +490,5 @@ NavierStokes::variableSetUp ()
     //
     // **************  DEFINE ERROR ESTIMATION QUANTITIES  *************
     //
-
-    //
-    // Dynamically generated error tagging functions
-    //
-    std::string amr_prefix = "amr";
-    ParmParse ppamr(amr_prefix);
-    Vector<std::string> refinement_indicators;
-    ppamr.queryarr("refinement_indicators",refinement_indicators,0,ppamr.countval("refinement_indicators"));
-    for (int i=0; i<refinement_indicators.size(); ++i)
-    {
-        std::string ref_prefix = amr_prefix + "." + refinement_indicators[i];
-
-        ParmParse ppr(ref_prefix);
-        RealBox realbox;
-        if (ppr.countval("in_box_lo")) {
-            std::vector<Real> box_lo(BL_SPACEDIM), box_hi(BL_SPACEDIM);
-            ppr.getarr("in_box_lo",box_lo,0,box_lo.size());
-            ppr.getarr("in_box_hi",box_hi,0,box_hi.size());
-            realbox = RealBox(&(box_lo[0]),&(box_hi[0]));
-        }
-
-        AMRErrorTagInfo info;
-
-        if (realbox.ok()) {
-            info.SetRealBox(realbox);
-        }
-        if (ppr.countval("start_time") > 0) {
-            Real min_time; ppr.get("start_time",min_time);
-            info.SetMinTime(min_time);
-        }
-        if (ppr.countval("end_time") > 0) {
-            Real max_time; ppr.get("end_time",max_time);
-            info.SetMaxTime(max_time);
-        }
-        if (ppr.countval("max_level") > 0) {
-            int max_level; ppr.get("max_level",max_level);
-            info.SetMaxLevel(max_level);
-        }
-
-        if (ppr.countval("value_greater")) {
-            Real value; ppr.get("value_greater",value);
-            std::string field; ppr.get("field_name",field);
-            errtags.push_back(AMRErrorTag(value,AMRErrorTag::GREATER,field,info));
-        }
-        else if (ppr.countval("value_less")) {
-            Real value; ppr.get("value_less",value);
-            std::string field; ppr.get("field_name",field);
-            errtags.push_back(AMRErrorTag(value,AMRErrorTag::LESS,field,info));
-        }
-        else if (ppr.countval("vorticity_greater")) {
-            Real value; ppr.get("vorticity_greater",value);
-            const std::string field="mag_vort";
-            errtags.push_back(AMRErrorTag(value,AMRErrorTag::VORT,field,info));
-        }
-        else if (ppr.countval("adjacent_difference_greater")) {
-            Real value; ppr.get("adjacent_difference_greater",value);
-            std::string field; ppr.get("field_name",field);
-            errtags.push_back(AMRErrorTag(value,AMRErrorTag::GRAD,field,info));
-        }
-        else if (realbox.ok())
-        {
-            errtags.push_back(AMRErrorTag(info));
-        }
-        else {
-            Abort(std::string("Unrecognized refinement indicator for " + refinement_indicators[i]).c_str());
-        }
-    }
-
     error_setup();
 }

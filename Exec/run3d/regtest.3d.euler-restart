@@ -1,12 +1,6 @@
-
-ns.do_vorticity_ref=1
-
 #*******************************************************************************
 # INPUTS.3D.EULER
 #*******************************************************************************
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
@@ -26,6 +20,10 @@ amr.n_cell 		= 32 32 32
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 1  # maximum number of levels of refinement
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater = 0.25
 
 #*******************************************************************************
 
@@ -80,11 +78,6 @@ ns.scal_diff_coefs      = 0.0
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.3d.euler  
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
 geometry.coord_sys   =  0
 
@@ -112,6 +105,11 @@ ns.hi_bc             = 0 0 0
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 7
 
 #*******************************************************************************
 

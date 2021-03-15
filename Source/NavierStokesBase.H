@@ -35,10 +35,6 @@
 //
 enum StateType {State_Type=0, Press_Type, Gradp_Type};
 
-//
-// Note: enumerated value NUM_STATE_TYPE no longer defined
-// use num_state_type (static int member of NavierStokes)
-//
 #if (BL_SPACEDIM == 2)
 enum StateNames  { Xvel=0, Yvel, Density};
 #else
@@ -180,7 +176,6 @@ public:
     // Get pressure gradient data, fill-patch ghost cells.
     //
     void computeGradP(amrex::Real time);
-    void computeGradP(int clev, int flev);
 
 #ifdef AMREX_USE_EB
     const amrex::MultiFab* VolFrac () const { return volfrac; }
@@ -462,11 +457,25 @@ public:
     //    NavierStokesBase static functions                                   //
     ////////////////////////////////////////////////////////////////////////////
 
-    static void variableCleanUp (); // Cleanup data descriptors at end of run.
-    static void Initialize ();   // Read input file common to IAMR and PeleLM
-    static void Initialize_specific ();   // Read input file specific to IAMR
+    //
+    // Cleanup data descriptors at end of run.
+    //
+    static void variableCleanUp ();
+    //
+    // Read input file common to IAMR and PeleLM
+    //
+    static void Initialize ();
+    //
+    // Read input file specific to IAMR or PLM
+    //
+    static void Initialize_specific (){
+      amrex::Abort("NavierStokesBase::Initialize_specific: This function must be implemented in derived class");
+    };
     static void Finalize ();
-    static void read_geometry (); // Set metrics
+    //
+    // Check for RZ geometry
+    //
+    static void read_geometry ();
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase particle functions                                 //
@@ -665,7 +674,6 @@ public:
     //
     // Static objects.
     //
-    static amrex::ErrorList   err_list;
     static amrex::BCRec       phys_bc;
     static Projection* projector;
     static MacProj*    mac_projector;
@@ -733,11 +741,6 @@ public:
     static int  Nbuf_outflow;               //   outflow boundaries.
     static int  do_denminmax;               // The code for these was in NavierStokes.cpp,
     static int  do_scalminmax;              //   but the flags were not declared or read in.
-    static int  do_density_ref;             // Flags added for refinement control
-    static int  do_tracer_ref;
-    static int  do_tracer2_ref;
-    static int  do_vorticity_ref;
-    static int  do_temp_ref;
     static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
     static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin

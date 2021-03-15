@@ -3,6 +3,9 @@
 # INPUTS.2D.HOTSPOT
 #*******************************************************************************
 
+# Compute averages and add to plotfile
+ns.avg_interval = 1
+
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
@@ -15,11 +18,18 @@ max_step 		= 30
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# What to use for the refinement criterion
-ns.do_tracer_ref = 0
-ns.do_density_ref = 0
-ns.do_vorticity_ref = 0
-ns.do_temp_ref = 1
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp gradT
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.gradT.adjacent_difference_greater = 0.005
+amr.gradT.field_name = temp
+#amr.gradT.start_time = 0.001
+#amr.gradT.end_name = 0.002
+
 
 #*******************************************************************************
 
@@ -89,11 +99,6 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.2d.hotspot
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
@@ -124,9 +129,20 @@ ns.hi_bc             = 4 4
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 6
+prob.blob_center = 0.0 0.65 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
+
+#*******************************************************************************
+
 # Add vorticity to the variables in the plot files.
 amr.derive_plot_vars    = mag_vort   diveru   avg_pressure velocity_average
 amr.plot_vars = x_velocity y_velocity density tracer temp
 #*******************************************************************************
 
-ns.avg_interval = 1

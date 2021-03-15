@@ -1,14 +1,14 @@
+AMREX_NO_PROBINIT=TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 #These are the directories in IAMR
 
 Bdirs += Source
-Bdirs += Source/TurbInflow
-Bdirs += Source/Src_nd
 Bdirs += Source/Src_$(DIM)d
 Bdirs += Source/MOL
 Bdirs += Source/Godunov
+Bdirs += Source/prob
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))

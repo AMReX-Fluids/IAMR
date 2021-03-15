@@ -76,11 +76,6 @@ ns.gravity              = 0.0
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.2d.lid_driven_cavity  
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   	=  0
 
@@ -108,6 +103,14 @@ ns.hi_bc             	= 5 5
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+# Boundary condition
+yhi.velocity            =   1.  0.  0.
+
+#*******************************************************************************
+
+# Initialize from rest with constant density = 1
+prob.probtype = 1
 
 #*******************************************************************************
 

@@ -1,3 +1,0 @@
-do_flct                 integer    0
-flct_dir                integer    2
-flct_in                 character     'TURB'

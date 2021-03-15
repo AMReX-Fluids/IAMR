@@ -1,7 +1,0 @@
- &fortin
-
-  probtype = 7
-  vorterr  = .25
-  adverr  = .01
-
- /

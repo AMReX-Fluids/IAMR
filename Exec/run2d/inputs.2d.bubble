@@ -7,14 +7,21 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 0
+max_step 		= 10
 
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 1
-ns.do_vorticity_ref = 1
+# Refinement criterion, use vorticity and presence of tracer
+amr.refinement_indicators = tracer vorticity
+
+amr.tracer.value_greater = 0.1
+amr.tracer.field_name = tracer
+
+amr.vorticity.vorticity_greater = 1.0
+#amr.vorticity.start_time = 0.001
+#amr.vorticity.end_name = 0.002
+
 
 #*******************************************************************************
 
@@ -84,11 +91,6 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.2d.bubble  
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
@@ -116,6 +118,18 @@ ns.hi_bc             = 4 4
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 2
+prob.blob_center = 0.0 1.5 
+prob.blob_radius = 0.2
+# Background density is 1. Density is incresed by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
 
 #*******************************************************************************
 

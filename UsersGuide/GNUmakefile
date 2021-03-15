@@ -14,7 +14,6 @@ section_sources = Introduction/Introduction.tex \
                   Visualization/Visualization.tex \
                   Software/Software.tex \
                   Parallel/Parallel.tex \
-                  Suggestions/Suggestions.tex \
                   Preface/Preface.tex \
                   Particles/Particles.tex \
                   refs.bib

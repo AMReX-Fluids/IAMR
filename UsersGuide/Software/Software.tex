@@ -9,6 +9,9 @@ The code structure in the {\tt IAMR/} directory is as follows:
   \begin{itemize}
   \item {\tt run2d/}
   \item {\tt run3d/}
+  \item {\tt eb\_run2d/}
+  \item {\tt eb\_run3d/}
+  \item {\tt run\_2d\_particles/}
   \end{itemize}
 
 \item {\tt UsersGuide/}: you're reading this now!
@@ -21,6 +24,9 @@ The code structure in the {\tt IAMR/} directory is as follows:
 \iamr\ is built upon the \amrex\ C++ framework.  This provides
 high-level classes for managing an adaptive mesh refinement simulation,
 including the core data structures required in AMR calculations.
+Since \iamr\ leaverages heavily from the \amrex\ library,
+it's documentation (at https://amrex-codes.github.io/amrex/docs\_html/index.html)
+is a useful resource in addition to this User's Guide.
 
 The \iamr\ simulation begins in {\tt IAMR/Source/main.cpp} where an instance
 of the \amrex\ {\tt Amr} class is created:
@@ -50,11 +56,11 @@ This uses the \amrex\ machinery to do the necessary subcycling in time,
 including synchronization between levels, to advance the level hierarchy
 forward in time.  
 
-\subsection{Geometry class}
+%\subsection{Geometry class}
 
-\subsection{ParmParse class}
+%\subsection{ParmParse class}
 
-\subsection{IAMR Data Structures}
+%\subsection{IAMR Data Structures}
 
 \subsubsection{State Data}
 
@@ -98,320 +104,93 @@ is a derived classes of {\tt NavierStokesBase}).
 {\tt MultiFab} data is distributed in space at the granularity of 
 each {\tt Box} in its {\tt BoxArray}.  We iterate over {\tt MultiFab}s using a special
 iterator, {\tt MFIter}, which knows about the locality of the data---only the boxes owned by the
-processor will be included in the loop on each processor.  An example loop (for the
-initialization, taken from code in {\tt NavierStokes.cpp}):
+processor will be included in the loop on each processor.  An example loop
+(taken from code in {\tt NavierStokesBase.cpp}):
 \begin{lstlisting}
-//
-// Initialize the state and the pressure.
-//
-int         ns       = NUM_STATE - BL_SPACEDIM;
-const Real* dx       = geom.CellSize();
-MultiFab&   S_new    = get_new_data(State_Type);
-MultiFab&   P_new    = get_new_data(Press_Type);
-const Real  cur_time = state[State_Type].curTime();
+    //
+    // Fill rho at half time
+    //
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(rho_half,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox();
 
-for (MFIter snewmfi(S_new); snewmfi.isValid(); ++snewmfi)
-{
-  const Box& vbx = snewmfi.validbox();
+        // half time
+        auto const& rho_h = rho_half.array(mfi);
+        // previous time
+        auto const& rho_p = rho_ptime.array(mfi);
+        // current time
+        auto const& rho_c = rho_ctime.array(mfi);
 
-  BL_ASSERT(grids[snewmfi.index()] == vbx);
-
-  FArrayBox& Sfab = S_new[snewmfi];
-  FArrayBox& Pfab = P_new[snewmfi];
-
-  Sfab.setVal(0.0);
-  Pfab.setVal(0.0);
-
-  const int  i       = snewmfi.index();
-  RealBox    gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-  const int* lo      = vbx.loVect();
-  const int* hi      = vbx.hiVect();
-  const int* s_lo    = Sfab.loVect();
-  const int* s_hi    = Sfab.hiVect();
-  const int* p_lo    = Pfab.loVect();
-  const int* p_hi    = Pfab.hiVect();
-
-  FORT_INITDATA (&level,&cur_time,lo,hi,&ns,
-  Sfab.dataPtr(Xvel),
-  Sfab.dataPtr(BL_SPACEDIM),
-  ARLIM(s_lo), ARLIM(s_hi),
-  Pfab.dataPtr(),
-  ARLIM(p_lo), ARLIM(p_hi),
-  dx,gridloc.lo(),gridloc.hi() );
+        amrex::ParallelFor(bx, [rho_h, rho_p, rho_c] 
+        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+           rho_h(i,j,k) = 0.5 * (rho_p(i,j,k) + rho_c(i,j,k));
+        });
+    }
 }
 \end{lstlisting} 
-Here, {\tt ++snewmfi} iterates to the next {\tt FArrayBox} owned by the {\tt MultiFab}, 
-and {\tt snewmfi.isValid()} returns {\tt false} after we've reached 
+Here, {\tt ++mfi} iterates to the next {\tt FArrayBox} owned by the {\tt MultiFab}, 
+and {\tt mfi.isValid()} returns {\tt false} after we've reached 
 the last box contained in the {\tt MultiFab}, terminating the loop.
+{\tt rho\_half.array(mfi)} creates an object for accessing {\tt FArrayBox} data in
+a more array like manner using {\tt operator()}
+(more details are in the \amrex\ documentation at
+https://amrex-codes.github.io/amrex/docs\_html/Basics.html\#sec-basics-array4 ).
 
-The corresponding Fortran functions will look like:
-\begin{lstlisting}
-      subroutine FORT_INITDATA(level,time,lo,hi,nscal,
-     &	 	               vel,scal,DIMS(state),press,DIMS(press),
-     &                         dx,xlo,xhi)
-      integer    level, nscal
-      integer    lo(SDIM),hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
+Here {\tt ParallelFor} takes two arguments. The first argument is a Box specifying the iteration index space, and the second argument is a C++ lambda function that works on cell (i,j,k). Variables rho\_half, rho\_ptime and rho\_ctime in the lambda function are captured by value from the enclosing scope. The code above is performance portable. It works with and without GPU support. When \iamr\ is built with GPU support (USE\_CUDA=TRUE), AMREX\_GPU\_DEVICE indicates that the lambda function is a device function and ParallelFor launches a GPU kernel to do the work. When it is built without GPU support, AMREX\_GPU\_DEVICE has no effects whatsoever. It should be emphasized that ParallelFor does not start an OpenMP parallel region. The OpenMP parallel region will be started by the pragma above the MFIter loop if it is built with OpenMP and without enabling GPU (USE\_OMP=TRUE and USE\_CUDA=TRUE are not compatible). Tiling is turned off if GPU is enabled so that more parallelism is exposed to GPU kernels. Also note that when tiling is off, tilebox returns validbox.
+(more details are in the \amrex\ documentation at
+https://amrex-codes.github.io/amrex/docs\_html/GPU.html\#sec-gpu-for ).
 
-#include <probdata.H>
-
-       if (probtype .eq. 2) then
-               call initbubble(level,time,lo,hi,nscal,
-           &     	       vel,scal,DIMS(state),press,DIMS(press),
-           &                   dx,xlo,xhi)
- end if
-
- end
-c
-c ::: -----------------------------------------------------------
-c
-      subroutine initbubble(level,time,lo,hi,nscal,
-     &	 	            vel,scal,DIMS(state),press,DIMS(press),
-     &                      dx,xlo,xhi)
-
-      integer    level, nscal
-      integer    lo(SDIM), hi(SDIM)
-      integer    DIMDEC(state)
-      integer    DIMDEC(press)
-      REAL_T     time, dx(SDIM)
-      REAL_T     xlo(SDIM), xhi(SDIM)
-      REAL_T     vel(DIMV(state),SDIM)
-      REAL_T    scal(DIMV(state),nscal)
-      REAL_T   press(DIMV(press))
-c
-c     ::::: local variables
-c
-      integer i, j, n
-      REAL_T  x, y
-      REAL_T  hx, hy
-      REAL_T  dist
-      REAL_T  x_vel, y_vel
-
-#include <probdata.H>
-
-      hx = dx(1)
-      hy = dx(2)
-
-      if (adv_dir .eq. 1) then
-         x_vel = adv_vel
-         y_vel = zero
-      else if (adv_dir .eq. 2) then
-         x_vel = zero
-         y_vel = adv_vel
-      else 
-         write(6,*) "initbubble: adv_dir = ",adv_dir
-         stop
-      end if
-
-      do j = lo(2), hi(2)
-         y = xlo(2) + hy*(float(j-lo(2)) + half)
-         do i = lo(1), hi(1)
-            x = xlo(1) + hx*(float(i-lo(1)) + half)
-             dist = sqrt((x-xblob)**2 + (y-yblob)**2)
-            vel(i,j,1) = x_vel
-            vel(i,j,2) = y_vel
-            scal(i,j,1) = one + half*(denfact-one)*(one-tanh(30.*(dist-radblob)))
-            do n = 2,nscal-1
-               scal(i,j,n) = one
-            end do                  
-            scal(i,j,nscal) = merge(one,zero,dist.lt.radblob)
-	 end do
-      end do
-
-      end
-\end{lstlisting}
 
 \section{Setting Up Your Own Problem}
 
-To define a new problem, we create a new inputs and probin file in 
-the {\tt run2d} or {\tt run3d} directory and modify
-{\tt PROB\_XD.F} accordingly. The
-simplest way to get started is to copy these files from an existing
+To define a new problem, we create a new inputs file in 
+a run directory and modify
+{\tt IAMR/Source/prob/prob\_init.cpp} accordingly.
+The simplest way to get started is to copy the inputs files from an existing
 problem.  Here we describe how to customize your problem.
 
-The purpose of these files is:
+There are several files involved in setting up an \iamr\ problem. It's possible to
+create your own new setup by only touching the first of these ({\tt prob\_initData()})
+and changing parameters through the inputs file (see section \ref{sec:inputs}).
+Here we list the most relevant problem
+setup files and thier purpose. If you need further help setting up your problem, please
+contact us.
 \begin{itemize}
-\item {\tt probdata.f90}: this holds the {\tt probdata\_module} Fortran module
-  that allocates storage for all the problem-specific runtime parameters that
-  are used by the problem (including those that are read from the {\tt probin}
-  file.
 
-\item {\tt Prob\_?d.f90}: this holds the main routines to
-  initialize the problem and grid and perform problem-specific boundary
-  conditions:
+\item {\tt prob\_initData()}:
+  Read in initial conditions and problem parameters from the inputs file,
+  and initialize the state data (velocity, density, etc.).
 
-  \begin{itemize}
-  \item {\tt probinit()}:
+\item {\tt NS\_error.cpp}: Define the error estimation criteria used for tagging cells for
+  refinement.
+  More details in section \label{sec:tagging}
 
-    This routine is primarily responsible for reading in the {\tt
-      probin} file (by defining the {\tt \&fortin} namelist and
-    reading in an initial model (usually through the {\tt
-      model\_parser\_module}---see the {\tt toy\_convect} problem
-    setup for an example).  The parameters that are initialized
-    here are those stored in the {\tt probdata\_module}.
+\item {\tt NS\_setup.cpp}: Declare state and derived variables.
+  Specify how to fill grow cells for each state or derived variable.
+  More details in sections \ref{sec:boundaries}
 
-  \item {\tt initdata()}:
+\item {\tt NS\_derive.cpp}: Define derived variables. 
+  More details in sections \ref{sec:derivedVariables}  
 
-    This routine will initialize the state data for a single grid.
-    The inputs to this routine are:
-    \begin{itemize}
-    \item {\tt level}: the level of refinement of the grid we are filling
+\item {\tt NS\_BC.H}: Define the mapping from physical boundary conditions (e.g. outflow)
+  to mathematical (e.g. first order extrapolation from last interior cell).
+  More details in section \ref{sec:physicalBCs}
 
-    \item {\tt time}: the simulation time
-
-    \item {\tt lo()}, {\tt hi()}: the integer indices of the box's {\em
-      valid data region} lower left and upper right corners.  These
-      integers refer to a global index space for the level and
-      identify where in the computational domain the box lives.
-
-    \item {\tt nscal}: the number of scalar quantities---this is not typically
-      used in \iamr.
-
-    \item {\tt state\_l1}, {\tt state\_l2}, ({\tt state\_l3}): the
-      integer indices of the lower left corner of the box in each
-      coordinate direction.  These are for the box as allocated in memory,
-      so they include any ghost cells as well as the valid data regions.
-
-    \item {\tt state\_h1}, {\tt state\_h2}, ({\tt state\_h3}): the
-      integer indices of the upper right corner of the box in each
-      coordinate direction.  These are for the box as allocated in memory,
-      so they include any ghost cells as well as the valid data regions.
-      
-    \item {\tt state()}: the main state array.  This is dimensioned as:
-\begin{verbatim}
-double precision state(state_l1:state_h1,state_l2:state_h2,NVAR)
-\end{verbatim}
-    (in 2-d), where {\tt NVAR} comes from the {\tt meth\_params\_module}.
-
-    When accessing this array, we use the index keys provided by
-    {\tt meth\_params\_module} (e.g., {\tt Density}) to refer to specific
-    quantities
-    
-    \item {\tt delta()}: this is an array containing the zone width ($\Delta x$)
-      in each coordinate direction: $\mathtt{delta(1)} = \Delta x$,
-      $\mathtt{delta(2)} = \Delta y$, $\ldots$.
-
-    \item {\tt xlo()}, {\tt xhi()}: these are the physical coordinates of the
-      lower left and upper right corners of the {\em valid region}
-      of the box.  These can be used to compute the coordinates of the
-      cell-centers of a zone as:
-\begin{lstlisting}
-  do j = lo(2), hi(2)
-     y = xlo(2) + delta(2)*(dble(j-lo(2)) + 0.5d0)
-     ...
-\end{lstlisting}
-     (Note: this method works fine for the problem initialization
-     stuff, but for routines that implement tiling, as discussed below,
-     {\tt lo} and {\tt xlo} may not refer to the same corner, and instead
-     coordinates should be computed using {\tt problo()} from the {\tt
-     prob\_params\_module}.)
-     
-    \end{itemize}
-  \end{itemize}    
-
-\item {\tt Prob\_?d.f90}:
-
-  These routines handle how \iamr\ fills ghostcells {\em
-  at physical boundaries} for specific data.
-  These routines are registered in {\tt HT\_setup.cpp}, and
-  called as needed.  By default, they just
-  pass the arguments through to {\tt filcc}, which handles all of
-  the generic boundary conditions (like reflecting, extrapolation,
-  etc.).  The specific `{\tt fill}' routines can then supply the
-  problem-specific boundary conditions, which are typically just
-  Dirichlet boundary conditions (usually this means looking to see
-  if the {\tt bc()} flag at a boundary is {\tt EXT\_DIR}.  The
-  problem-specific code implementing these specific conditions
-  should {\em follow} the {\tt filcc} call.
-        
-  \begin{itemize}
-  \item {\tt velfill}:
-    This handles the boundary filling for velocity fields.
-
-  \item {\tt denfill}: 
-    This handles the boundary filling for density field.
-
-  \item {\tt rhohfill}: 
-    This handles the boundary filling for $\rho h$ field.
-
-  \item {\tt tempfill}: 
-    This handles the boundary filling for temperature field.
-
-  \item {\tt chemfill}: This handles boundary filling for
-    $\rho Y_i$, for $i\in(1,n)$ and $n$ is the number of chemical species.
-
-  \end{itemize}
-
-  These routines take the following arguments:
-  \begin{itemize}
-  \item {\tt adv\_l1}, {\tt adv\_l2}, ({\tt adv\_l3}): the indicies of
-    the lower left corner of the box holding the data we are working on.
-    These indices refer to the entire box, including ghost cells.
-
-  \item {\tt adv\_h1}, {\tt adv\_h2}, ({\tt adv\_h3}): the indicies of
-    the upper right corner of the box holding the data we are working on.
-    These indices refer to the entire box, including ghost cells.
-
-  \item {\tt adv()}: the array of data whose ghost cells we are filling.
-    Depending on the routine, this may have an additional index refering
-    to the variable.
-    
-    This is dimensioned as:
-\begin{verbatim}
-  double precision adv(adv_l1:adv_h1,adv_l2:adv_h2)                             
-\end{verbatim}
-
-  \item {\tt domlo()}, {\tt domhi()}: the integer indices of the lower
-    left and upper right corners of the valid region of the {\em entire
-    domain}.  These are used to test against to see if we are filling
-    physical boundary ghost cells.
-
-    This changes according to refinement level: level-0 will
-    range from {\tt 0} to {\tt amr.max\_grid\_size},
-    and level-n will range from {\tt 0} to
-    $\mathtt{amr.max\_grid\_size} \cdot \prod_n \mathtt{amr.ref\_ratio(n)}$.
-
-  \item {\tt delta()}: is the zone width in each coordinate direction,
-    as in {\tt initdata()} above.
-
-  \item {\tt xlo()}: this is the physical coordinate of the lower
-    left corner of the box we are filling---including the ghost cells.
-
-    Note: this is different than how {\tt xlo()} was defined in
-    {\tt initdata()} above.
-
-  \item {\tt time}: the simulation time
-
-  \item {\tt bc()}: an array that holds the type of boundary conditions
-    to enforce at the physical boundaries for {\tt adv}.
-
-    Sometimes it appears of the form {\tt bc(:,:)} and sometimes
-    {\tt bc(:,:,:)}---the last index of the latter holds the variable
-    index, i.e., density, pressure, species, etc.
-
-    The first index is the coordinate direction and the second index
-    is the domain face ({\tt 1} is low, {\tt 2} is hi), so {\tt
-    bc(1,1)} is the lower $x$ boundary type, {\tt bc(1,2)} is
-    the upper $x$ boundary type, {\tt bc(2,1)} is the lower
-    $y$ boundary type, etc.
-
-    To interpret the array values, we test against the quantities
-    defined in {\tt bc\_types.fi} included in each subroutine,
-    for example, {\tt EXT\_DIR}, {\tt FOEXTRAP}, $\ldots$.  The
-    meaning of these are explained below.
-      
-  \end{itemize}
-    
+\item {\tt NS\_bcfill.H}:
+  Define the boundary filling functions for external Dirichlet (i.e. user supplied)
+  boundary conditions. Constant Dirichlet conditions can be specified in the
+  inputs file without needing to alter  {\tt NS\_bcfill.H}.
+  More details in section \ref{sec:physicalBCs}
+  
 \end{itemize}
 
 
 \section{Boundaries}
+\label{sec:boundaries}
 In \amrex, we are primarily concerned with enabling structured-grid
 computations.  A key aspect of this is the use of ``grow'' cells
 around the ``valid box'' of cells over which we wish to apply stencil operations.
@@ -441,7 +220,7 @@ of the various AMR levels are sequenced relative to eachother.
 In \amrex, the field data associated with the system state, as well as the metadata
 associated with inter-level transfers, is bundled (encapsulated) in
 a class called ``StateData''.  The metadata 
-is defined in {\tt HT\_setup.cpp} -- search for
+is defined in {\tt NS\_setup.cpp} -- search for
 {\tt cell\_cons\_interp}, for example -- which is ``cell conservative
 interpolation'', i.e., the data is cell-based (as opposed to node-based
 or edge-based) and the interpolation is such that the average of the
@@ -451,17 +230,25 @@ example.)  A number of interpolators are provided with \amrex\ and
 user-customizable ones can be added on the fly.
 
 \subsection{Physical Boundaries}
+\label{sec:physicalBCs}
 The last type of grow cell exists at physical boundaries.  These are special for 
 a couple of reasons.  First, the user must explicitly specify how they are to be
 filled, consistent with the problem being run.  \amrex\ provides a number of 
 standard condition types typical of PDE problems (reflecting, extrapolated, etc),
 and a special one that indicates external Dirichlet. In the case of Dirichlet,
-the user will supply a coded function to fill grow cells (discussed elsewhere in
-this document).
+the user supplies data to fill grow cells.
 
-It is important to note that Dirichlet boundary data is to be specified as 
-if applied on the edge of the cell bounding the domain. The array passed into the 
-user boundary condition code is filled with cell-centered values in the valid 
+\iamr\ provides the ability to specify constant Dirichlet BCs 
+in the inputs file (see section \ref{sec:dirichlet}).
+Users can create more complex Dirichlet boundary condtions by writing
+their own fill function in {\tt NS\_bcfill.H}, then using that function to create
+an {\tt amrex::StateDescriptor::BndryFunc} object and specifying which variables
+will use it in {\tt NS\_setup.cpp}. 
+
+It is important to note that external Dirichlet boundary data is to be specified as 
+if applied on the face of the cell bounding the domain, even for cell-centered
+state data. For cell-centered data, the array passed into the 
+boundary condition code is filled with cell-centered values in the valid 
 region and in fine-fine, and coarse-fine grow cells.  Additionally, grow cells 
 for standard extrapolation and reflecting boundaries are pre-filled.  The 
 differential operators throughout \iamr\ are aware of the special boundaries
@@ -469,8 +256,8 @@ that are Dirichlet and wall-centered, and the stencils are adjusted accordingly.
 
 For convenience, \iamr\ provides a limited set of mappings from a physics-based boundary condition
 specification to a mathematical one that the code can apply.  This set can be extended
-by adjusting the corresponding translations in {\tt HT\_setup.cpp}, but, by default, includes 
-(See {\tt AMReX/Src/C\_AMRLib/amrlib/BC\_TYPES.H} for more detail):
+by adjusting the corresponding translations in {\tt NS\_BC.H}, but, by default, includes 
+(See {\tt AMReX/Src/Base/AMReX\_BC\_TYPES.H} for more detail):
 \begin{itemize}
 \item {\it Outflow}:
   \begin{itemize}
@@ -486,12 +273,12 @@ by adjusting the corresponding translations in {\tt HT\_setup.cpp}, but, by defa
   \item scalars: {\tt HOEXTRAP}
   \end{itemize}
 
-\item {\it No Slip Wall with Fixed Temp}:
-  \begin{itemize}
-  \item velocity: {\tt EXT\_DIR}, $u=v=0$
-  \item temperature: {\tt EXT\_DIR}
-  \item scalars: {\tt HOEXTRAP}
-  \end{itemize}
+%% \item {\it No Slip Wall with Fixed Temp}:
+%%   \begin{itemize}
+%%   \item velocity: {\tt EXT\_DIR}, $u=v=0$
+%%   \item temperature: {\tt EXT\_DIR}
+%%   \item scalars: {\tt HOEXTRAP}
+%%   \end{itemize}
     
 \item {\it Slip Wall with Adiabatic Temp}:
   \begin{itemize}
@@ -500,12 +287,12 @@ by adjusting the corresponding translations in {\tt HT\_setup.cpp}, but, by defa
   \item scalars: {\tt HOEXTRAP}
   \end{itemize}
   
-\item {\it Slip Wall with Fixed Temp}:
-  \begin{itemize}
-  \item velocity: {\tt EXT\_DIR}, $u_n=0$
-  \item temperature: {\tt EXT\_DIR}
-  \item scalars: {\tt HOEXTRAP}
-  \end{itemize}
+%% \item {\it Slip Wall with Fixed Temp}:
+%%   \begin{itemize}
+%%   \item velocity: {\tt EXT\_DIR}, $u_n=0$
+%%   \item temperature: {\tt EXT\_DIR}
+%%   \item scalars: {\tt HOEXTRAP}
+%%   \end{itemize}
 
 \end{itemize}
 
@@ -525,6 +312,72 @@ The keywords used above are defined:
 \end{itemize}
 
 
+%  -------------------
+  %% \item {\tt bc()}: an array that holds the type of boundary conditions
+  %%   to enforce at the physical boundaries.
+
+  %%   Sometimes it appears of the form {\tt bc(:,:)} and sometimes
+  %%   {\tt bc(:,:,:)}---the last index of the latter holds the variable
+  %%   index, i.e., density, velocity, etc.
+
+  %%   The first index is the coordinate direction and the second index
+  %%   is the domain face ({\tt 1} is low, {\tt 2} is hi), so {\tt
+  %%   bc(1,1)} is the lower $x$ boundary type, {\tt bc(1,2)} is
+  %%   the upper $x$ boundary type, {\tt bc(2,1)} is the lower
+  %%   $y$ boundary type, etc.
+
+  %%   To interpret the array values, we test against the quantities
+  %%   defined in {\tt AMReX\_BC\_TYPES.H} included in each subroutine,
+  %%   for example, {\tt EXT\_DIR}, {\tt FOEXTRAP}, $\ldots$.  The
+  %%   meaning of these are explained below.
+  %%   %-------------------------
+
+
+\section{Derived Variables}
+\label{sec:derivedVariables}
+
+\iamr\ has the ability to created new variables derived from the state variables.
+A few derived variables are provided with \iamr, which can be used as examples for
+creating user defined derived variables.
+Users create derived variables by adding a function to create them in
+{\tt NS\_derive.H} and {\tt NS\_derive.cpp}, and then adding the variable to the
+{\tt derive\_lst} in {\tt NS\_setup.cpp}.
+
+Access to the derived variable is through one of two {\tt amrex:AmrLevel} functions
+(which are inherited by {\tt NavierStokesBase} and {\tt NavierStokes}):
+\begin{lstlisting}
+    /**
+    * \brief Returns a MultiFab containing the derived data for this level.
+    * The user is responsible for deleting this pointer when done
+    * with it.  If ngrow>0 the MultiFab is built on the appropriately
+    * grown BoxArray.
+    */
+    virtual std::unique_ptr<MultiFab> derive (const std::string& name,
+					      Real               time,
+					      int                ngrow);
+    /**
+    * \brief This version of derive() fills the dcomp'th component of mf
+    * with the derived quantity.
+    */
+    virtual void derive (const std::string& name,
+                         Real               time,
+                         MultiFab&          mf,
+                         int                dcomp);
+\end{lstlisting}
+
+As an example, {\tt mag\_vort} is a derived variable provided with \iamr, which
+returns the magnitude of the vorticity of the flow.
+A multifab filled with the magnitude of the vorticity can be obtained via
+\begin{lstlisting}
+  std::unique_ptr<MultiFab> vort;
+  vort = derive(mag_vort, time, ngrow);
+  //
+  // do something with vorticity...
+  //
+  vort.reset();  
+\end{lstlisting}
+
+
 \subsection{The {\tt FillPatchIterator}}
 
 A {\tt FillPatchIterator} is a \amrex\ object tasked with the job of
@@ -540,36 +393,30 @@ directly modify the underlying state data.  In the code, if the state
 is modified (e.g., via an advective ``time advance'', the new data
 must be copied explicitly back into the {\tt StateData} containers.
 
+Use of {\tt FillPatchIterator} as an iterator has been depreciated in favor
+of {\tt MFIter}, which supports tiling (see section \ref{sec:parallel}).
+However, \iamr\ continues to use
+{\tt FillPatchIterator} for creating temporaries with filled grow cells.
+
 For example, the following code demonstrates the calling sequence to
 create and use a {\tt FillPatchIterator} for preparing a rectangular patch of 
 data that includes the ``valid region'' plus {\tt NUM\_GROW} grow cells.  Here,
 the valid region is specified as a union of rectangular boxes making up the 
 box array underlying the {\tt MultiFab S\_new}, and {\tt NUM\_GROW} cells are 
 added to each box in all directions to create the temporary patches to
-be filled.  This is a parallel loop (the constructor is blocking over all
-processors while the data is filled); each processor then gets platters of data
-associated with the boxes from {\tt S\_new} that are local to it.
-
+be filled.  
 
 \begin{lstlisting}
-   for (FillPatchIterator fpi(*this, S_new, NUM_GROW,
-                              time, State_Type, strtComp, NUM_STATE);
-         fpi.isValid(); ++fpi)
-   {
-     // Get a reference to the temporary platter of grown data
-     FArrayBox &state = fpi();
-
-     // work on "state"
-     ...
-   }           
+  FillPatchIterator fpi(*this, S_new, NUM_GROW,
+                        time, State_Type, strtComp, NUM_STATE);
+  // Get a reference to the temporary platter of grown data
+  MultiFab& S = fpi.get_mf();
 \end{lstlisting}
 Here the {\tt FillPatchIterator} fills the patch 
 with data of type ``{\tt State\_Type}'' at time ``{\tt time}'',
 starting with component {\tt strtComp} and including a total of
-{\tt NUM\_STATE} components.  {\tt state} is a completely local
-data structure, and will be processed serially by the owning 
-procesor.  When the loop is terminated, the {\tt FillPatchIterator} 
-and temporary data platters are destroyed (though much of the 
+{\tt NUM\_STATE} components. When the {\tt FillPatchIterator} goes out of scope, it 
+and the temporary data platters are destroyed (though much of the 
 metadata generated during the operation is cached internally
 for performance).  Notice that since {\tt NUM\_GROW} can be any
 positive integer (i.e., that the grow region can extend over an arbitrary 
@@ -614,5 +461,4 @@ filesytem should be able to handle any reasonable value of $N$.  The
 value {\tt -1} forces $N$ to the number of CPUs on which you're
 running, which means that each CPU writes to a unique file, which can
 create a very large number of files, which can lead to inode issues.
-
 

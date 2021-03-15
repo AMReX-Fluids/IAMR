@@ -1,9 +1,0 @@
- &fortin
-
-  probtype = 13
-  vorterr  = .4
-  vorterr  = 1.7
-  denfact = 1.
-  velfact = 1.
-
- /
