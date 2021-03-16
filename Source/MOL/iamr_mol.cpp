@@ -212,6 +212,9 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                                        AMREX_D_DECL(apx,apy,apz), vfrac,
                                        AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt,
                                        redistribution_type );
+
+                // Change sign because for EB redistribution we compute -div
+                aofs[mfi].mult(-1., bx, aofs_comp, ncomp);
             }
             else
 #endif
@@ -442,13 +445,14 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                                        AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt,
                                        redistribution_type );
 
-                // Sum contribution to sync aofs
+                // Subtract contribution to sync aofs -- sign of divergence in aofs is opposite
+                // of sign of div as computed by EB_ComputeDivergence, thus it must be subtracted.
                 auto const& aofs_arr = aofs.array(mfi, aofs_comp);
 
                 amrex::ParallelFor(bx, ncomp, [aofs_arr, divtmp_redist_arr]
                 AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    aofs_arr( i, j, k, n ) += divtmp_redist_arr( i, j, k, n );
+                    aofs_arr( i, j, k, n ) +=  -divtmp_redist_arr( i, j, k, n );
                 });
 
             }
@@ -730,16 +734,16 @@ MOL::EB_ComputeDivergence ( Box const& bx,
         }
         else if (flag(i,j,k).isRegular())
         {
-            div(i,j,k,n) = dxinv[0] * (fx(i+1,j,k,n) - fx(i,j,k,n))
-                +          dxinv[1] * (fy(i,j+1,k,n) - fy(i,j,k,n))
+            div(i,j,k,n) = -( dxinv[0] * (fx(i+1,j,k,n) - fx(i,j,k,n))
+                +             dxinv[1] * (fy(i,j+1,k,n) - fy(i,j,k,n))
 #if (AMREX_SPACEDIM==3)
-                +          dxinv[2] * (fz(i,j,k+1,n) - fz(i,j,k,n))
+                +             dxinv[2] * (fz(i,j,k+1,n) - fz(i,j,k,n))
 #endif
-                ;
+                );
         }
         else
         {
-            div(i,j,k,n) = (1.0/vfrac(i,j,k)) *
+            div(i,j,k,n) = - (1.0/vfrac(i,j,k)) *
                 (       dxinv[0] * (apx(i+1,j,k)*fx(i+1,j,k,n) - apx(i,j,k)*fx(i,j,k,n))
                       + dxinv[1] * (apy(i,j+1,k)*fy(i,j+1,k,n) - apy(i,j,k)*fy(i,j,k,n))
 #if (AMREX_SPACEDIM==3)

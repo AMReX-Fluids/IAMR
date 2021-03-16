@@ -175,12 +175,16 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                    AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt,
                                    redistribution_type );
 
+            // Change sign because for EB we computed -div
+            aofs[mfi].mult(-1., bx, aofs_comp, ncomp);
+
         }
 
-	// Note this sync is needed since ComputeEdgeState() contains temporaries
+        // Note this sync is needed since ComputeEdgeState() contains temporaries
 	// Not sure it's really needed when known_edgestate==true
         Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
+
 
 }
 
@@ -354,12 +358,13 @@ EBGodunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncom
                                    AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, geom, dt,
                                    redistribution_type );
 
-            // Sum contribution to sync aofs
+            // Subtract contribution to sync aofs -- sign of divergence is aofs is opposite
+            // of sign to div as computed by EBGOdunov::ComputeDivergence, thus it must be subtracted.
             auto const& aofs_arr = aofs.array(mfi, aofs_comp);
             amrex::ParallelFor(bx, ncomp, [aofs_arr, divtmp_redist_arr]
             AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                aofs_arr( i, j, k, n ) += divtmp_redist_arr( i, j, k, n );
+                aofs_arr( i, j, k, n ) += -divtmp_redist_arr( i, j, k, n );
             });
 
         }
@@ -469,12 +474,14 @@ EBGodunov::ComputeDivergence ( Box const& bx,
     Real qvol = dxinv[0] * dxinv[1];
 #endif
 
+    // Return -div because reinitialization algo operates on it
+    // instead of operatin on div
     amrex::ParallelFor(bx, ncomp,[=]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
         if ( vfrac(i,j,k) > 0.)
         {
-            div(i,j,k,n) =  qvol/vfrac(i,j,k) *
+            div(i,j,k,n) =  - qvol/vfrac(i,j,k) *
                 (
                          fx(i+1,j,k,n) -  fx(i,j,k,n)
                        + fy(i,j+1,k,n) -  fy(i,j,k,n)
