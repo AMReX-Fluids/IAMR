@@ -77,6 +77,7 @@ void Redistribution::Apply ( Box const& bx, int ncomp,
 
     } else if (redistribution_type == "StateRedist") {
 
+
         Box domain_per_grown = lev_geom.Domain();
         AMREX_D_TERM(if (lev_geom.isPeriodic(0)) domain_per_grown.grow(0,1);,
                      if (lev_geom.isPeriodic(1)) domain_per_grown.grow(1,1);,
@@ -96,16 +97,16 @@ void Redistribution::Apply ( Box const& bx, int ncomp,
                         dUdt_in(i,j,k,n) = 0.;
                 });
 
-        amrex::ParallelFor(Box(dUdt_in), ncomp,
+        amrex::ParallelFor(Box(scratch), ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
-                dUdt_in(i,j,k,n) = U_in(i,j,k,n) + dt * dUdt_in(i,j,k,n);
+                scratch(i,j,k,n) = U_in(i,j,k,n) + dt * dUdt_in(i,j,k,n);
             }
         );
 
         MakeITracker(bx, AMREX_D_DECL(apx, apy, apz), vfrac, itr, lev_geom, "State");
 
-        StateRedistribute(bx, ncomp, dUdt_out, dUdt_in, flag, vfrac,
+        StateRedistribute(bx, ncomp, dUdt_out, scratch, flag, vfrac,
                            AMREX_D_DECL(fcx, fcy, fcz), ccc, itr, lev_geom);
 
         amrex::ParallelFor(bx, ncomp,
