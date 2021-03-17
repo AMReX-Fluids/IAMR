@@ -128,7 +128,7 @@ Redistribution::StateRedistribute ( Box const& bx, int ncomp,
             if ( domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
                  bxg3.contains(IntVect(AMREX_D_DECL(r,s,t))) )
             {
-                nrs(r,s,t) += 1.;
+                amrex::Gpu::Atomic::Add(&nrs(r,s,t),1.);
             }
         }
     });
