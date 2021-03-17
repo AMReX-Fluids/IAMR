@@ -67,9 +67,9 @@ Redistribution::StateRedistribute ( Box const& bx, int ncomp,
     Box domain_per_grown = domain;
     if (is_periodic_x) domain_per_grown.grow(0,1);
     if (is_periodic_y) domain_per_grown.grow(1,1);
-// #if (AMREX_SPACEDIM == 3)
-//     if (is_periodic_z) domain_per_grown.grow(2,1);
-// #endif
+#if (AMREX_SPACEDIM == 3)
+    if (is_periodic_z) domain_per_grown.grow(2,1);
+#endif
 
     // How many nbhds is this cell in
     FArrayBox nrs_fab       (bxg3,1);
