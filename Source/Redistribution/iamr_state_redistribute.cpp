@@ -67,9 +67,9 @@ Redistribution::StateRedistribute ( Box const& bx, int ncomp,
     Box domain_per_grown = domain;
     if (is_periodic_x) domain_per_grown.grow(0,1);
     if (is_periodic_y) domain_per_grown.grow(1,1);
-// #if (AMREX_SPACEDIM == 3)
-//     if (is_periodic_z) domain_per_grown.grow(2,1);
-// #endif
+#if (AMREX_SPACEDIM == 3)
+    if (is_periodic_z) domain_per_grown.grow(2,1);
+#endif
 
     // How many nbhds is this cell in
     FArrayBox nrs_fab       (bxg3,1);
@@ -87,6 +87,11 @@ Redistribution::StateRedistribute ( Box const& bx, int ncomp,
     Array4<Real> nrs      = nrs_fab.array();
     Array4<Real> soln_hat = soln_hat_fab.array();
     Array4<Real> cent_hat = cent_hat_fab.array();
+
+    Elixir eli_nbhd_vol = nbhd_vol_fab.elixir();
+    Elixir eli_nrs      = nrs_fab.elixir();
+    Elixir eli_cent_hat = cent_hat_fab.elixir();
+    Elixir eli_soln_hat = soln_hat_fab.elixir();
 
     amrex::ParallelFor(bxg2,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -123,7 +128,7 @@ Redistribution::StateRedistribute ( Box const& bx, int ncomp,
             if ( domain_per_grown.contains(IntVect(AMREX_D_DECL(r,s,t))) &&
                  bxg3.contains(IntVect(AMREX_D_DECL(r,s,t))) )
             {
-                nrs(r,s,t) += 1.;
+                amrex::Gpu::Atomic::Add(&nrs(r,s,t),1.);
             }
         }
     });
@@ -269,11 +274,11 @@ Redistribution::StateRedistribute ( Box const& bx, int ncomp,
 
                     if (bx.contains(IntVect(AMREX_D_DECL(r,s,t))))
                     {
-                        U_out(r,s,t,n) += soln_hat(i,j,k,n);
-
-                        AMREX_D_TERM(U_out(r,s,t,n) += slopes_eb[0] * (ccent(r,s,t,0)-cent_hat(i,j,k,0));,
-                                     U_out(r,s,t,n) += slopes_eb[1] * (ccent(r,s,t,1)-cent_hat(i,j,k,1));,
-                                     U_out(r,s,t,n) += slopes_eb[2] * (ccent(r,s,t,2)-cent_hat(i,j,k,2)););
+                        Real update = soln_hat(i,j,k,n);
+                        AMREX_D_TERM(update += slopes_eb[0] * (ccent(r,s,t,0)-cent_hat(i,j,k,0));,
+                                     update += slopes_eb[1] * (ccent(r,s,t,1)-cent_hat(i,j,k,1));,
+                                     update += slopes_eb[2] * (ccent(r,s,t,2)-cent_hat(i,j,k,2)););
+			amrex::Gpu::Atomic::Add(&U_out(r,s,t,n),update);
 
                     } // if bx contains
                 } // i_nbor
