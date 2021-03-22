@@ -487,21 +487,6 @@ Godunov::ComputeDivergence_rz ( Box const& bx,
 	    div(i,j,k,n) = ( fx(i+1,j,k,n) -  fx(i,j,k,n) +
 			     fy(i,j+1,k,n) -  fy(i,j,k,n)
 			   ) / vol(i,j,k) ;
-
-	  if ( i ==1 && j==25){
-	      std::cout<<"xed "<<xed(i+1,j,k,n)
-		       <<" "<<xed(i,j,k,n)
-		       <<"\nyed "<<yed(i,j+1,k,n)
-		       <<" "<<yed(i,j,k,n)<<std::endl;
-	      std::cout<<"fx "<<fx(i+1,j,k,n)
-		       <<" "<<fx(i,j,k,n)
-		       <<"\nfy "<<fy(i,j+1,k,n)
-		       <<" "<<fy(i,j,k,n)<<std::endl;
-	      std::cout<<"vol "
-		       <<" "<<vol(i,j,k)<<std::endl;
-	      std::cout<<"aofs "
-		       <<" "<<div(i,j,k,n)<<std::endl;
-	    }
         }
         else
         {
@@ -514,24 +499,10 @@ Godunov::ComputeDivergence_rz ( Box const& bx,
 	    const Real divuy = ( areay(i,j+1,k)*vmac(i,j+1,k) -
 				 areay(i,j  ,k)*vmac(i,j  ,k)
 			       ) / vol(i,j,k);
-	    div(i,j,k,n) = - ( divux*0.5*(xed(i+1,j,k,n) + xed(i,j,k,n)) +
-			       divuy*0.5*(yed(i,j+1,k,n) + yed(i,j,k,n)) )
-	                   + ( fx(i+1,j,k) - fx(i,j,k) +
-			       fy(i,j+1,k) - fy(i,j,k)) / vol(i,j,k);
-	  if ( i ==1 && j==25){
-	      std::cout<<"xed "<<xed(i+1,j,k,n)
-		       <<" "<<xed(i,j,k,n)
-		       <<"\nyed "<<yed(i,j+1,k,n)
-		       <<" "<<yed(i,j,k,n)<<std::endl;
-	      std::cout<<"fx "<<fx(i+1,j,k,n)
-		       <<" "<<fx(i,j,k,n)
-		       <<"\nfy "<<fy(i,j+1,k,n)
-		       <<" "<<fy(i,j,k,n)<<std::endl;
-	      std::cout<<"vol "
-		       <<" "<<vol(i,j,k)<<std::endl;
-	      std::cout<<"aofs "
-		       <<" "<<div(i,j,k,n)<<std::endl;
-	  }
+	    div(i,j,k,n) =  ( fx(i+1,j,k,n) - fx(i,j,k,n) +
+			      fy(i,j+1,k,n) - fy(i,j,k,n) ) / vol(i,j,k)
+	                  - ( divux*0.5*(xed(i+1,j,k,n) + xed(i,j,k,n)) +
+			      divuy*0.5*(yed(i,j+1,k,n) + yed(i,j,k,n)) );
 	}
     });
 }
@@ -547,9 +518,8 @@ Godunov::ComputeSyncDivergence_rz ( Box const& bx,
     amrex::ParallelFor(bx, ncomp,[=]
     AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
-      div(i,j,k,n) +=  vol(i,j,k) * (
-              fx(i+1,j,k,n) -  fx(i,j,k,n)
-            + fy(i,j+1,k,n) -  fy(i,j,k,n)
-            );
+      div(i,j,k,n) +=  ( fx(i+1,j,k,n) -  fx(i,j,k,n) +
+			 fy(i,j+1,k,n) -  fy(i,j,k,n)
+		       ) / vol(i,j,k);
     });
 }
