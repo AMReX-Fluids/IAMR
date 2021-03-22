@@ -46,11 +46,9 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
     D_TERM( AMREX_ALWAYS_ASSERT(xfluxes.nGrow() == xedge.nGrow());,
             AMREX_ALWAYS_ASSERT(yfluxes.nGrow() == yedge.nGrow());,
             AMREX_ALWAYS_ASSERT(zfluxes.nGrow() == zedge.nGrow()););
-    if ( !known_edgestate )
 
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
-
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
