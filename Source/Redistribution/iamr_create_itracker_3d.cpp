@@ -263,13 +263,165 @@ Redistribution::MakeITracker ( Box const& bx,
                itracker(i,j,k,0) += 1;
 
                sum_vol += vfrac(i+ioff,j+joff,k+koff);
+
+               // If with a nbhd of four cells we have still not reached vfrac > 0.5, we add another four
+               //    cells to the nbhd to make a 2x2x2 block.  We use the direction of the remaining
+               //    normal to know whether to go lo or hi in the new direction.
+               if (sum_vol < 0.5)
+               {
 #if 0
-               if (debug_print)
-                    amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
-                                      " trying to ALSO merge with " << IntVect(i+ioff,j+joff,k+koff) <<
-                                      " with volfrac " << vfrac(i+ioff,j+joff,k+koff) <<
-                                      " to get new sum_vol " <<  sum_vol << std::endl;
+                   if (debug_print)
+                       amrex::Print() << "Expanding neighborhood of " << IntVect(i,j,k) <<
+                                         " from 4 to 8 since sum_vol with 4 was only " << sum_vol << " " << std::endl;
 #endif
+
+                   // All nbors are currently in the koff=0 plane
+                   if (koff == 0)
+                   {
+                       if (nz > 0)
+                       {
+                           itracker(i,j,k,4) = 22;
+
+                           if (ioff > 0)
+                               itracker(i,j,k,5) =  23;
+                           else
+                               itracker(i,j,k,5) =  21;
+                           if (joff > 0)
+                               itracker(i,j,k,6) =  25;
+                           else
+                               itracker(i,j,k,6) =  19;
+
+                           if (ioff > 0 and joff > 0) {
+                               itracker(i,j,k,7) = 26;
+                           } else if (ioff < 0 and joff > 0) {
+                               itracker(i,j,k,7) = 24;
+                           } else if (ioff > 0 and joff < 0) {
+                               itracker(i,j,k,7) = 20;
+                           } else {
+                               itracker(i,j,k,7) = 18;
+                           }
+                       } else { // nz <= 0
+
+                           itracker(i,j,k,4) = 13;
+
+                           if (ioff > 0)
+                               itracker(i,j,k,5) =  14;
+                           else
+                               itracker(i,j,k,5) =  12;
+                           if (joff > 0)
+                               itracker(i,j,k,6) =  16;
+                           else
+                               itracker(i,j,k,6) =  10;
+
+                           if (ioff > 0 and joff > 0) {
+                               itracker(i,j,k,7) = 17;
+                           } else if (ioff < 0 and joff > 0) {
+                               itracker(i,j,k,7) = 15;
+                           } else if (ioff > 0 and joff < 0) {
+                               itracker(i,j,k,7) = 11;
+                           } else {
+                               itracker(i,j,k,7) =  9;
+                           }
+                       }
+                   } else if (joff == 0) {
+                       if (ny > 0)
+                       {
+                           itracker(i,j,k,4) = 7;
+
+                           if (ioff > 0)
+                               itracker(i,j,k,5) =  8;
+                           else
+                               itracker(i,j,k,5) =  6;
+                           if (koff > 0)
+                               itracker(i,j,k,6) =  25;
+                           else
+                               itracker(i,j,k,6) =  16;
+
+                           if (ioff > 0 and koff > 0) {
+                               itracker(i,j,k,7) = 26;
+                           } else if (ioff < 0 and koff > 0) {
+                               itracker(i,j,k,7) = 24;
+                           } else if (ioff > 0 and koff < 0) {
+                               itracker(i,j,k,7) = 17;
+                           } else {
+                               itracker(i,j,k,7) = 15;
+                           }
+
+                       } else { // ny <= 0
+
+                           itracker(i,j,k,4) = 2;
+
+                           if (ioff > 0)
+                               itracker(i,j,k,5) =  23;
+                           else
+                               itracker(i,j,k,5) =  22;
+                           if (koff > 0)
+                               itracker(i,j,k,6) =  25;
+                           else
+                               itracker(i,j,k,6) =  19;
+
+                           if (ioff > 0 and koff > 0) {
+                               itracker(i,j,k,7) = 26;
+                           } else if (ioff < 0 and koff > 0) {
+                               itracker(i,j,k,7) = 24;
+                           } else if (ioff > 0 and koff < 0) {
+                               itracker(i,j,k,7) = 20;
+                           } else {
+                               itracker(i,j,k,7) = 21;
+                           }
+                       }
+                   } else if (ioff == 0) {
+
+                       if (nx > 0)
+                       {
+                           itracker(i,j,k,4) = 5;
+
+                           if (joff > 0)
+                               itracker(i,j,k,5) =  8;
+                           else
+                               itracker(i,j,k,5) =  3;
+                           if (koff > 0)
+                               itracker(i,j,k,6) =  23;
+                           else
+                               itracker(i,j,k,6) =  14;
+
+                           if (joff > 0 and koff > 0) {
+                               itracker(i,j,k,7) = 26;
+                           } else if (joff < 0 and koff > 0) {
+                               itracker(i,j,k,7) = 20;
+                           } else if (joff > 0 and koff < 0) {
+                               itracker(i,j,k,7) = 17;
+                           } else {
+                               itracker(i,j,k,7) = 11;
+                           }
+                       } else { // nx <= 0
+
+                           itracker(i,j,k,4) = 4;
+
+                           if (joff > 0)
+                               itracker(i,j,k,5) =  6;
+                           else
+                               itracker(i,j,k,5) =  1;
+                           if (koff > 0)
+                               itracker(i,j,k,6) =  21;
+                           else
+                               itracker(i,j,k,6) =  12;
+
+                           if (joff > 0 and koff > 0) {
+                               itracker(i,j,k,7) = 24;
+                           } else if (joff < 0 and koff > 0) {
+                               itracker(i,j,k,7) = 18;
+                           } else if (joff > 0 and koff < 0) {
+                               itracker(i,j,k,7) = 15;
+                           } else {
+                               itracker(i,j,k,7) =  9;
+                           }
+                       }
+                   }
+
+                   // (i,j,k) has a 2x2x2 neighborhood now
+                   itracker(i,j,k,0) += 4;
+               }
            }
        }
     });
