@@ -263,7 +263,7 @@ NavierStokes::variableSetUp ()
     BndryFunc state_bf(state_fill);
     state_bf.setRunOnGPU(true);
 
-    BndryFunc press_bf(press_bf);
+    BndryFunc press_bf(press_fill);
     press_bf.setRunOnGPU(true);
 
     set_x_vel_bc(bc,phys_bc);
