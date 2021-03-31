@@ -32,6 +32,30 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
+#if (AMREX_SPACEDIM==2)
+    MultiFab* volume;
+    MultiFab* area[AMREX_SPACEDIM];
+
+    if ( geom.IsRZ() )
+    {
+      const DistributionMapping& dmap = aofs.DistributionMap();
+      const BoxArray& grids = aofs.boxArray();
+      const int ngrow_vol = aofs.nGrow();
+
+      volume = new MultiFab(grids,dmap,1,ngrow_vol);
+      geom.GetVolume(*volume);
+
+      const int ngrow_area = xfluxes.nGrow();
+
+      for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+      {
+	BoxArray edge_ba(grids);
+	area[dir] = new MultiFab(edge_ba.surroundingNodes(dir),dmap,1,ngrow_area);
+	geom.GetFaceArea(*area[dir],dir);
+      }
+    }
+#endif
+
     //FIXME - check on adding tiling here
     for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
     {
@@ -71,26 +95,9 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 #if (AMREX_SPACEDIM == 2)
 	if ( geom.IsRZ() )
 	{
-	  const DistributionMapping& dmap = aofs.DistributionMap();
-	  const BoxArray& grids = aofs.boxArray();
-	  const int ngrow_vol = aofs.nGrow();
-
-	  MultiFab volume (grids,dmap,1,ngrow_vol);
-	  geom.GetVolume(volume);
-
-	  const int ngrow_area = xfluxes.nGrow();
-	  MultiFab area[AMREX_SPACEDIM];
-
-	  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-	  {
-	    BoxArray edge_ba(grids);
-	    area[dir].define(edge_ba.surroundingNodes(dir),dmap,1,ngrow_area);
-	    geom.GetFaceArea(area[dir],dir);
-	  }
-
-	  const auto& areax = area[0].array(mfi);
-	  const auto& areay = area[1].array(mfi);
-	  const auto& vol   = volume.array(mfi);
+	  const auto& areax = area[0]->array(mfi);
+	  const auto& areay = area[1]->array(mfi);
+	  const auto& vol   = volume->array(mfi);
 
 	  ComputeFluxes_rz( bx, AMREX_D_DECL( fx, fy, fz ),
 			    AMREX_D_DECL( u, v, w ),
@@ -168,6 +175,29 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
+#if (AMREX_SPACEDIM==2)
+    MultiFab* volume;
+    MultiFab* area[AMREX_SPACEDIM];
+
+    if ( geom.IsRZ() )
+    {
+      const DistributionMapping& dmap = aofs.DistributionMap();
+      const BoxArray& grids = aofs.boxArray();
+      const int ngrow_vol = aofs.nGrow();
+
+      volume = new MultiFab(grids,dmap,1,ngrow_vol);
+      geom.GetVolume(*volume);
+
+      const int ngrow_area = xfluxes.nGrow();
+
+      for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+      {
+	BoxArray edge_ba(grids);
+	area[dir] = new MultiFab(edge_ba.surroundingNodes(dir),dmap,1,ngrow_area);
+	geom.GetFaceArea(*area[dir],dir);
+      }
+    }
+#endif
 
     //FIXME - check on adding tiling here
     for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
@@ -213,26 +243,9 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 #if (AMREX_SPACEDIM == 2)
 	if ( geom.IsRZ() )
 	{
-	  const DistributionMapping& dmap = aofs.DistributionMap();
-	  const BoxArray& grids = aofs.boxArray();
-	  const int ngrow_vol = aofs.nGrow();
-
-	  MultiFab volume (grids,dmap,1,ngrow_vol);
-	  geom.GetVolume(volume);
-
-	  const int ngrow_area = xfluxes.nGrow();
-	  MultiFab area[AMREX_SPACEDIM];
-
-	  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
-	  {
-	    BoxArray edge_ba(grids);
-	    area[dir].define(edge_ba.surroundingNodes(dir),dmap,1,ngrow_area);
-	    geom.GetFaceArea(area[dir],dir);
-	  }
-
-	  const auto& areax = area[0].array(mfi);
-	  const auto& areay = area[1].array(mfi);
-	  const auto& vol   = volume.array(mfi);
+	  const auto& areax = area[0]->array(mfi);
+	  const auto& areay = area[1]->array(mfi);
+	  const auto& vol   = volume->array(mfi);
 
 	  ComputeFluxes_rz( bx, AMREX_D_DECL( fx, fy, fz ),
 			    AMREX_D_DECL( uc, vc, wc ),
