@@ -52,7 +52,6 @@ namespace
 
     bool benchmarking = false;
 
-    bool rz_correction = true;
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
@@ -82,7 +81,6 @@ Projection::Initialize ()
     pp.query("divu_minus_s_factor", divu_minus_s_factor);
     pp.query("make_sync_solvable",  make_sync_solvable);
 
-    pp.query("rz_correction",       rz_correction);
     pp.query("agglomeration",       agglomeration);
     pp.query("consolidation",       consolidation);
     pp.query("max_fmg_iter",        max_fmg_iter);
@@ -1333,8 +1331,6 @@ Projection::scaleVar (MultiFab*       sig,
         //
         // Invert sigma
         //
-        constexpr Real SmallValue = 1.0e-20;
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -1443,8 +1439,6 @@ Projection::rescaleVar (MultiFab*       sig,
         //
         // Invert sigma
         //
-        constexpr Real SmallValue = 1.0e-20;
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -2531,19 +2525,8 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 // when we don't have interior geometry
 //  nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
 
-// MLNodeLaplacian.define() will set is_rz based on geom. Do we really need this and
-    // the ability to set is_rz separately from inputs file?
-    // Also, what of LPInfo::has_metric_term? why not just use that instead of is_rz??
+    // MLNodeLaplacian.define() will set is_rz based on geom.
 
-    //fixme
-    Print()<<"rz_correciton on? "<<rz_correction<<std::endl;
-    //
-#if (AMREX_SPACEDIM == 2)
-    // if (rz_correction)
-    // {
-        nodal_projector.getLinOp().setRZCorrection(rz_correction);
-	//    }
-#endif
     nodal_projector.getLinOp().setGaussSeidel(use_gauss_seidel);
     nodal_projector.getLinOp().setHarmonicAverage(use_harmonic_average);
     nodal_projector.getMLMG().setMaxFmgIter(max_fmg_iter);
