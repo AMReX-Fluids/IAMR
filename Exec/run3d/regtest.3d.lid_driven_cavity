@@ -29,8 +29,6 @@ ns.init_iter          	=  3    # number of initial iterations
 ns.vel_visc_coef        =  0.01
 ns.scal_diff_coefs      =  0.0
 
-amr.probin_file 	=  regtest.probin.3d.lid_driven_cavity
-
 geometry.coord_sys   	=  0
 
 geometry.prob_lo     	=  0. 0. 0.
@@ -46,5 +44,11 @@ ns.hi_bc             	=  5 5 5
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+# Boundary condition
+zhi.velocity            =   1.  0.  0.
+
+# Initialize from rest with constant density = 1
+prob.probtype = 1
 
 amr.derive_plot_vars = NONE

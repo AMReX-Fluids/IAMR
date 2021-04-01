@@ -40,8 +40,8 @@ face_interp_x (int i, int j, int k, int n, amrex::Array4<amrex::Real> const& fin
     {
       int ii = amrex::coarsen(i,ratio[0]);
       amrex::Real const w = static_cast<amrex::Real>(i-ii*ratio[0]) * (amrex::Real(1.)/ratio[0]);
-      rmod = std::abs(rmod);
-      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i-rmod,j,k,n) + w * fine(i+(ratio[0]-rmod),j,k,n);
+      ii = i < 0 ? i-(ratio[0]+rmod) : i+(ratio[0]-rmod);
+      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i-rmod,j,k,n) + w * fine(ii,j,k,n);
     }
 }
 
@@ -55,8 +55,8 @@ face_interp_y (int i, int j, int k, int n, amrex::Array4<amrex::Real> const& fin
     {
       int jj = amrex::coarsen(j,ratio[1]);
       amrex::Real const w = static_cast<amrex::Real>(j-jj*ratio[1]) * (amrex::Real(1.)/ratio[1]);
-      rmod = std::abs(rmod);
-      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i,j-rmod,k,n) + w * fine(i,j+(ratio[1]-rmod),k,n);
+      jj = j < 0 ? j-(ratio[1]+rmod) : j+(ratio[1]-rmod);
+      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i,j-rmod,k,n) + w * fine(i,jj,k,n);
     }
 }
 
@@ -70,8 +70,8 @@ face_interp_z (int i, int j, int k, int n, amrex::Array4<amrex::Real> const& fin
     {
       int kk = amrex::coarsen(k,ratio[2]);
       amrex::Real const w = static_cast<amrex::Real>(k-kk*ratio[2]) * (amrex::Real(1.)/ratio[2]);
-      rmod = std::abs(rmod);
-      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i,j,k-rmod,n) + w * fine(i,j,k+(ratio[2]-rmod),n);
+      kk = k < 0 ? k-(ratio[2]+rmod) : k+(ratio[2]-rmod);
+      fine(i,j,k,n) = (amrex::Real(1.)-w) * fine(i,j,k-rmod,n) + w * fine(i,j,kk,n);
     }
 }
 #endif

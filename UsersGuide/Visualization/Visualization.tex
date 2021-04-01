@@ -20,20 +20,22 @@ will contain all of the state variables and none of the derived variables. \\
 
 \noindent If you want all of the state variables plus pressure, for example, then set \\
 
-\noindent {\bf amr.derive\_plot\_vars} = pressure \\
+\noindent {\bf amr.derive\_plot\_vars} = avg\_pressure \\
 
 \noindent If you just want density and pressure, for example, then set \\
 
 \noindent {\bf amr.plot\_vars} =  density \\
 
-\noindent {\bf amr.derive\_plot\_vars} = pressure \\
+\noindent {\bf amr.derive\_plot\_vars} = avg\_pressure \\
 
 
 
 \section{amrvis}
-Our favorite visualization tool is amrvis. We heartily encourage you
-to build the amrvis2d and amrvis3d executables, and to try using them
-to visualize your data. A very useful feature is View/Dataset, which
+ \amrvis\ is a package developed
+by CCSE that is designed specifically for highly efficient visualization
+of block-structured hierarchical AMR data.
+Information on building the amrvis2d and amrvis3d executables is given in section
+\ref{sec:visBuild}. A very useful feature of \amrvis\ is View/Dataset, which
 allows you to actually view the numbers in a spreadsheet that is nested
 to reflect the AMR hierarchy -- this can be handy for
 debugging. You can modify how many levels of data you want to see,
@@ -49,7 +51,7 @@ file that can be copied to your local folder and modified.
 
 
 \section{VisIt}
-VisIt is also a great visualization tool, and it directly \amrex\
+VisIt is also a great visualization tool, and it supports \amrex\
 AMR data natively.  To open a \amrex\ plotfile, select File
 $\rightarrow$ Open file $\rightarrow$ Open file as type Boxlib, and
 choose the Header file within the plotfile folder, {\tt plt00000/Header},
@@ -103,10 +105,8 @@ is that the inputs file for the simulation {\bf must} exist in the
 same directory as where the plotfile directory is located, and it {\bf
   must} be named ``{\bf inputs}.'' \yt\ reads information from the
 inputs file such as the number of levels in the simulation run, the
-number of cells, the domain dimensions, and the simulation time. \yt\
-will also optionally parse the probin file for pertinent information
-if it is similarly included with the name ``{\bf probin}'' in the same
-directory as the plotfile of interest. When specifying a plotfile as
+number of cells, the domain dimensions, and the simulation time.
+When specifying a plotfile as
 the data source for plots, you may simply call it by its directory
 name, rather than using the Header file as in VisIt. As a final
 caveat, \yt\ requires the existence of the job\_info file within the plotfile

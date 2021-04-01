@@ -8,9 +8,8 @@ ifneq ($(SKIP_NS_SPECIFIC_CODE), TRUE)
   # aren't implemented by inherited code.  In particular, LMC has its own
   # implementation of these routines.
   #
-  CEXE_sources += NS_error.cpp NS_setup.cpp NSBld.cpp NavierStokes.cpp \
-  	       	  NS_bcfill.cpp
-  CEXE_headers += NavierStokes.H
+  CEXE_sources += NS_error.cpp NS_setup.cpp NSBld.cpp NavierStokes.cpp
+  CEXE_headers += NavierStokes.H NS_bcfill.H
 
 endif
 
@@ -33,12 +32,6 @@ endif
 
 CEXE_headers += iamr_constants.H
 
-# EB stuff
-ifeq ($(USE_EB), TRUE)
-  F90EXE_sources += param_mod.F90
-endif
-#
-
 CEXE_sources += NavierStokesBase.cpp Projection.cpp MacProj.cpp Diffusion.cpp
 
 CEXE_sources += NS_LES.cpp
@@ -48,9 +41,7 @@ CEXE_headers += NS_derive.H
 
 CEXE_headers += Projection.H MacProj.H Diffusion.H NavierStokesBase.H FluxBoxes.H
 
-FEXE_headers += DERIVE_F.H  PROJECTION_F.H \
-                            NAVIERSTOKES_F.H 
-FEXE_headers += NS_error_F.H
+FEXE_headers += PROJECTION_F.H NAVIERSTOKES_F.H 
 
 CEXE_sources += MLMG_Mac.cpp NS_util.cpp
-CEXE_headers += MACPROJ_F.H NS_util.H
+CEXE_headers += NS_util.H

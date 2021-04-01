@@ -6,13 +6,13 @@ max_step                =  10           # Max number of time steps
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_shrink = 1.0
-ns.init_iter = 0
-ns.init_vel_iter = 0
 ns.visc_tol=1.0e-11
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
 ns.cfl               = 0.3
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            INPUT AND OUTPUT           #
 #.......................................#
@@ -20,7 +20,6 @@ amr.plot_int            =   50          # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
 amr.derive_plot_vars = NONE
 amr.restart             =   ""          # Checkpoint to restart from
-amr.probin_file         = regtest.probin.2d.flow_past_cylinder-x
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
@@ -35,6 +34,7 @@ ns.scal_diff_coefs       = 0.1
 #.......................................#
 amr.n_cell              =   96 32     # Grid cells at coarsest AMRlevel
 amr.max_level           =   1         # Max AMR level in hierarchy
+# Refinement around the EB by default
 amr.grid_eff            =   0.7
 amr.n_error_buf         =   8
 
@@ -46,6 +46,9 @@ geometry.prob_hi       =   0.6  0.2  0.05  # Hi corner coordinates
 geometry.is_periodic   =   0    0    1   # Periodicity x y z (0/1)
 geometry.coord_sys     = 0
 
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#        BOUNDARY CONDITIONS            #
+#.......................................#
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWal
@@ -54,6 +57,10 @@ ns.lo_bc 	     	= 1 4 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	     	= 2 5 0
 
+xlo.velocity = 10. 0. 0.
+xlo.density  = 1.
+xlo.tracer   = 0.
+
 # Add cylinder
 eb2.geom_type               = sphere
 eb2.sphere_radius           = 0.05001
@@ -61,23 +68,27 @@ eb2.sphere_center           = -0.45  0.0  0.0
 eb2.sphere_has_fluid_inside =0
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#          PROBLEM PARAMETERS           #
+#.......................................#
+
+prob.probtype = 4
+prob.blob_center = -0.55 0.05 0.5
+prob.blob_radius =  0.04
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up a flow, defaults to zero
+prob.velocity_ic = 10. 0. 0.
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
 #.......................................#
-ns.v                    = 1 # NS solver 
-mac.verbose             = 0 # MacProjector
-#diffusion.verbose       =   1           # Diffusion operator
-projection.verbose   =   1           # Nodal projection
-projection.mg_verbose=   0
-projection.mg_rtol   =  1.0e-13
-#amr.plt_ccse_regtest    =   1
+ns.v        = 1   # NS solver 
+mac.v       = 0   # MacProjector
+#diffusion.v = 1   # Diffusion operator
+proj.v      = 1   # Nodal projection
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            for testing                #
 #.......................................#
 # turn tiling on for testing
 fabarray.mfiter_tile_size = 8 8 8
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-amr.plt_ccse_regtest    =   1

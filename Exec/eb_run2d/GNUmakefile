@@ -24,7 +24,6 @@ USE_VELOCITY = FALSE
 
 EBASE = amr
 
-Bpack   := ./Make.package
 Blocs   := .
 
 include $(TOP)/Exec/Make.IAMR

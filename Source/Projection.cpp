@@ -1,4 +1,6 @@
-
+//fixme, for writesingle level plotfile
+//#include<AMReX_PlotFileUtil.H>
+//
 
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
@@ -32,8 +34,6 @@ const Real* fabdat = (fab).dataPtr();
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
-const Real Projection::BogusValue = 1.e200;
-
 int  Projection::P_code              = -1;
 int  Projection::proj_2              = 1;
 int  Projection::verbose             = 0;
@@ -45,7 +45,6 @@ int  Projection::do_outflow_bcs      = 1;
 int  Projection::rho_wgt_vel_proj    = 0;
 int  Projection::make_sync_solvable  = 0;
 Real Projection::divu_minus_s_factor = 0.0;
-int  Projection::anel_grow           = 1;
 
 namespace
 {
@@ -53,12 +52,14 @@ namespace
 
     bool benchmarking = false;
 
-    bool rz_correction = false;
     bool agglomeration = true;
     bool consolidation = true;
     int max_fmg_iter = 0;
     bool use_gauss_seidel = true;
     bool use_harmonic_average = false;
+
+    constexpr Real BogusValue = 1.e200;
+    constexpr Real SmallValue = 1.e-200;
 }
 
 
@@ -80,7 +81,6 @@ Projection::Initialize ()
     pp.query("divu_minus_s_factor", divu_minus_s_factor);
     pp.query("make_sync_solvable",  make_sync_solvable);
 
-    pp.query("rz_correction",       rz_correction);
     pp.query("agglomeration",       agglomeration);
     pp.query("consolidation",       consolidation);
     pp.query("max_fmg_iter",        max_fmg_iter);
@@ -116,7 +116,6 @@ Projection::Projection (Amr*   _parent,
     LevelData(_parent->finestLevel()+1),
     radius_grow(_radius_grow),
     radius(_parent->finestLevel()+1),
-    anel_coeff(_parent->finestLevel()+1),
     phys_bc(_phys_bc),
     do_sync_proj(_do_sync_proj)
 {
@@ -126,9 +125,6 @@ Projection::Projection (Amr*   _parent,
     Initialize();
 
     if (verbose) amrex::Print() << "Creating projector\n";
-
-    for (int lev = 0; lev <= parent->finestLevel(); lev++)
-       anel_coeff[lev] = 0;
 
 #ifdef AMREX_USE_EB
     // size the EB factory array
@@ -160,11 +156,6 @@ Projection::install_level (int                     level,
         radius.resize(finest_level+1);
     }
 
-    if (level > anel_coeff.size()-1) {
-       anel_coeff.resize(level+1);
-       anel_coeff[level] = 0;
-    }
-
     LevelData[level] = level_data;
     radius[level] = _radius;
 
@@ -173,45 +164,6 @@ Projection::install_level (int                     level,
       dynamic_cast<EBFArrayBoxFactory const&>(LevelData[level]->Factory());
     ebfactory[level] = &_ebfactory;
 #endif
-}
-
-void
-Projection::install_anelastic_coefficient (int                   level,
-                                           Real                **_anel_coeff)
-{
-  if (verbose) {
-    amrex::Print() << "Installing anel_coeff into projector level " << level << '\n';
-  }
-  if (level > anel_coeff.size()-1)
-    anel_coeff.resize(level+1);
-  anel_coeff[level] =  _anel_coeff;
-}
-
-
-void
-Projection::build_anelastic_coefficient (int      level,
-                Real**& _anel_coeff)
-{
-  const BoxArray& grids = parent->getLevel(level).boxArray();
-  const int N = grids.size();
-  _anel_coeff = new Real*[N];
-  for (int i = 0; i < grids.size(); i++)
-  {
-    const int jlo = grids[i].smallEnd(AMREX_SPACEDIM-1)-anel_grow;
-    const int jhi = grids[i].bigEnd(AMREX_SPACEDIM-1)+anel_grow;
-    const int len = jhi - jlo + 1;
-
-    _anel_coeff[i] = new Real[len];
-
-    // FIXME!
-    // This is just a placeholder for testing. Should create (problem
-    // dependent) build_coefficient function in problem directory
-    // ...Perhaps also need to worry about deleting anel_coeff
-    // Also not sure why Projection and MacProj have separate anel_coeff
-    // arrays, since they both appear to be cell centered.
-    for (int j=0; j<len; j++)
-      _anel_coeff[i][j] = 0.05*(jlo+j);
-  }
 }
 
 //
@@ -235,7 +187,6 @@ Projection::level_project (int             level,
                            Real            time,
                            Real            dt,
                            Real            cur_pres_time,
-                           Real            prev_pres_time,
                            const Geometry& geom,
                            MultiFab&       U_old,
                            MultiFab&       U_new,
@@ -316,7 +267,7 @@ Projection::level_project (int             level,
     for (MFIter mfi(P_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
        const Box& bx = mfi.growntilebox(nGrow);
-       auto const& pnew = P_new.array(mfi);  
+       auto const& pnew = P_new.array(mfi);
        amrex::ParallelFor(bx, [pnew]
        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
        {
@@ -344,7 +295,7 @@ Projection::level_project (int             level,
       divusource->mult(dt_inv,0,1,divusource->nGrow());
 
     MultiFab& Gp = ns->get_old_data(Gradp_Type);
-    
+
 #ifndef NDEBUG
 #ifdef AMREX_USE_EB
     // fixme - deal with case where covered cells are set to zero
@@ -399,7 +350,8 @@ Projection::level_project (int             level,
     // Scale the projection variables.
     //
     rho_half.setBndry(BogusValue);
-    scaleVar(LEVEL_PROJ,&rho_half, 1, &U_new, level);
+
+    scaleVar(&rho_half, 1, &U_new, level);
     //
     // Enforce periodicity of U_new and rho_half (i.e. coefficient of G phi)
     // *after* everything has been done to them.
@@ -501,7 +453,7 @@ Projection::level_project (int             level,
     //
     // Unscale level projection variables.
     //
-    rescaleVar(LEVEL_PROJ,&rho_half, 1, &U_new, level);
+    rescaleVar(&rho_half, 1, &U_new, level);
     //
     // un = dt*un
     //
@@ -542,11 +494,7 @@ Projection::MLsyncProject (int             c_lev,
                            IntVect&        ratio,
                            int             crse_iteration,
                            int             crse_dt_ratio,
-                           const Geometry& crse_geom,
-                           Real            cur_crse_pres_time,
-                           Real            prev_crse_pres_time,
-                           Real            cur_fine_pres_time,
-                           Real            prev_fine_pres_time)
+                           const Geometry& crse_geom)
 {
     BL_PROFILE("Projection::MLsyncProject()");
 
@@ -588,8 +536,8 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary scaling
     //
-    scaleVar(SYNC_PROJ,&rho_crse, 0, &Vsync,   c_lev  );
-    scaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
+    scaleVar(&rho_crse, 0, &Vsync,   c_lev  );
+    scaleVar(&rho_fine, 0, &V_corr, c_lev+1);
 
     if (crse_geom.IsRZ()) {
        radMultScal(c_lev  ,cc_rhs_crse);
@@ -647,8 +595,8 @@ Projection::MLsyncProject (int             c_lev,
     //
     // Do necessary un-scaling.
     //
-    rescaleVar(SYNC_PROJ,&rho_crse, 0, &Vsync,   c_lev  );
-    rescaleVar(SYNC_PROJ,&rho_fine, 0, &V_corr, c_lev+1);
+    rescaleVar(&rho_crse, 0, &Vsync,   c_lev  );
+    rescaleVar(&rho_fine, 0, &V_corr, c_lev+1);
 
     MultiFab::Copy(phi_fine, *phi[c_lev+1], 0, 0, 1, 1);
 
@@ -656,9 +604,8 @@ Projection::MLsyncProject (int             c_lev,
     // Add phi to pressure.
     // Only update the most recent pressure.
     //
-    AddPhi(pres_crse, *phi[c_lev]);
-    AddPhi(pres_fine, *phi[c_lev+1]);
-
+    MultiFab::Add(pres_crse,*phi[c_lev],0,0,1,pres_crse.nGrow());
+    MultiFab::Add(pres_fine,*phi[c_lev+1],0,0,1,pres_fine.nGrow());
     //
     // Grad(P_new) incremented in doMLMGNodalProjection
     //
@@ -699,7 +646,7 @@ Projection::initialVelocityProject (int  c_lev,
       if ( verbose ) Print()<<"Returning from initalVelocityProject() without projecting because init_vel_iter<=0\n";
       return;
     }
-    
+
     if (verbose)
     {
         amrex::Print() << "Projection::initialVelocityProject(): levels = " << c_lev
@@ -767,7 +714,7 @@ Projection::initialVelocityProject (int  c_lev,
                                                     Density,Density,1);
                 }
 	      }
-	      
+
 	      MultiFab::Copy(*sig[lev],
 			     LevelData[lev]->get_new_data(State_Type),
 			     Density, 0, 1, nghost);
@@ -793,7 +740,7 @@ Projection::initialVelocityProject (int  c_lev,
             Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
             for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-            {        
+            {
                 amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Xvel,Xvel,AMREX_SPACEDIM);
             }
 
@@ -805,11 +752,11 @@ Projection::initialVelocityProject (int  c_lev,
 
 		NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
 		AMREX_ASSERT(!(ns == 0));
-		
+
 		rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
             }
         }
-  
+
         if (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu)
         {
             set_outflow_bcs(INITIAL_VEL,phi,vel,
@@ -823,14 +770,14 @@ Projection::initialVelocityProject (int  c_lev,
         //
         for (lev = c_lev; lev <= f_lev; lev++)
         {
-            scaleVar(INITIAL_VEL,sig[lev].get(),nghost,vel[lev],lev);
+            scaleVar(sig[lev].get(),nghost,vel[lev],lev);
         }
 
         //
         // Project
         //
         //
-                
+
         bool increment_gp = false;
         if (!have_divu)
         {
@@ -854,12 +801,12 @@ Projection::initialVelocityProject (int  c_lev,
                                   {},
                                   proj_tol, proj_abs_tol, increment_gp, 0, 0);
         }
-        
+
         //
         // Unscale initial projection variables.
         //
         for (lev = c_lev; lev <= f_lev; lev++)
-            rescaleVar(INITIAL_VEL,sig[lev].get(),nghost,vel[lev],lev);
+            rescaleVar(sig[lev].get(),nghost,vel[lev],lev);
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
@@ -982,7 +929,7 @@ Projection::initialPressureProject (int  c_lev)
     // Scale the projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++) {
-        scaleVar(INITIAL_PRESS,sig[lev].get(),1,vel[lev],lev);
+        scaleVar(sig[lev].get(),1,vel[lev],lev);
     }
 
     //
@@ -999,7 +946,7 @@ Projection::initialPressureProject (int  c_lev)
     // Unscale initial projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++) {
-        rescaleVar(INITIAL_PRESS,sig[lev].get(),1,vel[lev],lev);
+        rescaleVar(sig[lev].get(),1,vel[lev],lev);
     }
 
     for (lev = c_lev; lev <= f_lev; lev++) {
@@ -1178,7 +1125,7 @@ Projection::initialSyncProject (int       c_lev,
     //
     for (lev = c_lev; lev <= f_lev; lev++)
     {
-        scaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
+        scaleVar(sig[lev],1,vel[lev],lev);
 
         if (have_divu && parent->Geom(0).IsRZ())
           radMultScal(lev,*(rhcc[lev]));
@@ -1221,7 +1168,7 @@ Projection::initialSyncProject (int       c_lev,
     // Unscale initial sync projection variables.
     //
     for (lev = c_lev; lev <= f_lev; lev++)
-        rescaleVar(INITIAL_SYNC,sig[lev],1,vel[lev],lev);
+        rescaleVar(sig[lev],1,vel[lev],lev);
 
     //
     // Add correction at coarse and fine levels.
@@ -1237,7 +1184,7 @@ Projection::initialSyncProject (int       c_lev,
     //
     // Grad(P_new) incremented in doMLMGNodalProjection.
     //
-    
+
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -1296,318 +1243,272 @@ Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
 }
 
 //
-// Add phi to P.
-//
-
-void
-Projection::AddPhi (MultiFab&        p,
-                    MultiFab&       phi)
-{
-
-  MultiFab::Add(p,phi,0,0,1,p.nGrow());
-}
-
-//
 // This function scales variables at the start of a projection.
 //
-
 void
-Projection::scaleVar (int             which_call,
-                      MultiFab*       sig,
+Projection::scaleVar (MultiFab*       sig,
                       int             sig_nghosts,
                       MultiFab*       vel,
                       int             level)
 {
-    AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
-              (which_call == INITIAL_PRESS) ||
-              (which_call == INITIAL_SYNC ) ||
-              (which_call == LEVEL_PROJ   ) ||
-              (which_call == SYNC_PROJ    ) );
+    AMREX_ASSERT(sig->nComp() == 1);
+    AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
 
-    if (sig != 0)
-        AMREX_ASSERT(sig->nComp() == 1);
-    if (vel != 0)
-        AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
+    const Box& domain  = parent->Geom(level).Domain();
+    const int  domlox  = domain.smallEnd(0);
+    const int  domloy  = domain.smallEnd(1);
+    const int  domhix  = domain.bigEnd(0);
+    const int  domhiy  = domain.bigEnd(1);
 
-    //
-    // Convert sigma from rho to anel_coeff/rho if not INITIAL_PRESS.
-    // nghosts info needed to avoid divide by zero.
-    //
-    if (sig != 0) {
-#ifndef NDEBUG
-#ifdef AMREX_USE_EB
-      // fixme - deal with case where covered cells are set to zero
-      //   there's probably a better way to handle this..
-      EB_set_covered(*sig,0,1,sig->nGrow(),1.2345e40);
-#endif
-#endif
-      sig->invert(1.0,sig_nghosts);
-      if (which_call  != INITIAL_PRESS &&
-          anel_coeff[level] != 0) AnelCoeffMult(level,*sig,0);
-    }
+#if (AMREX_SPACEDIM  == 2)
 
-    //
-    // Scale by radius for RZ.
-    //
     if (parent->Geom(0).IsRZ())
     {
-        if (sig != 0)
-            radMultScal(level,*sig);
-        if (vel != 0)
-            radMultVel(level,*vel);
-    }
+        //
+        // Invert sigma
+        // Multiply sigma and vel by a radius for r-z coordinates.
+        //
+	const Real dxr     = parent->Geom(level).CellSize()[0];
 
-    //
-    // Scale velocity by anel_coeff if it exists
-    //
-    if (vel != 0 && anel_coeff[level] != 0)
-      for (int n = 0; n < AMREX_SPACEDIM; n++)
-        AnelCoeffMult(level,*vel,n);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+	{
+	  const Box& bx = mfi.growntilebox();
+	  auto const& sigarr = sig->array(mfi);
+
+	  amrex::ParallelFor(bx, [=]
+	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	  {
+	    if ( i >= domlox && i <= domhix &&
+		 j >= domloy && j <= domhiy)
+	    {
+	      // Don't think we need this check for small sigma since RZ
+	      // doesn't work with EB in MLNodeLap. The concern is covered vals == 0
+	      // if ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue ) ?
+	      sigarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr/sigarr(i,j,k);
+	      // : sigarr(i,j,k) = 0.;
+	    }
+	    else
+	    {
+	      // set vals outside the domain to 0
+	      sigarr(i,j,k) = 0.;
+	    }
+	  });
+
+	  auto const& velarr = vel->array(mfi);
+
+	  amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
+	  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+	  {
+	    if ( i >= domlox && i <= domhix &&
+		 j >= domloy && j <= domhiy)
+	    {
+	      velarr(i,j,k,n) = (static_cast<Real>(i)+ Real(0.5))*dxr*velarr(i,j,k,n);
+	    }
+	    else
+	    {
+	      if ( n == 0 && i > domhix )
+	      {
+		// Allow inflow through high-r face. However,
+		// NOTE that MLMG's nodal solver does not allow any r-dir inflows
+		// as of 3/31/21
+		velarr(i,j,k,n) *= (static_cast<Real>(i)+ Real(0.5))*dxr;
+	      }
+	      else
+	      {
+		// set other vals outside the domain to 0
+		velarr(i,j,k,n) = 0.;
+	      }
+	    }
+	  });
+	}
+    }
+    else
+#endif
+    {
+        //
+        // Invert sigma
+        //
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+	{
+	  const Box& bx = mfi.growntilebox();
+	  auto const& sigarr = sig->array(mfi);
+
+	  amrex::ParallelFor(bx, [=]
+	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	  {
+	    if ( i >= domlox && i <= domhix &&
+		 j >= domloy && j <= domhiy)
+	    {
+	      // The conern here is EB covered cells set to zero
+	      sigarr(i,j,k) = ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue )
+		? Real(1.0)/sigarr(i,j,k)
+		: sigarr(i,j,k) = 0.;
+	    }
+	    else
+	    {
+	      // set vals outside the domain to 0
+	      sigarr(i,j,k) = 0.;
+	    }
+	  });
+	}
+    }
 }
 
 //
 // This function rescales variables at the end of a projection.
 //
-
 void
-Projection::rescaleVar (int             which_call,
-                        MultiFab*       sig,
+Projection::rescaleVar (MultiFab*       sig,
                         int             sig_nghosts,
                         MultiFab*       vel,
                         int             level)
 {
-    AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
-              (which_call == INITIAL_PRESS) ||
-              (which_call == INITIAL_SYNC ) ||
-              (which_call == LEVEL_PROJ   ) ||
-              (which_call == SYNC_PROJ    ) );
+    AMREX_ASSERT(sig->nComp() == 1);
+    AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
 
-    if (sig != 0)
-        AMREX_ASSERT(sig->nComp() == 1);
-    if (vel != 0)
-        AMREX_ASSERT(vel->nComp() >= AMREX_SPACEDIM);
+    const Box& domain  = parent->Geom(level).Domain();
+    const int  domlox  = domain.smallEnd(0);
+    const int  domloy  = domain.smallEnd(1);
+    const int  domhix  = domain.bigEnd(0);
+    const int  domhiy  = domain.bigEnd(1);
 
-    if (which_call  != INITIAL_PRESS && sig != 0 &&
-        anel_coeff[level] != 0) AnelCoeffDiv(level,*sig,0);
-    //
-    // Divide by radius to rescale for RZ coordinates.
-    //
+#if (AMREX_SPACEDIM  == 2)
+
     if (parent->Geom(0).IsRZ())
     {
-        if (sig != 0)
-            radDiv(level,*sig,0);
-        if (vel != 0)
-        {
-            for (int n = 0; n < AMREX_SPACEDIM; n++)
-                radDiv(level,*vel,n);
-        }
+        //
+        // Divide sigma and vel by a radius for r-z coordinates.
+        // Invert sigma to return to original form
+        //
+	const Real dxr     = parent->Geom(level).CellSize()[0];
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+	{
+	  const Box& bx = mfi.growntilebox();
+	  auto const& sigarr = sig->array(mfi);
+
+	  amrex::ParallelFor(bx, [=]
+	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	  {
+	    if ( i >= domlox && i <= domhix &&
+		 j >= domloy && j <= domhiy)
+	    {
+	      // Don't think we need this check for small sigma since RZ
+	      // doesn't work with EB in MLNodeLap. The concern is covered vals == 0
+	      // if ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue ) ?
+	      sigarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr/sigarr(i,j,k);
+	      // : sigarr(i,j,k) = 0.;
+	    }
+	    else
+	    {
+	      // set vals outside the domain to bogus_value
+	      sigarr(i,j,k) = BogusValue;
+	    }
+	  });
+
+	  auto const& velarr = vel->array(mfi);
+
+	  amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
+	  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+	  {
+	    if ( i >= domlox && i <= domhix &&
+		 j >= domloy && j <= domhiy)
+	    {
+	      velarr(i,j,k,n) /= (static_cast<Real>(i)+ Real(0.5))*dxr;
+	    }
+	    else
+	    {
+	      // set vals outside the domain
+	      velarr(i,j,k,n) = BogusValue;
+	    }
+	  });
+	}
     }
-    if (vel != 0 && anel_coeff[level] != 0)
-      for (int n = 0; n < AMREX_SPACEDIM; n++)
-        AnelCoeffDiv(level,*vel,n);
-    //
-    // Convert sigma from 1/rho to rho
-    // NOTE: this must come after division by r to be correct,
-    // nghosts info needed to avoid divide by zero.
-    //
-    if (sig != 0)
-        sig->invert(1.0,sig_nghosts);
+    else
+#endif
+    {
+        //
+        // Invert sigma
+        //
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+	{
+	  const Box& bx = mfi.growntilebox();
+	  auto const& sigarr = sig->array(mfi);
+
+	  amrex::ParallelFor(bx, [=]
+	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	  {
+	    if ( i >= domlox && i <= domhix &&
+		 j >= domloy && j <= domhiy)
+	    {
+	      // The conern here is EB covered cells set to zero
+	      sigarr(i,j,k) = ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue )
+		? Real(1.0)/sigarr(i,j,k)
+		: sigarr(i,j,k) = 0.;
+	    }
+	    else
+	    {
+	      // set vals outside the domain to
+	      sigarr(i,j,k) = BogusValue;
+	    }
+	  });
+	}
+    }
 }
 
 //
 // Multiply by a radius for r-z coordinates.
 //
-
 void
 Projection::radMultScal (int       level,
                          MultiFab& mf)
 {
-#if (AMREX_SPACEDIM < 3)
-    AMREX_ASSERT(radius_grow >= mf.nGrow());
+    AMREX_ASSERT(parent->Geom(0).IsRZ());
 
-    const Box& domain = parent->Geom(level).Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
-    {
-      AMREX_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
-
-      const Box& bx = mfmfi.growntilebox();
-      const int* lo = bx.loVect();
-      const int* hi = bx.hiVect();
-      Real* dat        = mf[mfmfi].dataPtr(0);
-      const int* datlo = mf[mfmfi].loVect();
-      const int* dathi = mf[mfmfi].hiVect();
-      Real* rad        = &(*radius[level])[mfmfi.index()][0];
-      const Box& gbx = mfmfi.validbox();
-      int rlo   = (gbx.loVect())[0]-radius_grow;
-      int rhi   = (gbx.hiVect())[0]+radius_grow;
-      
-      radmpyscal(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
-		 domlo,domhi,rad,&rlo,&rhi);
-    }
-#endif
-}
-
-void
-Projection::radMultVel (int       level,
-                        MultiFab& mf)
-{
-#if (AMREX_SPACEDIM < 3)
-    AMREX_ASSERT(radius_grow >= mf.nGrow());
-
-    const Box& domain = parent->Geom(level).Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
+#if (AMREX_SPACEDIM  == 2)
+    const Box& domain  = parent->Geom(level).Domain();
+    const int  domlox  = domain.smallEnd(0);
+    const int  domloy  = domain.smallEnd(1);
+    const int  domhix  = domain.bigEnd(0);
+    const int  domhiy  = domain.bigEnd(1);
+    const Real dxr     = parent->Geom(level).CellSize()[0];
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (int n = 0; n < AMREX_SPACEDIM; n++)
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-       for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
-       {
-           AMREX_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
-	   
-	   const Box& bx = mfmfi.growntilebox();
-	   const int* lo = bx.loVect();
-	   const int* hi = bx.hiVect();
-	   Real* dat        = mf[mfmfi].dataPtr(n);
-	   const int* datlo = mf[mfmfi].loVect();
-	   const int* dathi = mf[mfmfi].hiVect();
-	   Real* rad        = &(*radius[level])[mfmfi.index()][0];
-	   const Box& gbx = mfmfi.validbox();
-	   int rlo   = (gbx.loVect())[0]-radius_grow;
-	   int rhi   = (gbx.hiVect())[0]+radius_grow;
-	   
-	   radmpyvel(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
-		     domlo,domhi,rad,&rlo,&rhi,&n);
-       }
+        const Box& bx = mfi.growntilebox();
+	auto const& mfarr = mf.array(mfi);
+
+	amrex::ParallelFor(bx, [=]
+	AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+	{
+	  if ( i >= domlox && i <= domhix &&
+	       j >= domloy && j <= domhiy)
+	  {
+	    mfarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr*mfarr(i,j,k);
+	  }
+	  else
+	  {
+	    // set vals outside the domain to 0
+	    mfarr(i,j,k) = 0.;
+	  }
+	});
     }
 #endif
-}
-
-//
-// Divide by a radius for r-z coordinates.
-//
-
-void
-Projection::radDiv (int       level,
-                    MultiFab& mf,
-                    int       comp)
-{
-#if (AMREX_SPACEDIM < 3)
-    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
-    AMREX_ASSERT(radius_grow >= mf.nGrow());
-
-    const Box& domain = parent->Geom(level).Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
-
-    Real bogus_value = BogusValue;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
-    {
-        AMREX_ASSERT(mf.box(mfmfi.index()) == mfmfi.validbox());
-
-	const Box& bx = mfmfi.growntilebox();
-	const int* lo = bx.loVect();
-	const int* hi = bx.hiVect();
-	Real* dat        = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	Real* rad        = &(*radius[level])[mfmfi.index()][0];
-	const Box& gbx = mfmfi.validbox();
-	int rlo   = (gbx.loVect())[0]-radius_grow;
-	int rhi   = (gbx.hiVect())[0]+radius_grow;
-	
-        fort_raddiv(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),
-		    domlo,domhi,rad,&rlo,&rhi,&bogus_value);
-
-    }
-#endif
-}
-
-//
-// Multiply by anel_coeff if it is defined
-//
-void
-Projection::AnelCoeffMult (int       level,
-                           MultiFab& mf,
-                           int       comp)
-{
-    AMREX_ASSERT(anel_coeff[level] != 0);
-    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
-
-    const Box& domain = parent->Geom(level).Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
-
-    Real bogus_value = BogusValue;
-
-    int mult = 1;
-
-    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
-    {
-        const Box& bx = mfmfi.growntilebox();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        Real* dat     = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	//const int anel_len = std::size(anel_coeff[level][mfmfi.index()]);
-	const Box& gbx = mfmfi.validbox();
-	int anel_lo   = (gbx.loVect())[AMREX_SPACEDIM-1]-anel_grow;
-	int anel_hi   = (gbx.hiVect())[AMREX_SPACEDIM-1]+anel_grow;
-	
-	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
-		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
-		     &bogus_value,&mult);
-    }
-}
-
-//
-// Divide by anel_coeff if it is defined
-//
-void
-Projection::AnelCoeffDiv (int       level,
-                          MultiFab& mf,
-                          int       comp)
-{
-    AMREX_ASSERT(comp >= 0 && comp < mf.nComp());
-    AMREX_ASSERT(anel_coeff[level] != 0);
-
-    const Box& domain = parent->Geom(level).Domain();
-    const int* domlo  = domain.loVect();
-    const int* domhi  = domain.hiVect();
-
-    Real bogus_value = BogusValue;
-
-    int mult = 0;
-
-    for (MFIter mfmfi(mf,true); mfmfi.isValid(); ++mfmfi)
-    {
-        const Box& bx = mfmfi.growntilebox();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-        Real* dat     = mf[mfmfi].dataPtr(comp);
-	const int* datlo = mf[mfmfi].loVect();
-	const int* dathi = mf[mfmfi].hiVect();
-	const Box& gbx = mfmfi.validbox();
-	int anel_lo   = (gbx.loVect())[AMREX_SPACEDIM-1]-anel_grow;
-	int anel_hi   = (gbx.hiVect())[AMREX_SPACEDIM-1]+anel_grow;
-	
-	anelcoeffmpy(lo,hi,dat,ARLIM(datlo),ARLIM(dathi),domlo,domhi,
-		     anel_coeff[level][mfmfi.index()],&anel_lo,&anel_hi,
-		     &bogus_value,&mult);	
-    }
 }
 
 //
@@ -1696,7 +1597,7 @@ Projection::initialVorticityProject (int c_lev)
     //
     // FIXME -- need to think about what proj2 should really be. Don't
     // think we actually want to update Gradp here at all. And subsequent
-    // initialVelocityProject will set P=Gp=0 anyway, right? 
+    // initialVelocityProject will set P=Gp=0 anyway, right?
     bool proj2 = !add_vort_proj;
     doMLMGNodalProjection(c_lev, f_lev-c_lev+1,
                           amrex::GetVecOfPtrs(u_real),
@@ -1811,7 +1712,7 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                 {
                     const auto& phi_c_arr = phi_crse_strip.array(mfi);
                     ParallelFor(ovlp, [phi_c_arr,phi_f_arr,ratio]
-                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept 
+                    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     {
                        phi_c_arr(i,j,k) = phi_f_arr(i*ratio[0],j*ratio[1],k*ratio[2]);
                     });
@@ -1823,7 +1724,7 @@ Projection::putDown (const Vector<MultiFab*>& phi,
 }
 
 void
-Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& phi)
+Projection::getStreamFunction (Vector<std::unique_ptr<MultiFab> >& /*phi*/)
 {
   amrex::Abort("Projection::getStreamFunction not implemented");
 }
@@ -1989,7 +1890,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 
     FArrayBox phi_fine_strip[2*AMREX_SPACEDIM];
     FArrayBox            rho[2*AMREX_SPACEDIM];
-    
+
     const int ngrow = 1;
 
     for (int iface = 0; iface < numOutFlowFaces; iface++)
@@ -2024,7 +1925,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
         for (MFIter mfi(phi_fine_strip_mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
           const Box& bx = mfi.tilebox();
           AMREX_ASSERT((phi_fine_strip[iface].box()).contains(bx));
-          const auto& phi_f_mf = phi_fine_strip_mf.array(mfi); 
+          const auto& phi_f_mf = phi_fine_strip_mf.array(mfi);
           const auto& phi_f    = phi_fine_strip[iface].array();
           amrex::ParallelFor(bx, [phi_f_mf,phi_f]
           AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -2047,13 +1948,13 @@ Projection::set_outflow_bcs_at_level (int          which_call,
 void
 Projection::computeRhoG(FArrayBox*         rhoFab,
 			FArrayBox*         phiFab,
-			const Geometry&    geom, 
+			const Geometry&    geom,
 			Orientation*       outFaces,
 			int                numOutFlowFaces,
 			Real               gravity)
 {
     AMREX_ASSERT(std::fabs(gravity) > 0.);
-  
+
     for (int iface = 0; iface < numOutFlowFaces; iface++)
     {
       int outDir             = outFaces[iface].coordDir();
@@ -2077,7 +1978,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 	  const auto& phi = phiFab[iface].array();
 	  const auto& rho = rhoFab[iface].array();
 	  const Real dh = geom.CellSize(AMREX_SPACEDIM-1);
-	  
+
 	  auto add_rhog = [gravity, dh] ( Real rho1, Real rho2,
 					  Real& rhog_i, Real& phi_i )
 	  {
@@ -2096,7 +1997,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 	  //
 	  AMREX_ASSERT( lo.x==hi.x );
 	  int i = lo.x;
-	
+
 	  Real rhog = 0.;
 	  //
 	  // Note that the integral here prevents parallelization
@@ -2117,7 +2018,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 	  const Box& domain = geom.Domain();
 	  const auto domlo = amrex::lbound(domain);
 	  const auto domhi = amrex::ubound(domain);
-	  
+
 	  // fixme? Could make use of NSB::m_bcrec_scalars here.
 	  int        lo_bc[AMREX_SPACEDIM];
 	  int        hi_bc[AMREX_SPACEDIM];
@@ -2129,7 +2030,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 	  {
 	      const int* lbc = phys_bc->lo();
 	      const int* hbc = phys_bc->hi();
-	      
+
 	      lo_bc[i]=scalar_bc[lbc[i]];
 	      hi_bc[i]=scalar_bc[hbc[i]];
 	  }
@@ -2137,20 +2038,20 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 	  //
 	  // fixme? - TODO: Could parallelize here by dividing the loop over i (or j)
 	  // only and thus the k integration stays intact. However, would want to move
-	  // this declaration of rho_i, rho_ii to ensure each k integration has it's own 
+	  // this declaration of rho_i, rho_ii to ensure each k integration has it's own
 	  // copy.
 	  //
 	  Real rho_i, rho_ii;
-	  
+
 	  if ( outDir == int(Direction::x) )
 	  {
-	      // 
+	      //
 	      // Ok to only use low index of phi because phi is only one
 	      // node wide in i-direction.
 	      //
 	      AMREX_ASSERT( lo.x==hi.x );
 	      int i = lo.x;
-	      
+
 	      bool has_extdir_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::ext_dir);
 	      bool has_extdir_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::ext_dir);
 	      bool has_hoextrap_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::hoextrap);
@@ -2183,7 +2084,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		for (int j = jlo; j <= jhi; j++)
 		{
 		  Real rhog = 0.;
-		  
+
 		  for (int k = hi.z-1; k >= lo.z; k--) {
 		    rho_i  = 0.5 * (rho(i  ,j,k) + rho(i  ,j-1,k));
 		    rho_ii = 0.5 * (rho(i+1,j,k) + rho(i+1,j-1,k));
@@ -2195,9 +2096,9 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		//
 		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
 		{
-		  int j = lo.y; 
+		  int j = lo.y;
 		  Real rhog = 0.;
-		  
+
 		  if ( has_extdir_lo ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i  = rho(i  ,j-1,k);
@@ -2223,7 +2124,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		{
 		  int j = hi.y;
 		  Real rhog = 0;
-		  
+
 		  if ( has_extdir_hi ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i  = rho(i  ,j,k);
@@ -2242,15 +2143,15 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		      rho_ii = rho(i+1,j-1,k);
 		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
 		    }
-		  } 
+		  }
 		}
 	      }
-	      else // xhi face 
+	      else // xhi face
 	      {
 		for (int j = jlo; j <= jhi; j++)
 		{
 		  Real rhog = 0.;
-		  
+
 		  for (int k = hi.z-1; k >= lo.z; k--) {
 		    rho_i   = 0.5 * (rho(i-1,j,k) + rho(i-1,j-1,k));
 		    rho_ii = 0.5 * (rho(i-2,j,k) + rho(i-2,j-1,k));
@@ -2262,9 +2163,9 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		//
 		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
 		{
-		  int j = lo.y; 
+		  int j = lo.y;
 		  Real rhog = 0.;
-		  
+
 		  if ( has_extdir_lo ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i   = rho(i-1,j-1,k);
@@ -2283,14 +2184,14 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		      rho_ii = rho(i-2,j,k);
 		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
 		    }
-		  } 
+		  }
 		}
 
 		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
 		{
 		  int j = hi.y;
 		  Real rhog = 0;
-		  
+
 		  if ( has_extdir_hi ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i   = rho(i-1,j,k);
@@ -2309,11 +2210,11 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		      rho_ii = rho(i-2,j-1,k);
 		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
 		    }
-		  } 
+		  }
 		}
 	      }
 	  }
-	  else // ( outDir == Direction::y ) 
+	  else // ( outDir == Direction::y )
 	  {
 	      //
 	      // Ok to only use low index of phi because phi is only one
@@ -2352,7 +2253,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		for (int i = ilo; i <= ihi; i++)
 		{
 		  Real rhog = 0.;
-		  
+
 		  for (int k = hi.z-1; k >= lo.z; k--) {
 		    rho_i   = 0.5 * (rho(i,j  ,k) + rho(i-1,j ,k));
 		    rho_ii = 0.5 * (rho(i,j+1,k) + rho(i-1,j+1,k));
@@ -2364,9 +2265,9 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		//
 		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
 		{
-		  int i = lo.x; 
+		  int i = lo.x;
 		  Real rhog = 0.;
-		  
+
 		  if ( has_extdir_lo ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i   = rho(i-1,j  ,k);
@@ -2392,7 +2293,7 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		{
 		  int i = hi.x;
 		  Real rhog = 0;
-		  
+
 		  if ( has_extdir_hi ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i   = rho(i,j  ,k);
@@ -2411,15 +2312,15 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		      rho_ii = rho(i-1,j+1,k);
 		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
 		    }
-		  } 
+		  }
 		}
 	      }
-	      else // yhi face 
+	      else // yhi face
 	      {
 		for (int i = ilo; i <= ihi; i++)
 		{
 		  Real rhog = 0.;
-		  
+
 		  for (int k = hi.z-1; k >= lo.z; k--) {
 		    rho_i   = 0.5 * (rho(i,j-1,k) + rho(i-1,j-1,k));
 		    rho_ii = 0.5 * (rho(i,j-1,k) + rho(i-1,j-2,k));
@@ -2431,9 +2332,9 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		//
 		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
 		{
-		  int i = lo.x; 
+		  int i = lo.x;
 		  Real rhog = 0.;
-		  
+
 		  if ( has_extdir_lo ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i   = rho(i-1,j-1,k);
@@ -2452,14 +2353,14 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		      rho_ii = rho(i,j-2,k);
 		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
 		    }
-		  } 
+		  }
 		}
 
 		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
 		{
 		  int i = hi.x;
 		  Real rhog = 0;
-		  
+
 		  if ( has_extdir_hi ) {
 		    for (int k = hi.z-1; k >= lo.z; k--) {
 		      rho_i   = rho(i,j-1,k);
@@ -2478,9 +2379,9 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 		      rho_ii = rho(i-1,j-2,k);
 		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
 		    }
-		  } 
+		  }
 		}
-	      } // endif over hi/low sides 
+	      } // endif over hi/low sides
 	  } // endif over directions
 #endif
       } // endif integrate rho*g*dh
@@ -2514,7 +2415,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     AMREX_ASSERT(vel[f_lev]->nGrow() >= 1);
     AMREX_ASSERT(phi[c_lev]->nGrow() == 1);
     AMREX_ASSERT(phi[f_lev]->nGrow() == 1);
-    // MLMG does not copy any ghost cells from sig, rhcc or rhnd; fills ghost cells internally 
+    // MLMG does not copy any ghost cells from sig, rhcc or rhnd; fills ghost cells internally
     // AMREX_ASSERT(sig[c_lev]->nGrow() == 1);
     // AMREX_ASSERT(sig[f_lev]->nGrow() == 1);
 
@@ -2594,7 +2495,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
     // metric term stuff doesn't get used at all for nodal
-    info.setMetricTerm(false);
+    //info.setMetricTerm(false);
 
     //
     // Setup variables to use in projection
@@ -2623,16 +2524,9 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code
 // when we don't have interior geometry
 //  nodal_projector.getLinOp().setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::Sigma);
-    
-// MLNodeLaplacian.define() will set is_rz based on geom. Do we really need this and
-    // the ability to set is_rz separately from inputs file?
-    // Also, what of LPInfo::has_metric_term? why not just use that instead of is_rz??
-#if (AMREX_SPACEDIM == 2)
-    if (rz_correction)
-    {
-        nodal_projector.getLinOp().setRZCorrection(parent->Geom(0).IsRZ());
-    }
-#endif
+
+    // MLNodeLaplacian.define() will set is_rz based on geom.
+
     nodal_projector.getLinOp().setGaussSeidel(use_gauss_seidel);
     nodal_projector.getLinOp().setHarmonicAverage(use_harmonic_average);
     nodal_projector.getMLMG().setMaxFmgIter(max_fmg_iter);
@@ -2650,7 +2544,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     // Project to get new P and update velocity
     //
     nodal_projector.project(phi_rebase,rel_tol,abs_tol);
-    
+
     //
     // Update gradP
     //
@@ -2660,7 +2554,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     {
       NavierStokesBase& ns = *dynamic_cast<NavierStokesBase*>(LevelData[lev+c_lev]);
       MultiFab& Gp = ns.get_new_data(Gradp_Type);
-      
+
       if ( increment_gp )
       {
 	//

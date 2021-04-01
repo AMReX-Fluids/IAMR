@@ -3,9 +3,6 @@
 # INPUTS.2D.TAYLORGREEN
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
@@ -20,11 +17,11 @@ stop_time 		= 6.0
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 		= 64 64 64
 amr.max_grid_size     = 1024
+
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 0 # maximum number of levels of refinement
-ns.do_vorticity_ref     = 0
 
 #*******************************************************************************
 
@@ -82,11 +79,6 @@ ns.scal_diff_coefs      = 0.0
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.2d.taylorgreen
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
 geometry.coord_sys   =  0
 
@@ -96,7 +88,8 @@ geometry.coord_sys   =  0
 geometry.prob_lo     =  0.0 0.0 0.0
 
 # Physical dimensions of the high end of the domain.
-geometry.prob_hi     =  6.28318530717959 6.28318530717959
+#geometry.prob_hi     =  6.28318530717959 6.28318530717959A
+geometry.prob_hi     =  1.0 1.0 1.0
 
 #*******************************************************************************
 
@@ -117,6 +110,12 @@ ns.hi_bc             = 0 0 0
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 11
+prob.velocity_factor = 1.0
+
+#*******************************************************************************
+
 # Factor by which grids must be coarsenable.
 amr.blocking_factor     = 8
 
@@ -130,5 +129,4 @@ proj.v=4
 proj.proj_tol = 1.e-10
 proj.sync_tol = 1.e-8
 
-mg.v = 1
 

@@ -21,9 +21,6 @@ USE_CUDA = FALSE
 
 PRECISION = DOUBLE
 
-USE_FLCTS = TRUE
-USE_FLCTS = FALSE
-
 USE_HYPRE = FALSE
 USE_METIS = FALSE
 
@@ -37,10 +34,6 @@ USE_SENSEI_INSITU = FALSE
 
 EBASE     = amr
 
-ifeq (${USE_FLCTS}, TRUE)
-  DEFINES += -DBL_DO_FLCT
-endif
-
 ifeq (${USE_XBLAS}, TRUE)
    XTRADEFS   += -DXBLAS
    XTRAINCLOC += $(HOME)/tmp/xblas-1.0.248/src
@@ -53,7 +46,6 @@ ifeq (${USE_VELOCITY}, TRUE)
   AMRVIS_DIR = $(AMREX_HOME)/Src/Extern/amrdata
 endif
 
-Bpack   := ./Make.package
 Blocs   := .
 
 include $(TOP)/Exec/Make.IAMR

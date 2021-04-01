@@ -3,9 +3,6 @@
 # INPUTS.3D.POISEUILLE for regression testing
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
 godunov.use_ppm = 1
 
 max_step                =  10
@@ -17,7 +14,11 @@ ns.steady_tol 		=  1.0e-4
 amr.n_cell              =  32 16 16
 
 amr.max_level           =  2
-ns.do_tracer_ref        =  1
+
+# Refinement criterion, presence of tracer
+amr.refinement_indicators = tracer
+amr.tracer.value_greater = 0.1
+amr.tracer.field_name = tracer
 
 ns.v                    =  1
 amr.v                   =  1
@@ -34,8 +35,6 @@ ns.init_iter          	=  1    # number of initial iterations
 ns.vel_visc_coef        =  1.0
 ns.scal_diff_coefs      =  0.001
 
-amr.probin_file 	=  regtest.probin.3d.poiseuille
-
 geometry.coord_sys   	=  0
 
 geometry.prob_lo     	=  0. 0. 0.
@@ -51,5 +50,18 @@ ns.hi_bc             	=  2 5 4
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+# Boundary condition
+xlo.velocity            =   1.  0.  0.
+
+# PROBLEM PARAMETERS           
+prob.probtype = 4
+prob.blob_center =  0.15 0.5 0.5
+prob.blob_radius =  0.1
+prob.interface_width = 0.001
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up constant flow
+prob.velocity_ic = 1.0 0. 0.
 
 amr.derive_plot_vars = NONE
