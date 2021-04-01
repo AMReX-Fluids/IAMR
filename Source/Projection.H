@@ -19,7 +19,6 @@ class Projection
 {
 protected:
   static const int maxlev = 10;
-  static const amrex::Real BogusValue;
   static const int  LEVEL_PROJ    = 1001;
   static const int  INITIAL_VEL   = 1002;
   static const int  INITIAL_PRESS = 1003;
@@ -135,18 +134,12 @@ public:
                              amrex::Real      strt_time,
                              int       have_divu);
     //
-    // Multiply/divide a MultiFab by radius for r-z coordinates.
+    // Multiply a MultiFab by radius for r-z coordinates.
     // These should really be protected.
     //
     void radMultScal (int       level,
                       amrex::MultiFab& mf);
 
-    void radMultVel (int       level,
-                     amrex::MultiFab& mf);
-
-    void radDiv (int       level,
-                 amrex::MultiFab& mf,
-                 int       comp);
     //
     // Read parameters from the input file.
     //
@@ -171,24 +164,16 @@ public:
                       amrex::Real       alpha,
                       const amrex::Box& grd);
     //
-    // Add phi to P.
-    //
-    void AddPhi (amrex::MultiFab&       p,
-                 amrex::MultiFab&       phi);
-
-    //
     // This function scales variables at the start of a projection.
     //
-    void scaleVar (int             which_call,
-                   amrex::MultiFab*       sig,
+    void scaleVar (amrex::MultiFab*       sig,
                    int             sig_nghosts,
                    amrex::MultiFab*       vel,
                    int             level);
     //
     // This function rescales variables at the end of a projection.
     //
-    void rescaleVar (int             which_call,
-                     amrex::MultiFab*       sig,
+    void rescaleVar (amrex::MultiFab*       sig,
                      int             sig_nghosts,
                      amrex::MultiFab*       vel,
                      int             level);
