@@ -457,9 +457,9 @@ MacProj::mac_sync_solve (int       level,
         const std::vector< std::pair<int,Box> >& isects = baf.intersections(mfi.tilebox());
 
         auto const& rhs = Rhs.array(mfi);  
-        for (int ii = 0, N = isects.size(); ii < N; ii++)
-        {
-            amrex::ParallelFor(isects[ii].second, [rhs]
+	for (const auto& is : isects)
+	{
+	    amrex::ParallelFor(is.second, [rhs]
             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                rhs(i,j,k) = 0.0;

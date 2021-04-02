@@ -3808,8 +3808,10 @@ NavierStokesBase::volWgtSum (const std::string& name,
            auto const& fabarr = mf->array(mfi);
            int          ncomp = mf->nComp(); 
            baf.intersections(grids[mfi.index()],isects);
-           for (int is = 0; is < isects.size(); is++) {
-              amrex::ParallelFor(isects[is].second, ncomp, [fabarr]
+
+	   for (const auto& is : isects)
+	   {
+	      amrex::ParallelFor(is.second, ncomp, [fabarr]
               AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
               {
                  fabarr(i,j,k,n) = 0.0;

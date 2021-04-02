@@ -2143,8 +2143,9 @@ NavierStokes::reflux ()
 
          baf.intersections(bx,isects);
 
-         for (int it = 0, N = isects.size(); it < N; it++) {
-            amrex::ParallelFor(isects[it].second, [vsync, ssync, nstate]
+	 for (const auto& is : isects)
+	 {
+	    amrex::ParallelFor(is.second, [vsync, ssync, nstate]
             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                for (int n = 0; n < AMREX_SPACEDIM; n++) {
