@@ -3419,7 +3419,7 @@ NavierStokesBase::velocity_advection (Real dt)
                     auto const& tf   = forcing_term.array(U_mfi,Xvel);
                     auto const& visc = visc_terms.const_array(U_mfi,Xvel);
                     auto const& gp   = Gp.const_array(U_mfi);
-                    auto const& rho  = rho_ptime.const_array(U_mfi);
+                    auto const& rho  = Smf.const_array(U_mfi); //It should be equivalent to rho_ptime.const_array(U_mfi);
 
                     if ( do_mom_diff )
                     {

@@ -838,7 +838,7 @@ NavierStokes::scalar_advection (Real dt,
                         }
 #else
                         {
-                            auto const& rho   = rho_ptime.const_array(S_mfi);
+                            auto const& rho = Smf.const_array(S_mfi); //It should be equivalent to rho_ptime.const_array(U_mfi);
 
                             amrex::ParallelFor(force_bx, [tf, visc, rho]
                             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
