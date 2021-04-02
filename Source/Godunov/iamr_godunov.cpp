@@ -384,12 +384,6 @@ Godunov::ComputeDivergence ( Box const& bx,
                        + fz(i,j,k+1,n) -  fz(i,j,k,n)
 #endif
                 );
-	    if ( i ==1 && j==25){
-	      std::cout<<"fx "<<fx(i+1,j,k,n)
-		       <<" "<<fx(i,j,k,n)
-		       <<"\nfy "<<fy(i,j+1,k,n)
-		       <<" "<<fy(i,j,k,n)<<std::endl;
-	    }
         }
         else
         {
