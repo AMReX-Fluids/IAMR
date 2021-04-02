@@ -232,6 +232,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     if ( level_geom.IsRZ() )
     {
+#ifdef AMREX_USE_EB
+      amrex::Abort("Embedded boundaries with RZ geometry is not currently suppported.");
+#endif
       if ( do_temp )
 	amrex::Abort("RZ geometry currently does not work with Temperature field. To use set ns.do_temp = 0.");
       for ( int n = 0; n < NUM_STATE; n++ )
