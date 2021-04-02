@@ -22,6 +22,8 @@ void initialize_EB2 (const Geometry& geom, const int required_level,
 		     const int max_level);
 #endif
 
+amrex::LevelBld* getLevelBld ();
+
 int
 main (int   argc,
       char* argv[])
@@ -63,7 +65,7 @@ main (int   argc,
         amrex::Abort("Exiting because neither max_step nor stop_time is non-negative.");
     }
 
-    Amr* amrptr = new Amr;
+    Amr* amrptr = new Amr(getLevelBld());
     //    Amr amr;
 #ifdef AMREX_USE_EB
     // fixme? not sure what level of support should be default
