@@ -52,8 +52,3 @@ static int average_bc[] =
 {
     INT_DIR, INT_DIR, INT_DIR, INT_DIR,      INT_DIR,      INT_DIR
 };
-
-static RegType project_bc [] =
-{
-    interior, inflow, outflow, refWall, refWall, refWall
-};
