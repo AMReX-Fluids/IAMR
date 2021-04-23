@@ -154,10 +154,10 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
              });
 
              grids.intersections(mask_cells,isects);
-
-             for (int is = 0, N = isects.size(); is < N; is++)
+	     
+	     for (const auto& is : isects)
              {
-                amrex::ParallelFor(isects[is].second, [tmp_arr]
+                amrex::ParallelFor(is.second, [tmp_arr]
                 AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                      tmp_arr(i,j,k) = 1.0;
@@ -320,10 +320,10 @@ SyncRegister::CompAdd (MultiFab& Sync_resid_fine,
          Pgrids.intersections(sync_box,isects);
          const auto& sync_arr = Sync_resid_fine.array(mfi);
 
-         for (int ii = 0, N = isects.size(); ii < N; ii++)
+         for (const auto& is : isects )
          {
-             const Box& pbx = Pgrids[isects[ii].first];
-             amrex::ParallelFor(isects[ii].second, [sync_arr]
+             const Box& pbx = Pgrids[is.first];
+             amrex::ParallelFor(is.second, [sync_arr]
              AMREX_GPU_DEVICE (int i, int j, int k) noexcept
              {
                 sync_arr(i,j,k) = 0.0;

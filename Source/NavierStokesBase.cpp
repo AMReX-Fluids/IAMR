@@ -236,18 +236,17 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     // 10/2020 - Only allow RZ if there's no visc/diff.
     //   MLMG Tensor solver does not currently support RZ
     //   IAMR diffusive solvers do not make appropriate use of
-    //   info.setMetricTerm() -- see Projection.cpp Diffusion.cpp and
-    //   MLMG_Mac.cpp
-    //   Also note that Diffusion::computeExtensiveFluxes and MOL/godunov
-    //   counterparts assume const cell size, which would need to be updated
-    //   to allow for multilevel.
+    //   info.setMetricTerm() -- see Diffusion.cpp and MLMG_Mac.cpp
+    //   Also note that Diffusion::computeExtensiveFluxes
+    //   assumes const cell size.
     //
     if ( level_geom.IsRZ() )
     {
+#ifdef AMREX_USE_EB
+      amrex::Abort("Embedded boundaries with RZ geometry is not currently suppported.");
+#endif
       if ( do_temp )
 	amrex::Abort("RZ geometry currently does not work with Temperature field. To use set ns.do_temp = 0.");
-      if ( parent->finestLevel() > 0 )
-	amrex::Abort("RZ geometry currently only allows one level. To use set amr.max_level = 0.");
       for ( int n = 0; n < NUM_STATE; n++ )
 	if ( visc_coef[n] > 0 )
 	  amrex::Abort("RZ geometry with viscosity/diffusivity is not currently supported. To use set ns.vel_visc_coef=0 and ns.scal_diff_coefs=0");
@@ -3835,8 +3834,10 @@ NavierStokesBase::volWgtSum (const std::string& name,
            auto const& fabarr = mf->array(mfi);
            int          ncomp = mf->nComp();
            baf.intersections(grids[mfi.index()],isects);
-           for (int is = 0; is < isects.size(); is++) {
-              amrex::ParallelFor(isects[is].second, ncomp, [fabarr]
+
+	   for (const auto& is : isects)
+	   {
+	      amrex::ParallelFor(is.second, ncomp, [fabarr]
               AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
               {
                  fabarr(i,j,k,n) = 0.0;

@@ -32,6 +32,30 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
+#if (AMREX_SPACEDIM==2)
+    MultiFab* volume;
+    MultiFab* area[AMREX_SPACEDIM];
+
+    if ( geom.IsRZ() )
+    {
+      const DistributionMapping& dmap = aofs.DistributionMap();
+      const BoxArray& grids = aofs.boxArray();
+      const int ngrow_vol = aofs.nGrow();
+
+      volume = new MultiFab(grids,dmap,1,ngrow_vol);
+      geom.GetVolume(*volume);
+
+      const int ngrow_area = xfluxes.nGrow();
+
+      for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+      {
+	BoxArray edge_ba(grids);
+	area[dir] = new MultiFab(edge_ba.surroundingNodes(dir),dmap,1,ngrow_area);
+	geom.GetFaceArea(*area[dir],dir);
+      }
+    }
+#endif
+
     //FIXME - check on adding tiling here
     for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
     {
@@ -68,24 +92,51 @@ Godunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                               is_velocity );
         }
 
-        ComputeFluxes( bx, AMREX_D_DECL( fx, fy, fz ),
-                       AMREX_D_DECL( u, v, w ),
-                       AMREX_D_DECL( xed, yed, zed ),
-                       geom, ncomp );
+#if (AMREX_SPACEDIM == 2)
+	if ( geom.IsRZ() )
+	{
+	  const auto& areax = area[0]->array(mfi);
+	  const auto& areay = area[1]->array(mfi);
+	  const auto& vol   = volume->array(mfi);
 
-	ComputeDivergence( bx,
-                           aofs.array(mfi,aofs_comp),
-                           AMREX_D_DECL( fx, fy, fz ),
-                           AMREX_D_DECL( xed, yed, zed ),
-                           AMREX_D_DECL( u, v, w ),
-                           ncomp, geom, iconserv.data() );
+	  ComputeFluxes_rz( bx, AMREX_D_DECL( fx, fy, fz ),
+			    AMREX_D_DECL( u, v, w ),
+			    AMREX_D_DECL( xed, yed, zed ),
+			    areax, areay,
+			    ncomp );
+
+
+	  ComputeDivergence_rz( bx,
+				aofs.array(mfi,aofs_comp),
+				AMREX_D_DECL( fx, fy, fz ),
+				AMREX_D_DECL( xed, yed, zed ),
+				AMREX_D_DECL( u, v, w ),
+				areax, areay, vol,
+				ncomp, iconserv.data() );
+
+	}
+	else
+#endif
+	{
+	  ComputeFluxes( bx, AMREX_D_DECL( fx, fy, fz ),
+			 AMREX_D_DECL( u, v, w ),
+			 AMREX_D_DECL( xed, yed, zed ),
+			 geom, ncomp );
+
+	  ComputeDivergence( bx,
+			     aofs.array(mfi,aofs_comp),
+			     AMREX_D_DECL( fx, fy, fz ),
+			     AMREX_D_DECL( xed, yed, zed ),
+			     AMREX_D_DECL( u, v, w ),
+			     ncomp, geom, iconserv.data() );
+	}
 
 	//
 	// NOTE this sync cannot protect temporaries in ComputeEdgeState, ComputeFluxes
 	// or ComputeDivergence, since functions have their own scope. As soon as the
 	// CPU hits the end of the function, it will call the destructor for all
 	// temporaries created in that function.
-	// 
+	//
         Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
@@ -124,6 +175,29 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
 {
     BL_PROFILE("Godunov::ComputeAofs()");
 
+#if (AMREX_SPACEDIM==2)
+    MultiFab* volume;
+    MultiFab* area[AMREX_SPACEDIM];
+
+    if ( geom.IsRZ() )
+    {
+      const DistributionMapping& dmap = aofs.DistributionMap();
+      const BoxArray& grids = aofs.boxArray();
+      const int ngrow_vol = aofs.nGrow();
+
+      volume = new MultiFab(grids,dmap,1,ngrow_vol);
+      geom.GetVolume(*volume);
+
+      const int ngrow_area = xfluxes.nGrow();
+
+      for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+      {
+	BoxArray edge_ba(grids);
+	area[dir] = new MultiFab(edge_ba.surroundingNodes(dir),dmap,1,ngrow_area);
+	geom.GetFaceArea(*area[dir],dir);
+      }
+    }
+#endif
 
     //FIXME - check on adding tiling here
     for (MFIter mfi(aofs); mfi.isValid(); ++mfi)
@@ -166,19 +240,42 @@ Godunov::ComputeSyncAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                               is_velocity );
         }
 
-        ComputeFluxes( bx, AMREX_D_DECL( fx, fy, fz ),
-                       AMREX_D_DECL( uc, vc, wc ),
-                       AMREX_D_DECL( xed, yed, zed ),
-                       geom, ncomp );
+#if (AMREX_SPACEDIM == 2)
+	if ( geom.IsRZ() )
+	{
+	  const auto& areax = area[0]->array(mfi);
+	  const auto& areay = area[1]->array(mfi);
+	  const auto& vol   = volume->array(mfi);
+
+	  ComputeFluxes_rz( bx, AMREX_D_DECL( fx, fy, fz ),
+			    AMREX_D_DECL( uc, vc, wc ),
+			    AMREX_D_DECL( xed, yed, zed ),
+			    areax, areay,
+			    ncomp );
 
 
-        ComputeSyncDivergence( bx,
-                               aofs.array(mfi,aofs_comp),
-                               AMREX_D_DECL( fx, fy, fz ),
-                               ncomp, geom );
+	  ComputeSyncDivergence_rz( bx,
+				    aofs.array(mfi,aofs_comp),
+				    AMREX_D_DECL( fx, fy, fz ),
+				    vol,
+				    ncomp );
 
-	// Note this sync is needed since ComputeEdgeState() contains temporaries
-	// Not sure it's really needed when known_edgestate==true
+	}
+	else
+#endif
+	{
+	  ComputeFluxes( bx, AMREX_D_DECL( fx, fy, fz ),
+			 AMREX_D_DECL( uc, vc, wc ),
+			 AMREX_D_DECL( xed, yed, zed ),
+			 geom, ncomp );
+
+
+	  ComputeSyncDivergence( bx,
+				 aofs.array(mfi,aofs_comp),
+				 AMREX_D_DECL( fx, fy, fz ),
+				 ncomp, geom );
+	}
+
         Gpu::streamSynchronize();  // otherwise we might be using too much memory
     }
 
@@ -266,7 +363,6 @@ Godunov::ComputeDivergence ( Box const& bx,
                              const int ncomp, Geometry const& geom,
                              int const* iconserv )
 {
-
     const auto dxinv = geom.InvCellSizeArray();
 
 #if (AMREX_SPACEDIM==3)
@@ -333,5 +429,104 @@ Godunov::ComputeSyncDivergence ( Box const& bx,
             + fz(i,j,k+1,n) -  fz(i,j,k,n)
 #endif
             );
+    });
+}
+
+
+void
+Godunov::ComputeFluxes_rz ( Box const& bx,
+			    Array4<Real> const& fx,
+			    Array4<Real> const& fy,
+			    Array4<Real const> const& umac,
+			    Array4<Real const> const& vmac,
+			    Array4<Real const> const& xed,
+			    Array4<Real const> const& yed,
+			    Array4<Real const> const& areax,
+			    Array4<Real const> const& areay,
+			    const int ncomp )
+{
+    //
+    //  X flux
+    //
+    const Box& xbx = amrex::surroundingNodes(bx,0);
+
+    amrex::ParallelFor(xbx, ncomp, [fx, umac, xed, areax]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+      fx(i,j,k,n) = xed(i,j,k,n) * umac(i,j,k) * areax(i,j,k);
+    });
+
+    //
+    //  y flux
+    //
+    const Box& ybx = amrex::surroundingNodes(bx,1);
+
+    amrex::ParallelFor(ybx, ncomp, [fy, vmac, yed, areay]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        fy(i,j,k,n) = yed(i,j,k,n) * vmac(i,j,k) * areay(i,j,k);
+    });
+}
+
+
+
+void
+Godunov::ComputeDivergence_rz ( Box const& bx,
+				Array4<Real> const& div,
+				Array4<Real const> const& fx,
+				Array4<Real const> const& fy,
+				Array4<Real const> const& xed,
+				Array4<Real const> const& yed,
+				Array4<Real const> const& umac,
+				Array4<Real const> const& vmac,
+				Array4<Real const> const& areax,
+				Array4<Real const> const& areay,
+				Array4<Real const> const& vol,
+				const int ncomp,
+				int const* iconserv )
+{
+
+    amrex::ParallelFor(bx, ncomp,[=]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        if (iconserv[n])
+        {
+	    div(i,j,k,n) = ( fx(i+1,j,k,n) -  fx(i,j,k,n) +
+			     fy(i,j+1,k,n) -  fy(i,j,k,n)
+			   ) / vol(i,j,k) ;
+        }
+        else
+        {
+	    //
+	    // Compute  (U dot grad)c as ( -c(div U) + div(cU) )
+	    //
+	    const Real divux = ( areax(i+1,j,k)*umac(i+1,j,k) -
+				 areax(i,  j,k)*umac(i,  j,k)
+			       ) / vol(i,j,k);
+	    const Real divuy = ( areay(i,j+1,k)*vmac(i,j+1,k) -
+				 areay(i,j  ,k)*vmac(i,j  ,k)
+			       ) / vol(i,j,k);
+	    div(i,j,k,n) =  ( fx(i+1,j,k,n) - fx(i,j,k,n) +
+			      fy(i,j+1,k,n) - fy(i,j,k,n) ) / vol(i,j,k)
+	                  - ( divux*0.5*(xed(i+1,j,k,n) + xed(i,j,k,n)) +
+			      divuy*0.5*(yed(i,j+1,k,n) + yed(i,j,k,n)) );
+	}
+    });
+}
+
+void
+Godunov::ComputeSyncDivergence_rz ( Box const& bx,
+				    Array4<Real> const& div,
+				    Array4<Real const> const& fx,
+				    Array4<Real const> const& fy,
+				    Array4<Real const> const& vol,
+				    const int ncomp )
+{
+    amrex::ParallelFor(bx, ncomp,[=]
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+      div(i,j,k,n) +=  ( fx(i+1,j,k,n) -  fx(i,j,k,n) +
+			 fy(i,j+1,k,n) -  fy(i,j,k,n)
+		       ) / vol(i,j,k);
     });
 }

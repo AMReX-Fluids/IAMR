@@ -172,3 +172,15 @@ Many small updates to several parts of the code, including:
   -InflowForce
   -GPU fixes
   -Outflow BC solvers
+
+4/1/21
+Cleanup unused options, problems, and inputs files
+Fixes to ref_ratio=4 ghost cell bugs
+Port some initializtion kernels to C++
+Port some derived functions to C++
+Port boundary filling functions to C++
+Ghost cell filling bugs
+New options for controlling regridding
+Minor GPU and memory fixes
+Remove fortran probin files
+Various RZ fixes
