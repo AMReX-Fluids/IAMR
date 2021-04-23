@@ -4634,7 +4634,7 @@ NavierStokesBase::predict_velocity (Real  dt)
 
        MOL::ExtrapVelToFaces( Umf,
                               AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                              geom, m_bcrec_velocity);
+                              geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
 
    }
 

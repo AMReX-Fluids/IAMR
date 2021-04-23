@@ -63,7 +63,6 @@ EBPLM::PredictVelOnXFace (Box const& xebox,
     bool has_extdir_or_ho_hi_z = extdir_lohi_z.second;
 #endif
 
-
     if ( (has_extdir_or_ho_lo_x and domain_ilo >= xebox.smallEnd(0)-1) or
          (has_extdir_or_ho_hi_x and domain_ihi <= xebox.bigEnd(0)    ) or
 #if (AMREX_SPACEDIM == 3)
@@ -75,7 +74,7 @@ EBPLM::PredictVelOnXFace (Box const& xebox,
     {
         amrex::ParallelFor(xebox, ncomp, [q,ccvel,AMREX_D_DECL(domain_ilo,domain_jlo,domain_klo),
                                                   AMREX_D_DECL(domain_ihi,domain_jhi,domain_khi),
-                                          Imx,Ipx,dtdx,pbc,flag,vfrac,ccc,AMREX_D_DECL(fcx,fcy,fcz)]
+                                          Imx,Ipx,dtdx,pbc,flag,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz)]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qpls(0.);
@@ -122,23 +121,27 @@ EBPLM::PredictVelOnXFace (Box const& xebox,
                 // We need to use LS slopes
                 } else {
 
-                   Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+                    Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
 #if (AMREX_SPACEDIM == 3)
-                   Real zf = fcx(i,j,k,1);
+                    Real zf = fcx(i,j,k,1);
 #endif
-                   AMREX_D_TERM(Real delta_x = -0.5 - ccc(i,j,k,0);,
-                                Real delta_y =  yf  - ccc(i,j,k,1);,
-                                Real delta_z =  zf  - ccc(i,j,k,2););
+                    AMREX_D_TERM(Real delta_x = -0.5 - ccc(i,j,k,0);,
+                                 Real delta_y =  yf  - ccc(i,j,k,1);,
+                                 Real delta_z =  zf  - ccc(i,j,k,2););
 
-                   Real qcc_max = amrex::max(q(i,j,k,n), q(i-1,j,k,n));
-                   Real qcc_min = amrex::min(q(i,j,k,n), q(i-1,j,k,n));
+                    Real qcc_max = amrex::max(q(i,j,k,n), q(i-1,j,k,n));
+                    Real qcc_min = amrex::min(q(i,j,k,n), q(i-1,j,k,n));
 
-                   const auto& slopes_eb_hi = amrex_lim_slopes_extdir_eb(i,j,k,n,q,ccc,
-                                              AMREX_D_DECL(fcx,fcy,fcz), flag,
-                                              AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
-                                              AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
-                                              AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+                    // This will be used in the EB slope routine only if the slope can be computed without LS
+                    int max_order = 2;
+
+                    const auto& slopes_eb_hi = amrex_lim_slopes_extdir_eb(i,j,k,n,q,ccc,vfrac,
+                                               AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                               AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                               AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                               AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                               AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                               max_order);
 
 #if (AMREX_SPACEDIM == 3)
                    qpls = q(i,j,k,n) + delta_x * slopes_eb_hi[0]
@@ -176,23 +179,27 @@ EBPLM::PredictVelOnXFace (Box const& xebox,
                 // We need to use LS slopes
                 } else {
 
-                   Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
+                    Real yf = fcx(i,j,k,0); // local (y,z) of centroid of x-face we are extrapolating to
 #if (AMREX_SPACEDIM == 3)
-                   Real zf = fcx(i,j,k,1);
+                    Real zf = fcx(i,j,k,1);
 #endif
-                   AMREX_D_TERM(Real delta_x = 0.5 - ccc(i-1,j,k,0);,
-                                Real delta_y = yf  - ccc(i-1,j,k,1);,
-                                Real delta_z = zf  - ccc(i-1,j,k,2););
+                    AMREX_D_TERM(Real delta_x = 0.5 - ccc(i-1,j,k,0);,
+                                 Real delta_y = yf  - ccc(i-1,j,k,1);,
+                                 Real delta_z = zf  - ccc(i-1,j,k,2););
 
-                   Real qcc_max = amrex::max(q(i,j,k,n), q(i-1,j,k,n));
-                   Real qcc_min = amrex::min(q(i,j,k,n), q(i-1,j,k,n));
+                    Real qcc_max = amrex::max(q(i,j,k,n), q(i-1,j,k,n));
+                    Real qcc_min = amrex::min(q(i,j,k,n), q(i-1,j,k,n));
 
-                   const auto& slopes_eb_lo = amrex_lim_slopes_extdir_eb(i-1,j,k,n,q,ccc,
-                                              AMREX_D_DECL(fcx,fcy,fcz), flag,
-                                              AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
-                                              AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
-                                              AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+                    // This will be used in the EB slope routine only if the slope can be computed without LS
+                    int max_order = 2;
+
+                    const auto& slopes_eb_lo = amrex_lim_slopes_extdir_eb(i-1,j,k,n,q,ccc,vfrac,
+                                               AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                               AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                               AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                               AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                               AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                               max_order);
 
 
 #if (AMREX_SPACEDIM == 3)
@@ -218,7 +225,7 @@ EBPLM::PredictVelOnXFace (Box const& xebox,
     {
         amrex::ParallelFor(xebox, ncomp, [q,ccvel,AMREX_D_DECL(domain_ilo,domain_jlo,domain_klo),
                                           AMREX_D_DECL(domain_ihi,domain_jhi,domain_khi),
-                                          Imx,Ipx,dtdx,pbc,flag,vfrac,ccc,AMREX_D_DECL(fcx,fcy,fcz)]
+                                          Imx,Ipx,dtdx,pbc,flag,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz)]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             Real qpls(0.);
@@ -260,8 +267,11 @@ EBPLM::PredictVelOnXFace (Box const& xebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i-1,j,k,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i-1,j,k,n));
 
-                   const auto& slopes_eb_hi = amrex_lim_slopes_eb(i,j,k,n,q,ccc,
-                                                                  AMREX_D_DECL(fcx,fcy,fcz), flag);
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_hi = amrex_lim_slopes_eb(i,j,k,n,q,ccc,vfrac,
+                                                                  AMREX_D_DECL(fcx,fcy,fcz),flag,max_order);
 
 #if (AMREX_SPACEDIM == 3)
                    qpls = q(i,j,k,n) + delta_x * slopes_eb_hi[0]
@@ -310,8 +320,11 @@ EBPLM::PredictVelOnXFace (Box const& xebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i-1,j,k,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i-1,j,k,n));
 
-                   const auto& slopes_eb_lo = amrex_lim_slopes_eb(i-1,j,k,n,q,ccc,
-                                                                  AMREX_D_DECL(fcx,fcy,fcz), flag);
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_lo = amrex_lim_slopes_eb(i-1,j,k,n,q,ccc,vfrac,
+                                                                  AMREX_D_DECL(fcx,fcy,fcz),flag,max_order);
 
 #if (AMREX_SPACEDIM == 3)
                    qmns = q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
@@ -377,7 +390,6 @@ EBPLM::PredictVelOnYFace (Box const& yebox,
     bool has_extdir_or_ho_hi_z = extdir_lohi_z.second;
 #endif
 
-
     if ( (has_extdir_or_ho_lo_x and domain_ilo >= yebox.smallEnd(0)-1) or
          (has_extdir_or_ho_hi_x and domain_ihi <= yebox.bigEnd(0)    ) or
 #if (AMREX_SPACEDIM == 3)
@@ -436,23 +448,27 @@ EBPLM::PredictVelOnYFace (Box const& yebox,
                 // We need to use LS slopes
                 } else {
 
-                   Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+                    Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
 #if (AMREX_SPACEDIM == 3)
-                   Real zf = fcy(i,j,k,1);
+                    Real zf = fcy(i,j,k,1);
 #endif
-                   AMREX_D_TERM(Real delta_y = -0.5 - ccc(i,j,k,1);,
-                                Real delta_x =  xf  - ccc(i,j,k,0);,
-                                Real delta_z =  zf  - ccc(i,j,k,2););
+                    AMREX_D_TERM(Real delta_y = -0.5 - ccc(i,j,k,1);,
+                                 Real delta_x =  xf  - ccc(i,j,k,0);,
+                                 Real delta_z =  zf  - ccc(i,j,k,2););
 
-                   Real qcc_max = amrex::max(q(i,j,k,n), q(i,j-1,k,n));
-                   Real qcc_min = amrex::min(q(i,j,k,n), q(i,j-1,k,n));
+                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j-1,k,n));
+                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j-1,k,n));
 
-                   const auto& slopes_eb_hi = amrex_lim_slopes_extdir_eb(i,j,k,n,q,ccc,
-                                              AMREX_D_DECL(fcx,fcy,fcz), flag,
-                                              AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
-                                              AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
-                                              AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+                    // This will be used in the EB slope routine only if the slope can be computed without LS
+                    int max_order = 2;
+
+                    const auto& slopes_eb_hi = amrex_lim_slopes_extdir_eb(i,j,k,n,q,ccc,vfrac,
+                                               AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                               AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                               AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                               AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                               AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                               max_order);
 
 #if (AMREX_SPACEDIM == 3)
                    qpls = q(i,j,k,n) + delta_y * slopes_eb_hi[1]
@@ -490,23 +506,27 @@ EBPLM::PredictVelOnYFace (Box const& yebox,
                 // We need to use LS slopes
                 } else {
 
-                   Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
+                    Real xf = fcy(i,j,k,0); // local (x,z) of centroid of y-face we are extrapolating to
 #if (AMREX_SPACEDIM == 3)
-                   Real zf = fcy(i,j,k,1);
+                    Real zf = fcy(i,j,k,1);
 #endif
-                   AMREX_D_TERM(Real delta_y = 0.5 - ccc(i,j-1,k,1);,
-                                Real delta_x = xf  - ccc(i,j-1,k,0);,
-                                Real delta_z = zf  - ccc(i,j-1,k,2););
+                    AMREX_D_TERM(Real delta_y = 0.5 - ccc(i,j-1,k,1);,
+                                 Real delta_x = xf  - ccc(i,j-1,k,0);,
+                                 Real delta_z = zf  - ccc(i,j-1,k,2););
 
-                   Real qcc_max = amrex::max(q(i,j,k,n), q(i,j-1,k,n));
-                   Real qcc_min = amrex::min(q(i,j,k,n), q(i,j-1,k,n));
+                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j-1,k,n));
+                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j-1,k,n));
 
-                   const auto& slopes_eb_lo = amrex_lim_slopes_extdir_eb(i,j-1,k,n,q,ccc,
-                                              AMREX_D_DECL(fcx,fcy,fcz), flag,
-                                              AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
-                                              AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
-                                              AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+                    // This will be used in the EB slope routine only if the slope can be computed without LS
+                    int max_order = 2;
+
+                    const auto& slopes_eb_lo = amrex_lim_slopes_extdir_eb(i,j-1,k,n,q,ccc,vfrac,
+                                               AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                               AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                               AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                               AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                               AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                               max_order);
 
 
 #if (AMREX_SPACEDIM == 3)
@@ -574,8 +594,11 @@ EBPLM::PredictVelOnYFace (Box const& yebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j-1,k,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j-1,k,n));
 
-                   const auto& slopes_eb_hi = amrex_lim_slopes_eb(i,j,k,n,q,ccc,
-                                                                  AMREX_D_DECL(fcx,fcy,fcz), flag);
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_hi = amrex_lim_slopes_eb(i,j,k,n,q,ccc,vfrac,
+                                                                  AMREX_D_DECL(fcx,fcy,fcz),flag,max_order);
 
 #if (AMREX_SPACEDIM == 3)
                    qpls = q(i,j,k,n) + delta_y * slopes_eb_hi[1]
@@ -624,8 +647,11 @@ EBPLM::PredictVelOnYFace (Box const& yebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j-1,k,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j-1,k,n));
 
-                   const auto& slopes_eb_lo = amrex_lim_slopes_eb(i,j-1,k,n,q,ccc,
-                                                                  AMREX_D_DECL(fcx,fcy,fcz), flag);
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_lo = amrex_lim_slopes_eb(i,j-1,k,n,q,ccc,vfrac,
+                                                                  AMREX_D_DECL(fcx,fcy,fcz),flag,max_order);
 
 #if (AMREX_SPACEDIM == 3)
                    qmns = q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
@@ -754,12 +780,16 @@ EBPLM::PredictVelOnZFace (Box const& zebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j,k-1,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j,k-1,n));
 
-                   const auto& slopes_eb_hi = amrex_lim_slopes_extdir_eb(i,j,k,n,q,ccc,
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_hi = amrex_lim_slopes_extdir_eb(i,j,k,n,q,ccc,vfrac,
                                               AMREX_D_DECL(fcx,fcy,fcz), flag,
                                               AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
                                               AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
                                               AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                              max_order);
 
                    qpls = q(i,j,k,n) + delta_z * slopes_eb_hi[2]
                                      + delta_x * slopes_eb_hi[0]
@@ -803,12 +833,16 @@ EBPLM::PredictVelOnZFace (Box const& zebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j,k-1,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j,k-1,n));
 
-                   const auto& slopes_eb_lo = amrex_lim_slopes_extdir_eb(i,j,k-1,n,q,ccc,
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_lo = amrex_lim_slopes_extdir_eb(i,j,k-1,n,q,ccc,vfrac,
                                               AMREX_D_DECL(fcx,fcy,fcz), flag,
                                               AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
                                               AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
                                               AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+                                              AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                              max_order);
 
                    qmns = q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
                                        + delta_y * slopes_eb_lo[1]
@@ -837,8 +871,6 @@ EBPLM::PredictVelOnZFace (Box const& zebox,
             // This means apx(i,j,k) > 0 and we have un-covered cells on both sides
             if (flag(i,j,k).isConnected(0,0,-1))
             {
-                const auto& bc = pbc[n];
-
                 // *************************************************
                 // Making qpls
                 // *************************************************
@@ -871,8 +903,11 @@ EBPLM::PredictVelOnZFace (Box const& zebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j,k-1,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j,k-1,n));
 
-                   const auto& slopes_eb_hi = amrex_lim_slopes_eb(i,j,k,n,q,ccc,
-                                                                  AMREX_D_DECL(fcx,fcy,fcz), flag);
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_hi = amrex_lim_slopes_eb(i,j,k,n,q,ccc,vfrac,
+                                                                  AMREX_D_DECL(fcx,fcy,fcz),flag,max_order);
 
                    qpls = q(i,j,k,n) + delta_x * slopes_eb_hi[0]
                                      + delta_y * slopes_eb_hi[1]
@@ -916,8 +951,11 @@ EBPLM::PredictVelOnZFace (Box const& zebox,
                    Real qcc_max = amrex::max(q(i,j,k,n), q(i,j,k-1,n));
                    Real qcc_min = amrex::min(q(i,j,k,n), q(i,j,k-1,n));
 
-                   const auto& slopes_eb_lo = amrex_lim_slopes_eb(i,j,k-1,n,q,ccc,
-                                                                  AMREX_D_DECL(fcx,fcy,fcz), flag);
+                   // This will be used in the EB slope routine only if the slope can be computed without LS
+                   int max_order = 2;
+
+                   const auto& slopes_eb_lo = amrex_lim_slopes_eb(i,j,k-1,n,q,ccc,vfrac,
+                                                                  AMREX_D_DECL(fcx,fcy,fcz),flag,max_order);
 
                    qmns = q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
                                        + delta_y * slopes_eb_lo[1]
