@@ -1,5 +1,3 @@
-CEXE_headers += 
-CEXE_sources += 
+CEXE_headers += prob_init.H
+CEXE_sources += prob_init.cpp NS_init_eb2.cpp
 
-FEXE_headers += probdata.H
-F90EXE_sources += PROB_$(DIM)D.F90 
