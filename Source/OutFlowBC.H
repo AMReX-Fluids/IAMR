@@ -7,12 +7,6 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_BCRec.H>
 
-enum OutFlow_Solver_Type
-{
-    BC_BACK, // back substitution
-    BC_MG    // multigrid
-};
-
 //
 // The baseclass for MacOutFlowBC and ProjOutFlowBC.
 //
@@ -64,62 +58,6 @@ public:
     static bool HasOutFlowBC (amrex::BCRec* _phys_bc);
 
 protected:
-};
-
-//
-// The baseclass for MacOutFlowBC_MG and ProjOutFlowBC_MG
-//
-
-class OutFlowBC_MG 
-{
-public:
-
-    OutFlowBC_MG (const amrex::Box& Domain,
-                  amrex::FArrayBox* Phi,
-                  amrex::FArrayBox* Rhs,
-                  amrex::FArrayBox* Resid,
-                  amrex::FArrayBox* Beta,
-                  amrex::Real*      H,
-                  int*       IsPeriodic,
-                  bool       is_scalar);
-
-    virtual ~OutFlowBC_MG ();
-
-    void solve (amrex::Real tol,
-                amrex::Real abs_tol,
-                int  i1,
-                int  i2,
-                int  maxIters,
-                int  verbose);
-
-    amrex::Real vcycle (int i1, int i2);
-
-    const amrex::Box& theDomain () const { return domain; }
-
-    amrex::FArrayBox* theRhs () { return rhs; }
-
-    amrex::FArrayBox* thePhi () { return phi; }
-
-protected:
-
-    virtual void Restrict ()       = 0;
-    virtual void interpolate ()    = 0;
-    virtual amrex::Real residual ()       = 0;
-    virtual void step (int nSteps) = 0;
-    virtual void gsrb (int nSteps) = 0;
-    //
-    // The per-object data
-    //
-    amrex::Box           domain;
-    amrex::FArrayBox*    phi;
-    amrex::FArrayBox*    rhs;
-    amrex::FArrayBox*    resid;
-    amrex::FArrayBox     cgwork;
-    amrex::FArrayBox*    beta;
-    amrex::Real          h[BL_SPACEDIM];
-    int           isPeriodic[BL_SPACEDIM];
-    OutFlowBC_MG* next;
-    bool          beta_is_scalar;
 };
 
 #endif /*_OUTFLOWBC_H_*/

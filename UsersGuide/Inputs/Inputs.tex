@@ -1,30 +1,20 @@
-The \iamr\ executable uses two inputs files at runtime to set and alter the
-behavior of the algorithm and initial conditions.
+\label{sec:inputs}
 
-The main inputs file, typically named {\tt inputsXXX} is used to
-set \amrex\ parameters and the control flow in the C++ portions of
+The \iamr\ executable uses an inputs file at runtime to set and alter the
+behavior of the algorithm and initial conditions.
+The inputs file, typically named {\tt inputsXXX} is used to
+set \amrex\ parameters and the control flow in 
 the \iamr\ code.  Each parameter here has a namespace (like {\tt
 amr.{\em optionname}} or {\tt ns.{\em optionname}}).  Parameters
 set here are read using the \amrex\ {\tt ParmParse} class
 infrastructure.
 
-The second inputs file, typically named {\tt probin} is used by the
-Fortran code that initializes the problem setup.  
-The Fortran namelist, {\tt \&fortin}, is defined in the {\tt probin} file
-and read by the {\tt amrex\_probinit} subroutine in the {\tt PROB\_?d.f90} file.
-
-Only the {\tt inputs} file is specified on the commandline.  The
-associated {\tt probin} file is specified in the {\tt inputs} file
-using the {\tt amr.probin\_file} parameter, e.g.,
-\begin{lstlisting}
-amr.probin_file = probin.2d.bubble
-\end{lstlisting}
-for example, has the Fortran code read a file called {\tt probin.2d.bubble}.
+The {\tt inputs} file is specified on the commandline.
 
 \section{Common {\tt inputs} Options}
 
-{\bf Important}: because the {\tt inputs} file is handled by the C++ portion of
-the code, any quantities you specify in scientific notation, must take the
+{\bf Important}: because the {\tt inputs} file is handled by the C++,
+any quantities you specify in scientific notation, must take the
 form {\tt 1.e5} and not {\tt 1.d5}---the `{\tt d}' specifier is not recognized.
 
 Additionally, note that in \iamr, all quantities are in MKS units.
@@ -68,11 +58,16 @@ only.
 
 \subsection{Domain Boundary Conditions}
 
-Boundary conditions are specified using integer keys that are interpreted
-by \amrex.  The runtime parameters that we use are:
+\iamr\ provides two ways to specify boundary condition types: integer keys or keywords.
+An inputs file must choose one style or the other, they cannot be mixed.
+Here we provide examples of both styles. We then discuss how to provide Dirichlet
+boundary conditions. 
+
+\subsubsection{Boundary conditions with integer keys}
+To specify boundary conditions with integer keys we use 
 \begin{itemize}
-\item {\tt ns.lo\_bc}: boundary type of each low face  (must be set)
-\item {\tt ns.hi\_bc}: boundary type of each high face (must be set)
+\item {\tt ns.lo\_bc}: boundary type of each low face
+\item {\tt ns.hi\_bc}: boundary type of each high face
 \end{itemize}
 
 The valid boundary types are:
@@ -100,6 +95,74 @@ geometry.is_periodic = 0 0 1
 would define a problem with inflow ({\tt 1}) in the low-$x$ direction,
 outflow ({\tt 2}) in the high-$x$ direction, slip wall ({\tt 4}) on
 the low and high $y$-faces, and periodic in the $z$-direction.
+
+\subsubsection{Boundary conditions with keywords}
+To specify boundary conditions with keywords, we use the following options  
+preceded by "xlo", "xhi", "ylo", "yhi", "zlo", and "zhi": 
+\begin{itemize}
+\item ``slip\_wall'' or ``sw''
+\item ``no\_slip\_wall'' or ``nsw''
+\item ``mass\_inflow'' or ``mi''
+\item ``pressure\_outflow''  or ``po''
+\end{itemize}
+
+To use the same example problem as above, the following:
+\begin{lstlisting}
+xlo.type = mi
+xhi.type = po
+ylo.type = sw
+yhi.type = sw
+
+geometry.is_periodic = 0 0 1
+\end{lstlisting}
+would define a problem with inflow in the low-$x$ direction,
+outflow in the high-$x$ direction, slip wall on
+the low and high $y$-faces, and periodic in the $z$-direction.
+Note that no keyword is needed for a periodic boundary, here only the
+specification in geometry.is\_periodic is needed.
+
+\subsubsection{Dirichlet Boundary Conditions}
+\label{sec:dirichlet}
+\iamr\ provides the ability to specify constant Dirichlet BCs 
+in the inputs file.
+As an example,
+\begin{lstlisting}
+xlo.type                =   "mass_inflow"
+xlo.velocity            =   1.  0.  0.
+xlo.density             =   1.
+xlo.tracer              =   0.
+xlo.temp                =   1.
+\end{lstlisting}
+sets the boundary condtion type at the low x face to be an inflow with
+{\tt xlo.type = ``mass\_inflow''}. 
+Then {\tt xlo.velocity = 1. 0. 0. } sets the inflow velocity,
+{\tt xlo.density = 1. } sets the inflow density, 
+{\tt xlo.tracer = 0. } sets the inflow tracer value, and 
+{\tt xlo.temp = 1. } sets the inflow temperature.
+Another example, from the lid driven cavity problem setup, is
+\begin{lstlisting}
+ns.lo_bc             	=  4 4 5
+ns.hi_bc             	=  5 5 5
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+# Boundary condition
+zhi.velocity            =   1.  0.  0.
+\end{lstlisting}
+Here, {\tt ns.hi\_bc =  5 5 5} sets the boundary conditions on all high faces to
+no slip walls.
+{\tt zhi.velocity = 1. 0. 0.} sets the wall at the high z face to be moving in the
+x-direction.
+Note that \iamr\ allows walls to move tangentially, but not in the normal direction.
+
+Users can create more complex Dirichlet boundary condtions by writing
+their own fill function in {\tt NS\_bcfill.H}, then using that function to create
+an {\tt amrex::StateDescriptor::BndryFunc} object and specifying which variables
+will use it in {\tt NS\_setup.cpp}. More information on boundary conditions is in
+section \ref{sec:physicalBCs}.
+
 
 \subsection{Resolution}
 
@@ -161,10 +224,11 @@ amr.regrid\_on\_restart = 1}.
 
 \subsection{Regridding}
 
-The details of the regridding strategy are described in a later section; here we 
-cover how the input parameters can control the gridding.
+The details of the regridding strategy are described in later sections
+(see \ref{sec:gridCreation} and \ref{chap:Amr}) );
+here we cover how the input parameters can control the gridding.
 
-As described later, the user defines Fortran subroutines which tag individual
+As described later, the user defines error estimation functions to tag individual
 cells at a given level if they need refinement.  This list of tagged cells is
 sent to a grid generation routine, which uses the Berger-Rigoutsos algorithm~\cite{br-refine}
 to create rectangular grids that contain the tagged cells.   
@@ -238,6 +302,7 @@ Having grids that are large enough to coarsen multiple levels in a
 V-cycle is essential for good multigrid performance.
 
 \subsubsection{How grids are created}
+\label{sec:gridCreation}
 
 The gridding algorithm proceeds in this order:
 \begin{enumerate}
@@ -266,11 +331,17 @@ in any dimension, is {\tt amr.max\_grid\_size}[$\ell$] / 4.
 
 \subsection{Simulation Time}
 
-There are two paramters that can define when a simulation ends:
+There are three paramters that can define when a simulation ends:
 \begin{itemize}
 \item {\tt max\_step}: maximum number of level 0 time steps (Integer $\geq 0$; default: -1)
 \item {\tt stop\_time}: final simulation time (Real $\geq 0$;  default: -1.0)
+\item {\tt stop\_when\_steady}: final simulation time (bool;  default: false)
 \end{itemize}
+{\tt stop\_when\_steady} has an optional parameter to specify steady state:
+\begin{itemize}
+\item {\tt steady\_tol}: final simulation time (Real $\geq 0$;  default: 1.0e-10)
+\end{itemize}
+
 To control the number of time steps, you can limit by the maximum
 number of level 0 time steps ({\tt max\_step}) or by the final
 simulation time ({\tt stop\_time}), or both. The code will stop at

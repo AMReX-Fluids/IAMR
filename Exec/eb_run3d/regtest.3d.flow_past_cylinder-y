@@ -6,10 +6,8 @@ max_step                =  10           # Max number of time steps
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_shrink     = 1.0
-ns.init_iter       = 0
-ns.init_vel_iter   = 0
 ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
-nodal_proj.rtol    = 1.0e-13
+nodal_proj.rtol    =  1.0e-13
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
@@ -21,11 +19,10 @@ amr.plot_int            =   20          # Steps between plot files
 amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
 amr.restart             =   ""          # Checkpoint to restart from
-amr.probin_file         = regtest.probin.3d.flow_past_cylinder-y
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
-ns.gravity          =   0.  0.  0.  # Gravitational force (3D)
+ns.gravity               =   0.  
 ns.vel_visc_coef         = 0.1
 ns.scal_diff_coefs       = 0.1
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
@@ -50,6 +47,8 @@ ns.lo_bc 	     	= 0 1 4
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	      	= 0 2 5
 
+ylo.velocity = 0. 10. 0.
+
 # Add cylinder
 eb2.geom_type                 = cylinder
 eb2.cylinder_has_fluid_inside = 0
@@ -58,17 +57,19 @@ eb2.cylinder_direction        = 0
 eb2.cylinder_center           = 0.0 -0.45 0.0
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
-#              VERBOSITY                #
+#          PROBLEM PARAMETERS           #
 #.......................................#
-ns.v                    = 1 # NS solver
-#diffusion.verbose      = 1 # Diffusion operator
+
+prob.probtype = 4
+prob.blob_center =  0.0 -0.55 0.05
+prob.blob_radius =  0.04
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up a flow, defaults to zero
+prob.velocity_ic = 0. 10. 0.
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
-#            for testing                #
+#              VERBOSITY                #
 #.......................................#
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-amr.plot_vars = y_velocity z_velocity density tracer volFrac
-amr.plt_ccse_regtest    =   1
+ns.v              = 1 # NS solver
+#diffusion.v      = 1 # Diffusion operator

@@ -2,11 +2,6 @@
 # INPUTS.2D.POISEUILLE
 #*******************************************************************************
 
-# turn on tiling for testing
-fabarray.mfiter_tile_size = 8 8 8 
-
-ns.do_denminmax = 1
-
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
@@ -24,29 +19,26 @@ ns.steady_tol 		= 1.0e-5
 
 # Number of cells in each coordinate direction at the coarsest level
 amr.n_cell 			= 128 64  
-amr.max_grid_size		= 16
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level			= 2 # maximum number of levels of refinement
+amr.max_level			= 1 # maximum number of levels of refinement
 
-ns.do_tracer_ref = 1
-mg.v = 0
+# Refinement criterion, use temperature
+amr.refinement_indicators = tracer
+
+amr.tracer.value_greater = .01
+amr.tracer.field_name = tracer
+
+#*******************************************************************************
+
+# Set verbosity
+ns.v               = 10
 nodal_proj.verbose = 0
-proj.v = 0
-diffuse.v = 0
-
-
-#*******************************************************************************
-
-# Sets the "NavierStokes" code to not be verbose
-ns.v                    = 10
-
-#*******************************************************************************
-
-# Sets the "amr" code to be verbose
-amr.v                   = 1
+proj.v             = 0
+diffuse.v          = 0
+amr.v              = 1
 
 #*******************************************************************************
 
@@ -67,7 +59,6 @@ ns.cfl                  = 0.5  # CFL number used to set dt
 
 # Factor by which the first time is shrunk relative to CFL constraint
 ns.init_shrink          = 0.3  # factor which multiplies the very first time step
-ns.init_iter            = 0
 
 #*******************************************************************************
 
@@ -83,11 +74,6 @@ ns.scal_diff_coefs      = 0.0
 
 # Forcing term defaults to  rho * abs(gravity) "down"
 ns.gravity              = 1.0  
-
-#*******************************************************************************
-
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 		= probin.2d.poiseuille 
 
 #*******************************************************************************
 
@@ -110,14 +96,38 @@ geometry.is_periodic 	=  0 0
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             	= 1 5 
+#ns.lo_bc             	= 1 5 
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             	= 2 5   
+#ns.hi_bc             	= 2 5   
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+# Boundary conditions
+ylo.type                =   "nsw"
+ylo.velocity            =   0.  0.  0.
+yhi.type                =   "nsw"
+yhi.velocity            =   0.  0.  0.
+xlo.type                =   "mass_inflow"
+xlo.velocity            =   1.  0.  0.
+xlo.density             =   1.
+xlo.tracer              =   0.
+xhi.type                =   "pressure_outflow"
+xhi.pressure            =   0.0
+
+
+#*******************************************************************************
+
+# PROBLEM PARAMETERS           
+prob.probtype = 4
+prob.blob_center =  0.15 0.5 0.5
+prob.blob_radius =  0.1
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up constant flow
+prob.velocity_ic = 1.0 0. 0.
 
 #*******************************************************************************
 

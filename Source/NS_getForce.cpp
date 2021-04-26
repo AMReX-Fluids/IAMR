@@ -37,7 +37,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
    const Real* VelDataPtr  = Vel.dataPtr();
    const Real* ScalDataPtr = Scal.dataPtr(scalScomp);
 
-   const Real* dx       = geom.CellSize();
    const Real  grav     = gravity;
    const int*  f_lo     = force.loVect();
    const int*  f_hi     = force.hiVect();
@@ -150,8 +149,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
          amrex::Print() << "Scal " << n << " min/max " << scalmin[n] 
                         << " / " << scalmax[n] << std::endl;
    } //end if(getForceVerbose)
-
-   RealBox gridloc = RealBox(bx,geom.CellSize(),geom.ProbLo());
 
    // Here's the meat
    //

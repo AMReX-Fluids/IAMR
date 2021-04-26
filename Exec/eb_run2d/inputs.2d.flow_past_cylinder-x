@@ -10,13 +10,13 @@ max_step                =  -1           # Max number of time steps
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_shrink = 1.0
-ns.init_iter = 0
-ns.init_vel_iter = 0
+#ns.init_iter = 0
+#ns.init_vel_iter = 0
 ns.visc_tol=1.0e-11
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
-#incflo.fixed_dt         =   -1.0        # Use this constant dt if > 0
+#ns.fixed_dt         =   -1.0        # Use this constant dt if > 0
 #ns.cfl              =   0.45             # CFL factor
 ns.cfl               = 0.1
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
@@ -25,24 +25,16 @@ ns.cfl               = 0.1
 amr.plot_int            =   20          # Steps between plot files
 amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
-amr.derive_plot_vars    =   mag_vort avg_pressure gradpx gradpy
+amr.derive_plot_vars    =   mag_vort avg_pressure
 amr.restart             =   ""          # Checkpoint to restart from
-amr.probin_file         = probin.2d.flow_past_cylinder-x
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
-ns.gravity          =   0.  0.  0.  # Gravitational force (3D)
-#incflo.ro_0             =   1.          # Reference density
+ns.gravity		 =   0. 
 
 ns.vel_visc_coef         = 0.00001
 ns.scal_diff_coefs       = 1.0
-#incflo.fluid_model      =   "newtonian" # Fluid model (rheology)
-#incflo.mu               =   0.001       # Dynamic viscosity coefficient
-
-#incflo.ntrac            =   1           # Number of tracers
-#incflo.advect_tracer    =   1           # Should we update them?
-#incflo.mu_s             =   0.001       # Scalar diffusion coefficient
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
@@ -71,20 +63,24 @@ ns.lo_bc 	     	= 1 0 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	     	= 2 0 0
 
+xlo.velocity = 1. 0. 0.
+
 # Add cylinder
-eb2.geom_type               = sphere
+eb2.geom_type             = sphere
 eb2.sphere_radius         = 0.0021
 eb2.sphere_center         = -0.025  0.0
 eb2.sphere_has_fluid_inside=0
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
-#           INITIAL CONDITIONS          #
+#          PROBLEM PARAMETERS           #
 #.......................................#
-#incflo.probtype         =   31
-#incflo.ic_u             =   1.0         #
-#incflo.ic_v             =   0.0         #
-#incflo.ic_w             =   0.0         #
-#incflo.ic_p             =   0.0         #
+prob.probtype = 4
+prob.blob_center = -0.55 0.05 0.5
+prob.blob_radius =  0.04
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up a flow, defaults to zero
+prob.velocity_ic = 10. 0. 0.
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
@@ -96,4 +92,4 @@ mac.verbose             = 0 # MacProjector
 projection.verbose   =   1           # Nodal projection
 projection.mg_verbose=   0
 projection.mg_rtol   =  1.0e-13
-#amr.plt_ccse_regtest    =   1
+

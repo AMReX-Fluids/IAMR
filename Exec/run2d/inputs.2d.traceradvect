@@ -80,11 +80,6 @@ ns.gravity              = 0.0
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.2d.traceradvect
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
@@ -112,6 +107,14 @@ ns.hi_bc             = 0 0
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 4
+prob.velocity_ic = 1.0 2.0
+prob.density_ic = 1.0
+prob.blob_center = 0.5 0.5
 
 #*******************************************************************************
 

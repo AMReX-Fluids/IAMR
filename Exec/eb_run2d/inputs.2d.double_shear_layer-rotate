@@ -1,0 +1,143 @@
+
+#*******************************************************************************
+# INPUTS.2D.PERIODIC_SHEAR_LAYER
+#*******************************************************************************
+
+#*******************************************************************************
+# WHEN SHOULD THE SIMULATION STOP?
+#*******************************************************************************
+# Maximum number of timesteps to be taken, if stop_time is not reached first.
+max_step 				= 50
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 				= 2.0
+# Stop simulation when we reach steady-state?
+ns.stop_when_steady 	= 0
+ns.steady_tol 			= 1.0e-5
+
+#*******************************************************************************
+# CFL 
+#*******************************************************************************
+
+ns.cfl  		= 0.5  # CFL number used to set dt
+ns.init_shrink       	= 1.0  # factor which multiplies the very first time step
+#ns.change_max 	      	= 1.1  # maximum change for dt (NOTE: does not seem to be implemented)
+ns.init_iter 	      	= 1    # number of initial iterations
+ns.do_init_proj = 1
+
+#*******************************************************************************
+# FLUID PROPERTIES 
+#*******************************************************************************
+
+# Viscosity coefficient 
+ns.vel_visc_coef     	= 0.0 #0.001
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity           	= 0.0
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs   	= 0.0
+
+#*******************************************************************************
+# GRID AND GEOMETRY
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 			= 64 64
+amr.max_grid_size		= 64
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
+geometry.coord_sys   	=  0
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     	=  -1.0 -1.0
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     	=  1.0 1.0
+# Set to 1 if periodic in that direction
+geometry.is_periodic 	=  1 1
+
+# Embedded Boundary options
+#eb2.geom_type    =  all_regular
+eb2.geom_type     = sphere
+eb2.sphere_radius = 0.25
+#eb2.sphere_center =  0.5  0.5  # don't forget probin: direction = 0
+eb2.sphere_center =  -0.5  0.5  # don't forget probin: direction = 1
+eb2.sphere_has_fluid_inside = 0
+
+#*******************************************************************************
+# BOUNDARY CONDITIONS
+#*******************************************************************************
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc 	         	= 0 0
+# Boundary conditions on the high end of the domain.
+ns.hi_bc   	         	= 0 0
+
+#*******************************************************************************
+# Problem parameters
+#*******************************************************************************
+
+prob.probtype = 5
+# set up shear layer along y-direction
+prob.direction = 1
+prob.blob_center = 0.0 0.0 
+prob.blob_radius = 0.4
+prob.density_ic = 1.0
+
+#*******************************************************************************
+# AMR
+#*******************************************************************************
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level		 	= 0
+# Refinement criterion, presence of tracer
+amr.refinement_indicators = tracer
+amr.tracer.value_greater  = 0.5
+amr.tracer.field_name     = tracer
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int			= 1 
+# Refinement ratio as a function of level
+amr.ref_ratio		 	= 2 2 2 2
+# Factor by which grids must be coarsenable.
+amr.blocking_factor  	= 8
+# Grid efficiency (defaults to .70)
+amr.grid_eff = 0.75
+# Factor by which grids must be coarsenable. 
+amr.blocking_factor 	= 8
+
+#*******************************************************************************
+# PLOTTING AND CHECKPOINTS
+#*******************************************************************************
+
+# Choose which quantities to write to plot file
+amr.plot_vars    		= ALL
+amr.derive_plot_vars 		= mag_vort 
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_file 			= plt
+amr.plot_int			= 1
+#amr.plot_per			= 0.2
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.check_file 			= chk
+amr.check_int			= 10
+# Continue from checkpoint 
+# amr.restart 			= chk01000
+
+#*******************************************************************************
+# VERBOSITY
+#*******************************************************************************
+
+amr.v 	            	= 1 	# AMR (top-level)
+ns.v  	            	= 1 	# NavierStokes
+diffuse.v 	       	= 1 	# Diffusion
+proj.v 	            	= 1 	# Projection
+nodal_proj.verbose      = 1
+mlmg.v 	            	= 1 	# MultiGrid
+
+#*******************************************************************************
+# PROJECTION SETTINGS
+#*******************************************************************************
+
+proj.proj_tol = 1.e-12
+proj.proj_abs_tol = 1.e-15

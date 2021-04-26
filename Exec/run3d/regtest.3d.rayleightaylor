@@ -1,0 +1,64 @@
+
+#*******************************************************************************
+# INPUTS.3D.RT for regression testing
+#*******************************************************************************
+
+ns.do_mom_diff = 1
+godunov.use_ppm = 1
+godunov.use_force_in_trans =1 
+
+max_step 		= 7
+
+amr.n_cell              = 64 64 64 
+
+amr.max_level           = 2
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  1000.0
+
+amr.regrid_int		= 2 
+
+ns.v                    = 1
+amr.v                   = 1
+
+amr.checkpoint_files_output = 0
+amr.check_int		= 10 
+
+amr.plot_int		= 10
+
+ns.cfl                  = 0.7  # CFL number used to set dt
+
+ns.init_shrink          = 1.0  # factor which multiplies the very first time step
+ns.init_iter            = 3  
+
+ns.vel_visc_coef        = 0.0
+ns.scal_diff_coefs      = 0.0
+
+geometry.coord_sys   =  0
+
+geometry.prob_lo     =  0. 0. 35
+geometry.prob_hi     =  53.5 53.5 88.5
+
+geometry.is_periodic =  1 1 0
+
+ns.gravity = 1.0e+9
+
+ns.lo_bc             = 0 0 4
+ns.hi_bc             = 0 0 4
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+# Problem parameters
+prob.probtype = 10
+prob.rho_1 = 1.5e7
+prob.rho_2 = 8.44407300e+06
+prob.interface_width = 1.5
+prob.perturbation_amplitude = 5
+  
+amr.blocking_factor     = 8
+amr.ref_ratio           = 2 2 2 2
+
+

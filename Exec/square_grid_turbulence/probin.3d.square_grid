@@ -1,0 +1,11 @@
+
+ &fortin
+
+  probtype = 32
+  denfact  = 1.
+  adv_dir  = 1
+  adv_vel  = 2.5
+  vorterr = 200
+  adverr  = 0.1
+
+ /

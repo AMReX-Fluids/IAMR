@@ -3,12 +3,6 @@
 # INPUTS.3D.HOTSPOT - hot bubble rising
 #*******************************************************************************
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-# test 0th order slopes
-godunov.slope_order = 1
-
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
 
@@ -21,15 +15,6 @@ max_step 		= 5
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# Use the tracer for the refinement criterion
-ns.do_tracer_ref = 0
-ns.do_vorticity_ref = 0
-ns.do_temp_ref = 1
-
-# allow refinement at outflow boundary
-ns.do_refine_outflow = 1
-ns.do_derefine_outflow = 0
-
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
@@ -40,6 +25,22 @@ amr.n_cell 		= 16 16 16 #32 32 32
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 2 # maximum number of levels of refinement
+
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp Tdiff
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.Tdiff.adjacent_difference_greater = 0.005
+amr.Tdiff.field_name = temp
+#amr.Tdiff.start_time = 0.001
+#amr.Tdiff.end_name = 0.002
+
+# allow refinement at outflow boundary
+ns.do_refine_outflow = 1
+ns.do_derefine_outflow = 0
 
 #*******************************************************************************
 
@@ -55,8 +56,8 @@ amr.ref_ratio		= 2 2 2 2
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-diffuse.v = 0
-mac.v =0
+diffuse.v 		= 0
+mac.v     		= 0
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
@@ -65,6 +66,7 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.checkpoint_files_output = 0
 amr.check_int		= 10 
 
 #*******************************************************************************
@@ -99,11 +101,6 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.3d.hotspot
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
@@ -134,17 +131,19 @@ ns.hi_bc             = 5 5 2
 
 #*******************************************************************************
 
-# For solver reasons, use multigrid iterations as the bottom solve.
-# mg.usecg = 1
+# Problem parameters
+prob.probtype = 6
+prob.blob_center = 0.0 0.0 1.7 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
 
 #*******************************************************************************
 
 # Factor by which grids must be coarsenable.
 amr.blocking_factor     = 4
-
-#*******************************************************************************
-
-# Add vorticity to the variables in the plot files.
-amr.derive_plot_vars = NONE
 
 #*******************************************************************************

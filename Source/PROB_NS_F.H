@@ -77,16 +77,6 @@
 #endif
                                    const int* getForceVerbose);
 
-     void FORT_MAKEFORCE (const amrex::Real* time,
-                                BL_FORT_FAB_ARG_ANYD(force),
-                          const BL_FORT_FAB_ARG_ANYD(vel),
-                          const BL_FORT_FAB_ARG_ANYD(scal),
-                          const amrex::Real* dx,
-                          const amrex::Real* xlo, const amrex::Real* xhi,
-                          const amrex::Real* gravity,
-                          const int* scomp, const int* ncomp, const int* nscal,
-                          const int* getForceVerbose);
-
 #ifdef __cplusplus
   }
 #endif

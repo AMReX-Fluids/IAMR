@@ -9,9 +9,6 @@ ns.temp_cond_coef=1.e-8
 #force tiling for testing
 fabarray.mfiter_tile_size = 8 8 8
 
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
 max_step 		= 5
@@ -19,8 +16,18 @@ max_step 		= 5
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 		= 1.0
 
-# What to use for the refinement criterion
-ns.do_temp_ref = 1
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp Tdiff
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.Tdiff.adjacent_difference_greater = 0.005
+amr.Tdiff.field_name = temp
+#amr.Tdiff.start_time = 0.001
+#amr.Tdiff.end_name = 0.002
+
 
 #*******************************************************************************
 
@@ -89,11 +96,6 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.2d.hotspot
-
-#*******************************************************************************
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
@@ -124,8 +126,15 @@ ns.hi_bc             = 5 2
 
 #*******************************************************************************
 
-# For solver reasons, use multigrid iterations as the bottom solve.
-# mg.usecg = 1
+# Problem parameters
+prob.probtype = 6
+prob.blob_center = 0.0 0.65 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
 
 #*******************************************************************************
 
@@ -133,9 +142,3 @@ ns.hi_bc             = 5 2
 amr.blocking_factor     = 8
 amr.grid_eff = 0.95
 
-#*******************************************************************************
-
-# Add vorticity to the variables in the plot files.
-amr.derive_plot_vars = NONE
-
-#*******************************************************************************

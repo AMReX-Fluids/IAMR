@@ -19,7 +19,6 @@ class Projection
 {
 protected:
   static const int maxlev = 10;
-  static const amrex::Real BogusValue;
   static const int  LEVEL_PROJ    = 1001;
   static const int  INITIAL_VEL   = 1002;
   static const int  INITIAL_PRESS = 1003;
@@ -49,10 +48,6 @@ public:
 			const amrex::EBFArrayBoxFactory& _ebfactory);
 
 #endif
-    void install_anelastic_coefficient (int                        level,
-                                        amrex::Real                **anel_coeff);
-    void build_anelastic_coefficient (int                        level,
-				      amrex::Real**& anel_coeff);
     //
     // Compute the level projection in NavierStokes::advance.
     //
@@ -60,7 +55,6 @@ public:
                         amrex::Real            time,
                         amrex::Real            dt,
                         amrex::Real            cur_pres_time,
-                        amrex::Real            prev_pres_time,
                         const amrex::Geometry& geom,
                         amrex::MultiFab&       U_old,
                         amrex::MultiFab&       U_new,
@@ -106,13 +100,7 @@ public:
                         amrex::IntVect&        ratio,
                         int             crse_iteration,
                         int             crse_dt_ratio,
-                        const amrex::Geometry& crse_geom,
-                        bool		pressure_time_is_interval,
-                        bool		first_crse_step_after_initial_iters,
-                        amrex::Real		 cur_crse_pres_time,
-                        amrex::Real		prev_crse_pres_time,
-                        amrex::Real		 cur_fine_pres_time,
-                        amrex::Real		prev_fine_pres_time);
+                        const amrex::Geometry& crse_geom);
     //
     // This projects an initial vorticity field to define a velocity field.
     //
@@ -146,36 +134,12 @@ public:
                              amrex::Real      strt_time,
                              int       have_divu);
     //
-    // Multiply/divide a MultiFab by radius for r-z coordinates.
+    // Multiply a MultiFab by radius for r-z coordinates.
     // These should really be protected.
     //
     void radMultScal (int       level,
                       amrex::MultiFab& mf);
 
-    void radMultVel (int       level,
-                     amrex::MultiFab& mf);
-
-    void radDiv (int       level,
-                 amrex::MultiFab& mf,
-                 int       comp);
-
-    //
-    // Multiply/divide a amrex::MultiFab by anel_coeff.
-    //
-    void AnelCoeffMult (int       level,
-                        amrex::MultiFab& mf,
-                        int       comp);
-    void AnelCoeffDiv (int       level,
-                       amrex::MultiFab& mf,
-                       int       comp);
-
-    //
-    // Helper function for NavierStokes::getGradP().
-    //
-    static void getGradP (amrex::FArrayBox& p_fab,
-                          amrex::FArrayBox& gp,
-                          const amrex::Box& gpbox_to_fill,
-                          const amrex::Real* dx);
     //
     // Read parameters from the input file.
     //
@@ -200,24 +164,16 @@ public:
                       amrex::Real       alpha,
                       const amrex::Box& grd);
     //
-    // Add phi to P.
-    //
-    void AddPhi (amrex::MultiFab&       p,
-                 amrex::MultiFab&       phi);
-
-    //
     // This function scales variables at the start of a projection.
     //
-    void scaleVar (int             which_call,
-                   amrex::MultiFab*       sig,
+    void scaleVar (amrex::MultiFab*       sig,
                    int             sig_nghosts,
                    amrex::MultiFab*       vel,
                    int             level);
     //
     // This function rescales variables at the end of a projection.
     //
-    void rescaleVar (int             which_call,
-                     amrex::MultiFab*       sig,
+    void rescaleVar (amrex::MultiFab*       sig,
                      int             sig_nghosts,
                      amrex::MultiFab*       vel,
                      int             level);
@@ -244,6 +200,13 @@ public:
                                    int          have_divu,
                                    amrex::Real         gravity);
 
+    void computeRhoG (amrex::FArrayBox*         rhoFab,
+                      amrex::FArrayBox*         phiFab,
+                      const amrex::Geometry&    geom,
+                      amrex::Orientation*       outFaces,
+                      int                numOutFlowFaces,
+                      amrex::Real               gravity);
+
     void putDown(const amrex::Vector<amrex::MultiFab*>& phi, amrex::FArrayBox* phi_fine_strip,
 		 int c_lev, int f_lev, const amrex::Orientation* outFaces,
 		 int numOutFlowFaces, int ncStripWidth);
@@ -262,11 +225,6 @@ public:
     //
     int                    radius_grow;
     amrex::Vector< amrex::Vector< amrex::Vector<amrex::Real> > * > radius;
-    //
-    // Anelastic coefficient array.
-    //
-    static int                   anel_grow;
-    amrex::Vector<amrex::Real**> anel_coeff;
 
     //
     // Boundary objects.

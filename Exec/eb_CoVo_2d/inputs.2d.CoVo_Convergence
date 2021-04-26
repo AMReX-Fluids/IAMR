@@ -48,7 +48,7 @@ ns.init_shrink = 1.0  # factor multipling first time step
 #**************** IO control *******************
 amr.check_int		   = 0
 amr.plot_int		   = 10000
-amr.derive_plot_vars = mag_vort avg_pressure gradpx gradpy
+amr.derive_plot_vars = mag_vort avg_pressure
 amr.probin_file 	   = probin.2d.CoVo
 
 # verbosity

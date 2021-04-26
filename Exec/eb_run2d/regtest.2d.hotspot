@@ -13,9 +13,6 @@ max_step 		= 10
 ns.do_temp=1
 ns.temp_cond_coef=1.e-3
 
-# What to use for the refinement criterion
-ns.do_temp_ref = 1
-
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
@@ -26,6 +23,16 @@ amr.max_grid_size	= 32
 
 # Maximum level (defaults to 0 for single level calculation)
 amr.max_level		= 2 # maximum number of levels of refinement
+
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp Tdiff
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.Tdiff.adjacent_difference_greater = 0.1 0.005
+amr.Tdiff.field_name = temp
 
 #*******************************************************************************
 
@@ -84,11 +91,6 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= regtest.probin.2d.hotspot
-
-#*******************************************************************************
-
 # Embedded Boundary options
 #eb2.geom_type    =  all_regular
 eb2.geom_type     = sphere
@@ -116,6 +118,18 @@ ns.hi_bc             = 4 2
 
 #*******************************************************************************
 
+# Problem parameters
+prob.probtype = 6
+prob.blob_center = 0.0 0.5 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
+
+#*******************************************************************************
+
 # Add vorticity to the variables in the plot files.
 amr.derive_plot_vars = NONE
 
@@ -127,8 +141,3 @@ amr.grid_eff = 0.95
 #*******************************************************************************
 # turn tiling on for testing
 fabarray.mfiter_tile_size = 8 8 8
-
-# make omp reduction more consistent for regression testing
-system.regtest_reduction = 1
-
-amr.plt_ccse_regtest    =   1

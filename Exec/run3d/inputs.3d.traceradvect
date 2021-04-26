@@ -1,7 +1,5 @@
 
 #*******************************************************************************
-# INPUTS.3D.EULER
-#*******************************************************************************
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
@@ -15,7 +13,7 @@ stop_time 		= 100
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 16 16 16
+amr.n_cell 		= 32 32 32
 
 #*******************************************************************************
 
@@ -37,7 +35,6 @@ amr.ref_ratio		= 2 2 2 2
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
 ns.sum_interval         = 1
-ns.init_iter            = 4
 
 #*******************************************************************************
 
@@ -61,8 +58,6 @@ amr.plot_file           = plt
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
 ns.cfl                  = 1.0  # CFL number used to set dt
 
-godunov.corner_couple = 1 # use the 3D corner coupling advection algorithm (Saltzman JCP 1994)
-
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
@@ -77,11 +72,6 @@ ns.vel_visc_coef        = 0.0
 
 # Diffusion coefficient for first scalar
 ns.scal_diff_coefs      = 0.0
-
-#*******************************************************************************
-
-# Name of the file which specifies problem-specific parameters (defaults to "probin")
-amr.probin_file 	= probin.denadvect
 
 #*******************************************************************************
 
@@ -112,6 +102,14 @@ ns.hi_bc             = 0 0 0
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 4
+prob.velocity_ic = 1.0 2.0 3.0
+prob.density_ic = 1.0
+prob.blob_center = 0.5 0.5 0.5
 
 #*******************************************************************************
 

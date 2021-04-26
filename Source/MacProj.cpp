@@ -7,8 +7,7 @@
 #include <AMReX_MacBndry.H>
 #include <MacOpMacDrivers.H>
 #include <NavierStokesBase.H>
-#include <MACPROJ_F.H>
-#include <MacOutFlowBC.H>
+#include <OutFlowBC.H>
 
 #ifdef AMREX_USE_EB
 #include <iamr_mol.H>
@@ -49,7 +48,6 @@ Real MacProj::mac_sync_tol;
 int  MacProj::do_outflow_bcs;
 int  MacProj::fix_mac_sync_rhs;
 int  MacProj::check_umac_periodicity;
-int  MacProj::anel_grow       = 1;
 
 namespace
 {
@@ -119,7 +117,6 @@ MacProj::MacProj (Amr*   _parent,
     phi_bcs(_finest_level+1),
     mac_phi_crse(_finest_level+1),
     mac_reg(_finest_level+1),
-    anel_coeff(_finest_level+1),
     finest_level(_finest_level)
 {
     Initialize();
@@ -127,9 +124,6 @@ MacProj::MacProj (Amr*   _parent,
     if (verbose) amrex::Print() << "Creating mac_projector\n";
 
     finest_level_allocated = finest_level;
-
-    for (int lev = 0; lev <= finest_level; lev++)
-        anel_coeff[lev] = 0;
 }
 
 MacProj::~MacProj () {}
@@ -166,44 +160,6 @@ MacProj::install_level (int       level,
                                               parent->refRatio(level-1),level,1));
     }
 
-    if (level > anel_coeff.size()-1) {
-        anel_coeff.resize(level+1);
-        anel_coeff[level] = 0;
-    }
-}
-void
-MacProj::install_anelastic_coefficient (int               level,
-                                        Real**            _anel_coeff)
-{
-    if (verbose) amrex::Print() << "Installing anel_coeff into MacProj level " << level << '\n';
-
-    if (level > anel_coeff.size()-1) anel_coeff.resize(level+1);
-    anel_coeff[level] = _anel_coeff;
-}
-void
-MacProj::build_anelastic_coefficient (int      level,
-                                      Real**& _anel_coeff)
-{
-    const BoxArray& grids = parent->getLevel(level).boxArray();
-    const int N = grids.size();
-    _anel_coeff = new Real*[N];
-    for (int i = 0; i < grids.size(); i++)
-    {
-        const int jlo = grids[i].smallEnd(AMREX_SPACEDIM-1)-anel_grow;
-        const int jhi = grids[i].bigEnd(AMREX_SPACEDIM-1)+anel_grow;
-        const int len = jhi - jlo + 1;
-
-        _anel_coeff[i] = new Real[len];
-
-        // FIXME!
-        // This is just a placeholder for testing. Should create (problem
-        // dependent) build_coefficient() function in problem directory
-        // ...Perhaps also need to worry about deleting anel_coeff
-        // Also not sure why Projection and MacProj have separate anel_coeff
-        // arrays, since they both appear to be cell centered.
-        for (int j=0; j<len; j++)
-            _anel_coeff[i][j] = 0.05*(jlo+j);
-    }
 }
 
 // xxxxx Can we skip this if using mlmg?
@@ -327,15 +283,10 @@ MacProj::mac_project (int             level,
 
     const BoxArray& grids      = LevelData[level]->boxArray();
     const DistributionMapping& dmap = LevelData[level]->DistributionMap();
-    const Geometry& geom       = parent->Geom(level);
-    const Real*     dx         = geom.CellSize();
     const int       max_level  = parent->maxLevel();
     MultiFab*       mac_phi    = 0;
     NavierStokesBase&   ns     = *(NavierStokesBase*) &(parent->getLevel(level));
-    const MultiFab& volume     = ns.Volume();
-    const MultiFab* area_level = ns.Area();
-    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
-        : IntVect::TheZeroVector();
+    const MultiFab*     area   = ns.Area();
     //
     // If finest level possible no need to make permanent mac_phi for bcs.
     //
@@ -371,17 +322,6 @@ MacProj::mac_project (int             level,
     MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
 
     Rhs.copy(divu);
-
-    MultiFab area_tmp[AMREX_SPACEDIM];
-    if (anel_coeff[level] != 0) {
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
-        MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
-    }
-        scaleArea(level,area_tmp,anel_coeff[level]);
-    }
-
-    const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
     MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
     mlmg_mac_level_solve(parent, cphi, *phys_bc, density_math_bc, level, Density, mac_tol, mac_abs_tol,
@@ -468,13 +408,10 @@ MacProj::mac_sync_solve (int       level,
     const BoxArray& grids      = LevelData[level]->boxArray();
     const DistributionMapping& dmap = LevelData[level]->DistributionMap();
     const Geometry& geom       = parent->Geom(level);
-    const Real*     dx         = geom.CellSize();
     const BoxArray& fine_boxes = LevelData[level+1]->boxArray();
-    IntVect         crse_ratio = level > 0 ? parent->refRatio(level-1)
-        : IntVect::TheZeroVector();
     const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab&     volume     = ns_level.Volume();
-    const MultiFab*     area_level = ns_level.Area();
+    const MultiFab*     area       = ns_level.Area();
     //
     // Reusing storage here, since there should be no more need for the
     // values in mac_phi at this level and mac_sync_phi only need to last
@@ -520,9 +457,9 @@ MacProj::mac_sync_solve (int       level,
         const std::vector< std::pair<int,Box> >& isects = baf.intersections(mfi.tilebox());
 
         auto const& rhs = Rhs.array(mfi);  
-        for (int ii = 0, N = isects.size(); ii < N; ii++)
-        {
-            amrex::ParallelFor(isects[ii].second, [rhs]
+	for (const auto& is : isects)
+	{
+	    amrex::ParallelFor(is.second, [rhs]
             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                rhs(i,j,k) = 0.0;
@@ -543,15 +480,6 @@ MacProj::mac_sync_solve (int       level,
     const Real rhs_scale = 2.0/dt;
 
     MultiFab area_tmp[AMREX_SPACEDIM];
-    if (anel_coeff[level] != 0) {
-       for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-           area_tmp[i].define(area_level[i].boxArray(), area_level[i].DistributionMap(), 1, 1, MFInfo(), LevelData[level]->Factory());
-           MultiFab::Copy(area_tmp[i], area_level[i], 0, 0, 1, 1);
-       }
-       scaleArea(level,area_tmp,anel_coeff[level]);
-    }
-
-    const MultiFab* area = (anel_coeff[level] != 0) ? area_tmp : area_level;
 
     //
     // Compute Ucorr, including filling ghost cells for EB
@@ -610,10 +538,8 @@ MacProj::mac_sync_compute (int                   level,
     const BoxArray& grids               = LevelData[level]->boxArray();
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom                = parent->Geom(level);
-    const Real*     dx                  = geom.CellSize();
     const int       numscal             = NUM_STATE - AMREX_SPACEDIM;
     NavierStokesBase&   ns_level        = *(NavierStokesBase*) &(parent->getLevel(level));
-    const MultiFab& volume              = ns_level.Volume();
     const MultiFab* area                = ns_level.Area();
     bool            use_forces_in_trans = ns_level.GodunovUseForcesInTrans();
 
@@ -652,12 +578,10 @@ MacProj::mac_sync_compute (int                   level,
 
 #ifdef AMREX_USE_EB
     const int  nghost  = 2;
-    MultiFab& Gp = ns_level.getGradP();
 #else
     const int  nghost  = 0;
-    MultiFab Gp(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),ns_level.Factory());
-    ns_level.getGradP(Gp, prev_pres_time);
 #endif
+    MultiFab& Gp = ns_level.get_old_data(Gradp_Type);
 
     //
     // Prep MFs to store fluxes and edge states
@@ -753,7 +677,6 @@ MacProj::mac_sync_compute (int                   level,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-        FArrayBox tforces;
         for (MFIter Smfi(Smf,TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
         {
             const auto gbx = Smfi.growntilebox(ngrow);
@@ -903,8 +826,6 @@ MacProj::mac_sync_compute (int                    level,
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom         = parent->Geom(level);
     NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
-    const MultiFab& volume       = ns_level.Volume();
-    const MultiFab* area         = ns_level.Area();
 
 #ifdef AMREX_USE_EB
     const int  nghost  = 2;
@@ -1063,7 +984,6 @@ MacProj::set_outflow_bcs (int             level,
     const Box&        domain = parent->Geom(level).Domain();
     //
     // Create 1-wide cc box just outside boundary to hold phi.
-    // Create 1-wide cc box just inside  boundary to hold rho,u,divu.
     //
     BoxList ccBoxList, phiBoxList;
     // numOutFlowFaces gives the number of outflow faces on the entire
@@ -1107,58 +1027,9 @@ MacProj::set_outflow_bcs (int             level,
 
     if ( !ccBoxList.isEmpty() )
     {
-        BoxArray  ccBoxArray( ccBoxList);
         BoxArray phiBoxArray(phiBoxList);
-        ccBoxList.clear();
         phiBoxList.clear();
 
-        FArrayBox rhodat[2*BL_SPACEDIM];
-        FArrayBox divudat[2*BL_SPACEDIM];
-        FArrayBox phidat[2*BL_SPACEDIM];
-
-        for ( int iface = 0; iface < nOutFlowTouched; ++iface)
-        {
-            rhodat[iface].resize(ccBoxArray[iface], 1);
-            divudat[iface].resize(ccBoxArray[iface], 1);
-            phidat[iface].resize(phiBoxArray[iface], 1);
-
-            if (Gpu::inLaunchRegion()) {
-               phidat[iface].setVal<RunOn::Gpu>(0.0);
-            } else {
-               phidat[iface].setVal<RunOn::Cpu>(0.0);
-            }
-            divu.copyTo(divudat[iface]);
-            S.copyTo(rhodat[iface], Density, 0, 1);
-        }
-
-        // rhodat.copy(S, Density, 0, 1);
-        // divudat.copy(divu, 0, 0, 1);
-
-        //
-        // Load ec data.
-        //
-
-        FArrayBox uedat[BL_SPACEDIM][2*BL_SPACEDIM];
-        for (int i = 0; i < BL_SPACEDIM; ++i)
-        {
-            BoxArray edgeArray(ccBoxArray);
-            edgeArray.surroundingNodes(i);
-            for ( int iface = 0; iface < nOutFlowTouched; ++iface)
-            {
-                uedat[i][iface].resize(edgeArray[iface], 1);
-                u_mac[i].copyTo(uedat[i][iface], 0, 0, 1);
-            }
-        }
-
-        MacOutFlowBC macBC;
-
-        NavierStokesBase* ns_level = dynamic_cast<NavierStokesBase*>(&parent->getLevel(level));
-        Real gravity = ns_level->getGravity();
-        const int* lo_bc = phys_bc->lo();
-        const int* hi_bc = phys_bc->hi();
-        macBC.computeBC(uedat, divudat, rhodat, phidat,
-                        geom, outFaces, nOutFlowTouched, lo_bc, hi_bc,
-                        umac_periodic_test_Tol, gravity);
         //
         // Must do this kind of copy instead of mac_phi->copy(phidat);
         // because we're copying onto the ghost cells of the FABs,
@@ -1171,13 +1042,9 @@ MacProj::set_outflow_bcs (int             level,
         {
             for (MFIter mfi(*mac_phi); mfi.isValid(); ++mfi)
             {
-                Box ovlp = (*mac_phi)[mfi].box() & phidat[iface].box();
+                Box ovlp = (*mac_phi)[mfi].box() & phiBoxArray[iface];
                 if (ovlp.ok()) {
-                   if (Gpu::inLaunchRegion()) {
-                      (*mac_phi)[mfi].copy<RunOn::Gpu>(phidat[iface],ovlp,0,ovlp,0,1);
-                   } else {
-                      (*mac_phi)[mfi].copy<RunOn::Cpu>(phidat[iface],ovlp,0,ovlp,0,1);
-                   }
+                      (*mac_phi)[mfi].setVal<RunOn::Gpu>(0,ovlp,0,1);
                 }
             }
         }
@@ -1324,48 +1191,3 @@ MacProj::test_umac_periodic (int       level,
     }
 }
 
-void
-MacProj::scaleArea (int level, MultiFab* area, Real** anel_coeff_loc)
-{
-    const BoxArray& grids = LevelData[level]->boxArray();
-
-    int mult = 1;
-
-    for (MFIter mfi(area[0],true); mfi.isValid(); ++mfi)
-    {
-        const FArrayBox& xarea  = area[0][mfi];
-        const FArrayBox& yarea  = area[1][mfi];
-        DEF_CLIMITS(xarea,ax_dat,axlo,axhi);
-        DEF_CLIMITS(yarea,ay_dat,aylo,ayhi);
-
-        const Box& bx = mfi.tilebox(IntVect::Zero);
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
-
-        const int  i        = mfi.index();
-        const Box& gbx      = grids[i];
-        const int* gbxhi    = gbx.hiVect();
-        int anel_coeff_lo   = (gbx.loVect())[BL_SPACEDIM-1]-anel_grow;
-        int anel_coeff_hi   = (gbx.hiVect())[BL_SPACEDIM-1]+anel_grow;
-
-
-#if (BL_SPACEDIM == 2)
-        fort_scalearea(lo,hi,gbxhi,
-                       ax_dat,ARLIM(axlo),ARLIM(axhi),
-                       ay_dat,ARLIM(aylo),ARLIM(ayhi),
-                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,
-                       &mult);
-
-#elif (BL_SPACEDIM == 3)
-        const FArrayBox& zarea = area[2][mfi];
-        DEF_CLIMITS(zarea,az_dat,azlo,azhi);
-        fort_scalearea(lo,hi,gbxhi,
-                       ax_dat,ARLIM(axlo),ARLIM(axhi),
-                       ay_dat,ARLIM(aylo),ARLIM(ayhi),
-                       az_dat,ARLIM(azlo),ARLIM(azhi),
-                       anel_coeff_loc[i],&anel_coeff_lo,&anel_coeff_hi,
-                       &mult);
-
-#endif
-    }
-}

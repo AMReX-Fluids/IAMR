@@ -1,0 +1,125 @@
+
+#*******************************************************************************
+
+#NOTE: You may set *either* max_step or stop_time, or you may set them both.
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 2
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 32 32 32
+
+#*******************************************************************************
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level		= 1 # maximum number of levels of refinement
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  8.8
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 2 2 2 2 2 2 2 
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2 2 2
+
+#*******************************************************************************
+
+# Sets the "NavierStokes" code to be verbose
+ns.v                    = 1
+
+#*******************************************************************************
+
+# Sets the "amr" code to be verbose
+amr.v                   = 1
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.checkpoint_files_output = 0
+amr.check_int		= 5 
+amr.check_file          = chk
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 5
+amr.plot_file           = plt
+
+#*******************************************************************************
+
+# CFL number to be used in calculating the time step : dt = dx / max(velocity)
+ns.cfl                  = 0.7  # CFL number used to set dt
+
+#*******************************************************************************
+
+# Factor by which the first time is shrunk relative to CFL constraint
+ns.init_shrink          = 1.0  # factor which multiplies the very first time step
+
+#*******************************************************************************
+
+# Viscosity coefficient 
+ns.vel_visc_coef        = 1.e-4
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs      = 0.0
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
+geometry.coord_sys   =  0
+
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     =  0.0 0.0 0.0
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     =  1.0 1.0 1.0
+
+#*******************************************************************************
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  1 1 1
+
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 0 0 0
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 0 0 0
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+# Problem parameters
+prob.probtype = 11
+prob.velocity_factor = 1.0
+
+#*******************************************************************************
+
+# Factor by which grids must be coarsenable.
+amr.blocking_factor     = 8
+
+#*******************************************************************************
+
+# Add vorticity to the variables in the plot files.
+amr.derive_plot_vars = NONE
+
+#*******************************************************************************
+proj.proj_tol = 1.e-10
+proj.sync_tol = 1.e-8
