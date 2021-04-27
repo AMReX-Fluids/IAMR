@@ -3383,9 +3383,9 @@ NavierStokesBase::velocity_advection (Real dt)
         for (int i = 0; i < AMREX_SPACEDIM; i++)
         {
             const BoxArray& ba = getEdgeBoxArray(i);
-            cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
+            cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Factory());
             cfluxes[i].setVal(0.0);
-            edgestate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Umf.Factory());
+            edgestate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Factory());
         }
 
 
@@ -3394,16 +3394,18 @@ NavierStokesBase::velocity_advection (Real dt)
             //
             // >>>>>>>>>>>>>>>>>>>>>>>>>>>  GODUNOV ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             //
-            FillPatchIterator Rho_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Density,1);
-            FillPatchIterator S_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Density,NUM_SCALARS);
-            MultiFab& Rmf=Rho_fpi.get_mf();
+            FillPatchIterator S_fpi(*this,visc_terms,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
             MultiFab& Smf=S_fpi.get_mf();
 
-            int ngrow = 1;
+	    // Fixme? this only gets used if do_mom_diff
+            FillPatchIterator Rho_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Density,1);
+            MultiFab& Rmf=Rho_fpi.get_mf();
 
             MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force() );
-            // fixme - sterm would be better as a pointer
-            MultiFab S_term( grids, dmap, AMREX_SPACEDIM, nghost_state(), MFInfo(), Umf.Factory());
+            MultiFab* S_term;
+	    S_term = (do_mom_diff)
+	      ? new MultiFab( grids, dmap, AMREX_SPACEDIM, nghost_state(), MFInfo(), Factory())
+	      : &Umf;
 
             //
             // Compute viscosity components.
@@ -3442,19 +3444,18 @@ NavierStokesBase::velocity_advection (Real dt)
                     auto const& tf   = forcing_term.array(U_mfi,Xvel);
                     auto const& visc = visc_terms.const_array(U_mfi,Xvel);
                     auto const& gp   = Gp.const_array(U_mfi);
-                    auto const& rho  = Smf.const_array(U_mfi); //It should be equivalent to rho_ptime.const_array(U_mfi);
 
                     if ( do_mom_diff )
                     {
-                        amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
+                        amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                         {
                             tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
                         });
 
-                        auto const& dens = Rmf.const_array(U_mfi);
+                        auto const& dens = Rmf.const_array(U_mfi); //Previous time, nghost_state() grow cells filled
                         auto const& vel  = Umf.const_array(U_mfi);
-                        auto const& st   = S_term.array(U_mfi);
+                        auto const& st   = S_term->array(U_mfi);
 
                         amrex::ParallelFor(state_bx, AMREX_SPACEDIM, [ dens, vel, st ]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -3470,13 +3471,15 @@ NavierStokesBase::velocity_advection (Real dt)
                     }
 #else
                     {
+
+
+		        auto const& rho  = Smf.const_array(U_mfi); //Previous time, nghost_force() grow cells filled
+
                         amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
                         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                         {
                             tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
                         });
-
-                        S_term[U_mfi].copy<RunOn::Gpu>(Umf[U_mfi],state_bx,0,state_bx,0,AMREX_SPACEDIM);
                     }
 #endif
                 }
@@ -3492,7 +3495,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
 #ifndef AMREX_USE_EB
             Godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
-                                 S_term, 0,
+                                 *S_term, 0,
                                  AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                  AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                  AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
@@ -3500,7 +3503,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                  godunov_use_ppm, godunov_use_forces_in_trans, true);
 #else
             EBGodunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
-                                   S_term, 0,
+                                   *S_term, 0,
                                    AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                    AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                    AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
@@ -3509,6 +3512,8 @@ NavierStokesBase::velocity_advection (Real dt)
                                    geom, iconserv, dt, true, redistribution_type);
 #endif
 
+	    if (do_mom_diff)
+	      delete S_term;
         }
         else
         {
@@ -3525,11 +3530,6 @@ NavierStokesBase::velocity_advection (Real dt)
                              , redistribution_type
 #endif
                              );
-
-#ifdef AMREX_USE_EB
-            // don't think this is needed here any more. Godunov sets covered vals now...
-            EB_set_covered(*aofs, 0.);
-#endif
         }
 
 
