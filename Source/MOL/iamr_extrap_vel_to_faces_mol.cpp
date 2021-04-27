@@ -17,7 +17,7 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
                                 MultiFab& a_vmac,
                                 MultiFab& a_wmac ),
                         const Geometry&  a_geom,
-			const amrex::Vector<amrex::BCRec>& a_bcs)
+                        const amrex::Vector<amrex::BCRec>& a_bcs)
 {
     BL_PROFILE("Godunov::ExtrapVelToFaces");
 
@@ -27,6 +27,7 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
     auto const& flags = fact.getMultiEBCellFlagFab();
     auto const& fcent = fact.getFaceCent();
     auto const& ccent = fact.getCentroid();
+    auto const& vfrac = fact.getVolFrac();
 #endif
 
 #ifdef _OPENMP
@@ -65,14 +66,15 @@ MOL::ExtrapVelToFaces ( const MultiFab&  a_vel,
                         Array4<Real const> const& fcz = fcent[2]->const_array(mfi););
 
                 Array4<Real const> const& ccc = ccent.const_array(mfi);
+                Array4<Real const> const& vf  = vfrac.const_array(mfi);
 
                 MOL::EB_PredictVelOnFaces(bx,D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,flagarr,
-                                          D_DECL(fcx,fcy,fcz),ccc,a_geom, a_bcs.dataPtr());
+                                          D_DECL(fcx,fcy,fcz),ccc,vf,a_geom, a_bcs.dataPtr());
             }
             else
 #endif
             {
-	      MOL::PredictVelOnFaces(D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_geom,a_bcs.dataPtr());
+                MOL::PredictVelOnFaces(D_DECL(ubx,vbx,wbx),D_DECL(u,v,w),vcc,a_geom,a_bcs.dataPtr());
             }
             }
     }

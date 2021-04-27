@@ -151,12 +151,13 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
                                    Array4<Real const> const& wmac),
                            const Box&       domain,
                            const Vector<BCRec>& bcs,
-			   const        BCRec * d_bcrec_ptr,
+                           const        BCRec * d_bcrec_ptr,
                            D_DECL( Array4<Real const> const& fcx,
                                    Array4<Real const> const& fcy,
                                    Array4<Real const> const& fcz),
                            Array4<Real const> const& ccc,
-                      Array4<EBCellFlag const> const& flag)
+                           Array4<Real const> const& vfrac,
+                           Array4<EBCellFlag const> const& flag)
 {
 
     D_TERM( const Box& ubx = amrex::surroundingNodes(bx,0);,
@@ -172,14 +173,14 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     if ((extdir_lohi.first  and domain.smallEnd(0) >= ubx.smallEnd(0)-1) or
         (extdir_lohi.second and domain.bigEnd(0)  <= ubx.bigEnd(0)))
     {
-      amrex::ParallelFor(ubx, ncomp, [d_bcrec_ptr,q,ccc,AMREX_D_DECL(fcx,fcy,fcz),flag,umac, xedge, domain]
+      amrex::ParallelFor(ubx, ncomp, [d_bcrec_ptr,q,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz),flag,umac, xedge, domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
            if (flag(i,j,k).isConnected(-1,0,0))
            {
-               xedge(i,j,k,n) = iamr_eb_xedge_state_mol_extdir( D_DECL(i, j, k), n, q, umac,
-								D_DECL(fcx,fcy,fcz),
-								ccc, flag, d_bcrec_ptr, domain );
+               xedge(i,j,k,n) = iamr_eb_xedge_state_mol_extdir( AMREX_D_DECL(i, j, k), n, q, umac,
+                                                                AMREX_D_DECL(fcx,fcy,fcz),
+                                                                ccc, vfrac, flag, d_bcrec_ptr, domain );
            }
            else
            {
@@ -189,12 +190,14 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     }
     else
     {
-        amrex::ParallelFor(ubx, ncomp, [q,ccc,fcx,flag,umac,xedge]
+        amrex::ParallelFor(ubx, ncomp, [q,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz),flag,umac,xedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
            if (flag(i,j,k).isConnected(-1,0,0))
            {
-               xedge(i,j,k,n) = iamr_eb_xedge_state_mol( D_DECL(i, j, k), n, q, umac, fcx, ccc, flag );
+               xedge(i,j,k,n) = iamr_eb_xedge_state_mol( AMREX_D_DECL(i, j, k), n, q, umac,
+                                                         AMREX_D_DECL(fcx,fcy,fcz),
+                                                         ccc, vfrac, flag );
            }
            else
            {
@@ -211,13 +214,13 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     if ((extdir_lohi.first  and domain.smallEnd(1) >= vbx.smallEnd(1)-1) or
         (extdir_lohi.second and domain.bigEnd(1)   <= vbx.bigEnd(1)))
     {
-        amrex::ParallelFor(vbx, ncomp, [d_bcrec_ptr,q,ccc,AMREX_D_DECL(fcx,fcy,fcz),flag,vmac,yedge,domain]
+        amrex::ParallelFor(vbx, ncomp, [d_bcrec_ptr,q,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz),flag,vmac,yedge,domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (flag(i,j,k).isConnected(0,-1,0))
             {
-                yedge(i,j,k,n) = iamr_eb_yedge_state_mol_extdir( D_DECL(i, j, k), n, q, vmac,
-								 AMREX_D_DECL(fcx,fcy,fcz), ccc,
+                yedge(i,j,k,n) = iamr_eb_yedge_state_mol_extdir( AMREX_D_DECL(i, j, k), n, q, vmac,
+                                                                 AMREX_D_DECL(fcx,fcy,fcz), ccc, vfrac,
                                                                  flag, d_bcrec_ptr, domain );
             }
             else
@@ -228,12 +231,14 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     }
     else
     {
-        amrex::ParallelFor(vbx, ncomp, [q,ccc,fcy,flag,vmac,yedge]
+        amrex::ParallelFor(vbx, ncomp, [q,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz),flag,vmac,yedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (flag(i,j,k).isConnected(0,-1,0))
             {
-                yedge(i,j,k,n) = iamr_eb_yedge_state_mol( D_DECL(i, j, k), n, q, vmac, fcy, ccc, flag );
+                yedge(i,j,k,n) = iamr_eb_yedge_state_mol( AMREX_D_DECL(i, j, k), n, q, vmac,
+                                                          AMREX_D_DECL(fcx,fcy,fcz),
+                                                          ccc, vfrac, flag );
             }
             else
             {
@@ -253,13 +258,13 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     if ((extdir_lohi.first  and domain.smallEnd(2) >= wbx.smallEnd(2)-1) or
         (extdir_lohi.second and domain.bigEnd(2)   <= wbx.bigEnd(2)))
     {
-        amrex::ParallelFor(wbx, ncomp, [d_bcrec_ptr,q,ccc,AMREX_D_DECL(fcx,fcy,fcz),flag,wmac,zedge,domain]
+        amrex::ParallelFor(wbx, ncomp, [d_bcrec_ptr,q,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz),flag,wmac,zedge,domain]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (flag(i,j,k).isConnected(0,0,-1))
             {
                 zedge(i,j,k,n) = iamr_eb_zedge_state_mol_extdir( i, j, k, n, q, wmac,
-								 AMREX_D_DECL(fcx,fcy,fcz), ccc,
+                                                                 AMREX_D_DECL(fcx,fcy,fcz), ccc, vfrac,
                                                                  flag, d_bcrec_ptr, domain );
             }
             else
@@ -270,12 +275,14 @@ MOL::EB_ComputeEdgeState ( Box const& bx,
     }
     else
     {
-        amrex::ParallelFor(wbx, ncomp, [q,ccc,fcz,flag,wmac,zedge]
+        amrex::ParallelFor(wbx, ncomp, [q,ccc,vfrac,AMREX_D_DECL(fcx,fcy,fcz),flag,wmac,zedge]
         AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (flag(i,j,k).isConnected(0,0,-1))
             {
-                zedge(i,j,k,n) = iamr_eb_zedge_state_mol( i, j, k, n, q, wmac, fcz, ccc, flag );
+                zedge(i,j,k,n) = iamr_eb_zedge_state_mol( i, j, k, n, q, wmac,
+                                                          AMREX_D_DECL(fcx,fcy,fcz),
+                                                          ccc, vfrac, flag );
             }
             else
             {

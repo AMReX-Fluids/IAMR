@@ -166,28 +166,27 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                         Array4<Real const> fcz = ebfactory.getFaceCent()[2]->const_array(mfi););
 
                 Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
 
                 // Compute edge state if needed
                 if (!known_edgestate)
                 {
-		    Array4<Real const> const q = state.const_array(mfi,state_comp);
+                    Array4<Real const> const q = state.const_array(mfi,state_comp);
 
-		    EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
+                    EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
                                          D_DECL(u,v,w), domain, bcs, d_bcrec_ptr,
-                                         D_DECL(fcx,fcy,fcz), ccc, flag );
+                                         D_DECL(fcx,fcy,fcz), ccc, vfrac, flag );
                 }
 
                 // Compute fluxes
                 EB_ComputeFluxes(gbx, D_DECL(fxtmp,fytmp,fztmp), D_DECL(u,v,w),
-				 D_DECL(xed,yed,zed), ncomp, flag );
+                                 D_DECL(xed,yed,zed), ncomp, flag );
 
                 //
                 // Compute divergence and redistribute
                 //
-		// div at ncomp*3 to make space for the 3 redistribute temporaries
+                // div at ncomp*3 to make space for the 3 redistribute temporaries
                 Array4<Real> divtmp_arr = tmpfab.array(ncomp*3);
-
-                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
 
                 D_TERM( auto apx = ebfactory.getAreaFrac()[0]->const_array(mfi);,
                         auto apy = ebfactory.getAreaFrac()[1]->const_array(mfi);,
@@ -391,33 +390,33 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                         Array4<Real const> fcz = ebfactory.getFaceCent()[2]->const_array(mfi););
 
                 Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
 
                 // Compute edge state if needed
                 if (!known_edgestate)
                 {
-		    Array4<Real const> const q = state.const_array(mfi,state_comp);
+                   Array4<Real const> const q = state.const_array(mfi,state_comp);
 
-		    D_TERM( Array4<Real const> u = umac.const_array(mfi);,
-			    Array4<Real const> v = vmac.const_array(mfi);,
-			    Array4<Real const> w = wmac.const_array(mfi););
+                   D_TERM( Array4<Real const> u = umac.const_array(mfi);,
+                           Array4<Real const> v = vmac.const_array(mfi);,
+                           Array4<Real const> w = wmac.const_array(mfi););
 
                     EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
                                          D_DECL(u,v,w), domain, bcs, d_bcrec_ptr,
-                                         D_DECL(fcx,fcy,fcz), ccc, flag );
+                                         D_DECL(fcx,fcy,fcz), ccc, vfrac, flag );
                 }
 
                 // Compute fluxes
                 EB_ComputeFluxes(gbx, D_DECL(fxtmp,fytmp,fztmp), D_DECL(uc,vc,wc),
-				 D_DECL(xed,yed,zed), ncomp, flag );
+                                 D_DECL(xed,yed,zed), ncomp, flag );
 
                 //
                 // Compute divergence and redistribute
                 //
-		// div at ncomp*3 to make space for the 3 redistribute temporaries
+                // div at ncomp*3 to make space for the 3 redistribute temporaries
                 Array4<Real> divtmp_arr = tmpfab.array(ncomp*3);
                 Array4<Real> divtmp_redist_arr = tmpfab.array(ncomp*4);
 
-                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
 
                 D_TERM( auto apx = ebfactory.getAreaFrac()[0]->const_array(mfi);,
                         auto apy = ebfactory.getAreaFrac()[1]->const_array(mfi);,

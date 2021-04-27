@@ -124,6 +124,7 @@ namespace MOL {
                                        amrex::Array4<amrex::Real const> const& fcy,
                                        amrex::Array4<amrex::Real const> const& fcz),
                                amrex::Array4<amrex::Real const> const& ccc,
+                               amrex::Array4<amrex::Real const> const& vfrac,
                                amrex::Array4<amrex::EBCellFlag const> const& flag);
 
     void EB_ComputeFluxes ( amrex::Box const& bx,
@@ -164,6 +165,7 @@ namespace MOL {
                                         amrex::Array4<amrex::Real const> const& fcy,
                                         amrex::Array4<amrex::Real const> const& fcz),
                                 amrex::Array4<amrex::Real const> const& ccc,
+                                amrex::Array4<amrex::Real const> const& vfrac,
                                 const amrex::Geometry&  geom,
                                 const amrex::BCRec* bcs );
 
