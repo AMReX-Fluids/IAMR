@@ -564,6 +564,12 @@ public:
 
 #ifdef AMREX_USE_EB
 
+  //FIXME? maybe this could go into AMReX_AmrLevel.H?
+    amrex::EBFArrayBoxFactory const&
+    EBFactory () const noexcept {
+        return static_cast<amrex::EBFArrayBoxFactory const&>(*m_factory);
+    }
+
     void init_eb (const amrex::Geometry& level_geom, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm);
 
     void initialize_eb2_structs();
@@ -591,8 +597,8 @@ public:
 
     void set_body_state(amrex::MultiFab& S);
 
-  //fixme - don't really need to carry these around anymore....
     const amrex::MultiFab* volfrac;
+    //fixme - are these ever used?
     const amrex::MultiCutFab* bndrycent;
     amrex::FabArray<amrex::BaseFab<int>> ebmask;
 
@@ -789,21 +795,6 @@ public:
     //
     static int  do_mom_diff;
 
-
-    //
-    // Functions and constants to manage number of ghost nodes
-    //
-    static const int nghost_state_godunov    = 3;
-    static const int nghost_state_godunov_eb = 5;
-    static const int nghost_state_mol        = 2;
-    static const int nghost_state_mol_eb     = 4;
-
-
-    static const int nghost_force_godunov    = 1;
-    static const int nghost_force_godunov_eb = 3;
-    static const int nghost_force_mol        = 0; // MOL doesn't require gradp ghost cells
-    static const int nghost_force_mol_eb     = 0; // and does not use forcing for convection
-
     int nghost_state ();
     int nghost_force ();
 
@@ -821,7 +812,7 @@ public:
     // godunov
     static const int gradp_grow = 4;
 #else
-    static const int gradp_grow = 3;
+    static const int gradp_grow = 1;
 #endif
 
     //

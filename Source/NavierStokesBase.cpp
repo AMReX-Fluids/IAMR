@@ -4679,30 +4679,64 @@ NavierStokesBase::floor(MultiFab& mf){
 int
 NavierStokesBase::nghost_state ()
 {
+  //FIXME - unsure of ghost cell needs here. Why is IAMR different than incflo?
+  // from incflo:
+//     int nghost_state () const {
+// #ifdef AMREX_USE_EB
+//         if (!EBFactory(0).isAllRegular())
+//         {
+//             return 4;
+//         }
+// #endif
+//         {
+//             return (m_advection_type != "MOL") ? 3 : 2;
+//         }
+//     }
+
 #ifdef AMREX_USE_EB
+  if (!EBFactory().isAllRegular())
+  {
     if (use_godunov && redistribution_type == "StateRedist")
         return 6;
-    else if (use_godunov && redistribution_type != "StateRedist")
-        return 5;
-    else if (!use_godunov && redistribution_type == "StateRedist")
+    else if (use_godunov || redistribution_type == "StateRedist")
         return 5;
     else
         return 4;
+  }
+  else
 #endif
+  {
     return (use_godunov) ? 3 : 2;
 }
+}
+
 
 int
 NavierStokesBase::nghost_force ()
 {
+  //FIXME? again, why is IAMR different than incflo?
+// From incflo
+// // For Godunov, we need 1 ghost cell in addition to the Box we are filling
+    // // For MOL    , we need 0 ghost cells
+    // int nghost_force () const
+    // {
+    //    if (m_advection_type == "MOL")
+    //        return 0;
+    //    else
+    //        return 1;
+    // }
+
     if (!use_godunov)
         return 0;
 #ifdef AMREX_USE_EB
-    else if (redistribution_type == "StateRedist")
+    else if ( !EBFactory().isAllRegular() )
+      if (redistribution_type == "StateRedist")
         return 4;
-#endif
     else
         return 3;
+#endif
+    else
+      return 1;
 }
 
 #ifdef AMREX_USE_EB
