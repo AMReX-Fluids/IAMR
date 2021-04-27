@@ -150,6 +150,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
                         << " / " << scalmax[n] << std::endl;
    } //end if(getForceVerbose)
 
+   //
    // Here's the meat
    //
    // Velocity forcing
@@ -170,11 +171,11 @@ NavierStokesBase::getForce (FArrayBox&       force,
        amrex::ParallelFor(bx, [frc, scal, grav]
        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
        {
-	 frc(i,j,k,0) = 0.0_rt;
+	 frc(i,j,k,0) = Real(0.0);
 #if ( AMREX_SPACEDIM == 2 )
          frc(i,j,k,1) = grav*scal(i,j,k,0);
 #elif ( AMREX_SPACEDIM == 3 )
-         frc(i,j,k,1) = 0.0_rt;
+         frc(i,j,k,1) = Real(0.0);
          frc(i,j,k,2) = grav*scal(i,j,k,0);
 #endif
        });

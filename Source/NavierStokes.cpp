@@ -28,11 +28,11 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
-#include <iamr_mol.H>
+#include <iamr_ebgodunov.H>
 #endif
 
 #include <AMReX_buildInfo.H>
-
+#include <iamr_mol.H>
 #include <iamr_godunov.H>
 
 using namespace amrex;
@@ -110,9 +110,9 @@ NavierStokes::Initialize_specific ()
     //
     {
       int bc_tmp[2*AMREX_SPACEDIM];
-      
+
       auto f = [&bc_tmp] (std::string const& bcid, Orientation ori)
-      {	  
+      {
 	  ParmParse pbc(bcid);
 	  std::string bc_type_in = "null";
 	  pbc.query("type", bc_type_in);
@@ -176,7 +176,7 @@ NavierStokes::Initialize_specific ()
 	  else if (bc_type == "pressure_inflow" or bc_type == "pi")
 	  {
 	      amrex::Abort("NavierStokes::Initialize_specific: Pressure inflow boundary condition not yet implemented. If needed for your simulation, please contact us.");
-	      
+
 	      // amrex::Print() << bcid << " set to pressure inflow.\n";
 
 	      // bc_tmp[ori] = PhysBCType::pressure_inflow;
@@ -358,7 +358,7 @@ NavierStokes::initData ()
     // Initialize the state and the pressure.
     //
     prob_initData();
-  
+
     //
     // Initialize GradP
     //
@@ -374,8 +374,8 @@ NavierStokes::initData ()
 
 #ifdef AMREX_USE_EB
     //
-    // Set EB covered cells to some typical value for that field 
-    // FIXME -- Not sure IAMR really needs this...   
+    // Set EB covered cells to some typical value for that field
+    // FIXME -- Not sure IAMR really needs this...
     {
       MultiFab&   S_new    = get_new_data(State_Type);
       set_body_state(S_new);
@@ -480,6 +480,14 @@ NavierStokes::initData ()
     }
 
     old_intersect_new          = grids;
+
+#ifdef AMREX_USE_EB
+    //
+    // Perform redistribution on initial fields
+    // This changes the input velocity fields
+    //
+    InitialRedistribution();
+#endif
 
 #ifdef AMREX_PARTICLES
     initParticleData ();
@@ -715,173 +723,189 @@ NavierStokes::scalar_advection (Real dt,
     const int   num_scalars    = lscalar - fscalar + 1;
     const Real  prev_time      = state[State_Type].prevTime();
 
-    //
-    // Get the viscous terms.
-    //
-    MultiFab visc_terms(grids,dmap,num_scalars,1,MFInfo(),Factory());
+    MultiFab fluxes[AMREX_SPACEDIM];
+    MultiFab cfluxes[AMREX_SPACEDIM];
+    MultiFab edgestate[AMREX_SPACEDIM];
 
-    if (be_cn_theta != 1.0)
-    {
-        getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-    }
-    else
-    {
-        visc_terms.setVal(0.0,1);
-    }
-
-    int nGrowF = 1;
-    MultiFab* divu_fp = getDivCond(nGrowF,prev_time);
-    MultiFab* dsdt    = getDsdt(nGrowF,prev_time);
-    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nGrowF);
-    delete dsdt;
-
-    MultiFab fluxes[BL_SPACEDIM];
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    //FIMXE
+    // At most could have nghost= nghost_state()-2 due to needs of slopes routines
+    // Non-EB does not need any ghost cells (verified in development).
+    // Not sure that EB really needs any ghost cells on fluxes either (however,
+    // nghost =0 in development causes regression test to fail).
+    // PeleLM needs fluxes for scalar advection (not velocity advection)
+    // but has it's own scalar advection routine and does not use NS::scalar_advection()
+#ifdef AMREX_USE_EB
+        int nghost = nghost_state()-2;
+#else
+	int nghost = 0;
+#endif
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         const BoxArray& ba = getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, num_scalars, 0, MFInfo(), Factory());
+        cfluxes[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
+        edgestate[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
+
+        if (do_reflux)
+            fluxes[i].define(ba, dmap, num_scalars, 0, MFInfo(), Factory());
     }
 
+
     //
-    // Compute the advective forcing.
+    // Start FillPatchIterator block
     //
+    MultiFab visc_terms(grids,dmap,num_scalars,nghost_force(),MFInfo(),Factory());
     {
-        FillPatchIterator S_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,fscalar,num_scalars);
+        FillPatchIterator S_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,fscalar,num_scalars);
         MultiFab& Smf=S_fpi.get_mf();
 
         // Floor small values of states to be extrapolated
 	floor(Smf);
 
-        FillPatchIterator U_fpi(*this,visc_terms,godunov_hyp_grow,prev_time,State_Type,Xvel,BL_SPACEDIM);
-        const MultiFab& Umf=U_fpi.get_mf();
+        if (!use_godunov)
+        {
+            //////////////////////////////////////////////////////////////////////////////
+            //  MOL ALGORITHM
+            //////////////////////////////////////////////////////////////////////////////
 
+            const Box& domain = geom.Domain();
 
+            MOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
+                             D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                             D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                             D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                             m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), geom, dt
 #ifdef AMREX_USE_EB
-        //////////////////////////////////////////////////////////////////////////////
-        //  EB ALGORITHM
-        //////////////////////////////////////////////////////////////////////////////
-
-        const Box& domain = geom.Domain();
-
-        MultiFab cfluxes[AMREX_SPACEDIM];
-        MultiFab edgstate[AMREX_SPACEDIM];
-        int nghost = 2;
-
-        for (int i(0); i < AMREX_SPACEDIM; i++)
-        {
-            const BoxArray& ba = getEdgeBoxArray(i);
-            cfluxes[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
-            edgstate[i].define(ba, dmap, num_scalars, nghost, MFInfo(), Factory());
-        }
-
-        MOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
-                         D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                         D_DECL(edgstate[0],edgstate[1],edgstate[2]), 0, false,
-                         D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                         m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), geom  );
-
-        if (do_reflux)
-        {
-            for (int d(0); d < AMREX_SPACEDIM; d++)
-                MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
+                             , redistribution_type
+#endif
+                            );
 
         }
-
-#else
-        //////////////////////////////////////////////////////////////////////////////
-        //  NON-EB ALGORITHM
-        //////////////////////////////////////////////////////////////////////////////
-        MultiFab cfluxes[AMREX_SPACEDIM];
-        MultiFab edgestate[AMREX_SPACEDIM];
-	MultiFab forcing_term( grids, dmap, num_scalars, nGrowF );
-
-        // NO Gghost nodes???
-        int nghost = 0;
-        for (int i(0); i < AMREX_SPACEDIM; i++)
+        else
         {
-            const BoxArray& ba = getEdgeBoxArray(i);
-            cfluxes[i].define(ba, dmap, num_scalars, nghost);
-            cfluxes[i].setVal(0.0);
-            edgestate[i].define(ba, dmap, num_scalars, nghost);
-        }
+            //////////////////////////////////////////////////////////////////////////////
+            //  GODUNOV ALGORITHM
+            //////////////////////////////////////////////////////////////////////////////
+            FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+            const MultiFab& Umf=U_fpi.get_mf();
+
+            MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
+            MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+            MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+            delete dsdt;
+
+            // Compute viscous term
+            if (be_cn_theta != 1.0)
+            {
+                getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
+            }
+            else
+            {
+                visc_terms.setVal(0.0,1);
+            }
+
+            MultiFab forcing_term( grids, dmap, num_scalars, nghost_force());
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        {
-            for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
             {
-                const Box& gbx = S_mfi.growntilebox(nGrowF);
-
-                if (getForceVerbose)
+                for (MFIter S_mfi(Smf,TilingIfNotGPU()); S_mfi.isValid(); ++S_mfi)
                 {
-                    Print() << "---" << '\n' << "C - scalar advection:" << '\n'
-                            << " Calling getForce..." << '\n';
-                }
 
-                getForce(forcing_term[S_mfi],gbx,fscalar,num_scalars,
-			 prev_time,Umf[S_mfi],Smf[S_mfi],0);
+                    // Box for forcing terms
+                    auto const force_bx = S_mfi.growntilebox(nghost_force());
 
-                for (int n=0; n<num_scalars; ++n)
-                {
-                    // FIXME: Loop rqd b/c function does not take array conserv_diff
-		    auto const& tf    = forcing_term.array(S_mfi,n);
-                    auto const& visc  = visc_terms.const_array(S_mfi,n);
-
-
-                    if (advectionType[fscalar+n] == Conservative)
+                    if (getForceVerbose)
                     {
-                        auto const& divu  = divu_fp -> const_array(S_mfi);
-                        auto const& S     = Smf.array(S_mfi);
+                        Print() << "---" << '\n' << "C - scalar advection:" << '\n'
+                                << " Calling getForce..." << '\n';
+                    }
 
-                        amrex::ParallelFor(gbx, [tf, visc, S, divu]
-                        AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-                        {
-			    tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
-                        });
-		    }
-                    else
+                    getForce(forcing_term[S_mfi],force_bx,fscalar,num_scalars,
+                             prev_time,Umf[S_mfi],Smf[S_mfi],0);
+
+                    for (int n=0; n<num_scalars; ++n)
                     {
-                        auto const& rho   = rho_ptime.const_array(S_mfi);
+                        // FIXME: Loop rqd b/c function does not take array conserv_diff
+                        auto const& tf    = forcing_term.array(S_mfi,n);
+                        auto const& visc  = visc_terms.const_array(S_mfi,n);
 
-                        amrex::ParallelFor(gbx, [tf, visc, rho]
-                        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+
+                        if (advectionType[fscalar+n] == Conservative)
                         {
-                            tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
-                        });
-		    }
+                            auto const& divu  = divu_fp -> const_array(S_mfi);
+                            auto const& S     = Smf.array(S_mfi);
 
+                            amrex::ParallelFor(force_bx, [tf, visc, S, divu]
+                            AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+                            {
+                                tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
+                            });
+                        }
+                        else
+#ifdef AMREX_USE_EB
+                        {
+			    // If EB, we should have already aborted during initialization
+                            amrex::Abort("NS::scalar_advection(): EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
+                        }
+#else
+                        {
+			    auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
+
+                            amrex::ParallelFor(force_bx, [tf, visc, rho]
+                            AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                            {
+                                tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
+                            });
+                        }
+#endif
+
+                    }
                 }
             }
+
+            amrex::Gpu::DeviceVector<int> iconserv;
+            iconserv.resize(num_scalars, 0);
+            // does this actually put data in GPU memory?
+            for (int comp = 0; comp < num_scalars; ++comp)
+            {
+                iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
+            }
+
+#ifdef AMREX_USE_EB
+            EBGodunov::ComputeAofs(*aofs, fscalar, num_scalars,
+                                   Smf, 0,
+                                   AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                   AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                   AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                                   forcing_term, 0, *divu_fp,
+                                   m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(),
+                                   geom, iconserv, dt, true, redistribution_type );
+
+
+#else
+            Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
+                                 Smf, 0,
+                                 AMREX_D_DECL( u_mac[0], u_mac[1], u_mac[2] ),
+                                 AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,
+                                 AMREX_D_DECL( cfluxes[0], cfluxes[1], cfluxes[2] ), 0,
+                                 forcing_term, 0, *divu_fp, m_bcrec_scalars_d.dataPtr(),
+                                 geom, iconserv, dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
+#endif
+
+            delete divu_fp;
         }
 
-        amrex::Gpu::DeviceVector<int> iconserv;
-        iconserv.resize(num_scalars, 0);
-	// does this actually put data in GPU memory?
-        for (int comp = 0; comp < num_scalars; ++comp)
-        {
-            iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
-	}
-    
-
-        Godunov::ComputeAofs(*aofs, fscalar, num_scalars,
-                             Smf, 0,
-                             AMREX_D_DECL( u_mac[0], u_mac[1], u_mac[2] ),
-                             AMREX_D_DECL( edgestate[0], edgestate[1], edgestate[2] ), 0, false,
-                             AMREX_D_DECL( cfluxes[0], cfluxes[1], cfluxes[2] ), 0,
-                             forcing_term, 0, *divu_fp, m_bcrec_scalars_d.dataPtr(),
-			     geom, iconserv, dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
 
         if (do_reflux)
         {
             for (int d = 0; d < AMREX_SPACEDIM; ++d)
                 MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, num_scalars, 0 );
 	}
-#endif
+
     } // FillPathIterator
 
-    delete divu_fp;
+
 
     if (do_reflux)
     {
@@ -2505,4 +2529,3 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
       diffusivity[dir]->setVal(visc_coef[state_comp], dst_comp, ncomp, diffusivity[dir]->nGrow());
     }
 }
-

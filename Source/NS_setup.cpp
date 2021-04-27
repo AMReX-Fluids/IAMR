@@ -109,8 +109,8 @@ set_pressure_bc (BCRec&       bc,
     }
 }
 
-static 
-void 
+static
+void
 set_gradpx_bc (BCRec&       bc,
 	       const BCRec& phys_bc)
 {
@@ -160,26 +160,26 @@ set_gradpz_bc (BCRec&       bc,
 }
 #endif
 
-static 
-void 
+static
+void
 set_divu_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         bc.setLo(i,divu_bc[lo_bc[i]]);
         bc.setHi(i,divu_bc[hi_bc[i]]);
     }
 }
 
-static 
-void 
+static
+void
 set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++) 
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         bc.setLo(i,dsdt_bc[lo_bc[i]]);
         bc.setHi(i,dsdt_bc[hi_bc[i]]);
@@ -205,7 +205,7 @@ typedef StateDescriptor::BndryFunc BndryFunc;
 //
 // Get EB-aware interpolater when needed
 //
-#ifdef AMREX_USE_EB  
+#ifdef AMREX_USE_EB
   static auto& cc_interp = eb_cell_cons_interp;
 #else
   static auto& cc_interp = cell_cons_interp;
@@ -351,7 +351,7 @@ NavierStokes::variableSetUp ()
 
     set_pressure_bc(bc,phys_bc);
     desc_lst.setComponent(Press_Type,Pressure,"pressure",bc,press_bf);
- 
+
     //
     // ---- grad P
     //
@@ -369,11 +369,11 @@ NavierStokes::variableSetUp ()
     set_gradpx_bc(bc,phys_bc);
     bcs[0]  = bc;
     name[0] = "gradpx";
-    
+
     set_gradpy_bc(bc,phys_bc);
     bcs[1]  = bc;
     name[1] = "gradpy";
-    
+
 #if(AMREX_SPACEDIM==3)
     set_gradpz_bc(bc,phys_bc);
     bcs[2]  = bc;
@@ -395,7 +395,7 @@ NavierStokes::variableSetUp ()
 			       &cc_interp);
 	set_divu_bc(bc,phys_bc);
 	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,null_bf);
-	
+
 	// stick Dsdt_Type on the end of the descriptor list
 	Dsdt_Type = desc_lst.size();
 	int nGrowDsdt = 0;

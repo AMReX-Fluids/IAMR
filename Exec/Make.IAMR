@@ -10,6 +10,14 @@ Bdirs += Source/MOL
 Bdirs += Source/Godunov
 Bdirs += Source/prob
 
+ifeq ($(USE_EB), TRUE)
+Bdirs += Source/EBGodunov
+Bdirs += Source/Redistribution
+endif
+
+
+
+
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
@@ -22,7 +30,7 @@ INCLUDE_LOCATIONS += $(Blocs)
 
 Pdirs   := Base AmrCore Amr Boundary
 Pdirs   += LinearSolvers/MLMG LinearSolvers/Projections
-           
+
 
 ifeq ($(USE_PARTICLES),TRUE)
   Pdirs += Particle

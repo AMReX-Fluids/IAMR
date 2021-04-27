@@ -1,0 +1,13 @@
+CEXE_headers += iamr_ebgodunov.H
+
+CEXE_sources += iamr_ebgodunov.cpp
+CEXE_sources += iamr_ebgodunov_extrap_vel_to_faces.cpp
+CEXE_sources += iamr_ebgodunov_extrap_vel_to_faces_$(DIM)D.cpp
+CEXE_sources += iamr_ebgodunov_edge_state_$(DIM)D.cpp
+CEXE_sources += iamr_ebgodunov_plm.cpp
+CEXE_sources += iamr_ebgodunov_plm_fpu.cpp
+
+ifeq ($(AMREX_SPACEDIM),3)
+     CEXE_headers += iamr_ebgodunov_corner_couple.H
+endif
+CEXE_headers += iamr_ebgodunov_transverse_$(DIM)D_K.H

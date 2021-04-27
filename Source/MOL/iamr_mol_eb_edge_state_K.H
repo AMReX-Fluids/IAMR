@@ -16,9 +16,11 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
 							  amrex::Array4<amrex::Real const> const& fcy,
 							  amrex::Array4<amrex::Real const> const& fcz),
                                              amrex::Array4<amrex::Real const> const& ccc,
+                                             amrex::Array4<amrex::Real const> const& vfrac,
                                              amrex::Array4<amrex::EBCellFlag const> const& flag,
                                              amrex::BCRec const* const d_bcrec,
-                                             amrex::Box const&  domain ) noexcept
+                                             amrex::Box const&  domain,
+                                             int order ) noexcept
 {
 
 #if (AMREX_SPACEDIM==2)
@@ -28,8 +30,8 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
     amrex::Real qs;
     int  domlo = domain.smallEnd(0);
     int  domhi = domain.bigEnd(0);
-    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir; 
-    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir; 
+    bool extlo = d_bcrec[n].lo(0) == amrex::BCType::ext_dir;
+    bool exthi = d_bcrec[n].hi(0) == amrex::BCType::ext_dir;
 
     if ( extlo and i <= domlo)
     {
@@ -81,12 +83,14 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                              (d_bcrec[n].hi(2) == amrex::BCType::hoextrap););
 
 	const auto& slopes_eb_hi =
-	  amrex_calc_slopes_extdir_eb(i, j, k, n, q, ccc,
-				      AMREX_D_DECL(fcx,fcy,fcz), flag,
-				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
-				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
-				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
-				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+            amrex_lim_slopes_extdir_eb(i, j, k, n, q, ccc, vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                       order);
+
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qpls = q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
@@ -109,12 +113,13 @@ amrex::Real iamr_eb_xedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_lo =
-	  amrex_calc_slopes_extdir_eb(i-1, j, k, n, q, ccc,
-				      AMREX_D_DECL(fcx,fcy,fcz), flag,
-				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
-				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
-				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
-				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+            amrex_lim_slopes_extdir_eb(i-1, j, k, n, q, ccc, vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                       order);
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qmns = q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
@@ -148,9 +153,13 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
                                       amrex::Array4<amrex::Real const> const& q,
                                       amrex::Array4<amrex::Real const> const& umac,
-                                      amrex::Array4<amrex::Real const> const& fcx,
+                                      AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+                                                   amrex::Array4<amrex::Real const> const& fcy,
+                                                   amrex::Array4<amrex::Real const> const& fcz),
                                       amrex::Array4<amrex::Real const> const& ccc,
-                                      amrex::Array4<amrex::EBCellFlag const> const& flag ) noexcept
+                                      amrex::Array4<amrex::Real const> const& vfrac,
+                                      amrex::Array4<amrex::EBCellFlag const> const& flag,
+                                      int order ) noexcept
 {
 #if (AMREX_SPACEDIM==2)
     const int k = 0;
@@ -174,7 +183,9 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
     amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i-1,j,k,n));
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_hi = amrex_calc_slopes_eb(i, j, k, n, q, ccc, flag);
+    const auto& slopes_eb_hi = amrex_lim_slopes_eb(i, j, k, n, q, ccc, vfrac,
+                                                   AMREX_D_DECL(fcx,fcy,fcz),
+                                                   flag, order);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qpls = q(i  ,j,k,n) - delta_x * slopes_eb_hi[0]
@@ -196,7 +207,9 @@ amrex::Real iamr_eb_xedge_state_mol ( D_DECL(int i, int j, int k), int n,
            delta_z = zf  - zc;);
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_lo = amrex_calc_slopes_eb(i-1, j, k, n, q, ccc, flag);
+    const auto& slopes_eb_lo = amrex_lim_slopes_eb(i-1, j, k, n, q, ccc, vfrac,
+                                                   AMREX_D_DECL(fcx,fcy,fcz),
+                                                   flag, order);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qmns = q(i-1,j,k,n) + delta_x * slopes_eb_lo[0]
@@ -236,10 +249,13 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
                                              amrex::Array4<amrex::Real const> const& fcy,
 							  amrex::Array4<amrex::Real const> const& fcz),
                                              amrex::Array4<amrex::Real const> const& ccc,
+                                             amrex::Array4<amrex::Real const> const& vfrac,
                                              amrex::Array4<amrex::EBCellFlag const> const& flag,
                                              amrex::BCRec const* const d_bcrec,
-                                             amrex::Box const&  domain ) noexcept
+                                             amrex::Box const&  domain,
+                                             int order ) noexcept
 {
+
 #if (AMREX_SPACEDIM==2)
     const int k = 0;
 #endif
@@ -268,7 +284,7 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
 	const int domain_klo = domain.smallEnd(2);
 	const int domain_khi = domain.bigEnd(2);
 #endif
-	
+
 	AMREX_D_TERM(bool extdir_or_ho_ilo = (d_bcrec[n].lo(0) == amrex::BCType::ext_dir) or
 		                             (d_bcrec[n].lo(0) == amrex::BCType::hoextrap);,
 		     bool extdir_or_ho_jlo = (d_bcrec[n].lo(1) == amrex::BCType::ext_dir) or
@@ -301,12 +317,13 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_hi =
-	  amrex_calc_slopes_extdir_eb(i, j, k, n, q, ccc,
-				      AMREX_D_DECL(fcx,fcy,fcz), flag,
-				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
-				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
-				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
-				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+            amrex_lim_slopes_extdir_eb(i, j, k, n, q, ccc, vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                       order);
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qpls = q(i  ,j,k,n) + delta_x * slopes_eb_hi[0]
@@ -329,12 +346,14 @@ amrex::Real iamr_eb_yedge_state_mol_extdir ( D_DECL(int i, int j, int k), int n,
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_lo =
-	  amrex_calc_slopes_extdir_eb(i, j-1, k, n, q, ccc,
-				      AMREX_D_DECL(fcx,fcy,fcz), flag,
-				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
-				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
-				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
-				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+            amrex_lim_slopes_extdir_eb(i, j-1, k, n, q, ccc, vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                       order);
+
 
 #if (AMREX_SPACEDIM==3)
         amrex::Real qmns = q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
@@ -370,9 +389,13 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
                                       amrex::Array4<amrex::Real const> const& q,
                                       amrex::Array4<amrex::Real const> const& vmac,
-                                      amrex::Array4<amrex::Real const> const& fcy,
+                                      AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+                                                   amrex::Array4<amrex::Real const> const& fcy,
+                                                   amrex::Array4<amrex::Real const> const& fcz),
                                       amrex::Array4<amrex::Real const> const& ccc,
-                                      amrex::Array4<amrex::EBCellFlag const> const& flag ) noexcept
+                                      amrex::Array4<amrex::Real const> const& vfrac,
+                                      amrex::Array4<amrex::EBCellFlag const> const& flag,
+                                      int order ) noexcept
 {
 #if (AMREX_SPACEDIM==2)
     const int k = 0;
@@ -396,7 +419,9 @@ amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
     amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j-1,k,n));
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_hi = amrex_calc_slopes_eb(i, j, k, n, q, ccc, flag);
+    const auto& slopes_eb_hi = amrex_lim_slopes_eb(i, j, k, n, q, ccc, vfrac,
+                                                   AMREX_D_DECL(fcx,fcy,fcz),
+                                                   flag, order);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qpls = q(i  ,j,k,n) + delta_x * slopes_eb_hi[0]
@@ -418,7 +443,9 @@ amrex::Real iamr_eb_yedge_state_mol ( D_DECL(int i, int j, int k), int n,
            delta_z = zf  - zc;);
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_lo = amrex_calc_slopes_eb(i, j-1, k, n, q, ccc, flag);
+    const auto& slopes_eb_lo = amrex_lim_slopes_eb(i, j-1, k, n, q, ccc, vfrac,
+                                                   AMREX_D_DECL(fcx,fcy,fcz),
+                                                   flag, order);
 
 #if (AMREX_SPACEDIM==3)
     amrex::Real qmns = q(i,j-1,k,n) + delta_x * slopes_eb_lo[0]
@@ -462,9 +489,11 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
 							  amrex::Array4<amrex::Real const> const& fcy,
 							  amrex::Array4<amrex::Real const> const& fcz),
                                              amrex::Array4<amrex::Real const> const& ccc,
+                                             amrex::Array4<amrex::Real const> const& vfrac,
                                              amrex::Array4<amrex::EBCellFlag const> const& flag,
                                              amrex::BCRec const* const d_bcrec,
-                                             amrex::Box const&  domain ) noexcept
+                                             amrex::Box const&  domain,
+                                             int order ) noexcept
 {
     amrex::Real qs;
     int domlo = domain.smallEnd(2);
@@ -521,12 +550,13 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_hi =
-	  amrex_calc_slopes_extdir_eb(i,j,k,n,q,ccc,
-				      AMREX_D_DECL(fcx,fcy,fcz), flag,
-				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
-				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
-				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
-				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+            amrex_lim_slopes_extdir_eb(i, j, k, n, q, ccc, vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                       order);
 
         amrex::Real qpls = q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
                                         + delta_y * slopes_eb_hi[1]
@@ -544,12 +574,13 @@ amrex::Real iamr_eb_zedge_state_mol_extdir ( int i, int j, int k, int n,
 
         // Compute slopes of component "n" of q
         const auto& slopes_eb_lo =
-	  amrex_calc_slopes_extdir_eb(i,j,k-1,n,q,ccc,
-				      AMREX_D_DECL(fcx,fcy,fcz),flag,
-				      AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo), 
-				      AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi), 
-				      AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo), 
-				      AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi));
+            amrex_lim_slopes_extdir_eb(i, j, k-1, n, q, ccc, vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), flag,
+                                       AMREX_D_DECL(extdir_or_ho_ilo, extdir_or_ho_jlo, extdir_or_ho_klo),
+                                       AMREX_D_DECL(extdir_or_ho_ihi, extdir_or_ho_jhi, extdir_or_ho_khi),
+                                       AMREX_D_DECL(domain_ilo, domain_jlo, domain_klo),
+                                       AMREX_D_DECL(domain_ihi, domain_jhi, domain_khi),
+                                       order);
 
         amrex::Real qmns = q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
                                         + delta_y * slopes_eb_lo[1]
@@ -581,9 +612,13 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
                                       amrex::Array4<amrex::Real const> const& q,
                                       amrex::Array4<amrex::Real const> const& wmac,
-                                      amrex::Array4<amrex::Real const> const& fcz,
+                                      AMREX_D_DECL(amrex::Array4<amrex::Real const> const& fcx,
+                                                   amrex::Array4<amrex::Real const> const& fcy,
+                                                   amrex::Array4<amrex::Real const> const& fcz),
                                       amrex::Array4<amrex::Real const> const& ccc,
-                                      amrex::Array4<amrex::EBCellFlag const> const& flag ) noexcept
+                                      amrex::Array4<amrex::Real const> const& vfrac,
+                                      amrex::Array4<amrex::EBCellFlag const> const& flag,
+                                      int order ) noexcept
 {
 
     amrex::Real xf = fcz(i,j,k,0); // local (x,y) of centroid of z-face we are extrapolating to
@@ -601,7 +636,9 @@ amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
     amrex::Real cc_qmin = amrex::min(q(i,j,k,n),q(i,j,k-1,n));
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_hi = amrex_calc_slopes_eb(i,j,k,n,q,ccc,flag);
+    const auto& slopes_eb_hi = amrex_lim_slopes_eb(i, j, k, n, q, ccc, vfrac,
+                                                   AMREX_D_DECL(fcx,fcy,fcz),
+                                                   flag, order);
 
     amrex::Real qpls = q(i,j,k  ,n) + delta_x * slopes_eb_hi[0]
                                     + delta_y * slopes_eb_hi[1]
@@ -618,7 +655,9 @@ amrex::Real iamr_eb_zedge_state_mol ( int i, int j, int k, int n,
     delta_z = 0.5 - zc;
 
     // Compute slopes of component "n" of q
-    const auto& slopes_eb_lo = amrex_calc_slopes_eb(i,j,k-1,n,q,ccc,flag);
+    const auto& slopes_eb_lo = amrex_lim_slopes_eb(i, j, k-1, n, q, ccc, vfrac,
+                                                   AMREX_D_DECL(fcx,fcy,fcz),
+                                                   flag, order);
 
     amrex::Real qmns = q(i,j,k-1,n) + delta_x * slopes_eb_lo[0]
                                     + delta_y * slopes_eb_lo[1]

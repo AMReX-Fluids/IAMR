@@ -2,6 +2,7 @@
 #include <iamr_constants.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_MultiCutFab.H>
+#include <iamr_redistribution.H>
 #endif
 
 using namespace amrex;
@@ -24,7 +25,12 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                    int fluxes_comp,
                    Vector<BCRec> const& bcs,
 		          BCRec  const* d_bcrec_ptr,
-                   Geometry const&  geom )
+                   Geometry const&  geom,
+                   Real dt
+#ifdef AMREX_USE_EB
+                   , std::string redistribution_type
+#endif
+                  )
 {
     BL_PROFILE("MOL::ComputeAofs()");
 
@@ -47,10 +53,6 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
-    // We need at least two ghost nodes for redistribution
-    D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
@@ -166,6 +168,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                         Array4<Real const> fcz = ebfactory.getFaceCent()[2]->const_array(mfi););
 
                 Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
 
                 // Compute edge state if needed
                 if (!known_edgestate)
@@ -174,7 +177,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
 		    EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
                                          D_DECL(u,v,w), domain, bcs, d_bcrec_ptr,
-                                         D_DECL(fcx,fcy,fcz), ccc, flag );
+                                         D_DECL(fcx,fcy,fcz), ccc, vfrac, flag );
                 }
 
                 // Compute fluxes
@@ -187,7 +190,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 		// div at ncomp*3 to make space for the 3 redistribute temporaries
                 Array4<Real> divtmp_arr = tmpfab.array(ncomp*3);
 
-                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
+
 
                 D_TERM( auto apx = ebfactory.getAreaFrac()[0]->const_array(mfi);,
                         auto apy = ebfactory.getAreaFrac()[1]->const_array(mfi);,
@@ -207,9 +210,14 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
                 // Redistribute
 		Array4<Real> scratch = tmpfab.array(0);
-                Redistribute(bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr, scratch,
-			     flag, vfrac, geom);
+                Redistribution::Apply( bx, ncomp, aofs.array(mfi, aofs_comp), divtmp_arr,
+                                       state.const_array(mfi, state_comp), scratch, flag,
+                                       AMREX_D_DECL(apx,apy,apz), vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt,
+                                       redistribution_type );
 
+                // Change sign because for EB redistribution we compute -div
+                aofs[mfi].mult(-1., bx, aofs_comp, ncomp);
             }
             else
 #endif
@@ -263,7 +271,13 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                        int fluxes_comp,
                        Vector<BCRec> const& bcs,
 		              BCRec  const* d_bcrec_ptr,
-                       Geometry const&  geom )
+                       Geometry const&  geom,
+                       Real dt
+#ifdef AMREX_USE_EB
+                       , std::string redistribution_type
+#endif
+                  )
+
 {
     BL_PROFILE("MOL::ComputeSyncAofs()");
 
@@ -286,9 +300,6 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 #ifdef AMREX_USE_EB
     AMREX_ALWAYS_ASSERT(state.hasEBFabFactory());
     // We need at least two ghost nodes for redistribution
-    D_TERM( AMREX_ALWAYS_ASSERT(xedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(yedge.nGrow() >= 2 );,
-            AMREX_ALWAYS_ASSERT(zedge.nGrow() >= 2 ););
 
     auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
 #endif
@@ -391,6 +402,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                         Array4<Real const> fcz = ebfactory.getFaceCent()[2]->const_array(mfi););
 
                 Array4<Real const> ccc = ebfactory.getCentroid().const_array(mfi);
+                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
 
                 // Compute edge state if needed
                 if (!known_edgestate)
@@ -403,7 +415,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
                     EB_ComputeEdgeState( gbx, D_DECL(xed,yed,zed), q, ncomp,
                                          D_DECL(u,v,w), domain, bcs, d_bcrec_ptr,
-                                         D_DECL(fcx,fcy,fcz), ccc, flag );
+                                         D_DECL(fcx,fcy,fcz), ccc, vfrac, flag );
                 }
 
                 // Compute fluxes
@@ -417,7 +429,7 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 Array4<Real> divtmp_arr = tmpfab.array(ncomp*3);
                 Array4<Real> divtmp_redist_arr = tmpfab.array(ncomp*4);
 
-                auto vfrac = ebfactory.getVolFrac().const_array(mfi);
+
 
                 D_TERM( auto apx = ebfactory.getAreaFrac()[0]->const_array(mfi);,
                         auto apy = ebfactory.getAreaFrac()[1]->const_array(mfi);,
@@ -435,16 +447,20 @@ MOL::ComputeSyncAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 
                 // Redistribute
 		Array4<Real> scratch = tmpfab.array(0);
-                Redistribute(bx, ncomp, divtmp_redist_arr, divtmp_arr, scratch,
-			     flag, vfrac, geom);
+                Redistribution::Apply( bx, ncomp,  divtmp_redist_arr, divtmp_arr,
+                                       state.const_array(mfi, state_comp), scratch, flag,
+                                       AMREX_D_DECL(apx,apy,apz), vfrac,
+                                       AMREX_D_DECL(fcx,fcy,fcz), ccc, geom, dt,
+                                       redistribution_type );
 
-                // Sum contribution to sync aofs
+                // Subtract contribution to sync aofs -- sign of divergence in aofs is opposite
+                // of sign of div as computed by EB_ComputeDivergence, thus it must be subtracted.
                 auto const& aofs_arr = aofs.array(mfi, aofs_comp);
 
                 amrex::ParallelFor(bx, ncomp, [aofs_arr, divtmp_redist_arr]
                 AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    aofs_arr( i, j, k, n ) += divtmp_redist_arr( i, j, k, n );
+                    aofs_arr( i, j, k, n ) +=  -divtmp_redist_arr( i, j, k, n );
                 });
 
             }
@@ -726,16 +742,16 @@ MOL::EB_ComputeDivergence ( Box const& bx,
         }
         else if (flag(i,j,k).isRegular())
         {
-            div(i,j,k,n) = dxinv[0] * (fx(i+1,j,k,n) - fx(i,j,k,n))
+            div(i,j,k,n) = -( dxinv[0] * (fx(i+1,j,k,n) - fx(i,j,k,n))
                 +          dxinv[1] * (fy(i,j+1,k,n) - fy(i,j,k,n))
 #if (AMREX_SPACEDIM==3)
                 +          dxinv[2] * (fz(i,j,k+1,n) - fz(i,j,k,n))
 #endif
-                ;
+                );
         }
         else
         {
-            div(i,j,k,n) = (1.0/vfrac(i,j,k)) *
+            div(i,j,k,n) = - (1.0/vfrac(i,j,k)) *
                 (       dxinv[0] * (apx(i+1,j,k)*fx(i+1,j,k,n) - apx(i,j,k)*fx(i,j,k,n))
                       + dxinv[1] * (apy(i,j+1,k)*fy(i,j+1,k,n) - apy(i,j,k)*fy(i,j,k,n))
 #if (AMREX_SPACEDIM==3)
@@ -747,126 +763,6 @@ MOL::EB_ComputeDivergence ( Box const& bx,
     });
 
 }
-
-void
-MOL::Redistribute (  Box const& bx, int ncomp,
-                     Array4<Real> const& div,
-                     Array4<Real const> const& div_in,
-		     Array4<Real> const& scratch,
-                     Array4<EBCellFlag const> const& flag,
-                     Array4<Real const> const& vfrac,
-                     Geometry const& geom )
-{
-    const Box dbox = geom.growPeriodicDomain(2);
-
-    Box const& bxg1 = amrex::grow(bx,1);
-    Box const& bxg2 = amrex::grow(bx,2);
-
-    // Temporaries
-    Array4<Real>  tmp(scratch, 0);
-    Array4<Real>  delm(scratch, ncomp);
-    Array4<Real>  wgt(scratch, 2*ncomp);
-
-    // Weight by EB volume fraction
-    amrex::ParallelFor(bxg2, [wgt,dbox,vfrac]
-    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-    {
-        wgt(i,j,k) = (dbox.contains(IntVect(D_DECL(i,j,k)))) ? 1.0 : 0.0;
-    });
-
-    amrex::ParallelFor(bxg1, ncomp, [flag, dbox, vfrac, div_in, tmp, delm, wgt]
-    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        if (flag(i,j,k).isSingleValued()) {
-            Real vtot = 0.0;
-            Real divnc = 0.0;
-#if (AMREX_SPACEDIM==3)
-            for (int kk = -1; kk <= 1; ++kk)
-#else
-                const int kk = 0;
-#endif
-            {
-                for (int jj = -1; jj <= 1; ++jj)
-                {
-                    for (int ii = -1; ii <= 1; ++ii)
-                    {
-                        if ( (ii != 0 or jj != 0 or kk != 0) and
-                             flag(i,j,k).isConnected(ii,jj,kk) and
-                             dbox.contains(IntVect(D_DECL(i+ii,j+jj,k+kk))))
-                        {
-                            Real wted_vf = vfrac(i+ii,j+jj,k+kk) * wgt(i+ii,j+jj,k+kk);
-                            vtot += wted_vf;
-                            divnc += wted_vf * div_in(i+ii,j+jj,k+kk,n);
-                        }
-                    }
-                }
-            }
-            divnc /= (vtot + 1.e-80);
-            Real optmp = (1.0-vfrac(i,j,k))*(divnc-div_in(i,j,k,n));
-            tmp(i,j,k,n) = optmp;
-            delm(i,j,k,n) = -vfrac(i,j,k)*optmp;
-        }
-        else
-        {
-            tmp(i,j,k,n) = 0.0;
-        }
-    });
-
-    amrex::ParallelFor(bxg1 & dbox, ncomp, [flag, vfrac, wgt, bx, tmp, delm]
-    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        if (flag(i,j,k).isSingleValued())
-        {
-            Real wtot = 0.0;
-#if (AMREX_SPACEDIM==3)
-            for (int kk = -1; kk <= 1; ++kk)
-#else
-                const int kk = 0;
-#endif
-            {
-                for (int jj = -1; jj <= 1; ++jj)
-                {
-                    for (int ii = -1; ii <= 1; ++ii)
-                    {
-                        if ((ii != 0 or jj != 0 or kk != 0) and
-                            flag(i,j,k).isConnected(ii,jj,kk))
-                        {
-                            wtot += vfrac(i+ii,j+jj,k+kk) * wgt(i+ii,j+jj,k+kk);
-                        }
-                    }
-                }
-            }
-
-            wtot = 1.0/(wtot+1.e-80);
-
-            Real dtmp = delm(i,j,k,n) * wtot;
-#if (AMREX_SPACEDIM==3)
-            for (int kk = -1; kk <= 1; ++kk)
-#endif
-            {
-                for (int jj = -1; jj <= 1; ++jj)
-                {
-                    for (int ii = -1; ii <= 1; ++ii)
-                    {
-                        if ((ii != 0 or jj != 0 or kk != 0) and
-                            bx.contains(IntVect(D_DECL(i+ii,j+jj,k+kk))) and
-                            flag(i,j,k).isConnected(ii,jj,kk))
-                        {
-                            Gpu::Atomic::Add(&tmp(i+ii,j+jj,k+kk,n), dtmp*wgt(i+ii,j+jj,k+kk));
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    amrex::ParallelFor(bx, ncomp, [div, div_in, tmp]
-    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-    {
-        div(i,j,k,n) = div_in(i,j,k,n) + tmp(i,j,k,n);
-    });
-}
-
 
 void
 MOL::EB_AreaWeightFluxes ( D_DECL( Box const& xbx,

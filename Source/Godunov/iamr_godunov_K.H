@@ -7,7 +7,7 @@
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_Array.H>
 #include <iomanip>
-#include <iamr_constants_godunov.H>
+#include <iamr_godunov_constants.H>
 
 /* This header file contains the inlined __host__ __device__ functions required for
    the scalar advection routines for 3D Godunov. It also contains function declarations
@@ -20,7 +20,6 @@ void SetTransTermXBCs (const int i, const int j, const int k, const int n,
                        const amrex::Array4<const amrex::Real> &s,
                        amrex::Real &lo,
                        amrex::Real &hi,
-                       amrex::Real &uedge,
                        const int bclo, const int bchi,
                        const int domlo, const int domhi,
                        const bool is_velocity )
@@ -73,7 +72,6 @@ void SetTransTermYBCs ( const int i, const int j, const int k, const int n,
                         const amrex::Array4<const amrex::Real> &s,
                         amrex::Real &lo,
                         amrex::Real &hi,
-                        amrex::Real vedge,
                         const int bclo, const int bchi,
                         const int domlo, const int domhi,
                         const bool is_velocity )
@@ -127,7 +125,6 @@ void SetTransTermZBCs(const int i, const int j, const int k, const int n,
                       const amrex::Array4<const amrex::Real> &s,
                       amrex::Real &lo,
                       amrex::Real &hi,
-                      amrex::Real wedge,
                       const int bclo, const int bchi,
                       const int domlo, const int domhi,
                       const bool is_velocity)
@@ -180,7 +177,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void SetXEdgeBCs( const int i, const int j, const int k, const int n,
                   const amrex::Array4<const amrex::Real> &s,
                   amrex::Real &lo, amrex::Real &hi,
-                  const amrex::Array4< const amrex::Real> &uedge,
                   const int bclo, const int domlo,
                   const int bchi, const int domhi,
                   const bool is_velocity )
@@ -232,7 +228,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void SetYEdgeBCs ( const int i, const int j, const int k, const int n,
                    const amrex::Array4<const amrex::Real> &s,
                    amrex::Real &lo, amrex::Real &hi,
-                   const amrex::Array4< const amrex::Real> &vedge,
                    const int bclo, const int domlo,
                    const int bchi, const int domhi,
                    const bool is_velocity )
@@ -288,7 +283,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void SetZEdgeBCs ( const int i, const int j, const int k, const int n,
                    const amrex::Array4<const amrex::Real> &s,
                    amrex::Real &lo, amrex::Real &hi,
-                   const amrex::Array4< const amrex::Real> &wedge,
                    const int bclo, const int domlo,
                    const int bchi, const int domhi,
                    const bool is_velocity )

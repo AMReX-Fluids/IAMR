@@ -43,8 +43,8 @@ main (int   argc,
 
     ParmParse pp;
 
-    max_step  = -1; 
-    num_steps = -1; 
+    max_step  = -1;
+    num_steps = -1;
     strt_time =  0.0;
     stop_time = -1.0;
     stop_interval = 0.;
@@ -70,7 +70,7 @@ main (int   argc,
 #ifdef AMREX_USE_EB
     // fixme? not sure what level of support should be default
     // levels explianed in user guide
-    // Ann suggested we need vol and area frac, and face and area centriod => full
+    // Ann suggested we need vol and area frac, and face and area centroid => full
     AmrLevel::SetEBSupportLevel(EBSupport::full);
     // set grow cells for basic, volume, full
     // fixme? not sure what these numbers should be
@@ -78,8 +78,9 @@ main (int   argc,
     // CNS::numGrow()= 5
     //AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
     // NavierStokesBase GEOM_GROW=1 currently. Change it? Make new var?
-    // Using incflo values here
-    AmrLevel::SetEBMaxGrowCells(4,4,4);
+    // 4 ghost nodes would be enough for EB-MOL, but 6 are necessary for
+    // EB-godunov when StateRedist is used so we will use 6.
+    AmrLevel::SetEBMaxGrowCells(6,6,6);
 
     //decide who should own max_coasening_level later
     int max_coarsening_level = 100;
@@ -87,11 +88,11 @@ main (int   argc,
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
 		   max_coarsening_level);
 #endif
-		   
+
     amrptr->init(strt_time,stop_time);
 
-    // This feature stop the simulation at a specfic time 
-    // after the physical time of the checkpoint file 
+    // This feature stop the simulation at a specfic time
+    // after the physical time of the checkpoint file
     if (stop_interval > 0.) stop_time = amrptr->cumTime() + stop_interval;
 
     if (num_steps > 0)

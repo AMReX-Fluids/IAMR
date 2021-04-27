@@ -304,8 +304,8 @@ Godunov::ComputeFluxes ( Box const& bx,
     area[1] = dx[0]*dx[2];
     area[2] = dx[0]*dx[1];
 #else
-    area[0] = dx[0];
-    area[1] = dx[1];
+    area[0] = dx[1];
+    area[1] = dx[0];
 #endif
 
     //

@@ -22,7 +22,12 @@ namespace MOL {
                        int fluxes_comp,
                        amrex::Vector<amrex::BCRec> const& bcs,
 		                     amrex::BCRec  const* d_bcrec_ptr,
-                       amrex::Geometry const& geom);
+                       amrex::Geometry const& geom,
+                       amrex::Real dt
+#ifdef AMREX_USE_EB
+                       , std::string redistribution_type
+#endif
+                       );
 
     void ComputeSyncAofs ( amrex::MultiFab& aofs, int aofs_comp, int ncomp,
                            amrex::MultiFab const& state, int state_comp,
@@ -43,7 +48,12 @@ namespace MOL {
                            int fluxes_comp,
                            amrex::Vector<amrex::BCRec> const& bcs,
 			   amrex::BCRec  const* d_bcrec_ptr,
-                           amrex::Geometry const& geom);
+                           amrex::Geometry const& geom,
+                           amrex::Real dt
+#ifdef AMREX_USE_EB
+                           , std::string redistribution_type
+#endif
+                          );
 
 
     void ComputeEdgeState (amrex::Box const& a_bx,
@@ -83,7 +93,8 @@ namespace MOL {
                                    amrex::MultiFab& vmac,
                                    amrex::MultiFab& wmac ),
                             const amrex::Geometry&  a_geom,
-                            const amrex::Vector<amrex::BCRec>& a_bcs);
+                            amrex::Vector<amrex::BCRec> const& h_bcrec,
+                            const amrex::BCRec* d_bcrec );
 
     void PredictVelOnFaces ( D_DECL( amrex::Box const& ubx,
                                      amrex::Box const& vbx,
@@ -93,7 +104,8 @@ namespace MOL {
                                      amrex::Array4<amrex::Real> const& w ),
                              amrex::Array4<amrex::Real const > const& vcc,
                              const amrex::Geometry&  geom,
-                             const amrex::BCRec* bcs );
+                             amrex::Vector<amrex::BCRec> const& h_bcrec,
+                             const amrex::BCRec* d_bcrec );
 
     void AreaWeightFluxes ( D_DECL( const amrex::Box& xbx,
 				    const amrex::Box& ybx,
@@ -124,6 +136,7 @@ namespace MOL {
                                        amrex::Array4<amrex::Real const> const& fcy,
                                        amrex::Array4<amrex::Real const> const& fcz),
                                amrex::Array4<amrex::Real const> const& ccc,
+                               amrex::Array4<amrex::Real const> const& vfrac,
                                amrex::Array4<amrex::EBCellFlag const> const& flag);
 
     void EB_ComputeFluxes ( amrex::Box const& bx,
@@ -151,8 +164,7 @@ namespace MOL {
                                         amrex::Array4<amrex::Real const> const& apy,
                                         amrex::Array4<amrex::Real const> const& apz ) );
 
-    void EB_PredictVelOnFaces ( amrex::Box const& ccbx,
-                                D_DECL( amrex::Box const& ubx,
+    void EB_PredictVelOnFaces ( D_DECL( amrex::Box const& ubx,
                                         amrex::Box const& vbx,
                                         amrex::Box const& wbx ),
                                 D_DECL( amrex::Array4<amrex::Real> const& u,
@@ -164,16 +176,10 @@ namespace MOL {
                                         amrex::Array4<amrex::Real const> const& fcy,
                                         amrex::Array4<amrex::Real const> const& fcz),
                                 amrex::Array4<amrex::Real const> const& ccc,
+                                amrex::Array4<amrex::Real const> const& vfrac,
                                 const amrex::Geometry&  geom,
-                                const amrex::BCRec* bcs );
-
-    void Redistribute (  amrex::Box const& bx, int ncomp,
-                         amrex::Array4<amrex::Real> const& div,
-                         amrex::Array4<amrex::Real const> const& div_in,
-			 amrex::Array4<amrex::Real> const& scratch,
-                         amrex::Array4<amrex::EBCellFlag const> const& flag,
-                         amrex::Array4<amrex::Real const> const& vfrac,
-                         amrex::Geometry const& geom );
+                                amrex::Vector<amrex::BCRec> const& h_bcrec,
+                                const amrex::BCRec* d_bcrec );
 
     void EB_AreaWeightFluxes ( D_DECL( const amrex::Box& xbx,
 				       const amrex::Box& ybx,

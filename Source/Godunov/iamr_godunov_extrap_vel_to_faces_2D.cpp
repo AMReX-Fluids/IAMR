@@ -1,6 +1,6 @@
 #include <NS_util.H>
-#include <iamr_ppm_godunov.H>
-#include <iamr_plm_godunov.H>
+#include <iamr_godunov_ppm.H>
+#include <iamr_godunov_plm.H>
 #include <iamr_godunov.H>
 #include <iamr_godunov_K.H>
 #include <iomanip>
@@ -66,9 +66,9 @@ Godunov::ExtrapVelToFaces ( MultiFab const& a_vel,
             }
             else
             {
-                PLM::PredictVelOnXFace( bx, AMREX_SPACEDIM, Imx, Ipx, vel, vel,
+                PLM::PredictVelOnXFace( Box(u_ad), AMREX_SPACEDIM, Imx, Ipx, vel, vel,
                                          geom, l_dt, h_bcrec, d_bcrec);
-                PLM::PredictVelOnYFace( bx, AMREX_SPACEDIM, Imy, Ipy, vel, vel,
+                PLM::PredictVelOnYFace( Box(v_ad), AMREX_SPACEDIM, Imy, Ipy, vel, vel,
                                         geom, l_dt, h_bcrec, d_bcrec);
             }
 
@@ -123,7 +123,7 @@ Godunov::ComputeAdvectiveVel ( Box const& xbx,
         }
 
         auto bc = pbc[n];
-        SetTransTermXBCs(i, j, k, n, vel, lo, hi, lo, bc.lo(0), bc.hi(0), dlo.x, dhi.x, true);
+        SetTransTermXBCs(i, j, k, n, vel, lo, hi, bc.lo(0), bc.hi(0), dlo.x, dhi.x, true);
 
         Real st = ( (lo+hi) >= 0.) ? lo : hi;
         bool ltm = ( (lo <= 0. && hi >= 0.) || (amrex::Math::abs(lo+hi) < small_vel) );
@@ -144,7 +144,7 @@ Godunov::ComputeAdvectiveVel ( Box const& xbx,
         }
 
         auto bc = pbc[n];
-        SetTransTermYBCs(i, j, k, n, vel, lo, hi, lo, bc.lo(1), bc.hi(1), dlo.y, dhi.y, true);
+        SetTransTermYBCs(i, j, k, n, vel, lo, hi, bc.lo(1), bc.hi(1), dlo.y, dhi.y, true);
 
         Real st = ( (lo+hi) >= 0.) ? lo : hi;
         bool ltm = ( (lo <= 0. && hi >= 0.) || (amrex::Math::abs(lo+hi) < small_vel) );
@@ -208,7 +208,7 @@ Godunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
         Real uad = u_ad(i,j,k);
         auto bc = pbc[n];
 
-        SetTransTermXBCs(i, j, k, n, q, lo, hi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x, true);
+        SetTransTermXBCs(i, j, k, n, q, lo, hi, bc.lo(0), bc.hi(0), dlo.x, dhi.x, true);
 
         xlo(i,j,k,n) = lo;
         xhi(i,j,k,n) = hi;
@@ -231,7 +231,7 @@ Godunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
         Real vad = v_ad(i,j,k);
         auto bc = pbc[n];
 
-        SetTransTermYBCs(i, j, k, n, q, lo, hi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y, true);
+        SetTransTermYBCs(i, j, k, n, q, lo, hi, bc.lo(1), bc.hi(1), dlo.y, dhi.y, true);
 
         ylo(i,j,k,n) = lo;
         yhi(i,j,k,n) = hi;
@@ -269,7 +269,7 @@ Godunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
         l_yzhi = yhi(i,j,k,n);
 
         Real vad = v_ad(i,j,k);
-        SetTransTermYBCs(i, j, k, n, q, l_yzlo, l_yzhi, vad, bc.lo(1), bc.hi(1), dlo.y, dhi.y, true);
+        SetTransTermYBCs(i, j, k, n, q, l_yzlo, l_yzhi, bc.lo(1), bc.hi(1), dlo.y, dhi.y, true);
 
         Real st = (vad >= 0.) ? l_yzlo : l_yzhi;
         Real fu = (amrex::Math::abs(vad) < small_vel) ? 0.0 : 1.0;
@@ -291,7 +291,7 @@ Godunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
             sth += 0.5 * l_dt * f(i  ,j,k,n);
         }
 
-        SetXEdgeBCs(i, j, k, n, q, stl, sth, u_ad, bc.lo(0), dlo.x, bc.hi(0), dhi.x, true);
+        SetXEdgeBCs(i, j, k, n, q, stl, sth, bc.lo(0), dlo.x, bc.hi(0), dhi.x, true);
 
         if ( (i==dlo.x) and (bc.lo(0) == BCType::foextrap || bc.lo(0) == BCType::hoextrap) )
         {
@@ -329,7 +329,7 @@ Godunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
         l_xzhi = xhi(i,j,k,n);
 
         Real uad = u_ad(i,j,k);
-        SetTransTermXBCs(i, j, k, n, q, l_xzlo, l_xzhi, uad, bc.lo(0), bc.hi(0), dlo.x, dhi.x, true);
+        SetTransTermXBCs(i, j, k, n, q, l_xzlo, l_xzhi, bc.lo(0), bc.hi(0), dlo.x, dhi.x, true);
 
 
         Real st = (uad >= 0.) ? l_xzlo : l_xzhi;
@@ -354,7 +354,7 @@ Godunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
            sth += 0.5 * l_dt * f(i,j  ,k,n);
         }
 
-        SetYEdgeBCs(i, j, k, n, q, stl, sth, v_ad, bc.lo(1), dlo.y, bc.hi(1), dhi.y, true);
+        SetYEdgeBCs(i, j, k, n, q, stl, sth, bc.lo(1), dlo.y, bc.hi(1), dhi.y, true);
 
         if ( (j==dlo.y) and (bc.lo(1) == BCType::foextrap || bc.lo(1) == BCType::hoextrap) )
         {
