@@ -528,28 +528,42 @@ NavierStokesBase::Initialize ()
     pp.query("gradp_in_checkpoint", gradp_in_checkpoint);
     pp.query("avg_in_checkpoint",   average_in_checkpoint);
 
+    //
+    // Get godunov options
+    //
     pp.query("use_godunov", use_godunov);
+    ParmParse pp2("godunov");
+    pp2.query("use_ppm",             godunov_use_ppm);
+    pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
 
-    // Redistribution
 #ifdef AMREX_USE_EB
+    //
+    // EB Godunov restrictions
+    //
+    if ( use_godunov && !do_mom_diff )
+      amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
+    if ( use_godunov && !do_cons_trac )
+      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
+    if ( use_godunov && !do_cons_trac2 )
+      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac2=1");
+    if ( use_godunov && do_temp )
+      amrex::Abort("EB Godunov only supports conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
+    if ( use_godunov && godunov_use_ppm )
+      amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
+    if ( use_godunov && godunov_use_forces_in_trans )
+      amrex::Abort("use_forces_in_trans not implemented within EB Godunov. Set godunov.use_forces_in_trans=0.");
+
+    //
+    // Redistribution
+    //
     pp.query("redistribution_type", redistribution_type);
     if (redistribution_type != "NoRedist" &&
         redistribution_type != "FluxRedist" &&
         // m_redistribution_type != "MergeRedist" &&  // Not supported for now
         redistribution_type != "StateRedist")
         // amrex::Abort("redistribution type must be NoRedist, FluxRedist, MergeRedist, or StateRedist");
-        amrex::Abort("redistribution type must be Noredist, FluxRedist, or StateRedist");
+        amrex::Abort("redistribution type must be NoRedist, FluxRedist, or StateRedist");
 #endif
-
-    //
-    // Get godunov options
-    //
-#ifndef AMREX_USE_EB
-    ParmParse pp2("godunov");
-    pp2.query("use_ppm",             godunov_use_ppm);
-    pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
-#endif
-
 
 
     amrex::ExecOnFinalize(NavierStokesBase::Finalize);
@@ -3441,7 +3455,8 @@ NavierStokesBase::velocity_advection (Real dt)
                     else
 #ifdef AMREX_USE_EB
                     {
-                        amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
+		        // If EB, we should already aborted during initialization
+                        amrex::Abort("NSB::velocity_adveciton(): EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
                     }
 #else
                     {
@@ -4645,7 +4660,7 @@ NavierStokesBase::predict_velocity (Real  dt)
 
       ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-      Print() << "PeleLM::predict_velocity(): lev: " << level
+      Print() << "NavierStokesBase::predict_velocity(): lev: " << level
               << ", time: " << run_time << '\n';
    }
 
@@ -4767,8 +4782,9 @@ NavierStokesBase::InitialRedistribution ()
         if ( (flagfab.getType(amrex::grow(bx,1)) != FabType::covered) &&
              (flagfab.getType(amrex::grow(bx,1)) != FabType::regular) )
         {
+	    if (verbose)
+	      amrex::Print() << "Doing initial redistribution... " << std::endl;
 
-            amrex::Print() << "DOING THIS " << std::endl;
             Array4<Real const> AMREX_D_DECL(fcx, fcy, fcz), ccc, vfrac, AMREX_D_DECL(apx, apy, apz);
 
             AMREX_D_TERM(fcx = fact.getFaceCent()[0]->const_array(mfi);,
