@@ -462,7 +462,7 @@ public:
     //
     static void variableCleanUp ();
     //
-    // Read input file common to IAMR and PeleLM
+    // Read input file
     //
     static void Initialize ();
     //

@@ -131,7 +131,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
 	    int tmpcomp = ncomp*AMREX_SPACEDIM;
 
 #ifdef AMREX_USE_EB
-	    // PeleLM needs valid flux on all ng_f cells. If !known_edgestate, need 2 additional
+	    // to get valid flux on all ng_f cells. If !known_edgestate, need 2 additional
 	    //  cells in state to compute the slopes needed to compute the edge state.
 	    int halo = known_edgestate ? 0 : ng_f+2;
             bool regular = flagfab.getType(amrex::grow(bx,halo)) == FabType::regular;

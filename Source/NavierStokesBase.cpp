@@ -3373,8 +3373,8 @@ NavierStokesBase::velocity_advection (Real dt)
 	// Non-EB does not need any ghost cells (verified in development).
 	// Not sure that EB really needs any ghost cells on fluxes either (however,
 	// nghost =0 in development causes regression test to fail).
-	// PeleLM needs fluxes for scalar advection (not velocity advection)
-	// but has it's own scalar advection routine and does not use NS::scalar_advection()
+	// Note that classes derived from NS may need fluxes for scalar advection (not velocity advection)
+	// even though they may have their own scalar advection routine and do not use NS::scalar_advection()
 #ifdef AMREX_USE_EB
         int nghost = nghost_state()-2;
 #else
@@ -4545,7 +4545,7 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
 Real
 NavierStokesBase::predict_velocity (Real  dt)
 {
-   BL_PROFILE("PeleLM::predict_velocity()");
+   BL_PROFILE("NavierStokesBase::predict_velocity()");
    if (verbose) {
       amrex::Print() << "... predict edge velocities\n";
    }
