@@ -165,7 +165,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     amrex::RealVect p;
 
     Real scaleFact;
-    scaleFact = 0.0025; //Because PeleLM is in MKS
+    scaleFact = 0.0025; //MKS
 
     p = amrex::RealVect(D_DECL(49.0*0.1*scaleFact, 7.8583*0.1*scaleFact, 0.0));
     lnpts.push_back(p);

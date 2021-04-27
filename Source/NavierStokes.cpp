@@ -732,8 +732,8 @@ NavierStokes::scalar_advection (Real dt,
     // Non-EB does not need any ghost cells (verified in development).
     // Not sure that EB really needs any ghost cells on fluxes either (however,
     // nghost =0 in development causes regression test to fail).
-    // PeleLM needs fluxes for scalar advection (not velocity advection)
-    // but has it's own scalar advection routine and does not use NS::scalar_advection()
+    // Note that classes derived from NS may need fluxes for scalar advection (not velocity advection)
+    // They may have their own scalar advection routine and may not use NS::scalar_advection()
 #ifdef AMREX_USE_EB
         int nghost = nghost_state()-2;
 #else
