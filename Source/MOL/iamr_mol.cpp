@@ -771,7 +771,7 @@ MOL::Redistribute (  Box const& bx, int ncomp,
     amrex::ParallelFor(bxg2, [wgt,dbox,vfrac]
     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        wgt(i,j,k) = (dbox.contains(IntVect(D_DECL(i,j,k)))) ? vfrac(i,j,k) : 0.0;
+        wgt(i,j,k) = (dbox.contains(IntVect(D_DECL(i,j,k)))) ? 1.0 : 0.0;
     });
 
     amrex::ParallelFor(bxg1, ncomp, [flag, dbox, vfrac, div_in, tmp, delm, wgt]
