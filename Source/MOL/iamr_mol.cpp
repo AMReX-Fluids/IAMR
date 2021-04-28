@@ -217,7 +217,10 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                                        redistribution_type );
 
                 // Change sign because for EB redistribution we compute -div
-                aofs[mfi].mult(-1., bx, aofs_comp, ncomp);
+		auto const& aofs_arr = aofs.array(mfi, aofs_comp);
+		amrex::ParallelFor(bx, ncomp, [aofs_arr]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                { aofs_arr( i, j, k, n ) *=  - 1.0; });
             }
             else
 #endif
