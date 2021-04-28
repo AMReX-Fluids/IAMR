@@ -5,15 +5,15 @@
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_MLNodeLaplacian.H>
 
-#include <iamr_mol.H>
-
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EBInterpolater.H>
 #include <AMReX_EBFArrayBox.H>
 #include <iamr_ebgodunov.H>
-#include <iamr_redistribution.H>
+#include <hydro_ebmol.H>
+#include <hydro_redistribution.H>
 #else
+#include <hydro_mol.H>
 #include <iamr_godunov.H>
 #endif
 
@@ -3517,19 +3517,32 @@ NavierStokesBase::velocity_advection (Real dt)
         }
         else
         {
+            amrex::Gpu::DeviceVector<int> iconserv;
+            iconserv.resize(AMREX_SPACEDIM, 0);
+
+            for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+            {
+                iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+            }
+
             //
             // >>>>>>>>>>>>>>>>>>>>>>>>>>>  MOL ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             //
-
+#ifdef AMREX_USE_EB
+            EBMOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, Umf, 0,
+                               D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                               D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                               m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv,
+                               geom, dt, redistribution_type );
+#else
             MOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, Umf, 0,
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt
-#ifdef AMREX_USE_EB
-                             , redistribution_type
+                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv,
+                             geom, dt );
 #endif
-                             );
         }
 
 
@@ -4656,11 +4669,15 @@ NavierStokesBase::predict_velocity (Real  dt)
    }
    else  // MOL SCHEME
    {
-
+#ifdef AMREX_USE_EB
+       EBMOL::ExtrapVelToFaces( Umf,
+                                AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+                                geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
+#else
        MOL::ExtrapVelToFaces( Umf,
                               AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                               geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
-
+#endif
    }
 
    if (verbose > 1)

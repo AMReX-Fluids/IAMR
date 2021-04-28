@@ -29,10 +29,12 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
 #include <iamr_ebgodunov.H>
+#include <hydro_ebmol.H>
+#else
+#include <hydro_mol.H>
 #endif
 
 #include <AMReX_buildInfo.H>
-#include <iamr_mol.H>
 #include <iamr_godunov.H>
 
 using namespace amrex;
@@ -766,18 +768,30 @@ NavierStokes::scalar_advection (Real dt,
             //////////////////////////////////////////////////////////////////////////////
             //  MOL ALGORITHM
             //////////////////////////////////////////////////////////////////////////////
-
             const Box& domain = geom.Domain();
 
+            amrex::Gpu::DeviceVector<int> iconserv;
+            iconserv.resize(num_scalars, 0);
+            // does this actually put data in GPU memory?
+            for (int comp = 0; comp < num_scalars; ++comp)
+            {
+                iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
+            }
+#ifdef AMREX_USE_EB
+            EBMOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
+                               D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                               D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                               m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), iconserv,
+                               geom, dt, redistribution_type );
+#else
             MOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), geom, dt
-#ifdef AMREX_USE_EB
-                             , redistribution_type
+                             m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), iconserv,
+                             geom, dt);
 #endif
-                            );
 
         }
         else

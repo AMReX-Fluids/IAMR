@@ -1,4 +1,5 @@
 AMREX_NO_PROBINIT=TRUE
+AMREX_HYDRO_HOME := ../AMReX-Hydro
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -6,13 +7,17 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 Bdirs += Source
 Bdirs += Source/Src_$(DIM)d
-Bdirs += Source/MOL
+# Bdirs += Source/MOL
+Bdirs += $(AMREX_HYDRO_HOME)/Utils
+Bdirs += $(AMREX_HYDRO_HOME)/MOL
 Bdirs += Source/Godunov
 Bdirs += Source/prob
 
 ifeq ($(USE_EB), TRUE)
+Bdirs += $(AMREX_HYDRO_HOME)/Redistribution
+Bdirs += $(AMREX_HYDRO_HOME)/EBMOL
 Bdirs += Source/EBGodunov
-Bdirs += Source/Redistribution
+# Bdirs += Source/Redistribution
 endif
 
 

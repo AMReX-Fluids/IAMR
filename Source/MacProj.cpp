@@ -11,8 +11,11 @@
 
 #ifdef AMREX_USE_EB
 #include <iamr_ebgodunov.H>
+#include <hydro_ebmol.H>
+#else
+#include <hydro_mol.H>
 #endif
-#include <iamr_mol.H>
+
 #include <iamr_godunov.H>
 
 //fixme, for writesingle level plotfile
@@ -601,16 +604,22 @@ MacProj::mac_sync_compute (int                   level,
 						   ? ns_level.get_bcrec_velocity_d_ptr()
 						   : ns_level.get_bcrec_scalars_d_ptr();
 
+#ifdef AMREX_USE_EB
+                EBMOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
+                                       D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                       D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                       D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                       D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                       math_bcs, &d_bcrec_ptr[sync_comp], geom, dt,
+                                       ns_level.redistribution_type );
+#else
                 MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
                                      D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                      D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                      D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                      D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, dt
-#ifdef AMREX_USE_EB
-                                     , ns_level.redistribution_type
+                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, dt );
 #endif
-                                     );
             }
         }
     }
@@ -877,17 +886,24 @@ MacProj::mac_sync_compute (int                    level,
 	Vector<BCRec>  bcs;
 	BCRec  const* d_bcrec_ptr = NULL;
 
-	MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
+#ifdef AMREX_USE_EB
+        EBMOL::ComputeSyncAofs(Sync, s_ind, ncomp,
+                               Sync, s_ind, // this is not used when we pass edge states
+                               D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+                               D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                               D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+                               D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+                               bcs, d_bcrec_ptr, geom, dt,
+                               ns_level.redistribution_type);
+#else
+        MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
 			     Sync, s_ind, // this is not used when we pass edge states
 			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
 			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
 			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-			     bcs, d_bcrec_ptr, geom, dt
-#ifdef AMREX_USE_EB
-                             , ns_level.redistribution_type
+			     bcs, d_bcrec_ptr, geom, dt);
 #endif
-            );
 
     }
     else
