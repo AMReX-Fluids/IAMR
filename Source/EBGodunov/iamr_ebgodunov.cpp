@@ -176,9 +176,11 @@ EBGodunov::ComputeAofs ( MultiFab& aofs, const int aofs_comp, const int ncomp,
                                    redistribution_type );
 
             // Change sign because for EB we computed -div
-            aofs[mfi].mult(-1., bx, aofs_comp, ncomp);
-
-        }
+	    auto const& aofs_arr = aofs.array(mfi, aofs_comp); 
+            amrex::ParallelFor(bx, ncomp, [aofs_arr]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            { aofs_arr( i, j, k, n ) *=  - 1.0; });
+	 }
 
         // Note this sync is needed since ComputeEdgeState() contains temporaries
 	// Not sure it's really needed when known_edgestate==true
