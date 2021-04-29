@@ -4814,6 +4814,8 @@ NavierStokesBase::InitialRedistribution ()
                                                 flag, AMREX_D_DECL(apx, apy, apz), vfrac,
                                                 AMREX_D_DECL(fcx, fcy, fcz),
                                                 ccc, geom, redistribution_type);
+
+            amrex::Gpu::streamSynchronize();
         }
     }
 }
