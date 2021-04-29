@@ -7,10 +7,10 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 Bdirs += Source
 Bdirs += Source/Src_$(DIM)d
-# Bdirs += Source/MOL
 Bdirs += $(AMREX_HYDRO_HOME)/Utils
 Bdirs += $(AMREX_HYDRO_HOME)/MOL
-Bdirs += Source/Godunov
+Bdirs += $(AMREX_HYDRO_HOME)/Godunov
+#Bdirs += Source/Godunov
 Bdirs += Source/prob
 
 ifeq ($(USE_EB), TRUE)

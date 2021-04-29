@@ -14,7 +14,7 @@
 #include <hydro_redistribution.H>
 #else
 #include <hydro_mol.H>
-#include <iamr_godunov.H>
+#include <hydro_godunov.H>
 #endif
 
 #include <NavierStokesBase.H>

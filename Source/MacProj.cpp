@@ -13,10 +13,11 @@
 #include <iamr_ebgodunov.H>
 #include <hydro_ebmol.H>
 #else
+#include <hydro_godunov.H>
 #include <hydro_mol.H>
 #endif
 
-#include <iamr_godunov.H>
+
 
 //fixme, for writesingle level plotfile
 #include<AMReX_PlotFileUtil.H>

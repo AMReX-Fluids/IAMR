@@ -31,11 +31,11 @@
 #include <iamr_ebgodunov.H>
 #include <hydro_ebmol.H>
 #else
+#include <hydro_godunov.H>
 #include <hydro_mol.H>
 #endif
 
 #include <AMReX_buildInfo.H>
-#include <iamr_godunov.H>
 
 using namespace amrex;
 
