@@ -10,14 +10,12 @@ Bdirs += Source/Src_$(DIM)d
 Bdirs += $(AMREX_HYDRO_HOME)/Utils
 Bdirs += $(AMREX_HYDRO_HOME)/MOL
 Bdirs += $(AMREX_HYDRO_HOME)/Godunov
-#Bdirs += Source/Godunov
 Bdirs += Source/prob
 
 ifeq ($(USE_EB), TRUE)
 Bdirs += $(AMREX_HYDRO_HOME)/Redistribution
 Bdirs += $(AMREX_HYDRO_HOME)/EBMOL
-Bdirs += Source/EBGodunov
-# Bdirs += Source/Redistribution
+Bdirs += $(AMREX_HYDRO_HOME)/EBGodunov
 endif
 
 

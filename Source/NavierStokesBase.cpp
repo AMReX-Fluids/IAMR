@@ -9,8 +9,8 @@
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EBInterpolater.H>
 #include <AMReX_EBFArrayBox.H>
-#include <iamr_ebgodunov.H>
 #include <hydro_ebmol.H>
+#include <hydro_ebgodunov.H>
 #include <hydro_redistribution.H>
 #else
 #include <hydro_mol.H>

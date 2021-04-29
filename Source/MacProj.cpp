@@ -10,7 +10,7 @@
 #include <OutFlowBC.H>
 
 #ifdef AMREX_USE_EB
-#include <iamr_ebgodunov.H>
+#include <hydro_ebgodunov.H>
 #include <hydro_ebmol.H>
 #else
 #include <hydro_godunov.H>
