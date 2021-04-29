@@ -620,121 +620,115 @@ void NavierStokes::init_HIT (Box const& vbx,
 
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
   {
-//    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0] - 0.5;
-//    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1] - 0.5;
-//    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2] - 0.5;
 
-  amrex::Real x[3] = {
-    problo[0] + static_cast<amrex::Real>(i + 0.5) * dx[0],
-    problo[1] + static_cast<amrex::Real>(j + 0.5) * dx[1],
-    problo[2] + static_cast<amrex::Real>(k + 0.5) * dx[2]};
+    amrex::Real x[3] = {
+      problo[0] + static_cast<amrex::Real>(i + 0.5) * dx[0],
+      problo[1] + static_cast<amrex::Real>(j + 0.5) * dx[1],
+      problo[2] + static_cast<amrex::Real>(k + 0.5) * dx[2]};
 
+    // Fill in the velocities and energy.
+    amrex::Real u[3] = {0.0};
+    amrex::Real uinterp[3] = {0.0};
 
+    // Interpolation factors
+    amrex::Real mod[3] = {0.0};
+    int idx[3] = {0};
+    int idxp1[3] = {0};
+    amrex::Real slp[3] = {0.0};
+    for (int cnt = 0; cnt < 3; cnt++) {
+      mod[cnt] = std::fmod(x[cnt], IC.Linput);
+      locate(IC.d_xarray, IC.inres, mod[cnt], idx[cnt]);
+      idxp1[cnt] = (idx[cnt] + 1) % IC.inres;
+      slp[cnt] =
+        (mod[cnt] - IC.d_xarray[idx[cnt]]) / IC.d_xdiff[idx[cnt]];
+    }
 
-  // Fill in the velocities and energy.
-  amrex::Real u[3] = {0.0};
-  amrex::Real uinterp[3] = {0.0};
+    const amrex::Real f0 = (1 - slp[0]) * (1 - slp[1]) * (1 - slp[2]);
+    const amrex::Real f1 = slp[0] * (1 - slp[1]) * (1 - slp[2]);
+    const amrex::Real f2 = (1 - slp[0]) * slp[1] * (1 - slp[2]);
+    const amrex::Real f3 = (1 - slp[0]) * (1 - slp[1]) * slp[2];
+    const amrex::Real f4 = slp[0] * (1 - slp[1]) * slp[2];
+    const amrex::Real f5 = (1 - slp[0]) * slp[1] * slp[2];
+    const amrex::Real f6 = slp[0] * slp[1] * (1 - slp[2]);
+    const amrex::Real f7 = slp[0] * slp[1] * slp[2];
 
-  // Interpolation factors
-  amrex::Real mod[3] = {0.0};
-  int idx[3] = {0};
-  int idxp1[3] = {0};
-  amrex::Real slp[3] = {0.0};
-  for (int cnt = 0; cnt < 3; cnt++) {
-    mod[cnt] = std::fmod(x[cnt], IC.Linput);
-    locate(IC.d_xarray, IC.inres, mod[cnt], idx[cnt]);
-    idxp1[cnt] = (idx[cnt] + 1) % IC.inres;
-    slp[cnt] =
-      (mod[cnt] - IC.d_xarray[idx[cnt]]) / IC.d_xdiff[idx[cnt]];
-  }
+    uinterp[0] =
+      IC.d_uinput
+          [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+        f0 +
+      IC.d_uinput
+          [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+        f1 +
+      IC.d_uinput
+          [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+        f2 +
+      IC.d_uinput
+          [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+        f3 +
+      IC.d_uinput
+          [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+        f4 +
+      IC.d_uinput
+          [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+        f5 +
+      IC.d_uinput
+          [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+        f6 +
+      IC.d_uinput
+          [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+        f7;
 
-  const amrex::Real f0 = (1 - slp[0]) * (1 - slp[1]) * (1 - slp[2]);
-  const amrex::Real f1 = slp[0] * (1 - slp[1]) * (1 - slp[2]);
-  const amrex::Real f2 = (1 - slp[0]) * slp[1] * (1 - slp[2]);
-  const amrex::Real f3 = (1 - slp[0]) * (1 - slp[1]) * slp[2];
-  const amrex::Real f4 = slp[0] * (1 - slp[1]) * slp[2];
-  const amrex::Real f5 = (1 - slp[0]) * slp[1] * slp[2];
-  const amrex::Real f6 = slp[0] * slp[1] * (1 - slp[2]);
-  const amrex::Real f7 = slp[0] * slp[1] * slp[2];
+    uinterp[1] =
+      IC.d_vinput
+          [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+        f0 +
+      IC.d_vinput
+          [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+        f1 +
+      IC.d_vinput
+          [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+        f2 +
+      IC.d_vinput
+          [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+        f3 +
+      IC.d_vinput
+          [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+        f4 +
+      IC.d_vinput
+          [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+        f5 +
+      IC.d_vinput
+          [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+        f6 +
+      IC.d_vinput
+          [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+        f7;
 
-  uinterp[0] =
-    IC.d_uinput
-        [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
-      f0 +
-    IC.d_uinput
-        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
-      f1 +
-    IC.d_uinput
-        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
-      f2 +
-    IC.d_uinput
-        [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
-      f3 +
-    IC.d_uinput
-        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
-      f4 +
-    IC.d_uinput
-        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
-      f5 +
-    IC.d_uinput
-        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
-      f6 +
-    IC.d_uinput
-        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
-      f7;
-
-  uinterp[1] =
-    IC.d_vinput
-        [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
-      f0 +
-    IC.d_vinput
-        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
-      f1 +
-    IC.d_vinput
-        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
-      f2 +
-    IC.d_vinput
-        [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
-      f3 +
-    IC.d_vinput
-        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
-      f4 +
-    IC.d_vinput
-        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
-      f5 +
-    IC.d_vinput
-        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
-      f6 +
-    IC.d_vinput
-        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
-      f7;
-
-  uinterp[2] =
-    IC.d_winput
-        [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
-      f0 +
-    IC.d_winput
-        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
-      f1 +
-    IC.d_winput
-        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
-      f2 +
-    IC.d_winput
-        [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
-      f3 +
-    IC.d_winput
-        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
-      f4 +
-    IC.d_winput
-        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
-      f5 +
-    IC.d_winput
-        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
-      f6 +
-    IC.d_winput
-        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
-      f7;
-
+    uinterp[2] =
+      IC.d_winput
+          [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+        f0 +
+      IC.d_winput
+          [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+        f1 +
+      IC.d_winput
+          [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+        f2 +
+      IC.d_winput
+          [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+        f3 +
+      IC.d_winput
+          [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+        f4 +
+      IC.d_winput
+          [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+        f5 +
+      IC.d_winput
+          [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+        f6 +
+      IC.d_winput
+          [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+        f7;
 
     //
     // Fill Velocity
