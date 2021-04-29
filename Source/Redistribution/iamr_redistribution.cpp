@@ -1,4 +1,3 @@
-#ifdef AMREX_USE_EB
 #include <iamr_redistribution.H>
 #include <AMReX_EB_utils.H>
 
@@ -181,4 +180,3 @@ Redistribution::ApplyToInitialData ( Box const& bx, int ncomp,
        amrex::Error("Shouldnt be here with this redist type");
     }
 }
-#endif

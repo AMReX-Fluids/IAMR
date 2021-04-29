@@ -1,5 +1,3 @@
-#ifdef AMREX_USE_EB
-
 #include <iamr_redistribution.H>
 #include <AMReX_EB_slopes_K.H>
 
@@ -148,4 +146,3 @@ Redistribution::MergeRedistribute ( Box const& bx, int ncomp,
     } //  END:SUM OF FINAL DUDT
 #endif
 }
-#endif
