@@ -38,7 +38,18 @@ struct InitialConditions
   int inres = 0.0;
   std::string iname;
   bool binfmt = false;
+  amrex::Real urms0 = 1.0;
+  amrex::Real uin_norm = 1.0;
 
+  amrex::Vector<amrex::Real> xdiff;
+  amrex::Vector<amrex::Real> xarray;
+  amrex::Real Linput = 0.0;
+
+  amrex::Real* d_uinput = nullptr;
+  amrex::Real* d_vinput = nullptr;
+  amrex::Real* d_winput = nullptr;
+  amrex::Real* d_xarray = nullptr;
+  amrex::Real* d_xdiff = nullptr;
 
 };
 

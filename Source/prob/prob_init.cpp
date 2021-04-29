@@ -62,6 +62,7 @@ void NavierStokes::prob_initData ()
     }
     pp.query("iname",IC.iname);
     pp.query("binfmt",IC.binfmt);
+    pp.query("urms0",IC.urms0);
 
     //
     // Fill state and, optionally, pressure
@@ -87,6 +88,13 @@ void NavierStokes::prob_initData ()
 
 // Stuff related to HIT below
 
+    // Load velocity fields from file. Assume data set ordered in Fortran
+    // format and reshape the data accordingly. One thing to keep in mind
+    // is that this contains the entire input data. We will interpolate
+    // this data later to just match our box. Another assumption is that
+    // the input data is a periodic cube. If the input cube is smaller
+    // than our domain size, the cube will be repeated throughout the
+    // domain (hence the mod operations in the interpolation).
     const size_t nx = IC.inres;
     const size_t ny = IC.inres;
     const size_t nz = IC.inres;
@@ -98,16 +106,54 @@ void NavierStokes::prob_initData ()
       read_csv(IC.iname, nx, ny, nz, data);
     }
 
+    // Extract position and velocities
+    amrex::Vector<amrex::Real> xinput;
+    amrex::Vector<amrex::Real> uinput;
+    amrex::Vector<amrex::Real> vinput;
+    amrex::Vector<amrex::Real> winput;
+    amrex::Vector<amrex::Real> xdiff;
+    amrex::Vector<amrex::Real> xarray;
+//    amrex::Real Linput = 0.0;
 
+    xinput.resize(nx * ny * nz);
+    uinput.resize(nx * ny * nz);
+    vinput.resize(nx * ny * nz);
+    winput.resize(nx * ny * nz);
 
+    for (long i = 0; i < xinput.size(); i++) {
+      xinput[i] = data[0 + i * 6];
+      uinput[i] = data[3 + i * 6] * IC.urms0 / IC.uin_norm;
+      vinput[i] = data[4 + i * 6] * IC.urms0 / IC.uin_norm;
+      winput[i] = data[5 + i * 6] * IC.urms0 / IC.uin_norm;
+    }
 
+    // Get the xarray table and the differences.
+    xarray.resize(nx);
+    for (long i = 0; i < xarray.size(); i++) {
+      xarray[i] = xinput[i];
+    }
+    xdiff.resize(nx);
+    std::adjacent_difference(
+      xarray.begin(),
+      xarray.end(),
+      xdiff.begin());
+    xdiff[0] = xdiff[1];
 
+    // Make sure the search array is increasing
+    if (not std::is_sorted(
+          xarray.begin(),
+          xarray.end())) {
+      amrex::Abort("Error: non ascending x-coordinate array.");
+    }
 
+    // Dimensions of the input box.
+    IC.Linput = xarray[nx - 1] + 0.5 * xdiff[nx - 1];
 
-
-
-
-
+    IC.d_xarray = xarray.data();
+    IC.d_xdiff  = xdiff.data();
+    IC.d_uinput = uinput.data(); 
+    IC.d_vinput = vinput.data();
+    IC.d_winput = winput.data();
 
 
 #ifdef _OPENMP
@@ -574,17 +620,128 @@ void NavierStokes::init_HIT (Box const& vbx,
 
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
   {
-    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0] - 0.5;
-    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1] - 0.5;
-    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2] - 0.5;
+//    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0] - 0.5;
+//    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1] - 0.5;
+//    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2] - 0.5;
+
+  amrex::Real x[3] = {
+    problo[0] + static_cast<amrex::Real>(i + 0.5) * dx[0],
+    problo[1] + static_cast<amrex::Real>(j + 0.5) * dx[1],
+    problo[2] + static_cast<amrex::Real>(k + 0.5) * dx[2]};
+
+
+
+  // Fill in the velocities and energy.
+  amrex::Real u[3] = {0.0};
+  amrex::Real uinterp[3] = {0.0};
+
+  // Interpolation factors
+  amrex::Real mod[3] = {0.0};
+  int idx[3] = {0};
+  int idxp1[3] = {0};
+  amrex::Real slp[3] = {0.0};
+  for (int cnt = 0; cnt < 3; cnt++) {
+    mod[cnt] = std::fmod(x[cnt], IC.Linput);
+    locate(IC.d_xarray, IC.inres, mod[cnt], idx[cnt]);
+    idxp1[cnt] = (idx[cnt] + 1) % IC.inres;
+    slp[cnt] =
+      (mod[cnt] - IC.d_xarray[idx[cnt]]) / IC.d_xdiff[idx[cnt]];
+  }
+
+  const amrex::Real f0 = (1 - slp[0]) * (1 - slp[1]) * (1 - slp[2]);
+  const amrex::Real f1 = slp[0] * (1 - slp[1]) * (1 - slp[2]);
+  const amrex::Real f2 = (1 - slp[0]) * slp[1] * (1 - slp[2]);
+  const amrex::Real f3 = (1 - slp[0]) * (1 - slp[1]) * slp[2];
+  const amrex::Real f4 = slp[0] * (1 - slp[1]) * slp[2];
+  const amrex::Real f5 = (1 - slp[0]) * slp[1] * slp[2];
+  const amrex::Real f6 = slp[0] * slp[1] * (1 - slp[2]);
+  const amrex::Real f7 = slp[0] * slp[1] * slp[2];
+
+  uinterp[0] =
+    IC.d_uinput
+        [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+      f0 +
+    IC.d_uinput
+        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+      f1 +
+    IC.d_uinput
+        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+      f2 +
+    IC.d_uinput
+        [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+      f3 +
+    IC.d_uinput
+        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+      f4 +
+    IC.d_uinput
+        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+      f5 +
+    IC.d_uinput
+        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+      f6 +
+    IC.d_uinput
+        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+      f7;
+
+  uinterp[1] =
+    IC.d_vinput
+        [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+      f0 +
+    IC.d_vinput
+        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+      f1 +
+    IC.d_vinput
+        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+      f2 +
+    IC.d_vinput
+        [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+      f3 +
+    IC.d_vinput
+        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+      f4 +
+    IC.d_vinput
+        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+      f5 +
+    IC.d_vinput
+        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+      f6 +
+    IC.d_vinput
+        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+      f7;
+
+  uinterp[2] =
+    IC.d_winput
+        [idx[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+      f0 +
+    IC.d_winput
+        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idx[2])] *
+      f1 +
+    IC.d_winput
+        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+      f2 +
+    IC.d_winput
+        [idx[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+      f3 +
+    IC.d_winput
+        [idxp1[0] + IC.inres * (idx[1] + IC.inres * idxp1[2])] *
+      f4 +
+    IC.d_winput
+        [idx[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+      f5 +
+    IC.d_winput
+        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idx[2])] *
+      f6 +
+    IC.d_winput
+        [idxp1[0] + IC.inres * (idxp1[1] + IC.inres * idxp1[2])] *
+      f7;
 
 
     //
     // Fill Velocity
     //
-    vel(i,j,k,0) = 1.0;
-    vel(i,j,k,1) = 0.0;
-    vel(i,j,k,2) = 0.0;
+    vel(i,j,k,0) = uinterp[0];
+    vel(i,j,k,1) = uinterp[1];
+    vel(i,j,k,2) = uinterp[2];
 
     //
     // Scalars, ordered as Density, Tracer(s)
