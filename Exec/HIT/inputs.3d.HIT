@@ -103,7 +103,6 @@ ns.hi_bc             = 0 0 0
 #*******************************************************************************
 
 # Problem parameters
-prob.probtype = 12
 prob.inres = 32
 prob.iname = "hit_ic_4_32.dat"
 prob.urms0 = 1.0
