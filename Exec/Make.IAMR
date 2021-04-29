@@ -15,8 +15,7 @@ Bdirs += Source/EBGodunov
 Bdirs += Source/Redistribution
 endif
 
-
-
+Bdirs += Source/Utilities
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))

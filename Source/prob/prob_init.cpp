@@ -55,6 +55,14 @@ void NavierStokes::prob_initData ()
     // for Taylor-Green
     pp.query("velocity_factor",IC.v_x);
 
+    // for HIT
+    pp.query("inres",IC.inres);
+    if (IC.inres == 0){
+      amrex::Abort("for HIT, inres cannot be 0 !");
+    }
+    pp.query("iname",IC.iname);
+    pp.query("binfmt",IC.binfmt);
+
     //
     // Fill state and, optionally, pressure
     //
@@ -73,6 +81,34 @@ void NavierStokes::prob_initData ()
     auto const& problo = geom.ProbLoArray();
     // Physical coordinates of the upper right corner of the domain
     auto const& probhi = geom.ProbHiArray();
+
+
+
+
+// Stuff related to HIT below
+
+    const size_t nx = IC.inres;
+    const size_t ny = IC.inres;
+    const size_t nz = IC.inres;
+    amrex::Vector<amrex::Real> data(
+      nx * ny * nz * 6); /* this needs to be double */
+    if (IC.binfmt) {
+    //  read_binary(IC.iname, nx, ny, nz, 6, data);
+    } else {
+      read_csv(IC.iname, nx, ny, nz, data);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef _OPENMP
 #pragma omp parallel  if (Gpu::notInLaunchRegion())
@@ -125,6 +161,12 @@ void NavierStokes::prob_initData ()
 			   S_new.array(mfi, Density), nscal,
 			   domain, dx, problo, probhi, IC);
 	}
+        else if ( 12 == probtype )
+        {
+          init_HIT(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+                           S_new.array(mfi, Density), nscal,
+                           domain, dx, problo, probhi, IC);
+        }
 	else
         {
             amrex::Abort("NavierStokes::prob_init: unknown probtype");
@@ -510,3 +552,51 @@ void NavierStokes::init_Euler (Box const& vbx,
     }
   });
 }
+
+void NavierStokes::init_HIT (Box const& vbx,
+                               Array4<Real> const& press,
+                               Array4<Real> const& vel,
+                               Array4<Real> const& scal,
+                               const int nscal,
+                               Box const& domain,
+                               GpuArray<Real, AMREX_SPACEDIM> const& dx,
+                               GpuArray<Real, AMREX_SPACEDIM> const& problo,
+                               GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+                               InitialConditions IC)
+{
+  const auto domlo = amrex::lbound(domain);
+
+#if (AMREX_SPACEDIM != 3)
+    amrex::Abort("NavierStokes::init_HIT: This is a 3D problem, please recompile with DIM=3 in makefile");
+#endif
+
+  constexpr Real eps_input=0.05, rho_input=0.15;
+
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    Real x = problo[0] + (i - domlo.x + 0.5)*dx[0] - 0.5;
+    Real y = problo[1] + (j - domlo.y + 0.5)*dx[1] - 0.5;
+    Real z = problo[2] + (k - domlo.z + 0.5)*dx[2] - 0.5;
+
+
+    //
+    // Fill Velocity
+    //
+    vel(i,j,k,0) = 1.0;
+    vel(i,j,k,1) = 0.0;
+    vel(i,j,k,2) = 0.0;
+
+    //
+    // Scalars, ordered as Density, Tracer(s)
+    //
+    scal(i,j,k,0) = 1.0;
+    scal(i,j,k,1) = 0.0;
+
+    // Additional Tracer, if using
+    for ( int nt=2; nt<nscal; nt++)
+    {
+      scal(i,j,k,nt) = 1.0;
+    }
+  });
+}
+

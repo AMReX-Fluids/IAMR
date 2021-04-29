@@ -1,6 +1,7 @@
 #ifndef PROB_INIT_H_
 #define PROB_INIT_H_
 
+
 // This header is included by NavierStokes.H.  These are members of NavierStokes
 
 //
@@ -32,6 +33,12 @@ struct InitialConditions
   amrex::Real tra_1 = 0.0;
   amrex::Real tra_2 = 1.0;
   amrex::Real pertamp = 1.0;
+
+  // for HIT
+  int inres = 0.0;
+  std::string iname;
+  bool binfmt = false;
+
 
 };
 
@@ -105,6 +112,17 @@ void init_Euler (amrex::Box const& vbx,
 		 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
 		 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
 		 InitialConditions IC);
+
+void init_HIT (amrex::Box const& vbx,
+                 amrex::Array4<amrex::Real> const& press,
+                 amrex::Array4<amrex::Real> const& vel,
+                 amrex::Array4<amrex::Real> const& scal,
+                 const int nscal,
+                 amrex::Box const& domain,
+                 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+                 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+                 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+                 InitialConditions IC);
 
 //FIXME - maybe make use of an enum like this?
 //enum struct Prob { HotSpot, bubble };
