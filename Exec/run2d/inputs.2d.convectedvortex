@@ -1,9 +1,12 @@
 
 #*******************************************************************************
-# INPUTS.2D.TAYLORGREEN
+# INPUTS
 #*******************************************************************************
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
+#NOTE: this input file can be used in combination with the Util/multiRuns.py
+#and Util/pprocConvOrder.py in order to compute the convergence order of the velocity 
+# advection schemes in IAMR.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
