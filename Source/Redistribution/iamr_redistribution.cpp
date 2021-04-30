@@ -34,7 +34,7 @@ void Redistribution::Apply ( Box const& bx, int ncomp,
     //    use the first component of this for the number of neighbors
     IArrayBox itracker(grow(bx,4),8);
 #endif
-
+    Elixir eli = itracker.elixir();
     Array4<int> itr = itracker.array();
 
     amrex::ParallelFor(bx,ncomp,
@@ -155,6 +155,8 @@ Redistribution::ApplyToInitialData ( Box const& bx, int ncomp,
     //    use the first component of this for the number of neighbors
     IArrayBox itracker(grow(bx,4),8);
 #endif
+    Elixir eli = itracker.elixir();
+
     amrex::ParallelFor(bx,ncomp,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
     {
@@ -177,6 +179,6 @@ Redistribution::ApplyToInitialData ( Box const& bx, int ncomp,
                            AMREX_D_DECL(fcx, fcy, fcz), ccc, itr, lev_geom);
 
     } else {
-       amrex::Error("Shouldnt be here with this redist type");
+       amrex::Error("Redistribution::ApplyToInitialData: Shouldn't be here with this redist type");
     }
 }
