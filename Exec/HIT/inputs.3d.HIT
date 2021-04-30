@@ -5,8 +5,8 @@
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 2
-
+max_step 		= 2000
+stop_time = 8
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
