@@ -1,7 +1,9 @@
 This is the decaying 3D Homogeneous Isotropic Turbulence test case,
-originally used for compressible turbulence in:
+originally implemented in PeleC and used to study compressible turbulence in:
 E. Motheau and J. Wakefield, "Investigation of finite-volume methods to capture shocks and turbulence spectra in compressible flows", Commun. in Appl. Math. and Comput. Sci, 15-1 (2020), 1--36.
 https://arxiv.org/abs/1902.06665
+
+The script gen_hit_ic.py can be used to generate an initial solution.
 
 Here, there is no scaling by the turbulent Mach number and the density is kept constant, so that the Tarlor-scale Reynolds number is defined by Re=0.5 urms / nu where umrs and nu can be set in the input file (prob.urms0=... and ns.vel_visc_coef = ...).
 
