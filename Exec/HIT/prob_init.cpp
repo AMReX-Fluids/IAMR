@@ -55,6 +55,17 @@ void NavierStokes::prob_initData ()
     // Physical coordinates of the upper right corner of the domain
     auto const& probhi = geom.ProbHiArray();
 
+    amrex::Real lambda0 = 0.5;
+    amrex::Real tau  = lambda0 / IC.urms0;
+    // Output IC
+    std::ofstream ofs("ic.txt", std::ofstream::out);
+    amrex::Print(ofs)
+      << "lambda0, urms0, tau "
+      << std::endl;
+    amrex::Print(ofs).SetPrecision(17)
+      << lambda0 << "," << IC.urms0 << "," << tau << std::endl;
+    ofs.close();
+
 
     // Load velocity fields from file. Assume data set ordered in Fortran
     // format and reshape the data accordingly. One thing to keep in mind
