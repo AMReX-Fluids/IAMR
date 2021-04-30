@@ -750,6 +750,11 @@ NavierStokes::scalar_advection (Real dt,
     }
 
 
+    amrex::Gpu::DeviceVector<int> iconserv;
+    iconserv.resize(num_scalars, 0);
+    for (int comp = 0; comp < num_scalars; ++comp)
+        iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
+
     //
     // Start FillPatchIterator block
     //
@@ -773,7 +778,7 @@ NavierStokes::scalar_advection (Real dt,
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), geom, dt
+                             m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), iconserv, geom, dt
 #ifdef AMREX_USE_EB
                              , redistribution_type
 #endif
@@ -864,13 +869,6 @@ NavierStokes::scalar_advection (Real dt,
                 }
             }
 
-            amrex::Gpu::DeviceVector<int> iconserv;
-            iconserv.resize(num_scalars, 0);
-            // does this actually put data in GPU memory?
-            for (int comp = 0; comp < num_scalars; ++comp)
-            {
-                iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
-            }
 
 #ifdef AMREX_USE_EB
             EBGodunov::ComputeAofs(*aofs, fscalar, num_scalars,

@@ -22,6 +22,7 @@ namespace MOL {
                        int fluxes_comp,
                        amrex::Vector<amrex::BCRec> const& bcs,
 		                     amrex::BCRec  const* d_bcrec_ptr,
+                       amrex::Gpu::DeviceVector<int>& iconserv,
                        amrex::Geometry const& geom,
                        amrex::Real dt
 #ifdef AMREX_USE_EB
@@ -81,12 +82,20 @@ namespace MOL {
                                  amrex::Array4<amrex::Real const> const& zedge),
                          int ncomp );
 
-    void ComputeDivergence ( amrex::Box const& bx,
-                             amrex::Array4<amrex::Real> const& div,
-                             D_DECL( amrex::Array4<amrex::Real const> const& fx,
-                                     amrex::Array4<amrex::Real const> const& fy,
-                                     amrex::Array4<amrex::Real const> const& fz),
-                             int ncomp, amrex::Geometry const& geom );
+    void ComputeDivergence  ( amrex::Box const& bx,
+                              amrex::Array4<amrex::Real> const& div,
+                              AMREX_D_DECL( amrex::Array4<amrex::Real const> const& fx,
+                                            amrex::Array4<amrex::Real const> const& fy,
+                                            amrex::Array4<amrex::Real const> const& fz),
+                              AMREX_D_DECL( amrex::Array4<amrex::Real const> const& xed,
+                                            amrex::Array4<amrex::Real const> const& yed,
+                                            amrex::Array4<amrex::Real const> const& zed),
+                              AMREX_D_DECL( amrex::Array4<amrex::Real const> const& umac,
+                                            amrex::Array4<amrex::Real const> const& vmac,
+                                            amrex::Array4<amrex::Real const> const& wmac),
+                              const int ncomp, amrex::Geometry const& geom,
+                              int const* iconserv );
+
 
     void ExtrapVelToFaces ( const amrex::MultiFab&  vel,
                             D_DECL(amrex::MultiFab& umac,

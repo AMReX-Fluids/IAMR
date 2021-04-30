@@ -536,16 +536,16 @@ NavierStokesBase::Initialize ()
 
 #ifdef AMREX_USE_EB
     //
-    // EB Godunov restrictions
+    // EB restrictions
     //
-    if ( use_godunov && !do_mom_diff )
-      amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
-    if ( use_godunov && !do_cons_trac )
-      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
-    if ( use_godunov && !do_cons_trac2 )
-      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac2=1");
-    if ( use_godunov && do_temp )
-      amrex::Abort("EB Godunov only supports conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
+    if ( !do_mom_diff )
+      amrex::Abort("EB schemes only support conservative velocity update: run with ns.do_mom_diff=1");
+    if ( !do_cons_trac )
+      amrex::Abort("EB schemes only support conservative scalar update: run with ns.do_cons_trac=1");
+    if ( !do_cons_trac2 )
+      amrex::Abort("EB schemes only support conservative scalar update: run with ns.do_cons_trac2=1");
+    if ( do_temp )
+      amrex::Abort("EB schemes only support conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
     if ( use_godunov && godunov_use_ppm )
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
@@ -3354,6 +3354,12 @@ NavierStokesBase::velocity_advection (Real dt)
         }
     }
 
+
+    amrex::Gpu::DeviceVector<int> iconserv;
+    iconserv.resize(AMREX_SPACEDIM, 0);
+    for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+        iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+
     //
     // Compute the advective forcing.
     //
@@ -3483,14 +3489,6 @@ NavierStokesBase::velocity_advection (Real dt)
                 }
             }
 
-            amrex::Gpu::DeviceVector<int> iconserv;
-            iconserv.resize(AMREX_SPACEDIM, 0);
-
-            for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
-            {
-                iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
-            }
-
 #ifndef AMREX_USE_EB
             Godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
                                  *S_term, 0,
@@ -3511,7 +3509,7 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
 
 	    if (do_mom_diff)
-	      delete S_term;
+                delete S_term;
         }
         else
         {
@@ -3523,7 +3521,7 @@ NavierStokesBase::velocity_advection (Real dt)
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt
+                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv, geom, dt
 #ifdef AMREX_USE_EB
                              , redistribution_type
 #endif
