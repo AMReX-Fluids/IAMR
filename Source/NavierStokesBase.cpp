@@ -125,7 +125,6 @@ int  NavierStokesBase::Average_Type                       = -1;
 int  NavierStokesBase::num_state_type                     = 2;
 int  NavierStokesBase::have_divu                          = 0;
 int  NavierStokesBase::have_dsdt                          = 0;
-Real NavierStokesBase::divu_relax_factor                  = 0.0;
 int  NavierStokesBase::do_init_vort_proj                  = 0;
 int  NavierStokesBase::do_init_proj                       = 1;
 
@@ -488,7 +487,6 @@ NavierStokesBase::Initialize ()
     if (init_shrink > 1.0)
         amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
 
-    pp.query("divu_relax_factor",divu_relax_factor);
     pp.query("be_cn_theta",be_cn_theta);
     if (be_cn_theta > 1.0 || be_cn_theta < .5)
         amrex::Abort("NavierStokesBase::Initialize(): Must have be_cn_theta <= 1.0 && >= .5");

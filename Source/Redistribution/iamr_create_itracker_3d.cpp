@@ -1,5 +1,3 @@
-#ifdef AMREX_USE_EB
-
 #include <iamr_redistribution.H>
 #include <AMReX_EB_slopes_K.H>
 
@@ -585,5 +583,4 @@ Redistribution::MakeITracker ( Box const& bx,
        } // itracker
     });
 }
-#endif
 #endif

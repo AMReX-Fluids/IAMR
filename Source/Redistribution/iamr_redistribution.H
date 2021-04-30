@@ -4,8 +4,6 @@
 #ifndef IAMR_REDISTRIBUTION_H_
 #define IAMR_REDISTRIBUTION_H_
 
-#ifdef AMREX_USE_EB
-
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>
 
@@ -79,7 +77,5 @@ namespace Redistribution {
                             amrex::Geometry const& geom);
 
 } // namespace redistribution
-
-#endif
 
 #endif /* Redistribution_H */
