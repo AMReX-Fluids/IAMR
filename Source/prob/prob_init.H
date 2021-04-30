@@ -33,6 +33,13 @@ struct InitialConditions
   amrex::Real tra_2 = 1.0;
   amrex::Real pertamp = 1.0;
 
+  // for convected vortex
+  int meanFlowDir = 0;
+  amrex::Real meanFlowMag = 0.0;
+  amrex::Real xvort = 0.5;
+  amrex::Real yvort = 0.5;
+  amrex::Real rvort = 0.07;
+  amrex::Real forcevort = 6.0;
 };
 
 //
@@ -106,6 +113,16 @@ void init_Euler (amrex::Box const& vbx,
 		 amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
 		 InitialConditions IC);
 
+void init_ConvectedVortex (amrex::Box const& vbx,
+		      amrex::Array4<amrex::Real> const& press,
+		      amrex::Array4<amrex::Real> const& vel,
+		      amrex::Array4<amrex::Real> const& scal,
+		      const int nscal,
+		      amrex::Box const& domain,
+		      amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
+		      amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& problo,
+		      amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& probhi,
+		      InitialConditions IC);
 //FIXME - maybe make use of an enum like this?
 //enum struct Prob { HotSpot, bubble };
 

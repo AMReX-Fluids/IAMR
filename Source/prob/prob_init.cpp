@@ -55,6 +55,14 @@ void NavierStokes::prob_initData ()
     // for Taylor-Green
     pp.query("velocity_factor",IC.v_x);
 
+    // for Convected Vortex
+    pp.query("rvort", IC.rvort);
+    pp.query("xvort", IC.xvort);
+    pp.query("yvort", IC.yvort);
+    pp.query("forcevort", IC.forcevort);
+    pp.query("meanFlowDir", IC.meanFlowDir);
+    pp.query("meanFlowMag", IC.meanFlowMag);
+
     //
     // Fill state and, optionally, pressure
     //
@@ -110,6 +118,12 @@ void NavierStokes::prob_initData ()
         else if ( 7 == probtype )
 	{
 	  init_Euler(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
+		     S_new.array(mfi, Density), nscal,
+		     domain, dx, problo, probhi, IC);
+	}
+        else if ( 8 == probtype )
+	{
+	  init_ConvectedVortex(vbx, P_new.array(mfi), S_new.array(mfi, Xvel),
 		     S_new.array(mfi, Density), nscal,
 		     domain, dx, problo, probhi, IC);
 	}
@@ -505,6 +519,82 @@ void NavierStokes::init_Euler (Box const& vbx,
 
     // Additional Tracer, if using
     for ( int nt=2; nt<nscal; nt++)
+    {
+      scal(i,j,k,nt) = 1.0;
+    }
+  });
+}
+
+void NavierStokes::init_ConvectedVortex (Box const& vbx,
+                                         Array4<Real> const& press,
+                                         Array4<Real> const& vel,
+                                         Array4<Real> const& scal,
+                                         const int nscal,
+                                         Box const& domain,
+                                         GpuArray<Real, AMREX_SPACEDIM> const& dx,
+                                         GpuArray<Real, AMREX_SPACEDIM> const& problo,
+                                         GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+                                         InitialConditions IC)
+{
+  const auto domlo = amrex::lbound(domain);
+
+  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+  {
+    AMREX_D_TERM(Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];,
+                 Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];,
+                 Real z = problo[2] + (k - domlo.z + 0.5)*dx[2]);
+
+    amrex::Real deltax = x - IC.xvort;
+    amrex::Real deltay = y - IC.yvort;
+    amrex::Real d_sq = deltax*deltax + deltay*deltay;
+    amrex::Real r_sq = IC.rvort * IC.rvort;
+    amrex::Real u_vort = -IC.forcevort*deltay/r_sq * exp(-d_sq/r_sq/2.);
+    amrex::Real v_vort = IC.forcevort*deltax/r_sq * exp(-d_sq/r_sq/2.);
+    amrex::Real w_vort = 0.;
+
+    //
+    // Fill Velocity
+    //
+    switch(IC.meanFlowDir) {
+      case 1  :
+         AMREX_D_TERM(vel(i,j,k,0) = IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,1) = v_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+      case -1 :
+         AMREX_D_TERM(vel(i,j,k,0) = -IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,1) = v_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+      case 2 :
+         AMREX_D_TERM(vel(i,j,k,0) = v_vort;,
+                      vel(i,j,k,1) = IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+      case -2 :
+         AMREX_D_TERM(vel(i,j,k,0) = v_vort;,
+                      vel(i,j,k,1) = -IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+      case 3 :
+         AMREX_D_TERM(vel(i,j,k,0) = IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,1) = IC.meanFlowMag + v_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+      case -3 :
+         AMREX_D_TERM(vel(i,j,k,0) = -IC.meanFlowMag + u_vort;,
+                      vel(i,j,k,1) = -IC.meanFlowMag + v_vort;,
+                      vel(i,j,k,2) = w_vort);
+         break;
+    }
+
+    //
+    // Scalars, ordered as Density, Tracer(s)
+    //
+    scal(i,j,k,0) = IC.density;
+
+    // Additional Tracer, if using
+    for ( int nt=1; nt<nscal; nt++)
     {
       scal(i,j,k,nt) = 1.0;
     }
