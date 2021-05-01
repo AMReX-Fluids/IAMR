@@ -1,3 +1,10 @@
+#
+# Current requirements for EB advection
+#
+do_mom_diff=1
+ns.do_cons_trac=1
+ns.do_cons_trac2=1
+
 
 #*******************************************************************************
 # INPUTS.2D.PERIODIC_SHEAR_LAYER
