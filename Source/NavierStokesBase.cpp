@@ -538,14 +538,14 @@ NavierStokesBase::Initialize ()
     //
     // EB restrictions
     //
-    if ( !do_mom_diff )
-      amrex::Abort("EB schemes only support conservative velocity update: run with ns.do_mom_diff=1");
-    if ( !do_cons_trac )
-      amrex::Abort("EB schemes only support conservative scalar update: run with ns.do_cons_trac=1");
-    if ( !do_cons_trac2 )
-      amrex::Abort("EB schemes only support conservative scalar update: run with ns.do_cons_trac2=1");
-    if ( do_temp )
-      amrex::Abort("EB schemes only support conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
+    if ( !do_mom_diff && use_godunov )
+      amrex::Abort("EBGodunov only support conservative velocity update: run with ns.do_mom_diff=1");
+    if ( !do_cons_trac && Use_godunov )
+      amrex::Abort("EBGodunov only support conservative scalar update: run with ns.do_cons_trac=1");
+    if ( !do_cons_trac2 && use_godunov )
+      amrex::Abort("EBGodunov only support conservative scalar update: run with ns.do_cons_trac2=1");
+    if ( do_temp && use_godunov )
+      amrex::Abort("EBGodunov only support conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
     if ( use_godunov && godunov_use_ppm )
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
@@ -3521,6 +3521,7 @@ NavierStokesBase::velocity_advection (Real dt)
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                             divu_fp,
                              m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv, geom, dt
 #ifdef AMREX_USE_EB
                              , redistribution_type

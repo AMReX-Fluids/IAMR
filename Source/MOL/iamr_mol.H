@@ -20,6 +20,7 @@ namespace MOL {
                                amrex::MultiFab& yfluxes,
                                amrex::MultiFab& zfluxes),
                        int fluxes_comp,
+                       amrex::MultiFab const& divu,
                        amrex::Vector<amrex::BCRec> const& bcs,
 		                     amrex::BCRec  const* d_bcrec_ptr,
                        amrex::Gpu::DeviceVector<int>& iconserv,
@@ -87,14 +88,7 @@ namespace MOL {
                               AMREX_D_DECL( amrex::Array4<amrex::Real const> const& fx,
                                             amrex::Array4<amrex::Real const> const& fy,
                                             amrex::Array4<amrex::Real const> const& fz),
-                              AMREX_D_DECL( amrex::Array4<amrex::Real const> const& xed,
-                                            amrex::Array4<amrex::Real const> const& yed,
-                                            amrex::Array4<amrex::Real const> const& zed),
-                              AMREX_D_DECL( amrex::Array4<amrex::Real const> const& umac,
-                                            amrex::Array4<amrex::Real const> const& vmac,
-                                            amrex::Array4<amrex::Real const> const& wmac),
-                              const int ncomp, amrex::Geometry const& geom,
-                              int const* iconserv );
+                              const int ncomp, amrex::Geometry const& geom );
 
 
     void ExtrapVelToFaces ( const amrex::MultiFab&  vel,

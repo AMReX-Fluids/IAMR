@@ -773,11 +773,13 @@ NavierStokes::scalar_advection (Real dt,
             //////////////////////////////////////////////////////////////////////////////
 
             const Box& domain = geom.Domain();
+            MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
 
             MOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                             *divu_fp,
                              m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), iconserv, geom, dt
 #ifdef AMREX_USE_EB
                              , redistribution_type
