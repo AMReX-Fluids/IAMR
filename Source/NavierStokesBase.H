@@ -841,6 +841,10 @@ public:
 
 #ifdef AMREX_PARTICLES
   //
+  // Check in case different particle methods are being used
+  //
+  static bool do_nspc;
+  //
   // Put particle info in plotfile (using ParticleContainer::Checkpoint)?
   //
   static bool particles_in_plotfile;

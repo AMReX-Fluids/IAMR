@@ -173,6 +173,7 @@ namespace
 }
 
 #ifdef AMREX_PARTICLES
+bool NavierStokesBase::do_nspc = true;
 bool NavierStokesBase::particles_in_plotfile = false;
 
 namespace
@@ -3938,6 +3939,11 @@ NavierStokesBase::read_particle_params ()
 {
     ParmParse ppp("particles");
     //
+    // Ensure other particle methods aren't being used, like sprays
+    //
+    ppp.query("do_nspc_particles", do_nspc);
+    if (!do_nspc) return;
+    //
     // The directory in which to store timestamp files.
     //
     ppp.query("timestamp_dir", timestamp_dir);
@@ -4007,7 +4013,7 @@ NavierStokesBase::initParticleData ()
 void
 NavierStokesBase::post_restart_particle ()
 {
-    if (level == 0)
+    if (level == 0 && do_nspc)
     {
         BL_ASSERT(NSPC == 0);
 
@@ -4132,7 +4138,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 				  Real               time,
 				  int                ngrow)
 {
-    if (name == "particle_count" || name == "total_particle_count") {
+    if ((name == "particle_count" || name == "total_particle_count") && do_nspc) {
 	int ncomp = 1;
 	const DeriveRec* rec = derive_lst.get(name);
 	if (rec)
