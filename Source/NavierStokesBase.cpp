@@ -4773,6 +4773,15 @@ NavierStokesBase::InitialRedistribution ()
 
     // Initial data are set at new time step
     MultiFab& S_new = get_new_data(State_Type);
+    // We must fill internal ghost values before calling redistribution
+    // We also need any physical boundary conditions imposed if we are
+    //    calling state redistribution (because that calls the slope routine)
+    // FIXME? In theory, since ghost cells are now filled, we wouldn't need to call
+    // FillPatch someplace later ...
+    FillPatch (*this, S_new, nghost_state(), state[State_Type].curTime(), State_Type,
+	       0, NUM_STATE);
+
+    // Could we use the space in get_old_data instead of making new?
     MultiFab tmp( grids, dmap, NUM_STATE, nghost_state(), MFInfo(), Factory() );
 
     MultiFab::Copy(tmp, S_new, 0, 0, NUM_STATE, nghost_state());
