@@ -246,7 +246,7 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Compute divergence
                 ComputeDivergence( bx,
                                    aofs.array(mfi, aofs_comp),
-                                   AMREX_D_DECL( fx, fy, fz),
+                                   AMREX_D_DECL( fxtmp, fytmp, fztmp),
                                    AMREX_D_DECL( xed, yed, zed ),
                                    AMREX_D_DECL( u, v, w ),
                                    ncomp, geom, iconserv.data());
