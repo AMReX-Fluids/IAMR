@@ -609,14 +609,12 @@ MOL::ComputeDivergence (  Box const& bx,
     {
         if (iconserv[n])
         {
-            div(i,j,k,n) =  qvol *
-                (
-                         fx(i+1,j,k,n) -  fx(i,j,k,n)
-                       + fy(i,j+1,k,n) -  fy(i,j,k,n)
+            div(i,j,k,n) =  dxinv[0] * ( fx(i+1,j,k,n) -  fx(i,j,k,n) )
+                +           dxinv[1] * ( fy(i,j+1,k,n) -  fy(i,j,k,n) )
 #if (AMREX_SPACEDIM==3)
-                       + fz(i,j,k+1,n) -  fz(i,j,k,n)
+                +           dxinv[2] * ( fz(i,j,k+1,n) -  fz(i,j,k,n) )
 #endif
-                );
+                ;
         }
         else
         {
