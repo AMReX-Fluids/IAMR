@@ -184,3 +184,10 @@ New options for controlling regridding
 Minor GPU and memory fixes
 Remove fortran probin files
 Various RZ fixes
+
+5/3/21
+Updates to EB to be compatible with AMReX changes
+Updates and bugfixes to EB advection algorithm
+Fix out of bounds issues related to inadequate number of ghost cells
+Misc GPU fixes
+New homogeneous isotropic turbulence test case
