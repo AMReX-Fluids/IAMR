@@ -540,7 +540,7 @@ NavierStokesBase::Initialize ()
     //
     if ( !do_mom_diff && use_godunov )
       amrex::Abort("EBGodunov only support conservative velocity update: run with ns.do_mom_diff=1");
-    if ( !do_cons_trac && Use_godunov )
+    if ( !do_cons_trac && use_godunov )
       amrex::Abort("EBGodunov only support conservative scalar update: run with ns.do_cons_trac=1");
     if ( !do_cons_trac2 && use_godunov )
       amrex::Abort("EBGodunov only support conservative scalar update: run with ns.do_cons_trac2=1");
