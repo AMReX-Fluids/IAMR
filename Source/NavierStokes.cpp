@@ -829,7 +829,7 @@ NavierStokes::scalar_advection (Real dt,
                     }
 
                     getForce(forcing_term[S_mfi],force_bx,fscalar,num_scalars,
-                             prev_time,Umf[S_mfi],Smf[S_mfi],0);
+                             prev_time,Umf[S_mfi],Smf[S_mfi],0,S_mfi);
 
                     for (int n=0; n<num_scalars; ++n)
                     {

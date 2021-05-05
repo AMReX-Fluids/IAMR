@@ -31,7 +31,8 @@ NavierStokesBase::getForce (FArrayBox&       force,
                             const Real       time,
                             const FArrayBox& Vel,
                             const FArrayBox& Scal,
-                            int              scalScomp)
+                            int              scalScomp,
+                            const MFIter&    mfi)
 {
 
    const Real* VelDataPtr  = Vel.dataPtr();
