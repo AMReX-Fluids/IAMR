@@ -788,6 +788,7 @@ NavierStokes::scalar_advection (Real dt,
                                D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                               *divu_fp,
                                m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), iconserv,
                                geom, dt, redistribution_type );
 #else
