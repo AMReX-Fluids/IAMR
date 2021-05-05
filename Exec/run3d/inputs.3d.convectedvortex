@@ -1,6 +1,7 @@
 
 #*******************************************************************************
-# INPUTS.2D.TAYLORGREEN
+# inputs.3d.convectedVortex
+# Convecting an isentropic vortex aligned in Z in a periodic 3D box
 #*******************************************************************************
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
