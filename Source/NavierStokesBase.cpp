@@ -543,7 +543,7 @@ NavierStokesBase::Initialize ()
       amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
     if ( use_godunov && !do_cons_trac )
       amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
-    if ( use_godunov && !do_cons_trac2 )
+    if ( use_godunov && do_trac2 && !do_cons_trac2 )
       amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac2=1");
     if ( use_godunov && do_temp )
       amrex::Abort("EB Godunov only supports conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
@@ -4779,6 +4779,15 @@ NavierStokesBase::InitialRedistribution ()
 
     // Initial data are set at new time step
     MultiFab& S_new = get_new_data(State_Type);
+    // We must fill internal ghost values before calling redistribution
+    // We also need any physical boundary conditions imposed if we are
+    //    calling state redistribution (because that calls the slope routine)
+    // FIXME? In theory, since ghost cells are now filled, we wouldn't need to call
+    // FillPatch someplace later ...
+    FillPatch (*this, S_new, nghost_state(), state[State_Type].curTime(), State_Type,
+	       0, NUM_STATE);
+
+    // Could we use the space in get_old_data instead of making new?
     MultiFab tmp( grids, dmap, NUM_STATE, nghost_state(), MFInfo(), Factory() );
 
     MultiFab::Copy(tmp, S_new, 0, 0, NUM_STATE, nghost_state());
