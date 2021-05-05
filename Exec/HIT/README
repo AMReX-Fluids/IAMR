@@ -1,0 +1,27 @@
+This is the decaying 3D Homogeneous Isotropic Turbulence test case,
+originally implemented in PeleC and used to study compressible turbulence in:
+E. Motheau and J. Wakefield, "Investigation of finite-volume methods to capture shocks and turbulence spectra in compressible flows", Commun. in Appl. Math. and Comput. Sci, 15-1 (2020), 1--36.
+https://arxiv.org/abs/1902.06665
+
+The script gen_hit_ic.py can be used to generate an initial solution.
+
+Here, there is no scaling by the turbulent Mach number and the density is kept constant, so that the Tarlor-scale Reynolds number is defined by Re=0.5 urms / nu where umrs and nu can be set in the input file (prob.urms0=... and ns.vel_visc_coef = ...).
+
+At the begining of a simulation, a file ic.txt is created to hold the values of urms0, lambda0 and tau, which will be used for post-processing.
+
+The post-processing chain is composed of two major parts: computing the temporal evolution of the turbulent kinetic energy, the square of magnitude of vorticity as well as the square of the divergence. Then the turbulent spectra is computed for the last plotfile found.
+
+IMPORTANT:
+The following tools must be pre-compiled and the executable located at the root of this directory, where the post.sh script is located:
+AmrDeriveSpectrum (https://github.com/AMReX-Astro/AmrDeriveSpectrum)
+AugmentPlotfile (located in amrex/Tools/C_util/AugmentPlotfile)
+
+To proceed to an analysis, please create a directory and copy inside all the plotfiles as well as the ic.txt file. Then execute the post.sh script as in the following example:
+
+./amr3d.gnu.MPI.ex inputs.3d.HIT
+mkdir ANALYSIS
+cp -r plt_0000* ANALYSIS/
+cp ic.txt ANALYSIS/
+./post.sh ANALYSIS/ 1
+
+The output csv files will be located in the ANALYSIS directory.

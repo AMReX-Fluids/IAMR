@@ -20,8 +20,10 @@ namespace MOL {
                                amrex::MultiFab& yfluxes,
                                amrex::MultiFab& zfluxes),
                        int fluxes_comp,
+                       amrex::MultiFab const& divu,
                        amrex::Vector<amrex::BCRec> const& bcs,
 		                     amrex::BCRec  const* d_bcrec_ptr,
+                       amrex::Gpu::DeviceVector<int>& iconserv,
                        amrex::Geometry const& geom,
                        amrex::Real dt
 #ifdef AMREX_USE_EB
@@ -81,12 +83,13 @@ namespace MOL {
                                  amrex::Array4<amrex::Real const> const& zedge),
                          int ncomp );
 
-    void ComputeDivergence ( amrex::Box const& bx,
-                             amrex::Array4<amrex::Real> const& div,
-                             D_DECL( amrex::Array4<amrex::Real const> const& fx,
-                                     amrex::Array4<amrex::Real const> const& fy,
-                                     amrex::Array4<amrex::Real const> const& fz),
-                             int ncomp, amrex::Geometry const& geom );
+    void ComputeDivergence  ( amrex::Box const& bx,
+                              amrex::Array4<amrex::Real> const& div,
+                              AMREX_D_DECL( amrex::Array4<amrex::Real const> const& fx,
+                                            amrex::Array4<amrex::Real const> const& fy,
+                                            amrex::Array4<amrex::Real const> const& fz),
+                              const int ncomp, amrex::Geometry const& geom );
+
 
     void ExtrapVelToFaces ( const amrex::MultiFab&  vel,
                             D_DECL(amrex::MultiFab& umac,

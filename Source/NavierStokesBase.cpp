@@ -173,6 +173,7 @@ namespace
 }
 
 #ifdef AMREX_PARTICLES
+bool NavierStokesBase::do_nspc = true;
 bool NavierStokesBase::particles_in_plotfile = false;
 
 namespace
@@ -542,7 +543,7 @@ NavierStokesBase::Initialize ()
       amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
     if ( use_godunov && !do_cons_trac )
       amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
-    if ( use_godunov && !do_cons_trac2 )
+    if ( use_godunov && do_trac2 && !do_cons_trac2 )
       amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac2=1");
     if ( use_godunov && do_temp )
       amrex::Abort("EB Godunov only supports conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
@@ -1308,7 +1309,7 @@ NavierStokesBase::estTimeStep ()
            amrex::Print() << "---" << '\n'
                           << "H - est Time Step:" << '\n'
                           << "Calling getForce..." << '\n';
-       getForce(tforces_fab,bx,0,AMREX_SPACEDIM,cur_time,S_new[mfi],S_new[mfi],Density);
+       getForce(tforces_fab,bx,0,AMREX_SPACEDIM,cur_time,S_new[mfi],S_new[mfi],Density,mfi);
 
        const auto& rho   = rho_ctime.array(mfi);
        const auto& gradp = Gp.array(mfi);
@@ -2850,7 +2851,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
                tforces.resize(bx,1);
 	       // tforces protected from early destruction by Gpu::synchronize at end of loop.
 	       // so no elixir needed
-               getForce(tforces,bx,sigma,1,halftime,Vel_fab,Scal,0);
+               getForce(tforces,bx,sigma,1,halftime,Vel_fab,Scal,0,Rho_mfi);
 
 	       const auto& Snew = S_new[Rho_mfi].array(sigma);
 	       const auto& Sold = S_old[Rho_mfi].const_array(sigma);
@@ -3354,6 +3355,12 @@ NavierStokesBase::velocity_advection (Real dt)
         }
     }
 
+
+    amrex::Gpu::DeviceVector<int> iconserv;
+    iconserv.resize(AMREX_SPACEDIM, 0);
+    for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
+        iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
+
     //
     // Compute the advective forcing.
     //
@@ -3434,7 +3441,7 @@ NavierStokesBase::velocity_advection (Real dt)
                                        << "Calling getForce..." << '\n';
                     }
                     getForce(forcing_term[U_mfi],force_bx,Xvel,AMREX_SPACEDIM,
-                             prev_time,Umf[U_mfi],Smf[U_mfi],0);
+                             prev_time,Umf[U_mfi],Smf[U_mfi],0,U_mfi);
 
                     //
                     // Compute the total forcing.
@@ -3483,14 +3490,6 @@ NavierStokesBase::velocity_advection (Real dt)
                 }
             }
 
-            amrex::Gpu::DeviceVector<int> iconserv;
-            iconserv.resize(AMREX_SPACEDIM, 0);
-
-            for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
-            {
-                iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
-            }
-
 #ifndef AMREX_USE_EB
             Godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
                                  *S_term, 0,
@@ -3511,7 +3510,7 @@ NavierStokesBase::velocity_advection (Real dt)
 #endif
 
 	    if (do_mom_diff)
-	      delete S_term;
+                delete S_term;
         }
         else
         {
@@ -3523,7 +3522,8 @@ NavierStokesBase::velocity_advection (Real dt)
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt
+                             divu_fp,
+                             m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv, geom, dt
 #ifdef AMREX_USE_EB
                              , redistribution_type
 #endif
@@ -3667,7 +3667,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         tforces.resize(bx,AMREX_SPACEDIM);
         Elixir tf_i = tforces.elixir();
-        getForce(tforces,bx,Xvel,AMREX_SPACEDIM,half_time,VelFAB,ScalFAB,0);
+        getForce(tforces,bx,Xvel,AMREX_SPACEDIM,half_time,VelFAB,ScalFAB,0,mfi);
 
         //
         // Do following only at initial iteration--per JBB.
@@ -3778,7 +3778,7 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
                                << "G - initial velocity diffusion update:" << '\n'
                                << "Calling getForce..." << '\n';
             }
-            getForce(tforces_fab,bx,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density);
+            getForce(tforces_fab,bx,Xvel,AMREX_SPACEDIM,prev_time,U_old[mfi],U_old[mfi],Density,mfi);
         }
 
         //
@@ -3938,6 +3938,11 @@ NavierStokesBase::read_particle_params ()
 {
     ParmParse ppp("particles");
     //
+    // Ensure other particle methods aren't being used, like sprays
+    //
+    ppp.query("do_nspc_particles", do_nspc);
+    if (!do_nspc) return;
+    //
     // The directory in which to store timestamp files.
     //
     ppp.query("timestamp_dir", timestamp_dir);
@@ -4007,7 +4012,7 @@ NavierStokesBase::initParticleData ()
 void
 NavierStokesBase::post_restart_particle ()
 {
-    if (level == 0)
+    if (level == 0 && do_nspc)
     {
         BL_ASSERT(NSPC == 0);
 
@@ -4132,7 +4137,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 				  Real               time,
 				  int                ngrow)
 {
-    if (name == "particle_count" || name == "total_particle_count") {
+    if ((name == "particle_count" || name == "total_particle_count") && do_nspc) {
 	int ncomp = 1;
 	const DeriveRec* rec = derive_lst.get(name);
 	if (rec)
@@ -4623,7 +4628,7 @@ NavierStokesBase::predict_velocity (Real  dt)
                    Print() << "---\nA - Predict velocity:\n Calling getForce...\n";
                }
 
-               getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0);
+               getForce(forcing_term[U_mfi],gbx,Xvel,AMREX_SPACEDIM,prev_time,Ufab,Smf[U_mfi],0,U_mfi);
 
                //
                // Compute the total forcing.
@@ -4773,6 +4778,15 @@ NavierStokesBase::InitialRedistribution ()
 
     // Initial data are set at new time step
     MultiFab& S_new = get_new_data(State_Type);
+    // We must fill internal ghost values before calling redistribution
+    // We also need any physical boundary conditions imposed if we are
+    //    calling state redistribution (because that calls the slope routine)
+    // FIXME? In theory, since ghost cells are now filled, we wouldn't need to call
+    // FillPatch someplace later ...
+    FillPatch (*this, S_new, nghost_state(), state[State_Type].curTime(), State_Type,
+	       0, NUM_STATE);
+
+    // Could we use the space in get_old_data instead of making new?
     MultiFab tmp( grids, dmap, NUM_STATE, nghost_state(), MFInfo(), Factory() );
 
     MultiFab::Copy(tmp, S_new, 0, 0, NUM_STATE, nghost_state());

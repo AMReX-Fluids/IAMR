@@ -11,6 +11,11 @@ ns.init_iter       = 2
 ns.init_vel_iter   = 2
 ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
 nodal_proj.rtol    =  1.0e-13
+
+ns.use_godunov = true
+ns.do_mom_diff=1
+ns.do_cons_trac=1
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
@@ -40,7 +45,6 @@ amr.regrid_int      = 2       # how often to regrid
 amr.blocking_factor = 8      # block factor in grid generation
 #amr.max_grid_size   = 64
 
-ns.do_vorticity_ref = 1
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              GEOMETRY                 #
@@ -57,6 +61,14 @@ ns.lo_bc 	     	= 1 0 0
 # Boundary conditions on the high end of the domain.
 ns.hi_bc   	      	= 2 0 0
 
+xlo.type                =   "mass_inflow"
+xlo.velocity            =   2.5  0.  0.
+xlo.density             =   1.
+#xlo.tracer              =   0.
+#xhi.type                =   "pressure_outflow"
+#xhi.pressure            =   0.0
+
+
 # Add cylinder
 eb2.geom_type                 = Square-Grid
 square_grid.dim_L0 = 0.1
@@ -64,16 +76,24 @@ square_grid.ratio_t0_L0_cross = 1.886792452830189e-01
 square_grid.ratio_t0_stream_thickness = 0.25
 
 amr.derive_plot_vars    = mag_vort avg_pressure velocity_average
-amr.plot_vars = x_velocity y_velocity 
+amr.plot_vars = x_velocity y_velocity z_velocity
 #*******************************************************************************
 
 ns.avg_interval = 0
+ns.compute_fluctuations = 0
+
+# PROBLEM PARAMETERS           
+prob.probtype = 4
+prob.blob_center =  0.0 0.0 0.0
+prob.blob_radius =  0.0
+# Constant density initial condition
+prob.density_ic = 1.0
+# Set up constant flow
+prob.velocity_ic = 2.5 0. 0.
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
 #.......................................#
-ns.v                    = 10 # NS solver
+ns.v                    = 1 # NS solver
+amr.v = 1
 proj.v                  = 1 # Nodal projection
-mac_proj.verbose        = 0 # MacProjector
-#diffusion.verbose      = 1 # Diffusion operator
-nodal_proj.verbose      = 1 # Nodal projection

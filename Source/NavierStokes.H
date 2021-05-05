@@ -4,7 +4,7 @@
 
 #include <NavierStokesBase.H>
 #include <AMReX_LevelBld.H>
-
+#include "Utilities.H"
 
 class NSBld
     :

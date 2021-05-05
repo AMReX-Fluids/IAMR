@@ -250,7 +250,8 @@ public:
                            const amrex::Real       time,
                            const amrex::FArrayBox& Vel,
                            const amrex::FArrayBox& Scal,
-                           int                     scalScomp);
+                           int                     scalScomp,
+                           const amrex::MFIter&    mfi);
     //
     amrex::FluxRegister& getAdvFluxReg () {
         BL_ASSERT(advflux_reg);
@@ -839,6 +840,10 @@ public:
   static int average_in_checkpoint;
 
 #ifdef AMREX_PARTICLES
+  //
+  // Check in case different particle methods are being used
+  //
+  static bool do_nspc;
   //
   // Put particle info in plotfile (using ParticleContainer::Checkpoint)?
   //
