@@ -18,8 +18,7 @@ Bdirs += $(AMREX_HYDRO_HOME)/EBMOL
 Bdirs += $(AMREX_HYDRO_HOME)/EBGodunov
 endif
 
-
-
+Bdirs += Source/Utilities
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))

@@ -752,6 +752,11 @@ NavierStokes::scalar_advection (Real dt,
     }
 
 
+    amrex::Gpu::DeviceVector<int> iconserv;
+    iconserv.resize(num_scalars, 0);
+    for (int comp = 0; comp < num_scalars; ++comp)
+        iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
+
     //
     // Start FillPatchIterator block
     //
@@ -769,6 +774,7 @@ NavierStokes::scalar_advection (Real dt,
             //  MOL ALGORITHM
             //////////////////////////////////////////////////////////////////////////////
             const Box& domain = geom.Domain();
+            MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
 
             amrex::Gpu::DeviceVector<int> iconserv;
             iconserv.resize(num_scalars, 0);
@@ -836,7 +842,7 @@ NavierStokes::scalar_advection (Real dt,
                     }
 
                     getForce(forcing_term[S_mfi],force_bx,fscalar,num_scalars,
-                             prev_time,Umf[S_mfi],Smf[S_mfi],0);
+                             prev_time,Umf[S_mfi],Smf[S_mfi],0,S_mfi);
 
                     for (int n=0; n<num_scalars; ++n)
                     {
@@ -878,13 +884,6 @@ NavierStokes::scalar_advection (Real dt,
                 }
             }
 
-            amrex::Gpu::DeviceVector<int> iconserv;
-            iconserv.resize(num_scalars, 0);
-            // does this actually put data in GPU memory?
-            for (int comp = 0; comp < num_scalars; ++comp)
-            {
-                iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
-            }
 
 #ifdef AMREX_USE_EB
             EBGodunov::ComputeAofs(*aofs, fscalar, num_scalars,

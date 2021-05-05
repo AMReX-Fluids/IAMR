@@ -25,7 +25,6 @@ USE_EB = TRUE
 
 EBASE = amr
 
-Bpack   := ./Make.package
 Blocs   := .
 
 include $(TOP)/Exec/Make.IAMR
