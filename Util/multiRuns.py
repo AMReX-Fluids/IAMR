@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# A template script to lunch several times PeleLM at different resolution
+# A template script to lunch several times IAMR at different resolution
 # in order to evaluate the convergence order
 # Used in the marex regression_testing framework
 

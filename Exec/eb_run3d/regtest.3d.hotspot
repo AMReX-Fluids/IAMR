@@ -1,0 +1,150 @@
+
+#*******************************************************************************
+# INPUTS.3D.HOTSPOT - hot bubble rising
+#*******************************************************************************
+
+ns.do_temp=1
+ns.temp_cond_coef=1.e-4
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 10
+
+# Correct scalars for over/under shoots during advective update
+ns.do_scalminmax=1
+ns.do_denminmax=1
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 32 32 32 #128 128 128 #
+
+#*******************************************************************************
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level		= 2 # maximum number of levels of refinement
+
+# Refinement criterion, use temperature
+amr.refinement_indicators = hi_temp Tdiff
+
+amr.hi_temp.max_level = 1
+amr.hi_temp.value_greater = 1.01
+amr.hi_temp.field_name = temp
+
+amr.Tdiff.adjacent_difference_greater = 0.1 0.005
+amr.Tdiff.field_name = temp
+
+# allow refinement at outflow boundary
+ns.do_refine_outflow = 1
+ns.do_derefine_outflow = 0
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 2 
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2 2 2
+
+#*******************************************************************************
+
+# Sets the "NavierStokes" code to be verbose
+ns.v                    = 1
+
+#*******************************************************************************
+
+# Sets the "amr" code to be verbose
+amr.v                   = 1
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.checkpoint_files_output = 0
+amr.check_int		= 100 
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 100
+
+#*******************************************************************************
+
+# CFL number to be used in calculating the time step : dt = dx / max(velocity)
+ns.cfl                  = 0.5  # CFL number used to set dt
+
+#*******************************************************************************
+
+# Factor by which the first time is shrunk relative to CFL constraint
+ns.init_shrink          = 0.5  # factor which multiplies the very first time step
+
+#*******************************************************************************
+
+# Viscosity coefficient 
+ns.vel_visc_coef        = 0.001
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs      = 0.001
+
+#*******************************************************************************
+
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity              = -9.8
+
+#*******************************************************************************
+
+# Embedded Boundary options
+#eb2.geom_type    =  all_regular
+eb2.geom_type     = sphere
+eb2.sphere_radius = 0.10
+eb2.sphere_center =  -0.001 0.0 .85
+eb2.sphere_has_fluid_inside = 0
+
+eb2.small_volfrac = 1.e-5
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
+geometry.coord_sys   =  0
+
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     =  -1. -1. 0.
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     =  1. 1. 2. 
+
+#*******************************************************************************
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic = 0 0 0
+
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 4 5 5
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 4 5 2
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+#*******************************************************************************
+
+prob.probtype = 6
+prob.blob_center = 0.0 0.0 0.5 
+prob.blob_radius = 0.2
+# Background density is 1. Density is reduced by a factor of density_ic inside
+# the bubble
+prob.density_ic = 2.0
+# Can also set up a flow, defaults to zero
+#prob.velocity_ic = 0. 0. 0.
+
+#*******************************************************************************
+
+# Add vorticity to the variables in the plot files.
+amr.derive_plot_vars = NONE

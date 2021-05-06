@@ -213,10 +213,11 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 // Account for extra term needed for convective differencing
                 auto const& q = state.array(mfi, state_comp);
                 auto const& divu_arr  = divu.array(mfi);
-		amrex::ParallelFor(g2bx, ncomp, [divtmp_arr, q, divu_arr, iconserv]
+		int const* cnsrv = iconserv.data();
+		amrex::ParallelFor(g2bx, ncomp, [divtmp_arr, q, divu_arr, cnsrv]
                 AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (!iconserv[n])
+                    if (!cnsrv[n])
                         divtmp_arr( i, j, k, n ) -= q(i,j,k,n)*divu_arr(i,j,k);
                 });
 
@@ -264,10 +265,11 @@ MOL::ComputeAofs ( MultiFab& aofs, int aofs_comp, int ncomp,
                 auto const& aofs_arr  = aofs.array(mfi, aofs_comp);
                 auto const& q = state.array(mfi, state_comp);
                 auto const& divu_arr  = divu.array(mfi);
-                amrex::ParallelFor(bx, ncomp, [aofs_arr, q, divu_arr, iconserv]
+		int const* cnsrv = iconserv.data();
+                amrex::ParallelFor(bx, ncomp, [aofs_arr, q, divu_arr, cnsrv]
                 AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
-                    if (!iconserv[n])
+                    if (!cnsrv[n])
                         aofs_arr( i, j, k, n ) -= q(i,j,k,n)*divu_arr(i,j,k);
                 });
 
