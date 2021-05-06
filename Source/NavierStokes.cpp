@@ -737,9 +737,9 @@ NavierStokes::scalar_advection (Real dt,
     // Note that classes derived from NS may need fluxes for scalar advection (not velocity advection)
     // They may have their own scalar advection routine and may not use NS::scalar_advection()
 #ifdef AMREX_USE_EB
-        int nghost = nghost_state()-2;
+    int nghost = nghost_state()-2;
 #else
-	int nghost = 0;
+    int nghost = 0;
 #endif
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
@@ -752,10 +752,14 @@ NavierStokes::scalar_advection (Real dt,
     }
 
 
+    // Advection type
     amrex::Gpu::DeviceVector<int> iconserv;
     iconserv.resize(num_scalars, 0);
     for (int comp = 0; comp < num_scalars; ++comp)
         iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
+
+    // divu
+    MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
 
     //
     // Start FillPatchIterator block
@@ -774,15 +778,12 @@ NavierStokes::scalar_advection (Real dt,
             //  MOL ALGORITHM
             //////////////////////////////////////////////////////////////////////////////
             const Box& domain = geom.Domain();
-            MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
 
-            amrex::Gpu::DeviceVector<int> iconserv;
-            iconserv.resize(num_scalars, 0);
-            // does this actually put data in GPU memory?
-            for (int comp = 0; comp < num_scalars; ++comp)
-            {
-                iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
-            }
+            // SHOULD I DO THIS FOR MOL too????
+            // MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+            // MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+            // delete dsdt;
+
 #ifdef AMREX_USE_EB
             EBMOL::ComputeAofs(*aofs, fscalar, num_scalars, Smf, 0,
                                D_DECL(u_mac[0],u_mac[1],u_mac[2]),
@@ -809,20 +810,15 @@ NavierStokes::scalar_advection (Real dt,
             FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,BL_SPACEDIM);
             const MultiFab& Umf=U_fpi.get_mf();
 
-            MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
             MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
             MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
             delete dsdt;
 
             // Compute viscous term
             if (be_cn_theta != 1.0)
-            {
                 getViscTerms(visc_terms,fscalar,num_scalars,prev_time);
-            }
             else
-            {
                 visc_terms.setVal(0.0,1);
-            }
 
             MultiFab forcing_term( grids, dmap, num_scalars, nghost_force());
 
@@ -850,36 +846,22 @@ NavierStokes::scalar_advection (Real dt,
                         // FIXME: Loop rqd b/c function does not take array conserv_diff
                         auto const& tf    = forcing_term.array(S_mfi,n);
                         auto const& visc  = visc_terms.const_array(S_mfi,n);
-
+                        auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
+                        auto const& divu  = divu_fp -> const_array(S_mfi);
+                        auto const& S     = Smf.array(S_mfi);
 
                         if (advectionType[fscalar+n] == Conservative)
                         {
-                            auto const& divu  = divu_fp -> const_array(S_mfi);
-                            auto const& S     = Smf.array(S_mfi);
-
-                            amrex::ParallelFor(force_bx, [tf, visc, S, divu]
+                            amrex::ParallelFor(force_bx, [tf, visc, S, divu, rho]
                             AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-                            {
-                                tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
-                            });
+                            { tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);});
                         }
                         else
-#ifdef AMREX_USE_EB
                         {
-			    // If EB, we should have already aborted during initialization
-                            amrex::Abort("NS::scalar_advection(): EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
-                        }
-#else
-                        {
-			    auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
-
                             amrex::ParallelFor(force_bx, [tf, visc, rho]
                             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                            {
-                                tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k);
-                            });
+                            { tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k); });
                         }
-#endif
 
                     }
                 }
@@ -907,8 +889,9 @@ NavierStokes::scalar_advection (Real dt,
                                  geom, iconserv, dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
 #endif
 
-            delete divu_fp;
         }
+
+        delete divu_fp;
 
 
         if (do_reflux)
