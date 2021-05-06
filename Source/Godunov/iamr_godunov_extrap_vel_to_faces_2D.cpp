@@ -242,9 +242,6 @@ Godunov::ExtrapVelToFacesOnBox (Box const& bx, int ncomp,
     }
     );
 
-    Array4<Real> xedge = Imx;
-    Array4<Real> yedge = Imy;
-
 
     Array4<Real> divu = makeArray4(Ipx.dataPtr(), grow(bx,1), 1);
     amrex::ParallelFor(Box(divu), [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
