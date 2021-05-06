@@ -777,7 +777,6 @@ NavierStokes::scalar_advection (Real dt,
             //////////////////////////////////////////////////////////////////////////////
             //  MOL ALGORITHM
             //////////////////////////////////////////////////////////////////////////////
-            const Box& domain = geom.Domain();
 
             // SHOULD I DO THIS FOR MOL too????
             // MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
@@ -2258,7 +2257,6 @@ NavierStokes::calc_divu (Real      time,
 #ifdef AMREX_USE_EB
 		auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
 		auto const& flagfab = ebfactory.getMultiEBCellFlagFab()[rho_mfi];
-		auto const& flag    = flagfab.const_array();
 
 		if (flagfab.getType(bx) == FabType::covered)
 		{
