@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Template post-processing script for PeleLM convergence analysis
+# Template post-processing script for IAMR convergence analysis
 # Must be used after multirun.py script
 # Input are limited by the regression framework.
 
