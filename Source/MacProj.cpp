@@ -594,6 +594,7 @@ MacProj::mac_sync_compute (int                   level,
                 // Select sync MF and its component for processing
                 const int  sync_comp = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
                 MultiFab*  sync_ptr  = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
+                bool    is_velocity  = comp < AMREX_SPACEDIM ? true   : false;
 		// Using fetchBCArray seems a better option than this.
 		// Vector<BCRec> const& bcs  = comp < AMREX_SPACEDIM
 		// 				   ? ns_level.get_bcrec_velocity()
@@ -612,14 +613,14 @@ MacProj::mac_sync_compute (int                   level,
                                        D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                        D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                        math_bcs, &d_bcrec_ptr[sync_comp], geom, dt,
-                                       ns_level.redistribution_type );
+                                       is_velocity, ns_level.redistribution_type );
 #else
                 MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
                                      D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                      D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                      D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                      D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, dt );
+                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, is_velocity );
 #endif
             }
         }
@@ -895,6 +896,7 @@ MacProj::mac_sync_compute (int                    level,
                                D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
                                D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
                                bcs, d_bcrec_ptr, geom, dt,
+                               false,  // not used when we pass edge states
                                ns_level.redistribution_type);
 #else
         MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
@@ -903,7 +905,8 @@ MacProj::mac_sync_compute (int                    level,
 			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
 			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-			     bcs, d_bcrec_ptr, geom, dt);
+			     bcs, d_bcrec_ptr, geom,
+                             false ); // not used when we pass edge states
 #endif
 
     }
