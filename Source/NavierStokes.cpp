@@ -759,7 +759,16 @@ NavierStokes::scalar_advection (Real dt,
         iconserv[comp] = (advectionType[fscalar+comp] == Conservative) ? 1 : 0;
 
     // divu
-    MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
+    // Find if there are any non-conservative scalars
+    bool nonconserv = std::any_of(advectionType.begin()+fscalar, advectionType.end(),
+				  [](const int advtype){
+				    return advtype != Conservative;
+				  });
+    // If nonconservative, we compute aofs = (U dot div) q = div (qU) - (q div U)
+    // Flux redistribution requires a minimum of 2 ghost cells in aofs, so need
+    // 2 ghost cells in divU too.
+    int ng_div = nonconserv ? 2 : 0;
+    MultiFab* divu_fp = getDivCond(ng_div,prev_time);
 
     //
     // Start FillPatchIterator block
