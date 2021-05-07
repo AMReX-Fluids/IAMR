@@ -3330,6 +3330,7 @@ NavierStokesBase::velocity_advection (Real dt)
     {
         if (do_mom_diff == 0)
         {
+
             amrex::Print() << "... advect velocities\n";
         }
         else
@@ -3538,8 +3539,8 @@ NavierStokesBase::velocity_advection (Real dt)
 
         ComputeAofs( Xvel, AMREX_SPACEDIM, *S_term, 0, forcing_term, divu_fp, true, dt );
 
-        // if (do_mom_diff)
-        //     delete S_term;
+        if (do_mom_diff)
+            delete S_term;
 
 
         // if (do_reflux)
@@ -4795,7 +4796,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     // Advection type
     amrex::Gpu::DeviceVector<int> iconserv;
     iconserv.resize(ncomp, 0);
-    for (int i = 0; comp < ncomp; ++i)
+    for (int i = 0; i < ncomp; ++i)
         iconserv[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
 
     MultiFab fluxes[AMREX_SPACEDIM];
@@ -4823,7 +4824,6 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         if (do_reflux)
             fluxes[i].define(ba, dmap, ncomp, 0, MFInfo(), Factory());
     }
-
 
     if (use_godunov)
     {
