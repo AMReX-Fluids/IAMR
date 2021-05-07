@@ -65,14 +65,6 @@ NavierStokes::Initialize ()
 void
 NavierStokes::Initialize_specific ()
 {
-    // Will need to add more lines when more variables are added
-    int stateIdx = Density;
-    Tracer = ++stateIdx;
-    if (do_trac2)
-      Tracer2 = ++stateIdx;
-    if (do_temp)
-      Temp = ++stateIdx;
-
     //
     // Default BC values
     //

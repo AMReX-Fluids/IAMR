@@ -224,11 +224,11 @@ NavierStokes::variableSetUp ()
     // Set number of state variables.
     //
     NUM_STATE = Density + 1;
-    int Trac = NUM_STATE++;
-    int Trac2;
+    Tracer = NUM_STATE++;
     if (do_trac2)
-	Trac2 = NUM_STATE++;
-    if (do_temp) NUM_STATE++;
+        Tracer2 = NUM_STATE++;
+    if (do_temp)
+        Temp = NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
 
     if (do_scalar_update_in_order) {
@@ -287,12 +287,12 @@ NavierStokes::variableSetUp ()
     desc_lst.setComponent(State_Type,Density,"density",bc,state_bf);
 
     set_scalar_bc(bc,phys_bc);
-    desc_lst.setComponent(State_Type,Trac,"tracer",bc,state_bf);
+    desc_lst.setComponent(State_Type,Tracer,"tracer",bc,state_bf);
 
     if (do_trac2)
     {
        set_scalar_bc(bc,phys_bc);
-       desc_lst.setComponent(State_Type,Trac2,"tracer2",bc,state_bf);
+       desc_lst.setComponent(State_Type,Tracer2,"tracer2",bc,state_bf);
     }
     //
     // **************  DEFINE TEMPERATURE  ********************
@@ -322,19 +322,19 @@ NavierStokes::variableSetUp ()
     advectionType[Density] = Conservative;
     if (do_temp) advectionType[Temp] = NonConservative;
 
-    advectionType[Trac] = NonConservative;
-    diffusionType[Trac] = Laplacian_S; if (do_cons_trac) {
-      advectionType[Trac] = Conservative;
-      diffusionType[Trac] = Laplacian_SoverRho;
+    advectionType[Tracer] = NonConservative;
+    diffusionType[Tracer] = Laplacian_S; if (do_cons_trac) {
+      advectionType[Tracer] = Conservative;
+      diffusionType[Tracer] = Laplacian_SoverRho;
       amrex::Print() << "Using conservative advection update for tracer.\n";
     }
 
     if (do_trac2) {
-	advectionType[Trac2] = NonConservative;
-	diffusionType[Trac2] = Laplacian_S;
+	advectionType[Tracer2] = NonConservative;
+	diffusionType[Tracer2] = Laplacian_S;
 	if (do_cons_trac2) {
-	  advectionType[Trac2] = Conservative;
-	  diffusionType[Trac2] = Laplacian_SoverRho;
+	  advectionType[Tracer2] = Conservative;
+	  diffusionType[Tracer2] = Laplacian_SoverRho;
 	  amrex::Print() << "Using conservative advection update for tracer2.\n";
 	}
     }
