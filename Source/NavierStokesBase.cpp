@@ -3470,7 +3470,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
 		if ( do_mom_diff )
 		{
-		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, do_mom_diff]
+		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
 		  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
 		  {
                     tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
@@ -3478,7 +3478,7 @@ NavierStokesBase::velocity_advection (Real dt)
 		}
 		else
 		{
-		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, do_mom_diff]
+		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
                   AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                   {
                     tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
