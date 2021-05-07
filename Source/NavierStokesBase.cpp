@@ -3468,13 +3468,22 @@ NavierStokesBase::velocity_advection (Real dt)
                 auto const& gp   = Gp.const_array(U_mfi);
                 auto const& rho  = Smf.const_array(U_mfi); //Previous time, nghost_force() grow cells filled
 
-                amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, do_mom_diff]
-                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                {
+		if ( do_mom_diff )
+		{
+		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, do_mom_diff]
+		  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+		  {
                     tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
-                    if ( !do_mom_diff )
-                        tf(i,j,k,n) /= rho(i,j,k);
-                });
+		  });
+		}
+		else
+		{
+		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, do_mom_diff]
+                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                  {
+                    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
+		  });
+		}
             }
 
 
