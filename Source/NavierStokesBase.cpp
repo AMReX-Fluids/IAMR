@@ -3345,24 +3345,6 @@ NavierStokesBase::velocity_advection (Real dt)
     MultiFab divu_fp(grids,dmap,1,nghost_state(),MFInfo(),Factory());
     create_mac_rhs(divu_fp,divu_fp.nGrow(),prev_time,dt);
 
-    // MultiFab fluxes[AMREX_SPACEDIM];
-
-    // if (do_reflux)
-    // {
-    //     for (int i = 0; i < AMREX_SPACEDIM; i++)
-    //     {
-    //         const BoxArray& ba = getEdgeBoxArray(i);
-    //         fluxes[i].define(ba, dmap, AMREX_SPACEDIM, 0, MFInfo(),Factory());
-    //     }
-    // }
-
-
-    // // Advection type
-    // amrex::Gpu::DeviceVector<int> iconserv;
-    // iconserv.resize(AMREX_SPACEDIM, 0);
-    // for (int comp = 0; comp < AMREX_SPACEDIM; ++comp )
-    //     iconserv[comp] = (advectionType[comp] == Conservative) ? true : false;
-
     //
     // Compute the advective forcing.
     //
@@ -3373,29 +3355,6 @@ NavierStokesBase::velocity_advection (Real dt)
         FillPatchIterator U_fpi(*this,forcing_term, nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
         MultiFab& Umf=U_fpi.get_mf();
 	MultiFab& Gp = get_old_data(Gradp_Type);
-
-        // MultiFab cfluxes[AMREX_SPACEDIM];
-        // MultiFab edgestate[AMREX_SPACEDIM];
-
-	//FIMXE
-	// At most could have nghost= nghost_state()-2 due to needs of slopes routines
-	// Non-EB does not need any ghost cells (verified in development).
-	// Not sure that EB really needs any ghost cells on fluxes either (however,
-	// nghost =0 in development causes regression test to fail).
-	// Note that classes derived from NS may need fluxes for scalar advection (not velocity advection)
-	// even though they may have their own scalar advection routine and do not use NS::scalar_advection()
-// #ifdef AMREX_USE_EB
-//         int nghost = nghost_state()-2;
-// #else
-// 	int nghost = 0;
-// #endif
-//         for (int i = 0; i < AMREX_SPACEDIM; i++)
-//         {
-//             const BoxArray& ba = getEdgeBoxArray(i);
-//             cfluxes[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Factory());
-//             cfluxes[i].setVal(0.0);
-//             edgestate[i].define(ba, dmap, AMREX_SPACEDIM, nghost, MFInfo(), Factory());
-//         }
 
         //
         // S_term is the state we are solving for: either velocity or momentum
@@ -3434,7 +3393,6 @@ NavierStokesBase::velocity_advection (Real dt)
             //
             FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
             MultiFab& Smf=S_fpi.get_mf();
-            // MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force() );
 
 
             //
@@ -3491,49 +3449,6 @@ NavierStokesBase::velocity_advection (Real dt)
 		}
             }
 
-
-// #ifndef AMREX_USE_EB
-//             Godunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
-//                                  *S_term, 0,
-//                                  AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-//                                  AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-//                                  AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-//                                  forcing_term, 0, divu_fp, m_bcrec_velocity_d.dataPtr(), geom, iconserv, dt,
-//                                  godunov_use_ppm, godunov_use_forces_in_trans, true);
-// #else
-//             EBGodunov::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM,
-//                                    *S_term, 0,
-//                                    AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-//                                    AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-//                                    AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-//                                    forcing_term, 0, divu_fp,
-//                                    m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
-//                                    geom, iconserv, dt, true, redistribution_type);
-// #endif
-
-        }
-        else
-        {
-
-//             //
-//             // >>>>>>>>>>>>>>>>>>>>>>>>>>>  MOL ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-//             //
-// #ifdef AMREX_USE_EB
-//             EBMOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, *S_term, 0,
-//                                D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-//                                D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-//                                D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-//                                divu_fp,
-//                                m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv,
-//                                geom, dt, true, redistribution_type );
-// #else
-//             MOL::ComputeAofs(*aofs, Xvel, AMREX_SPACEDIM, *S_term, 0,
-//                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-//                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-//                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-//                              m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv,
-//                              geom, true );
-// #endif
         }
 
 
@@ -3542,28 +3457,8 @@ NavierStokesBase::velocity_advection (Real dt)
         if (do_mom_diff)
             delete S_term;
 
-
-        // if (do_reflux)
-        // {
-        //     for (int d=0; d < AMREX_SPACEDIM; ++d)
-        //         MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, AMREX_SPACEDIM, 0 );
-        // }
-
     } //end scope of FillPatchIter
 
-    // if (do_reflux)
-    // {
-    //     if (level > 0 )
-    //     {
-    //         for (int d = 0; d < AMREX_SPACEDIM; d++)
-    //             advflux_reg->FineAdd(fluxes[d],d,0,0,AMREX_SPACEDIM,dt);
-    //     }
-    //     if(level < finest_level)
-    //     {
-    //         for (int i = 0; i < AMREX_SPACEDIM; i++)
-    //             getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,0,AMREX_SPACEDIM,-dt);
-    //     }
-    // }
 }
 
 //
