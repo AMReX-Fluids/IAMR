@@ -4774,15 +4774,13 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     {
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
             MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, ncomp, 0 );
-    }
 
-    if (do_reflux)
-    {
         if (level > 0 )
         {
             for (int d = 0; d < AMREX_SPACEDIM; d++)
                 advflux_reg->FineAdd(fluxes[d],d,0,comp,ncomp,dt);
         }
+
         if (level < parent->finestLevel())
         {
             for (int i = 0; i < AMREX_SPACEDIM; i++)
