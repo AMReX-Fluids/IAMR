@@ -3431,26 +3431,16 @@ NavierStokesBase::velocity_advection (Real dt)
                 auto const& gp   = Gp.const_array(U_mfi);
                 auto const& rho  = Smf.const_array(U_mfi); //Previous time, nghost_force() grow cells filled
 
-		if ( do_mom_diff )
+                bool is_convective = do_mom_diff ? false : true;
+                amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, is_convective]
+		AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
 		{
-		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
-		  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-		  {
                     tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
-		  });
-		}
-		else
-		{
-		  amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho]
-                  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                  {
-                    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) ) / rho(i,j,k);
-		  });
-		}
+                    if (is_convective)
+                        tf(i,j,k,n) /= rho(i,j,k);
+                });
             }
-
         }
-
 
         ComputeAofs( Xvel, AMREX_SPACEDIM, *S_term, 0, forcing_term, divu_fp, true, dt );
 
