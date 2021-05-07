@@ -3345,110 +3345,98 @@ NavierStokesBase::velocity_advection (Real dt)
     MultiFab divu_fp(grids,dmap,1,nghost_state(),MFInfo(),Factory());
     create_mac_rhs(divu_fp,divu_fp.nGrow(),prev_time,dt);
 
+    MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force(), MFInfo(),Factory());
+    forcing_term.setVal(0.0);
+
+    FillPatchIterator U_fpi(*this,forcing_term, nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+    MultiFab& Umf=U_fpi.get_mf();
+    MultiFab& Gp = get_old_data(Gradp_Type);
+
     //
-    // Compute the advective forcing.
+    // S_term is the state we are solving for: either velocity or momentum
     //
+    MultiFab* S_term;
+
+    S_term = (do_mom_diff)
+        ? new MultiFab( grids, dmap, AMREX_SPACEDIM, nghost_state(), MFInfo(), Factory())
+        : &Umf;
+
+    if (do_mom_diff)
     {
-        MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force(), MFInfo(),Factory());
-        forcing_term.setVal(0.0);
+        FillPatchIterator Rho_fpi(*this,forcing_term,nghost_state(),prev_time,State_Type,Density,1);
+        MultiFab& Rmf=Rho_fpi.get_mf();
 
-        FillPatchIterator U_fpi(*this,forcing_term, nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
-        MultiFab& Umf=U_fpi.get_mf();
-	MultiFab& Gp = get_old_data(Gradp_Type);
-
-        //
-        // S_term is the state we are solving for: either velocity or momentum
-        //
-        MultiFab* S_term;
-
-        S_term = (do_mom_diff)
-            ? new MultiFab( grids, dmap, AMREX_SPACEDIM, nghost_state(), MFInfo(), Factory())
-            : &Umf;
-
-        if (do_mom_diff)
+        for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
         {
-            FillPatchIterator Rho_fpi(*this,forcing_term,nghost_state(),prev_time,State_Type,Density,1);
-            MultiFab& Rmf=Rho_fpi.get_mf();
+            auto const state_bx = U_mfi.growntilebox(nghost_state());
 
-            for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
-            {
-                auto const state_bx = U_mfi.growntilebox(nghost_state());
+            auto const& dens = Rmf.const_array(U_mfi); //Previous time, nghost_state() grow cells filled
+            auto const& vel  = Umf.const_array(U_mfi);
+            auto const& st   = S_term->array(U_mfi);
 
-                auto const& dens = Rmf.const_array(U_mfi); //Previous time, nghost_state() grow cells filled
-                auto const& vel  = Umf.const_array(U_mfi);
-                auto const& st   = S_term->array(U_mfi);
-
-                amrex::ParallelFor(state_bx, AMREX_SPACEDIM, [ dens, vel, st ]
-                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-                { st(i,j,k,n) = vel(i,j,k,n) * dens(i,j,k); });
-            }
+            amrex::ParallelFor(state_bx, AMREX_SPACEDIM, [ dens, vel, st ]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            { st(i,j,k,n) = vel(i,j,k,n) * dens(i,j,k); });
         }
+    }
 
+    //
+    // Forcing term -- Godunov only
+    //
+    if (use_godunov)
+    {
 
+        FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
+        MultiFab& Smf=S_fpi.get_mf();
 
-        if (use_godunov)
-        {
-            //
-            // >>>>>>>>>>>>>>>>>>>>>>>>>>>  GODUNOV ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-            //
-            FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
-            MultiFab& Smf=S_fpi.get_mf();
-
-
-            //
-            // Compute viscosity components.
-            //
-            MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
-            if (be_cn_theta != 1.0)
-                getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
-            else
-                visc_terms.setVal(0.0);
+        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
+        if (be_cn_theta != 1.0)
+            getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
+        else
+            visc_terms.setVal(0.0);
 
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
+        for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
+        {
+
+            auto const force_bx = U_mfi.growntilebox(nghost_force()); // Box for forcing term
+            auto const state_bx = U_mfi.growntilebox(nghost_state()); // Box for state   terms
+
+            if (getForceVerbose)
             {
-
-                auto const force_bx = U_mfi.growntilebox(nghost_force()); // Box for forcing term
-                auto const state_bx = U_mfi.growntilebox(nghost_state()); // Box for state   terms
-
-                if (getForceVerbose)
-                {
-                    amrex::Print() << "---" << '\n'
-                                   << "B - velocity advection:" << '\n'
-                                   << "Calling getForce..." << '\n';
-                }
-                getForce(forcing_term[U_mfi],force_bx,Xvel,AMREX_SPACEDIM,
-                         prev_time,Umf[U_mfi],Smf[U_mfi],0,U_mfi);
-
-                //
-                // Compute the total forcing.
-                //
-                auto const& tf   = forcing_term.array(U_mfi,Xvel);
-                auto const& visc = visc_terms.const_array(U_mfi,Xvel);
-                auto const& gp   = Gp.const_array(U_mfi);
-                auto const& rho  = Smf.const_array(U_mfi); //Previous time, nghost_force() grow cells filled
-
-                bool is_convective = do_mom_diff ? false : true;
-                amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, is_convective]
-		AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-		{
-                    tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
-                    if (is_convective)
-                        tf(i,j,k,n) /= rho(i,j,k);
-                });
+                amrex::Print() << "---" << '\n'
+                               << "B - velocity advection:" << '\n'
+                               << "Calling getForce..." << '\n';
             }
+            getForce(forcing_term[U_mfi],force_bx,Xvel,AMREX_SPACEDIM,
+                     prev_time,Umf[U_mfi],Smf[U_mfi],0,U_mfi);
+
+            //
+            // Compute the total forcing.
+            //
+            auto const& tf   = forcing_term.array(U_mfi,Xvel);
+            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+            auto const& gp   = Gp.const_array(U_mfi);
+            auto const& rho  = Smf.const_array(U_mfi); //Previous time, nghost_force() grow cells filled
+
+            bool is_convective = do_mom_diff ? false : true;
+            amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, is_convective]
+	    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
+                if (is_convective)
+                    tf(i,j,k,n) /= rho(i,j,k);
+            });
         }
+    }
 
-        ComputeAofs( Xvel, AMREX_SPACEDIM, *S_term, 0, forcing_term, divu_fp, true, dt );
+    ComputeAofs( Xvel, AMREX_SPACEDIM, *S_term, 0, forcing_term, divu_fp, true, dt );
 
-        if (do_mom_diff)
-            delete S_term;
-
-    } //end scope of FillPatchIter
-
+    if (do_mom_diff)
+        delete S_term;
 }
 
 //
