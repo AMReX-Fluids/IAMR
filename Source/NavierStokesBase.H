@@ -586,6 +586,13 @@ public:
 
 #endif
 
+    void ComputeAofs (int comp, int ncomp,
+                      amrex::MultiFab const& state,
+                      int state_comp,
+                      amrex::MultiFab const& forcing_term,
+                      amrex::MultiFab const& divu,
+                      bool is_velocity, amrex::Real dt);
+
 //
 // Data
 //
