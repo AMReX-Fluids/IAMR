@@ -2322,8 +2322,11 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     }
 #endif
     //
-    // Initialize all viscous terms to zero
+    // Initialize boundary to bogus value so we know if we're using them
+    // when we shouldn't
     //
+    visc_terms.setBndry(1.e40);
+
     const int nGrow = visc_terms.nGrow();
 
     bool diffusive = false;
