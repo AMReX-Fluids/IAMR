@@ -891,11 +891,11 @@ NavierStokes::scalar_advection (Real dt,
 //                                  geom, iconserv, dt, godunov_use_ppm, godunov_use_forces_in_trans, false );
 // #endif
 
+            ComputeAofs( fscalar, num_scalars, Smf, 0, forcing_term, *divu_fp, false, dt );
+
         }
 
-        ComputeAofs( fscalar, num_scalars, Smf, 0, forcing_term, *divu_fp, false, dt );
-
-        delete divu_fp;
+        // ComputeAofs( fscalar, num_scalars, Smf, 0, forcing_term, *divu_fp, false, dt );
 
 
         // if (do_reflux)
@@ -907,6 +907,7 @@ NavierStokes::scalar_advection (Real dt,
     } // FillPathIterator
 
 
+    delete divu_fp;
 
     // if (do_reflux)
     // {
