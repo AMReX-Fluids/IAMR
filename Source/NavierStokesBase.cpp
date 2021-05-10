@@ -4743,6 +4743,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                          D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                         divu,
                          m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv,
                          geom, is_velocity );
 #endif

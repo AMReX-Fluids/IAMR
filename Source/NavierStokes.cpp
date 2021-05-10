@@ -65,14 +65,6 @@ NavierStokes::Initialize ()
 void
 NavierStokes::Initialize_specific ()
 {
-    // Will need to add more lines when more variables are added
-    int stateIdx = Density;
-    Tracer = ++stateIdx;
-    if (do_trac2)
-      Tracer2 = ++stateIdx;
-    if (do_temp)
-      Temp = ++stateIdx;
-
     //
     // Default BC values
     //
@@ -805,6 +797,7 @@ NavierStokes::scalar_advection (Real dt,
                              D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+                             *divu_fp,
                              m_bcrec_scalars, m_bcrec_scalars_d.dataPtr(), iconserv,
                              geom, false );
 #endif
@@ -2330,8 +2323,11 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     }
 #endif
     //
-    // Initialize all viscous terms to zero
+    // Initialize boundary to bogus value so we know if we're using them
+    // when we shouldn't
     //
+    visc_terms.setBndry(1.e40);
+
     const int nGrow = visc_terms.nGrow();
 
     bool diffusive = false;
