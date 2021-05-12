@@ -28,11 +28,6 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
-#include <hydro_ebgodunov.H>
-#include <hydro_ebmol.H>
-#else
-#include <hydro_godunov.H>
-#include <hydro_mol.H>
 #endif
 
 #include <AMReX_buildInfo.H>
