@@ -4698,6 +4698,10 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
             fluxes[i].define(ba, dmap, ncomp, 0, MFInfo(), Factory());
     }
 
+    auto const& bcrec_h = is_velocity? m_bcrec_velocity   : m_bcrec_scalars;
+    auto const& bcrec_d = is_velocity? m_bcrec_velocity_d : m_bcrec_scalars_d;
+
+
     if (use_godunov)
     {
         //
@@ -4709,7 +4713,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                              AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                              AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                              AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             forcing_term, 0, divu, m_bcrec_velocity_d.dataPtr(), geom, iconserv, dt,
+                             forcing_term, 0, divu, bcrec_d.dataPtr(), geom, iconserv, dt,
                              godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
 #else
         EBGodunov::ComputeAofs(*aofs, comp, ncomp,
@@ -4718,7 +4722,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                                AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                                forcing_term, 0, divu,
-                               m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
+                               bcrec_h, bcrec_d.dataPtr(),
                                geom, iconserv, dt, is_velocity, redistribution_type);
 #endif
     }
@@ -4735,7 +4739,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                            D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                            D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                            divu,
-                           m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv,
+                           bcrec_h, bcrec_d.dataPtr(), iconserv,
                            geom, dt, is_velocity, redistribution_type );
 #else
         MOL::ComputeAofs(*aofs, comp, ncomp,
@@ -4744,7 +4748,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                          D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                          divu,
-                         m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), iconserv,
+                         bcrec_h, bcrec_d.dataPtr(), iconserv,
                          geom, is_velocity );
 #endif
     }
@@ -4768,6 +4772,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     }
 
 }
+
+
 
 #ifdef AMREX_USE_EB
 void
