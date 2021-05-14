@@ -4837,7 +4837,7 @@ NavierStokesBase::InitialRedistribution ()
                                                 ccc, m_bcrec_velocity_d.dataPtr(),
 						geom, redistribution_type);
             Redistribution::ApplyToInitialData( bx,NUM_SCALARS,
-                                                S_new.array(mfi), tmp.array(mfi),
+                                                S_new.array(mfi,Density), tmp.array(mfi),
                                                 flag, AMREX_D_DECL(apx, apy, apz), vfrac,
                                                 AMREX_D_DECL(fcx, fcy, fcz),
                                                 ccc,m_bcrec_scalars_d.dataPtr(),
