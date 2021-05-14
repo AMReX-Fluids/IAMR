@@ -4829,11 +4829,19 @@ NavierStokesBase::InitialRedistribution ()
 
             vfrac = fact.getVolFrac().const_array(mfi);
 
-            Redistribution::ApplyToInitialData( bx,NUM_STATE,
+	    //FIXME: this is a hack due to separate bcrecs Maybe want to put in single array.
+            Redistribution::ApplyToInitialData( bx,AMREX_SPACEDIM,
                                                 S_new.array(mfi), tmp.array(mfi),
                                                 flag, AMREX_D_DECL(apx, apy, apz), vfrac,
                                                 AMREX_D_DECL(fcx, fcy, fcz),
-                                                ccc, geom, redistribution_type);
+                                                ccc, m_bcrec_velocity_d.dataPtr(),
+						geom, redistribution_type);
+            Redistribution::ApplyToInitialData( bx,NUM_SCALARS,
+                                                S_new.array(mfi), tmp.array(mfi),
+                                                flag, AMREX_D_DECL(apx, apy, apz), vfrac,
+                                                AMREX_D_DECL(fcx, fcy, fcz),
+                                                ccc,m_bcrec_scalars_d.dataPtr(),
+						geom, redistribution_type);
         }
     }
 }
