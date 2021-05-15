@@ -1108,7 +1108,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // We want to fill crse_src from lower level u_mac including u_mac's grow cells.
             //
             const MultiFab& u_macLL = getLevel(level-1).u_mac[idim];
-            crse_src.copy(u_macLL,0,0,1,u_macLL.nGrow(),0);
+            crse_src.ParallelCopy(u_macLL,0,0,1,u_macLL.nGrow(),0);
 
 	    const amrex::GpuArray<int,AMREX_SPACEDIM> c_ratio = {D_DECL(crse_ratio[0],crse_ratio[1],crse_ratio[2])};
 
@@ -1159,7 +1159,7 @@ NavierStokesBase::create_umac_grown (int nGrow)
             // this level u_mac valid only on surrounding faces of valid
             // region - this op will not fill grow region.
             //
-            fine_src.copy(u_mac[idim]);
+            fine_src.ParallelCopy(u_mac[idim]);
             //
             // Interpolate unfilled grow cells using best data from
             // surrounding faces of valid region, and pc-interpd data
@@ -1200,9 +1200,9 @@ NavierStokesBase::create_umac_grown (int nGrow)
             }
 
             MultiFab u_mac_save(u_mac[idim].boxArray(),u_mac[idim].DistributionMap(),1,0,MFInfo(),Factory());
-            u_mac_save.copy(u_mac[idim]);
-            u_mac[idim].copy(fine_src,0,0,1,0,nGrow);
-            u_mac[idim].copy(u_mac_save);
+            u_mac_save.ParallelCopy(u_mac[idim]);
+            u_mac[idim].ParallelCopy(fine_src,0,0,1,0,nGrow);
+            u_mac[idim].ParallelCopy(u_mac_save);
         }
     }
     for (int n = 0; n < BL_SPACEDIM; ++n)
@@ -2512,7 +2512,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
 
         MultiFab mf(ba, dm, AMREX_SPACEDIM, 0, MFInfo(), Factory());
 
-        mf.copy(get_new_data(State_Type), Xvel, 0, AMREX_SPACEDIM);
+        mf.ParallelCopy(get_new_data(State_Type), Xvel, 0, AMREX_SPACEDIM);
 
         if (ParallelDescriptor::MyProc() == mf.DistributionMap()[0])
         {
@@ -3106,7 +3106,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     MultiFab cdataMF(cdataBA,fdmap,num_comp,0);
 #endif
 
-    cdataMF.copy(CrseSync, src_comp, 0, num_comp, cgeom.periodicity());
+    cdataMF.ParallelCopy(CrseSync, src_comp, 0, num_comp, cgeom.periodicity());
 
     //
     // Set physical boundary conditions in cdataMF.
@@ -3267,7 +3267,7 @@ NavierStokesBase::SyncProjInterp (MultiFab& phi,
 #endif
 
     crse_phi.setVal(1.e200);
-    crse_phi.copy(phi,0,0,1);
+    crse_phi.ParallelCopy(phi,0,0,1);
 
 #ifdef AMREX_USE_EB
     // FIXME -

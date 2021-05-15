@@ -1725,7 +1725,7 @@ Projection::putDown (const Vector<MultiFab*>& phi,
                     });
                 }
             }
-            phi[lev]->copy(phi_crse_strip);
+            phi[lev]->ParallelCopy(phi_crse_strip);
         }
     }
 }
@@ -1941,7 +1941,7 @@ Projection::set_outflow_bcs_at_level (int          which_call,
           });
         }
 
-        phi[lev]->copy(phi_fine_strip_mf);
+        phi[lev]->ParallelCopy(phi_fine_strip_mf);
     }
 
     if (lev > c_lev)
