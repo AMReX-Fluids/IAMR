@@ -4800,9 +4800,12 @@ NavierStokesBase::InitialRedistribution ()
     MultiFab::Copy(tmp, S_new, 0, 0, NUM_STATE, nghost_state());
     EB_set_covered(tmp, 0.0);
 
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
     for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
         auto const& fact =  dynamic_cast<EBFArrayBoxFactory const&>(S_new.Factory());
 
