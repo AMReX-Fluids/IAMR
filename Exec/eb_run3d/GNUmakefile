@@ -1,5 +1,7 @@
 #AMREX_HOME defines the directory in which we will find the BoxLib directory
 AMREX_HOME ?= ../../../amrex
+AMREX_HYDRO_HOME ?= /home/candace/CCSE/CompAofs_update/AMReX-Hydro
+#../../../AMReX-Hydro
 
 #TOP defines the directory in which we will find Source, Exec, etc.
 TOP = ../..

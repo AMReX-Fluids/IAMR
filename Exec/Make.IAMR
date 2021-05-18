@@ -1,5 +1,4 @@
 AMREX_NO_PROBINIT=TRUE
-AMREX_HYDRO_HOME := ../AMReX-Hydro
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -7,21 +6,24 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 Bdirs += Source
 Bdirs += Source/Src_$(DIM)d
-Bdirs += $(AMREX_HYDRO_HOME)/Utils
-Bdirs += $(AMREX_HYDRO_HOME)/MOL
-Bdirs += $(AMREX_HYDRO_HOME)/Godunov
 Bdirs += Source/prob
-
-ifeq ($(USE_EB), TRUE)
-Bdirs += $(AMREX_HYDRO_HOME)/Redistribution
-Bdirs += $(AMREX_HYDRO_HOME)/EBMOL
-Bdirs += $(AMREX_HYDRO_HOME)/EBGodunov
-endif
-
 Bdirs += Source/Utilities
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+Hdirs := $(AMREX_HYDRO_HOME)/Utils
+Hdirs += $(AMREX_HYDRO_HOME)/MOL
+Hdirs += $(AMREX_HYDRO_HOME)/Godunov
+
+ifeq ($(USE_EB), TRUE)
+Hdirs += $(AMREX_HYDRO_HOME)/Redistribution
+Hdirs += $(AMREX_HYDRO_HOME)/EBMOL
+Hdirs += $(AMREX_HYDRO_HOME)/EBGodunov
+endif
+
+Bpack	+= $(foreach dir, $(Hdirs), $(dir)/Make.package)
+Blocs	+= $(foreach dir, $(Hdirs), $(dir))
 
 include $(Bpack)
 
