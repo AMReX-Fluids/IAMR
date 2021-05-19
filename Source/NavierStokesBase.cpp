@@ -3342,8 +3342,11 @@ NavierStokesBase::velocity_advection (Real dt)
     const int   finest_level   = parent->finestLevel();
     const Real  prev_time      = state[State_Type].prevTime();
 
-    MultiFab divu_fp(grids,dmap,1,nghost_state(),MFInfo(),Factory());
-    create_mac_rhs(divu_fp,divu_fp.nGrow(),prev_time,dt);
+    // FIXME? pretty sure this should be nghost_force & only mult by dsdt for godunov
+    MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
+	MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+        MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+        delete dsdt;
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force(), MFInfo(),Factory());
     forcing_term.setVal(0.0);
@@ -3389,6 +3392,10 @@ NavierStokesBase::velocity_advection (Real dt)
         FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
         MultiFab& Smf=S_fpi.get_mf();
 
+	// MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+        // MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+        // delete dsdt;
+
         MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
         if (be_cn_theta != 1.0)
             getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
@@ -3433,8 +3440,9 @@ NavierStokesBase::velocity_advection (Real dt)
         }
     }
 
-    ComputeAofs( Xvel, AMREX_SPACEDIM, *S_term, 0, forcing_term, divu_fp, true, dt );
+    ComputeAofs( Xvel, AMREX_SPACEDIM, *S_term, 0, forcing_term, *divu_fp, true, dt );
 
+    delete divu_fp;
     if (do_mom_diff)
         delete S_term;
 }
@@ -4596,28 +4604,9 @@ NavierStokesBase::floor(MultiFab& mf){
 int
 NavierStokesBase::nghost_state ()
 {
-  //FIXME - unsure of ghost cell needs here. Why is IAMR different than incflo?
-  // from incflo:
-//     int nghost_state () const {
-// #ifdef AMREX_USE_EB
-//         if (!EBFactory(0).isAllRegular())
-//         {
-//             return 4;
-//         }
-// #endif
-//         {
-//             return (m_advection_type != "MOL") ? 3 : 2;
-//         }
-//     }
-
 #ifdef AMREX_USE_EB
   if (!EBFactory().isAllRegular())
   {
-    if (use_godunov && redistribution_type == "StateRedist")
-        return 6;
-    else if (use_godunov || redistribution_type == "StateRedist")
-        return 5;
-    else
         return 4;
   }
   else
@@ -4631,29 +4620,10 @@ NavierStokesBase::nghost_state ()
 int
 NavierStokesBase::nghost_force ()
 {
-  //FIXME? again, why is IAMR different than incflo?
-// From incflo
-// // For Godunov, we need 1 ghost cell in addition to the Box we are filling
-    // // For MOL    , we need 0 ghost cells
-    // int nghost_force () const
-    // {
-    //    if (m_advection_type == "MOL")
-    //        return 0;
-    //    else
-    //        return 1;
-    // }
-
-    if (!use_godunov)
-        return 0;
-#ifdef AMREX_USE_EB
-    else if ( !EBFactory().isAllRegular() )
-      if (redistribution_type == "StateRedist")
-        return 4;
-    else
-        return 3;
-#endif
-    else
+    if (use_godunov)
       return 1;
+    else
+        return 0;
 }
 
 
@@ -4676,18 +4646,13 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     MultiFab cfluxes[AMREX_SPACEDIM];
     MultiFab edgestate[AMREX_SPACEDIM];
 
-    //FIMXE
-    // At most could have nghost= nghost_state()-2 due to needs of slopes routines
-    // Non-EB does not need any ghost cells (verified in development).
-    // Not sure that EB really needs any ghost cells on fluxes either (however,
-    // nghost =0 in development causes regression test to fail).
-    // Note that classes derived from NS may need fluxes for scalar advection (not velocity advection)
-    // They may have their own scalar advection routine and may not use NS::scalar_advection()
-#ifdef AMREX_USE_EB
-    int nghost = nghost_state()-2;
-#else
+    //
+    // Advection needs state to have 2-3 ghost cells.
+    // Advection routines call slopes on cells i & i+1, and then
+    // 2nd order slopes use i+/-1 => state needs 2 ghost cells (MOL)
+    // 4th order slopes use i+/-2 => state needs 3 ghost cells (Godunov)
+    //
     int nghost = 0;
-#endif
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         const BoxArray& ba = getEdgeBoxArray(i);
@@ -4773,8 +4738,6 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
 
 }
 
-
-
 #ifdef AMREX_USE_EB
 void
 NavierStokesBase::InitialRedistribution ()
@@ -4789,15 +4752,14 @@ NavierStokesBase::InitialRedistribution ()
     // We must fill internal ghost values before calling redistribution
     // We also need any physical boundary conditions imposed if we are
     //    calling state redistribution (because that calls the slope routine)
-    // FIXME? In theory, since ghost cells are now filled, we wouldn't need to call
-    // FillPatch someplace later ...
-    FillPatch (*this, S_new, nghost_state(), state[State_Type].curTime(), State_Type,
-	       0, NUM_STATE);
+    FillPatchIterator S_fpi(*this, S_new, nghost_state(), state[State_Type].curTime(),
+			    State_Type, 0, NUM_STATE);
+    MultiFab& Smf=S_fpi.get_mf();
 
     // Could we use the space in get_old_data instead of making new?
     MultiFab tmp( grids, dmap, NUM_STATE, nghost_state(), MFInfo(), Factory() );
 
-    MultiFab::Copy(tmp, S_new, 0, 0, NUM_STATE, nghost_state());
+    MultiFab::Copy(tmp, Smf, 0, 0, NUM_STATE, nghost_state());
     EB_set_covered(tmp, 0.0);
 
 #ifdef _OPENMP
@@ -4812,6 +4774,8 @@ NavierStokesBase::InitialRedistribution ()
         EBCellFlagFab const& flagfab = fact.getMultiEBCellFlagFab()[mfi];
         Array4<EBCellFlag const> const& flag = flagfab.const_array();
 
+	// FIXME? If state redistribution can use up to 3 ghost cells, does this check
+	// need to be on grow(bx,3)? -- Also doesn't match Redist halo in ComputeAofs...
         if ( (flagfab.getType(amrex::grow(bx,1)) != FabType::covered) &&
              (flagfab.getType(amrex::grow(bx,1)) != FabType::regular) )
         {
@@ -4834,13 +4798,13 @@ NavierStokesBase::InitialRedistribution ()
 
 	    //FIXME: this is a hack due to separate bcrecs Maybe want to put in single array.
             Redistribution::ApplyToInitialData( bx,AMREX_SPACEDIM,
-                                                S_new.array(mfi), tmp.array(mfi),
+                                                Smf.array(mfi), tmp.array(mfi),
                                                 flag, AMREX_D_DECL(apx, apy, apz), vfrac,
                                                 AMREX_D_DECL(fcx, fcy, fcz),
                                                 ccc, m_bcrec_velocity_d.dataPtr(),
 						geom, redistribution_type);
             Redistribution::ApplyToInitialData( bx,NUM_SCALARS,
-                                                S_new.array(mfi,Density), tmp.array(mfi),
+                                                Smf.array(mfi,Density), tmp.array(mfi),
                                                 flag, AMREX_D_DECL(apx, apy, apz), vfrac,
                                                 AMREX_D_DECL(fcx, fcy, fcz),
                                                 ccc,m_bcrec_scalars_d.dataPtr(),
