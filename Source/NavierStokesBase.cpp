@@ -541,12 +541,6 @@ NavierStokesBase::Initialize ()
     //
     if ( use_godunov && !do_mom_diff )
       amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
-    if ( use_godunov && !do_cons_trac )
-      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
-    if ( use_godunov && do_trac2 && !do_cons_trac2 )
-      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac2=1");
-    if ( use_godunov && do_temp )
-      amrex::Abort("EB Godunov only supports conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
     if ( use_godunov && godunov_use_ppm )
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
