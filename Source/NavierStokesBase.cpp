@@ -539,14 +539,6 @@ NavierStokesBase::Initialize ()
     //
     // EB Godunov restrictions
     //
-    if ( use_godunov && !do_mom_diff )
-      amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
-    if ( use_godunov && !do_cons_trac )
-      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
-    if ( use_godunov && do_trac2 && !do_cons_trac2 )
-      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac2=1");
-    if ( use_godunov && do_temp )
-      amrex::Abort("EB Godunov only supports conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
     if ( use_godunov && godunov_use_ppm )
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
@@ -4747,6 +4739,9 @@ NavierStokesBase::InitialRedistribution ()
     if ( redistribution_type != "StateRedist" && redistribution_type != "MergeRedist")
         return;
 
+    if (verbose)
+      amrex::Print() << "Doing initial redistribution... " << std::endl;
+
     // Initial data are set at new time step
     MultiFab& S_new = get_new_data(State_Type);
     // We must fill internal ghost values before calling redistribution
@@ -4779,9 +4774,6 @@ NavierStokesBase::InitialRedistribution ()
         if ( (flagfab.getType(amrex::grow(bx,1)) != FabType::covered) &&
              (flagfab.getType(amrex::grow(bx,1)) != FabType::regular) )
         {
-	    if (verbose)
-	      amrex::Print() << "Doing initial redistribution... " << std::endl;
-
             Array4<Real const> AMREX_D_DECL(fcx, fcy, fcz), ccc, vfrac, AMREX_D_DECL(apx, apy, apz);
 
             AMREX_D_TERM(fcx = fact.getFaceCent()[0]->const_array(mfi);,
