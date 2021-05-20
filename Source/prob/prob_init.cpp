@@ -147,14 +147,14 @@ void NavierStokes::prob_initData ()
 }
 
 void NavierStokes::init_bubble (Box const& vbx,
-				Array4<Real> const& press,
+				Array4<Real> const& /*press*/,
 				Array4<Real> const& vel,
 				Array4<Real> const& scal,
 				const int nscal,
 				Box const& domain,
 				GpuArray<Real, AMREX_SPACEDIM> const& dx,
 				GpuArray<Real, AMREX_SPACEDIM> const& problo,
-				GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+				GpuArray<Real, AMREX_SPACEDIM> const& /*probhi*/,
 				InitialConditions IC)
 {
   const auto domlo = amrex::lbound(domain);
@@ -212,14 +212,14 @@ void NavierStokes::init_bubble (Box const& vbx,
 }
 
 void NavierStokes::init_constant_vel_rho (Box const& vbx,
-					  Array4<Real> const& press,
+					  Array4<Real> const& /*press*/,
 					  Array4<Real> const& vel,
 					  Array4<Real> const& scal,
 					  const int nscal,
 					  Box const& domain,
 					  GpuArray<Real, AMREX_SPACEDIM> const& dx,
 					  GpuArray<Real, AMREX_SPACEDIM> const& problo,
-					  GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+					  GpuArray<Real, AMREX_SPACEDIM> const& /*probhi*/,
 					  InitialConditions IC)
 {
   const auto domlo = amrex::lbound(domain);
@@ -263,15 +263,15 @@ void NavierStokes::init_constant_vel_rho (Box const& vbx,
 }
 
 void NavierStokes::init_DoubleShearLayer (Box const& vbx,
-					    Array4<Real> const& press,
-					    Array4<Real> const& vel,
-					    Array4<Real> const& scal,
-					    const int nscal,
-					    Box const& domain,
-					    GpuArray<Real, AMREX_SPACEDIM> const& dx,
-					    GpuArray<Real, AMREX_SPACEDIM> const& problo,
-					    GpuArray<Real, AMREX_SPACEDIM> const& probhi,
-					    InitialConditions IC)
+					  Array4<Real> const& /*press*/,
+					  Array4<Real> const& vel,
+					  Array4<Real> const& scal,
+					  const int nscal,
+					  Box const& domain,
+					  GpuArray<Real, AMREX_SPACEDIM> const& dx,
+					  GpuArray<Real, AMREX_SPACEDIM> const& problo,
+					  GpuArray<Real, AMREX_SPACEDIM> const& /*probhi*/,
+					  InitialConditions IC)
 {
   const auto domlo = amrex::lbound(domain);
 
@@ -324,8 +324,8 @@ void NavierStokes::init_DoubleShearLayer (Box const& vbx,
 }
 
 void NavierStokes::init_RayleighTaylor (Box const& vbx,
-					Array4<Real> const& press,
-					Array4<Real> const& vel,
+					Array4<Real> const& /*press*/,
+					Array4<Real> const& /*vel*/,
 					Array4<Real> const& scal,
 					const int nscal,
 					Box const& domain,
@@ -423,14 +423,14 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
 // the pressure field.
 //
 void NavierStokes::init_TaylorGreen (Box const& vbx,
-				     Array4<Real> const& press,
+				     Array4<Real> const& /*press*/,
 				     Array4<Real> const& vel,
 				     Array4<Real> const& scal,
 				     const int nscal,
 				     Box const& domain,
 				     GpuArray<Real, AMREX_SPACEDIM> const& dx,
 				     GpuArray<Real, AMREX_SPACEDIM> const& problo,
-				     GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+				     GpuArray<Real, AMREX_SPACEDIM> const& /*probhi*/,
 				     InitialConditions IC)
 {
   const auto domlo = amrex::lbound(domain);
@@ -476,14 +476,14 @@ void NavierStokes::init_TaylorGreen (Box const& vbx,
 }
 
 void NavierStokes::init_Euler (Box const& vbx,
-			       Array4<Real> const& press,
+			       Array4<Real> const& /*press*/,
 			       Array4<Real> const& vel,
 			       Array4<Real> const& scal,
 			       const int nscal,
 			       Box const& domain,
 			       GpuArray<Real, AMREX_SPACEDIM> const& dx,
 			       GpuArray<Real, AMREX_SPACEDIM> const& problo,
-			       GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+			       GpuArray<Real, AMREX_SPACEDIM> const& /*probhi*/,
 			       InitialConditions IC)
 {
   const auto domlo = amrex::lbound(domain);
@@ -526,14 +526,14 @@ void NavierStokes::init_Euler (Box const& vbx,
 }
 
 void NavierStokes::init_ConvectedVortex (Box const& vbx,
-                                         Array4<Real> const& press,
+                                         Array4<Real> const& /*press*/,
                                          Array4<Real> const& vel,
                                          Array4<Real> const& scal,
                                          const int nscal,
                                          Box const& domain,
                                          GpuArray<Real, AMREX_SPACEDIM> const& dx,
                                          GpuArray<Real, AMREX_SPACEDIM> const& problo,
-                                         GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+                                         GpuArray<Real, AMREX_SPACEDIM> const& /*probhi*/,
                                          InitialConditions IC)
 {
   const auto domlo = amrex::lbound(domain);
@@ -550,7 +550,9 @@ void NavierStokes::init_ConvectedVortex (Box const& vbx,
     amrex::Real r_sq = IC.rvort * IC.rvort;
     amrex::Real u_vort = -IC.forcevort*deltay/r_sq * exp(-d_sq/r_sq/2.);
     amrex::Real v_vort = IC.forcevort*deltax/r_sq * exp(-d_sq/r_sq/2.);
+#if (AMREX_SPACEDIM == 3)
     amrex::Real w_vort = 0.;
+#endif
 
     //
     // Fill Velocity
