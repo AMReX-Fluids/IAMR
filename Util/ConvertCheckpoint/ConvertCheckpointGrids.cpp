@@ -647,13 +647,12 @@ static void ConvertData() {
     int ngrow_loc;
 
     for (int n = 0; n < falRef_src.state.size(); n++){
+     
+      ngrow_loc = 1;
 
-      if (!flag_eb){
-        if(n <= 1) ngrow_loc = 1;
-        if(n == 2) ngrow_loc = 0;
-      }else{
-        if(n == 0) ngrow_loc = 4;
-        if(n == 1 || n == 2) ngrow_loc = 1;
+      if (flag_eb){
+        if(n == 0 || n == 2) ngrow_loc = 4;
+        if(n == 1) ngrow_loc = 1;
       }
 
       // We don't have the same number of ghost-cells for each data type
