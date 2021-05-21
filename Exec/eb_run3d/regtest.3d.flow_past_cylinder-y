@@ -32,7 +32,7 @@ amr.restart             =   ""          # Checkpoint to restart from
 #.......................................#
 ns.gravity               =   0.  
 ns.vel_visc_coef         = 0.1
-ns.scal_diff_coefs       = 0.1
+ns.scal_diff_coefs       = 0.1 0.005
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
 #.......................................#
