@@ -548,11 +548,7 @@ MacProj::mac_sync_compute (int                   level,
 
     const int  ncomp = 1;         // Number of components to process at once
 
-#ifdef AMREX_USE_EB
-    const int  nghost  = 2;
-#else
     const int  nghost  = 0;
-#endif
 
     //
     // Prep MFs to store fluxes and edge states
@@ -851,11 +847,7 @@ MacProj::mac_sync_compute (int                    level,
     const Geometry& geom         = parent->Geom(level);
     NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
 
-#ifdef AMREX_USE_EB
-    const int  nghost  = 2;
-#else
     const int  nghost  = 0;
-#endif
 
     const int  ncomp   = 1;         // Number of components to process at once
 
