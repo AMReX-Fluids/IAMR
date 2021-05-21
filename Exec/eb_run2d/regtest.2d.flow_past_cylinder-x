@@ -1,10 +1,3 @@
-#
-# Current requirements for EB advection
-#
-do_mom_diff=1
-ns.do_cons_trac=1
-ns.do_cons_trac2=1
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            SIMULATION STOP            #
 #.......................................#
@@ -14,6 +7,14 @@ max_step                =  10           # Max number of time steps
 #.......................................#
 ns.init_shrink = 1.0
 ns.visc_tol=1.0e-11
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+# Algorithm options
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+do_mom_diff=0
+ns.do_cons_trac=0
+ns.do_trac2 = 1
+ns.do_cons_trac2=0
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
@@ -31,10 +32,10 @@ amr.restart             =   ""          # Checkpoint to restart from
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
-ns.gravity          =   0.  
+ns.gravity          =  -9.8  
 
 ns.vel_visc_coef         = 0.1
-ns.scal_diff_coefs       = 0.1
+ns.scal_diff_coefs       = 0.1 0.03
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #

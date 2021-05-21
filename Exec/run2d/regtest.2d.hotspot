@@ -3,8 +3,12 @@
 # INPUTS.2D.HOTSPOT
 #*******************************************************************************
 
+# Add temperature
 ns.do_temp=1
 ns.temp_cond_coef=1.e-8
+# Also add a second tracer
+ns.do_trac2 = 1
+
 
 #force tiling for testing
 fabarray.mfiter_tile_size = 8 8 8
@@ -87,7 +91,7 @@ ns.vel_visc_coef        = 0.001
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001
+ns.scal_diff_coefs      = 0.001 0.008
 
 #*******************************************************************************
 

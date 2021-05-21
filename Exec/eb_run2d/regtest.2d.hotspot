@@ -13,6 +13,23 @@ max_step 		= 10
 ns.do_temp=1
 ns.temp_cond_coef=1.e-3
 
+# Add second tracer
+ns.do_trac2 = 1
+
+#*******************************************************************************
+
+# Algorithm options
+ns.do_mom_diff = 1
+ns.do_cons_trac = 1
+ns.do_cons_trac2 = 1
+
+# avoid over/undershoots
+ns.do_denminmax = 1
+ns.do_scalminmax = 1
+
+# Purely implicit diffusion
+ns.be_cn_theta = 1.0
+
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
@@ -82,7 +99,7 @@ ns.vel_visc_coef        = 0.001
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001
+ns.scal_diff_coefs      = 0.001 0.01
 
 #*******************************************************************************
 
@@ -97,6 +114,9 @@ eb2.geom_type     = sphere
 eb2.sphere_radius = 0.05
 eb2.sphere_center =  -0.001  .80
 eb2.sphere_has_fluid_inside = 0
+
+# Reditribution method for small cells
+ns.redistribution_type = StateRedist
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
@@ -125,6 +145,7 @@ prob.blob_radius = 0.2
 # Background density is 1. Density is reduced by a factor of density_ic inside
 # the bubble
 prob.density_ic = 2.0
+prob.interface_width = 0.15
 # Can also set up a flow, defaults to zero
 #prob.velocity_ic = 0. 0. 0.
 
