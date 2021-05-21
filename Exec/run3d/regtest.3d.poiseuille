@@ -11,7 +11,7 @@ ns.do_cons_trac2 = 0
 max_step                =  10
 stop_time 		=  -1
 
-ns.stop_when_steady 	=  1
+ns.stop_when_steady 	=  0
 ns.steady_tol 		=  1.0e-4
 
 amr.n_cell              =  32 16 16
