@@ -223,7 +223,7 @@ namespace derive_functions
 #if ( AMREX_SPACEDIM == 2 )
 	  amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
 	  amrex::Real uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
-	  vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
+	  vort_arr(i,j,k) = vx-uy;
 	  
 #elif ( AMREX_SPACEDIM == 3 )
 	  amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
