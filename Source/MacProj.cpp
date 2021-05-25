@@ -717,11 +717,6 @@ MacProj::mac_sync_compute (int                   level,
                         auto const& gp   = Gp[Smfi].const_array(comp);
 
                         if ( do_mom_diff == 0 )
- #ifdef AMREX_USE_EB
-                        {
-                            amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
-                        }
-#else
                         {
                             auto const& rho   = Smf[Smfi].const_array(Density);
 
@@ -732,7 +727,6 @@ MacProj::mac_sync_compute (int                   level,
                                 tf(i,j,k)  /= rho(i,j,k);
                             });
                         }
-#endif
                         else
                         {
                             amrex::ParallelFor(gbx, [tf, visc, gp]
