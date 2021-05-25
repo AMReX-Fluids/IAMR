@@ -539,8 +539,6 @@ NavierStokesBase::Initialize ()
     //
     // EB Godunov restrictions
     //
-    if ( use_godunov && !do_mom_diff )
-      amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
     if ( use_godunov && godunov_use_ppm )
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
@@ -593,7 +591,7 @@ NavierStokesBase::read_geometry ()
 void
 NavierStokesBase::advance_setup (Real /*time*/,
                                  Real dt,
-	                         int  iteration,
+                                 int  iteration,
                                  int  ncycle)
 {
     BL_PROFILE("NavierStokesBase::advance_setup()");
@@ -621,7 +619,7 @@ NavierStokesBase::advance_setup (Real /*time*/,
         if (Vsync.empty())
             Vsync.define(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
         if (Ssync.empty())
-	  Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1,MFInfo(),Factory());
+            Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1,MFInfo(),Factory());
         Vsync.setVal(0);
         Ssync.setVal(0);
     }
@@ -638,13 +636,13 @@ NavierStokesBase::advance_setup (Real /*time*/,
     //
     if (u_mac == 0 || u_mac[0].nGrow() < umac_n_grow)
     {
-	if (u_mac != 0) delete [] u_mac;
+        if (u_mac != 0) delete [] u_mac;
 
-        u_mac = new MultiFab[BL_SPACEDIM];
+        u_mac = new MultiFab[AMREX_SPACEDIM];
 
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
         {
-	    const BoxArray& edgeba = getEdgeBoxArray(dir);
+            const BoxArray& edgeba = getEdgeBoxArray(dir);
             u_mac[dir].define(edgeba,dmap,1,umac_n_grow,MFInfo(),Factory());
             u_mac[dir].setVal(1.e40);
         }
@@ -4448,8 +4446,10 @@ NavierStokesBase::predict_velocity (Real  dt)
    //
    MultiFab visc_terms(grids,dmap,nComp,nghost_force(),MFInfo(), Factory());
 
-
-   FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
+   // Need either the regular number of ghost cells for the state or
+   // 2 more than what is in the face velocity.
+   int ngrow = std::max(u_mac[0].nGrow()+2,nghost_state());
+   FillPatchIterator U_fpi(*this,visc_terms,ngrow,prev_time,State_Type,Xvel,AMREX_SPACEDIM);
    MultiFab& Umf=U_fpi.get_mf();
 
    // Floor small values of states to be extrapolated
