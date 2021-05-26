@@ -2472,7 +2472,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
         avgDown();
 
     if (do_mac_proj && level < finest_level)
-        mac_sync();
+      mac_sync();
 
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
@@ -3607,8 +3607,9 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
 	 IntVect mpt(D_DECL(-100,100,-100));
 	 for (MFIter mfi(U_old); mfi.isValid(); ++mfi){
-	   if ( U_old[mfi].contains_nan<RunOn::Host>(mpt) )
-	     amrex::Print() << " Nans at " << mpt << std::endl;
+	   const Box& bx = mfi.tilebox();
+	   if ( U_old[mfi].contains_nan<RunOn::Host>(bx, sigma, 1, mpt) )
+	     amrex::Print() << "Nans at " << mpt << std::endl;
 	 }
        }
        if (U_new.contains_nan(sigma,1,0))
@@ -3617,7 +3618,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
 
 	 IntVect mpt(D_DECL(-100,100,-100));
 	 for (MFIter mfi(U_new); mfi.isValid(); ++mfi){
-	   if ( U_new[mfi].contains_nan<RunOn::Host>(mpt) )
+	   const Box& bx = mfi.tilebox();
+	   if ( U_new[mfi].contains_nan<RunOn::Host>(bx, sigma, 1, mpt) )
 	     amrex::Print() << " Nans at " << mpt << std::endl;
 	 }
        }
@@ -4750,12 +4752,10 @@ NavierStokesBase::InitialRedistribution ()
     FillPatchIterator S_fpi(*this, S_new, nghost_state(), state[State_Type].curTime(),
 			    State_Type, 0, NUM_STATE);
     MultiFab& Smf=S_fpi.get_mf();
+    EB_set_covered(Smf, 0.0);
 
-    // Could we use the space in get_old_data instead of making new?
     MultiFab tmp( grids, dmap, NUM_STATE, nghost_state(), MFInfo(), Factory() );
-
     MultiFab::Copy(tmp, Smf, 0, 0, NUM_STATE, nghost_state());
-    EB_set_covered(tmp, 0.0);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -4796,12 +4796,14 @@ NavierStokesBase::InitialRedistribution ()
                                                 ccc, m_bcrec_velocity_d.dataPtr(),
 						geom, redistribution_type);
             Redistribution::ApplyToInitialData( bx,NUM_SCALARS,
-                                                Smf.array(mfi,Density), tmp.array(mfi),
+                                                Smf.array(mfi,Density), tmp.array(mfi,Density),
                                                 flag, AMREX_D_DECL(apx, apy, apz), vfrac,
                                                 AMREX_D_DECL(fcx, fcy, fcz),
                                                 ccc,m_bcrec_scalars_d.dataPtr(),
 						geom, redistribution_type);
         }
     }
+
+    MultiFab::Copy(S_new, Smf, 0, 0, NUM_STATE, 0);
 }
 #endif
