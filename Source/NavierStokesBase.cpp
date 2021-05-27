@@ -4769,10 +4769,10 @@ NavierStokesBase::InitialRedistribution ()
         EBCellFlagFab const& flagfab = fact.getMultiEBCellFlagFab()[mfi];
         Array4<EBCellFlag const> const& flag = flagfab.const_array();
 
-	// FIXME? If state redistribution can use up to 3 ghost cells, does this check
-	// need to be on grow(bx,3)? -- Also doesn't match Redist halo in ComputeAofs...
-        if ( (flagfab.getType(amrex::grow(bx,1)) != FabType::covered) &&
-             (flagfab.getType(amrex::grow(bx,1)) != FabType::regular) )
+	// FIXME? not sure if 4 is really needed or if 3 could do
+	// But this is a safe choice
+        if ( (flagfab.getType(bx) != FabType::covered) &&
+             (flagfab.getType(amrex::grow(bx,4)) != FabType::regular) )
         {
             Array4<Real const> AMREX_D_DECL(fcx, fcy, fcz), ccc, vfrac, AMREX_D_DECL(apx, apy, apz);
 
