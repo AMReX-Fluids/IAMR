@@ -19,8 +19,9 @@ using namespace amrex;
 
 namespace {
     static int initialized = false;
-    // max_order default should be consistent with MacProjector default
-    static int max_order = 3;
+    // NOTE: IAMR uses a different max_order default than amrex::MacProjector,
+    // which uses a default of 3
+    static int max_order = 4;
     static int agglomeration = 1;
     static int consolidation = 1;
     static int max_fmg_iter = -1;
@@ -176,6 +177,9 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     }
     macproj.setLevelBC(0, mac_phi);
 
+    // MacProj default max order is 3. Here we use a default of 4, so must
+    // call setMaxOrder to overwrite MacProj default.
+    macproj.getLinOp().setMaxOrder(max_order);
     if ( max_fmg_iter > -1 )
       macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
 
