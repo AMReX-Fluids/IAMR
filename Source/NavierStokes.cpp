@@ -282,6 +282,19 @@ NavierStokes::Initialize_specific ()
     if (do_temp && n_temp_cond_coef != 1)
         amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
 
+    // Check consistency with EBGodunov.
+#ifdef AMREX_USE_EB
+    if ( use_godunov && !do_cons_trac )
+      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac=1");
+
+    if ( use_godunov && do_trac2 && !do_cons_trac2 )
+      amrex::Abort("EB Godunov only supports conservative scalar update: run with ns.do_cons_trac2=1");
+
+    if ( use_godunov && do_temp )
+      amrex::Abort("EB Godunov only supports conservative scalar update, and thus cannot run with a temperature field. Set ns.do_temp=0");
+#endif
+
+
     int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
     if (do_temp)
         n_visc++;

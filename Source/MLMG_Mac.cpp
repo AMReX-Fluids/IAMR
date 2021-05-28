@@ -19,12 +19,22 @@ using namespace amrex;
 
 namespace {
     static int initialized = false;
+    // NOTE: IAMR uses a different max_order default than amrex::MacProjector,
+    // which uses a default of 3
     static int max_order = 4;
     static int agglomeration = 1;
     static int consolidation = 1;
-    static int max_fmg_iter = 0;
-    static int use_hypre = 0;
-    static int hypre_verbose = 0;
+    static int max_fmg_iter = -1;
+
+    // Likely want these to match defaults in MacProjector
+    static int          bottom_verbose(0);
+    static int          maxiter(200);
+    static int          bottom_maxiter(200);
+    static Real         bottom_rtol(1.0e-4_rt);
+    static Real         bottom_atol(-1.0_rt);
+    static std::string  bottom_solver("bicg");
+    static int num_pre_smooth(2);
+    static int num_post_smooth(2);
 }
 
 namespace {
@@ -63,16 +73,34 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     if (!initialized)
     {
         ParmParse ppmacop("macop");
-        ppmacop.query("max_order", max_order);
+        if ( ppmacop.contains("max_order") )
+	  amrex::Abort("macop.max_order is no more. Please use mac_proj.maxorder.");
 
         ParmParse ppmac("mac");
         ppmac.query("agglomeration", agglomeration);
         ppmac.query("consolidation", consolidation);
         ppmac.query("max_fmg_iter", max_fmg_iter);
 #ifdef AMREX_USE_HYPRE
-        ppmac.query("use_hypre", use_hypre);
-        ppmac.query("hypre_verbose", hypre_verbose);
+        if ( ppmac.contains("use_hypre") )
+	  amrex::Abort("use_hypre is no more. To use Hypre set mac_proj.bottom_solver = hypre.");
+        if ( ppmac.contains("hypre_verbose") )
+	  amrex::Abort("hypre_verbose is no more. To make the bottom solver verbose set mac_proj.bottom_verbose = 1.");
 #endif
+
+	// Read the mac_proj options so we can set them here for use in the mac_sync
+	// which does not go to the MacProjector.
+	ParmParse pp("mac_proj");
+	pp.query( "verbose"       , verbose );
+	pp.query( "maxorder"      , max_order );
+	pp.query( "bottom_verbose", bottom_verbose );
+	pp.query( "maxiter"       , maxiter );
+	pp.query( "bottom_maxiter", bottom_maxiter );
+	pp.query( "bottom_rtol"   , bottom_rtol );
+	pp.query( "bottom_atol"   , bottom_atol );
+	pp.query( "bottom_solver" , bottom_solver );
+
+	pp.query( "num_pre_smooth"  , num_pre_smooth );
+	pp.query( "num_post_smooth" , num_post_smooth );
 
         initialized = true;
     }
@@ -149,18 +177,11 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     }
     macproj.setLevelBC(0, mac_phi);
 
-    //
-    // Other MacProjector settings
-    //
+    // MacProj default max order is 3. Here we use a default of 4, so must
+    // call setMaxOrder to overwrite MacProj default.
     macproj.getLinOp().setMaxOrder(max_order);
-    if (use_hypre)
-    {
-        macproj.getMLMG().setBottomSolver(MLMG::BottomSolver::hypre);
-        macproj.getMLMG().setBottomVerbose(hypre_verbose);
-    }
-    // Ask about this one
-    macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
-    macproj.setVerbose(verbose);
+    if ( max_fmg_iter > -1 )
+      macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
 
     //
     // Perform projection
@@ -180,17 +201,26 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 {
     if (!initialized)
     {
-        ParmParse ppmacop("macop");
-        ppmacop.query("max_order", max_order);
+        // Normal code execution will not get here. mlmg_mac_level_solve will get called
+        // first and set these variables. Leave this here for debugging purposes.
 
         ParmParse ppmac("mac");
         ppmac.query("agglomeration", agglomeration);
         ppmac.query("consolidation", consolidation);
         ppmac.query("max_fmg_iter", max_fmg_iter);
-#ifdef AMREX_USE_HYPRE
-        ppmac.query("use_hypre", use_hypre);
-        ppmac.query("hypre_verbose", hypre_verbose);
-#endif
+
+	ParmParse pp("mac_proj");
+	pp.query( "verbose"       , verbose );
+	pp.query( "maxorder"      , max_order );
+	pp.query( "bottom_verbose", bottom_verbose );
+	pp.query( "maxiter"       , maxiter );
+	pp.query( "bottom_maxiter", bottom_maxiter );
+	pp.query( "bottom_rtol"   , bottom_rtol );
+	pp.query( "bottom_atol"   , bottom_atol );
+	pp.query( "bottom_solver" , bottom_solver );
+
+	pp.query( "num_pre_smooth"  , num_pre_smooth );
+	pp.query( "num_post_smooth" , num_post_smooth );
 
         initialized = true;
     }
@@ -246,8 +276,6 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 #else
     MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
 #endif
-    mlabec.setMaxOrder(max_order);
-    mlabec.setVerbose(verbose);
 
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
@@ -263,13 +291,47 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 #endif
 
     MLMG mlmg(mlabec);
-    if (use_hypre) {
-      mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-      mlmg.setBottomVerbose(hypre_verbose);
-      mlmg.setVerbose(hypre_verbose);
-    }
-    mlmg.setMaxFmgIter(max_fmg_iter);
+    // Set options
+    mlabec.setMaxOrder(max_order);
     mlmg.setVerbose(verbose);
+    mlmg.setBottomVerbose(bottom_verbose);
+    mlmg.setMaxIter(maxiter);
+    mlmg.setBottomMaxIter(bottom_maxiter);
+    mlmg.setBottomTolerance(bottom_rtol);
+    mlmg.setBottomToleranceAbs(bottom_atol);
+    mlmg.setPreSmooth(num_pre_smooth);
+    mlmg.setPostSmooth(num_post_smooth);
+    if ( max_fmg_iter > -1 )
+      mlmg.setMaxFmgIter(max_fmg_iter);
+
+    if (bottom_solver == "smoother")
+    {
+        mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
+    }
+    else if (bottom_solver == "bicg")
+    {
+        mlmg.setBottomSolver(MLMG::BottomSolver::bicgstab);
+    }
+    else if (bottom_solver == "cg")
+    {
+        mlmg.setBottomSolver(MLMG::BottomSolver::cg);
+    }
+    else if (bottom_solver == "bicgcg")
+    {
+        mlmg.setBottomSolver(MLMG::BottomSolver::bicgcg);
+    }
+    else if (bottom_solver == "cgbicg")
+    {
+        mlmg.setBottomSolver(MLMG::BottomSolver::cgbicg);
+    }
+    else if (bottom_solver == "hypre")
+    {
+#ifdef AMREX_USE_HYPRE
+        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+#else
+        amrex::Abort("AMReX was not built with HYPRE support");
+#endif
+    }
 
     Rhs.negate();
 

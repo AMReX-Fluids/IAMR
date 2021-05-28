@@ -539,6 +539,8 @@ NavierStokesBase::Initialize ()
     //
     // EB Godunov restrictions
     //
+    if ( use_godunov && !do_mom_diff )
+      amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
     if ( use_godunov && godunov_use_ppm )
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
@@ -2472,7 +2474,7 @@ NavierStokesBase::post_timestep (int crse_iteration)
         avgDown();
 
     if (do_mac_proj && level < finest_level)
-      mac_sync();
+        mac_sync();
 
     if (do_sync_proj && (level < finest_level))
         level_sync(crse_iteration);
@@ -3609,7 +3611,7 @@ NavierStokesBase::velocity_advection_update (Real dt)
 	 for (MFIter mfi(U_old); mfi.isValid(); ++mfi){
 	   const Box& bx = mfi.tilebox();
 	   if ( U_old[mfi].contains_nan<RunOn::Host>(bx, sigma, 1, mpt) )
-	     amrex::Print() << "Nans at " << mpt << std::endl;
+	     amrex::Print() << " Nans at " << mpt << std::endl;
 	 }
        }
        if (U_new.contains_nan(sigma,1,0))
@@ -4731,6 +4733,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     }
 
 }
+
+
 
 #ifdef AMREX_USE_EB
 void

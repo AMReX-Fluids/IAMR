@@ -44,8 +44,8 @@ namespace derive_functions
   }
 
   //
-  //  Compute cell-centered pressure as average of the 
-  //  surrounding nodal values 
+  //  Compute cell-centered pressure as average of the
+  //  surrounding nodal values
   //
   void deravgpres (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
 		   const FArrayBox& datfab, const Geometry& /*geomdata*/,
@@ -76,7 +76,7 @@ namespace derive_functions
 				);
     });
   }
-  
+
   //
   //  Compute magnitude of vorticity
   //
@@ -118,7 +118,9 @@ namespace derive_functions
 	  } else {
 	    amrex::Real vx = 0.0;
 	    amrex::Real uy = 0.0;
+
 #if ( AMREX_SPACEDIM == 2 )
+
 	    // Need to check if there are covered cells in neighbours --
 	    // -- if so, use one-sided difference computation (but still quadratic)
 	    if (!flag_fab(i,j,k).isConnected( 1,0,0)) {
@@ -144,8 +146,12 @@ namespace derive_functions
 	    } else {
 	      uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
 	    }
-	    vort_arr(i,j,k) = vx-uy;
+
+	    vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
+
+
 #elif ( AMREX_SPACEDIM == 3 )
+
 	    amrex::Real wx = 0.0;
 	    amrex::Real wy = 0.0;
 	    amrex::Real uz = 0.0;
@@ -211,31 +217,36 @@ namespace derive_functions
 	      uz = 0.5 * (dat_arr(i,j,k+1,0) - dat_arr(i,j,k-1,0)) * idz;
 	      vz = 0.5 * (dat_arr(i,j,k+1,1) - dat_arr(i,j,k-1,1)) * idz;
 	    }
+
 	    vort_arr(i,j,k) = std::sqrt((wy-vz)*(wy-vz) + (uz-wx)*(uz-wx) + (vx-uy)*(vx-uy));
+
 #endif
 	  }
 	});
-    } else
+    } else // non-EB
 #endif
       {
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 #if ( AMREX_SPACEDIM == 2 )
+
 	  amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
 	  amrex::Real uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
-	  vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
-	  
-#elif ( AMREX_SPACEDIM == 3 )
-	  amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
 
+	  vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
+
+
+#elif ( AMREX_SPACEDIM == 3 )
+
+	  amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
 	  amrex::Real wx = 0.5 * (dat_arr(i+1,j,k,2) - dat_arr(i-1,j,k,2)) * idx;
-	  
+
 	  amrex::Real uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
 	  amrex::Real wy = 0.5 * (dat_arr(i,j+1,k,2) - dat_arr(i,j-1,k,2)) * idy;
-	  
+
 	  amrex::Real uz = 0.5 * (dat_arr(i,j,k+1,0) - dat_arr(i,j,k-1,0)) * idz;
 	  amrex::Real vz = 0.5 * (dat_arr(i,j,k+1,1) - dat_arr(i,j,k-1,1)) * idz;
-	  
+
 	  vort_arr(i,j,k) = std::sqrt((wy-vz)*(wy-vz) + (uz-wx)*(uz-wx) + (vx-uy)*(vx-uy));
 #endif
 	});
@@ -266,8 +277,8 @@ namespace derive_functions
 #if (AMREX_SPACEDIM ==3)
       const Real vz  = in_dat(i,j,k,3);
 #endif
-      
-      der(i,j,k) =  0.5 * rho * ( vx*vx + vy*vy 
+
+      der(i,j,k) =  0.5 * rho * ( vx*vx + vy*vy
 #if (AMREX_SPACEDIM == 3 )
 				  + vz*vz
 #endif
@@ -285,7 +296,7 @@ namespace derive_functions
 
   {
     //
-    // Do nothing. 
+    // Do nothing.
     //
   }
 
