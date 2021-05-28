@@ -18,7 +18,7 @@ max_step 		= 10
 stop_time 		= 1.0
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 256 256 #64 64 
+amr.n_cell 		= 64 64 
 #amr.max_grid_size	= 32
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
@@ -30,9 +30,9 @@ amr.plot_int		= 10
 #********************
 # Algorithm options *
 #********************
-ns.init_iter = 0
-ns.init_vel_iter = 0
-ns.do_init_proj = 0
+#ns.init_iter = 0
+#ns.init_vel_iter = 0
+#ns.do_init_proj = 0
 
 ns.do_scalminmax       = 1
 ns.use_godunov         = true # Use MOL if false, default is to use MOL for EB
@@ -50,7 +50,7 @@ amr.tracer.field_name = tracer
 amr.vorticity.vorticity_greater = 1.0
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 0 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 # Interval (in number of level l timesteps) between regridding
 amr.regrid_int		= 2 
@@ -62,11 +62,11 @@ amr.ref_ratio		= 2 2 2 2
 # Verbosity *
 #************
 # Sets the "NavierStokes" code to be verbose
-ns.v                    = 1
+#ns.v                    = 1
 
-diffuse.v 		= 1
-proj.v = 1
-nodal_proj.verbose =2
+#diffuse.v 		= 1
+#proj.v = 1
+#nodal_proj.verbose =2
 
 # Sets the "amr" code to be verbose
 amr.v                   = 1
@@ -87,7 +87,7 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 ns.vel_visc_coef        = 0.001
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001
+ns.scal_diff_coefs      = 0.001 0.002
 
 # Forcing term defaults to  rho * abs(gravity) "down"
 ns.gravity              = -9.8
@@ -136,4 +136,4 @@ prob.blob_radius = 0.2
 prob.density_ic = 2.0
 
 #mag_vort is stepping out of bounds
-amr.derive_plot_vars    = mag_vort   diveru   avg_pressure
+#amr.derive_plot_vars    = mag_vort   diveru   avg_pressure

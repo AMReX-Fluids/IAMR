@@ -1,7 +1,7 @@
 #
 # Current requirements for EB advection
 #
-do_mom_diff=1
+ns.do_mom_diff=1
 ns.do_cons_trac=1
 ns.do_cons_trac2=1
 
