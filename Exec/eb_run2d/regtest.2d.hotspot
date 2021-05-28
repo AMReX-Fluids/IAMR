@@ -40,7 +40,7 @@ amr.max_grid_size	= 32
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 2 # maximum number of levels of refinement
+amr.max_level		= 0 #2 # maximum number of levels of refinement
 
 # Refinement criterion, use temperature
 amr.refinement_indicators = hi_temp Tdiff
