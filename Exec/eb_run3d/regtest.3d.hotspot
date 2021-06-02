@@ -3,16 +3,30 @@
 # INPUTS.3D.HOTSPOT - hot bubble rising
 #*******************************************************************************
 
+# Add temperature field
 ns.do_temp=1
 ns.temp_cond_coef=1.e-4
+# Add second tracer
+ns.do_trac2 = 1
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
 max_step 		= 10
 
+#*******************************************************************************
+
+# Algorithm options
+ns.do_mom_diff = 0
+ns.do_cons_trac = 0
+ns.do_cons_trac2 = 0
+ns.use_godunov = false #true
+
 # Correct scalars for over/under shoots during advective update
 ns.do_scalminmax=1
 ns.do_denminmax=1
+
+# Purely implicit diffusion
+ns.be_cn_theta = 1.0
 
 #*******************************************************************************
 
@@ -22,7 +36,7 @@ amr.n_cell 		= 32 32 32 #128 128 128 #
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 2 # maximum number of levels of refinement
+amr.max_level		= 0 #2 # maximum number of levels of refinement
 
 # Refinement criterion, use temperature
 amr.refinement_indicators = hi_temp Tdiff
@@ -87,7 +101,7 @@ ns.vel_visc_coef        = 0.001
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001
+ns.scal_diff_coefs      = 0.001 0.01
 
 #*******************************************************************************
 
@@ -104,6 +118,10 @@ eb2.sphere_center =  -0.001 0.0 .85
 eb2.sphere_has_fluid_inside = 0
 
 eb2.small_volfrac = 1.e-5
+
+# Reditribution method for small cells
+ns.redistribution_type = StateRedist
+
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
