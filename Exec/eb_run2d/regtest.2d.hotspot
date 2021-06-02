@@ -22,7 +22,7 @@ ns.do_trac2 = 1
 ns.do_mom_diff = 1
 ns.do_cons_trac = 1
 ns.do_cons_trac2 = 1
-ns.use_godunov = true
+ns.use_godunov = false #true
 
 # avoid over/undershoots
 ns.do_denminmax = 1

@@ -19,7 +19,7 @@ max_step 		= 10
 ns.do_mom_diff = 0
 ns.do_cons_trac = 0
 ns.do_cons_trac2 = 0
-ns.use_godunov = true
+ns.use_godunov = false #true
 
 # Correct scalars for over/under shoots during advective update
 ns.do_scalminmax=1

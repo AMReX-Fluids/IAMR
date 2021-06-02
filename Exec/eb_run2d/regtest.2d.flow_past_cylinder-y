@@ -12,10 +12,10 @@ ns.visc_tol=1.0e-11
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 # Algorithm options
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
-ns.do_mom_diff=0
-ns.do_cons_trac=0
+ns.do_mom_diff=1 #0
+ns.do_cons_trac=1 #0
 ns.do_trac2 = 1
-ns.do_cons_trac2=0
+ns.do_cons_trac2=1 #0
 ns.use_godunov  = true # Use MOL if false
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
