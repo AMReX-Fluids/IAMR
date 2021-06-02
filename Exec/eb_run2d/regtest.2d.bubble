@@ -3,7 +3,6 @@
 #
 ns.do_mom_diff=1
 ns.do_cons_trac=1
-ns.do_cons_trac2=1
 
 #*******************************************************************************
 # INPUTS.2D.BUBBLE
@@ -87,7 +86,7 @@ ns.init_shrink          = 0.3  # factor which multiplies the very first time ste
 ns.vel_visc_coef        = 0.001
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001 0.002
+ns.scal_diff_coefs      = 0.001
 
 # Forcing term defaults to  rho * abs(gravity) "down"
 ns.gravity              = -9.8
