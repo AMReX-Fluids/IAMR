@@ -198,3 +198,4 @@ Fixed issues with some derived quantities
 Checkpoint bug fix
 Fixes to hydrodynamics for GPU and EB
 Updates to MOL algorithm
+Fix: properly merged in changes from development
