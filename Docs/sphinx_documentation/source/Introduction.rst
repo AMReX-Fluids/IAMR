@@ -5,7 +5,7 @@ The Variable-Density Incompressible Navier-Stokes Equations
 IAMR solves the variable-density incompressible Navier-Stokes equations:
 
 .. math::
-
+  
    \begin{aligned}
    {{\bf U}}_t + ({{\bf U}}\cdot\nabla){{\bf U}}&=& \frac{1}{\rho}(-\nabla p + \mu\nabla^2 {{\bf U}}+ {\bf H}_U), \\
    \rho_t + \nabla\cdot(\rho {{\bf U}}) &=& 0, \\
@@ -28,23 +28,23 @@ There are many low speed formulations of the equations of hydrodynamics
 in use, each with their own applications. All of these methods share in
 common a constraint equation on the velocity field that augments the
 equations of motion.
-
+  
 The simplest low Mach number approximation is incompressible
 hydrodynamics. This approximation is formally the :math:`M \rightarrow 0`
 limit of the Navier-Stokes equations. In incompressible hydrodynamics,
 the velocity satisfies a constraint equation:
 
 .. math:: \nabla \cdot {{\bf U}}= 0
-
+  
 which acts to instantaneously equilibrate the flow, thereby filtering
 out soundwaves. The constraint equation implies that
-
+  
 .. math:: D\rho/Dt = 0
 
 (through the continuity equation) which says that the density is
 constant along particle paths. This means that there are no
 compressibility effects modeled in this approximation.
-
+  
 Projection Methods 101
 ======================
 
