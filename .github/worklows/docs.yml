@@ -1,0 +1,32 @@
+name: Build and Deploy
+on: [push, pull_request]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.1 # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly.
+        with:
+          persist-credentials: false
+
+      - name: Dependencies
+        run: |
+          .github/workflows/dependencies/documentation.sh
+          echo "Installing python packages for docs..."
+          pip3 install sphinx sphinx_rtd_theme breathe
+
+      - name: Install and Build
+        run: |
+          cd Docs/sphinx_documentation
+          echo "Build the Sphinx documentation for IAMR."
+          make html
+
+      - name: Deploy
+        if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: Docs/sphinx_documentation/build/html # The folder the action should deploy.
+          TARGET_FOLDER: docs_html # The folder the action should deploy to.
+          CLEAN: false # Do not remove existing files from the deploy target.
