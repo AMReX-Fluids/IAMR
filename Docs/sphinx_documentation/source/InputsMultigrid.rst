@@ -4,10 +4,11 @@ Multigrid Inputs
 ================
 
 The following inputs can be set directly in the AMReX solver classes but we 
-set them via the incflo routines because we may want different inputs for the 
-different solvers called by incflo
+set them via the IAMR routines because we may want different inputs for the 
+different solvers called by IAMR.
+
 NOTE: the nodal solver settings are read in directly by AMReX, 
-the MAC and diffusion settings by incflo.
+the MAC and diffusion settings by IAMR.
 
 These control the nodal projection and must be preceded by "nodal_proj": 
 
