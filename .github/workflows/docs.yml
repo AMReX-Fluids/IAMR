@@ -22,7 +22,7 @@ jobs:
           make html
 
       - name: Deploy
-        if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/development'
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
