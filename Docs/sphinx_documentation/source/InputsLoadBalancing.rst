@@ -32,18 +32,3 @@ The following inputs must be preceded by "fabarray_mfiter" and determine how we 
 | tile_size            | Maximum number of cells in each direction for (logical) tiles         | IntVect  | 1024000     |
 |                      |        (3D CPU-only)                                                  |          | 1024000,8,8 |
 +----------------------+-----------------------------------------------------------------------+----------+-------------+
-
-The following inputs must be preceded by "incflo" and determine how we load balance:
-
-+----------------------+-----------------------------------------------------------------------+-------------+--------------+
-|                      | Description                                                           |   Type      | Default      |
-+======================+=======================================================================+=============+==============+
-| load_balance_type    | What strategy to use for load balancing                               |  String     | KnapSack     |
-|                      | Options are "KnapSack"or "SFC"                                        |             |              |
-+----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| knapsack_weight_type | What weighting function to use if using Knapsack load balancing       |  String     | RunTimeCosts |
-|                      | Options are "RunTimeCosts"                                            |             |              |
-+----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| knapsack_nmax        | Maximum number of grids per MPI process if using knapsack algorithm   |  Int        | 128          | 
-+----------------------+-----------------------------------------------------------------------+-------------+--------------+
-

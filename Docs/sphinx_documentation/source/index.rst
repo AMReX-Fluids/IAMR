@@ -11,6 +11,9 @@ applications.
 Active development in IAMR is ongoing in the development branch. 
 Changes are merged into the main branch at the beginning of each month.
 
+The IAMR source code is available at 
+https://amrex-codes.github.io/IAMR/
+
 For an AMReX-based incompressible flow code without subcycling in time, please go to 
 https://amrex-codes.github.io/incflo/
 
