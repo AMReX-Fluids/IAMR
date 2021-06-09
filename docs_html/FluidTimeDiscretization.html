@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Initialization &mdash; IAMR 21.07-dev documentation</title>
+  <title>Time Discretization &mdash; IAMR 21.07-dev documentation</title>
   
 
   
@@ -43,8 +43,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Gridding and Load Balancing" href="InputsLoadBalancing.html" />
-    <link rel="prev" title="Time Stepping" href="InputsTimeStepping.html" /> 
+    <link rel="next" title="Time Step – MOL" href="TimeStep.html" />
+    <link rel="prev" title="Fluid Variables" href="FluidEquations.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -97,19 +97,18 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Initialization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsVerbosity.html">Verbosity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="FluidEquations.html">Fluid Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FluidEquations.html#fluid-equations">Fluid Equations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Time Discretization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TimeStep.html">Time Step – MOL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TimeStep.html#time-step-godunov">Time Step – Godunov</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
@@ -160,15 +159,15 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="Inputs_Chapter.html">Run-time Inputs</a> &raquo;</li>
+          <li><a href="Fluids_Chapter.html">Solving the Fluid Equations</a> &raquo;</li>
         
-      <li>Initialization</li>
+      <li>Time Discretization</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/InputsInitialization.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/FluidTimeDiscretization.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -181,64 +180,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <section id="initialization">
-<span id="chap-inputsinitialization"></span><h1>Initialization<a class="headerlink" href="#initialization" title="Permalink to this headline">¶</a></h1>
-<p>The following inputs must be preceded by “amr” and determine how we initialize a calculation:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 18%" />
-<col style="width: 59%" />
-<col style="width: 11%" />
-<col style="width: 12%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Default</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>restart</p></td>
-<td><p>If set, then restart from this file rather than from scratch</p></td>
-<td><p>String</p></td>
-<td><p>None</p></td>
-</tr>
-</tbody>
-</table>
-<p>The following inputs must be preceded by “incfo” and determine how we initialize a calculation:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 18%" />
-<col style="width: 59%" />
-<col style="width: 11%" />
-<col style="width: 12%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Default</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p>do_initial_proj</p></td>
-<td><p>Should we do the initial projection?</p></td>
-<td><p>Bool</p></td>
-<td><p>True</p></td>
-</tr>
-<tr class="row-even"><td><p>initial_iterations</p></td>
-<td><p>How many pressure iterations before starting the first timestep</p></td>
-<td><p>Int</p></td>
-<td><p>3</p></td>
-</tr>
-</tbody>
-</table>
+  <section id="time-discretization">
+<h1>Time Discretization<a class="headerlink" href="#time-discretization" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="TimeStep.html">Time Step – MOL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TimeStep.html#time-step-godunov">Time Step – Godunov</a></li>
+</ul>
+</div>
 </section>
 
 
@@ -247,8 +196,8 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="InputsLoadBalancing.html" class="btn btn-neutral float-right" title="Gridding and Load Balancing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="InputsTimeStepping.html" class="btn btn-neutral float-left" title="Time Stepping" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="TimeStep.html" class="btn btn-neutral float-right" title="Time Step – MOL" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="FluidEquations.html" class="btn btn-neutral float-left" title="Fluid Variables" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

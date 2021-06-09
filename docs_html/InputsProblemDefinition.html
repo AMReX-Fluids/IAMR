@@ -109,7 +109,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 
             
@@ -247,36 +249,7 @@
 </tr>
 </tbody>
 </table>
-<p>The following inputs must be preceded by “bc.”</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 15%" />
-<col style="width: 63%" />
-<col style="width: 12%" />
-<col style="width: 10%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Default</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>delp_dir</p></td>
-<td><p>Direction for specified pressure drop. Note that this direction
-should also be periodic.</p></td>
-<td><p>Int</p></td>
-<td><p>0</p></td>
-</tr>
-<tr class="row-odd"><td><p>delp</p></td>
-<td><p>Pressure drop (Pa)</p></td>
-<td><p>Real</p></td>
-<td><p>0.0</p></td>
-</tr>
-</tbody>
-</table>
-<p>The following inputs must be preceded by “incflo.”</p>
+<p>The following inputs must be preceded by “ns.”</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 19%" />
@@ -292,24 +265,19 @@ should also be periodic.</p></td>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>geometry</p></td>
-<td><p>Which type of EB geometry are we using?</p></td>
-<td><p>String</p></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><p>gravity</p></td>
-<td><p>Gravity vector (e.g., incflo.gravity = -9.81  0.0  0.0) [required]</p></td>
+<tr class="row-even"><td><p>gravity</p></td>
+<td><p>Components of gravity vector</p></td>
 <td><p>Reals</p></td>
-<td><p>None</p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
-<p>Setting basic EB walls can be specified by inputs preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”</p>
+<p>The following inputs must be preceded by “eb2.”</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 17%" />
+<col style="width: 19%" />
 <col style="width: 63%" />
-<col style="width: 11%" />
+<col style="width: 9%" />
 <col style="width: 9%" />
 </colgroup>
 <thead>
@@ -320,45 +288,13 @@ should also be periodic.</p></td>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>type</p></td>
-<td><p>Used to define boundary type. Available options include:</p>
-<ul class="simple">
-<li><p>‘pi’  or ‘pressure_inflow’</p></li>
-<li><p>‘po’  or ‘pressure_outflow’</p></li>
-<li><p>‘mi’  or ‘mass_inflow’</p></li>
-<li><p>‘nsw’ or ‘no_slip_wall’</p></li>
-</ul>
-</td>
+<tr class="row-even"><td><p>geom_type</p></td>
+<td><p>Which type of EB geometry are we using?</p></td>
 <td><p>String</p></td>
-<td><p>None</p></td>
-</tr>
-<tr class="row-odd"><td><p>pressure</p></td>
-<td><p>Sets boundary pressure for pressure inflows, outflows and mass inflows</p></td>
-<td><p>Real</p></td>
-<td><p>None</p></td>
-</tr>
-<tr class="row-even"><td><p>velocity</p></td>
-<td><p>Sets boundary velocity for mass inflows</p></td>
-<td><p>Real</p></td>
-<td><p>None</p></td>
-</tr>
-<tr class="row-odd"><td><p>location</p></td>
-<td><p>Specifies an offset from the domain boundary for no-slip walls</p></td>
-<td><p>Real</p></td>
-<td><p>None</p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
-<p>To specify multiple mass inflows (e.g., define a jet and uniform background flow), provide multiple velocities for the region and define the physical extents of the sub-region. The first velocity is applied to the entire flow plane. Subsequent velocities are successively applied to the specified sub-regions. If multiple sub-regions overlap, the velocity of last specified region is used. An example of a uniform mass inflow with a square-jet centered at (0.5x0.5) is given below.</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>xlo.type = &quot;mi&quot;
-xlo.velocity = 0.01  0.10
-
-xlo.ylo =            0.25
-xlo.yhi =            0.75
-xlo.zlo =            0.25
-xlo.zhi =            0.75
-</pre></div>
-</div>
 </section>
 
 

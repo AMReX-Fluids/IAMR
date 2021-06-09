@@ -109,7 +109,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 
             
@@ -260,41 +262,6 @@ if regrid_int = -1 then no regridding will occur</p></td>
 <td><p>IntVect</p></td>
 <td><p>1024000
 1024000,8,8</p></td>
-</tr>
-</tbody>
-</table>
-<p>The following inputs must be preceded by “incflo” and determine how we load balance:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 18%" />
-<col style="width: 59%" />
-<col style="width: 11%" />
-<col style="width: 12%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Default</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>load_balance_type</p></td>
-<td><p>What strategy to use for load balancing
-Options are “KnapSack”or “SFC”</p></td>
-<td><p>String</p></td>
-<td><p>KnapSack</p></td>
-</tr>
-<tr class="row-odd"><td><p>knapsack_weight_type</p></td>
-<td><p>What weighting function to use if using Knapsack load balancing
-Options are “RunTimeCosts”</p></td>
-<td><p>String</p></td>
-<td><p>RunTimeCosts</p></td>
-</tr>
-<tr class="row-even"><td><p>knapsack_nmax</p></td>
-<td><p>Maximum number of grids per MPI process if using knapsack algorithm</p></td>
-<td><p>Int</p></td>
-<td><p>128</p></td>
 </tr>
 </tbody>
 </table>

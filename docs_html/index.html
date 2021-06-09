@@ -98,7 +98,9 @@
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 
             
@@ -176,6 +178,8 @@ building massively parallel block-structured adaptive mesh refinement (AMR)
 applications.</p>
 <p>Active development in IAMR is ongoing in the development branch.
 Changes are merged into the main branch at the beginning of each month.</p>
+<p>The IAMR source code is available at
+<a class="reference external" href="https://amrex-codes.github.io/IAMR/">https://amrex-codes.github.io/IAMR/</a></p>
 <p>For an AMReX-based incompressible flow code without subcycling in time, please go to
 <a class="reference external" href="https://amrex-codes.github.io/incflo/">https://amrex-codes.github.io/incflo/</a></p>
 <div class="admonition note">
@@ -208,10 +212,17 @@ Changes are merged into the main branch at the beginning of each month.</p>
 <li class="toctree-l2"><a class="reference internal" href="LoadBalancing.html">Load Balancing</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="EBWalls.html">Constructing Embedded Boundaries in incflo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="FluidEquations.html">Fluid Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FluidEquations.html#fluid-equations">Fluid Equations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="EBWalls.html">Constructing Embedded Boundaries in IAMR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 </div>
 </section>

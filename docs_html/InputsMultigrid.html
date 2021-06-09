@@ -109,7 +109,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 
             
@@ -182,10 +184,10 @@
   <section id="multigrid-inputs">
 <span id="chap-inputsmultigrid"></span><h1>Multigrid Inputs<a class="headerlink" href="#multigrid-inputs" title="Permalink to this headline">¶</a></h1>
 <p>The following inputs can be set directly in the AMReX solver classes but we
-set them via the incflo routines because we may want different inputs for the
-different solvers called by incflo
-NOTE: the nodal solver settings are read in directly by AMReX,
-the MAC and diffusion settings by incflo.</p>
+set them via the IAMR routines because we may want different inputs for the
+different solvers called by IAMR.</p>
+<p>NOTE: the nodal solver settings are read in directly by AMReX,
+the MAC and diffusion settings by IAMR.</p>
 <p>These control the nodal projection and must be preceded by “nodal_proj”:</p>
 <table class="docutils align-default">
 <colgroup>
