@@ -96,6 +96,9 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
 </ul>
 
             
@@ -166,14 +169,13 @@
   <section id="welcome-to-iamr-s-documentation">
 <h1>Welcome to IAMR’s documentation!<a class="headerlink" href="#welcome-to-iamr-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p>IAMR is a parallel, adaptive mesh refinement (AMR) code that uses
-subcycling in time and solves the
-variable-density incompressible Navier-Stokes equations in the presence of
-complex geometries.
-It is built on top of AMReX, a publicly available software framework designed for building
-massively parallel block-structured adaptive mesh refinement (AMR)
+subcycling in time and solves the variable-density incompressible Navier-Stokes equations
+in the presence of complex geometries.
+It is built on top of AMReX, a publicly available software framework designed for
+building massively parallel block-structured adaptive mesh refinement (AMR)
 applications.</p>
 <p>Active development in IAMR is ongoing in the development branch.
-Changes are merged into the master branch at the beginning of each month.</p>
+Changes are merged into the main branch at the beginning of each month.</p>
 <p>For an AMReX-based incompressible flow code without subcycling in time, please go to
 <a class="reference external" href="https://amrex-codes.github.io/incflo/">https://amrex-codes.github.io/incflo/</a></p>
 <div class="admonition note">
@@ -189,6 +191,25 @@ Changes are merged into the master branch at the beginning of each month.</p>
 <li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#building-the-code">Building the code</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#running-the-code">Running the code</a></li>
 <li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#visualizing-the-results">Visualizing the results</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsVerbosity.html">Verbosity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="LoadBalancing.html">Load Balancing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="EBWalls.html">Constructing Embedded Boundaries in incflo</a></li>
 </ul>
 </li>
 </ul>

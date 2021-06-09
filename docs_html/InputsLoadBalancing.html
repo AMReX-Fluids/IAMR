@@ -1,0 +1,351 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Gridding and Load Balancing &mdash; IAMR 21.07-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Multigrid Inputs" href="InputsMultigrid.html" />
+    <link rel="prev" title="Initialization" href="InputsInitialization.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.07-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Gridding and Load Balancing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsVerbosity.html">Verbosity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="Inputs_Chapter.html">Run-time Inputs</a> &raquo;</li>
+        
+      <li>Gridding and Load Balancing</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/InputsLoadBalancing.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section id="gridding-and-load-balancing">
+<span id="chap-inputsloadbalancing"></span><h1>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this headline">¶</a></h1>
+<p>The following inputs must be preceded by “amr” and determine how we create the grids and how often we regrid.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 61%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>regrid_int</p></td>
+<td><p>How often to regrid (in number of steps at level 0)
+if regrid_int = -1 then no regridding will occur</p></td>
+<td><p>Int</p></td>
+<td><p>-1</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_grid_size_x</p></td>
+<td><p>Maximum number of cells at level 0 in each grid in x-direction</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p>max_grid_size_y</p></td>
+<td><p>Maximum number of cells at level 0 in each grid in y-direction</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_grid_size_z</p></td>
+<td><p>Maximum number of cells at level 0 in each grid in z-direction</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p>blocking_factor_x</p></td>
+<td><p>Each grid must be divisible by blocking_factor_x in x-direction</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p>blocking_factor_y</p></td>
+<td><p>Each grid must be divisible by blocking_factor_y in y-direction</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-even"><td><p>blocking_factor_z</p></td>
+<td><p>Each grid must be divisible by blocking_factor_z in z-direction</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+</tbody>
+</table>
+<p>The following inputs must be preceded by “fabarray_mfiter” and determine how we create the logical tiles:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 61%" />
+<col style="width: 9%" />
+<col style="width: 11%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>tile_size</p></td>
+<td><dl class="simple">
+<dt>Maximum number of cells in each direction for (logical) tiles</dt><dd><p>(3D CPU-only)</p>
+</dd>
+</dl>
+</td>
+<td><p>IntVect</p></td>
+<td><p>1024000
+1024000,8,8</p></td>
+</tr>
+</tbody>
+</table>
+<p>The following inputs must be preceded by “incflo” and determine how we load balance:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 59%" />
+<col style="width: 11%" />
+<col style="width: 12%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>load_balance_type</p></td>
+<td><p>What strategy to use for load balancing
+Options are “KnapSack”or “SFC”</p></td>
+<td><p>String</p></td>
+<td><p>KnapSack</p></td>
+</tr>
+<tr class="row-odd"><td><p>knapsack_weight_type</p></td>
+<td><p>What weighting function to use if using Knapsack load balancing
+Options are “RunTimeCosts”</p></td>
+<td><p>String</p></td>
+<td><p>RunTimeCosts</p></td>
+</tr>
+<tr class="row-even"><td><p>knapsack_nmax</p></td>
+<td><p>Maximum number of grids per MPI process if using knapsack algorithm</p></td>
+<td><p>Int</p></td>
+<td><p>128</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="InputsMultigrid.html" class="btn btn-neutral float-right" title="Multigrid Inputs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="InputsInitialization.html" class="btn btn-neutral float-left" title="Initialization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

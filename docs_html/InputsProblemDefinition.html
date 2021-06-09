@@ -1,0 +1,412 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Problem Definition &mdash; IAMR 21.07-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Time Stepping" href="InputsTimeStepping.html" />
+    <link rel="prev" title="Run-time Inputs" href="Inputs_Chapter.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.07-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Problem Definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsVerbosity.html">Verbosity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="Inputs_Chapter.html">Run-time Inputs</a> &raquo;</li>
+        
+      <li>Problem Definition</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/InputsProblemDefinition.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section id="problem-definition">
+<h1>Problem Definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h1>
+<p>The following inputs must be preceded by “amr.”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 62%" />
+<col style="width: 11%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>n_cell</p></td>
+<td><p>Number of cells at level 0 in each coordinate direction</p></td>
+<td><p>Int Int Int</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_level</p></td>
+<td><p>Maximum level of refinement allowed (0 when single-level)</p></td>
+<td><p>Int</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>The following inputs must be preceded by “geometry.”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 63%" />
+<col style="width: 12%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>coord_sys</p></td>
+<td><p>0 for Cartesian</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>is_periodic</p></td>
+<td><p>1 for true, 0 for false (one value for each coordinate direction)</p></td>
+<td><p>Ints</p></td>
+<td><p>0 0 0</p></td>
+</tr>
+<tr class="row-even"><td><p>prob_lo</p></td>
+<td><p>Low corner of physical domain (physical not index space)</p></td>
+<td><p>Reals</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>prob_hi</p></td>
+<td><p>High corner of physical domain (physical not index space)</p></td>
+<td><p>Reals</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>The following inputs must be preceded by “bc.”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 63%" />
+<col style="width: 12%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>delp_dir</p></td>
+<td><p>Direction for specified pressure drop. Note that this direction
+should also be periodic.</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>delp</p></td>
+<td><p>Pressure drop (Pa)</p></td>
+<td><p>Real</p></td>
+<td><p>0.0</p></td>
+</tr>
+</tbody>
+</table>
+<p>The following inputs must be preceded by “incflo.”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 63%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>geometry</p></td>
+<td><p>Which type of EB geometry are we using?</p></td>
+<td><p>String</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>gravity</p></td>
+<td><p>Gravity vector (e.g., incflo.gravity = -9.81  0.0  0.0) [required]</p></td>
+<td><p>Reals</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>Setting basic EB walls can be specified by inputs preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 63%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>type</p></td>
+<td><p>Used to define boundary type. Available options include:</p>
+<ul class="simple">
+<li><p>‘pi’  or ‘pressure_inflow’</p></li>
+<li><p>‘po’  or ‘pressure_outflow’</p></li>
+<li><p>‘mi’  or ‘mass_inflow’</p></li>
+<li><p>‘nsw’ or ‘no_slip_wall’</p></li>
+</ul>
+</td>
+<td><p>String</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>pressure</p></td>
+<td><p>Sets boundary pressure for pressure inflows, outflows and mass inflows</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>velocity</p></td>
+<td><p>Sets boundary velocity for mass inflows</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>location</p></td>
+<td><p>Specifies an offset from the domain boundary for no-slip walls</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>To specify multiple mass inflows (e.g., define a jet and uniform background flow), provide multiple velocities for the region and define the physical extents of the sub-region. The first velocity is applied to the entire flow plane. Subsequent velocities are successively applied to the specified sub-regions. If multiple sub-regions overlap, the velocity of last specified region is used. An example of a uniform mass inflow with a square-jet centered at (0.5x0.5) is given below.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>xlo.type = &quot;mi&quot;
+xlo.velocity = 0.01  0.10
+
+xlo.ylo =            0.25
+xlo.yhi =            0.75
+xlo.zlo =            0.25
+xlo.zhi =            0.75
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="InputsTimeStepping.html" class="btn btn-neutral float-right" title="Time Stepping" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Inputs_Chapter.html" class="btn btn-neutral float-left" title="Run-time Inputs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

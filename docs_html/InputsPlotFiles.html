@@ -1,0 +1,391 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Plotfiles and Other Output &mdash; IAMR 21.07-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Checkpoint/Restart" href="InputsCheckpoint.html" />
+    <link rel="prev" title="Multigrid Inputs" href="InputsMultigrid.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.07-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Plotfiles and Other Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsVerbosity.html">Verbosity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="Inputs_Chapter.html">Run-time Inputs</a> &raquo;</li>
+        
+      <li>Plotfiles and Other Output</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/InputsPlotFiles.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section id="plotfiles-and-other-output">
+<span id="chap-inputsplotfiles"></span><h1>Plotfiles and Other Output<a class="headerlink" href="#plotfiles-and-other-output" title="Permalink to this headline">¶</a></h1>
+<p>The following inputs must be preceded by “amr” and control frequency and naming of plotfile generation as well
+as whether the EB geometry should be written out.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 61%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>plot_int</p>
+<p>plot_per_exact</p>
+<p>plot_per_approx</p>
+</td>
+<td><p>Frequency of plotfile output;
+if -1 then no plotfiles will be written at this frequency
+Time period of plotfile output (exact); will modify dt
+if -1 then no plotfiles will be written at this frequency
+Time period of plotfile output (approximate); does not modify dt
+if -1 then no plotfiles will be written at this frequency</p></td>
+<td><p>Int</p>
+<p>Real</p>
+<p>Real</p>
+</td>
+<td><p>-1</p>
+<p>-1</p>
+<p>-1</p>
+</td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>plotfile_on_restart</p></td>
+<td><p>Should we write a plotfile when we restart (only used if plot_int&gt;0)</p></td>
+<td><p>Bool</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-odd"><td><p>plot_file</p></td>
+<td><p>Prefix to use for plotfile output</p></td>
+<td><p>String</p></td>
+<td><p>plt</p></td>
+</tr>
+<tr class="row-even"><td><p>write_eb_surface</p></td>
+<td><p>Should we write out the EB geometry in vtp format
+If true, it will only be written once,after initialization or restart</p></td>
+<td><p>Bool</p></td>
+<td><p>False</p></td>
+</tr>
+</tbody>
+</table>
+<p>The following inputs must be preceded by “amr” and control what variables will be written in plotfiles.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18%" />
+<col style="width: 61%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>plt_ccse_regtest</p></td>
+<td><p>Save all variables to plot file (overrides all other IO flags)</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_velx</p></td>
+<td><p>Save x-velocity to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>plt_vely</p></td>
+<td><p>Save y-velocity to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_velz</p></td>
+<td><p>Save z-velocity to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>plt_p</p></td>
+<td><p>Save pressure to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_rho</p></td>
+<td><p>Save density to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>plt_tracer</p></td>
+<td><p>Save tracer to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_eta</p></td>
+<td><p>Save viscosity to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>plt_gpx</p></td>
+<td><p>Save dp/dx to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_gpy</p></td>
+<td><p>Save dp/dy to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>plt_gpz</p></td>
+<td><p>Save dp/dz to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_vort</p></td>
+<td><p>Save vorticity to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>plt_forcing</p></td>
+<td><p>Save forcing term for velocity to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_strainrate</p></td>
+<td><p>Save strain rate to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>plt_divu</p></td>
+<td><p>Save velocity divergence to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>plt_vfrac</p></td>
+<td><p>Save EB volume fraction to plot file</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="InputsCheckpoint.html" class="btn btn-neutral float-right" title="Checkpoint/Restart" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="InputsMultigrid.html" class="btn btn-neutral float-left" title="Multigrid Inputs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

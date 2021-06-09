@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Time Step – MOL &mdash; IAMR 21.07-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.07-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Time Step – MOL</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/TimeStep.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section id="time-step-mol">
+<h1>Time Step – MOL<a class="headerlink" href="#time-step-mol" title="Permalink to this headline">¶</a></h1>
+<p>In the predictor</p>
+<ul class="simple">
+<li><p>Define <span class="math notranslate nohighlight">\(U^{MAC,n}\)</span>, the face-centered (staggered) MAC velocity which is used for advection, using <span class="math notranslate nohighlight">\(U^n\)</span></p></li>
+<li><p>Define an approximation to the new-time state, <span class="math notranslate nohighlight">\((\rho U)^{\ast}\)</span> by setting</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}(\rho U)^{\ast} &amp;= (\rho U)^n -
+\Delta t \left( \nabla \cdot (\rho U^{MAC} U) + \nabla {p}^{n-1/2} \right) \\ &amp;+
+\Delta t \left( \nabla \cdot \tau^n + \sum_p \beta_p (V_p - {U}^{\ast}) + \rho g \right)\end{split}\]</div>
+<ul class="simple">
+<li><p>Project <span class="math notranslate nohighlight">\(U^{\ast}\)</span> by solving</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot \frac{1}{\rho} \nabla \phi = \nabla \cdot \left( \frac{1}{\Delta t}
+U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
+<p>then defining</p>
+<div class="math notranslate nohighlight">
+\[U^{\ast \ast} = U^{\ast} - \frac{\Delta t}{\rho} \nabla \phi\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[{p}^{n+1/2, \ast} = \phi\]</div>
+<p>In the corrector</p>
+<ul class="simple">
+<li><p>Define <span class="math notranslate nohighlight">\(U^{MAC,\ast \ast}\)</span> at the “new” time using <span class="math notranslate nohighlight">\(U^{\ast \ast}\)</span></p></li>
+<li><p>Define a new approximation to the new-time state, <span class="math notranslate nohighlight">\((\rho U)^{\ast \ast \ast}\)</span> by setting</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}(\rho U)^{\ast \ast \ast} &amp;= (\rho U)^n - \frac{\Delta t}{2} \left( \nabla \cdot (\rho U^{MAC} U)^n + \nabla \cdot (\rho U^{MAC} U)^{\ast \ast}\right) + \\ &amp;+ \frac{\Delta t}{2} \left( \nabla \cdot \tau^n + \nabla \cdot \tau^{\ast \ast \ast} \right) + \Delta t \left( - \nabla {p}^{n+1/2,\ast} + \sum_p \beta_p (V_p - {U}^{\ast \ast \ast}) + \rho g \right)\end{split}\]</div>
+<ul class="simple">
+<li><p>Project <span class="math notranslate nohighlight">\(U^{\ast \ast \ast}\)</span> by solving</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot \frac{1}{\rho} \nabla \phi = \nabla \cdot \left( \frac{1}{\Delta t} U^{\ast \ast \ast} + \frac{1}{\rho} \nabla {p}^{n+1/2,\ast} \right)\]</div>
+<p>then defining</p>
+<div class="math notranslate nohighlight">
+\[U^{n+1} = U^{\ast \ast \ast} - \frac{\Delta t}{\rho} \nabla \phi\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[{p}^{n+1/2} = \phi\]</div>
+</section>
+<section id="time-step-godunov">
+<h1>Time Step – Godunov<a class="headerlink" href="#time-step-godunov" title="Permalink to this headline">¶</a></h1>
+<p>When we use the time-centered Godunov advection, we no longer need the predictor and corrector steps.</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Define <span class="math notranslate nohighlight">\(U^{MAC,n+1/2}\)</span>, the time-centered face-centered (staggered)</dt><dd><p>MAC velocity which is used for advection</p>
+</dd>
+</dl>
+</li>
+<li><p>Define the new-time density, math:<cite>rho^{n+1} = rho^n - Delta t (rho^{n+1/2,pred} U^{MAC,n+1/2})</cite> by setting</p></li>
+<li><p>Define an approximation to the new-time state, <span class="math notranslate nohighlight">\((\rho U)^{\ast}\)</span> by setting</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}(\rho^{n+1} U^{\ast}) &amp;= (\rho^n U^n) -
+        \Delta t \nabla \cdot (\rho U^{MAC} U) + \Delta t \nabla {p}^{n-1/2}  \\ &amp;+
+        \Delta t (0.5 \nabla \cdot \tau^n + 0.5 \nabla \cdot \tau^\ast)
+        \Delta t \rho g \right)\end{split}\\(for implicit diffusion, which is the current defaults)\end{aligned}\end{align} \]</div>
+<ul class="simple">
+<li><p>Project <span class="math notranslate nohighlight">\(U^{\ast}\)</span> by solving</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot \frac{1}{\rho} \nabla \phi = \nabla \cdot \left( \frac{1}{\Delta t}
+U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
+<p>then defining</p>
+<div class="math notranslate nohighlight">
+\[U^{n+1} = U^{\ast} - \frac{\Delta t}{\rho} \nabla \phi\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[{p}^{n+1/2} = \phi\]</div>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

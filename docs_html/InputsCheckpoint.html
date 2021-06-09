@@ -4,10 +4,11 @@
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Index &mdash; IAMR 21.07-dev documentation</title>
+  <title>Checkpoint/Restart &mdash; IAMR 21.07-dev documentation</title>
   
 
   
@@ -40,8 +41,10 @@
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
-    <link rel="index" title="Index" href="#" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Verbosity" href="InputsVerbosity.html" />
+    <link rel="prev" title="Plotfiles and Other Output" href="InputsPlotFiles.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,10 +94,20 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Checkpoint/Restart</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsVerbosity.html">Verbosity</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
 </ul>
@@ -145,11 +158,15 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Index</li>
+          <li><a href="Inputs_Chapter.html">Run-time Inputs</a> &raquo;</li>
+        
+      <li>Checkpoint/Restart</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
+          
+            <a href="_sources/InputsCheckpoint.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -162,18 +179,53 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-
-<h1 id="index">Index</h1>
-
-<div class="genindex-jumpbox">
- 
-</div>
+  <section id="checkpoint-restart">
+<span id="chap-inputscheckpoint"></span><h1>Checkpoint/Restart<a class="headerlink" href="#checkpoint-restart" title="Permalink to this headline">¶</a></h1>
+<p>The following inputs must be preceded by “amr” and control checkpoint/restart.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 63%" />
+<col style="width: 12%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>restart</p></td>
+<td><p>If present, then the name of file to restart from</p></td>
+<td><p>String</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>check_int</p></td>
+<td><p>Frequency of checkpoint output;
+if -1 then no checkpoints will be written</p></td>
+<td><p>Int</p></td>
+<td><p>-1</p></td>
+</tr>
+<tr class="row-even"><td><p>check_file</p></td>
+<td><p>Prefix to use for checkpoint output</p></td>
+<td><p>String</p></td>
+<td><p>chk</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 
 
            </div>
            
           </div>
           <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="InputsVerbosity.html" class="btn btn-neutral float-right" title="Verbosity" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="InputsPlotFiles.html" class="btn btn-neutral float-left" title="Plotfiles and Other Output" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 

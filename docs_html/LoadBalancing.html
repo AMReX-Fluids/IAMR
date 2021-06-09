@@ -4,10 +4,11 @@
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Index &mdash; IAMR 21.07-dev documentation</title>
+  <title>Load Balancing &mdash; IAMR 21.07-dev documentation</title>
   
 
   
@@ -40,8 +41,10 @@
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
-    <link rel="index" title="Index" href="#" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Embedded Boundaries" href="EB.html" />
+    <link rel="prev" title="Gridding and Load Balancing" href="ManagingGridHierarchy_Chapter.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,11 +94,14 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Load Balancing</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
 </ul>
 
@@ -145,11 +151,15 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Index</li>
+          <li><a href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a> &raquo;</li>
+        
+      <li>Load Balancing</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
+          
+            <a href="_sources/LoadBalancing.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -162,18 +172,35 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-
-<h1 id="index">Index</h1>
-
-<div class="genindex-jumpbox">
- 
-</div>
+  <section id="load-balancing">
+<span id="sec-load-balancing"></span><h1>Load Balancing<a class="headerlink" href="#load-balancing" title="Permalink to this headline">¶</a></h1>
+<p>The process of load balancing is typically independent of the process of grid creation;
+the inputs to load balancing are a given set of grids with a set of weights
+assigned to each grid.</p>
+<p>Single-level load balancing algorithms are sequentially applied to each AMR level independently,
+and the resulting distributions are mapped onto the ranks taking into account the weights
+already assigned to them (assign heaviest set of grids to the least loaded rank)</p>
+<p>Options supported by AMReX include:</p>
+<ul class="simple">
+<li><p>KnapSack: the default weight of a grid in the knapsack algorithm is the number of grid cells,
+but AMReX supports the option to pass an array of weights – one per grid – or alternatively
+to pass in a MultiFab of weights per cell which is used to compute the weight per grid</p></li>
+<li><p>SFC: enumerate grids with a space-filling Z-morton curve, then partition the
+resulting ordering across ranks in a way that balances the load</p></li>
+<li><p>Round-robin: sort grids and assign them to ranks in round-robin fashion – specifically
+FAB <code class="docutils literal notranslate"><span class="pre">i</span></code> is owned by CPU <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">%</span> <span class="pre">N</span></code> where N is the total number of MPI ranks.</p></li>
+</ul>
+</section>
 
 
            </div>
            
           </div>
           <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="EB.html" class="btn btn-neutral float-right" title="Embedded Boundaries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ManagingGridHierarchy_Chapter.html" class="btn btn-neutral float-left" title="Gridding and Load Balancing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 
