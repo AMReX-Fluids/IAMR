@@ -20,14 +20,15 @@ amr.check_int		=  50
 
 amr.plot_int		=  5
 
-ns.cfl                  =  0.7  # CFL number used to set dt
+ns.cfl                  =  0.3  # CFL number used to set dt
+ns.use_godunov          =  false # Using MOL if false
 
 ns.init_dt              =  0.0140625  # initial dt to get simulation going
 ns.init_shrink          =  0.3  # factor which multiplies the very first time step
 ns.init_iter          	=  3    # number of initial iterations
 
 ns.vel_visc_coef        =  0.01
-ns.scal_diff_coefs      =  0.0
+ns.scal_diff_coefs      =  0.001
 
 geometry.coord_sys   	=  0
 

@@ -521,11 +521,11 @@ MacProj::mac_sync_compute (int                   level,
                            MultiFab*             u_mac,
                            MultiFab&             Vsync,
                            MultiFab&             Ssync,
-                           MultiFab&             rho_half,
+                           MultiFab&             /*rho_half*/,
                            FluxRegister*         adv_flux_reg,
                            Vector<AdvectionForm>& advectionType,
                            Real                  prev_time,
-                           Real                  prev_pres_time,
+                           Real                  /*prev_pres_time*/,
                            Real                  dt,
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
@@ -548,11 +548,7 @@ MacProj::mac_sync_compute (int                   level,
 
     const int  ncomp = 1;         // Number of components to process at once
 
-#ifdef AMREX_USE_EB
-    const int  nghost  = 2;
-#else
     const int  nghost  = 0;
-#endif
 
     //
     // Prep MFs to store fluxes and edge states
@@ -582,7 +578,6 @@ MacProj::mac_sync_compute (int                   level,
     if (!ns_level.use_godunov)   // MOL ====================================================================
     {
         Vector<BCRec>  math_bcs(ncomp);
-        const Box& domain = geom.Domain();
 
         for (int comp = 0; comp < NUM_STATE; ++comp)
         {
@@ -781,7 +776,7 @@ MacProj::mac_sync_compute (int                   level,
                                            AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                            forcing_term, comp, *divu_fp,
                                            bcrec_ptr, d_bcrec_ptr,
-                                           geom, iconserv, dt, true,
+                                           geom, iconserv, dt, is_velocity,
                                            ns_level.redistribution_type);
 #else
                 Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
@@ -838,9 +833,9 @@ MacProj::mac_sync_compute (int                    level,
                            int                    s_ind,
                            MultiFab* const*       sync_edges,
                            int                    eComp,
-                           MultiFab&              rho_half,
+                           MultiFab&              /*rho_half*/,
                            FluxRegister*          adv_flux_reg,
-                           Vector<AdvectionForm>&  advectionType,
+                           Vector<AdvectionForm>& /*advectionType*/,
                            bool                   modify_reflux_normal_vel,
                            Real                   dt,
                            bool                   update_fluxreg)
@@ -852,11 +847,7 @@ MacProj::mac_sync_compute (int                    level,
     const Geometry& geom         = parent->Geom(level);
     NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
 
-#ifdef AMREX_USE_EB
-    const int  nghost  = 2;
-#else
     const int  nghost  = 0;
-#endif
 
     const int  ncomp   = 1;         // Number of components to process at once
 
@@ -875,8 +866,6 @@ MacProj::mac_sync_compute (int                    level,
         //
         // MOL algorithm
         //
-
-        const Box& domain = geom.Domain();
 
         // Bogus arguments -- they will not be used since we don't need to recompute the edge states
         Vector<BCRec>  bcs;
@@ -926,7 +915,7 @@ MacProj::mac_sync_compute (int                    level,
                                    AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
                                    AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
                                    MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                                   {}, NULL,
+                                   {}, d_bcrec_ptr,
                                    geom, iconserv, dt, true,
                                    ns_level.redistribution_type);
 #else
@@ -1014,9 +1003,9 @@ MacProj::check_div_cond (int      level,
 void
 MacProj::set_outflow_bcs (int             level,
                           MultiFab*       mac_phi,
-                          const MultiFab* u_mac,
-                          const MultiFab& S,
-                          const MultiFab& divu)
+                          const MultiFab* /*u_mac*/,
+                          const MultiFab& /*S*/,
+                          const MultiFab& /*divu*/)
 {
     //
     // This code is very similar to the outflow BC stuff in the Projection
@@ -1217,7 +1206,7 @@ MacProj::test_umac_periodic (int       level,
 
     mfcd.CollectData();
 
-    for (int i = 0; i < pirm.size(); i++)
+    for (long unsigned int i = 0; i < pirm.size(); i++)
     {
         const int dim = pirm[i].m_dim;
 

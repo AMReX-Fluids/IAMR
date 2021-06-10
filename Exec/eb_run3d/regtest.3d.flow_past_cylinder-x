@@ -1,10 +1,3 @@
-#
-# Current requirements for EB advection
-#
-do_mom_diff=1
-ns.do_cons_trac=1
-ns.do_cons_trac2=1
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            SIMULATION STOP            #
 #.......................................#
@@ -19,6 +12,16 @@ nodal_proj.rtol    =  1.0e-13
 #         TIME STEP COMPUTATION         #
 #.......................................#
 ns.cfl               = 0.3
+
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         Algorithm options             #
+#.......................................#
+ns.use_godunov = false # If false, using MOL
+ns.do_mom_diff=1
+ns.do_cons_trac=1
+ns.do_trac2 = 1
+ns.do_cons_trac2=1
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            INPUT AND OUTPUT           #
 #.......................................#
@@ -31,7 +34,7 @@ amr.restart             =   ""          # Checkpoint to restart from
 #.......................................#
 ns.gravity	         = 0. 
 ns.vel_visc_coef         = 0.1
-ns.scal_diff_coefs       = 0.1
+ns.scal_diff_coefs       = 0.1 0.01
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
 #.......................................#
@@ -78,5 +81,5 @@ prob.velocity_ic = 10. 0. 0.
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
 #.......................................#
-ns.v              = 1 # NS solver
+#ns.v              = 1 # NS solver
 #diffusion.v      = 1 # Diffusion operator

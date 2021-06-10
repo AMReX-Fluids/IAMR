@@ -1,10 +1,3 @@
-#
-# Current requirements for EB advection
-#
-do_mom_diff=1
-ns.do_cons_trac=1
-ns.do_cons_trac2=1
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            SIMULATION STOP            #
 #.......................................#
@@ -20,6 +13,14 @@ nodal_proj.rtol    =  1.0e-13
 #.......................................#
 ns.cfl               = 0.3 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
+#         Algorithm options             #
+#.......................................#
+ns.use_godunov = false # If false, using MOL
+ns.do_mom_diff=0
+ns.do_cons_trac=0
+ns.do_trac2 = 1
+ns.do_cons_trac2=0
+#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            INPUT AND OUTPUT           #
 #.......................................#
 amr.plot_int            =   20          # Steps between plot files
@@ -31,7 +32,7 @@ amr.restart             =   ""          # Checkpoint to restart from
 #.......................................#
 ns.gravity               =   0.  
 ns.vel_visc_coef         = 0.1
-ns.scal_diff_coefs       = 0.1
+ns.scal_diff_coefs       = 0.1 0.005
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
 #.......................................#
@@ -62,6 +63,9 @@ eb2.cylinder_has_fluid_inside = 0
 eb2.cylinder_radius           = 0.05001
 eb2.cylinder_direction        = 0
 eb2.cylinder_center           = 0.0 -0.45 0.0
+
+# Reditribution method for small cells
+ns.redistribution_type = StateRedist
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #          PROBLEM PARAMETERS           #

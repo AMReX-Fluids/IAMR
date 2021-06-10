@@ -1,46 +1,20 @@
 
 #*******************************************************************************
-# INPUTS.2D.HOTSPOT for regression testing
+# INPUTS.2D.HOTSPOT
 #*******************************************************************************
+
+ns.do_temp=1
+ns.temp_cond_coef=1.e-8
+
+#force tiling for testing
+fabarray.mfiter_tile_size = 8 8 8
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 10
+max_step 		= 5
 
-#*******************************************************************************
-
-# Turn heat diffusion on
-ns.do_temp=1
-ns.temp_cond_coef=1.e-3
-
-# Add second tracer
-ns.do_trac2 = 1
-
-#*******************************************************************************
-
-# Algorithm options
-ns.do_mom_diff = 1
-ns.do_cons_trac = 1
-ns.do_cons_trac2 = 1
-ns.use_godunov = false #true
-
-# avoid over/undershoots
-ns.do_denminmax = 1
-ns.do_scalminmax = 1
-
-# Purely implicit diffusion
-ns.be_cn_theta = 1.0
-
-#*******************************************************************************
-
-# Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 64 64
-amr.max_grid_size	= 32
-
-#*******************************************************************************
-
-# Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 0 #2 # maximum number of levels of refinement
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 		= 1.0
 
 # Refinement criterion, use temperature
 amr.refinement_indicators = hi_temp Tdiff
@@ -49,8 +23,26 @@ amr.hi_temp.max_level = 1
 amr.hi_temp.value_greater = 1.01
 amr.hi_temp.field_name = temp
 
-amr.Tdiff.adjacent_difference_greater = 0.1 0.005
+amr.Tdiff.adjacent_difference_greater = 0.005
 amr.Tdiff.field_name = temp
+#amr.Tdiff.start_time = 0.001
+#amr.Tdiff.end_name = 0.002
+
+#*******************************************************************************
+# Algorithm options 
+
+ns.use_godunov  = false # Use MOL if false
+ns.do_trac2 = 1
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 32 32 
+
+#*******************************************************************************
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level		= 2 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -90,7 +82,7 @@ ns.cfl                  = 0.5  # CFL number used to set dt
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 0.5  # factor which multiplies the very first time step
+ns.init_shrink          = 0.3  # factor which multiplies the very first time step
 
 #*******************************************************************************
 
@@ -100,7 +92,7 @@ ns.vel_visc_coef        = 0.001
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001 0.01
+ns.scal_diff_coefs      = 0.001 0.003
 
 #*******************************************************************************
 
@@ -109,29 +101,29 @@ ns.gravity              = -9.8
 
 #*******************************************************************************
 
-# Embedded Boundary options
-#eb2.geom_type    =  all_regular
-eb2.geom_type     = sphere
-eb2.sphere_radius = 0.05
-eb2.sphere_center =  -0.001  .80
-eb2.sphere_has_fluid_inside = 0
-
-# Reditribution method for small cells
-ns.redistribution_type = StateRedist
-
 # Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
-# Physical dimensions of the low & high ends of the domain.
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
 geometry.prob_lo     =  -1. 0. 
-geometry.prob_hi     =  1. 2.
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     =  1. 2. 
+
+#*******************************************************************************
 
 #Set to 1 if periodic in that direction
-geometry.is_periodic =  0 0  
+geometry.is_periodic =  0 0
 
-# Boundary conditions on the low, high end of the domain.
-ns.lo_bc             = 4 5
-ns.hi_bc             = 4 2  
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 5 4  
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 5 2  
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
@@ -141,25 +133,17 @@ ns.hi_bc             = 4 2
 
 # Problem parameters
 prob.probtype = 6
-prob.blob_center = 0.0 0.5 
+prob.blob_center = 0.0 0.65 
 prob.blob_radius = 0.2
 # Background density is 1. Density is reduced by a factor of density_ic inside
 # the bubble
 prob.density_ic = 2.0
-prob.interface_width = 0.15
 # Can also set up a flow, defaults to zero
 #prob.velocity_ic = 0. 0. 0.
 
 #*******************************************************************************
 
-# Add vorticity to the variables in the plot files.
-amr.derive_plot_vars = NONE
-
-#*******************************************************************************
-
-amr.blocking_factor = 8
+# Factor by which grids must be coarsenable.
+amr.blocking_factor     = 8
 amr.grid_eff = 0.95
 
-#*******************************************************************************
-# turn tiling on for testing
-fabarray.mfiter_tile_size = 8 8 8

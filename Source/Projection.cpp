@@ -1537,7 +1537,7 @@ Projection::initialVorticityProject (int c_lev)
     //
     // Set up projector bndry just for this projection.
     //
-    const Geometry& geom = parent->Geom(0);
+    const Geometry& geom = parent->Geom(c_lev);
 
     Vector<std::unique_ptr<MultiFab> > p_real(maxlev);
     Vector<std::unique_ptr<MultiFab> > s_real(maxlev);
@@ -2451,7 +2451,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        if (parent->Geom(0).isPeriodic(idim))
+        if (parent->Geom(c_lev).isPeriodic(idim))
         {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }

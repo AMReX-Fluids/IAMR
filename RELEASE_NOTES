@@ -191,3 +191,11 @@ Updates and bugfixes to EB advection algorithm
 Fix out of bounds issues related to inadequate number of ghost cells
 Misc GPU fixes
 New homogeneous isotropic turbulence test case
+
+6/2/21
+Changes to some MAC projectino parameters
+Fixed issues with some derived quantities
+Checkpoint bug fix
+Fixes to hydrodynamics for GPU and EB
+Updates to MOL algorithm
+Fix: properly merged in changes from development
