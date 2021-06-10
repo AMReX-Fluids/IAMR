@@ -6,7 +6,7 @@
 ns.do_mom_diff = 1
 ns.do_cons_trac = 1
 godunov.use_ppm = 1
-godunov.use_force_in_trans =1 
+godunov.use_forces_in_trans =1 
 
 max_step 		= 7
 
