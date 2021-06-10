@@ -1757,7 +1757,7 @@ NavierStokes::mac_sync ()
 	    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 	    {
 	      dSsync(i,j,k,iconserved) = Snew(i,j,k) * drhosync(i,j,k) / rho(i,j,k);
-	      ssync(i,j,k) -= dSsync(i,j,k);
+	      ssync(i,j,k) -= dSsync(i,j,k,iconserved);
 	    });
 	}
       }
