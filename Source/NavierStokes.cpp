@@ -1,25 +1,16 @@
 //fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
+//#include<AMReX_PlotFileUtil.H>
 //
 
-//
-// "Divu_Type" means S, where divergence U = S
-// "Dsdt_Type" means pd S/pd t, where S is as above
-//
 #include <unistd.h>
-
-#include <algorithm>
-#include <vector>
-#include <cmath>
-
 #include <AMReX_Geometry.H>
 #include <AMReX_Extrapolater.H>
 #include <AMReX_ParmParse.H>
 #include <NavierStokes.H>
 #include <NAVIERSTOKES_F.H>
 #include <AMReX_BLProfiler.H>
-#include <PROB_NS_F.H>
 #include <NS_util.H>
+#include <AMReX_buildInfo.H>
 
 #ifdef BL_USE_VELOCITY
 #include <AMReX_DataServices.H>
@@ -30,7 +21,6 @@
 #include <AMReX_EBMultiFabUtil.H>
 #endif
 
-#include <AMReX_buildInfo.H>
 
 using namespace amrex;
 
@@ -442,7 +432,7 @@ NavierStokes::initData ()
         {
 	    amrData.FillVar(tmp, level, plotnames[idX+i], 0);
 
-	    MultiFab::Saxpy(S_new, velocity_plotfile_scale, tmp, 0, Xvel+i, 1, 0)
+	    MultiFab::Saxpy(S_new, velocity_plotfile_scale, tmp, 0, Xvel+i, 1, 0);
 
 	    amrData.FlushGrids(idX+i);
         }

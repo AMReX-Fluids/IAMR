@@ -1,9 +1,17 @@
 
+//fixme, for writesingle level plotfile
+//#include<AMReX_PlotFileUtil.H>
+//
+
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_MLNodeLaplacian.H>
+#include <NavierStokesBase.H>
+#include <NAVIERSTOKES_F.H>
+#include <NSB_K.H>
+#include <NS_util.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
@@ -17,16 +25,6 @@
 #include <hydro_godunov.H>
 #endif
 
-#include <NavierStokesBase.H>
-#include <NAVIERSTOKES_F.H>
-#include <AMReX_filcc_f.H>
-#include <NSB_K.H>
-#include <NS_util.H>
-
-#include <PROB_NS_F.H>
-
-//fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -119,6 +117,10 @@ amrex::Vector<amrex::Real> NavierStokesBase::dt_avg;
 int  NavierStokesBase::avg_interval                    = 0;
 int  NavierStokesBase::compute_fluctuations            = 0;
 int  NavierStokesBase::additional_state_types_initialized = 0;
+//
+// "Divu_Type" means S, where divergence U = S
+// "Dsdt_Type" means pd S/pd t, where S is as above
+//
 int  NavierStokesBase::Divu_Type                          = -1;
 int  NavierStokesBase::Dsdt_Type                          = -1;
 int  NavierStokesBase::Average_Type                       = -1;
