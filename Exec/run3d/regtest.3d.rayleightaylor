@@ -56,6 +56,8 @@ ns.hi_bc             = 0 0 4
 prob.probtype = 10
 prob.rho_1 = 1.5e7
 prob.rho_2 = 8.44407300e+06
+prob.tra_1 = 1.5e7
+prob.tra_2 = 0.
 prob.interface_width = 1.5
 prob.perturbation_amplitude = 5
   
