@@ -1722,8 +1722,9 @@ NavierStokes::mac_sync ()
 
     //
     // For all conservative variables Q (other than density)
-    // express Q as rho*q and increment sync by -(sync_for_rho)*q
+    // Q is taken as rho*q and we increment sync by -(sync_for_rho)*q
     // (See Pember, et. al., LBNL-41339, Jan. 1989)
+    // This increment will be added back after the diffusive sync.
     //
     int iconserved = -1;
     for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
@@ -1901,7 +1902,9 @@ NavierStokes::mac_sync ()
       {
 	iconserved++;
 
-	MultiFab::Add(Ssync,*DeltaSsync,iconserved,istate-AMREX_SPACEDIM,1,0);
+	// Must multiply by dt to agree with the factor of dt just put
+	// into Ssync above.
+	MultiFab::Saxpy(Ssync,dt,*DeltaSsync,iconserved,istate-AMREX_SPACEDIM,1,0);
       }
     }
     //

@@ -2833,8 +2833,8 @@ NavierStokesBase::sync_setup (MultiFab*& DeltaSsync)
 
     if (nconserved > 0 && level < parent->finestLevel())
     {
-        DeltaSsync = new MultiFab(grids, dmap, nconserved, 1, MFInfo(), Factory());
-        DeltaSsync->setVal(0,1);
+        DeltaSsync = new MultiFab(grids, dmap, nconserved, 0, MFInfo(), Factory());
+        DeltaSsync->setVal(0);
     }
 }
 
