@@ -855,7 +855,7 @@ MacProj::mac_sync_compute (int                    level,
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, 1, nghost, MFInfo(),ns_level.Factory());
+        fluxes[i].define(ba, dmap, 1, sync_edges[0]->nGrow(), MFInfo(),ns_level.Factory());
     }
 
     //
