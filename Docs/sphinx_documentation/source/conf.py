@@ -20,6 +20,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import re
 import sphinx_rtd_theme
 import breathe
 from datetime import datetime
@@ -38,10 +39,14 @@ def get_IAMR_version():
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.mathjax',
+              'sphinxcontrib.bibtex',
               'sphinx.ext.githubpages',
               'sphinx.ext.viewcode',
               'sphinx.ext.intersphinx',
               'breathe']
+
+# bibtex
+bibtex_bibfiles = ["refs.bib"]
 
 # TODO: make IAMR tutorials
 # intersphinx_mapping = {
@@ -59,8 +64,8 @@ templates_path = ['ytemplates']
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
 
-# The master toctree document.
-master_doc = 'index'
+# The main toctree document.
+main_doc = 'index'
 
 # General information about the project.
 project = u'IAMR'
@@ -145,7 +150,6 @@ html_sidebars = {
         'navigation.html',
         'relations.html',  # needs 'show_related': True theme option to display
         'searchbox.html',
-        'donate.html',
     ]
 }
 
@@ -180,9 +184,26 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'IAMR.tex', u'IAMR Documentation',
+    (main_doc, 'IAMR.tex', u'IAMR Documentation',
      u'IAMR Team', 'manual'),
 ]
+
+# -- Options for MathJax ---------------------------------------------------
+mathjax3_config = {'tex': {'macros': {}}}
+
+with open('mathsymbols.tex', 'r') as f:
+    for line in f:
+        macros = re.findall(r'\\newcommand{\\(.*?)}(\[(\d)\])?{(.+)}', line)
+        for macro in macros:
+            if len(macro[1]) == 0:
+                mathjax3_config['tex']['macros'][macro[0]
+                                                ] = "{" + macro[3] + "}"
+            else:
+                mathjax3_config['tex']['macros'][macro[0]] = [
+                    "{" + macro[3] + "}", int(macro[2])]
+
+
+numfig = True
 
 
 # -- Options for manual page output ---------------------------------------
@@ -190,7 +211,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'IAMR', u'IAMR Documentation',
+    (main_doc, 'IAMR', u'IAMR Documentation',
      [author], 1)
 ]
 
@@ -201,7 +222,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'IAMR', u'IAMR Documentation',
+    (main_doc, 'IAMR', u'IAMR Documentation',
      author, 'IAMR', 'One line description of project.',
      'Miscellaneous'),
 ]
