@@ -20,6 +20,7 @@ see incflo (https://amrex-codes.github.io/incflo/)
 
    Introduction_Chapter
    Getting_Started
+   Visualization_Chapter
    Inputs_Chapter
    ManagingGridHierarchy_Chapter
    Fluids_Chapter

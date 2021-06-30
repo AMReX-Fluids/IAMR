@@ -43,6 +43,15 @@ Active development in IAMR is ongoing in the development branch.
 Changes are merged into the main branch at the beginning of each month.
 
 
+The algorithm is described in the following paper (and references therein):
+
+-  *A Conservative Adaptive Projection Method for the Variable Density Incompressible Navier-Stokes Equations*,
+   A. S. Almgren, J. B. Bell, P. Colella, L. H. Howell, and M. L. Welcome,
+   J. Comp. Phys., 142, pp. 1-46, 1998.
+   http://www.sciencedirect.com/science/article/pii/S0021999198958909 :cite:`IAMR`
+
+
+
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
