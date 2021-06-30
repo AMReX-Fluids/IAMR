@@ -55,6 +55,9 @@ bibtex_bibfiles = ["refs.bib"]
 #     # 'IAMR_tutorials': ('../../../sphinx_tutorials/build/html/',
 #     #                    '../../sphinx_tutorials/build/html/objects.inv')
 # }
+intersphinx_mapping = {
+     'amrex': ('https://amrex-codes.github.io/amrex/docs_html/', None)
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['ytemplates']
