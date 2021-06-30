@@ -4396,13 +4396,23 @@ NavierStokesBase::predict_velocity (Real  dt)
            }
        }
 
-#ifndef AMREX_USE_EB
-       Godunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                  m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt,
-                                  godunov_use_ppm, godunov_use_forces_in_trans );
+#ifdef AMREX_USE_EB
+       if (!EBFactory().isAllRegular())
+       {
+	   EBGodunov::ExtrapVelToFaces( Umf, forcing_term,
+					AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+					m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
+					geom, dt );
+       }
+       else
 #else
-       EBGodunov::ExtrapVelToFaces( Umf, forcing_term, AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                    m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(), geom, dt );
+       {
+	   Godunov::ExtrapVelToFaces( Umf, forcing_term,
+				      AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+				      m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
+				      geom, dt,
+				      godunov_use_ppm, godunov_use_forces_in_trans );
+       }
 #endif
 
 
@@ -4410,13 +4420,19 @@ NavierStokesBase::predict_velocity (Real  dt)
    else  // MOL SCHEME
    {
 #ifdef AMREX_USE_EB
-       EBMOL::ExtrapVelToFaces( Umf,
-                                AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
+       if (!EBFactory().isAllRegular())
+       {
+	   EBMOL::ExtrapVelToFaces( Umf,
+				    AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+				    geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
+       }
+       else
 #else
-       MOL::ExtrapVelToFaces( Umf,
-                              AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                              geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
+       {
+	   MOL::ExtrapVelToFaces( Umf,
+				  AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
+				  geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
+       }
 #endif
    }
 
@@ -4529,23 +4545,32 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  Godunov ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         //
-#ifndef AMREX_USE_EB
-        Godunov::ComputeAofs(*aofs, comp, ncomp,
-                             state, state_comp,
-                             AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                             AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                             AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             forcing_term, 0, divu, bcrec_d.dataPtr(), geom, iconserv, dt,
-                             godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
+#ifdef AMREX_USE_EB
+        if (!EBFactory().isAllRegular())
+	{
+	  EBGodunov::ComputeAofs(*aofs, comp, ncomp,
+				 state, state_comp,
+				 AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+				 AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
+				 0, false,
+				 AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
+				 forcing_term, 0, divu,
+				 bcrec_h, bcrec_d.dataPtr(),
+				 geom, iconserv, dt, is_velocity, redistribution_type);
+	}
+	else
 #else
-        EBGodunov::ComputeAofs(*aofs, comp, ncomp,
-                               state, state_comp,
-                               AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                               AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                               AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                               forcing_term, 0, divu,
-                               bcrec_h, bcrec_d.dataPtr(),
-                               geom, iconserv, dt, is_velocity, redistribution_type);
+	{
+	  Godunov::ComputeAofs(*aofs, comp, ncomp,
+			       state, state_comp,
+			       AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+			       AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
+			       0, false,
+			       AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+			       0, forcing_term, 0, divu, bcrec_d.dataPtr(),
+			       geom, iconserv, dt,
+			       godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
+	}
 #endif
     }
     else
@@ -4555,6 +4580,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  MOL ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         //
 #ifdef AMREX_USE_EB
+      if (!EBFactory().isAllRegular())
+      {
         EBMOL::ComputeAofs(*aofs, comp, ncomp,
                            state, state_comp,
                            D_DECL(u_mac[0],u_mac[1],u_mac[2]),
@@ -4563,7 +4590,10 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                            divu,
                            bcrec_h, bcrec_d.dataPtr(), iconserv,
                            geom, dt, is_velocity, redistribution_type );
+      }
+      else
 #else
+      {
         MOL::ComputeAofs(*aofs, comp, ncomp,
                          state, state_comp,
                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
@@ -4572,6 +4602,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                          divu,
                          bcrec_h, bcrec_d.dataPtr(), iconserv,
                          geom, is_velocity );
+      }
 #endif
     }
 
