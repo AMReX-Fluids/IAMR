@@ -18,14 +18,15 @@ variables appear in the plotfile.
 | **amr.plot\_vars** = density
 | **amr.derive\_plot\_vars** = avg\_pressure
 
-amrvis
+Amrvis
 ======
 
- Amrvis is a package developed
+Amrvis is a package developed
 by CCSE that is designed specifically for highly efficient visualization
 of block-structured hierarchical AMR data.
 Information on building the amrvis2d and amrvis3d executables is given in section
-[sec:visBuild]. A very useful feature of Amrvis is View/Dataset, which
+:ref:`Visualizing the Results`. A very useful feature of Amrvis is
+View :math:`\rightarrow` Dataset, which
 allows you to actually view the numbers in a spreadsheet that is nested
 to reflect the AMR hierarchy – this can be handy for
 debugging. You can modify how many levels of data you want to see,
@@ -48,12 +49,12 @@ choose the Header file within the plotfile folder, plt00000/Header,
 For more information check out visit.llnl.gov.
 
 yt
-==
+=====
 
 yt is a free and open-source software that provides data analysis and
 publication-level visualization tools. It is geared more for astrophysical
 simulation results, but may be useful for your purposes. As yt is script-based, it’s not
-as easy to use as VisIt, and certainly not as easy as amrvis, but the
+as easy to use as VisIt, and certainly not as easy as Amrvis, but the
 images can be worth it! Here we do not flesh out yt, but give an
 overview intended to get a person started. Full documentation and
 explanations from which this section was adapted can be found at
@@ -65,15 +66,15 @@ $ wget http://hg.yt-project.org/yt/raw/stable/doc/install\_script.sh
 
 $ bash install\_script.sh
 
-This installs yt in your current directory. To update ytin the
+This installs yt in your current directory. To update yt in the
 future, simply do
 
 $ yt update
 
 in your “yt-hg” folder.
 
-AMReX Data
-----------
+AMReX Data in yt
+----------------
 
 yt was originally created for simple analysis and visualization of
 data from the Enzo code. Since, it has grown to include support for a
@@ -375,7 +376,7 @@ p.annotate\_point([5.95e9, 5.1e9], ‘Star!’)
 
 p.save(‘contours.press\_den\_’)
 
-.. figure:: Slice_z_pressure
+.. figure:: ./Visualization/Slice_z_pressure.png
    :alt: Pressure slice with annotations
    :width: 6.00000in
 
@@ -524,7 +525,7 @@ im = cam.draw\_grids(im, alpha=0.03, min\_level=1, max\_level=1)
 
 im.write\_png(‘pressure\_shell\_volume.png’)
 
-.. figure:: volume
+.. figure:: ./Visualization/volume.png
    :alt: Volume rendering
    :width: 3.50000in
 
@@ -588,7 +589,7 @@ ax.set\_aspect(1.0)
 
 plt.savefig(‘pres\_magvel\_isocontours.png’)
 
-.. figure:: isocontours
+.. figure:: ./Visualization/isocontours.png
    :alt: Pressure isocontour rendering colored with velocity magnitude
    :width: 4.00000in
 
@@ -702,13 +703,13 @@ x\_bins=288, y\_bins=288)
 
 pc.save(‘profile’)
 
-.. figure:: LineQueryPlot_0_t_magvel
+.. figure:: ./Visualization/LineQueryPlot_0_t_magvel.png
    :alt: Density/velocity magnitude/kinetic energy phase plot
    :width: 4.00000in
 
    Density/velocity magnitude/kinetic energy phase plot
 
-.. figure:: Profile2D_1_Density_magvel_kineng
+.. figure:: ./Visualization/Profile2D_1_Density_magveel_kineng.png
    :alt: Density/velocity magnitude/kinetic energy phase plot
    :width: 4.00000in
 
@@ -764,7 +765,7 @@ plot.set\_window\_size(8.0)
 
 plot.save(‘off\_axis\_density’)
 
-.. figure:: OffAxisProjection_density
+.. figure:: ./Visualization/OffAxisProjection_density.png
    :alt: Off-axis density projection
    :width: 4.00000in
 
