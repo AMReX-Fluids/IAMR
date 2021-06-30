@@ -43,6 +43,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'sphinx.ext.viewcode',
               'sphinx.ext.intersphinx',
+              'sphinx.ext.autosectionlabel',
               'breathe']
 
 # bibtex
