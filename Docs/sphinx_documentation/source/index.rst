@@ -23,6 +23,7 @@ see incflo (https://amrex-codes.github.io/incflo/)
    Visualization_Chapter
    Inputs_Chapter
    ManagingGridHierarchy_Chapter
+   Amr
    Fluids_Chapter
    EB
    Debugging
