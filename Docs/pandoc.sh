@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for i in `find ../UsersGuide/Introduction -name "*.tex"`
+for i in `find ../UsersGuide/* -name "*.tex"`
 do
     echo "\\input{textsymbols}" > _temp.tex
     cat $i >> _temp.tex
