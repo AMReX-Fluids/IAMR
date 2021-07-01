@@ -1,7 +1,7 @@
 .. _Chap:InputsLoadBalancing:
 
-Gridding and Load Balancing
-===========================
+Gridding and Load Balancing Inputs
+==================================
 
 The details of the regridding strategy are described in other sections
 (see :ref:`sec:gridCreation` and :ref:`chap:Amr`);
