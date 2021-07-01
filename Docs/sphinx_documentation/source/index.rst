@@ -21,7 +21,7 @@ see incflo (https://amrex-codes.github.io/incflo/)
    Introduction_Chapter
    Getting_Started
    Units
-   Software
+   Software_Chapter
    Visualization_Chapter
    Inputs_Chapter
    ManagingGridHierarchy_Chapter
