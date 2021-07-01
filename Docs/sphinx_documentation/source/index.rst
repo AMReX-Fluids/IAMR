@@ -8,11 +8,8 @@ It is built on top of AMReX, a publicly available software framework designed fo
 building massively parallel block-structured adaptive mesh refinement (AMR)
 applications.
 
-Active development in IAMR is ongoing in the development branch. 
-Changes are merged into the main branch at the beginning of each month.
-
-For an AMReX-based incompressible flow code without subcycling in time, please go to 
-https://amrex-codes.github.io/incflo/
+For an AMReX-based incompressible flow code without subcycling in time,
+see incflo (https://amrex-codes.github.io/incflo/)
 
 .. note::
    **This documentation is a work in progress. Please check back later for more content.**
@@ -21,18 +18,24 @@ https://amrex-codes.github.io/incflo/
    :maxdepth: 2
    :caption: Contents:
 
-   Introduction
+   Introduction_Chapter
    Getting_Started
+   Units
+   Software_Chapter
+   Visualization_Chapter
    Inputs_Chapter
    ManagingGridHierarchy_Chapter
+   AMR
+   Parallel
    Fluids_Chapter
    EB
+   Particles_Chapter
    Debugging
    
+.. toctree::
+   :caption: References
 
-Indices and tables
-==================
+   references
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+The copyright notice and license agreement is included in the
+IAMR home directory in OpenSource.txt.
