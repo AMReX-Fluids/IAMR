@@ -14,6 +14,9 @@
 #include <NS_util.H>
 #include <hydro_utils.H>
 
+#include <hydro_mol.H>
+#include <hydro_godunov.H>
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EBInterpolater.H>
@@ -21,9 +24,6 @@
 #include <hydro_ebmol.H>
 #include <hydro_ebgodunov.H>
 #include <hydro_redistribution.H>
-#else
-#include <hydro_mol.H>
-#include <hydro_godunov.H>
 #endif
 
 
