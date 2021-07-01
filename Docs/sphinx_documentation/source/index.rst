@@ -20,12 +20,16 @@ see incflo (https://amrex-codes.github.io/incflo/)
 
    Introduction_Chapter
    Getting_Started
+   Units
+   Software
    Visualization_Chapter
    Inputs_Chapter
    ManagingGridHierarchy_Chapter
-   Amr
+   AMR
+   Parallel
    Fluids_Chapter
    EB
+   Particles_Chapter
    Debugging
    
 .. toctree::
