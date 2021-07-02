@@ -20,7 +20,7 @@ jobs:
 
       - name: Upgrade pip
         run: |
-	  echo "Installing python packages for docs..."
+          echo "Installing python packages for docs..."
           # install pip=>20.1 to use "pip cache dir"
           python3 -m pip install --upgrade pip
       - name: Get pip cache dir
