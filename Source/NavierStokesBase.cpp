@@ -542,8 +542,6 @@ NavierStokesBase::Initialize ()
     //
     // EB Godunov restrictions
     //
-    if ( use_godunov && !do_mom_diff )
-      amrex::Abort("EB Godunov only supports conservative velocity update: run with ns.do_mom_diff=1");
     if ( use_godunov && godunov_use_ppm )
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
