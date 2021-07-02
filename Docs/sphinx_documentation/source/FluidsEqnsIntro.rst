@@ -1,23 +1,4 @@
 
-The Variable-Density Incompressible Navier-Stokes Equations
-===========================================================
-
-IAMR solves the variable-density incompressible Navier-Stokes equations:
-
-.. math::
-  
-   \begin{aligned}
-   {{\bf U}}_t + ({{\bf U}}\cdot\nabla){{\bf U}}&=& \frac{1}{\rho}(-\nabla p + \mu\nabla^2 {{\bf U}}+ {\bf H}_U), \\
-   \rho_t + \nabla\cdot(\rho {{\bf U}}) &=& 0, \\
-   c_t + ({{\bf U}}\cdot\nabla)c &=& k\nabla^2 c + H_c, \\
-   \nabla\cdot {{\bf U}}&=& 0,\end{aligned}
-
-where :math:`{{\bf U}}= (u, v, w), \rho, c`, and :math:`p` represent the velocity, density, concentration of an
-advected scalar, and pressure, respectively, and :math:`{\bf H}_U = (H_x , H_y , H_z )` represents any external
-forces. Here :math:`\mu` is the dynamic viscosity coefficient, :math:`k` is the diffusive coefficient for :math:`c`, and
-:math:`H_c` is the source term for :math:`c`. In general one could advect an arbitrary number of scalars,
-either passively or conservatively.
-
 Brief Overview of Low Speed Approximations
 ==========================================
 

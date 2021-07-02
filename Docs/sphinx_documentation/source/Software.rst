@@ -15,11 +15,11 @@ The code structure in the IAMR/ directory is as follows:
 
    -  run3d/
 
-   -  eb\_run2d/
+   -  eb_run2d/
 
-   -  eb\_run3d/
+   -  eb_run3d/
 
-   -  run\_2d\_particles/
+   -  run_2d_particles/
 
 -  Docs/: you’re reading this now!
 
@@ -34,7 +34,7 @@ it’s documentation :ref:`amrex:amrex_doc_indx`
 is a useful resource in addition to this User’s Guide.
 
 ..
-    (at https://amrex-codes.github.io/amrex/docs\_html/index.html)
+    (at https://amrex-codes.github.io/amrex/docs_html/index.html)
 
 
 The IAMR simulation begins in IAMR/Source/main.cpp where an instance
@@ -90,16 +90,16 @@ operations.
 
 In IAMR/Source/NavieStokesBase.H, the enum StateType defines the
 different state descriptors for IAMR. These are setup during the
-run by code in NS\_setup.cpp, and include (but are not limited to):
+run by code in NS_setup.cpp, and include (but are not limited to):
 
--  State\_Type: the cell-centered density, velocity, and other scalars (tracers)
+-  State_Type: the cell-centered density, velocity, and other scalars (tracers)
 
--  Press\_Type: the node-centered dynamic pressure field.
+-  Press_Type: the node-centered dynamic pressure field.
 
--  Divu\_Type: Stores the right-hand-side of the constraint
+-  Divu_Type: Stores the right-hand-side of the constraint
    (only matters for low Mach flows when this is nonzero).
 
--  Dsdt\_Type: Stores the time-derivative of the right-hand-side of the constraint
+-  Dsdt_Type: Stores the time-derivative of the right-hand-side of the constraint
    (only matters for low Mach flows when this is nonzero).
 
 Each StateData object has two MultiFabs, one each for
@@ -111,7 +111,7 @@ Alternatively, can also access the data containers directly, for instance:
     MultiFab& S_new = get_new_data(State_Type);
 
 gets a pointer to the multifab containing the hydrodynamics state data
-at the new time (here State\_Type is the enum defined in
+at the new time (here State_Type is the enum defined in
 NavierStokesBase.H) (note that the class NavierStokes
 is a derived classes of NavierStokesBase).
 
@@ -151,54 +151,54 @@ processor will be included in the loop on each processor. An example loop
 Here, ++mfi iterates to the next FArrayBox owned by the MultiFab,
 and mfi.isValid() returns false after we’ve reached
 the last box contained in the MultiFab, terminating the loop.
-rho\_half.array(mfi) creates an object for accessing FArrayBox data in
+rho_half.array(mfi) creates an object for accessing FArrayBox data in
 a more array like manner using operator()
 (more details are in the AMReX documentation at
-https://amrex-codes.github.io/amrex/docs\_html/Basics.html#sec-basics-array4 ).
+https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-array4 ).
 
-Here ParallelFor takes two arguments. The first argument is a Box specifying the iteration index space, and the second argument is a C++ lambda function that works on cell (i,j,k). Variables rho\_half, rho\_ptime and rho\_ctime in the lambda function are captured by value from the enclosing scope. The code above is performance portable. It works with and without GPU support. When IAMR is built with GPU support (USE\_CUDA=TRUE), AMREX\_GPU\_DEVICE indicates that the lambda function is a device function and ParallelFor launches a GPU kernel to do the work. When it is built without GPU support, AMREX\_GPU\_DEVICE has no effects whatsoever. It should be emphasized that ParallelFor does not start an OpenMP parallel region. The OpenMP parallel region will be started by the pragma above the MFIter loop if it is built with OpenMP and without enabling GPU (USE\_OMP=TRUE and USE\_CUDA=TRUE are not compatible). Tiling is turned off if GPU is enabled so that more parallelism is exposed to GPU kernels. Also note that when tiling is off, tilebox returns validbox.
+Here ParallelFor takes two arguments. The first argument is a Box specifying the iteration index space, and the second argument is a C++ lambda function that works on cell (i,j,k). Variables rho_half, rho_ptime and rho_ctime in the lambda function are captured by value from the enclosing scope. The code above is performance portable. It works with and without GPU support. When IAMR is built with GPU support (USE_CUDA=TRUE), AMREX_GPU_DEVICE indicates that the lambda function is a device function and ParallelFor launches a GPU kernel to do the work. When it is built without GPU support, AMREX_GPU_DEVICE has no effects whatsoever. It should be emphasized that ParallelFor does not start an OpenMP parallel region. The OpenMP parallel region will be started by the pragma above the MFIter loop if it is built with OpenMP and without enabling GPU (USE_OMP=TRUE and USE_CUDA=TRUE are not compatible). Tiling is turned off if GPU is enabled so that more parallelism is exposed to GPU kernels. Also note that when tiling is off, tilebox returns validbox.
 (more details are in the AMReX documentation at
-https://amrex-codes.github.io/amrex/docs\_html/GPU.html#sec-gpu-for ).
+https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for ).
 
 Setting Up Your Own Problem
 ===========================
 
 To define a new problem, we create a new inputs file in
 a run directory and modify
-IAMR/Source/prob/prob\_init.cpp accordingly.
+IAMR/Source/prob/prob_init.cpp accordingly.
 The simplest way to get started is to copy the inputs files from an existing
 problem. Here we describe how to customize your problem.
 
 There are several files involved in setting up an IAMR problem. It’s possible to
-create your own new setup by only touching the first of these (prob\_initData())
+create your own new setup by only touching the first of these (prob_initData())
 and changing parameters through the inputs file (see section [sec:inputs]).
 Here we list the most relevant problem
 setup files and thier purpose. If you need further help setting up your problem, please
 contact us.
 
--  prob\_initData():
+-  prob_initData():
    Read in initial conditions and problem parameters from the inputs file,
    and initialize the state data (velocity, density, etc.).
 
--  NS\_error.cpp: Define the error estimation criteria used for tagging cells for
+-  NS_error.cpp: Define the error estimation criteria used for tagging cells for
    refinement.
    More details in section [sec:tagging]
 
--  NS\_setup.cpp: Declare state and derived variables.
+-  NS_setup.cpp: Declare state and derived variables.
    Specify how to fill grow cells for each state or derived variable.
    More details in sections [sec:boundaries]
 
--  NS\_derive.cpp: Define derived variables.
+-  NS_derive.cpp: Define derived variables.
    More details in sections [sec:derivedVariables]
 
--  NS\_BC.H: Define the mapping from physical boundary conditions (e.g. outflow)
+-  NS_BC.H: Define the mapping from physical boundary conditions (e.g. outflow)
    to mathematical (e.g. first order extrapolation from last interior cell).
    More details in section [sec:physicalBCs]
 
--  NS\_bcfill.H:
+-  NS_bcfill.H:
    Define the boundary filling functions for external Dirichlet (i.e. user supplied)
    boundary conditions. Constant Dirichlet conditions can be specified in the
-   inputs file without needing to alter NS\_bcfill.H.
+   inputs file without needing to alter NS_bcfill.H.
    More details in section [sec:physicalBCs]
 
 Boundaries
@@ -235,14 +235,15 @@ of the various AMR levels are sequenced relative to eachother.
 In AMReX, the field data associated with the system state, as well as the metadata
 associated with inter-level transfers, is bundled (encapsulated) in
 a class called “StateData”. The metadata
-is defined in NS\_setup.cpp – search for
-cell\_cons\_interp, for example – which is “cell conservative
+is defined in NS_setup.cpp – search for
+cell_cons_interp, for example – which is “cell conservative
 interpolation”, i.e., the data is cell-based (as opposed to node-based
 or edge-based) and the interpolation is such that the average of the
 fine values created is equal to the coarse value from which they came.
 (This wouldn’t be the case with straight linear interpolation, for
 example.) A number of interpolators are provided with AMReX and
 user-customizable ones can be added on the fly.
+
 
 .. _sec:physicalBCs:
 
@@ -259,9 +260,9 @@ the user supplies data to fill grow cells.
 IAMR provides the ability to specify constant Dirichlet BCs
 in the inputs file (see section [sec:dirichlet]).
 Users can create more complex Dirichlet boundary condtions by writing
-their own fill function in NS\_bcfill.H, then using that function to create
+their own fill function in NS_bcfill.H, then using that function to create
 an amrex::StateDescriptor::BndryFunc object and specifying which variables
-will use it in NS\_setup.cpp.
+will use it in NS_setup.cpp.
 
 It is important to note that external Dirichlet boundary data is to be specified as
 if applied on the face of the cell bounding the domain, even for cell-centered
@@ -274,8 +275,8 @@ that are Dirichlet and wall-centered, and the stencils are adjusted accordingly.
 
 For convenience, IAMR provides a limited set of mappings from a physics-based boundary condition
 specification to a mathematical one that the code can apply. This set can be extended
-by adjusting the corresponding translations in NS\_BC.H, but, by default, includes
-(See AMReX/Src/Base/AMReX\_BC\_TYPES.H for more detail):
+by adjusting the corresponding translations in NS_BC.H, but, by default, includes
+(See AMReX/Src/Base/AMReX_BC_TYPES.H for more detail):
 
 -  *Outflow*:
 
@@ -287,33 +288,33 @@ by adjusting the corresponding translations in NS\_BC.H, but, by default, includ
 
 -  *No Slip Wall with Adiabatic Temp*:
 
-   -  velocity: EXT\_DIR, :math:`u=v=0`
+   -  velocity: EXT_DIR, :math:`u=v=0`
 
-   -  temperature: REFLECT\_EVEN, :math:`dT/dt=0`
+   -  temperature: REFLECT_EVEN, :math:`dT/dt=0`
 
    -  scalars: HOEXTRAP
 
 -  *Slip Wall with Adiabatic Temp*:
 
-   -  velocity: EXT\_DIR, :math:`u_n=0`; HOEXTRAP, :math:`u_t`
+   -  velocity: EXT_DIR, :math:`u_n=0`; HOEXTRAP, :math:`u_t`
 
-   -  temperature: REFLECT\_EVEN, :math:`dT/dn=0`
+   -  temperature: REFLECT_EVEN, :math:`dT/dn=0`
 
    -  scalars: HOEXTRAP
 
 The keywords used above are defined:
 
--  INT\_DIR: data taken from other grids or interpolated
+-  INT_DIR: data taken from other grids or interpolated
 
--  EXT\_DIR: data specified on EDGE (FACE) of bndry
+-  EXT_DIR: data specified on EDGE (FACE) of bndry
 
 -  HOEXTRAP: higher order extrapolation to EDGE of bndry
 
 -  FOEXTRAP: first order extrapolation from last cell in interior
 
--  REFLECT\_EVEN: :math:`F(-n) = F(n)` true reflection from interior cells
+-  REFLECT_EVEN: :math:`F(-n) = F(n)` true reflection from interior cells
 
--  REFLECT\_ODD: :math:`F(-n) = -F(n)` true reflection from interior cells
+-  REFLECT_ODD: :math:`F(-n) = -F(n)` true reflection from interior cells
 
 Derived Variables
 =================
@@ -322,8 +323,8 @@ IAMR has the ability to created new variables derived from the state variables.
 A few derived variables are provided with IAMR, which can be used as examples for
 creating user defined derived variables.
 Users create derived variables by adding a function to create them in
-NS\_derive.H and NS\_derive.cpp, and then adding the variable to the
-derive\_lst in NS\_setup.cpp.
+NS_derive.H and NS_derive.cpp, and then adding the variable to the
+derive_lst in NS_setup.cpp.
 
 Access to the derived variable is through one of two amrex:AmrLevel functions
 (which are inherited by NavierStokesBase and NavierStokes):
@@ -378,15 +379,15 @@ is modified (e.g., via an advective “time advance”, the new data
 must be copied explicitly back into the StateData containers.
 
 Use of FillPatchIterator as an iterator has been depreciated in favor
-of MFIter, which supports tiling (see section [sec:parallel]).
+of MFIter, which supports tiling (see section :ref:`Chap:Parallel`).
 However, IAMR continues to use
 FillPatchIterator for creating temporaries with filled grow cells.
 
 For example, the following code demonstrates the calling sequence to
 create and use a FillPatchIterator for preparing a rectangular patch of
-data that includes the “valid region” plus NUM\_GROW grow cells. Here,
+data that includes the “valid region” plus NUM_GROW grow cells. Here,
 the valid region is specified as a union of rectangular boxes making up the
-box array underlying the MultiFab S\_new, and NUM\_GROW cells are
+box array underlying the MultiFab S_new, and NUM_GROW cells are
 added to each box in all directions to create the temporary patches to
 be filled.
 
@@ -398,12 +399,12 @@ be filled.
       MultiFab& S = fpi.get_mf();
 
 Here the FillPatchIterator fills the patch
-with data of type “State\_Type” at time “time”,
+with data of type “State_Type” at time “time”,
 starting with component strtComp and including a total of
-NUM\_STATE components. When the FillPatchIterator goes out of scope, it
+NUM_STATE components. When the FillPatchIterator goes out of scope, it
 and the temporary data platters are destroyed (though much of the
 metadata generated during the operation is cached internally
-for performance). Notice that since NUM\_GROW can be any
+for performance). Notice that since NUM_GROW can be any
 positive integer (i.e., that the grow region can extend over an arbitrary
 number of successively coarser AMR levels), this key operation can hide an
 enormous amount of code and algorithm complexity.
@@ -421,7 +422,7 @@ shared across thousands of CPUs. Each CPU writes the part of the
 MultiFab that it owns to disk, but they don’t each write to their own
 distinct file. Instead each MultiFab is written to a runtime
 configurable number of files N (N can be set in the inputs file as the
-parameter amr.checkpoint\_nfiles and amr.plot\_nfiles; the
+parameter amr.checkpoint_nfiles and amr.plot_nfiles; the
 default is 64). That is to say, each MultiFab is written to disk
 across at most N files, plus a small amount of data that gets written
 to a header file describing how the file is laid out in those N files.

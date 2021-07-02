@@ -10,11 +10,11 @@ factor of refinement between levels.
 The following inputs must be preceded by "amr."
 
 +-------------------+-------------------------------------------------------------------------+-------------+-----------+
-|                   | Description                                                           |   Type      | Default   |
+|                   | Description                                                             |   Type      | Default   |
 +===================+=========================================================================+=============+===========+
-| n_cell            | Number of cells at level 0 in each coordinate direction               | Int Int Int | None      |
+| n_cell            | Number of cells at level 0 in each coordinate direction                 | Int Int Int | None      |
 +-------------------+-------------------------------------------------------------------------+-------------+-----------+
-| max_level         | Maximum level of refinement allowed (0 when single-level)             |    Int      | None      |
+| max_level         | Maximum level of refinement allowed (0 when single-level)               |    Int      | None      |
 +-------------------+-------------------------------------------------------------------------+-------------+-----------+
 | ref_ratio         | Ratio of coarse to fine grid spacing between subsequent levels (2 or 4) |    Int      | None      |
 +-------------------+-------------------------------------------------------------------------+-------------+-----------+

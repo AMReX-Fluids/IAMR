@@ -1,3 +1,6 @@
+
+.. _Chap:Amr:
+
 AMR
 =====
 
@@ -33,6 +36,7 @@ possible, and interpolating from coarser level when no fine data is available. O
 the existing Amr level(s) is removed, the new one is inserted into the hierarchy, and the time integration
 continues.
 
+
 Tagging for Refinement
 ---------------------------------------
 
@@ -57,7 +61,7 @@ Available tests include
 
 -  “adjacent\_difference\_greater”: :math:`max( | \text{difference between any nearest-neighbor cell} | ) >= threshold`
 
--  “vorticity”: :math:` |vorticity| >= 2^{level} * threshold`
+-  “vorticity”: :math:`|vorticity| >= 2^{level} * threshold`
 
 The following example portions of ParmParse’d input files demonstrate the usage of this feature.
 This first example tags all cells inside the region ((.25,.25)(.75,.75)):

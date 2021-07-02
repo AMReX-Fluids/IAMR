@@ -8,5 +8,6 @@ Solving the Fluid Equations
 
 .. toctree::
 
+   FluidsEqnsIntro
    FluidEquations
    FluidTimeDiscretization

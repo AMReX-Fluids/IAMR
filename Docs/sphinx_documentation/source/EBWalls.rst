@@ -10,14 +10,14 @@ Constructing Embedded Boundaries in IAMR
 ============================================
 
 IAMR uses AMReX's constructive solid geometry framework defined in the namespace
-:cpp:`amrex::EB2`. See the `AMReX EB documentation`_ for more details.
+:cpp:`amrex::EB2`. See the AMReX EB documentation (:ref:`amrex:sec:EB:ebinit`) for more details.
 
 How IAMR Constructs the EB Geometry
 ---------------------------------------
 
 Once a geometry is selected by :cpp:`IAMR::make_eb_geometry`, the procedure is
-the same for (almost) all geometries. Also see the `AMReX geometry
-documentation`_ for information on how to construct new geometries:
+the same for (almost) all geometries. Also see the AMReX geometry
+documentation :ref:`amrex:sec:EB:ebinit:IF` for information on how to construct new geometries:
 
 1. Construct an implicit function representing the geometry (using the language
    of constructive solid geometry). For example
