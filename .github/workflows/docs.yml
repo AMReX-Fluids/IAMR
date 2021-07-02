@@ -1,4 +1,4 @@
-name: github pages
+name: Build and Deploy
 on: [push, pull_request]
 jobs:
   build-and-deploy:
@@ -12,30 +12,8 @@ jobs:
       - name: Dependencies
         run: |
           .github/workflows/dependencies/documentation.sh
-
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      - name: Upgrade pip
-        run: |
           echo "Installing python packages for docs..."
-          # install pip=>20.1 to use "pip cache dir"
-          python3 -m pip install --upgrade pip
-      - name: Get pip cache dir
-        id: pip-cache
-        run: echo "::set-output name=dir::$(pip cache dir)"
-
-      - name: Cache dependencies
-        uses: actions/cache@v1
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install dependencies
-        run: python3 -m pip install -r ./requirements.txt
+          pip3 install sphinx sphinx_rtd_theme breathe sphinxcontrib.bibtex
 
       - name: Install and Build
         run: |
@@ -44,7 +22,7 @@ jobs:
           make html
 
       - name: Deploy
-        # if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/development'
+        #if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/development'
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
