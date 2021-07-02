@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Gridding and Load Balancing &mdash; IAMR 21.07-dev documentation</title>
+  <title>Gridding and Load Balancing &mdash; IAMR 21.08-dev documentation</title>
   
 
   
@@ -43,7 +43,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Load Balancing" href="LoadBalancing.html" />
+    <link rel="next" title="AMR" href="AMR.html" />
     <link rel="prev" title="Verbosity" href="InputsVerbosity.html" /> 
 </head>
 
@@ -68,7 +68,7 @@
             
             
               <div class="version">
-                21.07-dev
+                21.08-dev
               </div>
             
           
@@ -95,16 +95,23 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Gridding and Load Balancing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="LoadBalancing.html">Load Balancing</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+</ul>
+<p class="caption"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 
             
@@ -177,23 +184,20 @@
 <p>IAMR has a great deal of flexibility when it comes to how to decompose the
 computational domain into individual rectangular grids, and how to distribute
 those grids to MPI ranks.  There can be grids of different sizes,
-more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.</p>
+more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.
+IAMR relies on AMReX for the implementation. For more information, please see AMReX’s documentation,
+found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v21.08-dev)"><span>Gridding and Load Balancing</span></a>.</p>
 <p>We use the phrase “load balancing” here to refer to the combined process
 of grid creation (and re-creation when regridding) and distribution of grids to MPI ranks.</p>
-<p>See <span class="xref std std-ref">sec:grid_creation</span> for grids are created, i.e. how the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> on which
+<p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v21.08-dev)"><span>Grid Creation</span></a> for grids are created, i.e. how the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> on which
 <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> will be built is defined at each level.</p>
-<p>See <a class="reference internal" href="LoadBalancing.html#sec-load-balancing"><span class="std std-ref">Load Balancing</span></a> for the strategies AMReX supports for distributing
+<p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v21.08-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing
 grids to MPI ranks, i.e. defining the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code> with which
 <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> at that level will be built.</p>
 <p>When running on multicore machines with OpenMP, we can also control the distribution of
 work by setting the size of grid tiles (by defining <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span></code>).
 We can also specify the strategy for assigning tiles to OpenMP threads.
 See <span class="xref std std-ref">sec:basics:mfiter:tiling:</span> for more about tiling.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="LoadBalancing.html">Load Balancing</a></li>
-</ul>
-</div>
 </section>
 
 
@@ -202,7 +206,7 @@ See <span class="xref std std-ref">sec:basics:mfiter:tiling:</span> for more abo
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="LoadBalancing.html" class="btn btn-neutral float-right" title="Load Balancing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="AMR.html" class="btn btn-neutral float-right" title="AMR" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="InputsVerbosity.html" class="btn btn-neutral float-left" title="Verbosity" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

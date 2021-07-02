@@ -1,0 +1,488 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Common inputs Options &mdash; IAMR 21.08-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.08-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+</ul>
+<p class="caption"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Common inputs Options</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/Inputs.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section id="common-inputs-options">
+<h1>Common inputs Options<a class="headerlink" href="#common-inputs-options" title="Permalink to this headline">¶</a></h1>
+<p><strong>Important</strong>: because the inputs file is handled by the C++,
+any quantities you specify in scientific notation, must take the
+form 1.e5 and not 1.d5—the ‘d’ specifier is not recognized.</p>
+<p>Additionally, note that in IAMR, all quantities are in MKS units.</p>
+<section id="simulation-time">
+<h2>Simulation Time<a class="headerlink" href="#simulation-time" title="Permalink to this headline">¶</a></h2>
+<p>There are three paramters that can define when a simulation ends:</p>
+<ul class="simple">
+<li><p>max_step: maximum number of level 0 time steps (Integer <span class="math notranslate nohighlight">\(\geq 0\)</span>; default: -1)</p></li>
+<li><p>stop_time: final simulation time (Real <span class="math notranslate nohighlight">\(\geq 0\)</span>; default: -1.0)</p></li>
+<li><p>stop_when_steady: final simulation time (bool; default: false)</p></li>
+</ul>
+<p>stop_when_steady has an optional parameter to specify steady state:</p>
+<ul class="simple">
+<li><p>steady_tol: final simulation time (Real <span class="math notranslate nohighlight">\(\geq 0\)</span>; default: 1.0e-10)</p></li>
+</ul>
+<p>To control the number of time steps, you can limit by the maximum
+number of level 0 time steps (max_step) or by the final
+simulation time (stop_time), or both. The code will stop at
+whichever criterion comes first.</p>
+<p>Note that if the code reaches stop_time then the final time
+step will be shortened so as to end exactly at stop_time, not
+past it.</p>
+<p>As an example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">max_step</span>  <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">stop_time</span>  <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>will end the calculation when either the simulation time reaches 1.0 or
+the number of level 0 steps taken equals 1000, whichever comes first.</p>
+</section>
+<section id="time-step">
+<h2>Time Step<a class="headerlink" href="#time-step" title="Permalink to this headline">¶</a></h2>
+<p>The following parameters affect the timestep choice:</p>
+<ul class="simple">
+<li><p>ns.cfl: CFL number (Real <span class="math notranslate nohighlight">\(&gt; 0\)</span> and <span class="math notranslate nohighlight">\(\leq 1\)</span>; default: 0.8)</p></li>
+<li><p>ns.init_shrink: factor by which to shrink the initial
+time step (Real <span class="math notranslate nohighlight">\(&gt; 0\)</span> and <span class="math notranslate nohighlight">\(\leq 1\)</span>; default: 1.0)</p></li>
+<li><p>ns.change_max: factor by which the time step can grow in
+subsequent steps (Real <span class="math notranslate nohighlight">\(\geq 1\)</span>; default: 1.1)</p></li>
+<li><p>ns.fixed_dt: level 0 time step regardless of cfl or other settings
+(Real <span class="math notranslate nohighlight">\(&gt; 0\)</span>; unused if not set)</p></li>
+<li><p>ns.dt_cutoff: time step below which calculation will abort
+(Real <span class="math notranslate nohighlight">\(&gt; 0\)</span>; default: 0.0)</p></li>
+</ul>
+<p>As an example, consider:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="o">.</span><span class="n">cfl</span> <span class="o">=</span> <span class="mf">0.9</span>
+<span class="n">ns</span><span class="o">.</span><span class="n">init_shrink</span> <span class="o">=</span> <span class="mf">0.01</span>
+<span class="n">ns</span><span class="o">.</span><span class="n">change_max</span> <span class="o">=</span> <span class="mf">1.1</span>
+<span class="n">ns</span><span class="o">.</span><span class="n">dt_cutoff</span> <span class="o">=</span> <span class="mf">1.e-20</span>
+</pre></div>
+</div>
+<p>This defines the <span class="math notranslate nohighlight">\(\mathtt{cfl}\)</span> parameter in Eq. [eq:cfl] to be 0.9,
+but sets (via init_shrink) the first timestep we take
+to be 1% of what it would be otherwise. This allows us to
+ramp up to the hydrodynamic timestep at the start of a simulation.
+The change_max parameter restricts the timestep from increasing
+by more than 10% over a coarse timestep. Note that the time step
+can shrink by any factor; this only controls the extent to which it can grow.
+The dt_cutoff parameter will force the code to abort if the
+timestep ever drops below <span class="math notranslate nohighlight">\(10^{-20}\)</span>. This is a safety feature—if the
+code hits such a small value, then something likely went wrong in the
+simulation, and by aborting, you won’t burn through your entire allocation
+before noticing that there is an issue.</p>
+<p>If we know what we are doing, then we can force a particular timestep:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="o">.</span><span class="n">fixed_dt</span> <span class="o">=</span> <span class="mf">1.e-4</span>
+</pre></div>
+</div>
+<p>sets the level 0 time step to be 1.e-4 for the entire simulation,
+ignoring the other timestep controls. Note that if ns.init_shrink <span class="math notranslate nohighlight">\(\neq 1\)</span> then the first time step will in fact be
+ns.init_shrink <span class="math notranslate nohighlight">\(\cdot\)</span> ns.fixed_dt.</p>
+</section>
+<section id="restart-capability">
+<h2>Restart Capability<a class="headerlink" href="#restart-capability" title="Permalink to this headline">¶</a></h2>
+<p>IAMR has a standard sort of checkpointing and restarting capability.
+In the inputs file, the following options control the generation of
+checkpoint files (which are really directories):</p>
+<ul>
+<li><p>amr.check_file: prefix for restart files (text; default: chk)</p></li>
+<li><p>amr.check_int: how often (by level 0 time steps) to write
+restart files (Integer <span class="math notranslate nohighlight">\(&gt; 0\)</span>; default: -1)</p></li>
+<li><p>amr.check_per: how often (by simulation time) to
+write restart files (Real <span class="math notranslate nohighlight">\(&gt; 0\)</span>; default: -1.0)</p>
+<p>Note that amr.check_per will write a checkpoint at the first
+timestep whose ending time is past an integer multiple of this interval.
+In particular, the timestep is not modified to match this interval, so
+you won’t get a checkpoint at exactly the time you requested.</p>
+</li>
+<li><p>amr.restart: name of the file (directory) from which to restart
+(Text; not used if not set)</p></li>
+<li><p>amr.checkpoint_files_output: should we write checkpoint files? (0 or 1; default: 1)</p>
+<p>If you are doing a scaling study then set amr.checkpoint_files_output = 0 so you can test scaling of the
+algorithm without I/O.</p>
+</li>
+<li><p>amr.check_nfiles: how parallel is the writing of the checkpoint files?
+(Integer <span class="math notranslate nohighlight">\(\geq 1\)</span>; default: 64)</p>
+<p>See the Software Section for more details on parallel I/O and the
+amr.check_nfiles parameter.</p>
+</li>
+<li><p>amr.checkpoint_on_restart: should we write a checkpoint immediately after restarting?
+(0 or 1; default: 0)</p></li>
+</ul>
+<p>Note:</p>
+<ul class="simple">
+<li><p>You can specify both amr.check_int or amr.check_per,
+if you so desire; the code will print a warning in case you did this
+unintentionally. It will work as you would expect – you will get checkpoints
+at integer multiples of amr.check_int timesteps and at integer
+multiples of amr.check_per simulation time intervals.</p></li>
+<li><p>amr.plotfile_on_restart and amr.checkpoint_on_restart
+only take effect if amr.regrid_on_restart is in effect.</p></li>
+</ul>
+<p>As an example,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">check_file</span> <span class="o">=</span> <span class="n">chk_run</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">check_int</span> <span class="o">=</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<p>means that restart files (really directories) starting with the prefix
+“chk_run” will be generated every 10 level-0 time steps. The
+directory names will be chk_run00000, chk_run00010, chk_run00020, etc.</p>
+<p>If instead you specify</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">check_file</span> <span class="o">=</span> <span class="n">chk_run</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">check_per</span> <span class="o">=</span> <span class="mf">0.5</span>
+</pre></div>
+</div>
+<p>then restart files (really directories) starting with the prefix
+“chk_run” will be generated every 0.1 units of
+simulation time. The directory names will be chk_run00000,
+chk_run00043, chk_run00061, etc, where <span class="math notranslate nohighlight">\(t = 0.1\)</span> after
+43 level-0 steps, <span class="math notranslate nohighlight">\(t = 0.2\)</span> after 61 level-0 steps, etc.</p>
+<p>To restart from chk_run00061, for example, then set</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">restart</span> <span class="o">=</span> <span class="n">chk_run00061</span>
+</pre></div>
+</div>
+</section>
+<section id="controlling-plotfile-generation">
+<h2>Controlling Plotfile Generation<a class="headerlink" href="#controlling-plotfile-generation" title="Permalink to this headline">¶</a></h2>
+<p>The main output from IAMR is in the form of plotfiles (which are
+really directories). The following options in the inputs file control
+the generation of plotfiles:</p>
+<ul>
+<li><p>amr.plot_file: prefix for plotfiles (text; default:
+“plt”)</p></li>
+<li><p>amr.plot_int: how often (by level-0 time steps) to write
+plot files (Integer <span class="math notranslate nohighlight">\(&gt; 0\)</span>; default: -1)</p></li>
+<li><p>amr.plot_per: how often (by simulation time) to write
+plot files (Real <span class="math notranslate nohighlight">\(&gt; 0\)</span>; default: -1.0)</p>
+<p>Note that amr.plot_per will write a plotfile at the first
+timestep whose ending time is past an integer multiple of this interval.
+In particular, the timestep is not modified to match this interval, so
+you won’t get a checkpoint at exactly the time you requested.</p>
+</li>
+<li><p>amr.plot_vars: name of state variables to include in
+plotfiles (valid options: ALL, NONE or a list; default:
+ALL)</p></li>
+<li><p>amr.derive_plot_vars: name of derived variables to
+include in plotfiles (valid options: ALL, NONE or a
+list; default: NONE</p></li>
+<li><p>amr.plot_files_output: should we write plot files? (0 or
+1; default: 1)</p>
+<p>If you are doing a scaling study then set amr.plot_files_output
+= 0 so you can test scaling of the algorithm without I/O.</p>
+</li>
+<li><p>amr.plotfile_on_restart: should we write a plotfile
+immediately after restarting? (0 or 1; default: 0)</p></li>
+<li><p>amr.plot_nfiles: how parallel is the writing of the
+plotfiles? (Integer <span class="math notranslate nohighlight">\(\geq 1\)</span>; default: 64)</p>
+<p>See the Software Section for more details on parallel I/O and the amr.plot_nfiles parameter.</p>
+</li>
+</ul>
+<p>All the options for amr.derive_plot_vars are kept in
+<code class="docutils literal notranslate"><span class="pre">derive_lst</span></code> in Iamr_setup.cpp. Feel free to look at
+it and see what’s there.</p>
+<p>Some notes:</p>
+<ul class="simple">
+<li><p>You can specify both amr.plot_int or amr.plot_per,
+if you so desire; the code will print a warning in case you did this
+unintentionally. It will work as you would expect – you will get plotfiles
+at integer multiples of amr.plot_int timesteps and at integer
+multiples of amr.plot_per simulation time intervals.</p></li>
+</ul>
+<p>As an example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">plot_file</span> <span class="o">=</span> <span class="n">plt_run</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">plot_int</span> <span class="o">=</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<p>means that plot files (really directories) starting with the prefix
+“plt_run” will be generated every 10 level-0 time steps. The
+directory names will be plt_run00000, plt_run00010, plt_run00020, etc.</p>
+<p>If instead you specify</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">plot_file</span> <span class="o">=</span> <span class="n">plt_run</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">plot_per</span> <span class="o">=</span> <span class="mf">0.5</span>
+</pre></div>
+</div>
+<p>then restart files (really directories) starting with the prefix
+“plt_run” will be generated every 0.1 units of simulation time. The
+directory names will be plt_run00000, plt_run00043, plt_run00061, etc, where <span class="math notranslate nohighlight">\(t = 0.1\)</span> after 43 level-0 steps, <span class="math notranslate nohighlight">\(t =
+0.2\)</span> after 61 level-0 steps, etc.</p>
+</section>
+<section id="screen-output">
+<h2>Screen Output<a class="headerlink" href="#screen-output" title="Permalink to this headline">¶</a></h2>
+<p>There are several options that set how much output is written to the
+screen as IAMR runs:</p>
+<ul>
+<li><p>amr.v: verbosity of Amr.cpp (0 or 1; default: 0)</p></li>
+<li><p>ns.v: verbosity of NavierStokesBase.cpp (0 or 1; default: 0)</p></li>
+<li><p>diffusion.v: verbosity of Diffusion.cpp (0 or 1; default: 0)</p></li>
+<li><p>mg.v: verbosity of multigrid solver (for gravity) (allow
+values: 0,1,2,3,4; default: 0)</p></li>
+<li><p>amr.grid_log: name of the file to which the grids are
+written (text; not used if not set)</p></li>
+<li><p>amr.run_log: name of the file to which certain output is
+written (text; not used if not set)</p></li>
+<li><p>amr.run_log_terse: name of the file to which certain
+(terser) output is written (text; not used if not set)</p></li>
+<li><p>amr.sum_interval: if <span class="math notranslate nohighlight">\(&gt; 0\)</span>, how often (in level-0 time
+steps) to compute and print integral quantities (Integer; default: -1)</p>
+<p>The integral quantities include total mass, momentum and energy in
+the domain every ns.sum_interval level-0 steps.
+The print statements have the form</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TIME</span><span class="o">=</span> <span class="mf">1.91717746</span> <span class="n">MASS</span><span class="o">=</span> <span class="mf">1.792410279e+34</span>
+</pre></div>
+</div>
+<p>for example. If this line is commented out then
+it will not compute and print these quanitities.</p>
+</li>
+</ul>
+<p>As an example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">grid_log</span> <span class="o">=</span> <span class="n">grdlog</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">run_log</span> <span class="o">=</span> <span class="n">runlog</span>
+</pre></div>
+</div>
+<p>Every time the code regrids it prints a list of grids at all relevant
+levels. Here the code will write these grids lists into the file grdlog. Additionally, every time step the code prints certain
+statements to the screen (if amr.v = 1), such as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">STEP</span> <span class="o">=</span> <span class="mi">1</span> <span class="n">TIME</span> <span class="o">=</span> <span class="mf">1.91717746</span> <span class="n">DT</span> <span class="o">=</span> <span class="mf">1.91717746</span>
+<span class="n">PLOTFILE</span><span class="p">:</span> <span class="n">file</span> <span class="o">=</span> <span class="n">plt00001</span>
+</pre></div>
+</div>
+<p>The run_log option will output these statements into <em>runlog</em> as well.</p>
+<p>Terser output can be obtained via:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">run_log_terse</span> <span class="o">=</span> <span class="n">runlogterse</span>
+</pre></div>
+</div>
+<p>This file, runlogterse differs from runlog, in that it
+only contains lines of the form</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">10</span>  <span class="mf">0.2</span>  <span class="mf">0.005</span>
+</pre></div>
+</div>
+<p>in which “10” is the number of steps taken, “0.2” is the
+simulation time, and “0.005” is the level-0 time step. This file
+can be plotted very easily to monitor the time step.</p>
+</section>
+<section id="other-parameters">
+<h2>Other parameters<a class="headerlink" href="#other-parameters" title="Permalink to this headline">¶</a></h2>
+<p>There are a large number of solver-specific runtime parameters. We describe these
+together with the discussion of the physics solvers in later chapters.</p>
+</section>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

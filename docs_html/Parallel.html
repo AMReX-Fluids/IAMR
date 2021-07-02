@@ -1,0 +1,408 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Parallelization &mdash; IAMR 21.08-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Solving the Fluid Equations" href="Fluids_Chapter.html" />
+    <link rel="prev" title="AMR" href="AMR.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.08-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Parallelization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#amrexs-non-tiling-approach">AMReX’s Non-Tiling Approach</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amrexs-tiling-approach">AMReX’s Tiling Approach</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#practical-details-in-working-with-tiling">Practical Details in Working with Tiling</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+</ul>
+<p class="caption"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Parallelization</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/Parallel.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section id="parallelization">
+<h1>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline">¶</a></h1>
+<p>AMReX uses a hybrid MPI + X approach to parallelism,
+where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
+The basic idea is that MPI is used to distribute individual boxes across
+nodes while X is used to distribute the work in local boxes
+within a node. The OpenMP approach in AMReX is optionally
+based on <em>tiling</em> the box-based data structures. Both the tiling and
+non-tiling approaches to work distribution are discussed below. Also see
+the discussion of tiling in AMReX’s documentation, <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter" title="(in amrex v21.08-dev)"><span>MFIter and Tiling</span></a>.</p>
+<section id="amrexs-non-tiling-approach">
+<h2>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Permalink to this headline">¶</a></h2>
+<p>At the highest abstraction level, we have MultiFab (mulitple
+FArrayBoxes). A MultiFab contains an array of Boxes (a Box contains integers specifying the index space it
+covers), including Boxes owned by other processors for the
+purpose of communication, an array of MPI ranks specifying which MPI
+processor owns each Box, and an array of pointers to FArrayBoxes owned by this MPI processor.
+A typical usage of MultiFab is as follows,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">MFIter</span> <span class="n">mfi</span><span class="p">(</span><span class="n">mf</span><span class="p">);</span> <span class="n">mfi</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">mfi</span><span class="p">)</span> <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="n">boxes</span>
+<span class="p">{</span>
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">the</span> <span class="n">index</span> <span class="n">space</span> <span class="n">of</span> <span class="n">this</span> <span class="n">iteration</span>
+  <span class="n">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">box</span> <span class="o">=</span> <span class="n">mfi</span><span class="o">.</span><span class="n">validbox</span><span class="p">();</span>
+
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">a</span> <span class="n">reference</span> <span class="n">to</span> <span class="n">mf</span><span class="s1">&#39;s data as a multidimensional array</span>
+  <span class="n">auto</span><span class="o">&amp;</span> <span class="n">data</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mfi</span><span class="p">);</span>
+
+  <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="s2">&quot;box&quot;</span> <span class="n">to</span> <span class="n">update</span> <span class="n">data</span><span class="o">.</span>
+  <span class="o">//</span> <span class="n">On</span> <span class="n">CPU</span><span class="o">/</span><span class="n">GPU</span> <span class="n">systems</span><span class="p">,</span> <span class="n">this</span> <span class="n">loop</span> <span class="n">executes</span> <span class="n">on</span> <span class="n">the</span> <span class="n">GPU</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>A few comments about this code</p>
+<ul class="simple">
+<li><p>Here the iterator, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span></code>, will perform the loop only over the
+boxes that are local to the MPI task. If there are 3 boxes on the
+processor, then this loop has 3 iterations.</p></li>
+<li><p>box as returned from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">validbox</span></span><span class="punctuation"><span class="pre">()</span></span></code> does not include
+ghost cells. We can get the indices of the valid zones as box.loVect and box.hiVect.</p></li>
+</ul>
+</section>
+<section id="amrexs-tiling-approach">
+<h2>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Permalink to this headline">¶</a></h2>
+<p>There are two types of tiling that people discuss. In <em>logical
+tiling</em>, the data storage in memory is unchanged from how we do things
+now in pure MPI. In a given box, the data region is stored
+contiguously). But when we loop in OpenMP over a box, the tiling
+changes how we loop over the data. The alternative is called <em>separate tiling</em>—here the data storage in memory itself is changed
+to reflect how the tiling will be performed. This is not considered
+in AMReX.</p>
+<p>In our logical tiling approach, a box is logically split into tiles,
+and a MFIter loops over each tile in each box. Note that the
+non-tiling iteration approach can be considered as a special case of
+tiling with the tile size equal to the box size.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bool</span> <span class="n">tiling</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">MFIter</span> <span class="n">mfi</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span><span class="n">tiling</span><span class="p">);</span> <span class="n">mfi</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">mfi</span><span class="p">)</span> <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="n">tiles</span>
+<span class="p">{</span>
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">the</span> <span class="n">index</span> <span class="n">space</span> <span class="n">of</span> <span class="n">this</span> <span class="n">iteration</span>
+  <span class="n">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">box</span> <span class="o">=</span> <span class="n">mfi</span><span class="o">.</span><span class="n">tilebox</span><span class="p">();</span>
+
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">a</span> <span class="n">reference</span> <span class="n">to</span> <span class="n">mf</span><span class="s1">&#39;s data as a multidimensional array</span>
+  <span class="n">auto</span><span class="o">&amp;</span> <span class="n">data</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mfi</span><span class="p">);</span>
+
+  <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="s2">&quot;box&quot;</span> <span class="n">to</span> <span class="n">update</span> <span class="n">data</span><span class="o">.</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that the code is almost identical to the one with the non-tiling approach.
+Some comments:</p>
+<ul>
+<li><p>The iterator now takes an extra argument to turn on tiling
+(set to true). There is another interface fo MFIter
+that can take an IntVect that explicitly gives the tile size
+in each coordinate direction.</p>
+<p>If we don’t explictly specify the tile size at the loop, then the
+runtime parameter <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span></code> can be used to set it
+globally.</p>
+</li>
+<li><p><code class="code cpp c++ docutils literal notranslate"><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">validBox</span></span><span class="punctuation"><span class="pre">()</span></span></code> has the same meaning as in the non-tile approach,
+so we don’t use it. Instead, we use <code class="code cpp c++ docutils literal notranslate"><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">tilebox</span></span><span class="punctuation"><span class="pre">()</span></span></code> to get the
+Box (and corresponding lo and hi) for the <em>current tile</em>, not the entire data region.</p></li>
+</ul>
+<p>Let us consider an example. Suppose there are four boxes:</p>
+<figure class="align-default" id="id1">
+<img alt="A simple domain showing 4 Boxes labeled 0–3, and their tiling regions (dotted lines)" src="_images/domain-tile.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Boxes labeled 0–3, and their tiling regions (dotted lines)</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The first box is divided into 4 logical tiles, the second and third
+are divided into 2 tiles each (because they are small), and the fourth
+into 4 tiles. So there are 12 tiles in total. The difference between
+the tiling and non-tiling version are then:</p>
+<ul class="simple">
+<li><p>In the tiling version,
+the loop body will be run 12 times. Note that <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">tilebox</span></span></code> is
+different for each tile, whereas <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fab</span></span></code> might be referencing the
+same object if the tiles belong to the same box.</p></li>
+<li><p>In the non-tiling
+version (by constructing MFIter without the optional second
+argument or setting to false), the loop body will be run 4 times
+because there are four boxes, and a call to <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">tilebox</span></span><span class="punctuation"><span class="pre">()</span></span></code> will
+return the traditional validbox. The non-tiling case is
+essentially having one tile per box.</p></li>
+</ul>
+<p>Tiling provides us the opportunity of a coarse-grained approach for
+OpenMP. Threading can be turned on by inserting the following line
+above the for (MFIter…) line.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#pragma omp parallel</span>
+</pre></div>
+</div>
+<p>Assuming four threads are used in the above example, thread 0 will
+work on 3 tiles from the first box, thread 1 on 1 tile from the first
+box and 2 tiles from the second box, and so forth. Note that
+OpenMP can be used even when tiling is turned off. In that case, the
+OpenMP granularity is at the box level (and good performance would need
+many boxes per MPI task).</p>
+<p>While it is possible that, independent of whether or not tiling is on, OpenMP
+threading could also be started within the function/loop called inside the
+MFIter loop, rather than at the MFIter loop level, this
+is not the approach taken in IAMR.</p>
+<p>The tile size for the three spatial dimensions can be set by a
+parameter, e.g., <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">1024000</span></span> <span class="literal number integer"><span class="pre">8</span></span> <span class="literal number integer"><span class="pre">8</span></span></code>. A
+huge number like 1024000 will turn off tiling in that direction.
+As noted above, the MFIter constructor can also take an explicit
+tile size: <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MFIter</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">mf</span></span><span class="punctuation"><span class="pre">,</span></span><span class="name"><span class="pre">IntVect</span></span><span class="punctuation"><span class="pre">(</span></span><span class="literal number integer"><span class="pre">128</span></span><span class="punctuation"><span class="pre">,</span></span><span class="literal number integer"><span class="pre">16</span></span><span class="punctuation"><span class="pre">,</span></span><span class="literal number integer"><span class="pre">32</span></span><span class="punctuation"><span class="pre">)))</span></span></code>.</p>
+<p>Note that tiling can naturally transition from all threads working
+on a single box to each thread working on a separate box as the boxes
+coarsen (e.g., in multigrid).</p>
+<p>The MFIter class provides some other useful functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mfi</span><span class="o">.</span><span class="n">validbox</span><span class="p">()</span>       <span class="p">:</span> <span class="n">The</span> <span class="n">same</span> <span class="n">meaning</span> <span class="k">as</span> <span class="n">before</span> <span class="n">independent</span> <span class="n">of</span> <span class="n">tiling</span><span class="o">.</span>
+<span class="n">mfi</span><span class="o">.</span><span class="n">growntilebox</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span> <span class="n">A</span> <span class="n">grown</span> <span class="n">tile</span> <span class="n">box</span> <span class="n">that</span> <span class="n">includes</span> <span class="n">ghost</span> <span class="n">cells</span> <span class="n">at</span> <span class="n">box</span>
+                       <span class="n">boundaries</span> <span class="n">only</span><span class="o">.</span>  <span class="n">Thus</span> <span class="n">the</span> <span class="n">returned</span> <span class="n">boxes</span> <span class="k">for</span> <span class="n">a</span>
+                       <span class="n">Fab</span> <span class="n">are</span> <span class="n">non</span><span class="o">-</span><span class="n">overlapping</span><span class="o">.</span>
+<span class="n">mfi</span><span class="o">.</span><span class="n">nodaltilebox</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span> <span class="n">Returns</span> <span class="n">non</span><span class="o">-</span><span class="n">overlapping</span> <span class="n">edge</span><span class="o">-</span><span class="nb">type</span> <span class="n">boxes</span> <span class="k">for</span> <span class="n">tiles</span><span class="o">.</span>
+                       <span class="n">The</span> <span class="n">argument</span> <span class="ow">is</span> <span class="k">for</span> <span class="n">direction</span><span class="o">.</span>
+<span class="n">mfi</span><span class="o">.</span><span class="n">fabbox</span><span class="p">()</span>         <span class="p">:</span> <span class="n">Same</span> <span class="k">as</span> <span class="n">mf</span><span class="p">[</span><span class="n">mfi</span><span class="p">]</span><span class="o">.</span><span class="n">box</span><span class="p">()</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Finally we note that tiling is not always desired or better. This
+traditional fine-grained approach coupled with dynamic scheduling is
+more appropriate for work with unbalanced loads, such as chemistry
+burning in cells by an implicit solver. Tiling can also create extra
+work in the ghost cells of tiles.</p>
+</section>
+<section id="practical-details-in-working-with-tiling">
+<h2>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Permalink to this headline">¶</a></h2>
+<p>It is the responsibility of the coder to make sure that the routines within
+a tiled region are safe to use with OpenMP. In particular, note that:</p>
+<ul class="simple">
+<li><p>tile boxes are non-overlapping</p></li>
+<li><p>the union of tile boxes completely cover the valid region of the fab</p></li>
+<li><p>Consider working with a node-centered MultiFab, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">s_nd</span></span></code>, and a
+cell-centered MultiFab, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">s_cc</span></span></code>:</p>
+<ul>
+<li><p>with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">s_cc</span></span><span class="punctuation"><span class="pre">)</span></span></code>, the tiles are based on the cell-centered
+index space. If you have an <span class="math notranslate nohighlight">\(8\times 8\)</span> box, then and 4 tiles, then
+your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow
+7\)</span>.</p></li>
+<li><p>with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">s_nd</span></span><span class="punctuation"><span class="pre">)</span></span></code>, the tiles are based on nodal indices,
+so your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow 8\)</span>.</p></li>
+</ul>
+</li>
+<li><p>When updating routines to work with tiling, we need to understand
+the distinction between the index-space of the entire box (which
+corresponds to the memory layout) and the index-space of the tile.
+Inside the MFIter loop, make sure to only update over
+the tile region, not for the entire box.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="Fluids_Chapter.html" class="btn btn-neutral float-right" title="Solving the Fluid Equations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="AMR.html" class="btn btn-neutral float-left" title="AMR" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

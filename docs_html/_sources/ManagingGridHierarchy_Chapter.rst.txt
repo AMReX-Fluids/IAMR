@@ -4,10 +4,12 @@
 Gridding and Load Balancing
 ===========================
 
-IAMR has a great deal of flexibility when it comes to how to decompose the 
+IAMR has a great deal of flexibility when it comes to how to decompose the
 computational domain into individual rectangular grids, and how to distribute
 those grids to MPI ranks.  There can be grids of different sizes, 
 more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.
+IAMR relies on AMReX for the implementation. For more information, please see AMReX's documentation,
+found here: :ref:`amrex:Chap:ManagingGridHierarchy`.
 
 We use the phrase "load balancing" here to refer to the combined process
 of grid creation (and re-creation when regridding) and distribution of grids to MPI ranks.
@@ -24,8 +26,3 @@ work by setting the size of grid tiles (by defining :cpp:`fabarray.mfiter_tile_s
 We can also specify the strategy for assigning tiles to OpenMP threads.  
 See :ref:`sec:basics:mfiter:tiling:` for more about tiling.
 
-.. toctree::
-   :maxdepth: 1
-
-   GridCreation
-   LoadBalancing

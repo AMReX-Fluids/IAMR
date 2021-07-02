@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Run-time Inputs &mdash; IAMR 21.07-dev documentation</title>
+  <title>Run-time Inputs &mdash; IAMR 21.08-dev documentation</title>
   
 
   
@@ -44,7 +44,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Problem Definition" href="InputsProblemDefinition.html" />
-    <link rel="prev" title="Getting Started" href="Getting_Started.html" /> 
+    <link rel="prev" title="Controlling What’s in the PlotFile" href="Visualization.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -68,7 +68,7 @@
             
             
               <div class="version">
-                21.07-dev
+                21.08-dev
               </div>
             
           
@@ -95,13 +95,16 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Run-time Inputs</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing Inputs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
@@ -109,9 +112,16 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+</ul>
+<p class="caption"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 
             
@@ -181,12 +191,21 @@
             
   <section id="run-time-inputs">
 <span id="chap-inputs"></span><h1>Run-time Inputs<a class="headerlink" href="#run-time-inputs" title="Permalink to this headline">¶</a></h1>
+<p>The IAMR executable uses an inputs file at runtime to set and alter the
+behavior of the algorithm and initial conditions.
+The inputs file, typically named inputsXXX is used to
+set AMReX parameters and the control flow in
+the IAMR code. Each parameter here has a namespace (like amr.<em>optionname</em> or ns.<em>optionname</em>). Parameters
+set here can be read using the AMReX ParmParse class
+infrastructure.</p>
+<p>The inputs file is specified on the commandline. Options can also be specified directly on the
+command line in addition to being used in an inputs file.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
 <li class="toctree-l1"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
 <li class="toctree-l1"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing Inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
 <li class="toctree-l1"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
@@ -202,7 +221,7 @@
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="InputsProblemDefinition.html" class="btn btn-neutral float-right" title="Problem Definition" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="Getting_Started.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Visualization.html" class="btn btn-neutral float-left" title="Controlling What’s in the PlotFile" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

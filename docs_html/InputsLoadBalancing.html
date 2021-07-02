@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Gridding and Load Balancing &mdash; IAMR 21.07-dev documentation</title>
+  <title>Gridding and Load Balancing Inputs &mdash; IAMR 21.08-dev documentation</title>
   
 
   
@@ -37,6 +37,8 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -68,7 +70,7 @@
             
             
               <div class="version">
-                21.07-dev
+                21.08-dev
               </div>
             
           
@@ -95,13 +97,20 @@
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Gridding and Load Balancing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Gridding and Load Balancing Inputs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#getting-good-performance">Getting good performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-grids-are-created">How grids are created</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
 <li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
@@ -109,9 +118,16 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+</ul>
+<p class="caption"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 
             
@@ -162,7 +178,7 @@
         
           <li><a href="Inputs_Chapter.html">Run-time Inputs</a> &raquo;</li>
         
-      <li>Gridding and Load Balancing</li>
+      <li>Gridding and Load Balancing Inputs</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -181,9 +197,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <section id="gridding-and-load-balancing">
-<span id="chap-inputsloadbalancing"></span><h1>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this headline">¶</a></h1>
-<p>The following inputs must be preceded by “amr” and determine how we create the grids and how often we regrid.</p>
+  <section id="gridding-and-load-balancing-inputs">
+<span id="chap-inputsloadbalancing"></span><h1>Gridding and Load Balancing Inputs<a class="headerlink" href="#gridding-and-load-balancing-inputs" title="Permalink to this headline">¶</a></h1>
+<p>The details of the regridding strategy are described in other sections
+(see <span class="xref std std-ref">sec:gridCreation</span> and <span class="xref std std-ref">chap:Amr</span>);
+here we cover how the input parameters can control the gridding.</p>
+<p>As described later, the user defines error estimation functions to tag individual
+cells at a given level if they need refinement. This list of tagged cells is
+sent to a grid generation routine, which uses the Berger-Rigoutsos algorithm <span id="id1">[<a class="reference internal" href="references.html#id14" title="Marsha Berger and Isidore Rigoutsos. An algorithm for point clustering and grid generation. Systems, Man and Cybernetics, IEEE Transactions on, 21(5):1278–1286, 1991.">6</a>]</span>
+to create rectangular grids that contain the tagged cells.</p>
+<p>The following inputs must be preceded by “amr” and determine how we create the grids and how often we regrid.
+(Additional information can also be found in AMReX documentation at <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/AmrCore.html#ss-amrcore" title="(in amrex v21.08-dev)"><span>AmrCore Source Code: Details</span></a>.)</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 19%" />
@@ -205,18 +229,29 @@ if regrid_int = -1 then no regridding will occur</p></td>
 <td><p>Int</p></td>
 <td><p>-1</p></td>
 </tr>
-<tr class="row-odd"><td><p>max_grid_size_x</p></td>
-<td><p>Maximum number of cells at level 0 in each grid in x-direction</p></td>
+<tr class="row-odd"><td><p>regrid_on_restart</p></td>
+<td><p>Should we regrid immediately after restarting?</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>max_grid_size_x</p></td>
+<td><p>Maximum number of cells in each grid in x-direction, for all levels</p></td>
 <td><p>Int</p></td>
 <td><p>32</p></td>
 </tr>
-<tr class="row-even"><td><p>max_grid_size_y</p></td>
-<td><p>Maximum number of cells at level 0 in each grid in y-direction</p></td>
+<tr class="row-odd"><td><p>max_grid_size_y</p></td>
+<td><p>Maximum number of cells in each grid in y-direction, for all levels</p></td>
 <td><p>Int</p></td>
 <td><p>32</p></td>
 </tr>
-<tr class="row-odd"><td><p>max_grid_size_z</p></td>
-<td><p>Maximum number of cells at level 0 in each grid in z-direction</p></td>
+<tr class="row-even"><td><p>max_grid_size_z</p></td>
+<td><p>Maximum number of cells in each grid in z-direction, for all levels</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_grid_size</p></td>
+<td><p>Maximum number of cells in each grid in all directions.
+Specify multiple values to give levels a different max_grid_size</p></td>
 <td><p>Int</p></td>
 <td><p>32</p></td>
 </tr>
@@ -235,9 +270,75 @@ if regrid_int = -1 then no regridding will occur</p></td>
 <td><p>Int</p></td>
 <td><p>8</p></td>
 </tr>
+<tr class="row-odd"><td><p>blocking_factor</p></td>
+<td><p>Each grid must be divisible by blocking_factor in all directions.
+Specify multiple values to give levels a different blocking_factor
+Must be a power of 2 at every level and the domain size must be a
+multiple of blocking_factor at level 0.</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-even"><td><p>grid_eff</p></td>
+<td><p>grid efficiency (must be between 0 and 1)</p></td>
+<td><p>Real</p></td>
+<td><p>0.7</p></td>
+</tr>
+<tr class="row-odd"><td><p>n_error_buf</p></td>
+<td><p>radius of additional tagging around already tagged cells</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>refine_grid_layout</p></td>
+<td><p>refine grids more if # of processors <span class="math notranslate nohighlight">\(&gt;\)</span> # of grids</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>regrid_file</p></td>
+<td><p>Name of file from which to read the grids, if specifying fixed grids</p></td>
+<td><p>Text</p></td>
+<td><p>None</p></td>
+</tr>
 </tbody>
 </table>
-<p>The following inputs must be preceded by “fabarray_mfiter” and determine how we create the logical tiles:</p>
+<p>Note that if regrid_file is set (e.g. amr.regrid_file = fixed_grids), then the
+list of grids at each fine level are read in from this file during the gridding
+procedure. These grids must not violate the amr.max_grid_size criterion. The rest of the gridding procedure
+will not occur if amr.regrid_file is set.</p>
+<p>Note also that amr.ref_ratio, amr.n_error_buf, amr.max_grid_size and
+amr.blocking_factor can be read in as a single value which is
+assigned to every level, or as multiple values, one for each level.</p>
+<p>As an example, consider:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">regrid_int</span> <span class="o">=</span> <span class="mi">2</span> <span class="mi">2</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">grid_eff</span> <span class="o">=</span> <span class="mf">0.9</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">max_grid_size</span> <span class="o">=</span> <span class="mi">64</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">blocking_factor</span> <span class="o">=</span> <span class="mi">32</span>
+</pre></div>
+</div>
+<p>tells the code to regrid every 2 steps. Thus in this example, new
+level 1 grids will be created every 2 level-0 time steps, and new
+level 2 grids will be created every 2 level-1 time steps.
+If amr.regrid_int <span class="math notranslate nohighlight">\(&lt;\)</span> 0 for any level, then regridding starting at that
+level will be disabled. If amr.regrid_int = -1 only, then we
+never regrid for any level. Note that this is not compatible with amr.regrid_on_restart = 1.</p>
+<p>The grid efficiency, amr.grid_eff, means that during the grid
+creation process, at least 90% of the cells in each grid at the level
+at which the grid creation occurs must be tagged cells. A higher
+grid efficiency means fewer cells at higher levels, but may result
+in the production of lots of small grids, which have inefficient cache
+and OpenMP performance and higher communication costs.</p>
+<p>The amr.max_grid_size parameter means that the final grids
+will be no longer than 64 cells on a side at every level.
+Alternately, we could specify a value for each level of refinement as:
+amr.max_grid_size = 64 32 16, in which case our final grids
+will be no longer than 64 cells on a side at level 0, 32 cells on a
+side at level 1, and 16 cells on a side at level 2. The amr.blocking_factor
+means that all of the final grids will be multiples of 32 at all levels.
+Again, this can be specified on a level-by-level basis, like
+amr.blocking_factor = 32 16 8, in which case the
+dimensions of all the final grids will be multiples of 32
+at level 0, multiples of 16 at level 1, and multiples of 8 at level 2.</p>
+<p>The following inputs must be preceded by “fabarray_mfiter” and determine how we create the logical tiles
+(for more information on tiling see <span class="xref std std-ref">sec:tiling</span>):</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 19%" />
@@ -265,6 +366,33 @@ if regrid_int = -1 then no regridding will occur</p></td>
 </tr>
 </tbody>
 </table>
+<section id="getting-good-performance">
+<h2>Getting good performance<a class="headerlink" href="#getting-good-performance" title="Permalink to this headline">¶</a></h2>
+<p>These parameters can have a large impact on the performance
+of IAMR, so taking the time to experiment with is worth the effort.
+Having grids that are large enough to coarsen multiple levels in a
+V-cycle is essential for good multigrid performance.</p>
+</section>
+<section id="how-grids-are-created">
+<h2>How grids are created<a class="headerlink" href="#how-grids-are-created" title="Permalink to this headline">¶</a></h2>
+<p>The gridding algorithm proceeds in this order:</p>
+<ol class="arabic simple">
+<li><p>Grids are created using the Berger-Rigoutsos clustering algorithm
+modified to ensure that all new fine grids are divisible by amr.blocking_factor.</p></li>
+<li><p>Next, the grid list is chopped up if any grids are larger than max_grid_size.
+Note that because amr.max_grid_size is a multiple of amr.blocking_factor the amr.blocking_factor criterion is
+still satisfied.</p></li>
+<li><p>Next, if amr.refine_grid_layout = 1 and there are more processors than grids, and
+if amr.max_grid_size / 2 is a multiple of amr.blocking_factor,
+then the grids will be redefined, at each level independently, so that
+the maximum length of a grid at level <span class="math notranslate nohighlight">\(\ell\)</span>, in any dimension, is
+amr.max_grid_size[<span class="math notranslate nohighlight">\(\ell\)</span>] / 2.</p></li>
+<li><p>Finally, if amr.refine_grid_layout = 1, and there are still more processors
+than grids, and if amr.max_grid_size / 4 is a multiple of amr.blocking_factor, then the grids will be redefined, at each level
+independently, so that the maximum length of a grid at level <span class="math notranslate nohighlight">\(\ell\)</span>,
+in any dimension, is amr.max_grid_size[<span class="math notranslate nohighlight">\(\ell\)</span>] / 4.</p></li>
+</ol>
+</section>
 </section>
 
 
