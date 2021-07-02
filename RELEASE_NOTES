@@ -199,3 +199,9 @@ Checkpoint bug fix
 Fixes to hydrodynamics for GPU and EB
 Updates to MOL algorithm
 Fix: properly merged in changes from development
+
+7/2/21
+Documentation updates
+Embedded boundary improvements and fixes
+Updates to create_umac_grown for AMR hydro
+Misc. AMR fixes
