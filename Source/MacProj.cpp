@@ -835,7 +835,7 @@ MacProj::mac_sync_compute (int                    level,
                            int                    eComp,
                            MultiFab&              /*rho_half*/,
                            FluxRegister*          adv_flux_reg,
-                           Vector<AdvectionForm>& /*advectionType*/,
+                           Vector<AdvectionForm>& advectionType,
                            bool                   modify_reflux_normal_vel,
                            Real                   dt,
                            bool                   update_fluxreg)
@@ -851,8 +851,8 @@ MacProj::mac_sync_compute (int                    level,
 
     const int  ncomp   = 1;         // Number of components to process at once
 
-    MultiFab fluxes[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    MultiFab fluxes[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
         fluxes[i].define(ba, dmap, 1, sync_edges[0]->nGrow(), MFInfo(),ns_level.Factory());
@@ -867,9 +867,9 @@ MacProj::mac_sync_compute (int                    level,
         // MOL algorithm
         //
 
-	// Bogus arguments -- they will not be used since we don't need to recompute the edge states
-	Vector<BCRec>  bcs;
-	BCRec  const* d_bcrec_ptr = NULL;
+        // Bogus arguments -- they will not be used since we don't need to recompute the edge states
+        Vector<BCRec>  bcs;
+        BCRec  const* d_bcrec_ptr = NULL;
 
 #ifdef AMREX_USE_EB
         EBMOL::ComputeSyncAofs(Sync, s_ind, ncomp,
@@ -883,12 +883,12 @@ MacProj::mac_sync_compute (int                    level,
                                ns_level.redistribution_type);
 #else
         MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
-			     Sync, s_ind, // this is not used when we pass edge states
-			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-			     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-			     D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-			     D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-			     bcs, d_bcrec_ptr, geom,
+                             Sync, s_ind, // this is not used when we pass edge states
+                             D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+                             D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                             D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+                             D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+                             bcs, d_bcrec_ptr, geom,
                              false ); // not used when we pass edge states
 #endif
 
@@ -899,13 +899,21 @@ MacProj::mac_sync_compute (int                    level,
         // Godunov algorithm
         //
 
-        // Bogus arguments -- they will not be used since we don't need to recompute the edge states
-        BCRec  const* d_bcrec_ptr = NULL;
+        // Possibly unsused  arguments -- used only in EB case since we don't need to recompute the edge states
+        const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
+        BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
+                                           ? &(ns_level.get_bcrec_velocity_d_ptr())[sync_comp]
+                                           : &(ns_level.get_bcrec_scalars_d_ptr())[sync_comp];
+
         Gpu::DeviceVector<int> iconserv;
+        iconserv.resize(ncomp, 0);
+        for (int i = 0; i < ncomp; ++i) {
+            iconserv[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
+        }
 
 #ifdef AMREX_USE_EB
         EBGodunov::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                   MultiFab(), s_ind,                      // this is not used when known_edgestate = true
+                                   Sync, s_ind,                      // this is not used when known_edgestate = true
                                    AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
                                    AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
                                    AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
