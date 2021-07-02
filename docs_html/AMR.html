@@ -189,7 +189,7 @@
            <div itemprop="articleBody">
             
   <section id="amr">
-<h1>AMR<a class="headerlink" href="#amr" title="Permalink to this headline">¶</a></h1>
+<span id="chap-amr"></span><h1>AMR<a class="headerlink" href="#amr" title="Permalink to this headline">¶</a></h1>
 <p>Our approach to adaptive refinement in IAMR uses a nested
 hierarchy of logically-rectangular grids with simultaneous refinement
 of the grids in both space and time. The integration algorithm on the grid hierarchy
@@ -237,7 +237,7 @@ Available tests include</p>
 <li><p>“greater_than”: <span class="math notranslate nohighlight">\(field &gt;= threshold\)</span></p></li>
 <li><p>“less_than”: <span class="math notranslate nohighlight">\(field &lt;= threshold\)</span></p></li>
 <li><p>“adjacent_difference_greater”: <span class="math notranslate nohighlight">\(max( | \text{difference between any nearest-neighbor cell} | ) &gt;= threshold\)</span></p></li>
-<li><p>“vorticity”: :math:` <a href="#id1"><span class="problematic" id="id2">|vorticity|</span></a> &gt;= 2^{level} * threshold`</p></li>
+<li><p>“vorticity”: <span class="math notranslate nohighlight">\(|vorticity| &gt;= 2^{level} * threshold\)</span></p></li>
 </ul>
 <p>The following example portions of ParmParse’d input files demonstrate the usage of this feature.
 This first example tags all cells inside the region ((.25,.25)(.75,.75)):</p>

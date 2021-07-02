@@ -200,7 +200,7 @@
   <section id="gridding-and-load-balancing-inputs">
 <span id="chap-inputsloadbalancing"></span><h1>Gridding and Load Balancing Inputs<a class="headerlink" href="#gridding-and-load-balancing-inputs" title="Permalink to this headline">¶</a></h1>
 <p>The details of the regridding strategy are described in other sections
-(see <span class="xref std std-ref">sec:gridCreation</span> and <span class="xref std std-ref">chap:Amr</span>);
+(see <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">How grids are created</span></a> and <a class="reference internal" href="AMR.html#chap-amr"><span class="std std-ref">AMR</span></a>);
 here we cover how the input parameters can control the gridding.</p>
 <p>As described later, the user defines error estimation functions to tag individual
 cells at a given level if they need refinement. This list of tagged cells is
@@ -338,7 +338,7 @@ amr.blocking_factor = 32 16 8, in which case the
 dimensions of all the final grids will be multiples of 32
 at level 0, multiples of 16 at level 1, and multiples of 8 at level 2.</p>
 <p>The following inputs must be preceded by “fabarray_mfiter” and determine how we create the logical tiles
-(for more information on tiling see <span class="xref std std-ref">sec:tiling</span>):</p>
+(for more information on tiling see <a class="reference internal" href="Parallel.html#chap-parallel"><span class="std std-ref">Parallelization</span></a>):</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 19%" />
@@ -374,7 +374,7 @@ Having grids that are large enough to coarsen multiple levels in a
 V-cycle is essential for good multigrid performance.</p>
 </section>
 <section id="how-grids-are-created">
-<h2>How grids are created<a class="headerlink" href="#how-grids-are-created" title="Permalink to this headline">¶</a></h2>
+<span id="sec-gridcreation"></span><h2>How grids are created<a class="headerlink" href="#how-grids-are-created" title="Permalink to this headline">¶</a></h2>
 <p>The gridding algorithm proceeds in this order:</p>
 <ol class="arabic simple">
 <li><p>Grids are created using the Berger-Rigoutsos clustering algorithm
@@ -392,6 +392,7 @@ than grids, and if amr.max_grid_size / 4 is a multiple of amr.blocking_factor, t
 independently, so that the maximum length of a grid at level <span class="math notranslate nohighlight">\(\ell\)</span>,
 in any dimension, is amr.max_grid_size[<span class="math notranslate nohighlight">\(\ell\)</span>] / 4.</p></li>
 </ol>
+<p>Also see AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v21.08-dev)"><span>Grid Creation</span></a>)</p>
 </section>
 </section>
 

@@ -506,7 +506,7 @@ directly modify the underlying state data. In the code, if the state
 is modified (e.g., via an advective “time advance”, the new data
 must be copied explicitly back into the StateData containers.</p>
 <p>Use of FillPatchIterator as an iterator has been depreciated in favor
-of MFIter, which supports tiling (see section [sec:parallel]).
+of MFIter, which supports tiling (see section <a class="reference internal" href="Parallel.html#chap-parallel"><span class="std std-ref">Parallelization</span></a>).
 However, IAMR continues to use
 FillPatchIterator for creating temporaries with filled grow cells.</p>
 <p>For example, the following code demonstrates the calling sequence to

@@ -46,7 +46,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Time Discretization" href="FluidTimeDiscretization.html" />
-    <link rel="prev" title="Solving the Fluid Equations" href="Fluids_Chapter.html" /> 
+    <link rel="prev" title="Brief Overview of Low Speed Approximations" href="FluidsEqnsIntro.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -107,6 +107,8 @@
 <li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="FluidsEqnsIntro.html">Brief Overview of Low Speed Approximations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FluidsEqnsIntro.html#projection-methods-101">Projection Methods 101</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Fluid Variables</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#fluid-equations">Fluid Equations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a></li>
@@ -211,8 +213,11 @@
 <tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\tau\)</span></p></td>
 <td><p>Viscous stress tensor</p></td>
 </tr>
-<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(g\)</span></p></td>
-<td><p>Gravitational acceleration</p></td>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\({\bf H}_U\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(= (H_x , H_y , H_z )\)</span>, External Forces</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(H_s\)</span></p></td>
+<td><p>External sources</p></td>
 </tr>
 </tbody>
 </table>
@@ -226,13 +231,22 @@
 <p>Conservation of fluid momentum:</p>
 <div class="math notranslate nohighlight">
 \[\frac{ \partial (\rho U)}{\partial t}
-+ \nabla \cdot (\rho U g) + \nabla p = \nabla \cdot \tau + \rho g\]</div>
++ \nabla \cdot (\rho U) + \nabla p = \nabla \cdot \tau + {\bf H}_U)\]</div>
 <p>Incompressibility constraint:</p>
 <div class="math notranslate nohighlight">
 \[\nabla \cdot U = 0\]</div>
-<p>Tracer(s) advection:</p>
+<p>Tracer(s):</p>
 <div class="math notranslate nohighlight">
-\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho U s)  = 0\]</div>
+\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho U s)  = \nabla \cdot \beta \nabla \frac{s}{\rho} + H_s\]</div>
+<p>for conservatively advected scalars and</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial s}{\partial t} + U \cdot \nabla s  = \nabla \cdot \beta \nabla s + H_s\]</div>
+<p>for passively advected scalars. In general, one could advect an arbitrary number of scalars,
+either passively or conservatively.</p>
+<p>IAMR has the ability to incorporate general, user-defined external forcing and source terms. The default behaviour is that
+<span class="math notranslate nohighlight">\(H_c=0\)</span>, and <span class="math notranslate nohighlight">\({\bf H}_U\)</span> represents gravitational forces, with <span class="math notranslate nohighlight">\({\bf H}_U= (0 , 0 , -\rho g )\)</span> in 3d and
+<span class="math notranslate nohighlight">\({\bf H}_U= (0 , -\rho g )\)</span> in 2d, where <span class="math notranslate nohighlight">\(g\)</span> is the magnitude of the gravitational acceleration. However, since
+by default, <span class="math notranslate nohighlight">\(g=0\)</span>, <span class="math notranslate nohighlight">\({\bf H}_U = 0\)</span> unless <code class="docutils literal notranslate"><span class="pre">ns.gravity</span></code> is set (for more info see <span class="xref std std-ref">sec:Inputs</span> and ).</p>
 </section>
 
 
@@ -242,7 +256,7 @@
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="FluidTimeDiscretization.html" class="btn btn-neutral float-right" title="Time Discretization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="Fluids_Chapter.html" class="btn btn-neutral float-left" title="Solving the Fluid Equations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="FluidsEqnsIntro.html" class="btn btn-neutral float-left" title="Brief Overview of Low Speed Approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

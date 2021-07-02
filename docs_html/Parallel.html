@@ -187,7 +187,7 @@
            <div itemprop="articleBody">
             
   <section id="parallelization">
-<h1>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline">¶</a></h1>
+<span id="chap-parallel"></span><h1>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline">¶</a></h1>
 <p>AMReX uses a hybrid MPI + X approach to parallelism,
 where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
 The basic idea is that MPI is used to distribute individual boxes across

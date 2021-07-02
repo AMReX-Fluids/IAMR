@@ -107,6 +107,8 @@
 <li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="FluidsEqnsIntro.html">Brief Overview of Low Speed Approximations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="FluidsEqnsIntro.html#projection-methods-101">Projection Methods 101</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FluidEquations.html">Fluid Variables</a></li>
 <li class="toctree-l2"><a class="reference internal" href="FluidEquations.html#fluid-equations">Fluid Equations</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a><ul class="current">
@@ -265,6 +267,13 @@ U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
 <p>and</p>
 <div class="math notranslate nohighlight">
 \[{p}^{n+1/2} = \phi\]</div>
+<p>The algorithm is further described in the following paper (and references therein):</p>
+<ul class="simple">
+<li><p><em>A Conservative Adaptive Projection Method for the Variable Density Incompressible Navier-Stokes Equations</em>,
+A. S. Almgren, J. B. Bell, P. Colella, L. H. Howell, and M. L. Welcome,
+J. Comp. Phys., 142, pp. 1-46, 1998.
+<a class="reference external" href="http://www.sciencedirect.com/science/article/pii/S0021999198958909">http://www.sciencedirect.com/science/article/pii/S0021999198958909</a> <span id="id1">[<a class="reference internal" href="references.html#id6" title="A. S. Almgren, J. B. Bell, P. Colella, L. H. Howell, and M. Welcome. A conservative adaptive projection method for the variable density incompressible Navier-Stokes equations. Journal of Computational Physics, 142:1-46, 1998.">1</a>]</span></p></li>
+</ul>
 </section>
 
 

@@ -187,9 +187,7 @@ those grids to MPI ranks.  There can be grids of different sizes,
 more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.
 IAMR relies on AMReX for the implementation. For more information, please see AMReX’s documentation,
 found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v21.08-dev)"><span>Gridding and Load Balancing</span></a>.</p>
-<p>We use the phrase “load balancing” here to refer to the combined process
-of grid creation (and re-creation when regridding) and distribution of grids to MPI ranks.</p>
-<p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v21.08-dev)"><span>Grid Creation</span></a> for grids are created, i.e. how the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> on which
+<p>See <a class="reference internal" href="InputsLoadBalancing.html#sec-gridcreation"><span class="std std-ref">How grids are created</span></a> and <a class="reference internal" href="InputsLoadBalancing.html#chap-inputsloadbalancing"><span class="std std-ref">Gridding and Load Balancing Inputs</span></a> for how grids are created, i.e. how the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> on which
 <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> will be built is defined at each level.</p>
 <p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v21.08-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing
 grids to MPI ranks, i.e. defining the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code> with which
@@ -197,7 +195,7 @@ grids to MPI ranks, i.e. defining the <code class="code cpp c++ docutils literal
 <p>When running on multicore machines with OpenMP, we can also control the distribution of
 work by setting the size of grid tiles (by defining <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span></code>).
 We can also specify the strategy for assigning tiles to OpenMP threads.
-See <span class="xref std std-ref">sec:basics:mfiter:tiling:</span> for more about tiling.</p>
+See <a class="reference internal" href="Parallel.html#chap-parallel"><span class="std std-ref">Parallelization</span></a> and AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter-tiling" title="(in amrex v21.08-dev)"><span>MFIter with Tiling</span></a>) for more about tiling.</p>
 </section>
 
 

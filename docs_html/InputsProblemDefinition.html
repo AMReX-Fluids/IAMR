@@ -211,6 +211,38 @@
 coarsest level (level 0), the number of refinement levels, and
 factor of refinement between levels.
 The following inputs must be preceded by “amr.”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 63%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>n_cell</p></td>
+<td><p>Number of cells at level 0 in each coordinate direction</p></td>
+<td><p>Int Int Int</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_level</p></td>
+<td><p>Maximum level of refinement allowed (0 when single-level)</p></td>
+<td><p>Int</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>ref_ratio</p></td>
+<td><p>Ratio of coarse to fine grid spacing between subsequent levels (2 or 4)</p></td>
+<td><p>Int</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
 <p>Some examples:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">n_cell</span> <span class="o">=</span> <span class="mi">32</span> <span class="mi">64</span> <span class="mi">64</span>
 </pre></div>

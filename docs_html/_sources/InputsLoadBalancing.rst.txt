@@ -4,7 +4,7 @@ Gridding and Load Balancing Inputs
 ==================================
 
 The details of the regridding strategy are described in other sections
-(see :ref:`sec:gridCreation` and :ref:`chap:Amr`);
+(see :ref:`sec:gridCreation` and :ref:`Chap:Amr`);
 here we cover how the input parameters can control the gridding.
 
 As described later, the user defines error estimation functions to tag individual
@@ -99,7 +99,7 @@ at level 0, multiples of 16 at level 1, and multiples of 8 at level 2.
 
 
 The following inputs must be preceded by "fabarray_mfiter" and determine how we create the logical tiles
-(for more information on tiling see :ref:`sec:tiling`):
+(for more information on tiling see :ref:`Chap:Parallel`):
 
 +----------------------+-----------------------------------------------------------------------+----------+-------------+
 |                      | Description                                                           | Type     | Default     |
@@ -117,6 +117,8 @@ These parameters can have a large impact on the performance
 of IAMR, so taking the time to experiment with is worth the effort.
 Having grids that are large enough to coarsen multiple levels in a
 V-cycle is essential for good multigrid performance.
+
+.. _sec:gridCreation:
 
 How grids are created
 ~~~~~~~~~~~~~~~~~~~~~
@@ -140,3 +142,5 @@ The gridding algorithm proceeds in this order:
    than grids, and if amr.max_grid_size / 4 is a multiple of amr.blocking_factor, then the grids will be redefined, at each level
    independently, so that the maximum length of a grid at level :math:`\ell`,
    in any dimension, is amr.max_grid_size[:math:`\ell`] / 4.
+
+Also see AMReX's docmumentation (:ref:`amrex:sec:grid_creation`)
