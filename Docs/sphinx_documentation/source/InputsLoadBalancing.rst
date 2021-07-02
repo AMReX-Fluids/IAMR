@@ -13,7 +13,7 @@ sent to a grid generation routine, which uses the Berger-Rigoutsos algorithm :c
 to create rectangular grids that contain the tagged cells.
 
 The following inputs must be preceded by "amr" and determine how we create the grids and how often we regrid.
-(Additional information can also be found in AMReX documentation at :ref:`amrex:ss:amrcore:`.)
+(Additional information can also be found in AMReX documentation at :ref:`amrex:ss:amrcore`.)
 
 +----------------------+-----------------------------------------------------------------------+-------------+-----------+
 |                      | Description                                                           |   Type      | Default   |
