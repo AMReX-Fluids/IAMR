@@ -12,10 +12,9 @@
 #ifdef AMREX_USE_EB
 #include <hydro_ebgodunov.H>
 #include <hydro_ebmol.H>
-#else
+#endif
 #include <hydro_godunov.H>
 #include <hydro_mol.H>
-#endif
 
 
 
@@ -602,22 +601,27 @@ MacProj::mac_sync_compute (int                   level,
 						   : ns_level.get_bcrec_scalars_d_ptr();
 
 #ifdef AMREX_USE_EB
-                EBMOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
-                                       D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                       D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                       D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                       D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                       math_bcs, &d_bcrec_ptr[sync_comp], geom, dt,
-                                       is_velocity, ns_level.redistribution_type );
-#else
-                MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
-                                     D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                     D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, is_velocity );
+		if ( !(ns_level.EBFactory().isAllRegular()) )
+		{
+		  EBMOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
+					 D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+					 D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+					 D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+					 D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+					 math_bcs, &d_bcrec_ptr[sync_comp], geom, dt,
+					 is_velocity, ns_level.redistribution_type );
+		}
+		else
 #endif
-            }
+		{
+		  MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
+				       D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+				       D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+				       D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+				       D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+				       math_bcs, &d_bcrec_ptr[sync_comp], geom, is_velocity );
+		}
+	    }
         }
     }
     else // GODUNOV ========================================================================================
@@ -765,32 +769,36 @@ MacProj::mac_sync_compute (int                   level,
                 iconserv[0] = (advectionType[comp] == Conservative) ? 1 : 0;
 
 #ifdef AMREX_USE_EB
-                Vector<BCRec> bcrec_ptr = comp < AMREX_SPACEDIM
-                                                 ? ns_level.m_bcrec_velocity
-                                                 : ns_level.m_bcrec_scalars;
-                EBGodunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                           Q, comp,
-                                           AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                           AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                           AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                           AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                           forcing_term, comp, *divu_fp,
-                                           bcrec_ptr, d_bcrec_ptr,
-                                           geom, iconserv, dt, is_velocity,
-                                           ns_level.redistribution_type);
-#else
-                Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                         Q, comp,
-                                         AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                         AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                         AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                         AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                         forcing_term, comp, *divu_fp,
-                                         d_bcrec_ptr, geom, iconserv, dt,
-                                         ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
-                                         is_velocity );
+		if ( !(ns_level.EBFactory().isAllRegular()) )
+		{
+		  Vector<BCRec> bcrec_ptr = comp < AMREX_SPACEDIM
+						   ? ns_level.m_bcrec_velocity
+						   : ns_level.m_bcrec_scalars;
+		  EBGodunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+					     Q, comp,
+					     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+					     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+					     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+					     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+					     forcing_term, comp, *divu_fp,
+					     bcrec_ptr, d_bcrec_ptr,
+					     geom, iconserv, dt, is_velocity,
+					     ns_level.redistribution_type);
+		}
+		else
 #endif
-
+		{
+		  Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+					   Q, comp,
+					   AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+					   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+					   AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+					   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+					   forcing_term, comp, *divu_fp,
+					   d_bcrec_ptr, geom, iconserv, dt,
+					   ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
+					   is_velocity );
+		}
             }
         }
     }
@@ -872,25 +880,30 @@ MacProj::mac_sync_compute (int                    level,
         BCRec  const* d_bcrec_ptr = NULL;
 
 #ifdef AMREX_USE_EB
-        EBMOL::ComputeSyncAofs(Sync, s_ind, ncomp,
-                               Sync, s_ind, // this is not used when we pass edge states
-                               D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                               D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                               D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                               D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                               bcs, d_bcrec_ptr, geom, dt,
-                               false,  // not used when we pass edge states
-                               ns_level.redistribution_type);
-#else
-        MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
-                             Sync, s_ind, // this is not used when we pass edge states
-                             D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                             D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                             D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                             D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                             bcs, d_bcrec_ptr, geom,
-                             false ); // not used when we pass edge states
+        if ( !(ns_level.EBFactory().isAllRegular()) )
+	{
+	  EBMOL::ComputeSyncAofs(Sync, s_ind, ncomp,
+				 Sync, s_ind, // this is not used when we pass edge states
+				 D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+				 D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+				 D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+				 D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+				 bcs, d_bcrec_ptr, geom, dt,
+				 false,  // not used when we pass edge states
+				 ns_level.redistribution_type);
+	}
+	else
 #endif
+	{
+	  MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
+			       Sync, s_ind, // this is not used when we pass edge states
+			       D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+			       D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+			       D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+			       D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+			       bcs, d_bcrec_ptr, geom,
+			       false ); // not used when we pass edge states
+	}
 
     }
     else
@@ -912,26 +925,31 @@ MacProj::mac_sync_compute (int                    level,
         }
 
 #ifdef AMREX_USE_EB
-        EBGodunov::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                   Sync, s_ind,                      // this is not used when known_edgestate = true
-                                   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                                   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                   AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                                   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                                   MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                                   {}, d_bcrec_ptr,
-                                   geom, iconserv, dt, true,
-                                   ns_level.redistribution_type);
-#else
-        Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                 MultiFab(), s_ind,                      // this is not used when known_edgestate = true
-                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                 AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                                 AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                                 MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                                 d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
+	if ( !(ns_level.EBFactory().isAllRegular()) )
+	{
+	  EBGodunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+				     Sync, s_ind,                      // this is not used when known_edgestate = true
+				     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+				     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+				     AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+				     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+				     MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
+				     {}, d_bcrec_ptr,
+				     geom, iconserv, dt, true,
+				     ns_level.redistribution_type);
+	}
+	else
 #endif
+	{
+	  Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+				   MultiFab(), s_ind,                      // this is not used when known_edgestate = true
+				   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+				   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+				   AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+				   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+				   MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
+				   d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
+	}
 
     }
 
