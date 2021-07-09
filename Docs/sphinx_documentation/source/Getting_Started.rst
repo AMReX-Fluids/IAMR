@@ -4,6 +4,10 @@ Getting Started
 ===============
 This section walks you through a brief introduction to using IAMR.
 
+..
+    alternative to `` `` is :code:` `
+
+
 
 Downloading the code
 --------------------
@@ -12,24 +16,21 @@ IAMR, you must download separate git modules for IAMR and AMReX.
 
 First, make sure that git is installed on your machine.
 
-Download the AMReX repository by typing:
+#. Download the AMReX repository by typing:
 
-.. code:: shell
+   .. code:: shell
 
-    git clone https://github.com/amrex-codes/amrex
+	     git clone https://github.com/amrex-codes/amrex
 
-This will create a folder called ``amrex/`` on your machine.
+   This will create a folder called ``amrex/`` on your machine.
 
-..
-    alternative to `` `` is :code:` `
+#. Download the IAMR repository by typing: 
 
-Download the IAMR repository by typing: 
+   .. code:: shell
 
-.. code:: shell
+	     git clone https://github.com/AMReX-Codes/IAMR.git
 
-    git clone https://github.com/AMReX-Codes/IAMR.git
-
-This will create a folder called ``IAMR/`` on your machine.
+   This will create a folder called ``IAMR/`` on your machine.
 
 You will want to periodically update each of these repositories
 by typing ``git pull`` within each repository.
@@ -40,16 +41,25 @@ by typing ``git pull`` within each repository.
 Building the code
 -----------------
 
-Here, we walk you through compiling an IAMR executable.
-
-1. ``cd`` to the build directory:
-
-   We build the source code in the ``IAMR/Exec/run2d/`` (for 2D problems) and ``IAMR/Exec/run3d/`` (for 3D) directories.
-   Example problems with embedded boundaries are in the ``IAMR/Exec/eb_run2d/`` and ``IAMR/Exec/eb_run3d/`` directories.
-   And ``IAMR/Exec/run_2d_particles`` contains an example with passively advected particles.
-   A local version of the IAMR executable is built directly in the run folder.
+Here, we walk you through compiling an IAMR executable. We'll build the source code in one of the ``IAMR/Exec``
+directories, which are organized as follows:
    
-2. Edit the ``GNUmakefile``:
+To build the code:
+
+#. ``cd`` to the desired build directory.
+   
+   * ``IAMR/Exec/eb_run2d/`` contains 2D problems with embedded boundaries
+
+   * ``IAMR/Exec/eb_run3d/`` contains 3D problems with embedded boundaries 
+
+   * ``IAMR/Exec/run2d/`` contains 2D problems without embedded boundaries
+
+   * ``IAMR/Exec/run3d/`` contains 3D problems without embedded boundaries 
+
+   * ``IAMR/Exec/run_2d_particles/`` contains an example with passively advected particles
+
+
+#. Edit the ``GNUmakefile``:
    
    Set AMREX_HOME to be the path to the directory where you have put amrex. NOTE: when setting ``AMREX_HOME`` in the ``GNUmakefile``, be aware that ``~`` does not expand, so ``AMREX_HOME=~/amrex/`` will yield an error.
 
@@ -102,7 +112,7 @@ Here, we walk you through compiling an IAMR executable.
    https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html .
 
    
-3. Make the executable:
+#. Make the executable:
 
    Now type
 

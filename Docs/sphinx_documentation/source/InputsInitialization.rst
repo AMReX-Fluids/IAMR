@@ -3,22 +3,13 @@
 Initialization
 ==============
 
-The following inputs must be preceded by "amr" and determine how we initialize a calculation:
-
-+----------------------+-----------------------------------------------------------------------+-------------+--------------+
-|                      | Description                                                           |   Type      | Default      |
-+======================+=======================================================================+=============+==============+
-| restart              | If set, then restart from this file rather than from scratch          |  String     |   None       |
-+----------------------+-----------------------------------------------------------------------+-------------+--------------+
-
-
-The following inputs must be preceded by "incfo" and determine how we initialize a calculation:
+The following inputs must be preceded by "ns." and determine how we initialize a calculation:
 
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                      | Description                                                           |   Type      | Default      |
 +======================+=======================================================================+=============+==============+
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| do_initial_proj      | Should we do the initial projection?                                  |    Bool     |  True        |
+| do_init_proj         | Should we do the initial projection?                                  |    Bool     |  True        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| initial_iterations   | How many pressure iterations before starting the first timestep       |  Int        |    3         |
+| init_iters           | How many pressure iterations before starting the first timestep       |  Int        |    3         |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+

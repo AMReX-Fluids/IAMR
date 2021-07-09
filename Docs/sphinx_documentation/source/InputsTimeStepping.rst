@@ -1,4 +1,4 @@
-.. sec:InputsTimeStepping:
+.. _sec:InputsTimeStepping:
 
 Time Stepping
 =============

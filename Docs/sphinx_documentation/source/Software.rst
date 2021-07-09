@@ -1,28 +1,6 @@
 ..
   This needs to be reorganized, and probably some parts should be moved to different Chapters
 
-
-Code structure
-==============
-
-The code structure in the IAMR/ directory is as follows:
-
--  Source/: source code
-
--  Exec/: various problem run directories, including:
-
-   -  run2d/
-
-   -  run3d/
-
-   -  eb_run2d/
-
-   -  eb_run3d/
-
-   -  run_2d_particles/
-
--  Docs/: you’re reading this now!
-
 An Overview of IAMR
 ===================
 
@@ -163,43 +141,42 @@ https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for ).
 Setting Up Your Own Problem
 ===========================
 
-To define a new problem, we create a new inputs file in
-a run directory and modify
-IAMR/Source/prob/prob_init.cpp accordingly.
+To define a new problem, we create a new inputs file in a run directory and modify
+``IAMR/Source/prob/prob_init.cpp`` accordingly.
 The simplest way to get started is to copy the inputs files from an existing
 problem. Here we describe how to customize your problem.
 
 There are several files involved in setting up an IAMR problem. It’s possible to
-create your own new setup by only touching the first of these (prob_initData())
-and changing parameters through the inputs file (see section [sec:inputs]).
+create your own new setup by modifying only one source file (``prob_initData()``)
+and changing parameters through the inputs file (see section :ref:`sec:inputs`).
 Here we list the most relevant problem
 setup files and thier purpose. If you need further help setting up your problem, please
 contact us.
 
--  prob_initData():
+-  ``prob_initData()``:
    Read in initial conditions and problem parameters from the inputs file,
    and initialize the state data (velocity, density, etc.).
 
--  NS_error.cpp: Define the error estimation criteria used for tagging cells for
+-  ``NS_error.cpp``: Define the error estimation criteria used for tagging cells for
    refinement.
-   More details in section [sec:tagging]
+   More details in section [ :ref:`sec:tagging` ]
 
--  NS_setup.cpp: Declare state and derived variables.
+-  ``NS_setup.cpp``: Declare state and derived variables.
    Specify how to fill grow cells for each state or derived variable.
-   More details in sections [sec:boundaries]
+   More details in sections [ :ref:`sec:boundaries` ]
 
--  NS_derive.cpp: Define derived variables.
-   More details in sections [sec:derivedVariables]
+-  ``NS_derive.cpp``: Define derived variables.
+   More details in sections [ :ref:`sec:derivedVariables` ]
 
--  NS_BC.H: Define the mapping from physical boundary conditions (e.g. outflow)
+-  ``NS_BC.H``: Define the mapping from physical boundary conditions (e.g. outflow)
    to mathematical (e.g. first order extrapolation from last interior cell).
-   More details in section [sec:physicalBCs]
+   More details in section [ :ref:`sec:physicalBCs` ]
 
--  NS_bcfill.H:
+-  ``NS_bcfill.H``:
    Define the boundary filling functions for external Dirichlet (i.e. user supplied)
    boundary conditions. Constant Dirichlet conditions can be specified in the
    inputs file without needing to alter NS_bcfill.H.
-   More details in section [sec:physicalBCs]
+   More details in section [ :ref:`sec:physicalBCs` ]
 
 Boundaries
 ==========
@@ -275,7 +252,7 @@ that are Dirichlet and wall-centered, and the stencils are adjusted accordingly.
 
 For convenience, IAMR provides a limited set of mappings from a physics-based boundary condition
 specification to a mathematical one that the code can apply. This set can be extended
-by adjusting the corresponding translations in NS_BC.H, but, by default, includes
+by adjusting the corresponding translations in ``NS_BC.H``, but, by default, includes
 (See AMReX/Src/Base/AMReX_BC_TYPES.H for more detail):
 
 -  *Outflow*:
@@ -324,7 +301,7 @@ A few derived variables are provided with IAMR, which can be used as examples fo
 creating user defined derived variables.
 Users create derived variables by adding a function to create them in
 NS_derive.H and NS_derive.cpp, and then adding the variable to the
-derive_lst in NS_setup.cpp.
+derive_lst in ``NS_setup.cpp``.
 
 Access to the derived variable is through one of two amrex:AmrLevel functions
 (which are inherited by NavierStokesBase and NavierStokes):
@@ -363,7 +340,7 @@ A multifab filled with the magnitude of the vorticity can be obtained via
       vort.reset();  
 
 The FillPatchIterator
----------------------
+=====================
 
 A FillPatchIterator is a AMReX object tasked with the job of
 filling rectangular patches of state data, possibly including grow cells,
