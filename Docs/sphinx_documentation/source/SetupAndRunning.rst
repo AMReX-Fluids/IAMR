@@ -14,13 +14,12 @@ In IAMR, a combination of coded routines and inputs parameters provide the probl
 setup. Inputs parameters can also alter the behavior of the algorithm and
 provide controls over simulation runs. IAMR uses AMReX's ``ParmParse`` class
 infrastructure to read in the inputs parameters.
-(See :ref:`sec:basics:parmparse` for information on ``ParmParse``.).
+(See AMReX's documentation on ``ParmParse`` here: :ref:`sec:basics:parmparse`.)
 
 Typically, the inputs parameters are collected into an inputs file, which is specified on the commandline.
 Options can also be specified directly on the command line.
 
 .. toctree::
-   :maxdepth: 3
    :caption: Contents:
 
    ProblemSetup
