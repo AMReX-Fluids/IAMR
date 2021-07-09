@@ -1,5 +1,35 @@
-Problem Definition
-==================
+Problem Setup
+=============
+
+.. _sec:units:
+
+Units
+------
+
+For incompressible flow, IAMR supports any self-consistent units, as long as the length, time,
+and mass are consistent with the viscosity and diffusivity.
+
+For low Mach number flow with temperature variations, the temperature solve requires a specific heat capacity,
+:math:`c_p`, which is currently hard-coded as :math:`1004.6~ J kg^{-1} K^{-1}`
+(the specific heat capacity of dry air). Users can either keep this value, or change the specific heat capacity
+in their own version of the source code.
+
+
+Initial Conditions
+------------------
+
+To define the initial conditions, we modify the function ``prob_initData()`` within
+``IAMR/Source/prob/prob_init.cpp``.  ``prob_initData()`` reads in initial conditions
+and problem parameters from the inputs file, and initializes the state data
+(velocity, density, etc.).
+
+The easiest way to get started is to create a new ``probtype`` by copying the code for
+an existing problem and modifying it apply the desired initial state.
+
+It is also possible to initialize the velocity using data from a previously generated plotfile.  
+To do this you must set ``BL_USE_VELOCITY=TRUE`` in the makefile, and provide the plotfile in
+the inputs file via ``ns.velocity_plotfile = my_plotfile_name``.
+
 
 Resolution
 ----------
@@ -82,15 +112,8 @@ defines the domain to run from :math:`(0,0,0)` at the lower left to
 Cartesian geometry, and makes the domain periodic in the :math:`y`-direction
 only.
 
-The following inputs must be preceded by "ns."
 
-+----------------------+-------------------------------------------------------------------------+----------+-----------+
-|                      | Description                                                             |   Type   | Default   |
-+======================+=========================================================================+==========+===========+
-| gravity              | Gravity, taken to be in the -y direction for 2d and -z direction in 3d  |  Reals   |  0        |
-+----------------------+-------------------------------------------------------------------------+----------+-----------+
-
-
+.. _sec:domainBCs:
 
 Domain Boundary Conditions
 --------------------------
@@ -233,3 +256,65 @@ their own fill function in ``NS_bcfill.H``, then using that function to create
 an ``amrex::StateDescriptor::BndryFunc`` object and specifying which variables
 will use it in ``NS_setup.cpp``. More information on boundary conditions is in
 section :ref:`sec:physicalBCs`.
+
+AMR Levels
+----------
+
+Tagging info here...
+
+
+.. _sec:EB-basics:
+
+Constructing Embedded Boundaries in IAMR
+----------------------------------------
+
+IAMR uses AMReX's Embedded Boundary (cut cell) functionality to represent internal
+or external geometry in the flow.
+For details on AMReX's approach to embedded boundaries, see the AMReX EB
+documentation (:ref:`amrex:sec:EB:EBOverview`).
+
+Here we present a brief example of how to create an embedded boundary (EB) in IAMR.
+Additional examples and information are in AMReX's documentation
+(:ref:`amrex:sec:EB:ebinit`).
+
+#. Create a new ``geom_type`` in the function ``initialize_eb2`` in the file
+   ``Source/NS_init_eb2.cpp``
+
+#. Construct an implicit function representing the geometry (using the language
+   of constructive solid geometry). For example
+
+   .. highlight:: c++
+   ::
+   
+      amrex::EB2::CylinderIF my_cyl(radius, height, direction, center, inside);
+      auto gshop_cyl = amrex::EB2::makeShop(my_cyl);
+   
+#. Call ``amrex::EB2::Build``. This function builds the EB levels
+   and fills the implicit function ``MultiFab`` (the later being used to
+   construct the level-set function). 
+
+
+Particles Initialization
+------------------------
+
+Particles are initialized from an ASCII file, identified in the IAMR inputs file:
+
+::
+   particles.particle\_init\_file = *particle\_file*
+
+Here *particle\_file* is the user-specified name of the file. The first line in this file is
+assumed to contain the number of particles. Each line after that contains the position of the particle as
+x y z
+
+
+Tracers
+-------
+
+
+Temperature
+-----------
+
+
+Viscosity and Diffusivity
+-------------------------
+

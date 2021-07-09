@@ -1,14 +1,17 @@
+.. role:: cpp(code)
+   :language: c++
+
 ..
   This needs to be reorganized, and probably some parts should be moved to different Chapters
 
-An Overview of IAMR
-===================
+An Overview of IAMR Code
+************************
 
 IAMR is built upon the AMReX C++ framework. This provides
 high-level classes for managing an adaptive mesh refinement simulation,
 including the core data structures required in AMR calculations.
 Since IAMR leaverages heavily from the AMReX library,
-it’s documentation :ref:`amrex:amrex_doc_indx` 
+it’s documentation :ref:`amrex:amrex_doc_indx`
 is a useful resource in addition to this User’s Guide.
 
 ..
@@ -50,7 +53,7 @@ including synchronization between levels, to advance the level hierarchy
 forward in time.
 
 State Data
-~~~~~~~~~~
+==========
 
 The StateData class structure defined by AMReX is the data container
 used to store the field data associated with the state on a single AMR level
@@ -118,7 +121,7 @@ processor will be included in the loop on each processor. An example loop
             // current time
             auto const& rho_c = rho_ctime.array(mfi);
 
-            amrex::ParallelFor(bx, [rho_h, rho_p, rho_c] 
+            amrex::ParallelFor(bx, [rho_h, rho_p, rho_c]
             AMREX_GPU_DEVICE(int i, int j, int k) noexcept
             {
                rho_h(i,j,k) = 0.5 * (rho_p(i,j,k) + rho_c(i,j,k));
@@ -138,8 +141,8 @@ Here ParallelFor takes two arguments. The first argument is a Box specifying the
 (more details are in the AMReX documentation at
 https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for ).
 
-Setting Up Your Own Problem
-===========================
+Problem Setup
+=============
 
 To define a new problem, we create a new inputs file in a run directory and modify
 ``IAMR/Source/prob/prob_init.cpp`` accordingly.
@@ -337,7 +340,7 @@ A multifab filled with the magnitude of the vorticity can be obtained via
       //
       // do something with vorticity...
       //
-      vort.reset();  
+      vort.reset();
 
 The FillPatchIterator
 =====================
@@ -385,6 +388,242 @@ for performance). Notice that since NUM_GROW can be any
 positive integer (i.e., that the grow region can extend over an arbitrary
 number of successively coarser AMR levels), this key operation can hide an
 enormous amount of code and algorithm complexity.
+
+
+.. _Chap:parallel:
+
+Parallelization
+===============
+
+AMReX uses a hybrid MPI + X approach to parallelism,
+where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
+The basic idea is that MPI is used to distribute individual boxes across
+nodes while X is used to distribute the work in local boxes
+within a node. The OpenMP approach in AMReX is optionally
+based on *tiling* the box-based data structures. Both the tiling and
+non-tiling approaches to work distribution are discussed below. Also see
+the discussion of tiling in AMReX's documentation, :ref:`amrex:sec:basics:mfiter`.
+
+
+AMReX’s Non-Tiling Approach
+---------------------------
+
+At the highest abstraction level, we have MultiFab (mulitple
+FArrayBoxes). A MultiFab contains an array of Boxes (a Box contains integers specifying the index space it
+covers), including Boxes owned by other processors for the
+purpose of communication, an array of MPI ranks specifying which MPI
+processor owns each Box, and an array of pointers to FArrayBoxes owned by this MPI processor.
+A typical usage of MultiFab is as follows,
+
+::
+
+      for (MFIter mfi(mf); mfi.isValid(); ++mfi) // Loop over boxes
+      {
+        // Get the index space of this iteration
+        const Box& box = mfi.validbox();
+
+        // Get a reference to mf's data as a multidimensional array
+        auto& data = mf.array(mfi);
+
+        // Loop over "box" to update data.
+        // On CPU/GPU systems, this loop executes on the GPU
+      }
+
+A few comments about this code
+
+-  Here the iterator, :cpp:`mfi`, will perform the loop only over the
+   boxes that are local to the MPI task. If there are 3 boxes on the
+   processor, then this loop has 3 iterations.
+
+-  box as returned from :cpp:`mfi.validbox()` does not include
+   ghost cells. We can get the indices of the valid zones as box.loVect and box.hiVect.
+
+AMReX’s Tiling Approach
+-----------------------
+
+There are two types of tiling that people discuss. In *logical
+tiling*, the data storage in memory is unchanged from how we do things
+now in pure MPI. In a given box, the data region is stored
+contiguously). But when we loop in OpenMP over a box, the tiling
+changes how we loop over the data. The alternative is called *separate tiling*—here the data storage in memory itself is changed
+to reflect how the tiling will be performed. This is not considered
+in AMReX.
+
+In our logical tiling approach, a box is logically split into tiles,
+and a MFIter loops over each tile in each box. Note that the
+non-tiling iteration approach can be considered as a special case of
+tiling with the tile size equal to the box size.
+
+::
+
+      bool tiling = true;
+      for (MFIter mfi(mf,tiling); mfi.isValid(); ++mfi) // Loop over tiles
+      {
+        // Get the index space of this iteration
+        const Box& box = mfi.tilebox();
+
+        // Get a reference to mf's data as a multidimensional array
+        auto& data = mf.array(mfi);
+
+        // Loop over "box" to update data.
+      }
+
+Note that the code is almost identical to the one with the non-tiling approach.
+Some comments:
+
+-  The iterator now takes an extra argument to turn on tiling
+   (set to true). There is another interface fo MFIter
+   that can take an IntVect that explicitly gives the tile size
+   in each coordinate direction.
+
+   If we don’t explictly specify the tile size at the loop, then the
+   runtime parameter :cpp:`fabarray.mfiter_tile_size` can be used to set it
+   globally.
+
+-  :cpp:`.validBox()` has the same meaning as in the non-tile approach,
+   so we don’t use it. Instead, we use :cpp:`.tilebox()` to get the
+   Box (and corresponding lo and hi) for the *current tile*, not the entire data region.
+
+Let us consider an example. Suppose there are four boxes:
+
+.. figure:: ./Parallel/domain-tile.png
+   :alt: A simple domain showing 4 Boxes labeled 0–3, and their tiling regions (dotted lines)
+
+   Boxes labeled 0–3, and their tiling regions (dotted lines)
+
+The first box is divided into 4 logical tiles, the second and third
+are divided into 2 tiles each (because they are small), and the fourth
+into 4 tiles. So there are 12 tiles in total. The difference between
+the tiling and non-tiling version are then:
+
+-  In the tiling version,
+   the loop body will be run 12 times. Note that :cpp:`tilebox` is
+   different for each tile, whereas :cpp:`fab` might be referencing the
+   same object if the tiles belong to the same box.
+
+-  In the non-tiling
+   version (by constructing MFIter without the optional second
+   argument or setting to false), the loop body will be run 4 times
+   because there are four boxes, and a call to :cpp:`mfi.tilebox()` will
+   return the traditional validbox. The non-tiling case is
+   essentially having one tile per box.
+
+Tiling provides us the opportunity of a coarse-grained approach for
+OpenMP. Threading can be turned on by inserting the following line
+above the for (MFIter...) line.
+
+::
+
+      #pragma omp parallel
+
+Assuming four threads are used in the above example, thread 0 will
+work on 3 tiles from the first box, thread 1 on 1 tile from the first
+box and 2 tiles from the second box, and so forth. Note that
+OpenMP can be used even when tiling is turned off. In that case, the
+OpenMP granularity is at the box level (and good performance would need
+many boxes per MPI task).
+
+While it is possible that, independent of whether or not tiling is on, OpenMP
+threading could also be started within the function/loop called inside the
+MFIter loop, rather than at the MFIter loop level, this
+is not the approach taken in IAMR.
+
+The tile size for the three spatial dimensions can be set by a
+parameter, e.g., :cpp:`fabarray.mfiter_tile_size = 1024000 8 8`. A
+huge number like 1024000 will turn off tiling in that direction.
+As noted above, the MFIter constructor can also take an explicit
+tile size: :cpp:`MFIter(mfi(mf,IntVect(128,16,32)))`.
+
+Note that tiling can naturally transition from all threads working
+on a single box to each thread working on a separate box as the boxes
+coarsen (e.g., in multigrid).
+
+The MFIter class provides some other useful functions:
+
+::
+
+     mfi.validbox()       : The same meaning as before independent of tiling.
+     mfi.growntilebox(int): A grown tile box that includes ghost cells at box
+                            boundaries only.  Thus the returned boxes for a
+                            Fab are non-overlapping.
+     mfi.nodaltilebox(int): Returns non-overlapping edge-type boxes for tiles.
+                            The argument is for direction.
+     mfi.fabbox()         : Same as mf[mfi].box().
+
+Finally we note that tiling is not always desired or better. This
+traditional fine-grained approach coupled with dynamic scheduling is
+more appropriate for work with unbalanced loads, such as chemistry
+burning in cells by an implicit solver. Tiling can also create extra
+work in the ghost cells of tiles.
+
+Practical Details in Working with Tiling
+----------------------------------------
+
+It is the responsibility of the coder to make sure that the routines within
+a tiled region are safe to use with OpenMP. In particular, note that:
+
+-  tile boxes are non-overlapping
+
+-  the union of tile boxes completely cover the valid region of the fab
+
+-  Consider working with a node-centered MultiFab, :cpp:`s_nd`, and a
+   cell-centered MultiFab, :cpp:`s_cc`:
+
+   -  with :cpp:`mfi(s_cc)`, the tiles are based on the cell-centered
+      index space. If you have an :math:`8\times 8` box, then and 4 tiles, then
+      your tiling boxes will range from :math:`0\rightarrow 3`, :math:`4\rightarrow
+      7`.
+
+   -  with :cpp:`mfi(s_nd)`, the tiles are based on nodal indices,
+      so your tiling boxes will range from :math:`0\rightarrow 3`, :math:`4\rightarrow 8`.
+
+-  When updating routines to work with tiling, we need to understand
+   the distinction between the index-space of the entire box (which
+   corresponds to the memory layout) and the index-space of the tile.
+   Inside the MFIter loop, make sure to only update over
+   the tile region, not for the entire box.
+
+
+Particles
+=========
+
+IAMR has the ability to include data-parallel particle simulations.
+Our particles can interact with data defined on a (possibly adaptive)
+block-structured hierarchy of meshes. Example applications include
+Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert
+drag forces onto a fluid, such as in multi-phase flow calculations.
+
+Within IAMR, we provide an example of passively advected tracer particles in
+``IAMR/Exec/run_2d_particles``.
+
+We provide a brief introduction to using particles in IAMR in :ref:`Chap:SetupAndRunning`.
+For more detailed information
+on particles, see AMReX's documentation: :ref:`amrex:Chap:Particles`.
+
+Gridding and Load Balancing
+===========================
+
+IAMR has a great deal of flexibility when it comes to how to decompose the
+computational domain into individual rectangular grids, and how to distribute
+those grids to MPI ranks.  There can be grids of different sizes,
+more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.
+IAMR relies on AMReX for the implementation. For more information, please see AMReX's documentation,
+found here: :ref:`amrex:Chap:ManagingGridHierarchy`.
+
+See :ref:`sec:gridCreation` and :ref:`Chap:InputsLoadBalancing` for how grids are created,
+i.e. how the :cpp:`BoxArray` on which
+:cpp:`MultiFabs` will be built is defined at each level.
+
+See :ref:`amrex:sec:load_balancing` for the strategies AMReX supports for distributing
+grids to MPI ranks, i.e. defining the :cpp:`DistributionMapping` with which
+:cpp:`MultiFabs` at that level will be built.
+
+When running on multicore machines with OpenMP, we can also control the distribution of
+work by setting the size of grid tiles (by defining :cpp:`fabarray.mfiter_tile_size`,
+see :ref:`sec:tilingInputs`).
+We can also specify the strategy for assigning tiles to OpenMP threads.
+See :ref:`Chap:Parallel` and AMReX's docmumentation (:ref:`amrex:sec:basics:mfiter:tiling`) for more about tiling.
+
 
 Parallel I/O
 ============
