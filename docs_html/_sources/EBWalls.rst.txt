@@ -33,18 +33,3 @@ documentation :ref:`amrex:sec:EB:ebinit:IF` for information on how to construct 
    and fills the implicit function :cpp:`MultiFab` (the later being used to
    construct the level-set function). 
 
-IAMR's EB Data Structures
--------------------------
-
-The :cpp:`NavierStokesBase` class stores the following EB data:
-
-.. highlight:: c++
-
-::
-
-   //! EB levels representing fluid boundary conditions
-   Vector<const EB2::Level *> eb_levels;
-
-   //! EB factory that lives on the fluid grids
-   Vector< std::unique_ptr<amrex::EBFArrayBoxFactory> > ebfactory;
-

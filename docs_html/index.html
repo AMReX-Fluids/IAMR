@@ -96,16 +96,9 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 <p class="caption"><span class="caption-text">References</span></p>
@@ -205,14 +198,10 @@ see incflo (<a class="reference external" href="https://amrex-codes.github.io/in
 <li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#visualizing-the-results">Visualizing the Results</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Software.html">Code structure</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Software.html#an-overview-of-iamr">An Overview of IAMR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Software.html#setting-up-your-own-problem">Setting Up Your Own Problem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Software.html#boundaries">Boundaries</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Software.html#derived-variables">Derived Variables</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Software.html#parallel-i-o">Parallel I/O</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html">Problem Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Running Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a><ul>
@@ -222,43 +211,9 @@ see incflo (<a class="reference external" href="https://amrex-codes.github.io/in
 <li class="toctree-l2"><a class="reference internal" href="Visualization.html#yt">yt</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="InputsProblemDefinition.html">Problem Definition</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsTimeStepping.html">Time Stepping</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsInitialization.html">Initialization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsLoadBalancing.html">Gridding and Load Balancing Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsMultigrid.html">Multigrid Inputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsPlotFiles.html">Plotfiles and Other Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsCheckpoint.html">Checkpoint/Restart</a></li>
-<li class="toctree-l2"><a class="reference internal" href="InputsVerbosity.html">Verbosity</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="AMR.html#tagging-for-refinement">Tagging for Refinement</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html#amrexs-non-tiling-approach">AMReX’s Non-Tiling Approach</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html#amrexs-tiling-approach">AMReX’s Tiling Approach</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Parallel.html#practical-details-in-working-with-tiling">Practical Details in Working with Tiling</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="FluidsEqnsIntro.html">Brief Overview of Low Speed Approximations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FluidsEqnsIntro.html#projection-methods-101">Projection Methods 101</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FluidEquations.html">Fluid Variables</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FluidEquations.html#fluid-equations">Fluid Equations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="EBWalls.html">Constructing Embedded Boundaries in IAMR</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="Particles.html">Initializing the Particles</a></li>
-<li class="toctree-l2"><a class="reference internal" href="Particles.html#output-format">Output Format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Software.html">An Overview of IAMR Code</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>

@@ -1,0 +1,616 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Problem Setup &mdash; IAMR 21.08-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Running Simulations" href="RunningProblems.html" />
+    <link rel="prev" title="Creating and Running Your Own Problem" href="SetupAndRunning.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.08-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Problem Setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#units">Units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#initial-conditions">Initial Conditions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resolution">Resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#problem-geometry">Problem Geometry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#domain-boundary-conditions">Domain Boundary Conditions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#boundary-conditions-with-integer-keys">Boundary conditions with integer keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#boundary-conditions-with-keywords">Boundary conditions with keywords</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dirichlet-boundary-conditions">Dirichlet Boundary Conditions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#amr-levels">AMR Levels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#constructing-embedded-boundaries-in-iamr">Constructing Embedded Boundaries in IAMR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#particles-initialization">Particles Initialization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tracers">Tracers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#temperature">Temperature</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#viscosity-and-diffusivity">Viscosity and Diffusivity</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Running Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+</ul>
+<p class="caption"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="SetupAndRunning.html">Creating and Running Your Own Problem</a> &raquo;</li>
+        
+      <li>Problem Setup</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/ProblemSetup.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <section id="problem-setup">
+<h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline">¶</a></h1>
+<section id="units">
+<span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h2>
+<p>For incompressible flow, IAMR supports any self-consistent units, as long as the length, time,
+and mass are consistent with the viscosity and diffusivity.</p>
+<p>For low Mach number flow with temperature variations, the temperature solve requires a specific heat capacity,
+<span class="math notranslate nohighlight">\(c_p\)</span>, which is currently hard-coded as <span class="math notranslate nohighlight">\(1004.6~ J kg^{-1} K^{-1}\)</span>
+(the specific heat capacity of dry air). Users can either keep this value, or change the specific heat capacity
+in their own version of the source code.</p>
+</section>
+<section id="initial-conditions">
+<h2>Initial Conditions<a class="headerlink" href="#initial-conditions" title="Permalink to this headline">¶</a></h2>
+<p>To define the initial conditions, we modify the function <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> within
+<code class="docutils literal notranslate"><span class="pre">IAMR/Source/prob/prob_init.cpp</span></code>.  <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> reads in initial conditions
+and problem parameters from the inputs file, and initializes the state data
+(velocity, density, etc.).</p>
+<p>The easiest way to get started is to create a new <code class="docutils literal notranslate"><span class="pre">probtype</span></code> by copying the code for
+an existing problem and modifying it apply the desired initial state.</p>
+<p>It is also possible to initialize the velocity using data from a previously generated plotfile.
+To do this you must set <code class="docutils literal notranslate"><span class="pre">BL_USE_VELOCITY=TRUE</span></code> in the makefile, and provide the plotfile in
+the inputs file via <code class="docutils literal notranslate"><span class="pre">ns.velocity_plotfile</span> <span class="pre">=</span> <span class="pre">my_plotfile_name</span></code>.</p>
+</section>
+<section id="resolution">
+<h2>Resolution<a class="headerlink" href="#resolution" title="Permalink to this headline">¶</a></h2>
+<p>The grid resolution is specified by defining the resolution at the
+coarsest level (level 0), the number of refinement levels, and
+factor of refinement between levels.
+The following inputs must be preceded by “amr.”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 63%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>n_cell</p></td>
+<td><p>Number of cells at level 0 in each coordinate direction</p></td>
+<td><p>Int Int Int</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_level</p></td>
+<td><p>Maximum level of refinement allowed (0 when single-level)</p></td>
+<td><p>Int</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>ref_ratio</p></td>
+<td><p>Ratio of coarse to fine grid spacing between subsequent levels (2 or 4)</p></td>
+<td><p>Int</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>Some examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">n_cell</span> <span class="o">=</span> <span class="mi">32</span> <span class="mi">64</span> <span class="mi">64</span>
+</pre></div>
+</div>
+<p>would define the domain to have 32 cells in the <span class="math notranslate nohighlight">\(x\)</span>-direction, 64 cells
+in the <span class="math notranslate nohighlight">\(y\)</span>-direction, and 64 cells in the <span class="math notranslate nohighlight">\(z\)</span>-direction <em>at the
+coarsest level</em>. (If this line appears in a 2D inputs file then the
+final number will be ignored.)</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<p>would allow a maximum of 2 refined levels in addition to the coarse
+level. Note that these additional levels will only be created only if
+the tagging criteria are such that cells are flagged as needing
+refinement. The number of refined levels in a calculation must be
+<span class="math notranslate nohighlight">\(\leq\)</span> amr.max_level, but can change in time and need not
+always be equal to amr.max_level.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">ref_ratio</span> <span class="o">=</span> <span class="mi">2</span> <span class="mi">4</span>
+</pre></div>
+</div>
+<p>would set factor of 2 refinement between levels 0 and 1, and factor of 4
+refinement between levels 1 and 2. Note that you must have at least
+amr.max_level values of amr.ref_ratio (Additional values
+may appear in that line and they will be ignored).</p>
+</section>
+<section id="problem-geometry">
+<h2>Problem Geometry<a class="headerlink" href="#problem-geometry" title="Permalink to this headline">¶</a></h2>
+<p>The following inputs must be preceded by “geometry.”</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 63%" />
+<col style="width: 12%" />
+<col style="width: 10%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>coord_sys</p></td>
+<td><p>0 for Cartesian</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>is_periodic</p></td>
+<td><p>1 for true, 0 for false (one value for each coordinate direction)</p></td>
+<td><p>Ints</p></td>
+<td><p>0 0 0</p></td>
+</tr>
+<tr class="row-even"><td><p>prob_lo</p></td>
+<td><p>Low corner of physical domain (physical not index space)</p></td>
+<td><p>Reals</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>prob_hi</p></td>
+<td><p>High corner of physical domain (physical not index space)</p></td>
+<td><p>Reals</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>As an example, the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">geometry</span><span class="o">.</span><span class="n">prob_lo</span> <span class="o">=</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">0</span>
+<span class="n">geometry</span><span class="o">.</span><span class="n">prob_hi</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="mf">10.0</span> <span class="mf">10.0</span>
+<span class="n">geometry</span><span class="o">.</span><span class="n">coord_sys</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">geometry</span><span class="o">.</span><span class="n">is_periodic</span> <span class="o">=</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>defines the domain to run from <span class="math notranslate nohighlight">\((0,0,0)\)</span> at the lower left to
+<span class="math notranslate nohighlight">\((10,10,10)\)</span> at the upper right in physical space, specifies a
+Cartesian geometry, and makes the domain periodic in the <span class="math notranslate nohighlight">\(y\)</span>-direction
+only.</p>
+</section>
+<section id="domain-boundary-conditions">
+<span id="sec-domainbcs"></span><h2>Domain Boundary Conditions<a class="headerlink" href="#domain-boundary-conditions" title="Permalink to this headline">¶</a></h2>
+<p>IAMR provides two ways to specify boundary condition types: integer keys or keywords.
+An inputs file must choose one style or the other, they cannot be mixed.
+Here we provide examples of both styles. We then discuss how to provide Dirichlet
+boundary conditions.</p>
+<section id="boundary-conditions-with-integer-keys">
+<h3>Boundary conditions with integer keys<a class="headerlink" href="#boundary-conditions-with-integer-keys" title="Permalink to this headline">¶</a></h3>
+<p>To specify boundary conditions with integer keys we use</p>
+<ul class="simple">
+<li><p>ns.lo_bc: boundary type of each low face</p></li>
+<li><p>ns.hi_bc: boundary type of each high face</p></li>
+</ul>
+<p>The valid boundary types are:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 43%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>0 – Interior / Periodic</p></td>
+<td><p>3 – Symmetry</p></td>
+</tr>
+<tr class="row-even"><td><p>1 – Inflow</p></td>
+<td><p>4 – Slip Wall</p></td>
+</tr>
+<tr class="row-odd"><td><p>2 – Outflow</p></td>
+<td><p>5 – No Slip Wall</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note: ns.lo_bc and ns.hi_bc must be consistent with
+geometry.is_periodic—if the domain is periodic in a particular
+direction then the low and high bc’s must be set to 0 for that direction.</p>
+<p>As an example, the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="o">.</span><span class="n">lo_bc</span> <span class="o">=</span> <span class="mi">1</span> <span class="mi">4</span> <span class="mi">0</span>
+<span class="n">ns</span><span class="o">.</span><span class="n">hi_bc</span> <span class="o">=</span> <span class="mi">2</span> <span class="mi">4</span> <span class="mi">0</span>
+
+<span class="n">geometry</span><span class="o">.</span><span class="n">is_periodic</span> <span class="o">=</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>would define a problem with inflow (1) in the low- <span class="math notranslate nohighlight">\(x\)</span> direction,
+outflow (2) in the high- <span class="math notranslate nohighlight">\(x\)</span> direction, slip wall (4) on
+the low and high <span class="math notranslate nohighlight">\(y\)</span>-faces, and periodic in the <span class="math notranslate nohighlight">\(z\)</span>-direction.</p>
+</section>
+<section id="boundary-conditions-with-keywords">
+<h3>Boundary conditions with keywords<a class="headerlink" href="#boundary-conditions-with-keywords" title="Permalink to this headline">¶</a></h3>
+<p>To specify boundary conditions with keywords, we use the following options
+preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 63%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>type</p></td>
+<td><p>Used to define boundary type. Available options include:</p>
+<ul class="simple">
+<li><p>‘po’  or ‘pressure_outflow’</p></li>
+<li><p>‘mi’  or ‘mass_inflow’</p></li>
+<li><p>‘sw’  or ‘slip_wall’</p></li>
+<li><p>‘nsw’ or ‘no_slip_wall’</p></li>
+</ul>
+</td>
+<td><p>String</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>To use the same example problem as above, the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xlo</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">mi</span>
+<span class="n">xhi</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">po</span>
+<span class="n">ylo</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">sw</span>
+<span class="n">yhi</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">sw</span>
+
+<span class="n">geometry</span><span class="o">.</span><span class="n">is_periodic</span> <span class="o">=</span> <span class="mi">0</span> <span class="mi">0</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>would define a problem with inflow in the low-<span class="math notranslate nohighlight">\(x\)</span> direction,
+outflow in the high-<span class="math notranslate nohighlight">\(x\)</span> direction, slip wall on
+the low and high <span class="math notranslate nohighlight">\(y\)</span>-faces, and periodic in the <span class="math notranslate nohighlight">\(z\)</span>-direction.
+Note that no keyword is needed for a periodic boundary, here only the
+specification in geometry.is_periodic is needed.</p>
+</section>
+<section id="dirichlet-boundary-conditions">
+<h3>Dirichlet Boundary Conditions<a class="headerlink" href="#dirichlet-boundary-conditions" title="Permalink to this headline">¶</a></h3>
+<p>IAMR provides the ability to specify constant Dirichlet BCs
+in the inputs file. We use the following options
+preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 63%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>velocity</p></td>
+<td><p>Sets boundary velocity for mass inflows</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>density</p></td>
+<td><p>Sets boundary density for mass inflows</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>tracer</p></td>
+<td><p>Sets boundary tracer concentration for mass inflows</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>temp</p></td>
+<td><p>Sets temperature for mass inflows</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>pressure</p></td>
+<td><p>Sets boundary pressure for pressure inflows, outflows and mass inflows</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>As an example,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xlo</span><span class="o">.</span><span class="n">type</span>                <span class="o">=</span>   <span class="s2">&quot;mass_inflow&quot;</span>
+<span class="n">xlo</span><span class="o">.</span><span class="n">velocity</span>            <span class="o">=</span>   <span class="mf">1.</span>  <span class="mf">0.</span>  <span class="mf">0.</span>
+<span class="n">xlo</span><span class="o">.</span><span class="n">density</span>             <span class="o">=</span>   <span class="mf">1.</span>
+<span class="n">xlo</span><span class="o">.</span><span class="n">tracer</span>              <span class="o">=</span>   <span class="mf">0.</span>
+<span class="n">xlo</span><span class="o">.</span><span class="n">temp</span>                <span class="o">=</span>   <span class="mf">1.</span>
+</pre></div>
+</div>
+<p>sets the boundary condtion type at the low x face to be an inflow with
+xlo.type = “mass_inflow”.
+Then xlo.velocity = 1. 0. 0. sets the inflow velocity,
+xlo.density = 1. sets the inflow density,
+xlo.tracer = 0. sets the inflow tracer value, and
+xlo.temp = 1. sets the inflow temperature.
+Another example, from the lid driven cavity problem setup, is</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="o">.</span><span class="n">lo_bc</span>                <span class="o">=</span>  <span class="mi">4</span> <span class="mi">4</span> <span class="mi">5</span>
+<span class="n">ns</span><span class="o">.</span><span class="n">hi_bc</span>                <span class="o">=</span>  <span class="mi">5</span> <span class="mi">5</span> <span class="mi">5</span>
+
+<span class="c1"># 0 = Interior/Periodic  3 = Symmetry</span>
+<span class="c1"># 1 = Inflow             4 = SlipWall</span>
+<span class="c1"># 2 = Outflow            5 = NoSlipWall</span>
+
+<span class="c1"># Boundary condition</span>
+<span class="n">zhi</span><span class="o">.</span><span class="n">velocity</span>            <span class="o">=</span>   <span class="mf">1.</span>  <span class="mf">0.</span>  <span class="mf">0.</span>
+</pre></div>
+</div>
+<p>Here, ns.hi_bc = 5 5 5 sets the boundary conditions on all high faces to
+no slip walls.
+zhi.velocity = 1. 0. 0. sets the wall at the high z face to be moving in the
+x-direction.
+Note that IAMR allows walls to move tangentially, but not in the normal direction.</p>
+<p>Users can create more complex Dirichlet boundary condtions by writing
+their own fill function in <code class="docutils literal notranslate"><span class="pre">NS_bcfill.H</span></code>, then using that function to create
+an <code class="docutils literal notranslate"><span class="pre">amrex::StateDescriptor::BndryFunc</span></code> object and specifying which variables
+will use it in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>. More information on boundary conditions is in
+section <a class="reference internal" href="Software.html#sec-physicalbcs"><span class="std std-ref">Physical Boundaries</span></a>.</p>
+</section>
+</section>
+<section id="amr-levels">
+<h2>AMR Levels<a class="headerlink" href="#amr-levels" title="Permalink to this headline">¶</a></h2>
+<p>Tagging info here…</p>
+</section>
+<section id="constructing-embedded-boundaries-in-iamr">
+<span id="sec-eb-basics"></span><h2>Constructing Embedded Boundaries in IAMR<a class="headerlink" href="#constructing-embedded-boundaries-in-iamr" title="Permalink to this headline">¶</a></h2>
+<p>IAMR uses AMReX’s Embedded Boundary (cut cell) functionality to represent internal
+or external geometry in the flow.
+For details on AMReX’s approach to embedded boundaries, see the AMReX EB
+documentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-eboverview" title="(in amrex v21.08-dev)"><span>Overview of Embedded Boundary Description</span></a>).</p>
+<p>Here we present a brief example of how to create an embedded boundary (EB) in IAMR.
+Additional examples and information are in AMReX’s documentation
+(<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-ebinit" title="(in amrex v21.08-dev)"><span>Initializing the Geometric Database</span></a>).</p>
+<ol class="arabic">
+<li><p>Create a new <code class="docutils literal notranslate"><span class="pre">geom_type</span></code> in the function <code class="docutils literal notranslate"><span class="pre">initialize_eb2</span></code> in the file
+<code class="docutils literal notranslate"><span class="pre">Source/NS_init_eb2.cpp</span></code></p></li>
+<li><p>Construct an implicit function representing the geometry (using the language
+of constructive solid geometry). For example</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">amrex</span><span class="o">::</span><span class="n">EB2</span><span class="o">::</span><span class="n">CylinderIF</span> <span class="n">my_cyl</span><span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">inside</span><span class="p">);</span>
+<span class="k">auto</span> <span class="n">gshop_cyl</span> <span class="o">=</span> <span class="n">amrex</span><span class="o">::</span><span class="n">EB2</span><span class="o">::</span><span class="n">makeShop</span><span class="p">(</span><span class="n">my_cyl</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">amrex::EB2::Build</span></code>. This function builds the EB levels
+and fills the implicit function <code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> (the later being used to
+construct the level-set function).</p></li>
+</ol>
+</section>
+<section id="particles-initialization">
+<h2>Particles Initialization<a class="headerlink" href="#particles-initialization" title="Permalink to this headline">¶</a></h2>
+<p>Particles are initialized from an ASCII file, identified in the IAMR inputs file:</p>
+<dl class="simple">
+<dt>::</dt><dd><p>particles.particle_init_file = <em>particle_file</em></p>
+</dd>
+</dl>
+<p>Here <em>particle_file</em> is the user-specified name of the file. The first line in this file is
+assumed to contain the number of particles. Each line after that contains the position of the particle as
+x y z</p>
+</section>
+<section id="tracers">
+<h2>Tracers<a class="headerlink" href="#tracers" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="temperature">
+<h2>Temperature<a class="headerlink" href="#temperature" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="viscosity-and-diffusivity">
+<h2>Viscosity and Diffusivity<a class="headerlink" href="#viscosity-and-diffusivity" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="RunningProblems.html" class="btn btn-neutral float-right" title="Running Simulations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="SetupAndRunning.html" class="btn btn-neutral float-left" title="Creating and Running Your Own Problem" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

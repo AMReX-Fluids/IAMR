@@ -28,17 +28,11 @@ see incflo (https://amrex-codes.github.io/incflo/)
 
    Introduction_Chapter
    Getting_Started
-   Units
-   Software_Chapter
+   SetupAndRunning
    Visualization_Chapter
-   Inputs_Chapter
-   ManagingGridHierarchy_Chapter
-   AMR
-   Parallel
-   Fluids_Chapter
-   EB
-   Particles_Chapter
+   AlgorithmAndSoftware
    Debugging
+
    
 .. toctree::
    :caption: References

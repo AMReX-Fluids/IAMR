@@ -44,9 +44,7 @@
 
     
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Software" href="Software_Chapter.html" />
-    <link rel="prev" title="Getting Started" href="Getting_Started.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -96,19 +94,12 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Units</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Software_Chapter.html">Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 <p class="caption"><span class="caption-text">References</span></p>
@@ -184,10 +175,11 @@
   <section id="units">
 <h1>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h1>
 <p>For incompressible flow, IAMR supports any self-consistent units, as long as the length, time,
-and mass are consistent with the viscosity and diffusivity. For low Mach number flow with
-temperature variations, the temperature solve requires a specifc heat capacity,
+and mass are consistent with the viscosity and diffusivity.</p>
+<p>For low Mach number flow with temperature variations, the temperature solve requires a specific heat capacity,
 <span class="math notranslate nohighlight">\(c_p\)</span>, which is currently hard-coded as <span class="math notranslate nohighlight">\(1004.6 J kg^-1 K^-1\)</span>
-(the specific heat capacity of dry air).</p>
+(the specific heat capacity of dry air). Users can either keep this value, or change the specific heat capacity
+in their own version of the source code.</p>
 </section>
 
 
@@ -195,10 +187,6 @@ temperature variations, the temperature solve requires a specifc heat capacity,
            
           </div>
           <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="Software_Chapter.html" class="btn btn-neutral float-right" title="Software" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="Getting_Started.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-    </div>
 
   <hr/>
 

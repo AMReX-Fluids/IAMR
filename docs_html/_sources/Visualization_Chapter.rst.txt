@@ -5,7 +5,6 @@ There are a large number of tools that can be used to read in IAMR or AMReX dat
 Here we give a brief overview of some of the tools as well as some examples.
 
 .. toctree::
-   :maxdepth: 1
    :caption: Contents:
 
    Visualization

@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Code structure &mdash; IAMR 21.08-dev documentation</title>
+  <title>An Overview of IAMR Code &mdash; IAMR 21.08-dev documentation</title>
   
 
   
@@ -45,8 +45,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Visualization" href="Visualization_Chapter.html" />
-    <link rel="prev" title="Software" href="Software_Chapter.html" /> 
+    <link rel="next" title="Debugging" href="Debugging.html" />
+    <link rel="prev" title="Time Step – MOL" href="TimeStep.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -99,27 +99,37 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Units.html">Units</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="Software_Chapter.html">Software</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Code structure</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#an-overview-of-iamr">An Overview of IAMR</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#state-data">State Data</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#setting-up-your-own-problem">Setting Up Your Own Problem</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#boundaries">Boundaries</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#derived-variables">Derived Variables</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#parallel-i-o">Parallel I/O</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Inputs_Chapter.html">Run-time Inputs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="ManagingGridHierarchy_Chapter.html">Gridding and Load Balancing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="AMR.html">AMR</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Parallel.html">Parallelization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="EB.html">Embedded Boundaries</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Particles_Chapter.html">Particles</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">An Overview of IAMR Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#state-data">State Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#problem-setup">Problem Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#boundaries">Boundaries</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#boundaries-between-grids-and-levels">Boundaries Between Grids and Levels</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#physical-boundaries">Physical Boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#derived-variables">Derived Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-fillpatchiterator">The FillPatchIterator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parallelization">Parallelization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#amrexs-non-tiling-approach">AMReX’s Non-Tiling Approach</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#amrexs-tiling-approach">AMReX’s Tiling Approach</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#practical-details-in-working-with-tiling">Practical Details in Working with Tiling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#particles">Particles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gridding-and-load-balancing">Gridding and Load Balancing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#amr-grids">AMR Grids</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#tagging-for-refinement">Tagging for Refinement</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#parallel-i-o">Parallel I/O</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 </ul>
 <p class="caption"><span class="caption-text">References</span></p>
@@ -173,9 +183,9 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="Software_Chapter.html">Software</a> &raquo;</li>
+          <li><a href="AlgorithmAndSoftware.html">Algorithm and Software Details</a> &raquo;</li>
         
-      <li>Code structure</li>
+      <li>An Overview of IAMR Code</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -194,25 +204,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <section id="code-structure">
-<h1>Code structure<a class="headerlink" href="#code-structure" title="Permalink to this headline">¶</a></h1>
-<p>The code structure in the IAMR/ directory is as follows:</p>
-<ul class="simple">
-<li><p>Source/: source code</p></li>
-<li><p>Exec/: various problem run directories, including:</p>
-<ul>
-<li><p>run2d/</p></li>
-<li><p>run3d/</p></li>
-<li><p>eb_run2d/</p></li>
-<li><p>eb_run3d/</p></li>
-<li><p>run_2d_particles/</p></li>
-</ul>
-</li>
-<li><p>Docs/: you’re reading this now!</p></li>
-</ul>
-</section>
-<section id="an-overview-of-iamr">
-<h1>An Overview of IAMR<a class="headerlink" href="#an-overview-of-iamr" title="Permalink to this headline">¶</a></h1>
+  <section id="an-overview-of-iamr-code">
+<h1>An Overview of IAMR Code<a class="headerlink" href="#an-overview-of-iamr-code" title="Permalink to this headline">¶</a></h1>
 <p>IAMR is built upon the AMReX C++ framework. This provides
 high-level classes for managing an adaptive mesh refinement simulation,
 including the core data structures required in AMR calculations.
@@ -324,44 +317,42 @@ a more array like manner using operator()
 (more details are in the AMReX documentation at
 <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for">https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for</a> ).</p>
 </section>
-</section>
-<section id="setting-up-your-own-problem">
-<h1>Setting Up Your Own Problem<a class="headerlink" href="#setting-up-your-own-problem" title="Permalink to this headline">¶</a></h1>
-<p>To define a new problem, we create a new inputs file in
-a run directory and modify
-IAMR/Source/prob/prob_init.cpp accordingly.
+<section id="problem-setup">
+<h2>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline">¶</a></h2>
+<p>To define a new problem, we create a new inputs file in a run directory and modify
+<code class="docutils literal notranslate"><span class="pre">IAMR/Source/prob/prob_init.cpp</span></code> accordingly.
 The simplest way to get started is to copy the inputs files from an existing
 problem. Here we describe how to customize your problem.</p>
 <p>There are several files involved in setting up an IAMR problem. It’s possible to
-create your own new setup by only touching the first of these (prob_initData())
-and changing parameters through the inputs file (see section [sec:inputs]).
+create your own new setup by modifying only one source file (<code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code>)
+and changing parameters through the inputs file (see section <span class="xref std std-ref">sec:inputs</span>).
 Here we list the most relevant problem
 setup files and thier purpose. If you need further help setting up your problem, please
 contact us.</p>
 <ul class="simple">
-<li><p>prob_initData():
+<li><p><code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code>:
 Read in initial conditions and problem parameters from the inputs file,
 and initialize the state data (velocity, density, etc.).</p></li>
-<li><p>NS_error.cpp: Define the error estimation criteria used for tagging cells for
+<li><p><code class="docutils literal notranslate"><span class="pre">NS_error.cpp</span></code>: Define the error estimation criteria used for tagging cells for
 refinement.
-More details in section [sec:tagging]</p></li>
-<li><p>NS_setup.cpp: Declare state and derived variables.
+More details in section [ <a class="reference internal" href="#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a> ]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>: Declare state and derived variables.
 Specify how to fill grow cells for each state or derived variable.
-More details in sections [sec:boundaries]</p></li>
-<li><p>NS_derive.cpp: Define derived variables.
-More details in sections [sec:derivedVariables]</p></li>
-<li><p>NS_BC.H: Define the mapping from physical boundary conditions (e.g. outflow)
+More details in sections [ <span class="xref std std-ref">sec:boundaries</span> ]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NS_derive.cpp</span></code>: Define derived variables.
+More details in sections [ <span class="xref std std-ref">sec:derivedVariables</span> ]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NS_BC.H</span></code>: Define the mapping from physical boundary conditions (e.g. outflow)
 to mathematical (e.g. first order extrapolation from last interior cell).
-More details in section [sec:physicalBCs]</p></li>
-<li><p>NS_bcfill.H:
+More details in section [ <a class="reference internal" href="#sec-physicalbcs"><span class="std std-ref">Physical Boundaries</span></a> ]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NS_bcfill.H</span></code>:
 Define the boundary filling functions for external Dirichlet (i.e. user supplied)
 boundary conditions. Constant Dirichlet conditions can be specified in the
 inputs file without needing to alter NS_bcfill.H.
-More details in section [sec:physicalBCs]</p></li>
+More details in section [ <a class="reference internal" href="#sec-physicalbcs"><span class="std std-ref">Physical Boundaries</span></a> ]</p></li>
 </ul>
 </section>
 <section id="boundaries">
-<h1>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this headline">¶</a></h1>
+<h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this headline">¶</a></h2>
 <p>In AMReX, we are primarily concerned with enabling structured-grid
 computations. A key aspect of this is the use of “grow” cells
 around the “valid box” of cells over which we wish to apply stencil operations.
@@ -370,6 +361,8 @@ data containers that allow us to separate the steps of data preparation
 (including communication, interpolation, or other complex manipulation)
 from stencil application. The steps that are required to fill grow cells
 depends on where the cells “live” in the computational domain.</p>
+<section id="boundaries-between-grids-and-levels">
+<h3>Boundaries Between Grids and Levels<a class="headerlink" href="#boundaries-between-grids-and-levels" title="Permalink to this headline">¶</a></h3>
 <p>Most of our state data is cell-centered, and often the grow cells are
 as well. When the cells lie directly over cells of a neighboring box
 at the same AMR refinement level, these are “fine-fine” cells, and are
@@ -396,6 +389,9 @@ fine values created is equal to the coarse value from which they came.
 (This wouldn’t be the case with straight linear interpolation, for
 example.) A number of interpolators are provided with AMReX and
 user-customizable ones can be added on the fly.</p>
+</section>
+<section id="physical-boundaries">
+<span id="sec-physicalbcs"></span><h3>Physical Boundaries<a class="headerlink" href="#physical-boundaries" title="Permalink to this headline">¶</a></h3>
 <p>The last type of grow cell exists at physical boundaries. These are special for
 a couple of reasons. First, the user must explicitly specify how they are to be
 filled, consistent with the problem being run. AMReX provides a number of
@@ -418,7 +414,7 @@ differential operators throughout IAMR are aware of the special boundaries
 that are Dirichlet and wall-centered, and the stencils are adjusted accordingly.</p>
 <p>For convenience, IAMR provides a limited set of mappings from a physics-based boundary condition
 specification to a mathematical one that the code can apply. This set can be extended
-by adjusting the corresponding translations in NS_BC.H, but, by default, includes
+by adjusting the corresponding translations in <code class="docutils literal notranslate"><span class="pre">NS_BC.H</span></code>, but, by default, includes
 (See AMReX/Src/Base/AMReX_BC_TYPES.H for more detail):</p>
 <ul class="simple">
 <li><p><em>Outflow</em>:</p>
@@ -453,14 +449,15 @@ by adjusting the corresponding translations in NS_BC.H, but, by default, include
 <li><p>REFLECT_ODD: <span class="math notranslate nohighlight">\(F(-n) = -F(n)\)</span> true reflection from interior cells</p></li>
 </ul>
 </section>
+</section>
 <section id="derived-variables">
-<h1>Derived Variables<a class="headerlink" href="#derived-variables" title="Permalink to this headline">¶</a></h1>
+<h2>Derived Variables<a class="headerlink" href="#derived-variables" title="Permalink to this headline">¶</a></h2>
 <p>IAMR has the ability to created new variables derived from the state variables.
 A few derived variables are provided with IAMR, which can be used as examples for
 creating user defined derived variables.
 Users create derived variables by adding a function to create them in
 NS_derive.H and NS_derive.cpp, and then adding the variable to the
-derive_lst in NS_setup.cpp.</p>
+derive_lst in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>.</p>
 <p>Access to the derived variable is through one of two amrex:AmrLevel functions
 (which are inherited by NavierStokesBase and NavierStokes):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/**</span>
@@ -493,6 +490,9 @@ A multifab filled with the magnitude of the vorticity can be obtained via</p>
 <span class="n">vort</span><span class="o">.</span><span class="n">reset</span><span class="p">();</span>
 </pre></div>
 </div>
+</section>
+<section id="the-fillpatchiterator">
+<h2>The FillPatchIterator<a class="headerlink" href="#the-fillpatchiterator" title="Permalink to this headline">¶</a></h2>
 <p>A FillPatchIterator is a AMReX object tasked with the job of
 filling rectangular patches of state data, possibly including grow cells,
 and, if so, utilizing all the metadata discussed above that is provided by
@@ -506,7 +506,7 @@ directly modify the underlying state data. In the code, if the state
 is modified (e.g., via an advective “time advance”, the new data
 must be copied explicitly back into the StateData containers.</p>
 <p>Use of FillPatchIterator as an iterator has been depreciated in favor
-of MFIter, which supports tiling (see section <a class="reference internal" href="Parallel.html#chap-parallel"><span class="std std-ref">Parallelization</span></a>).
+of MFIter, which supports tiling (see section <a class="reference internal" href="#chap-parallel"><span class="std std-ref">Parallelization</span></a>).
 However, IAMR continues to use
 FillPatchIterator for creating temporaries with filled grow cells.</p>
 <p>For example, the following code demonstrates the calling sequence to
@@ -533,8 +533,313 @@ positive integer (i.e., that the grow region can extend over an arbitrary
 number of successively coarser AMR levels), this key operation can hide an
 enormous amount of code and algorithm complexity.</p>
 </section>
+<section id="parallelization">
+<span id="chap-parallel"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline">¶</a></h2>
+<p>AMReX uses a hybrid MPI + X approach to parallelism,
+where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
+The basic idea is that MPI is used to distribute individual boxes across
+nodes while X is used to distribute the work in local boxes
+within a node. The OpenMP approach in AMReX is optionally
+based on <em>tiling</em> the box-based data structures. Both the tiling and
+non-tiling approaches to work distribution are discussed below. Also see
+the discussion of tiling in AMReX’s documentation, <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter" title="(in amrex v21.08-dev)"><span>MFIter and Tiling</span></a>.</p>
+<section id="amrexs-non-tiling-approach">
+<h3>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Permalink to this headline">¶</a></h3>
+<p>At the highest abstraction level, we have MultiFab (mulitple
+FArrayBoxes). A MultiFab contains an array of Boxes (a Box contains integers specifying the index space it
+covers), including Boxes owned by other processors for the
+purpose of communication, an array of MPI ranks specifying which MPI
+processor owns each Box, and an array of pointers to FArrayBoxes owned by this MPI processor.
+A typical usage of MultiFab is as follows,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">MFIter</span> <span class="n">mfi</span><span class="p">(</span><span class="n">mf</span><span class="p">);</span> <span class="n">mfi</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">mfi</span><span class="p">)</span> <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="n">boxes</span>
+<span class="p">{</span>
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">the</span> <span class="n">index</span> <span class="n">space</span> <span class="n">of</span> <span class="n">this</span> <span class="n">iteration</span>
+  <span class="n">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">box</span> <span class="o">=</span> <span class="n">mfi</span><span class="o">.</span><span class="n">validbox</span><span class="p">();</span>
+
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">a</span> <span class="n">reference</span> <span class="n">to</span> <span class="n">mf</span><span class="s1">&#39;s data as a multidimensional array</span>
+  <span class="n">auto</span><span class="o">&amp;</span> <span class="n">data</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mfi</span><span class="p">);</span>
+
+  <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="s2">&quot;box&quot;</span> <span class="n">to</span> <span class="n">update</span> <span class="n">data</span><span class="o">.</span>
+  <span class="o">//</span> <span class="n">On</span> <span class="n">CPU</span><span class="o">/</span><span class="n">GPU</span> <span class="n">systems</span><span class="p">,</span> <span class="n">this</span> <span class="n">loop</span> <span class="n">executes</span> <span class="n">on</span> <span class="n">the</span> <span class="n">GPU</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>A few comments about this code</p>
+<ul class="simple">
+<li><p>Here the iterator, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span></code>, will perform the loop only over the
+boxes that are local to the MPI task. If there are 3 boxes on the
+processor, then this loop has 3 iterations.</p></li>
+<li><p>box as returned from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">validbox</span></span><span class="punctuation"><span class="pre">()</span></span></code> does not include
+ghost cells. We can get the indices of the valid zones as box.loVect and box.hiVect.</p></li>
+</ul>
+</section>
+<section id="amrexs-tiling-approach">
+<h3>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Permalink to this headline">¶</a></h3>
+<p>There are two types of tiling that people discuss. In <em>logical
+tiling</em>, the data storage in memory is unchanged from how we do things
+now in pure MPI. In a given box, the data region is stored
+contiguously). But when we loop in OpenMP over a box, the tiling
+changes how we loop over the data. The alternative is called <em>separate tiling</em>—here the data storage in memory itself is changed
+to reflect how the tiling will be performed. This is not considered
+in AMReX.</p>
+<p>In our logical tiling approach, a box is logically split into tiles,
+and a MFIter loops over each tile in each box. Note that the
+non-tiling iteration approach can be considered as a special case of
+tiling with the tile size equal to the box size.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">bool</span> <span class="n">tiling</span> <span class="o">=</span> <span class="n">true</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="n">MFIter</span> <span class="n">mfi</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span><span class="n">tiling</span><span class="p">);</span> <span class="n">mfi</span><span class="o">.</span><span class="n">isValid</span><span class="p">();</span> <span class="o">++</span><span class="n">mfi</span><span class="p">)</span> <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="n">tiles</span>
+<span class="p">{</span>
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">the</span> <span class="n">index</span> <span class="n">space</span> <span class="n">of</span> <span class="n">this</span> <span class="n">iteration</span>
+  <span class="n">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">box</span> <span class="o">=</span> <span class="n">mfi</span><span class="o">.</span><span class="n">tilebox</span><span class="p">();</span>
+
+  <span class="o">//</span> <span class="n">Get</span> <span class="n">a</span> <span class="n">reference</span> <span class="n">to</span> <span class="n">mf</span><span class="s1">&#39;s data as a multidimensional array</span>
+  <span class="n">auto</span><span class="o">&amp;</span> <span class="n">data</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mfi</span><span class="p">);</span>
+
+  <span class="o">//</span> <span class="n">Loop</span> <span class="n">over</span> <span class="s2">&quot;box&quot;</span> <span class="n">to</span> <span class="n">update</span> <span class="n">data</span><span class="o">.</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that the code is almost identical to the one with the non-tiling approach.
+Some comments:</p>
+<ul>
+<li><p>The iterator now takes an extra argument to turn on tiling
+(set to true). There is another interface fo MFIter
+that can take an IntVect that explicitly gives the tile size
+in each coordinate direction.</p>
+<p>If we don’t explictly specify the tile size at the loop, then the
+runtime parameter <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span></code> can be used to set it
+globally.</p>
+</li>
+<li><p><code class="code cpp c++ docutils literal notranslate"><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">validBox</span></span><span class="punctuation"><span class="pre">()</span></span></code> has the same meaning as in the non-tile approach,
+so we don’t use it. Instead, we use <code class="code cpp c++ docutils literal notranslate"><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">tilebox</span></span><span class="punctuation"><span class="pre">()</span></span></code> to get the
+Box (and corresponding lo and hi) for the <em>current tile</em>, not the entire data region.</p></li>
+</ul>
+<p>Let us consider an example. Suppose there are four boxes:</p>
+<figure class="align-default" id="id1">
+<img alt="A simple domain showing 4 Boxes labeled 0–3, and their tiling regions (dotted lines)" src="_images/domain-tile.png" />
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Boxes labeled 0–3, and their tiling regions (dotted lines)</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The first box is divided into 4 logical tiles, the second and third
+are divided into 2 tiles each (because they are small), and the fourth
+into 4 tiles. So there are 12 tiles in total. The difference between
+the tiling and non-tiling version are then:</p>
+<ul class="simple">
+<li><p>In the tiling version,
+the loop body will be run 12 times. Note that <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">tilebox</span></span></code> is
+different for each tile, whereas <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fab</span></span></code> might be referencing the
+same object if the tiles belong to the same box.</p></li>
+<li><p>In the non-tiling
+version (by constructing MFIter without the optional second
+argument or setting to false), the loop body will be run 4 times
+because there are four boxes, and a call to <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">tilebox</span></span><span class="punctuation"><span class="pre">()</span></span></code> will
+return the traditional validbox. The non-tiling case is
+essentially having one tile per box.</p></li>
+</ul>
+<p>Tiling provides us the opportunity of a coarse-grained approach for
+OpenMP. Threading can be turned on by inserting the following line
+above the for (MFIter…) line.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#pragma omp parallel</span>
+</pre></div>
+</div>
+<p>Assuming four threads are used in the above example, thread 0 will
+work on 3 tiles from the first box, thread 1 on 1 tile from the first
+box and 2 tiles from the second box, and so forth. Note that
+OpenMP can be used even when tiling is turned off. In that case, the
+OpenMP granularity is at the box level (and good performance would need
+many boxes per MPI task).</p>
+<p>While it is possible that, independent of whether or not tiling is on, OpenMP
+threading could also be started within the function/loop called inside the
+MFIter loop, rather than at the MFIter loop level, this
+is not the approach taken in IAMR.</p>
+<p>The tile size for the three spatial dimensions can be set by a
+parameter, e.g., <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">1024000</span></span> <span class="literal number integer"><span class="pre">8</span></span> <span class="literal number integer"><span class="pre">8</span></span></code>. A
+huge number like 1024000 will turn off tiling in that direction.
+As noted above, the MFIter constructor can also take an explicit
+tile size: <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MFIter</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">mf</span></span><span class="punctuation"><span class="pre">,</span></span><span class="name"><span class="pre">IntVect</span></span><span class="punctuation"><span class="pre">(</span></span><span class="literal number integer"><span class="pre">128</span></span><span class="punctuation"><span class="pre">,</span></span><span class="literal number integer"><span class="pre">16</span></span><span class="punctuation"><span class="pre">,</span></span><span class="literal number integer"><span class="pre">32</span></span><span class="punctuation"><span class="pre">)))</span></span></code>.</p>
+<p>Note that tiling can naturally transition from all threads working
+on a single box to each thread working on a separate box as the boxes
+coarsen (e.g., in multigrid).</p>
+<p>The MFIter class provides some other useful functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mfi</span><span class="o">.</span><span class="n">validbox</span><span class="p">()</span>       <span class="p">:</span> <span class="n">The</span> <span class="n">same</span> <span class="n">meaning</span> <span class="k">as</span> <span class="n">before</span> <span class="n">independent</span> <span class="n">of</span> <span class="n">tiling</span><span class="o">.</span>
+<span class="n">mfi</span><span class="o">.</span><span class="n">growntilebox</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span> <span class="n">A</span> <span class="n">grown</span> <span class="n">tile</span> <span class="n">box</span> <span class="n">that</span> <span class="n">includes</span> <span class="n">ghost</span> <span class="n">cells</span> <span class="n">at</span> <span class="n">box</span>
+                       <span class="n">boundaries</span> <span class="n">only</span><span class="o">.</span>  <span class="n">Thus</span> <span class="n">the</span> <span class="n">returned</span> <span class="n">boxes</span> <span class="k">for</span> <span class="n">a</span>
+                       <span class="n">Fab</span> <span class="n">are</span> <span class="n">non</span><span class="o">-</span><span class="n">overlapping</span><span class="o">.</span>
+<span class="n">mfi</span><span class="o">.</span><span class="n">nodaltilebox</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span> <span class="n">Returns</span> <span class="n">non</span><span class="o">-</span><span class="n">overlapping</span> <span class="n">edge</span><span class="o">-</span><span class="nb">type</span> <span class="n">boxes</span> <span class="k">for</span> <span class="n">tiles</span><span class="o">.</span>
+                       <span class="n">The</span> <span class="n">argument</span> <span class="ow">is</span> <span class="k">for</span> <span class="n">direction</span><span class="o">.</span>
+<span class="n">mfi</span><span class="o">.</span><span class="n">fabbox</span><span class="p">()</span>         <span class="p">:</span> <span class="n">Same</span> <span class="k">as</span> <span class="n">mf</span><span class="p">[</span><span class="n">mfi</span><span class="p">]</span><span class="o">.</span><span class="n">box</span><span class="p">()</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Finally we note that tiling is not always desired or better. This
+traditional fine-grained approach coupled with dynamic scheduling is
+more appropriate for work with unbalanced loads, such as chemistry
+burning in cells by an implicit solver. Tiling can also create extra
+work in the ghost cells of tiles.</p>
+</section>
+<section id="practical-details-in-working-with-tiling">
+<h3>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Permalink to this headline">¶</a></h3>
+<p>It is the responsibility of the coder to make sure that the routines within
+a tiled region are safe to use with OpenMP. In particular, note that:</p>
+<ul class="simple">
+<li><p>tile boxes are non-overlapping</p></li>
+<li><p>the union of tile boxes completely cover the valid region of the fab</p></li>
+<li><p>Consider working with a node-centered MultiFab, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">s_nd</span></span></code>, and a
+cell-centered MultiFab, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">s_cc</span></span></code>:</p>
+<ul>
+<li><p>with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">s_cc</span></span><span class="punctuation"><span class="pre">)</span></span></code>, the tiles are based on the cell-centered
+index space. If you have an <span class="math notranslate nohighlight">\(8\times 8\)</span> box, then and 4 tiles, then
+your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow
+7\)</span>.</p></li>
+<li><p>with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">s_nd</span></span><span class="punctuation"><span class="pre">)</span></span></code>, the tiles are based on nodal indices,
+so your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow 8\)</span>.</p></li>
+</ul>
+</li>
+<li><p>When updating routines to work with tiling, we need to understand
+the distinction between the index-space of the entire box (which
+corresponds to the memory layout) and the index-space of the tile.
+Inside the MFIter loop, make sure to only update over
+the tile region, not for the entire box.</p></li>
+</ul>
+</section>
+</section>
+<section id="particles">
+<h2>Particles<a class="headerlink" href="#particles" title="Permalink to this headline">¶</a></h2>
+<p>IAMR has the ability to include data-parallel particle simulations.
+Our particles can interact with data defined on a (possibly adaptive)
+block-structured hierarchy of meshes. Example applications include
+Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert
+drag forces onto a fluid, such as in multi-phase flow calculations.</p>
+<p>Within IAMR, we provide an example of passively advected tracer particles in
+<code class="docutils literal notranslate"><span class="pre">IAMR/Exec/run_2d_particles</span></code>.</p>
+<p>We provide a brief introduction to using particles in IAMR in <a class="reference internal" href="SetupAndRunning.html#chap-setupandrunning"><span class="std std-ref">Creating and Running Your Own Problem</span></a>.
+For more detailed information
+on particles, see AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Particle_Chapter.html#chap-particles" title="(in amrex v21.08-dev)"><span>Particles</span></a>.</p>
+</section>
+<section id="gridding-and-load-balancing">
+<h2>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this headline">¶</a></h2>
+<p>IAMR has a great deal of flexibility when it comes to how to decompose the
+computational domain into individual rectangular grids, and how to distribute
+those grids to MPI ranks.  There can be grids of different sizes,
+more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.
+IAMR relies on AMReX for the implementation. For more information, please see AMReX’s documentation,
+found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v21.08-dev)"><span>Gridding and Load Balancing</span></a>.</p>
+<p>See <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a> and <a class="reference internal" href="RunningProblems.html#chap-inputsloadbalancing"><span class="std std-ref">Gridding and Load Balancing Inputs</span></a> for how grids are created,
+i.e. how the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> on which
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> will be built is defined at each level.</p>
+<p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v21.08-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing
+grids to MPI ranks, i.e. defining the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code> with which
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> at that level will be built.</p>
+<p>When running on multicore machines with OpenMP, we can also control the distribution of
+work by setting the size of grid tiles (by defining <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span></code>,
+see <a class="reference internal" href="RunningProblems.html#sec-tilinginputs"><span class="std std-ref">Tiling</span></a>).
+We can also specify the strategy for assigning tiles to OpenMP threads.
+See <a class="reference internal" href="#chap-parallel"><span class="std std-ref">Parallelization</span></a> and AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter-tiling" title="(in amrex v21.08-dev)"><span>MFIter with Tiling</span></a>) for more about tiling.</p>
+</section>
+<section id="amr-grids">
+<span id="sec-gridcreation"></span><h2>AMR Grids<a class="headerlink" href="#amr-grids" title="Permalink to this headline">¶</a></h2>
+<p>Our approach to adaptive refinement in IAMR uses a nested
+hierarchy of logically-rectangular grids with simultaneous refinement
+of the grids in both space and time. The integration algorithm on the grid hierarchy
+is a recursive procedure in which coarse grids are advanced in time,
+fine grids are advanced multiple steps to reach the same time
+as the coarse grids and the data at different levels are then synchronized.</p>
+<p>During the regridding step, increasingly finer grids
+are recursively embedded in coarse grids until the solution is
+sufficiently resolved. An error estimation procedure based on
+user-specified criteria (described in <a class="reference internal" href="#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a>)
+evaluates where additional refinement is needed
+and grid generation procedures dynamically create or
+remove rectangular fine grid patches as resolution requirements change.</p>
+<p>The dynamic creation and destruction of grid levels is a fundamental part of IAMR’s capabilities.
+At regular intervals (set by the user), each Amr level that is not the finest allowed for the run
+will invoke a “regrid” operation. When invoked, a set of error tagging functions is traversed. For each,
+a field specific to that function is derived from the state over the level, and passed through a kernel
+that “set”’s or “clear”’s a flag on each cell.
+The field and function for each error tagging quantity is
+identified in the setup phase of the code (in NS_error.cpp).
+Each function adds or removes to the list of cells tagged for refinement.
+This may then be extended if amr.n_error_buf <span class="math notranslate nohighlight">\(&gt; 0\)</span> to a certain number
+of cells beyond these tagged cells.
+This final list of tagged
+cells is sent to a grid generation routine, which uses the Berger-Rigoutsos algorithm to create rectangular grids
+which will define a new finer level (or set of levels). State data is filled over these new grids, copying where
+possible, and interpolating from coarser level when no fine data is available. Once this process is complete,
+the existing Amr level(s) is removed, the new one is inserted into the hierarchy, and the time integration
+continues.</p>
+<p>Further details on grid generation are in AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v21.08-dev)"><span>Grid Creation</span></a>.</p>
+<section id="tagging-for-refinement">
+<span id="sec-tagging"></span><h3>Tagging for Refinement<a class="headerlink" href="#tagging-for-refinement" title="Permalink to this headline">¶</a></h3>
+<p>This section describes the process
+by which cells are tagged during regridding, and describes how to add customized tagging criteria.
+IAMR provides two methods for creating error estimation functions: dynamic generation and explicit or
+hard-coded. First dynamic generation is discussed, followed by how to explicitly define error functions.</p>
+<section id="dynamically-generated-tagging-functions">
+<h4>Dynamically generated tagging functions<a class="headerlink" href="#dynamically-generated-tagging-functions" title="Permalink to this headline">¶</a></h4>
+<p>Dynamically created error functions are based on runtime data specified in the
+inputs (ParmParse) data.
+These dynamically generated error functions can tag a specified region of the domain and/or test on a field
+that is a state variable
+or derived variable defined in NS_derive.cpp and included in the derive_lst in NS_setup.cpp.
+Available tests include</p>
+<ul class="simple">
+<li><p>“greater_than”: <span class="math notranslate nohighlight">\(field &gt;= threshold\)</span></p></li>
+<li><p>“less_than”: <span class="math notranslate nohighlight">\(field &lt;= threshold\)</span></p></li>
+<li><p>“adjacent_difference_greater”: <span class="math notranslate nohighlight">\(max( | \text{difference between any nearest-neighbor cell} | ) &gt;= threshold\)</span></p></li>
+<li><p>“vorticity”: <span class="math notranslate nohighlight">\(|vorticity| &gt;= 2^{level} * threshold\)</span></p></li>
+</ul>
+<p>The following example portions of ParmParse’d input files demonstrate the usage of this feature.
+This first example tags all cells inside the region ((.25,.25)(.75,.75)):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">refinement_indicators</span> <span class="o">=</span> <span class="n">box</span>
+
+<span class="n">amr</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">in_box_lo</span> <span class="o">=</span> <span class="o">.</span><span class="mi">25</span> <span class="o">.</span><span class="mi">25</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">in_box_hi</span> <span class="o">=</span> <span class="o">.</span><span class="mi">75</span> <span class="o">.</span><span class="mi">75</span>
+</pre></div>
+</div>
+<p>The next example adds three user-named criteria –
+hi_rho: cells with density greater than 1 on level 0, and greater than 2 on
+level 1 and higher;
+lo_temp: cells with T less than 450K that are inside the region ((.25,.25)(.75,.75));
+and Tdiff: cells having a temperature difference of 20K
+or more from that of their
+immediate neighbor. The first will trigger up to Amr level 3, the second only to level 1, and the third to level 2.
+The third will be active only when the problem time is between 0.001 and 0.002 seconds.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">refinement_indicators</span> <span class="o">=</span> <span class="n">hi_rho</span> <span class="n">lo_temp</span> <span class="n">Tdiff</span>
+
+<span class="n">amr</span><span class="o">.</span><span class="n">high_rho</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">hi_rho</span><span class="o">.</span><span class="n">value_greater</span> <span class="o">=</span> <span class="mf">1.</span> <span class="mf">2.</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">hi_rho</span><span class="o">.</span><span class="n">field_name</span> <span class="o">=</span> <span class="n">density</span>
+
+<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">value_less</span> <span class="o">=</span> <span class="mi">450</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">field_name</span> <span class="o">=</span> <span class="n">temp</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">in_box_lo</span> <span class="o">=</span> <span class="o">.</span><span class="mi">25</span> <span class="o">.</span><span class="mi">25</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">in_box_hi</span> <span class="o">=</span> <span class="o">.</span><span class="mi">75</span> <span class="o">.</span><span class="mi">75</span>
+
+<span class="n">amr</span><span class="o">.</span><span class="n">Tdiff</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">Tdiff</span><span class="o">.</span><span class="n">adjacent_difference_greater</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">Tdiff</span><span class="o">.</span><span class="n">field_name</span> <span class="o">=</span> <span class="n">temp</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">Tdiff</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="mf">0.001</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">Tdiff</span><span class="o">.</span><span class="n">end_name</span> <span class="o">=</span> <span class="mf">0.002</span>
+</pre></div>
+</div>
+<p>Note that these criteria can be modified between restarts of the code.
+By default, the new criteria will take effect at the next
+scheduled regrid operation. Alternatively, the user may restart with amr.regrid_on_restart = 1 in order to
+do a full (all-levels) regrid after reading the checkpoint data and before advancing any cells.</p>
+</section>
+<section id="explicitly-defined-tagging-functions">
+<h4>Explicitly defined tagging functions<a class="headerlink" href="#explicitly-defined-tagging-functions" title="Permalink to this headline">¶</a></h4>
+<p>Explicitly defined error estimation functions can be used either instead of or in addition to
+dynmaically generated funtions. These functions can be added to NavierStokes::errorEst() in
+NS_error.cpp. Any dynamically generated error functions will operate first.
+Please note that while CLEARing a tagged cell is possible, it is not reccomended as it
+may not have the desired effect.</p>
+</section>
+</section>
+</section>
 <section id="parallel-i-o">
-<h1>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Permalink to this headline">¶</a></h1>
+<h2>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Permalink to this headline">¶</a></h2>
 <p>Both checkpoint files and plotfiles are actually folders containing
 subfolders: one subfolder for each level of the AMR hierarchy.
 The fundamental data structure we read/write to disk is a MultiFab,
@@ -569,6 +874,7 @@ value -1 forces <span class="math notranslate nohighlight">\(N\)</span> to the n
 running, which means that each CPU writes to a unique file, which can
 create a very large number of files, which can lead to inode issues.</p>
 </section>
+</section>
 
 
            </div>
@@ -576,8 +882,8 @@ create a very large number of files, which can lead to inode issues.</p>
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="Visualization_Chapter.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="Software_Chapter.html" class="btn btn-neutral float-left" title="Software" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Debugging.html" class="btn btn-neutral float-right" title="Debugging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="TimeStep.html" class="btn btn-neutral float-left" title="Time Step – MOL" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
