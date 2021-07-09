@@ -1,5 +1,5 @@
 
-.. _Chap:Amr:
+.. _sec:gridCreation:
 
 AMR
 =====
@@ -14,7 +14,7 @@ as the coarse grids and the data at different levels are then synchronized.
 During the regridding step, increasingly finer grids
 are recursively embedded in coarse grids until the solution is
 sufficiently resolved. An error estimation procedure based on
-user-specified criteria (described in :ref:`Tagging for Refinement`)
+user-specified criteria (described in :ref:`sec:tagging`)
 evaluates where additional refinement is needed
 and grid generation procedures dynamically create or
 remove rectangular fine grid patches as resolution requirements change.
@@ -25,9 +25,9 @@ will invoke a “regrid” operation. When invoked, a set of error tagging funct
 a field specific to that function is derived from the state over the level, and passed through a kernel
 that “set”’s or “clear”’s a flag on each cell.
 The field and function for each error tagging quantity is
-identified in the setup phase of the code (in NS\_error.cpp).
+identified in the setup phase of the code (in NS_error.cpp).
 Each function adds or removes to the list of cells tagged for refinement.
-This may then be extended if amr.n\_error\_buf :math:`> 0` to a certain number
+This may then be extended if amr.n_error_buf :math:`> 0` to a certain number
 of cells beyond these tagged cells.
 This final list of tagged
 cells is sent to a grid generation routine, which uses the Berger-Rigoutsos algorithm to create rectangular grids
@@ -36,6 +36,9 @@ possible, and interpolating from coarser level when no fine data is available. O
 the existing Amr level(s) is removed, the new one is inserted into the hierarchy, and the time integration
 continues.
 
+Further details on grid generation are in AMReX's documentation: :ref:`amrex:sec:grid_creation`.
+
+.. _sec:tagging:
 
 Tagging for Refinement
 ---------------------------------------
@@ -52,7 +55,7 @@ Dynamically created error functions are based on runtime data specified in the
 inputs (ParmParse) data.
 These dynamically generated error functions can tag a specified region of the domain and/or test on a field
 that is a state variable
-or derived variable defined in NS\_derive.cpp and included in the derive\_lst in NS\_setup.cpp.
+or derived variable defined in NS_derive.cpp and included in the derive_lst in NS_setup.cpp.
 Available tests include
 
 -  “greater\_than”: :math:`field >= threshold`
@@ -104,7 +107,7 @@ The third will be active only when the problem time is between 0.001 and 0.002 s
 
 Note that these criteria can be modified between restarts of the code.
 By default, the new criteria will take effect at the next
-scheduled regrid operation. Alternatively, the user may restart with amr.regrid\_on\_restart = 1 in order to
+scheduled regrid operation. Alternatively, the user may restart with amr.regrid_on_restart = 1 in order to
 do a full (all-levels) regrid after reading the checkpoint data and before advancing any cells.
 
 Explicitly defined tagging functions
@@ -112,6 +115,6 @@ Explicitly defined tagging functions
 
 Explicitly defined error estimation functions can be used either instead of or in addition to
 dynmaically generated funtions. These functions can be added to NavierStokes::errorEst() in
-NS\_error.cpp. Any dynamically generated error functions will operate first.
+NS_error.cpp. Any dynamically generated error functions will operate first.
 Please note that while CLEARing a tagged cell is possible, it is not reccomended as it
 may not have the desired effect.
