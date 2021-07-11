@@ -619,10 +619,12 @@ NavierStokesBase::advance_setup (Real /*time*/,
     //
     if (level < finest_level)
     {
+      int ng_sync = (redistribution_type == "StateRedist" ) ? nghost_state() : 1;
+
         if (Vsync.empty())
-            Vsync.define(grids,dmap,BL_SPACEDIM,1,MFInfo(),Factory());
+	    Vsync.define(grids,dmap,BL_SPACEDIM,ng_sync,MFInfo(),Factory());
         if (Ssync.empty())
-	  Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,1,MFInfo(),Factory());
+	    Ssync.define(grids,dmap,NUM_STATE-BL_SPACEDIM,ng_sync,MFInfo(),Factory());
         Vsync.setVal(0);
         Ssync.setVal(0);
     }
@@ -2551,8 +2553,10 @@ NavierStokesBase::restart (Amr&          papa,
 
     if (level < parent->finestLevel())
     {
-        Vsync.define(grids,dmap,AMREX_SPACEDIM,1,MFInfo(),Factory());
-        Ssync.define(grids,dmap,NUM_STATE-AMREX_SPACEDIM,1,MFInfo(),Factory());
+        int ng_sync = (redistribution_type == "StateRedist" ) ? nghost_state() : 1;
+
+	Vsync.define(grids,dmap,AMREX_SPACEDIM,ng_sync,MFInfo(),Factory());
+        Ssync.define(grids,dmap,NUM_STATE-AMREX_SPACEDIM,ng_sync,MFInfo(),Factory());
     }
 
     diffusion = new Diffusion(parent, this,
