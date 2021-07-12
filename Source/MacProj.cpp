@@ -488,7 +488,7 @@ MacProj::mac_sync_solve (int       level,
     // Compute Ucorr, including filling ghost cells for EB
     //
     mlmg_mac_sync_solve(parent,*phys_bc, rho_math_bc, level, mac_sync_tol, mac_abs_tol,
-                        rhs_scale, area, volume, rho_half, Rhs, mac_sync_phi,
+                        rhs_scale, rho_half, Rhs, mac_sync_phi,
                         Ucorr, verbose);
 
     if (verbose)

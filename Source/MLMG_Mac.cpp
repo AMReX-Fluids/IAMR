@@ -194,7 +194,6 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
 void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
                           const BCRec& rho_math_bc,
                           int level, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
-                          const MultiFab* area, const MultiFab& volume,
                           const MultiFab& rho, MultiFab& Rhs,
                           MultiFab* mac_phi, Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
 			  int verbose)
@@ -347,6 +346,10 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
       Ucorr[idim]->negate();
 
 #ifdef AMREX_USE_EB
+      //
+      // FIXME - there is nothing specifically EB about this. Why is it only
+      // done for EB? It should be done for all, or it doesn't need to be done.
+      //
       // Set all ghost nodes to zero and then swap ghost nodes with neighboring boxes
       // This will set correction to zero at a box boundary unless the boundary is
       // of periodic type or it is shared with another box
