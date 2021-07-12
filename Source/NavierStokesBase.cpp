@@ -619,7 +619,11 @@ NavierStokesBase::advance_setup (Real /*time*/,
     //
     if (level < finest_level)
     {
-      int ng_sync = (redistribution_type == "StateRedist" ) ? nghost_state() : 1;
+#ifdef AMREX_USE_EB
+        int ng_sync = (redistribution_type == "StateRedist" ) ? nghost_state() : 1;
+#else
+	int ng_sync = 1;
+#endif
 
         if (Vsync.empty())
 	    Vsync.define(grids,dmap,BL_SPACEDIM,ng_sync,MFInfo(),Factory());
@@ -2553,7 +2557,11 @@ NavierStokesBase::restart (Amr&          papa,
 
     if (level < parent->finestLevel())
     {
+#ifdef AMREX_USE_EB
         int ng_sync = (redistribution_type == "StateRedist" ) ? nghost_state() : 1;
+#else
+	int ng_sync = 1;
+#endif
 
 	Vsync.define(grids,dmap,AMREX_SPACEDIM,ng_sync,MFInfo(),Factory());
         Ssync.define(grids,dmap,NUM_STATE-AMREX_SPACEDIM,ng_sync,MFInfo(),Factory());
