@@ -154,9 +154,14 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         umac[idim]= &(u_mac[idim]);
 
-    // phi is always considered at cell centers.
-    // This won't be an issue because  we won't use phi directly
-    // and EB is always, by construction, far from fine/coarse interfaces
+    //
+    // To use phi on CellCentroids, must also call
+    // macproj.get_linop().setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
+    // or
+    // macproj.get_linop().setEBHomogDirichlet (int amrlev, const MultiFab& beta)
+    //
+    // Location information is not used for non-EB
+    //
     MacProjector macproj( {umac}, MLMG::Location::FaceCentroid, // Location of umac (face center vs centroid)
                           {GetArrOfConstPtrs(bcoefs)}, MLMG::Location::FaceCentroid,  // Location of beta (face center vs centroid)
                           MLMG::Location::CellCenter,           // Location of solution variable phi (cell center vs centroid)
@@ -173,7 +178,7 @@ void mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_
     macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
     if (level > 0)
     {
-        macproj.getLinOp().setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
+        macproj.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
     }
     macproj.setLevelBC(0, mac_phi);
 
@@ -266,79 +271,53 @@ void mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
 
-    // MacProjector is not what we want for sync
-    // takes Face-centered velocity and interally computes div, but already have div
+    //
+    // null umac will prevent MacProject from computing div(umac)
+    // and adding it to RHS
+    //
+    Array<MultiFab*,AMREX_SPACEDIM>  umac;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      umac[idim]= nullptr;
 
-#ifdef AMREX_USE_EB
-    const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>((parent->getLevel(level)).Factory());
-    MLEBABecLap mlabec({geom}, {ba}, {dm}, info, {ebf});
-#else
-    MLABecLaplacian mlabec({geom}, {ba}, {dm}, info);
-#endif
+    Rhs.negate();
 
+    //
+    // To use phi on CellCentroids, must also call
+    // macproj.get_linop().setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
+    // or
+    // macproj.get_linop().setEBHomogDirichlet (int amrlev, const MultiFab& beta)
+    //
+    // Location information is not used for non-EB
+    //
+    MacProjector macproj( {umac}, MLMG::Location::FaceCentroid, // Location of umac (face center vs centroid)
+                          {GetArrOfConstPtrs(bcoefs)}, MLMG::Location::FaceCentroid,  // Location of beta (face center vs centroid)
+                          MLMG::Location::CellCenter,           // Location of solution variable phi (cell center vs centroid)
+                          {geom}, info,
+                          {&Rhs}, MLMG::Location::CellCentroid);  // Location of RHS (cell center vs centroid)
+
+    //
+    // Set BCs
+    //
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
     set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
 
-    mlabec.setDomainBC(mlmg_lobc, mlmg_hibc);
-    mlabec.setLevelBC(0, mac_phi);
-    mlabec.setScalars(0.0, 1.0);
-#ifdef AMREX_USE_EB
-    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs), MLMG::Location::FaceCentroid);
-#else
-    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoefs));
-#endif
+    macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
+    macproj.setLevelBC(0, mac_phi);
 
-    MLMG mlmg(mlabec);
-    // Set options
-    mlabec.setMaxOrder(max_order);
-    mlmg.setVerbose(verbose);
-    mlmg.setBottomVerbose(bottom_verbose);
-    mlmg.setMaxIter(maxiter);
-    mlmg.setBottomMaxIter(bottom_maxiter);
-    mlmg.setBottomTolerance(bottom_rtol);
-    mlmg.setBottomToleranceAbs(bottom_atol);
-    mlmg.setPreSmooth(num_pre_smooth);
-    mlmg.setPostSmooth(num_post_smooth);
+    // MacProj default max order is 3. Here we use a default of 4, so must
+    // call setMaxOrder to overwrite MacProj default.
+    macproj.getLinOp().setMaxOrder(max_order);
     if ( max_fmg_iter > -1 )
-      mlmg.setMaxFmgIter(max_fmg_iter);
+      macproj.getMLMG().setMaxFmgIter(max_fmg_iter);
 
-    if (bottom_solver == "smoother")
-    {
-        mlmg.setBottomSolver(MLMG::BottomSolver::smoother);
-    }
-    else if (bottom_solver == "bicg")
-    {
-        mlmg.setBottomSolver(MLMG::BottomSolver::bicgstab);
-    }
-    else if (bottom_solver == "cg")
-    {
-        mlmg.setBottomSolver(MLMG::BottomSolver::cg);
-    }
-    else if (bottom_solver == "bicgcg")
-    {
-        mlmg.setBottomSolver(MLMG::BottomSolver::bicgcg);
-    }
-    else if (bottom_solver == "cgbicg")
-    {
-        mlmg.setBottomSolver(MLMG::BottomSolver::cgbicg);
-    }
-    else if (bottom_solver == "hypre")
-    {
-#ifdef AMREX_USE_HYPRE
-        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-#else
-        amrex::Abort("AMReX was not built with HYPRE support");
-#endif
-    }
-
-    Rhs.negate();
-
-    mlmg.setFinalFillBC(true);
-    mlmg.solve({mac_phi}, {&Rhs}, mac_tol, mac_abs_tol);
+    //
+    // Perform projection
+    //
+    macproj.project({mac_phi}, mac_tol, mac_abs_tol);
 
     //Ucorr = fluxes = -B grad phi
-    mlmg.getFluxes({Ucorr}, MLMG::Location::FaceCentroid);
+    macproj.getFluxes({Ucorr}, {mac_phi}, MLMG::Location::FaceCentroid);
 
     for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
     {
