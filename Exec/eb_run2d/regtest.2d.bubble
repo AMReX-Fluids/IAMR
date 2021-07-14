@@ -49,7 +49,7 @@ amr.tracer.field_name = tracer
 amr.vorticity.vorticity_greater = 1.0
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 0 #2 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 # Interval (in number of level l timesteps) between regridding
 amr.regrid_int		= 2 
