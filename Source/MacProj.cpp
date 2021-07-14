@@ -414,7 +414,6 @@ MacProj::mac_sync_solve (int       level,
     const BoxArray& fine_boxes = LevelData[level+1]->boxArray();
     const NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab&     volume     = ns_level.Volume();
-    const MultiFab*     area       = ns_level.Area();
     //
     // Reusing storage here, since there should be no more need for the
     // values in mac_phi at this level and mac_sync_phi only need to last
@@ -481,8 +480,6 @@ MacProj::mac_sync_solve (int       level,
     // Now define edge centered coefficients and adjust RHS for MAC solve.
     //
     const Real rhs_scale = 2.0/dt;
-
-    MultiFab area_tmp[AMREX_SPACEDIM];
 
     //
     // Compute Ucorr, including filling ghost cells for EB
@@ -589,12 +586,6 @@ MacProj::mac_sync_compute (int                   level,
                 const int  sync_comp = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
                 MultiFab*  sync_ptr  = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
                 bool    is_velocity  = comp < AMREX_SPACEDIM ? true   : false;
-		// Using fetchBCArray seems a better option than this.
-		// Vector<BCRec> const& bcs  = comp < AMREX_SPACEDIM
-		// 				   ? ns_level.get_bcrec_velocity()
-		// 				   : ns_level.get_bcrec_scalars();
-		// // create a single element amrex::Vector
-		// Vector<BCRec> const& math_bcs= {bcs[sync_comp]};
 
 		BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
 						   ? ns_level.get_bcrec_velocity_d_ptr()
@@ -854,8 +845,6 @@ MacProj::mac_sync_compute (int                    level,
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom         = parent->Geom(level);
     NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
-
-    const int  nghost  = 0;
 
     const int  ncomp   = 1;         // Number of components to process at once
 
