@@ -23,13 +23,6 @@ CEXE_headers += OutFlowBC.H
 
 CEXE_headers += SyncRegister.H RegType.H
 
-#
-# Disconnect MacOperators for different mass continuity.
-#
-ifndef ATMOS_MACOP
-  CEXE_headers += MacOpMacDrivers.H
-endif
-
 CEXE_headers += iamr_constants.H
 
 CEXE_sources += NavierStokesBase.cpp Projection.cpp MacProj.cpp Diffusion.cpp
@@ -43,5 +36,5 @@ CEXE_headers += Projection.H MacProj.H Diffusion.H NavierStokesBase.H FluxBoxes.
 
 FEXE_headers += PROJECTION_F.H NAVIERSTOKES_F.H 
 
-CEXE_sources += MLMG_Mac.cpp NS_util.cpp
+CEXE_sources += NS_util.cpp
 CEXE_headers += NS_util.H

@@ -2,12 +2,10 @@
 #ifndef _MacProj_H_
 #define _MacProj_H_
 
-#include <AMReX_BC_TYPES.H>
-#include <AMReX_BCRec.H>
 #include <AMReX_Amr.H>
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
-// #include <NavierStokesBase.H>
+#include <AMReX_MLLinOp.H>
 
 
 //
@@ -91,6 +89,37 @@ public:
                            amrex::Real                   dt,
 			   bool                          update_fluxreg = true);
 
+    void mlmg_mac_level_solve (amrex::Amr* parent, const amrex::MultiFab* cphi,
+			       const amrex::BCRec& phys_bc,
+			       const amrex::BCRec& density_math_bc,
+			       int level, int Density,
+			       amrex::Real mac_tol, amrex::Real mac_abs_tol,
+			       amrex::Real rhs_scale,
+			       const amrex::MultiFab &S, amrex::MultiFab &Rhs,
+			       amrex::MultiFab *u_mac, amrex::MultiFab *mac_phi);
+
+    void mlmg_mac_sync_solve (amrex::Amr* parent, const amrex::BCRec& phys_bc,
+			      const amrex::BCRec& rho_math_bc,
+			      int level, amrex::Real mac_tol, amrex::Real mac_abs_tol,
+			      amrex::Real rhs_scale,
+			      const amrex::MultiFab& rho, amrex::MultiFab& Rhs,
+			      amrex::MultiFab* mac_phi,
+			      amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr);
+
+    void mlmg_mac_solve (amrex::Amr* parent, const amrex::MultiFab* cphi,
+			 const amrex::BCRec& phys_bc,
+			 const amrex::BCRec& density_math_bc,
+			 int level, amrex::Real mac_tol, amrex::Real mac_abs_tol,
+			 amrex::Real rhs_scale,
+			 const amrex::MultiFab &rho, amrex::MultiFab &Rhs,
+			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& u_mac,
+			 amrex::MultiFab *mac_phi,
+			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr);
+
+    void set_mac_solve_bc (amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
+			   amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
+			   const amrex::BCRec& phys_bc, const amrex::Geometry& geom);
+
     static void Initialize ();
     static void Finalize ();
 
@@ -136,6 +165,17 @@ public:
     static amrex::Real mac_sync_tol;
     static int  check_umac_periodicity;
     static int fix_mac_sync_rhs;
+
+    //
+    // Options for MacProjector
+    // NOTE: IAMR uses a different max_order default than amrex::MacProjector,
+    // which uses a default of 3
+    //
+    static int max_order;
+    static int agglomeration;
+    static int consolidation;
+    static int max_fmg_iter;
+
 };
 
 #endif
