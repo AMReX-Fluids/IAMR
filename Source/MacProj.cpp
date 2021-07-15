@@ -1,5 +1,4 @@
 
-
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
@@ -17,25 +16,10 @@
 #include <hydro_mol.H>
 
 
-
 //fixme, for writesingle level plotfile
 #include<AMReX_PlotFileUtil.H>
 
 using namespace amrex;
-
-#define DEF_LIMITS(fab,fabdat,fablo,fabhi)      \
-    const int* fablo = (fab).loVect();          \
-    const int* fabhi = (fab).hiVect();          \
-    Real* fabdat = (fab).dataPtr();
-
-#define DEF_CLIMITS(fab,fabdat,fablo,fabhi)     \
-    const int* fablo = (fab).loVect();          \
-    const int* fabhi = (fab).hiVect();          \
-    const Real* fabdat = (fab).dataPtr();
-
-#define DEF_BOX_LIMITS(box,boxlo,boxhi)         \
-    const int* boxlo = (box).loVect();          \
-    const int* boxhi = (box).hiVect();
 
 namespace
 {
@@ -328,7 +312,7 @@ MacProj::mac_project (int             level,
 
     MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
     mlmg_mac_level_solve(parent, cphi, *phys_bc, density_math_bc, level, Density, mac_tol, mac_abs_tol,
-                         rhs_scale, S, Rhs, u_mac, mac_phi, verbose);
+                         rhs_scale, S, Rhs, u_mac, mac_phi);
 
 
     Rhs.clear();
@@ -486,7 +470,7 @@ MacProj::mac_sync_solve (int       level,
     //
     mlmg_mac_sync_solve(parent,*phys_bc, rho_math_bc, level, mac_sync_tol, mac_abs_tol,
                         rhs_scale, rho_half, Rhs, mac_sync_phi,
-                        Ucorr, verbose);
+                        Ucorr);
 
     if (verbose)
     {
