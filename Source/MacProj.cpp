@@ -33,12 +33,10 @@ Real MacProj::mac_tol;
 Real MacProj::mac_abs_tol;
 Real MacProj::mac_sync_tol;
 int  MacProj::do_outflow_bcs;
-int  MacProj::fix_mac_sync_rhs;
 int  MacProj::check_umac_periodicity;
 
 namespace
 {
-    bool benchmarking;
     Real umac_periodic_test_Tol;
 }
 
@@ -49,14 +47,12 @@ MacProj::Initialize ()
     //
     // Set defaults here!!!
     //
-    benchmarking                    = false;
     umac_periodic_test_Tol          = 1.e-10;
     MacProj::verbose                = 0;
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
     MacProj::mac_sync_tol           = 1.0e-8;
     MacProj::do_outflow_bcs         = 1;
-    MacProj::fix_mac_sync_rhs       = 0;
     //
     // Only check umac periodicity when debugging.  Can be overridden on input.
     //
@@ -72,9 +68,7 @@ MacProj::Initialize ()
     pp.query("mac_tol",                mac_tol);
     pp.query("mac_abs_tol",            mac_abs_tol);
     pp.query("mac_sync_tol",           mac_sync_tol);
-    pp.query("benchmarking",           benchmarking);
     pp.query("do_outflow_bcs",         do_outflow_bcs);
-    pp.query("fix_mac_sync_rhs",       fix_mac_sync_rhs);
     pp.query("check_umac_periodicity", check_umac_periodicity);
     pp.query("umac_periodic_test_Tol", umac_periodic_test_Tol);
 
@@ -101,7 +95,6 @@ MacProj::MacProj (Amr*   _parent,
     parent(_parent),
     LevelData(_finest_level+1),
     phys_bc(_phys_bc),
-    phi_bcs(_finest_level+1),
     mac_phi_crse(_finest_level+1),
     mac_reg(_finest_level+1),
     finest_level(_finest_level)
@@ -131,14 +124,11 @@ MacProj::install_level (int       level,
     {
         finest_level_allocated = finest_level;
         LevelData.resize(finest_level+1);
-        phi_bcs.resize(finest_level+1);
         mac_phi_crse.resize(finest_level+1);
         mac_reg.resize(finest_level+1);
     }
 
     LevelData[level] = level_data;
-
-    BuildPhiBC(level);
 
     if (level > 0)
     {
@@ -147,49 +137,6 @@ MacProj::install_level (int       level,
                                               parent->refRatio(level-1),level,1));
     }
 
-}
-
-// xxxxx Can we skip this if using mlmg?
-void
-MacProj::BuildPhiBC (int level)
-{
-    const BoxArray& grids   = LevelData[level]->boxArray();
-    const Geometry& geom    = parent->Geom(level);
-    const int       ngrds   = grids.size();
-    phi_bcs[level].resize(ngrds);
-    const Box&      domain  = geom.Domain();
-    const int*      domlo   = domain.loVect();
-    const int*      domhi   = domain.hiVect();
-    const int*      phys_lo = phys_bc->lo();
-    const int*      phys_hi = phys_bc->hi();
-
-    for (int i = 0; i < ngrds; i++)
-    {
-        BCRec&     bc = phi_bcs[level][i];
-        const Box& grdbx = grids[i];
-        const int* lo = grdbx.loVect();
-        const int* hi = grdbx.hiVect();
-
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (lo[dir] == domlo[dir])
-            {
-                bc.setLo(dir,phys_lo[dir]==Outflow ? LO_DIRICHLET : LO_NEUMANN);
-            }
-            else
-            {
-                bc.setLo(dir,LO_DIRICHLET);
-            }
-            if (hi[dir] == domhi[dir])
-            {
-                bc.setHi(dir,phys_hi[dir]==Outflow ? LO_DIRICHLET : LO_NEUMANN);
-            }
-            else
-            {
-                bc.setHi(dir,LO_DIRICHLET);
-            }
-        }
-    }
 }
 
 void
@@ -388,8 +335,6 @@ MacProj::mac_sync_solve (int       level,
     BL_ASSERT(level < finest_level);
 
     if (verbose) amrex::Print() << "... mac_sync_solve at level " << level << '\n';
-
-    if (verbose && benchmarking) ParallelDescriptor::Barrier();
 
     const Real      strt_time  = ParallelDescriptor::second();
     const BoxArray& grids      = LevelData[level]->boxArray();

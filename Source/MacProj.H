@@ -104,8 +104,6 @@ public:
     //
     // Boundary conditions.
     //
-    void BuildPhiBC (int level);
-
     void set_outflow_bcs (int level,
                           amrex::MultiFab* mac_phi,
                           const amrex::MultiFab* u_mac,
@@ -120,7 +118,6 @@ public:
     // Boundary condition objects.
     //
     amrex::BCRec*                phys_bc;
-    amrex::Vector< amrex::Vector<amrex::BCRec> > phi_bcs;
     //
     // MAC sync correction and solution.
     //
