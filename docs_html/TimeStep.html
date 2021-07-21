@@ -240,21 +240,17 @@ U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
 <section id="time-step-godunov">
 <h1>Time Step – Godunov<a class="headerlink" href="#time-step-godunov" title="Permalink to this headline">¶</a></h1>
 <p>When we use the time-centered Godunov advection, we no longer need the predictor and corrector steps.</p>
-<ul class="simple">
-<li><dl class="simple">
-<dt>Define <span class="math notranslate nohighlight">\(U^{MAC,n+1/2}\)</span>, the time-centered face-centered (staggered)</dt><dd><p>MAC velocity which is used for advection</p>
-</dd>
-</dl>
-</li>
-<li><p>Define the new-time density, math:<cite>rho^{n+1} = rho^n - Delta t (rho^{n+1/2,pred} U^{MAC,n+1/2})</cite> by setting</p></li>
-<li><p>Define an approximation to the new-time state, <span class="math notranslate nohighlight">\((\rho U)^{\ast}\)</span> by setting</p></li>
-</ul>
+<ul>
+<li><p>Define the time-centered face-centered (staggered) MAC velocity which is used for advection: <span class="math notranslate nohighlight">\(U^{MAC,n+1/2}\)</span></p></li>
+<li><p>Define the new-time density, <span class="math notranslate nohighlight">\(\rho^{n+1} = \rho^n - \Delta t (\rho^{n+1/2,pred} U^{MAC,n+1/2})\)</span> by setting</p></li>
+<li><p>Define an approximation to the new-time state, <span class="math notranslate nohighlight">\((\rho U)^{\ast}\)</span> by setting</p>
 <div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\begin{split}(\rho^{n+1} U^{\ast}) &amp;= (\rho^n U^n) -
-        \Delta t \nabla \cdot (\rho U^{MAC} U) + \Delta t \nabla {p}^{n-1/2}  \\ &amp;+
-        \Delta t (0.5 \nabla \cdot \tau^n + 0.5 \nabla \cdot \tau^\ast)
-        \Delta t \rho g \right)\end{split}\\(for implicit diffusion, which is the current defaults)\end{aligned}\end{align} \]</div>
-<ul class="simple">
+\[\begin{split}(\rho^{n+1} U^{\ast}) &amp;= (\rho^n U^n) -
+\Delta t \nabla \cdot (\rho U^{MAC} U) + \Delta t \nabla {p}^{n-1/2}  \\ &amp;+
+\frac{\Delta t}{2}  (\nabla \cdot \tau^n + \nabla \cdot \tau^{n+1}) +
+\Delta t \rho g\end{split}\]</div>
+<p>(for implicit diffusion, which is the current default)</p>
+</li>
 <li><p>Project <span class="math notranslate nohighlight">\(U^{\ast}\)</span> by solving</p></li>
 </ul>
 <div class="math notranslate nohighlight">

@@ -51,19 +51,18 @@ Time Step -- Godunov
 
 When we use the time-centered Godunov advection, we no longer need the predictor and corrector steps.
 
--  Define :math:`U^{MAC,n+1/2}`, the time-centered face-centered (staggered) 
-    MAC velocity which is used for advection
+-  Define the time-centered face-centered (staggered) MAC velocity which is used for advection: :math:`U^{MAC,n+1/2}`
 
--  Define the new-time density, math:`\rho^{n+1} = \rho^n - \Delta t (\rho^{n+1/2,pred} U^{MAC,n+1/2})` by setting 
+-  Define the new-time density, :math:`\rho^{n+1} = \rho^n - \Delta t (\rho^{n+1/2,pred} U^{MAC,n+1/2})` by setting 
 
 -  Define an approximation to the new-time state, :math:`(\rho U)^{\ast}` by setting 
 
-.. math:: (\rho^{n+1} U^{\ast}) &= (\rho^n U^n) -  
-           \Delta t \nabla \cdot (\rho U^{MAC} U) + \Delta t \nabla {p}^{n-1/2}  \\ &+ 
-           \Delta t (0.5 \nabla \cdot \tau^n + 0.5 \nabla \cdot \tau^\ast) 
-           \Delta t \rho g \right)
+   .. math:: (\rho^{n+1} U^{\ast}) &= (\rho^n U^n) -  
+             \Delta t \nabla \cdot (\rho U^{MAC} U) + \Delta t \nabla {p}^{n-1/2}  \\ &+ 
+             \frac{\Delta t}{2}  (\nabla \cdot \tau^n + \nabla \cdot \tau^{n+1}) +
+             \Delta t \rho g 
 
-   (for implicit diffusion, which is the current defaults)
+   (for implicit diffusion, which is the current default)
 
 -  Project :math:`U^{\ast}` by solving
 
