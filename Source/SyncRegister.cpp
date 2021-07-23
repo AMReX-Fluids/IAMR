@@ -363,7 +363,9 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
     Sync_resid_crse.setVal(0.0);
 
     constexpr Real twoThirds   = 2._rt / 3._rt;
+#if (AMREX_SPACEDIM == 3)
     constexpr Real threeHalves = 3._rt / 2._rt;
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -424,7 +426,9 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
        { 
            int dim1 = ( dir != 0 ) ? 0 : 1;
+#if ( AMREX_SPACEDIM == 3 )
            int dim2 = ( dir != 0 ) ? ( ( dir == 2 ) ? 1 : 2 ) : 2;
+#endif
 
            for (MFIter mfi(Sync_resid_fine,false); mfi.isValid(); ++mfi)
            {
