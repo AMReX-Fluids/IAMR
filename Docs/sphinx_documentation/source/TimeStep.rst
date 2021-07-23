@@ -1,4 +1,6 @@
 
+To learn how the convective terms are constructed, see `AMReX-Hydro <https://amrex-codes.github.io/amrex/hydro_html>`_
+
 Time Step -- MOL
 ~~~~~~~~~~~~~~~~
 
@@ -59,7 +61,7 @@ When we use the time-centered Godunov advection, we no longer need the predictor
 
    .. math:: (\rho^{n+1} U^{\ast}) &= (\rho^n U^n) -  
              \Delta t \nabla \cdot (\rho U^{MAC} U) + \Delta t \nabla {p}^{n-1/2}  \\ &+ 
-             \frac{\Delta t}{2}  (\nabla \cdot \tau^n + \nabla \cdot \tau^{n+1}) +
+             \frac{\Delta t}{2}  (\nabla \cdot \tau^n + \nabla \cdot \tau^\ast) +
              \Delta t \rho g 
 
    (for implicit diffusion, which is the current default)
