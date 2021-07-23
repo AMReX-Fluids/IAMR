@@ -195,7 +195,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <section id="time-step-mol">
+  <p>To learn how the convective terms are constructed, see <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html">AMReX-Hydro</a></p>
+<section id="time-step-mol">
 <h1>Time Step – MOL<a class="headerlink" href="#time-step-mol" title="Permalink to this headline">¶</a></h1>
 <p>In the predictor</p>
 <ul class="simple">
@@ -247,7 +248,7 @@ U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
 <div class="math notranslate nohighlight">
 \[\begin{split}(\rho^{n+1} U^{\ast}) &amp;= (\rho^n U^n) -
 \Delta t \nabla \cdot (\rho U^{MAC} U) + \Delta t \nabla {p}^{n-1/2}  \\ &amp;+
-\frac{\Delta t}{2}  (\nabla \cdot \tau^n + \nabla \cdot \tau^{n+1}) +
+\frac{\Delta t}{2}  (\nabla \cdot \tau^n + \nabla \cdot \tau^\ast) +
 \Delta t \rho g\end{split}\]</div>
 <p>(for implicit diffusion, which is the current default)</p>
 </li>
