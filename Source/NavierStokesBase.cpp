@@ -3984,7 +3984,7 @@ NavierStokesBase::ParticleDerive (const std::string& name,
 
 		MultiFab dat(grids,dmap,1,0,MFInfo(),Factory());
 		dat.setVal(0);
-		dat.copy(ctemp_dat);
+		dat.ParallelCopy(ctemp_dat);
 
 		MultiFab::Add(mf,dat,0,dcomp,1,0);
 	    }
