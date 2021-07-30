@@ -1165,6 +1165,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 void
 Diffusion::diffuse_Ssync (MultiFab&              Ssync,
                           int                    sigma,
+                          int                    nComp,
                           Real                   dt,
                           Real                   be_cn_theta,
                           const MultiFab&        rho_half,
@@ -1179,8 +1180,10 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     const int state_ind    = sigma + AMREX_SPACEDIM;
     if (verbose)
     {
-        amrex::Print() << "Diffusion::diffuse_Ssync lev: " << level << " "
-                       << navier_stokes->get_desc_lst()[State_Type].name(state_ind) << '\n';
+       for (int comp = 0; comp < nComp; ++comp) {
+          amrex::Print() << "Diffusion::diffuse_Ssync lev: " << level << " "
+                         << navier_stokes->get_desc_lst()[State_Type].name(state_ind+comp) << '\n';
+       }
     }
 
     const Real strt_time = ParallelDescriptor::second();
@@ -1188,21 +1191,23 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     int allthere;
     checkBeta(beta, allthere);
 
-    MultiFab  Rhs(grids,dmap,1,0,MFInfo(),navier_stokes->Factory());
+    MultiFab  Rhs(grids,dmap,nComp,0,MFInfo(),navier_stokes->Factory());
 
-    MultiFab::Copy(Rhs,Ssync,sigma,0,1,0);
+    MultiFab::Copy(Rhs,Ssync,sigma,0,nComp,0);
 
     if (verbose > 1)
     {
-        MultiFab junk(grids,dmap,1,0,MFInfo(),navier_stokes->Factory());
-        MultiFab::Copy(junk,Rhs,0,0,1,0);
-        if (rho_flag == 2)
-        {
-            MultiFab& S_new = navier_stokes->get_new_data(State_Type);
-            MultiFab::Divide(junk, S_new, Density, 0, 1, 0);
+        MultiFab junk(grids,dmap,nComp,0,MFInfo(),navier_stokes->Factory());
+        MultiFab::Copy(junk,Rhs,0,0,nComp,0);
+        MultiFab& S_new = navier_stokes->get_new_data(State_Type);
+        for (int comp = 0; comp < nComp; ++comp) {
+            if (rho_flag == 2)
+            {
+                MultiFab::Divide(junk, S_new, Density, comp, 1, 0);
+            }
+            Real r_norm = junk.norm0(comp);
+            amrex::Print() << "Original max of Ssync of comp " << comp << ": " << r_norm << '\n';
         }
-        Real r_norm = junk.norm0();
-        amrex::Print() << "Original max of Ssync " << r_norm << '\n';
     }
     //
     // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
@@ -1214,8 +1219,8 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     const Real S_tol     = visc_tol;
     const Real S_tol_abs = -1;
 
-    MultiFab Soln(grids,dmap,1,1,MFInfo(),navier_stokes->Factory());
-    Soln.setVal(0);
+    MultiFab Soln(grids,dmap,nComp,1,MFInfo(),navier_stokes->Factory());
+    Soln.setVal(0.0);
 
     LPInfo info;
     info.setAgglomeration(agglomeration);
@@ -1224,9 +1229,9 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 
 #ifdef AMREX_USE_EB
     const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-    MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+    MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf}, nComp);
 #else
-    MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
+    MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {}, nComp);
 #endif
     mlabec.setMaxOrder(max_order);
 
@@ -1255,7 +1260,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
       mlabec.setACoeffs(0, acoef);
     }
 
-    setBeta(mlabec, beta, betaComp);
+    setBeta(mlabec, beta, betaComp, nComp);
 
     MLMG mlmg(mlabec);
     if (use_hypre) {
@@ -1265,10 +1270,23 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
 
-    if (rho_flag == 1) {
-       MultiFab::Multiply(Rhs,rho_half,0,0,1,0);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(Rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto const& rhs_arr  = Rhs.array(mfi);
+        auto const& rhoh_arr = rho_half.const_array(mfi);
+        amrex::ParallelFor(bx, nComp, [=]
+        AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+        {
+            rhs_arr(i,j,k,n) *= rhsscale;
+            if (rho_flag == 1) {
+               rhs_arr(i,j,k,n) *= rhoh_arr(i,j,k);
+            }
+        });
     }
-    Rhs.mult(rhsscale,0,1,0);
 
     mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
@@ -1276,22 +1294,37 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     checkBeta(flux, flux_allthere, flux_allnull);
     if (flux_allthere)
     {
-      computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, 1,
+      computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, nComp,
                              &(navier_stokes->Geom()), b/dt);
     }
 
-    MultiFab::Copy(Ssync,Soln,0,sigma,1,0);
+    MultiFab::Copy(Ssync,Soln,0,sigma,nComp,0);
 
     if (verbose > 1)
     {
-        Real s_norm = Soln.norm0(0,Soln.nGrow());
-        amrex::Print() << "Final max of Ssync " << s_norm << '\n';
+        for (int comp = 0; comp < nComp; ++comp) {
+           Real s_norm = Soln.norm0(comp,Soln.nGrow());
+           amrex::Print() << "Final max of Ssync for comp " << comp << ": " << s_norm << '\n';
+        }
     }
 
     if (rho_flag == 2)
     {
         MultiFab& S_new = navier_stokes->get_new_data(State_Type);
-        MultiFab::Multiply(Ssync,S_new,Density,sigma,1,0);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+       for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+       {
+           const Box& bx = mfi.tilebox();
+           auto const& ssync_arr = Ssync.array(mfi,sigma);
+           auto const& rho_arr   = S_new.const_array(mfi,Density);
+           amrex::ParallelFor(bx, nComp, [ssync_arr, rho_arr]
+           AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+           {
+               ssync_arr(i,j,k,n) *= rho_arr(i,j,k);
+           });
+       }
     }
 
     if (verbose)
@@ -1353,12 +1386,13 @@ Diffusion::computeAlpha (MultiFab&             alpha,
 void
 Diffusion::setBeta(MLEBABecLap&           op,
                    const MultiFab* const* beta,
-                   int                    betaComp)
+                   int                    betaComp,
+                   int                    nComp)
 {
     Array<MultiFab,AMREX_SPACEDIM> bcoeffs{
-    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
+    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[1], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[2], amrex::make_alias, betaComp, nComp) ) };
 
     op.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs), MLLinOp::Location::FaceCentroid);
 }
@@ -1384,12 +1418,13 @@ Diffusion::setViscosity(MLEBTensorOp&          tensorop,
 void
 Diffusion::setBeta(MLABecLaplacian&       op,
                    const MultiFab* const* beta,
-                   int                    betaComp)
+                   int                    betaComp,
+                   int                    nComp)
 {
     Array<MultiFab,AMREX_SPACEDIM> bcoeffs{
-    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
+    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[1], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[2], amrex::make_alias, betaComp, nComp) ) };
 
     op.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
 }
@@ -1803,7 +1838,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
 
     if (allthere)
     {
-        for (int d = 0; d < BL_SPACEDIM; d++)
+        for (int d = 0; d < AMREX_SPACEDIM; d++)
         {
             allnull = allnull && beta[d] == 0;
             allthere = allthere && beta[d] != 0;
@@ -1822,7 +1857,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
 
     if (allthere)
     {
-        for (int d = 0; d < BL_SPACEDIM; d++)
+        for (int d = 0; d < AMREX_SPACEDIM; d++)
             allthere = allthere && beta[d] != 0;
     }
 

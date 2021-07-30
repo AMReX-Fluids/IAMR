@@ -139,6 +139,7 @@ public:
 
     void diffuse_Ssync (amrex::MultiFab&              Ssync,
                         int                           sigma,
+                        int                           num_comp,
                         amrex::Real                   dt,
                         amrex::Real                   be_cn_theta,
                         const amrex::MultiFab&        rho_half,
@@ -174,11 +175,11 @@ public:
                        int                   rho_flag);
 
     static void checkBeta (const amrex::MultiFab* const* beta,
-			   int&                          allthere,
-			   int&                          allnull);
+                           int&                          allthere,
+                           int&                          allnull);
 
     void checkBeta (const amrex::MultiFab* const* beta,
-		    int&                          allthere) const;
+                    int&                          allthere) const;
 
     int maxOrder () const;
     int tensorMaxOrder () const;
@@ -212,8 +213,9 @@ public:
 
 #ifdef AMREX_USE_EB
     static void setBeta(amrex::MLEBABecLap&           op,
-			const amrex::MultiFab* const* beta,
-			int                           betaComp);
+                        const amrex::MultiFab* const* beta,
+                        int                           betaComp,
+                        int                           num_comp = 1);
 
     void setViscosity(amrex::MLEBTensorOp&          tensorop,
 		      const amrex::MultiFab* const* beta,
@@ -221,9 +223,10 @@ public:
 		      const amrex::MultiFab&        beta_cc);
 #else
     static void setBeta(amrex::MLABecLaplacian&       op,
-			const amrex::MultiFab* const* beta,
-			int                           betaComp);
-  
+                        const amrex::MultiFab* const* beta,
+                        int                           betaComp,
+                        int                           num_comp = 1);
+
     void setViscosity(amrex::MLTensorOp&            tensorop,
 		      const amrex::MultiFab* const* beta,
 		      int                           betaComp);
