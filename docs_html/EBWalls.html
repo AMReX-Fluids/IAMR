@@ -8,7 +8,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Constructing Embedded Boundaries in IAMR &mdash; IAMR 21.08-dev documentation</title>
+  <title>Constructing Embedded Boundaries in IAMR &mdash; IAMR 21.09-dev documentation</title>
   
 
   
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                21.08-dev
+                21.09-dev
               </div>
             
           
@@ -173,12 +173,12 @@
   <section id="constructing-embedded-boundaries-in-iamr">
 <span id="sec-eb-basics"></span><h1>Constructing Embedded Boundaries in IAMR<a class="headerlink" href="#constructing-embedded-boundaries-in-iamr" title="Permalink to this headline">¶</a></h1>
 <p>IAMR uses AMReX’s constructive solid geometry framework defined in the namespace
-<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">EB2</span></span></code>. See the AMReX EB documentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-ebinit" title="(in amrex v21.08-dev)"><span>Initializing the Geometric Database</span></a>) for more details.</p>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">amrex</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">EB2</span></span></code>. See the AMReX EB documentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-ebinit" title="(in amrex v21.09-dev)"><span>Initializing the Geometric Database</span></a>) for more details.</p>
 <section id="how-iamr-constructs-the-eb-geometry">
 <h2>How IAMR Constructs the EB Geometry<a class="headerlink" href="#how-iamr-constructs-the-eb-geometry" title="Permalink to this headline">¶</a></h2>
 <p>Once a geometry is selected by <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">IAMR</span></span><span class="operator"><span class="pre">::</span></span><span class="name"><span class="pre">make_eb_geometry</span></span></code>, the procedure is
 the same for (almost) all geometries. Also see the AMReX geometry
-documentation <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-ebinit-if" title="(in amrex v21.08-dev)"><span>Implicit Function</span></a> for information on how to construct new geometries:</p>
+documentation <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/EB.html#sec-eb-ebinit-if" title="(in amrex v21.09-dev)"><span>Implicit Function</span></a> for information on how to construct new geometries:</p>
 <ol class="arabic simple">
 <li><p>Construct an implicit function representing the geometry (using the language
 of constructive solid geometry). For example</p></li>
