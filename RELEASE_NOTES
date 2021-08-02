@@ -205,3 +205,9 @@ Documentation updates
 Embedded boundary improvements and fixes
 Updates to create_umac_grown for AMR hydro
 Misc. AMR fixes
+
+8/2/21
+Documentation
+Compiler warnings
+Misc. cleanup and re-org
+Various EB and advection updates and fixes
