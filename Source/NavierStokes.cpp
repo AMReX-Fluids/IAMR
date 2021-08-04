@@ -899,7 +899,6 @@ NavierStokes::scalar_diffusion_update (Real dt,
         diffuse_comp[0] = is_diffusive[sigma];
         const int rho_flag = Diffusion::set_rho_flag(diffusionType[sigma]);
 
-        const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
         const bool add_old_time_divFlux = true;
 
         const int betaComp = 0;
@@ -912,7 +911,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
                                    alpha,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
                                    crse_ratio,theBCs[bc_comp],geom,
-                                   solve_mode,add_old_time_divFlux,
+				   add_old_time_divFlux,
                                    diffuse_comp);
 
         if(alpha!=0) delete alpha;
@@ -1793,8 +1792,7 @@ NavierStokes::mac_sync ()
     const Real curr_time = state[State_Type].curTime();
 
     // Diffusion solver switches
-    // together implies that Diff solve does NOT need Sold
-    const Diffusion::SolveMode& solve_mode = Diffusion::ONEPASS;
+    // implies that Diff solve does NOT need Sold
     const bool add_old_time_divFlux = false;
 
     const int nlev = 1;
@@ -1848,7 +1846,6 @@ NavierStokes::mac_sync ()
                                    alpha_in,alphaComp,
                                    cmp_diffn,cmp_diffnp1,betaComp,
                                    crse_ratio,theBCs[state_ind],geom,
-                                   solve_mode,
                                    add_old_time_divFlux,diffuse_comp);
 
         if (alpha_in!=0) delete alpha_in;

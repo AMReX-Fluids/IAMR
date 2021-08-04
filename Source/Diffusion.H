@@ -34,8 +34,6 @@ class Diffusion
 {
 public:
 
-    enum SolveMode {PREDICTOR, CORRECTOR, ONEPASS};
-
     Diffusion ();
 
     Diffusion (amrex::Amr*               Parent,
@@ -80,7 +78,6 @@ public:
 			 const amrex::IntVect&                  cratio,
 			 const amrex::BCRec&                    bc,
 			 const amrex::Geometry&                 geom,
-			 const SolveMode&                       solve_mode = ONEPASS,
 			 bool                                   add_old_time_divFlux = true,
 			 const amrex::Vector<int>&              is_diffusive = amrex::Vector<int>());
     
