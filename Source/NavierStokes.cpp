@@ -763,7 +763,7 @@ NavierStokes::scalar_advection (Real dt,
                 {
                     amrex::ParallelFor(force_bx, [tf, visc, S, divu, rho]
                     AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-                    { tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);});
+                    { tf(i,j,k) += visc(i,j,k); });
                 }
                 else
                 {
