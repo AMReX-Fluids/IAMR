@@ -9,18 +9,32 @@ using namespace amrex;
 // Virtual access function for getting the forcing terms for the
 // velocities and scalars.  The base version computes a buoyancy.
 //
-// As NavierStokesBase is currently implemented.  Velocities are integrated
-// according to the equation
+// NOTE: This function returns a rho weighted source term.
+//
+// For conservative (i.e. do_mom_diff=1, do_cons_trac=1), velocities
+// are integrated according to the equation
 //
 //     ui_t + uj ui_j = S_ui        ===> tforces = rho S_ui
 //
-// and scalars psi where (psi = rho q) as
+// and scalars psi where (psi = rho q = Scal) as
 //
 //     psi_t + (uj psi)_j = S_psi   ===> tforces = S_psi = rho S_q
 //
-// q is a concentration.  This function returns a rho weighted
-// source term, which requires a division by rho in the predict_velocity
-// and velocity_advection routines.
+// For non-conservative, this rho-weighted source term will get divided
+// by rho in the predict_velocity, velocity_advection and scalar_advection
+// routines.
+//
+// For temperature (which is always non-conservative), we evolve
+//
+//     dT/dt - U dot grad T = [del dot lambda grad T + S_T] / (rho*c_p)
+//     ===> tforces =  S_T/c_p
+//
+//
+// For user-defined forcing, this means
+//   - For conservative variables, the force term computed here gets used
+//     as-is
+//   - For non-conservative variables, the force term computed here is
+//     divided by rho before use
 //
 
 void
@@ -190,27 +204,40 @@ NavierStokesBase::getForce (FArrayBox&       force,
        // });
      }
    }
+
    //
    // Scalar forcing
    //
    if ( scomp >= AMREX_SPACEDIM ) {
      // Doing only scalars
      force.setVal<RunOn::Gpu>(0.0, bx, 0, ncomp);
+
+     //
+     // Or create user-defined forcing.
+     // Recall we compute a density-weighted forcing term.
+     //
      // auto const& frc  = force.array();
      // amrex::ParallelFor(bx, ncomp, [frc]
      // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
      // {
-     // 	 frc(i,j,k,n) = 0.0_rt;
+     //          frc(i,j,k,n) = ;
+     // 	 frc(i,j,k,n) *= rho;
      // });
    }
    else if ( scomp+ncomp > AMREX_SPACEDIM) {
      // Doing scalars with vel
      force.setVal<RunOn::Gpu>(0.0, bx, Density, ncomp-Density);
+
+     //
+     // Or create user-defined forcing.
+     // Recall we compute a density-weighted forcing term.
+     //
      // auto const& frc  = force.array(Density);
      // amrex::ParallelFor(bx, ncomp-Density, [frc]
      // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
      // {
-     // 	 frc(i,j,k,n) = 0.0_rt;
+     //          frc(i,j,k,n) = ;
+     // 	 frc(i,j,k,n) *= rho;
      // });
    }
      

@@ -767,6 +767,8 @@ NavierStokes::scalar_advection (Real dt,
                 }
                 else
                 {
+		  // FIXME??
+		  // This works for temperature now, but is it really right for tracers?
                     amrex::ParallelFor(force_bx, [tf, visc, rho]
                     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                     { tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k); });
@@ -2097,17 +2099,15 @@ NavierStokes::calc_divu (Real      time,
 
         if (do_temp && visc_coef[Temp] > 0.0)
         {
-            //
-            // Compute Div(U) = Div(visc_cond_coef * Grad(T))/(c_p*rho*T)
-            //
+            // Compute Div(U) = Div(lambda * Grad(T))/(c_p*rho*T)
+            //                = Div(temp_cond_coeff * Grad(T)) / (rho*T)
+	    // where temp_cond_coef = lambda/cp
             getViscTerms(divu,Temp,1,time);
 
             const MultiFab&   rhotime = get_rho(time);
 
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
 	    MultiFab& tmf = temp_fpi.get_mf();
-
-	    Real THERMO_cp = 1004.6;
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -2134,12 +2134,12 @@ NavierStokes::calc_divu (Real      time,
 		{
 		  auto vfrac = ebfactory.getVolFrac().const_array(rho_mfi);
 
-		  amrex::ParallelFor(bx, [div, rho, temp, vfrac, THERMO_cp]
+		  amrex::ParallelFor(bx, [div, rho, temp, vfrac]
 		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 		  {
 		    if ( vfrac(i,j,k) > 0.0 )
 		    {
-		      div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k)*THERMO_cp );
+		      div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k) );
 		    }
 		    else
 		    {
@@ -2150,10 +2150,10 @@ NavierStokes::calc_divu (Real      time,
 		else
 #endif
 		{
-		  amrex::ParallelFor(bx, [div, rho, temp, THERMO_cp]
+		  amrex::ParallelFor(bx, [div, rho, temp]
 		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 		  {
-		    div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k)*THERMO_cp );
+		    div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k) );
 		  });
 		}
 	    }
