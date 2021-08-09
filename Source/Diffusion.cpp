@@ -268,7 +268,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            const IntVect&            cratio,
                            const BCRec&              bc,
                            const Geometry&           geom,
-                           const SolveMode&          solve_mode,
                            bool                      add_old_time_divFlux,
                            const amrex::Vector<int>& is_diffusive)
 {
@@ -337,8 +336,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     const DistributionMapping& dm = S_new[0]->DistributionMap();
     const DistributionMapping* dmc = (has_coarse_data ? &(S_new[1]->DistributionMap()) : 0);
     const BoxArray* bac = (has_coarse_data ? &(S_new[1]->boxArray()) : 0);
-
-    AMREX_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==ba));
 
     const auto& factory = S_new[0]->Factory();
 
@@ -500,31 +497,16 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         auto const& solution = Soln.array(mfi);
         auto const& snew     = S_new[0]->array(mfi,sigma);
         Array4<const Real> dummy;
-        auto const& sold     = (solve_mode == PREDICTOR) ? S_old[0]->const_array(mfi,sigma) : dummy;
         auto const& rhoHalf  = (rho_flag == 1) ? rho_half.const_array(mfi) : dummy;
         auto const& rho_old  = (rho_flag == 3) ? Rho_old[0]->const_array(mfi,Rho_comp) : dummy;
         auto const& alpha    = (has_alpha) ? alpha_in->const_array(mfi,alpha_in_comp) : Soln.const_array(mfi);
         auto const& deltarhs = (has_delta_rhs) ? delta_rhs->const_array(mfi,rhsComp) : Soln.const_array(mfi);
         Real dtinv = 1.0/dt;
 
-        amrex::ParallelFor(bx, nComp, [rhs, solution, snew, sold, rhoHalf, rho_old, alpha, deltarhs,
-                                has_alpha, has_delta_rhs, solve_mode, rho_flag, dtinv, dt ]
+        amrex::ParallelFor(bx, nComp, [rhs, solution, snew, rhoHalf, rho_old, alpha, deltarhs,
+                                has_alpha, has_delta_rhs, rho_flag, dtinv, dt ]
         AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
         {
-            // If this is a predictor step, put "explicit" updates into Rhs after scaling by rho_half if reqd
-            if (solve_mode == PREDICTOR) {
-                amrex::Real tmp = snew(i,j,k,n) - sold(i,j,k,n);
-                snew(i,j,k,n) -= tmp;
-                tmp *= dtinv;
-                if ( rho_flag == 1 ) {
-                   tmp *= rhoHalf(i,j,k);
-                }
-                if ( has_alpha ) {
-                   tmp *= alpha(i,j,k);
-                }
-                rhs(i,j,k,n) += tmp;
-            }
-
             // Add body sources
             if ( has_delta_rhs ) {
                 rhs(i,j,k,n) += deltarhs(i,j,k,n) * dt;
