@@ -230,31 +230,22 @@
 <p>Conservation of fluid momentum:</p>
 <div class="math notranslate nohighlight">
 \[\frac{ \partial (\rho U)}{\partial t}
-+ \nabla \cdot (\rho U U) + \nabla p = \nabla \cdot \tau + {\bf H}_U\]</div>
++ \nabla \cdot (\rho U) + \nabla p = \nabla \cdot \tau + {\bf H}_U)\]</div>
 <p>Incompressibility constraint:</p>
 <div class="math notranslate nohighlight">
 \[\nabla \cdot U = 0\]</div>
 <p>Tracer(s):</p>
 <div class="math notranslate nohighlight">
-\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho s U)  = \nabla \cdot \beta \nabla s + \rho H_s\]</div>
+\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho U s)  = \nabla \cdot \beta \nabla \frac{s}{\rho} + H_s\]</div>
 <p>for conservatively advected scalars and</p>
 <div class="math notranslate nohighlight">
 \[\frac{\partial s}{\partial t} + U \cdot \nabla s  = \nabla \cdot \beta \nabla s + H_s\]</div>
-<p>for passively advected scalars. In general, one could advect an arbitrary number of scalars.</p>
+<p>for passively advected scalars. In general, one could advect an arbitrary number of scalars,
+either passively or conservatively.</p>
 <p>IAMR has the ability to incorporate general, user-defined external forcing and source terms. The default behaviour is that
 <span class="math notranslate nohighlight">\(H_c=0\)</span>, and <span class="math notranslate nohighlight">\({\bf H}_U\)</span> represents gravitational forces, with <span class="math notranslate nohighlight">\({\bf H}_U= (0 , 0 , -\rho g )\)</span> in 3d and
 <span class="math notranslate nohighlight">\({\bf H}_U= (0 , -\rho g )\)</span> in 2d, where <span class="math notranslate nohighlight">\(g\)</span> is the magnitude of the gravitational acceleration. However, since
 by default, <span class="math notranslate nohighlight">\(g=0\)</span>, <span class="math notranslate nohighlight">\({\bf H}_U = 0\)</span> unless <code class="docutils literal notranslate"><span class="pre">ns.gravity</span></code> is set (for more info see <span class="xref std std-ref">sec:Inputs</span> and ).</p>
-<p>By default, IAMR solves the momentum equation in convective form. The inputs parameter <code class="docutils literal notranslate"><span class="pre">ns.do_mom_diff</span></code> is used to
-switch to conservation form. Tracers are passively advected by default. The inputs parameter <code class="docutils literal notranslate"><span class="pre">ns.do_cons_trac</span> <span class="pre">=</span> <span class="pre">1</span></code>
-switches the first tracer to conservative. A second tracer can be included with <code class="docutils literal notranslate"><span class="pre">ns.do_trac2</span> <span class="pre">=</span> <span class="pre">1</span></code>, and it can be
-conservatively advected with <code class="docutils literal notranslate"><span class="pre">ns.do_cons_trac2</span></code>.</p>
-<p>IAMR also has the option to solve for temperature, along with a modified divergence constraint on the velocity field:</p>
-<div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\rho c_p \left( \frac{\partial T}{\partial t} + U \cdot \nabla T \right)  = \nabla \cdot \lambda \nabla T + H_T\\\nabla \cdot U = \frac{1}{\rho c_p T} \nabla \cdot \lambda \nabla T\end{aligned}\end{align} \]</div>
-<p>To enable the temperature solve, use <code class="docutils literal notranslate"><span class="pre">ns.do_temp</span> <span class="pre">=</span> <span class="pre">1</span></code> and set <code class="docutils literal notranslate"><span class="pre">ns.temp_cond_coef</span></code> to represent <span class="math notranslate nohighlight">\(\lambda / c_p\)</span>,
-which is taken to be constant. More sophiticated treatments are possible; if interested, please open an issue on github:
-<a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">https://github.com/AMReX-Codes/IAMR/issues</a></p>
 </section>
 
 
