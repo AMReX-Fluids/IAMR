@@ -230,18 +230,17 @@
 <p>Conservation of fluid momentum:</p>
 <div class="math notranslate nohighlight">
 \[\frac{ \partial (\rho U)}{\partial t}
-+ \nabla \cdot (\rho U) + \nabla p = \nabla \cdot \tau + {\bf H}_U)\]</div>
++ \nabla \cdot (\rho U U) + \nabla p = \nabla \cdot \tau + {\bf H}_U\]</div>
 <p>Incompressibility constraint:</p>
 <div class="math notranslate nohighlight">
 \[\nabla \cdot U = 0\]</div>
 <p>Tracer(s):</p>
 <div class="math notranslate nohighlight">
-\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho U s)  = \nabla \cdot \beta \nabla \frac{s}{\rho} + H_s\]</div>
+\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho s U)  = \nabla \cdot \beta \nabla s + \rho H_s\]</div>
 <p>for conservatively advected scalars and</p>
 <div class="math notranslate nohighlight">
 \[\frac{\partial s}{\partial t} + U \cdot \nabla s  = \nabla \cdot \beta \nabla s + H_s\]</div>
-<p>for passively advected scalars. In general, one could advect an arbitrary number of scalars,
-either passively or conservatively.</p>
+<p>for passively advected scalars. In general, one could advect an arbitrary number of scalars.</p>
 <p>IAMR has the ability to incorporate general, user-defined external forcing and source terms. The default behaviour is that
 <span class="math notranslate nohighlight">\(H_c=0\)</span>, and <span class="math notranslate nohighlight">\({\bf H}_U\)</span> represents gravitational forces, with <span class="math notranslate nohighlight">\({\bf H}_U= (0 , 0 , -\rho g )\)</span> in 3d and
 <span class="math notranslate nohighlight">\({\bf H}_U= (0 , -\rho g )\)</span> in 2d, where <span class="math notranslate nohighlight">\(g\)</span> is the magnitude of the gravitational acceleration. However, since
