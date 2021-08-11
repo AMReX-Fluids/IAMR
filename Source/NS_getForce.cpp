@@ -21,8 +21,8 @@ using namespace amrex;
 //     psi_t + (uj psi)_j = S_psi   ===> tforces = S_psi = rho S_q
 //
 // For non-conservative, this rho-weighted source term will get divided
-// by rho in the predict_velocity, velocity_advection and scalar_advection
-// routines.
+// by rho in the predict_velocity, velocity_advection, scalar_advection,
+// and advection_update routines.
 //
 // For temperature (which is always non-conservative), we evolve
 //
@@ -197,11 +197,6 @@ NavierStokesBase::getForce (FArrayBox&       force,
      }
      else {
        force.setVal<RunOn::Gpu>(0.0, bx, Xvel, AMREX_SPACEDIM);
-       // amrex::ParallelFor(bx, AMREX_SPACEDIM, [frc]
-       // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
-       // {
-       // 	 frc(i,j,k,n) = 0.0_rt;
-       // });
      }
    }
 
@@ -221,7 +216,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
      // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
      // {
      //          frc(i,j,k,n) = ;
-     // 	 frc(i,j,k,n) *= rho;
+     //          frc(i,j,k,n) *= rho;
      // });
    }
    else if ( scomp+ncomp > AMREX_SPACEDIM) {
@@ -237,7 +232,7 @@ NavierStokesBase::getForce (FArrayBox&       force,
      // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
      // {
      //          frc(i,j,k,n) = ;
-     // 	 frc(i,j,k,n) *= rho;
+     //          frc(i,j,k,n) *= rho;
      // });
    }
      

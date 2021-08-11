@@ -2706,7 +2706,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 	       amrex::ParallelFor(bx, NUM_SCALARS, [ Snp1, Sn, Sarr]
 	       AMREX_GPU_DEVICE (int i, int j, int k, int n ) noexcept
                {
-		   Sarr(i,j,k,n) = 0.5 * ( Snp1(i,j,k,n) + Sn(i,j,k,n) );
+	       	   Sarr(i,j,k,n) = 0.5 * ( Snp1(i,j,k,n) + Sn(i,j,k,n) );
 	       });
 
                const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
@@ -2722,11 +2722,25 @@ NavierStokesBase::scalar_advection_update (Real dt,
 	       const auto& Sold = S_old[Rho_mfi].const_array(sigma);
 	       const auto& advc = Aofs[Rho_mfi].const_array(sigma);
 	       const auto& tf   = tforces.const_array();
-	       amrex::ParallelFor(bx, [ Snew, Sold, advc, tf, dt]
-	       AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-               {
-		 Snew(i,j,k) = Sold(i,j,k) + dt * ( tf(i,j,k) - advc(i,j,k) );
-               });
+               const auto& rho  = rho_halftime[Rho_mfi].const_array();
+
+	       // Recall tforces is always density-weighted
+	       if (advectionType[sigma] == Conservative)
+	       {
+		 amrex::ParallelFor(bx, [ Snew, Sold, advc, tf, dt]
+	         AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+		 {
+		     Snew(i,j,k) = Sold(i,j,k) + dt * ( - advc(i,j,k) + tf(i,j,k)  );
+		 });
+	       }
+	       else
+	       {
+		 amrex::ParallelFor(bx, [ Snew, Sold, advc, tf, dt, rho]
+	         AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+		 {
+		     Snew(i,j,k) = Sold(i,j,k) + dt * ( - advc(i,j,k) + tf(i,j,k)/rho(i,j,k) );
+		 });
+	       }
 
                // Either need this synchronize here, or elixirs. Not sure if it matters which
 	       amrex::Gpu::synchronize();
