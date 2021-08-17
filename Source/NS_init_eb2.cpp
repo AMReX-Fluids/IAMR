@@ -78,7 +78,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
   {
 #if (AMREX_SPACEDIM == 2)
     Abort("geom_type 'combustor' only available in 3D");
-#endif
+#elif (AMREX_SPACEDIM == 3)
     ParmParse pp("combustor");
 
     Real fwl;
@@ -124,12 +124,13 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
 
     auto gshop = EB2::makeShop(pr);
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+#endif
   }
   else if (geom_type == "Piston-Cylinder")
   {
 #if (AMREX_SPACEDIM == 2)
     Abort("geom_type 'Piston-Cylinder' only available in 3D");
-#endif
+#elif (AMREX_SPACEDIM == 3)
     EB2::SplineIF Piston;
 
     std::vector<amrex::RealVect> splpts;
@@ -163,12 +164,13 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
     auto gshop = EB2::makeShop(PistonCylinder);
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+#endif
   }
   else if (geom_type == "Line-Piston-Cylinder")
   {
 #if (AMREX_SPACEDIM == 2)
     Abort("geom_type 'Line-Piston-Cylinder' only available in 3D");
-#endif
+#elif (AMREX_SPACEDIM == 3)
     EB2::SplineIF Piston;
     std::vector<amrex::RealVect> lnpts;
     amrex::RealVect p;
@@ -216,12 +218,13 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto PistonCylinder = EB2::makeUnion(revolvePiston, cylinder);
     auto gshop = EB2::makeShop(PistonCylinder);
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+#endif
   }
   else if (geom_type == "Inflow-Pipe")
   {
 #if (AMREX_SPACEDIM == 2)
     Abort("geom_type 'Inflow-Pipe' only available in 3D");
-#endif
+#elif (AMREX_SPACEDIM == 3)
     // Initialise parameters
     int direction1 = 2;
     int direction2 = 2;
@@ -280,13 +283,13 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     int max_level_here = 0;
     int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
-
+#endif
   }
   else if (geom_type == "Mixing-Pipe")
   {
 #if (AMREX_SPACEDIM == 2)
     Abort("geom_type 'Mixing-Pipe' only available in 3D");
-#endif
+#elif (AMREX_SPACEDIM == 3)
     // Initialise parameters
     int direction = 1;
     Real radius = 0.018;
@@ -322,13 +325,13 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     int max_level_here = 0;
     int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
-
+#endif
   }
   else if (geom_type == "Square-Grid")
   {
 #if (AMREX_SPACEDIM == 2)
     Abort("geom_type 'Square-Grid' only available in 3D");
-#endif
+#elif (AMREX_SPACEDIM == 3)
     // Initialise parameters
     Real dim_L0 = 0.08;
     Real ratio_t0_L0_cross = 0.11;
@@ -381,7 +384,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     int max_level_here = 0;
     int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
-
+#endif
   }
   else if (geom_type == "UserDefined") {
       EBUserDefined(geom, required_coarsening_level, max_coarsening_level);
