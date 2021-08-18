@@ -565,22 +565,23 @@ NavierStokes::advance (Real time,
     //
     if (do_mac_proj)
     {
-	// FIXME? rhs composed of divu and dSdt terms, which are FillPatch'ed
-	// from the stored state
-	// orig IAMR ng=0. mfix uses ng=4. Create NSBase variable???
-	//
+        // FIXME? rhs composed of divu and dSdt terms, which are FillPatch'ed
+        // from the stored state
+        // orig IAMR ng=0. mfix uses ng=4. Create NSBase variable???
+        // at least 1 is needed while creating umac_grown
 #ifdef AMREX_USE_EB
-	int ng_rhs = 4;
+       int ng_rhs = 4;
 #else
-	int ng_rhs = 0;
+       int ng_rhs = 1;
 #endif
-	MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
-	create_mac_rhs(mac_rhs,ng_rhs,time,dt);
+        MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
+        create_mac_rhs(mac_rhs,ng_rhs,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
-	// NOTE have_divu is now a static var in NSBase
+        // NOTE have_divu is now a static var in NSBase
         mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
     } else {
-	create_umac_grown(umac_n_grow);
+        MultiFab* dummy_divU = nullptr;
+        create_umac_grown(umac_n_grow, dummy_divU);
     }
     //
     // Advect velocities.
