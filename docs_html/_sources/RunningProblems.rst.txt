@@ -282,7 +282,9 @@ Here is some of the more frequently used options:
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | particles.pverbose   |  Verbosity in particle routines                                       |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| nodal_proj.verbose   |  Verbosity in nodal projection                                        |    Int      |   0          |
+| proj.v               |  Verbosity in IAMR's nodal projection routines                        |    Int      |   0          |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| nodal_proj.verbose   |  Verbosity in nodal projection multigrid solver                       |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | mac_proj.verbose     |  Verbosity in MAC projection                                          |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
@@ -303,7 +305,21 @@ on AMReX's linear solvers, see :ref:`amrex:Chap:LinearSolvers`
 Nodal Projection
 ~~~~~~~~~~~~~~~~
 
-These control the nodal projection and must be preceded by "nodal_proj.": 
+These control the nodal projection and must be preceded by "proj.": 
+
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                         |  Description                                                          |   Type      | Default      |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| v                       |  Verbosity of IAMR's nodal projection routines                        |    Int      |   0          |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| proj_tol                |  Relative tolerance in nodal projection                               |    Real     |   1.e-12     |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| sync_tol                |  Relative tolerance in sync projection                                |    Real     |   1.e-8      |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| proj_abs_tol            |  Absolute tolerance in nodal & sync projections                       |    Real     |   1.e-16     |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+These options must be preceded by "nodal_proj.":
 
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                         |  Description                                                          |   Type      | Default      |
@@ -312,16 +328,12 @@ These control the nodal projection and must be preceded by "nodal_proj.":
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | bottom_verbose          |  Verbosity of BiCGStab solver in nodal projection                     |    Int      |   0          |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
-| rtol                    |  Relative tolerance in nodal projection                               |    Real     |   1.e-11     |
-+-------------------------+-----------------------------------------------------------------------+-------------+--------------+
-| atol                    |  Absolute tolerance in nodal projection                               |    Real     |   1.e-14     |
-+-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | maxiter                 |  Maximum number of iterations in the nodal projection                 |    Int      |   100        |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | bottom_maxiter          |  Maximum number of iterations in the nodal projection                 |    Int      |   100        |
 |                         |  bottom solver if using bicg, cg, bicgcg or cgbicg                    |             |              |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
-| mg_max_coarsening_level |  Maximum number of coarser levels to allowin the nodal projection     |    Int      |   100        |
+| mg_max_coarsening_level |  Maximum number of coarser levels to allow in the nodal projection    |    Int      |    30        |
 |                         |  If set to 0, the bottom solver will be called at the current level   |             |              |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | bottom_solver           |  Which bottom solver to use in the nodal projection                   |  String     |   bicgcg     |
@@ -331,7 +343,21 @@ These control the nodal projection and must be preceded by "nodal_proj.":
 MAC Projection
 ~~~~~~~~~~~~~~
 
-These control the MAC projection and must be preceded by "mac_proj.":
+These control the MAC projection and must be preceded by "mac.":
+
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                         | Description                                                           |   Type      | Default      |
++=========================+=======================================================================+=============+==============+
+| v                       |  Verbosity of IAMR's MAC projection routines                          |    Int      |   0          |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| mac_tol                 |  Relative tolerance in MAC projection                                 |    Real     |   1.e-12     |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| mac_sync_tol            |  Relative tolerance in MAC sync projection                            |    Real     |   1.e-8      |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+| mac_abs_tol             |  Absolute tolerance in MAC & sync projection                          |    Real     |   1.e-16     |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+These options must be preceded by "mac_proj.":
 
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                           |   Type      | Default      |
@@ -339,10 +365,6 @@ These control the MAC projection and must be preceded by "mac_proj.":
 | verbose                 |  Verbosity of multigrid solver in MAC projection                      |    Int      |   0          |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | bottom_verbose          |  Verbosity of BiCGStab solver in MAC projection                       |    Int      |   0          |
-+-------------------------+-----------------------------------------------------------------------+-------------+--------------+
-| rtol                    |  Relative tolerance in MAC projection                                 |    Real     |   1.e-11     |
-+-------------------------+-----------------------------------------------------------------------+-------------+--------------+
-| atol                    |  Absolute tolerance in MAC projection                                 |    Real     |   1.e-14     |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | maxiter                 |  Maximum number of iterations in the MAC projection                   |    Int      |   200        |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+

@@ -37,8 +37,6 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -174,12 +172,8 @@
             
   <section id="units">
 <h1>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h1>
-<p>For incompressible flow, IAMR supports any self-consistent units, as long as the length, time,
+<p>IAMR supports any self-consistent units, as long as the length, time,
 and mass are consistent with the viscosity and diffusivity.</p>
-<p>For low Mach number flow with temperature variations, the temperature solve requires a specific heat capacity,
-<span class="math notranslate nohighlight">\(c_p\)</span>, which is currently hard-coded as <span class="math notranslate nohighlight">\(1004.6 J kg^-1 K^-1\)</span>
-(the specific heat capacity of dry air). Users can either keep this value, or change the specific heat capacity
-in their own version of the source code.</p>
 </section>
 
 
