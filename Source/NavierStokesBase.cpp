@@ -1050,7 +1050,8 @@ NavierStokesBase::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
 }
 
 void
-NavierStokesBase::create_umac_grown (int nGrow)
+NavierStokesBase::create_umac_grown (int nGrow,
+                                     const MultiFab* a_divu)
 {
 
   Array<MultiFab*, AMREX_SPACEDIM> umac_crse;
@@ -1059,15 +1060,21 @@ NavierStokesBase::create_umac_grown (int nGrow)
   if ( level > 0 )
   {
     AMREX_D_TERM(umac_crse[0] = &getLevel(level-1).u_mac[0];,
-		 umac_crse[1] = &getLevel(level-1).u_mac[1];,
-		 umac_crse[2] = &getLevel(level-1).u_mac[2];);
+                 umac_crse[1] = &getLevel(level-1).u_mac[1];,
+                 umac_crse[2] = &getLevel(level-1).u_mac[2];);
   }
   AMREX_D_TERM(umac_fine[0] = &u_mac[0];,
-	       umac_fine[1] = &u_mac[1];,
-	       umac_fine[2] = &u_mac[2];);
+               umac_fine[1] = &u_mac[1];,
+               umac_fine[2] = &u_mac[2];);
 
-  HydroUtils::create_umac_grown (level, nGrow, grids, geom,
-				 umac_crse, umac_fine, crse_ratio);
+  // Check divu: if not nullptr, we need at least one ghost cell
+  int nGrow_divu = (a_divu != nullptr) ? a_divu->nGrow() : 1;
+  AMREX_ASSERT(nGrow_divu >= 1);
+
+  Geometry *crse_geom = (level==0) ? nullptr : &getLevel(level-1).geom;
+  Geometry *fine_geom = &geom;
+  HydroUtils::create_constrained_umac_grown (level, nGrow, grids, crse_geom, fine_geom,
+                                             umac_crse, umac_fine, a_divu, crse_ratio);
 }
 
 void
@@ -1863,7 +1870,7 @@ NavierStokesBase::mac_project (Real      time,
     mac_projector->mac_project(level,u_mac,Sold,dt,time,*divu,have_divu,
                                density_math_bc[0], increment_vel_register);
 
-    create_umac_grown(ngrow);
+    create_umac_grown(ngrow, divu);
 
     if (verbose)
     {
