@@ -2491,9 +2491,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     // Setup infos to pass to linear operator
     LPInfo info;
-    //Fixme
-    // does this max_coarsening level need to match the one in main.cpp????
     int max_coarsening_level(30);
+    ParmParse pp("nodal_proj");
+    pp.query("mg_max_coarsening_level", max_coarsening_level);
+
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
