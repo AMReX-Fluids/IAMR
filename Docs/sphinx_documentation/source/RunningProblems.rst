@@ -1,3 +1,5 @@
+.. role:: cpp(code)
+
 Running Simulations
 ===================
 
@@ -18,9 +20,13 @@ The following inputs must be preceded by "ns." For information on units, see :re
 Time Stepping
 -------------
 
-The first three inputs below do not take a prefix.  Note that the first two are both specified, both criteria
+The inputs below do not take a prefix.  Note that if the first two are both specified, both criteria
 are used and the simulation still stop when the first criterion is hit.  
-The simulation will stop when either the number of steps reaches max_step or time reaches stop_time.
+The simulation will stop when either the number of steps reaches :cpp:`max_step` or time reaches :cpp:`stop_time`.
+Note that if the code reaches :cpp:`stop_time` then the final time
+step will be shortened so as to end exactly at :cpp:`stop_time`, not
+past it.
+
 
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                      | Description                                                           |   Type      | Default      |
@@ -28,6 +34,10 @@ The simulation will stop when either the number of steps reaches max_step or tim
 | max_step             | Maximum number of time steps to take                                  |    Int      |  -1          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | stop_time            | Maximum time to reach                                                 |    Real     | -1.0         |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| stop_when_steady     | Stop when steady state is reached                                     |    Bool     | false        |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| steady_tol           | Specify tolerance to define steady state                              |    Real     | 1e-10        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 
 The inputs below must be preceded by "ns."  
@@ -39,9 +49,16 @@ The inputs below must be preceded by "ns."
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | cfl                  | CFL constraint (dt < cfl * dx / u) if fixed_dt not > 0                |    Real     |   0.5        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| init_shrink          | Factor by which to shrink the initial time step                       |    Real     |   1.0        |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| max_change           | Factor by which time step can grow in subsequent steps                |    Real     |   1.1        |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| dt_cutoff            | Time step below which the simulation will abort                       |    Real     |   0.0        |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
 
-  * If you want to fix the dt, simply set :cpp:`ns.fixed_dt = XXX` and the fluid time
-    step will always be that number. 
+  * If you want to fix the dt, simply set :cpp:`ns.fixed_dt = XXX` to set the fluid time
+    step at level 0. Note that :cpp:`init_shrink` can be used
+    in conjunction with :cpp:`fixed_dt` and the initial time steps will be reduced. 
 
   * If you want to let the code determine the appropriate time step using the advective CFL
     condition, then set :cpp:`ns.cfl = 0.7` for example, and the fluid time step will
@@ -52,7 +69,30 @@ The inputs below must be preceded by "ns."
     If :cpp:`ns.fixed_dt` is set, then it will override the cfl option whether 
     :cpp:`ns.cfl` is set or not.
 
+As an example, consider:
 
+.. code-block:: c++
+
+    ns.cfl = 0.9 
+    ns.init_shrink = 0.01 
+    ns.change_max = 1.1
+    ns.dt_cutoff = 1.e-20
+
+This defines the :cpp:`cfl` parameter to be 0.9,
+but sets (via :cpp:`init_shrink`) the first timestep we take
+to be 1% of what it would be otherwise. This allows us to
+ramp up to the hydrodynamic timestep at the start of a simulation.
+The :cpp:`change_max` parameter restricts the timestep from increasing
+by more than 10% over a coarse timestep. Note that the time step
+can shrink by any factor; this only controls the extent to which it can grow.
+The :cpp:`dt_cutoff` parameter will force the code to abort if the
+timestep ever drops below :math:`10^{-20}`. This is a safety feature—if the
+code hits such a small value, then something likely went wrong in the
+simulation, and by aborting, you won’t burn through your entire allocation
+before noticing that there is an issue.
+
+
+	 
 Output Options
 --------------
 	 
