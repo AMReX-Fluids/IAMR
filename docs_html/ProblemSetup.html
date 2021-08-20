@@ -203,12 +203,8 @@
 <h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline">¶</a></h1>
 <section id="units">
 <span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h2>
-<p>For incompressible flow, IAMR supports any self-consistent units, as long as the length, time,
+<p>IAMR supports any self-consistent units, as long as the length, time,
 and mass are consistent with the viscosity and diffusivity.</p>
-<p>For low Mach number flow with temperature variations, the temperature solve requires a specific heat capacity,
-<span class="math notranslate nohighlight">\(c_p\)</span>, which is currently hard-coded as <span class="math notranslate nohighlight">\(1004.6~ J kg^{-1} K^{-1}\)</span>
-(the specific heat capacity of dry air). Users can either keep this value, or change the specific heat capacity
-in their own version of the source code.</p>
 </section>
 <section id="initial-conditions">
 <h2>Initial Conditions<a class="headerlink" href="#initial-conditions" title="Permalink to this headline">¶</a></h2>
