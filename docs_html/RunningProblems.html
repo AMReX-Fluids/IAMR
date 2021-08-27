@@ -234,12 +234,9 @@
 </section>
 <section id="time-stepping">
 <span id="sec-inputstimestepping"></span><h2>Time Stepping<a class="headerlink" href="#time-stepping" title="Permalink to this headline">¶</a></h2>
-<p>The inputs below do not take a prefix.  Note that if the first two are both specified, both criteria
+<p>The first three inputs below do not take a prefix.  Note that the first two are both specified, both criteria
 are used and the simulation still stop when the first criterion is hit.
-The simulation will stop when either the number of steps reaches <code class="code cpp docutils literal notranslate"><span class="pre">max_step</span></code> or time reaches <code class="code cpp docutils literal notranslate"><span class="pre">stop_time</span></code>.
-Note that if the code reaches <code class="code cpp docutils literal notranslate"><span class="pre">stop_time</span></code> then the final time
-step will be shortened so as to end exactly at <code class="code cpp docutils literal notranslate"><span class="pre">stop_time</span></code>, not
-past it.</p>
+The simulation will stop when either the number of steps reaches max_step or time reaches stop_time.</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 18%" />
@@ -264,16 +261,6 @@ past it.</p>
 <td><p>Maximum time to reach</p></td>
 <td><p>Real</p></td>
 <td><p>-1.0</p></td>
-</tr>
-<tr class="row-even"><td><p>stop_when_steady</p></td>
-<td><p>Stop when steady state is reached</p></td>
-<td><p>Bool</p></td>
-<td><p>false</p></td>
-</tr>
-<tr class="row-odd"><td><p>steady_tol</p></td>
-<td><p>Specify tolerance to define steady state</p></td>
-<td><p>Real</p></td>
-<td><p>1e-10</p></td>
 </tr>
 </tbody>
 </table>
@@ -303,56 +290,21 @@ past it.</p>
 <td><p>Real</p></td>
 <td><p>0.5</p></td>
 </tr>
-<tr class="row-even"><td><p>init_shrink</p></td>
-<td><p>Factor by which to shrink the initial time step</p></td>
-<td><p>Real</p></td>
-<td><p>1.0</p></td>
-</tr>
-<tr class="row-odd"><td><p>max_change</p></td>
-<td><p>Factor by which time step can grow in subsequent steps</p></td>
-<td><p>Real</p></td>
-<td><p>1.1</p></td>
-</tr>
-<tr class="row-even"><td><p>dt_cutoff</p></td>
-<td><p>Time step below which the simulation will abort</p></td>
-<td><p>Real</p></td>
-<td><p>0.0</p></td>
-</tr>
 </tbody>
 </table>
 <blockquote>
 <div><ul class="simple">
-<li><p>If you want to fix the dt, simply set <code class="code cpp docutils literal notranslate"><span class="pre">ns.fixed_dt</span> <span class="pre">=</span> <span class="pre">XXX</span></code> to set the fluid time
-step at level 0. Note that <code class="code cpp docutils literal notranslate"><span class="pre">init_shrink</span></code> can be used
-in conjunction with <code class="code cpp docutils literal notranslate"><span class="pre">fixed_dt</span></code> and the initial time steps will be reduced.</p></li>
+<li><p>If you want to fix the dt, simply set <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ns</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">fixed_dt</span></span> <span class="operator"><span class="pre">=</span></span> <span class="name"><span class="pre">XXX</span></span></code> and the fluid time
+step will always be that number.</p></li>
 <li><p>If you want to let the code determine the appropriate time step using the advective CFL
-condition, then set <code class="code cpp docutils literal notranslate"><span class="pre">ns.cfl</span> <span class="pre">=</span> <span class="pre">0.7</span></code> for example, and the fluid time step will
+condition, then set <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ns</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">cfl</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number float"><span class="pre">0.7</span></span></code> for example, and the fluid time step will
 be computed to be dt = 0.7 * dx / max(vel).</p></li>
 <li><p>Note that the cfl defaults to 0.5 so it does not have to be set in the inputs file. If neither
-<code class="code cpp docutils literal notranslate"><span class="pre">ns.cfl</span></code> nor <code class="code cpp docutils literal notranslate"><span class="pre">fixed_dt</span></code> is set, then default value of cfl will be used.
-If <code class="code cpp docutils literal notranslate"><span class="pre">ns.fixed_dt</span></code> is set, then it will override the cfl option whether
-<code class="code cpp docutils literal notranslate"><span class="pre">ns.cfl</span></code> is set or not.</p></li>
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ns</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">cfl</span></span></code> nor <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fixed_dt</span></span></code> is set, then default value of cfl will be used.
+If <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ns</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">fixed_dt</span></span></code> is set, then it will override the cfl option whether
+<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">ns</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">cfl</span></span></code> is set or not.</p></li>
 </ul>
 </div></blockquote>
-<p>As an example, consider:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="p">.</span><span class="n">cfl</span> <span class="o">=</span> <span class="mf">0.9</span>
-<span class="n">ns</span><span class="p">.</span><span class="n">init_shrink</span> <span class="o">=</span> <span class="mf">0.01</span>
-<span class="n">ns</span><span class="p">.</span><span class="n">change_max</span> <span class="o">=</span> <span class="mf">1.1</span>
-<span class="n">ns</span><span class="p">.</span><span class="n">dt_cutoff</span> <span class="o">=</span> <span class="mf">1.e-20</span>
-</pre></div>
-</div>
-<p>This defines the <code class="code cpp docutils literal notranslate"><span class="pre">cfl</span></code> parameter to be 0.9,
-but sets (via <code class="code cpp docutils literal notranslate"><span class="pre">init_shrink</span></code>) the first timestep we take
-to be 1% of what it would be otherwise. This allows us to
-ramp up to the hydrodynamic timestep at the start of a simulation.
-The <code class="code cpp docutils literal notranslate"><span class="pre">change_max</span></code> parameter restricts the timestep from increasing
-by more than 10% over a coarse timestep. Note that the time step
-can shrink by any factor; this only controls the extent to which it can grow.
-The <code class="code cpp docutils literal notranslate"><span class="pre">dt_cutoff</span></code> parameter will force the code to abort if the
-timestep ever drops below <span class="math notranslate nohighlight">\(10^{-20}\)</span>. This is a safety feature—if the
-code hits such a small value, then something likely went wrong in the
-simulation, and by aborting, you won’t burn through your entire allocation
-before noticing that there is an issue.</p>
 </section>
 <section id="output-options">
 <h2>Output Options<a class="headerlink" href="#output-options" title="Permalink to this headline">¶</a></h2>
@@ -701,17 +653,12 @@ Here is some of the more frequently used options:</p>
 <td><p>Int</p></td>
 <td><p>0</p></td>
 </tr>
-<tr class="row-even"><td><p>proj.v</p></td>
-<td><p>Verbosity in IAMR’s nodal projection routines</p></td>
+<tr class="row-even"><td><p>nodal_proj.verbose</p></td>
+<td><p>Verbosity in nodal projection</p></td>
 <td><p>Int</p></td>
 <td><p>0</p></td>
 </tr>
-<tr class="row-odd"><td><p>nodal_proj.verbose</p></td>
-<td><p>Verbosity in nodal projection multigrid solver</p></td>
-<td><p>Int</p></td>
-<td><p>0</p></td>
-</tr>
-<tr class="row-even"><td><p>mac_proj.verbose</p></td>
+<tr class="row-odd"><td><p>mac_proj.verbose</p></td>
 <td><p>Verbosity in MAC projection</p></td>
 <td><p>Int</p></td>
 <td><p>0</p></td>
@@ -728,43 +675,7 @@ used in advection obeys the constraint), and the diffusive solves.</p>
 on AMReX’s linear solvers, see <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LinearSolvers_Chapter.html#chap-linearsolvers" title="(in amrex v21.09-dev)"><span>Linear Solvers</span></a></p>
 <section id="nodal-projection">
 <h3>Nodal Projection<a class="headerlink" href="#nodal-projection" title="Permalink to this headline">¶</a></h3>
-<p>These control the nodal projection and must be preceded by “proj.”:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 20%" />
-<col style="width: 58%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td></td>
-<td><p>Description</p></td>
-<td><p>Type</p></td>
-<td><p>Default</p></td>
-</tr>
-<tr class="row-even"><td><p>v</p></td>
-<td><p>Verbosity of IAMR’s nodal projection routines</p></td>
-<td><p>Int</p></td>
-<td><p>0</p></td>
-</tr>
-<tr class="row-odd"><td><p>proj_tol</p></td>
-<td><p>Relative tolerance in nodal projection</p></td>
-<td><p>Real</p></td>
-<td><p>1.e-12</p></td>
-</tr>
-<tr class="row-even"><td><p>sync_tol</p></td>
-<td><p>Relative tolerance in sync projection</p></td>
-<td><p>Real</p></td>
-<td><p>1.e-8</p></td>
-</tr>
-<tr class="row-odd"><td><p>proj_abs_tol</p></td>
-<td><p>Absolute tolerance in nodal &amp; sync projections</p></td>
-<td><p>Real</p></td>
-<td><p>1.e-16</p></td>
-</tr>
-</tbody>
-</table>
-<p>These options must be preceded by “nodal_proj.”:</p>
+<p>These control the nodal projection and must be preceded by “nodal_proj.”:</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20%" />
@@ -788,6 +699,16 @@ on AMReX’s linear solvers, see <a class="reference external" href="https://amr
 <td><p>Int</p></td>
 <td><p>0</p></td>
 </tr>
+<tr class="row-even"><td><p>rtol</p></td>
+<td><p>Relative tolerance in nodal projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-11</p></td>
+</tr>
+<tr class="row-odd"><td><p>atol</p></td>
+<td><p>Absolute tolerance in nodal projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-14</p></td>
+</tr>
 <tr class="row-even"><td><p>maxiter</p></td>
 <td><p>Maximum number of iterations in the nodal projection</p></td>
 <td><p>Int</p></td>
@@ -800,10 +721,10 @@ bottom solver if using bicg, cg, bicgcg or cgbicg</p></td>
 <td><p>100</p></td>
 </tr>
 <tr class="row-even"><td><p>mg_max_coarsening_level</p></td>
-<td><p>Maximum number of coarser levels to allow in the nodal projection
+<td><p>Maximum number of coarser levels to allowin the nodal projection
 If set to 0, the bottom solver will be called at the current level</p></td>
 <td><p>Int</p></td>
-<td><p>30</p></td>
+<td><p>100</p></td>
 </tr>
 <tr class="row-odd"><td><p>bottom_solver</p></td>
 <td><p>Which bottom solver to use in the nodal projection
@@ -816,45 +737,7 @@ Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
 </section>
 <section id="mac-projection">
 <h3>MAC Projection<a class="headerlink" href="#mac-projection" title="Permalink to this headline">¶</a></h3>
-<p>These control the MAC projection and must be preceded by “mac.”:</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 20%" />
-<col style="width: 58%" />
-<col style="width: 11%" />
-<col style="width: 11%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Default</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>v</p></td>
-<td><p>Verbosity of IAMR’s MAC projection routines</p></td>
-<td><p>Int</p></td>
-<td><p>0</p></td>
-</tr>
-<tr class="row-odd"><td><p>mac_tol</p></td>
-<td><p>Relative tolerance in MAC projection</p></td>
-<td><p>Real</p></td>
-<td><p>1.e-12</p></td>
-</tr>
-<tr class="row-even"><td><p>mac_sync_tol</p></td>
-<td><p>Relative tolerance in MAC sync projection</p></td>
-<td><p>Real</p></td>
-<td><p>1.e-8</p></td>
-</tr>
-<tr class="row-odd"><td><p>mac_abs_tol</p></td>
-<td><p>Absolute tolerance in MAC &amp; sync projection</p></td>
-<td><p>Real</p></td>
-<td><p>1.e-16</p></td>
-</tr>
-</tbody>
-</table>
-<p>These options must be preceded by “mac_proj.”:</p>
+<p>These control the MAC projection and must be preceded by “mac_proj.”:</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20%" />
@@ -879,6 +762,16 @@ Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
 <td><p>Verbosity of BiCGStab solver in MAC projection</p></td>
 <td><p>Int</p></td>
 <td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>rtol</p></td>
+<td><p>Relative tolerance in MAC projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-11</p></td>
+</tr>
+<tr class="row-odd"><td><p>atol</p></td>
+<td><p>Absolute tolerance in MAC projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-14</p></td>
 </tr>
 <tr class="row-even"><td><p>maxiter</p></td>
 <td><p>Maximum number of iterations in the MAC projection</p></td>

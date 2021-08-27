@@ -203,8 +203,12 @@
 <h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline">¶</a></h1>
 <section id="units">
 <span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h2>
-<p>IAMR supports any self-consistent units, as long as the length, time,
+<p>For incompressible flow, IAMR supports any self-consistent units, as long as the length, time,
 and mass are consistent with the viscosity and diffusivity.</p>
+<p>For low Mach number flow with temperature variations, the temperature solve requires a specific heat capacity,
+<span class="math notranslate nohighlight">\(c_p\)</span>, which is currently hard-coded as <span class="math notranslate nohighlight">\(1004.6~ J kg^{-1} K^{-1}\)</span>
+(the specific heat capacity of dry air). Users can either keep this value, or change the specific heat capacity
+in their own version of the source code.</p>
 </section>
 <section id="initial-conditions">
 <h2>Initial Conditions<a class="headerlink" href="#initial-conditions" title="Permalink to this headline">¶</a></h2>
@@ -542,10 +546,11 @@ construct the level-set function).</p></li>
 <section id="particles-initialization">
 <h2>Particles Initialization<a class="headerlink" href="#particles-initialization" title="Permalink to this headline">¶</a></h2>
 <p>Particles are initialized from an ASCII file, identified in the IAMR inputs file:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">particles</span><span class="o">.</span><span class="n">particle_init_file</span> <span class="o">=</span> <span class="n">particle_file</span>
-</pre></div>
-</div>
-<p>Here <code class="docutils literal notranslate"><span class="pre">particle_file</span></code> is the user-specified name of the file. The first line in this file is
+<dl class="simple">
+<dt>::</dt><dd><p>particles.particle_init_file = <em>particle_file</em></p>
+</dd>
+</dl>
+<p>Here <em>particle_file</em> is the user-specified name of the file. The first line in this file is
 assumed to contain the number of particles. Each line after that contains the position of the particle as
 x y z</p>
 </section>
