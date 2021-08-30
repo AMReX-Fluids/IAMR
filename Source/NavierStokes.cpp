@@ -751,26 +751,53 @@ NavierStokes::scalar_advection (Real dt,
 
             for (int n=0; n<num_scalars; ++n)
             {
-                // FIXME: Loop rqd b/c function does not take array conserv_diff
                 auto const& tf    = forcing_term.array(S_mfi,n);
                 auto const& visc  = visc_terms.const_array(S_mfi,n);
                 auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
                 auto const& divu  = divu_fp -> const_array(S_mfi);
                 auto const& S     = Smf.array(S_mfi);
 
-                if (advectionType[fscalar+n] == Conservative)
-                {
+		if ( do_temp && n+fscalar==Temp )
+		{
+		  //
+		  // Solving
+		  //   dT/dt + U dot del T = ( del dot lambda grad T + H_T ) / (rho c_p)
+		  // with tforces = H_T/c_p (since it's always density-weighted), and
+		  // visc = del dot mu grad T, where mu = lambda/c_p
+		  //
+		  amrex::ParallelFor(force_bx, [tf, visc, rho]
+                  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                  { tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k); });
+		}
+		else
+		{
+		  if (advectionType[fscalar+n] == Conservative)
+		  {
+		    //
+		    // For tracers, Solving
+		    //   dS/dt + del dot (U S) = del dot beta grad (S/rho) + rho H_q
+		    // where S = rho q, q is a concentration
+		    // tforces = rho H_q (since it's always density-weighted)
+		    // visc = del dot beta grad (S/rho)
+		    //
                     amrex::ParallelFor(force_bx, [tf, visc, S, divu, rho]
                     AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-                    { tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);});
-                }
-                else
-                {
+                    { tf(i,j,k) += visc(i,j,k); });
+		  }
+		  else
+		  {
+		    //
+		    // Solving
+		    //   dS/dt + U dot del S = del dot beta grad S + H_q
+		    // where S = q, q is a concentration
+		    // tforces = rho H_q (since it's always density-weighted)
+		    // visc = del dot beta grad S
+		    //
                     amrex::ParallelFor(force_bx, [tf, visc, rho]
                     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                    { tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k); });
-                }
-
+                    { tf(i,j,k) = tf(i,j,k) / rho(i,j,k) + visc(i,j,k); });
+		  }
+		}
             }
         }
     }
@@ -2096,17 +2123,15 @@ NavierStokes::calc_divu (Real      time,
 
         if (do_temp && visc_coef[Temp] > 0.0)
         {
-            //
-            // Compute Div(U) = Div(visc_cond_coef * Grad(T))/(c_p*rho*T)
-            //
+            // Compute Div(U) = Div(lambda * Grad(T))/(c_p*rho*T)
+            //                = Div(temp_cond_coeff * Grad(T)) / (rho*T)
+	    // where temp_cond_coef = lambda/cp
             getViscTerms(divu,Temp,1,time);
 
             const MultiFab&   rhotime = get_rho(time);
 
             FillPatchIterator temp_fpi(*this,divu,0,time,State_Type,Temp,1);
 	    MultiFab& tmf = temp_fpi.get_mf();
-
-	    Real THERMO_cp = 1004.6;
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -2133,12 +2158,12 @@ NavierStokes::calc_divu (Real      time,
 		{
 		  auto vfrac = ebfactory.getVolFrac().const_array(rho_mfi);
 
-		  amrex::ParallelFor(bx, [div, rho, temp, vfrac, THERMO_cp]
+		  amrex::ParallelFor(bx, [div, rho, temp, vfrac]
 		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 		  {
 		    if ( vfrac(i,j,k) > 0.0 )
 		    {
-		      div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k)*THERMO_cp );
+		      div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k) );
 		    }
 		    else
 		    {
@@ -2149,10 +2174,10 @@ NavierStokes::calc_divu (Real      time,
 		else
 #endif
 		{
-		  amrex::ParallelFor(bx, [div, rho, temp, THERMO_cp]
+		  amrex::ParallelFor(bx, [div, rho, temp]
 		  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 		  {
-		    div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k)*THERMO_cp );
+		    div(i,j,k) /= ( rho(i,j,k)*temp(i,j,k) );
 		  });
 		}
 	    }
