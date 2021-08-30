@@ -1,5 +1,10 @@
 name: Build and Deploy
 on: [push, pull_request]
+
+concurrency:
+  group: ${{ github.head_ref }}-docs
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -22,10 +27,12 @@ jobs:
           make html
 
       - name: Deploy
-        #if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/development'
+        if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/development'
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACCESS_TOKEN: ${{ secrets.DEPLOY_DOCS }}
+          REPOSITORY_NAME: AMReX-Codes/AMReX-Codes.github.io
           BRANCH: gh-pages # The branch the action should deploy to.
           FOLDER: Docs/sphinx_documentation/build/html # The folder the action should deploy.
           TARGET_FOLDER: docs_html # The folder the action should deploy to.

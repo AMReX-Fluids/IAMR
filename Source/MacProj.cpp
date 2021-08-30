@@ -1323,6 +1323,11 @@ MacProj::mlmg_mac_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc
     // Create MacProjector Object
     //
     LPInfo info;
+    int max_coarsening_level(100);
+    ParmParse pp("mac_proj");
+    pp.query("mg_max_coarsening_level", max_coarsening_level);
+
+    info.setMaxCoarseningLevel(max_coarsening_level);
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
 

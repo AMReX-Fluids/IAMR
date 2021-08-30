@@ -363,7 +363,8 @@ public:
     //
     // Grow by nGrow and fillpatch the MAC-projected velocities.
     //
-    void create_umac_grown (int nGrow);
+    void create_umac_grown (int nGrow,
+                            const amrex::MultiFab *a_divu);
     //
     // Predict face velocities (before projection), estimate current cfl
     // from t^n cell-centered velocities (plus cfl and change_max)

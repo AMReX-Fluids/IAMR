@@ -50,3 +50,17 @@ IAMR has the ability to incorporate general, user-defined external forcing and s
 :math:`{\bf H}_U= (0 , -\rho g )` in 2d, where :math:`g` is the magnitude of the gravitational acceleration. However, since
 by default, :math:`g=0`, :math:`{\bf H}_U = 0` unless ``ns.gravity`` is set (for more info see :ref:`sec:Inputs` and ).
 
+By default, IAMR solves the momentum equation in convective form. The inputs parameter ``ns.do_mom_diff`` is used to
+switch to conservation form. Tracers are passively advected by default. The inputs parameter ``ns.do_cons_trac = 1``
+switches the first tracer to conservative. A second tracer can be included with ``ns.do_trac2 = 1``, and it can be
+conservatively advected with ``ns.do_cons_trac2``.
+
+IAMR also has the option to solve for temperature, along with a modified divergence constraint on the velocity field:
+
+.. math:: \rho c_p \left( \frac{\partial T}{\partial t} + U \cdot \nabla T \right)  = \nabla \cdot \lambda \nabla T + H_T
+
+	  \nabla \cdot U = \frac{1}{\rho c_p T} \nabla \cdot \lambda \nabla T 
+
+To enable the temperature solve, use ``ns.do_temp = 1`` and set ``ns.temp_cond_coef`` to represent :math:`\lambda / c_p`,
+which is taken to be constant. More sophiticated treatments are possible; if interested, please open an issue on github:
+https://github.com/AMReX-Codes/IAMR/issues

@@ -32,7 +32,7 @@ CEXE_sources += NS_LES.cpp
 CEXE_sources += NS_derive.cpp NS_average.cpp
 CEXE_headers += NS_derive.H
 
-CEXE_headers += Projection.H MacProj.H Diffusion.H NavierStokesBase.H FluxBoxes.H
+CEXE_headers += Projection.H MacProj.H Diffusion.H NavierStokesBase.H FluxBoxes.H EBUserDefined.H
 
 FEXE_headers += PROJECTION_F.H NAVIERSTOKES_F.H 
 
