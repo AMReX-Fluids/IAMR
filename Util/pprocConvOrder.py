@@ -5,11 +5,11 @@
 # Input are limited by the regression framework.
 
 # Usage:
-#   ./pprocConvOrder.py --pproc_exec prog.exe --test_name DummyTest
+#   ./pprocConvOrder.py --pproc_exe prog.exe --test_name DummyTest
 
 # Input:
-#   * --pproc_exec: the processing executable path
-#   * --test_name: a TESTNAME that will looked for during the postprocessing
+#   * --pproc_exe: the processing executable path
+#   * --test_name: a TESTNAME that will be looked for during postprocessing
 
 # "Internal" user input 
 #   * pproc_type:
@@ -39,15 +39,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 USAGE = """
-    Template post-processing script for PeleLM convergence analysis
+    Template post-processing script for convergence analysis
 """
 
 def pproc(args):
 
     # User data
-    vars=["y_velocity", "x_velocity"]
-    resolution = [32,64,128,256]        
-    pproc_type = "fcompare"
+    vars=["y_velocity","tracer","tracer2","density"]
+    resolution = [32,64,128,256]
+    pproc_type = "diffsamedomain"
 
     # Get a local copy of post-processing executable
     run_dir = os.getcwd()
@@ -74,7 +74,7 @@ def pproc(args):
                         pltfile.append(f)
             pltfile.sort()
             outfile = "error_{}.analysis.out".format(case)
-            os.system("./{} -n 2 {} {} > {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1], outfile))
+            os.system("./{} -a -n 2 {} {} > {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1], outfile))
             pltfile.clear()
         
             # Extract errors on each variable
@@ -170,7 +170,7 @@ def writetex(data, test_name, vars):
             fout.write("&  {:.3f} ".format(conv_order[i,v]))
         fout.write("\\\\\n")
     fout.write("\end{tabular}\n")
-    fout.write("\caption{PeleLM convergence order}\n")
+    fout.write("\caption{convergence order}\n")
     fout.write("\label{table:conv}\n")
     fout.write("\end{table}\n")
     fout.close()
@@ -200,7 +200,7 @@ def parse_args(arg_string=None):
                         help="name of the test. Default = current folder name")
 
     parser.add_argument("--pproc_exe", type=str, default="None", metavar="pproc.exe",
-                        help="path to the executable required for the analysis.")
+                        required=True,help="path to the executable required for the analysis.")
 
     if not arg_string is None:
         args, unknown = parser.parse_known_args(arg_string)
@@ -210,6 +210,5 @@ def parse_args(arg_string=None):
     return args   
 
 if __name__ == "__main__":
-    arg_string_prepend = ["--pproc_exe"]+sys.argv[1:]
-    args = parse_args(arg_string=arg_string_prepend)
+    args = parse_args(arg_string=sys.argv[1:])
     pproc(args)

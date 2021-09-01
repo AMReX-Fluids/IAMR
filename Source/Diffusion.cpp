@@ -248,7 +248,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            Vector<MultiFab*>&        S_new,
                            const Vector<MultiFab*>&  Rho_new,
                            int                       S_comp,
-                           int                       num_comp,
+                           int                       nComp,
                            int                       Rho_comp,
                            Real                      prev_time,
                            Real                      curr_time,
@@ -268,7 +268,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            const IntVect&            cratio,
                            const BCRec&              bc,
                            const Geometry&           geom,
-                           const SolveMode&          solve_mode,
                            bool                      add_old_time_divFlux,
                            const amrex::Vector<int>& is_diffusive)
 {
@@ -287,8 +286,30 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                      << " lev: " << level << '\n';
 
     // Velocity components should go to tensor solver
-    if (S_comp <= Xvel && Xvel <= S_comp+num_comp-1){
+    if (S_comp <= Xvel && Xvel <= S_comp+nComp-1){
        amrex::Abort("Diffusion::diffuse_scalar(): velocity component(s) attemping to use scalar solver. Velocity must use tensor solver.\n");
+    }
+
+    // Check if scalars are diffusive type:
+    // all the nComp scalars must be of the same type
+    int diffType = is_diffusive[0];
+    for (int comp = 1; comp < nComp; comp++) {
+        if (is_diffusive[comp] != diffType) {
+            amrex::Abort("All the scalars must be either diffusive or non-diffusive when calling diffuse_scalar");
+        }
+    }
+
+    // If all non-diffusive, set flux to zero and exit
+    if (diffType == 0) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
+        {
+            if (fluxn[idim]!= 0 && fluxnp1[idim]!= 0)
+            {
+                fluxn[idim]->setVal(0.0,fluxComp,nComp);
+                fluxnp1[idim]->setVal(0.0,fluxComp,nComp);
+            }
+        }
+        return;
     }
 
     bool has_coarse_data = S_new.size() > 1;
@@ -299,7 +320,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     checkBeta(betan, allthere, allnull);
     checkBeta(betanp1, allthere);
     if (allnull && add_old_time_divFlux && be_cn_theta!=1)
-      amrex::Abort("Diffusion::diffuse_scalar: Constant diffusivity case no longer supported separately. Must set non-zero beta.");
+       amrex::Abort("Diffusion::diffuse_scalar: Constant diffusivity case no longer supported separately. Must set non-zero beta.");
 
     //
     // No ghost cells are needed for MLMG in most cases. Except for
@@ -309,24 +330,22 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     const int ng = 1;
 
     Real dt = curr_time - prev_time;
-    BL_ASSERT(S_new[0]->nGrow()>0);
-    if (S_old.size()>0) BL_ASSERT(S_old[0]->nGrow()>0);
+    AMREX_ASSERT(S_new[0]->nGrow()>0);
+    if (S_old.size()>0) AMREX_ASSERT(S_old[0]->nGrow()>0);
     const BoxArray& ba = S_new[0]->boxArray();
     const DistributionMapping& dm = S_new[0]->DistributionMap();
     const DistributionMapping* dmc = (has_coarse_data ? &(S_new[1]->DistributionMap()) : 0);
     const BoxArray* bac = (has_coarse_data ? &(S_new[1]->boxArray()) : 0);
 
-    BL_ASSERT(solve_mode==ONEPASS || (delta_rhs && delta_rhs->boxArray()==ba));
-
     const auto& factory = S_new[0]->Factory();
 
-    MultiFab Rhs(ba,dm,1,0,MFInfo(),factory);
-    MultiFab Soln(ba,dm,1,ng,MFInfo(),factory);
+    MultiFab Rhs(ba,dm,nComp,0,MFInfo(),factory);
+    MultiFab Soln(ba,dm,nComp,ng,MFInfo(),factory);
 
     auto Solnc = std::unique_ptr<MultiFab>(new MultiFab());
     if (has_coarse_data)
     {
-      Solnc->define(*bac, *dmc, 1, 0, MFInfo(), S_new[1]->Factory());
+      Solnc->define(*bac, *dmc, nComp, 0, MFInfo(), S_new[1]->Factory());
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -343,9 +362,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
 #ifdef AMREX_USE_EB
     const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(factory));
-    MLEBABecLap opn({geom}, {ba}, {dm}, infon, {ebf});
+    MLEBABecLap opn({geom}, {ba}, {dm}, infon, {ebf}, nComp);
 #else
-    MLABecLaplacian opn({geom}, {ba}, {dm}, infon);
+    MLABecLaplacian opn({geom}, {ba}, {dm}, infon, {}, nComp);
 #endif
 
     opn.setMaxOrder(max_order);
@@ -358,11 +377,10 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     infonp1.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
-    MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, {ebf});
+    MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, {ebf}, nComp);
 #else
-    MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1);
+    MLABecLaplacian opnp1({geom}, {ba}, {dm}, infonp1, {}, nComp);
 #endif
-
     opnp1.setMaxOrder(max_order);
 
     MLMG mgnp1(opnp1);
@@ -378,214 +396,239 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     opn.setDomainBC(mlmg_lobc, mlmg_hibc);
     opnp1.setDomainBC(mlmg_lobc, mlmg_hibc);
 
-    for (int icomp=0; icomp<num_comp; ++icomp)
+    if (verbose)
     {
-       if (verbose)
-       {
-          amrex::Print() << "diffusing scalar "<< icomp+1 << " of " << num_comp << "\n"
-                         << "rho flag "<< rho_flag << "\n";
-       }
+       amrex::Print() << "diffusing of " << nComp << " scalars \n"
+                      << "rho flag "<< rho_flag << "\n";
+    }
 
-       int sigma = S_comp + icomp;
+    int sigma = S_comp;
 
-       if (is_diffusive[icomp] == 0)
-       {
-          for (int n = 0; n < AMREX_SPACEDIM; n++)
-          {
-            if (fluxn[n]!=0 && fluxnp1[n]!=0)
-            {
-              fluxn[n]->setVal(0.0,fluxComp+icomp,1);
-              fluxnp1[n]->setVal(0.0,fluxComp+icomp,1);
-            }
-          }
-          break;
-       }
+    if (add_old_time_divFlux && be_cn_theta!=1) {
+        Real a = 0.0;
+        Real b = -(1.0-be_cn_theta)*dt;
 
-       if (add_old_time_divFlux && be_cn_theta!=1)
-       {
-          Real a = 0.0;
-          Real b = -(1.0-be_cn_theta)*dt;
-
-          if(verbose)
+        if(verbose)
              Print()<<"Adding old time diff ...\n";
 
-          {
-            if (has_coarse_data)
-            {
-              MultiFab::Copy(*Solnc,*S_old[1],sigma,0,1,0);
-              if (rho_flag == 2)
-              {
-                MultiFab::Divide(*Solnc,*Rho_old[1],Rho_comp,0,1,0);
-              }
-              opn.setCoarseFineBC(Solnc.get(), cratio[0]);
+        {
+            if (has_coarse_data) {
+                MultiFab::Copy(*Solnc,*S_old[1],sigma,0,nComp,0);
+                if (rho_flag == 2) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                    for (MFIter mfi(*Solnc, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                    {
+                        const Box& bx = mfi.tilebox();
+                        auto const& sol_arr = Solnc->array(mfi);
+                        auto const& rho_arr = Rho_old[1]->const_array(mfi,Rho_comp);
+                        amrex::ParallelFor(bx, [sol_arr, rho_arr, nComp]
+                        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+                        {
+                            Real rhoInv = 1.0 / rho_arr(i,j,k);
+                            for (int n = 0; n < nComp; ++n) {
+                               sol_arr(i,j,k,n) *= rhoInv;
+                            }
+                        });
+                    }
+                }
+                opn.setCoarseFineBC(Solnc.get(), cratio[0]);
             }
-            MultiFab::Copy(Soln,*S_old[0],sigma,0,1,ng);
-            if (rho_flag == 2)
-            {
-              MultiFab::Divide(Soln,*Rho_old[0],Rho_comp,0,1,ng);
+            MultiFab::Copy(Soln,*S_old[0],sigma,0,nComp,ng);
+            if (rho_flag == 2) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (MFIter mfi(Soln, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.growntilebox(ng);
+                    auto const& sol_arr = Soln.array(mfi);
+                    auto const& rho_arr = Rho_old[0]->const_array(mfi,Rho_comp);
+                    amrex::ParallelFor(bx, [sol_arr, rho_arr, nComp]
+                    AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+                    {
+                        Real rhoInv = 1.0 / rho_arr(i,j,k);
+                        for (int n = 0; n < nComp; ++n) {
+                           sol_arr(i,j,k,n) *= rhoInv;
+                        }
+                    });
+                }
             }
             opn.setLevelBC(0, &Soln);
-          }
+        }
 
-          opn.setScalars(a,b);
-          setBeta(opn,betan,betaComp+icomp);
+        opn.setScalars(a,b);
+        setBeta(opn,betan,betaComp,nComp);
 
 #ifdef AMREX_USE_EB
-          MultiFab rhs_tmp(ba,dm,1,2,MFInfo(),factory);
-          rhs_tmp.setVal(0.);
-          mgn.apply({&rhs_tmp},{&Soln});
+        MultiFab rhs_tmp(ba,dm,nComp,2,MFInfo(),factory);
+        rhs_tmp.setVal(0.);
+        mgn.apply({&rhs_tmp},{&Soln});
 
-          const amrex::MultiFab* weights;
-          const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(factory));
-          weights = &(ebf->getVolFrac());
+        const amrex::MultiFab* weights;
+        const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(factory));
+        weights = &(ebf->getVolFrac());
 
-          amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, 1, geom);
+        amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, nComp, geom);
 #else
-          mgn.apply({&Rhs},{&Soln});
+        mgn.apply({&Rhs},{&Soln});
 #endif
+        computeExtensiveFluxes(mgn, Soln, fluxn, fluxComp, nComp, &geom, -b/dt);
+    } else {
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
+        {
+          fluxn[idim]->setVal(0.0,fluxComp,nComp);
+        }
+        Rhs.setVal(0.0);
+    }
 
-          computeExtensiveFluxes(mgn, Soln, fluxn, fluxComp+icomp, 1, &geom, -b/dt);
-       }
-       else
-       {
-          for (int n = 0; n < AMREX_SPACEDIM; n++)
-          {
-            fluxn[n]->setVal(0.0,fluxComp+icomp,1);
-          }
-          Rhs.setVal(0.0);
-       }
+    // Get local version of the switch
+    int has_alpha     = (alpha_in  != 0) ? 1 : 0;
+    int has_delta_rhs = (delta_rhs != 0) ? 1 : 0;
 
-       // Get local version of the switch
-       int has_alpha     = (alpha_in  != 0) ? 1 : 0;
-       int has_delta_rhs = (delta_rhs != 0) ? 1 : 0;
-
-#ifdef _OPENMP
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-       for (MFIter Smfi(*S_new[0], TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
-       {
-          const Box& bx = Smfi.tilebox();
-          auto const& rhs      = Rhs.array(Smfi);
-          auto const& solution = Soln.array(Smfi);
-          auto const& snew     = S_new[0]->array(Smfi,sigma);
-	  Array4<Real> dummy;
-          auto const& sold     = (solve_mode == PREDICTOR) ? S_old[0]->array(Smfi,sigma) : dummy;
-          auto const& rhoHalf  = (rho_flag == 1) ? rho_half.array(Smfi) : dummy;
-          auto const& rho_old  = (rho_flag == 3) ? Rho_old[0]->array(Smfi,Rho_comp) : dummy;
-          auto const& alpha    = (has_alpha) ? alpha_in->array(Smfi,alpha_in_comp+icomp) : Soln.array(Smfi);
-          auto const& deltarhs = (has_delta_rhs) ? delta_rhs->array(Smfi,rhsComp+icomp) : Soln.array(Smfi);
-          Real dtinv = 1.0/dt;
+    for (MFIter mfi(*S_new[0], TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto const& rhs      = Rhs.array(mfi);
+        auto const& solution = Soln.array(mfi);
+        auto const& snew     = S_new[0]->array(mfi,sigma);
+        Array4<const Real> dummy;
+        auto const& rhoHalf  = (rho_flag == 1) ? rho_half.const_array(mfi) : dummy;
+        auto const& rho_old  = (rho_flag == 3) ? Rho_old[0]->const_array(mfi,Rho_comp) : dummy;
+        auto const& alpha    = (has_alpha) ? alpha_in->const_array(mfi,alpha_in_comp) : Soln.const_array(mfi);
+        auto const& deltarhs = (has_delta_rhs) ? delta_rhs->const_array(mfi,rhsComp) : Soln.const_array(mfi);
+        Real dtinv = 1.0/dt;
 
-          amrex::ParallelFor(bx, [rhs, solution, snew, sold, rhoHalf, rho_old, alpha, deltarhs,
-                                  has_alpha, has_delta_rhs, solve_mode, rho_flag, dtinv, dt ]
-          AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-          {
-             // If this is a predictor step, put "explicit" updates into Rhs after scaling by rho_half if reqd
-             if (solve_mode == PREDICTOR) {
-                amrex::Real tmp = snew(i,j,k) - sold(i,j,k);
-                snew(i,j,k) -= tmp;
-                tmp *= dtinv;
+        amrex::ParallelFor(bx, nComp, [rhs, solution, snew, rhoHalf, rho_old, alpha, deltarhs,
+                                has_alpha, has_delta_rhs, rho_flag, dtinv, dt ]
+        AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+        {
+            // Add body sources
+            if ( has_delta_rhs ) {
+                rhs(i,j,k,n) += deltarhs(i,j,k,n) * dt;
                 if ( rho_flag == 1 ) {
-                   tmp *= rhoHalf(i,j,k);
+                    rhs(i,j,k,n) *= rhoHalf(i,j,k);
                 }
-                if ( has_alpha ) {
-                   tmp *= alpha(i,j,k);
-                }
-                rhs(i,j,k) += tmp;
-             }
-
-             // Add body sources
-             if ( has_delta_rhs ) {
-                rhs(i,j,k) += deltarhs(i,j,k) * dt;
-                if ( rho_flag == 1 ) {
-                   rhs(i,j,k) *= rhoHalf(i,j,k);
-                }
-             }
-             // Always do : copy S_new into Soln
-             //             add Soln to Rhs
-             solution(i,j,k) = snew(i,j,k);
-             if ( rho_flag == 1) {
-                solution(i,j,k) *= rhoHalf(i,j,k);
-             } else if ( rho_flag == 3 ) {
-                solution(i,j,k) *= rho_old(i,j,k);
-             }
-             if ( has_alpha ) {
-                solution(i,j,k) *= alpha(i,j,k);
-             }
-             rhs(i,j,k) += solution(i,j,k);
-          });
-       }
-
-
-       //
-       // Construct viscous operator with bndry data at time N+1.
-       //
-       Real a = 1.0;
-       Real b = be_cn_theta*dt;
-       Real rhsscale = 1.0;
-       {
-          if (has_coarse_data)
-          {
-            MultiFab::Copy(*Solnc,*S_new[1],sigma,0,1,0);
-            if (rho_flag == 2)
-            {
-              MultiFab::Divide(*Solnc,*Rho_new[1],Rho_comp,0,1,0);
             }
-            opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
-          }
-          MultiFab::Copy(Soln,*S_new[0],sigma,0,1,ng);
-          if (rho_flag == 2)
-          {
-            MultiFab::Divide(Soln,*Rho_new[0],Rho_comp,0,1,ng);
-          }
-          opnp1.setLevelBC(0, &Soln);
-       }
+            // Always do : copy S_new into Soln
+            //             add Soln to Rhs
+            solution(i,j,k,n) = snew(i,j,k,n);
+            if ( rho_flag == 1) {
+                solution(i,j,k,n) *= rhoHalf(i,j,k);
+            } else if ( rho_flag == 3 ) {
+                solution(i,j,k,n) *= rho_old(i,j,k);
+            }
+            if ( has_alpha ) {
+                solution(i,j,k,n) *= alpha(i,j,k);
+            }
+            rhs(i,j,k,n) += solution(i,j,k,n);
+        });
+    }
 
-       {
-          std::pair<Real,Real> scalars;
-          MultiFab alpha;
-          const MultiFab* rho = (rho_flag == 1) ? &rho_half : Rho_new[0];
-          int rhoComp = (rho_flag == 1 ) ? 0 : Rho_comp;
-
-          computeAlpha(alpha, scalars, a, b,
-                       &rhsscale, alpha_in, alpha_in_comp+icomp,
-                       rho_flag, rho, rhoComp);
-          opnp1.setScalars(scalars.first, scalars.second);
-          opnp1.setACoeffs(0, alpha);
-       }
-
-       setBeta(opnp1,betanp1,betaComp+icomp);
-
-       Rhs.mult(rhsscale,0,1);
-       const Real S_tol     = visc_tol;
-       const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
-
-       mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
-
-       computeExtensiveFluxes(mgnp1, Soln, fluxnp1, fluxComp+icomp, 1, &geom, b/dt);
-
-       //
-       // Copy into state variable at new time, without bc's and * rho if needed
-       //
-#ifdef _OPENMP
+    //
+    // Set C&F solutions, levelBCs and CoarseFineBCs
+    //
+    if (has_coarse_data) {
+#ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-       for (MFIter Smfi(*S_new[0], TilingIfNotGPU()); Smfi.isValid(); ++Smfi)
+        for (MFIter mfi(*Solnc, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            auto const& sol_arr  = Solnc->array(mfi);
+            auto const& snew_arr = S_new[1]->const_array(mfi,sigma);
+            auto const& rho_arr  = Rho_new[1]->const_array(mfi,Rho_comp);
+            amrex::ParallelFor(bx, [sol_arr, snew_arr, rho_arr, nComp, rho_flag]
+            AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            {
+                for (int n = 0; n < nComp; ++n) {
+                   sol_arr(i,j,k,n) = snew_arr(i,j,k,n);
+                }
+                if (rho_flag == 2) {
+                    Real rhoInv = 1.0 / rho_arr(i,j,k);
+                    for (int n = 0; n < nComp; ++n) {
+                       sol_arr(i,j,k,n) *= rhoInv;
+                    }
+                }
+            });
+        }
+        opnp1.setCoarseFineBC(Solnc.get(), cratio[0]);
+    }
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(Soln, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(ng);
+        auto const& sol_arr  = Soln.array(mfi);
+        auto const& snew_arr = S_new[0]->const_array(mfi,sigma);
+        auto const& rho_arr  = Rho_new[0]->const_array(mfi,Rho_comp);
+        amrex::ParallelFor(bx, [sol_arr, snew_arr, rho_arr, nComp, rho_flag]
+        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+        {
+            for (int n = 0; n < nComp; ++n) {
+               sol_arr(i,j,k,n) = snew_arr(i,j,k,n);
+            }
+            if (rho_flag == 2) {
+                Real rhoInv = 1.0 / rho_arr(i,j,k);
+                for (int n = 0; n < nComp; ++n) {
+                   sol_arr(i,j,k,n) *= rhoInv;
+                }
+            }
+        });
+    }
+    opnp1.setLevelBC(0, &Soln);
+
+    Real a = 1.0;
+    Real b = be_cn_theta*dt;
+    Real rhsscale = 1.0;
+    {
+        std::pair<Real,Real> scalars;
+        MultiFab alpha;
+        const MultiFab* rho = (rho_flag == 1) ? &rho_half : Rho_new[0];
+        int rhoComp = (rho_flag == 1 ) ? 0 : Rho_comp;
+
+        computeAlpha(alpha, scalars, a, b,
+                     &rhsscale, alpha_in, alpha_in_comp,
+                     rho_flag, rho, rhoComp);
+        opnp1.setScalars(scalars.first, scalars.second);
+        opnp1.setACoeffs(0, alpha);
+    }
+
+    setBeta(opnp1,betanp1,betaComp,nComp);
+
+    Rhs.mult(rhsscale,0,nComp);
+    const Real S_tol     = visc_tol;
+    const Real S_tol_abs = get_scaled_abs_tol(Rhs, visc_tol);
+
+    mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
+
+    computeExtensiveFluxes(mgnp1, Soln, fluxnp1, fluxComp, nComp, &geom, b/dt);
+
+    //
+    // Copy into state variable at new time, without bc's and * rho if needed
+    //
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*S_new[0], TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+       const Box& bx = mfi.tilebox();
+       const auto& snew     = S_new[0]->array(mfi, sigma);
+       const auto& solution = Soln.const_array(mfi);
+       const auto& rhonew   = (rho_flag == 2) ? Rho_new[0]->const_array(mfi,Rho_comp) : S_new[0]->const_array(mfi,sigma);
+       amrex::ParallelFor(bx, nComp, [snew, solution, rhonew, rho_flag]
+       AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
        {
-          const Box& bx = Smfi.tilebox();
-          const auto& snew     = S_new[0]->array(Smfi, sigma);
-          const auto& solution = Soln.array(Smfi);
-          const auto& rhonew   = (rho_flag == 2) ? Rho_new[0]->array(Smfi,Rho_comp) : S_new[0]->array(Smfi, sigma);
-          amrex::ParallelFor(bx, [snew, solution, rhonew, rho_flag]
-          AMREX_GPU_DEVICE(int i, int j, int k) noexcept
-          {
-             snew(i,j,k) = solution(i,j,k);
-             if (rho_flag == 2) {
-                snew(i,j,k) *= rhonew(i,j,k);
-             }
-          });
-       }
-       if (verbose) amrex::Print() << "Done with diffuse_scalar" << "\n";
+          snew(i,j,k,n) = solution(i,j,k,n);
+          if (rho_flag == 2) {
+             snew(i,j,k,n) *= rhonew(i,j,k);
+          }
+       });
     }
 
     if (verbose) {
@@ -1165,6 +1208,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
 void
 Diffusion::diffuse_Ssync (MultiFab&              Ssync,
                           int                    sigma,
+                          int                    nComp,
                           Real                   dt,
                           Real                   be_cn_theta,
                           const MultiFab&        rho_half,
@@ -1179,8 +1223,10 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     const int state_ind    = sigma + AMREX_SPACEDIM;
     if (verbose)
     {
-        amrex::Print() << "Diffusion::diffuse_Ssync lev: " << level << " "
-                       << navier_stokes->get_desc_lst()[State_Type].name(state_ind) << '\n';
+       for (int comp = 0; comp < nComp; ++comp) {
+          amrex::Print() << "Diffusion::diffuse_Ssync lev: " << level << " "
+                         << navier_stokes->get_desc_lst()[State_Type].name(state_ind+comp) << '\n';
+       }
     }
 
     const Real strt_time = ParallelDescriptor::second();
@@ -1188,21 +1234,23 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     int allthere;
     checkBeta(beta, allthere);
 
-    MultiFab  Rhs(grids,dmap,1,0,MFInfo(),navier_stokes->Factory());
+    MultiFab  Rhs(grids,dmap,nComp,0,MFInfo(),navier_stokes->Factory());
 
-    MultiFab::Copy(Rhs,Ssync,sigma,0,1,0);
+    MultiFab::Copy(Rhs,Ssync,sigma,0,nComp,0);
 
     if (verbose > 1)
     {
-        MultiFab junk(grids,dmap,1,0,MFInfo(),navier_stokes->Factory());
-        MultiFab::Copy(junk,Rhs,0,0,1,0);
-        if (rho_flag == 2)
-        {
-            MultiFab& S_new = navier_stokes->get_new_data(State_Type);
-            MultiFab::Divide(junk, S_new, Density, 0, 1, 0);
+        MultiFab junk(grids,dmap,nComp,0,MFInfo(),navier_stokes->Factory());
+        MultiFab::Copy(junk,Rhs,0,0,nComp,0);
+        MultiFab& S_new = navier_stokes->get_new_data(State_Type);
+        for (int comp = 0; comp < nComp; ++comp) {
+            if (rho_flag == 2)
+            {
+                MultiFab::Divide(junk, S_new, Density, comp, 1, 0);
+            }
+            Real r_norm = junk.norm0(comp);
+            amrex::Print() << "Original max of Ssync of comp " << comp << ": " << r_norm << '\n';
         }
-        Real r_norm = junk.norm0();
-        amrex::Print() << "Original max of Ssync " << r_norm << '\n';
     }
     //
     // SET UP COEFFICIENTS FOR VISCOUS SOLVER.
@@ -1214,8 +1262,8 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     const Real S_tol     = visc_tol;
     const Real S_tol_abs = -1;
 
-    MultiFab Soln(grids,dmap,1,1,MFInfo(),navier_stokes->Factory());
-    Soln.setVal(0);
+    MultiFab Soln(grids,dmap,nComp,1,MFInfo(),navier_stokes->Factory());
+    Soln.setVal(0.0);
 
     LPInfo info;
     info.setAgglomeration(agglomeration);
@@ -1224,9 +1272,9 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
 
 #ifdef AMREX_USE_EB
     const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-    MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
+    MLEBABecLap mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf}, nComp);
 #else
-    MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info);
+    MLABecLaplacian mlabec({navier_stokes->Geom()}, {grids}, {dmap}, info, {}, nComp);
 #endif
     mlabec.setMaxOrder(max_order);
 
@@ -1255,7 +1303,7 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
       mlabec.setACoeffs(0, acoef);
     }
 
-    setBeta(mlabec, beta, betaComp);
+    setBeta(mlabec, beta, betaComp, nComp);
 
     MLMG mlmg(mlabec);
     if (use_hypre) {
@@ -1265,10 +1313,23 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
 
-    if (rho_flag == 1) {
-       MultiFab::Multiply(Rhs,rho_half,0,0,1,0);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(Rhs, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto const& rhs_arr  = Rhs.array(mfi);
+        auto const& rhoh_arr = rho_half.const_array(mfi);
+        amrex::ParallelFor(bx, nComp, [=]
+        AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+        {
+            rhs_arr(i,j,k,n) *= rhsscale;
+            if (rho_flag == 1) {
+               rhs_arr(i,j,k,n) *= rhoh_arr(i,j,k);
+            }
+        });
     }
-    Rhs.mult(rhsscale,0,1,0);
 
     mlmg.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
@@ -1276,22 +1337,37 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     checkBeta(flux, flux_allthere, flux_allnull);
     if (flux_allthere)
     {
-      computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, 1,
+      computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, nComp,
                              &(navier_stokes->Geom()), b/dt);
     }
 
-    MultiFab::Copy(Ssync,Soln,0,sigma,1,0);
+    MultiFab::Copy(Ssync,Soln,0,sigma,nComp,0);
 
     if (verbose > 1)
     {
-        Real s_norm = Soln.norm0(0,Soln.nGrow());
-        amrex::Print() << "Final max of Ssync " << s_norm << '\n';
+        for (int comp = 0; comp < nComp; ++comp) {
+           Real s_norm = Soln.norm0(comp,Soln.nGrow());
+           amrex::Print() << "Final max of Ssync for comp " << comp << ": " << s_norm << '\n';
+        }
     }
 
     if (rho_flag == 2)
     {
         MultiFab& S_new = navier_stokes->get_new_data(State_Type);
-        MultiFab::Multiply(Ssync,S_new,Density,sigma,1,0);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+       for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+       {
+           const Box& bx = mfi.tilebox();
+           auto const& ssync_arr = Ssync.array(mfi,sigma);
+           auto const& rho_arr   = S_new.const_array(mfi,Density);
+           amrex::ParallelFor(bx, nComp, [ssync_arr, rho_arr]
+           AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+           {
+               ssync_arr(i,j,k,n) *= rho_arr(i,j,k);
+           });
+       }
     }
 
     if (verbose)
@@ -1353,12 +1429,13 @@ Diffusion::computeAlpha (MultiFab&             alpha,
 void
 Diffusion::setBeta(MLEBABecLap&           op,
                    const MultiFab* const* beta,
-                   int                    betaComp)
+                   int                    betaComp,
+                   int                    nComp)
 {
     Array<MultiFab,AMREX_SPACEDIM> bcoeffs{
-    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
+    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[1], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[2], amrex::make_alias, betaComp, nComp) ) };
 
     op.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs), MLLinOp::Location::FaceCentroid);
 }
@@ -1384,12 +1461,13 @@ Diffusion::setViscosity(MLEBTensorOp&          tensorop,
 void
 Diffusion::setBeta(MLABecLaplacian&       op,
                    const MultiFab* const* beta,
-                   int                    betaComp)
+                   int                    betaComp,
+                   int                    nComp)
 {
     Array<MultiFab,AMREX_SPACEDIM> bcoeffs{
-    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[1], amrex::make_alias, betaComp, 1),
-                 MultiFab(*beta[2], amrex::make_alias, betaComp, 1) ) };
+    AMREX_D_DECL(MultiFab(*beta[0], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[1], amrex::make_alias, betaComp, nComp),
+                 MultiFab(*beta[2], amrex::make_alias, betaComp, nComp) ) };
 
     op.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoeffs));
 }
@@ -1803,7 +1881,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
 
     if (allthere)
     {
-        for (int d = 0; d < BL_SPACEDIM; d++)
+        for (int d = 0; d < AMREX_SPACEDIM; d++)
         {
             allnull = allnull && beta[d] == 0;
             allthere = allthere && beta[d] != 0;
@@ -1822,7 +1900,7 @@ Diffusion::checkBeta (const MultiFab* const* beta,
 
     if (allthere)
     {
-        for (int d = 0; d < BL_SPACEDIM; d++)
+        for (int d = 0; d < AMREX_SPACEDIM; d++)
             allthere = allthere && beta[d] != 0;
     }
 

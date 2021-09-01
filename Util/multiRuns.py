@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 
-# A template script to lunch several times IAMR at different resolution
+# A template script to launch IAMR several times at different resolutions
 # in order to evaluate the convergence order
-# Used in the marex regression_testing framework
 
 # Usage:
-#   ./multiRuns.py --test_name DummyTest --input_file PeleLMInputFile
+#   ./multiRuns.py --test_name DummyTest --exe_name Executable --input_file InputFile
 
 # Input:
 #   * test_name: a TESTNAME that will be prependded to the plt files names
-#   * PeleLMInputFile: the PeleLM input file
+#   * Executable: the IAMR executable
+#   * InputFile: the input file
 
 # "Internal" user input
 #   * resolution : a list of the resolutions to run
 
 # Head's up : 
-#   * The PeleLM executable is searched for in the current directory.
+#   * The executable is searched for in the current directory.
 
 import sys
 import os
@@ -24,7 +24,7 @@ import argparse
 import numpy as np
 
 USAGE = """    
-    A template script to launch several times PeleLM.
+    A template script to launch IAMR several times
 """
 
 def multiRun(args):
@@ -33,12 +33,18 @@ def multiRun(args):
     # User data
     resolution = [32,64,128,256]
 
-    # Get the PeleLM exec
+    # Get the current directory
     run_dir = os.getcwd()
-    for f in os.listdir(run_dir):
-        if ( f.startswith("amr2d") and f.endswith(".ex")):
-               executable = f
     
+    # Get the executable: first amr*.ex is default
+    if ( args.exe_name == "None" ):
+        for f in os.listdir(run_dir):
+            if ( f.startswith("amr") and f.endswith(".ex")):
+                executable = f
+                break
+    else:
+        executable = args.exe_name
+
     # Check the test name: current folder name is default
     if ( args.test_name == "None" ):
         args.test_name = run_dir.split("/")[-1]
@@ -53,16 +59,19 @@ def multiRun(args):
     # Loop on /= resolutions, run 
     for case in resolution:
         outfile = "{}_{}.run.out".format(args.test_name,case)
-        print(" Running {}x{} case".format(case,case))
-        runtime_params = "amr.n_cell={} {} {} ".format(case,case,case)
+        print(" Running {} on {}x{} case".format(executable,case,case*2))
+        runtime_params = "amr.n_cell={} {} {} ".format(case,case*2,case)
         runtime_params += "amr.plot_file={}_plt_{}_".format(args.test_name,case)
-        os.system("mpiexec -n 1 ./{} {} {} > {}".format(executable, args.input_file, runtime_params, outfile))
+        os.system("mpiexec -n 2 ./{} {} {} > {}".format(executable, args.input_file, runtime_params, outfile))
 
 def parse_args(arg_string=None):
     parser = argparse.ArgumentParser(description=USAGE)
 
     parser.add_argument("--test_name", type=str, default="None", metavar="test-name",
                         help="name of the test. Default = current folder name")
+
+    parser.add_argument("--exe_name", type=str, default="None", metavar="exe-name",
+                        help="name of the executable. Default = first amr*.ex in current directory")
 
     parser.add_argument("--input_file", type=str, default="None", metavar="Pele-input",
                         help="input file name. Default = first inputs.* in current directory")

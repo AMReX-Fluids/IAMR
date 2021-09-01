@@ -323,7 +323,8 @@ NavierStokes::variableSetUp ()
     if (do_temp) advectionType[Temp] = NonConservative;
 
     advectionType[Tracer] = NonConservative;
-    diffusionType[Tracer] = Laplacian_S; if (do_cons_trac) {
+    diffusionType[Tracer] = Laplacian_S;
+    if (do_cons_trac) {
       advectionType[Tracer] = Conservative;
       diffusionType[Tracer] = Laplacian_SoverRho;
       amrex::Print() << "Using conservative advection update for tracer.\n";

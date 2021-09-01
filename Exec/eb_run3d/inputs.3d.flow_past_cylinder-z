@@ -17,7 +17,6 @@ ns.init_shrink     = 1.0
 ns.init_iter       = 3
 ns.init_vel_iter   = 5
 ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
-nodal_proj.rtol    =  1.0e-13
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#

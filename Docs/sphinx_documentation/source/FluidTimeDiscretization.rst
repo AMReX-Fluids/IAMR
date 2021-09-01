@@ -7,5 +7,3 @@ Time Discretization
    :maxdepth: 1
 
    TimeStep
-   Slopes
-   BuildingMacVelocities

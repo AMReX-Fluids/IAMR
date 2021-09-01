@@ -43,8 +43,6 @@ Real Projection::proj_abs_tol        = 1.e-16;
 int  Projection::add_vort_proj       = 0;
 int  Projection::do_outflow_bcs      = 1;
 int  Projection::rho_wgt_vel_proj    = 0;
-int  Projection::make_sync_solvable  = 0;
-Real Projection::divu_minus_s_factor = 0.0;
 
 namespace
 {
@@ -78,8 +76,6 @@ Projection::Initialize ()
     pp.query("add_vort_proj",       add_vort_proj);
     pp.query("do_outflow_bcs",      do_outflow_bcs);
     pp.query("rho_wgt_vel_proj",    rho_wgt_vel_proj);
-    pp.query("divu_minus_s_factor", divu_minus_s_factor);
-    pp.query("make_sync_solvable",  make_sync_solvable);
 
     pp.query("agglomeration",       agglomeration);
     pp.query("consolidation",       consolidation);
@@ -2495,9 +2491,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     // Setup infos to pass to linear operator
     LPInfo info;
-    //Fixme
-    // does this max_coarsening level need to match the one in main.cpp????
     int max_coarsening_level(30);
+    ParmParse pp("nodal_proj");
+    pp.query("mg_max_coarsening_level", max_coarsening_level);
+
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
