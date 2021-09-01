@@ -211,3 +211,12 @@ Documentation
 Compiler warnings
 Misc. cleanup and re-org
 Various EB and advection updates and fixes
+
+9/1/21
+Diffusion changes - use new multicomponent MLMG solver
+In the temperature solve, let ns.temp_cond_coef represent (lamba/c_p)
+Hydrodynamic algorithm updates
+Updates to create_umac_grown
+Embedded boundary compile updates
+Add ParmParse for max_coarsening_level in nodal and mac projections
+Moved slope routines to AMReX-Hydro
