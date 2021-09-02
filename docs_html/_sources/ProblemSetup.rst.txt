@@ -6,13 +6,8 @@ Problem Setup
 Units
 ------
 
-For incompressible flow, IAMR supports any self-consistent units, as long as the length, time,
+IAMR supports any self-consistent units, as long as the length, time,
 and mass are consistent with the viscosity and diffusivity.
-
-For low Mach number flow with temperature variations, the temperature solve requires a specific heat capacity,
-:math:`c_p`, which is currently hard-coded as :math:`1004.6~ J kg^{-1} K^{-1}`
-(the specific heat capacity of dry air). Users can either keep this value, or change the specific heat capacity
-in their own version of the source code.
 
 
 Initial Conditions
@@ -283,12 +278,12 @@ Additional examples and information are in AMReX's documentation
 #. Construct an implicit function representing the geometry (using the language
    of constructive solid geometry). For example
 
-   .. highlight:: c++
-   ::
-   
+   .. code-block:: c++
+
       amrex::EB2::CylinderIF my_cyl(radius, height, direction, center, inside);
       auto gshop_cyl = amrex::EB2::makeShop(my_cyl);
-   
+
+
 #. Call ``amrex::EB2::Build``. This function builds the EB levels
    and fills the implicit function ``MultiFab`` (the later being used to
    construct the level-set function). 
@@ -300,9 +295,10 @@ Particles Initialization
 Particles are initialized from an ASCII file, identified in the IAMR inputs file:
 
 ::
-   particles.particle\_init\_file = *particle\_file*
+   
+   particles.particle_init_file = particle_file
 
-Here *particle\_file* is the user-specified name of the file. The first line in this file is
+Here ``particle_file`` is the user-specified name of the file. The first line in this file is
 assumed to contain the number of particles. Each line after that contains the position of the particle as
 x y z
 
