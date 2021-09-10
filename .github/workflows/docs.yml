@@ -19,6 +19,7 @@ jobs:
           .github/workflows/dependencies/documentation.sh
           echo "Installing python packages for docs..."
           pip3 install sphinx sphinx_rtd_theme breathe sphinxcontrib.bibtex
+          pip3 install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
 
       - name: Install and Build
         run: |
