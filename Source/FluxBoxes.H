@@ -12,7 +12,7 @@ public:
     explicit FluxBoxes (const amrex::AmrLevel* amr_level, int nvar=1, int nghost=0)
 	: data(0) { define(amr_level, nvar, nghost); }
 
-    ~FluxBoxes () { clear(); };
+    ~FluxBoxes () { clear(); }
 
     amrex::MultiFab** define (const amrex::AmrLevel* amr_level, int nvar=1, int nghost=0);
 
