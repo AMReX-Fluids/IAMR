@@ -4,8 +4,7 @@
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Controlling What’s in the PlotFile &mdash; IAMR 21.10-dev documentation</title>
@@ -190,7 +189,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <section id="controlling-whats-in-the-plotfile">
+  <div class="section" id="controlling-whats-in-the-plotfile">
 <h1>Controlling What’s in the PlotFile<a class="headerlink" href="#controlling-whats-in-the-plotfile" title="Permalink to this headline">¶</a></h1>
 <p>There are a few options that can be set at runtime to control what
 variables appear in the plotfile.</p>
@@ -208,8 +207,8 @@ will contain all of the state variables and none of the derived variables.</div>
 <div class="line"><strong>amr.plot_vars</strong> = density</div>
 <div class="line"><strong>amr.derive_plot_vars</strong> = avg_pressure</div>
 </div>
-</section>
-<section id="amrvis">
+</div>
+<div class="section" id="amrvis">
 <h1>Amrvis<a class="headerlink" href="#amrvis" title="Permalink to this headline">¶</a></h1>
 <p>Amrvis is a package developed
 by CCSE that is designed specifically for highly efficient visualization
@@ -228,15 +227,15 @@ once the amrvis window is open), you can modify the amrvis.defaults
 file in your directory to have amrvis default to these settings every
 time you run it. The Amrvis repository has a sample amrvis.defaults
 file that can be copied to your local folder and modified.</p>
-</section>
-<section id="visit">
+</div>
+<div class="section" id="visit">
 <h1>VisIt<a class="headerlink" href="#visit" title="Permalink to this headline">¶</a></h1>
 <p>VisIt is also a great visualization tool, and it supports AMReXAMR data natively. To open a AMReX plotfile, select File
 <span class="math notranslate nohighlight">\(\rightarrow\)</span> Open file <span class="math notranslate nohighlight">\(\rightarrow\)</span> Open file as type Boxlib, and
 choose the Header file within the plotfile folder, plt00000/Header,
 For more information check out visit.llnl.gov.</p>
-</section>
-<section id="yt">
+</div>
+<div class="section" id="yt">
 <h1>yt<a class="headerlink" href="#yt" title="Permalink to this headline">¶</a></h1>
 <p>yt is a free and open-source software that provides data analysis and
 publication-level visualization tools. It is geared more for astrophysical
@@ -253,7 +252,7 @@ explanations from which this section was adapted can be found at
 future, simply do</p>
 <p>$ yt update</p>
 <p>in your “yt-hg” folder.</p>
-<section id="amrex-data-in-yt">
+<div class="section" id="amrex-data-in-yt">
 <h2>AMReX Data in yt<a class="headerlink" href="#amrex-data-in-yt" title="Permalink to this headline">¶</a></h2>
 <p>yt was originally created for simple analysis and visualization of
 data from the Enzo code. Since, it has grown to include support for a
@@ -286,8 +285,8 @@ directory.</p>
 and so have a strong astrophysics bent to them, but is still useful
 in the context of combustion. The only subtlety is that Castro
 works in CGS units.</p>
-</section>
-<section id="interacting-with-yt-command-line-and-scripting">
+</div>
+<div class="section" id="interacting-with-yt-command-line-and-scripting">
 <h2>Interacting with yt: Command Line and Scripting<a class="headerlink" href="#interacting-with-yt-command-line-and-scripting" title="Permalink to this headline">¶</a></h2>
 <p>yt is written completely in python (if you don’t have python, yt will
 install it for you) and there are a number of different ways to
@@ -337,8 +336,8 @@ etc. <span class="math notranslate nohighlight">\(\rightarrow\)</span> this is t
 <p>Note that neither saving nor loading objects is necessary, but can be
 useful when the creation of these objects is time-consuming, which is
 often the case during identification of clumps or contours.</p>
-</section>
-<section id="yt-basics">
+</div>
+<div class="section" id="yt-basics">
 <h2>yt Basics<a class="headerlink" href="#yt-basics" title="Permalink to this headline">¶</a></h2>
 <p>The first thing you will always want to do is to import yt:</p>
 <p><span class="math notranslate nohighlight">\(&gt;&gt;&gt;\)</span> from yt.mods import *</p>
@@ -379,8 +378,8 @@ yt documentation for help. Note that you may not always need to create
 the hierarchy object. For example, before calling
 functions like find_max; yt will construct it automatically if it
 does not already exist.</p>
-</section>
-<section id="data-containers-and-selection">
+</div>
+<div class="section" id="data-containers-and-selection">
 <h2>Data Containers and Selection<a class="headerlink" href="#data-containers-and-selection" title="Permalink to this headline">¶</a></h2>
 <p>Sometimes, you’ll want to select, analyze, or plot only portions of
 your simulation data. To that end, yt includes a way to create data
@@ -403,8 +402,8 @@ object as part of the .yt file affiliated with the heirarchy:</p>
 <p><span class="math notranslate nohighlight">\(&gt;&gt;&gt;\)</span> pf.h.save_object(my_data_container, ‘sphere_to_analyze_later’)</p>
 <p>Once it has been saved, it can be easily loaded later:</p>
 <p><span class="math notranslate nohighlight">\(&gt;&gt;&gt;\)</span> sphere_to_analyze = pf.h.load_object(‘sphere_to_analyze_later’)</p>
-</section>
-<section id="grid-inspection">
+</div>
+<div class="section" id="grid-inspection">
 <h2>Grid Inspection<a class="headerlink" href="#grid-inspection" title="Permalink to this headline">¶</a></h2>
 <p>yt also allows for detailed grid inspection. The hierarchy object
 possesses an array of grids, from which we can select and examine
@@ -431,8 +430,8 @@ further refined:</p>
 <p><span class="math notranslate nohighlight">\(&gt;&gt;&gt;\)</span>print my_grid.child_mask.sum()/float(my_grid.ActiveDimensions.prod())</p>
 <p>Rather than go into detail about the many possibilities for plotting
 in yt, we’ll provide some examples.</p>
-</section>
-<section id="example-scripts">
+</div>
+<div class="section" id="example-scripts">
 <h2>Example Scripts<a class="headerlink" href="#example-scripts" title="Permalink to this headline">¶</a></h2>
 <p>In these examples, we investigate 3-D simulation data of two stars
 orbiting in the center of the domain, which is a box of sides
@@ -466,12 +465,10 @@ in the form of a raw string</em></p>
 <p><em># This saves the plot to a file with the given prefix. We can alternatively specify</em></p>
 <p><em># the entire filename.</em></p>
 <p>p.save(‘contours.press_den_’)</p>
-<figure class="align-default" id="id1">
+<div class="figure align-default" id="id1">
 <a class="reference internal image-reference" href="_images/Slice_z_pressure.png"><img alt="Pressure slice with annotations" src="_images/Slice_z_pressure.png" style="width: 6.00000in;" /></a>
-<figcaption>
-<p><span class="caption-number">Fig. 2 </span><span class="caption-text">Pressure slice with annotations</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
-</figcaption>
-</figure>
+<p class="caption"><span class="caption-number">Fig. 2 </span><span class="caption-text">Pressure slice with annotations</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
 <p><em>#————————</em></p>
 <p><em># Volume Rendering</em></p>
 <p>from yt.mods import *</p>
@@ -544,12 +541,10 @@ dd = pf.h.all_data()</p>
 <p><em># ‘im’ is an image array rather than a plot object, so we save it using a different</em></p>
 <p><em># function. There are others, such as ‘write_bitmap.’</em></p>
 <p>im.write_png(‘pressure_shell_volume.png’)</p>
-<figure class="align-default" id="id2">
+<div class="figure align-default" id="id2">
 <a class="reference internal image-reference" href="_images/volume.png"><img alt="Volume rendering" src="_images/volume.png" style="width: 3.50000in;" /></a>
-<figcaption>
-<p><span class="caption-number">Fig. 3 </span><span class="caption-text">Volume rendering</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
-</figcaption>
-</figure>
+<p class="caption"><span class="caption-number">Fig. 3 </span><span class="caption-text">Volume rendering</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
 <p><em>#————————</em></p>
 <p><em># Isocontour Rendering</em></p>
 <p><em># Here we extract isocontours using some extra modules and plot them using matplotlib.</em></p>
@@ -579,12 +574,10 @@ dd = pf.h.all_data()</p>
 <p>surface.vertices[0,:])</p>
 <p>ax.set_aspect(1.0)</p>
 <p>plt.savefig(‘pres_magvel_isocontours.png’)</p>
-<figure class="align-default" id="id3">
+<div class="figure align-default" id="id3">
 <a class="reference internal image-reference" href="_images/isocontours.png"><img alt="Pressure isocontour rendering colored with velocity magnitude" src="_images/isocontours.png" style="width: 4.00000in;" /></a>
-<figcaption>
-<p><span class="caption-number">Fig. 4 </span><span class="caption-text">Pressure isocontour rendering colored with velocity magnitude</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
-</figcaption>
-</figure>
+<p class="caption"><span class="caption-number">Fig. 4 </span><span class="caption-text">Pressure isocontour rendering colored with velocity magnitude</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</div>
 <p><em>#————————</em></p>
 <p><em>#1-D and 2-D Profiles</em></p>
 <p><em># Line plots and phase plots can be useful for analyzing data in detail.</em></p>
@@ -639,18 +632,14 @@ dd = pf.h.all_data()</p>
 <p>phase = pc.add_phase_object(region, [‘Density’, ‘magvel’,‘kineng’], weight=None,</p>
 <p>x_bins=288, y_bins=288)</p>
 <p>pc.save(‘profile’)</p>
-<figure class="align-default" id="id4">
+<div class="figure align-default" id="id4">
 <a class="reference internal image-reference" href="_images/LineQueryPlot_0_t_magvel.png"><img alt="Density/velocity magnitude/kinetic energy phase plot" src="_images/LineQueryPlot_0_t_magvel.png" style="width: 4.00000in;" /></a>
-<figcaption>
-<p><span class="caption-number">Fig. 5 </span><span class="caption-text">Density/velocity magnitude/kinetic energy phase plot</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
-</figcaption>
-</figure>
-<figure class="align-default" id="id5">
+<p class="caption"><span class="caption-number">Fig. 5 </span><span class="caption-text">Density/velocity magnitude/kinetic energy phase plot</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+</div>
+<div class="figure align-default" id="id5">
 <a class="reference internal image-reference" href="Visualization/Profile2D_1_Density_magveel_kineng.png"><img alt="Density/velocity magnitude/kinetic energy phase plot" src="Visualization/Profile2D_1_Density_magveel_kineng.png" style="width: 4.00000in;" /></a>
-<figcaption>
-<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Density/velocity magnitude/kinetic energy phase plot</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
-</figcaption>
-</figure>
+<p class="caption"><span class="caption-number">Fig. 6 </span><span class="caption-text">Density/velocity magnitude/kinetic energy phase plot</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
+</div>
 <p><em>#————————</em></p>
 <p><em>#Off-Axis Projection</em></p>
 <p><em># If we don’t want to take a projection (this can be done for a slice as well) along</em></p>
@@ -676,14 +665,12 @@ dd = pf.h.all_data()</p>
 <p><em># The actual size of the image can also be set. Note that the units are in inches.</em></p>
 <p>plot.set_window_size(8.0)</p>
 <p>plot.save(‘off_axis_density’)</p>
-<figure class="align-default" id="id6">
+<div class="figure align-default" id="id6">
 <a class="reference internal image-reference" href="_images/OffAxisProjection_density.png"><img alt="Off-axis density projection" src="_images/OffAxisProjection_density.png" style="width: 4.00000in;" /></a>
-<figcaption>
-<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Off-axis density projection</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
-</figcaption>
-</figure>
-</section>
-</section>
+<p class="caption"><span class="caption-number">Fig. 7 </span><span class="caption-text">Off-axis density projection</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+</div>
 
 
            </div>

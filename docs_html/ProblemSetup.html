@@ -4,8 +4,7 @@
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Problem Setup &mdash; IAMR 21.10-dev documentation</title>
@@ -199,14 +198,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <section id="problem-setup">
+  <div class="section" id="problem-setup">
 <h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline">¶</a></h1>
-<section id="units">
+<div class="section" id="units">
 <span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Permalink to this headline">¶</a></h2>
 <p>IAMR supports any self-consistent units, as long as the length, time,
 and mass are consistent with the viscosity and diffusivity.</p>
-</section>
-<section id="initial-conditions">
+</div>
+<div class="section" id="initial-conditions">
 <h2>Initial Conditions<a class="headerlink" href="#initial-conditions" title="Permalink to this headline">¶</a></h2>
 <p>To define the initial conditions, we modify the function <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> within
 <code class="docutils literal notranslate"><span class="pre">IAMR/Source/prob/prob_init.cpp</span></code>.  <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> reads in initial conditions
@@ -217,8 +216,8 @@ an existing problem and modifying it apply the desired initial state.</p>
 <p>It is also possible to initialize the velocity using data from a previously generated plotfile.
 To do this you must set <code class="docutils literal notranslate"><span class="pre">BL_USE_VELOCITY=TRUE</span></code> in the makefile, and provide the plotfile in
 the inputs file via <code class="docutils literal notranslate"><span class="pre">ns.velocity_plotfile</span> <span class="pre">=</span> <span class="pre">my_plotfile_name</span></code>.</p>
-</section>
-<section id="resolution">
+</div>
+<div class="section" id="resolution">
 <h2>Resolution<a class="headerlink" href="#resolution" title="Permalink to this headline">¶</a></h2>
 <p>The grid resolution is specified by defining the resolution at the
 coarsest level (level 0), the number of refinement levels, and
@@ -280,8 +279,8 @@ always be equal to amr.max_level.</p>
 refinement between levels 1 and 2. Note that you must have at least
 amr.max_level values of amr.ref_ratio (Additional values
 may appear in that line and they will be ignored).</p>
-</section>
-<section id="problem-geometry">
+</div>
+<div class="section" id="problem-geometry">
 <h2>Problem Geometry<a class="headerlink" href="#problem-geometry" title="Permalink to this headline">¶</a></h2>
 <p>The following inputs must be preceded by “geometry.”</p>
 <table class="docutils align-default">
@@ -332,14 +331,14 @@ may appear in that line and they will be ignored).</p>
 <span class="math notranslate nohighlight">\((10,10,10)\)</span> at the upper right in physical space, specifies a
 Cartesian geometry, and makes the domain periodic in the <span class="math notranslate nohighlight">\(y\)</span>-direction
 only.</p>
-</section>
-<section id="domain-boundary-conditions">
+</div>
+<div class="section" id="domain-boundary-conditions">
 <span id="sec-domainbcs"></span><h2>Domain Boundary Conditions<a class="headerlink" href="#domain-boundary-conditions" title="Permalink to this headline">¶</a></h2>
 <p>IAMR provides two ways to specify boundary condition types: integer keys or keywords.
 An inputs file must choose one style or the other, they cannot be mixed.
 Here we provide examples of both styles. We then discuss how to provide Dirichlet
 boundary conditions.</p>
-<section id="boundary-conditions-with-integer-keys">
+<div class="section" id="boundary-conditions-with-integer-keys">
 <h3>Boundary conditions with integer keys<a class="headerlink" href="#boundary-conditions-with-integer-keys" title="Permalink to this headline">¶</a></h3>
 <p>To specify boundary conditions with integer keys we use</p>
 <ul class="simple">
@@ -377,8 +376,8 @@ direction then the low and high bc’s must be set to 0 for that direction.</p>
 <p>would define a problem with inflow (1) in the low- <span class="math notranslate nohighlight">\(x\)</span> direction,
 outflow (2) in the high- <span class="math notranslate nohighlight">\(x\)</span> direction, slip wall (4) on
 the low and high <span class="math notranslate nohighlight">\(y\)</span>-faces, and periodic in the <span class="math notranslate nohighlight">\(z\)</span>-direction.</p>
-</section>
-<section id="boundary-conditions-with-keywords">
+</div>
+<div class="section" id="boundary-conditions-with-keywords">
 <h3>Boundary conditions with keywords<a class="headerlink" href="#boundary-conditions-with-keywords" title="Permalink to this headline">¶</a></h3>
 <p>To specify boundary conditions with keywords, we use the following options
 preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”:</p>
@@ -425,8 +424,8 @@ outflow in the high-<span class="math notranslate nohighlight">\(x\)</span> dire
 the low and high <span class="math notranslate nohighlight">\(y\)</span>-faces, and periodic in the <span class="math notranslate nohighlight">\(z\)</span>-direction.
 Note that no keyword is needed for a periodic boundary, here only the
 specification in geometry.is_periodic is needed.</p>
-</section>
-<section id="dirichlet-boundary-conditions">
+</div>
+<div class="section" id="dirichlet-boundary-conditions">
 <h3>Dirichlet Boundary Conditions<a class="headerlink" href="#dirichlet-boundary-conditions" title="Permalink to this headline">¶</a></h3>
 <p>IAMR provides the ability to specify constant Dirichlet BCs
 in the inputs file. We use the following options
@@ -509,13 +508,13 @@ their own fill function in <code class="docutils literal notranslate"><span clas
 an <code class="docutils literal notranslate"><span class="pre">amrex::StateDescriptor::BndryFunc</span></code> object and specifying which variables
 will use it in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>. More information on boundary conditions is in
 section <a class="reference internal" href="Software.html#sec-physicalbcs"><span class="std std-ref">Physical Boundaries</span></a>.</p>
-</section>
-</section>
-<section id="amr-levels">
+</div>
+</div>
+<div class="section" id="amr-levels">
 <h2>AMR Levels<a class="headerlink" href="#amr-levels" title="Permalink to this headline">¶</a></h2>
 <p>Tagging info here…</p>
-</section>
-<section id="constructing-embedded-boundaries-in-iamr">
+</div>
+<div class="section" id="constructing-embedded-boundaries-in-iamr">
 <span id="sec-eb-basics"></span><h2>Constructing Embedded Boundaries in IAMR<a class="headerlink" href="#constructing-embedded-boundaries-in-iamr" title="Permalink to this headline">¶</a></h2>
 <p>IAMR uses AMReX’s Embedded Boundary (cut cell) functionality to represent internal
 or external geometry in the flow.
@@ -538,8 +537,8 @@ of constructive solid geometry). For example</p>
 and fills the implicit function <code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> (the later being used to
 construct the level-set function).</p></li>
 </ol>
-</section>
-<section id="particles-initialization">
+</div>
+<div class="section" id="particles-initialization">
 <h2>Particles Initialization<a class="headerlink" href="#particles-initialization" title="Permalink to this headline">¶</a></h2>
 <p>Particles are initialized from an ASCII file, identified in the IAMR inputs file:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">particles</span><span class="o">.</span><span class="n">particle_init_file</span> <span class="o">=</span> <span class="n">particle_file</span>
@@ -548,17 +547,17 @@ construct the level-set function).</p></li>
 <p>Here <code class="docutils literal notranslate"><span class="pre">particle_file</span></code> is the user-specified name of the file. The first line in this file is
 assumed to contain the number of particles. Each line after that contains the position of the particle as
 x y z</p>
-</section>
-<section id="tracers">
+</div>
+<div class="section" id="tracers">
 <h2>Tracers<a class="headerlink" href="#tracers" title="Permalink to this headline">¶</a></h2>
-</section>
-<section id="temperature">
+</div>
+<div class="section" id="temperature">
 <h2>Temperature<a class="headerlink" href="#temperature" title="Permalink to this headline">¶</a></h2>
-</section>
-<section id="viscosity-and-diffusivity">
+</div>
+<div class="section" id="viscosity-and-diffusivity">
 <h2>Viscosity and Diffusivity<a class="headerlink" href="#viscosity-and-diffusivity" title="Permalink to this headline">¶</a></h2>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>

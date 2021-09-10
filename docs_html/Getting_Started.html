@@ -4,8 +4,7 @@
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Getting Started &mdash; IAMR 21.10-dev documentation</title>
@@ -178,10 +177,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <section id="getting-started">
+  <div class="section" id="getting-started">
 <span id="chap-gettingstarted"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
 <p>This section walks you through a brief introduction to using IAMR.</p>
-<section id="downloading-the-code">
+<div class="section" id="downloading-the-code">
 <h2>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Permalink to this headline">¶</a></h2>
 <p>IAMR is built on top of the AMReX framework.  In order to run
 IAMR, you must download separate git modules for IAMR and AMReX.</p>
@@ -202,8 +201,8 @@ IAMR, you must download separate git modules for IAMR and AMReX.</p>
 </ol>
 <p>You will want to periodically update each of these repositories
 by typing <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> within each repository.</p>
-</section>
-<section id="building-the-code">
+</div>
+<div class="section" id="building-the-code">
 <h2>Building the code<a class="headerlink" href="#building-the-code" title="Permalink to this headline">¶</a></h2>
 <p>Here, we walk you through compiling an IAMR executable. We’ll build the source code in one of the <code class="docutils literal notranslate"><span class="pre">IAMR/Exec</span></code>
 directories, which are organized as follows:</p>
@@ -311,8 +310,8 @@ like <code class="docutils literal notranslate"><span class="pre">amr3d.gnu.MPI.
 <code class="docutils literal notranslate"><span class="pre">COMP=gnu</span></code>, and <code class="docutils literal notranslate"><span class="pre">USE_MPI=TRUE</span></code>.</p>
 </li>
 </ol>
-</section>
-<section id="running-the-code">
+</div>
+<div class="section" id="running-the-code">
 <h2>Running the code<a class="headerlink" href="#running-the-code" title="Permalink to this headline">¶</a></h2>
 <p>IAMR takes an input file as its first command-line argument.  The file may
 contain a set of parameter definitions that will overrides defaults set in the code.
@@ -327,8 +326,8 @@ files. The plotfiles are used for visualization of derived fields; the checkpoin
 files are used for restarting the code. The output folders contain a set of ASCII and binary files.  The field
 data is generally written in a self-describing binary format; the
 ASCII header files provide additional metadata to give AMR context to the field data.</p>
-</section>
-<section id="visualizing-the-results">
+</div>
+<div class="section" id="visualizing-the-results">
 <h2>Visualizing the Results<a class="headerlink" href="#visualizing-the-results" title="Permalink to this headline">¶</a></h2>
 <p>There are several options for visualizing the data. VisIt supports the AMReX file format
 natively, as does the yt python package and ParaView. Amrvis is a package developed
@@ -378,12 +377,10 @@ was output. To see a single plotfile, type</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d &lt;filename&gt;
 </pre></div>
 </div>
-<figure class="align-default" id="id1">
+<div class="figure align-default" id="id1">
 <a class="reference internal image-reference" href="_images/IAMR_Plot.png"><img alt="Amrvis visualization tool" src="_images/IAMR_Plot.png" style="width: 2.50000in;" /></a>
-<figcaption>
-<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Amrvis visualization tool</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
-</figcaption>
-</figure>
+<p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">Amrvis visualization tool</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
 <p>Or to animate the sequence of plotfiles, use</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d -a plt<span class="se">\*</span>
 </pre></div>
@@ -394,8 +391,8 @@ in order to look at the actual numbers. You can also export the
 pictures in several different formats under “File/Export”.</p>
 </li>
 </ol>
-</section>
-</section>
+</div>
+</div>
 
 
            </div>
