@@ -1250,7 +1250,7 @@ Projection::ConvertUnew( FArrayBox &Unew, FArrayBox &Uold, Real alpha,
 //
 void
 Projection::scaleVar (MultiFab*       sig,
-                      int             sig_nghosts,
+                      int             /*sig_nghosts*/,
                       MultiFab*       vel,
                       int             level)
 {
@@ -1368,7 +1368,7 @@ Projection::scaleVar (MultiFab*       sig,
 //
 void
 Projection::rescaleVar (MultiFab*       sig,
-                        int             sig_nghosts,
+                        int             /*sig_nghosts*/,
                         MultiFab*       vel,
                         int             level)
 {
@@ -1872,17 +1872,17 @@ Projection::set_outflow_bcs (int        which_call,
 }
 
 void
-Projection::set_outflow_bcs_at_level (int          which_call,
+Projection::set_outflow_bcs_at_level (int          /*which_call*/,
                                       int          lev,
                                       int          c_lev,
                                       Box*         state_strip,
                                       Orientation* outFacesAtThisLevel,
                                       int          numOutFlowFaces,
                                       const Vector<MultiFab*>&  phi,
-                                      MultiFab*    Vel_in,
-                                      MultiFab*    Divu_in,
+                                      MultiFab*    /*Vel_in*/,
+                                      MultiFab*    /*Divu_in*/,
                                       MultiFab*    Sig_in,
-                                      int          have_divu,
+                                      int          /*have_divu*/,
                                       Real         gravity)
 {
     AMREX_ASSERT(dynamic_cast<NavierStokesBase*>(LevelData[lev]) != nullptr);

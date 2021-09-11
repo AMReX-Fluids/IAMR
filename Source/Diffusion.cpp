@@ -30,28 +30,6 @@
 
 using namespace amrex;
 
-#if defined(BL_OSF1)
-#if defined(BL_USE_DOUBLE)
-const Real BL_BOGUS      = DBL_QNAN;
-#else
-const Real BL_BOGUS      = FLT_QNAN;
-#endif
-#else
-const Real BL_BOGUS      = 1.e200;
-#endif
-
-const Real BL_SAFE_BOGUS = -666.e200;
-
-#define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-Real* fabdat = (fab).dataPtr();
-
-#define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-const Real* fabdat = (fab).dataPtr();
-
 namespace
 {
     bool initialized = false;
@@ -269,7 +247,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                            const BCRec&              bc,
                            const Geometry&           geom,
                            bool                      add_old_time_divFlux,
-                           const amrex::Vector<int>& is_diffusive)
+                           const amrex::Vector<int>& a_is_diffusive)
 {
     //
     // This routine expects that physical BC's have been loaded into
@@ -292,9 +270,9 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     // Check if scalars are diffusive type:
     // all the nComp scalars must be of the same type
-    int diffType = is_diffusive[0];
+    int diffType = a_is_diffusive[0];
     for (int comp = 1; comp < nComp; comp++) {
-        if (is_diffusive[comp] != diffType) {
+        if (a_is_diffusive[comp] != diffType) {
             amrex::Abort("All the scalars must be either diffusive or non-diffusive when calling diffuse_scalar");
         }
     }
@@ -501,10 +479,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         auto const& rho_old  = (rho_flag == 3) ? Rho_old[0]->const_array(mfi,Rho_comp) : dummy;
         auto const& alpha    = (has_alpha) ? alpha_in->const_array(mfi,alpha_in_comp) : Soln.const_array(mfi);
         auto const& deltarhs = (has_delta_rhs) ? delta_rhs->const_array(mfi,rhsComp) : Soln.const_array(mfi);
-        Real dtinv = 1.0/dt;
-
         amrex::ParallelFor(bx, nComp, [rhs, solution, snew, rhoHalf, rho_old, alpha, deltarhs,
-                                has_alpha, has_delta_rhs, rho_flag, dtinv, dt ]
+                                has_alpha, has_delta_rhs, rho_flag, dt ]
         AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
         {
             // Add body sources
@@ -1045,8 +1021,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
                                  Real                   be_cn_theta,
                                  const MultiFab&        rho_half,
                                  int                    rho_flag,
-                                 const MultiFab* const* beta,
-                                 int                    betaComp,
+                                 const MultiFab* const* /*beta*/,
+                                 int                    /*betaComp*/,
                                  bool                   update_fluxreg)
 {
     BL_ASSERT(rho_flag == 1 || rho_flag == 3);

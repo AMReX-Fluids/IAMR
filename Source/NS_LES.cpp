@@ -96,7 +96,7 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
      tensorop.setLevelBC(0, &Uvel);
   }
               
-  const int dim_fluxes = pow(AMREX_SPACEDIM,2);
+  const int dim_fluxes = static_cast<int>(pow(AMREX_SPACEDIM,2));
   
   FluxBoxes fb(this,dim_fluxes);
   MultiFab** tensorflux = fb.get();

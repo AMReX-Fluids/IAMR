@@ -1683,7 +1683,6 @@ NavierStokesBase::level_projector (Real dt,
 
     int        crse_dt_ratio  = (level > 0) ? parent->nCycle(level) : -1;
     const Real cur_pres_time  = state[Press_Type].curTime();
-    const Real prev_pres_time = state[Press_Type].prevTime();
 
     projector->level_project(level,time,dt,cur_pres_time,
                              geom,U_old,U_new,P_old,P_new,
@@ -1765,13 +1764,6 @@ NavierStokesBase::level_sync (int crse_iteration)
     // The multilevel projection.  This computes the projection and
     // adds in its contribution to levels (level) and (level+1).
     //
-    Real  cur_crse_pres_time = state[Press_Type].curTime();
-    Real prev_crse_pres_time = state[Press_Type].prevTime();
-
-    NavierStokesBase& fine_lev   = getLevel(level+1);
-    Real  cur_fine_pres_time = fine_lev.state[Press_Type].curTime();
-    Real prev_fine_pres_time = fine_lev.state[Press_Type].prevTime();
-
     projector->MLsyncProject(level,pres,vel,cc_rhs_crse,
 			     pres_fine,v_fine,cc_rhs_fine,
 			     Rh,rho_fine,Vsync,V_corr,
@@ -3223,7 +3215,6 @@ NavierStokesBase::velocity_advection (Real dt)
         }
     }
 
-    const int   finest_level   = parent->finestLevel();
     const Real  prev_time      = state[State_Type].prevTime();
 
     // FIXME? pretty sure this should be nghost_force & only mult by dsdt for godunov
@@ -3294,7 +3285,6 @@ NavierStokesBase::velocity_advection (Real dt)
         {
 
             auto const force_bx = U_mfi.growntilebox(nghost_force()); // Box for forcing term
-            auto const state_bx = U_mfi.growntilebox(nghost_state()); // Box for state   terms
 
             if (getForceVerbose)
             {
