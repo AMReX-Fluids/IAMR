@@ -32,7 +32,7 @@ see incflo (https://amrex-codes.github.io/incflo/)
    Visualization_Chapter
    AlgorithmAndSoftware
    Debugging
-
+   Contributing
    
 .. toctree::
    :caption: References
