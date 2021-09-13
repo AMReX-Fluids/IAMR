@@ -1,6 +1,6 @@
 
 Algorithm and Software Details
-^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. toctree::
    :caption: Contents:

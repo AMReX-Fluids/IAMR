@@ -1,0 +1,534 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Contributing &mdash; IAMR 21.10-dev documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="references.html" />
+    <link rel="prev" title="Debugging" href="Debugging.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> IAMR
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                21.10-dev
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#development-model">Development Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#git-workflow">Git workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#make-your-own-fork">Make your own fork</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#making-code-changes">Making code changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#submitting-a-pull-request">Submitting a Pull Request</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#iamr-coding-style-guide">IAMR Coding Style Guide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#code-guidelines">Code Guidelines</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-documentation-using-doxygen">API Documentation Using Doxygen</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Contributing</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/Contributing.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="contributing">
+<span id="chap-contributing"></span><h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="development-model">
+<h2>Development Model<a class="headerlink" href="#development-model" title="Permalink to this headline">¶</a></h2>
+<p>Development generally follows the following ideas:</p>
+<ul>
+<li><p>New features are merged into to the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch using
+Pull Requests (PRs).</p>
+<p>Nightly regression testing is used to ensure that no answers
+change (or if they do, that the changes were expected).</p>
+</li>
+<li><p>Bug fixes, questions and contributions of new features are welcome!</p></li>
+</ul>
+<blockquote>
+<div><ul>
+<li><p>Bugs should be reported through GitHub Issues.</p></li>
+<li><p>We suggest asking questions through GitHub Discussions.</p></li>
+<li><p>All contributions should be done via pull requests.
+A pull request should be generated from your fork of
+IAMR and target the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch. See below for
+details on how this process works.</p>
+<p>In general we squash commits upon merge to have a clean history.
+<em>Please ensure that your PR title and first post are descriptive,
+since these will be used for a squashed commit message.</em></p>
+<dl class="simple">
+<dt>Please note the following:</dt><dd><p>If you choose to make contributions to the code
+then you hereby grant a non-exclusive, royalty-free perpetual license
+to install, use, modify, prepare derivative works,
+incorporate into other computer software,
+distribute, and sublicense such enhancements or derivative works
+thereof, in binary and source code form.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>On the first workday of each month, we make a tagged release.  The merge window into
+<code class="docutils literal notranslate"><span class="pre">development</span></code> is closed a few days before the release day.  While the merge window is closed,
+only bug fixes should be merged into <code class="docutils literal notranslate"><span class="pre">development</span></code>.  Once the release is done, the merge window
+reopens.</p></li>
+</ul>
+</div>
+<div class="section" id="git-workflow">
+<h2>Git workflow<a class="headerlink" href="#git-workflow" title="Permalink to this headline">¶</a></h2>
+<p>IAMR uses <a class="reference external" href="https://git-scm.com">git</a> for version control. If you
+are new to git, you can follow one of these tutorials:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.atlassian.com/git/tutorials/learn-git-with-bitbucket-cloud">Learn git with bitbucket</a></p></li>
+<li><p><a class="reference external" href="http://rogerdudler.github.io/git-guide/">git - the simple guide</a></p></li>
+</ul>
+<p>The basic workflow is:</p>
+<ul class="simple">
+<li><p>Fork the main repo (or update it if you already created it).</p></li>
+<li><p>Implement your changes on a new branch <code class="docutils literal notranslate"><span class="pre">&lt;branch_name&gt;</span></code> on
+your fork. Don’t forget to push.</p></li>
+<li><p>Create a Pull Request from branch <code class="docutils literal notranslate"><span class="pre">&lt;branch_name&gt;</span></code> on your fork to branch
+<code class="docutils literal notranslate"><span class="pre">development</span></code> on the main IAMR repository.</p></li>
+</ul>
+<div class="section" id="make-your-own-fork">
+<span id="sec-forking"></span><h3>Make your own fork<a class="headerlink" href="#make-your-own-fork" title="Permalink to this headline">¶</a></h3>
+<p>First, let us setup your local git repo. To make your own fork of the main
+(<cite>upstream</cite>) repository, press the fork button on the <a class="reference external" href="https://github.com/IAMR-Codes/IAMR">IAMR Github page</a>.</p>
+<p>Then, clone your fork on your local computer. If you plan on doing a lot of IAMR development,
+we recommend configuring your clone to use ssh access so you won’t have to enter your Github
+password every time, which you can do using these commands:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone --branch development git@github.com:&lt;myGithubUsername&gt;/IAMR.git
+
+<span class="c1"># Then, navigate into your repo, add a new remote for the main IAMR repo, and fetch it:</span>
+<span class="nb">cd</span> IAMR
+git remote add upstream https://github.com/IAMR-Codes/IAMR
+git remote set-url --push upstream git@github.com:&lt;myGithubUsername&gt;/IAMR.git
+git fetch upstream
+
+<span class="c1"># We recommend setting your development branch to track the upstream one instead of your fork:</span>
+git branch -u upstream/development
+</pre></div>
+</div>
+<p>For instructions on setting up SSH access to your Github account on a new machine, see <a class="reference external" href="https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh">here</a>.</p>
+<p>If you instead prefer to use HTTPS authentication, configure your local clone as follows:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone --branch development https://github.com/&lt;myGithubUsername&gt;/IAMR.git
+
+<span class="c1"># Navigate into your repo, add a new remote for the main IAMR repo, and fetch it</span>
+<span class="nb">cd</span> IAMR
+git remote add upstream https://github.com/IAMR-Codes/IAMR
+git remote set-url --push upstream https://github.com/&lt;myGithubUsername&gt;/IAMR.git
+git fetch upstream
+
+<span class="c1"># We recommend setting your development branch to track the upstream one instead of your fork:</span>
+git branch -u upstream/development
+</pre></div>
+</div>
+<p>Note: you do not have to re-do the setup above every time.
+Instead, in the future, to update the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch on your fork
+(i.e. sync your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch with that of the main repo) use</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git checkout development
+git pull
+</pre></div>
+</div>
+<p>Now you are free to play with your fork (for additional information, you can visit the
+<a class="reference external" href="https://help.github.com/en/articles/fork-a-repo">Github fork help page</a>.</p>
+</div>
+<div class="section" id="making-code-changes">
+<h3>Making code changes<a class="headerlink" href="#making-code-changes" title="Permalink to this headline">¶</a></h3>
+<p>We do <cite>not</cite> reccomend making any changes within the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch. Doing so
+will make your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch diverge from the matching branch in the
+main IAMR repository.
+Instead, we reccomend creating a new branch based on the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch.
+To proceed, make sure you are on the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch within the IAMR directory.
+Then create branch <code class="docutils literal notranslate"><span class="pre">&lt;branch_name&gt;</span></code> (the branch name should reflect the piece
+of code you want to add, like <code class="docutils literal notranslate"><span class="pre">high_order_interpolation</span></code>) with</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git checkout development
+git checkout -b &lt;branch_name&gt;
+</pre></div>
+</div>
+<p>Do the coding you want.
+Add the files you worked on to the git staging area with</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git add &lt;file_I_created&gt; &lt;and_file_I_modified&gt;
+</pre></div>
+</div>
+<p>Periodically commit your changes with</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git commit -m <span class="s2">&quot;This is a 50-char description to explain my work&quot;</span>
+</pre></div>
+</div>
+<p>The commit message (between quotation marks) is super important in order to
+follow the developments and identify bugs.</p>
+<p>For the moment, commits are on your local repo only. You can push them to
+your fork with</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git push -u origin &lt;branch_name&gt;
+</pre></div>
+</div>
+<p>If you want to synchronize your branch with the main IAMR <code class="docutils literal notranslate"><span class="pre">development</span></code> branch (this is useful
+when <code class="docutils literal notranslate"><span class="pre">development</span></code> is being modified while you are working on
+<code class="docutils literal notranslate"><span class="pre">&lt;branch_name&gt;</span></code>), you can use</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git merge upstream/development
+</pre></div>
+</div>
+<p>and fix any conflicts that may occur.</p>
+<p>Again, do not merge your branch into your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch,
+because it will make your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch diverge from the
+matching branch in the main repository. Instead, create a Pull Request (PR).</p>
+</div>
+<div class="section" id="submitting-a-pull-request">
+<h3>Submitting a Pull Request<a class="headerlink" href="#submitting-a-pull-request" title="Permalink to this headline">¶</a></h3>
+<p>A Pull Request is the way to efficiently visualize the changes you made
+and to propose your new feature/improvement/fix to the IAMR project.
+Right after you push changes, a banner should appear on the Github page of
+your fork, with your <code class="docutils literal notranslate"><span class="pre">&lt;branch_name&gt;</span></code>.</p>
+<ul class="simple">
+<li><p>Click on the <code class="docutils literal notranslate"><span class="pre">compare</span> <span class="pre">&amp;</span> <span class="pre">pull</span> <span class="pre">request</span></code> button to prepare your PR.</p></li>
+<li><p>It is time to communicate your changes: write a title and a description for
+your PR. People who review your PR are happy to know
+* what feature/fix you propose, and why
+* how you made it (created a new class than inherits from…)
+* and anything relevant to your PR (performance tests, images, <em>etc.</em>)</p></li>
+<li><p>Press <code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">pull</span> <span class="pre">request</span></code>. Now you can navigate through your PR, which
+highlights the changes you made.</p></li>
+</ul>
+<p>Please DO NOT write large Pull Requests, as they are very difficult and
+time-consuming to review. As much as possible, split them into small,
+targeted PRs.
+For example, if find typos in the documentation open a pull request that only fixes typos.
+If you want to fix a bug, make a small pull request that only fixes a bug.
+If you want to implement a large feature, write helper functionality first, test it and submit those as a first pull request.
+If you want to implement a feature and are not too sure how to split it,
+just open a discussion about your plans and ping other IAMR developers on it to chime in.</p>
+<p>Even before your work is ready to merge, it can be convenient to create a PR
+(so you can use Github tools to visualize your changes). In this case, please
+make a <code class="docutils literal notranslate"><span class="pre">draft</span></code> PR using the drop-down menu next to the <code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">pull</span> <span class="pre">request</span></code> button.</p>
+<p>Once your pull request is made, we will review and potentially merge it.
+We recommend always creating a new branch for each pull request, as per the above instructions.
+Once your pull request is merged, you can delete your PR branch with</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git branch -D &lt;branch_name&gt; <span class="c1"># Delete the local copy</span>
+git push origin --delete &lt;branch_name&gt; <span class="c1"># Delete the remote one on your fork</span>
+</pre></div>
+</div>
+<p>Generally speaking, you want to follow the following rules.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Do not merge your branch for PR into your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch that tracks IAMR
+<code class="docutils literal notranslate"><span class="pre">development</span></code> branch.  Otherwise your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch will diverge from IAMR
+<code class="docutils literal notranslate"><span class="pre">development</span></code> branch.</p></li>
+<li><p>Do not commit in your <code class="docutils literal notranslate"><span class="pre">development</span></code> branch that tracks IAMR <code class="docutils literal notranslate"><span class="pre">development</span></code> branch.</p></li>
+<li><p>Always create a new branch based off <code class="docutils literal notranslate"><span class="pre">development</span></code> branch for each pull request, unless you are
+going to use git to fix it later.</p></li>
+</ul>
+</div></blockquote>
+<p>If you have accidentally committed in <code class="docutils literal notranslate"><span class="pre">development</span></code> branch, you can fix it as follows,</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git checkout -b new_branch
+git checkout development
+git reset HEAD~2  <span class="c1"># Here 2 is the number of commits you have accidentally committed in development</span>
+git checkout .
+</pre></div>
+</div>
+<p>After this, the local <code class="docutils literal notranslate"><span class="pre">development</span></code> should be in sync with IAMR <code class="docutils literal notranslate"><span class="pre">development</span></code> and your recent
+commits have been saved in <code class="docutils literal notranslate"><span class="pre">new_branch</span></code> branch.</p>
+<p>If for some reason your PR branch has diverged from IAMR, you can try to fix it as follows.  Before
+you try it, you should back up your code in case things go wrong.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git fetch upstream   <span class="c1"># assuming upstream is the remote name for the official IAMR repo</span>
+git checkout -b xxx upstream/development  <span class="c1"># replace xxx with whatever name you like</span>
+git branch -D development
+git checkout -b development upstream/development
+git checkout xxx
+git merge yyy  <span class="c1"># here yyy is your PR branch with unclean history</span>
+git rebase -i upstream/development
+</pre></div>
+</div>
+<p>You will see something like below in your editor,</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pick 7451d9d commit message a
+pick c4c2459 commit message b
+pick 6fj3g90 commit message c
+</pre></div>
+</div>
+<p>This now requires a bit of knowledge on what those commits are, which commits have been merged,
+which commits are actually new.  However, you should only see your commits.  So it should be
+easy to figure out which commits have already been merged.  Assuming the first two commits have been
+merged, you can drop them by replace <code class="docutils literal notranslate"><span class="pre">pick</span></code> with <code class="docutils literal notranslate"><span class="pre">drop</span></code>,</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>drop 7451d9d commit message a
+drop c4c2459 commit message b
+pick 6fj3g90 commit message c
+</pre></div>
+</div>
+<p>After saving and then exiting the editor, <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code> should show a clean history based on top of
+<code class="docutils literal notranslate"><span class="pre">development</span></code> branch.  You can also do <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span> <span class="pre">yyy..xxx</span></code> to make sure nothing new was dropped.  If
+all goes well, you can submit a PR using <code class="docutils literal notranslate"><span class="pre">xxx</span></code> branch.
+Don’t worry, if something goes wrong during the rebase, you an always <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rebase</span> <span class="pre">--abort</span></code> and start over.</p>
+</div>
+</div>
+<div class="section" id="iamr-coding-style-guide">
+<h2>IAMR Coding Style Guide<a class="headerlink" href="#iamr-coding-style-guide" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="code-guidelines">
+<h3>Code Guidelines<a class="headerlink" href="#code-guidelines" title="Permalink to this headline">¶</a></h3>
+<p>IAMR developers should adhere to the following coding guidelines:</p>
+<ul>
+<li><p>Indentations should use 4 spaces, not tabs.</p></li>
+<li><p>Use curly braces for single statement blocks. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="nb">int</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">n</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">;</span> <span class="o">++</span><span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">Print</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s2">&quot;Like this!&quot;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="nb">int</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">n</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">;</span> <span class="o">++</span><span class="n">n</span><span class="p">)</span> <span class="p">{</span> <span class="n">Print</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s2">&quot;Like this!&quot;</span><span class="p">;</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p>but not</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="nb">int</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">n</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">;</span> <span class="o">++</span><span class="n">n</span><span class="p">)</span> <span class="n">Print</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s2">&quot;Not like this.&quot;</span><span class="p">;</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="nb">int</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">n</span><span class="o">&lt;</span><span class="mi">10</span><span class="p">;</span> <span class="o">++</span><span class="n">n</span><span class="p">)</span>
+   <span class="n">Print</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s2">&quot;Not like this.&quot;</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p>Add a space after the function name and before the
+parenthesis of the parameter list (but
+not when simply calling the function). For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">CorrectFunctionDec</span> <span class="p">(</span><span class="nb">int</span> <span class="nb">input</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Not</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">IncorrectFunctionDec</span><span class="p">(</span><span class="nb">int</span> <span class="nb">input</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This makes it easy to find where functions are defined with grep.</p>
+</li>
+<li><p>Member variables should be prefixed with <code class="docutils literal notranslate"><span class="pre">m_</span></code>. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">IAMR</span><span class="p">::</span><span class="n">Real</span> <span class="n">m_variable</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>These guidelines should be adhered to in new contributions to IAMR, but
+please refrain from making stylistic changes to unrelated sections of code in your PRs.</p>
+</div>
+<div class="section" id="api-documentation-using-doxygen">
+<h3>API Documentation Using Doxygen<a class="headerlink" href="#api-documentation-using-doxygen" title="Permalink to this headline">¶</a></h3>
+<p>The Doxygen documentation is designed for advanced user-developers. It aims
+to maximize the efficiency of a search-and-find style of locating information.
+Doxygen style comment blocks should proceed the namespace, class, function, etc.
+to be documented where appropriate. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/**</span>
+ <span class="o">*</span> \<span class="n">brief</span> <span class="n">A</span> <span class="n">one</span> <span class="n">line</span> <span class="n">description</span><span class="o">.</span>
+ <span class="o">*</span>
+ <span class="o">*</span> \<span class="n">param</span><span class="p">[</span><span class="ow">in</span><span class="p">]</span> <span class="n">variable</span> <span class="n">A</span> <span class="n">short</span> <span class="n">description</span> <span class="n">of</span> <span class="n">the</span> <span class="n">variable</span><span class="o">.</span>
+ <span class="o">*</span> \<span class="n">param</span><span class="p">[</span><span class="n">inout</span><span class="p">]</span> <span class="n">data</span> <span class="n">The</span> <span class="n">value</span> <span class="n">of</span> <span class="n">data</span> <span class="ow">is</span> <span class="n">read</span> <span class="ow">and</span> <span class="n">changed</span><span class="o">.</span>
+ <span class="o">*</span>
+ <span class="o">*</span> <span class="n">A</span> <span class="n">longer</span> <span class="n">description</span> <span class="n">can</span> <span class="n">be</span> <span class="n">included</span> <span class="n">here</span><span class="o">.</span>
+ <span class="o">*/</span>
+
+  <span class="n">void</span> <span class="n">MyFunction</span> <span class="p">(</span><span class="nb">int</span> <span class="n">variable</span><span class="p">,</span> <span class="n">MultiFab</span><span class="o">&amp;</span> <span class="n">data</span><span class="p">){</span>
+  <span class="o">...</span>
+</pre></div>
+</div>
+<p>Additional information regarding Doxygen comment formatting can be found
+in the <a class="reference external" href="https://www.doxygen.nl/manual/">Doxygen Manual</a>.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="Debugging.html" class="btn btn-neutral float-left" title="Debugging" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017-2018, IAMR Team.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
