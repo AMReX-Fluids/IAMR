@@ -25,10 +25,10 @@ using namespace amrex;
 //---------------------------------------------------------------------
 
 void
-NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  time_avg_fluct, amrex::Real&  dt_avg, const Real& dt_level)
+NavierStokesBase::time_average(amrex::Real&  a_time_avg, amrex::Real&  a_time_avg_fluct, amrex::Real&  a_dt_avg, const Real& dt_level)
 
 {
-  dt_avg = dt_avg + dt_level;
+  a_dt_avg = a_dt_avg + dt_level;
 
   if (parent->levelSteps(0)%avg_interval == 0)
   {
@@ -47,15 +47,15 @@ NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  time_avg_fl
        auto const& S_avg_old   = Savg_old.array(mfi);
        int loc_compute_fluctuations = compute_fluctuations; //NavierStokesBase class cannot be accessed directly fron device
 
-       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, dt_avg, time_avg, time_avg_fluct, loc_compute_fluctuations]
+       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, a_dt_avg, a_time_avg, loc_compute_fluctuations]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
-          S_avg(i,j,k,n) = S_avg_old(i,j,k,n) + dt_avg * S_state(i,j,k,n);
+          S_avg(i,j,k,n) = S_avg_old(i,j,k,n) + a_dt_avg * S_state(i,j,k,n);
           S_avg_old(i,j,k,n) = S_avg(i,j,k,n);
 
           if (loc_compute_fluctuations == 1){
-            amrex::Real vel_prime = S_state(i,j,k,n) - (S_avg(i,j,k,n)/(time_avg + dt_avg));
-            S_avg(i,j,k,n+BL_SPACEDIM) = S_avg_old(i,j,k,n+BL_SPACEDIM) + dt_avg * vel_prime * vel_prime;
+            amrex::Real vel_prime = S_state(i,j,k,n) - (S_avg(i,j,k,n)/(a_time_avg + a_dt_avg));
+            S_avg(i,j,k,n+BL_SPACEDIM) = S_avg_old(i,j,k,n+BL_SPACEDIM) + a_dt_avg * vel_prime * vel_prime;
           }
           else{
             S_avg(i,j,k,n+BL_SPACEDIM) = 0.;
@@ -64,14 +64,14 @@ NavierStokesBase::time_average(amrex::Real&  time_avg, amrex::Real&  time_avg_fl
        });
     }
 
-    time_avg = time_avg + dt_avg;
+    a_time_avg = a_time_avg + a_dt_avg;
     if (compute_fluctuations == 1){
-      time_avg_fluct = time_avg_fluct + dt_avg;
+      a_time_avg_fluct = a_time_avg_fluct + a_dt_avg;
     }else{
-      time_avg_fluct = 0.;
+      a_time_avg_fluct = 0.;
     }
 
-    dt_avg = 0;
+    a_dt_avg = 0;
 
   }
 }

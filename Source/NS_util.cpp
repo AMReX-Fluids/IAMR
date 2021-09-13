@@ -9,7 +9,7 @@ namespace amrex {
 
   Vector<Real>
   VectorMax(const Vector<const MultiFab *>& mfs,
-            const IntVect&                  tilesize,
+            const IntVect&                  /*tilesize*/,
             int                             sComp,
             int                             nComp,
             int                             nGrow)
@@ -32,7 +32,7 @@ namespace amrex {
 
   Vector<Real>
   VectorMaxAbs(const Vector<const MultiFab *>& mfs,
-               const IntVect&                  tilesize,
+               const IntVect&                  /*tilesize*/,
                int                             sComp,
                int                             nComp,
                int                             nGrow)
@@ -55,7 +55,7 @@ namespace amrex {
 
   Vector<Real>
   VectorMin(const Vector<const MultiFab *>& mfs,
-            const IntVect&                  tilesize,
+            const IntVect&                  /*tilesize*/,
             int                             sComp,
             int                             nComp,
             int                             nGrow)

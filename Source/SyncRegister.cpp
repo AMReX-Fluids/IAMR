@@ -559,7 +559,7 @@ SyncRegister::FineAdd (MultiFab& Sync_resid_fine, const Geometry& crse_geom, Rea
         const Box& finebox  = mfi.validbox();
         GpuArray<int,3> flo = finebox.loVect3d();
         GpuArray<int,3> fhi = finebox.hiVect3d();
-        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi,twoThirds]
+        ParallelFor(mfi.tilebox(), [finefab_a,flo,fhi]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 #if AMREX_SPACEDIM == 2

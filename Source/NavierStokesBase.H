@@ -218,9 +218,9 @@ public:
 
     static int DoTrac2();
 
-    static bool GodunovUsePPM () {return godunov_use_ppm;};
-    static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;};
-    static int  GodunovHypgrow () {return godunov_hyp_grow;};
+    static bool GodunovUsePPM () {return godunov_use_ppm;}
+    static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;}
+    static int  GodunovHypgrow () {return godunov_hyp_grow;}
 
     //////////////////////////////////////////////////////////////////
 
@@ -472,7 +472,7 @@ public:
     //
     static void Initialize_specific (){
       amrex::Abort("NavierStokesBase::Initialize_specific: This function must be implemented in derived class");
-    };
+    }
     static void Finalize ();
     //
     // Check for RZ geometry

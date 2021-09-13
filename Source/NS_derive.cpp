@@ -10,7 +10,7 @@ namespace derive_functions
 {
   void der_vel_avg (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
 		    const FArrayBox& datfab, const Geometry& /*geomdata*/,
-		    Real time, const int* /*bcrec*/, int level)
+		    Real /*time*/, const int* /*bcrec*/, int level)
 
   {
     AMREX_ASSERT(derfab.box().contains(bx));

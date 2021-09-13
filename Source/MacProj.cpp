@@ -1209,17 +1209,17 @@ MacProj::test_umac_periodic (int       level,
 
 //level_project
 void
-MacProj::mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc,
+MacProj::mlmg_mac_level_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phys_bc,
 			       const BCRec& density_math_bc,
 			       int level, int Density,
-			       Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+			       Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
 			       const MultiFab &S, MultiFab &Rhs,
 			       MultiFab *u_mac, MultiFab *mac_phi)
 {
     // Set bcoefs to the average of Density at the faces
     // In the EB case, they will be defined at the Face Centroid
     MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow(),
-                 MFInfo(), (parent->getLevel(level)).Factory());
+                 MFInfo(), (a_parent->getLevel(level)).Factory());
     MultiFab::Copy(rho, S, Density, 0, 1, S.nGrow()); // Extract rho component from S
 
     Array<MultiFab*,AMREX_SPACEDIM>  umac;
@@ -1234,16 +1234,16 @@ MacProj::mlmg_mac_level_solve (Amr* parent, const MultiFab* cphi, const BCRec& p
     //
     // Perform projection
     //
-    mlmg_mac_solve(parent, cphi, phys_bc, density_math_bc, level,
-		   mac_tol, mac_abs_tol, rhs_scale,
+    mlmg_mac_solve(a_parent, cphi, a_phys_bc, density_math_bc, level,
+		   a_mac_tol, a_mac_abs_tol, rhs_scale,
 		   rho, Rhs, umac, mac_phi, fluxes);
 }
 
 //sync_project
 void
-MacProj::mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
+MacProj::mlmg_mac_sync_solve (Amr* a_parent, const BCRec& a_phys_bc,
 			      const BCRec& rho_math_bc,
-			      int level, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+			      int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
 			      const MultiFab& rho, MultiFab& Rhs,
 			      MultiFab* mac_phi, Array<MultiFab*,AMREX_SPACEDIM>& Ucorr)
 {
@@ -1260,8 +1260,8 @@ MacProj::mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
     //
     // Perform projection
     //
-    mlmg_mac_solve(parent, nullptr, phys_bc, rho_math_bc, level,
-		   mac_tol, mac_abs_tol, rhs_scale,
+    mlmg_mac_solve(a_parent, nullptr, a_phys_bc, rho_math_bc, level,
+		   a_mac_tol, a_mac_abs_tol, rhs_scale,
 		   rho, Rhs, umac, mac_phi, Ucorr);
 
     for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
@@ -1274,14 +1274,14 @@ MacProj::mlmg_mac_sync_solve (Amr* parent, const BCRec& phys_bc,
 
 // project
 void
-MacProj::mlmg_mac_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc,
+MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phys_bc,
 			 const BCRec& density_math_bc,
-			 int level, Real mac_tol, Real mac_abs_tol, Real rhs_scale,
+			 int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
 			 const MultiFab &rho, MultiFab &Rhs,
 			 Array<MultiFab*,AMREX_SPACEDIM>& u_mac, MultiFab *mac_phi,
 			 Array<MultiFab*,AMREX_SPACEDIM>& fluxes)
 {
-    const Geometry& geom = parent->Geom(level);
+    const Geometry& geom = a_parent->Geom(level);
     const BoxArray& ba = Rhs.boxArray();
     const DistributionMapping& dm = Rhs.DistributionMap();
 
@@ -1293,7 +1293,7 @@ MacProj::mlmg_mac_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc
     {
         BoxArray nba = amrex::convert(ba,IntVect::TheDimensionVector(idim));
         bcoefs[idim].reset(new  MultiFab(nba, dm, 1, 0, MFInfo(),
-					 (parent->getLevel(level)).Factory()));
+					 (a_parent->getLevel(level)).Factory()));
     }
 
     //
@@ -1350,12 +1350,12 @@ MacProj::mlmg_mac_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc
     //
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<MLLinOp::BCType,AMREX_SPACEDIM> mlmg_hibc;
-    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, phys_bc, geom);
+    set_mac_solve_bc(mlmg_lobc, mlmg_hibc, a_phys_bc, geom);
 
     macproj.setDomainBC(mlmg_lobc, mlmg_hibc);
     if (level > 0 && cphi)
     {
-        macproj.setCoarseFineBC(cphi, parent->refRatio(level-1)[0]);
+        macproj.setCoarseFineBC(cphi, a_parent->refRatio(level-1)[0]);
     }
     macproj.setLevelBC(0, mac_phi);
 
@@ -1368,7 +1368,7 @@ MacProj::mlmg_mac_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc
     //
     // Perform projection
     //
-    macproj.project({mac_phi}, mac_tol, mac_abs_tol);
+    macproj.project({mac_phi}, a_mac_tol, a_mac_abs_tol);
 
     if ( fluxes[0] )
       // fluxes = -B grad phi
@@ -1378,19 +1378,19 @@ MacProj::mlmg_mac_solve (Amr* parent, const MultiFab* cphi, const BCRec& phys_bc
 void
 MacProj::set_mac_solve_bc (Array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
 			   Array<MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
-			   const BCRec& phys_bc, const Geometry& geom)
+			   const BCRec& a_phys_bc, const Geometry& geom)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (geom.isPeriodic(idim)) {
             mlmg_lobc[idim] = MLLinOp::BCType::Periodic;
             mlmg_hibc[idim] = MLLinOp::BCType::Periodic;
         } else {
-            if (phys_bc.lo(idim) == Outflow) {
+            if (a_phys_bc.lo(idim) == Outflow) {
                 mlmg_lobc[idim] = MLLinOp::BCType::Dirichlet;
             } else {
                 mlmg_lobc[idim] = MLLinOp::BCType::Neumann;
             }
-            if (phys_bc.hi(idim) == Outflow) {
+            if (a_phys_bc.hi(idim) == Outflow) {
                 mlmg_hibc[idim] = MLLinOp::BCType::Dirichlet;
             } else {
                 mlmg_hibc[idim] = MLLinOp::BCType::Neumann;
