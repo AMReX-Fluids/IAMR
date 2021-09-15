@@ -1,80 +1,39 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>An Overview of IAMR Code &mdash; IAMR 21.10-dev documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Debugging" href="Debugging.html" />
     <link rel="prev" title="Time Step – MOL" href="TimeStep.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="index.html" class="icon icon-home"> IAMR
-          
-
-          
           </a>
-
-          
-            
-            
               <div class="version">
                 21.10-dev
               </div>
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -82,18 +41,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
@@ -137,75 +85,33 @@
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">IAMR</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="AlgorithmAndSoftware.html">Algorithm and Software Details</a> &raquo;</li>
-        
       <li>An Overview of IAMR Code</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/Software.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <div class="section" id="an-overview-of-iamr-code">
-<h1>An Overview of IAMR Code<a class="headerlink" href="#an-overview-of-iamr-code" title="Permalink to this headline">¶</a></h1>
+<h1>An Overview of IAMR Code<a class="headerlink" href="#an-overview-of-iamr-code" title="Permalink to this headline"></a></h1>
 <p>IAMR is built upon the AMReX C++ framework. This provides
 high-level classes for managing an adaptive mesh refinement simulation,
 including the core data structures required in AMR calculations.
@@ -240,7 +146,7 @@ desired simulation time is reached:</p>
 including synchronization between levels, to advance the level hierarchy
 forward in time.</p>
 <div class="section" id="state-data">
-<h2>State Data<a class="headerlink" href="#state-data" title="Permalink to this headline">¶</a></h2>
+<h2>State Data<a class="headerlink" href="#state-data" title="Permalink to this headline"></a></h2>
 <p>The StateData class structure defined by AMReX is the data container
 used to store the field data associated with the state on a single AMR level
 during an IAMR run. The entire state consists of a dynamic union, or hierarchy, of
@@ -318,7 +224,7 @@ a more array like manner using operator()
 <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for">https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for</a> ).</p>
 </div>
 <div class="section" id="problem-setup">
-<h2>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline">¶</a></h2>
+<h2>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline"></a></h2>
 <p>To define a new problem, we create a new inputs file in a run directory and modify
 <code class="docutils literal notranslate"><span class="pre">IAMR/Source/prob/prob_init.cpp</span></code> accordingly.
 The simplest way to get started is to copy the inputs files from an existing
@@ -352,7 +258,7 @@ More details in section [ <a class="reference internal" href="#sec-physicalbcs">
 </ul>
 </div>
 <div class="section" id="boundaries">
-<h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this headline">¶</a></h2>
+<h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this headline"></a></h2>
 <p>In AMReX, we are primarily concerned with enabling structured-grid
 computations. A key aspect of this is the use of “grow” cells
 around the “valid box” of cells over which we wish to apply stencil operations.
@@ -362,7 +268,7 @@ data containers that allow us to separate the steps of data preparation
 from stencil application. The steps that are required to fill grow cells
 depends on where the cells “live” in the computational domain.</p>
 <div class="section" id="boundaries-between-grids-and-levels">
-<h3>Boundaries Between Grids and Levels<a class="headerlink" href="#boundaries-between-grids-and-levels" title="Permalink to this headline">¶</a></h3>
+<h3>Boundaries Between Grids and Levels<a class="headerlink" href="#boundaries-between-grids-and-levels" title="Permalink to this headline"></a></h3>
 <p>Most of our state data is cell-centered, and often the grow cells are
 as well. When the cells lie directly over cells of a neighboring box
 at the same AMR refinement level, these are “fine-fine” cells, and are
@@ -391,7 +297,7 @@ example.) A number of interpolators are provided with AMReX and
 user-customizable ones can be added on the fly.</p>
 </div>
 <div class="section" id="physical-boundaries">
-<span id="sec-physicalbcs"></span><h3>Physical Boundaries<a class="headerlink" href="#physical-boundaries" title="Permalink to this headline">¶</a></h3>
+<span id="sec-physicalbcs"></span><h3>Physical Boundaries<a class="headerlink" href="#physical-boundaries" title="Permalink to this headline"></a></h3>
 <p>The last type of grow cell exists at physical boundaries. These are special for
 a couple of reasons. First, the user must explicitly specify how they are to be
 filled, consistent with the problem being run. AMReX provides a number of
@@ -451,7 +357,7 @@ by adjusting the corresponding translations in <code class="docutils literal not
 </div>
 </div>
 <div class="section" id="derived-variables">
-<h2>Derived Variables<a class="headerlink" href="#derived-variables" title="Permalink to this headline">¶</a></h2>
+<h2>Derived Variables<a class="headerlink" href="#derived-variables" title="Permalink to this headline"></a></h2>
 <p>IAMR has the ability to created new variables derived from the state variables.
 A few derived variables are provided with IAMR, which can be used as examples for
 creating user defined derived variables.
@@ -492,7 +398,7 @@ A multifab filled with the magnitude of the vorticity can be obtained via</p>
 </div>
 </div>
 <div class="section" id="the-fillpatchiterator">
-<h2>The FillPatchIterator<a class="headerlink" href="#the-fillpatchiterator" title="Permalink to this headline">¶</a></h2>
+<h2>The FillPatchIterator<a class="headerlink" href="#the-fillpatchiterator" title="Permalink to this headline"></a></h2>
 <p>A FillPatchIterator is a AMReX object tasked with the job of
 filling rectangular patches of state data, possibly including grow cells,
 and, if so, utilizing all the metadata discussed above that is provided by
@@ -534,7 +440,7 @@ number of successively coarser AMR levels), this key operation can hide an
 enormous amount of code and algorithm complexity.</p>
 </div>
 <div class="section" id="parallelization">
-<span id="chap-parallel"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline">¶</a></h2>
+<span id="chap-parallel"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline"></a></h2>
 <p>AMReX uses a hybrid MPI + X approach to parallelism,
 where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
 The basic idea is that MPI is used to distribute individual boxes across
@@ -544,7 +450,7 @@ based on <em>tiling</em> the box-based data structures. Both the tiling and
 non-tiling approaches to work distribution are discussed below. Also see
 the discussion of tiling in AMReX’s documentation, <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter" title="(in amrex v21.10-dev)"><span>MFIter and Tiling</span></a>.</p>
 <div class="section" id="amrexs-non-tiling-approach">
-<h3>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Permalink to this headline">¶</a></h3>
+<h3>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Permalink to this headline"></a></h3>
 <p>At the highest abstraction level, we have MultiFab (mulitple
 FArrayBoxes). A MultiFab contains an array of Boxes (a Box contains integers specifying the index space it
 covers), including Boxes owned by other processors for the
@@ -574,7 +480,7 @@ ghost cells. We can get the indices of the valid zones as box.loVect and box.hiV
 </ul>
 </div>
 <div class="section" id="amrexs-tiling-approach">
-<h3>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Permalink to this headline">¶</a></h3>
+<h3>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Permalink to this headline"></a></h3>
 <p>There are two types of tiling that people discuss. In <em>logical
 tiling</em>, the data storage in memory is unchanged from how we do things
 now in pure MPI. In a given box, the data region is stored
@@ -617,7 +523,7 @@ Box (and corresponding lo and hi) for the <em>current tile</em>, not the entire 
 <p>Let us consider an example. Suppose there are four boxes:</p>
 <div class="figure align-default" id="id1">
 <img alt="A simple domain showing 4 Boxes labeled 0–3, and their tiling regions (dotted lines)" src="_images/domain-tile.png" />
-<p class="caption"><span class="caption-number">Fig. 8 </span><span class="caption-text">Boxes labeled 0–3, and their tiling regions (dotted lines)</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+<p class="caption"><span class="caption-number">Fig. 8 </span><span class="caption-text">Boxes labeled 0–3, and their tiling regions (dotted lines)</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
 </div>
 <p>The first box is divided into 4 logical tiles, the second and third
 are divided into 2 tiles each (because they are small), and the fourth
@@ -676,7 +582,7 @@ burning in cells by an implicit solver. Tiling can also create extra
 work in the ghost cells of tiles.</p>
 </div>
 <div class="section" id="practical-details-in-working-with-tiling">
-<h3>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Permalink to this headline">¶</a></h3>
+<h3>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Permalink to this headline"></a></h3>
 <p>It is the responsibility of the coder to make sure that the routines within
 a tiled region are safe to use with OpenMP. In particular, note that:</p>
 <ul class="simple">
@@ -702,7 +608,7 @@ the tile region, not for the entire box.</p></li>
 </div>
 </div>
 <div class="section" id="particles">
-<h2>Particles<a class="headerlink" href="#particles" title="Permalink to this headline">¶</a></h2>
+<h2>Particles<a class="headerlink" href="#particles" title="Permalink to this headline"></a></h2>
 <p>IAMR has the ability to include data-parallel particle simulations.
 Our particles can interact with data defined on a (possibly adaptive)
 block-structured hierarchy of meshes. Example applications include
@@ -715,7 +621,7 @@ For more detailed information
 on particles, see AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Particle_Chapter.html#chap-particles" title="(in amrex v21.10-dev)"><span>Particles</span></a>.</p>
 </div>
 <div class="section" id="gridding-and-load-balancing">
-<h2>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this headline">¶</a></h2>
+<h2>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this headline"></a></h2>
 <p>IAMR has a great deal of flexibility when it comes to how to decompose the
 computational domain into individual rectangular grids, and how to distribute
 those grids to MPI ranks.  There can be grids of different sizes,
@@ -735,7 +641,7 @@ We can also specify the strategy for assigning tiles to OpenMP threads.
 See <a class="reference internal" href="#chap-parallel"><span class="std std-ref">Parallelization</span></a> and AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter-tiling" title="(in amrex v21.10-dev)"><span>MFIter with Tiling</span></a>) for more about tiling.</p>
 </div>
 <div class="section" id="amr-grids">
-<span id="sec-gridcreation"></span><h2>AMR Grids<a class="headerlink" href="#amr-grids" title="Permalink to this headline">¶</a></h2>
+<span id="sec-gridcreation"></span><h2>AMR Grids<a class="headerlink" href="#amr-grids" title="Permalink to this headline"></a></h2>
 <p>Our approach to adaptive refinement in IAMR uses a nested
 hierarchy of logically-rectangular grids with simultaneous refinement
 of the grids in both space and time. The integration algorithm on the grid hierarchy
@@ -767,13 +673,13 @@ the existing Amr level(s) is removed, the new one is inserted into the hierarchy
 continues.</p>
 <p>Further details on grid generation are in AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v21.10-dev)"><span>Grid Creation</span></a>.</p>
 <div class="section" id="tagging-for-refinement">
-<span id="sec-tagging"></span><h3>Tagging for Refinement<a class="headerlink" href="#tagging-for-refinement" title="Permalink to this headline">¶</a></h3>
+<span id="sec-tagging"></span><h3>Tagging for Refinement<a class="headerlink" href="#tagging-for-refinement" title="Permalink to this headline"></a></h3>
 <p>This section describes the process
 by which cells are tagged during regridding, and describes how to add customized tagging criteria.
 IAMR provides two methods for creating error estimation functions: dynamic generation and explicit or
 hard-coded. First dynamic generation is discussed, followed by how to explicitly define error functions.</p>
 <div class="section" id="dynamically-generated-tagging-functions">
-<h4>Dynamically generated tagging functions<a class="headerlink" href="#dynamically-generated-tagging-functions" title="Permalink to this headline">¶</a></h4>
+<h4>Dynamically generated tagging functions<a class="headerlink" href="#dynamically-generated-tagging-functions" title="Permalink to this headline"></a></h4>
 <p>Dynamically created error functions are based on runtime data specified in the
 inputs (ParmParse) data.
 These dynamically generated error functions can tag a specified region of the domain and/or test on a field
@@ -827,7 +733,7 @@ scheduled regrid operation. Alternatively, the user may restart with amr.regrid_
 do a full (all-levels) regrid after reading the checkpoint data and before advancing any cells.</p>
 </div>
 <div class="section" id="explicitly-defined-tagging-functions">
-<h4>Explicitly defined tagging functions<a class="headerlink" href="#explicitly-defined-tagging-functions" title="Permalink to this headline">¶</a></h4>
+<h4>Explicitly defined tagging functions<a class="headerlink" href="#explicitly-defined-tagging-functions" title="Permalink to this headline"></a></h4>
 <p>Explicitly defined error estimation functions can be used either instead of or in addition to
 dynmaically generated funtions. These functions can be added to NavierStokes::errorEst() in
 NS_error.cpp. Any dynamically generated error functions will operate first.
@@ -837,7 +743,7 @@ may not have the desired effect.</p>
 </div>
 </div>
 <div class="section" id="parallel-i-o">
-<h2>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Permalink to this headline">¶</a></h2>
+<h2>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Permalink to this headline"></a></h2>
 <p>Both checkpoint files and plotfiles are actually folders containing
 subfolders: one subfolder for each level of the AMR hierarchy.
 The fundamental data structure we read/write to disk is a MultiFab,
@@ -876,50 +782,33 @@ create a very large number of files, which can lead to inode issues.</p>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="Debugging.html" class="btn btn-neutral float-right" title="Debugging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="TimeStep.html" class="btn btn-neutral float-left" title="Time Step – MOL" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Debugging.html" class="btn btn-neutral float-right" title="Debugging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2017-2018, IAMR Team.
-
-    </p>
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>
