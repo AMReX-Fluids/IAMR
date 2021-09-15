@@ -1,6 +1,6 @@
 
 CEXE_sources += WritePlotFile.cpp ViscBench$(DIM)d.cpp
-CEXE_headers += 
+CEXE_headers += WritePlotFile.H
 
 FEXE_sources += EXACT_$(DIM)D.F
 FEXE_headers += 
@@ -9,5 +9,4 @@ FEXE_headers +=
 # Shared Routines
 ###################
 
-CEXE_sources += DataServices.cpp AmrData.cpp XYPlotDataList.cpp
-FEXE_sources += FABUTIL_$(DIM)D.F
+CEXE_sources += AMReX_DataServices.cpp AMReX_AmrData.cpp AMReX_XYPlotDataList.cpp

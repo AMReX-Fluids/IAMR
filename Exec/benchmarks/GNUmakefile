@@ -1,7 +1,7 @@
 
-AMREX_HOME = /path/to/amrex
+AMREX_HOME ?= ../../../amrex
 
-TOP = ../..
+TOP = $(AMREX_HOME)
 
 #
 # Variables for the user to set ...
@@ -15,32 +15,39 @@ USE_MPI   = FALSE
 DEFINES += -DBL_PARALLEL_IO
 EBASE = ViscBench
 
-include $(TOP)/mk/Make.defs 
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include ./Make.package
+include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
+#include $(AMREX_HOME)/Tools/C_util/Make.package
 
-#include $(TOP)/amrlib/Make.package
-include $(TOP)/bndrylib/Make.package
-include $(TOP)/amrex/Make.package
+vpathdir += ..
 
-INCLUDE_LOCATIONS += .
-#INCLUDE_LOCATIONS += $(TOP)/amrlib
-INCLUDE_LOCATIONS += $(TOP)/bndrylib
-INCLUDE_LOCATIONS += $(TOP)/amrex
-INCLUDE_LOCATIONS += $(TOP)/pAmrvis
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
+vpathdir += $(AMREX_HOME)/Src/Base
 
-vpath_cpp := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
-vpath_H   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
-vpath_FH  := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
-vpath_h   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
-vpath_F   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
-vpath_f   := . $(TOP)/pAmrvis $(TOP)/amrlib $(TOP)/bndrylib $(TOP)/amrex
-vpath %.cpp $(vpath_cpp)
-vpath %.H   $(vpath_H)
-vpath %.FH  $(vpath_FH)
-vpath %.h   $(vpath_h)
-vpath %.F   $(vpath_F)
-vpath %.f   $(vpath_f)
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
+vpathdir += $(AMREX_HOME)/Src/Boundary
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Amr
+vpathdir += $(AMREX_HOME)/Src/Amr
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
+vpathdir += $(AMREX_HOME)/Src/Extern/amrdata
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_util
+vpathdir += $(AMREX_HOME)/Tools/C_util
+
+
+vpath %.c   : . $(vpathdir)
+vpath %.h   : . $(vpathdir)
+vpath %.cpp : . $(vpathdir)
+vpath %.H   : . $(vpathdir)
+vpath %.F   : . $(vpathdir)
+vpath %.f   : . $(vpathdir)
+vpath %.f90 : . $(vpathdir)
 
 all: $(executable)
 
-include $(TOP)/mk/Make.rules
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

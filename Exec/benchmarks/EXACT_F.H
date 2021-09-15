@@ -28,19 +28,19 @@ c
 extern "C"
 {
 #if (BL_SPACEDIM==3)
-  void FORT_VISCBENCH(const Real *time, const Real *nu, const int *unifdir,
-                      const int *lo, const int *hi, 
+  void FORT_VISCBENCH(const amrex::Real *time, const amrex::Real *nu, const int *unifdir,
+                      const int *lo, const int *hi,
                       const int *ncomp,
-                      const Real *state, ARLIM_P(lo), ARLIM_P(hi),
-                      const Real *delta,
-                      const Real *xlo, const Real *xhi);
+                      const amrex::Real *state, ARLIM_P(lo), ARLIM_P(hi),
+                      const amrex::Real *delta,
+                      const amrex::Real *xlo, const amrex::Real *xhi);
 #else
-  void FORT_VISCBENCH(const Real *time, const Real *nu, 
-                      const int *lo, const int *hi, 
+  void FORT_VISCBENCH(const amrex::Real *time, const amrex::Real *nu,
+                      const int *lo, const int *hi,
                       const int *ncomp,
-                      const Real *state, ARLIM_P(lo), ARLIM_P(hi),
-                      const Real *delta,
-                      const Real *xlo, const Real *xhi);
+                      const amrex::Real *state, ARLIM_P(lo), ARLIM_P(hi),
+                      const amrex::Real *delta,
+                      const amrex::Real *xlo, const amrex::Real *xhi);
 #endif
 
 }
