@@ -34,8 +34,7 @@ amr.plot_int		= 10
 #ns.do_init_proj = 0
 
 ns.do_scalminmax       = 1
-ns.use_godunov         = true # Use MOL if false, default is to use MOL for EB
-ns.redistribution_type = StateRedist
+ns.use_godunov         = true # Use MOL if false, default is to use godunov
 
 #**************
 # AMR options *
@@ -122,6 +121,9 @@ eb2.geom_type     = sphere
 eb2.sphere_radius = 0.05
 eb2.sphere_center =  -0.001  1.20
 eb2.sphere_has_fluid_inside = 0
+
+# Reditribution method for small cells
+ns.redistribution_type = FluxRedist
 
 #*********************
 # Initial Conditions *

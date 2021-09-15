@@ -60,6 +60,9 @@ eb2.box_lo = 0.15 0.25 -0.25
 eb2.box_hi =  0.65  0.75 0.25
 eb2.box_has_fluid_inside = 0
 
+# Reditribution method for small cells
+ns.redistribution_type = FluxRedist
+
 #*******************************************************************************
 # BOUNDARY CONDITIONS
 #*******************************************************************************

@@ -120,7 +120,7 @@ eb2.sphere_has_fluid_inside = 0
 eb2.small_volfrac = 1.e-5
 
 # Reditribution method for small cells
-ns.redistribution_type = StateRedist
+ns.redistribution_type = NewStateRedist
 
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.

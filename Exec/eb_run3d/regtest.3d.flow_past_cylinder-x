@@ -65,6 +65,9 @@ eb2.cylinder_radius           = 0.05001
 eb2.cylinder_direction        = 2
 eb2.cylinder_center           = -0.45  0.0  0.0
 
+# Reditribution method for small cells
+ns.redistribution_type = FluxRedist
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #          PROBLEM PARAMETERS           #
 #.......................................#
