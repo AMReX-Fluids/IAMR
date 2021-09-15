@@ -24,27 +24,29 @@ using std::ios;
 
 #define GARBAGE 666.e+40
 
+using namespace amrex;
+
 static
 void
 PrintUsage (const char* progName)
 {
-    cout << '\n';
-    cout << "This program reads a plot file and compares the results\n"
+    std::cout << '\n';
+    std::cout << "This program reads a plot file and compares the results\n"
          << "against a 3-d analog to the 2-d viscous benchmark of\n"
          << "G.I. Taylor.  Essentially, this is a 2-d solution that\n"
          << "is uniform in the third-dimension.  But, the uniform\n"
          << "direction can be in any of the three coordinate directions\n";
-    cout << "Usage:" << '\n';
-    cout << progName << '\n';
-    cout << "     infile = inputFileName" << '\n';
-    cout << "    unifdir = uniformDirection" << '\n';
-    cout << "    errfile = ErrorFileOutputFileName" << '\n';
-    cout << "     exfile = ExactSolnOutputFileName" << '\n';
-    cout << "         mu = viscosity" << '\n';
-    cout << "       norm = integer norm (Ie. default is 2 for Ln norm)" << '\n';
-    cout << "   [-help]" << '\n';
-    cout << "   [-verbose]" << '\n';
-    cout << '\n';
+    std::cout << "Usage:" << '\n';
+    std::cout << progName << '\n';
+    std::cout << "     infile = inputFileName" << '\n';
+    std::cout << "    unifdir = uniformDirection" << '\n';
+    std::cout << "    errfile = ErrorFileOutputFileName" << '\n';
+    std::cout << "     exfile = ExactSolnOutputFileName" << '\n';
+    std::cout << "         mu = viscosity" << '\n';
+    std::cout << "       norm = integer norm (Ie. default is 2 for Ln norm)" << '\n';
+    std::cout << "   [-help]" << '\n';
+    std::cout << "   [-verbose]" << '\n';
+    std::cout << '\n';
     exit(1);
 }
 
@@ -122,23 +124,24 @@ main (int   argc,
     Vector<MultiFab*> error(finestLevel+1);
     Vector<MultiFab*> dataE(finestLevel+1);
     
-    cout << "Level Delta L"<< norm << " norm of Error in Each Component" << endl
-         << "-----------------------------------------------" << endl;
+    std::cout << "Level Delta L"<< norm << " norm of Error in Each Component" << std::endl
+         << "-----------------------------------------------" << std::endl;
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
         Vector<Real> delI = amrDataI.DxLevel()[iLevel];
+	DistributionMapping dmap(baI);
 
-	error[iLevel] = new MultiFab(baI, nComp, 0);
+	error[iLevel] = new MultiFab(baI, dmap, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
-	dataE[iLevel] = new MultiFab(baI, nComp, 0);
+	dataE[iLevel] = new MultiFab(baI, dmap, nComp, 0);
 	dataE[iLevel]->setVal(GARBAGE);
 
-        MultiFab dataI(baI, nComp, 0);
+        MultiFab dataI(baI, dmap, nComp, 0);
 
-	for (int iGrid=0; iGrid<baI.length(); ++iGrid)
+	for (int iGrid=0; iGrid<baI.size(); ++iGrid)
 	{
             const Box& dataGrid = baI[iGrid];
 
@@ -167,7 +170,7 @@ main (int   argc,
                            xlo.dataPtr(), xhi.dataPtr());
 	}
 
-        (*error[iLevel]).copy(dataI);
+        (*error[iLevel]).ParallelCopy(dataI);
         (*error[iLevel]).minus((*dataE[iLevel]), 0, nComp, 0);
 
    
@@ -180,20 +183,20 @@ main (int   argc,
 
         Real delAvg = pow(cellvol, (1.0/BL_SPACEDIM));
 
-        cout << "  " << iLevel << " " << delAvg << "    ";
+        std::cout << "  " << iLevel << " " << delAvg << "    ";
         for (int iComp=0; iComp<nComp; ++iComp)
         {
             Real Ln = 0.0;
-            for (int iGrid=0; iGrid<baI.length(); ++iGrid)
+            for (int iGrid=0; iGrid<baI.size(); ++iGrid)
             {
                 Real grdLn = (*error[iLevel])[iGrid].norm(norm,iComp,1);
                 Ln = Ln + pow(grdLn, norm) * cellvol;
             }
             Ln = pow(Ln, (1.0/norm));
 
-            cout << Ln << "  ";
+            std::cout << Ln << "  ";
         }
-        cout << endl;
+        std::cout << std::endl;
     }
 
     //
@@ -219,8 +222,8 @@ amrDatasHaveSameDerives(const AmrData& amrd1,
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
-    int length = derives1.length();
-    if (length != derives2.length())
+    int length = derives1.size();
+    if (length != derives2.size())
 	return false;
     for (int i=0; i<length; ++i)
 	if (derives1[i] != derives2[i])
