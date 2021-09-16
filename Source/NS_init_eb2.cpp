@@ -280,7 +280,6 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto gshop = EB2::makeShop(twocylinders);
 
     // Build index space
-    int max_level_here = 0;
     int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 #endif
@@ -322,7 +321,6 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     // Generate GeometryShop
     auto gshop = EB2::makeShop(cyl);
     // Build index space
-    int max_level_here = 0;
     int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 #endif
@@ -336,7 +334,6 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     Real dim_L0 = 0.08;
     Real ratio_t0_L0_cross = 0.11;
     Real ratio_t0_stream_thickness = 1.0;
-    bool internal_flow = true;
 
     Vector<Real> centervec(3);
 
@@ -381,7 +378,6 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     // Generate GeometryShop
     auto gshop = EB2::makeShop(square_grid);
     // Build index space
-    int max_level_here = 0;
     int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 #endif
@@ -434,11 +430,9 @@ NavierStokesBase::initialize_eb2_structs() {
     BaseFab<int>& mfab = ebmask[mfi];
     const Box tbox = mfi.growntilebox();
     const Box bx = mfi.tilebox();
-    const FArrayBox& vfab = (*volfrac)[mfi];
     const EBCellFlagFab& flagfab = flags[mfi];
     
     FabType typ = flagfab.getType(tbox);
-    int iLocal = mfi.LocalIndex();
 
     if (typ == FabType::regular) {
       const auto& mask = ebmask.array(mfi);
