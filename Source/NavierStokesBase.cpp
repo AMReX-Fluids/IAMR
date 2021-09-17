@@ -3101,6 +3101,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
 
             if ( scale_coarse ) {
                 amrex::ParallelFor(cbx, num_comp, [coarsedata,dt_clev]
+                AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
                 {
                     coarsedata(i,j,k,n) /= dt_clev;
                 });
