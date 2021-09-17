@@ -3069,12 +3069,15 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
             auto const& finedata    = fdata.array();
             auto const& coarsedata  = cdata.array();
             int scale_coarse = (interpolater == &protected_interp) ? 1 : 0;
-            amrex::ParallelFor(bx, num_comp, [finedata,coarsedata,dt_clev, scale_coarse]
+            amrex::ParallelFor(bx, num_comp, [finedata,coarsedata,dt_clev, scale_coarse,ratio]
             AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
             {
                finedata(i,j,k,n) *= dt_clev;
                if ( scale_coarse ) {
-                  coarsedata(i,j,k,n) *= dt_clev;
+                   int ii = i/ratio[0];
+                   int jj = j/ratio[1];
+                   int kk = (AMREX_SPACEDIM == 3) ? k/ratio[2] : k;
+                   coarsedata(ii,jj,kk,n) *= dt_clev;
                }
             });
 
@@ -3087,11 +3090,14 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
             }
 
             auto const& fsync       = FineSync.array(mfi,dest_comp);
-            amrex::ParallelFor(bx, num_comp, [finedata,fsync,coarsedata,dt_clev,scale_coarse]
+            amrex::ParallelFor(bx, num_comp, [finedata,fsync,coarsedata,dt_clev,scale_coarse,ratio]
             AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
             {
                if ( scale_coarse ) {
-                  coarsedata(i,j,k,n) /= dt_clev;
+                   int ii = i/ratio[0];
+                   int jj = j/ratio[1];
+                   int kk = (AMREX_SPACEDIM == 3) ? k/ratio[2] : k;
+                   coarsedata(ii,jj,kk,n) /= dt_clev;
                }
                fsync(i,j,k,n) += finedata(i,j,k,n);
             });
