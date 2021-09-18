@@ -11,12 +11,20 @@
 #   * --pproc_exe: the processing executable path
 #   * --test_name: a TESTNAME that will be looked for during postprocessing
 
-# "Internal" user input 
-#   * pproc_type:
-#       - pproc_type == "fcompare". fcompare is used to get the error from the initial solution (== analytical solution) 
-#       - pproc_type == "diffsamedomain". Analytical solution is not known and errors are computed from the next finer grid  
-#   * vars : a list of the variables of interest (no check is done on whether it exists in plt ...)
-#   * resolution : a list of the resolutions to post-process (should be consistent with multirun.py, if used)
+
+# TODO -- add these command arguments. Use python to compile diff tool internally.
+# combine into one script with multiruns.py.
+# Usage:
+#   ./pprocConvOrder.py --diff_tool tool_name --vars "var1 var2" --resolution "res1 res2 res3 res4" --test_name DummyTest
+
+# Input:
+#   * --diff_tool : the AMReX plotfile differencing tool. Can be either fcompare or diffsamedomain.
+#                   fcompare: difference plotfiles with the same resolution. Here it's used to get the error from the initial solution (== analytical solution)
+#                   diffsamedomain: difference plotfiles with the same domain but different resolutions. Analytical solution is not known and errors are computed from the next finer grid
+#   * --vars : a list of the variables of interest (no check is done on whether it exists in the plotfile ...)
+#   * --resolution : a list of the resolutions to post-process (should be consistent with multirun.py, if used)
+#   * --test_name : a TESTNAME that will be looked for during postprocessing
+
 
 # Output:
 #   * Convergence_${TESTNAME}.png file with the log-log plot of the error vs. resolution.
@@ -45,9 +53,9 @@ USAGE = """
 def pproc(args):
 
     # User data
-    vars=["y_velocity","tracer","tracer2","density"]
+    vars=["y_velocity","x_velocity"]
     resolution = [32,64,128,256]
-    pproc_type = "diffsamedomain"
+    pproc_type = "fcompare"
 
     # Get a local copy of post-processing executable
     run_dir = os.getcwd()
@@ -74,13 +82,16 @@ def pproc(args):
                         pltfile.append(f)
             pltfile.sort()
             outfile = "error_{}.analysis.out".format(case)
+
+            print("running: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1])) 
+
             os.system("./{} -a -n 2 {} {} > {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1], outfile))
             pltfile.clear()
         
             # Extract errors on each variable
             with open(outfile) as fp:
                 for i, line in enumerate(fp):
-                    if (i >= 5):
+                    if (i >= 5): #throw away first 5 lines, these are header
                         var = line.split()[0]
                         for v in range(len(vars)):
                             if ( var == vars[v] ):
@@ -105,6 +116,9 @@ def pproc(args):
                         pltfilenext.append(f)
             pltfile.sort()
             pltfilenext.sort()
+
+            print("command: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1])) 
+
             outfile = "error_{}.analysis.out".format(case)
             os.system("./{} infile1={} reffile={} > {}".format(os.path.basename(args.pproc_exe), pltfile[-1], pltfilenext[-1], outfile))
             pltfile.clear()
@@ -123,19 +137,37 @@ def pproc(args):
         print("Wrong pproc_type: {}. should be either fcompare or diffsamedomain".format(pproc_type))
         return
 
+    print("\nRaw error data: \n{}".format(errors))
 
-    print(errors)
+    leastSq = np.empty(len(vars))
+    
     # Plot data
-    plotdata(errors, args.test_name, vars)
-    writetex(errors, args.test_name, vars)
-    writeRegTestFile(errors, args.test_name, vars)
+    plotdata(errors, args.test_name, vars, leastSq)
+    # Write out data in a tex file 
+    writetex(errors, args.test_name, vars, leastSq)
+    # Write out data as a txt file
+    writeRegTestFile(errors, args.test_name, vars, leastSq)
 
-def plotdata(data, test_name, vars):
+def plotdata(data, test_name, vars, leastSq):
+    # Compute convergence order with least squares fit
+    x = data[:,0]
+    logx=np.log10(x)
+    print("Convergence order computed via least squares fit:")
+    for i in range(0, len(vars)):
+        y = data[:,i+1]
+        logy = np.log10(y)
+        #plt.plot(x, y, 'o', label='Original data', markersize=10)
+        A = np.vstack([logx, np.ones(len(x))]).T
+        m, c = np.linalg.lstsq(A, logy, rcond=None)[0]
+        print("  {} {}".format(vars[i], m))
+        plt.plot(x, x**m * 10**c, linestyle='dotted', label="Fitted line for {}".format(vars[i]))
+        leastSq[i] = m
+        
     # Evaluate 2nd order slope
     snd_order = data[:,1]*1.05
     for i in range(1,len(data[:,1])):
         snd_order[i] = snd_order[i-1]/np.exp(2.0*np.log(2.0))
-    for i in range(0, len(vars)):    
+    for i in range(0, len(vars)):
         plt.plot(data[:,0], data[:,i+1], label="{}".format(vars[i]))
     plt.plot(data[:,0], snd_order[:],linestyle='--',color='k', label='2nd-order')
     plt.xlabel("Resolution")
@@ -146,7 +178,7 @@ def plotdata(data, test_name, vars):
     plt.legend(bbox_to_anchor=(0.9, 0.9), loc=1, borderaxespad=0.)
     plt.savefig("Convergence_{}.png".format(test_name))
 
-def writetex(data, test_name, vars):
+def writetex(data, test_name, vars, leastSq):
     # Evaluate order
     conv_order = np.empty([len(data[:,0])-1,len(vars)])
     for v in range(len(vars)):
@@ -163,11 +195,13 @@ def writetex(data, test_name, vars):
     fout.write("Variable ")
     for i in range(len(conv_order[:,0])):
         fout.write("&  {}/{} ".format(data[i+1,0],data[i,0]))
+    fout.write("&  least squares fit ")
     fout.write("\\\\\n\hline\hline\n")
     for v in range(len(vars)):
         fout.write("{} ".format(vars[v].replace("_","\_")))
         for i in range(len(conv_order[:,0])):
             fout.write("&  {:.3f} ".format(conv_order[i,v]))
+        fout.write("&  {:.3f} ".format(leastSq[v]))
         fout.write("\\\\\n")
     fout.write("\end{tabular}\n")
     fout.write("\caption{convergence order}\n")
@@ -175,7 +209,7 @@ def writetex(data, test_name, vars):
     fout.write("\end{table}\n")
     fout.close()
 
-def writeRegTestFile(data, test_name, vars):
+def writeRegTestFile(data, test_name, vars, leastSq):
     # Evaluate order
     conv_order = np.empty([len(data[:,0])-1,len(vars)])
     for v in range(len(vars)):
@@ -185,11 +219,12 @@ def writeRegTestFile(data, test_name, vars):
     fout.write(" Variables ")
     for i in range(len(conv_order[:,0])):
         fout.write(" {}/{} ".format(data[i+1,0],data[i,0]))
-    fout.write("\n")
+    fout.write(" least squares fit \n")
     for v in range(len(vars)):
         fout.write("{} ".format(vars[v]))
         for i in range(len(conv_order[:,0])):
             fout.write("  {:.3f} ".format(conv_order[i,v]))
+        fout.write("  {:.3f} ".format(leastSq[v]))
         fout.write("\n")
     fout.close()
 
