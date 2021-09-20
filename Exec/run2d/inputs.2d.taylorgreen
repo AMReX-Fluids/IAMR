@@ -114,19 +114,3 @@ ns.hi_bc             = 0 0 0
 prob.probtype = 11
 prob.velocity_factor = 1.0
 
-#*******************************************************************************
-
-# Factor by which grids must be coarsenable.
-amr.blocking_factor     = 8
-
-#*******************************************************************************
-
-# Add vorticity to the variables in the plot files.
-amr.derive_plot_vars    = mag_vort
-
-#*******************************************************************************
-proj.v=4
-proj.proj_tol = 1.e-10
-proj.sync_tol = 1.e-8
-
-
