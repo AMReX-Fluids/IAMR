@@ -5,12 +5,6 @@ using namespace amrex;
 
 int NavierStokes::probtype = -1;
 
-// For now, define pi here, but maybe later make iamr_constants.H
-namespace {
-  constexpr Real Pi    = 3.141592653589793238462643383279502884197;
-  constexpr Real TwoPi = 2.0 * 3.141592653589793238462643383279502884197;
-}
-
 //
 // Initialize state and pressure with problem-specific data
 //
@@ -22,6 +16,12 @@ void NavierStokes::prob_initData ()
     //
     InitialConditions IC;
 
+    // Some additional parameters for creating IC's
+    std::string iname;
+    bool binfmt = false;
+    amrex::Real urms0 = 1.0;
+    amrex::Real uin_norm = 1.0;
+
     //
     // Read problem parameters from inputs file
     //
@@ -32,9 +32,9 @@ void NavierStokes::prob_initData ()
     if (IC.inres == 0){
       amrex::Abort("for HIT, inres cannot be 0 !");
     }
-    pp.query("iname",IC.iname);
-    pp.query("binfmt",IC.binfmt);
-    pp.query("urms0",IC.urms0);
+    pp.query("iname",iname);
+    pp.query("binfmt",binfmt);
+    pp.query("urms0",urms0);
 
     //
     // Fill state and, optionally, pressure
@@ -56,14 +56,14 @@ void NavierStokes::prob_initData ()
     auto const& probhi = geom.ProbHiArray();
 
     amrex::Real lambda0 = 0.5;
-    amrex::Real tau  = lambda0 / IC.urms0;
+    amrex::Real tau  = lambda0 / urms0;
     // Output IC
     std::ofstream ofs("ic.txt", std::ofstream::out);
     amrex::Print(ofs)
       << "lambda0, urms0, tau "
       << std::endl;
     amrex::Print(ofs).SetPrecision(17)
-      << lambda0 << "," << IC.urms0 << "," << tau << std::endl;
+      << lambda0 << "," << urms0 << "," << tau << std::endl;
     ofs.close();
 
 
@@ -79,10 +79,10 @@ void NavierStokes::prob_initData ()
     const size_t nz = IC.inres;
     amrex::Vector<amrex::Real> data(
       nx * ny * nz * 6); /* this needs to be double */
-    if (IC.binfmt) {
-      read_binary(IC.iname, nx, ny, nz, 6, data);
+    if (binfmt) {
+      read_binary(iname, nx, ny, nz, 6, data);
     } else {
-      read_csv(IC.iname, nx, ny, nz, data);
+      read_csv(iname, nx, ny, nz, data);
     }
 
     // Extract position and velocities
@@ -100,9 +100,9 @@ void NavierStokes::prob_initData ()
 
     for (long i = 0; i < xinput.size(); i++) {
       xinput[i] = data[0 + i * 6];
-      uinput[i] = data[3 + i * 6] * IC.urms0 / IC.uin_norm;
-      vinput[i] = data[4 + i * 6] * IC.urms0 / IC.uin_norm;
-      winput[i] = data[5 + i * 6] * IC.urms0 / IC.uin_norm;
+      uinput[i] = data[3 + i * 6] * urms0 / uin_norm;
+      vinput[i] = data[4 + i * 6] * urms0 / uin_norm;
+      winput[i] = data[5 + i * 6] * urms0 / uin_norm;
     }
 
     // Get the xarray table and the differences.
@@ -127,11 +127,19 @@ void NavierStokes::prob_initData ()
     // Dimensions of the input box.
     IC.Linput = xarray[nx - 1] + 0.5 * xdiff[nx - 1];
 
-    IC.d_xarray = xarray.data();
-    IC.d_xdiff  = xdiff.data();
-    IC.d_uinput = uinput.data(); 
-    IC.d_vinput = vinput.data();
-    IC.d_winput = winput.data();
+    // fixme? this is not the most efficient way to get the data on the gpu,
+    // since AsyncArray also makes it's own copy of the host data.
+    amrex::Gpu::AsyncArray<amrex::Real> xarray_aa(xarray.data(),xarray.size());
+    amrex::Gpu::AsyncArray<amrex::Real> xdiff_aa(xdiff.data(),xdiff.size());
+    amrex::Gpu::AsyncArray<amrex::Real> uinput_aa(uinput.data(),uinput.size());
+    amrex::Gpu::AsyncArray<amrex::Real> vinput_aa(vinput.data(),vinput.size());
+    amrex::Gpu::AsyncArray<amrex::Real> winput_aa(winput.data(),winput.size());
+
+    IC.d_xarray = xarray_aa.data();
+    IC.d_xdiff  = xdiff_aa.data();
+    IC.d_uinput = uinput_aa.data();
+    IC.d_vinput = vinput_aa.data();
+    IC.d_winput = winput_aa.data();
 
 
 #ifdef _OPENMP
@@ -159,16 +167,15 @@ void NavierStokes::init_HIT (Box const& vbx,
                                GpuArray<Real, AMREX_SPACEDIM> const& probhi,
                                InitialConditions IC)
 {
-  const auto domlo = amrex::lbound(domain);
+    const auto domlo = amrex::lbound(domain);
 
 #if (AMREX_SPACEDIM != 3)
     amrex::Abort("NavierStokes::init_HIT: This is a 3D problem, please recompile with DIM=3 in makefile");
 #endif
 
-  constexpr Real eps_input=0.05, rho_input=0.15;
-
-  amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-  {
+    amrex::ParallelFor(vbx, [vel, scal, nscal, problo, dx, IC] //, IC.inres, IC.d_xarray, IC.d_xinput, IC.d_uinput, IC.d_vinput, IC.d_winput]
+    AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
 
     amrex::Real x[3] = {
       problo[0] + static_cast<amrex::Real>(i + 0.5) * dx[0],
@@ -176,7 +183,6 @@ void NavierStokes::init_HIT (Box const& vbx,
       problo[2] + static_cast<amrex::Real>(k + 0.5) * dx[2]};
 
     // Fill in the velocities and energy.
-    amrex::Real u[3] = {0.0};
     amrex::Real uinterp[3] = {0.0};
 
     // Interpolation factors
@@ -299,4 +305,3 @@ void NavierStokes::init_HIT (Box const& vbx,
     }
   });
 }
-
