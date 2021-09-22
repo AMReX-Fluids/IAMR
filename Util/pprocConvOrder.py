@@ -117,7 +117,7 @@ def pproc(args):
             pltfile.sort()
             pltfilenext.sort()
 
-            print("command: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1])) 
+            print("command: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[-1], pltfilenext[-1])) 
 
             outfile = "error_{}.analysis.out".format(case)
             os.system("./{} infile1={} reffile={} > {}".format(os.path.basename(args.pproc_exe), pltfile[-1], pltfilenext[-1], outfile))
