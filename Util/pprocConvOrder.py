@@ -127,7 +127,7 @@ def pproc(args):
             # Extract errors on each variable
             with open(outfile) as fp:
                 for i, line in enumerate(fp):
-                    if (i >= 5):
+                    if (i >= 4):
                         var = line.split(":")[0]
                         for v in range(len(vars)):
                             if ( var.split(" ")[0] == vars[v] ):
