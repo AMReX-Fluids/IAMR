@@ -3434,13 +3434,10 @@ NavierStokesBase::velocity_advection_update (Real dt)
         auto const& scal = ScalFAB.array();
         auto const& scal_o = U_old.array(mfi,Density);
         auto const& scal_n = U_new.array(mfi,Density);
-        const int numscal = NUM_SCALARS;
-        amrex::ParallelFor(bx, [scal, scal_o, scal_n, numscal]
-        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        amrex::ParallelFor(bx, NUM_SCALARS, [scal, scal_o, scal_n]
+	AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-           for (int n = 0; n < numscal; n++) {
-              scal(i,j,k,n) = 0.5 * ( scal_o(i,j,k,n) + scal_n(i,j,k,n) );
-           }
+            scal(i,j,k,n) = 0.5 * ( scal_o(i,j,k,n) + scal_n(i,j,k,n) );
         });
 
         if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
