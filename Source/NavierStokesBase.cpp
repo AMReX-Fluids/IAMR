@@ -3451,10 +3451,10 @@ NavierStokesBase::velocity_advection_update (Real dt)
         //
         if (initial_iter && is_diffusive[Xvel]) {
            auto const& force  = tforces.array();
-           amrex::ParallelFor(bx, [force]
-           AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+           amrex::ParallelFor(bx, AMREX_SPACEDIM, [force]
+	   AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
            {
-               force(i,j,k) = 0.0;
+	       force(i,j,k,n) = 0.0;
            });
         }
 
