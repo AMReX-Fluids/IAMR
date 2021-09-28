@@ -300,4 +300,4 @@ namespace derive_functions
     //
   }
 
-};
+}
