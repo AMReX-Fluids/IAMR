@@ -335,7 +335,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     LPInfo infon;
     infon.setAgglomeration(agglomeration);
     infon.setConsolidation(consolidation);
-    infon.setMetricTerm(false);
     infon.setMaxCoarseningLevel(0);
 
 #ifdef AMREX_USE_EB
@@ -352,7 +351,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     LPInfo infonp1;
     infonp1.setAgglomeration(agglomeration);
     infonp1.setConsolidation(consolidation);
-    infonp1.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
     MLEBABecLap opnp1({geom}, {ba}, {dm}, infonp1, {ebf}, nComp);
@@ -725,7 +723,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          info.setAgglomeration(agglomeration);
          info.setConsolidation(consolidation);
          info.setMaxCoarseningLevel(0);
-         info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
          const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
@@ -861,7 +858,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
       LPInfo info;
       info.setAgglomeration(agglomeration);
       info.setConsolidation(consolidation);
-      info.setMetricTerm(false);
       info.setMaxCoarseningLevel(100);
 
 #ifdef AMREX_USE_EB
@@ -1078,7 +1074,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
-    info.setMetricTerm(false);
     //info.setMaxCoarseningLevel(100);
 
 #ifdef AMREX_USE_EB
@@ -1244,7 +1239,6 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
-    info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
     const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
@@ -1605,11 +1599,6 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	info.setAgglomeration(agglomeration);
 	info.setConsolidation(consolidation);
 	info.setMaxCoarseningLevel(0);
-	//
-	// For now, assume velocity always goes to tensor sovler, so it will not get here
-	// Otherwise, I *think* we would need to check component and only turn on metric
-	// for Xvel
-	info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
 	const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
@@ -1732,7 +1721,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
            info.setAgglomeration(agglomeration);
            info.setConsolidation(consolidation);
            info.setMaxCoarseningLevel(0);
-           info.setMetricTerm(false);
 
 #ifdef AMREX_USE_EB
            const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
