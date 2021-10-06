@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# SLURM syntax for Cori, probably same for Perlmutter:
+#
+# -p = partition/queue ("regular", "debug", etc.)
+# -N = number of nodes 
+# --ntasks-per-node = number of tasks per node (if you don't want to pack the node)
+# -t = time
+# -J = job name
+# -o = STDOUT file
+# -e = STDERR file (merges with STDOUT if -e is not given explicitly)
+# -A = account to charge
+# --mail-type = events to e-mail user about (ALL is short for BEGIN,END,FAIL,REQUEUE,STAGE_OUT)
+# 	      	and also have TIME_LIMIT_50,TIME_LIMIT_90,TIME_LIMIT
+# --mail-user = NIM username of user to notify
+#
+# SLURM by default will cd to your working directory when you submit the job,
+
+# 1 node, 1 task, 1 GPU
+#SBATCH -C gpu
+#SBATCH -q regular
+#SBATCH -t 1:00:00
+#SBATCH -n 1
+#SBATCH --ntasks-per-node=1
+#SBATCH -c 128
+#SBATCH --gpus-per-task=1
+#SBATCH -J HIT
+
+EXE=./amr3d.gnu.MPI.CUDA.ex
+# For profiling. Also must change srun command
+#EXE=./amr3d.gnu.PROF.MPI.CUDA.ex
+INPUTS=inputs.3d.HIT
+IC_FILE=hit_ic_4_32.dat
+
+WORKDIR=$SCRATCH/$SLURM_JOB_NAME.$SLURM_JOB_ID
+[[ ! -d "$WORKDIR" ]] && mkdir -p "$WORKDIR"
+
+cp $EXE $INPUTS $IC_FILE $WORKDIR
+
+cd $WORKDIR
+
+export SLURM_CPU_BIND="cores"
+srun ${EXE} ${INPUTS}
+
+# For profiling
+#srun nsys profile -o nsys_out.fullprof.%q{SLURM_PROCID}.%q{SLURM_JOBID} ${EXE} ${INPUTS}
+
+# to get interactive node
+#salloc --nodes 1 --qos interactive --time 01:00:00 --constraint gpu --gpus 4
