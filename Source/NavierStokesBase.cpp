@@ -2609,7 +2609,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
 
     //
     // Compute inviscid estimate of scalars.
-    // (do rho separate, as we do not have rho at new time yet)
+    // Do rho separately, as rho does not have forcing terms and is always conservative.
     //
     int sComp = first_scalar;
 
@@ -2619,15 +2619,15 @@ NavierStokesBase::scalar_advection_update (Real dt,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(S_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
-	    const Box&  bx = mfi.tilebox();
+        {
+            const Box&  bx = mfi.tilebox();
             const auto& Snew = S_new[mfi].array(Density);
             const auto& Sold = S_old[mfi].const_array(Density);
             const auto& advc = Aofs[mfi].const_array(Density);
 
             amrex::ParallelFor(bx, [ Snew, Sold, advc, dt]
             AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	    {
+            {
                 Snew(i,j,k) = Sold(i,j,k) - dt * advc(i,j,k);
             });
         }
@@ -2635,8 +2635,8 @@ NavierStokesBase::scalar_advection_update (Real dt,
         //
         // Call ScalMinMax to avoid overshoots in density.
         //
-	if (do_denminmax)
-	{
+        if (do_denminmax)
+        {
             //
             // Must do FillPatch here instead of MF iterator because we need the
             // boundary values in the old data (especially at inflow)
@@ -2652,132 +2652,138 @@ NavierStokesBase::scalar_advection_update (Real dt,
             ConservativeScalMinMax(S_new, index_new_s, index_new_rho,
                                    Smf,   index_old_s, index_old_rho);
 
-	}
-	++sComp;
+        }
+
+        ++sComp;
     }
 
+    //
+    // Advective update of other scalars
+    //
     if (sComp <= last_scalar)
     {
-        const MultiFab& rho_halftime = get_rho_half_time();
-	MultiFab Vel(grids, dmap, AMREX_SPACEDIM, 0, MFInfo(), Factory());
-	//
-	// Average mac face velocity to cell-centers for use in generating external
-	// forcing term in getForce()
-	// NOTE that default getForce() does not use Vel or Scal, user must supply the
-	// forcing function for that case.
-	//
+        //
+        // Average mac face velocity to cell-centers for use in generating external
+        // forcing term in getForce()
+        //
+        // NOTE that default getForce() does not use Vel or Scal, user must supply the
+        // forcing function for that case.
+        //
+        MultiFab Vel(grids, dmap, AMREX_SPACEDIM, 0, MFInfo(), Factory());
 #ifdef AMREX_USE_EB
-	// FIXME - this isn't quite right because it's face-centers to cell-centers
-	// what's really wanted is face-centroid to cell-centroid
-	EB_average_face_to_cellcenter(Vel, 0, Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&u_mac[0],&u_mac[1],&u_mac[2])}});
+        // FIXME - this isn't quite right because it's face-centers to cell-centers
+        // what's really wanted is face-centroid to cell-centroid
+        EB_average_face_to_cellcenter(Vel, 0, Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&u_mac[0],&u_mac[1],&u_mac[2])}});
 #else
-	average_face_to_cellcenter(Vel, 0, Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&u_mac[0],&u_mac[1],&u_mac[2])}});
+        average_face_to_cellcenter(Vel, 0, Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(&u_mac[0],&u_mac[1],&u_mac[2])}});
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-{
-        FArrayBox  tforces;
-
-        for (MFIter Rho_mfi(rho_halftime,TilingIfNotGPU()); Rho_mfi.isValid(); ++Rho_mfi)
         {
-            const Box& bx = Rho_mfi.tilebox();
+            FArrayBox  tforces;
 
-            for (int sigma = sComp; sigma <= last_scalar; sigma++)
+            for (MFIter mfi(S_old,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-               // Need to do some funky half-time stuff
-	       if (getForceVerbose)
-                  amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
+                if (getForceVerbose) {
+                    amrex::Print() << "---" << '\n' << "E - scalar advection update (half time):" << '\n';
+                }
 
-               //
-               // Average the new and old time to get Crank-Nicholson half time approximation.
-               //
-               FArrayBox Scal(amrex::grow(bx,0),NUM_SCALARS);
-	       // Scal protected from early destruction by Gpu::synchronize at end of loop.
-	       // so no elixir needed
-	       const auto& Snp1 = S_new[Rho_mfi].array(Density);
-	       const auto& Sn   = S_old[Rho_mfi].const_array(Density);
-	       const auto& Sarr = Scal.array();
+                //
+                // Create an estimate for time n+1 using advection term only; it's the best
+                // we've got at this point. Then, average the new and old time to get
+                // Crank-Nicholson half time approximation.
+                //
+                const Box& bx = mfi.tilebox();
+                // getForce() expects all scalars to be present in Scal, and may need them
+                // (particularly density) to make forcing term.
+                FArrayBox Scal(bx,NUM_SCALARS);
+                // Scal protected from early destruction by Gpu::synchronize at end of loop.
+                const auto& Sn   = S_old[mfi].const_array(Density);
+                const auto& Sarr = Scal.array();
+                const auto& aofs = Aofs[mfi].const_array(Density);
 
-	       amrex::ParallelFor(bx, NUM_SCALARS, [ Snp1, Sn, Sarr]
-	       AMREX_GPU_DEVICE (int i, int j, int k, int n ) noexcept
-               {
-	       	   Sarr(i,j,k,n) = 0.5 * ( Snp1(i,j,k,n) + Sn(i,j,k,n) );
-	       });
+                amrex::ParallelFor(bx, NUM_SCALARS, [ Sn, Sarr, aofs]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n ) noexcept
+                {
+                    // Snew = Sold - dt*adv
+                    // Shalftime = Sarr = (Snew + Sold)/2
+                    Sarr(i,j,k,n) = Sn(i,j,k,n) - 0.5 * dt * aofs(i,j,k,n);
+                });
 
-               const Real halftime = 0.5*(state[State_Type].curTime()+state[State_Type].prevTime());
-               FArrayBox& Vel_fab = Vel[Rho_mfi];
+                const Real halftime = 0.5 * ( state[State_Type].curTime() +
+                                              state[State_Type].prevTime() );
+                FArrayBox& Vel_fab = Vel[mfi];
 
-               if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
-               tforces.resize(bx,1);
-	       // tforces protected from early destruction by Gpu::synchronize at end of loop.
-	       // so no elixir needed
-               getForce(tforces,bx,sigma,1,halftime,Vel_fab,Scal,0,Rho_mfi);
+                int num_comp = last_scalar - sComp + 1;
+                // Note that in general, num_comp != NUM_SCALAR
+                tforces.resize(bx,num_comp);
+                // tforces protected from early destruction by Gpu::synchronize at end of loop.
+                getForce(tforces,bx,sComp,num_comp,halftime,Vel_fab,Scal,0,mfi);
 
-	       const auto& Snew = S_new[Rho_mfi].array(sigma);
-	       const auto& Sold = S_old[Rho_mfi].const_array(sigma);
-	       const auto& advc = Aofs[Rho_mfi].const_array(sigma);
-	       const auto& tf   = tforces.const_array();
-               const auto& rho  = rho_halftime[Rho_mfi].const_array();
+                const auto& Snew = S_new[mfi].array(sComp);
+                const auto& Sold = S_old[mfi].const_array(sComp);
+                const auto& advc = Aofs[mfi].const_array(sComp);
+                const auto& tf   = tforces.const_array();
+                const auto& rho  = Scal.const_array();
 
-	       // Recall tforces is always density-weighted
-	       if (advectionType[sigma] == Conservative)
-	       {
-		 amrex::ParallelFor(bx, [ Snew, Sold, advc, tf, dt]
-	         AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-		 {
-		     Snew(i,j,k) = Sold(i,j,k) + dt * ( - advc(i,j,k) + tf(i,j,k)  );
-		 });
-	       }
-	       else
-	       {
-		 amrex::ParallelFor(bx, [ Snew, Sold, advc, tf, dt, rho]
-	         AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
-		 {
-		     Snew(i,j,k) = Sold(i,j,k) + dt * ( - advc(i,j,k) + tf(i,j,k)/rho(i,j,k) );
-		 });
-	       }
+                // Advection type
+                amrex::Gpu::DeviceVector<int> iconserv;
+                iconserv.resize(num_comp, 0);
+                for (int i = 0; i < num_comp; ++i) {
+                    iconserv[i] = (advectionType[sComp+i] == Conservative) ? 1 : 0;
+                }
 
-               // Either need this synchronize here, or elixirs. Not sure if it matters which
-	       amrex::Gpu::synchronize();
+                // Recall tforces is always density-weighted
+                amrex::ParallelFor(bx, num_comp, [ Snew, Sold, advc, tf, dt, rho, iconserv]
+                AMREX_GPU_DEVICE (int i, int j, int k, int n ) noexcept
+                {
+                    if ( iconserv[n] == 1 ) {
+                        Snew(i,j,k,n) = Sold(i,j,k,n) + dt * ( - advc(i,j,k,n) + tf(i,j,k,n)  );
+                    }
+                    else {
+                        Snew(i,j,k,n) = Sold(i,j,k,n) + dt * ( - advc(i,j,k,n) + tf(i,j,k,n)/rho(i,j,k) );
+                    }
+                });
+
+                // Either need this synchronize here, or elixirs. Not sure if it matters which
+                amrex::Gpu::synchronize();
             }
         }
-}
     }
+
     //
     // Call ScalMinMax to avoid overshoots in the scalars.
     //
-
     if ( do_scalminmax && (sComp <= last_scalar) )
     {
         const int num_scalars = last_scalar - Density + 1;
+
         //
         // Must do FillPatch here instead of MF iterator because we need the
         // boundary values in the old data (especially at inflow).
         //
-
         FillPatchIterator S_fpi(*this,S_old,1,prev_time,State_Type,Density,num_scalars);
         MultiFab& Smf=S_fpi.get_mf();
 
-            for (int sigma = sComp; sigma <= last_scalar; sigma++)
-            {
-                const int index_new_s   = sigma;
-                const int index_new_rho = Density;
-                const int index_old_s   = index_new_s   - Density;
-                const int index_old_rho = index_new_rho - Density;
+        for (int sigma = sComp; sigma <= last_scalar; sigma++)
+        {
+            const int index_new_s   = sigma;
+            const int index_new_rho = Density;
+            const int index_old_s   = index_new_s   - Density;
+            const int index_old_rho = index_new_rho - Density;
 
-                if (advectionType[sigma] == Conservative)
-                {
+            if (advectionType[sigma] == Conservative)
+            {
                 ConservativeScalMinMax(S_new, index_new_s, index_new_rho,
                                        Smf,   index_old_s, index_old_rho);
-                }
-                else if (advectionType[sigma] == NonConservative)
-                {
-                ConvectiveScalMinMax(S_new, index_new_s, Smf, index_old_s);
-                }
             }
-
+            else if (advectionType[sigma] == NonConservative)
+            {
+                ConvectiveScalMinMax(S_new, index_new_s, Smf, index_old_s);
+            }
+        }
     }
 
     //
