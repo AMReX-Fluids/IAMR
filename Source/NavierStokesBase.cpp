@@ -2704,7 +2704,7 @@ NavierStokesBase::scalar_advection_update (Real dt,
                 const auto& Sarr = Scal.array();
                 const auto& aofs = Aofs[mfi].const_array(Density);
 
-                amrex::ParallelFor(bx, NUM_SCALARS, [ Sn, Sarr, aofs]
+                amrex::ParallelFor(bx, NUM_SCALARS, [ Sn, Sarr, aofs, dt]
                 AMREX_GPU_DEVICE (int i, int j, int k, int n ) noexcept
                 {
                     // Snew = Sold - dt*adv
