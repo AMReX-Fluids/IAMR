@@ -2729,11 +2729,15 @@ NavierStokesBase::scalar_advection_update (Real dt,
                 const auto& rho  = Scal.const_array();
 
                 // Advection type
-                amrex::Gpu::DeviceVector<int> iconserv;
-                iconserv.resize(num_comp, 0);
+                amrex::Vector<int> iconserv_h;
+                iconserv_h.resize(num_comp);
                 for (int i = 0; i < num_comp; ++i) {
-                    iconserv[i] = (advectionType[sComp+i] == Conservative) ? 1 : 0;
+                    iconserv_h[i] = (advectionType[sComp+i] == Conservative) ? 1 : 0;
                 }
+                amrex::Gpu::DeviceVector<int> iconserv_d;
+                iconserv_d.resize(num_comp);
+                Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv_d.begin());
+                const int* iconserv = iconserv_d.data();
 
                 // Recall tforces is always density-weighted
                 amrex::ParallelFor(bx, num_comp, [ Snew, Sold, advc, tf, dt, rho, iconserv]
