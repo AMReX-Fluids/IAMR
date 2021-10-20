@@ -721,9 +721,11 @@ MacProj::mac_sync_compute (int                   level,
 
                 amrex::Gpu::DeviceVector<int> iconserv;
                 Vector<int> iconserv_h;
-                iconserv.resize(1, 0);
-                iconserv_h.resize(1, 0);
-                iconserv_h[0] = (advectionType[comp] == Conservative) ? 1 : 0;
+                iconserv.resize(ncomp);
+                iconserv_h.resize(ncomp, 0);
+                for (int icomp = 0; icomp < ncomp; ncomp++) {
+                    iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
+                }
                 Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
 
 #ifdef AMREX_USE_EB
@@ -876,7 +878,7 @@ MacProj::mac_sync_compute (int                    level,
 
         Gpu::DeviceVector<int> iconserv;
         Vector<int> iconserv_h;
-        iconserv.resize(ncomp, 0);
+        iconserv.resize(ncomp);
         iconserv_h.resize(ncomp, 0);
         for (int i = 0; i < ncomp; ++i) {
             iconserv_h[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
