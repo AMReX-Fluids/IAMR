@@ -723,7 +723,7 @@ MacProj::mac_sync_compute (int                   level,
                 Vector<int> iconserv_h;
                 iconserv.resize(ncomp);
                 iconserv_h.resize(ncomp, 0);
-                for (int icomp = 0; icomp < ncomp; ncomp++) {
+                for (int icomp = 0; icomp < ncomp; icomp++) {
                     iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
                 }
                 Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
