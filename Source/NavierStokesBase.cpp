@@ -4547,9 +4547,12 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
 
     // Advection type
     amrex::Gpu::DeviceVector<int> iconserv;
+    Vector<int> iconserv_h;
     iconserv.resize(ncomp, 0);
+    iconserv_h.resize(ncomp, 0);
     for (int i = 0; i < ncomp; ++i)
-        iconserv[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
+        iconserv_h[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
+    Gpu::copy(Gpu::hostToDevice,iconserv_h.begin(),iconserv_h.end(), iconserv.begin());
 
     MultiFab fluxes[AMREX_SPACEDIM];
     MultiFab cfluxes[AMREX_SPACEDIM];
@@ -4592,7 +4595,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                     AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
                                     forcing_term, 0, divu,
                                     bcrec_h, bcrec_d.dataPtr(),
-                                    geom, iconserv, dt, is_velocity, redistribution_type);
+                                    geom, iconserv_h, dt, is_velocity, redistribution_type);
         }
         else
 #endif
@@ -4604,7 +4607,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                  0, false,
                                  AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                                  0, forcing_term, 0, divu, bcrec_d.dataPtr(),
-                                 geom, iconserv, dt,
+                                 geom, iconserv_h, dt,
                                  godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
         }
     }
