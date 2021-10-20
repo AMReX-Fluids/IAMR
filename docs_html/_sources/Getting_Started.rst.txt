@@ -12,7 +12,8 @@ This section walks you through a brief introduction to using IAMR.
 Downloading the code
 --------------------
 IAMR is built on top of the AMReX framework.  In order to run
-IAMR, you must download separate git modules for IAMR and AMReX.
+IAMR, you must download separate git modules for IAMR, AMReX
+and AMReX-Hydro.
 
 First, make sure that git is installed on your machine.
 
@@ -20,9 +21,17 @@ First, make sure that git is installed on your machine.
 
    .. code:: shell
 
-	     git clone https://github.com/amrex-codes/amrex
+             git clone https://github.com/AMReX-Codes/amrex.git
 
    This will create a folder called ``amrex/`` on your machine.
+
+#. Download the AMReX-Hydro repository by typing:
+
+   .. code:: shell
+
+	     git clone https://github.com/AMReX-Codes/AMReX-Hydro.git
+
+   This will create a folder called ``AMReX-Hydro/`` on your machine.
 
 #. Download the IAMR repository by typing: 
 
