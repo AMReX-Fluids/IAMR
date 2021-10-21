@@ -1,19 +1,9 @@
 .. role:: cpp(code)
 
-Running Simulations
+.. _Chap:RuntimeOptions:
+
+Runtime Options
 ===================
-
-Physics Parameters
--------------------
-
-The following inputs must be preceded by "ns." For information on units, see :ref:`sec:units`.
-
-+----------------------+-------------------------------------------------------------------------+----------+-----------+
-|                      | Description                                                             |   Type   | Default   |
-+======================+=========================================================================+==========+===========+
-| gravity              | Gravity, taken to be in the -y direction for 2d and -z direction in 3d  |  Real    |  0        |
-+----------------------+-------------------------------------------------------------------------+----------+-----------+
-
 
 .. _sec:InputsTimeStepping:
 
@@ -96,7 +86,7 @@ before noticing that there is an issue.
 Output Options
 --------------
 	 
-.. _Chap:InputsPlotfiles:
+.. _sec:InputsPlotfiles:
 
 Plotfiles
 ~~~~~~~~~
@@ -124,7 +114,7 @@ as whether the EB geometry should be written out.
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 
 	 
-.. _Chap:InputsCheckpoint:
+.. _sec:InputsCheckpoint:
 
 Checkpointing and Restarting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -188,7 +178,7 @@ This file has the same format as the ASCII input file:
    x y z
 
 
-.. _Chap:InputsLoadBalancing:
+.. _sec:InputsLoadBalancing:
 
 Gridding and Load Balancing Inputs
 ----------------------------------
@@ -307,7 +297,7 @@ The following inputs determine how we create the logical tiles and must be prece
 +----------------------+-----------------------------------------------------------------------+----------+-------------+
 
 
-.. _Chap:InputsVerbosity:
+.. _sec:InputsVerbosity:
 
 Verbosity
 ---------
@@ -329,7 +319,7 @@ Here is some of the more frequently used options:
 | mac_proj.verbose     |  Verbosity in MAC projection                                          |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 
-.. _Chap:InputsMultigrid:
+.. _sec:InputsMultigrid:
 
 Multigrid Inputs
 ----------------
@@ -430,7 +420,7 @@ These control the diffusion solver and must be preceded by "diffusion.":
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 
 
-.. _Chap:InputsInitialization:
+.. _sec:InputsInitialization:
 
 Initializing the Calculation
 ----------------------------

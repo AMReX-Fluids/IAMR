@@ -2,15 +2,9 @@
 Common inputs Options
 =====================
 
-**Important**: because the inputs file is handled by the C++,
+**Important**: because the inputs file is handled by C++,
 any quantities you specify in scientific notation, must take the
 form 1.e5 and not 1.d5—the ‘d’ specifier is not recognized.
-
-Additionally, note that in IAMR, all quantities are in MKS units.
-
-
-
-
 
 
 Simulation Time
