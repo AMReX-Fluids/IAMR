@@ -720,8 +720,13 @@ MacProj::mac_sync_compute (int                   level,
                 const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
 
                 amrex::Gpu::DeviceVector<int> iconserv;
-                iconserv.resize(1, 0);
-                iconserv[0] = (advectionType[comp] == Conservative) ? 1 : 0;
+                Vector<int> iconserv_h;
+                iconserv.resize(ncomp);
+                iconserv_h.resize(ncomp, 0);
+                for (int icomp = 0; icomp < ncomp; icomp++) {
+                    iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
+                }
+                Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
 
 #ifdef AMREX_USE_EB
 		if ( !(ns_level.EBFactory().isAllRegular()) )
@@ -872,10 +877,13 @@ MacProj::mac_sync_compute (int                    level,
                                            : &(ns_level.get_bcrec_scalars_d_ptr())[sync_comp];
 
         Gpu::DeviceVector<int> iconserv;
-        iconserv.resize(ncomp, 0);
+        Vector<int> iconserv_h;
+        iconserv.resize(ncomp);
+        iconserv_h.resize(ncomp, 0);
         for (int i = 0; i < ncomp; ++i) {
-            iconserv[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
+            iconserv_h[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
         }
+        Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
 
 #ifdef AMREX_USE_EB
 	if ( !(ns_level.EBFactory().isAllRegular()) )
