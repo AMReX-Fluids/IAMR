@@ -17,7 +17,8 @@ Fluid Variables
    | :math:`H_s`           | External sources                                 |
    +-----------------------+--------------------------------------------------+
    
-   
+
+.. _sec:FluidEquations:
    
 Fluid Equations
 ===============
@@ -48,7 +49,7 @@ for passively advected scalars. In general, one could advect an arbitrary number
 IAMR has the ability to incorporate general, user-defined external forcing and source terms. The default behaviour is that 
 :math:`H_c=0`, and :math:`{\bf H}_U` represents gravitational forces, with :math:`{\bf H}_U= (0 , 0 , -\rho g )` in 3d and
 :math:`{\bf H}_U= (0 , -\rho g )` in 2d, where :math:`g` is the magnitude of the gravitational acceleration. However, since
-by default, :math:`g=0`, :math:`{\bf H}_U = 0` unless ``ns.gravity`` is set (for more info see :ref:`sec:Inputs` and ).
+by default, :math:`g=0`, :math:`{\bf H}_U = 0` unless ``ns.gravity`` is set (for more info see :ref:`sec:PhysicsParams`).
 
 By default, IAMR solves the momentum equation in convective form. The inputs parameter ``ns.do_mom_diff`` is used to
 switch to conservation form. Tracers are passively advected by default. The inputs parameter ``ns.do_cons_trac = 1``

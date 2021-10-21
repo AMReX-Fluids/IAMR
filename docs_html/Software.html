@@ -52,7 +52,6 @@
 <li class="toctree-l2"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">An Overview of IAMR Code</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#state-data">State Data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#problem-setup">Problem Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#boundaries">Boundaries</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#boundaries-between-grids-and-levels">Boundaries Between Grids and Levels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#physical-boundaries">Physical Boundaries</a></li>
@@ -223,42 +222,8 @@ a more array like manner using operator()
 (more details are in the AMReX documentation at
 <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for">https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for</a> ).</p>
 </div>
-<div class="section" id="problem-setup">
-<h2>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline"></a></h2>
-<p>To define a new problem, we create a new inputs file in a run directory and modify
-<code class="docutils literal notranslate"><span class="pre">IAMR/Source/prob/prob_init.cpp</span></code> accordingly.
-The simplest way to get started is to copy the inputs files from an existing
-problem. Here we describe how to customize your problem.</p>
-<p>There are several files involved in setting up an IAMR problem. It’s possible to
-create your own new setup by modifying only one source file (<code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code>)
-and changing parameters through the inputs file (see section <span class="xref std std-ref">sec:inputs</span>).
-Here we list the most relevant problem
-setup files and thier purpose. If you need further help setting up your problem, please
-contact us.</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code>:
-Read in initial conditions and problem parameters from the inputs file,
-and initialize the state data (velocity, density, etc.).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">NS_error.cpp</span></code>: Define the error estimation criteria used for tagging cells for
-refinement.
-More details in section [ <a class="reference internal" href="#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a> ]</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>: Declare state and derived variables.
-Specify how to fill grow cells for each state or derived variable.
-More details in sections [ <span class="xref std std-ref">sec:boundaries</span> ]</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">NS_derive.cpp</span></code>: Define derived variables.
-More details in sections [ <span class="xref std std-ref">sec:derivedVariables</span> ]</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">NS_BC.H</span></code>: Define the mapping from physical boundary conditions (e.g. outflow)
-to mathematical (e.g. first order extrapolation from last interior cell).
-More details in section [ <a class="reference internal" href="#sec-physicalbcs"><span class="std std-ref">Physical Boundaries</span></a> ]</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">NS_bcfill.H</span></code>:
-Define the boundary filling functions for external Dirichlet (i.e. user supplied)
-boundary conditions. Constant Dirichlet conditions can be specified in the
-inputs file without needing to alter NS_bcfill.H.
-More details in section [ <a class="reference internal" href="#sec-physicalbcs"><span class="std std-ref">Physical Boundaries</span></a> ]</p></li>
-</ul>
-</div>
 <div class="section" id="boundaries">
-<h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this headline"></a></h2>
+<span id="sec-boundaries"></span><h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this headline"></a></h2>
 <p>In AMReX, we are primarily concerned with enabling structured-grid
 computations. A key aspect of this is the use of “grow” cells
 around the “valid box” of cells over which we wish to apply stencil operations.
@@ -305,11 +270,11 @@ standard condition types typical of PDE problems (reflecting, extrapolated, etc)
 and a special one that indicates external Dirichlet. In the case of Dirichlet,
 the user supplies data to fill grow cells.</p>
 <p>IAMR provides the ability to specify constant Dirichlet BCs
-in the inputs file (see section [sec:dirichlet]).
+in the inputs file (see section <a class="reference internal" href="ProblemSetup.html#sec-dirichlet"><span class="std std-ref">Dirichlet Boundary Conditions</span></a>).
 Users can create more complex Dirichlet boundary condtions by writing
-their own fill function in NS_bcfill.H, then using that function to create
-an amrex::StateDescriptor::BndryFunc object and specifying which variables
-will use it in NS_setup.cpp.</p>
+their own fill function in <code class="docutils literal notranslate"><span class="pre">NS_bcfill.H</span></code>, then using that function to create
+an <code class="docutils literal notranslate"><span class="pre">amrex::StateDescriptor::BndryFunc</span></code> object and specifying which variables
+will use it in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>.</p>
 <p>It is important to note that external Dirichlet boundary data is to be specified as
 if applied on the face of the cell bounding the domain, even for cell-centered
 state data. For cell-centered data, the array passed into the
@@ -321,7 +286,7 @@ that are Dirichlet and wall-centered, and the stencils are adjusted accordingly.
 <p>For convenience, IAMR provides a limited set of mappings from a physics-based boundary condition
 specification to a mathematical one that the code can apply. This set can be extended
 by adjusting the corresponding translations in <code class="docutils literal notranslate"><span class="pre">NS_BC.H</span></code>, but, by default, includes
-(See AMReX/Src/Base/AMReX_BC_TYPES.H for more detail):</p>
+(See <code class="docutils literal notranslate"><span class="pre">AMReX/Src/Base/AMReX_BC_TYPES.H</span></code> for more detail):</p>
 <ul class="simple">
 <li><p><em>Outflow</em>:</p>
 <ul>
@@ -628,7 +593,7 @@ those grids to MPI ranks.  There can be grids of different sizes,
 more than one grid per MPI rank, and different strategies for distributing the grids to MPI ranks.
 IAMR relies on AMReX for the implementation. For more information, please see AMReX’s documentation,
 found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v21.11-dev)"><span>Gridding and Load Balancing</span></a>.</p>
-<p>See <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a> and <a class="reference internal" href="RunningProblems.html#chap-inputsloadbalancing"><span class="std std-ref">Gridding and Load Balancing Inputs</span></a> for how grids are created,
+<p>See <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a> and <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/InputsLoadBalancing.html#chap-inputsloadbalancing" title="(in amrex v21.11-dev)"><span>Gridding and Load Balancing</span></a> for how grids are created,
 i.e. how the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> on which
 <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> will be built is defined at each level.</p>
 <p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v21.11-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing

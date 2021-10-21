@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Running Simulations &mdash; IAMR 21.11-dev documentation</title>
+  <title>Runtime Options &mdash; IAMR 21.11-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -48,8 +48,7 @@
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html">Problem Setup</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Running Simulations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#physics-parameters">Physics Parameters</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Runtime Options</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#time-stepping">Time Stepping</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#output-options">Output Options</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#plotfiles">Plotfiles</a></li>
@@ -100,7 +99,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="SetupAndRunning.html">Creating and Running Your Own Problem</a> &raquo;</li>
-      <li>Running Simulations</li>
+      <li>Runtime Options</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/RunningProblems.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -110,34 +109,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="running-simulations">
-<h1>Running Simulations<a class="headerlink" href="#running-simulations" title="Permalink to this headline"></a></h1>
-<div class="section" id="physics-parameters">
-<h2>Physics Parameters<a class="headerlink" href="#physics-parameters" title="Permalink to this headline"></a></h2>
-<p>The following inputs must be preceded by “ns.” For information on units, see <a class="reference internal" href="ProblemSetup.html#sec-units"><span class="std std-ref">Units</span></a>.</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 19%" />
-<col style="width: 63%" />
-<col style="width: 9%" />
-<col style="width: 9%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>Description</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Default</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>gravity</p></td>
-<td><p>Gravity, taken to be in the -y direction for 2d and -z direction in 3d</p></td>
-<td><p>Real</p></td>
-<td><p>0</p></td>
-</tr>
-</tbody>
-</table>
-</div>
+  <div class="section" id="runtime-options">
+<span id="chap-runtimeoptions"></span><h1>Runtime Options<a class="headerlink" href="#runtime-options" title="Permalink to this headline"></a></h1>
 <div class="section" id="time-stepping">
 <span id="sec-inputstimestepping"></span><h2>Time Stepping<a class="headerlink" href="#time-stepping" title="Permalink to this headline"></a></h2>
 <p>The inputs below do not take a prefix.  Note that if the first two are both specified, both criteria
@@ -263,7 +236,7 @@ before noticing that there is an issue.</p>
 <div class="section" id="output-options">
 <h2>Output Options<a class="headerlink" href="#output-options" title="Permalink to this headline"></a></h2>
 <div class="section" id="plotfiles">
-<span id="chap-inputsplotfiles"></span><h3>Plotfiles<a class="headerlink" href="#plotfiles" title="Permalink to this headline"></a></h3>
+<span id="sec-inputsplotfiles"></span><h3>Plotfiles<a class="headerlink" href="#plotfiles" title="Permalink to this headline"></a></h3>
 <p>The following inputs must be preceded by “amr.” and control frequency and naming of plotfile generation as well
 as whether the EB geometry should be written out.</p>
 <table class="docutils align-default">
@@ -329,7 +302,7 @@ if -1 then no plotfiles will be written at this frequency</p></td>
 </table>
 </div>
 <div class="section" id="checkpointing-and-restarting">
-<span id="chap-inputscheckpoint"></span><h3>Checkpointing and Restarting<a class="headerlink" href="#checkpointing-and-restarting" title="Permalink to this headline"></a></h3>
+<span id="sec-inputscheckpoint"></span><h3>Checkpointing and Restarting<a class="headerlink" href="#checkpointing-and-restarting" title="Permalink to this headline"></a></h3>
 <p>The following inputs must be preceded by “amr.” and control checkpoint/restart.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -404,7 +377,7 @@ This file has the same format as the ASCII input file:</p>
 </div>
 </div>
 <div class="section" id="gridding-and-load-balancing-inputs">
-<span id="chap-inputsloadbalancing"></span><h2>Gridding and Load Balancing Inputs<a class="headerlink" href="#gridding-and-load-balancing-inputs" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsloadbalancing"></span><h2>Gridding and Load Balancing Inputs<a class="headerlink" href="#gridding-and-load-balancing-inputs" title="Permalink to this headline"></a></h2>
 <p>The details of the regridding strategy are described in <a class="reference internal" href="Software.html#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a>;
 here we cover how the input parameters can control the gridding.</p>
 <p>These parameters can have a large impact on the performance
@@ -579,7 +552,7 @@ at level 0, multiples of 16 at level 1, and multiples of 8 at level 2.</p>
 </div>
 </div>
 <div class="section" id="verbosity">
-<span id="chap-inputsverbosity"></span><h2>Verbosity<a class="headerlink" href="#verbosity" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsverbosity"></span><h2>Verbosity<a class="headerlink" href="#verbosity" title="Permalink to this headline"></a></h2>
 <p>Different classes control their own verbosity. In some cases, values &gt; 1 will generate additional verbosity.
 Here is some of the more frequently used options:</p>
 <table class="docutils align-default">
@@ -626,7 +599,7 @@ Here is some of the more frequently used options:</p>
 </table>
 </div>
 <div class="section" id="multigrid-inputs">
-<span id="chap-inputsmultigrid"></span><h2>Multigrid Inputs<a class="headerlink" href="#multigrid-inputs" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsmultigrid"></span><h2>Multigrid Inputs<a class="headerlink" href="#multigrid-inputs" title="Permalink to this headline"></a></h2>
 <p>IAMR uses AMReX’s multigrid functionality to perform the nodal projection (which enures the cell-centered
 velocity field obeys the constraint), the MAC projection (which ensures that the edge-based velocity field
 used in advection obeys the constraint), and the diffusive solves.</p>
@@ -840,7 +813,7 @@ Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
 </div>
 </div>
 <div class="section" id="initializing-the-calculation">
-<span id="chap-inputsinitialization"></span><h2>Initializing the Calculation<a class="headerlink" href="#initializing-the-calculation" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsinitialization"></span><h2>Initializing the Calculation<a class="headerlink" href="#initializing-the-calculation" title="Permalink to this headline"></a></h2>
 <p>These options determine how we initialize the data for the calculation. The data initialization process
 ensures that the initial state is consistent with the constraint, and if applicable, the various AMR levels
 are consistent with eachother.</p>

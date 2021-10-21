@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Running Simulations" href="RunningProblems.html" />
+    <link rel="next" title="Runtime Options" href="RunningProblems.html" />
     <link rel="prev" title="Creating and Running Your Own Problem" href="SetupAndRunning.html" /> 
 </head>
 
@@ -58,15 +58,15 @@
 <li class="toctree-l4"><a class="reference internal" href="#dirichlet-boundary-conditions">Dirichlet Boundary Conditions</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#amr-levels">AMR Levels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#constructing-embedded-boundaries-in-iamr">Constructing Embedded Boundaries in IAMR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tagging-criteria-for-creating-amr-levels">Tagging criteria for creating AMR Levels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#constructing-embedded-boundaries">Constructing Embedded Boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#particles-initialization">Particles Initialization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#tracers">Tracers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#temperature">Temperature</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#viscosity-and-diffusivity">Viscosity and Diffusivity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#physics-parameters">Physics Parameters</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Running Simulations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Runtime Options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a></li>
 </ul>
 </li>
@@ -107,6 +107,16 @@
              
   <div class="section" id="problem-setup">
 <h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline"></a></h1>
+<p>To setup a new problem you must specify:</p>
+<ol class="arabic simple">
+<li><p>intial conditions</p></li>
+<li><p>resolution</p></li>
+<li><p>problem geometry</p></li>
+<li><p>boundary conditions</p></li>
+<li><p>AMR tragging criteria (for multilevel runs only)</p></li>
+</ol>
+<p>Many additional options are available, and are briefly described here and in
+following sections, <a class="reference internal" href="RunningProblems.html#chap-runtimeoptions"><span class="std std-ref">Runtime Options</span></a> and <a class="reference internal" href="AlgorithmOptions.html#chap-algorithmoptions"><span class="std std-ref">Algortihm Options</span></a>.</p>
 <div class="section" id="units">
 <span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Permalink to this headline"></a></h2>
 <p>IAMR supports any self-consistent units, as long as the length, time,
@@ -117,9 +127,8 @@ and mass are consistent with the viscosity and diffusivity.</p>
 <p>To define the initial conditions, we modify the function <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> within
 <code class="docutils literal notranslate"><span class="pre">IAMR/Source/prob/prob_init.cpp</span></code>.  <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> reads in initial conditions
 and problem parameters from the inputs file, and initializes the state data
-(velocity, density, etc.).</p>
-<p>The easiest way to get started is to create a new <code class="docutils literal notranslate"><span class="pre">probtype</span></code> by copying the code for
-an existing problem and modifying it apply the desired initial state.</p>
+(velocity, density, etc.). The easiest way to get started is to create a new <code class="docutils literal notranslate"><span class="pre">probtype</span></code>
+by copying the code for an existing problem and modifying it to apply the desired initial state.</p>
 <p>It is also possible to initialize the velocity using data from a previously generated plotfile.
 To do this you must set <code class="docutils literal notranslate"><span class="pre">BL_USE_VELOCITY=TRUE</span></code> in the makefile, and provide the plotfile in
 the inputs file via <code class="docutils literal notranslate"><span class="pre">ns.velocity_plotfile</span> <span class="pre">=</span> <span class="pre">my_plotfile_name</span></code>.</p>
@@ -244,7 +253,7 @@ only.</p>
 <p>IAMR provides two ways to specify boundary condition types: integer keys or keywords.
 An inputs file must choose one style or the other, they cannot be mixed.
 Here we provide examples of both styles. We then discuss how to provide Dirichlet
-boundary conditions.</p>
+boundary conditions. For a more detailed discussion of boundaries, see <a class="reference internal" href="Software.html#sec-boundaries"><span class="std std-ref">Boundaries</span></a></p>
 <div class="section" id="boundary-conditions-with-integer-keys">
 <h3>Boundary conditions with integer keys<a class="headerlink" href="#boundary-conditions-with-integer-keys" title="Permalink to this headline"></a></h3>
 <p>To specify boundary conditions with integer keys we use</p>
@@ -333,7 +342,7 @@ Note that no keyword is needed for a periodic boundary, here only the
 specification in geometry.is_periodic is needed.</p>
 </div>
 <div class="section" id="dirichlet-boundary-conditions">
-<h3>Dirichlet Boundary Conditions<a class="headerlink" href="#dirichlet-boundary-conditions" title="Permalink to this headline"></a></h3>
+<span id="sec-dirichlet"></span><h3>Dirichlet Boundary Conditions<a class="headerlink" href="#dirichlet-boundary-conditions" title="Permalink to this headline"></a></h3>
 <p>IAMR provides the ability to specify constant Dirichlet BCs
 in the inputs file. We use the following options
 preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”:</p>
@@ -417,12 +426,14 @@ will use it in <code class="docutils literal notranslate"><span class="pre">NS_s
 section <a class="reference internal" href="Software.html#sec-physicalbcs"><span class="std std-ref">Physical Boundaries</span></a>.</p>
 </div>
 </div>
-<div class="section" id="amr-levels">
-<h2>AMR Levels<a class="headerlink" href="#amr-levels" title="Permalink to this headline"></a></h2>
-<p>Tagging info here…</p>
+<div class="section" id="tagging-criteria-for-creating-amr-levels">
+<h2>Tagging criteria for creating AMR Levels<a class="headerlink" href="#tagging-criteria-for-creating-amr-levels" title="Permalink to this headline"></a></h2>
+<p>If <code class="docutils literal notranslate"><span class="pre">amr.max_level</span></code> is greater than zero, then user specified tagging criteria are
+used to define regions for higher levels of refinement.
+For infomation on tagging see <a class="reference internal" href="Software.html#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a></p>
 </div>
-<div class="section" id="constructing-embedded-boundaries-in-iamr">
-<span id="sec-eb-basics"></span><h2>Constructing Embedded Boundaries in IAMR<a class="headerlink" href="#constructing-embedded-boundaries-in-iamr" title="Permalink to this headline"></a></h2>
+<div class="section" id="constructing-embedded-boundaries">
+<span id="sec-eb-basics"></span><h2>Constructing Embedded Boundaries<a class="headerlink" href="#constructing-embedded-boundaries" title="Permalink to this headline"></a></h2>
 <p>IAMR uses AMReX’s Embedded Boundary (cut cell) functionality to represent internal
 or external geometry in the flow.
 For details on AMReX’s approach to embedded boundaries, see the AMReX EB
@@ -457,12 +468,81 @@ x y z</p>
 </div>
 <div class="section" id="tracers">
 <h2>Tracers<a class="headerlink" href="#tracers" title="Permalink to this headline"></a></h2>
+<p>IAMR includes one tracer field by default. A second tracer can be added with <code class="docutils literal notranslate"><span class="pre">ns.do_trac2</span> <span class="pre">=</span> <span class="pre">1</span></code>.
+IAMR can include additional tracers with only minor code modification: adding them to the
+state variables in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code> and providing initial conditions.</p>
 </div>
 <div class="section" id="temperature">
 <h2>Temperature<a class="headerlink" href="#temperature" title="Permalink to this headline"></a></h2>
+<p>IAMR has the option to solve for temperature, along with a modified divergence constraint on the velocity field
+(for more information, see <a class="reference internal" href="FluidEquations.html#sec-fluidequations"><span class="std std-ref">Fluid Equations</span></a>). To include temperature, you must specify two flags,
+both preceded by “ns.”:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 63%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>do_temp</p></td>
+<td><p>If equal to 0, do not include temperature in the equation set</p></td>
+<td><p>int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>temp_cond_coef</p></td>
+<td><p>Thermal diffusivity divided by specific heat at constant pressure</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
 </div>
-<div class="section" id="viscosity-and-diffusivity">
-<h2>Viscosity and Diffusivity<a class="headerlink" href="#viscosity-and-diffusivity" title="Permalink to this headline"></a></h2>
+<div class="section" id="physics-parameters">
+<span id="sec-physicsparams"></span><h2>Physics Parameters<a class="headerlink" href="#physics-parameters" title="Permalink to this headline"></a></h2>
+<p>IAMR provides support for gravity, viscosity, and diffusivity. Default treatment is given in the table below.
+More sophiticated treatments are possible;
+if interested, please open an issue on github: <a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">https://github.com/AMReX-Codes/IAMR/issues</a></p>
+<p>The following inputs must be preceded by “ns.” For information on units, see <a class="reference internal" href="#sec-units"><span class="std std-ref">Units</span></a>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 63%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>gravity</p></td>
+<td><p>Gravity, taken to be in the -y direction for 2d and -z direction in 3d</p></td>
+<td><p>Real</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>vel_visc_coef</p></td>
+<td><p>Scalar viscosity</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>scal_diff_coefs</p></td>
+<td><p>Diffusivity of tracer(s). Must specify one value for each tracer.</p></td>
+<td><p>Real</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 
@@ -471,7 +551,7 @@ x y z</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="SetupAndRunning.html" class="btn btn-neutral float-left" title="Creating and Running Your Own Problem" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="RunningProblems.html" class="btn btn-neutral float-right" title="Running Simulations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="RunningProblems.html" class="btn btn-neutral float-right" title="Runtime Options" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

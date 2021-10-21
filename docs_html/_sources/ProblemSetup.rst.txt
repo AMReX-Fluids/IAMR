@@ -1,5 +1,22 @@
+.. _Chap:ProblemSetup
+
 Problem Setup
 =============
+
+To setup a new problem you must specify:
+
+#. intial conditions
+
+#. resolution
+
+#. problem geometry
+
+#. boundary conditions
+
+#. AMR tragging criteria (for multilevel runs only)
+
+Many additional options are available, and are briefly described here and in
+following sections, :ref:`Chap:RuntimeOptions` and :ref:`Chap:AlgorithmOptions`.
 
 .. _sec:units:
 
@@ -16,10 +33,8 @@ Initial Conditions
 To define the initial conditions, we modify the function ``prob_initData()`` within
 ``IAMR/Source/prob/prob_init.cpp``.  ``prob_initData()`` reads in initial conditions
 and problem parameters from the inputs file, and initializes the state data
-(velocity, density, etc.).
-
-The easiest way to get started is to create a new ``probtype`` by copying the code for
-an existing problem and modifying it apply the desired initial state.
+(velocity, density, etc.). The easiest way to get started is to create a new ``probtype``
+by copying the code for an existing problem and modifying it to apply the desired initial state.
 
 It is also possible to initialize the velocity using data from a previously generated plotfile.  
 To do this you must set ``BL_USE_VELOCITY=TRUE`` in the makefile, and provide the plotfile in
@@ -116,7 +131,7 @@ Domain Boundary Conditions
 IAMR provides two ways to specify boundary condition types: integer keys or keywords.
 An inputs file must choose one style or the other, they cannot be mixed.
 Here we provide examples of both styles. We then discuss how to provide Dirichlet
-boundary conditions.
+boundary conditions. For a more detailed discussion of boundaries, see :ref:`sec:boundaries`
 
 Boundary conditions with integer keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -188,6 +203,8 @@ the low and high :math:`y`-faces, and periodic in the :math:`z`-direction.
 Note that no keyword is needed for a periodic boundary, here only the
 specification in geometry.is\_periodic is needed.
 
+.. _sec:dirichlet:
+
 Dirichlet Boundary Conditions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -252,15 +269,17 @@ an ``amrex::StateDescriptor::BndryFunc`` object and specifying which variables
 will use it in ``NS_setup.cpp``. More information on boundary conditions is in
 section :ref:`sec:physicalBCs`.
 
-AMR Levels
-----------
+Tagging criteria for creating AMR Levels
+----------------------------------------
 
-Tagging info here...
+If ``amr.max_level`` is greater than zero, then user specified tagging criteria are
+used to define regions for higher levels of refinement.
+For infomation on tagging see :ref:`sec:tagging`
 
 
 .. _sec:EB-basics:
 
-Constructing Embedded Boundaries in IAMR
+Constructing Embedded Boundaries
 ----------------------------------------
 
 IAMR uses AMReX's Embedded Boundary (cut cell) functionality to represent internal
@@ -306,11 +325,46 @@ x y z
 Tracers
 -------
 
+IAMR includes one tracer field by default. A second tracer can be added with ``ns.do_trac2 = 1``.
+IAMR can include additional tracers with only minor code modification: adding them to the
+state variables in ``NS_setup.cpp`` and providing initial conditions.
+
+
 
 Temperature
 -----------
 
+IAMR has the option to solve for temperature, along with a modified divergence constraint on the velocity field
+(for more information, see :ref:`sec:FluidEquations`). To include temperature, you must specify two flags,
+both preceded by "ns.":
 
-Viscosity and Diffusivity
--------------------------
++----------------------+-------------------------------------------------------------------------+----------+-----------+
+|                      | Description                                                             |   Type   | Default   |
++======================+=========================================================================+==========+===========+
+| do_temp              | If equal to 0, do not include temperature in the equation set           |  int     |  0        |
++----------------------+-------------------------------------------------------------------------+----------+-----------+
+| temp_cond_coef       | Thermal diffusivity divided by specific heat at constant pressure       |  Real    |  None     |
++----------------------+-------------------------------------------------------------------------+----------+-----------+
+ 
+
+.. _sec:PhysicsParams:
+
+Physics Parameters
+-------------------
+
+IAMR provides support for gravity, viscosity, and diffusivity. Default treatment is given in the table below.
+More sophiticated treatments are possible;
+if interested, please open an issue on github: https://github.com/AMReX-Codes/IAMR/issues
+
+The following inputs must be preceded by "ns." For information on units, see :ref:`sec:units`.
+
++----------------------+-------------------------------------------------------------------------+----------+-----------+
+|                      | Description                                                             |   Type   | Default   |
++======================+=========================================================================+==========+===========+
+| gravity              | Gravity, taken to be in the -y direction for 2d and -z direction in 3d  |  Real    |  0        |
++----------------------+-------------------------------------------------------------------------+----------+-----------+
+| vel_visc_coef        | Scalar viscosity                                                        |  Real    |  None     |
++----------------------+-------------------------------------------------------------------------+----------+-----------+
+| scal_diff_coefs      | Diffusivity of tracer(s). Must specify one value for each tracer.       |  Real    |  None     |
++----------------------+-------------------------------------------------------------------------+----------+-----------+
 

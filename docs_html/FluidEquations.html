@@ -128,7 +128,7 @@
 </div></blockquote>
 </div>
 <div class="section" id="fluid-equations">
-<h1>Fluid Equations<a class="headerlink" href="#fluid-equations" title="Permalink to this headline"></a></h1>
+<span id="sec-fluidequations"></span><h1>Fluid Equations<a class="headerlink" href="#fluid-equations" title="Permalink to this headline"></a></h1>
 <p>Conservation of fluid mass:</p>
 <div class="math notranslate nohighlight">
 \[\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho U)  = 0\]</div>
@@ -149,7 +149,7 @@
 <p>IAMR has the ability to incorporate general, user-defined external forcing and source terms. The default behaviour is that
 <span class="math notranslate nohighlight">\(H_c=0\)</span>, and <span class="math notranslate nohighlight">\({\bf H}_U\)</span> represents gravitational forces, with <span class="math notranslate nohighlight">\({\bf H}_U= (0 , 0 , -\rho g )\)</span> in 3d and
 <span class="math notranslate nohighlight">\({\bf H}_U= (0 , -\rho g )\)</span> in 2d, where <span class="math notranslate nohighlight">\(g\)</span> is the magnitude of the gravitational acceleration. However, since
-by default, <span class="math notranslate nohighlight">\(g=0\)</span>, <span class="math notranslate nohighlight">\({\bf H}_U = 0\)</span> unless <code class="docutils literal notranslate"><span class="pre">ns.gravity</span></code> is set (for more info see <span class="xref std std-ref">sec:Inputs</span> and ).</p>
+by default, <span class="math notranslate nohighlight">\(g=0\)</span>, <span class="math notranslate nohighlight">\({\bf H}_U = 0\)</span> unless <code class="docutils literal notranslate"><span class="pre">ns.gravity</span></code> is set (for more info see <a class="reference internal" href="ProblemSetup.html#sec-physicsparams"><span class="std std-ref">Physics Parameters</span></a>).</p>
 <p>By default, IAMR solves the momentum equation in convective form. The inputs parameter <code class="docutils literal notranslate"><span class="pre">ns.do_mom_diff</span></code> is used to
 switch to conservation form. Tracers are passively advected by default. The inputs parameter <code class="docutils literal notranslate"><span class="pre">ns.do_cons_trac</span> <span class="pre">=</span> <span class="pre">1</span></code>
 switches the first tracer to conservative. A second tracer can be included with <code class="docutils literal notranslate"><span class="pre">ns.do_trac2</span> <span class="pre">=</span> <span class="pre">1</span></code>, and it can be
