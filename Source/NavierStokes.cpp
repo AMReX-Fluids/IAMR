@@ -1185,7 +1185,7 @@ NavierStokes::writePlotFile (const std::string& dir,
 	//
 	// Names of variables -- first state, then derived
 	//
-	for (i =0; i < plot_var_map.size(); i++)
+        for (std::size_t i =0; i < plot_var_map.size(); i++)
         {
 	    int typ  = plot_var_map[i].first;
 	    int comp = plot_var_map[i].second;
