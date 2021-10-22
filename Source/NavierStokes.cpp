@@ -605,19 +605,7 @@ NavierStokes::advance (Real time,
     //
     // Add the advective and other terms to get scalars at t^{n+1}.
     //
-    if (do_scalar_update_in_order)
-    {
-	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
-        {
-	    int iScal = first_scalar+scalarUpdateOrder[iComp];
-	    Print() << "... ... updating " << desc_lst[0].name(iScal) << '\n';
-	    scalar_update(dt,iScal,iScal);
-	}
-    }
-    else
-    {
-	scalar_update(dt,first_scalar+1,last_scalar);
-    }
+    scalar_update(dt,first_scalar+1,last_scalar);
     //
     // S appears in rhs of the velocity update, so we better do it now.
     //

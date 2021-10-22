@@ -103,8 +103,6 @@ int         NavierStokesBase::do_derefine_outflow       = 1;
 int         NavierStokesBase::Nbuf_outflow              = 1;
 int         NavierStokesBase::do_denminmax              = 0;
 int         NavierStokesBase::do_scalminmax             = 0;
-int         NavierStokesBase::do_scalar_update_in_order = 0;
-Vector<int>  NavierStokesBase::scalarUpdateOrder;
 int         NavierStokesBase::getForceVerbose           = 0;
 int         NavierStokesBase::do_LES                    = 0;
 int         NavierStokesBase::getLESVerbose             = 0;
@@ -475,13 +473,6 @@ NavierStokesBase::Initialize ()
 #ifdef AMREX_USE_EB
     pp.query("refine_cutcells", refine_cutcells);
 #endif
-
-    pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
-    if (do_scalar_update_in_order) {
-	    const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
-	    scalarUpdateOrder.resize(n_scalar_update_order_vals);
-	    pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
-    }
 
     // Don't let init_shrink be greater than 1
     if (init_shrink > 1.0)
