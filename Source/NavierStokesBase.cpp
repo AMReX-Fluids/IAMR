@@ -2703,13 +2703,24 @@ NavierStokesBase::scalar_advection_update (Real dt,
                 const auto& Sn   = S_old[mfi].const_array(Density);
                 const auto& Sarr = Scal.array();
                 const auto& aofs = Aofs[mfi].const_array(Density);
+                // Create a local copy for lambda capture
+                int numscal = NUM_SCALARS;
 
-                amrex::ParallelFor(bx, NUM_SCALARS, [ Sn, Sarr, aofs, dt]
-                AMREX_GPU_DEVICE (int i, int j, int k, int n ) noexcept
+                amrex::ParallelFor(bx, numscal, [ Sn, Sarr, aofs, dt]
+                AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    int n = 0;
+                    // For density, we can create the Crank-Nicholson half-time approximation:
                     // Snew = Sold - dt*adv
                     // Shalftime = Sarr = (Snew + Sold)/2
                     Sarr(i,j,k,n) = Sn(i,j,k,n) - 0.5 * dt * aofs(i,j,k,n);
+
+                    // For other scalars, which may have diffusive or forcing terms, this is
+                    // a safe choice.
+                    for ( n = 1; n < numscal; n++ )
+                    {
+                        Sarr(i,j,k,n) = Sn(i,j,k,n);
+                    }
                 });
 
                 const Real halftime = 0.5 * ( state[State_Type].curTime() +
@@ -3440,6 +3451,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
            amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
         // Average the new and old time to get Crank-Nicholson half time approximation.
+        // Scalars always get updated before velocity (see NavierStokes::advance), so
+        // this is garanteed to be good.
         //
         auto const& scal = ScalFAB.array();
         auto const& scal_o = U_old.array(mfi,Density);
@@ -3450,7 +3463,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
             scal(i,j,k,n) = 0.5 * ( scal_o(i,j,k,n) + scal_n(i,j,k,n) );
         });
 
-        if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         tforces.resize(bx,AMREX_SPACEDIM);
         Elixir tf_i = tforces.elixir();
