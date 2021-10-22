@@ -750,7 +750,6 @@ public:
     static int  do_cons_trac2;
     static int  do_sync_proj;
     static int  do_reflux;
-    static int  modify_reflux_normal_vel;
     static int  do_mac_proj;
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at
