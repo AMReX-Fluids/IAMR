@@ -231,19 +231,6 @@ NavierStokes::variableSetUp ()
         Temp = NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
 
-    if (do_scalar_update_in_order) {
-	// Need to check numbers and values of scalar update
-	// Idea is to specify the scalar index (counting Density as zero)
-	int maxComp=NUM_SCALARS-1;
-	for (int iComp=0; iComp<maxComp; iComp++) {
-	    if ((scalarUpdateOrder[iComp]>maxComp)||(scalarUpdateOrder[iComp]<1))
-		amrex::Abort("Scalar Update Order out of bounds");
-	    for (int jComp=iComp+1; jComp<maxComp; jComp++)
-		if (scalarUpdateOrder[iComp]==scalarUpdateOrder[jComp])
-		    amrex::Abort("Scalar Update Order values not unique");
-	}
-    }
-
     //
     // **************  DEFINE VELOCITY VARIABLES  ********************
     //

@@ -474,6 +474,11 @@ NavierStokesBase::Initialize ()
     pp.query("refine_cutcells", refine_cutcells);
 #endif
 
+    pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
+    if (do_scalar_update_in_order) {
+        amrex::Abort("NavierStokesBase::Initialize(): do_scalar_update_in_order no longer supported. If needed, please open issue on github.");
+    }
+
     // Don't let init_shrink be greater than 1
     if (init_shrink > 1.0)
         amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
