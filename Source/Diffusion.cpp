@@ -128,10 +128,10 @@ Diffusion::Diffusion (Amr*               Parent,
             amrex::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
 
         if (n_visc < NUM_STATE)
-            amrex::Abort("Diffusion::Diffusion(): visc_coef array is not long enough");
+            amrex::Abort("Diffusion::Diffusion(): TOO FEW diffusion coeffs were given! One for viscosity and one for each tracer are required.");
 
         if (n_visc > NUM_STATE)
-            amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
+            amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given! One for viscosity and one for each tracer are required.");
 
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
