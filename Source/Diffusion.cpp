@@ -443,7 +443,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         mgn.apply({&rhs_tmp},{&Soln});
 
         const amrex::MultiFab* weights;
-        const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(factory));
         weights = &(ebf->getVolFrac());
 
         amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, nComp, geom);
@@ -790,8 +789,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          //   regridding algorithm buffers the cells flagged for refinement
          //
          const amrex::MultiFab* weights;
-         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-         weights = &(ebfactory.getVolFrac());
+         weights = &(ebf->getVolFrac());
          amrex::single_level_weighted_redistribute(Rhs_tmp, Rhs, *weights, 0, AMREX_SPACEDIM, navier_stokes->Geom());
 #else
          amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
