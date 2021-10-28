@@ -51,7 +51,9 @@ NavierStokes::Initialize ()
         Temp = NUM_STATE++;
     NUM_SCALARS = NUM_STATE - Density;
 
-    NavierStokes::Initialize_specific();
+    NavierStokes::Initialize_bcs();
+
+    NavierStokes::Initialize_diffusivities();
 
     amrex::ExecOnFinalize(NavierStokes::Finalize);
 
@@ -59,7 +61,7 @@ NavierStokes::Initialize ()
 }
 
 void
-NavierStokes::Initialize_specific ()
+NavierStokes::Initialize_bcs ()
 {
     //
     // Default BC values
@@ -262,16 +264,22 @@ NavierStokes::Initialize_specific ()
     //   Print()<<std::endl;
     // }
 
+
     //
     // This checks for RZ and makes sure phys_bc is consistent with that.
     //
     read_geometry();
+}
 
+void
+NavierStokes::Initialize_diffusivities ()
+{
     //
-    // Read viscous/diffusive parameters and array of viscous/diffusive coeffs.
-    // NOTE: at this point, we dont know number of state variables
-    //       so just read all values listed.
+    // Read viscous/diffusive coeffs.
     //
+// fixme - visc_coeffs should probably be owned by NS, not NSB...
+
+    ParmParse pp("ns");
 
     const int n_vel_visc_coef   = pp.countval("vel_visc_coef");
     const int n_temp_cond_coef  = pp.countval("temp_cond_coef");
@@ -283,21 +291,23 @@ NavierStokes::Initialize_specific ()
     if (do_temp && n_temp_cond_coef != 1)
         amrex::Abort("NavierStokesBase::Initialize(): Only one temp_cond_coef allowed");
 
-    int n_visc = BL_SPACEDIM + 1 + n_scal_diff_coefs;
-    if (do_temp)
-        n_visc++;
-    visc_coef.resize(n_visc);
-    is_diffusive.resize(n_visc);
+    if (n_scal_diff_coefs+n_temp_cond_coef != NUM_SCALARS-1)
+        amrex::Abort("NavierStokesBase::Initialize(): One scal_diff_coef required for each tracer");
+
+
+    visc_coef.resize(NUM_STATE);
+    is_diffusive.resize(NUM_STATE);
 
     pp.get("vel_visc_coef",visc_coef[0]);
     for (int i = 1; i < BL_SPACEDIM; i++)
       visc_coef[i] = visc_coef[0];
+
     //
     // Here we set the coefficient for density, which does not diffuse.
     //
     visc_coef[Density] = -1;
     //
-    // Set the coefficients for the scalars, but temperature.
+    // Set the coefficients for the scalars, temperature.
     //
     Vector<Real> scal_diff_coefs(n_scal_diff_coefs);
     pp.getarr("scal_diff_coefs",scal_diff_coefs,0,n_scal_diff_coefs);
@@ -313,8 +323,7 @@ NavierStokes::Initialize_specific ()
     //
     if (do_temp)
     {
-        Temp = ++scalId;
-        pp.get("temp_cond_coef",visc_coef[Temp]);
+        pp.get("temp_cond_coef",visc_coef[++scalId]);
     }
 }
 

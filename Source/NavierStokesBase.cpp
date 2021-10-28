@@ -326,7 +326,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     diffusion = new Diffusion(parent,this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE,viscflux_reg,is_diffusive,visc_coef);
+                              NUM_STATE,viscflux_reg,is_diffusive);
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
@@ -2563,7 +2563,7 @@ NavierStokesBase::restart (Amr&          papa,
 
     diffusion = new Diffusion(parent, this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE, viscflux_reg,is_diffusive, visc_coef);
+                              NUM_STATE, viscflux_reg,is_diffusive);
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
