@@ -226,3 +226,8 @@ Documentation reorganization
 Misc. AMR fixes
 Misc. cleanup (re-org, quiet compiler warnings, remove unused code)
 Misc. compiler fixes and general updates to test and bechmark problems
+
+11/2/21
+Various GPU fixes
+Cleanup to the advection and diffusion classes
+Fix usage of forcing term in scalar advection
