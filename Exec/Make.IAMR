@@ -16,6 +16,7 @@ Hdirs := $(AMREX_HYDRO_HOME)/Slopes
 Hdirs += $(AMREX_HYDRO_HOME)/Utils
 Hdirs += $(AMREX_HYDRO_HOME)/MOL
 Hdirs += $(AMREX_HYDRO_HOME)/Godunov
+Hdirs += $(AMREX_HYDRO_HOME)/Projections
 
 ifeq ($(USE_EB), TRUE)
 Hdirs += $(AMREX_HYDRO_HOME)/Redistribution
@@ -34,7 +35,7 @@ INCLUDE_LOCATIONS += $(Blocs)
 #These are the directories in BoxLib
 
 Pdirs   := Base AmrCore Amr Boundary
-Pdirs   += LinearSolvers/MLMG LinearSolvers/Projections
+Pdirs   += LinearSolvers/MLMG
 
 
 ifeq ($(USE_PARTICLES),TRUE)
