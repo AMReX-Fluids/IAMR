@@ -1731,7 +1731,6 @@ NavierStokes::mac_sync ()
 				    advectionType, prev_time,
 				    prev_pres_time,dt,
 				    NUM_STATE,be_cn_theta,
-				    modify_reflux_normal_vel,
 				    do_mom_diff);
     //
     // Delete Ucorr; we're done with it.

@@ -96,7 +96,6 @@ int         NavierStokesBase::do_cons_trac              = 0;
 int         NavierStokesBase::do_cons_trac2             = 0;
 int         NavierStokesBase::do_sync_proj              = 1;
 int         NavierStokesBase::do_reflux                 = 1;
-int         NavierStokesBase::modify_reflux_normal_vel  = 0;
 int         NavierStokesBase::do_mac_proj               = 1;
 int         NavierStokesBase::do_refine_outflow         = 0;
 int         NavierStokesBase::do_derefine_outflow       = 1;
@@ -440,7 +439,6 @@ NavierStokesBase::Initialize ()
     pp.query("do_cons_trac2",            do_cons_trac2    );
     pp.query("do_sync_proj",             do_sync_proj     );
     pp.query("do_reflux",                do_reflux        );
-    pp.query("modify_reflux_normal_vel", modify_reflux_normal_vel);
     pp.query("do_init_vort_proj",        do_init_vort_proj);
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
@@ -456,9 +454,6 @@ NavierStokesBase::Initialize ()
 
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
-
-    if (modify_reflux_normal_vel)
-        amrex::Abort("modify_reflux_normal_vel is no longer supported");
 
     pp.query("getForceVerbose",          getForceVerbose  );
     pp.query("do_LES",                   do_LES  );
