@@ -70,7 +70,6 @@ public:
                            amrex::Real                  dt,
                            int                          NUM_STATE,
                            amrex::Real                  be_cn_theta,
-                           bool                         modify_reflux_normal_vel,
                            int		                do_mom_diff,
                            const amrex::Vector<int>&    increment_sync = amrex::Vector<int>(),
 			   bool                         update_fluxreg = true);
@@ -85,7 +84,6 @@ public:
                            amrex::MultiFab&             rho_half,
                            amrex::FluxRegister*         adv_flux_reg,
                            amrex::Vector<AdvectionForm>& advectionType,
-                           bool		                 modify_reflux_normal_vel,
                            amrex::Real                   dt,
 			   bool                          update_fluxreg = true);
 

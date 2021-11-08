@@ -489,13 +489,10 @@ MacProj::mac_sync_compute (int                   level,
                            Real                  dt,
                            int                   NUM_STATE,
                            Real                  be_cn_theta,
-                           bool                  modify_reflux_normal_vel,
                            int                   do_mom_diff,
                            const Vector<int>&    increment_sync,
                            bool                  update_fluxreg)
 {
-    if (modify_reflux_normal_vel)
-        amrex::Abort("modify_reflux_normal_vel is no longer supported");
     //
     // Get parameters.
     //
@@ -804,13 +801,9 @@ MacProj::mac_sync_compute (int                    level,
                            MultiFab&              /*rho_half*/,
                            FluxRegister*          adv_flux_reg,
                            Vector<AdvectionForm>& advectionType,
-                           bool                   modify_reflux_normal_vel,
                            Real                   dt,
                            bool                   update_fluxreg)
 {
-    if (modify_reflux_normal_vel)
-        amrex::Abort("modify_reflux_normal_vel is no longer supported");
-
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
     const Geometry& geom         = parent->Geom(level);
     NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
