@@ -128,10 +128,10 @@ Diffusion::Diffusion (Amr*               Parent,
             amrex::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
 
         if (n_visc < NUM_STATE)
-            amrex::Abort("Diffusion::Diffusion(): visc_coef array is not long enough");
+            amrex::Abort("Diffusion::Diffusion(): TOO FEW diffusion coeffs were given! One for viscosity and one for each tracer are required.");
 
         if (n_visc > NUM_STATE)
-            amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given!");
+            amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given! One for viscosity and one for each tracer are required.");
 
         visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
@@ -443,7 +443,6 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         mgn.apply({&rhs_tmp},{&Soln});
 
         const amrex::MultiFab* weights;
-        const auto& ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(factory));
         weights = &(ebf->getVolFrac());
 
         amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, nComp, geom);
@@ -790,8 +789,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          //   regridding algorithm buffers the cells flagged for refinement
          //
          const amrex::MultiFab* weights;
-         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-         weights = &(ebfactory.getVolFrac());
+         weights = &(ebf->getVolFrac());
          amrex::single_level_weighted_redistribute(Rhs_tmp, Rhs, *weights, 0, AMREX_SPACEDIM, navier_stokes->Geom());
 #else
          amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);

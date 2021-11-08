@@ -197,8 +197,10 @@ main (int   argc,
         WritePlotFile(dataE, amrDataI, exFile, verbose);
 
 
-    for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
+    for (int iLevel = 0; iLevel <= finestLevel; ++iLevel) {
 	delete error[iLevel];
+        delete dataE[iLevel];
+    }
 
     //
     // This calls ParallelDescriptor::EndParallel() and exit()

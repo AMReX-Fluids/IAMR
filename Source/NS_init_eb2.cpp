@@ -280,7 +280,6 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     auto gshop = EB2::makeShop(twocylinders);
 
     // Build index space
-    int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 #endif
   }
@@ -321,7 +320,6 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     // Generate GeometryShop
     auto gshop = EB2::makeShop(cyl);
     // Build index space
-    int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 #endif
   }
@@ -335,15 +333,12 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     Real ratio_t0_L0_cross = 0.11;
     Real ratio_t0_stream_thickness = 1.0;
 
-    Vector<Real> centervec(3);
-
     // Get information from inputs file.
     ParmParse pp("square_grid");
 
     pp.query("dim_L0", dim_L0);
     pp.query("ratio_t0_L0_cross", ratio_t0_L0_cross);
     pp.query("ratio_t0_stream_thickness", ratio_t0_stream_thickness);
-    Array<Real, 3> center = {centervec[0], centervec[1], centervec[2]};
 
 
     Real cross_dim_t0 = ratio_t0_L0_cross * dim_L0;
@@ -378,7 +373,6 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     // Generate GeometryShop
     auto gshop = EB2::makeShop(square_grid);
     // Build index space
-    int max_coarsening_level = 100;
     EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
 #endif
   }

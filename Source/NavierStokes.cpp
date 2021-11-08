@@ -40,6 +40,17 @@ NavierStokes::Initialize ()
 
     NavierStokesBase::Initialize();
 
+    //
+    // Set number of state variables.
+    //
+    NUM_STATE = Density + 1;
+    Tracer = NUM_STATE++;
+    if (do_trac2)
+        Tracer2 = NUM_STATE++;
+    if (do_temp)
+        Temp = NUM_STATE++;
+    NUM_SCALARS = NUM_STATE - Density;
+
     NavierStokes::Initialize_specific();
 
     amrex::ExecOnFinalize(NavierStokes::Finalize);
