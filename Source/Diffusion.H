@@ -41,8 +41,7 @@ public:
                Diffusion*                coarser,
                int                       num_state,
                amrex::FluxRegister*      Viscflux_reg,
-               const amrex::Vector<int>&  _is_diffusive,
-               const amrex::Vector<amrex::Real>& _visc_coef);
+               const amrex::Vector<int>&  _is_diffusive);
 
     ~Diffusion ();
 
@@ -258,7 +257,6 @@ protected:
     //
     static int         scale_abec;
     static amrex::Vector<int>  is_diffusive;    // Does variable diffuse?
-    static amrex::Vector<amrex::Real> visc_coef;       // Const coef viscosity terms
     static int         verbose;
     static amrex::Real        visc_tol;
 

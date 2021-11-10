@@ -183,7 +183,8 @@ protected:
                            int                 ngrow) override;
 
     static void Initialize ();   // Read input file
-    static void Initialize_specific ();   // Read input file specific to IAMR
+    static void Initialize_bcs ();
+    static void Initialize_diffusivities ();
     static void Finalize ();
 
 private:

@@ -49,13 +49,11 @@ int         Diffusion::max_order;
 int         Diffusion::scale_abec;
 int         Diffusion::tensor_max_order;
 
-Vector<Real> Diffusion::visc_coef;
 Vector<int>  Diffusion::is_diffusive;
 
 void
 Diffusion::Finalize ()
 {
-    visc_coef.clear();
     is_diffusive.clear();
 
     initialized = false;
@@ -66,8 +64,7 @@ Diffusion::Diffusion (Amr*               Parent,
                       Diffusion*         Coarser,
                       int                num_state,
                       FluxRegister*      Viscflux_reg,
-                      const Vector<int>&  _is_diffusive,
-                      const Vector<Real>& _visc_coef)
+                      const Vector<int>&  _is_diffusive)
     :
     parent(Parent),
     navier_stokes(Caller),
@@ -121,25 +118,16 @@ Diffusion::Diffusion (Amr*               Parent,
 
         do_reflux = (do_reflux ? 1 : 0);
 
-        const int n_visc = _visc_coef.size();
         const int n_diff = _is_diffusive.size();
 
         if (n_diff < NUM_STATE)
             amrex::Abort("Diffusion::Diffusion(): is_diffusive array is not long enough");
 
-        if (n_visc < NUM_STATE)
-            amrex::Abort("Diffusion::Diffusion(): TOO FEW diffusion coeffs were given! One for viscosity and one for each tracer are required.");
-
-        if (n_visc > NUM_STATE)
-            amrex::Abort("Diffusion::Diffusion(): TOO MANY diffusion coeffs were given! One for viscosity and one for each tracer are required.");
-
-        visc_coef.resize(NUM_STATE);
         is_diffusive.resize(NUM_STATE);
 
         for (int i = 0; i < NUM_STATE; i++)
         {
             is_diffusive[i] = _is_diffusive[i];
-            visc_coef[i] = _visc_coef[i];
         }
 
         echo_settings();
@@ -197,10 +185,6 @@ Diffusion::echo_settings () const
         amrex::Print() << "   is_diffusive =";
         for (int i =0; i < NUM_STATE; i++)
             amrex::Print() << "  " << is_diffusive[i];
-
-        amrex::Print() << "\n   visc_coef =";
-        for (int i = 0; i < NUM_STATE; i++)
-            amrex::Print() << "  " << visc_coef[i];
 
         amrex::Print() << '\n';
     }
