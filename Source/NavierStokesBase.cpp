@@ -96,15 +96,12 @@ int         NavierStokesBase::do_cons_trac              = 0;
 int         NavierStokesBase::do_cons_trac2             = 0;
 int         NavierStokesBase::do_sync_proj              = 1;
 int         NavierStokesBase::do_reflux                 = 1;
-int         NavierStokesBase::modify_reflux_normal_vel  = 0;
 int         NavierStokesBase::do_mac_proj               = 1;
 int         NavierStokesBase::do_refine_outflow         = 0;
 int         NavierStokesBase::do_derefine_outflow       = 1;
 int         NavierStokesBase::Nbuf_outflow              = 1;
 int         NavierStokesBase::do_denminmax              = 0;
 int         NavierStokesBase::do_scalminmax             = 0;
-int         NavierStokesBase::do_scalar_update_in_order = 0;
-Vector<int>  NavierStokesBase::scalarUpdateOrder;
 int         NavierStokesBase::getForceVerbose           = 0;
 int         NavierStokesBase::do_LES                    = 0;
 int         NavierStokesBase::getLESVerbose             = 0;
@@ -442,7 +439,6 @@ NavierStokesBase::Initialize ()
     pp.query("do_cons_trac2",            do_cons_trac2    );
     pp.query("do_sync_proj",             do_sync_proj     );
     pp.query("do_reflux",                do_reflux        );
-    pp.query("modify_reflux_normal_vel", modify_reflux_normal_vel);
     pp.query("do_init_vort_proj",        do_init_vort_proj);
     pp.query("do_init_proj",             do_init_proj     );
     pp.query("do_mac_proj",              do_mac_proj      );
@@ -459,9 +455,6 @@ NavierStokesBase::Initialize ()
     pp.query("visc_tol",visc_tol);
     pp.query("visc_abs_tol",visc_abs_tol);
 
-    if (modify_reflux_normal_vel)
-        amrex::Abort("modify_reflux_normal_vel is no longer supported");
-
     pp.query("getForceVerbose",          getForceVerbose  );
     pp.query("do_LES",                   do_LES  );
     pp.query("getLESVerbose",            getLESVerbose  );
@@ -476,11 +469,10 @@ NavierStokesBase::Initialize ()
     pp.query("refine_cutcells", refine_cutcells);
 #endif
 
+    int do_scalar_update_in_order = 0;
     pp.query("do_scalar_update_in_order",do_scalar_update_in_order );
     if (do_scalar_update_in_order) {
-	    const int n_scalar_update_order_vals = pp.countval("scalar_update_order");
-	    scalarUpdateOrder.resize(n_scalar_update_order_vals);
-	    pp.queryarr("scalar_update_order",scalarUpdateOrder,0,n_scalar_update_order_vals);
+        amrex::Abort("NavierStokesBase::Initialize(): do_scalar_update_in_order no longer supported. If needed, please open issue on github.");
     }
 
     // Don't let init_shrink be greater than 1
@@ -2703,13 +2695,24 @@ NavierStokesBase::scalar_advection_update (Real dt,
                 const auto& Sn   = S_old[mfi].const_array(Density);
                 const auto& Sarr = Scal.array();
                 const auto& aofs = Aofs[mfi].const_array(Density);
+                // Create a local copy for lambda capture
+                int numscal = NUM_SCALARS;
 
-                amrex::ParallelFor(bx, NUM_SCALARS, [ Sn, Sarr, aofs, dt]
-                AMREX_GPU_DEVICE (int i, int j, int k, int n ) noexcept
+                amrex::ParallelFor(bx, [ Sn, Sarr, aofs, dt, numscal]
+                AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
+                    int n = 0;
+                    // For density, we can create the Crank-Nicholson half-time approximation:
                     // Snew = Sold - dt*adv
                     // Shalftime = Sarr = (Snew + Sold)/2
                     Sarr(i,j,k,n) = Sn(i,j,k,n) - 0.5 * dt * aofs(i,j,k,n);
+
+                    // For other scalars, which may have diffusive or forcing terms, this is
+                    // a safe choice.
+                    for ( n = 1; n < numscal; n++ )
+                    {
+                        Sarr(i,j,k,n) = Sn(i,j,k,n);
+                    }
                 });
 
                 const Real halftime = 0.5 * ( state[State_Type].curTime() +
@@ -3427,6 +3430,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
            amrex::Print() << "---" << '\n' << "F - velocity advection update (half time):" << '\n';
         //
         // Average the new and old time to get Crank-Nicholson half time approximation.
+        // Scalars always get updated before velocity (see NavierStokes::advance), so
+        // this is garanteed to be good.
         //
         auto const& scal = ScalFAB.array();
         auto const& scal_o = U_old.array(mfi,Density);
@@ -3440,7 +3445,6 @@ NavierStokesBase::velocity_advection_update (Real dt)
            }
         });
 
-        if (getForceVerbose) amrex::Print() << "Calling getForce..." << '\n';
         const Real half_time = 0.5*(state[State_Type].prevTime()+state[State_Type].curTime());
         tforces.resize(bx,AMREX_SPACEDIM);
         Elixir tf_i = tforces.elixir();

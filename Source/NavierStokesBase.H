@@ -750,15 +750,12 @@ public:
     static int  do_cons_trac2;
     static int  do_sync_proj;
     static int  do_reflux;
-    static int  modify_reflux_normal_vel;
     static int  do_mac_proj;
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at
     static int  Nbuf_outflow;               //   outflow boundaries.
     static int  do_denminmax;               // The code for these was in NavierStokes.cpp,
     static int  do_scalminmax;              //   but the flags were not declared or read in.
-    static int  do_scalar_update_in_order;  // Flags to allow evaluation of source terms
-    static amrex::Vector<int> scalarUpdateOrder;
     static int  getForceVerbose;            // Does exactly what it says on the tin
     //
     // LES parameters

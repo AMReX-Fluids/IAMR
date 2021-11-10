@@ -15,7 +15,7 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 
-#include <AMReX_NodalProjector.H>
+#include <hydro_NodalProjector.H>
 
 
 using namespace amrex;
@@ -2522,7 +2522,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     }
 
     // Setup nodal projector object
-    NodalProjector  nodal_projector(vel_rebase, GetVecOfConstPtrs(sigma_rebase), mg_geom, info, rhcc_rebase, rhnd_rebase);
+    Hydro::NodalProjector nodal_projector(vel_rebase, GetVecOfConstPtrs(sigma_rebase), mg_geom, info, rhcc_rebase, rhnd_rebase);
     nodal_projector.setDomainBC(mlmg_lobc, mlmg_hibc);
 
 // WARNING: we set the strategy to Sigma to get exactly the same results as the no EB code

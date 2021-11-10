@@ -40,6 +40,17 @@ NavierStokes::Initialize ()
 
     NavierStokesBase::Initialize();
 
+    //
+    // Set number of state variables.
+    //
+    NUM_STATE = Density + 1;
+    Tracer = NUM_STATE++;
+    if (do_trac2)
+        Tracer2 = NUM_STATE++;
+    if (do_temp)
+        Temp = NUM_STATE++;
+    NUM_SCALARS = NUM_STATE - Density;
+
     NavierStokes::Initialize_specific();
 
     amrex::ExecOnFinalize(NavierStokes::Finalize);
@@ -605,19 +616,7 @@ NavierStokes::advance (Real time,
     //
     // Add the advective and other terms to get scalars at t^{n+1}.
     //
-    if (do_scalar_update_in_order)
-    {
-	for (int iComp=0; iComp<NUM_SCALARS-1; iComp++)
-        {
-	    int iScal = first_scalar+scalarUpdateOrder[iComp];
-	    Print() << "... ... updating " << desc_lst[0].name(iScal) << '\n';
-	    scalar_update(dt,iScal,iScal);
-	}
-    }
-    else
-    {
-	scalar_update(dt,first_scalar+1,last_scalar);
-    }
+    scalar_update(dt,first_scalar+1,last_scalar);
     //
     // S appears in rhs of the velocity update, so we better do it now.
     //
@@ -1185,7 +1184,7 @@ NavierStokes::writePlotFile (const std::string& dir,
 	//
 	// Names of variables -- first state, then derived
 	//
-	for (i =0; i < plot_var_map.size(); i++)
+        for (std::size_t i =0; i < plot_var_map.size(); i++)
         {
 	    int typ  = plot_var_map[i].first;
 	    int comp = plot_var_map[i].second;
@@ -1723,7 +1722,6 @@ NavierStokes::mac_sync ()
 				    advectionType, prev_time,
 				    prev_pres_time,dt,
 				    NUM_STATE,be_cn_theta,
-				    modify_reflux_normal_vel,
 				    do_mom_diff);
     //
     // Delete Ucorr; we're done with it.

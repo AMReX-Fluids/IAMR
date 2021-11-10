@@ -1,6 +1,10 @@
 
+.. _Chap:AlgorithmOptions:
+
 Algortihm Options
 =================
+
+This is a work in progress. For questions, please open an issue on github: https://github.com/AMReX-Codes/IAMR/issues
 
 Conservative vs. Non-conservative
 ---------------------------------

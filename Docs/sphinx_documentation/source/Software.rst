@@ -2,7 +2,7 @@
    :language: c++
 
 ..
-  This needs to be reorganized, and probably some parts should be moved to different Chapters
+  WIP: This needs to be reorganized, and probably some parts should be moved to different Chapters
 
 An Overview of IAMR Code
 ************************
@@ -13,10 +13,6 @@ including the core data structures required in AMR calculations.
 Since IAMR leaverages heavily from the AMReX library,
 it’s documentation :ref:`amrex:amrex_doc_indx`
 is a useful resource in addition to this User’s Guide.
-
-..
-    (at https://amrex-codes.github.io/amrex/docs_html/index.html)
-
 
 The IAMR simulation begins in IAMR/Source/main.cpp where an instance
 of the AMReX Amr class is created:
@@ -141,45 +137,8 @@ Here ParallelFor takes two arguments. The first argument is a Box specifying the
 (more details are in the AMReX documentation at
 https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for ).
 
-Problem Setup
-=============
 
-To define a new problem, we create a new inputs file in a run directory and modify
-``IAMR/Source/prob/prob_init.cpp`` accordingly.
-The simplest way to get started is to copy the inputs files from an existing
-problem. Here we describe how to customize your problem.
-
-There are several files involved in setting up an IAMR problem. It’s possible to
-create your own new setup by modifying only one source file (``prob_initData()``)
-and changing parameters through the inputs file (see section :ref:`sec:inputs`).
-Here we list the most relevant problem
-setup files and thier purpose. If you need further help setting up your problem, please
-contact us.
-
--  ``prob_initData()``:
-   Read in initial conditions and problem parameters from the inputs file,
-   and initialize the state data (velocity, density, etc.).
-
--  ``NS_error.cpp``: Define the error estimation criteria used for tagging cells for
-   refinement.
-   More details in section [ :ref:`sec:tagging` ]
-
--  ``NS_setup.cpp``: Declare state and derived variables.
-   Specify how to fill grow cells for each state or derived variable.
-   More details in sections [ :ref:`sec:boundaries` ]
-
--  ``NS_derive.cpp``: Define derived variables.
-   More details in sections [ :ref:`sec:derivedVariables` ]
-
--  ``NS_BC.H``: Define the mapping from physical boundary conditions (e.g. outflow)
-   to mathematical (e.g. first order extrapolation from last interior cell).
-   More details in section [ :ref:`sec:physicalBCs` ]
-
--  ``NS_bcfill.H``:
-   Define the boundary filling functions for external Dirichlet (i.e. user supplied)
-   boundary conditions. Constant Dirichlet conditions can be specified in the
-   inputs file without needing to alter NS_bcfill.H.
-   More details in section [ :ref:`sec:physicalBCs` ]
+.. _sec:boundaries:
 
 Boundaries
 ==========
@@ -238,11 +197,11 @@ and a special one that indicates external Dirichlet. In the case of Dirichlet,
 the user supplies data to fill grow cells.
 
 IAMR provides the ability to specify constant Dirichlet BCs
-in the inputs file (see section [sec:dirichlet]).
+in the inputs file (see section :ref:`sec:dirichlet`).
 Users can create more complex Dirichlet boundary condtions by writing
-their own fill function in NS_bcfill.H, then using that function to create
-an amrex::StateDescriptor::BndryFunc object and specifying which variables
-will use it in NS_setup.cpp.
+their own fill function in ``NS_bcfill.H``, then using that function to create
+an ``amrex::StateDescriptor::BndryFunc`` object and specifying which variables
+will use it in ``NS_setup.cpp``.
 
 It is important to note that external Dirichlet boundary data is to be specified as
 if applied on the face of the cell bounding the domain, even for cell-centered
@@ -256,7 +215,7 @@ that are Dirichlet and wall-centered, and the stencils are adjusted accordingly.
 For convenience, IAMR provides a limited set of mappings from a physics-based boundary condition
 specification to a mathematical one that the code can apply. This set can be extended
 by adjusting the corresponding translations in ``NS_BC.H``, but, by default, includes
-(See AMReX/Src/Base/AMReX_BC_TYPES.H for more detail):
+(See ``AMReX/Src/Base/AMReX_BC_TYPES.H`` for more detail):
 
 -  *Outflow*:
 
@@ -295,6 +254,8 @@ The keywords used above are defined:
 -  REFLECT_EVEN: :math:`F(-n) = F(n)` true reflection from interior cells
 
 -  REFLECT_ODD: :math:`F(-n) = -F(n)` true reflection from interior cells
+
+.. _sec:derivedVariables
 
 Derived Variables
 =================
@@ -628,7 +589,7 @@ See :ref:`Chap:Parallel` and AMReX's docmumentation (:ref:`amrex:sec:basics:mfit
 .. _sec:gridCreation:
 
 AMR Grids
-=====
+=========
 
 Our approach to adaptive refinement in IAMR uses a nested
 hierarchy of logically-rectangular grids with simultaneous refinement
