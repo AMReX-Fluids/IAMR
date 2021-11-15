@@ -65,6 +65,9 @@ ns.lo_bc 	     	= 5 1 0
 ns.hi_bc   	     	= 4 2 0
 
 ylo.velocity = 0. 10. 0.
+ylo.density  = 1.
+ylo.tracer   = 0.
+ylo.tracer2  = 1.
 
 # Add cylinder
 eb2.geom_type               = sphere

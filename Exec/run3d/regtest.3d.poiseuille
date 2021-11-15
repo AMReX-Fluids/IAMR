@@ -58,7 +58,11 @@ ns.hi_bc             	=  2 5 4
 # 2 = Outflow            5 = NoSlipWall
 
 # Boundary condition
-xlo.velocity            =   1.  0.  0.
+xlo.velocity = 1.  0.  0.
+xlo.density  = 1.
+xlo.tracer   = 0.
+xlo.tracer2  = 1.
+
 
 # PROBLEM PARAMETERS           
 prob.probtype = 4

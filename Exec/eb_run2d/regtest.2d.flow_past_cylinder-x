@@ -35,7 +35,7 @@ amr.restart             =   ""          # Checkpoint to restart from
 ns.gravity          =  -9.8  
 
 ns.vel_visc_coef         = 0.1
-ns.scal_diff_coefs       = 0.1 0.03
+ns.scal_diff_coefs       = 0.1 0. #03
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
@@ -68,6 +68,7 @@ ns.hi_bc   	     	= 2 5 0
 xlo.velocity = 10. 0. 0.
 xlo.density  = 1.
 xlo.tracer   = 0.
+xlo.tracer2  = 1.
 
 # Add cylinder
 eb2.geom_type               = sphere
