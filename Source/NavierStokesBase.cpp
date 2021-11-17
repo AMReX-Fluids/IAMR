@@ -763,25 +763,18 @@ NavierStokesBase::buildMetrics ()
 #ifdef AMREX_USE_EB
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
-    Print()<<"dx = "<<dx[0]<<" "<<dx[1]<<" "<<dx[2]<<" \n";
     for (int i = 1; i < BL_SPACEDIM; i++){
-      if (std::abs(dx[i]-dx[i-1]) > 1.e-12*dx[0])
-        amrex::Abort("EB requires dx == dy (== dz)\n");
+        if (std::abs(dx[i]-dx[i-1]) > 1.e-12*dx[0]){
+            Print()<<"dx = "
+                   <<AMREX_D_TERM(dx[0], <<" "<<dx[1], <<" "<<dx[2])
+                   <<std::endl;
+            amrex::Abort("EB requires dx == dy (== dz)\n");
+        }
     }
 
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
     volfrac = &(ebfactory.getVolFrac());
     areafrac = ebfactory.getAreaFrac();
-
-
-    //fixme? assume will need this part cribbed from CNS
-    // level_mask.clear();
-    // level_mask.define(grids,dmap,1,1);
-    // level_mask.BuildMask(geom.Domain(), geom.periodicity(),
-    //                      level_mask_covered,
-    //                      level_mask_notcovered,
-    //                      level_mask_physbnd,
-    //                      level_mask_interior);
 
 #endif
 }
@@ -835,31 +828,32 @@ NavierStokesBase::checkPoint (const std::string& dir,
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 
-  if (avg_interval > 0){
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    if (avg_interval > 0)
+    {
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    if (ParallelDescriptor::IOProcessor()) {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::ofstream TImeAverageFile;
+            TImeAverageFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+            std::string TAFileName(dir + "/TimeAverage");
+            TImeAverageFile.open(TAFileName.c_str(), std::ofstream::out |
+                                 std::ofstream::trunc |
+                                 std::ofstream::binary);
 
-      std::ofstream TImeAverageFile;
-      TImeAverageFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-      std::string TAFileName(dir + "/TimeAverage");
-      TImeAverageFile.open(TAFileName.c_str(), std::ofstream::out   |
-                    std::ofstream::trunc |
-                    std::ofstream::binary);
+            if( !TImeAverageFile.good()) {
+                amrex::FileOpenFailed(TAFileName);
+            }
 
-      if( !TImeAverageFile.good()) {
-           amrex::FileOpenFailed(TAFileName);
-      }
+            TImeAverageFile.precision(17);
 
-      TImeAverageFile.precision(17);
+            // write out title line
+            TImeAverageFile << "Writing time_average to checkpoint\n";
 
-      // write out title line
-      TImeAverageFile << "Writing time_average to checkpoint\n";
-
-      TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
-      TImeAverageFile << NavierStokesBase::time_avg_fluct[level] << "\n";
+            TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
+            TImeAverageFile << NavierStokesBase::time_avg_fluct[level] << "\n";
+        }
     }
-  }
 
 #ifdef AMREX_PARTICLES
     if (level == 0)
