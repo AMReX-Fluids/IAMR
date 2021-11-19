@@ -1,4 +1,4 @@
-.. _Chap:ProblemSetup
+.. _Chap:ProblemSetup:
 
 Problem Setup
 =============
