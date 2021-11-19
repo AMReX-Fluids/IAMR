@@ -189,7 +189,7 @@ namespace
     std::string      particle_restart_file;
     std::string      particle_output_file;
     bool             restart_from_nonparticle_chkfile = false;
-    int              pverbose                         = 2;
+    int              pverbose                         = 0;
 }
 
 AmrTracerParticleContainer* NavierStokesBase::theNSPC () { return NSPC; }
@@ -3751,7 +3751,10 @@ NavierStokesBase::read_particle_params ()
         ppp.getarr("timestamp_indices", timestamp_indices, 0, nc);
     }
 
-    ppp.query("pverbose",pverbose);
+    ppp.query("verbose",pverbose);
+    if ( ppp.countname("pverbose") > 0) {
+	amrex::Abort("particles.pverbose found in inputs. Please use particles.verbose");
+    }
     //
     // Used in initData() on startup to read in a file of particles.
     //

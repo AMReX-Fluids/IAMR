@@ -17,7 +17,7 @@ stop_time 		= 5.0
 # PARTICLE INPUTS
 
 particles.particle_init_file = particle_file_ml
-particles.pverbose = 0
+particles.verbose = 0
 particles.timestamp_dir = particle_dir
 particles.timestamp_indices = 1
 
