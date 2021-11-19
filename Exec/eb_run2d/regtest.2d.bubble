@@ -60,7 +60,7 @@ amr.ref_ratio		= 2 2 2 2
 #ns.v                    = 1
 
 #diffuse.v 		= 1
-#proj.v = 1
+#nodal_proj.verbose= 1
 #nodal_proj.verbose =2
 
 # Sets the "amr" code to be verbose

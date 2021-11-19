@@ -132,8 +132,8 @@ ns.do_cons_trac=1
 # PROJECTION SETTINGS
 #*******************************************************************************
 
-proj.proj_tol = 1.e-12
-proj.proj_abs_tol = 1.e-15
+nodal_proj.proj_tol = 1.e-12
+nodal_proj.proj_abs_tol = 1.e-15
 
 #*******************************************************************************
 #            for testing                

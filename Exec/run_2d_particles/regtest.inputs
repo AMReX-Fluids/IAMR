@@ -149,5 +149,5 @@ amr.grid_eff = 0.75
 
 #*******************************************************************************
 
-proj.proj_tol = 1.e-12
-proj.proj_abs_tol = 1.e-15
+nodal_proj.proj_tol = 1.e-12
+nodal_proj.proj_abs_tol = 1.e-15

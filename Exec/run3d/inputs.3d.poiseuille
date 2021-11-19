@@ -63,4 +63,4 @@ prob.density_ic = 1.0
 prob.velocity_ic = 1.0 0. 0.
 
 amr.derive_plot_vars   	=  mag_vort
-proj.v 			=  0
+nodal_proj.verbose 			=  0

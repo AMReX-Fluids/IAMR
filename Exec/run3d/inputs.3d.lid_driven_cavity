@@ -49,4 +49,4 @@ ns.hi_bc             	=  5 5 5
 prob.probtype = 1
 
 amr.derive_plot_vars   	=  mag_vort
-proj.v 			=  0
+nodal_proj.verbose 			=  0

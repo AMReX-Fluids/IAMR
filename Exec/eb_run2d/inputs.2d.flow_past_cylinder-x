@@ -91,10 +91,7 @@ prob.velocity_ic = 10. 0. 0.
 #              VERBOSITY                #
 #.......................................#
 ns.v                    = 1 # NS solver 
-proj.v                  = 1 # Nodal projection
-mac.verbose             = 0 # MacProjector
+nodal_proj.verbose                  = 1 # Nodal projection
+mac_proj.verbose             = 0 # MacProjector
 #diffusion.verbose       =   1           # Diffusion operator
-projection.verbose   =   1           # Nodal projection
-projection.mg_verbose=   0
-projection.mg_rtol   =  1.0e-13
 
