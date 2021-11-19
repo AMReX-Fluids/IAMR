@@ -255,7 +255,7 @@ The keywords used above are defined:
 
 -  REFLECT_ODD: :math:`F(-n) = -F(n)` true reflection from interior cells
 
-.. _sec:derivedVariables
+.. _sec:derivedVariables:
 
 Derived Variables
 =================
