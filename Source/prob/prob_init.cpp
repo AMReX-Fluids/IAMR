@@ -142,7 +142,7 @@ void NavierStokes::prob_initData ()
 	else
         {
             amrex::Abort("NavierStokes::prob_init: unknown probtype");
-        };
+        }
     }
 }
 
