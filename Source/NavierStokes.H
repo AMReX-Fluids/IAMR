@@ -54,11 +54,15 @@ public:
     //
 #include "prob_init.H"
     //
-    // Write plot file stuff to specified directory.
+    // Do pre-plotfile work
     //
-    virtual void writePlotFile (const std::string& dir,
-                                std::ostream&  os,
-                                amrex::VisMF::How     how) override;
+    void writePlotFilePre (const std::string& dir,
+                           std::ostream&      os) override;
+    //
+    // Do post-plotfile work
+    //
+    void writePlotFilePost (const std::string& dir,
+                            std::ostream&      os) override;
     //
     // Modify list of variables to be plotted
     //
@@ -221,6 +225,13 @@ private:
     ///////////////////
     // Private data  //
     ///////////////////
+
+    //
+    // Runtime parameters
+    //
+    // For EB, set all covered cells to zero (1, default), or show whatever is
+    // in covered cells in plotfile (0).
+    static int set_plot_coveredCell_val;
 
     //
     // Holds info for dynamically generated error estimators

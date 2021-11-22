@@ -24,6 +24,8 @@
 
 using namespace amrex;
 
+int NavierStokes::set_plot_coveredCell_val = 1;
+
 namespace
 {
     bool initialized = false;
@@ -1135,305 +1137,113 @@ NavierStokes::setPlotVariables()
 }
 
 void
-NavierStokes::writePlotFile (const std::string& dir,
-                             std::ostream&  os,
-                             VisMF::How     how)
+NavierStokes::writePlotFilePre (const std::string& dir,
+                                std::ostream&  os)
 {
-    if ( ! Amr::Plot_Files_Output() ) return;
-
-    BL_PROFILE("NavierStokes::writePlotFile()");
-
-    int i, n;
-    //
-    // The list of indices of State to write to plotfile.
-    // first component of pair is state_type,
-    // second component of pair is component # within the state_type
-    //
-    std::vector<std::pair<int,int> > plot_var_map;
-    for (int typ = 0; typ < desc_lst.size(); typ++)
-        for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
-            if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
-                desc_lst[typ].getType() == IndexType::TheCellType())
-                plot_var_map.push_back(std::pair<int,int>(typ,comp));
-
-    int num_derive = 0;
-    std::list<std::string> derive_names;
-    const std::list<DeriveRec>& dlist = derive_lst.dlist();
-
-    for (std::list<DeriveRec>::const_iterator it = dlist.begin(), end = dlist.end();
-         it != end;
-         ++it)
-    {
-        if (parent->isDerivePlotVar(it->name()))
-	{
-            derive_names.push_back(it->name());
-            num_derive += it->numDerive();
-	}
-    }
-
-    int n_data_items = plot_var_map.size() + num_derive;
 #ifdef AMREX_USE_EB
-    // add in vol frac
-    n_data_items++;
+    if ( set_plot_coveredCell_val )
+    {
+        for (std::size_t i =0; i < state.size(); i++)
+        {
+            auto& sdata = state[i].newData();
+	    // only cell-centered state data goes into plotfile
+            if ( sdata.ixType().cellCentered() ){
+                // set covered values for ease of viewing
+                EB_set_covered(sdata, 0.0);
+            }
+        }
+    }
 #endif
-    Real cur_time = state[State_Type].curTime();
+}
 
+void
+NavierStokes::writePlotFilePost (const std::string& dir,
+                                 std::ostream&  os)
+{
     if (level == 0 && ParallelDescriptor::IOProcessor())
     {
-        //
-        // The first thing we write out is the plotfile type.
-        //
-        os << thePlotFileType() << '\n';
-
-        if (n_data_items == 0)
-            Error("Must specify at least one valid data item to plot");
-
-        os << n_data_items << '\n';
-
-	//
-	// Names of variables -- first state, then derived
-	//
-        for (std::size_t i =0; i < plot_var_map.size(); i++)
-        {
-	    int typ  = plot_var_map[i].first;
-	    int comp = plot_var_map[i].second;
-	    os << desc_lst[typ].name(comp) << '\n';
-        }
-
-	for (std::list<std::string>::const_iterator it = derive_names.begin(), end = derive_names.end();
-             it != end;
-             ++it)
-        {
-	    const DeriveRec* rec = derive_lst.get(*it);
-	    for (i = 0; i < rec->numDerive(); i++)
-                os << rec->variableName(i) << '\n';
-        }
-#ifdef AMREX_USE_EB
-	//add in vol frac
-	os << "volFrac\n";
-#endif
-
-        os << BL_SPACEDIM << '\n';
-        os << parent->cumTime() << '\n';
-        int f_lev = parent->finestLevel();
-        os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
-            os << Geom().ProbLo(i) << ' ';
-        os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
-            os << Geom().ProbHi(i) << ' ';
-        os << '\n';
-        for (i = 0; i < f_lev; i++)
-            os << parent->refRatio(i)[0] << ' ';
-        os << '\n';
-        for (i = 0; i <= f_lev; i++)
-            os << parent->Geom(i).Domain() << ' ';
-        os << '\n';
-        for (i = 0; i <= f_lev; i++)
-            os << parent->levelSteps(i) << ' ';
-        os << '\n';
-        for (i = 0; i <= f_lev; i++)
-        {
-            for (int k = 0; k < BL_SPACEDIM; k++)
-                os << parent->Geom(i).CellSize()[k] << ' ';
-            os << '\n';
-        }
-        os << (int) Geom().Coord() << '\n';
-        os << "0\n"; // Write bndry data.
-
-
         // job_info file with details about the run
-	std::ofstream jobInfoFile;
-	std::string FullPathJobInfoFile = dir;
-	FullPathJobInfoFile += "/job_info";
-	jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
+        std::ofstream jobInfoFile;
+        std::string FullPathJobInfoFile = dir;
+        FullPathJobInfoFile += "/job_info";
+        jobInfoFile.open(FullPathJobInfoFile.c_str(), std::ios::out);
 
-	std::string PrettyLine = "===============================================================================\n";
-	std::string OtherLine = "--------------------------------------------------------------------------------\n";
-	std::string SkipSpace = "        ";
+        std::string PrettyLine = "===============================================================================\n";
+        std::string OtherLine = "--------------------------------------------------------------------------------\n";
+        std::string SkipSpace = "        ";
 
 
-	// job information
-	jobInfoFile << PrettyLine;
-	jobInfoFile << " Job Information\n";
-	jobInfoFile << PrettyLine;
+        // job information
+        jobInfoFile << PrettyLine;
+        jobInfoFile << " Job Information\n";
+        jobInfoFile << PrettyLine;
 
-	jobInfoFile << "number of MPI processes: " << ParallelDescriptor::NProcs() << '\n';
+        jobInfoFile << "number of MPI processes: " << ParallelDescriptor::NProcs() << '\n';
 #ifdef _OPENMP
-	jobInfoFile << "number of threads:       " << omp_get_max_threads() << '\n';
+        jobInfoFile << "number of threads:       " << omp_get_max_threads() << '\n';
 #endif
-	jobInfoFile << "\n\n";
+        jobInfoFile << "\n\n";
 
         // plotfile information
-	jobInfoFile << PrettyLine;
-	jobInfoFile << " Plotfile Information\n";
-	jobInfoFile << PrettyLine;
+        jobInfoFile << PrettyLine;
+        jobInfoFile << " Plotfile Information\n";
+        jobInfoFile << PrettyLine;
 
-	time_t now = time(0);
+        time_t now = time(0);
 
-	// Convert now to tm struct for local timezone
-	tm* localtm = localtime(&now);
-	jobInfoFile   << "output data / time: " << asctime(localtm);
+        // Convert now to tm struct for local timezone
+        tm* localtm = localtime(&now);
+        jobInfoFile   << "output data / time: " << asctime(localtm);
 
-	char currentDir[FILENAME_MAX];
-	if (getcwd(currentDir, FILENAME_MAX)) {
-	  jobInfoFile << "output dir:         " << currentDir << '\n';
-	}
+        char currentDir[FILENAME_MAX];
+        if (getcwd(currentDir, FILENAME_MAX)) {
+          jobInfoFile << "output dir:         " << currentDir << '\n';
+        }
 
-	jobInfoFile << "\n\n";
+        jobInfoFile << "\n\n";
 
 
         // build information
-	jobInfoFile << PrettyLine;
-	jobInfoFile << " Build Information\n";
-	jobInfoFile << PrettyLine;
+        jobInfoFile << PrettyLine;
+        jobInfoFile << " Build Information\n";
+        jobInfoFile << PrettyLine;
 
-	jobInfoFile << "build date:    " << buildInfoGetBuildDate() << '\n';
-	jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << '\n';
-	jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << '\n';
-	jobInfoFile << "BoxLib dir:    " << buildInfoGetAMReXDir() << '\n';
+        jobInfoFile << "build date:    " << buildInfoGetBuildDate() << '\n';
+        jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << '\n';
+        jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << '\n';
+        jobInfoFile << "BoxLib dir:    " << buildInfoGetAMReXDir() << '\n';
 
         jobInfoFile << '\n';
 
         jobInfoFile << "COMP:          " << buildInfoGetComp() << '\n';
-	jobInfoFile << "COMP version:  " << buildInfoGetCompVersion() << "\n";
+        jobInfoFile << "COMP version:  " << buildInfoGetCompVersion() << "\n";
         jobInfoFile << "FCOMP:         " << buildInfoGetFcomp() << '\n';
-	jobInfoFile << "FCOMP version: " << buildInfoGetFcompVersion() << "\n";
+        jobInfoFile << "FCOMP version: " << buildInfoGetFcompVersion() << "\n";
 
-	jobInfoFile << "\n";
+        jobInfoFile << "\n";
 
-	const char* githash1 = buildInfoGetGitHash(1);
-	const char* githash2 = buildInfoGetGitHash(2);
-	if (strlen(githash1) > 0) {
-	  jobInfoFile << "IAMR   git hash: " << githash1 << "\n";
-	}
-	if (strlen(githash2) > 0) {
-	  jobInfoFile << "BoxLib git hash: " << githash2 << "\n";
-	}
-
-	jobInfoFile << "\n\n";
-
-
-	// runtime parameters
-	jobInfoFile << PrettyLine;
-	jobInfoFile << " Inputs File Parameters\n";
-	jobInfoFile << PrettyLine;
-
-	ParmParse::dumpTable(jobInfoFile, true);
-
-	jobInfoFile.close();
-
-    }
-    // Build the directory to hold the MultiFab at this level.
-    // The name is relative to the directory containing the Header file.
-    //
-    static const std::string BaseName = "/Cell";
-
-    std::string LevelStr = Concatenate("Level_", level, 1);
-    //
-    // Now for the full pathname of that directory.
-    //
-    std::string FullPath = dir;
-    if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
-        FullPath += '/';
-    FullPath += LevelStr;
-    //
-    // Only the I/O processor makes the directory if it doesn't already exist.
-    //
-    if (ParallelDescriptor::IOProcessor())
-        if (!UtilCreateDirectory(FullPath, 0755))
-            CreateDirectoryFailed(FullPath);
-    //
-    // Force other processors to wait till directory is built.
-    //
-    ParallelDescriptor::Barrier();
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        os << level << ' ' << grids.size() << ' ' << cur_time << '\n';
-        os << parent->levelSteps(level) << '\n';
-
-        for (i = 0; i < grids.size(); ++i)
-        {
-            RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            for (n = 0; n < BL_SPACEDIM; n++)
-                os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
+        const char* githash1 = buildInfoGetGitHash(1);
+        const char* githash2 = buildInfoGetGitHash(2);
+        if (strlen(githash1) > 0) {
+          jobInfoFile << "IAMR   git hash: " << githash1 << "\n";
         }
-        //
-        // The full relative pathname of the MultiFabs at this level.
-        // The name is relative to the Header file containing this name.
-        // It's the name that gets written into the Header.
-        //
-        if (n_data_items > 0)
-        {
-            std::string PathNameInHeader = LevelStr;
-            PathNameInHeader += BaseName;
-            os << PathNameInHeader << '\n';
+        if (strlen(githash2) > 0) {
+          jobInfoFile << "BoxLib git hash: " << githash2 << "\n";
         }
 
-#ifdef AMREX_USE_EB
-	// volfrac threshhold for amrvis
-	// fixme? pulled directly from CNS, might need adjustment
-        if (level == parent->finestLevel()) {
-            for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
-                os << "1.0e-6\n";
-            }
-        }
-#endif
-    }
-    //
-    // We combine all of the multifabs -- state, derived, etc -- into one
-    // multifab -- plotMF.
-    // NOTE: we are assuming that each state variable has one component,
-    // but a derived variable is allowed to have multiple components.
-    int       cnt   = 0;
-    int       ncomp = 1;
-    const int nGrow = 0;
-    MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
-    MultiFab* this_dat = 0;
-    //
-    // Cull data from state variables -- use no ghost cells.
-    //
-    for (i = 0; i < plot_var_map.size(); i++)
-    {
-	int typ  = plot_var_map[i].first;
-	int comp = plot_var_map[i].second;
-	this_dat = &state[typ].newData();
-	MultiFab::Copy(plotMF,*this_dat,comp,cnt,ncomp,nGrow);
-	cnt+= ncomp;
-    }
-    //
-    // Cull data from derived variables.
-    //
-    if (derive_names.size() > 0)
-    {
-	for (std::list<std::string>::const_iterator it = derive_names.begin(), end = derive_names.end();
-             it != end;
-             ++it)
-	{
-	    const DeriveRec* rec = derive_lst.get(*it);
-	    ncomp = rec->numDerive();
-	    auto derive_dat = derive(*it,cur_time,nGrow);
-	    MultiFab::Copy(plotMF,*derive_dat,0,cnt,ncomp,nGrow);
-	    cnt += ncomp;
-	}
-    }
+        jobInfoFile << "\n\n";
 
-#ifdef AMREX_USE_EB
-    // add volume fraction to plotfile
-    plotMF.setVal(0.0, cnt, 1, nGrow);
-    MultiFab::Copy(plotMF,*volfrac,0,cnt,1,nGrow);
 
-    // set covered values for ease of viewing
-    EB_set_covered(plotMF, 0.0);
-#endif
+        // runtime parameters
+        jobInfoFile << PrettyLine;
+        jobInfoFile << " Inputs File Parameters\n";
+        jobInfoFile << PrettyLine;
 
-    //
-    // Use the Full pathname when naming the MultiFab.
-    //
-    std::string TheFullPath = FullPath;
-    TheFullPath += BaseName;
-    VisMF::Write(plotMF,TheFullPath,how,true);
+        ParmParse::dumpTable(jobInfoFile, true);
+
+        jobInfoFile.close();
+
+    }
 
     //
     // Put particles in plotfile?
