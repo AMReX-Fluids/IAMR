@@ -113,6 +113,16 @@ as whether the EB geometry should be written out.
 | derive_plot_vars    | Derived variables to include in plotfile                              |  String     | NONE      |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 
+The following inputs must be preceded by "ns."
++--------------------------+-----------------------------------------------------------------------+-------------+-----------+
+|                          | Description                                                           |   Type      | Default   |
++==========================+=======================================================================+=============+===========+
+| set_plot_coveredCell_val | For EB, set all covered cells? If 1, sets covered cells to zero.      |    Int      |  1        |
+|                          | If 0, show covered cells without setting a value for the plotfile;    |             |           |
+|                          | for debugging, as covered cells are not used in the algorithm.        |             |           |
++--------------------------+-----------------------------------------------------------------------+-------------+-----------+
+
+
 	 
 .. _sec:InputsCheckpoint:
 

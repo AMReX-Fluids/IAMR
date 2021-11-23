@@ -300,6 +300,14 @@ if -1 then no plotfiles will be written at this frequency</p></td>
 </tr>
 </tbody>
 </table>
+<p>The following inputs must be preceded by “ns.”
++————————–+———————————————————————–+————-+———–+
+|                          | Description                                                           |   Type      | Default   |
++==========================+=======================================================================+=============+===========+
+| set_plot_coveredCell_val | For EB, set all covered cells? If 1, sets covered cells to zero.      |    Int      |  1        |
+|                          | If 0, show covered cells without setting a value for the plotfile;    |             |           |
+|                          | for debugging, as covered cells are not used in the algorithm.        |             |           |
++————————–+———————————————————————–+————-+———–+</p>
 </div>
 <div class="section" id="checkpointing-and-restarting">
 <span id="sec-inputscheckpoint"></span><h3>Checkpointing and Restarting<a class="headerlink" href="#checkpointing-and-restarting" title="Permalink to this headline"></a></h3>
