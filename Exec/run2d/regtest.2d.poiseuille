@@ -149,6 +149,6 @@ prob.velocity_ic = 1.0 0. 0.
 #*******************************************************************************
 
 # Write all derived quantities to plot files
-amr.derive_plot_vars    = ALL
+amr.derive_plot_vars    = NONE
 
 #*******************************************************************************
