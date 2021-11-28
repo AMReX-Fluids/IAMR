@@ -1306,6 +1306,7 @@ MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phy
     EB_interp_CellCentroid_to_FaceCentroid( rho, GetArrOfPtrs(bcoefs), 0, 0, 1,
 					    geom, {density_math_bc});
 #else
+    amrex::ignore_unused(density_math_bc);
     average_cellcenter_to_face(GetArrOfPtrs(bcoefs), rho, geom);
 #endif
 
