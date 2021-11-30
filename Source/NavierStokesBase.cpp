@@ -2794,33 +2794,33 @@ NavierStokesBase::scalar_advection_update (Real dt,
     // VisMF::Write(S_new,"sn_"+std::to_string(count));
     // for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     // {
-    //   std::cout << count <<" , comp = " << sigma << ", max(S_new)  = "
-    // 		<< S_new.norm0( sigma, 0, false, true )
-    // 		<< std::endl;
+    //     std::cout << count <<" , comp = " << sigma << ", max(S_new)  = "
+    //               << S_new.norm0( sigma, 0, false, true )
+    //               << std::endl;
     // }
 
     // for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     // {
-    //    if (S_old.contains_nan(sigma,1,0))
-    //    {
-    // 	 amrex::Print() << "SAU: Old scalar " << sigma << " contains Nans" << std::endl;
+    //     if (S_old.contains_nan(sigma,1,0))
+    //     {
+    //         amrex::Print() << "SAU: Old scalar " << sigma << " contains Nans" << std::endl;
 
-    // 	 IntVect mpt(D_DECL(-100,100,-100));
-    // 	 for (MFIter mfi(S_old); mfi.isValid(); ++mfi){
-    // 	   if ( S_old[mfi].contains_nan<RunOn::Host>(mpt) )
-    // 	     amrex::Print() << " Nans at " << mpt << std::endl;
-    // 	 }
-    //    }
-    //    if (S_new.contains_nan(sigma,1,0))
-    //    {
-    // 	 amrex::Print() << "SAU: New scalar " << sigma << " contains Nans" << std::endl;
+    //         IntVect mpt(D_DECL(-100,100,-100));
+    //         for (MFIter mfi(S_old); mfi.isValid(); ++mfi){
+    //             if ( S_old[mfi].contains_nan<RunOn::Host>(mpt) )
+    //                 amrex::Print() << " Nans at " << mpt << std::endl;
+    //         }
+    //     }
+    //     if (S_new.contains_nan(sigma,1,0))
+    //     {
+    //         amrex::Print() << "SAU: New scalar " << sigma << " contains Nans" << std::endl;
 
-    // 	 IntVect mpt(D_DECL(-100,100,-100));
-    // 	 for (MFIter mfi(S_new); mfi.isValid(); ++mfi){
-    // 	   if ( S_new[mfi].contains_nan<RunOn::Host>(mpt) )
-    // 	     amrex::Print() << " Nans at " << mpt << std::endl;
-    // 	 }
-    //    }
+    //         IntVect mpt(D_DECL(-100,100,-100));
+    //         for (MFIter mfi(S_new); mfi.isValid(); ++mfi){
+    //             if ( S_new[mfi].contains_nan<RunOn::Host>(mpt) )
+    //                 amrex::Print() << " Nans at " << mpt << std::endl;
+    //         }
+    //     }
     // }
 }
 
@@ -4246,8 +4246,12 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
         const auto& so   = Sold.const_array(mfi,sold_comp);
         const auto& rhon = Snew.const_array(mfi,new_density_comp);
         const auto& rhoo = Sold.const_array(mfi,old_density_comp);
+#ifdef AMREX_USE_EB
+        const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+        const auto& vfrac = ebfactory.getVolFrac().const_array(mfi);
+#endif
 
-        amrex::ParallelFor(bx, [sn, so, rhon, rhoo]
+        amrex::ParallelFor(bx, [=]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real smn = std::numeric_limits<Real>::max();
@@ -4267,12 +4271,16 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
                 {
                     for (int ii = -1; ii <= 1; ++ii)
                     {
+#ifdef AMREX_USE_EB
+                        if ( vfrac (i+ii,j+jj,k+kk) > 0. )
+#endif
+                    {
                         smn =  amrex::min(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
                         smx =  amrex::max(smx, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
                     }
                 }
             }
-
+            }
             sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k)/rhon(i,j,k), smn), smx ) * rhon(i,j,k);
         });
     }
@@ -4298,8 +4306,12 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
 
         const auto& sn   = Snew.array(mfi,snew_comp);
         const auto& so   = Sold.const_array(mfi,sold_comp);
+#ifdef AMREX_USE_EB
+        const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+        const auto& vfrac = ebfactory.getVolFrac().const_array(mfi);
+#endif
 
-        amrex::ParallelFor(bx, [sn, so]
+        amrex::ParallelFor(bx, [=]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real smn = std::numeric_limits<Real>::max();
@@ -4319,12 +4331,16 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
                 {
                     for (int ii = -1; ii <= 1; ++ii)
                     {
+#ifdef AMREX_USE_EB
+                        if ( vfrac (i+ii,j+jj,k+kk) > 0. )
+#endif
+                    {
                         smn =  amrex::min(smn, so(i+ii,j+jj,k+kk));
                         smx =  amrex::max(smx, so(i+ii,j+jj,k+kk));
                     }
                 }
             }
-
+            }
             sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k), smn), smx );
         });
     }
