@@ -4274,12 +4274,12 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
 #ifdef AMREX_USE_EB
                         if ( vfrac (i+ii,j+jj,k+kk) > 0. )
 #endif
-                    {
-                        smn =  amrex::min(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
-                        smx =  amrex::max(smx, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                        {
+                            smn =  amrex::min(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                            smx =  amrex::max(smx, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                        }
                     }
                 }
-            }
             }
             sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k)/rhon(i,j,k), smn), smx ) * rhon(i,j,k);
         });
@@ -4334,12 +4334,12 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
 #ifdef AMREX_USE_EB
                         if ( vfrac (i+ii,j+jj,k+kk) > 0. )
 #endif
-                    {
-                        smn =  amrex::min(smn, so(i+ii,j+jj,k+kk));
-                        smx =  amrex::max(smx, so(i+ii,j+jj,k+kk));
+                        {
+                            smn =  amrex::min(smn, so(i+ii,j+jj,k+kk));
+                            smx =  amrex::max(smx, so(i+ii,j+jj,k+kk));
+                        }
                     }
                 }
-            }
             }
             sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k), smn), smx );
         });
