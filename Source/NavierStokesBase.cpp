@@ -97,6 +97,7 @@ int         NavierStokesBase::do_cons_trac2             = 0;
 int         NavierStokesBase::do_sync_proj              = 1;
 int         NavierStokesBase::do_reflux                 = 1;
 int         NavierStokesBase::do_mac_proj               = 1;
+int         NavierStokesBase::do_tensor_visc            = 0;
 int         NavierStokesBase::do_refine_outflow         = 0;
 int         NavierStokesBase::do_derefine_outflow       = 1;
 int         NavierStokesBase::Nbuf_outflow              = 1;
