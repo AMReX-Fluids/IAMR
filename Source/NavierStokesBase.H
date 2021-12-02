@@ -745,6 +745,7 @@ public:
     static int  do_sync_proj;
     static int  do_reflux;
     static int  do_mac_proj;
+    static int  do_tensor_visc;             // switch for Diffusion::diffuse_tensor_velocity()
     static int  do_refine_outflow;          // The following three items control
     static int  do_derefine_outflow;        //   how grids are treated at
     static int  Nbuf_outflow;               //   outflow boundaries.

@@ -1021,7 +1021,7 @@ NavierStokes::velocity_diffusion_update (Real dt)
     {
         int rho_flag = (do_mom_diff == 0) ? 1 : 3;
 
- 	FluxBoxes fb_viscn, fb_viscnp1;
+     	FluxBoxes fb_viscn, fb_viscnp1;
         MultiFab** loc_viscn   = 0;
         MultiFab** loc_viscnp1 = 0;
 
@@ -1032,9 +1032,65 @@ NavierStokes::velocity_diffusion_update (Real dt)
         viscTime = state[State_Type].curTime();
         loc_viscnp1 = fb_viscnp1.define(this);
         getViscosity(loc_viscnp1, viscTime);
+        if(do_tensor_visc){
+            diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
+                                        nullptr,loc_viscn,viscn_cc,loc_viscnp1,viscnp1_cc);
+        }
+        else{
+            // diffuse velocity components as scalars if not using tensor viscosity
 
-        diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
-                                    nullptr,loc_viscn,viscn_cc,loc_viscnp1,viscnp1_cc);
+            const MultiFab& Rh = get_rho_half_time();
+
+            int ng=1;
+            const Real prev_time = state[State_Type].prevTime();
+            const Real curr_time = state[State_Type].curTime();
+
+            //fixme? why fillpatch all of state when only doing scalars?
+            FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,0,NUM_STATE);
+            FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,0,NUM_STATE);
+
+            auto Snc = std::unique_ptr<MultiFab>(new MultiFab());
+            auto Snp1c = std::unique_ptr<MultiFab>(new MultiFab());
+
+            if (level > 0) {
+              auto& crselev = getLevel(level-1);
+              Snc->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng, MFInfo(), crselev.Factory());
+              FillPatch(crselev,*Snc  ,ng,prev_time,State_Type,0,NUM_STATE);
+
+              Snp1c->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng, MFInfo(), crselev.Factory());
+              FillPatch(crselev,*Snp1c,ng,curr_time,State_Type,0,NUM_STATE);
+            }
+
+            const int nlev = (level ==0 ? 1 : 2);
+            Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
+            Sn[0]   = &(get_old_data(State_Type));
+            Snp1[0] = &(get_new_data(State_Type));
+
+            if (nlev>1) {
+              Sn[1]   =  Snc.get() ;
+              Snp1[1] =  Snp1c.get() ;
+            }
+
+            const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
+
+            MultiFab *delta_rhs = 0;
+            MultiFab *alpha = 0;
+            const int rhsComp = 0, alphaComp = 0, fluxComp  = 0;
+
+            FluxBoxes fb_fluxn  (this);
+            FluxBoxes fb_fluxnp1(this);
+            MultiFab** fluxn   = fb_fluxn.get();
+            MultiFab** fluxnp1 = fb_fluxnp1.get();
+
+            diffusion->diffuse_scalar (Sn, Sn, Snp1, Snp1, 0, AMREX_SPACEDIM, Rho_comp,
+                                       prev_time,curr_time,be_cn_theta,Rh,rho_flag,
+                                       fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,
+                                       alpha,alphaComp,
+                                       loc_viscn,loc_viscnp1,betaComp,
+                                       crse_ratio,theBCs[0],geom,
+    				   add_old_time_divFlux,
+                                       diffuse_comp);
+        }
     }
 
     if (verbose)
