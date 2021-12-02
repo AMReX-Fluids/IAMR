@@ -248,18 +248,18 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
                      << " lev: " << level << '\n';
 
     // Velocity components should go to tensor solver
-    if (S_comp <= Xvel && Xvel <= S_comp+nComp-1){
-       amrex::Abort("Diffusion::diffuse_scalar(): velocity component(s) attemping to use scalar solver. Velocity must use tensor solver.\n");
-    }
+    // if (S_comp <= Xvel && Xvel <= S_comp+nComp-1){
+    //    amrex::Abort("Diffusion::diffuse_scalar(): velocity component(s) attemping to use scalar solver. Velocity must use tensor solver.\n");
+    // }
 
     // Check if scalars are diffusive type:
     // all the nComp scalars must be of the same type
     int diffType = a_is_diffusive[0];
-    for (int comp = 1; comp < nComp; comp++) {
-        if (a_is_diffusive[comp] != diffType) {
-            amrex::Abort("All the scalars must be either diffusive or non-diffusive when calling diffuse_scalar");
-        }
-    }
+    // for (int comp = 1; comp < nComp; comp++) {
+    //     if (a_is_diffusive[comp] != diffType) {
+    //         amrex::Abort("All the scalars must be either diffusive or non-diffusive when calling diffuse_scalar");
+    //     }
+    // }
 
     // If all non-diffusive, set flux to zero and exit
     if (diffType == 0) {
@@ -419,7 +419,12 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         }
 
         opn.setScalars(a,b);
-        setBeta(opn,betan,betaComp,nComp);
+        if (S_comp <= Xvel && Xvel <= S_comp+nComp-1){
+            setBeta(opn,betan,betaComp,1);
+        }
+        else{
+            setBeta(opn,betan,betaComp,nComp);
+        }
 
 #ifdef AMREX_USE_EB
         MultiFab rhs_tmp(ba,dm,nComp,2,MFInfo(),factory);
@@ -556,7 +561,13 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         opnp1.setACoeffs(0, alpha);
     }
 
-    setBeta(opnp1,betanp1,betaComp,nComp);
+    if (S_comp <= Xvel && Xvel <= S_comp+nComp-1){
+        setBeta(opnp1,betanp1,betaComp,1);
+    }
+    else{
+        setBeta(opnp1,betanp1,betaComp,nComp);
+    }
+
 
     Rhs.mult(rhsscale,0,nComp);
     const Real S_tol     = visc_tol;
