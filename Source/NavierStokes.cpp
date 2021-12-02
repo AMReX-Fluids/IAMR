@@ -1032,6 +1032,10 @@ NavierStokes::velocity_diffusion_update (Real dt)
         viscTime = state[State_Type].curTime();
         loc_viscnp1 = fb_viscnp1.define(this);
         getViscosity(loc_viscnp1, viscTime);
+        AllPrint() << "here\n";
+
+        AllPrint() << "beta[0]->nComp() = " << loc_viscnp1[0]->nComp() << "\n";
+
         if(do_tensor_visc){
             diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
                                         nullptr,loc_viscn,viscn_cc,loc_viscnp1,viscnp1_cc);
@@ -1081,6 +1085,11 @@ NavierStokes::velocity_diffusion_update (Real dt)
             FluxBoxes fb_fluxnp1(this);
             MultiFab** fluxn   = fb_fluxn.get();
             MultiFab** fluxnp1 = fb_fluxnp1.get();
+            const bool add_old_time_divFlux = true;
+            Vector<int> diffuse_comp(1);
+            diffuse_comp[0] = is_diffusive[Xvel];
+            const int betaComp = 0;
+            const int Rho_comp = Density;
 
             diffusion->diffuse_scalar (Sn, Sn, Snp1, Snp1, 0, AMREX_SPACEDIM, Rho_comp,
                                        prev_time,curr_time,be_cn_theta,Rh,rho_flag,
