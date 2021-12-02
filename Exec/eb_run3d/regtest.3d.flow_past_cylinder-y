@@ -55,6 +55,9 @@ ns.lo_bc 	     	= 0 1 4
 ns.hi_bc   	      	= 0 2 5
 
 ylo.velocity = 0. 10. 0.
+ylo.density  = 1.
+ylo.tracer   = 0.
+ylo.tracer2  = 1.
 
 # Add cylinder
 eb2.geom_type                 = cylinder

@@ -121,5 +121,5 @@ amr.blocking_factor     = 8
 amr.derive_plot_vars = NONE
 
 #*******************************************************************************
-proj.proj_tol = 1.e-10
-proj.sync_tol = 1.e-8
+nodal_proj.proj_tol = 1.e-10
+nodal_proj.sync_tol = 1.e-8

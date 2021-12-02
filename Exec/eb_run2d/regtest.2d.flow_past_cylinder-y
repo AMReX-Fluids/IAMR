@@ -65,6 +65,9 @@ ns.lo_bc 	     	= 5 1 0
 ns.hi_bc   	     	= 4 2 0
 
 ylo.velocity = 0. 10. 0.
+ylo.density  = 1.
+ylo.tracer   = 0.
+ylo.tracer2  = 1.
 
 # Add cylinder
 eb2.geom_type               = sphere
@@ -87,10 +90,10 @@ prob.velocity_ic = 0. 10. 0.
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              VERBOSITY                #
 #.......................................#
-ns.v        = 1   # NS solver 
-mac.v       = 0   # MacProjector
-#diffusion.v = 1   # Diffusion operator
-proj.v      = 1   # Nodal projection
+ns.v                   = 1   # NS solver 
+mac_proj.verbose       = 0   # MacProjector
+#diffusion.v            = 1   # Diffusion operator
+nodal_proj.verbose     = 0   # Nodal projection
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            for testing                #

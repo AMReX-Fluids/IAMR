@@ -72,12 +72,9 @@ MacProj::Initialize ()
     static int max_fmg_iter = -1;
 
 
-    //
-    // FIXME -- probably should get rid of mac in favor of a single mac_proj
-    //
-    ParmParse pp("mac");
+    ParmParse pp("mac_proj");
 
-    pp.query("v",                      verbose);
+    pp.query("verbose",                verbose);
     pp.query("mac_tol",                mac_tol);
     pp.query("mac_abs_tol",            mac_abs_tol);
     pp.query("mac_sync_tol",           mac_sync_tol);
@@ -88,6 +85,7 @@ MacProj::Initialize ()
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("max_fmg_iter", max_fmg_iter);
+    pp.query( "maxorder"      , max_order );
 #ifdef AMREX_USE_HYPRE
     if ( pp.contains("use_hypre") )
       amrex::Abort("use_hypre is no more. To use Hypre set mac_proj.bottom_solver = hypre.");
@@ -95,17 +93,20 @@ MacProj::Initialize ()
       amrex::Abort("hypre_verbose is no more. To make the bottom solver verbose set mac_proj.bottom_verbose = 1.");
 #endif
 
-    //
-    // Need to check for maxorder here if IAMR has different default than
-    // MacProjector, to allow for runtime changes.
-    //
-    ParmParse mppp("mac_proj");
-    mppp.query( "maxorder"      , max_order );
-
-    ParmParse ppmacop("macop");
-    if ( ppmacop.contains("max_order") )
-      amrex::Abort("macop.max_order is no more. Please use mac_proj.maxorder.");
-
+    // Abort if old verbose flag is found
+    if ( pp.countname("v") > 0 ) {
+	amrex::Abort("mac_proj.v found in inputs. To set verbosity use mac_proj.verbose");
+    }
+    // Abort if old "mac." prefix is used.
+    std::set<std::string> old_mac = ParmParse::getEntries("mac");
+    if (!old_mac.empty()){
+	Print()<<"All runtime options related to the mac projection now use 'mac_proj'.\n"
+	       <<"Found these depreciated entries in the parameters list: \n";
+	for ( auto param : old_mac ) {
+	    Print()<<"  "<<param<<"\n";
+	}
+	amrex::Abort("Replace 'mac' prefix with 'mac_proj' in inputs");
+    }
 
     amrex::ExecOnFinalize(MacProj::Finalize);
 
@@ -1305,6 +1306,7 @@ MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phy
     EB_interp_CellCentroid_to_FaceCentroid( rho, GetArrOfPtrs(bcoefs), 0, 0, 1,
 					    geom, {density_math_bc});
 #else
+    amrex::ignore_unused(density_math_bc);
     average_cellcenter_to_face(GetArrOfPtrs(bcoefs), rho, geom);
 #endif
 

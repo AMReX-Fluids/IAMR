@@ -189,7 +189,7 @@ namespace
     std::string      particle_restart_file;
     std::string      particle_output_file;
     bool             restart_from_nonparticle_chkfile = false;
-    int              pverbose                         = 2;
+    int              pverbose                         = 0;
 }
 
 AmrTracerParticleContainer* NavierStokesBase::theNSPC () { return NSPC; }
@@ -325,7 +325,7 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     diffusion = new Diffusion(parent,this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE,viscflux_reg,is_diffusive,visc_coef);
+                              NUM_STATE,viscflux_reg,is_diffusive);
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
@@ -763,25 +763,18 @@ NavierStokesBase::buildMetrics ()
 #ifdef AMREX_USE_EB
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
-    Print()<<"dx = "<<dx[0]<<" "<<dx[1]<<" "<<dx[2]<<" \n";
     for (int i = 1; i < BL_SPACEDIM; i++){
-      if (std::abs(dx[i]-dx[i-1]) > 1.e-12*dx[0])
-        amrex::Abort("EB requires dx == dy (== dz)\n");
+        if (std::abs(dx[i]-dx[i-1]) > 1.e-12*dx[0]){
+            Print()<<"dx = "
+                   <<AMREX_D_TERM(dx[0], <<" "<<dx[1], <<" "<<dx[2])
+                   <<std::endl;
+            amrex::Abort("EB requires dx == dy (== dz)\n");
+        }
     }
 
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
     volfrac = &(ebfactory.getVolFrac());
     areafrac = ebfactory.getAreaFrac();
-
-
-    //fixme? assume will need this part cribbed from CNS
-    // level_mask.clear();
-    // level_mask.define(grids,dmap,1,1);
-    // level_mask.BuildMask(geom.Domain(), geom.periodicity(),
-    //                      level_mask_covered,
-    //                      level_mask_notcovered,
-    //                      level_mask_physbnd,
-    //                      level_mask_interior);
 
 #endif
 }
@@ -835,31 +828,32 @@ NavierStokesBase::checkPoint (const std::string& dir,
 {
     AmrLevel::checkPoint(dir, os, how, dump_old);
 
-  if (avg_interval > 0){
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    if (avg_interval > 0)
+    {
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    if (ParallelDescriptor::IOProcessor()) {
+        if (ParallelDescriptor::IOProcessor())
+        {
+            std::ofstream TImeAverageFile;
+            TImeAverageFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+            std::string TAFileName(dir + "/TimeAverage");
+            TImeAverageFile.open(TAFileName.c_str(), std::ofstream::out |
+                                 std::ofstream::trunc |
+                                 std::ofstream::binary);
 
-      std::ofstream TImeAverageFile;
-      TImeAverageFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-      std::string TAFileName(dir + "/TimeAverage");
-      TImeAverageFile.open(TAFileName.c_str(), std::ofstream::out   |
-                    std::ofstream::trunc |
-                    std::ofstream::binary);
+            if( !TImeAverageFile.good()) {
+                amrex::FileOpenFailed(TAFileName);
+            }
 
-      if( !TImeAverageFile.good()) {
-           amrex::FileOpenFailed(TAFileName);
-      }
+            TImeAverageFile.precision(17);
 
-      TImeAverageFile.precision(17);
+            // write out title line
+            TImeAverageFile << "Writing time_average to checkpoint\n";
 
-      // write out title line
-      TImeAverageFile << "Writing time_average to checkpoint\n";
-
-      TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
-      TImeAverageFile << NavierStokesBase::time_avg_fluct[level] << "\n";
+            TImeAverageFile << NavierStokesBase::time_avg[level] << "\n";
+            TImeAverageFile << NavierStokesBase::time_avg_fluct[level] << "\n";
+        }
     }
-  }
 
 #ifdef AMREX_PARTICLES
     if (level == 0)
@@ -2558,7 +2552,7 @@ NavierStokesBase::restart (Amr&          papa,
 
     diffusion = new Diffusion(parent, this,
                               (level > 0) ? getLevel(level-1).diffusion : 0,
-                              NUM_STATE, viscflux_reg,is_diffusive, visc_coef);
+                              NUM_STATE, viscflux_reg,is_diffusive);
     //
     // Allocate the storage for variable viscosity and diffusivity
     //
@@ -2800,33 +2794,33 @@ NavierStokesBase::scalar_advection_update (Real dt,
     // VisMF::Write(S_new,"sn_"+std::to_string(count));
     // for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     // {
-    //   std::cout << count <<" , comp = " << sigma << ", max(S_new)  = "
-    // 		<< S_new.norm0( sigma, 0, false, true )
-    // 		<< std::endl;
+    //     std::cout << count <<" , comp = " << sigma << ", max(S_new)  = "
+    //               << S_new.norm0( sigma, 0, false, true )
+    //               << std::endl;
     // }
 
     // for (int sigma = first_scalar; sigma <= last_scalar; sigma++)
     // {
-    //    if (S_old.contains_nan(sigma,1,0))
-    //    {
-    // 	 amrex::Print() << "SAU: Old scalar " << sigma << " contains Nans" << std::endl;
+    //     if (S_old.contains_nan(sigma,1,0))
+    //     {
+    //         amrex::Print() << "SAU: Old scalar " << sigma << " contains Nans" << std::endl;
 
-    // 	 IntVect mpt(D_DECL(-100,100,-100));
-    // 	 for (MFIter mfi(S_old); mfi.isValid(); ++mfi){
-    // 	   if ( S_old[mfi].contains_nan<RunOn::Host>(mpt) )
-    // 	     amrex::Print() << " Nans at " << mpt << std::endl;
-    // 	 }
-    //    }
-    //    if (S_new.contains_nan(sigma,1,0))
-    //    {
-    // 	 amrex::Print() << "SAU: New scalar " << sigma << " contains Nans" << std::endl;
+    //         IntVect mpt(D_DECL(-100,100,-100));
+    //         for (MFIter mfi(S_old); mfi.isValid(); ++mfi){
+    //             if ( S_old[mfi].contains_nan<RunOn::Host>(mpt) )
+    //                 amrex::Print() << " Nans at " << mpt << std::endl;
+    //         }
+    //     }
+    //     if (S_new.contains_nan(sigma,1,0))
+    //     {
+    //         amrex::Print() << "SAU: New scalar " << sigma << " contains Nans" << std::endl;
 
-    // 	 IntVect mpt(D_DECL(-100,100,-100));
-    // 	 for (MFIter mfi(S_new); mfi.isValid(); ++mfi){
-    // 	   if ( S_new[mfi].contains_nan<RunOn::Host>(mpt) )
-    // 	     amrex::Print() << " Nans at " << mpt << std::endl;
-    // 	 }
-    //    }
+    //         IntVect mpt(D_DECL(-100,100,-100));
+    //         for (MFIter mfi(S_new); mfi.isValid(); ++mfi){
+    //             if ( S_new[mfi].contains_nan<RunOn::Host>(mpt) )
+    //                 amrex::Print() << " Nans at " << mpt << std::endl;
+    //         }
+    //     }
     // }
 }
 
@@ -3747,7 +3741,10 @@ NavierStokesBase::read_particle_params ()
         ppp.getarr("timestamp_indices", timestamp_indices, 0, nc);
     }
 
-    ppp.query("pverbose",pverbose);
+    ppp.query("verbose",pverbose);
+    if ( ppp.countname("pverbose") > 0) {
+	amrex::Abort("particles.pverbose found in inputs. Please use particles.verbose");
+    }
     //
     // Used in initData() on startup to read in a file of particles.
     //
@@ -4239,8 +4236,12 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
         const auto& so   = Sold.const_array(mfi,sold_comp);
         const auto& rhon = Snew.const_array(mfi,new_density_comp);
         const auto& rhoo = Sold.const_array(mfi,old_density_comp);
+#ifdef AMREX_USE_EB
+        const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+        const auto& vfrac = ebfactory.getVolFrac().const_array(mfi);
+#endif
 
-        amrex::ParallelFor(bx, [sn, so, rhon, rhoo]
+        amrex::ParallelFor(bx, [=]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real smn = std::numeric_limits<Real>::max();
@@ -4260,12 +4261,16 @@ NavierStokesBase::ConservativeScalMinMax ( amrex::MultiFab&       Snew, const in
                 {
                     for (int ii = -1; ii <= 1; ++ii)
                     {
-                        smn =  amrex::min(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
-                        smx =  amrex::max(smx, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+#ifdef AMREX_USE_EB
+                        if ( vfrac (i+ii,j+jj,k+kk) > 0. )
+#endif
+                        {
+                            smn =  amrex::min(smn, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                            smx =  amrex::max(smx, so(i+ii,j+jj,k+kk)/rhoo(i+ii,j+jj,k+kk));
+                        }
                     }
                 }
             }
-
             sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k)/rhon(i,j,k), smn), smx ) * rhon(i,j,k);
         });
     }
@@ -4291,8 +4296,12 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
 
         const auto& sn   = Snew.array(mfi,snew_comp);
         const auto& so   = Sold.const_array(mfi,sold_comp);
+#ifdef AMREX_USE_EB
+        const auto& ebfactory = dynamic_cast<amrex::EBFArrayBoxFactory const&>(Factory());
+        const auto& vfrac = ebfactory.getVolFrac().const_array(mfi);
+#endif
 
-        amrex::ParallelFor(bx, [sn, so]
+        amrex::ParallelFor(bx, [=]
         AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             Real smn = std::numeric_limits<Real>::max();
@@ -4312,12 +4321,16 @@ NavierStokesBase::ConvectiveScalMinMax ( amrex::MultiFab&       Snew, const int 
                 {
                     for (int ii = -1; ii <= 1; ++ii)
                     {
-                        smn =  amrex::min(smn, so(i+ii,j+jj,k+kk));
-                        smx =  amrex::max(smx, so(i+ii,j+jj,k+kk));
+#ifdef AMREX_USE_EB
+                        if ( vfrac (i+ii,j+jj,k+kk) > 0. )
+#endif
+                        {
+                            smn =  amrex::min(smn, so(i+ii,j+jj,k+kk));
+                            smx =  amrex::max(smx, so(i+ii,j+jj,k+kk));
+                        }
                     }
                 }
             }
-
             sn(i,j,k) = amrex::min( amrex::max(sn(i,j,k), smn), smx );
         });
     }

@@ -36,7 +36,7 @@ amr.tracer.field_name = tracer
 # Set verbosity
 ns.v               = 10
 nodal_proj.verbose = 0
-proj.v             = 0
+nodal_proj.verbose             = 0
 diffuse.v          = 0
 amr.v              = 1
 

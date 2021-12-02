@@ -1,12 +1,14 @@
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            SIMULATION STOP            #
 #.......................................#
-max_step                =  10           # Max number of time steps
+max_step           =  10          # Max number of time steps
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_shrink     = 1.0
 ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
 #.......................................#
@@ -15,7 +17,7 @@ ns.cfl               = 0.3
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         Algorithm options             #
 #.......................................#
-ns.use_godunov = false # If false, using MOL
+ns.use_godunov = false   # If false, using MOL
 ns.do_mom_diff=1
 ns.do_cons_trac=1
 ns.do_trac2 = 1
@@ -24,9 +26,9 @@ ns.do_cons_trac2=1
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            INPUT AND OUTPUT           #
 #.......................................#
-amr.plot_int            =   5          # Steps between plot files
+amr.plot_int            =   10          # Steps between plot files
 amr.plot_per            =   0.1         # Steps between plot files
-amr.check_int           =   5        # Steps between checkpoint files
+amr.check_int           =   10          # Steps between checkpoint files
 amr.restart             =   ""          # Checkpoint to restart from
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
@@ -57,6 +59,9 @@ ns.lo_bc 	     	= 1 4 0
 ns.hi_bc   	      	= 2 5 0
 
 xlo.velocity = 10. 0. 0.
+xlo.density  = 1.
+xlo.tracer   = 0.
+xlo.tracer2  = 1.
 
 # Add cylinder
 eb2.geom_type                 = cylinder
@@ -85,3 +90,4 @@ prob.velocity_ic = 10. 0. 0.
 #.......................................#
 #ns.v              = 1 # NS solver
 #diffusion.v      = 1 # Diffusion operator
+#amr.v = 1

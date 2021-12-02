@@ -47,7 +47,7 @@ amr.tracer.field_name = tracer
 # Set verbosity
 ns.v               = 10
 nodal_proj.verbose = 0
-proj.v             = 0
+nodal_proj.verbose            = 0
 diffuse.v          = 0
 amr.v              = 1
 
@@ -125,6 +125,7 @@ xlo.type                =   "mass_inflow"
 xlo.velocity            =   1.  0.  0.
 xlo.density             =   1.
 xlo.tracer              =   0.
+xlo.tracer2             =   1.
 xhi.type                =   "pressure_outflow"
 xhi.pressure            =   0.0
 
@@ -148,6 +149,6 @@ prob.velocity_ic = 1.0 0. 0.
 #*******************************************************************************
 
 # Write all derived quantities to plot files
-amr.derive_plot_vars    = ALL
+amr.derive_plot_vars    = NONE
 
 #*******************************************************************************

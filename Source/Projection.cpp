@@ -52,9 +52,10 @@ namespace
 
     bool agglomeration = true;
     bool consolidation = true;
-    int max_fmg_iter = 0;
     bool use_gauss_seidel = true;
     bool use_harmonic_average = false;
+    int max_fmg_iter = 0;
+    int max_coarsening_level(-1);
 
     constexpr Real BogusValue = 1.e200;
     constexpr Real SmallValue = 1.e-200;
@@ -66,9 +67,9 @@ Projection::Initialize ()
 {
     if (initialized) return;
 
-    ParmParse pp("proj");
+    ParmParse pp("nodal_proj");
 
-    pp.query("v",                   verbose);
+    pp.query("verbose",             verbose);
     pp.query("proj_tol",            proj_tol);
     pp.query("sync_tol",            sync_tol);
     pp.query("proj_abs_tol",        proj_abs_tol);
@@ -82,15 +83,24 @@ Projection::Initialize ()
     pp.query("max_fmg_iter",        max_fmg_iter);
     pp.query("use_gauss_seidel",    use_gauss_seidel);
     pp.query("use_harmonic_average", use_harmonic_average);
+    pp.query("mg_max_coarsening_level", max_coarsening_level);
 
-    pp.query("proj_2",              proj_2);
-    if (!proj_2)
-      amrex::Abort("Must use proj_2==1 due to new gravity and outflow stuff. proj_2!=1 no longer supported.\n");
 
-    pp.query("Pcode",               P_code);
-    if (P_code >=0 )
-      amrex::Abort("proj.Pcode is no more. Use nodal_proj.verbose.\n");
-
+    // Abort if old verbose flag is found
+    if ( pp.countname("v") > 0 ) {
+	amrex::Abort("nodal_proj.v found in inputs. To set verbosity use nodal_proj.verbose");
+    }
+    // Abort if old "proj." prefix is used.
+    std::set<std::string> old_proj = ParmParse::getEntries("proj");
+    if (!old_proj.empty()){
+	Print()<<"All runtime options related to the nodal projection now use 'nodal_proj'.\n"
+	       <<"Found these depreciated entries in the parameters list: \n";
+	for ( auto param : old_proj ) {
+	    Print()<<"  "<<param<<"\n";
+	}
+	amrex::Abort("Replace 'proj' prefix with 'nodal_proj' in inputs");
+    }
+	
     amrex::ExecOnFinalize(Projection::Finalize);
 
     initialized = true;
@@ -1902,7 +1912,7 @@ Projection::set_outflow_bcs_at_level (int          /*which_call*/,
                                                 outFacesAtThisLevel[iface],
                                                 ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
-	phi_fine_strip[iface].setVal<RunOn::Gpu>(0.);
+	phi_fine_strip[iface].setVal<RunOn::Cpu>(0.);
 
 	rho[iface].resize(state_strip[iface],1);
 	(*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
@@ -2491,11 +2501,10 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
     // Setup infos to pass to linear operator
     LPInfo info;
-    int max_coarsening_level(30);
-    ParmParse pp("nodal_proj");
-    pp.query("mg_max_coarsening_level", max_coarsening_level);
 
-    info.setMaxCoarseningLevel(max_coarsening_level);
+    if (max_coarsening_level >= 0 ) {
+	info.setMaxCoarseningLevel(max_coarsening_level);
+    }
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
     // metric term stuff doesn't get used at all for nodal

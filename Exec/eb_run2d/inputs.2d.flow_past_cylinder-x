@@ -1,10 +1,3 @@
-#
-# Current requirements for EB advection
-#
-do_mom_diff=1
-ns.do_cons_trac=1
-ns.do_cons_trac2=1
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            SIMULATION STOP            #
 #.......................................#
@@ -46,13 +39,18 @@ ns.scal_diff_coefs       = 1.0
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #        ADAPTIVE MESH REFINEMENT       #
 #.......................................#
-amr.n_cell              =   512 512 32    # Grid cells at coarsest AMRlevel
-amr.max_level           =   0           # Max AMR level in hierarchy
+amr.n_cell              =   64 64 16    # Grid cells at coarsest AMRlevel
+amr.max_level           =   1           # Max AMR level in hierarchy
 amr.grid_eff            =   0.7
 amr.n_error_buf         =   8
 amr.max_grid_size_x     =   1024
 amr.max_grid_size_y     =   1024
 amr.max_grid_size_z     =   1024
+
+# Refinement criterion, use vorticity
+amr.refinement_indicators = vorticity
+amr.vorticity.vorticity_greater =  1.0
+
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              GEOMETRY                 #
@@ -93,10 +91,7 @@ prob.velocity_ic = 10. 0. 0.
 #              VERBOSITY                #
 #.......................................#
 ns.v                    = 1 # NS solver 
-proj.v                  = 1 # Nodal projection
-mac.verbose             = 0 # MacProjector
+nodal_proj.verbose                  = 1 # Nodal projection
+mac_proj.verbose             = 0 # MacProjector
 #diffusion.verbose       =   1           # Diffusion operator
-projection.verbose   =   1           # Nodal projection
-projection.mg_verbose=   0
-projection.mg_rtol   =  1.0e-13
 

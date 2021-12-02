@@ -95,4 +95,4 @@ prob.velocity_ic = 2.5 0. 0.
 #.......................................#
 ns.v                    = 1 # NS solver
 amr.v = 1
-proj.v                  = 1 # Nodal projection
+nodal_proj.verbose                  = 1 # Nodal projection

@@ -17,7 +17,7 @@ stop_time 		= 5.0
 # PARTICLE INPUTS
 
 particles.particle_init_file = particle_file_ml
-particles.pverbose = 0
+particles.verbose = 0
 particles.timestamp_dir = particle_dir
 particles.timestamp_indices = 1
 
@@ -149,9 +149,9 @@ amr.derive_plot_vars 	= mag_vort particle_count
 
 #*******************************************************************************
 
-proj.v = 2
+nodal_proj.verbose = 2
 nodal_proj.verbose = 1
-proj.proj_tol = 1.e-12
-proj.proj_abs_tol = 1.e-15
+nodal_proj.proj_tol = 1.e-12
+nodal_proj.proj_abs_tol = 1.e-15
 
 mg.v = 0

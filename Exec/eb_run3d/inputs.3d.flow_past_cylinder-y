@@ -1,10 +1,3 @@
-#
-# Current requirements for EB advection
-#
-do_mom_diff=1
-ns.do_cons_trac=1
-ns.do_cons_trac2=1
-
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #            SIMULATION STOP            #
 #.......................................#
@@ -84,7 +77,7 @@ prob.velocity_ic = 0. 10. 0.
 #              VERBOSITY                #
 #.......................................#
 ns.v                    = 1 # NS solver
-proj.v                  = 1 # Nodal projection
+nodal_proj.verbose                  = 1 # Nodal projection
 mac_proj.verbose        = 0 # MacProjector
 #diffusion.verbose      = 1 # Diffusion operator
 nodal_proj.verbose      = 1 # Nodal projection

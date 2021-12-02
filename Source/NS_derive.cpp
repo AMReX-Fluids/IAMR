@@ -36,11 +36,11 @@ namespace derive_functions
     }
 
     amrex::ParallelFor(bx, AMREX_SPACEDIM, [inv_time,inv_time_fluct,der,in_dat]
-		       AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-		       {
-			 der(i,j,k,n) = in_dat(i,j,k,n) * inv_time;
-			 der(i,j,k,n+AMREX_SPACEDIM) = sqrt(in_dat(i,j,k,n+AMREX_SPACEDIM) * inv_time_fluct);
-		       });
+    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+    {
+        der(i,j,k,n) = in_dat(i,j,k,n) * inv_time;
+        der(i,j,k,n+AMREX_SPACEDIM) = sqrt(in_dat(i,j,k,n+AMREX_SPACEDIM) * inv_time_fluct);
+    });
   }
 
   //
@@ -57,6 +57,7 @@ namespace derive_functions
     AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);
     AMREX_ASSERT(datfab.nComp() >= 1);
     AMREX_ASSERT(ncomp == 1);
+
     auto const in_dat = datfab.array();
     auto          der = derfab.array(dcomp);
 #if (AMREX_SPACEDIM == 2 )
@@ -80,20 +81,23 @@ namespace derive_functions
   //
   //  Compute magnitude of vorticity
   //
-  void dermgvort (const Box& bx, FArrayBox& derfab, int /*dcomp*/, int /*ncomp*/,
+  void dermgvort (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
 		  const FArrayBox& datfab, const Geometry& geomdata,
 		  Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
     AMREX_ASSERT(derfab.box().contains(bx));
     AMREX_ASSERT(datfab.box().contains(bx));
+    AMREX_ASSERT(derfab.nComp() >= dcomp + ncomp);
+    AMREX_ASSERT(datfab.nComp() >= AMREX_SPACEDIM);
+    AMREX_ASSERT(ncomp == 1);
 
     AMREX_D_TERM(const amrex::Real idx = geomdata.InvCellSize(0);,
                  const amrex::Real idy = geomdata.InvCellSize(1);,
                  const amrex::Real idz = geomdata.InvCellSize(2););
 
     amrex::Array4<amrex::Real const> const& dat_arr = datfab.const_array();
-    amrex::Array4<amrex::Real>       const&vort_arr = derfab.array();
+    amrex::Array4<amrex::Real>       const&vort_arr = derfab.array(dcomp);
 
 #ifdef AMREX_USE_EB
     const EBFArrayBox& ebfab = static_cast<EBFArrayBox const&>(datfab);
@@ -102,9 +106,9 @@ namespace derive_functions
     if (typ == FabType::covered)
     {
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-			   {
-			     vort_arr(i,j,k) = 0.0;
-			   });
+        {
+            vort_arr(i,j,k) = 0.0;
+        });
     } else if (typ == FabType::singlevalued)
     {
 	const auto& flag_fab = flags.const_array();

@@ -467,12 +467,6 @@ public:
     // Read input file
     //
     static void Initialize ();
-    //
-    // Read input file specific to IAMR or PLM
-    //
-    static void Initialize_specific (){
-      amrex::Abort("NavierStokesBase::Initialize_specific: This function must be implemented in derived class");
-    }
     static void Finalize ();
     //
     // Check for RZ geometry

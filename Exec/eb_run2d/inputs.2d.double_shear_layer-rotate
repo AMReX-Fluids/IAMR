@@ -1,11 +1,3 @@
-#
-# Current requirements for EB advection
-#
-do_mom_diff=1
-ns.do_cons_trac=1
-ns.do_cons_trac2=1
-
-
 #*******************************************************************************
 # INPUTS.2D.PERIODIC_SHEAR_LAYER
 #*******************************************************************************
@@ -138,13 +130,11 @@ amr.check_int			= 10
 amr.v 	            	= 1 	# AMR (top-level)
 ns.v  	            	= 1 	# NavierStokes
 diffuse.v 	       	= 1 	# Diffusion
-proj.v 	            	= 1 	# Projection
-nodal_proj.verbose      = 1
-mlmg.v 	            	= 1 	# MultiGrid
+nodal_proj.verbose     	= 1 	# Projection
 
 #*******************************************************************************
 # PROJECTION SETTINGS
 #*******************************************************************************
 
-proj.proj_tol = 1.e-12
-proj.proj_abs_tol = 1.e-15
+nodal_proj.proj_tol = 1.e-12
+nodal_proj.proj_abs_tol = 1.e-15

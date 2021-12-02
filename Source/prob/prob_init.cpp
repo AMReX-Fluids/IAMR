@@ -142,7 +142,7 @@ void NavierStokes::prob_initData ()
 	else
         {
             amrex::Abort("NavierStokes::prob_init: unknown probtype");
-        };
+        }
     }
 }
 
@@ -256,7 +256,8 @@ void NavierStokes::init_constant_vel_rho (Box const& vbx,
     scal(i,j,k,1) = 0.5*(1.0-std::tanh(25.*(dist-IC.blob_radius)/IC.interface_width));
     for ( int nt=2; nt<nscal; nt++)
     {
-      scal(i,j,k,nt) = dist < IC.blob_radius ? 1.0 : 0.0;
+      // scal(i,j,k,nt) = dist < IC.blob_radius ? 1.0 : 0.0;
+      scal(i,j,k,nt) = 0.0;
     }
   });
 }

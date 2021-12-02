@@ -1,9 +1,3 @@
-#
-# Current requirements for EB advection
-#
-ns.do_mom_diff=1
-ns.do_cons_trac=1
-
 #*******************************************************************************
 # INPUTS.2D.BUBBLE
 #*******************************************************************************
@@ -29,10 +23,13 @@ amr.plot_int		= 10
 #********************
 # Algorithm options *
 #********************
+# for debugging
 #ns.init_iter = 0
 #ns.init_vel_iter = 0
 #ns.do_init_proj = 0
 
+ns.do_mom_diff=1
+ns.do_cons_trac=1
 ns.do_scalminmax       = 1
 ns.use_godunov         = true # Use MOL if false, default is to use godunov
 
@@ -63,7 +60,7 @@ amr.ref_ratio		= 2 2 2 2
 #ns.v                    = 1
 
 #diffuse.v 		= 1
-#proj.v = 1
+#nodal_proj.verbose= 1
 #nodal_proj.verbose =2
 
 # Sets the "amr" code to be verbose

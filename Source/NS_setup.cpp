@@ -9,8 +9,7 @@
 
 using namespace amrex;
 
-static Box the_same_box (const Box& b)    { return b;                 }
-static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
+static Box the_same_box (const Box& b)    { return b;                }
 static Box grow_box_by_two (const Box& b) { return amrex::grow(b,2); }
 
 // NOTE: the int arrays that define the mapping from physical BCs to mathematical
@@ -391,8 +390,6 @@ NavierStokes::variableSetUp ()
     if (NavierStokesBase::avg_interval > 0)
     {
       Average_Type = desc_lst.size();
-      bool state_data_extrap = false;
-      bool store_in_checkpoint = true;
       desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
                              StateDescriptor::Point,0,BL_SPACEDIM*2,
                              &cc_interp,state_data_extrap,store_in_checkpoint);
