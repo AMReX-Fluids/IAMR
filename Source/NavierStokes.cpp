@@ -1032,9 +1032,6 @@ NavierStokes::velocity_diffusion_update (Real dt)
         viscTime = state[State_Type].curTime();
         loc_viscnp1 = fb_viscnp1.define(this);
         getViscosity(loc_viscnp1, viscTime);
-        AllPrint() << "here\n";
-
-        AllPrint() << "beta[0]->nComp() = " << loc_viscnp1[0]->nComp() << "\n";
 
         if(do_tensor_visc){
             diffusion->diffuse_velocity(dt,be_cn_theta,get_rho_half_time(),rho_flag,
@@ -1081,8 +1078,8 @@ NavierStokes::velocity_diffusion_update (Real dt)
             MultiFab *alpha = 0;
             const int rhsComp = 0, alphaComp = 0, fluxComp  = 0;
 
-            FluxBoxes fb_fluxn  (this);
-            FluxBoxes fb_fluxnp1(this);
+            FluxBoxes fb_fluxn  (this, AMREX_SPACEDIM);
+            FluxBoxes fb_fluxnp1(this, AMREX_SPACEDIM);
             MultiFab** fluxn   = fb_fluxn.get();
             MultiFab** fluxnp1 = fb_fluxnp1.get();
             const bool add_old_time_divFlux = true;
@@ -1091,13 +1088,13 @@ NavierStokes::velocity_diffusion_update (Real dt)
             const int betaComp = 0;
             const int Rho_comp = Density;
 
-            diffusion->diffuse_scalar (Sn, Sn, Snp1, Snp1, 0, AMREX_SPACEDIM, Rho_comp,
+            diffusion->diffuse_scalar (Sn, Sn, Snp1, Snp1, Xvel, AMREX_SPACEDIM, Rho_comp,
                                        prev_time,curr_time,be_cn_theta,Rh,rho_flag,
                                        fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,
                                        alpha,alphaComp,
                                        loc_viscn,loc_viscnp1,betaComp,
                                        crse_ratio,theBCs[0],geom,
-    				   add_old_time_divFlux,
+                    				   add_old_time_divFlux,
                                        diffuse_comp);
         }
     }
