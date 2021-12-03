@@ -113,7 +113,7 @@ ns.hi_bc             = 4 2
 #*********************
 # Problem parameters
 prob.probtype = 2
-prob.blob_center = 0.0 1.5 
+prob.blob_center = 0.0 1.35
 prob.blob_radius = 0.2
 # Background density is 1. Density is incresed by a factor of density_ic inside
 # the bubble
