@@ -203,37 +203,37 @@ NavierStokesBase::getForce (FArrayBox&       force,
    //
    // Scalar forcing
    //
+   // During a regular timestep, getForce is called on scalars only.
+   // During the multilevel sync, scalars are done with velocity.
+   //
+   int scomp_scal = -1;
+   int ncomp_scal = -1;
    if ( scomp >= AMREX_SPACEDIM ) {
-     // Doing only scalars
-     force.setVal<RunOn::Gpu>(0.0, bx, 0, ncomp);
-
-     //
-     // Or create user-defined forcing.
-     // Recall we compute a density-weighted forcing term.
-     //
-     // auto const& frc  = force.array();
-     // amrex::ParallelFor(bx, ncomp, [frc]
-     // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
-     // {
-     //          frc(i,j,k,n) = ;
-     //          frc(i,j,k,n) *= rho;
-     // });
+       // Doing only scalars
+       scomp_scal = 0;
+       ncomp_scal = ncomp;
    }
+   // Recall that we will only get here if previous block is false,
+   // i.e. if scomp < AMREX_SPACEDIM
    else if ( scomp+ncomp > AMREX_SPACEDIM) {
-     // Doing scalars with vel
-     force.setVal<RunOn::Gpu>(0.0, bx, Density, ncomp-Density);
+       // Doing scalars with vel
+       scomp_scal = Density;
+       ncomp_scal = ncomp-Density;
+   }
 
-     //
-     // Or create user-defined forcing.
-     // Recall we compute a density-weighted forcing term.
-     //
-     // auto const& frc  = force.array(Density);
-     // amrex::ParallelFor(bx, ncomp-Density, [frc]
-     // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
-     // {
-     //          frc(i,j,k,n) = ;
-     //          frc(i,j,k,n) *= rho;
-     // });
+   if (ncomp_scal > 0) {
+       force.setVal<RunOn::Gpu>(0.0, bx, scomp_scal, ncomp_scal);
+       //
+       // Or create user-defined forcing.
+       // Recall we compute a density-weighted forcing term.
+       //
+       // auto const& frc  = force.array(scomp_scal);
+       // amrex::ParallelFor(bx, ncomp_scal, [frc]
+       // AMREX_GPU_DEVICE(int i, int j, int k, int n) noexcept
+       // {
+       //          frc(i,j,k,n) = ;
+       //          frc(i,j,k,n) *= rho;
+       // });
    }
      
    if (ParallelDescriptor::IOProcessor() && getForceVerbose) {
