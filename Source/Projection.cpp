@@ -1753,12 +1753,12 @@ Projection::set_outflow_bcs (int        which_call,
                              int        have_divu)
 {
     AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
-              (which_call == INITIAL_PRESS) ||
-              (which_call == INITIAL_SYNC ) ||
-              (which_call == LEVEL_PROJ   ) );
+                 (which_call == INITIAL_PRESS) ||
+                 (which_call == INITIAL_SYNC ) ||
+                 (which_call == LEVEL_PROJ   ) );
 
     if (which_call != LEVEL_PROJ)
-      AMREX_ASSERT(c_lev == 0);
+        AMREX_ASSERT(c_lev == 0);
 
     if (verbose)
       amrex::Print() << "...setting outflow bcs for the nodal projection ... " << '\n';

@@ -1351,7 +1351,7 @@ NavierStokes::post_init_press (Real&        dt_init,
 
       NavierStokes::initial_step = false;
 
-      Print()<< "WARNING! post_init_press(): exiting without doing inital iterations because init_iter == "<<init_iter<<std::endl;
+      Print()<< "WARNING! post_init_press(): exiting without doing inital iterations because init_iter <= 0."<<std::endl;
 
       return;
     }

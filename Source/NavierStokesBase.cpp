@@ -1094,6 +1094,8 @@ NavierStokesBase::errorEst (TagBoxArray& tags,
         amrex::TagCutCells(tags, S_new);
       }
     }
+#else
+    amrex::ignore_unused(tags);
 #endif
 }
 
@@ -2203,6 +2205,8 @@ NavierStokesBase::post_regrid (int lbase,
     {
         NSPC->Redistribute(lbase);
     }
+#else
+    amrex::ignore_unused(lbase);
 #endif
 }
 
@@ -2688,18 +2692,18 @@ NavierStokesBase::scalar_advection_update (Real dt,
                 // Scal protected from early destruction by Gpu::synchronize at end of loop.
                 const auto& Sn   = S_old[mfi].const_array(Density);
                 const auto& Sarr = Scal.array();
-                const auto& aofs = Aofs[mfi].const_array(Density);
+                const auto& aofs_dens = Aofs[mfi].const_array(Density);
                 // Create a local copy for lambda capture
                 int numscal = NUM_SCALARS;
 
-                amrex::ParallelFor(bx, [ Sn, Sarr, aofs, dt, numscal]
+                amrex::ParallelFor(bx, [ Sn, Sarr, aofs_dens, dt, numscal]
                 AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     int n = 0;
                     // For density, we can create the Crank-Nicholson half-time approximation:
                     // Snew = Sold - dt*adv
                     // Shalftime = Sarr = (Snew + Sold)/2
-                    Sarr(i,j,k,n) = Sn(i,j,k,n) - 0.5 * dt * aofs(i,j,k,n);
+                    Sarr(i,j,k,n) = Sn(i,j,k,n) - 0.5 * dt * aofs_dens(i,j,k,n);
 
                     // For other scalars, which may have diffusive or forcing terms, this is
                     // a safe choice.
@@ -3239,9 +3243,9 @@ NavierStokesBase::velocity_advection (Real dt)
 
     // FIXME? pretty sure this should be nghost_force & only mult by dsdt for godunov
     MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
-	MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
-        MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
-        delete dsdt;
+    MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+    delete dsdt;
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force(), MFInfo(),Factory());
     forcing_term.setVal(0.0);
@@ -3287,7 +3291,7 @@ NavierStokesBase::velocity_advection (Real dt)
         FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
         MultiFab& Smf=S_fpi.get_mf();
 
-	// MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+        // MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
         // MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
         // delete dsdt;
 
@@ -3325,7 +3329,7 @@ NavierStokesBase::velocity_advection (Real dt)
 
             bool is_convective = do_mom_diff ? false : true;
             amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, is_convective]
-	    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
                 tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
                 if (is_convective)
@@ -4555,8 +4559,8 @@ NavierStokesBase::nghost_force ()
 
 void
 NavierStokesBase::ComputeAofs ( int comp, int ncomp,
-                                MultiFab const& state,
-                                int state_comp,
+                                MultiFab const& S,
+                                int S_comp,
                                 MultiFab const& forcing_term,
                                 MultiFab const& divu,
                                 bool is_velocity, Real dt )
@@ -4576,10 +4580,10 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     MultiFab edgestate[AMREX_SPACEDIM];
 
     //
-    // Advection needs state to have 2-3 ghost cells.
+    // Advection needs S to have 2-3 ghost cells.
     // Advection routines call slopes on cells i & i+1, and then
-    // 2nd order slopes use i+/-1 => state needs 2 ghost cells (MOL)
-    // 4th order slopes use i+/-2 => state needs 3 ghost cells (Godunov)
+    // 2nd order slopes use i+/-1 => S needs 2 ghost cells (MOL)
+    // 4th order slopes use i+/-2 => S needs 3 ghost cells (Godunov)
     //
     int nghost = 0;
     for (int i = 0; i < AMREX_SPACEDIM; ++i)
@@ -4605,7 +4609,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         if (!EBFactory().isAllRegular())
         {
             EBGodunov::ComputeAofs(*aofs, comp, ncomp,
-                                    state, state_comp,
+                                    S, S_comp,
                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
                                     0, false,
@@ -4618,7 +4622,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
 #endif
         {
             Godunov::ComputeAofs(*aofs, comp, ncomp,
-                                 state, state_comp,
+                                 S, S_comp,
                                  AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                  AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
                                  0, false,
@@ -4637,7 +4641,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
       if (!EBFactory().isAllRegular())
       {
         EBMOL::ComputeAofs(*aofs, comp, ncomp,
-                           state, state_comp,
+                           S, S_comp,
                            D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                            D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                            D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
@@ -4649,7 +4653,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
 #endif
       {
         MOL::ComputeAofs(*aofs, comp, ncomp,
-                         state, state_comp,
+                         S, S_comp,
                          D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                          D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
                          D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
