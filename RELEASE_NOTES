@@ -231,3 +231,10 @@ Misc. compiler fixes and general updates to test and bechmark problems
 Various GPU fixes
 Cleanup to the advection and diffusion classes
 Fix usage of forcing term in scalar advection
+
+12/10/21
+Update Projection and MacProj to use nodal_proj and mac_proj, respectively, for runtime options.
+Misc bug fixes for special cases.
+Misc. cleanup -- quiet compiler warnings, remove unused and outdated variables and comments, make use of amrex functions where possible.
+Fix Docs typos.
+Updates to some regression tests for better code coverage.
