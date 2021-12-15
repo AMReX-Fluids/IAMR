@@ -31,12 +31,13 @@ ns.scal_diff_coefs       = 1.0
 #        ADAPTIVE MESH REFINEMENT       #
 #.......................................#
 amr.n_cell              =   96 32  8    # Grid cells at coarsest AMRlevel
-amr.max_level           =   0           # Max AMR level in hierarchy
-amr.grid_eff            =   0.7
-amr.n_error_buf         =   8
-amr.max_grid_size_x     =   1024
-amr.max_grid_size_y     =   1024
-amr.max_grid_size_z     =   1024
+amr.max_level           =   1           # Max AMR level in hierarchy
+# Refinement around the EB by default
+#amr.grid_eff            =   0.7
+#amr.n_error_buf         =   8
+#amr.max_grid_size_x     =   1024
+#amr.max_grid_size_y     =   1024
+#amr.max_grid_size_z     =   1024
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              GEOMETRY                 #
 #.......................................#
