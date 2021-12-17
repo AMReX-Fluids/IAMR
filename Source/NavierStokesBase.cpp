@@ -541,10 +541,8 @@ NavierStokesBase::Initialize ()
     pp.query("redistribution_type", redistribution_type);
     if (redistribution_type != "NoRedist" &&
         redistribution_type != "FluxRedist" &&
-        redistribution_type != "StateRedist" &&
-        redistribution_type != "NewStateRedist")
-        // amrex::Abort("redistribution type must be NoRedist, FluxRedist, MergeRedist, or StateRedist");
-        amrex::Abort("redistribution type must be NoRedist, FluxRedist, StateRedist or NewStateRedist");
+        redistribution_type != "StateRedist" )
+        amrex::Abort("redistribution type must be NoRedist, FluxRedist, or StateRedist");
 #endif
 
 
@@ -608,8 +606,7 @@ NavierStokesBase::advance_setup (Real /*time*/,
     if (level < finest_level)
     {
 #ifdef AMREX_USE_EB
-        int ng_sync = (redistribution_type == "StateRedist" ||
-                       redistribution_type == "NewStateRedist" ) ? nghost_state() : 1;
+        int ng_sync = (redistribution_type == "StateRedist") ? nghost_state() : 1;
 #else
 	int ng_sync = 1;
 #endif
@@ -2544,8 +2541,7 @@ NavierStokesBase::restart (Amr&          papa,
     if (level < parent->finestLevel())
     {
 #ifdef AMREX_USE_EB
-        int ng_sync = (redistribution_type == "StateRedist" ||
-                       redistribution_type == "NewStateRedist") ? nghost_state() : 1;
+        int ng_sync = (redistribution_type == "StateRedist") ? nghost_state() : 1;
 #else
 	int ng_sync = 1;
 #endif
@@ -4691,7 +4687,7 @@ NavierStokesBase::InitialRedistribution ()
 {
     // Next we must redistribute the initial solution if we are going to use
     // MergeRedist or StateRedist redistribution schemes
-    if ( redistribution_type != "StateRedist" && redistribution_type != "NewStateRedist")
+    if ( redistribution_type != "StateRedist" )
         return;
 
     if (verbose)
