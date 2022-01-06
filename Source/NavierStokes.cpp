@@ -764,8 +764,6 @@ NavierStokes::scalar_advection (Real dt,
                 auto const& tf    = forcing_term.array(S_mfi,n);
                 auto const& visc  = visc_terms.const_array(S_mfi,n);
                 auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
-                auto const& divu  = divu_fp -> const_array(S_mfi);
-                auto const& S     = Smf.array(S_mfi);
 
 		if ( do_temp && n+fscalar==Temp )
 		{
@@ -790,7 +788,7 @@ NavierStokes::scalar_advection (Real dt,
 		    // tforces = rho H_q (since it's always density-weighted)
 		    // visc = del dot beta grad (S/rho)
 		    //
-                    amrex::ParallelFor(force_bx, [tf, visc, S, divu, rho]
+                    amrex::ParallelFor(force_bx, [tf, visc]
                     AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
                     { tf(i,j,k) += visc(i,j,k); });
 		  }
