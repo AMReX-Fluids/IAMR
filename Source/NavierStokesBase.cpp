@@ -1109,34 +1109,6 @@ NavierStokesBase::create_umac_grown (int nGrow,
        PhysBCFunct<GpuBndryFuncFab<umacFill>> fine_bndry_func(*fine_geom, bcrec, umacFill{});
        Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func,fine_bndry_func,fine_bndry_func)};
 
-//Check single comp???
-//        // Squirel away the interior umac
-//        Array<MultiFab,AMREX_SPACEDIM> u_mac_tmp;
-//        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
-//           u_mac_tmp[idim].define(u_mac_fine[idim]->boxArray(), u_mac_fine[idim]->DistributionMap(),
-//                                  u_mac_fine[idim]->nComp(), u_mac_fine[idim]->nGrow());
-//           MultiFab::Copy(u_mac_tmp[idim], *u_mac_fine[idim], 0, 0, 1, 0);
-//        }
-
-// // See how single comp FPTL does...
-//        for (int d=0; d<AMREX_SPACEDIM; ++d)
-//        {
-//        	   std::cout<<"Calling FP2L "<<d<<std::endl;
-//        	   Real time = 0.;
-//        	   FillPatchTwoLevels(u_mac_tmp[d], IntVect(nGrow), time,
-//        	   		      {u_mac_crse[d]}, {time},
-//        	   		      {&u_mac_tmp[d]}, {time},
-//        	   		      0, 0, 1,
-//        	   		      *crse_geom, *fine_geom,
-//        	   		      crse_bndry_func, 0, fine_bndry_func, 0,
-//        	   		      crse_ratio, mapper, bcrec, 0);
-//        }
-//        std::cout<<"Writing FPSL MFs"<<std::endl;
-//        VisMF::Write(u_mac_tmp[0],"umac_sc");
-//        VisMF::Write(u_mac_tmp[1],"vmac_sc");
-//        std::cout<<"done writing FPSL MFs"<<std::endl;
-
-
        // Use piecewise constant interpolation in time, so create dummy variable for time
        Real dummy = 0.;
        FillPatchTwoLevels(u_mac_fine, IntVect(nGrow), dummy,
