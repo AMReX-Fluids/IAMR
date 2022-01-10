@@ -689,24 +689,9 @@ MacProj::mac_sync_compute (int                   level,
                         }
 
                     }
-                    else  // Scalars
+                    else  // Scalars. Reconstruct forcing terms as in scalar_advection
                     {
                         auto const& visc = scal_visc_terms[Smfi].const_array(comp-AMREX_SPACEDIM);
-                        // auto const& S    = Smf.const_array(Smfi,comp);
-                        // auto const& divu = divu_fp -> const_array(Smfi);
-                        // amrex::ParallelFor(gbx, [tf, visc, S, divu]
-                        // AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                        // {
-			//     // FIXME??? I think this S divU is a vestige of the old
-			//     // Godunov that only computed a convective term, and the
-			//     // adjustement for conservative was here. But now all this
-			//     // should be contained in Godunov...
-			//     // Or maybe the deal was that the tracer was always convective
-			//     // but could choose to do conservative differencing and then
-			//     // use S divU to get back to a passively advected scalar???
-                        //     tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
-                        // });
-
 			auto const& rho = Smf.const_array(Smfi,Density); 
 			
 			if ( NavierStokesBase::do_temp && comp==NavierStokesBase::Temp )
