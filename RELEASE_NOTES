@@ -238,3 +238,8 @@ Misc bug fixes for special cases.
 Misc. cleanup -- quiet compiler warnings, remove unused and outdated variables and comments, make use of amrex functions where possible.
 Fix Docs typos.
 Updates to some regression tests for better code coverage.
+
+1/5/22
+Update IAMR to reflect AMReX-Hydro changes in State Redistribution -- the old StateRedist has been removed and NewStateRedist is renamed StateRedist.
+Clean up Tutorials.
+
