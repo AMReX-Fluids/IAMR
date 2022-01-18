@@ -821,8 +821,9 @@ NavierStokesBase::calc_dsdt (Real      /*time*/,
 {
     if (have_divu && have_dsdt)
     {
-      // Don't think we need this here, but then will have uninitialized ghost cells
-      //dsdt.setVal(0);
+        // Don't think we need this here. Instead, code will use FillPatch to
+        // fill ghosts.
+        //dsdt.setVal(0);
 
         if (do_temp)
         {
@@ -1066,58 +1067,183 @@ NavierStokesBase::create_mac_rhs (MultiFab& rhs, int nGrow, Real time, Real dt)
 
 void
 NavierStokesBase::create_umac_grown (int nGrow,
-                                     const MultiFab* /*a_divu*/)
+                                     const MultiFab* a_divu)
 {
+    if ( nGrow <= 0 ) { return; }
+    if ( nGrow > 1 )  { amrex::Abort("NSB::create_umac_grown: Currently, the divergnece constraint can only be enforced on 1 ghost cell. Call with nGrow = 1"); }
 
-    Array<MultiFab*, AMREX_SPACEDIM> u_mac_crse;
     Array<MultiFab*, AMREX_SPACEDIM> u_mac_fine;
-
     AMREX_D_TERM(u_mac_fine[0] = &u_mac[0];,
                  u_mac_fine[1] = &u_mac[1];,
                  u_mac_fine[2] = &u_mac[2];);
 
-    Geometry *crse_geom = (level==0) ? nullptr : &getLevel(level-1).geom;
     Geometry *fine_geom = &geom;
 
     if ( level > 0)
     {
+        Array<MultiFab*, AMREX_SPACEDIM> u_mac_crse;
         AMREX_D_TERM(u_mac_crse[0] = &getLevel(level-1).u_mac[0];,
                      u_mac_crse[1] = &getLevel(level-1).u_mac[1];,
                      u_mac_crse[2] = &getLevel(level-1).u_mac[2];);
 
-       // Divergence preserving interp
-       Interpolater* mapper = &face_divfree_interp;
-       // This one most closely matches up with old create umac grown
-       //Interpolater* mapper = &face_linear_interp;
+        Geometry *crse_geom = &getLevel(level-1).geom;
 
-       // Set BCRec for Umac
-       Vector<BCRec> bcrec(1);
-       for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
+        //
+        // First interpolate, ignoring divergence constraint. Then correct
+        // the 1-cell wide halo of ghosts cells we need to enforce the
+        // constraint.
+        //
+
+        // Divergence preserving interp -- This is for case of MAC solve on
+        // composite grid; doesn't really make sense to use it here.
+        //Interpolater* mapper = &face_divfree_interp;
+        // This one matches up with old create umac grown
+        Interpolater* mapper = &face_linear_interp;
+
+        // Set BCRec for Umac
+        Vector<BCRec> bcrec(1);
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
             if (crse_geom->isPeriodic(idim)) {
-               bcrec[0].setLo(idim,BCType::int_dir);
-               bcrec[0].setHi(idim,BCType::int_dir);
+                bcrec[0].setLo(idim,BCType::int_dir);
+                bcrec[0].setHi(idim,BCType::int_dir);
             } else {
-               bcrec[0].setLo(idim,BCType::foextrap);
-               bcrec[0].setHi(idim,BCType::foextrap);
+                bcrec[0].setLo(idim,BCType::foextrap);
+                bcrec[0].setHi(idim,BCType::foextrap);
             }
-       }
-       Array<Vector<BCRec>,AMREX_SPACEDIM> bcrecArr = {AMREX_D_DECL(bcrec,bcrec,bcrec)};
+        }
+        Array<Vector<BCRec>,AMREX_SPACEDIM> bcrecArr = {AMREX_D_DECL(bcrec,bcrec,bcrec)};
 
-       PhysBCFunct<GpuBndryFuncFab<umacFill>> crse_bndry_func(*crse_geom, bcrec, umacFill{});
-       Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> cbndyFuncArr = {AMREX_D_DECL(crse_bndry_func,crse_bndry_func,crse_bndry_func)};
+        PhysBCFunct<GpuBndryFuncFab<umacFill>> crse_bndry_func(*crse_geom, bcrec, umacFill{});
+        Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> cbndyFuncArr = {AMREX_D_DECL(crse_bndry_func,crse_bndry_func,crse_bndry_func)};
 
-       PhysBCFunct<GpuBndryFuncFab<umacFill>> fine_bndry_func(*fine_geom, bcrec, umacFill{});
-       Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func,fine_bndry_func,fine_bndry_func)};
+        PhysBCFunct<GpuBndryFuncFab<umacFill>> fine_bndry_func(*fine_geom, bcrec, umacFill{});
+        Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func,fine_bndry_func,fine_bndry_func)};
 
-       // Use piecewise constant interpolation in time, so create dummy variable for time
-       Real dummy = 0.;
-       FillPatchTwoLevels(u_mac_fine, IntVect(nGrow), dummy,
-			  {u_mac_crse}, {dummy},
-			  {u_mac_fine}, {dummy},
-			  0, 0, 1,
-			  *crse_geom, *fine_geom,
-			  cbndyFuncArr, 0, fbndyFuncArr, 0,
-			  crse_ratio, mapper, bcrecArr, 0);
+        // Use piecewise constant interpolation in time, so create dummy variable for time
+        Real dummy = 0.;
+        FillPatchTwoLevels(u_mac_fine, IntVect(nGrow), dummy,
+                           {u_mac_crse}, {dummy},
+                           {u_mac_fine}, {dummy},
+                           0, 0, 1,
+                           *crse_geom, *fine_geom,
+                           cbndyFuncArr, 0, fbndyFuncArr, 0,
+                           crse_ratio, mapper, bcrecArr, 0);
+
+        //
+        // Correct u_mac to enforce the divergence constraint in the ghost cells.
+        // Do this by adjusting only the outer face (wrt the valid region) of the ghost
+        // cell, i.e. for the hi-x face, adjust umac_x(i+1).
+        // NOTE that this does not fill edges or corners.
+        //
+
+        // Build mask to find the ghost cells we need to correct.
+        // covered   : ghost cells covered by valid cells of this FabArray
+        //             (including periodically shifted valid cells)
+        // notcovered: ghost cells not covered by valid cells
+        //             (including ghost cells outside periodic boundaries)
+        // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+        // interior  : interior cells (i.e., valid cells)
+        int covered   = 0;
+        int uncovered = 1;
+        int physbnd   = 0;
+        int interior  = 0;
+        iMultiFab mask(grids, u_mac_fine[0]->DistributionMap(), 1, 1, MFInfo(),
+                       DefaultFabFactory<IArrayBox>());
+        mask.BuildMask(fine_geom->Domain(), fine_geom->periodicity(),
+                       covered, uncovered, physbnd, interior);
+
+        const GpuArray<Real,AMREX_SPACEDIM> dx = fine_geom->CellSizeArray();
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = fine_geom->InvCellSizeArray();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            auto const& maskarr = mask.const_array(mfi);
+            Array4<const Real> foo;
+            auto const& divu = (have_divu) ? a_divu->const_array(mfi) : foo;
+            AMREX_D_TERM(auto const& umac = u_mac_fine[0]->array(mfi);,
+                         auto const& vmac = u_mac_fine[1]->array(mfi);,
+                         auto const& wmac = u_mac_fine[2]->array(mfi));
+
+            // Fuse the launches, 1 for each dimension, into a single launch.
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(RunOn::Gpu,
+                mfi.growntilebox(IntVect::TheDimensionVector(0)), bx0,
+                {
+                    AMREX_LOOP_3D(bx0, i, j, k,
+                    {
+                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
+                        {
+                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+
+                            tmp =  dx[0] * (   dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k))
+#if AMREX_SPACEDIM == 3
+                                             + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
+#endif
+                                             - tmp );
+
+                            if ( i < bx.smallEnd(0) )
+                            {
+                                umac(i,j,k) = umac(i+1,j,k) + tmp;
+                            }
+                            else if ( i > bx.bigEnd(0) )
+                            {
+                                umac(i+1,j,k) = umac(i,j,k) - tmp;
+                            }
+                        }
+                    });
+                },
+                mfi.growntilebox(IntVect::TheDimensionVector(1)), bx1,
+                {
+                    AMREX_LOOP_3D(bx1, i, j, k,
+                    {
+                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
+                        {
+                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+
+                            tmp =  dx[1] * (   dxinv[0]*(umac(i+1,j,k) - umac(i,j,k))
+#if AMREX_SPACEDIM == 3
+                                             + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
+#endif
+                                             - tmp );
+
+                            if ( j < bx.smallEnd(1) )
+                            {
+                                vmac(i,j,k) = vmac(i,j+1,k) + tmp;
+                            }
+                            else if ( j > bx.bigEnd(1) )
+                            {
+                                vmac(i,j+1,k) = vmac(i,j,k) - tmp;
+                            }
+                        }
+                    });
+                },
+                mfi.growntilebox(IntVect::TheDimensionVector(2)), bx2,
+                {
+                    AMREX_LOOP_3D(bx2, i, j, k,
+                    {
+                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
+                        {
+                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+
+                            tmp =  dx[2] * (   dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k))
+                                             + dxinv[0]*(umac(i+1,j,k) - umac(i,j,k))
+                                             - tmp );
+
+                            if ( k < bx.smallEnd(2) )
+                            {
+                                wmac(i,j,k) = wmac(i,j,k+1) + tmp;
+                            }
+                            else if ( k > bx.bigEnd(2) )
+                            {
+                                wmac(i,j,k+1) = wmac(i,j,k) - tmp;
+                            }
+                        }
+                    });
+                });
+        }
     }
     else
     {
