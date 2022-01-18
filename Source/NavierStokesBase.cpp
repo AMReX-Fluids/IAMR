@@ -278,9 +278,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 #endif
       if ( do_temp )
 	amrex::Abort("RZ geometry currently does not work with Temperature field. To use set ns.do_temp = 0.");
-      for ( int n = 0; n < NUM_STATE; n++ )
+      for ( int n = 0; n < AMREX_SPACEDIM; n++ )
 	if ( visc_coef[n] > 0 )
-	  amrex::Abort("RZ geometry with viscosity/diffusivity is not currently supported. To use set ns.vel_visc_coef=0 and ns.scal_diff_coefs=0");
+	  amrex::Abort("RZ geometry with viscosity is not currently supported. To use set ns.vel_visc_coef=0");
     }
 
     if(!additional_state_types_initialized) {
