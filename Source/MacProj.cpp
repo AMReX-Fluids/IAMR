@@ -53,7 +53,7 @@ MacProj::Initialize ()
     MacProj::verbose                = 0;
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
-    MacProj::mac_sync_tol           = 1.0e-8;
+    MacProj::mac_sync_tol           = 1.0e-10;
     MacProj::do_outflow_bcs         = 1;
     //
     // Only check umac periodicity when debugging.  Can be overridden on input.
