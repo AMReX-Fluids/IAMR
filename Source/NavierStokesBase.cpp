@@ -1180,7 +1180,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
                             Real tmp = (divu) ? divu(i,j,k) : 0.0;
 
                             tmp =  dx[0] * (   dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k))
-#if AMREX_SPACEDIM == 3
+#if (AMREX_SPACEDIM == 3)
                                              + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
 #endif
                                              - tmp );
@@ -1205,7 +1205,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
                             Real tmp = (divu) ? divu(i,j,k) : 0.0;
 
                             tmp =  dx[1] * (   dxinv[0]*(umac(i+1,j,k) - umac(i,j,k))
-#if AMREX_SPACEDIM == 3
+#if (AMREX_SPACEDIM == 3)
                                              + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
 #endif
                                              - tmp );
