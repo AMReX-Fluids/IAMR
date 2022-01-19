@@ -1070,7 +1070,8 @@ NavierStokesBase::create_umac_grown (int nGrow,
                                      const MultiFab* a_divu)
 {
     if ( nGrow <= 0 ) { return; }
-    if ( nGrow > 1 )  { amrex::Abort("NSB::create_umac_grown: Currently, the divergnece constraint can only be enforced on 1 ghost cell. Call with nGrow = 1"); }
+    if ( nGrow > 1 )  { Print()<<"\n\nWARNING!\n  NSB::create_umac_grown currently only enforces the divergnece constraint on 1 ghost cell, but nGrow > 1\n\n"; }
+
 
     Array<MultiFab*, AMREX_SPACEDIM> u_mac_fine;
     AMREX_D_TERM(u_mac_fine[0] = &u_mac[0];,
