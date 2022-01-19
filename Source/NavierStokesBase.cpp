@@ -622,12 +622,8 @@ NavierStokesBase::advance_setup (Real /*time*/,
 
     const int finest_level = parent->finestLevel();
 
-#ifdef AMREX_USE_EB
-    // incflo now uses: use_godunov ? 4 : 3;
-    umac_n_grow = 4;
-#else
-    umac_n_grow = 1;
-#endif
+    // Same for EB vs not.
+    umac_n_grow = (use_godunov) ? 1 : 0;
 
 #ifdef AMREX_PARTICLES
     if (ncycle > umac_n_grow)
