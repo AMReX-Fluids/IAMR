@@ -283,19 +283,34 @@ MacProj::mac_project (int             level,
     }
 
     //
-    // Compute the nondivergent velocities, by creating the linop
-    // and multigrid operator appropriate for the solved system.
-    //
-    // Initialize the rhs with divu.
+    //  Set up the mac projection
     //
     const Real rhs_scale = 2.0/dt;
 
-    MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
-    mlmg_mac_level_solve(parent, cphi, *phys_bc, density_math_bc, level, Density, mac_tol, mac_abs_tol,
-                         rhs_scale, S, divu, u_mac, mac_phi);
+    const MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
 
+    // Set bcoefs to the average of Density at the faces
+    // In the EB case, they will be defined at the Face Centroid
+    MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow(),
+                 MFInfo(), (parent->getLevel(level)).Factory());
+    MultiFab::Copy(rho, S, Density, 0, 1, S.nGrow()); // Extract rho component from S
 
-    Rhs.clear();
+    Array<MultiFab*,AMREX_SPACEDIM>  umac;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        umac[idim]= &(u_mac[idim]);
+
+    Array<MultiFab*,AMREX_SPACEDIM>  fluxes;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      // We don't need the fluxes, so nullptr means we won't compute them
+      fluxes[idim]= nullptr;
+
+    //
+    // Perform projection
+    //
+    mlmg_mac_solve(parent, cphi, *phys_bc, density_math_bc, level,
+		   mac_tol, mac_abs_tol, rhs_scale,
+		   rho, divu, umac, mac_phi, fluxes);
+
     //
     // Test that u_mac is divergence free
     //
@@ -1242,37 +1257,6 @@ MacProj::test_umac_periodic (int       level,
     }
 }
 
-//level_project
-void
-MacProj::mlmg_mac_level_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phys_bc,
-			       const BCRec& density_math_bc,
-			       int level, int Density,
-			       Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
-			       const MultiFab &S, MultiFab &Rhs,
-			       MultiFab *u_mac, MultiFab *mac_phi)
-{
-    // Set bcoefs to the average of Density at the faces
-    // In the EB case, they will be defined at the Face Centroid
-    MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow(),
-                 MFInfo(), (a_parent->getLevel(level)).Factory());
-    MultiFab::Copy(rho, S, Density, 0, 1, S.nGrow()); // Extract rho component from S
-
-    Array<MultiFab*,AMREX_SPACEDIM>  umac;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        umac[idim]= &(u_mac[idim]);
-
-    Array<MultiFab*,AMREX_SPACEDIM>  fluxes;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      // We don't need the fluxes, so nullptr means we won't compute them
-      fluxes[idim]= nullptr;
-
-    //
-    // Perform projection
-    //
-    mlmg_mac_solve(a_parent, cphi, a_phys_bc, density_math_bc, level,
-		   a_mac_tol, a_mac_abs_tol, rhs_scale,
-		   rho, Rhs, umac, mac_phi, fluxes);
-}
 
 //sync_project
 void
@@ -1312,7 +1296,7 @@ void
 MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phys_bc,
 			 const BCRec& density_math_bc,
 			 int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
-			 const MultiFab &rho, MultiFab &Rhs,
+			 const MultiFab &rho, const MultiFab &Rhs,
 			 Array<MultiFab*,AMREX_SPACEDIM>& u_mac, MultiFab *mac_phi,
 			 Array<MultiFab*,AMREX_SPACEDIM>& fluxes)
 {
