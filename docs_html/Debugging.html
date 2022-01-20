@@ -86,8 +86,18 @@
 produced from the running with the debug executable. Using the debug executable will also
 turn on additional checks within the code (these are <code class="docutils literal notranslate"><span class="pre">AMREX_ASSERT()</span></code> statements).
 Many times, these additional checks or the Backtrace can point you to the problem.</p>
-<p>For more information and tips on debugging, also
-see AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Debugging.html#sec-basics-debugging" title="(in amrex v22.02-dev)"><span>Debugging</span></a>.</p>
+<p>It can be helpful to simplify the problem as much as possible before digging into debugging.
+For example, reduce the problem size and set <code class="docutils literal notranslate"><span class="pre">amr.max_level</span></code> as small as possible.
+Diffusion and viscosity and be turned off by setting <code class="docutils literal notranslate"><span class="pre">ns.vel_visc_coef</span> <span class="pre">=</span> <span class="pre">0</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ns.scal_diff_coefs</span> <span class="pre">=</span> <span class="pre">0</span></code>.</p>
+<p>Sometimes, restarting from a checkpoint file can reduce the amount of time spent waiting for
+the code to fail durning the debugging process.</p>
+<p>If the problem only happens with multilevel runs, <code class="docutils literal notranslate"><span class="pre">amr.subcycling_mode</span> <span class="pre">=</span> <span class="pre">None</span></code> will turn
+time subcycling off and advance the whole system at the same dt.</p>
+<p>Please also read AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Debugging.html#sec-basics-debugging" title="(in amrex v22.02-dev)"><span>Debugging</span></a>
+for more information and tips.</p>
+<p>If you believe you’ve encountered a bug or incorrect behavior in IAMR, please report the issue
+on IAMR’s github page <a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">here</a> .</p>
 </div>
 
 
