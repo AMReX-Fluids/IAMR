@@ -289,13 +289,10 @@ MacProj::mac_project (int             level,
     // Initialize the rhs with divu.
     //
     const Real rhs_scale = 2.0/dt;
-    MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
-
-    MultiFab::Copy(Rhs,divu,0,0,1,0); 
 
     MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
     mlmg_mac_level_solve(parent, cphi, *phys_bc, density_math_bc, level, Density, mac_tol, mac_abs_tol,
-                         rhs_scale, S, Rhs, u_mac, mac_phi);
+                         rhs_scale, S, divu, u_mac, mac_phi);
 
 
     Rhs.clear();
