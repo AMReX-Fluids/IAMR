@@ -1160,7 +1160,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
             const Box& bx = mfi.tilebox();
             auto const& maskarr = mask.const_array(mfi);
             Array4<const Real> foo;
-            auto const& divu = (have_divu) ? a_divu->const_array(mfi) : foo;
+            auto const& divu = (a_divu) ? a_divu->const_array(mfi) : foo;
             AMREX_D_TERM(auto const& umac = u_mac_fine[0]->array(mfi);,
                          auto const& vmac = u_mac_fine[1]->array(mfi);,
                          auto const& wmac = u_mac_fine[2]->array(mfi));
