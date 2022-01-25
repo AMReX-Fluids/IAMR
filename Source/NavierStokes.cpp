@@ -590,7 +590,10 @@ NavierStokes::advance (Real time,
 #ifdef AMREX_USE_EB
 	int ng_rhs = 4;
 #else
+	//FIXME?? should this match umac_n_grow??? or is this a requirement of the proj???
+	// I think we might not need any now, proj may create it's own temps and fill ghosts itself
 	// To enforce div constraint on coarse-fine boundary, need 1 ghost cell
+	// maybe need to make sure divu_type get it's ghost cell s FP'ed
 	int ng_rhs = 1;
 #endif
 	MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
@@ -1507,9 +1510,8 @@ NavierStokes::mac_sync ()
 
 #ifdef AMREX_USE_EB
     // fixme? unsure how many ghost cells...
-    // for umac, inflo uses: use_godunov ? 4 : 3;
-    // for now, match umac which uses 4
-    const int nghost = umac_n_grow; // ==4; For redistribution ... We may not need 4 but for now we play safe
+    // for now, match umac
+    const int nghost = umac_n_grow;
 #else
     const int nghost = 0;
 #endif
@@ -1586,13 +1588,13 @@ NavierStokes::mac_sync ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-      for (MFIter mfi(rho_ctime, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
       {
-	const Box& bx = mfi.tilebox();
-	auto const& rho_c    = rho_ctime.array(mfi);
-	auto const& vsync    = Vsync.array(mfi,Xvel);
-	amrex::ParallelFor(bx, [rho_c, vsync]
-	AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        const Box& bx = mfi.tilebox();
+        auto const& rho_c    = S_new.array(mfi,Density);
+        auto const& vsync    = Vsync.array(mfi,Xvel);
+        amrex::ParallelFor(bx, [rho_c, vsync]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 	  for (int n = 0; n < AMREX_SPACEDIM; n++) {
 	    vsync(i,j,k,n) /= rho_c(i,j,k);

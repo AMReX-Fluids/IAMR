@@ -306,6 +306,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     // rho_half is passed into level_project to be used as sigma in the MLMG
     // solve, but MLMG doesn't copy any ghost cells, it fills what it needs itself.
     // does rho_half still need any ghost cells?
+    //
+    // Also, don't really need rho_ptime, only rho_half uses it.
+    // rho_ctime is used in PeleLM (there are other options though), and rho_half.
     rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
     rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
@@ -1342,11 +1345,11 @@ NavierStokesBase::estTimeStep ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
        const auto& bx          = mfi.tilebox();
        const auto  cur_time    = state[State_Type].curTime();
-             auto& tforces_fab = tforces[mfi];
+       auto& tforces_fab       = tforces[mfi];
 
        if (getForceVerbose)
            amrex::Print() << "---" << '\n'
@@ -1354,7 +1357,7 @@ NavierStokesBase::estTimeStep ()
                           << "Calling getForce..." << '\n';
        getForce(tforces_fab,bx,0,AMREX_SPACEDIM,cur_time,S_new[mfi],S_new[mfi],Density,mfi);
 
-       const auto& rho   = rho_ctime.array(mfi);
+       const auto& rho   = S_new.array(mfi,Density);
        const auto& gradp = Gp.array(mfi);
        const auto& force = tforces.array(mfi);
        amrex::ParallelFor(bx, [rho, gradp, force]
@@ -1451,7 +1454,7 @@ NavierStokesBase::estTimeStep ()
         Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
     }
 
-  return estdt;
+    return estdt;
 }
 
 const MultiFab&
@@ -3667,8 +3670,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
         auto const& gradp    = Gp.array(mfi);
         auto const& force    = tforces.array();
         auto const& advec    = Aofs.array(mfi);
-        auto const& rho_old  = rho_ptime.array(mfi);
-        auto const& rho_new  = rho_ctime.array(mfi);
+        auto const& rho_old  = U_old.array(mfi, Density);
+        auto const& rho_new  = U_new.array(mfi, Density);
         auto const& rho_Half = Rh.array(mfi);
         int mom_diff = do_mom_diff;
         amrex::ParallelFor(bx, AMREX_SPACEDIM, [vel_old,vel_new,gradp,force,advec,rho_old,rho_new,rho_Half,mom_diff,dt]
@@ -3788,8 +3791,8 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
            auto const& viscT   = visc_terms.array(mfi);
            auto const& gradp   = Gp.array(mfi);
            auto const& rhohalf = Rh.array(mfi);
-           auto const& rho_old = rho_ptime.array(mfi);
-           auto const& rho_new = rho_ctime.array(mfi);
+           auto const& rho_old = U_old.array(mfi,Density);
+           auto const& rho_new = U_new.array(mfi,Density);
            auto const& vel_old = U_old.array(mfi,Xvel);
            auto const& vel_new = U_new.array(mfi,Xvel);
            auto const& advT    = aofs->array(mfi,Xvel);
@@ -4637,7 +4640,7 @@ NavierStokesBase::predict_velocity (Real  dt)
                auto const& tf   = forcing_term.array(U_mfi,Xvel);
                auto const& visc = visc_terms.const_array(U_mfi,Xvel);
                auto const& gp   = Gp.const_array(U_mfi);
-               auto const& rho  = Smf.const_array(U_mfi); //It should be equivalent to rho_ptime.const_array(U_mfi);
+               auto const& rho  = Smf.const_array(U_mfi);
 
                amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
