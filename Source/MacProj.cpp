@@ -459,11 +459,30 @@ MacProj::mac_sync_solve (int       level,
     const Real rhs_scale = 2.0/dt;
 
     //
-    // Compute Ucorr, including filling ghost cells for EB
+    // Compute Ucorr, including filling ghost cells
     //
-    mlmg_mac_sync_solve(parent,*phys_bc, rho_math_bc, level, mac_sync_tol, mac_abs_tol,
-                        rhs_scale, rho_half, Rhs, mac_sync_phi,
-                        Ucorr);
+    // null umac will prevent MacProject from computing div(umac)
+    // and adding it to RHS
+    //
+    Array<MultiFab*,AMREX_SPACEDIM>  umac;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      umac[idim]= nullptr;
+
+    Rhs.negate();
+
+    //
+    // Perform projection
+    //
+    mlmg_mac_solve(parent, nullptr, *phys_bc, rho_math_bc, level,
+		   mac_sync_tol, mac_abs_tol, rhs_scale,
+		   rho_half, Rhs, umac, mac_sync_phi, Ucorr);
+
+    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
+    {
+      //Ucorr = fluxes = -B grad phi
+      // Make sure Ucorr has correct sign
+      Ucorr[idim]->negate();
+    }
 
     if (verbose)
     {
@@ -1254,40 +1273,6 @@ MacProj::test_umac_periodic (int       level,
                            << " for region: "  << pirm[i].m_dstBox << std::endl;
             amrex::Error("Periodic bust in u_mac");
         }
-    }
-}
-
-
-//sync_project
-void
-MacProj::mlmg_mac_sync_solve (Amr* a_parent, const BCRec& a_phys_bc,
-			      const BCRec& rho_math_bc,
-			      int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
-			      const MultiFab& rho, MultiFab& Rhs,
-			      MultiFab* mac_phi, Array<MultiFab*,AMREX_SPACEDIM>& Ucorr)
-{
-    //
-    // null umac will prevent MacProject from computing div(umac)
-    // and adding it to RHS
-    //
-    Array<MultiFab*,AMREX_SPACEDIM>  umac;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      umac[idim]= nullptr;
-
-    Rhs.negate();
-
-    //
-    // Perform projection
-    //
-    mlmg_mac_solve(a_parent, nullptr, a_phys_bc, rho_math_bc, level,
-		   a_mac_tol, a_mac_abs_tol, rhs_scale,
-		   rho, Rhs, umac, mac_phi, Ucorr);
-
-    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
-    {
-      //Ucorr = fluxes = -B grad phi
-      // Make sure Ucorr has correct sign
-      Ucorr[idim]->negate();
     }
 }
 
