@@ -448,7 +448,7 @@ Projection::level_project (int             level,
 	 // For proj_2, this is because the level projection works on U/dt, not dU/dt,
 	 //    and dt on the fine level is crse_dt_ratio times smaller than dt one the
 	 //    coarse level.
-	 const Real invrat = 1.0/(double)crse_dt_ratio;
+         const Real invrat = 1.0/Real(crse_dt_ratio);
 	 const Geometry& crse_geom = parent->Geom(level-1);
 	 fine_sync_reg->FineAdd(*sync_resid_fine,crse_geom,invrat);
        }
@@ -592,7 +592,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     if (c_lev > 0 && crse_iteration == crse_dt_ratio)
     {
-        const Real invrat         = 1.0/(double)crse_dt_ratio;
+        const Real invrat         = 1.0/Real(crse_dt_ratio);
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         BoxArray sync_boxes       = pres_fine.boxArray();
         sync_boxes.coarsen(ratio);

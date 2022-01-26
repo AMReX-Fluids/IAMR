@@ -1314,7 +1314,7 @@ NavierStokesBase::estTimeStep ()
             {
                 ratio *= parent->nCycle(lev);
             }
-            factor = 1.0/double(ratio);
+            factor = 1.0/Real(ratio);
         }
 
         return factor*fixed_dt;
@@ -1418,7 +1418,7 @@ NavierStokesBase::estTimeStep ()
          {
            ratio *= parent->nCycle(lev);
          }
-         factor = 1.0/double(ratio);
+         factor = 1.0/Real(ratio);
       }
 
       estdt = factor*init_dt;
