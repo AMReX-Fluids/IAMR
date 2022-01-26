@@ -1445,14 +1445,6 @@ NavierStokes::post_init_press (Real&        dt_init,
             getLevel(k).resetState(strt_time, dt_init, dt_init);
         }
 
-	// Make sure rho_ctime matches reset State
-	// FIXME? Why isn't this called on all levels when rho has been altered
-	// on all levels via advance, avgDown and resetState called on all levels.
-	// Just testing things out with the regression tests shows that this is
-	// needed (for both EB and nonEB), just doing level 0 is fine, and moving it
-	// outside the init_iters loop is fine (no changes to any regression tests).
-        make_rho_curr_time();
-
         NavierStokes::initial_iter = false;
     }
 
