@@ -16,6 +16,7 @@ Hdirs := $(AMREX_HYDRO_HOME)/Slopes
 Hdirs += $(AMREX_HYDRO_HOME)/Utils
 Hdirs += $(AMREX_HYDRO_HOME)/MOL
 Hdirs += $(AMREX_HYDRO_HOME)/Godunov
+Hdirs += $(AMREX_HYDRO_HOME)/BDS
 Hdirs += $(AMREX_HYDRO_HOME)/Projections
 
 ifeq ($(USE_EB), TRUE)

@@ -16,6 +16,7 @@
 
 #include <hydro_mol.H>
 #include <hydro_godunov.H>
+#include <hydro_bds.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
@@ -4617,7 +4618,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         else
 #endif
         {
-            Godunov::ComputeAofs(*aofs, comp, ncomp,
+            BDS::ComputeAofs(*aofs, comp, ncomp,
                                  S, S_comp,
                                  AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                  AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),

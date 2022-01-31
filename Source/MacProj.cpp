@@ -11,6 +11,7 @@
 #include <hydro_ebmol.H>
 #endif
 #include <hydro_godunov.H>
+#include <hydro_bds.H>
 #include <hydro_mol.H>
 
 
@@ -746,7 +747,7 @@ MacProj::mac_sync_compute (int                   level,
 		else
 #endif
 		{
-		  Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+		  BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
 					   Q, comp,
 					   AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
 					   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
@@ -896,7 +897,7 @@ MacProj::mac_sync_compute (int                    level,
 	else
 #endif
 	{
-	  Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
+	  BDS::ComputeSyncAofs(Sync, s_ind, ncomp,
 				   MultiFab(), s_ind,                      // this is not used when known_edgestate = true
 				   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
 				   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
