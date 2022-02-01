@@ -4613,7 +4613,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  BDS ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         //
-    if (use_bds)
+    if (use_bds && (!is_velocity))
     {
         BDS::ComputeAofs(*aofs, comp, ncomp,
                              S, S_comp,
@@ -4626,7 +4626,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                              godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
 
     }
-    else if (use_godunov)
+    else if (use_godunov || (use_bds && is_velocity))
     {
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  Godunov ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

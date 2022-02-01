@@ -746,7 +746,7 @@ MacProj::mac_sync_compute (int                   level,
 		}
 		else
 #endif
-        if (ns_level.use_bds)
+        if (ns_level.use_bds && (!is_velocity))
         {
 		    BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
 					   Q, comp,
