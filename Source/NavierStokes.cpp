@@ -725,7 +725,7 @@ NavierStokes::scalar_advection (Real dt,
     // Floor small values of states to be extrapolated
     floor(Smf);
 
-    if (use_godunov)
+    if (use_godunov || use_bds)
     {
         MultiFab visc_terms(grids,dmap,num_scalars,nghost_force(),MFInfo(),Factory());
         FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,BL_SPACEDIM);

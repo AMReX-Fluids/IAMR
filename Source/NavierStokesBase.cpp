@@ -139,7 +139,8 @@ Real NavierStokesBase::volWgtSum_sub_dz       = -1;
 
 int  NavierStokesBase::do_mom_diff            = 0;
 
-bool  NavierStokesBase::use_godunov = true;  //Default to Godunov
+bool  NavierStokesBase::use_godunov = false;  //Default to Godunov
+bool  NavierStokesBase::use_bds = true; //HACK -- BDS temporary default
 
 bool NavierStokesBase::godunov_use_ppm = false;
 bool NavierStokesBase::godunov_use_forces_in_trans = false;
@@ -527,6 +528,11 @@ NavierStokesBase::Initialize ()
     pp2.query("use_ppm",             godunov_use_ppm);
     pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
 
+    //
+    // BDS algorithm
+    //
+    pp.query("use_bds", use_bds);
+
 #ifdef AMREX_USE_EB
     //
     // EB Godunov restrictions
@@ -535,6 +541,13 @@ NavierStokesBase::Initialize ()
       amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
     if ( use_godunov && godunov_use_forces_in_trans )
       amrex::Abort("use_forces_in_trans not implemented within EB Godunov. Set godunov.use_forces_in_trans=0.");
+
+    //
+    // BDS restrictions
+    //
+    if (use_bds){
+        amrex::Abort("BDS not implemented with Embedded Boundaries.");
+    }
 
     //
     // Redistribution
@@ -592,7 +605,8 @@ NavierStokesBase::advance_setup (Real /*time*/,
     // incflo now uses: use_godunov ? 4 : 3;
     umac_n_grow = 4;
 #else
-    umac_n_grow = 1;
+    umac_n_grow = 1; //HACK -- line below predates merge conflict
+    //umac_n_grow = (use_godunov || use_bds) ? 1 : 0;  //HACK -- check on this.
 #endif
 
 #ifdef AMREX_PARTICLES
@@ -3282,7 +3296,7 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     // Forcing term -- Godunov only
     //
-    if (use_godunov)
+    if (use_godunov || use_bds) //HACK
     {
 
         FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
@@ -4394,7 +4408,7 @@ NavierStokesBase::predict_velocity (Real  dt)
    Real tempdt = cflmax==0 ? change_max : std::min(change_max,cfl/cflmax);
 
 
-   if (use_godunov)  // GODUNOV SCHEME
+   if (use_godunov || use_bds)  // GODUNOV SCHEME
    {
        MultiFab& Gp = get_old_data(Gradp_Type);
        // FillPatch Gp here, as crse data has been updated
@@ -4539,7 +4553,7 @@ NavierStokesBase::nghost_state ()
   else
 #endif
   {
-    return (use_godunov) ? 3 : 2;
+    return (use_godunov || use_bds) ? 3 : 2; //HACK
 }
 }
 
@@ -4547,7 +4561,7 @@ NavierStokesBase::nghost_state ()
 int
 NavierStokesBase::nghost_force ()
 {
-    if (use_godunov)
+    if (use_godunov || use_bds) //HACK
       return 1;
     else
         return 0;
@@ -4596,8 +4610,23 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     auto const& bcrec_h = is_velocity? m_bcrec_velocity   : m_bcrec_scalars;
     auto const& bcrec_d = is_velocity? m_bcrec_velocity_d : m_bcrec_scalars_d;
 
+        //
+        // >>>>>>>>>>>>>>>>>>>>>>>>>>>  BDS ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        //
+    if (use_bds)
+    {
+        BDS::ComputeAofs(*aofs, comp, ncomp,
+                             S, S_comp,
+                             AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                             AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
+                             0, false,
+                             AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                             0, forcing_term, 0, divu, bcrec_d.dataPtr(),
+                             geom, iconserv_h, dt,
+                             godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
 
-    if (use_godunov)
+    }
+    else if (use_godunov)
     {
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  Godunov ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -4618,7 +4647,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         else
 #endif
         {
-            BDS::ComputeAofs(*aofs, comp, ncomp,
+            Godunov::ComputeAofs(*aofs, comp, ncomp,
                                  S, S_comp,
                                  AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
                                  AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),

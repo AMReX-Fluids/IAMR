@@ -826,6 +826,11 @@ public:
     static const int  godunov_hyp_grow = 3;
 #endif
 
+    //
+    // BDS advection
+    //
+    static bool use_bds;
+
 #ifdef AMREX_USE_EB
     // Controls redistribution
     static std::string redistribution_type;
