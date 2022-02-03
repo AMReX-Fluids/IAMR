@@ -4824,8 +4824,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                              0, false,
                              AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                              0, forcing_term, 0, divu, bcrec_d.dataPtr(),
-                             geom, iconserv_h, dt,
-                             godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
+                             geom, iconserv_h, dt);
 
     }
     else if (use_godunov || (use_bds && is_velocity))

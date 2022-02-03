@@ -822,9 +822,7 @@ MacProj::mac_sync_compute (int                   level,
 					   AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
 					   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
 					   forcing_term, comp, *divu_fp,
-					   d_bcrec_ptr, geom, iconserv, dt,
-					   ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
-					   is_velocity );
+					   d_bcrec_ptr, geom, iconserv, dt);
         }
         else
 		{
@@ -986,7 +984,7 @@ MacProj::mac_sync_compute (int                    level,
 				   AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
 				   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
 				   MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-				   d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
+				   d_bcrec_ptr, geom, iconserv, 0.0); // this is not used when known_edgestate = true
     }
     else
 	{
