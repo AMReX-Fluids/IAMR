@@ -4823,7 +4823,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                              AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
                              0, false,
                              AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                             0, forcing_term, 0, divu, bcrec_d.dataPtr(),
+                             0, forcing_term, 0, divu,
                              geom, iconserv_h, dt);
 
     }
