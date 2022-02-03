@@ -91,22 +91,20 @@ Output Options
 Plotfiles
 ~~~~~~~~~
 
-The following inputs must be preceded by "amr." and control frequency and naming of plotfile generation as well
-as whether the EB geometry should be written out.
+The following inputs must be preceded by "amr." and control frequency, naming, and content of the plotfiles.
 
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 |                     | Description                                                           |   Type      | Default   |
 +=====================+=======================================================================+=============+===========+
 | plot_int            | Frequency of plotfile output;                                         |    Int      | -1        |
 |                     | if -1 then no plotfiles will be written at this frequency             |             |           |
++---------------------+-----------------------------------------------------------------------+-------------+-----------+
 | plot_per            | Time period of plotfile output (approximate); does not modify dt      |    Real     | -1        |
 |                     | if -1 then no plotfiles will be written at this frequency             |             |           |
-+---------------------+-----------------------------------------------------------------------+-------------+-----------+
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 | plotfile_on_restart | Should we write a plotfile when we restart (only used if plot_int>0)  |   Bool      | False     |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 | plot_file           | Prefix to use for plotfile output                                     |  String     | plt       |
-+---------------------+-----------------------------------------------------------------------+-------------+-----------+
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 | plot_vars           | State variables to include in plotfile                                |  String     | ALL       |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
@@ -114,6 +112,7 @@ as whether the EB geometry should be written out.
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 
 The following inputs must be preceded by "ns."
+
 +--------------------------+-----------------------------------------------------------------------+-------------+-----------+
 |                          | Description                                                           |   Type      | Default   |
 +==========================+=======================================================================+=============+===========+
@@ -428,7 +427,7 @@ The following inputs must be preceded by "ns."
 +======================+=======================================================================+=============+==============+
 | do_init_proj         | Do the initial projections? False is primarily for debugging.         |    Bool     |  True        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
-| init_iter            | How many pressure iterations before starting the first timestep       |  Int        |    3         |
+| init_iter            | How many pressure iterations before starting the first timestep.      |  Int        |    3         |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | init_vel_iters       | How many projection iterations to ensure the velocity satisfies the   |  Int        |    3         |
 |                      |  constraint. Set = 0 to skip this part of the initialization.         |             |              |

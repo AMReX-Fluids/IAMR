@@ -7,7 +7,6 @@ max_step           =  10          # Max number of time steps
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_shrink     = 1.0
-ns.visc_tol        = 1.0e-11   # tolerance for viscous solve
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #
@@ -27,9 +26,8 @@ ns.do_cons_trac2=1
 #            INPUT AND OUTPUT           #
 #.......................................#
 amr.plot_int            =   10          # Steps between plot files
-amr.plot_per            =   0.1         # Steps between plot files
 amr.check_int           =   10          # Steps between checkpoint files
-amr.restart             =   ""          # Checkpoint to restart from
+
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
 #.......................................#
@@ -41,7 +39,6 @@ ns.scal_diff_coefs       = 0.1 0.01
 #.......................................#
 amr.n_cell              =   96 32  8    # Grid cells at coarsest AMRlevel
 amr.max_level           =   0           # Max AMR level in hierarchy
-amr.grid_eff            =   0.7
 amr.n_error_buf         =   8
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #              GEOMETRY                 #
@@ -84,10 +81,3 @@ prob.blob_radius =  0.04
 prob.density_ic = 1.0
 # Set up a flow, defaults to zero
 prob.velocity_ic = 10. 0. 0.
-
-#¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
-#              VERBOSITY                #
-#.......................................#
-#ns.v              = 1 # NS solver
-#diffusion.v      = 1 # Diffusion operator
-#amr.v = 1

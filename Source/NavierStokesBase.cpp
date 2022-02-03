@@ -12,7 +12,7 @@
 #include <NAVIERSTOKES_F.H>
 #include <NSB_K.H>
 #include <NS_util.H>
-#include <hydro_utils.H>
+#include <AMReX_FillPatchUtil.H>
 
 #include <hydro_mol.H>
 #include <hydro_godunov.H>
@@ -30,7 +30,10 @@
 
 using namespace amrex;
 
-struct DummyFill           // Set 0.0 on EXT_DIR, nothing otherwise.
+//
+// Set external dirichlet BC to zero
+//
+struct HomExtDirFill
 {
     AMREX_GPU_DEVICE
     void operator() (const IntVect& iv, Array4<Real> const& dest,
@@ -54,6 +57,38 @@ struct DummyFill           // Set 0.0 on EXT_DIR, nothing otherwise.
        }
     }
 };
+
+//
+// A dummy function because FillPatch requires something to exist for filling dirichlet boundary conditions,
+// even if we know we cannot have an ext_dir BC.
+// u_mac BCs are only either periodic (INT_DIR) or first order extrapolation (FOEXTRAP).
+//
+struct umacFill
+{
+    AMREX_GPU_DEVICE
+    void operator()(
+       const amrex::IntVect& /*iv*/,
+       amrex::Array4<amrex::Real> const& /*dummy*/,
+       const int /*dcomp*/,
+       const int numcomp,
+       amrex::GeometryData const& /*geom*/,
+       const amrex::Real /*time*/,
+       const amrex::BCRec* bcr,
+       const int bcomp,
+       const int /*orig_comp*/) const
+    {
+        // Abort if this function is expected to fill an ext_dir BC.
+        for (int n = bcomp; n < bcomp+numcomp; ++n) {
+            const amrex::BCRec& bc = bcr[n];
+            if ( AMREX_D_TERM(   bc.lo(0) == amrex::BCType::ext_dir || bc.hi(0) == amrex::BCType::ext_dir,
+                              || bc.lo(1) == amrex::BCType::ext_dir || bc.hi(1) == amrex::BCType::ext_dir,
+                              || bc.lo(2) == amrex::BCType::ext_dir || bc.hi(2) == amrex::BCType::ext_dir ) ) {
+               amrex::Abort("NavierStokesBase::umacFill: umac should not have BCType::ext_dir");
+            }
+        }
+    }
+};
+
 
 BCRec       NavierStokesBase::phys_bc;
 Projection* NavierStokesBase::projector     = 0;
@@ -245,9 +280,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 #endif
       if ( do_temp )
 	amrex::Abort("RZ geometry currently does not work with Temperature field. To use set ns.do_temp = 0.");
-      for ( int n = 0; n < NUM_STATE; n++ )
+      for ( int n = 0; n < AMREX_SPACEDIM; n++ )
 	if ( visc_coef[n] > 0 )
-	  amrex::Abort("RZ geometry with viscosity/diffusivity is not currently supported. To use set ns.vel_visc_coef=0 and ns.scal_diff_coefs=0");
+	  amrex::Abort("RZ geometry with viscosity is not currently supported. To use set ns.vel_visc_coef=0");
     }
 
     if(!additional_state_types_initialized) {
@@ -273,6 +308,9 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     // rho_half is passed into level_project to be used as sigma in the MLMG
     // solve, but MLMG doesn't copy any ghost cells, it fills what it needs itself.
     // does rho_half still need any ghost cells?
+    //
+    // Also, don't really need rho_ptime, only rho_half uses it.
+    // rho_ctime is used in PeleLM (there are other options though), and rho_half.
     rho_half.define (grids,dmap,1,1,MFInfo(),Factory());
     rho_ptime.define(grids,dmap,1,1,MFInfo(),Factory());
     rho_ctime.define(grids,dmap,1,1,MFInfo(),Factory());
@@ -801,8 +839,9 @@ NavierStokesBase::calc_dsdt (Real      /*time*/,
 {
     if (have_divu && have_dsdt)
     {
-      // Don't think we need this here, but then will have uninitialized ghost cells
-      //dsdt.setVal(0);
+        // Don't think we need this here. Instead, code will use FillPatch to
+        // fill ghosts.
+        //dsdt.setVal(0);
 
         if (do_temp)
         {
@@ -1048,28 +1087,191 @@ void
 NavierStokesBase::create_umac_grown (int nGrow,
                                      const MultiFab* a_divu)
 {
+    if ( nGrow <= 0 ) { return; }
+    if ( nGrow > 1 )  { Print()<<"\n\nWARNING!\n  NSB::create_umac_grown currently only enforces the divergnece constraint on 1 ghost cell, but nGrow > 1\n\n"; }
 
-  Array<MultiFab*, AMREX_SPACEDIM> umac_crse;
-  Array<MultiFab*, AMREX_SPACEDIM> umac_fine;
 
-  if ( level > 0 )
-  {
-    AMREX_D_TERM(umac_crse[0] = &getLevel(level-1).u_mac[0];,
-                 umac_crse[1] = &getLevel(level-1).u_mac[1];,
-                 umac_crse[2] = &getLevel(level-1).u_mac[2];);
-  }
-  AMREX_D_TERM(umac_fine[0] = &u_mac[0];,
-               umac_fine[1] = &u_mac[1];,
-               umac_fine[2] = &u_mac[2];);
+    Array<MultiFab*, AMREX_SPACEDIM> u_mac_fine;
+    AMREX_D_TERM(u_mac_fine[0] = &u_mac[0];,
+                 u_mac_fine[1] = &u_mac[1];,
+                 u_mac_fine[2] = &u_mac[2];);
 
-  // Check divu: if not nullptr, we need at least one ghost cell
-  int nGrow_divu = (a_divu != nullptr) ? a_divu->nGrow() : 1;
-  AMREX_ASSERT(nGrow_divu >= 1);
+    Geometry *fine_geom = &geom;
 
-  Geometry *crse_geom = (level==0) ? nullptr : &getLevel(level-1).geom;
-  Geometry *fine_geom = &geom;
-  HydroUtils::create_constrained_umac_grown (level, nGrow, grids, crse_geom, fine_geom,
-                                             umac_crse, umac_fine, a_divu, crse_ratio);
+    if ( level > 0)
+    {
+        Array<MultiFab*, AMREX_SPACEDIM> u_mac_crse;
+        AMREX_D_TERM(u_mac_crse[0] = &getLevel(level-1).u_mac[0];,
+                     u_mac_crse[1] = &getLevel(level-1).u_mac[1];,
+                     u_mac_crse[2] = &getLevel(level-1).u_mac[2];);
+
+        Geometry *crse_geom = &getLevel(level-1).geom;
+
+        //
+        // First interpolate, ignoring divergence constraint. Then correct
+        // the 1-cell wide halo of ghosts cells we need to enforce the
+        // constraint.
+        //
+
+        // Divergence preserving interp -- This is for case of MAC solve on
+        // composite grid; doesn't really make sense to use it here.
+        //Interpolater* mapper = &face_divfree_interp;
+        // This one matches up with old create umac grown
+        Interpolater* mapper = &face_linear_interp;
+
+        // Set BCRec for Umac
+        Vector<BCRec> bcrec(1);
+        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
+            if (crse_geom->isPeriodic(idim)) {
+                bcrec[0].setLo(idim,BCType::int_dir);
+                bcrec[0].setHi(idim,BCType::int_dir);
+            } else {
+                bcrec[0].setLo(idim,BCType::foextrap);
+                bcrec[0].setHi(idim,BCType::foextrap);
+            }
+        }
+        Array<Vector<BCRec>,AMREX_SPACEDIM> bcrecArr = {AMREX_D_DECL(bcrec,bcrec,bcrec)};
+
+        PhysBCFunct<GpuBndryFuncFab<umacFill>> crse_bndry_func(*crse_geom, bcrec, umacFill{});
+        Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> cbndyFuncArr = {AMREX_D_DECL(crse_bndry_func,crse_bndry_func,crse_bndry_func)};
+
+        PhysBCFunct<GpuBndryFuncFab<umacFill>> fine_bndry_func(*fine_geom, bcrec, umacFill{});
+        Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func,fine_bndry_func,fine_bndry_func)};
+
+        // Use piecewise constant interpolation in time, so create dummy variable for time
+        Real dummy = 0.;
+        FillPatchTwoLevels(u_mac_fine, IntVect(nGrow), dummy,
+                           {u_mac_crse}, {dummy},
+                           {u_mac_fine}, {dummy},
+                           0, 0, 1,
+                           *crse_geom, *fine_geom,
+                           cbndyFuncArr, 0, fbndyFuncArr, 0,
+                           crse_ratio, mapper, bcrecArr, 0);
+
+        //
+        // Correct u_mac to enforce the divergence constraint in the ghost cells.
+        // Do this by adjusting only the outer face (wrt the valid region) of the ghost
+        // cell, i.e. for the hi-x face, adjust umac_x(i+1).
+        // NOTE that this does not fill edges or corners.
+        //
+
+        // Build mask to find the ghost cells we need to correct.
+        // covered   : ghost cells covered by valid cells of this FabArray
+        //             (including periodically shifted valid cells)
+        // notcovered: ghost cells not covered by valid cells
+        //             (including ghost cells outside periodic boundaries)
+        // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+        // interior  : interior cells (i.e., valid cells)
+        int covered   = 0;
+        int uncovered = 1;
+        int physbnd   = 0;
+        int interior  = 0;
+        iMultiFab mask(grids, u_mac_fine[0]->DistributionMap(), 1, 1, MFInfo(),
+                       DefaultFabFactory<IArrayBox>());
+        mask.BuildMask(fine_geom->Domain(), fine_geom->periodicity(),
+                       covered, uncovered, physbnd, interior);
+
+        const GpuArray<Real,AMREX_SPACEDIM> dx = fine_geom->CellSizeArray();
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = fine_geom->InvCellSizeArray();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            auto const& maskarr = mask.const_array(mfi);
+            Array4<const Real> foo;
+            auto const& divu = (a_divu) ? a_divu->const_array(mfi) : foo;
+            AMREX_D_TERM(auto const& umac = u_mac_fine[0]->array(mfi);,
+                         auto const& vmac = u_mac_fine[1]->array(mfi);,
+                         auto const& wmac = u_mac_fine[2]->array(mfi));
+
+            // Fuse the launches, 1 for each dimension, into a single launch.
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(RunOn::Gpu,
+                mfi.growntilebox(IntVect::TheDimensionVector(0)), bx0,
+                {
+                    AMREX_LOOP_3D(bx0, i, j, k,
+                    {
+                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
+                        {
+                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+
+                            tmp =  dx[0] * (   dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k))
+#if (AMREX_SPACEDIM == 3)
+                                             + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
+#endif
+                                             - tmp );
+
+                            if ( i < bx.smallEnd(0) )
+                            {
+                                umac(i,j,k) = umac(i+1,j,k) + tmp;
+                            }
+                            else if ( i > bx.bigEnd(0) )
+                            {
+                                umac(i+1,j,k) = umac(i,j,k) - tmp;
+                            }
+                        }
+                    });
+                },
+                mfi.growntilebox(IntVect::TheDimensionVector(1)), bx1,
+                {
+                    AMREX_LOOP_3D(bx1, i, j, k,
+                    {
+                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
+                        {
+                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+
+                            tmp =  dx[1] * (   dxinv[0]*(umac(i+1,j,k) - umac(i,j,k))
+#if (AMREX_SPACEDIM == 3)
+                                             + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
+#endif
+                                             - tmp );
+
+                            if ( j < bx.smallEnd(1) )
+                            {
+                                vmac(i,j,k) = vmac(i,j+1,k) + tmp;
+                            }
+                            else if ( j > bx.bigEnd(1) )
+                            {
+                                vmac(i,j+1,k) = vmac(i,j,k) - tmp;
+                            }
+                        }
+                    });
+                },
+                mfi.growntilebox(IntVect::TheDimensionVector(2)), bx2,
+                {
+                    AMREX_LOOP_3D(bx2, i, j, k,
+                    {
+                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
+                        {
+                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+
+                            tmp =  dx[2] * (   dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k))
+                                             + dxinv[0]*(umac(i+1,j,k) - umac(i,j,k))
+                                             - tmp );
+
+                            if ( k < bx.smallEnd(2) )
+                            {
+                                wmac(i,j,k) = wmac(i,j,k+1) + tmp;
+                            }
+                            else if ( k > bx.bigEnd(2) )
+                            {
+                                wmac(i,j,k+1) = wmac(i,j,k) - tmp;
+                            }
+                        }
+                    });
+                });
+        }
+    }
+    else
+    {
+        // Fill boundary for all the levels
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            u_mac_fine[idim]->FillBoundary(fine_geom->periodicity());
+        }
+    }
 }
 
 void
@@ -1131,7 +1333,7 @@ NavierStokesBase::estTimeStep ()
             {
                 ratio *= parent->nCycle(lev);
             }
-            factor = 1.0/double(ratio);
+            factor = 1.0/Real(ratio);
         }
 
         return factor*fixed_dt;
@@ -1162,11 +1364,11 @@ NavierStokesBase::estTimeStep ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(rho_ctime,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
        const auto& bx          = mfi.tilebox();
        const auto  cur_time    = state[State_Type].curTime();
-             auto& tforces_fab = tforces[mfi];
+       auto& tforces_fab       = tforces[mfi];
 
        if (getForceVerbose)
            amrex::Print() << "---" << '\n'
@@ -1174,7 +1376,7 @@ NavierStokesBase::estTimeStep ()
                           << "Calling getForce..." << '\n';
        getForce(tforces_fab,bx,0,AMREX_SPACEDIM,cur_time,S_new[mfi],S_new[mfi],Density,mfi);
 
-       const auto& rho   = rho_ctime.array(mfi);
+       const auto& rho   = S_new.array(mfi,Density);
        const auto& gradp = Gp.array(mfi);
        const auto& force = tforces.array(mfi);
        amrex::ParallelFor(bx, [rho, gradp, force]
@@ -1235,7 +1437,7 @@ NavierStokesBase::estTimeStep ()
          {
            ratio *= parent->nCycle(lev);
          }
-         factor = 1.0/double(ratio);
+         factor = 1.0/Real(ratio);
       }
 
       estdt = factor*init_dt;
@@ -1271,7 +1473,7 @@ NavierStokesBase::estTimeStep ()
         Print()<<"estimated timestep: dt = "<<estdt<<std::endl;
     }
 
-  return estdt;
+    return estdt;
 }
 
 const MultiFab&
@@ -3015,7 +3217,7 @@ NavierStokesBase::SyncInterp (MultiFab&      CrseSync,
     ///////
 
     // tiling may not be needed here, but what the hey
-    GpuBndryFuncFab<DummyFill> gpu_bndry_func(DummyFill{});
+    GpuBndryFuncFab<HomExtDirFill> gpu_bndry_func(HomExtDirFill{});
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -3487,8 +3689,8 @@ NavierStokesBase::velocity_advection_update (Real dt)
         auto const& gradp    = Gp.array(mfi);
         auto const& force    = tforces.array();
         auto const& advec    = Aofs.array(mfi);
-        auto const& rho_old  = rho_ptime.array(mfi);
-        auto const& rho_new  = rho_ctime.array(mfi);
+        auto const& rho_old  = U_old.array(mfi, Density);
+        auto const& rho_new  = U_new.array(mfi, Density);
         auto const& rho_Half = Rh.array(mfi);
         int mom_diff = do_mom_diff;
         amrex::ParallelFor(bx, AMREX_SPACEDIM, [vel_old,vel_new,gradp,force,advec,rho_old,rho_new,rho_Half,mom_diff,dt]
@@ -3608,8 +3810,8 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
            auto const& viscT   = visc_terms.array(mfi);
            auto const& gradp   = Gp.array(mfi);
            auto const& rhohalf = Rh.array(mfi);
-           auto const& rho_old = rho_ptime.array(mfi);
-           auto const& rho_new = rho_ctime.array(mfi);
+           auto const& rho_old = U_old.array(mfi,Density);
+           auto const& rho_new = U_new.array(mfi,Density);
            auto const& vel_old = U_old.array(mfi,Xvel);
            auto const& vel_new = U_new.array(mfi,Xvel);
            auto const& advT    = aofs->array(mfi,Xvel);
@@ -4457,7 +4659,7 @@ NavierStokesBase::predict_velocity (Real  dt)
                auto const& tf   = forcing_term.array(U_mfi,Xvel);
                auto const& visc = visc_terms.const_array(U_mfi,Xvel);
                auto const& gp   = Gp.const_array(U_mfi);
-               auto const& rho  = Smf.const_array(U_mfi); //It should be equivalent to rho_ptime.const_array(U_mfi);
+               auto const& rho  = Smf.const_array(U_mfi);
 
                amrex::ParallelFor(gbx, AMREX_SPACEDIM, [tf, visc, gp, rho]
                AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
@@ -4731,7 +4933,6 @@ NavierStokesBase::InitialRedistribution ()
     FillPatchIterator S_fpi(*this, S_new, nghost_state(), state[State_Type].curTime(),
                             State_Type, 0, NUM_STATE);
     MultiFab& Smf=S_fpi.get_mf();
-    EB_set_covered(Smf, 0.0);
 
     MultiFab tmp( grids, dmap, NUM_STATE, nghost_state(), MFInfo(), Factory() );
     MultiFab::Copy(tmp, Smf, 0, 0, NUM_STATE, nghost_state());

@@ -54,7 +54,7 @@ MacProj::Initialize ()
     MacProj::verbose                = 0;
     MacProj::mac_tol                = 1.0e-12;
     MacProj::mac_abs_tol            = 1.0e-16;
-    MacProj::mac_sync_tol           = 1.0e-8;
+    MacProj::mac_sync_tol           = 1.0e-10;
     MacProj::do_outflow_bcs         = 1;
     //
     // Only check umac periodicity when debugging.  Can be overridden on input.
@@ -284,22 +284,34 @@ MacProj::mac_project (int             level,
     }
 
     //
-    // Compute the nondivergent velocities, by creating the linop
-    // and multigrid operator appropriate for the solved system.
-    //
-    // Initialize the rhs with divu.
+    //  Set up the mac projection
     //
     const Real rhs_scale = 2.0/dt;
-    MultiFab Rhs(grids,dmap,1,0, MFInfo(), LevelData[level]->Factory());
 
-    MultiFab::Copy(Rhs,divu,0,0,1,0); 
+    const MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
 
-    MultiFab* cphi = (level == 0) ? nullptr : mac_phi_crse[level-1].get();
-    mlmg_mac_level_solve(parent, cphi, *phys_bc, density_math_bc, level, Density, mac_tol, mac_abs_tol,
-                         rhs_scale, S, Rhs, u_mac, mac_phi);
+    // Set bcoefs to the average of Density at the faces
+    // In the EB case, they will be defined at the Face Centroid
+    MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow(),
+                 MFInfo(), (parent->getLevel(level)).Factory());
+    MultiFab::Copy(rho, S, Density, 0, 1, S.nGrow()); // Extract rho component from S
 
+    Array<MultiFab*,AMREX_SPACEDIM>  umac;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        umac[idim]= &(u_mac[idim]);
 
-    Rhs.clear();
+    Array<MultiFab*,AMREX_SPACEDIM>  fluxes;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      // We don't need the fluxes, so nullptr means we won't compute them
+      fluxes[idim]= nullptr;
+
+    //
+    // Perform projection
+    //
+    mlmg_mac_solve(parent, cphi, *phys_bc, density_math_bc, level,
+		   mac_tol, mac_abs_tol, rhs_scale,
+		   rho, divu, umac, mac_phi, fluxes);
+
     //
     // Test that u_mac is divergence free
     //
@@ -336,7 +348,7 @@ MacProj::mac_project (int             level,
         //
         if (level > 0)
         {
-            const Real mult = 1.0/parent->nCycle(level);
+            const Real mult = 1.0/Real(parent->nCycle(level));
 
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
             {
@@ -448,11 +460,30 @@ MacProj::mac_sync_solve (int       level,
     const Real rhs_scale = 2.0/dt;
 
     //
-    // Compute Ucorr, including filling ghost cells for EB
+    // Compute Ucorr, including filling ghost cells
     //
-    mlmg_mac_sync_solve(parent,*phys_bc, rho_math_bc, level, mac_sync_tol, mac_abs_tol,
-                        rhs_scale, rho_half, Rhs, mac_sync_phi,
-                        Ucorr);
+    // null umac will prevent MacProject from computing div(umac)
+    // and adding it to RHS
+    //
+    Array<MultiFab*,AMREX_SPACEDIM>  umac;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      umac[idim]= nullptr;
+
+    Rhs.negate();
+
+    //
+    // Perform projection
+    //
+    mlmg_mac_solve(parent, nullptr, *phys_bc, rho_math_bc, level,
+		   mac_sync_tol, mac_abs_tol, rhs_scale,
+		   rho_half, Rhs, umac, mac_sync_phi, Ucorr);
+
+    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
+    {
+      //Ucorr = fluxes = -B grad phi
+      // Make sure Ucorr has correct sign
+      Ucorr[idim]->negate();
+    }
 
     if (verbose)
     {
@@ -690,16 +721,52 @@ MacProj::mac_sync_compute (int                   level,
                         }
 
                     }
-                    else  // Scalars
+                    else  // Scalars. Reconstruct forcing terms as in scalar_advection
                     {
                         auto const& visc = scal_visc_terms[Smfi].const_array(comp-AMREX_SPACEDIM);
-                        auto const& S    = Smf.const_array(Smfi,comp);
-                        auto const& divu = divu_fp -> const_array(Smfi);
-                        amrex::ParallelFor(gbx, [tf, visc, S, divu]
-                        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                        auto const& rho = Smf.const_array(Smfi,Density);
+
+                        if ( NavierStokesBase::do_temp && comp==NavierStokesBase::Temp )
                         {
-                            tf(i,j,k) += visc(i,j,k) - S(i,j,k) * divu(i,j,k);
-                        });
+                            //
+                            // Solving
+                            //   dT/dt + U dot del T = ( del dot lambda grad T + H_T ) / (rho c_p)
+                            // with tforces = H_T/c_p (since it's always density-weighted), and
+                            // visc = del dot mu grad T, where mu = lambda/c_p
+                            //
+                            amrex::ParallelFor(gbx, [tf, visc, rho]
+                            AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                            { tf(i,j,k) = ( tf(i,j,k) + visc(i,j,k) ) / rho(i,j,k); });
+                        }
+                        else
+                        {
+                            if (advectionType[comp] == Conservative)
+                            {
+                                //
+                                // For tracers, Solving
+                                //   dS/dt + del dot (U S) = del dot beta grad (S/rho) + rho H_q
+                                // where S = rho q, q is a concentration
+                                // tforces = rho H_q (since it's always density-weighted)
+                                // visc = del dot beta grad (S/rho)
+                                //
+                                amrex::ParallelFor(gbx, [tf, visc]
+                                AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
+                                { tf(i,j,k) += visc(i,j,k); });
+                            }
+                            else
+                            {
+                                //
+                                // Solving
+                                //   dS/dt + U dot del S = del dot beta grad S + H_q
+                                // where S = q, q is a concentration
+                                // tforces = rho H_q (since it's always density-weighted)
+                                // visc = del dot beta grad S
+                                //
+                                amrex::ParallelFor(gbx, [tf, visc, rho]
+                                AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                                { tf(i,j,k) = tf(i,j,k) / rho(i,j,k) + visc(i,j,k); });
+                            }
+                        }
                     }
                 }
 
@@ -779,7 +846,7 @@ MacProj::mac_sync_compute (int                   level,
 
     if (level > 0 && update_fluxreg)
     {
-        const Real mlt =  -1.0/( (double) parent->nCycle(level));
+        const Real mlt =  -1.0/Real(parent->nCycle(level));
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
             for (int comp = 0; comp < NUM_STATE; ++comp)
@@ -1236,77 +1303,12 @@ MacProj::test_umac_periodic (int       level,
     }
 }
 
-//level_project
-void
-MacProj::mlmg_mac_level_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phys_bc,
-			       const BCRec& density_math_bc,
-			       int level, int Density,
-			       Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
-			       const MultiFab &S, MultiFab &Rhs,
-			       MultiFab *u_mac, MultiFab *mac_phi)
-{
-    // Set bcoefs to the average of Density at the faces
-    // In the EB case, they will be defined at the Face Centroid
-    MultiFab rho(S.boxArray(),S.DistributionMap(), 1, S.nGrow(),
-                 MFInfo(), (a_parent->getLevel(level)).Factory());
-    MultiFab::Copy(rho, S, Density, 0, 1, S.nGrow()); // Extract rho component from S
-
-    Array<MultiFab*,AMREX_SPACEDIM>  umac;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        umac[idim]= &(u_mac[idim]);
-
-    Array<MultiFab*,AMREX_SPACEDIM>  fluxes;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      // We don't need the fluxes, so nullptr means we won't compute them
-      fluxes[idim]= nullptr;
-
-    //
-    // Perform projection
-    //
-    mlmg_mac_solve(a_parent, cphi, a_phys_bc, density_math_bc, level,
-		   a_mac_tol, a_mac_abs_tol, rhs_scale,
-		   rho, Rhs, umac, mac_phi, fluxes);
-}
-
-//sync_project
-void
-MacProj::mlmg_mac_sync_solve (Amr* a_parent, const BCRec& a_phys_bc,
-			      const BCRec& rho_math_bc,
-			      int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
-			      const MultiFab& rho, MultiFab& Rhs,
-			      MultiFab* mac_phi, Array<MultiFab*,AMREX_SPACEDIM>& Ucorr)
-{
-    //
-    // null umac will prevent MacProject from computing div(umac)
-    // and adding it to RHS
-    //
-    Array<MultiFab*,AMREX_SPACEDIM>  umac;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      umac[idim]= nullptr;
-
-    Rhs.negate();
-
-    //
-    // Perform projection
-    //
-    mlmg_mac_solve(a_parent, nullptr, a_phys_bc, rho_math_bc, level,
-		   a_mac_tol, a_mac_abs_tol, rhs_scale,
-		   rho, Rhs, umac, mac_phi, Ucorr);
-
-    for ( int idim=0; idim<AMREX_SPACEDIM; idim++)
-    {
-      //Ucorr = fluxes = -B grad phi
-      // Make sure Ucorr has correct sign
-      Ucorr[idim]->negate();
-    }
-}
-
 // project
 void
 MacProj::mlmg_mac_solve (Amr* a_parent, const MultiFab* cphi, const BCRec& a_phys_bc,
 			 const BCRec& density_math_bc,
 			 int level, Real a_mac_tol, Real a_mac_abs_tol, Real rhs_scale,
-			 const MultiFab &rho, MultiFab &Rhs,
+			 const MultiFab &rho, const MultiFab &Rhs,
 			 Array<MultiFab*,AMREX_SPACEDIM>& u_mac, MultiFab *mac_phi,
 			 Array<MultiFab*,AMREX_SPACEDIM>& fluxes)
 {

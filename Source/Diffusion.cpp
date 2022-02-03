@@ -807,7 +807,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
        const Box& bx  = mfi.tilebox();
        auto const& rhs      = Rhs.array(mfi);
        auto const& unew     = U_new.array(mfi,Xvel);
-       auto const& rho      = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->rho_ptime.array(mfi);
+       auto const& rho      = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->get_old_data(State_Type).array(mfi,Density);
        auto const& deltarhs = (has_delta_rhs) ? delta_rhs->array(mfi,rhsComp) : U_new.array(mfi);
        amrex::ParallelFor(bx, [rhs, unew, rho, deltarhs, has_delta_rhs, dt]
        AMREX_GPU_DEVICE(int i, int j, int k) noexcept
@@ -881,10 +881,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          MultiFab acoef;
          std::pair<Real,Real> scalars;
          Real rhsscale = 1.0;
-         const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
+         const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->get_new_data(State_Type);
+         const int rho_comp = (rho_flag == 1) ? 0 : Density;
          computeAlpha(acoef, scalars, a, b,
                       &rhsscale, nullptr, 0,
-                      rho_flag, &rho, 0);
+                      rho_flag, &rho, rho_comp);
          tensorop.setScalars(scalars.first, scalars.second);
          tensorop.setACoeffs(0, acoef);
       }
@@ -1027,7 +1028,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     {
        const Box& bx = mfi.tilebox();
        auto const& rhs = Rhs.array(mfi);
-       auto const& rho = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->rho_ptime.array(mfi);
+       auto const& rho = (rho_flag == 1) ? rho_half.array(mfi) : navier_stokes->get_old_data(State_Type).array(mfi,Density);
 
        amrex::ParallelFor(bx, [rhs, rho]
        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -1086,10 +1087,11 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     {
       MultiFab acoef;
       std::pair<Real,Real> scalars;
-      const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->rho_ctime;
+      const MultiFab& rho = (rho_flag == 1) ? rho_half : navier_stokes->get_new_data(State_Type);
+      const int rho_comp = (rho_flag == 1) ? 0 : Density;
       computeAlpha(acoef, scalars, a, b,
                    &rhsscale, nullptr, 0,
-                   rho_flag, &rho, 0);
+                   rho_flag, &rho, rho_comp);
       tensorop.setScalars(scalars.first, scalars.second);
       tensorop.setACoeffs(0, acoef);
     }

@@ -6,7 +6,6 @@ max_step                =  10           # Max number of time steps
 #           SOLVER SETTINGS             #
 #.......................................#
 ns.init_shrink = 1.0
-ns.visc_tol=1.0e-11
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 # Algorithm options
@@ -26,8 +25,6 @@ ns.cfl               = 0.3
 #.......................................#
 amr.plot_int            =   50          # Steps between plot files
 amr.check_int           =   1000        # Steps between checkpoint files
-amr.derive_plot_vars = NONE
-amr.restart             =   ""          # Checkpoint to restart from
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #               PHYSICS                 #
@@ -43,7 +40,6 @@ ns.scal_diff_coefs       = 0.1 0. #03
 amr.n_cell              =   96 32     # Grid cells at coarsest AMRlevel
 amr.max_level           =   1         # Max AMR level in hierarchy
 # Refinement around the EB by default
-amr.grid_eff            =   0.7
 amr.n_error_buf         =   8
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#

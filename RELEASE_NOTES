@@ -243,3 +243,8 @@ Updates to some regression tests for better code coverage.
 Update IAMR to reflect AMReX-Hydro changes in State Redistribution -- the old StateRedist has been removed and NewStateRedist is renamed StateRedist.
 Clean up Tutorials.
 
+2/1/22
+Fix in create_umac_grown, and minor fixes in problem initialization.
+Allow rz with scalar diffusivity.
+Lower default tolerances for the sync.
+Minor clean up and updates to regression tests.
