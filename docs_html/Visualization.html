@@ -99,29 +99,15 @@
   <div class="section" id="controlling-whats-in-the-plotfile">
 <h1>Controlling What’s in the PlotFile<a class="headerlink" href="#controlling-whats-in-the-plotfile" title="Permalink to this headline"></a></h1>
 <p>There are a few options that can be set at runtime to control what
-variables appear in the plotfile.</p>
-<div class="line-block">
-<div class="line"><strong>amr.plot_vars</strong> =</div>
-<div class="line">and</div>
-<div class="line"><strong>amr.derive_plot_vars</strong> =</div>
-<div class="line">are used to control which variables are included in the plotfiles. The default for <strong>amr.plot_vars</strong>
-is all of the state variables. The default for <strong>amr.derive_plot_vars</strong> is none of
-the derived variables. So if you include neither of these lines then the plotfile
-will contain all of the state variables and none of the derived variables.</div>
-<div class="line">If you want all of the state variables plus pressure, for example, then set</div>
-<div class="line"><strong>amr.derive_plot_vars</strong> = avg_pressure</div>
-<div class="line">If you just want density and pressure, for example, then set</div>
-<div class="line"><strong>amr.plot_vars</strong> = density</div>
-<div class="line"><strong>amr.derive_plot_vars</strong> = avg_pressure</div>
-</div>
+variables appear in the plotfile. See section <a class="reference internal" href="RunningProblems.html#sec-inputsplotfiles"><span class="std std-ref">Plotfiles</span></a>.</p>
 </div>
 <div class="section" id="amrvis">
 <h1>Amrvis<a class="headerlink" href="#amrvis" title="Permalink to this headline"></a></h1>
-<p>Amrvis is a package developed
+<p>Amrvis is a package developed
 by CCSE that is designed specifically for highly efficient visualization
 of block-structured hierarchical AMR data.
 Information on building the amrvis2d and amrvis3d executables is given in section
-<a class="reference internal" href="Getting_Started.html#visualizing-the-results"><span class="std std-ref">Visualizing the Results</span></a>. A very useful feature of Amrvis is
+<a class="reference internal" href="Getting_Started.html#visualizing-the-results"><span class="std std-ref">Visualizing the Results</span></a>. A very useful feature of Amrvis is
 View <span class="math notranslate nohighlight">\(\rightarrow\)</span> Dataset, which
 allows you to actually view the numbers in a spreadsheet that is nested
 to reflect the AMR hierarchy – this can be handy for

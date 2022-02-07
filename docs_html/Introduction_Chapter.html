@@ -90,8 +90,7 @@ applications.</p>
 <p>Another AMReX-based code, <a class="reference external" href="https://amrex-codes.github.io/incflo/">incflo</a>, also solves the variable-density incompressible
 Navier-Stokes equations in 2-D or 3-D but does not support subcycling in time.</p>
 <p>Key software and algorithmic features of IAMR include:</p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li><p>Fluid velocity, density and tracers are defined at cell centroids; pressure is defined at nodes.</p></li>
 <li><p>Possible advection algorithms: a Method-Of-Lines (MOL) approach and a Godunov-method algorithm. Both use an intermediate MAC projection for face-centered advection velocities.</p></li>
 <li><p>Incompressibility of the fluid is imposed through the use of an approximate projection at the end of the time step.</p></li>
@@ -103,7 +102,6 @@ Navier-Stokes equations in 2-D or 3-D but does not support subcycling in time.</
 <li><p>Optional subcycling in time.</p></li>
 <li><p>Support for particles.</p></li>
 </ul>
-</div></blockquote>
 <p>The IAMR source code can be found at <a class="reference external" href="https://github.com/AMReX-Codes/IAMR/">https://github.com/AMReX-Codes/IAMR/</a>.
 IAMR heavily leverages AMReX (see <a class="reference external" href="https://amrex-codes.github.io/">https://amrex-codes.github.io/</a>) which is supported by
 ECP as part of the AMReX Co-Design Center.</p>

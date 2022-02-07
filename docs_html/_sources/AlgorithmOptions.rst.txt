@@ -6,6 +6,8 @@ Algortihm Options
 
 This is a work in progress. For questions, please open an issue on github: https://github.com/AMReX-Codes/IAMR/issues
 
+.. _sec:conserv:
+
 Conservative vs. Non-conservative
 ---------------------------------
 

@@ -92,6 +92,7 @@ sets the level 0 time step to be 1.e-4 for the entire simulation,
 ignoring the other timestep controls. Note that if ns.init\_shrink :math:`\neq 1` then the first time step will in fact be
 ns.init\_shrink :math:`\cdot` ns.fixed\_dt.
 
+
 Restart Capability
 ------------------
 
@@ -156,7 +157,7 @@ If instead you specify
 ::
 
     amr.check_file = chk_run
-    amr.check_per = 0.5
+    amr.check_per = 0.1
 
 then restart files (really directories) starting with the prefix
 “chk\_run” will be generated every 0.1 units of
@@ -169,6 +170,7 @@ To restart from chk\_run00061, for example, then set
 ::
 
     amr.restart = chk_run00061
+
 
 Controlling Plotfile Generation
 -------------------------------
@@ -241,7 +243,7 @@ If instead you specify
 ::
 
     amr.plot_file = plt_run
-    amr.plot_per = 0.5
+    amr.plot_per = 0.1
 
 then restart files (really directories) starting with the prefix
 “plt\_run” will be generated every 0.1 units of simulation time. The
