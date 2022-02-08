@@ -901,7 +901,7 @@ MacProj::mac_sync_compute (int                    level,
     //
     // Compute the mac sync correction.
     //
-    if (!ns_level.use_godunov || !ns_level.use_bds)
+    if (!ns_level.use_godunov && !ns_level.use_bds)
     {
         //
         // MOL algorithm
