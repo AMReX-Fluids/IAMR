@@ -250,13 +250,12 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
     // Check if scalars are diffusive type:
     // all the nComp scalars must be of the same type
     int diffType = a_is_diffusive[0];
-    if(navier_stokes->do_tensor_visc){
-        for (int comp = 1; comp < nComp; comp++) {
-            if (a_is_diffusive[comp] != diffType) {
-                amrex::Abort("All the scalars must be either diffusive or non-diffusive when calling diffuse_scalar");
-            }
+    for (int comp = 1; comp < nComp; comp++) {
+        if (a_is_diffusive[comp] != diffType) {
+            amrex::Abort("All the scalars must be either diffusive or non-diffusive when calling diffuse_scalar");
         }
     }
+
     // If all non-diffusive, set flux to zero and exit
     if (diffType == 0) {
         for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
