@@ -40,3 +40,6 @@ ECP as part of the AMReX Co-Design Center.
 
 Active development in IAMR is ongoing in the development branch. 
 Changes are merged into the main branch at the beginning of each month.
+
+If you find this documentation doesn't answer your questions or contains errors,
+please open an issue on github: https://github.com/AMReX-Codes/IAMR/issues .
