@@ -514,7 +514,10 @@ NavierStokesBase::Initialize ()
     if (do_scalar_update_in_order) {
         amrex::Abort("NavierStokesBase::Initialize(): do_scalar_update_in_order no longer supported. If needed, please open issue on github.");
     }
-
+    if(!do_tensor_visc && have_divu)
+    {
+        amrex::Abort("Must have divu = 0 to use scalar velocity diffusion");
+    }
     // Don't let init_shrink be greater than 1
     if (init_shrink > 1.0)
         amrex::Abort("NavierStokesBase::Initialize(): init_shrink cannot be greater than 1");
