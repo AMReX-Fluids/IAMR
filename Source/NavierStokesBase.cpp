@@ -438,6 +438,7 @@ NavierStokesBase::Initialize ()
     pp.query("do_trac2",                 do_trac2         );
     pp.query("do_cons_trac",             do_cons_trac     );
     pp.query("do_cons_trac2",            do_cons_trac2    );
+    pp.query("do_tensor_visc",           do_tensor_visc   );
     pp.query("do_sync_proj",             do_sync_proj     );
     pp.query("do_reflux",                do_reflux        );
     pp.query("do_init_vort_proj",        do_init_vort_proj);
