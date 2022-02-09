@@ -676,7 +676,7 @@ The third will be active only when the problem time is between 0.001 and 0.002 s
 
           amr.refinement_indicators = hi_rho lo_temp Tdiff
 
-          amr.high_rho.max_level = 3
+          amr.hi_rho.max_level = 3
           amr.hi_rho.value_greater = 1. 2.
           amr.hi_rho.field_name = density
 
@@ -690,7 +690,7 @@ The third will be active only when the problem time is between 0.001 and 0.002 s
           amr.Tdiff.adjacent_difference_greater = 20
           amr.Tdiff.field_name = temp
           amr.Tdiff.start_time = 0.001
-          amr.Tdiff.end_name = 0.002
+          amr.Tdiff.end_time = 0.002
 
 Note that these criteria can be modified between restarts of the code.
 By default, the new criteria will take effect at the next

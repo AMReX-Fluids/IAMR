@@ -7,11 +7,6 @@
 #*******************************************************************************
 # Maximum number of timesteps to be taken, if stop_time is not reached first.
 max_step 				= 5
-# Time at which calculation stops, if max_step is not reached first.
-stop_time 				= 2.0
-# Stop simulation when we reach steady-state?
-ns.stop_when_steady 	= 0
-ns.steady_tol 			= 1.0e-5
 
 #*******************************************************************************
 # CFL 
@@ -91,20 +86,12 @@ amr.tracer.field_name     = tracer
 amr.regrid_int			= 1 
 # Refinement ratio as a function of level
 amr.ref_ratio		 	= 2 2 2 2
-# Factor by which grids must be coarsenable.
-amr.blocking_factor  	= 8
 # Grid efficiency (defaults to .70)
 amr.grid_eff = 0.75
-# Factor by which grids must be coarsenable. 
-amr.blocking_factor 	= 8
 
 #*******************************************************************************
 # PLOTTING AND CHECKPOINTS
 #*******************************************************************************
-
-# Choose which quantities to write to plot file
-amr.plot_vars    	= ALL
-amr.derive_plot_vars = NONE
 
 # Interval (in number of coarse timesteps) between plot files
 amr.plot_file 			= plt
@@ -127,13 +114,6 @@ diffuse.v 	       	= 1 	# Diffusion
 #*******************************************************************************
 ns.do_mom_diff=1
 ns.do_cons_trac=1
-
-#*******************************************************************************
-# PROJECTION SETTINGS
-#*******************************************************************************
-
-nodal_proj.proj_tol = 1.e-12
-nodal_proj.proj_abs_tol = 1.e-15
 
 #*******************************************************************************
 #            for testing                

@@ -231,3 +231,20 @@ Misc. compiler fixes and general updates to test and bechmark problems
 Various GPU fixes
 Cleanup to the advection and diffusion classes
 Fix usage of forcing term in scalar advection
+
+12/10/21
+Update Projection and MacProj to use nodal_proj and mac_proj, respectively, for runtime options.
+Misc bug fixes for special cases.
+Misc. cleanup -- quiet compiler warnings, remove unused and outdated variables and comments, make use of amrex functions where possible.
+Fix Docs typos.
+Updates to some regression tests for better code coverage.
+
+1/5/22
+Update IAMR to reflect AMReX-Hydro changes in State Redistribution -- the old StateRedist has been removed and NewStateRedist is renamed StateRedist.
+Clean up Tutorials.
+
+2/1/22
+Fix in create_umac_grown, and minor fixes in problem initialization.
+Allow rz with scalar diffusivity.
+Lower default tolerances for the sync.
+Minor clean up and updates to regression tests.

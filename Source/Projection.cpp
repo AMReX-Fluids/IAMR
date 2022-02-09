@@ -38,7 +38,7 @@ int  Projection::P_code              = -1;
 int  Projection::proj_2              = 1;
 int  Projection::verbose             = 0;
 Real Projection::proj_tol            = 1.0e-12;
-Real Projection::sync_tol            = 1.e-8;
+Real Projection::sync_tol            = 1.e-10;
 Real Projection::proj_abs_tol        = 1.e-16;
 int  Projection::add_vort_proj       = 0;
 int  Projection::do_outflow_bcs      = 1;
@@ -448,7 +448,7 @@ Projection::level_project (int             level,
 	 // For proj_2, this is because the level projection works on U/dt, not dU/dt,
 	 //    and dt on the fine level is crse_dt_ratio times smaller than dt one the
 	 //    coarse level.
-	 const Real invrat = 1.0/(double)crse_dt_ratio;
+         const Real invrat = 1.0/Real(crse_dt_ratio);
 	 const Geometry& crse_geom = parent->Geom(level-1);
 	 fine_sync_reg->FineAdd(*sync_resid_fine,crse_geom,invrat);
        }
@@ -592,7 +592,7 @@ Projection::MLsyncProject (int             c_lev,
     //
     if (c_lev > 0 && crse_iteration == crse_dt_ratio)
     {
-        const Real invrat         = 1.0/(double)crse_dt_ratio;
+        const Real invrat         = 1.0/Real(crse_dt_ratio);
         const Geometry& crsr_geom = parent->Geom(c_lev-1);
         BoxArray sync_boxes       = pres_fine.boxArray();
         sync_boxes.coarsen(ratio);
@@ -1753,12 +1753,12 @@ Projection::set_outflow_bcs (int        which_call,
                              int        have_divu)
 {
     AMREX_ASSERT((which_call == INITIAL_VEL  ) ||
-              (which_call == INITIAL_PRESS) ||
-              (which_call == INITIAL_SYNC ) ||
-              (which_call == LEVEL_PROJ   ) );
+                 (which_call == INITIAL_PRESS) ||
+                 (which_call == INITIAL_SYNC ) ||
+                 (which_call == LEVEL_PROJ   ) );
 
     if (which_call != LEVEL_PROJ)
-      AMREX_ASSERT(c_lev == 0);
+        AMREX_ASSERT(c_lev == 0);
 
     if (verbose)
       amrex::Print() << "...setting outflow bcs for the nodal projection ... " << '\n';

@@ -117,10 +117,10 @@ eb2.sphere_radius = 0.10
 eb2.sphere_center =  -0.001 0.0 .85
 eb2.sphere_has_fluid_inside = 0
 
-eb2.small_volfrac = 1.e-5
+eb2.small_volfrac = 1.e-4
 
 # Reditribution method for small cells
-ns.redistribution_type = NewStateRedist
+ns.redistribution_type = StateRedist
 
 
 # Set to 0 if x-y coordinate system, set to 1 if r-z.

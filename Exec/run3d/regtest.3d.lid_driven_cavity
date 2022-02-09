@@ -4,16 +4,10 @@
 
 max_step                =  5
 
-stop_time 		=  10.0
-
-ns.stop_when_steady 	=  1
-ns.steady_tol 		=  1.0e-4
-
 amr.n_cell              =  64 64 64
 
 amr.max_level           =  0
 
-ns.v                    =  0
 amr.v                   =  1
 
 amr.check_int		=  50
@@ -51,5 +45,3 @@ zhi.velocity            =   1.  0.  0.
 
 # Initialize from rest with constant density = 1
 prob.probtype = 1
-
-amr.derive_plot_vars = NONE

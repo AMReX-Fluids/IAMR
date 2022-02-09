@@ -373,15 +373,6 @@ NavierStokes::initData ()
       Save_new.setVal(0.);
     }
 
-#ifdef AMREX_USE_EB
-    //
-    // Set EB covered cells to some typical value for that field
-    // FIXME -- Not sure IAMR really needs this...
-    {
-      MultiFab&   S_new    = get_new_data(State_Type);
-      set_body_state(S_new);
-    }
-#endif
 
 #ifdef BL_USE_VELOCITY
     {
@@ -451,6 +442,31 @@ NavierStokes::initData ()
     }
 #endif /*BL_USE_VELOCITY*/
 
+#ifdef AMREX_USE_EB
+    //
+    // Perform redistribution on initial fields
+    // This changes the input velocity fields
+    //
+    InitialRedistribution();
+
+    //
+    // Make sure EB covered cell are set, and that it's not zero, as we
+    // sometimes divide by rho.
+    //
+    {
+        MultiFab&   S_new    = get_new_data(State_Type);
+        EB_set_covered(S_new, COVERED_VAL);
+
+        //
+        // In some cases, it may be necessary for the covered cells to
+        // contain a value typical (or around the same order of magnitude)
+        // to the uncovered cells (e.g. if code to compute variable
+        // viscosity fails for COVERED_VAL).
+        //
+        // set_body_state(S_new);
+    }
+#endif
+
     //
     // Make rho MFs with filled ghost cells
     // Not really sure why these are needed as opposed to just filling the
@@ -481,14 +497,6 @@ NavierStokes::initData ()
     }
 
     old_intersect_new          = grids;
-
-#ifdef AMREX_USE_EB
-    //
-    // Perform redistribution on initial fields
-    // This changes the input velocity fields
-    //
-    InitialRedistribution();
-#endif
 
 #ifdef AMREX_PARTICLES
     initParticleData ();
@@ -590,7 +598,10 @@ NavierStokes::advance (Real time,
 #ifdef AMREX_USE_EB
 	int ng_rhs = 4;
 #else
+	//FIXME?? should this match umac_n_grow??? or is this a requirement of the proj???
+	// I think we might not need any now, proj may create it's own temps and fill ghosts itself
 	// To enforce div constraint on coarse-fine boundary, need 1 ghost cell
+	// maybe need to make sure divu_type get it's ghost cell s FP'ed
 	int ng_rhs = 1;
 #endif
 	MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
@@ -764,8 +775,6 @@ NavierStokes::scalar_advection (Real dt,
                 auto const& tf    = forcing_term.array(S_mfi,n);
                 auto const& visc  = visc_terms.const_array(S_mfi,n);
                 auto const& rho = Smf.const_array(S_mfi); //Previous time, nghost_state() grow cells filled. It's always true that nghost_state > nghost_force.
-                auto const& divu  = divu_fp -> const_array(S_mfi);
-                auto const& S     = Smf.array(S_mfi);
 
 		if ( do_temp && n+fscalar==Temp )
 		{
@@ -790,7 +799,7 @@ NavierStokes::scalar_advection (Real dt,
 		    // tforces = rho H_q (since it's always density-weighted)
 		    // visc = del dot beta grad (S/rho)
 		    //
-                    amrex::ParallelFor(force_bx, [tf, visc, S, divu, rho]
+                    amrex::ParallelFor(force_bx, [tf, visc]
                     AMREX_GPU_DEVICE (int i, int j, int k ) noexcept
                     { tf(i,j,k) += visc(i,j,k); });
 		  }
@@ -1319,6 +1328,21 @@ NavierStokes::writePlotFilePost (const std::string& dir,
     }
 #endif
 
+#ifdef AMREX_USE_EB
+    if ( set_plot_coveredCell_val )
+    {
+        for (std::size_t i =0; i < state.size(); i++)
+        {
+            auto& sdata = state[i].newData();
+	    // only cell-centered state data goes into plotfile
+            if ( sdata.ixType().cellCentered() ){
+                // put COVERED_VAL back or set_body_state
+                EB_set_covered(sdata, COVERED_VAL);
+            }
+        }
+    }
+#endif
+
 }
 
 std::unique_ptr<MultiFab>
@@ -1413,7 +1437,7 @@ NavierStokes::post_init_press (Real&        dt_init,
 
       NavierStokes::initial_step = false;
 
-      Print()<< "WARNING! post_init_press(): exiting without doing inital iterations because init_iter == "<<init_iter<<std::endl;
+      Print()<< "WARNING! post_init_press(): exiting without doing inital iterations because init_iter <= 0."<<std::endl;
 
       return;
     }
@@ -1506,14 +1530,6 @@ NavierStokes::post_init_press (Real&        dt_init,
             getLevel(k).resetState(strt_time, dt_init, dt_init);
         }
 
-	// Make sure rho_ctime matches reset State
-	// FIXME? Why isn't this called on all levels when rho has been altered
-	// on all levels via advance, avgDown and resetState called on all levels.
-	// Just testing things out with the regression tests shows that this is
-	// needed (for both EB and nonEB), just doing level 0 is fine, and moving it
-	// outside the init_iters loop is fine (no changes to any regression tests).
-        make_rho_curr_time();
-
         NavierStokes::initial_iter = false;
     }
 
@@ -1571,9 +1587,8 @@ NavierStokes::mac_sync ()
 
 #ifdef AMREX_USE_EB
     // fixme? unsure how many ghost cells...
-    // for umac, inflo uses: use_godunov ? 4 : 3;
-    // for now, match umac which uses 4
-    const int nghost = umac_n_grow; // ==4; For redistribution ... We may not need 4 but for now we play safe
+    // for now, match umac
+    const int nghost = umac_n_grow;
 #else
     const int nghost = 0;
 #endif
@@ -1650,13 +1665,13 @@ NavierStokes::mac_sync ()
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-      for (MFIter mfi(rho_ctime, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+      for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
       {
-	const Box& bx = mfi.tilebox();
-	auto const& rho_c    = rho_ctime.array(mfi);
-	auto const& vsync    = Vsync.array(mfi,Xvel);
-	amrex::ParallelFor(bx, [rho_c, vsync]
-	AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        const Box& bx = mfi.tilebox();
+        auto const& rho_c    = S_new.array(mfi,Density);
+        auto const& vsync    = Vsync.array(mfi,Xvel);
+        amrex::ParallelFor(bx, [rho_c, vsync]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 	  for (int n = 0; n < AMREX_SPACEDIM; n++) {
 	    vsync(i,j,k,n) /= rho_c(i,j,k);
@@ -2291,6 +2306,10 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
 
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-      diffusivity[dir]->setVal(visc_coef[state_comp], dst_comp, ncomp, diffusivity[dir]->nGrow());
+	for (int n = 0; n < ncomp; n++)
+	{
+	    // Each scalar has it's own diffusivity in the visc_coef array, so must do 1 at a time
+	    diffusivity[dir]->setVal(visc_coef[state_comp+n], dst_comp+n, 1, diffusivity[dir]->nGrow());
+	}
     }
 }
