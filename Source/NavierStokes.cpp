@@ -1092,8 +1092,10 @@ NavierStokes::velocity_diffusion_update (Real dt)
             MultiFab** fluxn   = fb_fluxn.get();
             MultiFab** fluxnp1 = fb_fluxnp1.get();
             const bool add_old_time_divFlux = true;
-            Vector<int> diffuse_comp(1);
-            diffuse_comp[0] = is_diffusive[Xvel];
+            Vector<int> diffuse_comp(AMREX_SPACEDIM);
+            for(int i = 0; i < AMREX_SPACEDIM; ++i){
+                diffuse_comp[i] = is_diffusive[Xvel+i];
+            }
             const int betaComp = 0;
             const int Rho_comp = Density;
 
