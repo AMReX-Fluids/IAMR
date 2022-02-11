@@ -816,13 +816,13 @@ MacProj::mac_sync_compute (int                   level,
         if (ns_level.use_bds && (!is_velocity))
         {
 		    BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-					   Q, comp,
-					   AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-					   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-					   AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-					   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-					   forcing_term, comp, *divu_fp,
-					   geom, iconserv, dt);
+                                         Q, comp,
+                                         AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                         AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                         AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                         AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                         forcing_term, comp, *divu_fp,
+                                         d_bcrec_ptr, geom, iconserv, dt);
         }
         else
 		{
@@ -978,13 +978,13 @@ MacProj::mac_sync_compute (int                    level,
     if (ns_level.use_bds)
     {
 	    BDS::ComputeSyncAofs(Sync, s_ind, ncomp,
-				   MultiFab(), s_ind,                      // this is not used when known_edgestate = true
-				   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-				   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-				   AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-				   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-				   MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-				   geom, iconserv, 0.0); // this is not used when known_edgestate = true
+                                 MultiFab(), s_ind,                      // this is not used when known_edgestate = true
+                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
+                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                 AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
+                                 AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
+                                 MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
+                                 d_bcrec_ptr, geom, iconserv, 0.0); // this is not used when known_edgestate = true
     }
     else
 	{

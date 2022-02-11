@@ -4813,13 +4813,13 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
     if (use_bds && (!is_velocity))
     {
         BDS::ComputeAofs(*aofs, comp, ncomp,
-                             S, S_comp,
-                             AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                             AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
-                             0, false,
-                             AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                             0, forcing_term, 0, divu,
-                             geom, iconserv_h, dt);
+                         S, S_comp,
+                         AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                         AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
+                         0, false,
+                         AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
+                         0, forcing_term, 0, divu, bcrec_d.dataPtr(),
+                         geom, iconserv_h, dt);
 
     }
     else if (use_godunov || (use_bds && is_velocity))
