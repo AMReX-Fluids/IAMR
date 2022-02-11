@@ -1891,38 +1891,6 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
     return rho_flag;
 }
 
-bool
-Diffusion::are_any(const Vector<DiffusionForm>& diffusionType,
-                   const DiffusionForm         testForm,
-                   const int                   sComp,
-                   const int                   nComp)
-{
-    for (int comp = sComp; comp < sComp + nComp; ++comp)
-    {
-        if (diffusionType[comp] == testForm)
-            return true;
-    }
-
-    return false;
-}
-
-int
-Diffusion::how_many(const Vector<DiffusionForm>& diffusionType,
-                    const DiffusionForm         testForm,
-                    const int                   sComp,
-                    const int                   nComp)
-{
-    int counter = 0;
-
-    for (int comp = sComp; comp < sComp + nComp; ++comp)
-    {
-        if (diffusionType[comp] == testForm)
-            ++counter;
-    }
-
-    return counter;
-}
-
 void
 Diffusion::setDomainBC (std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
                         std::array<LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
