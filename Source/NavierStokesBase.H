@@ -220,7 +220,6 @@ public:
 
     static bool GodunovUsePPM () {return godunov_use_ppm;}
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;}
-    static int  GodunovHypgrow () {return godunov_hyp_grow;}
 
     //////////////////////////////////////////////////////////////////
 
@@ -820,11 +819,6 @@ public:
     static bool use_godunov;
     static bool godunov_use_ppm;
     static bool godunov_use_forces_in_trans;
-#ifdef AMREX_USE_EB
-    static const int  godunov_hyp_grow = 4;
-#else
-    static const int  godunov_hyp_grow = 3;
-#endif
 
     //
     // BDS advection
