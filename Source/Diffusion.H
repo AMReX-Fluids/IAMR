@@ -219,12 +219,12 @@ public:
 #endif
   
     static void computeExtensiveFluxes(amrex::MLMG&            a_mg,
-				       amrex::MultiFab&        Soln,
-				       amrex::MultiFab* const* flux,
-				       const int               fluxComp,
-				       const int               nomp,
-				       const amrex::Geometry*  a_geom,
-				       const amrex::Real       fac );
+                                       amrex::MultiFab&        Soln,
+                                       amrex::MultiFab* const* flux,
+                                       const int               fluxComp,
+                                       const int               nomp,
+                                       amrex::MultiFab*        area,
+                                       const amrex::Real       fac );
 
 protected:
 
