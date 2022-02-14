@@ -1058,60 +1058,6 @@ NavierStokes::velocity_diffusion_update (Real dt)
     }
 }
 
-//fixme? is there now an amrex fn for this?
-Real
-NavierStokes::MaxVal (const std::string& name,
-                      Real           time)
-{
-    Real        mxval = 0.0;
-    auto        mf = derive(name,time,0);
-    BoxArray    baf;
-
-    if (level < parent->finestLevel())
-    {
-        baf = parent->boxArray(level+1);
-        baf.coarsen(fine_ratio);
-    }
-
-    //Add and test this OMP
-    //#ifdef _OPENMP
-    //#pragma omp parallel if (!system::regtest_reduction) reduction(max:mxval,s)
-    //#endif
-    //{
-
-    std::vector< std::pair<int,Box> > isects;
-
-    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
-    {
-        const int  i   = mfi.index();
-        FArrayBox& fab = (*mf)[mfi];
-
-        if (level < parent->finestLevel())
-        {
-            baf.intersections(grids[i],isects);
-
-            for (int ii = 0, N = isects.size(); ii < N; ii++)
-              fab.setVal<RunOn::Host>(0,isects[ii].second,0,fab.nComp());
-        }
-        Real        s;
-        const Real* dat = fab.dataPtr();
-        const int*  dlo = fab.loVect();
-        const int*  dhi = fab.hiVect();
-	const Box&  bx  = grids[i];
-        const int*  lo  = bx.loVect();
-        const int*  hi  = bx.hiVect();
-
-        fort_maxval(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
-
-        mxval = std::max(mxval, s);
-    }
-    //} end OMP parallel
-
-    ParallelDescriptor::ReduceRealMax(mxval);
-
-    return mxval;
-}
-
 void
 NavierStokes::sum_integrated_quantities ()
 {
@@ -1121,7 +1067,6 @@ NavierStokes::sum_integrated_quantities ()
     Real mass = 0.0;
     Real trac = 0.0;
     Real energy = 0.0;
-    Real mgvort = 0.0;
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -1129,14 +1074,12 @@ NavierStokes::sum_integrated_quantities ()
 	mass += ns_level.volWgtSum("density",time);
 	trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
-        mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
     }
 
     Print() << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " KINETIC ENERGY= " << energy << '\n';
-    Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
 }
 
 void

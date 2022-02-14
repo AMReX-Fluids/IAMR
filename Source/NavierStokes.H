@@ -203,8 +203,6 @@ private:
 	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
     }
 
-    amrex::Real MaxVal (const std::string& name,
-                 amrex::Real               time);
     //
     // Initialize the pressure by iterating the initial timestep.
     //
