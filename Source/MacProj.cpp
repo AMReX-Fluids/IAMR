@@ -813,8 +813,8 @@ MacProj::mac_sync_compute (int                   level,
 		}
 		else
 #endif
-        if (ns_level.use_bds && (!is_velocity))
-        {
+                if (ns_level.use_bds && (!is_velocity))
+                {
 		    BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
                                          Q, comp,
                                          AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
@@ -823,19 +823,19 @@ MacProj::mac_sync_compute (int                   level,
                                          AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                          forcing_term, comp, *divu_fp,
                                          d_bcrec_ptr, geom, iconserv, dt);
-        }
-        else
+                }
+                else
 		{
-		  Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-					   Q, comp,
-					   AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-					   AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-					   AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-					   AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-					   forcing_term, comp, *divu_fp,
-					   d_bcrec_ptr, geom, iconserv, dt,
-					   ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
-					   is_velocity );
+                    Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+                                             Q, comp,
+                                             AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                             AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                             AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                             AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                             forcing_term, comp, *divu_fp,
+                                             d_bcrec_ptr, geom, iconserv, dt,
+                                             ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
+                                             is_velocity );
 		}
             }
         }
