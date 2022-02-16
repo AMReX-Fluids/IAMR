@@ -3429,18 +3429,13 @@ NavierStokesBase::velocity_advection (Real dt)
 
     const Real  prev_time      = state[State_Type].prevTime();
 
-    // FIXME? pretty sure this should be nghost_force & only mult by dsdt for godunov
     MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
-    MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
-    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
-    delete dsdt;
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force(), MFInfo(),Factory());
     forcing_term.setVal(0.0);
 
     FillPatchIterator U_fpi(*this,forcing_term, nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
-    MultiFab& Gp = get_old_data(Gradp_Type);
 
     //
     // S_term is the state we are solving for: either velocity or momentum
@@ -3475,13 +3470,15 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     if (use_godunov)
     {
+        MultiFab& Gp = get_old_data(Gradp_Type);
 
         FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
         MultiFab& Smf=S_fpi.get_mf();
 
-        // MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
-        // MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
-        // delete dsdt;
+	// Get divu to time n+1/2
+        MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+        MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+        delete dsdt;
 
         MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
         if (be_cn_theta != 1.0)

@@ -607,11 +607,10 @@ NavierStokes::advance (Real time,
 	MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
 	create_mac_rhs(mac_rhs,ng_rhs,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
-	// NOTE have_divu is now a static var in NSBase
+
         mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
     } else {
-        // Use interpolation from coarse to fill grow cells. No enforcement
-        // of the divergence constraint.
+        // Use interpolation from coarse to fill grow cells.
         create_umac_grown(umac_n_grow, nullptr);
     }
     //

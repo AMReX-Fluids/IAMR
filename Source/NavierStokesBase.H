@@ -387,12 +387,12 @@ public:
     void avgDown_StatePress ();
 
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
-                      std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
-                      int src_comp);
+                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
+                          int src_comp);
 
 
     amrex::Real volWgtSum (const std::string& name,
-                    amrex::Real               time);
+                           amrex::Real               time);
 
     //////////////////////////////////////////////////////////////////
     //    NavierStokesBase virtual functions                        //
