@@ -246,7 +246,7 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
       amrex::Print() << "... Diffusion::diffuse_scalar(): \n"
                      << " lev: " << level << '\n';
     // Check if velocity is being diffused on its own or with scalars.
-    if(!do_tensor_visc && S_comp + nComp > AMREX_SPACEDIM)
+    if(!(navier_stokes->do_tensor_visc) && S_comp + nComp > AMREX_SPACEDIM)
     {
         amrex::Abort("Must use only velocity components in diffuse_scalar when doing scalar visc");
 

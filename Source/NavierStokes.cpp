@@ -1694,8 +1694,71 @@ NavierStokes::mac_sync ()
       Real viscTime = state[State_Type].prevTime();
       loc_viscn = fb_viscn.define(this);
       getViscosity(loc_viscn, viscTime);
+      if(do_tensor_visc){
+          diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
+      }
+      else{
+          const MultiFab& Rh = get_rho_half_time();
 
-      diffusion->diffuse_Vsync(Vsync,dt,be_cn_theta,Rh,rho_flag,loc_viscn,0);
+          int ng=1;
+          const Real prev_time = state[State_Type].prevTime();
+          const Real curr_time = state[State_Type].curTime();
+
+          //fixme? why fillpatch all of state when only doing scalars?
+          FillPatch(*this,get_old_data(State_Type),ng,prev_time,State_Type,0,NUM_STATE);
+          FillPatch(*this,get_new_data(State_Type),ng,curr_time,State_Type,0,NUM_STATE);
+
+          auto Snc = std::unique_ptr<MultiFab>(new MultiFab());
+          auto Snp1c = std::unique_ptr<MultiFab>(new MultiFab());
+
+          if (level > 0) {
+            auto& crselev = getLevel(level-1);
+            Snc->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng, MFInfo(), crselev.Factory());
+            FillPatch(crselev,*Snc  ,ng,prev_time,State_Type,0,NUM_STATE);
+
+            Snp1c->define(crselev.boxArray(), crselev.DistributionMap(), NUM_STATE, ng, MFInfo(), crselev.Factory());
+            FillPatch(crselev,*Snp1c,ng,curr_time,State_Type,0,NUM_STATE);
+          }
+
+          const int nlev = (level ==0 ? 1 : 2);
+          Vector<MultiFab*> Sn(nlev,0), Snp1(nlev,0);
+          Sn[0]   = &(get_old_data(State_Type));
+          Snp1[0] = &(get_new_data(State_Type));
+
+          if (nlev>1) {
+            Sn[1]   =  Snc.get() ;
+            Snp1[1] =  Snp1c.get() ;
+          }
+          Vector<MultiFab*> Vsync_vec(nlev,0);
+          Vsync_vec[0] = &Vsync;
+          const Vector<BCRec>& theBCs = AmrLevel::desc_lst[State_Type].getBCs();
+
+          MultiFab *delta_rhs = 0;
+          MultiFab *alpha = 0;
+          const int rhsComp = 0, alphaComp = 0, fluxComp  = 0;
+
+          FluxBoxes fb_fluxn  (this, AMREX_SPACEDIM);
+          FluxBoxes fb_fluxnp1(this, AMREX_SPACEDIM);
+          MultiFab** fluxn   = fb_fluxn.get();
+          MultiFab** fluxnp1 = 0;//fb_fluxnp1.get();
+          MultiFab** loc_viscnp1 = 0;//fb_fluxnp1.get();
+          const bool add_old_time_divFlux = true;
+          Vector<int> diffuse_comp(AMREX_SPACEDIM);
+          for(int i = 0; i < AMREX_SPACEDIM; ++i){
+              diffuse_comp[i] = is_diffusive[Xvel+i];
+          }
+          const int betaComp = 0;
+          const int Rho_comp = Density;
+
+          diffusion->diffuse_scalar ({}, {}, Vsync_vec, Snp1, Xvel, AMREX_SPACEDIM, Rho_comp,
+                                     prev_time,curr_time,be_cn_theta,Rh,rho_flag,
+                                     fluxn,fluxnp1,fluxComp,delta_rhs,rhsComp,
+                                     alpha,alphaComp,
+                                     loc_viscn,loc_viscnp1,betaComp,
+                                     crse_ratio,theBCs[0],geom,
+                                     add_old_time_divFlux,
+                                     diffuse_comp);
+      }
     }
 
     FluxBoxes fb_SC;
