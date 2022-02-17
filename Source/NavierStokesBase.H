@@ -218,7 +218,6 @@ public:
 
     static int DoTrac2();
 
-    static bool GodunovUsePPM () {return godunov_use_ppm;}
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;}
 
     //////////////////////////////////////////////////////////////////
@@ -809,10 +808,9 @@ public:
 #endif
 
     //
-    // Controls Godunov solver
+    // Controls advection scheme
     //
-    static bool use_godunov;
-    static bool godunov_use_ppm;
+    static std::string advection_scheme;
     static bool godunov_use_forces_in_trans;
 
 #ifdef AMREX_USE_EB

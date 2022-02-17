@@ -25,7 +25,7 @@ amr.plot_int		= 10
 # Algorithm options *
 #********************
 ns.be_cn_theta  = 1.0
-ns.use_godunov  = false # Use MOL if false
+ns.advection_scheme = MOL
 ns.do_mom_diff  = 1
 ns.do_cons_trac = 1
 ns.do_trac2 = 1
