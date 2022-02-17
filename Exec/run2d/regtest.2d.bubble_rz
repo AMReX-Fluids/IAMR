@@ -23,7 +23,7 @@ amr.n_cell 		= 64 128
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 0 # maximum number of levels of refinement
+amr.max_level		= 2 # maximum number of levels of refinement
 
 #*******************************************************************************
 
