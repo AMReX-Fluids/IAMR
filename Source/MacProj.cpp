@@ -795,19 +795,20 @@ MacProj::mac_sync_compute (int                   level,
 #ifdef AMREX_USE_EB
 		if ( !(ns_level.EBFactory().isAllRegular()) )
 		{
-		  Vector<BCRec> bcrec_ptr = comp < AMREX_SPACEDIM
-						   ? ns_level.m_bcrec_velocity
-						   : ns_level.m_bcrec_scalars;
-		  EBGodunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-					     Q, comp,
-					     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-					     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-					     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-					     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-					     forcing_term, comp, *divu_fp,
-					     bcrec_ptr, d_bcrec_ptr,
-					     geom, iconserv, dt, is_velocity,
-					     ns_level.redistribution_type);
+                  // Get BCs for this component
+                  Vector<BCRec>  math_bcs(ncomp);
+                  math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
+
+                  EBGodunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+                                             Q, comp,
+                                             AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                             AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                             AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                             AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                             forcing_term, comp, *divu_fp,
+                                             math_bcs, d_bcrec_ptr,
+                                             geom, iconserv, dt, is_velocity,
+                                             ns_level.redistribution_type);
 		}
 		else
 #endif
