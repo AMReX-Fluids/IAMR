@@ -266,20 +266,14 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
 {
 
     //
-    // 10/2020 - Only allow RZ if there's no visc/diff.
+    // 2/2022 - Only allow RZ if there's no visc.
     //   MLMG Tensor solver does not currently support RZ
-    //   IAMR diffusive solvers do not make appropriate use of
-    //   info.setMetricTerm() -- see Diffusion.cpp and MLMG_Mac.cpp
-    //   Also note that Diffusion::computeExtensiveFluxes
-    //   assumes const cell size.
     //
     if ( level_geom.IsRZ() )
     {
 #ifdef AMREX_USE_EB
       amrex::Abort("Embedded boundaries with RZ geometry is not currently suppported.");
 #endif
-      if ( do_temp )
-	amrex::Abort("RZ geometry currently does not work with Temperature field. To use set ns.do_temp = 0.");
       for ( int n = 0; n < AMREX_SPACEDIM; n++ )
 	if ( visc_coef[n] > 0 )
 	  amrex::Abort("RZ geometry with viscosity is not currently supported. To use set ns.vel_visc_coef=0");
@@ -3449,18 +3443,13 @@ NavierStokesBase::velocity_advection (Real dt)
 
     const Real  prev_time      = state[State_Type].prevTime();
 
-    // FIXME? pretty sure this should be nghost_force & only mult by dsdt for godunov
     MultiFab* divu_fp = getDivCond(nghost_force(),prev_time);
-    MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
-    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
-    delete dsdt;
 
     MultiFab forcing_term( grids, dmap, AMREX_SPACEDIM, nghost_force(), MFInfo(),Factory());
     forcing_term.setVal(0.0);
 
     FillPatchIterator U_fpi(*this,forcing_term, nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
     MultiFab& Umf=U_fpi.get_mf();
-    MultiFab& Gp = get_old_data(Gradp_Type);
 
     //
     // S_term is the state we are solving for: either velocity or momentum
@@ -3495,13 +3484,15 @@ NavierStokesBase::velocity_advection (Real dt)
     //
     if (use_godunov || use_bds) //HACK
     {
+        MultiFab& Gp = get_old_data(Gradp_Type);
 
         FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
         MultiFab& Smf=S_fpi.get_mf();
 
-        // MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
-        // MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
-        // delete dsdt;
+	// Get divu to time n+1/2
+        MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+        MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+        delete dsdt;
 
         MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
         if (be_cn_theta != 1.0)
