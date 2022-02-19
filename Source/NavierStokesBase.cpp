@@ -556,9 +556,8 @@ NavierStokesBase::Initialize ()
 	Abort("ns.use_godunov is depreciated. Please use ns.advection_scheme instead. Options are MOL, Godunov_PLM (default), Godunov_PPM"); // Godunov_BDS");
 
     pp.query("advection_scheme", advection_scheme);
-    if ( advection_scheme != "MOL" && advection_scheme != "Godunov_PLM" &&
-	 advection_scheme != "Godunov_PPM")
-	Abort("Invalid advection_scheme. Options are MOL, Godunov_PLM, Godunov_PPM");
+    if ( advection_scheme != "MOL" && advection_scheme != "Godunov_PLM" && advection_scheme != "Godunov_PPM" && advection_scheme != "BDS")
+	Abort("Invalid advection_scheme. Options are MOL, Godunov_PLM, Godunov_PPM, BDS");
 
     ParmParse pp2("godunov");
     pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
@@ -567,15 +566,15 @@ NavierStokesBase::Initialize ()
     //
     // EB Godunov restrictions
     //
-    if ( advection_scheme == "Godunov_PPM" )
-      amrex::Abort("advection_scheme == Godunov_PPM not implemented for EB. Options are MOL or Godunov_PLM (default)");
+    if ( advection_scheme == "Godunov_PPM" || advection_scheme == "BDS")
+      amrex::Abort("this advection_scheme is not implemented for EB. Options are MOL or Godunov_PLM (default)");
     if ( godunov_use_forces_in_trans )
       amrex::Abort("use_forces_in_trans not implemented within EB Godunov. Set godunov.use_forces_in_trans=0.");
 
     //
     // BDS restrictions
     //
-    if (use_bds){
+    if (advection_scheme == "BDS"){
         amrex::Abort("BDS not implemented with Embedded Boundaries.");
     }
 
@@ -4797,7 +4796,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  BDS ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         //
-    if (use_bds && (!is_velocity))
+    if (advection_scheme == "BDS" && (!is_velocity))
     {
         BDS::ComputeAofs(*aofs, comp, ncomp,
                          S, S_comp,

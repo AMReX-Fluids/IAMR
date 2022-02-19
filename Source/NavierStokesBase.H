@@ -813,11 +813,6 @@ public:
     static std::string advection_scheme;
     static bool godunov_use_forces_in_trans;
 
-    //
-    // BDS advection
-    //
-    static bool use_bds;
-
 #ifdef AMREX_USE_EB
     // Controls redistribution
     static std::string redistribution_type;

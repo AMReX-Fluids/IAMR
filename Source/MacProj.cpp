@@ -813,7 +813,7 @@ MacProj::mac_sync_compute (int                   level,
 		}
 		else
 #endif
-                if (ns_level.use_bds && (!is_velocity))
+                if (ns_level.advection_scheme == "BDS" && (!is_velocity))
                 {
 		    BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
                                          Q, comp,
@@ -971,7 +971,7 @@ MacProj::mac_sync_compute (int                    level,
 	}
 	else
 #endif
-    if (ns_level.use_bds)
+    if (ns_level.advection_scheme == "BDS")
     {
 	    BDS::ComputeSyncAofs(Sync, s_ind, ncomp,
                                  MultiFab(), s_ind,                      // this is not used when known_edgestate = true

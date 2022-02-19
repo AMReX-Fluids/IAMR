@@ -104,7 +104,7 @@ ns.hi_bc             = 0 0 0
 # 2 = Outflow            5 = NoSlipWall
 
 # Advection Scheme
-ns.use_bds = 1
+ns.advection_scheme = BDS
 
 #*******************************************************************************
 
