@@ -31,7 +31,6 @@ amr.plot_int		= 10
 ns.do_mom_diff=1
 ns.do_cons_trac=1
 ns.do_scalminmax       = 1
-ns.use_godunov         = true # Use MOL if false, default is to use godunov
 
 #**************
 # AMR options *

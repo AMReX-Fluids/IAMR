@@ -26,7 +26,7 @@ amr.checkpoint_files_output = 0
 amr.plot_int		=  10
 
 ns.cfl                  =  0.3  # CFL number used to set dt
-ns.use_godunov          = false
+ns.advection_scheme = MOL
 
 ns.init_shrink          =  0.3  # factor which multiplies the very first time step
 ns.init_iter          	=  1    # number of initial iterations

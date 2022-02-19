@@ -31,7 +31,7 @@ amr.Tdiff.field_name = temp
 #*******************************************************************************
 # Algorithm options 
 
-ns.use_godunov  = false # Use MOL if false
+ns.advection_scheme = MOL
 ns.do_trac2 = 1
 
 #*******************************************************************************

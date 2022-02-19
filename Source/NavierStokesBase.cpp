@@ -171,13 +171,10 @@ Real NavierStokesBase::volWgtSum_sub_Rcyl     = -1;
 Real NavierStokesBase::volWgtSum_sub_dx       = -1;
 Real NavierStokesBase::volWgtSum_sub_dy       = -1;
 Real NavierStokesBase::volWgtSum_sub_dz       = -1;
-
 int  NavierStokesBase::do_mom_diff            = 0;
 
-bool  NavierStokesBase::use_godunov = false;  //Default to Godunov
-bool  NavierStokesBase::use_bds = true; //HACK -- BDS temporary default
+std::string  NavierStokesBase::advection_scheme = "Godunov_PLM";
 
-bool NavierStokesBase::godunov_use_ppm = false;
 bool NavierStokesBase::godunov_use_forces_in_trans = false;
 
 #ifdef AMREX_USE_EB
@@ -553,25 +550,26 @@ NavierStokesBase::Initialize ()
     pp.query("avg_in_checkpoint",   average_in_checkpoint);
 
     //
-    // Get godunov options
+    // Get advection scheme options
     //
-    pp.query("use_godunov", use_godunov);
-    ParmParse pp2("godunov");
-    pp2.query("use_ppm",             godunov_use_ppm);
-    pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
+    if ( pp.contains("use_godunov") )
+	Abort("ns.use_godunov is depreciated. Please use ns.advection_scheme instead. Options are MOL, Godunov_PLM (default), Godunov_PPM"); // Godunov_BDS");
 
-    //
-    // BDS algorithm
-    //
-    pp.query("use_bds", use_bds);
+    pp.query("advection_scheme", advection_scheme);
+    if ( advection_scheme != "MOL" && advection_scheme != "Godunov_PLM" &&
+	 advection_scheme != "Godunov_PPM")
+	Abort("Invalid advection_scheme. Options are MOL, Godunov_PLM, Godunov_PPM");
+
+    ParmParse pp2("godunov");
+    pp2.query("use_forces_in_trans", godunov_use_forces_in_trans);
 
 #ifdef AMREX_USE_EB
     //
     // EB Godunov restrictions
     //
-    if ( use_godunov && godunov_use_ppm )
-      amrex::Abort("PPM not implemented within EB Godunov. Set godunov.use_ppm=0.");
-    if ( use_godunov && godunov_use_forces_in_trans )
+    if ( advection_scheme == "Godunov_PPM" )
+      amrex::Abort("advection_scheme == Godunov_PPM not implemented for EB. Options are MOL or Godunov_PLM (default)");
+    if ( godunov_use_forces_in_trans )
       amrex::Abort("use_forces_in_trans not implemented within EB Godunov. Set godunov.use_forces_in_trans=0.");
 
     //
@@ -634,7 +632,7 @@ NavierStokesBase::advance_setup (Real /*time*/,
     const int finest_level = parent->finestLevel();
 
     // Same for EB vs not.
-    umac_n_grow = (use_godunov || use_bds) ? 1 : 0;
+    umac_n_grow = (advection_scheme == "MOL") ? 0 : 1;
 
 #ifdef AMREX_PARTICLES
     if (ncycle > umac_n_grow)
@@ -3480,9 +3478,9 @@ NavierStokesBase::velocity_advection (Real dt)
     }
 
     //
-    // Forcing term -- Godunov only
+    // Forcing term not used in MOL
     //
-    if (use_godunov || use_bds) //HACK
+    if ( advection_scheme != "MOL" )
     {
         MultiFab& Gp = get_old_data(Gradp_Type);
 
@@ -4595,8 +4593,7 @@ NavierStokesBase::predict_velocity (Real  dt)
    }
    Real tempdt = cflmax==0 ? change_max : std::min(change_max,cfl/cflmax);
 
-
-   if (use_godunov || use_bds)  // GODUNOV SCHEME
+   if ( advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || advection_scheme == "BDS")
    {
        MultiFab& Gp = get_old_data(Gradp_Type);
        // FillPatch Gp here, as crse data has been updated
@@ -4666,6 +4663,8 @@ NavierStokesBase::predict_velocity (Real  dt)
        else
 #endif
        {
+           bool godunov_use_ppm = ( advection_scheme == "Godunov_PPM" ? true : false );
+
            Godunov::ExtrapVelToFaces( Umf, forcing_term,
                                       AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                                       m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
@@ -4674,7 +4673,7 @@ NavierStokesBase::predict_velocity (Real  dt)
        }
 
    }
-   else  // MOL SCHEME
+   else if ( advection_scheme == "MOL" )
    {
 #ifdef AMREX_USE_EB
        if (!EBFactory().isAllRegular())
@@ -4690,6 +4689,10 @@ NavierStokesBase::predict_velocity (Real  dt)
                                    AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                                    geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
        }
+   }
+   else
+   {
+       Abort("NSB::predict_velocity: Unkown advection_scheme");
    }
 
    if (verbose > 1)
@@ -4741,7 +4744,7 @@ NavierStokesBase::nghost_state ()
   else
 #endif
   {
-    return (use_godunov || use_bds) ? 3 : 2; //HACK
+    return (advection_scheme == "MOL" ) ? 2 : 3;
 }
 }
 
@@ -4749,10 +4752,7 @@ NavierStokesBase::nghost_state ()
 int
 NavierStokesBase::nghost_force ()
 {
-    if (use_godunov || use_bds) //HACK
-      return 1;
-    else
-        return 0;
+    return ( advection_scheme == "MOL" ? 0 : 1 );
 }
 
 
@@ -4765,7 +4765,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                 bool is_velocity, Real dt )
 {
 
-    // Advection type
+    // Advection type conservative or non?
     amrex::Gpu::DeviceVector<int> iconserv;
     Vector<int> iconserv_h;
     iconserv.resize(ncomp, 0);
@@ -4774,7 +4774,6 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         iconserv_h[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
     Gpu::copy(Gpu::hostToDevice,iconserv_h.begin(),iconserv_h.end(), iconserv.begin());
 
-    MultiFab fluxes[AMREX_SPACEDIM];
     MultiFab cfluxes[AMREX_SPACEDIM];
     MultiFab edgestate[AMREX_SPACEDIM];
 
@@ -4790,9 +4789,6 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         const BoxArray& ba = getEdgeBoxArray(i);
         cfluxes[i].define(ba, dmap, ncomp, nghost, MFInfo(), Factory());
         edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), Factory());
-
-        if (do_reflux)
-            fluxes[i].define(ba, dmap, ncomp, 0, MFInfo(), Factory());
     }
 
     auto const& bcrec_h = is_velocity? m_bcrec_velocity   : m_bcrec_scalars;
@@ -4811,9 +4807,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                          AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                          0, forcing_term, 0, divu, bcrec_d.dataPtr(),
                          geom, iconserv_h, dt);
-
     }
-    else if (use_godunov || (use_bds && is_velocity))
+    else if (advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || (advection_scheme == "BDS" && is_velocity) )
     {
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  Godunov ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -4834,6 +4829,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         else
 #endif
         {
+            bool godunov_use_ppm = ( advection_scheme == "Godunov_PPM" ? true : false );
+
             Godunov::ComputeAofs(*aofs, comp, ncomp,
                                  S, S_comp,
                                  AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
@@ -4845,7 +4842,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                  godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
         }
     }
-    else
+    else if ( advection_scheme == "MOL" )
     {
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  MOL ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -4875,22 +4872,23 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                          geom, is_velocity );
       }
     }
+    else
+    {
+	Abort("NSB::ComputeAofs: Unknown advection_scheme");
+    }
 
     if (do_reflux)
     {
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-            MultiFab::Copy(fluxes[d], cfluxes[d], 0, 0, ncomp, 0 );
-
         if (level > 0 )
         {
             for (int d = 0; d < AMREX_SPACEDIM; d++)
-                advflux_reg->FineAdd(fluxes[d],d,0,comp,ncomp,dt);
+                advflux_reg->FineAdd(cfluxes[d],d,0,comp,ncomp,dt);
         }
 
         if (level < parent->finestLevel())
         {
-            for (int i = 0; i < AMREX_SPACEDIM; i++)
-                getAdvFluxReg(level+1).CrseInit(fluxes[i],i,0,comp,ncomp,-dt);
+            for (int d = 0; d < AMREX_SPACEDIM; d++)
+                getAdvFluxReg(level+1).CrseInit(cfluxes[d],d,0,comp,ncomp,-dt);
         }
     }
 

@@ -565,7 +565,7 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    if (!ns_level.use_godunov && !ns_level.use_bds)   // MOL ====================================================================
+    if (ns_level.advection_scheme == "MOL")
     {
         Vector<BCRec>  math_bcs(ncomp);
 
@@ -609,7 +609,7 @@ MacProj::mac_sync_compute (int                   level,
 	    }
         }
     }
-    else // GODUNOV ========================================================================================
+    else if ( ns_level.advection_scheme == "Godunov_PLM" || ns_level.advection_scheme == "Godunov_PPM" )
     {
         std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(ns_level.nghost_force(),prev_time));
 
@@ -620,8 +620,6 @@ MacProj::mac_sync_compute (int                   level,
         vel_visc_terms.setVal(0.0);  // Initialize to make calls below safe
         scal_visc_terms.setVal(0.0); // Initialize to make calls below safe
 
-        bool use_forces_in_trans = ns_level.GodunovUseForcesInTrans(); // This should always return False for EB Godunov
-
         // Get viscous forcing.
         if (be_cn_theta != 1.0)
         {
@@ -631,7 +629,7 @@ MacProj::mac_sync_compute (int                   level,
                 if (increment_sync.empty() || increment_sync[i]==1)
                     do_get_visc_terms = true;
 
-            if (do_get_visc_terms || use_forces_in_trans)
+            if (do_get_visc_terms)
                 ns_level.getViscTerms(vel_visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
 
             do_get_visc_terms = false;
@@ -793,6 +791,7 @@ MacProj::mac_sync_compute (int                   level,
                     iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
                 }
                 Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
+                bool godunov_use_ppm = ( ns_level.advection_scheme == "Godunov_PPM" ? true : false );
 
 #ifdef AMREX_USE_EB
 		if ( !(ns_level.EBFactory().isAllRegular()) )
@@ -835,11 +834,15 @@ MacProj::mac_sync_compute (int                   level,
                                              AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
                                              forcing_term, comp, *divu_fp,
                                              d_bcrec_ptr, geom, iconserv, dt,
-                                             ns_level.GodunovUsePPM(), ns_level.GodunovUseForcesInTrans(),
+                                             godunov_use_ppm, ns_level.GodunovUseForcesInTrans(),
                                              is_velocity );
 		}
             }
         }
+    }
+    else
+    {
+	Abort("MacProj::mac_sync_compute: Unkown adveciton scheme");
     }
 
 
@@ -902,12 +905,8 @@ MacProj::mac_sync_compute (int                    level,
     //
     // Compute the mac sync correction.
     //
-    if (!ns_level.use_godunov && !ns_level.use_bds)
+    if ( ns_level.advection_scheme == "MOL" )
     {
-        //
-        // MOL algorithm
-        //
-
         // Bogus arguments -- they will not be used since we don't need to recompute the edge states
         Vector<BCRec>  bcs;
         BCRec  const* d_bcrec_ptr = NULL;
@@ -939,12 +938,8 @@ MacProj::mac_sync_compute (int                    level,
 	}
 
     }
-    else
+    else if ( ns_level.advection_scheme == "Godunov_PLM" || ns_level.advection_scheme == "Godunov_PPM" )
     {
-        //
-        // Godunov algorithm
-        //
-
         // Possibly unsused  arguments -- used only in EB case since we don't need to recompute the edge states
         const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
         BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
