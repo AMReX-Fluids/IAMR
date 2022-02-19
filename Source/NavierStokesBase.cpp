@@ -4645,8 +4645,6 @@ NavierStokesBase::predict_velocity (Real  dt)
            }
        }
 
-       bool godunov_use_ppm = ( advection_scheme == "Godunov_PPM" ? true : false );
-
 #ifdef AMREX_USE_EB
        if (!EBFactory().isAllRegular())
        {
@@ -4658,6 +4656,8 @@ NavierStokesBase::predict_velocity (Real  dt)
        else
 #endif
        {
+           bool godunov_use_ppm = ( advection_scheme == "Godunov_PPM" ? true : false );
+
            Godunov::ExtrapVelToFaces( Umf, forcing_term,
                                       AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
                                       m_bcrec_velocity, m_bcrec_velocity_d.dataPtr(),
@@ -4793,9 +4793,6 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         //
         // >>>>>>>>>>>>>>>>>>>>>>>>>>>  Godunov ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         //
-
-        bool godunov_use_ppm = ( advection_scheme == "Godunov_PPM" ? true : false );
-
 #ifdef AMREX_USE_EB
         if (!EBFactory().isAllRegular())
         {
@@ -4812,6 +4809,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         else
 #endif
         {
+            bool godunov_use_ppm = ( advection_scheme == "Godunov_PPM" ? true : false );
+
             Godunov::ComputeAofs(*aofs, comp, ncomp,
                                  S, S_comp,
                                  AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),

@@ -790,7 +790,7 @@ MacProj::mac_sync_compute (int                   level,
                     iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
                 }
                 Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
-		bool godunov_use_ppm = ( ns_level.advection_scheme == "Godunov_PPM" ? true : false );
+                bool godunov_use_ppm = ( ns_level.advection_scheme == "Godunov_PPM" ? true : false );
 
 #ifdef AMREX_USE_EB
 		if ( !(ns_level.EBFactory().isAllRegular()) )
