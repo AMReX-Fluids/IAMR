@@ -629,7 +629,7 @@ MacProj::mac_sync_compute (int                   level,
                 if (increment_sync.empty() || increment_sync[i]==1)
                     do_get_visc_terms = true;
 
-            if (do_get_visc_terms)
+            if (do_get_visc_terms || ns_level.godunov_use_forces_in_trans)
                 ns_level.getViscTerms(vel_visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
 
             do_get_visc_terms = false;
