@@ -15,7 +15,6 @@ ns.do_mom_diff=0
 ns.do_cons_trac=0
 ns.do_trac2 = 1
 ns.do_cons_trac2=0
-ns.use_godunov  = true # Use MOL if false
 
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         TIME STEP COMPUTATION         #

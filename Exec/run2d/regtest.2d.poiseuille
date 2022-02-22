@@ -20,8 +20,7 @@ ns.do_cons_trac		    = 1
 ns.do_trac2		    = 1
 ns.do_cons_trac2	    = 1
 ns.do_mom_diff              = 1
-ns.use_godunov              = true # Use MOL if false, default is to use godunov
-godunov.use_ppm             = true
+ns.advection_scheme = Godunov_PPM
 godunov.use_forces_in_trans = true
 
 #*******************************************************************************
