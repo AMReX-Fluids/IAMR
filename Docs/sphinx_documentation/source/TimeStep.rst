@@ -1,3 +1,4 @@
+.. include:: CustomCommands.rst
 
 To learn how the convective terms are constructed, see `AMReX-Hydro <https://amrex-codes.github.io/amrex/hydro_html>`_
 
@@ -92,27 +93,43 @@ Time Step -- BDS
 ~~~~~~~~~~~~~~~~
 
 When we use the Bell-Dawson-Shubin (BDS) algorithm, we advance the solution in time using a
-three step procedure:
+three step procedure described below. In the notation,
+:math:`s` is a scalar field of the form :math:`s=s(x,y,z,t)`
+and :math:`{\bf u}=(u,v,w)` represents a known velocity field. :math:`s^n_{ijk}` represents
+the average value of :math:`s` over the cell with index :math:`(ijk)` at time :math:`t^n`.
+At each face the normal velocity (e.g., :math:`u_{i+1/2,j,k}`) is assumed constant
+over the time step.
 
 - **Step 1**: Construct a limited piecewise trilinear representation of the solution in
   each grid cell of the form,
 
-.. math:: s_{ijk}
+.. math::
+    \begin{eqnarray}
+    s_{ijk}(x,y,z) &=& s_{ijk} + s_{x,ijk}\cdot(x-x_i) + s_{y,ijk}\cdot(y-y_j) + s_{z,ijk}\cdot(z-z_k) \nonumber \\
+    && + s_{xy,ijk}\cdot(x-x_i)(y-y_j) + s_{xz,ijk}\cdot(x-x_i)(z-z_k) \nonumber \\
+    && + s_{yz,ijk}\cdot(y-y_j)(z-z_k) + s_{xyz,ijk}\cdot(x-x_i)(y-y_j)(z-z_k).
+    \end{eqnarray}
 
 - **Step 2**: Construct edge states :math:`s_{i+1/2,j,k}`, etc. by integrating limited
   piecewise trilinear profiles over the space-time region determined by the characteristic
   domain of dependence on the face.
 
-.. math:: s_{ijk}
-
 - **Step 3**: Advance the solution in time using the conservative update equation,
 
-.. math:: s_{ijk}
+.. math::
+    \begin{eqnarray}
+    s_{ijk}^{n+1} = s_{ijk}^n &&
+    - \frac{\dt}{\Delta x}(u_{i+\myhalf,j,k}s_{i+\myhalf,j,k} - u_{i-\myhalf,j,k}s_{i-\myhalf,j,k}) \nonumber \\
+    && - \frac{\dt}{\Delta y}(v_{i,j+\myhalf,k}s_{i,j+\myhalf,k} - v_{i,j-\myhalf,k}s_{i,j-\myhalf,k}) \nonumber \\
+    && - \frac{\dt}{\Delta z}(w_{i,j,k+\myhalf}s_{i,j,k+\myhalf} - w_{i,j,k-\myhalf}s_{i,j,k-\myhalf}).
+    \end{eqnarray}
 
 
-Addition details are located in the `AMReX-Hydro docs` and in the following paper:
+Addition details are located in the `BDS section of the AMReX-Hydro docs`_ and in the following paper:
 
 - *A Three-Dimensional, Unsplut Godunov Method For Scalar Conservation Laws*,
   A. Nonaka, S. May, A. S. Almgren, and J. B. Bell,
   SIAM Journal of Scientific Computation, Vol. 33, No.4, pp. 2039-2062
   https://doi.org/10.1137/100809520 :cite:`BDS3D`
+
+.. _`BDS section of the AMReX-Hydro docs`: https://amrex-codes.github.io/amrex/hydro_html/BDS.html
