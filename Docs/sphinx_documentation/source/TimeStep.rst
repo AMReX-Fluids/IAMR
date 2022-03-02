@@ -119,9 +119,9 @@ over the time step.
 .. math::
     \begin{eqnarray}
     s_{ijk}^{n+1} = s_{ijk}^n &&
-    - \frac{\dt}{\Delta x}(u_{i+\myhalf,j,k}s_{i+\myhalf,j,k} - u_{i-\myhalf,j,k}s_{i-\myhalf,j,k}) \nonumber \\
-    && - \frac{\dt}{\Delta y}(v_{i,j+\myhalf,k}s_{i,j+\myhalf,k} - v_{i,j-\myhalf,k}s_{i,j-\myhalf,k}) \nonumber \\
-    && - \frac{\dt}{\Delta z}(w_{i,j,k+\myhalf}s_{i,j,k+\myhalf} - w_{i,j,k-\myhalf}s_{i,j,k-\myhalf}).
+    - \frac{\dt}{\Delta x}(u_{i+\half,j,k}s_{i+\half,j,k} - u_{i-\half,j,k}s_{i-\half,j,k}) \nonumber \\
+    && - \frac{\dt}{\Delta y}(v_{i,j+\half,k}s_{i,j+\half,k} - v_{i,j-\half,k}s_{i,j-\half,k}) \nonumber \\
+    && - \frac{\dt}{\Delta z}(w_{i,j,k+\half}s_{i,j,k+\half} - w_{i,j,k-\half}s_{i,j,k-\half}).
     \end{eqnarray}
 
 
