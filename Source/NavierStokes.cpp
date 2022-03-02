@@ -1493,10 +1493,9 @@ NavierStokes::mac_sync ()
     // the correction is the advective tendency of the new velocities.
     //
     MultiFab& S_new = get_new_data(State_Type);
-    mac_projector->mac_sync_compute(level,Ucorr,u_mac,Vsync,Ssync,Rh,
+    mac_projector->mac_sync_compute(level,Ucorr,u_mac,Vsync,Ssync,
 				    level > 0 ? &getAdvFluxReg(level) : 0,
-				    advectionType, prev_time,
-				    prev_pres_time,dt,
+				    advectionType, prev_time,dt,
 				    NUM_STATE,be_cn_theta,
 				    do_mom_diff);
     //
