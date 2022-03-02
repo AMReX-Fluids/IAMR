@@ -130,6 +130,6 @@ Addition details are located in the `BDS section of the AMReX-Hydro docs`_ and i
 - *A Three-Dimensional, Unsplut Godunov Method For Scalar Conservation Laws*,
   A. Nonaka, S. May, A. S. Almgren, and J. B. Bell,
   SIAM Journal of Scientific Computation, Vol. 33, No.4, pp. 2039-2062
-  https://doi.org/10.1137/100809520 :cite:`BDS3D`
+  https://ccse.lbl.gov/Publications/nonaka/BDS_3d.pdf :cite:`BDS3D`
 
 .. _`BDS section of the AMReX-Hydro docs`: https://amrex-codes.github.io/amrex/hydro_html/BDS.html
