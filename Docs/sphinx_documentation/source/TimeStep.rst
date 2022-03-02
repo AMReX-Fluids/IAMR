@@ -100,7 +100,7 @@ the average value of :math:`s` over the cell with index :math:`(ijk)` at time :m
 At each face the normal velocity (e.g., :math:`u_{i+1/2,j,k}`) is assumed constant
 over the time step.
 
-- **Step 1**: Construct a limited piecewise trilinear representation of the solution in
+- **Step 1**: Construct a limited piecewise trilinear (bilinear in 2D) representation of the solution in
   each grid cell of the form,
 
 .. math::
@@ -111,7 +111,7 @@ over the time step.
     \end{eqnarray}
 
 - **Step 2**: Construct edge states :math:`s_{i+1/2,j,k}`, etc. by integrating limited
-  piecewise trilinear profiles over the space-time region determined by the characteristic
+  piecewise trilinear (bilinear in 2D) profiles over the space-time region determined by the characteristic
   domain of dependence on the face.
 
 - **Step 3**: Advance the solution in time using the conservative update equation,
