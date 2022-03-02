@@ -602,7 +602,9 @@ MacProj::mac_sync_compute (int                   level,
             }
         }
     }
-    else if ( ns_level.advection_scheme == "Godunov_PLM" || ns_level.advection_scheme == "Godunov_PPM" )
+    else if ( ns_level.advection_scheme == "Godunov_PLM" ||
+              ns_level.advection_scheme == "Godunov_PPM" ||
+              ns_level.advection_scheme == "BDS" )
     {
         std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(ns_level.nghost_force(),prev_time));
 
@@ -902,7 +904,9 @@ MacProj::mac_sync_compute (int                    level,
         }
 
     }
-    else if ( ns_level.advection_scheme == "Godunov_PLM" || ns_level.advection_scheme == "Godunov_PPM" )
+    else if ( ns_level.advection_scheme == "Godunov_PLM" ||
+              ns_level.advection_scheme == "Godunov_PPM" ||
+              ns_level.advection_scheme == "BDS")
     {
         // Possibly unsused  arguments -- used only in EB case since we don't need to recompute the edge states
         const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
@@ -957,8 +961,12 @@ MacProj::mac_sync_compute (int                    level,
                                      MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
                                      d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
         }
-
     }
+    else
+    {
+        Abort("MacProj::mac_sync_compute: Unkown adveciton scheme");
+    }
+
 
     if (level > 0 && update_fluxreg)
     {
