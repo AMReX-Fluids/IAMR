@@ -1094,7 +1094,7 @@ NavierStokes::writePlotFilePre (const std::string& /*dir*/,
 #ifdef AMREX_USE_EB
     if ( set_plot_coveredCell_val )
     {
-        for (std::size_t i =0; i < state.size(); i++)
+        for (amrex::Long i =0; i < state.size(); i++)
         {
             auto& sdata = state[i].newData();
 	    // only cell-centered state data goes into plotfile
@@ -1211,7 +1211,7 @@ NavierStokes::writePlotFilePost (const std::string& dir,
 #ifdef AMREX_USE_EB
     if ( set_plot_coveredCell_val )
     {
-        for (std::size_t i =0; i < state.size(); i++)
+        for (amrex::Long i =0; i < state.size(); i++)
         {
             auto& sdata = state[i].newData();
 	    // only cell-centered state data goes into plotfile
@@ -1459,7 +1459,6 @@ NavierStokes::mac_sync ()
 
     const int  numscal        = NUM_STATE - BL_SPACEDIM;
     const Real prev_time      = state[State_Type].prevTime();
-    const Real prev_pres_time = state[Press_Type].prevTime();
     const Real dt             = parent->dtLevel(level);
     MultiFab*  DeltaSsync     = 0;// hold (Delta rho)*q for conserved quantities
     // does this have ghosts filled?
