@@ -16,7 +16,6 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_MLEBABecLap.H>
 #include <AMReX_MLEBTensorOp.H>
-#define COVERED_VAL 1.0e40
 #else
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLTensorOp.H>

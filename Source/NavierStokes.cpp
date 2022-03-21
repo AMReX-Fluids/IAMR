@@ -6,11 +6,12 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Extrapolater.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_buildInfo.H>
+#include <AMReX_BLProfiler.H>
 #include <NavierStokes.H>
 #include <NAVIERSTOKES_F.H>
-#include <AMReX_BLProfiler.H>
 #include <NS_util.H>
-#include <AMReX_buildInfo.H>
+#include <iamr_constants.H>
 
 #ifdef BL_USE_VELOCITY
 #include <AMReX_DataServices.H>

@@ -8,11 +8,12 @@
 #include <AMReX_Utility.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_MLNodeLaplacian.H>
+#include <AMReX_FillPatchUtil.H>
 #include <NavierStokesBase.H>
 #include <NAVIERSTOKES_F.H>
 #include <NSB_K.H>
 #include <NS_util.H>
-#include <AMReX_FillPatchUtil.H>
+#include <iamr_constants.H>
 
 #include <hydro_mol.H>
 #include <hydro_godunov.H>
