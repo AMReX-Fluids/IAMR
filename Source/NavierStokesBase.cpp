@@ -27,6 +27,10 @@
 #include <hydro_redistribution.H>
 #endif
 
+#ifdef AMREX_USE_TURBULENT_FORCING
+#include <TurbulentForcing_params.H>
+#endif
+
 
 using namespace amrex;
 
@@ -2476,6 +2480,12 @@ NavierStokesBase::post_restart ()
     }
   }
 
+#ifdef AMREX_USE_TURBULENT_FORCING
+    //
+    // Initialize data structures used for homogenous isentropic forced turbulence.
+    //
+    TurbulentForcing::init_turbulent_forcing(geom.ProbLoArray(),geom.ProbHiArray());
+#endif
 
 #ifdef AMREX_PARTICLES
     post_restart_particle ();
