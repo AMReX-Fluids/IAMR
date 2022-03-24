@@ -34,11 +34,13 @@ void NavierStokes::prob_initData ()
     auto const& problo = geom.ProbLoArray();
     auto const& probhi = geom.ProbHiArray();
 
+// FIXME - should remove ifdef and use runtime parameter instead...
 #ifdef AMREX_USE_TURBULENT_FORCING
     //
     // Initialize data structures used for homogenous isentropic forced turbulence.
-    //
-    TurbulentForcing::init_turbulent_forcing(problo,probhi);
+    // Only need to do it once.
+    if (level == 0)
+        TurbulentForcing::init_turbulent_forcing(problo,probhi);
 #endif
 
     //

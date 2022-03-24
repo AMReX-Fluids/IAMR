@@ -2481,11 +2481,13 @@ NavierStokesBase::post_restart ()
     }
   }
 
+// FIXME - should remove ifdef and use runtime parameter instead...
 #ifdef AMREX_USE_TURBULENT_FORCING
-    //
-    // Initialize data structures used for homogenous isentropic forced turbulence.
-    //
-    TurbulentForcing::init_turbulent_forcing(geom.ProbLoArray(),geom.ProbHiArray());
+  //
+  // Initialize data structures used for homogenous isentropic forced turbulence.
+  // Only need to do it once.
+  if (level == 0)
+      TurbulentForcing::init_turbulent_forcing(geom.ProbLoArray(),geom.ProbHiArray());
 #endif
 
 #ifdef AMREX_PARTICLES
