@@ -4818,7 +4818,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                          0, false,
                          AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
                          0, forcing_term, 0, divu, bcrec_d.dataPtr(),
-                         geom, iconserv_h, dt);
+                         geom, iconserv_h, dt, is_velocity);
     }
     else if (advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || (advection_scheme == "BDS" && is_velocity) )
     {
