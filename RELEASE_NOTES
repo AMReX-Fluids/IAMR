@@ -255,3 +255,9 @@ Bug fix in Diffusion::computeExtensiveFluxes for RZ.
 Fix in velocity_advection for non-conservative MOL with divU!=0.
 Fix indexing error in host bcrec for EBGodunov in mac_sync. Only affects problems where the coarse-fine boundary interacts with a physical EXT_DIR or HOEXTRAP and also the coarse level .
 Misc clean up.
+
+4/1/22
+Bug fix in the MAC sync for diffusive scalars.
+Add option of Bell-Dawson-Shubin (BDS) advection scheme, a higher order Godunov method for scalar conservation laws.
+Bring back forced homogeneous isotropic turbulence problem set up.
+Misc clean up.
