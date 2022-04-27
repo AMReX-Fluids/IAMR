@@ -32,9 +32,12 @@ Conservation of fluid momentum:
 .. math:: \frac{ \partial (\rho U)}{\partial t} 
    + \nabla \cdot (\rho U U) + \nabla p = \nabla \cdot \tau + {\bf H}_U
 
-Incompressibility constraint:
+Velocity constraint:
 
-.. math:: \nabla \cdot U = 0
+.. math:: \nabla \cdot U = S
+
+where :math:`S` is zero by default, to model incompressible flow.
+The :math:`S \ne 0` case is discussed below.
 
 Tracer(s):
 
@@ -62,6 +65,7 @@ IAMR also has the option to solve for temperature, along with a modified diverge
 
 	  \nabla \cdot U = \frac{1}{\rho c_p T} \nabla \cdot \lambda \nabla T 
 
+Here, the divergence constraint captures compressibily effects due to thermal diffusion.
 To enable the temperature solve, use ``ns.do_temp = 1`` and set ``ns.temp_cond_coef`` to represent :math:`\lambda / c_p`,
 which is taken to be constant. More sophiticated treatments are possible; if interested, please open an issue on github:
 https://github.com/AMReX-Codes/IAMR/issues

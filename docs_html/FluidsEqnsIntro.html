@@ -51,7 +51,6 @@
 <li class="toctree-l1 current"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Brief Overview of Low Speed Approximations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#projection-methods-101">Projection Methods 101</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FluidEquations.html">Fluid Variables</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FluidEquations.html#fluid-equations">Fluid Equations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a></li>
@@ -96,7 +95,7 @@
              
   <div class="section" id="brief-overview-of-low-speed-approximations">
 <h1>Brief Overview of Low Speed Approximations<a class="headerlink" href="#brief-overview-of-low-speed-approximations" title="Permalink to this headline"></a></h1>
-<p>The IAMR code can also used as a basis for more
+<p>The IAMR code can be used as a basis for more
 general low Mach number flow algorithms (e.g., low Mach number combustion,
 low Mach number astrophysics, porous media flow)
 There are many low speed formulations of the equations of hydrodynamics
@@ -116,95 +115,21 @@ out soundwaves. The constraint equation implies that</p>
 <p>(through the continuity equation) which says that the density is
 constant along particle paths. This means that there are no
 compressibility effects modeled in this approximation.</p>
-</div>
-<div class="section" id="projection-methods-101">
-<h1>Projection Methods 101<a class="headerlink" href="#projection-methods-101" title="Permalink to this headline"></a></h1>
-<p>We include a brief discussion of projection methodology for
-incompressible and low Mach number flow.
-The compressible Navier-Stokes equations can be written in the form:</p>
+<p>IAMR uses a constraint of the form</p>
 <div class="math notranslate nohighlight">
-\[{{\bf U}}_t + \nabla \cdot F({{\bf U}}) = S\]</div>
-<p>where <span class="math notranslate nohighlight">\({{\bf U}}\)</span> is a vector of conserved quantities, <span class="math notranslate nohighlight">\({{\bf U}}= (\rho, \rho u,
-\rho E)\)</span>, with <span class="math notranslate nohighlight">\(\rho\)</span> the density, <span class="math notranslate nohighlight">\(u\)</span> the velocity, <span class="math notranslate nohighlight">\(E\)</span> the total
-energy per unit mass, and <span class="math notranslate nohighlight">\(S\)</span> are source terms. This system
-can be expressed as a coupled set of advection/diffusion equations:</p>
-<div class="math notranslate nohighlight">
-\[{\bf q}_t + A({\bf q}) \nabla {\bf q} + D = {\cal S}\]</div>
-<p>where <span class="math notranslate nohighlight">\({\bf q}\)</span> are called the primitive variables, <span class="math notranslate nohighlight">\(A\)</span> is the advective
-flux Jacobian, <span class="math notranslate nohighlight">\(A \equiv \partial F / \partial U\)</span>, <span class="math notranslate nohighlight">\(D\)</span> are diffusion terms,
-and <span class="math notranslate nohighlight">\({\cal S}\)</span> are the transformed sources. The eigenvalues of the
-matrix <span class="math notranslate nohighlight">\(A\)</span> are the characteristic speeds—the real-valued speeds at which
-information propagates in the system, <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(u
-\pm c\)</span>, where <span class="math notranslate nohighlight">\(c\)</span> is the sound speed. Solution methods for the
-compressible equations that are strictly conservative make use of this wave-nature to compute advective fluxes
-at the interfaces of grid cells. Diffusive fluxes can be computed
-either implicit or explicit in time, and are added to the advective fluxes,
-and used, along with the source terms to update the state in time. An
-excellent introduction to these methods is provided by LeVeque’s book
-<span id="id1">[<a class="reference internal" href="references.html#id3" title="Randall J LeVeque. Finite volume methods for hyperbolic problems. Volume 31. Cambridge university press, 2002.">6</a>]</span>. The timestep for these methods is limited by all three processes
-and their numerical implementation. Typically, advection terms are treated
-time-explicitly, and the time step will be constrained by the time
-it takes for the maximum characteristic speed to traverse one grid cell.
-However, in low speed flow applications, it can be shown the acoustics
-transport very little energy in the system. As a result, the time-step
-restrictions arising from numerical treatement of the advection terms
-can be unnecessarily limited, even if A-stable methods are used to incorporate
-the diffusion and source terms.</p>
-<p>In contrast, solving incompressible or low Mach number systems
-typically involves a stage where one or more
-advection-like equations are solved (representing, e.g. conservation of mass and
-momentum), and coupling that advance with a divergence constraint on the velocity field.
-For example, the equations of invicid constant-density incompressible flow
-are:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{aligned}
-{{\bf U}}_t &amp;=&amp; -{{\bf U}}\cdot \nabla {{\bf U}}- \frac{1}{\rho}\nabla p \label{eq:incompressible_u} \\
-\nabla \cdot {{\bf U}}&amp;=&amp; 0\end{aligned}\end{split}\]</div>
-<p>Here, <span class="math notranslate nohighlight">\({{\bf U}}\)</span> represents the velocity vector
-and <span class="math notranslate nohighlight">\(p\)</span> is the dynamical pressure. The time-evolution equation for
-the velocity (Eq. [eq:incompressible_u]) can be solved using
-techniques similar to those developed for compressible hydrodynamics,
-updating the old velocity, <span class="math notranslate nohighlight">\({{\bf U}}^n\)</span>, to the new time-level, <span class="math notranslate nohighlight">\({{\bf U}}^\star\)</span>.
-Here the “<span class="math notranslate nohighlight">\(^\star\)</span>” indicates that the updated velocity does not, in
-general, satisfy the divergence constraint. A projection method will
-take this updated velocity and force it to obey the constraint
-equation. The basic idea follows from the fact that any vector
-field can be expressed as the sum of a divergence-free quantity and
-the gradient of a scalar. For the velocity, we can write:</p>
-<div class="math notranslate nohighlight">
-\[{{\bf U}}^\star = {{\bf U}}^d + \nabla \phi \label{eq:decomposition}\]</div>
-<p>where <span class="math notranslate nohighlight">\({{\bf U}}^d\)</span> is the divergence free portion of the velocity vector,
-<span class="math notranslate nohighlight">\({{\bf U}}^\star\)</span>, and <span class="math notranslate nohighlight">\(\phi\)</span> is a scalar. Taking the divergence of
-Eq. ([eq:decomposition]), we have</p>
-<div class="math notranslate nohighlight">
-\[\nabla^2 \phi = \nabla \cdot {{\bf U}}^\star\]</div>
-<p>(where we used <span class="math notranslate nohighlight">\(\nabla \cdot {{\bf U}}^d = 0\)</span>).
-With appropriate boundary conditions, this Poisson equation can be
-solved for <span class="math notranslate nohighlight">\(\phi\)</span>, and the final, divergence-free velocity can
-be computed as</p>
-<div class="math notranslate nohighlight">
-\[{{\bf U}}^{n+1} = {{\bf U}}^\star - \nabla \phi\]</div>
-<p>Because soundwaves are filtered, the timestep constraint now depends only
-on <span class="math notranslate nohighlight">\(|{{\bf U}}|\)</span>.</p>
-<p>Extensions to variable-density incompressible
-flows <span id="id2">[<a class="reference internal" href="references.html#id7" title="J. B. Bell and D. L. Marcus. A second-order projection method for variable-density flows. Journal of Computational Physics, 101:334-348, 1992.">5</a>]</span> involve a slightly different
-decomposition of the velocity field and, as a result, a slightly
-different, variable-coefficient Poisson equation.
-There are also a variety of different ways
-to express what is being projected <span id="id3">[<a class="reference internal" href="references.html#id13" title="A. S. Almgren, J. B. Bell, and W. Y. Crutchfield. Approximate projection methods: part I. Inviscid analysis. SIAM J. Sci. Comput., 22(4):1139–59, 2000.">2</a>]</span>,
-and different discretizations of the divergence and gradient operators
-lead to slightly different mathematical properties of the methods
-(leading to “approximate
-projections” <span id="id4">[<a class="reference internal" href="references.html#id11" title="A. S. Almgren, J. B. Bell, and W. G. Szymczak. A numerical method for the incompressible Navier-Stokes equations based on an approximate projection. SIAM J. Sci. Comput., 17(2):358–369, March 1996.">3</a>]</span>). Finally, for
-second-order methods, two projections are typically done per timestep.
-The first (the ‘MAC’ projection <span id="id5">[<a class="reference internal" href="references.html#id12" title="J. B. Bell, P. Colella, and L. H. Howell. An efficient second-order projection method for viscous incompressible flow. In Proceedings of the Tenth AIAA Computational Fluid Dynamics Conference, 360–367. AIAA, June 1991.">4</a>]</span>)
+\[\nabla \cdot {{\bf U}} = S\]</div>
+<p>which filters sound waves while capturing compressibilty effects due to thermal
+diffusion.
+Projection methodology is used to enforce the constraint.
+To achieve second order accuracy, IAMR includes two projections per timestep.
+The first (the ‘MAC’ projection <span id="id1">[<a class="reference internal" href="references.html#id12" title="J. B. Bell, P. Colella, and L. H. Howell. An efficient second-order projection method for viscous incompressible flow. In Proceedings of the Tenth AIAA Computational Fluid Dynamics Conference, 360–367. AIAA, June 1991.">2</a>]</span>)
 operates on the half-time, edge-centered advective velocities, making
 sure that they satisfy the divergence constraint. These advective
 velocities are used to construct the fluxes through the interfaces to
 advance the solution to the new time. The second/final projection
 operates on the cell-centered velocities at the new time, again
-enforcing the divergence constraint. The IAMR algorithm performs
-both of these projections.</p>
+enforcing the divergence constraint. Additional information on the projections
+is in AMReX-Hydro’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html/Projections.html#projections" title="(in amrex-hydro v22.05-dev)"><span>Projection Methods</span></a>.</p>
 </div>
 
 

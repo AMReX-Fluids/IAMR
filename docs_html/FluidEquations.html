@@ -51,7 +51,6 @@
 <li class="toctree-l1 current"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="FluidsEqnsIntro.html">Brief Overview of Low Speed Approximations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="FluidsEqnsIntro.html#projection-methods-101">Projection Methods 101</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Fluid Variables</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#fluid-equations">Fluid Equations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a></li>
@@ -136,9 +135,11 @@
 <div class="math notranslate nohighlight">
 \[\frac{ \partial (\rho U)}{\partial t}
 + \nabla \cdot (\rho U U) + \nabla p = \nabla \cdot \tau + {\bf H}_U\]</div>
-<p>Incompressibility constraint:</p>
+<p>Velocity constraint:</p>
 <div class="math notranslate nohighlight">
-\[\nabla \cdot U = 0\]</div>
+\[\nabla \cdot U = S\]</div>
+<p>where <span class="math notranslate nohighlight">\(S\)</span> is zero by default, to model incompressible flow.
+The <span class="math notranslate nohighlight">\(S \ne 0\)</span> case is discussed below.</p>
 <p>Tracer(s):</p>
 <div class="math notranslate nohighlight">
 \[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho s U)  = \nabla \cdot \beta \nabla s + \rho H_s\]</div>
@@ -157,7 +158,8 @@ conservatively advected with <code class="docutils literal notranslate"><span cl
 <p>IAMR also has the option to solve for temperature, along with a modified divergence constraint on the velocity field:</p>
 <div class="math notranslate nohighlight">
 \[ \begin{align}\begin{aligned}\rho c_p \left( \frac{\partial T}{\partial t} + U \cdot \nabla T \right)  = \nabla \cdot \lambda \nabla T + H_T\\\nabla \cdot U = \frac{1}{\rho c_p T} \nabla \cdot \lambda \nabla T\end{aligned}\end{align} \]</div>
-<p>To enable the temperature solve, use <code class="docutils literal notranslate"><span class="pre">ns.do_temp</span> <span class="pre">=</span> <span class="pre">1</span></code> and set <code class="docutils literal notranslate"><span class="pre">ns.temp_cond_coef</span></code> to represent <span class="math notranslate nohighlight">\(\lambda / c_p\)</span>,
+<p>Here, the divergence constraint captures compressibily effects due to thermal diffusion.
+To enable the temperature solve, use <code class="docutils literal notranslate"><span class="pre">ns.do_temp</span> <span class="pre">=</span> <span class="pre">1</span></code> and set <code class="docutils literal notranslate"><span class="pre">ns.temp_cond_coef</span></code> to represent <span class="math notranslate nohighlight">\(\lambda / c_p\)</span>,
 which is taken to be constant. More sophiticated treatments are possible; if interested, please open an issue on github:
 <a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">https://github.com/AMReX-Codes/IAMR/issues</a></p>
 </div>
