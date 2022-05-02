@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Time Discretization &mdash; IAMR 22.06-dev documentation</title>
+  <title>&lt;no title&gt; &mdash; IAMR 22.06-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -15,11 +15,11 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Time Step – MOL" href="TimeStep.html" />
-    <link rel="prev" title="Fluid Variables" href="FluidEquations.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,27 +41,12 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="FluidsEqnsIntro.html">Brief Overview of Low Speed Approximations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="FluidEquations.html">Fluid Variables</a></li>
-<li class="toctree-l3"><a class="reference internal" href="FluidEquations.html#fluid-equations">Fluid Equations</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">Time Discretization</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="TimeStep.html">Time Step – MOL</a></li>
-<li class="toctree-l4"><a class="reference internal" href="TimeStep.html#time-step-godunov">Time Step – Godunov</a></li>
-<li class="toctree-l4"><a class="reference internal" href="TimeStep.html#time-step-bds">Time Step – BDS</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="Software.html">An Overview of IAMR Code</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
 </ul>
@@ -84,11 +69,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="AlgorithmAndSoftware.html">Algorithm and Software Details</a> &raquo;</li>
-          <li><a href="Fluids_Chapter.html">Solving the Fluid Equations</a> &raquo;</li>
-      <li>Time Discretization</li>
+      <li>&lt;no title&gt;</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/FluidTimeDiscretization.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/CustomCommands.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -96,24 +79,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="time-discretization">
-<h1>Time Discretization<a class="headerlink" href="#time-discretization" title="Permalink to this headline"></a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="TimeStep.html">Time Step – MOL</a></li>
-<li class="toctree-l1"><a class="reference internal" href="TimeStep.html#time-step-godunov">Time Step – Godunov</a></li>
-<li class="toctree-l1"><a class="reference internal" href="TimeStep.html#time-step-bds">Time Step – BDS</a></li>
-</ul>
-</div>
-</div>
+  <div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\newcommand{\dt}{\Delta t}\\\newcommand{\half}{\frac{1}{2}}
+\newcommand{\shalf}{\sfrac{1}{2}}\end{aligned}\end{align} \]</div>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="FluidEquations.html" class="btn btn-neutral float-left" title="Fluid Variables" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="TimeStep.html" class="btn btn-neutral float-right" title="Time Step – MOL" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

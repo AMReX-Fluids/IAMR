@@ -56,6 +56,7 @@
 <li class="toctree-l3 current"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">Time Step – MOL</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#time-step-godunov">Time Step – Godunov</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#time-step-bds">Time Step – BDS</a></li>
 </ul>
 </li>
 </ul>
@@ -98,7 +99,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <p>To learn how the convective terms are constructed, see <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html">AMReX-Hydro</a></p>
+  <div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\newcommand{\dt}{\Delta t}\\\newcommand{\half}{\frac{1}{2}}
+\newcommand{\shalf}{\sfrac{1}{2}}\end{aligned}\end{align} \]</div>
+<p>To learn how the convective terms are constructed, see <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html">AMReX-Hydro</a></p>
 <div class="section" id="time-step-mol">
 <h1>Time Step – MOL<a class="headerlink" href="#time-step-mol" title="Permalink to this headline"></a></h1>
 <p>In the predictor</p>
@@ -172,6 +176,46 @@ U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
 A. S. Almgren, J. B. Bell, P. Colella, L. H. Howell, and M. L. Welcome,
 J. Comp. Phys., 142, pp. 1-46, 1998.
 <a class="reference external" href="http://www.sciencedirect.com/science/article/pii/S0021999198958909">http://www.sciencedirect.com/science/article/pii/S0021999198958909</a> <span id="id1">[<a class="reference internal" href="references.html#id6" title="A. S. Almgren, J. B. Bell, P. Colella, L. H. Howell, and M. Welcome. A conservative adaptive projection method for the variable density incompressible Navier-Stokes equations. Journal of Computational Physics, 142:1-46, 1998.">1</a>]</span></p></li>
+</ul>
+</div>
+<div class="section" id="time-step-bds">
+<h1>Time Step – BDS<a class="headerlink" href="#time-step-bds" title="Permalink to this headline"></a></h1>
+<p>When we use the Bell-Dawson-Shubin (BDS) algorithm, we advance the solution in time using a
+three step procedure described below. In the notation,
+<span class="math notranslate nohighlight">\(s\)</span> is a scalar field of the form <span class="math notranslate nohighlight">\(s=s(x,y,z,t)\)</span>
+and <span class="math notranslate nohighlight">\({\bf u}=(u,v,w)\)</span> represents a known velocity field. <span class="math notranslate nohighlight">\(s^n_{ijk}\)</span> represents
+the average value of <span class="math notranslate nohighlight">\(s\)</span> over the cell with index <span class="math notranslate nohighlight">\((ijk)\)</span> at time <span class="math notranslate nohighlight">\(t^n\)</span>.
+At each face the normal velocity (e.g., <span class="math notranslate nohighlight">\(u_{i+1/2,j,k}\)</span>) is assumed constant
+over the time step.</p>
+<ul class="simple">
+<li><p><strong>Step 1</strong>: Construct a limited piecewise trilinear (bilinear in 2D) representation of the solution in
+each grid cell of the form,</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{eqnarray}
+s_{ijk}(x,y,z) &amp;=&amp; s_{ijk} + s_{x,ijk}\cdot(x-x_i) + s_{y,ijk}\cdot(y-y_j) + s_{z,ijk}\cdot(z-z_k) \nonumber \\
+&amp;&amp; + s_{xy,ijk}\cdot(x-x_i)(y-y_j) + s_{xz,ijk}\cdot(x-x_i)(z-z_k) \nonumber \\
+&amp;&amp; + s_{yz,ijk}\cdot(y-y_j)(z-z_k) + s_{xyz,ijk}\cdot(x-x_i)(y-y_j)(z-z_k).
+\end{eqnarray}\end{split}\]</div>
+<ul class="simple">
+<li><p><strong>Step 2</strong>: Construct edge states <span class="math notranslate nohighlight">\(s_{i+1/2,j,k}\)</span>, etc. by integrating limited
+piecewise trilinear (bilinear in 2D) profiles over the space-time region determined by the characteristic
+domain of dependence on the face.</p></li>
+<li><p><strong>Step 3</strong>: Advance the solution in time using the conservative update equation,</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{eqnarray}
+s_{ijk}^{n+1} = s_{ijk}^n &amp;&amp;
+- \frac{\dt}{\Delta x}(u_{i+\half,j,k}s_{i+\half,j,k} - u_{i-\half,j,k}s_{i-\half,j,k}) \nonumber \\
+&amp;&amp; - \frac{\dt}{\Delta y}(v_{i,j+\half,k}s_{i,j+\half,k} - v_{i,j-\half,k}s_{i,j-\half,k}) \nonumber \\
+&amp;&amp; - \frac{\dt}{\Delta z}(w_{i,j,k+\half}s_{i,j,k+\half} - w_{i,j,k-\half}s_{i,j,k-\half}).
+\end{eqnarray}\end{split}\]</div>
+<p>Addition details are located in the <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html/BDS.html#bds-algorithm" title="(in amrex-hydro v22.06-dev)"><span class="xref std std-ref">BDS section of the AMReX-Hydro docs</span></a> and in the following paper:</p>
+<ul class="simple">
+<li><p><em>A Three-Dimensional, Unsplut Godunov Method For Scalar Conservation Laws</em>,
+A. Nonaka, S. May, A. S. Almgren, and J. B. Bell,
+SIAM Journal of Scientific Computation, Vol. 33, No.4, pp. 2039-2062.
+<a class="reference external" href="https://ccse.lbl.gov/Publications/nonaka/BDS_3d.pdf">https://ccse.lbl.gov/Publications/nonaka/BDS_3d.pdf</a> <span id="id2">[<a class="reference internal" href="references.html#id28" title="A. Nonaka, S. May, A. S. Almgren, and J. B. Bell. A three-dimensional, unsplit godunov method for scalar conservation laws. SIAM Journal on Scientific Computing, 33(4):2039-2062, 2011. URL: https://ccse.lbl.gov/Publications/nonaka/BDS_3d.pdf, arXiv:https://doi.org/10.1137/100809520, doi:10.1137/100809520.">3</a>]</span></p></li>
 </ul>
 </div>
 
