@@ -289,7 +289,7 @@ Capturing}",
     year = {1996}
 }
 
-@ARTICLE{BDS3D,
+@article{BDS_3d,
 author = {Nonaka, A. and May, S. and Almgren, A. S. and Bell, J. B.},
 title = {A Three-Dimensional, Unsplit Godunov Method for Scalar Conservation Laws},
 journal = {SIAM Journal on Scientific Computing},
@@ -297,5 +297,8 @@ volume = {33},
 number = {4},
 pages = {2039-2062},
 year = {2011},
-doi = {10.1137/100809520}
+doi = {10.1137/100809520},
+URL = {   https://ccse.lbl.gov/Publications/nonaka/BDS_3d.pdf },
+eprint = { https://doi.org/10.1137/100809520 },
+abstract = { Linear advection of a scalar quantity by a specified velocity field arises in a number of different applications. Of particular interest here is the transport of species and energy in low Mach number models for combustion, atmospheric flows, and astrophysics, as well as contaminant transport in Darcy models of saturated subsurface flow. An important characteristic of these problems is that the velocity field is not known analytically. Instead, an auxiliary equation is solved to compute averages of the velocities over faces in a finite volume discretization. In this paper, we present a customized three-dimensional finite volume advection scheme for this class of problems that provides accurate resolution for smooth problems while avoiding undershoot and overshoot for nonsmooth profiles. The method is an extension of an algorithm by Bell, Dawson, and Shubin (BDS), which was developed for a class of scalar conservation laws arising in porous media flows in two dimensions. The original BDS algorithm is a variant of unsplit, higher-order Godunov methods based on construction of a limited bilinear profile within each computational cell. Here we present a three-dimensional extension of the original BDS algorithm that is based on a limited trilinear profile within each cell. We compare this new method to several other unsplit approaches, including piecewise linear methods, piecewise parabolic methods, and wave propagation schemes. }
 }
