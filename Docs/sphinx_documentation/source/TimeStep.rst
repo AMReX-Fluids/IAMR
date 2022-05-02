@@ -125,7 +125,7 @@ over the time step.
     \end{eqnarray}
 
 
-Addition details are located in the :ref:`BDS section of the AMReX-Hydro docs <amrex_hydro:BDS:BDS Algorithm>` and in the following paper:
+Addition details are located in the :ref:`BDS section of the AMReX-Hydro docs <hydro:BDS:BDS Algorithm>` and in the following paper:
 
 - *A Three-Dimensional, Unsplut Godunov Method For Scalar Conservation Laws*,
   A. Nonaka, S. May, A. S. Almgren, and J. B. Bell,
