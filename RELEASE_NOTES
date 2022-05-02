@@ -261,3 +261,7 @@ Bug fix in the MAC sync for diffusive scalars.
 Add option of Bell-Dawson-Shubin (BDS) advection scheme, a higher order Godunov method for scalar conservation laws.
 Bring back forced homogeneous isotropic turbulence problem set up.
 Misc clean up.
+
+5/1/22
+Minor documentation updates.
+
