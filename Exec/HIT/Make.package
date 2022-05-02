@@ -4,5 +4,7 @@ ifeq ($(USE_VELOCITY), TRUE)
   FEXE_sources += FABUTIL_$(DIM)D.F
 endif
 
-CEXE_headers += prob_init.H
-CEXE_sources += prob_init.cpp
+ifeq ($(USE_TURBULENT_FORCING), TRUE)
+  CEXE_headers += TurbulentForcing_params.H TurbulentForcing_def.H depRand.H
+  CEXE_sources += depRand.cpp
+endif

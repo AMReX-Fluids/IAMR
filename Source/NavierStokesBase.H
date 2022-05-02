@@ -218,9 +218,7 @@ public:
 
     static int DoTrac2();
 
-    static bool GodunovUsePPM () {return godunov_use_ppm;}
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;}
-    static int  GodunovHypgrow () {return godunov_hyp_grow;}
 
     //////////////////////////////////////////////////////////////////
 
@@ -388,12 +386,12 @@ public:
     void avgDown_StatePress ();
 
     void LES_setDomainBC (std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_lobc,
-                      std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
-                      int src_comp);
+                          std::array<amrex::LinOpBCType,AMREX_SPACEDIM>& mlmg_hibc,
+                          int src_comp);
 
 
     amrex::Real volWgtSum (const std::string& name,
-                    amrex::Real               time);
+                           amrex::Real               time);
 
     //////////////////////////////////////////////////////////////////
     //    NavierStokesBase virtual functions                        //
@@ -712,7 +710,6 @@ public:
     static int          NUM_SCALARS;      // number of non-velocity components
     static int          NUM_STATE;        // total number of state variables
 #ifdef AMREX_USE_EB
-  // fixme --- not sure that NUM_GROW or refine_cutcells are still used...
     static const int    NUM_GROW=4;       // number of ghost cells
     static int          refine_cutcells;
 #else
@@ -801,11 +798,7 @@ public:
     //
     // static integer constants
     //
-  // FIXME?  do these need to be adjusted for EB??? see NUM_GROW above
     static const int GEOM_GROW  = 1;
-    static const int PRESS_GROW = 1;
-    static const int DIVU_GROW  = 1;
-    static const int DSDT_GROW  = 1;
 #ifdef AMREX_USE_EB
     // This must be consistent with what nghost_force returns for
     // godunov
@@ -815,16 +808,10 @@ public:
 #endif
 
     //
-    // Controls Godunov solver
+    // Controls advection scheme
     //
-    static bool use_godunov;
-    static bool godunov_use_ppm;
+    static std::string advection_scheme;
     static bool godunov_use_forces_in_trans;
-#ifdef AMREX_USE_EB
-    static const int  godunov_hyp_grow = 4;
-#else
-    static const int  godunov_hyp_grow = 3;
-#endif
 
 #ifdef AMREX_USE_EB
     // Controls redistribution

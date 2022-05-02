@@ -8,7 +8,6 @@
 #include <NS_BC.H>
 #include <AMReX_BLProfiler.H>
 #include <Projection.H>
-#include <PROJECTION_F.H>
 #include <OutFlowBC.H>
 #include <NSB_K.H>
 

@@ -5,7 +5,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 #These are the directories in IAMR
 
 Bdirs += Source
-Bdirs += Source/Src_$(DIM)d
 Bdirs += Source/prob
 Bdirs += Source/Utilities
 
@@ -16,6 +15,7 @@ Hdirs := $(AMREX_HYDRO_HOME)/Slopes
 Hdirs += $(AMREX_HYDRO_HOME)/Utils
 Hdirs += $(AMREX_HYDRO_HOME)/MOL
 Hdirs += $(AMREX_HYDRO_HOME)/Godunov
+Hdirs += $(AMREX_HYDRO_HOME)/BDS
 Hdirs += $(AMREX_HYDRO_HOME)/Projections
 
 ifeq ($(USE_EB), TRUE)
@@ -60,6 +60,13 @@ include $(Ppack)
 ifeq ($(USE_VELOCITY), TRUE)
   DEFINES += -DBL_NOLINEVALUES -DBL_USE_VELOCITY -DBL_PARALLEL_IO
   include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
+endif
+
+ifeq ($(USE_TURBULENT_FORCING), TRUE)
+  DEFINES += -DAMREX_USE_TURBULENT_FORCING
+  ifeq ($(USE_FAST_FORCE), TRUE)
+    DEFINES += -DAMREX_USE_FAST_FORCE
+  endif
 endif
 
 # job_info support

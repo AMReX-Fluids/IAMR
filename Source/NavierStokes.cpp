@@ -6,11 +6,12 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Extrapolater.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_buildInfo.H>
+#include <AMReX_BLProfiler.H>
 #include <NavierStokes.H>
 #include <NAVIERSTOKES_F.H>
-#include <AMReX_BLProfiler.H>
 #include <NS_util.H>
-#include <AMReX_buildInfo.H>
+#include <iamr_constants.H>
 
 #ifdef BL_USE_VELOCITY
 #include <AMReX_DataServices.H>
@@ -607,11 +608,10 @@ NavierStokes::advance (Real time,
 	MultiFab mac_rhs(grids,dmap,1,ng_rhs,MFInfo(),Factory());
 	create_mac_rhs(mac_rhs,ng_rhs,time,dt);
         MultiFab& S_old = get_old_data(State_Type);
-	// NOTE have_divu is now a static var in NSBase
+
         mac_project(time,dt,S_old,&mac_rhs,umac_n_grow,true);
     } else {
-        // Use interpolation from coarse to fill grow cells. No enforcement
-        // of the divergence constraint.
+        // Use interpolation from coarse to fill grow cells.
         create_umac_grown(umac_n_grow, nullptr);
     }
     //
@@ -736,7 +736,7 @@ NavierStokes::scalar_advection (Real dt,
     // Floor small values of states to be extrapolated
     floor(Smf);
 
-    if (use_godunov)
+    if ( advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || advection_scheme == "BDS")
     {
         MultiFab visc_terms(grids,dmap,num_scalars,nghost_force(),MFInfo(),Factory());
         FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,BL_SPACEDIM);
@@ -1058,60 +1058,6 @@ NavierStokes::velocity_diffusion_update (Real dt)
     }
 }
 
-//fixme? is there now an amrex fn for this?
-Real
-NavierStokes::MaxVal (const std::string& name,
-                      Real           time)
-{
-    Real        mxval = 0.0;
-    auto        mf = derive(name,time,0);
-    BoxArray    baf;
-
-    if (level < parent->finestLevel())
-    {
-        baf = parent->boxArray(level+1);
-        baf.coarsen(fine_ratio);
-    }
-
-    //Add and test this OMP
-    //#ifdef _OPENMP
-    //#pragma omp parallel if (!system::regtest_reduction) reduction(max:mxval,s)
-    //#endif
-    //{
-
-    std::vector< std::pair<int,Box> > isects;
-
-    for (MFIter mfi(*mf); mfi.isValid(); ++mfi)
-    {
-        const int  i   = mfi.index();
-        FArrayBox& fab = (*mf)[mfi];
-
-        if (level < parent->finestLevel())
-        {
-            baf.intersections(grids[i],isects);
-
-            for (int ii = 0, N = isects.size(); ii < N; ii++)
-              fab.setVal<RunOn::Host>(0,isects[ii].second,0,fab.nComp());
-        }
-        Real        s;
-        const Real* dat = fab.dataPtr();
-        const int*  dlo = fab.loVect();
-        const int*  dhi = fab.hiVect();
-	const Box&  bx  = grids[i];
-        const int*  lo  = bx.loVect();
-        const int*  hi  = bx.hiVect();
-
-        fort_maxval(dat,ARLIM(dlo),ARLIM(dhi),ARLIM(lo),ARLIM(hi),&s);
-
-        mxval = std::max(mxval, s);
-    }
-    //} end OMP parallel
-
-    ParallelDescriptor::ReduceRealMax(mxval);
-
-    return mxval;
-}
-
 void
 NavierStokes::sum_integrated_quantities ()
 {
@@ -1121,7 +1067,6 @@ NavierStokes::sum_integrated_quantities ()
     Real mass = 0.0;
     Real trac = 0.0;
     Real energy = 0.0;
-    Real mgvort = 0.0;
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
@@ -1129,14 +1074,12 @@ NavierStokes::sum_integrated_quantities ()
 	mass += ns_level.volWgtSum("density",time);
 	trac += ns_level.volWgtSum("tracer",time);
         energy += ns_level.volWgtSum("energy",time);
-        mgvort = std::max(mgvort,ns_level.MaxVal("mag_vort",time));
     }
 
     Print() << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " TRAC= " << trac << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " KINETIC ENERGY= " << energy << '\n';
-    Print().SetPrecision(12) << "TIME= " << time << " MAGVORT= " << mgvort << '\n';
 }
 
 void
@@ -1152,7 +1095,7 @@ NavierStokes::writePlotFilePre (const std::string& /*dir*/,
 #ifdef AMREX_USE_EB
     if ( set_plot_coveredCell_val )
     {
-        for (std::size_t i =0; i < state.size(); i++)
+        for (amrex::Long i =0; i < state.size(); i++)
         {
             auto& sdata = state[i].newData();
 	    // only cell-centered state data goes into plotfile
@@ -1269,7 +1212,7 @@ NavierStokes::writePlotFilePost (const std::string& dir,
 #ifdef AMREX_USE_EB
     if ( set_plot_coveredCell_val )
     {
-        for (std::size_t i =0; i < state.size(); i++)
+        for (amrex::Long i =0; i < state.size(); i++)
         {
             auto& sdata = state[i].newData();
 	    // only cell-centered state data goes into plotfile
@@ -1517,7 +1460,6 @@ NavierStokes::mac_sync ()
 
     const int  numscal        = NUM_STATE - BL_SPACEDIM;
     const Real prev_time      = state[State_Type].prevTime();
-    const Real prev_pres_time = state[Press_Type].prevTime();
     const Real dt             = parent->dtLevel(level);
     MultiFab*  DeltaSsync     = 0;// hold (Delta rho)*q for conserved quantities
     // does this have ghosts filled?
@@ -1551,10 +1493,9 @@ NavierStokes::mac_sync ()
     // the correction is the advective tendency of the new velocities.
     //
     MultiFab& S_new = get_new_data(State_Type);
-    mac_projector->mac_sync_compute(level,Ucorr,u_mac,Vsync,Ssync,Rh,
+    mac_projector->mac_sync_compute(level,Ucorr,u_mac,Vsync,Ssync,
 				    level > 0 ? &getAdvFluxReg(level) : 0,
-				    advectionType, prev_time,
-				    prev_pres_time,dt,
+				    advectionType, prev_time,dt,
 				    NUM_STATE,be_cn_theta,
 				    do_mom_diff);
     //

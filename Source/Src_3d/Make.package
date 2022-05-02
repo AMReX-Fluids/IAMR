@@ -1,2 +1,0 @@
-
-F90EXE_sources +=   NAVIERSTOKES_$(DIM)D.F90 

@@ -85,7 +85,10 @@ before noticing that there is an issue.
 	 
 Output Options
 --------------
-	 
+
+Here we give an overview of some of the output options for IAMR. For more detailed information on I/O, please see
+:ref:`sec:ParallelIO` and AMReX's documentation :ref:`amrex:Chap:IO`
+
 .. _sec:InputsPlotfiles:
 
 Plotfiles
@@ -99,8 +102,8 @@ The following inputs must be preceded by "amr." and control frequency, naming, a
 | plot_int            | Frequency of plotfile output;                                         |    Int      | -1        |
 |                     | if -1 then no plotfiles will be written at this frequency             |             |           |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
-| plot_per            | Time period of plotfile output (approximate); does not modify dt      |    Real     | -1        |
-|                     | if -1 then no plotfiles will be written at this frequency             |             |           |
+| plot_per            | Time period of plotfile output (approximate); does not modify dt.     |    Real     | -1        |
+|                     | If -1 then no plotfiles will be written at this frequency             |             |           |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 | plotfile_on_restart | Should we write a plotfile when we restart (only used if plot_int>0)  |   Bool      | False     |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
@@ -109,6 +112,10 @@ The following inputs must be preceded by "amr." and control frequency, naming, a
 | plot_vars           | State variables to include in plotfile                                |  String     | ALL       |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 | derive_plot_vars    | Derived variables to include in plotfile                              |  String     | NONE      |
++---------------------+-----------------------------------------------------------------------+-------------+-----------+
+| plot_nfiles         | Max number of files to use in parallel output if the number of        |    Int      |  64       |
+|                     | processors exceeds this number, else the two are equal.               |             |           |
+|                     | If -1, number of files is always set equal to number of processors.   |             |           |
 +---------------------+-----------------------------------------------------------------------+-------------+-----------+
 
 The following inputs must be preceded by "ns."
@@ -121,8 +128,47 @@ The following inputs must be preceded by "ns."
 |                          | for debugging, as covered cells are not used in the algorithm.        |             |           |
 +--------------------------+-----------------------------------------------------------------------+-------------+-----------+
 
+Note:
+ * ``amr.plot_per`` will write a plotfile at the first
+   timestep whose ending time is past an integer multiple of this interval.
+   The timestep is **not** modified to match this interval, so
+   you won’t get a plotfile at exactly the time you requested, unless you've also set up ``ns.fixed_dt``.
 
-	 
+ * You can specify both ``amr.plot_int`` or ``amr.plot_per``
+   if you so desire; the code will print a warning in case you did this
+   unintentionally. If both are non-negative values, you will get plotfiles
+   at integer multiples of ``amr.plot_int`` timesteps and at
+   multiples of ``amr.plot_per`` simulation time intervals.
+
+ * All the options for ``amr.derive_plot_vars`` are kept in ``derive_lst`` in ``NS_setup.cpp``.
+   Feel free to look at it and see what’s there.
+
+As an example:
+
+::
+
+    amr.plot_file = plt_run
+    amr.plot_int = 10
+
+means that plotfiles (really directories) starting with the prefix
+``plt_run`` will be generated every 10 level-0 time steps. The
+directory names will be plt_run00000, plt_run00010, plt_run00020, etc.
+
+If instead you specify
+
+::
+
+    amr.plot_file = plt_run
+    amr.plot_per = 0.1
+
+then plotfiles (really directories) starting with the prefix
+``plt_run`` will be generated every 0.1 units of simulation time. The
+directory names may be something like plt_run00000, plt_run00043, plt_run00061, etc, where
+43 level-0 steps is the first point when simulation time :math:`>= 0.1`,
+and 61 level-0 steps is the first point when simulation time :math:`>=0.2`, etc.
+
+
+
 .. _sec:InputsCheckpoint:
 
 Checkpointing and Restarting
@@ -130,16 +176,59 @@ Checkpointing and Restarting
 
 The following inputs must be preceded by "amr." and control checkpoint/restart.
 
-+------------------+-----------------------------------------------------------------------+-------------+-----------+
-|                  | Description                                                           |   Type      | Default   |
-+==================+=======================================================================+=============+===========+
-| restart          | If present, then the name of file to restart from                     |    String   | None      |
-+------------------+-----------------------------------------------------------------------+-------------+-----------+
-| check_int        | Frequency of checkpoint output;                                       |    Int      | -1        |
-|                  | if -1 then no checkpoints will be written                             |             |           |
-+------------------+-----------------------------------------------------------------------+-------------+-----------+
-| check_file       | Prefix to use for checkpoint output                                   |  String     | chk       |
-+------------------+-----------------------------------------------------------------------+-------------+-----------+
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+|                         | Description                                                           |   Type      | Default   |
++=========================+=======================================================================+=============+===========+
+| restart                 | If present, then the name of file to restart from                     |    String   | None      |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| check_int               | Frequency of checkpoint output by level 0 time steps;                 |    Int      | -1        |
+|                         | if -1 then no checkpoints will be written                             |             |           |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| check_per               | Frequency of checkpoint output by (approximate) simulation time;      |    Real     | -1.0      |
+|                         | if -1 then no checkpoints will be written. (See note below)           |             |           |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| checkpoint_files_output | Should we write checkpoint files? (Takes precident over check_int     |    Int      |  1        |
+|                         | and check_per)                                                        |             |           |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| check_file              | Prefix to use for checkpoint output                                   |  String     | chk       |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| checkpoint_on_restart   | Write a checkpoint immediately after restarting? (If 1 yes, if 0 no)  |    Int      |  0        |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| checkpoint_nfiles       | Max number of files to use in parallel output if the number of        |    Int      |  64       |
+|                         | processors exceeds this number, else the two are equal.               |             |           |
+|                         | If -1, number of files is always set equal to number of processors.   |             |           |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+
+Note:
+ * ``amr.check_per`` will write a checkpoint at the first
+   timestep whose ending time is past an integer multiple of this interval.
+   The timestep is **not** modified to match this interval, so
+   you won’t get a checkpoint at exactly the time you requested, unless you've also set up ``ns.fixed_dt``.
+
+ * You can specify both ``amr.check_int`` or ``amr.check_per``
+   if you so desire; the code will print a warning in case you did this
+   unintentionally. If both are non-negative values, you will get checkpoints
+   at integer multiples of ``amr.check_int`` timesteps and at
+   multiples of ``amr.check_per`` simulation time intervals.
+
+As an example,
+
+::
+
+    amr.check_file = chk_run
+    amr.check_int = 10
+
+means that restart files (really directories) starting with the prefix
+``chk_run`` will be generated every 10 level-0 time steps. The
+directory names will be chk_run00000, chk_run00010, chk_run00020, etc.
+
+
+To restart from chk_run00061, for example, then set
+
+::
+
+    amr.restart = chk_run00061
+
 
 
 Particles Output
@@ -154,15 +243,15 @@ This format is designed for being read by the code at restart rather than for di
 Plot Files
 ^^^^^^^^^^
 
-If ``particles.write\_in\_plotfile = 1`` in the inputs file
-then the particle positions and velocities will be written in a binary file in each plotfile directory.
+The “derived quantity” ``particle_count`` represents the number of particles in a grid cell.
+To visualize the particle locations as represented on the grid, add ``particle_count`` to the list
+of derived quanties in ``amr.derive_plot_vars =`` in the inputs file.
 
-In addition, we can also
-visualize the particle locations as represented on the grid. The “derived quantity”
-``particle\_count`` represents the number of particles in a grid cell.
-To add it to plotfiles, set
-``amr.derive\_plot\_vars = particle\_count``
-in the inputs file
+If ``particles.write_in_plotfile = 1`` in the inputs file,
+then the particle positions and velocities will be written in a binary file in each plotfile directory.
+This allows the use of the AMReX tools such as the particle comparison tool found in ``amrex/Tools/Postprocessing/C_Src/``,
+and/or ``amrex/Tools/Py_util/amrex_particles_to_vtp`` to generate a vtp file you can open with ParaView.
+
 
 ASCII Particle Files
 ^^^^^^^^^^^^^^^^^^^^
@@ -185,6 +274,61 @@ This file has the same format as the ASCII input file:
    
    number of particles
    x y z
+
+
+Log Files
+~~~~~~~~~~~~~~~~
+
+The following inputs must be preceeded by "amr."
+
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+|                         | Description                                                           |   Type      | Default   |
++=========================+=======================================================================+=============+===========+
+| grid_log                | If present, then the name of file to write grids; otherwise nothing   |    String   |           |
+|                         | written.                                                              |             |           |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| run_log                 | If present, then the name of file to write run output; otherwise      |    String   |           |
+|                         | nothing written.                                                      |             |           |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+| run_log_terse           | If present, then the name of file to write number of steps, time,     |    String   |           |
+|                         | and dt; otherwise nothing written.                                    |             |           |
++-------------------------+-----------------------------------------------------------------------+-------------+-----------+
+
+As an example:
+
+::
+
+    amr.grid_log = grdlog
+    amr.run_log = runlog 
+
+Every time the code regrids it prints a list of grids at all relevant
+levels. Here the code will write these grids lists into the file grdlog. Additionally, every time step the code prints certain
+statements to the screen, such as (if amr.v = 1):
+
+::
+
+    STEP = 1 TIME = 1.91717746 DT = 1.91717746 
+    PLOTFILE: file = plt00001 
+
+The run_log option will write these statements into the file *runlog* as well.
+
+Terser output can be obtained via:
+
+::
+
+    amr.run_log_terse = runlogterse
+
+This file, runlogterse differs from runlog, in that it
+only contains lines of the form
+
+::
+
+    10  0.2  0.005
+
+in which “10” is the number of steps taken, “0.2” is the
+simulation time, and “0.005” is the level-0 time step. This file
+can be plotted very easily to monitor the time step.
+
 
 
 .. _sec:InputsLoadBalancing:
@@ -298,12 +442,13 @@ For details on IAMR's approach to tiling see :ref:`Chap:Parallel`.
 
 The following inputs determine how we create the logical tiles and must be preceded by "fabarray_mfiter." :
 
-+----------------------+-----------------------------------------------------------------------+----------+-------------+
-|                      | Description                                                           | Type     | Default     |
-+======================+=======================================================================+==========+=============+
-| tile_size            | Maximum number of cells in each direction for (logical) tiles         | IntVect  | 1024000     |
-|                      |        (3D CPU-only)                                                  |          | 1024000,8,8 |
-+----------------------+-----------------------------------------------------------------------+----------+-------------+
++----------------------+-----------------------------------------------------------------------+----------+---------------+
+|                      | Description                                                           | Type     | Default       |
++======================+=======================================================================+==========+===============+
+| tile_size            | Maximum number of cells in each direction for (logical) tiles.        | IntVect  | 1024000       |
+|                      | (Default for 3D CPU-only)                                             |          | (1024000,8,8) |
++----------------------+-----------------------------------------------------------------------+----------+---------------+
+
 
 
 .. _sec:InputsVerbosity:
@@ -318,6 +463,8 @@ Here is some of the more frequently used options:
 |                      | Description                                                           |   Type      | Default      |
 +======================+=======================================================================+=============+==============+
 | ns.v                 |  Verbosity in IAMR routines                                           |    Int      |   0          |
++----------------------+-----------------------------------------------------------------------+-------------+--------------+
+| ns.amr               |  Verbosity in AMR routines                                            |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | particles.verbose    |  Verbosity in particle routines                                       |    Int      |   0          |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
@@ -353,7 +500,7 @@ These control the nodal projection and must be preceded by "nodal_proj.":
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | proj_tol                |  Relative tolerance in nodal projection                               |    Real     |   1.e-12     |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
-| sync_tol                |  Relative tolerance in sync projection                                |    Real     |   1.e-8      |
+| sync_tol                |  Relative tolerance in sync projection                                |    Real     |   1.e-10     |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | proj_abs_tol            |  Absolute tolerance in nodal & sync projections                       |    Real     |   1.e-16     |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
@@ -383,7 +530,7 @@ These control the MAC projection and must be preceded by "mac_proj.":
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | mac_tol                 |  Relative tolerance in MAC projection                                 |    Real     |   1.e-12     |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
-| mac_sync_tol            |  Relative tolerance in MAC sync projection                            |    Real     |   1.e-8      |
+| mac_sync_tol            |  Relative tolerance in MAC sync projection                            |    Real     |   1.e-10     |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
 | mac_abs_tol             |  Absolute tolerance in MAC & sync projection                          |    Real     |   1.e-16     |
 +-------------------------+-----------------------------------------------------------------------+-------------+--------------+
@@ -430,5 +577,32 @@ The following inputs must be preceded by "ns."
 | init_iter            | How many pressure iterations before starting the first timestep.      |  Int        |    3         |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 | init_vel_iters       | How many projection iterations to ensure the velocity satisfies the   |  Int        |    3         |
-|                      |  constraint. Set = 0 to skip this part of the initialization.         |             |              |
+|                      | constraint. Set = 0 to skip this part of the initialization.          |             |              |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+
+Checking Conservation
+---------------------
+
+IAMR has the option to sum up the total mass (and a few other quantites) at a user-defined interval.
+
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+|                         | Description                                                           |   Type      | Default      |
++=========================+=======================================================================+=============+==============+
+| ns.sum_interval         | How often (in level-0 time steps) to compute and print integral       |    Int      |   -1         |
+|                         | quantities. If <= 0, do nothing.                                      |             |              |
++-------------------------+-----------------------------------------------------------------------+-------------+--------------+
+
+The integral quantities include total mass, tracer, kinetic energy and magnitude of vorticity.
+They are summed over the entire the domain every ns.sum_interval level-0 steps.
+The print statements have the form
+
+::
+
+   TIME= 1.91717746 MASS= 1.792410279e+02
+         
+for example.
+
+Note that by default the tracer not conservative. To conservatively advect the tracer,
+that option must be set in the inputs (see :ref:`sec:conserv`).
+

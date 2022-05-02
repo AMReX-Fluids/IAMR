@@ -3,29 +3,16 @@ Controlling What’s in the PlotFile
 ==================================
 
 There are a few options that can be set at runtime to control what
-variables appear in the plotfile.
-
-| **amr.plot\_vars** =
-| and
-| **amr.derive\_plot\_vars** =
-| are used to control which variables are included in the plotfiles. The default for **amr.plot\_vars**
-  is all of the state variables. The default for **amr.derive\_plot\_vars** is none of
-  the derived variables. So if you include neither of these lines then the plotfile
-  will contain all of the state variables and none of the derived variables.
-| If you want all of the state variables plus pressure, for example, then set
-| **amr.derive\_plot\_vars** = avg\_pressure
-| If you just want density and pressure, for example, then set
-| **amr.plot\_vars** = density
-| **amr.derive\_plot\_vars** = avg\_pressure
+variables appear in the plotfile. See section :ref:`sec:InputsPlotfiles`.
 
 Amrvis
 ======
 
-Amrvis is a package developed
+Amrvis is a package developed
 by CCSE that is designed specifically for highly efficient visualization
 of block-structured hierarchical AMR data.
 Information on building the amrvis2d and amrvis3d executables is given in section
-:ref:`Visualizing the Results`. A very useful feature of Amrvis is
+:ref:`Visualizing the Results`. A very useful feature of Amrvis is
 View :math:`\rightarrow` Dataset, which
 allows you to actually view the numbers in a spreadsheet that is nested
 to reflect the AMR hierarchy – this can be handy for

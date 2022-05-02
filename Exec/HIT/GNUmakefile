@@ -17,6 +17,9 @@ USE_OMP    = FALSE
 
 USE_CUDA = FALSE
 
+USE_TURBULENT_FORCING = TRUE
+USE_FAST_FORCE        = FALSE
+
 #TEST=TRUE
 #USE_ASSERTION=TRUE
 
@@ -49,4 +52,5 @@ endif
 
 Blocs   := .
 
+include ./Make.package
 include $(TOP)/Exec/Make.IAMR

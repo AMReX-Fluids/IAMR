@@ -2,18 +2,17 @@
 #include<AMReX_PlotFileUtil.H>
 //
 
-#include <AMReX_ParmParse.H>
-
 #include <Diffusion.H>
 #include <NavierStokesBase.H>
+#include <iamr_constants.H>
 
 #include <algorithm>
 #include <cfloat>
 #include <iomanip>
 #include <array>
-
 #include <iostream>
 
+#include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MLMG.H>
 #ifdef AMREX_USE_EB
@@ -433,7 +432,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 #else
         mgn.apply({&Rhs},{&Soln});
 #endif
-        computeExtensiveFluxes(mgn, Soln, fluxn, fluxComp, nComp, &geom, -b/dt);
+        computeExtensiveFluxes(mgn, Soln, fluxn, fluxComp, nComp,
+			       navier_stokes->area, -b/dt);
     } else {
         for (int idim = 0; idim < AMREX_SPACEDIM; idim++)
         {
@@ -564,7 +564,8 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
 
     mgnp1.solve({&Soln}, {&Rhs}, S_tol, S_tol_abs);
 
-    computeExtensiveFluxes(mgnp1, Soln, fluxnp1, fluxComp, nComp, &geom, b/dt);
+    computeExtensiveFluxes(mgnp1, Soln, fluxnp1, fluxComp, nComp,
+			   navier_stokes->area, b/dt);
 
     //
     // Copy into state variable at new time, without bc's and * rho if needed
@@ -783,7 +784,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          {
            tensorflux_old = fb_old.define(navier_stokes, AMREX_SPACEDIM);
 
-           computeExtensiveFluxes(mlmg, Soln, tensorflux_old, 0, AMREX_SPACEDIM, &geom, -b/dt);
+           computeExtensiveFluxes(mlmg, Soln, tensorflux_old, 0, AMREX_SPACEDIM,
+				  navier_stokes->area, -b/dt);
          }
       }
     }
@@ -922,7 +924,8 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          FluxBoxes fb(navier_stokes, AMREX_SPACEDIM);
          MultiFab** tensorflux = fb.get();
 
-         computeExtensiveFluxes(mlmg, Soln, tensorflux, 0, AMREX_SPACEDIM, &geom, b/dt);
+         computeExtensiveFluxes(mlmg, Soln, tensorflux, 0, AMREX_SPACEDIM,
+				navier_stokes->area, b/dt);
          if ( be_cn_theta!=1 ) {
             for ( int i = 0; i < AMREX_SPACEDIM; i++)
                MultiFab::Add(*tensorflux[i], *tensorflux_old[i], 0, 0,AMREX_SPACEDIM, flux_ng);
@@ -1149,7 +1152,8 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
         // The extra factor of dt comes from the fact that Vsync looks
         // like dV/dt, not just an increment to V.
         //
-        computeExtensiveFluxes(mlmg, Soln, tensorflux, 0, AMREX_SPACEDIM, &geom, b/dt);
+        computeExtensiveFluxes(mlmg, Soln, tensorflux, 0, AMREX_SPACEDIM,
+			       navier_stokes->area, b/dt);
 
         if (update_fluxreg)
         {
@@ -1291,8 +1295,8 @@ Diffusion::diffuse_Ssync (MultiFab&              Ssync,
     checkBeta(flux, flux_allthere, flux_allnull);
     if (flux_allthere)
     {
-      computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, nComp,
-                             &(navier_stokes->Geom()), b/dt);
+        computeExtensiveFluxes(mlmg, Soln, flux, fluxComp, nComp,
+			       navier_stokes->area, b/dt);
     }
 
     MultiFab::Copy(Ssync,Soln,0,sigma,nComp,0);
@@ -1445,8 +1449,8 @@ Diffusion::setViscosity(MLTensorOp&            tensorop,
 void
 Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
                                   MultiFab* const* flux, const int fluxComp,
-                                  const int ncomp,
-                                  const Geometry* a_geom, const Real fac )
+                                  const int ncomp, MultiFab* area,
+                                  const Real fac )
 {
    BL_ASSERT(flux[0]->nGrow()==0);
 
@@ -1456,29 +1460,6 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
    std::array<MultiFab*,AMREX_SPACEDIM> fp{AMREX_D_DECL(&flxx,&flxy,&flxz)};
 
    a_mg.getFluxes({fp},{&Soln},MLLinOp::Location::FaceCentroid);
-
-    //
-    // fixme? which way to define area?
-    //
-    // amrex::MultiFab area[BL_SPACEDIM];
-    // DistributionMapping dmap = Soln.DistributionMap();
-    // BoxArray ba = Soln.boxArray();
-    // for (int dir = 0; dir < BL_SPACEDIM; ++dir)
-    // {
-    //     area[dir].clear();
-    // 	area[dir].define(ba.surroundingNodes(dir),dmap,1,nghost);
-    //     a_geom->GetFaceArea(area[dir],dir);
-    // }
-
-   const Real*  dx = a_geom->CellSize();
-#if ( AMREX_SPACEDIM == 3 )
-   Real areax = dx[1]*dx[2];
-   Real areay = dx[0]*dx[2];
-   Real areaz = dx[0]*dx[1];
-#else
-   Real areax = dx[1];
-   Real areay = dx[0];
-#endif
 
 #ifdef AMREX_USE_EB
    auto const& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Soln.Factory());
@@ -1502,6 +1483,10 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
               const Box vbx = mfi.nodaltilebox(1);,
               const Box wbx = mfi.nodaltilebox(2););
 
+      D_TERM( const auto& areax = area[0].array(mfi);,
+              const auto& areay = area[1].array(mfi);,
+              const auto& areaz = area[2].array(mfi););
+
 #ifdef AMREX_USE_EB
       Box bx = mfi.tilebox();
 
@@ -1524,16 +1509,16 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
 		 const auto& afrac_y = areafrac[1]->array(mfi);,
 		 const auto& afrac_z = areafrac[2]->array(mfi););
 
-	 D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax*afrac_x(i,j,k);});,
-		AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*areay*afrac_y(i,j,k);});,
-                AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*areaz*afrac_z(i,j,k);}););
+	 D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax(i,j,k)*afrac_x(i,j,k);});,
+		AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*areay(i,j,k)*afrac_y(i,j,k);});,
+                AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*areaz(i,j,k)*afrac_z(i,j,k);}););
       }
       else
 #endif
       {
-	D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax;});,
-	       AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*areay;});,
-	       AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*areaz;}););
+	D_TERM(AMREX_PARALLEL_FOR_4D(ubx, ncomp, i, j, k, n, {fx(i,j,k,n) *= fac*areax(i,j,k);});,
+	       AMREX_PARALLEL_FOR_4D(vbx, ncomp, i, j, k, n, {fy(i,j,k,n) *= fac*areay(i,j,k);});,
+	       AMREX_PARALLEL_FOR_4D(wbx, ncomp, i, j, k, n, {fz(i,j,k,n) *= fac*areaz(i,j,k);}););
       }
    }
 }
@@ -1889,38 +1874,6 @@ Diffusion::set_rho_flag(const DiffusionForm compDiffusionType)
     }
 
     return rho_flag;
-}
-
-bool
-Diffusion::are_any(const Vector<DiffusionForm>& diffusionType,
-                   const DiffusionForm         testForm,
-                   const int                   sComp,
-                   const int                   nComp)
-{
-    for (int comp = sComp; comp < sComp + nComp; ++comp)
-    {
-        if (diffusionType[comp] == testForm)
-            return true;
-    }
-
-    return false;
-}
-
-int
-Diffusion::how_many(const Vector<DiffusionForm>& diffusionType,
-                    const DiffusionForm         testForm,
-                    const int                   sComp,
-                    const int                   nComp)
-{
-    int counter = 0;
-
-    for (int comp = sComp; comp < sComp + nComp; ++comp)
-    {
-        if (diffusionType[comp] == testForm)
-            ++counter;
-    }
-
-    return counter;
 }
 
 void

@@ -248,3 +248,20 @@ Fix in create_umac_grown, and minor fixes in problem initialization.
 Allow rz with scalar diffusivity.
 Lower default tolerances for the sync.
 Minor clean up and updates to regression tests.
+
+3/1/22
+Add NSB::advection_scheme to choose the advection method used. This replaces use_godunov and godunov_use_ppm.
+Bug fix in Diffusion::computeExtensiveFluxes for RZ.
+Fix in velocity_advection for non-conservative MOL with divU!=0.
+Fix indexing error in host bcrec for EBGodunov in mac_sync. Only affects problems where the coarse-fine boundary interacts with a physical EXT_DIR or HOEXTRAP and also the coarse level .
+Misc clean up.
+
+4/1/22
+Bug fix in the MAC sync for diffusive scalars.
+Add option of Bell-Dawson-Shubin (BDS) advection scheme, a higher order Godunov method for scalar conservation laws.
+Bring back forced homogeneous isotropic turbulence problem set up.
+Misc clean up.
+
+5/1/22
+Minor documentation updates.
+
