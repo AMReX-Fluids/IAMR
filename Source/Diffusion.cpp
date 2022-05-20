@@ -689,8 +689,6 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     MultiFab** tensorflux_old;
     FluxBoxes fb_old;
 
-    const Geometry& geom   = navier_stokes->Geom();
-
     //
     // Set up Rhs.
     //
@@ -748,6 +746,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #ifdef AMREX_USE_EB
          setViscosity(tensorop, betan, betaComp, *betanCC);
 #else
+         amrex::ignore_unused(betanCC);
          setViscosity(tensorop, betan, betaComp);
 #endif
 
@@ -895,6 +894,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
 #ifdef AMREX_USE_EB
       setViscosity(tensorop, betanp1, betaComp, *betanp1CC);
 #else
+      amrex::ignore_unused(betanp1CC);
       setViscosity(tensorop, betanp1, betaComp);
 #endif
 
@@ -1147,7 +1147,6 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
     {
         FluxBoxes fb(navier_stokes, AMREX_SPACEDIM);
         MultiFab** tensorflux = fb.get();
-        const Geometry& geom   = navier_stokes->Geom();
         //
         // The extra factor of dt comes from the fact that Vsync looks
         // like dV/dt, not just an increment to V.
@@ -1738,6 +1737,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
 #ifdef AMREX_USE_EB
            setViscosity(tensorop, beta, betaComp, *betaCC);
 #else
+           amrex::ignore_unused(betaCC);
            setViscosity(tensorop, beta, betaComp);
 #endif
 
