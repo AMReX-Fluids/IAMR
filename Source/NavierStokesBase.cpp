@@ -234,8 +234,6 @@ namespace
 AmrTracerParticleContainer* NavierStokesBase::theNSPC () { return NSPC; }
 #endif
 
-int NavierStokesBase::DoTrac2() {return NavierStokesBase::do_trac2;}
-
 NavierStokesBase::NavierStokesBase ()
 {
     rho_qtime    = nullptr;

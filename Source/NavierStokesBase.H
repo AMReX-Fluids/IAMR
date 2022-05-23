@@ -216,7 +216,7 @@ public:
     //
     static amrex::Real getGravity () { return gravity; }
 
-    static int DoTrac2();
+    static int DoTrac2() { return NavierStokesBase::do_trac2; }
 
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;}
 
