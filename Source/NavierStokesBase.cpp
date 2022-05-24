@@ -1101,6 +1101,23 @@ NavierStokesBase::create_umac_grown (int nGrow,
 
     Geometry *fine_geom = &geom;
 
+    // It's not really correct that Umac BCs are either periodic or foextrap,
+    // but use this for now until there's a better fix...
+    Vector<BCRec> bcrec(1);
+    for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
+	if (geom.isPeriodic(idim)) {
+	    bcrec[0].setLo(idim,BCType::int_dir);
+	    bcrec[0].setHi(idim,BCType::int_dir);
+	} else {
+	    bcrec[0].setLo(idim,BCType::foextrap);
+	    bcrec[0].setHi(idim,BCType::foextrap);
+	}
+    }
+    Array<Vector<BCRec>,AMREX_SPACEDIM> bcrecArr = {AMREX_D_DECL(bcrec,bcrec,bcrec)};
+
+    PhysBCFunct<GpuBndryFuncFab<umacFill>> fine_bndry_func(*fine_geom, bcrec, umacFill{});
+    Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func,fine_bndry_func,fine_bndry_func)};
+
     if ( level > 0)
     {
         Array<MultiFab*, AMREX_SPACEDIM> u_mac_crse;
@@ -1122,24 +1139,8 @@ NavierStokesBase::create_umac_grown (int nGrow,
         // This one matches up with old create umac grown
         Interpolater* mapper = &face_linear_interp;
 
-        // Set BCRec for Umac
-        Vector<BCRec> bcrec(1);
-        for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
-            if (crse_geom->isPeriodic(idim)) {
-                bcrec[0].setLo(idim,BCType::int_dir);
-                bcrec[0].setHi(idim,BCType::int_dir);
-            } else {
-                bcrec[0].setLo(idim,BCType::foextrap);
-                bcrec[0].setHi(idim,BCType::foextrap);
-            }
-        }
-        Array<Vector<BCRec>,AMREX_SPACEDIM> bcrecArr = {AMREX_D_DECL(bcrec,bcrec,bcrec)};
-
         PhysBCFunct<GpuBndryFuncFab<umacFill>> crse_bndry_func(*crse_geom, bcrec, umacFill{});
         Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> cbndyFuncArr = {AMREX_D_DECL(crse_bndry_func,crse_bndry_func,crse_bndry_func)};
-
-        PhysBCFunct<GpuBndryFuncFab<umacFill>> fine_bndry_func(*fine_geom, bcrec, umacFill{});
-        Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func,fine_bndry_func,fine_bndry_func)};
 
         // Use piecewise constant interpolation in time, so create dummy variable for time
         Real dummy = 0.;
@@ -1272,8 +1273,21 @@ NavierStokesBase::create_umac_grown (int nGrow,
         // Fill boundary for all the levels
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            u_mac_fine[idim]->FillBoundary(fine_geom->periodicity());
-        }
+	    //
+	    // Only BDS assumes Umac has filled ghost cells at physical BCs.
+	    // The other advection options handle physical BCs internally.
+	    //
+	    if ( advection_scheme == "BDS" ) {
+		Real fake_time = 0.;
+
+		amrex::FillPatchSingleLevel(u_mac[idim], IntVect(nGrow), fake_time,
+					    {u_mac_fine[idim]}, {fake_time},
+					    0, 0, 1, geom,
+					    fbndyFuncArr[idim], 0);
+	    } else {
+		u_mac_fine[idim]->FillBoundary(fine_geom->periodicity());
+	    }
+	}
     }
 }
 
