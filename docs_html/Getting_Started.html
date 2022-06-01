@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; IAMR 22.06-dev documentation</title>
+  <title>Getting Started &mdash; IAMR 22.07-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -30,7 +31,7 @@
             <a href="index.html" class="icon icon-home"> IAMR
           </a>
               <div class="version">
-                22.06-dev
+                22.07-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -86,10 +87,10 @@
            <div itemprop="articleBody">
              
   <div class="section" id="getting-started">
-<span id="chap-gettingstarted"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline"></a></h1>
+<span id="chap-gettingstarted"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h1>
 <p>This section walks you through a brief introduction to using IAMR.</p>
 <div class="section" id="downloading-the-code">
-<h2>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Permalink to this headline"></a></h2>
+<h2>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Permalink to this heading"></a></h2>
 <p>IAMR is built on top of the AMReX framework.  In order to run
 IAMR, you must download separate git modules for IAMR, AMReX
 and AMReX-Hydro.</p>
@@ -118,7 +119,7 @@ and AMReX-Hydro.</p>
 by typing <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> within each repository.</p>
 </div>
 <div class="section" id="building-the-code">
-<h2>Building the code<a class="headerlink" href="#building-the-code" title="Permalink to this headline"></a></h2>
+<h2>Building the code<a class="headerlink" href="#building-the-code" title="Permalink to this heading"></a></h2>
 <p>Here, we walk you through compiling an IAMR executable. We’ll build the source code in one of the <code class="docutils literal notranslate"><span class="pre">IAMR/Exec</span></code>
 directories, which are organized as follows:</p>
 <p>To build the code:</p>
@@ -227,7 +228,7 @@ like <code class="docutils literal notranslate"><span class="pre">amr3d.gnu.MPI.
 </ol>
 </div>
 <div class="section" id="running-the-code">
-<h2>Running the code<a class="headerlink" href="#running-the-code" title="Permalink to this headline"></a></h2>
+<h2>Running the code<a class="headerlink" href="#running-the-code" title="Permalink to this heading"></a></h2>
 <p>IAMR takes an input file as its first command-line argument.  The file may
 contain a set of parameter definitions that will overrides defaults set in the code.
 For example, to run an example in <code class="docutils literal notranslate"><span class="pre">IAMR/Exec/run2d</span></code>, type:</p>
@@ -243,7 +244,7 @@ data is generally written in a self-describing binary format; the
 ASCII header files provide additional metadata to give AMR context to the field data.</p>
 </div>
 <div class="section" id="visualizing-the-results">
-<h2>Visualizing the Results<a class="headerlink" href="#visualizing-the-results" title="Permalink to this headline"></a></h2>
+<h2>Visualizing the Results<a class="headerlink" href="#visualizing-the-results" title="Permalink to this heading"></a></h2>
 <p>There are several options for visualizing the data. VisIt supports the AMReX file format
 natively, as does the yt python package and ParaView. Amrvis is a package developed
 by CCSE that is designed specifically for highly efficient visualization

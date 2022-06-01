@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>An Overview of IAMR Code &mdash; IAMR 22.06-dev documentation</title>
+  <title>An Overview of IAMR Code &mdash; IAMR 22.07-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -32,7 +33,7 @@
             <a href="index.html" class="icon icon-home"> IAMR
           </a>
               <div class="version">
-                22.06-dev
+                22.07-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -110,7 +111,7 @@
            <div itemprop="articleBody">
              
   <div class="section" id="an-overview-of-iamr-code">
-<h1>An Overview of IAMR Code<a class="headerlink" href="#an-overview-of-iamr-code" title="Permalink to this headline"></a></h1>
+<h1>An Overview of IAMR Code<a class="headerlink" href="#an-overview-of-iamr-code" title="Permalink to this heading"></a></h1>
 <p>IAMR is built upon the AMReX C++ framework. This provides
 high-level classes for managing an adaptive mesh refinement simulation,
 including the core data structures required in AMR calculations.
@@ -145,7 +146,7 @@ desired simulation time is reached:</p>
 including synchronization between levels, to advance the level hierarchy
 forward in time.</p>
 <div class="section" id="state-data">
-<h2>State Data<a class="headerlink" href="#state-data" title="Permalink to this headline"></a></h2>
+<h2>State Data<a class="headerlink" href="#state-data" title="Permalink to this heading"></a></h2>
 <p>The StateData class structure defined by AMReX is the data container
 used to store the field data associated with the state on a single AMR level
 during an IAMR run. The entire state consists of a dynamic union, or hierarchy, of
@@ -223,7 +224,7 @@ a more array like manner using operator()
 <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for">https://amrex-codes.github.io/amrex/docs_html/GPU.html#sec-gpu-for</a> ).</p>
 </div>
 <div class="section" id="boundaries">
-<span id="sec-boundaries"></span><h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this headline"></a></h2>
+<span id="sec-boundaries"></span><h2>Boundaries<a class="headerlink" href="#boundaries" title="Permalink to this heading"></a></h2>
 <p>In AMReX, we are primarily concerned with enabling structured-grid
 computations. A key aspect of this is the use of “grow” cells
 around the “valid box” of cells over which we wish to apply stencil operations.
@@ -233,7 +234,7 @@ data containers that allow us to separate the steps of data preparation
 from stencil application. The steps that are required to fill grow cells
 depends on where the cells “live” in the computational domain.</p>
 <div class="section" id="boundaries-between-grids-and-levels">
-<h3>Boundaries Between Grids and Levels<a class="headerlink" href="#boundaries-between-grids-and-levels" title="Permalink to this headline"></a></h3>
+<h3>Boundaries Between Grids and Levels<a class="headerlink" href="#boundaries-between-grids-and-levels" title="Permalink to this heading"></a></h3>
 <p>Most of our state data is cell-centered, and often the grow cells are
 as well. When the cells lie directly over cells of a neighboring box
 at the same AMR refinement level, these are “fine-fine” cells, and are
@@ -262,7 +263,7 @@ example.) A number of interpolators are provided with AMReX and
 user-customizable ones can be added on the fly.</p>
 </div>
 <div class="section" id="physical-boundaries">
-<span id="sec-physicalbcs"></span><h3>Physical Boundaries<a class="headerlink" href="#physical-boundaries" title="Permalink to this headline"></a></h3>
+<span id="sec-physicalbcs"></span><h3>Physical Boundaries<a class="headerlink" href="#physical-boundaries" title="Permalink to this heading"></a></h3>
 <p>The last type of grow cell exists at physical boundaries. These are special for
 a couple of reasons. First, the user must explicitly specify how they are to be
 filled, consistent with the problem being run. AMReX provides a number of
@@ -322,7 +323,7 @@ by adjusting the corresponding translations in <code class="docutils literal not
 </div>
 </div>
 <div class="section" id="derived-variables">
-<span id="sec-derivedvariables"></span><h2>Derived Variables<a class="headerlink" href="#derived-variables" title="Permalink to this headline"></a></h2>
+<span id="sec-derivedvariables"></span><h2>Derived Variables<a class="headerlink" href="#derived-variables" title="Permalink to this heading"></a></h2>
 <p>IAMR has the ability to created new variables derived from the state variables.
 A few derived variables are provided with IAMR, which can be used as examples for
 creating user defined derived variables.
@@ -363,7 +364,7 @@ A multifab filled with the magnitude of the vorticity can be obtained via</p>
 </div>
 </div>
 <div class="section" id="the-fillpatchiterator">
-<h2>The FillPatchIterator<a class="headerlink" href="#the-fillpatchiterator" title="Permalink to this headline"></a></h2>
+<h2>The FillPatchIterator<a class="headerlink" href="#the-fillpatchiterator" title="Permalink to this heading"></a></h2>
 <p>A FillPatchIterator is a AMReX object tasked with the job of
 filling rectangular patches of state data, possibly including grow cells,
 and, if so, utilizing all the metadata discussed above that is provided by
@@ -405,7 +406,7 @@ number of successively coarser AMR levels), this key operation can hide an
 enormous amount of code and algorithm complexity.</p>
 </div>
 <div class="section" id="parallelization">
-<span id="chap-parallel"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline"></a></h2>
+<span id="chap-parallel"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this heading"></a></h2>
 <p>AMReX uses a hybrid MPI + X approach to parallelism,
 where X = OpenMP for multicore machines, and CUDA/HIP/DCP++ for CPU/GPU systems.
 The basic idea is that MPI is used to distribute individual boxes across
@@ -415,7 +416,7 @@ based on <em>tiling</em> the box-based data structures. Both the tiling and
 non-tiling approaches to work distribution are discussed below. Also see
 the discussion of tiling in AMReX’s documentation, <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter" title="(in amrex v22.06-dev)"><span>MFIter and Tiling</span></a>.</p>
 <div class="section" id="amrexs-non-tiling-approach">
-<h3>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Permalink to this headline"></a></h3>
+<h3>AMReX’s Non-Tiling Approach<a class="headerlink" href="#amrexs-non-tiling-approach" title="Permalink to this heading"></a></h3>
 <p>At the highest abstraction level, we have MultiFab (mulitple
 FArrayBoxes). A MultiFab contains an array of Boxes (a Box contains integers specifying the index space it
 covers), including Boxes owned by other processors for the
@@ -437,15 +438,15 @@ A typical usage of MultiFab is as follows,</p>
 </div>
 <p>A few comments about this code</p>
 <ul class="simple">
-<li><p>Here the iterator, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span></code>, will perform the loop only over the
+<li><p>Here the iterator, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span></code>, will perform the loop only over the
 boxes that are local to the MPI task. If there are 3 boxes on the
 processor, then this loop has 3 iterations.</p></li>
-<li><p>box as returned from <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">validbox</span></span><span class="punctuation"><span class="pre">()</span></span></code> does not include
+<li><p>box as returned from <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">.</span><span class="n">validbox</span><span class="p">()</span></code> does not include
 ghost cells. We can get the indices of the valid zones as box.loVect and box.hiVect.</p></li>
 </ul>
 </div>
 <div class="section" id="amrexs-tiling-approach">
-<h3>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Permalink to this headline"></a></h3>
+<h3>AMReX’s Tiling Approach<a class="headerlink" href="#amrexs-tiling-approach" title="Permalink to this heading"></a></h3>
 <p>There are two types of tiling that people discuss. In <em>logical
 tiling</em>, the data storage in memory is unchanged from how we do things
 now in pure MPI. In a given box, the data region is stored
@@ -478,11 +479,11 @@ Some comments:</p>
 that can take an IntVect that explicitly gives the tile size
 in each coordinate direction.</p>
 <p>If we don’t explictly specify the tile size at the loop, then the
-runtime parameter <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span></code> can be used to set it
+runtime parameter <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span></code> can be used to set it
 globally.</p>
 </li>
-<li><p><code class="code cpp c++ docutils literal notranslate"><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">validBox</span></span><span class="punctuation"><span class="pre">()</span></span></code> has the same meaning as in the non-tile approach,
-so we don’t use it. Instead, we use <code class="code cpp c++ docutils literal notranslate"><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">tilebox</span></span><span class="punctuation"><span class="pre">()</span></span></code> to get the
+<li><p><code class="code highlight cpp c++ docutils literal highlight-c++"><span class="p">.</span><span class="n">validBox</span><span class="p">()</span></code> has the same meaning as in the non-tile approach,
+so we don’t use it. Instead, we use <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="p">.</span><span class="n">tilebox</span><span class="p">()</span></code> to get the
 Box (and corresponding lo and hi) for the <em>current tile</em>, not the entire data region.</p></li>
 </ul>
 <p>Let us consider an example. Suppose there are four boxes:</p>
@@ -496,13 +497,13 @@ into 4 tiles. So there are 12 tiles in total. The difference between
 the tiling and non-tiling version are then:</p>
 <ul class="simple">
 <li><p>In the tiling version,
-the loop body will be run 12 times. Note that <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">tilebox</span></span></code> is
-different for each tile, whereas <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fab</span></span></code> might be referencing the
+the loop body will be run 12 times. Note that <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">tilebox</span></code> is
+different for each tile, whereas <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fab</span></code> might be referencing the
 same object if the tiles belong to the same box.</p></li>
 <li><p>In the non-tiling
 version (by constructing MFIter without the optional second
 argument or setting to false), the loop body will be run 4 times
-because there are four boxes, and a call to <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">tilebox</span></span><span class="punctuation"><span class="pre">()</span></span></code> will
+because there are four boxes, and a call to <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">.</span><span class="n">tilebox</span><span class="p">()</span></code> will
 return the traditional validbox. The non-tiling case is
 essentially having one tile per box.</p></li>
 </ul>
@@ -523,10 +524,10 @@ threading could also be started within the function/loop called inside the
 MFIter loop, rather than at the MFIter loop level, this
 is not the approach taken in IAMR.</p>
 <p>The tile size for the three spatial dimensions can be set by a
-parameter, e.g., <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span> <span class="operator"><span class="pre">=</span></span> <span class="literal number integer"><span class="pre">1024000</span></span> <span class="literal number integer"><span class="pre">8</span></span> <span class="literal number integer"><span class="pre">8</span></span></code>. A
+parameter, e.g., <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span> <span class="o">=</span> <span class="mi">1024000</span> <span class="mi">8</span> <span class="mi">8</span></code>. A
 huge number like 1024000 will turn off tiling in that direction.
 As noted above, the MFIter constructor can also take an explicit
-tile size: <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MFIter</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">mf</span></span><span class="punctuation"><span class="pre">,</span></span><span class="name"><span class="pre">IntVect</span></span><span class="punctuation"><span class="pre">(</span></span><span class="literal number integer"><span class="pre">128</span></span><span class="punctuation"><span class="pre">,</span></span><span class="literal number integer"><span class="pre">16</span></span><span class="punctuation"><span class="pre">,</span></span><span class="literal number integer"><span class="pre">32</span></span><span class="punctuation"><span class="pre">)))</span></span></code>.</p>
+tile size: <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MFIter</span><span class="p">(</span><span class="n">mfi</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">32</span><span class="p">)))</span></code>.</p>
 <p>Note that tiling can naturally transition from all threads working
 on a single box to each thread working on a separate box as the boxes
 coarsen (e.g., in multigrid).</p>
@@ -547,20 +548,20 @@ burning in cells by an implicit solver. Tiling can also create extra
 work in the ghost cells of tiles.</p>
 </div>
 <div class="section" id="practical-details-in-working-with-tiling">
-<h3>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Permalink to this headline"></a></h3>
+<h3>Practical Details in Working with Tiling<a class="headerlink" href="#practical-details-in-working-with-tiling" title="Permalink to this heading"></a></h3>
 <p>It is the responsibility of the coder to make sure that the routines within
 a tiled region are safe to use with OpenMP. In particular, note that:</p>
 <ul class="simple">
 <li><p>tile boxes are non-overlapping</p></li>
 <li><p>the union of tile boxes completely cover the valid region of the fab</p></li>
-<li><p>Consider working with a node-centered MultiFab, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">s_nd</span></span></code>, and a
-cell-centered MultiFab, <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">s_cc</span></span></code>:</p>
+<li><p>Consider working with a node-centered MultiFab, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">s_nd</span></code>, and a
+cell-centered MultiFab, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">s_cc</span></code>:</p>
 <ul>
-<li><p>with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">s_cc</span></span><span class="punctuation"><span class="pre">)</span></span></code>, the tiles are based on the cell-centered
+<li><p>with <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">(</span><span class="n">s_cc</span><span class="p">)</span></code>, the tiles are based on the cell-centered
 index space. If you have an <span class="math notranslate nohighlight">\(8\times 8\)</span> box, then and 4 tiles, then
 your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow
 7\)</span>.</p></li>
-<li><p>with <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">mfi</span></span><span class="punctuation"><span class="pre">(</span></span><span class="name"><span class="pre">s_nd</span></span><span class="punctuation"><span class="pre">)</span></span></code>, the tiles are based on nodal indices,
+<li><p>with <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">(</span><span class="n">s_nd</span><span class="p">)</span></code>, the tiles are based on nodal indices,
 so your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow 8\)</span>.</p></li>
 </ul>
 </li>
@@ -573,7 +574,7 @@ the tile region, not for the entire box.</p></li>
 </div>
 </div>
 <div class="section" id="particles">
-<h2>Particles<a class="headerlink" href="#particles" title="Permalink to this headline"></a></h2>
+<h2>Particles<a class="headerlink" href="#particles" title="Permalink to this heading"></a></h2>
 <p>IAMR has the ability to include data-parallel particle simulations.
 Our particles can interact with data defined on a (possibly adaptive)
 block-structured hierarchy of meshes. Example applications include
@@ -586,7 +587,7 @@ For more detailed information
 on particles, see AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Particle_Chapter.html#chap-particles" title="(in amrex v22.06-dev)"><span>Particles</span></a>.</p>
 </div>
 <div class="section" id="gridding-and-load-balancing">
-<h2>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this headline"></a></h2>
+<h2>Gridding and Load Balancing<a class="headerlink" href="#gridding-and-load-balancing" title="Permalink to this heading"></a></h2>
 <p>IAMR has a great deal of flexibility when it comes to how to decompose the
 computational domain into individual rectangular grids, and how to distribute
 those grids to MPI ranks.  There can be grids of different sizes,
@@ -594,19 +595,19 @@ more than one grid per MPI rank, and different strategies for distributing the g
 IAMR relies on AMReX for the implementation. For more information, please see AMReX’s documentation,
 found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v22.06-dev)"><span>Gridding and Load Balancing</span></a>.</p>
 <p>See <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a> and <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/InputsLoadBalancing.html#chap-inputsloadbalancing" title="(in amrex v22.06-dev)"><span>Gridding and Load Balancing</span></a> for how grids are created,
-i.e. how the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">BoxArray</span></span></code> on which
-<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> will be built is defined at each level.</p>
+i.e. how the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">BoxArray</span></code> on which
+<code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span></code> will be built is defined at each level.</p>
 <p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v22.06-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing
-grids to MPI ranks, i.e. defining the <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">DistributionMapping</span></span></code> with which
-<code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">MultiFabs</span></span></code> at that level will be built.</p>
+grids to MPI ranks, i.e. defining the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">DistributionMapping</span></code> with which
+<code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span></code> at that level will be built.</p>
 <p>When running on multicore machines with OpenMP, we can also control the distribution of
-work by setting the size of grid tiles (by defining <code class="code cpp c++ docutils literal notranslate"><span class="name"><span class="pre">fabarray</span></span><span class="punctuation"><span class="pre">.</span></span><span class="name"><span class="pre">mfiter_tile_size</span></span></code>,
+work by setting the size of grid tiles (by defining <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span></code>,
 see <a class="reference internal" href="RunningProblems.html#sec-tilinginputs"><span class="std std-ref">Tiling</span></a>).
 We can also specify the strategy for assigning tiles to OpenMP threads.
 See <a class="reference internal" href="#chap-parallel"><span class="std std-ref">Parallelization</span></a> and AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter-tiling" title="(in amrex v22.06-dev)"><span>MFIter with Tiling</span></a>) for more about tiling.</p>
 </div>
 <div class="section" id="amr-grids">
-<span id="sec-gridcreation"></span><h2>AMR Grids<a class="headerlink" href="#amr-grids" title="Permalink to this headline"></a></h2>
+<span id="sec-gridcreation"></span><h2>AMR Grids<a class="headerlink" href="#amr-grids" title="Permalink to this heading"></a></h2>
 <p>Our approach to adaptive refinement in IAMR uses a nested
 hierarchy of logically-rectangular grids with simultaneous refinement
 of the grids in both space and time. The integration algorithm on the grid hierarchy
@@ -638,13 +639,13 @@ the existing Amr level(s) is removed, the new one is inserted into the hierarchy
 continues.</p>
 <p>Further details on grid generation are in AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/GridCreation.html#sec-grid-creation" title="(in amrex v22.06-dev)"><span>Grid Creation</span></a>.</p>
 <div class="section" id="tagging-for-refinement">
-<span id="sec-tagging"></span><h3>Tagging for Refinement<a class="headerlink" href="#tagging-for-refinement" title="Permalink to this headline"></a></h3>
+<span id="sec-tagging"></span><h3>Tagging for Refinement<a class="headerlink" href="#tagging-for-refinement" title="Permalink to this heading"></a></h3>
 <p>This section describes the process
 by which cells are tagged during regridding, and describes how to add customized tagging criteria.
 IAMR provides two methods for creating error estimation functions: dynamic generation and explicit or
 hard-coded. First dynamic generation is discussed, followed by how to explicitly define error functions.</p>
 <div class="section" id="dynamically-generated-tagging-functions">
-<h4>Dynamically generated tagging functions<a class="headerlink" href="#dynamically-generated-tagging-functions" title="Permalink to this headline"></a></h4>
+<h4>Dynamically generated tagging functions<a class="headerlink" href="#dynamically-generated-tagging-functions" title="Permalink to this heading"></a></h4>
 <p>Dynamically created error functions are based on runtime data specified in the
 inputs (ParmParse) data.
 These dynamically generated error functions can tag a specified region of the domain and/or test on a field
@@ -698,7 +699,7 @@ scheduled regrid operation. Alternatively, the user may restart with amr.regrid_
 do a full (all-levels) regrid after reading the checkpoint data and before advancing any cells.</p>
 </div>
 <div class="section" id="explicitly-defined-tagging-functions">
-<h4>Explicitly defined tagging functions<a class="headerlink" href="#explicitly-defined-tagging-functions" title="Permalink to this headline"></a></h4>
+<h4>Explicitly defined tagging functions<a class="headerlink" href="#explicitly-defined-tagging-functions" title="Permalink to this heading"></a></h4>
 <p>Explicitly defined error estimation functions can be used either instead of or in addition to
 dynmaically generated funtions. These functions can be added to NavierStokes::errorEst() in
 NS_error.cpp. Any dynamically generated error functions will operate first.
@@ -708,7 +709,7 @@ may not have the desired effect.</p>
 </div>
 </div>
 <div class="section" id="parallel-i-o">
-<span id="sec-parallelio"></span><h2>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Permalink to this headline"></a></h2>
+<span id="sec-parallelio"></span><h2>Parallel I/O<a class="headerlink" href="#parallel-i-o" title="Permalink to this heading"></a></h2>
 <p>Both checkpoint files and plotfiles are actually folders containing
 subfolders: one subfolder for each level of the AMR hierarchy.
 The fundamental data structure we read/write to disk is a MultiFab,

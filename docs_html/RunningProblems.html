@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Runtime Options &mdash; IAMR 22.06-dev documentation</title>
+  <title>Runtime Options &mdash; IAMR 22.07-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -32,7 +33,7 @@
             <a href="index.html" class="icon icon-home"> IAMR
           </a>
               <div class="version">
-                22.06-dev
+                22.07-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -112,9 +113,9 @@
            <div itemprop="articleBody">
              
   <div class="section" id="runtime-options">
-<span id="chap-runtimeoptions"></span><h1>Runtime Options<a class="headerlink" href="#runtime-options" title="Permalink to this headline"></a></h1>
+<span id="chap-runtimeoptions"></span><h1>Runtime Options<a class="headerlink" href="#runtime-options" title="Permalink to this heading"></a></h1>
 <div class="section" id="time-stepping">
-<span id="sec-inputstimestepping"></span><h2>Time Stepping<a class="headerlink" href="#time-stepping" title="Permalink to this headline"></a></h2>
+<span id="sec-inputstimestepping"></span><h2>Time Stepping<a class="headerlink" href="#time-stepping" title="Permalink to this heading"></a></h2>
 <p>The inputs below do not take a prefix.  Note that if the first two are both specified, both criteria
 are used and the simulation still stop when the first criterion is hit.
 The simulation will stop when either the number of steps reaches <code class="code cpp docutils literal notranslate"><span class="pre">max_step</span></code> or time reaches <code class="code cpp docutils literal notranslate"><span class="pre">stop_time</span></code>.
@@ -236,11 +237,11 @@ simulation, and by aborting, you won’t burn through your entire allocation
 before noticing that there is an issue.</p>
 </div>
 <div class="section" id="output-options">
-<h2>Output Options<a class="headerlink" href="#output-options" title="Permalink to this headline"></a></h2>
+<h2>Output Options<a class="headerlink" href="#output-options" title="Permalink to this heading"></a></h2>
 <p>Here we give an overview of some of the output options for IAMR. For more detailed information on I/O, please see
 <a class="reference internal" href="Software.html#sec-parallelio"><span class="std std-ref">Parallel I/O</span></a> and AMReX’s documentation <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/IO_Chapter.html#chap-io" title="(in amrex v22.06-dev)"><span>I/O (Plotfile, Checkpoint)</span></a></p>
 <div class="section" id="plotfiles">
-<span id="sec-inputsplotfiles"></span><h3>Plotfiles<a class="headerlink" href="#plotfiles" title="Permalink to this headline"></a></h3>
+<span id="sec-inputsplotfiles"></span><h3>Plotfiles<a class="headerlink" href="#plotfiles" title="Permalink to this heading"></a></h3>
 <p>The following inputs must be preceded by “amr.” and control frequency, naming, and content of the plotfiles.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -359,7 +360,7 @@ directory names may be something like plt_run00000, plt_run00043, plt_run00061, 
 and 61 level-0 steps is the first point when simulation time <span class="math notranslate nohighlight">\(&gt;=0.2\)</span>, etc.</p>
 </div>
 <div class="section" id="checkpointing-and-restarting">
-<span id="sec-inputscheckpoint"></span><h3>Checkpointing and Restarting<a class="headerlink" href="#checkpointing-and-restarting" title="Permalink to this headline"></a></h3>
+<span id="sec-inputscheckpoint"></span><h3>Checkpointing and Restarting<a class="headerlink" href="#checkpointing-and-restarting" title="Permalink to this heading"></a></h3>
 <p>The following inputs must be preceded by “amr.” and control checkpoint/restart.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -446,14 +447,14 @@ directory names will be chk_run00000, chk_run00010, chk_run00020, etc.</p>
 </div>
 </div>
 <div class="section" id="particles-output">
-<h3>Particles Output<a class="headerlink" href="#particles-output" title="Permalink to this headline"></a></h3>
+<h3>Particles Output<a class="headerlink" href="#particles-output" title="Permalink to this heading"></a></h3>
 <div class="section" id="checkpoint-files">
-<h4>Checkpoint Files<a class="headerlink" href="#checkpoint-files" title="Permalink to this headline"></a></h4>
+<h4>Checkpoint Files<a class="headerlink" href="#checkpoint-files" title="Permalink to this heading"></a></h4>
 <p>The particle positions and velocities are stored in a binary file in each checkpoint directory.
 This format is designed for being read by the code at restart rather than for diagnostics.</p>
 </div>
 <div class="section" id="plot-files">
-<h4>Plot Files<a class="headerlink" href="#plot-files" title="Permalink to this headline"></a></h4>
+<h4>Plot Files<a class="headerlink" href="#plot-files" title="Permalink to this heading"></a></h4>
 <p>The “derived quantity” <code class="docutils literal notranslate"><span class="pre">particle_count</span></code> represents the number of particles in a grid cell.
 To visualize the particle locations as represented on the grid, add <code class="docutils literal notranslate"><span class="pre">particle_count</span></code> to the list
 of derived quanties in <code class="docutils literal notranslate"><span class="pre">amr.derive_plot_vars</span> <span class="pre">=</span></code> in the inputs file.</p>
@@ -463,7 +464,7 @@ This allows the use of the AMReX tools such as the particle comparison tool foun
 and/or <code class="docutils literal notranslate"><span class="pre">amrex/Tools/Py_util/amrex_particles_to_vtp</span></code> to generate a vtp file you can open with ParaView.</p>
 </div>
 <div class="section" id="ascii-particle-files">
-<h4>ASCII Particle Files<a class="headerlink" href="#ascii-particle-files" title="Permalink to this headline"></a></h4>
+<h4>ASCII Particle Files<a class="headerlink" href="#ascii-particle-files" title="Permalink to this heading"></a></h4>
 <p>To generate an ASCII file containing the particle positions and velocities,
 one needs to restart from a checkpoint file from a run with particles, but one doesn’t need to run any steps.
 For example, if chk00350 exists, then one can set:</p>
@@ -482,7 +483,7 @@ This file has the same format as the ASCII input file:</p>
 </div>
 </div>
 <div class="section" id="log-files">
-<h3>Log Files<a class="headerlink" href="#log-files" title="Permalink to this headline"></a></h3>
+<h3>Log Files<a class="headerlink" href="#log-files" title="Permalink to this heading"></a></h3>
 <p>The following inputs must be preceeded by “amr.”</p>
 <table class="docutils align-default">
 <colgroup>
@@ -547,7 +548,7 @@ can be plotted very easily to monitor the time step.</p>
 </div>
 </div>
 <div class="section" id="gridding-and-load-balancing-inputs">
-<span id="sec-inputsloadbalancing"></span><h2>Gridding and Load Balancing Inputs<a class="headerlink" href="#gridding-and-load-balancing-inputs" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsloadbalancing"></span><h2>Gridding and Load Balancing Inputs<a class="headerlink" href="#gridding-and-load-balancing-inputs" title="Permalink to this heading"></a></h2>
 <p>The details of the regridding strategy are described in <a class="reference internal" href="Software.html#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a>;
 here we cover how the input parameters can control the gridding.</p>
 <p>These parameters can have a large impact on the performance
@@ -555,7 +556,7 @@ of IAMR, so taking the time to experiment with is worth the effort.
 Having grids that are large enough to coarsen multiple levels in a
 V-cycle is essential for good multigrid performance.</p>
 <div class="section" id="gridding">
-<h3>Gridding<a class="headerlink" href="#gridding" title="Permalink to this headline"></a></h3>
+<h3>Gridding<a class="headerlink" href="#gridding" title="Permalink to this heading"></a></h3>
 <p>The following inputs must be preceded by “amr.” and determine how we create the grids and how often we regrid.
 (Additional information can also be found in AMReX documentation at <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/AmrCore.html#ss-amrcore" title="(in amrex v22.06-dev)"><span>AmrCore Source Code: Details</span></a>.)</p>
 <table class="docutils align-default">
@@ -689,7 +690,7 @@ dimensions of all the final grids will be multiples of 32
 at level 0, multiples of 16 at level 1, and multiples of 8 at level 2.</p>
 </div>
 <div class="section" id="tiling">
-<span id="sec-tilinginputs"></span><h3>Tiling<a class="headerlink" href="#tiling" title="Permalink to this headline"></a></h3>
+<span id="sec-tilinginputs"></span><h3>Tiling<a class="headerlink" href="#tiling" title="Permalink to this heading"></a></h3>
 <p>For details on IAMR’s approach to tiling see <a class="reference internal" href="Software.html#chap-parallel"><span class="std std-ref">Parallelization</span></a>.</p>
 <p>The following inputs determine how we create the logical tiles and must be preceded by “fabarray_mfiter.” :</p>
 <table class="docutils align-default">
@@ -719,7 +720,7 @@ at level 0, multiples of 16 at level 1, and multiples of 8 at level 2.</p>
 </div>
 </div>
 <div class="section" id="verbosity">
-<span id="sec-inputsverbosity"></span><h2>Verbosity<a class="headerlink" href="#verbosity" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsverbosity"></span><h2>Verbosity<a class="headerlink" href="#verbosity" title="Permalink to this heading"></a></h2>
 <p>Different classes control their own verbosity. In some cases, values &gt; 1 will generate additional verbosity.
 Here is some of the more frequently used options:</p>
 <table class="docutils align-default">
@@ -766,14 +767,14 @@ Here is some of the more frequently used options:</p>
 </table>
 </div>
 <div class="section" id="multigrid-inputs">
-<span id="sec-inputsmultigrid"></span><h2>Multigrid Inputs<a class="headerlink" href="#multigrid-inputs" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsmultigrid"></span><h2>Multigrid Inputs<a class="headerlink" href="#multigrid-inputs" title="Permalink to this heading"></a></h2>
 <p>IAMR uses AMReX’s multigrid functionality to perform the nodal projection (which enures the cell-centered
 velocity field obeys the constraint), the MAC projection (which ensures that the edge-based velocity field
 used in advection obeys the constraint), and the diffusive solves.</p>
 <p>Here we go over some inputs parameters that can be used to control these solves. For more information
 on AMReX’s linear solvers, see <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LinearSolvers_Chapter.html#chap-linearsolvers" title="(in amrex v22.06-dev)"><span>Linear Solvers</span></a></p>
 <div class="section" id="nodal-projection">
-<h3>Nodal Projection<a class="headerlink" href="#nodal-projection" title="Permalink to this headline"></a></h3>
+<h3>Nodal Projection<a class="headerlink" href="#nodal-projection" title="Permalink to this heading"></a></h3>
 <p>These control the nodal projection and must be preceded by “nodal_proj.”:</p>
 <table class="docutils align-default">
 <colgroup>
@@ -840,7 +841,7 @@ Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
 </table>
 </div>
 <div class="section" id="mac-projection">
-<h3>MAC Projection<a class="headerlink" href="#mac-projection" title="Permalink to this headline"></a></h3>
+<h3>MAC Projection<a class="headerlink" href="#mac-projection" title="Permalink to this heading"></a></h3>
 <p>These control the MAC projection and must be preceded by “mac_proj.”:</p>
 <table class="docutils align-default">
 <colgroup>
@@ -909,7 +910,7 @@ Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
 </table>
 </div>
 <div class="section" id="viscous-and-diffusive-solve">
-<h3>Viscous and Diffusive Solve<a class="headerlink" href="#viscous-and-diffusive-solve" title="Permalink to this headline"></a></h3>
+<h3>Viscous and Diffusive Solve<a class="headerlink" href="#viscous-and-diffusive-solve" title="Permalink to this heading"></a></h3>
 <p>These control the diffusion solver and must be preceded by “diffusion.”:</p>
 <table class="docutils align-default">
 <colgroup>
@@ -936,7 +937,7 @@ Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
 </div>
 </div>
 <div class="section" id="initializing-the-calculation">
-<span id="sec-inputsinitialization"></span><h2>Initializing the Calculation<a class="headerlink" href="#initializing-the-calculation" title="Permalink to this headline"></a></h2>
+<span id="sec-inputsinitialization"></span><h2>Initializing the Calculation<a class="headerlink" href="#initializing-the-calculation" title="Permalink to this heading"></a></h2>
 <p>These options determine how we initialize the data for the calculation. The data initialization process
 ensures that the initial state is consistent with the constraint, and if applicable, the various AMR levels
 are consistent with eachother.</p>
@@ -976,7 +977,7 @@ constraint. Set = 0 to skip this part of the initialization.</p></td>
 </table>
 </div>
 <div class="section" id="checking-conservation">
-<h2>Checking Conservation<a class="headerlink" href="#checking-conservation" title="Permalink to this headline"></a></h2>
+<h2>Checking Conservation<a class="headerlink" href="#checking-conservation" title="Permalink to this heading"></a></h2>
 <p>IAMR has the option to sum up the total mass (and a few other quantites) at a user-defined interval.</p>
 <table class="docutils align-default">
 <colgroup>

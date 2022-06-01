@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Controlling What’s in the PlotFile &mdash; IAMR 22.06-dev documentation</title>
+  <title>Controlling What’s in the PlotFile &mdash; IAMR 22.07-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -32,7 +33,7 @@
             <a href="index.html" class="icon icon-home"> IAMR
           </a>
               <div class="version">
-                22.06-dev
+                22.07-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -97,12 +98,12 @@
            <div itemprop="articleBody">
              
   <div class="section" id="controlling-whats-in-the-plotfile">
-<h1>Controlling What’s in the PlotFile<a class="headerlink" href="#controlling-whats-in-the-plotfile" title="Permalink to this headline"></a></h1>
+<h1>Controlling What’s in the PlotFile<a class="headerlink" href="#controlling-whats-in-the-plotfile" title="Permalink to this heading"></a></h1>
 <p>There are a few options that can be set at runtime to control what
 variables appear in the plotfile. See section <a class="reference internal" href="RunningProblems.html#sec-inputsplotfiles"><span class="std std-ref">Plotfiles</span></a>.</p>
 </div>
 <div class="section" id="amrvis">
-<h1>Amrvis<a class="headerlink" href="#amrvis" title="Permalink to this headline"></a></h1>
+<h1>Amrvis<a class="headerlink" href="#amrvis" title="Permalink to this heading"></a></h1>
 <p>Amrvis is a package developed
 by CCSE that is designed specifically for highly efficient visualization
 of block-structured hierarchical AMR data.
@@ -122,14 +123,14 @@ time you run it. The Amrvis repository has a sample amrvis.defaults
 file that can be copied to your local folder and modified.</p>
 </div>
 <div class="section" id="visit">
-<h1>VisIt<a class="headerlink" href="#visit" title="Permalink to this headline"></a></h1>
+<h1>VisIt<a class="headerlink" href="#visit" title="Permalink to this heading"></a></h1>
 <p>VisIt is also a great visualization tool, and it supports AMReXAMR data natively. To open a AMReX plotfile, select File
 <span class="math notranslate nohighlight">\(\rightarrow\)</span> Open file <span class="math notranslate nohighlight">\(\rightarrow\)</span> Open file as type Boxlib, and
 choose the Header file within the plotfile folder, plt00000/Header,
 For more information check out visit.llnl.gov.</p>
 </div>
 <div class="section" id="yt">
-<h1>yt<a class="headerlink" href="#yt" title="Permalink to this headline"></a></h1>
+<h1>yt<a class="headerlink" href="#yt" title="Permalink to this heading"></a></h1>
 <p>yt is a free and open-source software that provides data analysis and
 publication-level visualization tools. It is geared more for astrophysical
 simulation results, but may be useful for your purposes. As yt is script-based, it’s not
@@ -146,7 +147,7 @@ future, simply do</p>
 <p>$ yt update</p>
 <p>in your “yt-hg” folder.</p>
 <div class="section" id="amrex-data-in-yt">
-<h2>AMReX Data in yt<a class="headerlink" href="#amrex-data-in-yt" title="Permalink to this headline"></a></h2>
+<h2>AMReX Data in yt<a class="headerlink" href="#amrex-data-in-yt" title="Permalink to this heading"></a></h2>
 <p>yt was originally created for simple analysis and visualization of
 data from the Enzo code. Since, it has grown to include support for a
 variety of codes, including IAMR.
@@ -180,7 +181,7 @@ in the context of combustion. The only subtlety is that Castro
 works in CGS units.</p>
 </div>
 <div class="section" id="interacting-with-yt-command-line-and-scripting">
-<h2>Interacting with yt: Command Line and Scripting<a class="headerlink" href="#interacting-with-yt-command-line-and-scripting" title="Permalink to this headline"></a></h2>
+<h2>Interacting with yt: Command Line and Scripting<a class="headerlink" href="#interacting-with-yt-command-line-and-scripting" title="Permalink to this heading"></a></h2>
 <p>yt is written completely in python (if you don’t have python, yt will
 install it for you) and there are a number of different ways to
 interact with it, including a web-based gui. Here we will cover
@@ -231,7 +232,7 @@ useful when the creation of these objects is time-consuming, which is
 often the case during identification of clumps or contours.</p>
 </div>
 <div class="section" id="yt-basics">
-<h2>yt Basics<a class="headerlink" href="#yt-basics" title="Permalink to this headline"></a></h2>
+<h2>yt Basics<a class="headerlink" href="#yt-basics" title="Permalink to this heading"></a></h2>
 <p>The first thing you will always want to do is to import yt:</p>
 <p><span class="math notranslate nohighlight">\(&gt;&gt;&gt;\)</span> from yt.mods import *</p>
 <p>Under certain circumstances you will be required to import more, as we
@@ -273,7 +274,7 @@ functions like find_max; yt will construct it automatically if it
 does not already exist.</p>
 </div>
 <div class="section" id="data-containers-and-selection">
-<h2>Data Containers and Selection<a class="headerlink" href="#data-containers-and-selection" title="Permalink to this headline"></a></h2>
+<h2>Data Containers and Selection<a class="headerlink" href="#data-containers-and-selection" title="Permalink to this heading"></a></h2>
 <p>Sometimes, you’ll want to select, analyze, or plot only portions of
 your simulation data. To that end, yt includes a way to create data
 “containers” that select data based on geometric bounds or fluid
@@ -297,7 +298,7 @@ object as part of the .yt file affiliated with the heirarchy:</p>
 <p><span class="math notranslate nohighlight">\(&gt;&gt;&gt;\)</span> sphere_to_analyze = pf.h.load_object(‘sphere_to_analyze_later’)</p>
 </div>
 <div class="section" id="grid-inspection">
-<h2>Grid Inspection<a class="headerlink" href="#grid-inspection" title="Permalink to this headline"></a></h2>
+<h2>Grid Inspection<a class="headerlink" href="#grid-inspection" title="Permalink to this heading"></a></h2>
 <p>yt also allows for detailed grid inspection. The hierarchy object
 possesses an array of grids, from which we can select and examine
 specific ones:</p>
@@ -325,7 +326,7 @@ further refined:</p>
 in yt, we’ll provide some examples.</p>
 </div>
 <div class="section" id="example-scripts">
-<h2>Example Scripts<a class="headerlink" href="#example-scripts" title="Permalink to this headline"></a></h2>
+<h2>Example Scripts<a class="headerlink" href="#example-scripts" title="Permalink to this heading"></a></h2>
 <p>In these examples, we investigate 3-D simulation data of two stars
 orbiting in the center of the domain, which is a box of sides
 <span class="math notranslate nohighlight">\(10^{10}\:cm\)</span>.</p>

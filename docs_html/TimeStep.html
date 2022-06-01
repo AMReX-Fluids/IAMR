@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Time Step – MOL &mdash; IAMR 22.06-dev documentation</title>
+  <title>Time Step – MOL &mdash; IAMR 22.07-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -32,7 +33,7 @@
             <a href="index.html" class="icon icon-home"> IAMR
           </a>
               <div class="version">
-                22.06-dev
+                22.07-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -104,7 +105,7 @@
 \newcommand{\shalf}{\sfrac{1}{2}}\end{aligned}\end{align} \]</div>
 <p>To learn how the convective terms are constructed, see <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html">AMReX-Hydro</a></p>
 <div class="section" id="time-step-mol">
-<h1>Time Step – MOL<a class="headerlink" href="#time-step-mol" title="Permalink to this headline"></a></h1>
+<h1>Time Step – MOL<a class="headerlink" href="#time-step-mol" title="Permalink to this heading"></a></h1>
 <p>In the predictor</p>
 <ul class="simple">
 <li><p>Define <span class="math notranslate nohighlight">\(U^{MAC,n}\)</span>, the face-centered (staggered) MAC velocity which is used for advection, using <span class="math notranslate nohighlight">\(U^n\)</span></p></li>
@@ -146,7 +147,7 @@ U^{\ast}+ \frac{1}{\rho} \nabla {p}^{n-1/2} \right)\]</div>
 \[{p}^{n+1/2} = \phi\]</div>
 </div>
 <div class="section" id="time-step-godunov">
-<h1>Time Step – Godunov<a class="headerlink" href="#time-step-godunov" title="Permalink to this headline"></a></h1>
+<h1>Time Step – Godunov<a class="headerlink" href="#time-step-godunov" title="Permalink to this heading"></a></h1>
 <p>When we use the time-centered Godunov advection, we no longer need the predictor and corrector steps.</p>
 <ul>
 <li><p>Define the time-centered face-centered (staggered) MAC velocity which is used for advection: <span class="math notranslate nohighlight">\(U^{MAC,n+1/2}\)</span></p></li>
@@ -179,7 +180,7 @@ J. Comp. Phys., 142, pp. 1-46, 1998.
 </ul>
 </div>
 <div class="section" id="time-step-bds">
-<h1>Time Step – BDS<a class="headerlink" href="#time-step-bds" title="Permalink to this headline"></a></h1>
+<h1>Time Step – BDS<a class="headerlink" href="#time-step-bds" title="Permalink to this heading"></a></h1>
 <p>When we use the Bell-Dawson-Shubin (BDS) algorithm, we advance the solution in time using a
 three step procedure described below. In the notation,
 <span class="math notranslate nohighlight">\(s\)</span> is a scalar field of the form <span class="math notranslate nohighlight">\(s=s(x,y,z,t)\)</span>

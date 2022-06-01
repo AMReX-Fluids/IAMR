@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Problem Setup &mdash; IAMR 22.06-dev documentation</title>
+  <title>Problem Setup &mdash; IAMR 22.07-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -32,7 +33,7 @@
             <a href="index.html" class="icon icon-home"> IAMR
           </a>
               <div class="version">
-                22.06-dev
+                22.07-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -106,7 +107,7 @@
            <div itemprop="articleBody">
              
   <div class="section" id="problem-setup">
-<span id="chap-problemsetup"></span><h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this headline"></a></h1>
+<span id="chap-problemsetup"></span><h1>Problem Setup<a class="headerlink" href="#problem-setup" title="Permalink to this heading"></a></h1>
 <p>To setup a new problem you must specify:</p>
 <ol class="arabic simple">
 <li><p>intial conditions</p></li>
@@ -118,12 +119,12 @@
 <p>Many additional options are available, and are briefly described here and in
 following sections, <a class="reference internal" href="RunningProblems.html#chap-runtimeoptions"><span class="std std-ref">Runtime Options</span></a> and <a class="reference internal" href="AlgorithmOptions.html#chap-algorithmoptions"><span class="std std-ref">Algortihm Options</span></a>.</p>
 <div class="section" id="units">
-<span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Permalink to this headline"></a></h2>
+<span id="sec-units"></span><h2>Units<a class="headerlink" href="#units" title="Permalink to this heading"></a></h2>
 <p>IAMR supports any self-consistent units, as long as the length, time,
 and mass are consistent with the viscosity and diffusivity.</p>
 </div>
 <div class="section" id="initial-conditions">
-<h2>Initial Conditions<a class="headerlink" href="#initial-conditions" title="Permalink to this headline"></a></h2>
+<h2>Initial Conditions<a class="headerlink" href="#initial-conditions" title="Permalink to this heading"></a></h2>
 <p>To define the initial conditions, we modify the function <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> within
 <code class="docutils literal notranslate"><span class="pre">IAMR/Source/prob/prob_init.cpp</span></code>.  <code class="docutils literal notranslate"><span class="pre">prob_initData()</span></code> reads in initial conditions
 and problem parameters from the inputs file, and initializes the state data
@@ -134,7 +135,7 @@ To do this you must set <code class="docutils literal notranslate"><span class="
 the inputs file via <code class="docutils literal notranslate"><span class="pre">ns.velocity_plotfile</span> <span class="pre">=</span> <span class="pre">my_plotfile_name</span></code>.</p>
 </div>
 <div class="section" id="resolution">
-<h2>Resolution<a class="headerlink" href="#resolution" title="Permalink to this headline"></a></h2>
+<h2>Resolution<a class="headerlink" href="#resolution" title="Permalink to this heading"></a></h2>
 <p>The grid resolution is specified by defining the resolution at the
 coarsest level (level 0), the number of refinement levels, and
 factor of refinement between levels.
@@ -197,7 +198,7 @@ amr.max_level values of amr.ref_ratio (Additional values
 may appear in that line and they will be ignored).</p>
 </div>
 <div class="section" id="problem-geometry">
-<h2>Problem Geometry<a class="headerlink" href="#problem-geometry" title="Permalink to this headline"></a></h2>
+<h2>Problem Geometry<a class="headerlink" href="#problem-geometry" title="Permalink to this heading"></a></h2>
 <p>The following inputs must be preceded by “geometry.”</p>
 <table class="docutils align-default">
 <colgroup>
@@ -249,13 +250,13 @@ Cartesian geometry, and makes the domain periodic in the <span class="math notra
 only.</p>
 </div>
 <div class="section" id="domain-boundary-conditions">
-<span id="sec-domainbcs"></span><h2>Domain Boundary Conditions<a class="headerlink" href="#domain-boundary-conditions" title="Permalink to this headline"></a></h2>
+<span id="sec-domainbcs"></span><h2>Domain Boundary Conditions<a class="headerlink" href="#domain-boundary-conditions" title="Permalink to this heading"></a></h2>
 <p>IAMR provides two ways to specify boundary condition types: integer keys or keywords.
 An inputs file must choose one style or the other, they cannot be mixed.
 Here we provide examples of both styles. We then discuss how to provide Dirichlet
 boundary conditions. For a more detailed discussion of boundaries, see <a class="reference internal" href="Software.html#sec-boundaries"><span class="std std-ref">Boundaries</span></a></p>
 <div class="section" id="boundary-conditions-with-integer-keys">
-<h3>Boundary conditions with integer keys<a class="headerlink" href="#boundary-conditions-with-integer-keys" title="Permalink to this headline"></a></h3>
+<h3>Boundary conditions with integer keys<a class="headerlink" href="#boundary-conditions-with-integer-keys" title="Permalink to this heading"></a></h3>
 <p>To specify boundary conditions with integer keys we use</p>
 <ul class="simple">
 <li><p>ns.lo_bc: boundary type of each low face</p></li>
@@ -294,7 +295,7 @@ outflow (2) in the high- <span class="math notranslate nohighlight">\(x\)</span>
 the low and high <span class="math notranslate nohighlight">\(y\)</span>-faces, and periodic in the <span class="math notranslate nohighlight">\(z\)</span>-direction.</p>
 </div>
 <div class="section" id="boundary-conditions-with-keywords">
-<h3>Boundary conditions with keywords<a class="headerlink" href="#boundary-conditions-with-keywords" title="Permalink to this headline"></a></h3>
+<h3>Boundary conditions with keywords<a class="headerlink" href="#boundary-conditions-with-keywords" title="Permalink to this heading"></a></h3>
 <p>To specify boundary conditions with keywords, we use the following options
 preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”:</p>
 <table class="docutils align-default">
@@ -342,7 +343,7 @@ Note that no keyword is needed for a periodic boundary, here only the
 specification in geometry.is_periodic is needed.</p>
 </div>
 <div class="section" id="dirichlet-boundary-conditions">
-<span id="sec-dirichlet"></span><h3>Dirichlet Boundary Conditions<a class="headerlink" href="#dirichlet-boundary-conditions" title="Permalink to this headline"></a></h3>
+<span id="sec-dirichlet"></span><h3>Dirichlet Boundary Conditions<a class="headerlink" href="#dirichlet-boundary-conditions" title="Permalink to this heading"></a></h3>
 <p>IAMR provides the ability to specify constant Dirichlet BCs
 in the inputs file. We use the following options
 preceded by “xlo”, “xhi”, “ylo”, “yhi”, “zlo”, and “zhi”:</p>
@@ -427,13 +428,13 @@ section <a class="reference internal" href="Software.html#sec-physicalbcs"><span
 </div>
 </div>
 <div class="section" id="tagging-criteria-for-creating-amr-levels">
-<h2>Tagging criteria for creating AMR Levels<a class="headerlink" href="#tagging-criteria-for-creating-amr-levels" title="Permalink to this headline"></a></h2>
+<h2>Tagging criteria for creating AMR Levels<a class="headerlink" href="#tagging-criteria-for-creating-amr-levels" title="Permalink to this heading"></a></h2>
 <p>If <code class="docutils literal notranslate"><span class="pre">amr.max_level</span></code> is greater than zero, then user specified tagging criteria are
 used to define regions for higher levels of refinement.
 For infomation on tagging see <a class="reference internal" href="Software.html#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a></p>
 </div>
 <div class="section" id="constructing-embedded-boundaries">
-<span id="sec-eb-basics"></span><h2>Constructing Embedded Boundaries<a class="headerlink" href="#constructing-embedded-boundaries" title="Permalink to this headline"></a></h2>
+<span id="sec-eb-basics"></span><h2>Constructing Embedded Boundaries<a class="headerlink" href="#constructing-embedded-boundaries" title="Permalink to this heading"></a></h2>
 <p>IAMR uses AMReX’s Embedded Boundary (cut cell) functionality to represent internal
 or external geometry in the flow.
 For details on AMReX’s approach to embedded boundaries, see the AMReX EB
@@ -457,7 +458,7 @@ construct the level-set function).</p></li>
 </ol>
 </div>
 <div class="section" id="particles-initialization">
-<h2>Particles Initialization<a class="headerlink" href="#particles-initialization" title="Permalink to this headline"></a></h2>
+<h2>Particles Initialization<a class="headerlink" href="#particles-initialization" title="Permalink to this heading"></a></h2>
 <p>Particles are initialized from an ASCII file, identified in the IAMR inputs file:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">particles</span><span class="o">.</span><span class="n">particle_init_file</span> <span class="o">=</span> <span class="n">particle_file</span>
 </pre></div>
@@ -467,13 +468,13 @@ assumed to contain the number of particles. Each line after that contains the po
 x y z</p>
 </div>
 <div class="section" id="tracers">
-<h2>Tracers<a class="headerlink" href="#tracers" title="Permalink to this headline"></a></h2>
+<h2>Tracers<a class="headerlink" href="#tracers" title="Permalink to this heading"></a></h2>
 <p>IAMR includes one tracer field by default. A second tracer can be added with <code class="docutils literal notranslate"><span class="pre">ns.do_trac2</span> <span class="pre">=</span> <span class="pre">1</span></code>.
 IAMR can include additional tracers with only minor code modification: adding them to the
 state variables in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code> and providing initial conditions.</p>
 </div>
 <div class="section" id="temperature">
-<h2>Temperature<a class="headerlink" href="#temperature" title="Permalink to this headline"></a></h2>
+<h2>Temperature<a class="headerlink" href="#temperature" title="Permalink to this heading"></a></h2>
 <p>IAMR has the option to solve for temperature, along with a modified divergence constraint on the velocity field
 (for more information, see <a class="reference internal" href="FluidEquations.html#sec-fluidequations"><span class="std std-ref">Fluid Equations</span></a>). To include temperature, you must specify two flags,
 both preceded by “ns.”:</p>
@@ -506,7 +507,7 @@ both preceded by “ns.”:</p>
 </table>
 </div>
 <div class="section" id="physics-parameters">
-<span id="sec-physicsparams"></span><h2>Physics Parameters<a class="headerlink" href="#physics-parameters" title="Permalink to this headline"></a></h2>
+<span id="sec-physicsparams"></span><h2>Physics Parameters<a class="headerlink" href="#physics-parameters" title="Permalink to this heading"></a></h2>
 <p>IAMR provides support for gravity, viscosity, and diffusivity. Default treatment is given in the table below.
 More sophiticated treatments are possible;
 if interested, please open an issue on github: <a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">https://github.com/AMReX-Codes/IAMR/issues</a></p>
