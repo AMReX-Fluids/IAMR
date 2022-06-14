@@ -1101,24 +1101,32 @@ NavierStokesBase::create_umac_grown (int nGrow,
 
     Geometry *fine_geom = &geom;
 
-    // It's not really correct that Umac BCs are either periodic or foextrap,
-    // but use this for now until there's a better fix...
-    Vector<BCRec> bcrec(1);
-    for (int idim = 0; idim < AMREX_SPACEDIM; idim++) {
-	if (geom.isPeriodic(idim)) {
-	    bcrec[0].setLo(idim,BCType::int_dir);
-	    bcrec[0].setHi(idim,BCType::int_dir);
-	} else {
-	    bcrec[0].setLo(idim,BCType::foextrap);
-	    bcrec[0].setHi(idim,BCType::foextrap);
-	}
+    //Grab the velocity phys bc fill function from the StateData StateDescriptor
+    AMREX_D_TERM(StateDataPhysBCFunct fine_bndry_func_x(get_state_data(State_Type),0,geom);,
+                 StateDataPhysBCFunct fine_bndry_func_y(get_state_data(State_Type),1,geom);,
+                 StateDataPhysBCFunct fine_bndry_func_z(get_state_data(State_Type),2,geom););
+
+    Array<StateDataPhysBCFunct,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func_x,
+									    fine_bndry_func_y,
+									    fine_bndry_func_z)};
+
+
+    if ( level == 0 )
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            //
+            // BDS needs physical BCs filled.
+            // Godunov needs periodic ghosts filled (and handles physical BCs internally).
+            //
+            Real fake_time = 0.;
+            amrex::FillPatchSingleLevel(u_mac[idim], IntVect(nGrow), fake_time,
+                                        {u_mac_fine[idim]}, {fake_time},
+                                        0, 0, 1, geom,
+                                        fbndyFuncArr[idim], 0);
+        }
     }
-    Array<Vector<BCRec>,AMREX_SPACEDIM> bcrecArr = {AMREX_D_DECL(bcrec,bcrec,bcrec)};
-
-    PhysBCFunct<GpuBndryFuncFab<umacFill>> fine_bndry_func(*fine_geom, bcrec, umacFill{});
-    Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> fbndyFuncArr = {AMREX_D_DECL(fine_bndry_func,fine_bndry_func,fine_bndry_func)};
-
-    if ( level > 0)
+    else // level > 0
     {
         Array<MultiFab*, AMREX_SPACEDIM> u_mac_crse;
         AMREX_D_TERM(u_mac_crse[0] = &getLevel(level-1).u_mac[0];,
@@ -1134,23 +1142,41 @@ NavierStokesBase::create_umac_grown (int nGrow,
         //
 
         // Divergence preserving interp -- This is for case of MAC solve on
-        // composite grid; doesn't really make sense to use it here.
+        // composite grid; doesn't make sense to use it here.
         //Interpolater* mapper = &face_divfree_interp;
-        // This one matches up with old create umac grown
+        // Use linear interpolation, which matches up with old create umac grown
         Interpolater* mapper = &face_linear_interp;
 
-        PhysBCFunct<GpuBndryFuncFab<umacFill>> crse_bndry_func(*crse_geom, bcrec, umacFill{});
-        Array<PhysBCFunct<GpuBndryFuncFab<umacFill>>,AMREX_SPACEDIM> cbndyFuncArr = {AMREX_D_DECL(crse_bndry_func,crse_bndry_func,crse_bndry_func)};
+        // This never actually gets used because the FaceLinear Interpolator doesn't use it.
+        // Inside FillPatchTwoLevels, it's only use is that it's passed to the interpolator.
+        // Fill it with the correct thing anyway.
+        Array<Vector<BCRec>,AMREX_SPACEDIM> bcrecArr = {AMREX_D_DECL(m_bcrec_velocity,
+                                                                     m_bcrec_velocity,
+                                                                     m_bcrec_velocity)};
+        Array<int, AMREX_SPACEDIM> bc_idx = {AMREX_D_DECL(0,1,2)};
 
-        // Use piecewise constant interpolation in time, so create dummy variable for time
-        Real dummy = 0.;
-        FillPatchTwoLevels(u_mac_fine, IntVect(nGrow), dummy,
-                           {u_mac_crse}, {dummy},
-                           {u_mac_fine}, {dummy},
+        // Grab the velocity phys bc fill function from the StateData StateDescriptor
+        // This will use the BCRec for velocity stored in the StateDescriptor
+        AMREX_D_TERM(
+            StateDataPhysBCFunct crse_bndry_func_x(getLevel(level-1).get_state_data(State_Type),0,*crse_geom);,
+            StateDataPhysBCFunct crse_bndry_func_y(getLevel(level-1).get_state_data(State_Type),1,*crse_geom);,
+            StateDataPhysBCFunct crse_bndry_func_z(getLevel(level-1).get_state_data(State_Type),2,*crse_geom););
+        Array<int, AMREX_SPACEDIM> bf_idx = {AMREX_D_DECL(0,0,0)};
+
+        Array<StateDataPhysBCFunct,AMREX_SPACEDIM> cbndyFuncArr = {AMREX_D_DECL(crse_bndry_func_x,
+										crse_bndry_func_y,
+										crse_bndry_func_z)};
+
+        // Use piecewise constant interpolation in time, so create ficticious variable for time
+        Real fake_time = 0.;
+
+        FillPatchTwoLevels(u_mac_fine, IntVect(nGrow), fake_time,
+                           {u_mac_crse}, {fake_time},
+                           {u_mac_fine}, {fake_time},
                            0, 0, 1,
                            *crse_geom, *fine_geom,
-                           cbndyFuncArr, 0, fbndyFuncArr, 0,
-                           crse_ratio, mapper, bcrecArr, 0);
+                           cbndyFuncArr, bf_idx, fbndyFuncArr, bf_idx,
+                           crse_ratio, mapper, bcrecArr, bc_idx);
 
         //
         // Correct u_mac to enforce the divergence constraint in the ghost cells.
@@ -1267,27 +1293,6 @@ NavierStokesBase::create_umac_grown (int nGrow,
                     });
                 });
         }
-    }
-    else
-    {
-        // Fill boundary for all the levels
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-	    //
-	    // Only BDS assumes Umac has filled ghost cells at physical BCs.
-	    // The other advection options handle physical BCs internally.
-	    //
-	    if ( advection_scheme == "BDS" ) {
-		Real fake_time = 0.;
-
-		amrex::FillPatchSingleLevel(u_mac[idim], IntVect(nGrow), fake_time,
-					    {u_mac_fine[idim]}, {fake_time},
-					    0, 0, 1, geom,
-					    fbndyFuncArr[idim], 0);
-	    } else {
-		u_mac_fine[idim]->FillBoundary(fine_geom->periodicity());
-	    }
-	}
     }
 }
 

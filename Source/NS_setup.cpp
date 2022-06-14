@@ -112,7 +112,7 @@ set_pressure_bc (BCRec&       bc,
 static
 void
 set_gradpx_bc (BCRec&       bc,
-	       const BCRec& phys_bc)
+               const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
@@ -129,7 +129,7 @@ set_gradpx_bc (BCRec&       bc,
 static
 void
 set_gradpy_bc (BCRec&       bc,
-	       const BCRec& phys_bc)
+               const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
@@ -147,7 +147,7 @@ set_gradpy_bc (BCRec&       bc,
 static
 void
 set_gradpz_bc (BCRec&       bc,
-	       const BCRec& phys_bc)
+               const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
@@ -226,8 +226,8 @@ NavierStokes::variableSetUp ()
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
-    			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
-    			   &cc_interp,state_data_extrap,store_in_checkpoint);
+                           StateDescriptor::Point,NUM_GROW,NUM_STATE,
+                           &cc_interp,state_data_extrap,store_in_checkpoint);
     // TODO: state does not really need to carry ghost cells, since it is the
     // philosophy of IAMR to FillPatch before using.
     // However, changing NUM_GROW here creates a problem for restarting from
@@ -245,6 +245,9 @@ NavierStokes::variableSetUp ()
 
     BndryFunc null_bf(dummy_fill);
     null_bf.setRunOnGPU(true);
+
+    BndryFunc homogeneous_bf(homogeneous_fill);
+    homogeneous_bf.setRunOnGPU(true);
 
     set_x_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Xvel,"x_velocity",bc,vel_bf);
@@ -307,13 +310,13 @@ NavierStokes::variableSetUp ()
     }
 
     if (do_trac2) {
-	advectionType[Tracer2] = NonConservative;
-	diffusionType[Tracer2] = Laplacian_S;
-	if (do_cons_trac2) {
-	  advectionType[Tracer2] = Conservative;
-	  diffusionType[Tracer2] = Laplacian_SoverRho;
-	  amrex::Print() << "Using conservative advection update for tracer2.\n";
-	}
+        advectionType[Tracer2] = NonConservative;
+        diffusionType[Tracer2] = Laplacian_S;
+        if (do_cons_trac2) {
+          advectionType[Tracer2] = Conservative;
+          diffusionType[Tracer2] = Laplacian_SoverRho;
+          amrex::Print() << "Using conservative advection update for tracer2.\n";
+        }
     }
 
     if (is_diffusive[Density])
@@ -338,8 +341,8 @@ NavierStokes::variableSetUp ()
     // maybe we're better off recomputing rather than reading from chk? But then still have
     // FillPatch issue at coarse fine boundary; if want to interpolate in time, need an old and new
     desc_lst.addDescriptor(Gradp_Type,IndexType::TheCellType(),
-    			   StateDescriptor::Interval,gradp_grow,AMREX_SPACEDIM,
-    			   &cc_interp,state_data_extrap,store_in_checkpoint);
+                           StateDescriptor::Interval,gradp_grow,AMREX_SPACEDIM,
+                           &cc_interp,state_data_extrap,store_in_checkpoint);
 
     Vector<BCRec>       bcs(BL_SPACEDIM);
     Vector<std::string> name(BL_SPACEDIM);
@@ -365,23 +368,23 @@ NavierStokes::variableSetUp ()
     //
     if (do_temp)
     {
-	// stick Divu_Type on the end of the descriptor list
-	Divu_Type = desc_lst.size();
-	int nGrowDivu = 1;
-	desc_lst.addDescriptor(Divu_Type,IndexType::TheCellType(),
+        // stick Divu_Type on the end of the descriptor list
+        Divu_Type = desc_lst.size();
+        int nGrowDivu = 1;
+        desc_lst.addDescriptor(Divu_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,nGrowDivu,1,
-			       &cc_interp);
-	set_divu_bc(bc,phys_bc);
-	desc_lst.setComponent(Divu_Type,Divu,"divu",bc,null_bf);
+                               &cc_interp);
+        set_divu_bc(bc,phys_bc);
+        desc_lst.setComponent(Divu_Type,Divu,"divu",bc,null_bf);
 
-	// stick Dsdt_Type on the end of the descriptor list
-	Dsdt_Type = desc_lst.size();
-	int nGrowDsdt = 0;
-	desc_lst.addDescriptor(Dsdt_Type,IndexType::TheCellType(),
+        // stick Dsdt_Type on the end of the descriptor list
+        Dsdt_Type = desc_lst.size();
+        int nGrowDsdt = 0;
+        desc_lst.addDescriptor(Dsdt_Type,IndexType::TheCellType(),
                                StateDescriptor::Point,nGrowDsdt,1,
-			       &cc_interp);
-	set_dsdt_bc(bc,phys_bc);
-	desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,null_bf);
+                               &cc_interp);
+        set_dsdt_bc(bc,phys_bc);
+        desc_lst.setComponent(Dsdt_Type,Dsdt,"dsdt",bc,homogeneous_bf);
     }
 
     //
