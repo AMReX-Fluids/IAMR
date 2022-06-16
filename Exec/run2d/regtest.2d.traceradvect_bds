@@ -1,0 +1,128 @@
+
+#*******************************************************************************
+
+#NOTE: You may set *either* max_step or stop_time, or you may set them both.
+
+# Maximum number of coarse grid timesteps to be taken, if stop_time is
+#  not reached first.
+max_step 		= 10
+
+# Time at which calculation stops, if max_step is not reached first.
+stop_time 		= 100
+
+#*******************************************************************************
+
+# Number of cells in each coordinate direction at the coarsest level
+amr.n_cell 		= 16 16 
+
+#*******************************************************************************
+
+# Maximum level (defaults to 0 for single level calculation)
+amr.max_level			= 1 # maximum number of levels of refinement
+
+# Refinement criterion, use temperature
+amr.refinement_indicators = tracer
+
+amr.tracer.value_greater = .01
+amr.tracer.field_name = tracer
+
+amr.n_error_buf         = 1
+
+#*******************************************************************************
+
+# Interval (in number of level l timesteps) between regridding
+amr.regrid_int		= 2 2 2 2 2 2 2
+
+#*******************************************************************************
+
+# Refinement ratio as a function of level
+amr.ref_ratio		= 2 2 2 2
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between checkpoint(restart) files
+amr.check_int		= -1
+amr.check_file          = chk
+
+#*******************************************************************************
+
+# Interval (in number of coarse timesteps) between plot files
+amr.plot_int		= 10
+amr.plot_file           = plt
+
+#*******************************************************************************
+
+# Advection Scheme
+ns.advection_scheme = BDS
+
+#*******************************************************************************
+
+# CFL number to be used in calculating the time step : dt = dx / max(velocity)
+ns.cfl                  = 0.9  # CFL number used to set dt
+
+#*******************************************************************************
+
+# Factor by which the first time is shrunk relative to CFL constraint
+ns.init_shrink          = 1.0  # factor which multiplies the very first time step
+
+#*******************************************************************************
+
+# Viscosity coefficient
+ns.vel_visc_coef        = 0.0
+
+#*******************************************************************************
+
+# Diffusion coefficient for first scalar
+ns.scal_diff_coefs      = 0.0 0.0
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
+geometry.coord_sys   =  0
+
+#*******************************************************************************
+
+# Physical dimensions of the low end of the domain.
+geometry.prob_lo     =  0. 0. 0.
+
+# Physical dimensions of the high end of the domain.
+geometry.prob_hi     =  1.0 1.0 1.0
+
+#*******************************************************************************
+
+#Set to 1 if periodic in that direction
+geometry.is_periodic =  0  0
+
+#*******************************************************************************
+
+# Boundary conditions on the low end of the domain.
+ns.lo_bc             = 1 4
+
+# Boundary conditions on the high end of the domain.
+ns.hi_bc             = 2 5
+
+# 0 = Interior/Periodic  3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+
+# Boundary condition
+xlo.velocity = 3.  4.  3.
+xlo.density  = 5.
+xlo.tracer   = 0.
+xlo.tracer2  = 2.
+
+# Problem parameters
+prob.probtype = 4
+prob.velocity_ic = 1.0 2.0 3.0
+prob.density_ic = 1.0
+prob.blob_center = 0.15 0.25 0.5
+prob.interface_width = 1e-10
+
+#*******************************************************************************
+
+ns.do_trac2 = 1
+
+# ns.v = 1
+# amr.v = 1
+# ns.init_iter = 0
+# ns.do_init_proj = 0
