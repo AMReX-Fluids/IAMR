@@ -8,7 +8,7 @@ TOP = $(AMREX_HOME)
 #
 PRECISION = DOUBLE
 DEBUG	  = TRUE
-DIM	  = 2
+DIM	  = 3
 COMP	  = g++
 USE_MPI   = FALSE
 
@@ -18,26 +18,15 @@ EBASE = ViscBench
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
-include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
-#include $(AMREX_HOME)/Tools/C_util/Make.package
 
 vpathdir += ..
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 vpathdir += $(AMREX_HOME)/Src/Base
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
-vpathdir += $(AMREX_HOME)/Src/Boundary
-
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Amr
-vpathdir += $(AMREX_HOME)/Src/Amr
-
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
 vpathdir += $(AMREX_HOME)/Src/Extern/amrdata
-
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_util
-vpathdir += $(AMREX_HOME)/Tools/C_util
 
 
 vpath %.c   : . $(vpathdir)

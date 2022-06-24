@@ -6,7 +6,6 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
-#include <AMReX_BC_TYPES.H>
 #include <AMReX_ArrayLim.H>
 #include <EXACT_F.H>
 
@@ -40,34 +39,31 @@ c
 c
 c     ::::: local variables
 c
-      integer i, j, n
+      integer i, j
       REAL_T  x, y
       REAL_T  hx, hy
       REAL_T  spx, spy, cpx, cpy
-      REAL_T expterm
+      REAL_T  expterm
 
       hx = dx(1)
       hy = dx(2)
 
-      expterm = exp(-two*Pi**2*nu*time)
+      expterm = exp(-two*four*Pi**2*nu*time)
 
       do j = lo(2), hi(2)
          y = xlo(2) + hy*(float(j-lo(2)) + half)
-         spy = sin(Pi*y)
-         cpy = cos(Pi*y)
+         spy = sin(two*Pi*y)
+         cpy = cos(two*Pi*y)
 
          do i = lo(1), hi(1)
             x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-            spx = sin(Pi*x)
-            cpx = cos(Pi*x)
+            spx = sin(two*Pi*x)
+            cpx = cos(two*Pi*x)
 
-            state(i,j,1) = - cpx*spy * expterm
-            state(i,j,2) =   spx*cpy * expterm
+            state(i,j,1) =   spx*cpy * expterm
+            state(i,j,2) = - cpx*spy * expterm
             state(i,j,3) =   one
-            do n = 4, ncomp
-               state(i,j,n) =   cpx*cpy * expterm
-            enddo
          end do
       end do
 

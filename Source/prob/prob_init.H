@@ -22,6 +22,11 @@ struct InitialConditions
 
   amrex::Real interface_width = 1.0;
 
+  // Parameters for use in multiple setups
+  amrex::Real a = 1.0;
+  amrex::Real b = 1.0;
+  amrex::Real c = 1.0;
+
   // for DoubleShearLayer
   int direction = 0;
 
@@ -36,9 +41,6 @@ struct InitialConditions
   // for convected vortex
   int meanFlowDir = 0;
   amrex::Real meanFlowMag = 0.0;
-  amrex::Real xvort = 0.5;
-  amrex::Real yvort = 0.5;
-  amrex::Real rvort = 0.07;
   amrex::Real forcevort = 6.0;
 };
 

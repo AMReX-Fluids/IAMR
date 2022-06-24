@@ -9,7 +9,7 @@ using std::ios;
 
 #include <unistd.h>
 
-#include <WritePlotFile.H>
+#include <AMReX_WritePlotFile.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
@@ -26,18 +26,44 @@ using std::ios;
 
 using namespace amrex;
 
+// -----------------------------------------------------------
+// This case is an unsteady viscous benchmark for which the
+// exact solution in 2D is
+//     u(x,y,t) =   Sin(2 Pi x) Cos(2 Pi y) Exp(-2 (2Pi)^2 Nu t)
+//     v(x,y,t) = - Cos(2 Pi x) Sin(2 Pi y) Exp(-2 (2Pi)^2 Nu t)
+//     p(x,y,t) = - {Cos(4 Pi x) + Cos(4 Pi y)} Exp(-4 (2Pi)^2 Nu t) / 4
+// This tool reads a plotfile and compares it against this exact solution.
+// This benchmark was originally derived by G.I. Taylor (Phil. Mag.,
+// Vol. 46, No. 274, pp. 671-674, 1923) and Ethier and Steinman
+// (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
+// the pressure field.
+//
+// For 3D, the 2D solution is used in conjuction with a uniform 3rd dimension.
+// When generating 3D data, check IAMR/Source/prob/prob_init.cpp to ensure
+// that the problem setup matches the solution here with t=0.
+//
+// Analytic, fully 3D solutions (not implemented here) are discussed in,
+// for example,
+// Antuono, M. (2020). Tri-periodic fully three-dimensional analytic solutions for the Navier–Stokes equations. Journal of Fluid Mechanics, 890, A23. doi:10.1017/jfm.2020.126
+//
 static
 void
 PrintUsage (const char* progName)
 {
     std::cout << '\n';
+    std::cout << "This program reads a plot file and compares the results\n"
+              << "against the 2-d viscous benchmark of G.I. Taylor (for 2d build)\n"
+              << "or a 3-d analog, which takes the 2-d solution and then is\n"
+              << "is uniform in the third-dimension.  The uniform\n"
+              << "direction can be in any of the three coordinate directions\n";
     std::cout << "Usage:" << '\n';
     std::cout << progName << '\n';
-    std::cout << "    infile  = inputFileName" << '\n';
-    std::cout << "    errfile = ErrorFileOutputFileName" << '\n';
-    std::cout << "     exfile = ExactSolnOutputFileName" << '\n';
+    std::cout << "     infile = inputFileName" << '\n';
     std::cout << "         mu = viscosity" << '\n';
-    std::cout << "       norm = integer norm (Ie. default is 2 for Ln norm)" << '\n';
+    std::cout << "    unifdir = uniformDirection (optional, default is z-dir)" << '\n';
+    std::cout << "    errfile = ErrorFileOutputFileName (optional)" << '\n';
+    std::cout << "     exfile = ExactSolnOutputFileName (optional)" << '\n';
+    std::cout << "       norm = integer norm (optional, default is 2 for L2 norm)" << '\n';
     std::cout << "   [-help]" << '\n';
     std::cout << "   [-verbose]" << '\n';
     std::cout << '\n';
@@ -46,7 +72,7 @@ PrintUsage (const char* progName)
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2);
+                        const AmrData& amrd2);
 int
 main (int   argc,
       char* argv[])
@@ -80,9 +106,15 @@ main (int   argc,
     pp.query("exfile", exFile);
     pp.query("errfile", errFile);
 
+    // Direction with uniform velocity. Default to z-direction
+    int unifDir = 2;
+    pp.query("unifdir", unifDir);
+    if (unifDir < 0 || unifDir > 2)
+        amrex::Abort("You must specify a valid direction of uniform velocity, `unifdir = ...'");
+
     Real mu = -1.0;
     pp.query("mu", mu);
-    if (mu < 0.0) 
+    if (mu < 0.0)
         amrex::Abort("You must specify `mu'");
 
     int norm = 2;
@@ -90,28 +122,29 @@ main (int   argc,
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
-    
+
     DataServices dataServicesC(iFile, fileType);
 
     if (!dataServicesC.AmrDataOk())
         DataServices::Dispatch(DataServices::ExitRequest, NULL);
 
     //
-    // Generate AmrData Objects 
+    // Generate AmrData Objects
     //
     AmrData& amrDataI = dataServicesC.AmrDataRef();
 
-    const int nComp          = amrDataI.NComp();
+    const int nComp          = AMREX_SPACEDIM+1; //amrDataI.NComp();
     const Real time = amrDataI.Time();
     const int finestLevel = amrDataI.FinestLevel();
     const Vector<std::string>& derives = amrDataI.PlotVarNames();
+
 
     //
     // Compute the error
     //
     Vector<MultiFab*> error(finestLevel+1);
     Vector<MultiFab*> dataE(finestLevel+1);
-    
+
     std::cout << "Level Delta L"<< norm << " norm of Error in Each Component" << std::endl
          << "-----------------------------------------------" << std::endl;
 
@@ -119,22 +152,22 @@ main (int   argc,
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
         Vector<Real> delI = amrDataI.DxLevel()[iLevel];
-	DistributionMapping dmap(baI);
+        DistributionMapping dmap(baI);
 
-	error[iLevel] = new MultiFab(baI, dmap, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
+        error[iLevel] = new MultiFab(baI, dmap, nComp, 0);
+        error[iLevel]->setVal(GARBAGE);
 
-	dataE[iLevel] = new MultiFab(baI, dmap, nComp, 0);
-	dataE[iLevel]->setVal(GARBAGE);
+        dataE[iLevel] = new MultiFab(baI, dmap, nComp, 0);
+        dataE[iLevel]->setVal(GARBAGE);
 
         MultiFab dataI(baI, dmap, nComp, 0);
 
-	for (int iGrid=0; iGrid<baI.size(); ++iGrid)
-	{
+        for (int iGrid=0; iGrid<baI.size(); ++iGrid)
+        {
             const Box& dataGrid = baI[iGrid];
 
-	    for (int iComp=0; iComp<nComp; ++iComp)
-	    {
+            for (int iComp=0; iComp<nComp; ++iComp)
+            {
                 FArrayBox tmpFab(dataGrid,1);
 
                 amrDataI.FillVar(&tmpFab, dataGrid,
@@ -150,18 +183,27 @@ main (int   argc,
             Vector<Real> xlo = amrDataI.GridLocLo()[iLevel][iGrid];
             Vector<Real> xhi = amrDataI.GridLocHi()[iLevel][iGrid];
 
-            FORT_VISCBENCH(&time, &mu,
+#if (AMREX_SPACEDIM == 3)
+            FORT_VISCBENCH(&time, &mu, &unifDir,
                            lo, hi, &nComp,
-                           ((*dataE[iLevel])[iGrid]).dataPtr(), 
+                           ((*dataE[iLevel])[iGrid]).dataPtr(),
                            ARLIM(lo), ARLIM(hi),
                            delI.dataPtr(),
                            xlo.dataPtr(), xhi.dataPtr());
-	}
+#else
+            FORT_VISCBENCH(&time, &mu,
+                           lo, hi, &nComp,
+                           ((*dataE[iLevel])[iGrid]).dataPtr(),
+                           ARLIM(lo), ARLIM(hi),
+                           delI.dataPtr(),
+                           xlo.dataPtr(), xhi.dataPtr());
+#endif
+        }
 
         (*error[iLevel]).ParallelCopy(dataI);
         (*error[iLevel]).minus((*dataE[iLevel]), 0, nComp, 0);
 
-   
+
         //
         // Output Statistics
         //
@@ -189,23 +231,19 @@ main (int   argc,
 
     //
     // Write Plot Files
+    Vector<std::string> varNames{ AMREX_D_DECL("x_velocity", "y_velocity", "z_velocity"), "density"};
     //
     if (!errFile.empty())
-        WritePlotFile(error, amrDataI, errFile, verbose);
+        WritePlotFile(error, amrDataI, errFile, verbose, varNames);
 
     if (!exFile.empty())
-        WritePlotFile(dataE, amrDataI, exFile, verbose);
+        WritePlotFile(dataE, amrDataI, exFile, verbose, varNames);
 
 
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel) {
-	delete error[iLevel];
+        delete error[iLevel];
         delete dataE[iLevel];
     }
-
-    //
-    // This calls ParallelDescriptor::EndParallel() and exit()
-    //
-//  DataServices::Dispatch(DataServices::ExitRequest, NULL);
 
     amrex::Finalize();
 }
@@ -213,16 +251,16 @@ main (int   argc,
 
 bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
+                        const AmrData& amrd2)
 {
     const Vector<std::string>& derives1 = amrd1.PlotVarNames();
     const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
-	return false;
+        return false;
     for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
+        if (derives1[i] != derives2[i])
+            return false;
     return true;
 }
-    
+

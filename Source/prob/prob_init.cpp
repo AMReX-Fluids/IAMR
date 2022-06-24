@@ -54,14 +54,24 @@ void NavierStokes::prob_initData ()
 
     // for Taylor-Green
     pp.query("velocity_factor",IC.v_x);
+    pp.query("a", IC.a);
+    pp.query("b", IC.b);
+    pp.query("c", IC.c);
 
     // for Convected Vortex
-    pp.query("rvort", IC.rvort);
-    pp.query("xvort", IC.xvort);
-    pp.query("yvort", IC.yvort);
-    pp.query("forcevort", IC.forcevort);
-    pp.query("meanFlowDir", IC.meanFlowDir);
-    pp.query("meanFlowMag", IC.meanFlowMag);
+    if (probtype == 8 )
+    {
+        IC.a = 0.5; // x-position of vortex
+        IC.b = 0.5; // y-position of vortex
+        IC.c = 0.07;// radius of vortex
+
+        pp.query("xvort", IC.a);
+        pp.query("yvort", IC.b);
+        pp.query("rvort", IC.c);
+        pp.query("forcevort", IC.forcevort);
+        pp.query("meanFlowDir", IC.meanFlowDir);
+        pp.query("meanFlowMag", IC.meanFlowMag);
+    }
 
     //
     // Fill state and, optionally, pressure
@@ -421,6 +431,11 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
 // Vol. 46, No. 274, pp. 671-674, 1923) and Ethier and Steinman
 // (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give
 // the pressure field.
+// For the 3D problem here, TAYLOR, G. I. & GREEN, A. E. 1937 Mechanism of the production of small eddies from large ones. Proc. R. Soc. Lond. A 158, 499–521.
+// gives an approximate solution from perurbation theory.
+//
+// Analytic 3D solutions (not implemented here) are discussed in, for example,
+// Antuono, M. (2020). Tri-periodic fully three-dimensional analytic solutions for the Navier–Stokes equations. Journal of Fluid Mechanics, 890, A23. doi:10.1017/jfm.2020.126
 //
 void NavierStokes::init_TaylorGreen (Box const& vbx,
 				     Array4<Real> const& /*press*/,
@@ -451,8 +466,8 @@ void NavierStokes::init_TaylorGreen (Box const& vbx,
     //
     // Fill Velocity
     //
-    AMREX_D_TERM(vel(i,j,k,0) =  IC.v_x*std::sin(TwoPi*x) * std::cos(TwoPi*y) * std::cos(TwoPi*z);,
-		 vel(i,j,k,1) = -IC.v_x*std::cos(TwoPi*x) * std::sin(TwoPi*y) * std::cos(TwoPi*z);,
+    AMREX_D_TERM(vel(i,j,k,0) =  IC.v_x*std::sin(IC.a*TwoPi*x) * std::cos(IC.b*TwoPi*y) * std::cos(IC.c*TwoPi*z);,
+		 vel(i,j,k,1) = -IC.v_x*std::cos(IC.a*TwoPi*x) * std::sin(IC.b*TwoPi*y) * std::cos(IC.c*TwoPi*z);,
 		 vel(i,j,k,2) = 0.0;);
 
     //
@@ -462,9 +477,9 @@ void NavierStokes::init_TaylorGreen (Box const& vbx,
 
     // The theoretical pressure perturbation from p_0
 #if ( AMREX_SPACEDIM == 2 )
-    scal(i,j,k,1) = (IC.density*IC.v_x*IC.v_x/4.0)*(cos(2.0*TwoPi*x)+cos(2.0*TwoPi*y));
+    scal(i,j,k,1) = (IC.density*IC.v_x*IC.v_x/4.0)*(cos(2.0*IC.a*TwoPi*x)+cos(2.0*IC.b*TwoPi*y));
 #else
-    scal(i,j,k,1) = (IC.density*IC.v_x*IC.v_x/16.0)*(2.0+cos(2.0*TwoPi*z))*(cos(2.0*TwoPi*x)+cos(2.0*TwoPi*y));
+    scal(i,j,k,1) = (IC.density*IC.v_x*IC.v_x/16.0)*(2.0+cos(2.0*IC.c*TwoPi*z))*(cos(2.0*IC.a*TwoPi*x)+cos(2.0*IC.b*TwoPi*y));
 #endif
 
     // Tracers
@@ -525,6 +540,12 @@ void NavierStokes::init_Euler (Box const& vbx,
   });
 }
 
+//
+// Euler vortex in isentropic flow. Analytic solution is translation of the
+// initial conditions based on propagation speed and simulation time.
+// There are many references, for example
+// Spiegel, Seth & Huynh, H.T. & DeBonis, James. (2015). A Survey of the Isentropic Euler Vortex Problem using High-Order Methods. 10.2514/6.2015-2444.
+//
 void NavierStokes::init_ConvectedVortex (Box const& vbx,
                                          Array4<Real> const& /*press*/,
                                          Array4<Real> const& vel,
@@ -544,10 +565,10 @@ void NavierStokes::init_ConvectedVortex (Box const& vbx,
                  Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];,
                  Real z = problo[2] + (k - domlo.z + 0.5)*dx[2]);
 
-    amrex::Real deltax = x - IC.xvort;
-    amrex::Real deltay = y - IC.yvort;
+    amrex::Real deltax = x - IC.a; // x-distance from vortex center
+    amrex::Real deltay = y - IC.b; // y-distance form vortex center
     amrex::Real d_sq = deltax*deltax + deltay*deltay;
-    amrex::Real r_sq = IC.rvort * IC.rvort;
+    amrex::Real r_sq = IC.c * IC.c; // square of vortex radius
     amrex::Real u_vort = -IC.forcevort*deltay/r_sq * exp(-d_sq/r_sq/2.);
     amrex::Real v_vort = IC.forcevort*deltax/r_sq * exp(-d_sq/r_sq/2.);
 #if (AMREX_SPACEDIM == 3)

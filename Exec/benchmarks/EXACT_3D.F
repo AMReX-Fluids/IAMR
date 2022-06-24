@@ -6,7 +6,6 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_CONSTANTS.H>
-#include <AMReX_BC_TYPES.H>
 #include <AMReX_ArrayLim.H>
 #include <EXACT_F.H>
 
@@ -50,23 +49,23 @@ c
       hy = dx(2)
       hz = dx(3)
 
-      expterm = exp(-two*Pi**2*nu*time)
+      expterm = exp(-two*four*Pi**2*nu*time)
 
       do k = lo(3), hi(3)
         z = xlo(3) + hz*(float(k-lo(3)) + half)
-        spz = sin(Pi*z)
-        cpz = cos(Pi*z)
+        spz = sin(two*Pi*z)
+        cpz = cos(two*Pi*z)
 
         do j = lo(2), hi(2)
           y = xlo(2) + hy*(float(j-lo(2)) + half)
-          spy = sin(Pi*y)
-          cpy = cos(Pi*y)
+          spy = sin(two*Pi*y)
+          cpy = cos(two*Pi*y)
 
           do i = lo(1), hi(1)
             x = xlo(1) + hx*(float(i-lo(1)) + half)
 
-            spx = sin(Pi*x)
-            cpx = cos(Pi*x)
+            spx = sin(two*Pi*x)
+            cpx = cos(two*Pi*x)
 
 c
 c           Uniform in the X-direction
@@ -76,9 +75,6 @@ c
               state(i,j,k,2) =   spz*cpy * expterm
               state(i,j,k,3) = - cpz*spy * expterm
               state(i,j,k,4) =   one
-              do n = 5, ncomp
-                state(i,j,k,n) =   cpz*cpy * expterm
-              enddo
 
 c
 c           Uniform in the Y-direction
@@ -88,21 +84,15 @@ c
               state(i,j,k,2) =   zero
               state(i,j,k,3) =   spx*cpz * expterm
               state(i,j,k,4) =   one
-              do n = 5, ncomp
-                state(i,j,k,n) =   cpx*cpz * expterm
-              enddo
 
 c
 c           Uniform in the Z-direction
 c
             elseif (unifdir .eq. 2) then
-              state(i,j,k,1) = - cpx*spy * expterm
-              state(i,j,k,2) =   spx*cpy * expterm
+              state(i,j,k,1) =   spx*cpy * expterm
+              state(i,j,k,2) = - cpx*spy * expterm
               state(i,j,k,3) =   zero
               state(i,j,k,4) =   one
-              do n = 5, ncomp
-                state(i,j,k,n) =   cpx*cpy * expterm
-              enddo
             endif
           end do
         end do
