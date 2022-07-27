@@ -1182,21 +1182,24 @@ NavierStokesBase::create_umac_grown (int nGrow,
         // Correct u_mac to enforce the divergence constraint in the ghost cells.
         // Do this by adjusting only the outer face (wrt the valid region) of the ghost
         // cell, i.e. for the hi-x face, adjust umac_x(i+1).
-        // NOTE that this does not fill edges or corners.
+        // NOTE that this does not fill grid edges or corners.
         //
 
         // Build mask to find the ghost cells we need to correct.
         // covered   : ghost cells covered by valid cells of this FabArray
         //             (including periodically shifted valid cells)
         // notcovered: ghost cells not covered by valid cells
-        //             (including ghost cells outside periodic boundaries)
+        //             (including ghost cells outside periodic boundaries where the
+        //             periodically shifted cells don't exist at this level)
         // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
         // interior  : interior cells (i.e., valid cells)
         int covered   = 0;
         int uncovered = 1;
-        int physbnd   = 0;
+        int physbnd   = 2;
         int interior  = 0;
-        iMultiFab mask(grids, u_mac_fine[0]->DistributionMap(), 1, 1, MFInfo(),
+        // Need 2 ghost cells here so we can safely check the status of all faces of a
+        // u_mac ghost cell
+        iMultiFab mask(grids, u_mac_fine[0]->DistributionMap(), 1, 2, MFInfo(),
                        DefaultFabFactory<IArrayBox>());
         mask.BuildMask(fine_geom->Domain(), fine_geom->periodicity(),
                        covered, uncovered, physbnd, interior);
@@ -1209,89 +1212,96 @@ NavierStokesBase::create_umac_grown (int nGrow,
 #endif
         for (MFIter mfi(mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.tilebox();
+            const Box& tbx = mfi.tilebox();
+            const Box& vbx = mfi.validbox();
             auto const& maskarr = mask.const_array(mfi);
-            Array4<const Real> foo;
-            auto const& divu = (a_divu) ? a_divu->const_array(mfi) : foo;
-            AMREX_D_TERM(auto const& umac = u_mac_fine[0]->array(mfi);,
-                         auto const& vmac = u_mac_fine[1]->array(mfi);,
-                         auto const& wmac = u_mac_fine[2]->array(mfi));
+            auto const& divu = (a_divu) ? a_divu->const_array(mfi) : Array4<const Real> {};
+            auto const& umac = u_mac_fine[0]->array(mfi);
+            auto const& vmac = u_mac_fine[1]->array(mfi);
+            auto const& wmac = (AMREX_SPACEDIM==3) ? u_mac_fine[2]->array(mfi) : Array4<Real> {};
 
-            // Fuse the launches, 1 for each dimension, into a single launch.
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(RunOn::Gpu,
-                mfi.growntilebox(IntVect::TheDimensionVector(0)), bx0,
+            AMREX_HOST_DEVICE_FOR_3D(mfi.growntilebox(1), i, j, k,
+            {
+                if ( maskarr(i,j,k) == uncovered )
                 {
-                    AMREX_LOOP_3D(bx0, i, j, k,
-                    {
-                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
-                        {
-                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+                    //
+                    // Leave cells on grid edges/corners unaltered.
+                    // This correction scheme doesn't work for concave edges where a cell
+                    // has faces that are all either valid or touching another ghost cell
+                    // because then there's no "free" face to absorb the divergence constraint
+                    // error.
+                    // There are (>=) 1 case that are treatable, but we don't implement here:
+                    // 1. Convex grid edges (cells that don't have any valid faces), e.g. by
+                    //    dividing the divergence constraint error equally between each face
+                    //    not touching another ghost cell
+                    //
 
-                            tmp =  dx[0] * (   dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k))
-#if (AMREX_SPACEDIM == 3)
-                                             + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
+                    int count = 0;
+#if (AMREX_SPACEDIM == 2)
+                    int kk = 0;
+#elif (AMREX_SPACEDIM == 3)
+                    for(int kk(-1); kk<=1; kk++)
 #endif
-                                             - tmp );
-
-                            if ( i < bx.smallEnd(0) )
-                            {
-                                umac(i,j,k) = umac(i+1,j,k) + tmp;
-                            }
-                            else if ( i > bx.bigEnd(0) )
-                            {
-                                umac(i+1,j,k) = umac(i,j,k) - tmp;
-                            }
-                        }
-                    });
-                },
-                mfi.growntilebox(IntVect::TheDimensionVector(1)), bx1,
-                {
-                    AMREX_LOOP_3D(bx1, i, j, k,
                     {
-                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
-                        {
-                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
-
-                            tmp =  dx[1] * (   dxinv[0]*(umac(i+1,j,k) - umac(i,j,k))
-#if (AMREX_SPACEDIM == 3)
-                                             + dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k))
-#endif
-                                             - tmp );
-
-                            if ( j < bx.smallEnd(1) )
-                            {
-                                vmac(i,j,k) = vmac(i,j+1,k) + tmp;
-                            }
-                            else if ( j > bx.bigEnd(1) )
-                            {
-                                vmac(i,j+1,k) = vmac(i,j,k) - tmp;
+                        for(int jj(-1); jj<=1; jj++) {
+                            for(int ii(-1); ii<=1; ii++) {
+                                // what do we want for EB??? -- just abort for covered cells?
+                                // or check area fraction???
+                                // if (flag(i,j,k).isConnected(ii,jj,kk))
+                                if ( Math::abs(ii)+Math::abs(jj)+Math::abs(kk) == 1 &&
+                                     (maskarr(i+ii,j+jj,k+kk) == interior || maskarr(i+ii,j+jj,k+kk) == covered) )
+				{
+                                    count++;
+                                }
                             }
                         }
-                    });
-                },
-                mfi.growntilebox(IntVect::TheDimensionVector(2)), bx2,
-                {
-                    AMREX_LOOP_3D(bx2, i, j, k,
+                    }
+
+                    if ( count == 1 )
                     {
-                        if ( !bx.contains(i,j,k) && (maskarr(i,j,k) == uncovered) )
+
+                        Real div = (divu) ? divu(i,j,k) : 0.0;
+
+                        Real dux =          dxinv[0]*(umac(i+1,j,k) - umac(i,j,k));
+                        Real duy =          dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k));
+                        Real duz = (wmac) ? dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k)) : 0.0;
+
+                        // To avoid inconsistencies between boxes, we make sure to fix box
+                        // corners (2D) or edges (3D) that are not grid corners/edges.
+                        // The directional check ensures we only alter one face of these
+                        // cells.
+                        if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != uncovered )
                         {
-                            Real tmp = (divu) ? divu(i,j,k) : 0.0;
+                            umac(i,j,k) = umac(i+1,j,k) + dx[0] * (duy + duz - div);
+                        }
+                        else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != uncovered )
+                        {
+                            umac(i+1,j,k) = umac(i,j,k) - dx[0] * (duy + duz - div);
+                        }
 
-                            tmp =  dx[2] * (   dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k))
-                                             + dxinv[0]*(umac(i+1,j,k) - umac(i,j,k))
-                                             - tmp );
+                        if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != uncovered )
+                        {
+                            vmac(i,j,k) = vmac(i,j+1,k) + dx[1] * (dux + duz - div);
+                        }
+                        else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != uncovered )
+                        {
+                            vmac(i,j+1,k) = vmac(i,j,k) - dx[1] * (dux + duz - div);
+                        }
 
-                            if ( k < bx.smallEnd(2) )
+                        if (wmac)
+                        {
+                            if ( k < tbx.smallEnd(2) && maskarr(i,j,k+1) != uncovered )
                             {
-                                wmac(i,j,k) = wmac(i,j,k+1) + tmp;
+                                wmac(i,j,k) = wmac(i,j,k+1) + dx[2] * (dux + duy - div);
                             }
-                            else if ( k > bx.bigEnd(2) )
+                            else if ( k > tbx.bigEnd(2) && maskarr(i,j,k-1) != uncovered )
                             {
-                                wmac(i,j,k+1) = wmac(i,j,k) - tmp;
+                                wmac(i,j,k+1) = wmac(i,j,k) - dx[2] * (dux + duy - div);
                             }
                         }
-                    });
-                });
+                    }
+                }
+            });
         }
     }
 }
