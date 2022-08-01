@@ -23,7 +23,7 @@ amr.n_cell 		= 64 128
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 2 # maximum number of levels of refinement
+amr.max_level		= 1 # maximum number of levels of refinement
 
 #*******************************************************************************
 
@@ -48,32 +48,42 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= 10 
+amr.check_int		= 100 
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 10
+amr.plot_int		= 100
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
-ns.cfl                  = 0.9  # CFL number used to set dt
+ns.cfl                  = 0.7  # CFL number used to set dt
 
 #*******************************************************************************
 
 # Factor by which the first time is shrunk relative to CFL constraint
-ns.init_shrink          = 0.3  # factor which multiplies the very first time step
+ns.init_shrink          = 0.1  # factor which multiplies the very first time step
+
+#*******************************************************************************
+
+# Add temperature
+ns.do_temp=1
+ns.temp_cond_coef=1.e-8
+
+# Also add a second tracer
+ns.do_trac2 = 1
+ns.do_cons_trac2 = 1
 
 #*******************************************************************************
 
 # Viscosity coefficient 
-ns.vel_visc_coef        = 0. #001
+ns.vel_visc_coef        = 0.0
 
 #*******************************************************************************
 
 # Diffusion coefficient for first scalar
-ns.scal_diff_coefs      = 0.001
+ns.scal_diff_coefs      = 1.e-6 1.e-6
 
 #*******************************************************************************
 
@@ -91,7 +101,7 @@ geometry.coord_sys   =  1
 geometry.prob_lo     =  0. 0. 
 
 # Physical dimensions of the high end of the domain.
-geometry.prob_hi     =  1. 2. 
+geometry.prob_hi     =  0.016 0.032
 
 #*******************************************************************************
 
@@ -113,12 +123,13 @@ ns.hi_bc             = 4 4
 #*******************************************************************************
 
 # Problem parameters
-prob.probtype = 2
-prob.blob_center = 0.0 1.5 
-prob.blob_radius = 0.2
+prob.probtype = 6
+prob.blob_center = 0.0 0.01 
+prob.blob_radius = 0.003
+prob.interface_width = 0.00000006
 # Background density is 1. Density is incresed by a factor of density_ic inside
 # the bubble
-prob.density_ic = 2.0
+prob.density_ic = 1.229
 # Can also set up a flow, defaults to zero
 #prob.velocity_ic = 0. 0. 0.
 
