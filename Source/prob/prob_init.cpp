@@ -169,8 +169,6 @@ void NavierStokes::init_bubble (Box const& vbx,
 {
   const auto domlo = amrex::lbound(domain);
 
-  bool rise = probtype==6; //HotSpot problem
-
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
   {
     Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
@@ -205,17 +203,18 @@ void NavierStokes::init_bubble (Box const& vbx,
       scal(i,j,k,nt) = dist < IC.blob_radius ? 1.0 : 0.0;
     }
 
-    if ( rise )
+    if ( probtype == 6 )
     {
-      // Density for Hot/less dense bubble rising
+      // Density for Hot/less dense bubble rising, assuming IC.density > 1
       scal(i,j,k,0) = 1.0/IC.density + 0.5*(1.0 - 1.0/IC.density)*(1.0 + std::tanh(40.*(dist - IC.blob_radius)/IC.interface_width));
       //Temp
       scal(i,j,k,nscal-1) = 1/scal(i,j,k,0);
     }
     else
     {
-      // Density for dense bubble falling.
+      // Density for dense bubble falling, assuming IC.density > 1
       scal(i,j,k,0) = 1.0 + 0.5*(IC.density-1.0)*(1.0-std::tanh(30.*(dist-IC.blob_radius)/IC.interface_width));
+      // No Temperature field
     }
 
   });
