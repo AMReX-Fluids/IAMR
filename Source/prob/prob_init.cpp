@@ -169,6 +169,9 @@ void NavierStokes::init_bubble (Box const& vbx,
 {
   const auto domlo = amrex::lbound(domain);
 
+  // Make local copy capturable by device lambda
+  bool have_temp = probtype == 6;
+
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
   {
     Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];
@@ -203,7 +206,7 @@ void NavierStokes::init_bubble (Box const& vbx,
       scal(i,j,k,nt) = dist < IC.blob_radius ? 1.0 : 0.0;
     }
 
-    if ( probtype == 6 )
+    if ( have_temp )
     {
       // Density for Hot/less dense bubble rising, assuming IC.density > 1
       scal(i,j,k,0) = 1.0/IC.density + 0.5*(1.0 - 1.0/IC.density)*(1.0 + std::tanh(40.*(dist - IC.blob_radius)/IC.interface_width));
