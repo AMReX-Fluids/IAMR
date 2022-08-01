@@ -1185,6 +1185,12 @@ NavierStokesBase::create_umac_grown (int nGrow,
         // NOTE that this does not fill grid edges or corners.
         //
 
+#ifdef AMREX_USE_EB
+        if (!refine_cutcells) {
+            amrex::Abort("NSB::create_umac_grown not implemented for EB crossing the coarse-fine boundary.");
+        }
+#endif
+
         // Build mask to find the ghost cells we need to correct.
         // covered   : ghost cells covered by valid cells of this FabArray
         //             (including periodically shifted valid cells)
@@ -1207,18 +1213,24 @@ NavierStokesBase::create_umac_grown (int nGrow,
         const GpuArray<Real,AMREX_SPACEDIM> dx = fine_geom->CellSizeArray();
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = fine_geom->InvCellSizeArray();
 
+        const bool is_rz = geom.IsRZ();
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            const Box& vbx = mfi.validbox();
             auto const& maskarr = mask.const_array(mfi);
             auto const& divu = (a_divu) ? a_divu->const_array(mfi) : Array4<const Real> {};
             auto const& umac = u_mac_fine[0]->array(mfi);
             auto const& vmac = u_mac_fine[1]->array(mfi);
             auto const& wmac = (AMREX_SPACEDIM==3) ? u_mac_fine[2]->array(mfi) : Array4<Real> {};
+
+            const auto& vol = (is_rz) ?  volume.const_array(mfi): Array4<Real> {};
+            const auto&  ax = (is_rz) ? area[0].const_array(mfi): Array4<Real> {};
+            const auto&  ay = (is_rz) ? area[1].const_array(mfi): Array4<Real> {};
+
 
             AMREX_HOST_DEVICE_FOR_3D(mfi.growntilebox(1), i, j, k,
             {
@@ -1245,12 +1257,9 @@ NavierStokesBase::create_umac_grown (int nGrow,
                     {
                         for(int jj(-1); jj<=1; jj++) {
                             for(int ii(-1); ii<=1; ii++) {
-                                // what do we want for EB??? -- just abort for covered cells?
-                                // or check area fraction???
-                                // if (flag(i,j,k).isConnected(ii,jj,kk))
                                 if ( Math::abs(ii)+Math::abs(jj)+Math::abs(kk) == 1 &&
                                      (maskarr(i+ii,j+jj,k+kk) == interior || maskarr(i+ii,j+jj,k+kk) == covered) )
-				{
+                                {
                                     count++;
                                 }
                             }
@@ -1259,44 +1268,76 @@ NavierStokesBase::create_umac_grown (int nGrow,
 
                     if ( count == 1 )
                     {
-
                         Real div = (divu) ? divu(i,j,k) : 0.0;
+#if (AMREX_SPACEDIM==2)
+                        if (is_rz)
+                        {
+                            Real dux = (ax(i+1,j,k)*umac(i+1,j,k) - ax(i,j,k)*umac(i,j,k));
+                            Real duy = (ay(i,j+1,k)*vmac(i,j+1,k) - ay(i,j,k)*vmac(i,j,k));
 
-                        Real dux =          dxinv[0]*(umac(i+1,j,k) - umac(i,j,k));
-                        Real duy =          dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k));
-                        Real duz = (wmac) ? dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k)) : 0.0;
-
-                        // To avoid inconsistencies between boxes, we make sure to fix box
-                        // corners (2D) or edges (3D) that are not grid corners/edges.
-                        // The directional check ensures we only alter one face of these
-                        // cells.
-                        if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != uncovered )
-                        {
-                            umac(i,j,k) = umac(i+1,j,k) + dx[0] * (duy + duz - div);
-                        }
-                        else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != uncovered )
-                        {
-                            umac(i+1,j,k) = umac(i,j,k) - dx[0] * (duy + duz - div);
-                        }
-
-                        if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != uncovered )
-                        {
-                            vmac(i,j,k) = vmac(i,j+1,k) + dx[1] * (dux + duz - div);
-                        }
-                        else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != uncovered )
-                        {
-                            vmac(i,j+1,k) = vmac(i,j,k) - dx[1] * (dux + duz - div);
-                        }
-
-                        if (wmac)
-                        {
-                            if ( k < tbx.smallEnd(2) && maskarr(i,j,k+1) != uncovered )
+                            // To avoid inconsistencies between boxes, we make sure to fix box
+                            // corners (2D) or edges (3D) that are not grid corners/edges.
+                            // The directional check ensures we only alter one face of these
+                            // cells.
+			    // It's unlikely there'd ever be a case of a ghost cell abutting the
+			    // symmetry axis, but just in case, check here.
+                            if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != uncovered && ax(i,j,k) != Real(0.0) )
                             {
-                                wmac(i,j,k) = wmac(i,j,k+1) + dx[2] * (dux + duy - div);
+                                umac(i,j,k) = (ax(i+1,j,k)*umac(i+1,j,k) + (duy - vol(i,j,k)*div))/ax(i,j,k);
                             }
-                            else if ( k > tbx.bigEnd(2) && maskarr(i,j,k-1) != uncovered )
+                            else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != uncovered )
                             {
-                                wmac(i,j,k+1) = wmac(i,j,k) - dx[2] * (dux + duy - div);
+                                umac(i+1,j,k) = (ax(i,j,k)*umac(i,j,k) - (duy - vol(i,j,k)*div))/ax(i+1,j,k);
+                            }
+
+                            if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != uncovered )
+                            {
+                                vmac(i,j,k) = (ay(i,j+1,k)*vmac(i,j+1,k) + (dux - vol(i,j,k)*div))/ay(i,j,k);
+                            }
+                            else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != uncovered )
+                            {
+                                vmac(i,j+1,k) = (ay(i,j,k)*vmac(i,j,k) - (dux - vol(i,j,k)*div))/ay(i,j+1,k);
+                            }
+                        }
+                        else
+#endif
+                        {
+                            Real dux =          dxinv[0]*(umac(i+1,j,k) - umac(i,j,k));
+                            Real duy =          dxinv[1]*(vmac(i,j+1,k) - vmac(i,j,k));
+                            Real duz = (wmac) ? dxinv[2]*(wmac(i,j,k+1) - wmac(i,j,k)) : 0.0;
+
+                            // To avoid inconsistencies between boxes, we make sure to fix box
+                            // corners (2D) or edges (3D) that are not grid corners/edges.
+                            // The directional check ensures we only alter one face of these
+                            // cells.
+                            if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != uncovered )
+                            {
+                                umac(i,j,k) = umac(i+1,j,k) + dx[0] * (duy + duz - div);
+                            }
+                            else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != uncovered )
+                            {
+                                umac(i+1,j,k) = umac(i,j,k) - dx[0] * (duy + duz - div);
+                            }
+
+                            if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != uncovered )
+                            {
+                                vmac(i,j,k) = vmac(i,j+1,k) + dx[1] * (dux + duz - div);
+                            }
+                            else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != uncovered )
+                            {
+                                vmac(i,j+1,k) = vmac(i,j,k) - dx[1] * (dux + duz - div);
+                            }
+
+                            if (wmac)
+                            {
+                                if ( k < tbx.smallEnd(2) && maskarr(i,j,k+1) != uncovered )
+                                {
+                                    wmac(i,j,k) = wmac(i,j,k+1) + dx[2] * (dux + duy - div);
+                                }
+                                else if ( k > tbx.bigEnd(2) && maskarr(i,j,k-1) != uncovered )
+                                {
+                                    wmac(i,j,k+1) = wmac(i,j,k) - dx[2] * (dux + duy - div);
+                                }
                             }
                         }
                     }
