@@ -28,6 +28,7 @@ see incflo (https://amrex-codes.github.io/incflo/)
 
    Introduction_Chapter
    Getting_Started
+   Tutorials
    SetupAndRunning
    Visualization_Chapter
    AlgorithmAndSoftware
