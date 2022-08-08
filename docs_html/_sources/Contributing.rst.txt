@@ -64,7 +64,7 @@ The basic workflow is:
 Make your own fork
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-First, let us setup your local git repo. To make your own fork of the main
+First, setup your local git repo. To make your own fork of the main
 (`upstream`) repository, press the fork button on the `IAMR Github page <https://github.com/IAMR-Codes/IAMR>`_.
 
 Then, clone your fork on your local computer. If you plan on doing a lot of IAMR development,
