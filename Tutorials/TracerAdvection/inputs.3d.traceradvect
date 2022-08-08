@@ -113,13 +113,5 @@ prob.blob_center = 0.5 0.5 0.5
 
 #*******************************************************************************
 
-# Factor by which grids must be coarsenable.
-amr.blocking_factor     = 8
-
-#*******************************************************************************
-
 # Add vorticity to the variables in the plot files.
 amr.derive_plot_vars    = mag_vort
-
-#*******************************************************************************
-nodal_proj.verbose=1

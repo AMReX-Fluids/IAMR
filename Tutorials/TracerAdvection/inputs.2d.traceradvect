@@ -1,22 +1,22 @@
 
 #*******************************************************************************
-# INPUTS.2D.TAYLORGREEN
+# INPUTS.2D.TRACERADVECT
 #*******************************************************************************
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 10000
+max_step 		= 50
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 		= 6.0
+stop_time 		= 10000
 
 #*******************************************************************************
 
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 64 64 64
-amr.max_grid_size     = 1024
+amr.n_cell 		= 64 64
+amr.max_grid_size	= 64
 
 #*******************************************************************************
 
@@ -26,19 +26,17 @@ amr.max_level		= 0 # maximum number of levels of refinement
 #*******************************************************************************
 
 # Interval (in number of level l timesteps) between regridding
-amr.regrid_int		= 2 2 2 2 2 2 2 
+amr.regrid_int		= 2 
 
 #*******************************************************************************
 
 # Refinement ratio as a function of level
-amr.ref_ratio		= 2 2 2 2
+amr.ref_ratio		= 2 2
 
 #*******************************************************************************
 
 # Sets the "NavierStokes" code to be verbose
 ns.v                    = 1
-ns.sum_interval         = 1
-ns.init_iter            = 2
 
 #*******************************************************************************
 
@@ -48,19 +46,17 @@ amr.v                   = 1
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= -5 
-amr.check_file          = chk
+amr.check_int		= 10
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 100
-amr.plot_file           = plt
+amr.plot_int		= 10
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
-ns.cfl                  = 0.7  # CFL number used to set dt
+ns.cfl                  = 0.9  # CFL number used to set dt
 
 #*******************************************************************************
 
@@ -69,8 +65,8 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 
 #*******************************************************************************
 
-# Viscosity coefficient
-ns.vel_visc_coef        = 1.e-2
+# Viscosity coefficient 
+ns.vel_visc_coef        = 0.0
 
 #*******************************************************************************
 
@@ -79,30 +75,34 @@ ns.scal_diff_coefs      = 0.0
 
 #*******************************************************************************
 
-# Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
+# Forcing term defaults to  rho * abs(gravity) "down"
+ns.gravity              = 0.0
+
+#*******************************************************************************
+
+# Set to 0 if x-y coordinate system, set to 1 if r-z.
 geometry.coord_sys   =  0
 
 #*******************************************************************************
 
 # Physical dimensions of the low end of the domain.
-geometry.prob_lo     =  0.0 0.0 0.0
+geometry.prob_lo     =  0. 0. 
 
 # Physical dimensions of the high end of the domain.
-#geometry.prob_hi     =  6.28318530717959 6.28318530717959A
-geometry.prob_hi     =  1.0 1.0 1.0
+geometry.prob_hi     =  1. 1. 
 
 #*******************************************************************************
 
 #Set to 1 if periodic in that direction
-geometry.is_periodic =  1 1 1
+geometry.is_periodic =  1 1
 
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 0 0 0
+ns.lo_bc             = 0 0
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             = 0 0 0
+ns.hi_bc             = 0 0
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
@@ -111,6 +111,10 @@ ns.hi_bc             = 0 0 0
 #*******************************************************************************
 
 # Problem parameters
-prob.probtype = 11
-prob.velocity_factor = 1.0
+prob.probtype = 4
+prob.velocity_ic = 1.0 2.0
+prob.density_ic = 1.0
+prob.blob_center = 0.5 0.5
+
+#*******************************************************************************
 

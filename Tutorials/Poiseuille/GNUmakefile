@@ -1,4 +1,4 @@
-#AMREX_HOME defines the directory in which we will find the BoxLib director
+#AMREX_HOME defines the directory in which we will find the BoxLib directory
 AMREX_HOME ?= ../../../amrex
 AMREX_HYDRO_HOME ?= ../../../AMReX-Hydro
 
@@ -11,19 +11,17 @@ TOP = ../..
 
 PRECISION   = DOUBLE
 
-# running 2d inputs files requires a 2d executable set here
-DIM         = 3
+DIM         = 2
 COMP        = gnu
 
 DEBUG       = FALSE
-USE_MPI     = TRUE
+USE_MPI     = FALSE
 USE_OMP     = FALSE
 PROFILE     = FALSE
 
+USE_CUDA = FALSE
 
-USE_VELOCITY = FALSE
-
-USE_EB = TRUE
+USE_SENSEI_INSITU = FALSE
 
 EBASE = amr
 

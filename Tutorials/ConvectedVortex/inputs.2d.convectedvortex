@@ -4,77 +4,66 @@
 #*******************************************************************************
 
 #NOTE: You may set *either* max_step or stop_time, or you may set them both.
+#NOTE: this input file can be used in combination with the Util/multiRuns.py
+#and Util/pprocConvOrder.py in order to compute the convergence order of the velocity 
+# advection schemes in IAMR.
 
 # Maximum number of coarse grid timesteps to be taken, if stop_time is
 #  not reached first.
-max_step 		= 0
-max_step 		= 800
+max_step 		= 10000
 
 # Time at which calculation stops, if max_step is not reached first.
-stop_time 		= 5.0
-
-#*******************************************************************************
-# PARTICLE INPUTS
-
-particles.particle_init_file = particle_file_ml
-particles.verbose = 0
-particles.timestamp_dir = particle_dir
-particles.timestamp_indices = 1
+stop_time 		= 0.04
 
 #*******************************************************************************
 
-# Grid File - test this code with fixed grids
-amr.regrid_file = fixed_grids_ml
-# Grid efficiency (defaults to .70)
-#amr.grid_eff = 0.75
-
-#*******************************************************************************
 # Number of cells in each coordinate direction at the coarsest level
-amr.n_cell 		= 64 64
+amr.n_cell 		= 64 64 64
+amr.max_grid_size     = 1024
 
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 2 # maximum number of levels of refinement
-
-# Refinement criterion, use vorticity
-amr.refinement_indicators = vorticity
-amr.vorticity.vorticity_greater =  5.0
+amr.max_level		= 0 # maximum number of levels of refinement
 
 #*******************************************************************************
 
 # Interval (in number of level l timesteps) between regridding
-amr.regrid_int		= 2 
+amr.regrid_int		= 2 2 2 2 2 2 2 
 
 #*******************************************************************************
 
 # Refinement ratio as a function of level
-amr.ref_ratio		= 2 2 
+amr.ref_ratio		= 2 2 2 2
 
 #*******************************************************************************
 
 # Sets the "NavierStokes" code to be verbose
-ns.v                    = 0
+ns.v                    = 1
+ns.sum_interval         = 1
+ns.init_iter            = 2
 
 #*******************************************************************************
 
 # Sets the "amr" code to be verbose
-amr.v                   = 0
+amr.v                   = 1
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between checkpoint(restart) files
-amr.check_int		= 10 
+amr.check_int		= -5 
+amr.check_file          = chk
 
 #*******************************************************************************
 
 # Interval (in number of coarse timesteps) between plot files
-amr.plot_int		= 2
+amr.plot_int		= 100
+amr.plot_file           = plt
 
 #*******************************************************************************
 
 # CFL number to be used in calculating the time step : dt = dx / max(velocity)
-ns.cfl                  = 0.9  # CFL number used to set dt
+ns.cfl                  = 0.7  # CFL number used to set dt
 
 #*******************************************************************************
 
@@ -83,8 +72,8 @@ ns.init_shrink          = 1.0  # factor which multiplies the very first time ste
 
 #*******************************************************************************
 
-# Viscosity coefficient 
-ns.vel_visc_coef        = 0.001
+# Viscosity coefficient
+ns.vel_visc_coef        = 0.
 
 #*******************************************************************************
 
@@ -93,34 +82,30 @@ ns.scal_diff_coefs      = 0.0
 
 #*******************************************************************************
 
-# Forcing term defaults to  rho * abs("gravity") "down"
-ns.gravity              = 0.0
-
-#*******************************************************************************
-
-# Set to 0 if x-y coordinate system, set to 1 if r-z.
-geometry.coord_sys   =  0 
+# Set to 0 if x-y coordinate system, set to 1 if r-z (in 2-d).
+geometry.coord_sys   =  0
 
 #*******************************************************************************
 
 # Physical dimensions of the low end of the domain.
-geometry.prob_lo     =  0. 0. 
+geometry.prob_lo     =  0.0 0.0 0.0
 
 # Physical dimensions of the high end of the domain.
-geometry.prob_hi     =  1. 1. 
+#geometry.prob_hi     =  6.28318530717959 6.28318530717959A
+geometry.prob_hi     =  1.0 1.0 1.0
 
 #*******************************************************************************
 
 #Set to 1 if periodic in that direction
-geometry.is_periodic =  1 1
+geometry.is_periodic =  1 1 1
 
 #*******************************************************************************
 
 # Boundary conditions on the low end of the domain.
-ns.lo_bc             = 0 0
+ns.lo_bc             = 0 0 0
 
 # Boundary conditions on the high end of the domain.
-ns.hi_bc             = 0 0
+ns.hi_bc             = 0 0 0
 
 # 0 = Interior/Periodic  3 = Symmetry
 # 1 = Inflow             4 = SlipWall
@@ -129,29 +114,25 @@ ns.hi_bc             = 0 0
 #*******************************************************************************
 
 # Problem parameters
-prob.probtype = 5
-# set up shear layer along x-direction
-prob.direction = 0
-prob.interface_width = 2
-prob.blob_center = 0.25 0.25 
-prob.blob_radius = 0.1
-prob.density_ic = 1.0
+prob.probtype = 8
+prob.rvort = 0.07
+prob.xvort = 0.5
+prob.yvort = 0.5
+prob.forcevort = 6.0
+prob.meanFlowDir = 1
+prob.meanFlowMag = 50.0
 
 #*******************************************************************************
 
-# Factor by which grids must be coarsenable. 
-amr.blocking_factor 	= 4
+# Factor by which grids must be coarsenable.
+amr.blocking_factor     = 8
 
 #*******************************************************************************
 
 # Add vorticity to the variables in the plot files.
-amr.derive_plot_vars 	= mag_vort particle_count
+amr.derive_plot_vars    = mag_vort
 
 #*******************************************************************************
-
-nodal_proj.verbose = 2
-nodal_proj.verbose = 1
-nodal_proj.proj_tol = 1.e-12
-nodal_proj.proj_abs_tol = 1.e-15
-
-mg.v = 0
+nodal_proj.verbose=4
+nodal_proj.proj_tol = 1.e-10
+nodal_proj.sync_tol = 1.e-8

@@ -6,12 +6,12 @@
 # WHEN SHOULD THE SIMULATION STOP?
 #*******************************************************************************
 # Maximum number of timesteps to be taken, if stop_time is not reached first.
-max_step 				= 50
+max_step 				= 10
 # Time at which calculation stops, if max_step is not reached first.
 stop_time 				= 2.0
 # Stop simulation when we reach steady-state?
-ns.stop_when_steady 	= 0
-ns.steady_tol 			= 1.0e-5
+ns.stop_when_steady 	                = 0
+ns.steady_tol 			        = 1.0e-5
 
 #*******************************************************************************
 # CFL 
@@ -19,9 +19,11 @@ ns.steady_tol 			= 1.0e-5
 
 ns.cfl  		= 0.5  # CFL number used to set dt
 ns.init_shrink       	= 1.0  # factor which multiplies the very first time step
-#ns.change_max 	      	= 1.1  # maximum change for dt (NOTE: does not seem to be implemented)
-ns.init_iter 	      	= 1    # number of initial iterations
-ns.do_init_proj = 1
+#ns.change_max 	      	 = 1.1  # maximum change for dt
+
+# Turn off IAMR's initialization procedure to check initial conditions
+#ns.init_iter 	         = 0    # number of initial iterations
+#ns.do_init_proj         = 0    # do initial projection
 
 #*******************************************************************************
 # FLUID PROPERTIES 
@@ -52,11 +54,11 @@ geometry.prob_hi     	=  1.0 1.0
 geometry.is_periodic 	=  1 1
 
 # Embedded Boundary options
-#eb2.geom_type    =  all_regular
+#eb2.geom_type    =  all_regular # No EB
 eb2.geom_type     = sphere
 eb2.sphere_radius = 0.25
-#eb2.sphere_center =  0.5  0.5  # don't forget probin: direction = 0
-eb2.sphere_center =  -0.5  0.5  # don't forget probin: direction = 1
+#eb2.sphere_center =  0.5  0.5  # don't forget prob.direction = 0
+eb2.sphere_center =  -0.5  0.5  # don't forget prob.direction = 1
 eb2.sphere_has_fluid_inside = 0
 
 #*******************************************************************************
@@ -88,7 +90,7 @@ prob.density_ic = 1.0
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		 	= 0
+amr.max_level		 	= 1
 # Refinement criterion, presence of tracer
 amr.refinement_indicators = tracer
 amr.tracer.value_greater  = 0.5
@@ -101,8 +103,6 @@ amr.ref_ratio		 	= 2 2 2 2
 amr.blocking_factor  	= 8
 # Grid efficiency (defaults to .70)
 amr.grid_eff = 0.75
-# Factor by which grids must be coarsenable. 
-amr.blocking_factor 	= 8
 
 #*******************************************************************************
 # PLOTTING AND CHECKPOINTS
@@ -129,12 +129,13 @@ amr.check_int			= 10
 
 amr.v 	            	= 1 	# AMR (top-level)
 ns.v  	            	= 1 	# NavierStokes
-diffuse.v 	       	= 1 	# Diffusion
-nodal_proj.verbose     	= 1 	# Projection
+diffuse.v 	       	= 0 	# Diffusion
+nodal_proj.verbose     	= 0 	# Projection
 
 #*******************************************************************************
 # PROJECTION SETTINGS
 #*******************************************************************************
 
-nodal_proj.proj_tol = 1.e-12
-nodal_proj.proj_abs_tol = 1.e-15
+# Usually default values work well
+#nodal_proj.proj_tol = 1.e-12
+#nodal_proj.proj_abs_tol = 1.e-15

@@ -1,5 +1,5 @@
 
-AMREX_HOME ?= ../../../amrex
+AMREX_HOME ?= ../../../../amrex
 
 TOP = $(AMREX_HOME)
 

@@ -555,7 +555,7 @@ Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert
 drag forces onto a fluid, such as in multi-phase flow calculations.
 
 Within IAMR, we provide an example of passively advected tracer particles in
-``IAMR/Exec/run_2d_particles``.
+``IAMR/Tutorials/Particles``.
 
 We provide a brief introduction to using particles in IAMR in :ref:`Chap:SetupAndRunning`.
 For more detailed information
