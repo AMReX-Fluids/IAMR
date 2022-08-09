@@ -116,3 +116,5 @@ ns.v  	            	= 1 	# NavierStokes
 #*******************************************************************************
 ns.do_mom_diff=0
 ns.do_cons_trac=1
+
+nodal_proj.proj_tol = 1.e-11
