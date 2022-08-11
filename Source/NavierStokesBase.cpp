@@ -4683,7 +4683,7 @@ NavierStokesBase::predict_velocity (Real  dt)
    //
    // Compute "grid cfl number" based on cell-centered time-n velocities
    //
-   auto umax = VectorMaxAbs({&Umf},FabArrayBase::mfiter_tile_size,0,AMREX_SPACEDIM,Umf.nGrow());
+   auto umax = Umf.norm0({AMREX_D_DECL(0,1,2)},Umf.nGrow(), /*local = */false, /*ignore_covered = */true);
    Real cflmax = dt*umax[0]/dx[0];
    for (int d=1; d<AMREX_SPACEDIM; ++d) {
      cflmax = std::max(cflmax,dt*umax[d]/dx[d]);
