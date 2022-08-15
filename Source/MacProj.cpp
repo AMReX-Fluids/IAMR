@@ -8,15 +8,13 @@
 
 #ifdef AMREX_USE_EB
 #include <hydro_ebgodunov.H>
-#include <hydro_ebmol.H>
 #endif
 #include <hydro_godunov.H>
 #include <hydro_bds.H>
-#include <hydro_mol.H>
 
 
 //fixme, for writesingle level plotfile
-#include<AMReX_PlotFileUtil.H>
+//#include<AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -550,8 +548,6 @@ MacProj::mac_sync_compute (int                   level,
         edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
     }
 
-    // Visc terms, is not used for MOL but we define it here anyways as base for the following
-    // FillPatch operator
     MultiFab visc_terms(grids,dmap,num_state_comps,ns_level.nghost_force(),
                         MFInfo(),ns_level.Factory());
     FillPatchIterator S_fpi(ns_level,visc_terms,ns_level.nghost_state(),
@@ -561,50 +557,9 @@ MacProj::mac_sync_compute (int                   level,
     //
     // Compute the mac sync correction.
     //
-    if (ns_level.advection_scheme == "MOL")
-    {
-        Vector<BCRec>  math_bcs(ncomp);
-
-        for (int comp = 0; comp < num_state_comps; ++comp)
-        {
-            // Get BCs for this component
-            math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
-
-            // Select sync MF and its component for processing
-            const int  sync_comp = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
-            MultiFab*  sync_ptr  = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
-            bool    is_velocity  = comp < AMREX_SPACEDIM ? true   : false;
-
-            BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
-                                               ? ns_level.get_bcrec_velocity_d_ptr()
-                                               : ns_level.get_bcrec_scalars_d_ptr();
-
-#ifdef AMREX_USE_EB
-            if ( !(ns_level.EBFactory().isAllRegular()) )
-            {
-                EBMOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
-                                       D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                       D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                       D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                       D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                       math_bcs, &d_bcrec_ptr[sync_comp], geom, dt,
-                                       is_velocity, ns_level.redistribution_type );
-            }
-            else
-#endif
-            {
-                MOL::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp, Smf, comp,
-                                     D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                     D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                     D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     math_bcs, &d_bcrec_ptr[sync_comp], geom, is_velocity );
-            }
-        }
-    }
-    else if ( ns_level.advection_scheme == "Godunov_PLM" ||
-              ns_level.advection_scheme == "Godunov_PPM" ||
-              ns_level.advection_scheme == "BDS" )
+    if ( ns_level.advection_scheme == "Godunov_PLM" ||
+         ns_level.advection_scheme == "Godunov_PPM" ||
+         ns_level.advection_scheme == "BDS" )
     {
         std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(ns_level.nghost_force(),prev_time));
 
@@ -871,42 +826,9 @@ MacProj::mac_sync_compute (int                    level,
     //
     // Compute the mac sync correction.
     //
-    if ( ns_level.advection_scheme == "MOL" )
-    {
-        // Bogus arguments -- they will not be used since we don't need to recompute the edge states
-        Vector<BCRec>  bcs;
-        BCRec  const* d_bcrec_ptr = NULL;
-
-#ifdef AMREX_USE_EB
-        if ( !(ns_level.EBFactory().isAllRegular()) )
-        {
-          EBMOL::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                 Sync, s_ind, // this is not used when we pass edge states
-                                 D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                                 D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                 D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                                 D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                                 bcs, d_bcrec_ptr, geom, dt,
-                                 false,  // not used when we pass edge states
-                                 ns_level.redistribution_type);
-        }
-        else
-#endif
-        {
-          MOL::ComputeSyncAofs(Sync, s_ind, ncomp,
-                               Sync, s_ind, // this is not used when we pass edge states
-                               D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                               D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                               D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                               D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                               bcs, d_bcrec_ptr, geom,
-                               false ); // not used when we pass edge states
-        }
-
-    }
-    else if ( ns_level.advection_scheme == "Godunov_PLM" ||
-              ns_level.advection_scheme == "Godunov_PPM" ||
-              ns_level.advection_scheme == "BDS")
+    if ( ns_level.advection_scheme == "Godunov_PLM" ||
+         ns_level.advection_scheme == "Godunov_PPM" ||
+         ns_level.advection_scheme == "BDS")
     {
         // Possibly unsused  arguments -- used only in EB case since we don't need to recompute the edge states
         const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;

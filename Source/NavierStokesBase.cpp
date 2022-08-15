@@ -15,7 +15,6 @@
 #include <NS_util.H>
 #include <iamr_constants.H>
 
-#include <hydro_mol.H>
 #include <hydro_godunov.H>
 #include <hydro_bds.H>
 
@@ -23,7 +22,6 @@
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EBInterpolater.H>
 #include <AMReX_EBFArrayBox.H>
-#include <hydro_ebmol.H>
 #include <hydro_ebgodunov.H>
 #include <hydro_redistribution.H>
 #endif
@@ -558,12 +556,15 @@ NavierStokesBase::Initialize ()
     // Get advection scheme options
     //
     if ( pp.contains("use_godunov") ) {
-        Abort("ns.use_godunov is depreciated. Please use ns.advection_scheme instead. Options are MOL, Godunov_PLM (default), Godunov_PPM"); // Godunov_BDS");
+        Abort("ns.use_godunov is depreciated. Please use ns.advection_scheme instead. Options are Godunov_PLM (default), Godunov_PPM, or BDS");
     }
 
     pp.query("advection_scheme", advection_scheme);
-    if ( advection_scheme != "MOL" && advection_scheme != "Godunov_PLM" && advection_scheme != "Godunov_PPM" && advection_scheme != "BDS") {
-        Abort("Invalid advection_scheme. Options are MOL, Godunov_PLM, Godunov_PPM, BDS");
+    if ( advection_scheme == "MOL" ) {
+	Abort("MOL advection scheme is no longer supported. Current options are Godunov_PLM (default), Godunov_PPM, or BDS");
+    }
+    if (advection_scheme != "Godunov_PLM" && advection_scheme != "Godunov_PPM" && advection_scheme != "BDS") {
+        Abort("Invalid advection_scheme. Options are Godunov_PLM, Godunov_PPM, BDS");
     }
 
     ParmParse pp2("godunov");
@@ -574,7 +575,7 @@ NavierStokesBase::Initialize ()
     // EB Godunov restrictions
     //
     if ( advection_scheme == "Godunov_PPM" || advection_scheme == "BDS") {
-        amrex::Abort("this advection_scheme is not implemented for EB. Options are MOL or Godunov_PLM (default)");
+        amrex::Abort("This advection_scheme is not implemented for EB. Please use Godunov_PLM (default)");
     }
     if ( godunov_use_forces_in_trans ) {
         amrex::Abort("use_forces_in_trans not implemented within EB Godunov. Set godunov.use_forces_in_trans=0.");
@@ -640,7 +641,7 @@ NavierStokesBase::advance_setup (Real /*time*/,
     const int finest_level = parent->finestLevel();
 
     // Same for EB vs not.
-    umac_n_grow = (advection_scheme == "MOL") ? 0 : 1;
+    umac_n_grow = 1;
 
 #ifdef AMREX_PARTICLES
     if (ncycle > umac_n_grow) {
@@ -3576,62 +3577,56 @@ NavierStokesBase::velocity_advection (Real dt)
         }
     }
 
-    //
-    // Forcing term not used in MOL
-    //
-    if ( advection_scheme != "MOL" )
-    {
-        MultiFab& Gp = get_old_data(Gradp_Type);
+    MultiFab& Gp = get_old_data(Gradp_Type);
 
-        FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
-        MultiFab& Smf=S_fpi.get_mf();
+    FillPatchIterator S_fpi(*this,forcing_term,nghost_force(),prev_time,State_Type,Density,NUM_SCALARS);
+    MultiFab& Smf=S_fpi.get_mf();
 
-	// Get divu to time n+1/2
-        MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
-        MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
-        delete dsdt;
-
-        MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
-        if (be_cn_theta != 1.0)
-            getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
-        else
-            visc_terms.setVal(0.0);
-
+    // Get divu to time n+1/2
+    MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
+    MultiFab::Saxpy(*divu_fp, 0.5*dt, *dsdt, 0, 0, 1, nghost_force());
+    delete dsdt;
+    
+    MultiFab visc_terms(grids,dmap,AMREX_SPACEDIM,nghost_force(),MFInfo(),Factory());
+    if (be_cn_theta != 1.0)
+        getViscTerms(visc_terms,Xvel,AMREX_SPACEDIM,prev_time);
+    else
+        visc_terms.setVal(0.0);
+    
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
+    for (MFIter U_mfi(Umf,TilingIfNotGPU()); U_mfi.isValid(); ++U_mfi)
+    {
+        
+        auto const force_bx = U_mfi.growntilebox(nghost_force()); // Box for forcing term
+        
+        if (getForceVerbose)
         {
-
-            auto const force_bx = U_mfi.growntilebox(nghost_force()); // Box for forcing term
-
-            if (getForceVerbose)
-            {
-                amrex::Print() << "---" << '\n'
-                               << "B - velocity advection:" << '\n'
-                               << "Calling getForce..." << '\n';
-            }
-            getForce(forcing_term[U_mfi],force_bx,Xvel,AMREX_SPACEDIM,
-                     prev_time,Umf[U_mfi],Smf[U_mfi],0,U_mfi);
-
-            //
-            // Compute the total forcing.
-            //
-            auto const& tf   = forcing_term.array(U_mfi,Xvel);
-            auto const& visc = visc_terms.const_array(U_mfi,Xvel);
-            auto const& gp   = Gp.const_array(U_mfi);
-            auto const& rho  = Smf.const_array(U_mfi); //Previous time, nghost_force() grow cells filled
-
-            bool is_convective = do_mom_diff ? false : true;
-            amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, is_convective]
-            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-            {
-                tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
-                if (is_convective)
-                    tf(i,j,k,n) /= rho(i,j,k);
-            });
+            amrex::Print() << "---" << '\n'
+                           << "B - velocity advection:" << '\n'
+                           << "Calling getForce..." << '\n';
         }
+        getForce(forcing_term[U_mfi],force_bx,Xvel,AMREX_SPACEDIM,
+                 prev_time,Umf[U_mfi],Smf[U_mfi],0,U_mfi);
+        
+        //
+        // Compute the total forcing.
+        //
+        auto const& tf   = forcing_term.array(U_mfi,Xvel);
+        auto const& visc = visc_terms.const_array(U_mfi,Xvel);
+        auto const& gp   = Gp.const_array(U_mfi);
+        auto const& rho  = Smf.const_array(U_mfi); //Previous time, nghost_force() grow cells filled
+        
+        bool is_convective = do_mom_diff ? false : true;
+        amrex::ParallelFor(force_bx, AMREX_SPACEDIM, [ tf, visc, gp, rho, is_convective]
+        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            tf(i,j,k,n) = ( tf(i,j,k,n) + visc(i,j,k,n) - gp(i,j,k,n) );
+            if (is_convective)
+                tf(i,j,k,n) /= rho(i,j,k);
+        });
     }
 
     ComputeAofs( Xvel, AMREX_SPACEDIM, *S_term, 0, forcing_term, *divu_fp, true, dt );
@@ -4770,23 +4765,6 @@ NavierStokesBase::predict_velocity (Real  dt)
        }
 
    }
-   else if ( advection_scheme == "MOL" )
-   {
-#ifdef AMREX_USE_EB
-       if (!EBFactory().isAllRegular())
-       {
-            EBMOL::ExtrapVelToFaces( Umf,
-                                     AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                     geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
-       }
-       else
-#endif
-       {
-            MOL::ExtrapVelToFaces( Umf,
-                                   AMREX_D_DECL(u_mac[0], u_mac[1], u_mac[2]),
-                                   geom, m_bcrec_velocity,m_bcrec_velocity_d.dataPtr());
-       }
-   }
    else
    {
        Abort("NSB::predict_velocity: Unkown advection_scheme");
@@ -4841,15 +4819,15 @@ NavierStokesBase::nghost_state ()
   else
 #endif
   {
-    return (advection_scheme == "MOL" ) ? 2 : 3;
-}
+    return 3;
+  }
 }
 
 
 int
 NavierStokesBase::nghost_force ()
 {
-    return ( advection_scheme == "MOL" ? 0 : 1 );
+    return 1;
 }
 
 
@@ -4938,37 +4916,6 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                  0, forcing_term, 0, divu, bcrec_d.dataPtr(),
                                  geom, iconserv_h, dt,
                                  godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
-        }
-    }
-    else if ( advection_scheme == "MOL" )
-    {
-        
-        //
-        // >>>>>>>>>>>>>>>>>>>>>>>>>>>  MOL ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        //
-#ifdef AMREX_USE_EB
-        if (!EBFactory().isAllRegular())
-        {
-            EBMOL::ComputeAofs(*aofs, comp, ncomp,
-                               S, S_comp,
-                               D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                               D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                               D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                               divu,
-                               bcrec_h, bcrec_d.dataPtr(), iconserv,
-                               geom, dt, is_velocity, redistribution_type );
-        }
-        else
-#endif
-        {
-            MOL::ComputeAofs(*aofs, comp, ncomp,
-                             S, S_comp,
-                             D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                             D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                             D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                             divu,
-                             bcrec_h, bcrec_d.dataPtr(), iconserv,
-                             geom, is_velocity );
         }
     }
     else

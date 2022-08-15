@@ -16,7 +16,6 @@ ns.cfl               = 0.3
 #¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨¨#
 #         Algorithm options             #
 #.......................................#
-ns.advection_scheme = MOL
 ns.do_mom_diff=1
 ns.do_cons_trac=1
 ns.do_trac2 = 1
