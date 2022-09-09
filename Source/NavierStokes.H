@@ -54,6 +54,10 @@ public:
     //
 #include "prob_init.H"
     //
+    // Build/fill any additional data structures after restart.
+    //
+    virtual void post_restart () override;
+    //
     // Do pre-plotfile work
     //
     void writePlotFilePre (const std::string& dir,

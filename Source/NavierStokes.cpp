@@ -505,6 +505,19 @@ NavierStokes::initData ()
 }
 
 //
+// Build/fill any additional data structures after restart.
+//
+void
+NavierStokes::post_restart ()
+{
+    NavierStokesBase::post_restart();
+
+    //Get probtype; NS_bcfill.H may expect it.
+    ParmParse pp("prob");
+    pp.query("probtype",probtype);
+}
+
+//
 // ADVANCE FUNCTIONS
 //
 
