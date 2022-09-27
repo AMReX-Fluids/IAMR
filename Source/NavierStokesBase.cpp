@@ -167,13 +167,6 @@ int  NavierStokesBase::have_dsdt                          = 0;
 int  NavierStokesBase::do_init_vort_proj                  = 0;
 int  NavierStokesBase::do_init_proj                       = 1;
 
-Real NavierStokesBase::volWgtSum_sub_origin_x = 0;
-Real NavierStokesBase::volWgtSum_sub_origin_y = 0;
-Real NavierStokesBase::volWgtSum_sub_origin_z = 0;
-Real NavierStokesBase::volWgtSum_sub_Rcyl     = -1;
-Real NavierStokesBase::volWgtSum_sub_dx       = -1;
-Real NavierStokesBase::volWgtSum_sub_dy       = -1;
-Real NavierStokesBase::volWgtSum_sub_dz       = -1;
 int  NavierStokesBase::do_mom_diff            = 0;
 
 std::string  NavierStokesBase::advection_scheme = "Godunov_PLM";
@@ -529,15 +522,6 @@ NavierStokesBase::Initialize ()
     pp.query("Nbuf_outflow",Nbuf_outflow);
     AMREX_ASSERT(Nbuf_outflow >= 0);
     AMREX_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
-
-    // If dx,dy,dz,Rcyl<0 (default) the volWgtSum is computed over the entire domain
-    pp.query("volWgtSum_sub_origin_x",volWgtSum_sub_origin_x);
-    pp.query("volWgtSum_sub_origin_y",volWgtSum_sub_origin_y);
-    pp.query("volWgtSum_sub_origin_z",volWgtSum_sub_origin_z);
-    pp.query("volWgtSum_sub_Rcyl",volWgtSum_sub_Rcyl);
-    pp.query("volWgtSum_sub_dx",volWgtSum_sub_dx);
-    pp.query("volWgtSum_sub_dy",volWgtSum_sub_dy);
-    pp.query("volWgtSum_sub_dz",volWgtSum_sub_dz);
 
     // Are we going to do velocity or momentum update?
     pp.query("do_mom_diff",do_mom_diff);
@@ -3913,104 +3897,6 @@ NavierStokesBase::initial_velocity_diffusion_update (Real dt)
            });
         }
     }
-}
-
-Real
-NavierStokesBase::volWgtSum (const std::string& name,
-                             Real               time)
-{
-    Real  volwgtsum = 0.0;
-    const Real* dx  = geom.CellSize();
-    auto        mf  = derive(name,time,0);
-
-    // First, zero covered regions
-    if (level < parent->finestLevel())
-    {
-        BoxArray    baf;
-        baf = parent->boxArray(level+1);
-        baf.coarsen(fine_ratio);
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-{
-	std::vector< std::pair<int,Box> > isects;
-        for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-           auto const& fabarr = mf->array(mfi);
-           int          ncomp = mf->nComp();
-           baf.intersections(grids[mfi.index()],isects);
-
-	   for (const auto& is : isects)
-	   {
-	      amrex::ParallelFor(is.second, ncomp, [fabarr]
-              AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-              {
-                 fabarr(i,j,k,n) = 0.0;
-              });
-           }
-        }
-}
-    }
-
-    // Use amrex::ReduceSum
-    // TODO set the cases for RZ, but it needs the radius to be somewhere in managed memory and so on
-    Real vol = D_TERM(dx[0],*dx[1],*dx[2]);
-#ifdef AMREX_USE_EB
-    if ( (volWgtSum_sub_dz > 0 && volWgtSum_sub_Rcyl > 0) ) {
-        amrex::Abort("EB volWgtSum currently only works over entire cartesian domain.");
-    }
-    Real sm = amrex::ReduceSum(*mf, *volfrac, 0, [vol]
-    AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& mf_arr, Array4<Real const> const& vf_arr) -> Real
-    {
-        Real sum = 0.0;
-        AMREX_LOOP_3D(bx, i, j, k,
-        {
-            sum += mf_arr(i,j,k) * vf_arr(i,j,k) * vol;
-        });
-        return sum;
-    });
-#else
-    const Real* dom_lo = geom.ProbLo();
-    const Real sub_dz = volWgtSum_sub_dz;
-    const Real sub_Rcyl = volWgtSum_sub_Rcyl;
-    Real sm = amrex::ReduceSum(*mf, 0, [vol, sub_dz, sub_Rcyl, dx, dom_lo]
-    AMREX_GPU_HOST_DEVICE (Box const& bx, Array4<Real const> const& mf_arr) -> Real
-    {
-        Real sum = 0.0;
-        if ( sub_dz > 0 && sub_Rcyl > 0 ) {
-           // TODO : test this in 2D
-           const auto lo = amrex::lbound(bx);
-           const auto hi = amrex::ubound(bx);
-           for       (int k = lo.z; k <= hi.z; ++k) {
-              Real z = dom_lo[2] + (k+0.5_rt) * dx[2];
-              if ( z <= sub_dz ) {
-                 for    (int j = lo.y; j <= hi.y; ++j) {
-                    Real y = dom_lo[1] + (j+0.5_rt) * dx[1];
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                       Real x = dom_lo[0] + (i+0.5_rt) * dx[0];
-                       Real r = std::sqrt(x*x + y*y);
-                       if ( r <= sub_Rcyl ) {
-                          sum += mf_arr(i,j,k) * vol;
-                       }
-                    }
-                 }
-              }
-           }
-        } else {
-           AMREX_LOOP_3D(bx, i, j, k,
-           {
-               sum += mf_arr(i,j,k) * vol;
-           });
-        }
-        return sum;
-    });
-#endif
-
-    volwgtsum = sm;
-
-    ParallelDescriptor::ReduceRealSum(volwgtsum);
-
-    return volwgtsum;
 }
 
 #ifdef AMREX_PARTICLES

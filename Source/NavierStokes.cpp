@@ -1075,19 +1075,30 @@ void
 NavierStokes::sum_integrated_quantities ()
 {
     const int finest_level = parent->finestLevel();
+    const Real time = state[State_Type].curTime();
 
-    Real time = state[State_Type].curTime();
-    Real mass = 0.0;
-    Real trac = 0.0;
-    Real energy = 0.0;
+    Vector<const MultiFab*> mf(finest_level+1);
+
+    // Container to hold derived data
+    Vector<std::unique_ptr<MultiFab>> derived_mf(finest_level+1);
+    // Proper container for call to volumeWeightedSum
+    Vector<const MultiFab*> derived_mf_ptrs(finest_level+1);
 
     for (int lev = 0; lev <= finest_level; lev++)
     {
         NavierStokes& ns_level = getLevel(lev);
-	mass += ns_level.volWgtSum("density",time);
-	trac += ns_level.volWgtSum("tracer",time);
-        energy += ns_level.volWgtSum("energy",time);
+
+        mf[lev] = &ns_level.get_new_data(State_Type);
+        derived_mf[lev] = ns_level.derive("energy",time,0);
+        derived_mf_ptrs[lev] = derived_mf[lev].get();
     }
+
+    Real mass   = volumeWeightedSum(mf, Density,
+                                    parent->Geom(), parent->refRatio());
+    Real trac   = volumeWeightedSum(mf, Tracer,
+                                    parent->Geom(), parent->refRatio());
+    Real energy = volumeWeightedSum(derived_mf_ptrs, 0,
+                                    parent->Geom(), parent->refRatio());
 
     Print() << '\n';
     Print().SetPrecision(12) << "TIME= " << time << " MASS= " << mass << '\n';

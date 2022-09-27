@@ -390,9 +390,6 @@ public:
                           int src_comp);
 
 
-    amrex::Real volWgtSum (const std::string& name,
-                           amrex::Real               time);
-
     //////////////////////////////////////////////////////////////////
     //    NavierStokesBase virtual functions                        //
     //////////////////////////////////////////////////////////////////
@@ -776,16 +773,6 @@ public:
     static int  have_dsdt;
     static int  do_init_vort_proj;
     static int  do_init_proj;
-    //
-    // Running statistics controls
-    //
-    static amrex::Real volWgtSum_sub_origin_x;
-    static amrex::Real volWgtSum_sub_origin_y;
-    static amrex::Real volWgtSum_sub_origin_z;
-    static amrex::Real volWgtSum_sub_Rcyl;
-    static amrex::Real volWgtSum_sub_dx;
-    static amrex::Real volWgtSum_sub_dy;
-    static amrex::Real volWgtSum_sub_dz;
     //
     // Control velocity vs momentum update
     //
