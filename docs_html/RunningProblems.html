@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -218,10 +219,10 @@ If <code class="code cpp docutils literal notranslate"><span class="pre">ns.fixe
 </ul>
 </div></blockquote>
 <p>As an example, consider:</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="p">.</span><span class="n">cfl</span> <span class="o">=</span> <span class="mf">0.9</span>
-<span class="n">ns</span><span class="p">.</span><span class="n">init_shrink</span> <span class="o">=</span> <span class="mf">0.01</span>
-<span class="n">ns</span><span class="p">.</span><span class="n">change_max</span> <span class="o">=</span> <span class="mf">1.1</span>
-<span class="n">ns</span><span class="p">.</span><span class="n">dt_cutoff</span> <span class="o">=</span> <span class="mf">1.e-20</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="p">.</span><span class="n">cfl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.9</span><span class="w"></span>
+<span class="n">ns</span><span class="p">.</span><span class="n">init_shrink</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span><span class="w"></span>
+<span class="n">ns</span><span class="p">.</span><span class="n">change_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.1</span><span class="w"></span>
+<span class="n">ns</span><span class="p">.</span><span class="n">dt_cutoff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span><span class="n">e</span><span class="mi">-20</span><span class="w"></span>
 </pre></div>
 </div>
 <p>This defines the <code class="code cpp docutils literal notranslate"><span class="pre">cfl</span></code> parameter to be 0.9,

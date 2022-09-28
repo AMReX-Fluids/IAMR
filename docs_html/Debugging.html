@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -98,18 +99,18 @@ the code to fail durning the debugging process.</p>
 time subcycling off and advance the whole system at the same dt.</p>
 <p>Visualizing the data between plotiles can sometimes be helpful.
 One option is to use</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span> <span class="n">amrex</span><span class="o">::</span><span class="n">WriteSingleLevelPlotfile</span> <span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">plotfilename</span><span class="p">,</span>
-                                      <span class="k">const</span> <span class="n">MultiFab</span> <span class="o">&amp;</span><span class="n">mf</span><span class="p">,</span>
-                                      <span class="k">const</span> <span class="n">Vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">varnames</span><span class="p">,</span>
-                                      <span class="k">const</span> <span class="n">Geometry</span> <span class="o">&amp;</span><span class="n">geom</span><span class="p">,</span>
-                                      <span class="n">Real</span> <span class="n">time</span><span class="p">,</span>
-                                      <span class="kt">int</span> <span class="n">level_step</span><span class="p">);</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">amrex::WriteSingleLevelPlotfile</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">plotfilename</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">MultiFab</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mf</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">varnames</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">Geometry</span><span class="w"> </span><span class="o">&amp;</span><span class="n">geom</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                      </span><span class="n">Real</span><span class="w"> </span><span class="n">time</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                      </span><span class="kt">int</span><span class="w"> </span><span class="n">level_step</span><span class="p">);</span><span class="w"></span>
 </pre></div>
 </div>
 <p>Plotfiles can be compared using AMReX’s <code class="docutils literal notranslate"><span class="pre">fcompare</span></code> tool found in
 <code class="docutils literal notranslate"><span class="pre">amrex/Tools/Plotfile</span></code>.
 Another option is to write a <code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> to disk with</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">amrex</span><span class="o">::</span><span class="n">VisMF</span><span class="o">::</span><span class="n">Write</span><span class="p">(</span><span class="k">const</span> <span class="n">FabArray</span><span class="o">&lt;</span><span class="n">FArrayBox</span><span class="o">&gt;&amp;</span> <span class="n">mf</span><span class="p">,</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span> <span class="n">name</span><span class="p">)</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">amrex</span><span class="o">::</span><span class="n">VisMF</span><span class="o">::</span><span class="n">Write</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FabArray</span><span class="o">&lt;</span><span class="n">FArrayBox</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">mf</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"></span>
 </pre></div>
 </div>
 <p>This can then be examined in <code class="docutils literal notranslate"><span class="pre">Amrvis</span></code> by passing the <code class="docutils literal notranslate"><span class="pre">-mf</span></code> flag.

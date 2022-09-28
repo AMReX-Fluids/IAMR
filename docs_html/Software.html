@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
         <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -439,10 +440,10 @@ A typical usage of MultiFab is as follows,</p>
 </div>
 <p>A few comments about this code</p>
 <ul class="simple">
-<li><p>Here the iterator, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span></code>, will perform the loop only over the
+<li><p>Here the iterator, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="w"></span></code>, will perform the loop only over the
 boxes that are local to the MPI task. If there are 3 boxes on the
 processor, then this loop has 3 iterations.</p></li>
-<li><p>box as returned from <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">.</span><span class="n">validbox</span><span class="p">()</span></code> does not include
+<li><p>box as returned from <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">.</span><span class="n">validbox</span><span class="p">()</span><span class="w"></span></code> does not include
 ghost cells. We can get the indices of the valid zones as box.loVect and box.hiVect.</p></li>
 </ul>
 </div>
@@ -480,11 +481,11 @@ Some comments:</p>
 that can take an IntVect that explicitly gives the tile size
 in each coordinate direction.</p>
 <p>If we don’t explictly specify the tile size at the loop, then the
-runtime parameter <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span></code> can be used to set it
+runtime parameter <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span><span class="w"></span></code> can be used to set it
 globally.</p>
 </li>
-<li><p><code class="code highlight cpp c++ docutils literal highlight-c++"><span class="p">.</span><span class="n">validBox</span><span class="p">()</span></code> has the same meaning as in the non-tile approach,
-so we don’t use it. Instead, we use <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="p">.</span><span class="n">tilebox</span><span class="p">()</span></code> to get the
+<li><p><code class="code highlight cpp c++ docutils literal highlight-c++"><span class="p">.</span><span class="n">validBox</span><span class="p">()</span><span class="w"></span></code> has the same meaning as in the non-tile approach,
+so we don’t use it. Instead, we use <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="p">.</span><span class="n">tilebox</span><span class="p">()</span><span class="w"></span></code> to get the
 Box (and corresponding lo and hi) for the <em>current tile</em>, not the entire data region.</p></li>
 </ul>
 <p>Let us consider an example. Suppose there are four boxes:</p>
@@ -498,13 +499,13 @@ into 4 tiles. So there are 12 tiles in total. The difference between
 the tiling and non-tiling version are then:</p>
 <ul class="simple">
 <li><p>In the tiling version,
-the loop body will be run 12 times. Note that <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">tilebox</span></code> is
-different for each tile, whereas <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fab</span></code> might be referencing the
+the loop body will be run 12 times. Note that <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">tilebox</span><span class="w"></span></code> is
+different for each tile, whereas <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fab</span><span class="w"></span></code> might be referencing the
 same object if the tiles belong to the same box.</p></li>
 <li><p>In the non-tiling
 version (by constructing MFIter without the optional second
 argument or setting to false), the loop body will be run 4 times
-because there are four boxes, and a call to <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">.</span><span class="n">tilebox</span><span class="p">()</span></code> will
+because there are four boxes, and a call to <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">.</span><span class="n">tilebox</span><span class="p">()</span><span class="w"></span></code> will
 return the traditional validbox. The non-tiling case is
 essentially having one tile per box.</p></li>
 </ul>
@@ -525,10 +526,10 @@ threading could also be started within the function/loop called inside the
 MFIter loop, rather than at the MFIter loop level, this
 is not the approach taken in IAMR.</p>
 <p>The tile size for the three spatial dimensions can be set by a
-parameter, e.g., <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span> <span class="o">=</span> <span class="mi">1024000</span> <span class="mi">8</span> <span class="mi">8</span></code>. A
+parameter, e.g., <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024000</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="mi">8</span><span class="w"></span></code>. A
 huge number like 1024000 will turn off tiling in that direction.
 As noted above, the MFIter constructor can also take an explicit
-tile size: <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MFIter</span><span class="p">(</span><span class="n">mfi</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">32</span><span class="p">)))</span></code>.</p>
+tile size: <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MFIter</span><span class="p">(</span><span class="n">mfi</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span><span class="n">IntVect</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">32</span><span class="p">)))</span><span class="w"></span></code>.</p>
 <p>Note that tiling can naturally transition from all threads working
 on a single box to each thread working on a separate box as the boxes
 coarsen (e.g., in multigrid).</p>
@@ -555,14 +556,14 @@ a tiled region are safe to use with OpenMP. In particular, note that:</p>
 <ul class="simple">
 <li><p>tile boxes are non-overlapping</p></li>
 <li><p>the union of tile boxes completely cover the valid region of the fab</p></li>
-<li><p>Consider working with a node-centered MultiFab, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">s_nd</span></code>, and a
-cell-centered MultiFab, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">s_cc</span></code>:</p>
+<li><p>Consider working with a node-centered MultiFab, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">s_nd</span><span class="w"></span></code>, and a
+cell-centered MultiFab, <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">s_cc</span><span class="w"></span></code>:</p>
 <ul>
-<li><p>with <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">(</span><span class="n">s_cc</span><span class="p">)</span></code>, the tiles are based on the cell-centered
+<li><p>with <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">(</span><span class="n">s_cc</span><span class="p">)</span><span class="w"></span></code>, the tiles are based on the cell-centered
 index space. If you have an <span class="math notranslate nohighlight">\(8\times 8\)</span> box, then and 4 tiles, then
 your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow
 7\)</span>.</p></li>
-<li><p>with <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">(</span><span class="n">s_nd</span><span class="p">)</span></code>, the tiles are based on nodal indices,
+<li><p>with <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">mfi</span><span class="p">(</span><span class="n">s_nd</span><span class="p">)</span><span class="w"></span></code>, the tiles are based on nodal indices,
 so your tiling boxes will range from <span class="math notranslate nohighlight">\(0\rightarrow 3\)</span>, <span class="math notranslate nohighlight">\(4\rightarrow 8\)</span>.</p></li>
 </ul>
 </li>
@@ -596,13 +597,13 @@ more than one grid per MPI rank, and different strategies for distributing the g
 IAMR relies on AMReX for the implementation. For more information, please see AMReX’s documentation,
 found here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/ManagingGridHierarchy_Chapter.html#chap-managinggridhierarchy" title="(in amrex v22.10-dev)"><span>Gridding and Load Balancing</span></a>.</p>
 <p>See <a class="reference internal" href="#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a> and <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/InputsLoadBalancing.html#chap-inputsloadbalancing" title="(in amrex v22.10-dev)"><span>Gridding and Load Balancing</span></a> for how grids are created,
-i.e. how the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">BoxArray</span></code> on which
-<code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span></code> will be built is defined at each level.</p>
+i.e. how the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">BoxArray</span><span class="w"></span></code> on which
+<code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span><span class="w"></span></code> will be built is defined at each level.</p>
 <p>See <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LoadBalancing.html#sec-load-balancing" title="(in amrex v22.10-dev)"><span>Load Balancing</span></a> for the strategies AMReX supports for distributing
-grids to MPI ranks, i.e. defining the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">DistributionMapping</span></code> with which
-<code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span></code> at that level will be built.</p>
+grids to MPI ranks, i.e. defining the <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">DistributionMapping</span><span class="w"></span></code> with which
+<code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">MultiFabs</span><span class="w"></span></code> at that level will be built.</p>
 <p>When running on multicore machines with OpenMP, we can also control the distribution of
-work by setting the size of grid tiles (by defining <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span></code>,
+work by setting the size of grid tiles (by defining <code class="code highlight cpp c++ docutils literal highlight-c++"><span class="n">fabarray</span><span class="p">.</span><span class="n">mfiter_tile_size</span><span class="w"></span></code>,
 see <a class="reference internal" href="RunningProblems.html#sec-tilinginputs"><span class="std std-ref">Tiling</span></a>).
 We can also specify the strategy for assigning tiles to OpenMP threads.
 See <a class="reference internal" href="#chap-parallel"><span class="std std-ref">Parallelization</span></a> and AMReX’s docmumentation (<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-mfiter-tiling" title="(in amrex v22.10-dev)"><span>MFIter with Tiling</span></a>) for more about tiling.</p>
@@ -663,8 +664,8 @@ Available tests include</p>
 This first example tags all cells inside the region ((.25,.25)(.75,.75)):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">refinement_indicators</span> <span class="o">=</span> <span class="n">box</span>
 
-<span class="n">amr</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">in_box_lo</span> <span class="o">=</span> <span class="o">.</span><span class="mi">25</span> <span class="o">.</span><span class="mi">25</span>
-<span class="n">amr</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">in_box_hi</span> <span class="o">=</span> <span class="o">.</span><span class="mi">75</span> <span class="o">.</span><span class="mi">75</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">in_box_lo</span> <span class="o">=</span> <span class="mf">.25</span> <span class="mf">.25</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">box</span><span class="o">.</span><span class="n">in_box_hi</span> <span class="o">=</span> <span class="mf">.75</span> <span class="mf">.75</span>
 </pre></div>
 </div>
 <p>The next example adds three user-named criteria –
@@ -684,8 +685,8 @@ The third will be active only when the problem time is between 0.001 and 0.002 s
 <span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">value_less</span> <span class="o">=</span> <span class="mi">450</span>
 <span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">field_name</span> <span class="o">=</span> <span class="n">temp</span>
-<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">in_box_lo</span> <span class="o">=</span> <span class="o">.</span><span class="mi">25</span> <span class="o">.</span><span class="mi">25</span>
-<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">in_box_hi</span> <span class="o">=</span> <span class="o">.</span><span class="mi">75</span> <span class="o">.</span><span class="mi">75</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">in_box_lo</span> <span class="o">=</span> <span class="mf">.25</span> <span class="mf">.25</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">lo_temp</span><span class="o">.</span><span class="n">in_box_hi</span> <span class="o">=</span> <span class="mf">.75</span> <span class="mf">.75</span>
 
 <span class="n">amr</span><span class="o">.</span><span class="n">Tdiff</span><span class="o">.</span><span class="n">max_level</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="n">amr</span><span class="o">.</span><span class="n">Tdiff</span><span class="o">.</span><span class="n">adjacent_difference_greater</span> <span class="o">=</span> <span class="mi">20</span>
