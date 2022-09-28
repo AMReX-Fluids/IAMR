@@ -523,6 +523,12 @@ NavierStokesBase::Initialize ()
     AMREX_ASSERT(Nbuf_outflow >= 0);
     AMREX_ASSERT(!(Nbuf_outflow <= 0 && do_derefine_outflow == 1));
 
+    // Provide error message for depreciated volume weighted sum over a sub-domain.
+    // NSB only ever supported cylinder sub-domains, so check for that one.
+    if (pp.contains("volWgtSum_sub_dz")) {
+	Abort("Computing volume weighted sum over sub-domains is no longer supported. If desired, submit an issue on github");
+    };
+
     // Are we going to do velocity or momentum update?
     pp.query("do_mom_diff",do_mom_diff);
 
