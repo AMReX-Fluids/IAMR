@@ -280,3 +280,7 @@ Fixes to create_umac_grown
 
 9/6/22
 Fix for multilevel RZ in filling Umac ghost cells. Create IAMR/Tutorials and reserve IAMR/Exec for regression tests. Remove MOL advection scheme. Update regression tests for removal of MOL, and also lower projection tolerance in EB double shear layer test. Update Documentation. Misc. minor clean up.
+
+10/4/22
+Restart bug fix: read probtype.
+Remove unmaintained option to compute a volume-weighted sum over a sub-region.
