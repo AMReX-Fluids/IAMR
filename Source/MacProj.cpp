@@ -531,8 +531,6 @@ MacProj::mac_sync_compute (int                   level,
     // mac register update.
     AMREX_ASSERT(num_state_comps == AMREX_SPACEDIM || num_state_comps == ns_level.NUM_STATE);
 
-    const int  ncomp = 1;         // Number of components to process at once
-
     const int  nghost  = 0;
 
     //
@@ -545,7 +543,7 @@ MacProj::mac_sync_compute (int                   level,
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
         fluxes[i].define(ba, dmap, num_state_comps, nghost, MFInfo(),ns_level.Factory());
-        edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), ns_level.Factory());
+        edgestate[i].define(ba, dmap, amrex::max(AMREX_SPACEDIM, (num_state_comps-AMREX_SPACEDIM)), nghost, MFInfo(), ns_level.Factory());
     }
 
     MultiFab visc_terms(grids,dmap,num_state_comps,ns_level.nghost_force(),
@@ -697,8 +695,14 @@ MacProj::mac_sync_compute (int                   level,
         //
         // Perform sync
         //
-        for (int comp = 0; comp < num_state_comps; ++comp)
         {
+            //
+            // Do velocity first.
+            // Must do all velocity components together for correct BC enforcement in Hydro
+            //
+            int comp = 0;
+            int ncomp = AMREX_SPACEDIM;
+
             // Select sync MF and its component for processing
             const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
             MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
@@ -764,6 +768,79 @@ MacProj::mac_sync_compute (int                   level,
                                          is_velocity );
             }
         }
+
+        {
+            //
+            // Now do scalars
+            //
+            int comp = AMREX_SPACEDIM;
+            int ncomp = num_state_comps - AMREX_SPACEDIM;
+
+            const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
+            MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
+            const bool is_velocity = comp < AMREX_SPACEDIM ? true   : false;
+            BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
+                                               ? &(ns_level.get_bcrec_velocity_d_ptr())[sync_comp]
+                                               : &(ns_level.get_bcrec_scalars_d_ptr())[sync_comp];
+
+            const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
+
+            amrex::Gpu::DeviceVector<int> iconserv;
+            Vector<int> iconserv_h;
+            iconserv.resize(ncomp);
+            iconserv_h.resize(ncomp, 0);
+            for (int icomp = 0; icomp < ncomp; icomp++) {
+                iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
+            }
+            Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
+            bool godunov_use_ppm = ( ns_level.advection_scheme == "Godunov_PPM" ? true : false );
+
+#ifdef AMREX_USE_EB
+            if ( !(ns_level.EBFactory().isAllRegular()) )
+            {
+                // Get BCs for this component
+                Vector<BCRec>  math_bcs(ncomp);
+                math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
+
+                EBGodunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+                                           Q, comp,
+                                           AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                           AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                           AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                           AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                           forcing_term, comp, *divu_fp,
+                                           math_bcs, d_bcrec_ptr,
+                                           geom, iconserv, dt, is_velocity,
+                                           ns_level.redistribution_type);
+            }
+            else
+#endif
+            if (ns_level.advection_scheme == "BDS" && (!is_velocity))
+            {
+                BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+                                     Q, comp,
+                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                     forcing_term, comp, *divu_fp,
+                                     d_bcrec_ptr, geom, iconserv, dt, is_velocity);
+            }
+            else
+            {
+                Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
+                                         Q, comp,
+                                         AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
+                                         AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
+                                         AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
+                                         AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
+                                         forcing_term, comp, *divu_fp,
+                                         d_bcrec_ptr, geom, iconserv, dt,
+                                         godunov_use_ppm, ns_level.GodunovUseForcesInTrans(),
+                                         is_velocity );
+            }
+        }
+
     }
     else
     {
