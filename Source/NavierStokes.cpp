@@ -877,8 +877,8 @@ NavierStokes::scalar_update (Real dt,
     {
        if (S_new.contains_nan(sigma,1,0))
        {
-	 Print() << "New scalar " << sigma << " contains Nans" << '\n';
-	 exit(0);
+         Print() << "New scalar " << sigma << " contains Nans" << '\n';
+         exit(0);
        }
     }
 }
@@ -1517,7 +1517,7 @@ NavierStokes::mac_sync ()
     // the correction is the advective tendency of the new velocities.
     //
     MultiFab& S_new = get_new_data(State_Type);
-    mac_projector->mac_sync_compute(level,Ucorr,u_mac,Vsync,Ssync,
+    mac_projector->mac_sync_compute(level,Ucorr,Vsync,Ssync,
 				    level > 0 ? &getAdvFluxReg(level) : 0,
 				    advectionType, prev_time,dt,
 				    NUM_STATE,be_cn_theta,

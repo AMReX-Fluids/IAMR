@@ -582,6 +582,16 @@ public:
                       amrex::MultiFab const& forcing_term,
                       amrex::MultiFab const& divu,
                       bool is_velocity, amrex::Real dt);
+    void ComputeAofs ( amrex::MultiFab& advc, int a_comp,
+                       int state_indx, int ncomp,
+                       amrex::MultiFab const& S, int S_comp,
+                       amrex::MultiFab const* forcing, int f_comp,
+                       amrex::MultiFab const* divu,
+                       amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& cfluxes, int flux_comp,
+                       amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
+                       bool known_edge_state,
+                       bool is_velocity, amrex::Real dt,
+                       bool is_sync, amrex::Array<amrex::MultiFab*, AMREX_SPACEDIM> const& Uflux);
 
 //
 // Data

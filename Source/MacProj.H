@@ -59,7 +59,6 @@ public:
     //
     void mac_sync_compute (int                          level,
 			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
-                           amrex::MultiFab*             u_mac,
                            amrex::MultiFab&             Vsync,
                            amrex::MultiFab&             Ssync,
                            amrex::FluxRegister*         adv_flux_reg,
@@ -79,7 +78,6 @@ public:
                            amrex::MultiFab* const*      sync_edges,
 			   int                          eComp,
                            amrex::FluxRegister*         adv_flux_reg,
-                           amrex::Vector<AdvectionForm>& advectionType,
                            amrex::Real                   dt,
 			   bool                          update_fluxreg = true);
 

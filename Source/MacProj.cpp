@@ -505,7 +505,6 @@ MacProj::mac_sync_solve (int       level,
 void
 MacProj::mac_sync_compute (int                   level,
                            Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
-                           MultiFab*             u_mac,
                            MultiFab&             Vsync,
                            MultiFab&             Ssync,
                            FluxRegister*         adv_flux_reg,
@@ -522,7 +521,6 @@ MacProj::mac_sync_compute (int                   level,
     //
     const BoxArray& grids               = LevelData[level]->boxArray();
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
-    const Geometry& geom                = parent->Geom(level);
     NavierStokesBase&   ns_level        = *(NavierStokesBase*) &(parent->getLevel(level));
     const MultiFab* area                = ns_level.Area();
 
@@ -531,19 +529,17 @@ MacProj::mac_sync_compute (int                   level,
     // mac register update.
     AMREX_ASSERT(num_state_comps == AMREX_SPACEDIM || num_state_comps == ns_level.NUM_STATE);
 
-    const int  nghost  = 0;
-
     //
     // Prep MFs to store fluxes and edge states
     //
-    MultiFab fluxes[AMREX_SPACEDIM];
-    MultiFab edgestate[AMREX_SPACEDIM];
-
+    Array<MultiFab, AMREX_SPACEDIM> fluxes;
+    Array<MultiFab, AMREX_SPACEDIM> edgestate;
+    const int  nghost  = 0;
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
         fluxes[i].define(ba, dmap, num_state_comps, nghost, MFInfo(),ns_level.Factory());
-        edgestate[i].define(ba, dmap, amrex::max(AMREX_SPACEDIM, (num_state_comps-AMREX_SPACEDIM)), nghost, MFInfo(), ns_level.Factory());
+        edgestate[i].define(ba, dmap, num_state_comps, nghost, MFInfo(), ns_level.Factory());
     }
 
     MultiFab visc_terms(grids,dmap,num_state_comps,ns_level.nghost_force(),
@@ -552,6 +548,25 @@ MacProj::mac_sync_compute (int                   level,
                             prev_time,State_Type,0,num_state_comps);
     MultiFab& Smf = S_fpi.get_mf();
 
+    // Get density -- Smf might or might not contain rho.
+    FillPatchIterator rho_fpi(ns_level,visc_terms,ns_level.nghost_state(),
+                              prev_time,State_Type,Density,1);
+    MultiFab& rhoMF = rho_fpi.get_mf();
+
+    // Store momenta multifab if conservative approach is used.
+    MultiFab momenta;
+    if  (do_mom_diff == 1)
+    {
+        momenta.define(grids,dmap, AMREX_SPACEDIM, Smf.nGrow(), MFInfo(), Smf.Factory());
+        MultiFab::Copy(momenta,Smf,0,0,AMREX_SPACEDIM, Smf.nGrow());
+        for (int d=0; d < AMREX_SPACEDIM; ++d )
+            MultiFab::Multiply( momenta, rhoMF, 0, d, 1, Smf.nGrow());
+    }
+
+    std::unique_ptr<MultiFab> forcing_term;
+    std::unique_ptr<MultiFab> divu_fp;
+
+
     //
     // Compute the mac sync correction.
     //
@@ -559,7 +574,9 @@ MacProj::mac_sync_compute (int                   level,
          ns_level.advection_scheme == "Godunov_PPM" ||
          ns_level.advection_scheme == "BDS" )
     {
-        std::unique_ptr<MultiFab> divu_fp (ns_level.getDivCond(ns_level.nghost_force(),prev_time));
+
+        forcing_term.reset(new MultiFab(grids, dmap, num_state_comps, ns_level.nghost_force()));
+        divu_fp.reset(ns_level.getDivCond(ns_level.nghost_force(),prev_time));
 
         MultiFab& Gp = ns_level.get_old_data(Gradp_Type);
 
@@ -571,34 +588,9 @@ MacProj::mac_sync_compute (int                   level,
             ns_level.getViscTerms(visc_terms,0,num_state_comps,prev_time);
         }
 
-        // Get density -- this isn't really needed if doing all of the state components...
-        FillPatchIterator rho_fpi(ns_level,visc_terms,ns_level.nghost_state(),
-                                  prev_time,State_Type,Density,1);
-        MultiFab& rhoMF = rho_fpi.get_mf();
-
-        // FIXME? - not sure we really need this momenta MF; could probably do with a
-        // temporary FAB in the sync loop...
-        //
-        // Store momenta multifab if conservative approach is used,
-        // i.e. rho* u.
-        // We make it with AMREX_SPACEDIM components instead of only one
-        // (loop below is done component by component) because ComputeSyncAofs will
-        // need to know which component of velocity is being processed.
-        MultiFab momenta;
-        if  (do_mom_diff == 1)
-        {
-            momenta.define(grids,dmap, AMREX_SPACEDIM, Smf.nGrow(), MFInfo(), Smf.Factory());
-            MultiFab::Copy(momenta,Smf,0,0,AMREX_SPACEDIM, Smf.nGrow());
-            for (int d=0; d < AMREX_SPACEDIM; ++d )
-                MultiFab::Multiply( momenta, rhoMF, 0, d, 1, Smf.nGrow());
-        }
-
-
         //
         // Compute forcing terms
         //
-        MultiFab forcing_term(grids, dmap, num_state_comps, ns_level.nghost_force());
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -609,13 +601,15 @@ MacProj::mac_sync_compute (int                   level,
             //
             // Compute total forcing terms.
             //
-            ns_level.getForce(forcing_term[Smfi],gbx,0,num_state_comps,
+            ns_level.getForce(forcing_term->get(Smfi),gbx,0,num_state_comps,
                               prev_time,Smf[Smfi],rhoMF[Smfi],0,Smfi);
 
             for (int comp = 0; comp < num_state_comps; ++comp)
             {
-                auto const& tf    = forcing_term.array(Smfi,comp);
+                auto const& tf    = forcing_term->array(Smfi,comp);
 
+                // This part really should be a function within NS/NSB, since it relies on how
+                // things were compute there ...
                 if (comp < AMREX_SPACEDIM)  // Velocity/Momenta
                 {
                     auto const& visc = visc_terms[Smfi].const_array(comp);
@@ -692,159 +686,43 @@ MacProj::mac_sync_compute (int                   level,
             }
         }
 
-        //
-        // Perform sync
-        //
-        {
-            //
-            // Do velocity first.
-            // Must do all velocity components together for correct BC enforcement in Hydro
-            //
-            int comp = 0;
-            int ncomp = AMREX_SPACEDIM;
-
-            // Select sync MF and its component for processing
-            const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
-            MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
-            const bool is_velocity = comp < AMREX_SPACEDIM ? true   : false;
-            BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
-                                               ? &(ns_level.get_bcrec_velocity_d_ptr())[sync_comp]
-                                               : &(ns_level.get_bcrec_scalars_d_ptr())[sync_comp];
-
-            const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
-
-            amrex::Gpu::DeviceVector<int> iconserv;
-            Vector<int> iconserv_h;
-            iconserv.resize(ncomp);
-            iconserv_h.resize(ncomp, 0);
-            for (int icomp = 0; icomp < ncomp; icomp++) {
-                iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
-            }
-            Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
-            bool godunov_use_ppm = ( ns_level.advection_scheme == "Godunov_PPM" ? true : false );
-
-#ifdef AMREX_USE_EB
-            if ( !(ns_level.EBFactory().isAllRegular()) )
-            {
-                // Get BCs for this component
-                Vector<BCRec>  math_bcs(ncomp);
-                math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
-
-                EBGodunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                           Q, comp,
-                                           AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                           AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                           AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                           AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                           forcing_term, comp, *divu_fp,
-                                           math_bcs, d_bcrec_ptr,
-                                           geom, iconserv, dt, is_velocity,
-                                           ns_level.redistribution_type);
-            }
-            else
-#endif
-            if (ns_level.advection_scheme == "BDS" && (!is_velocity))
-            {
-                BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                     Q, comp,
-                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     forcing_term, comp, *divu_fp,
-                                     d_bcrec_ptr, geom, iconserv, dt, is_velocity);
-            }
-            else
-            {
-                Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                         Q, comp,
-                                         AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                         AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                         AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                         AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                         forcing_term, comp, *divu_fp,
-                                         d_bcrec_ptr, geom, iconserv, dt,
-                                         godunov_use_ppm, ns_level.GodunovUseForcesInTrans(),
-                                         is_velocity );
-            }
-        }
-
-        {
-            //
-            // Now do scalars
-            //
-            int comp = AMREX_SPACEDIM;
-            int ncomp = num_state_comps - AMREX_SPACEDIM;
-
-            const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
-            MultiFab*  sync_ptr    = comp < AMREX_SPACEDIM ? &Vsync : &Ssync;
-            const bool is_velocity = comp < AMREX_SPACEDIM ? true   : false;
-            BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
-                                               ? &(ns_level.get_bcrec_velocity_d_ptr())[sync_comp]
-                                               : &(ns_level.get_bcrec_scalars_d_ptr())[sync_comp];
-
-            const auto& Q = (do_mom_diff == 1 and comp < AMREX_SPACEDIM) ? momenta : Smf;
-
-            amrex::Gpu::DeviceVector<int> iconserv;
-            Vector<int> iconserv_h;
-            iconserv.resize(ncomp);
-            iconserv_h.resize(ncomp, 0);
-            for (int icomp = 0; icomp < ncomp; icomp++) {
-                iconserv_h[icomp] = (advectionType[comp+icomp] == Conservative) ? 1 : 0;
-            }
-            Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
-            bool godunov_use_ppm = ( ns_level.advection_scheme == "Godunov_PPM" ? true : false );
-
-#ifdef AMREX_USE_EB
-            if ( !(ns_level.EBFactory().isAllRegular()) )
-            {
-                // Get BCs for this component
-                Vector<BCRec>  math_bcs(ncomp);
-                math_bcs = ns_level.fetchBCArray(State_Type, comp, ncomp);
-
-                EBGodunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                           Q, comp,
-                                           AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                           AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                           AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                           AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                           forcing_term, comp, *divu_fp,
-                                           math_bcs, d_bcrec_ptr,
-                                           geom, iconserv, dt, is_velocity,
-                                           ns_level.redistribution_type);
-            }
-            else
-#endif
-            if (ns_level.advection_scheme == "BDS" && (!is_velocity))
-            {
-                BDS::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                     Q, comp,
-                                     AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                     AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                     forcing_term, comp, *divu_fp,
-                                     d_bcrec_ptr, geom, iconserv, dt, is_velocity);
-            }
-            else
-            {
-                Godunov::ComputeSyncAofs(*sync_ptr, sync_comp, ncomp,
-                                         Q, comp,
-                                         AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                         AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                         AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]), 0, false,
-                                         AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), comp,
-                                         forcing_term, comp, *divu_fp,
-                                         d_bcrec_ptr, geom, iconserv, dt,
-                                         godunov_use_ppm, ns_level.GodunovUseForcesInTrans(),
-                                         is_velocity );
-            }
-        }
-
     }
     else
     {
         Abort("MacProj::mac_sync_compute: Unkown adveciton scheme");
+    }
+
+        //
+        // Perform sync
+        //
+
+    //
+    // Do velocity sync first
+    //
+    ns_level.ComputeAofs(Vsync, /*Vsync_comp*/ 0, /*state_indx*/ 0,
+                         /*num comps*/ AMREX_SPACEDIM,
+                         /*State*/ (do_mom_diff == 1) ? momenta : Smf, /*S_comp*/ 0,
+                         forcing_term.get(), /*forcing_term_comp*/ 0,
+                         divu_fp.get(),
+                         fluxes, /*flux_comp*/ 0,
+                         edgestate, /*edge_comp*/ 0, /*known_edgestate*/ false,
+                         /*is_velocity*/ true, dt,
+                         /*is_sync*/ true, Ucorr);
+
+    if (num_state_comps > AMREX_SPACEDIM)
+            {
+        //
+        // Also compute scalar sync. Recall that it must be all the scalars here.
+        //
+        ns_level.ComputeAofs(Ssync, /*Ssync_comp*/ 0, /* state_indx*/ Density,
+                             /*num comps*/ num_state_comps - AMREX_SPACEDIM,
+                             /*State*/ Smf, /*S_comp*/ Density,
+                             forcing_term.get(), /*forcing_term_comp*/ Density,
+                             divu_fp.get(),
+                             fluxes, /*flux_comp*/ Density,
+                             edgestate, /*edge_comp*/ Density, /*known_edgestate*/ false,
+                             /*is_velocity*/ false, dt,
+                             /*is_sync*/ true, Ucorr);
     }
 
 
@@ -878,100 +756,50 @@ void
 MacProj::mac_sync_compute (int                    level,
                            Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            MultiFab&              Sync,
-                           int                    comp,
-                           int                    s_ind,
-                           MultiFab* const*       sync_edges,
-                           int                    eComp,
+                           int                    state_comp, // index in AmrLevel.state
+                           int                    Sync_indx,
+                           MultiFab* const*       edgestate,
+                           int                    edge_comp,
                            FluxRegister*          adv_flux_reg,
-                           Vector<AdvectionForm>& advectionType,
                            Real                   dt,
                            bool                   update_fluxreg)
 {
     const DistributionMapping& dmap     = LevelData[level]->DistributionMap();
-    const Geometry& geom         = parent->Geom(level);
     NavierStokesBase& ns_level   = *(NavierStokesBase*) &(parent->getLevel(level));
 
-    const int  ncomp   = 1;         // Number of components to process at once
+    int ncomp = 1;
 
-    MultiFab fluxes[AMREX_SPACEDIM];
+    // Put edgestate in desired containter
+    Array<MultiFab,AMREX_SPACEDIM> edges{
+        AMREX_D_DECL(MultiFab(*edgestate[0], amrex::make_alias, edge_comp, ncomp),
+                     MultiFab(*edgestate[1], amrex::make_alias, edge_comp, ncomp),
+                     MultiFab(*edgestate[2], amrex::make_alias, edge_comp, ncomp) ) };
+
+    Array<MultiFab, AMREX_SPACEDIM> fluxes;
     for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         const BoxArray& ba = LevelData[level]->getEdgeBoxArray(i);
-        fluxes[i].define(ba, dmap, 1, sync_edges[0]->nGrow(), MFInfo(),ns_level.Factory());
+        fluxes[i].define(ba, dmap, ncomp, edgestate[0]->nGrow(), MFInfo(),ns_level.Factory());
     }
 
     //
     // Compute the mac sync correction.
     //
-    if ( ns_level.advection_scheme == "Godunov_PLM" ||
-         ns_level.advection_scheme == "Godunov_PPM" ||
-         ns_level.advection_scheme == "BDS")
-    {
-        // Possibly unsused  arguments -- used only in EB case since we don't need to recompute the edge states
-        const int  sync_comp   = comp < AMREX_SPACEDIM ? comp   : comp-AMREX_SPACEDIM;
-        BCRec  const* d_bcrec_ptr = comp < AMREX_SPACEDIM
-                                           ? &(ns_level.get_bcrec_velocity_d_ptr())[sync_comp]
-                                           : &(ns_level.get_bcrec_scalars_d_ptr())[sync_comp];
-
-        Gpu::DeviceVector<int> iconserv;
-        Vector<int> iconserv_h;
-        iconserv.resize(ncomp);
-        iconserv_h.resize(ncomp, 0);
-        for (int i = 0; i < ncomp; ++i) {
-            iconserv_h[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
-        }
-        Gpu::copy(Gpu::hostToDevice, iconserv_h.begin(), iconserv_h.end(), iconserv.begin());
-
-#ifdef AMREX_USE_EB
-        if ( !(ns_level.EBFactory().isAllRegular()) )
-        {
-          EBGodunov::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                     Sync, s_ind,                      // this is not used when known_edgestate = true
-                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                     AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                                     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                                     MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                                     {}, d_bcrec_ptr,
-                                     geom, iconserv, dt, true,
-                                     ns_level.redistribution_type);
-        }
-        else
-#endif
-        if (ns_level.advection_scheme == "BDS")
-        {
-            BDS::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                 MultiFab(), s_ind,                      // this is not used when known_edgestate = true
-                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                                 AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                 AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                                 AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                                 MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                                 d_bcrec_ptr, geom, iconserv, 0.0, false); // this is not used when known_edgestate = true
-        }
-        else
-        {
-            Godunov::ComputeSyncAofs(Sync, s_ind, ncomp,
-                                     MultiFab(), s_ind,                      // this is not used when known_edgestate = true
-                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),  // this is not used when we pass edge states
-                                     AMREX_D_DECL(*Ucorr[0],*Ucorr[1],*Ucorr[2]),
-                                     AMREX_D_DECL(*sync_edges[0],*sync_edges[1],*sync_edges[2]), eComp, true,
-                                     AMREX_D_DECL(fluxes[0],fluxes[1],fluxes[2]), 0,
-                                     MultiFab(), 0, MultiFab(),                        // this is not used when known_edgestate = true
-                                     d_bcrec_ptr, geom, iconserv, 0.0, false, false, false  ); // this is not used when known_edgestate = true
-        }
-    }
-    else
-    {
-        Abort("MacProj::mac_sync_compute: Unkown adveciton scheme");
-    }
-
+    ns_level.ComputeAofs(Sync, /*Ssync_comp*/ Sync_indx, state_comp,
+                         ncomp,
+                         /*State*/ MultiFab(), /*S_comp*/ int(),//not used when known_edgestates
+                         /*forcing*/ nullptr, /*f_comp*/ int(), //not used when known_edgestates
+                         /*constraint divU*/ nullptr,           //not used when known_edgestates
+                         fluxes, /*flux_comp*/ 0,
+                         edges, 0, /*known_edgestate*/ true,
+                         /*is_velocity*/ false, dt,
+                         /*is_sync*/ true, Ucorr);
 
     if (level > 0 && update_fluxreg)
     {
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            adv_flux_reg->FineAdd(fluxes[d],d,0,comp,1,-dt);
+            adv_flux_reg->FineAdd(fluxes[d],d,0,state_comp,1,-dt);
         }
     }
 }

@@ -1,6 +1,7 @@
 
 //fixme, for writesingle level plotfile
 //#include<AMReX_PlotFileUtil.H>
+//#include <AMReX_VisMF.H>
 //
 
 #include <AMReX_ParmParse.H>
@@ -17,6 +18,7 @@
 
 #include <hydro_godunov.H>
 #include <hydro_bds.H>
+#include <hydro_utils.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBAmrUtil.H>
@@ -24,6 +26,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <hydro_ebgodunov.H>
 #include <hydro_redistribution.H>
+#include <AMReX_EBMultiFabUtil_C.H>
 #endif
 
 #ifdef AMREX_USE_TURBULENT_FORCING
@@ -4731,19 +4734,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                 MultiFab const& divu,
                                 bool is_velocity, Real dt )
 {
-
-    // Advection type conservative or non?
-    amrex::Gpu::DeviceVector<int> iconserv;
-    Vector<int> iconserv_h;
-    iconserv.resize(ncomp, 0);
-    iconserv_h.resize(ncomp, 0);
-    for (int i = 0; i < ncomp; ++i) {
-        iconserv_h[i] = (advectionType[comp+i] == Conservative) ? 1 : 0;
-    }
-    Gpu::copy(Gpu::hostToDevice,iconserv_h.begin(),iconserv_h.end(), iconserv.begin());
-
-    MultiFab cfluxes[AMREX_SPACEDIM];
-    MultiFab edgestate[AMREX_SPACEDIM];
+    Array<MultiFab, AMREX_SPACEDIM> cfluxes;
+    Array<MultiFab, AMREX_SPACEDIM> edgestate;
 
     //
     // Advection needs S to have 2-3 ghost cells.
@@ -4759,61 +4751,16 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), Factory());
     }
 
-    auto const& bcrec_h = is_velocity? m_bcrec_velocity   : m_bcrec_scalars;
-    auto const& bcrec_d = is_velocity? m_bcrec_velocity_d : m_bcrec_scalars_d;
 
-    //
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>  BDS ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    //
-    if (advection_scheme == "BDS" && (!is_velocity))
-    {
-        BDS::ComputeAofs(*aofs, comp, ncomp,
-                         S, S_comp,
-                         AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                         AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
-                         0, false,
-                         AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                         0, forcing_term, 0, divu, bcrec_d.dataPtr(),
-                         geom, iconserv_h, dt, is_velocity);
-    }
-    else if (advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || (advection_scheme == "BDS" && is_velocity) )
-    {
-        //
-        // >>>>>>>>>>>>>>>>>>>>>>>>>>>  Godunov ALGORITHM <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        //
-#ifdef AMREX_USE_EB
-        if (!EBFactory().isAllRegular())
-        {
-            EBGodunov::ComputeAofs(*aofs, comp, ncomp,
-                                    S, S_comp,
-                                    AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                    AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
-                                    0, false,
-                                    AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]), 0,
-                                    forcing_term, 0, divu,
-                                    bcrec_h, bcrec_d.dataPtr(),
-                                    geom, iconserv_h, dt, is_velocity, redistribution_type);
-        }
-        else
-#endif
-        {
-            bool godunov_use_ppm = ( advection_scheme == "Godunov_PPM" ? true : false );
+    ComputeAofs(*aofs, /*aofs_comp*/ comp, /*state_indx*/ comp, ncomp,
+                S, S_comp,
+                &forcing_term, /*forcing_term_comp*/ 0,
+                &divu,
+                cfluxes,  /*flux_comp*/ 0,
+                edgestate, /*edge_comp*/ 0, /*known_edgestate*/ false,
+                is_velocity, dt,
+                /*is_sync*/ false, /*sync fluxing velocity Ucorr*/ {});
 
-            Godunov::ComputeAofs(*aofs, comp, ncomp,
-                                 S, S_comp,
-                                 AMREX_D_DECL(u_mac[0],u_mac[1],u_mac[2]),
-                                 AMREX_D_DECL(edgestate[0],edgestate[1],edgestate[2]),
-                                 0, false,
-                                 AMREX_D_DECL(cfluxes[0],cfluxes[1],cfluxes[2]),
-                                 0, forcing_term, 0, divu, bcrec_d.dataPtr(),
-                                 geom, iconserv_h, dt,
-                                 godunov_use_ppm, godunov_use_forces_in_trans, is_velocity);
-        }
-    }
-    else
-    {
-        Abort("NSB::ComputeAofs: Unknown advection_scheme");
-    }
 
     if (do_reflux)
     {
@@ -4831,8 +4778,386 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
             }
         }
     }
-
 }
+
+void
+NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "Aofs" held here
+                                int state_indx, // Index of first component in AmrLevel.state corresponding to quantity to advect
+                                int ncomp,
+                                MultiFab const& S, int S_comp, // State for computing edgestates, may have gotten massaged a bit compared to AmrLevel.state. Must have filled ghost cells.
+                                MultiFab const* forcing, int f_comp,
+                                MultiFab const* divu, // Constraint divu=Source, not div(Umac)
+                                Array<MultiFab, AMREX_SPACEDIM>& cfluxes, int flux_comp,
+                                Array<MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
+                                bool known_edge_state,
+                                bool is_velocity, Real dt,
+                                bool is_sync, Array<MultiFab*, AMREX_SPACEDIM> const& U_corr)
+{
+    BL_PROFILE("NSB::ComputeAofs_kernel");
+
+    // Need U_corr to be defined for sync.
+    AMREX_ASSERT( (is_sync && !U_corr.empty()) || !is_sync );
+
+    // Advection type conservative or non?
+    //Maybe there's something better than DeviceVector now...
+    amrex::Gpu::DeviceVector<int> iconserv;
+    Vector<int> iconserv_h;
+    iconserv.resize(ncomp, 0);
+    iconserv_h.resize(ncomp, 0);
+
+    // Will we do any convective differencing?
+    bool any_convective = false;
+    for (int i = 0; i < ncomp; ++i) {
+        iconserv_h[i] = (advectionType[state_indx+i] == Conservative) ? 1 : 0;
+        if (!iconserv_h[i]) any_convective = true;
+    }
+    Gpu::copy(Gpu::hostToDevice,iconserv_h.begin(),iconserv_h.end(), iconserv.begin());
+    int const* iconserv_ptr = iconserv.data();
+
+    // As code is currently written, ComptueAofs is always called separately for
+    // velocity vs scalars. May be called with an individual scalar.
+    auto const& bcrec_h = fetchBCArray(State_Type, state_indx, ncomp);
+    auto const bcrec_d = is_velocity ? m_bcrec_velocity_d.dataPtr()
+                                     : &m_bcrec_scalars_d.dataPtr()[state_indx-AMREX_SPACEDIM];
+
+#ifdef AMREX_USE_EB
+    auto const& ebfact= dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+
+    // Always need a temporary MF to hold advective update before redistribution.
+    MultiFab update_MF(advc.boxArray(),advc.DistributionMap(),ncomp,3,MFInfo(),Factory());
+
+    // Must initialize to zero because not all values may be set, e.g. outside the domain.
+    update_MF.setVal(0.);
+#endif
+
+
+    //
+    // Define some parameters for hydro routines
+    //
+
+    bool fluxes_are_area_weighted = true;
+
+    // AMReX_Hydro only recognizes Godunov scheme and then uses ppm switch.
+    std::string scheme   = (advection_scheme=="Godunov_PLM" || advection_scheme=="Godunov_PPM")
+                           ? "Godunov" : advection_scheme;
+    bool godunov_use_ppm = (advection_scheme == "Godunov_PPM") ? true : false ;
+
+    // No BDS for velocity for now...
+    if (scheme == "BDS" && is_velocity) { scheme = "Godunov"; }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(advc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx   = mfi.tilebox();
+
+        const auto& S_arr = S.const_array(mfi, S_comp);
+        AMREX_D_TERM( const auto& fx = cfluxes[0].array(mfi,flux_comp);,
+                      const auto& fy = cfluxes[1].array(mfi,flux_comp);,
+                      const auto& fz = cfluxes[2].array(mfi,flux_comp););
+        AMREX_D_TERM( const auto& xed = edgestate[0].array(mfi,edge_comp);,
+                      const auto& yed = edgestate[1].array(mfi,edge_comp);,
+                      const auto& zed = edgestate[2].array(mfi,edge_comp););
+        AMREX_D_TERM( const auto& umac = u_mac[0].const_array(mfi);,
+                      const auto& vmac = u_mac[1].const_array(mfi);,
+                      const auto& wmac = u_mac[2].const_array(mfi););
+        AMREX_D_TERM( const auto& uflux = (is_sync) ? U_corr[0]->const_array(mfi) : u_mac[0].const_array(mfi);,
+                      const auto& vflux = (is_sync) ? U_corr[1]->const_array(mfi) : u_mac[1].const_array(mfi);,
+                      const auto& wflux = (is_sync) ? U_corr[2]->const_array(mfi) : u_mac[2].const_array(mfi););
+
+#ifdef AMREX_USE_EB
+        const auto& flagfab = ebfact.getMultiEBCellFlagFab()[mfi];
+        const auto   fabtyp = flagfab.getType(bx);
+
+        if (fabtyp == FabType::covered)
+        {
+            //
+            // Set advection term and move on to next iteration.
+            // Old ComputeAofs also set fluxes (=0) and edgestates (=covered_val) here.
+            //
+            auto const& aofs_arr = advc.array(mfi, a_comp);
+            amrex::ParallelFor(bx, ncomp, [aofs_arr]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            { aofs_arr( i, j, k, n ) = COVERED_VAL;});
+
+            continue;
+        }
+#endif
+
+        //
+        // 1. Compute fluxes
+        //
+        HydroUtils::ComputeFluxesOnBoxFromState(bx, ncomp, mfi, S_arr,
+                                                AMREX_D_DECL(fx, fy, fz),
+                                                AMREX_D_DECL(xed, yed, zed),
+                                                known_edge_state,
+                                                AMREX_D_DECL(umac, vmac, wmac), //used to create edge state
+                                                AMREX_D_DECL(uflux, vflux, wflux), //used to create flux
+                                                (divu) ? divu->const_array(mfi) : Array4<Real const>{},
+                                                (forcing) ? forcing->const_array(mfi, f_comp) : Array4<Real const>{},
+                                                geom, dt,
+                                                bcrec_h, bcrec_d, iconserv_ptr,
+#ifdef AMREX_USE_EB
+                                                ebfact,
+                                                /*values_on_eb_inflow*/ Array4<Real const> {},
+#endif
+                                                godunov_use_ppm, godunov_use_forces_in_trans,
+                                                is_velocity, fluxes_are_area_weighted,
+                                                scheme);
+
+
+        //
+        // 2. Get the right container to hold the advective update
+        //
+        FArrayBox* update_fab;
+        int update_comp = 0;
+
+#ifdef AMREX_USE_EB
+        // Recall that for EB we always use a temporary MF for redistribution.
+        update_fab = &update_MF[mfi];
+#else
+        FArrayBox tmp;
+        if (is_sync)
+        {
+            // For the sync, we need a temorary FAB to hold the update because
+            // we add the update to what's already in advc.
+            tmp.resize(bx, ncomp, The_Async_Arena());
+            update_fab = &tmp;
+        }
+        else
+        {
+            // Otherwise, we can overwrite advc.
+            update_fab = &advc[mfi];
+            update_comp = a_comp;
+        }
+#endif
+        auto const& update_arr = update_fab->array(update_comp);
+
+
+        //
+        // 3. Compute flux divergence
+        //
+        // We compute -div here for consistency with the way we HAVE to do it for EB
+        // (because redistribution operates on -div rather than div)
+        Real mult = -1.0;
+#ifdef AMREX_USE_EB
+        const auto& vfrac  = ebfact.getVolFrac().const_array(mfi);
+
+        if (fabtyp != FabType::regular)
+        {
+            HydroUtils::EB_ComputeDivergence( bx, update_arr,
+                                              AMREX_D_DECL( fx, fy, fz ),
+                                              vfrac,
+                                              ncomp, geom,
+                                              mult, fluxes_are_area_weighted);
+        }
+        else
+#endif
+        {
+            HydroUtils::ComputeDivergence( bx, update_arr,
+                                           AMREX_D_DECL( fx, fy, fz ),
+                                           ncomp, geom,
+                                           mult, fluxes_are_area_weighted);
+        }
+
+        //
+        // 4. Formulate convective term, if needed
+        //
+        if (any_convective && !is_sync) // Recall sync is always a conservative update
+        {
+            // Compute div(u_mac) first
+            FArrayBox div_umac(bx, 1, The_Async_Arena());
+            auto const& divum_arr = div_umac.array();
+
+            const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
+#ifdef AMREX_USE_EB
+            if (fabtyp != FabType::regular)
+            {
+                // Need AMReX routine here. Hydro version takes a flux (which always has area-fraction
+                // already included).
+                bool already_on_centroids = true;
+                AMREX_D_TERM(Array4<Real const> const& apx = ebfact.getAreaFrac()[0]->const_array(mfi);,
+                             Array4<Real const> const& apy = ebfact.getAreaFrac()[1]->const_array(mfi);,
+                             Array4<Real const> const& apz = ebfact.getAreaFrac()[2]->const_array(mfi));
+                Array4<EBCellFlag const> const& flagarr = flagfab.const_array();
+                AMREX_HOST_DEVICE_FOR_4D(bx,div_umac.nComp(),i,j,k,n,
+                {
+                    eb_compute_divergence(i,j,k,n,divum_arr,AMREX_D_DECL(umac,vmac,wmac),
+                                          Array4<int const>{}, flagarr, vfrac,
+                                          AMREX_D_DECL(apx,apy,apz),
+                                          AMREX_D_DECL(Array4<Real const>{},
+                                                       Array4<Real const>{},
+                                                       Array4<Real const>{}),
+                                          dxinv, already_on_centroids);
+                });
+            }
+            else
+#endif
+            {
+                HydroUtils::ComputeDivergence(bx, divum_arr, AMREX_D_DECL(umac,vmac,wmac),
+                                              1, geom, Real(1.0), false );
+            }
+
+            HydroUtils::ComputeConvectiveTerm(bx, ncomp, mfi, S_arr,
+                                              AMREX_D_DECL( xed, yed, zed ),
+                                              div_umac.array(), update_arr,
+                                              iconserv_ptr,
+#ifdef AMREX_USE_EB
+                                              ebfact,
+#endif
+                                              scheme);
+        }
+
+
+#ifndef AMREX_USE_EB
+        //
+        // non-EB step 5:
+        //
+        // Recall we computed -div above, because redistribution operates
+        // on -div. Thus, we use -update here.
+        //
+        auto const& aofs_arr = advc.array(mfi,a_comp);
+        if (is_sync)
+        {
+            amrex::ParallelFor(bx, ncomp, [aofs_arr, update_arr]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            { aofs_arr( i, j, k, n ) -= update_arr(i,j,k,n); });
+        }
+        else
+        {
+            amrex::ParallelFor(bx, ncomp, [aofs_arr, update_arr]
+            AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            { aofs_arr( i, j, k, n ) = -update_arr(i,j,k,n); });
+        }
+#endif
+    }
+    //
+    // The non-EB computation is complete.
+    //
+    // EB step 5: Redistribute the advective update stashed in update_MF.
+    //
+#ifdef AMREX_USE_EB
+
+    update_MF.FillBoundary(geom.periodicity());
+
+    //
+    // Define the "state" for StateRedistribution.
+    //
+    MultiFab  rstate_tmp;
+    if (is_sync && redistribution_type == "StateRedist")
+    {
+        // For the sync, use the Sync data passed in via advc as the "state".
+        // WARNING: This choice may lead to oversmoothing.
+        //
+        // Must create a temporary copy so we're not overwriting this "state" as
+        // we go through the redistribution process.
+        rstate_tmp.define(S.boxArray(),S.DistributionMap(),ncomp,S.nGrow(),
+                          MFInfo(),ebfact);
+        MultiFab::Copy(rstate_tmp,advc,a_comp,0,ncomp,S.nGrow());
+    }
+    MultiFab const* rstate = (is_sync && redistribution_type == "StateRedist")
+                             ? &rstate_tmp : &S;
+    int        rstate_comp = (is_sync && redistribution_type == "StateRedist")
+                             ? 0           : S_comp;
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(advc, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        auto const& bx = mfi.tilebox();
+
+        auto const& flagfab   = ebfact.getMultiEBCellFlagFab()[mfi];
+        auto const& flags_arr = flagfab.const_array();
+
+        if (flagfab.getType(bx) != FabType::covered )
+        {
+            auto const& aofs_arr = advc.array(mfi, a_comp);
+            auto const& update_arr = update_MF.array(mfi);
+
+            // FIXME? not sure if 4 is really needed or if 3 could do
+            // But this is a safe choice
+            if (flagfab.getType(grow(bx,4)) != FabType::regular)
+            {
+                AMREX_D_TERM( auto apx = ebfact.getAreaFrac()[0]->const_array(mfi);,
+                              auto apy = ebfact.getAreaFrac()[1]->const_array(mfi);,
+                              auto apz = ebfact.getAreaFrac()[2]->const_array(mfi); );
+
+                AMREX_D_TERM( Array4<Real const> fcx = ebfact.getFaceCent()[0]->const_array(mfi);,
+                              Array4<Real const> fcy = ebfact.getFaceCent()[1]->const_array(mfi);,
+                              Array4<Real const> fcz = ebfact.getFaceCent()[2]->const_array(mfi););
+
+                Array4<Real const> ccent_arr = ebfact.getCentroid().const_array(mfi);
+                Array4<Real const> const& vfrac_arr = ebfact.getVolFrac().const_array(mfi);
+
+                // This is scratch space if calling StateRedistribute,
+                //  but is used as the weights (here set to 1) if calling
+                //  FluxRedistribute
+                Box gbx = bx;
+
+                if (redistribution_type == "StateRedist")
+                    gbx.grow(3);
+                else if (redistribution_type == "FluxRedist")
+                    gbx.grow(2);
+
+                int tmpfab_comp = (is_sync) ? ncomp*2 : ncomp;
+                FArrayBox tmpfab(gbx, tmpfab_comp, The_Async_Arena());
+                Array4<Real> scratch = tmpfab.array(0);
+                if (redistribution_type == "FluxRedist")
+                {
+                    amrex::ParallelFor(Box(scratch),
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                    { scratch(i,j,k) = 1.;});
+                }
+
+                Array4<Real> redist_arr = (is_sync) ? tmpfab.array(ncomp) : aofs_arr;
+
+                Redistribution::Apply( bx, ncomp, redist_arr, update_arr,
+                                       rstate->const_array(mfi, rstate_comp), scratch, flags_arr,
+                                       AMREX_D_DECL(apx,apy,apz), vfrac_arr,
+#ifdef AMREX_USE_MOVING_EB
+                                       AMREX_D_DECL(apx,apy,apz), vfrac_arr,
+#endif
+                                       AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
+                                       geom, dt, redistribution_type );
+
+                if (is_sync)
+                {
+                    amrex::ParallelFor(bx, ncomp, [aofs_arr, redist_arr]
+                    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                    { aofs_arr( i, j, k, n ) -= redist_arr( i, j, k, n ); });
+                }
+                else
+                {
+                    amrex::ParallelFor(bx, ncomp, [aofs_arr, redist_arr]
+                    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                    { aofs_arr( i, j, k, n ) =  -redist_arr( i, j, k, n ); });
+                }
+            }
+            else // bx is EB regular
+            {
+                // Recall that we computed -div in previous MFIter, because
+                // redistribution operates on -div. Thus, we use -update here.
+                if (is_sync)
+                {
+                    amrex::ParallelFor(bx, ncomp, [aofs_arr, update_arr]
+                    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                    { aofs_arr( i, j, k, n ) -= update_arr(i,j,k,n); });
+                }
+                else
+                {
+                    amrex::ParallelFor(bx, ncomp, [aofs_arr, update_arr]
+                    AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                    { aofs_arr( i, j, k, n ) = -update_arr(i,j,k,n); });
+                }
+            }
+        }
+    }
+#endif
+}
+
 
 #ifdef AMREX_USE_EB
 void
