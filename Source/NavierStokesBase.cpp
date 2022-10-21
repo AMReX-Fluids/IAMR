@@ -4970,9 +4970,9 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
             FArrayBox div_umac(bx, 1, The_Async_Arena());
             auto const& divum_arr = div_umac.array();
 
+#ifdef AMREX_USE_EB
             const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
-#ifdef AMREX_USE_EB
             if (fabtyp != FabType::regular)
             {
                 // Need AMReX routine here. Hydro version takes a flux (which always has area-fraction

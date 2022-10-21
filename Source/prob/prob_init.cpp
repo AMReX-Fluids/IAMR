@@ -287,7 +287,7 @@ void NavierStokes::init_DoubleShearLayer (Box const& vbx,
 {
   const auto domlo = amrex::lbound(domain);
 
-  if ( !(IC.direction != 0 || IC.direction != 1) )
+  if ( !(IC.direction == 0 || IC.direction == 1) )
     amrex::Abort("\n    init_DoubleShearLayer: Must set a direction with prob.direction = 0 or 1\n    in the inputs file.  Shear layer along the z-direction not yet written");
 
   amrex::ParallelFor(vbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept

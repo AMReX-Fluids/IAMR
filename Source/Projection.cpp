@@ -5,7 +5,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>
 #include <NavierStokesBase.H>
-#include <NS_BC.H>
 #include <AMReX_BLProfiler.H>
 #include <Projection.H>
 #include <OutFlowBC.H>
