@@ -32,7 +32,6 @@ const Real* fabdat = (fab).dataPtr();
 const int* boxlo = (box).loVect();           \
 const int* boxhi = (box).hiVect();
 
-int  Projection::P_code              = -1;
 int  Projection::proj_2              = 1;
 int  Projection::verbose             = 0;
 Real Projection::proj_tol            = 1.0e-12;

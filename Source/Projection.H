@@ -234,16 +234,12 @@ public:
     int do_sync_proj;
 
     static int  verbose;
-    static int  P_code;
     static amrex::Real proj_tol;
     static amrex::Real sync_tol;
     static amrex::Real proj_abs_tol;
     static int  proj_2;
-    static int  filter_u;
     static int  rho_wgt_vel_proj;
     static int  do_outflow_bcs;
-    static int  make_sync_solvable;
-    static amrex::Real divu_minus_s_factor;
     static int  add_vort_proj;
 
     void doMLMGNodalProjection(int c_lev, int nlevel,
