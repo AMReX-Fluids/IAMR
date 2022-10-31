@@ -85,19 +85,19 @@ Projection::Initialize ()
 
     // Abort if old verbose flag is found
     if ( pp.countname("v") > 0 ) {
-	amrex::Abort("nodal_proj.v found in inputs. To set verbosity use nodal_proj.verbose");
+        amrex::Abort("nodal_proj.v found in inputs. To set verbosity use nodal_proj.verbose");
     }
     // Abort if old "proj." prefix is used.
     std::set<std::string> old_proj = ParmParse::getEntries("proj");
     if (!old_proj.empty()){
-	Print()<<"All runtime options related to the nodal projection now use 'nodal_proj'.\n"
-	       <<"Found these depreciated entries in the parameters list: \n";
-	for ( auto param : old_proj ) {
-	    Print()<<"  "<<param<<"\n";
-	}
-	amrex::Abort("Replace 'proj' prefix with 'nodal_proj' in inputs");
+        Print()<<"All runtime options related to the nodal projection now use 'nodal_proj'.\n"
+               <<"Found these depreciated entries in the parameters list: \n";
+        for ( auto param : old_proj ) {
+            Print()<<"  "<<param<<"\n";
+        }
+        amrex::Abort("Replace 'proj' prefix with 'nodal_proj' in inputs");
     }
-	
+
     amrex::ExecOnFinalize(Projection::Finalize);
 
     initialized = true;
@@ -321,7 +321,7 @@ Projection::level_project (int             level,
        amrex::ParallelFor(bx, AMREX_SPACEDIM, [rho_h,gradp,u_new]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
-	   u_new(i,j,k,n) += gradp(i,j,k,n) / rho_h(i,j,k);
+           u_new(i,j,k,n) += gradp(i,j,k,n) / rho_h(i,j,k);
        });
     }
 
@@ -415,7 +415,7 @@ Projection::level_project (int             level,
 
     bool increment_gp = false;
     doMLMGNodalProjection(level, 1, vel, phi, sig, rhcc, {}, proj_tol,
-			  proj_abs_tol, increment_gp,
+                          proj_abs_tol, increment_gp,
                           sync_resid_crse.get(), sync_resid_fine.get());
 
     //
@@ -436,18 +436,18 @@ Projection::level_project (int             level,
        }
        if (level > 0 && iteration == crse_dt_ratio)
        {
-	 //
-	 // Increment sync registers between level and level-1.
-	 //
-	 // invrat is 1/crse_dt_ratio for both proj_2 and !proj_2, but for different reasons.
-	 // For !proj_2, this is because the fine residue is added to the sync register
-	 //    for each fine step.
-	 // For proj_2, this is because the level projection works on U/dt, not dU/dt,
-	 //    and dt on the fine level is crse_dt_ratio times smaller than dt one the
-	 //    coarse level.
+         //
+         // Increment sync registers between level and level-1.
+         //
+         // invrat is 1/crse_dt_ratio for both proj_2 and !proj_2, but for different reasons.
+         // For !proj_2, this is because the fine residue is added to the sync register
+         //    for each fine step.
+         // For proj_2, this is because the level projection works on U/dt, not dU/dt,
+         //    and dt on the fine level is crse_dt_ratio times smaller than dt one the
+         //    coarse level.
          const Real invrat = 1.0/Real(crse_dt_ratio);
-	 const Geometry& crse_geom = parent->Geom(level-1);
-	 fine_sync_reg->FineAdd(*sync_resid_fine,crse_geom,invrat);
+         const Geometry& crse_geom = parent->Geom(level-1);
+         fine_sync_reg->FineAdd(*sync_resid_fine,crse_geom,invrat);
        }
     }
 
@@ -469,8 +469,8 @@ Projection::level_project (int             level,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::level_project(): lev: " << level
-		       << ", time: " << run_time << '\n';
+        amrex::Print() << "Projection::level_project(): lev: " << level
+                       << ", time: " << run_time << '\n';
     }
 }
 
@@ -626,8 +626,8 @@ Projection::MLsyncProject (int             c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::MLsyncProject(): levels = " << c_lev
-		       << ", " << c_lev+1 << ", time: " << run_time << '\n';
+        amrex::Print() << "Projection::MLsyncProject(): levels = " << c_lev
+                       << ", " << c_lev+1 << ", time: " << run_time << '\n';
     }
 }
 
@@ -652,7 +652,7 @@ Projection::initialVelocityProject (int  c_lev,
             LevelData[lev]->get_old_data(Press_Type).setVal(0.);
             LevelData[lev]->get_old_data(Gradp_Type).setVal(0.);
       }
-      
+
       if ( verbose ) Print()<<"Returning from initalVelocityProject() without projecting because init_vel_iter<=0\n";
       return;
     }
@@ -690,13 +690,13 @@ Projection::initialVelocityProject (int  c_lev,
             LevelData[lev]->get_old_data(Press_Type).setVal(0.0);
         }
 
-	// MLNodeLaplacian does not take any ghost cells from rhcc or sig.
-	// copies only valid cells and fills ghosts internally.
-	// However, vel and phi are assumed to have 1 ghost cell in MLMG.
-	// set outflow bcs fills vel and phi using 1 ghost cell from sig (holding rho)
-	// and rhcc (holding divu)
-	const int nghost =
-	  (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu) ? 1 : 0;
+        // MLNodeLaplacian does not take any ghost cells from rhcc or sig.
+        // copies only valid cells and fills ghosts internally.
+        // However, vel and phi are assumed to have 1 ghost cell in MLMG.
+        // set outflow bcs fills vel and phi using 1 ghost cell from sig (holding rho)
+        // and rhcc (holding divu)
+        const int nghost =
+          (OutFlowBC::HasOutFlowBC(phys_bc) && do_outflow_bcs && have_divu) ? 1 : 0;
 
         for (lev = c_lev; lev <= f_lev; lev++)
         {
@@ -709,7 +709,7 @@ Projection::initialVelocityProject (int  c_lev,
 
             if (rho_wgt_vel_proj)
             {
-	      if ( nghost > 0 ){
+              if ( nghost > 0 ){
                 LevelData[lev]->get_new_data(State_Type).setBndry(BogusValue,Density,1);
 
                 AmrLevel& amr_level = parent->getLevel(lev);
@@ -723,11 +723,11 @@ Projection::initialVelocityProject (int  c_lev,
                     amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,
                                                     Density,Density,1);
                 }
-	      }
+              }
 
-	      MultiFab::Copy(*sig[lev],
-			     LevelData[lev]->get_new_data(State_Type),
-			     Density, 0, 1, nghost);
+              MultiFab::Copy(*sig[lev],
+                             LevelData[lev]->get_new_data(State_Type),
+                             Density, 0, 1, nghost);
             }
             else
             {
@@ -758,12 +758,12 @@ Projection::initialVelocityProject (int  c_lev,
             {
                 int Divu_Type, Divu;
                 if (!LevelData[lev]->isStateVariable("divu", Divu_Type, Divu))
-		  amrex::Error("Projection::initialVelocityProject(): Divu not found");
+                  amrex::Error("Projection::initialVelocityProject(): Divu not found");
 
-		NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
-		AMREX_ASSERT(!(ns == 0));
+                NavierStokesBase* ns = dynamic_cast<NavierStokesBase*>(LevelData[lev]);
+                AMREX_ASSERT(!(ns == 0));
 
-		rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
+                rhcc[lev].reset(ns->getDivCond(nghost,cur_divu_time));
             }
         }
 
@@ -855,7 +855,7 @@ Projection::initialVelocityProject (int  c_lev,
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::initialVelocityProject(): time: " << run_time << '\n';
+        amrex::Print() << "Projection::initialVelocityProject(): time: " << run_time << '\n';
     }
 }
 
@@ -883,7 +883,7 @@ Projection::initialPressureProject (int  c_lev)
         const int       nghost = 1;
         const BoxArray& grids  = LevelData[lev]->boxArray();
         const DistributionMapping& dmap = LevelData[lev]->DistributionMap();
-	sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),LevelData[lev]->Factory()));
+        sig[lev].reset(new MultiFab(grids,dmap,1,nghost,MFInfo(),LevelData[lev]->Factory()));
 
         AmrLevel& amr_level = parent->getLevel(lev);
 
@@ -894,9 +894,9 @@ Projection::initialPressureProject (int  c_lev)
         Real curr_time = amr_level.get_state_data(State_Type).curTime();
 
         const Geometry& geom = parent->Geom(lev);
-	// fill ghost cells... call FillBoundary (fills interior bndry)
-	// first to get reasonable data in corner cells
-	S_new.FillBoundary(Density,1,geom.periodicity());
+        // fill ghost cells... call FillBoundary (fills interior bndry)
+        // first to get reasonable data in corner cells
+        S_new.FillBoundary(Density,1,geom.periodicity());
         for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
         {
             amr_level.setPhysBoundaryValues(S_new[mfi],State_Type,curr_time,Density,Density,1);
@@ -929,7 +929,7 @@ Projection::initialPressureProject (int  c_lev)
     for (lev = c_lev; lev <= f_lev; lev++) {
         const BoxArray& grids = vel[lev]->boxArray();
         const DistributionMapping& dmap = vel[lev]->DistributionMap();
-	raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, dmap, AMREX_SPACEDIM, 1,MFInfo(),LevelData[lev]->Factory())));
+        raii.push_back(std::unique_ptr<MultiFab>(new MultiFab(grids, dmap, AMREX_SPACEDIM, 1,MFInfo(),LevelData[lev]->Factory())));
         vel[lev] = raii.back().get();
         vel[lev]->setVal(0.0    , 0            , AMREX_SPACEDIM-1, 1);
         vel[lev]->setVal(gravity, AMREX_SPACEDIM-1, 1            , 1);
@@ -967,8 +967,8 @@ Projection::initialPressureProject (int  c_lev)
                        LevelData[lev]->get_new_data(Press_Type),
                        0, 0, 1, 0);
 
-	int ng = (LevelData[lev]->get_new_data(Gradp_Type)).nGrow();
-	MultiFab::Copy(LevelData[lev]->get_old_data(Gradp_Type),
+        int ng = (LevelData[lev]->get_new_data(Gradp_Type)).nGrow();
+        MultiFab::Copy(LevelData[lev]->get_old_data(Gradp_Type),
                        LevelData[lev]->get_new_data(Gradp_Type),
                        0, 0, AMREX_SPACEDIM, ng);
     }
@@ -980,7 +980,7 @@ Projection::initialPressureProject (int  c_lev)
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::initialPressureProject(): time: " << run_time << '\n';
+        amrex::Print() << "Projection::initialPressureProject(): time: " << run_time << '\n';
     }
 }
 
@@ -1058,7 +1058,7 @@ Projection::initialSyncProject (int       c_lev,
                 amr_level.setPhysBoundaryValues(divu_new[mfi],Divu_Type,curr_time,0,0,1);
             }
 
-	    // Needed for set_outflow_bcs(). MLMG ignores rh ghost cells.
+            // Needed for set_outflow_bcs(). MLMG ignores rh ghost cells.
             const int nghost = 1;
             rhcc[lev].reset(new MultiFab(amr_level.boxArray(),
                             amr_level.DistributionMap(),
@@ -1278,62 +1278,62 @@ Projection::scaleVar (MultiFab*       sig,
         // Invert sigma
         // Multiply sigma and vel by a radius for r-z coordinates.
         //
-	const Real dxr     = parent->Geom(level).CellSize()[0];
+        const Real dxr     = parent->Geom(level).CellSize()[0];
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
-	  const Box& bx = mfi.growntilebox();
-	  auto const& sigarr = sig->array(mfi);
+        for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+          const Box& bx = mfi.growntilebox();
+          auto const& sigarr = sig->array(mfi);
 
-	  amrex::ParallelFor(bx, [=]
-	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	  {
-	    if ( i >= domlox && i <= domhix &&
-		 j >= domloy && j <= domhiy)
-	    {
-	      // Don't think we need this check for small sigma since RZ
-	      // doesn't work with EB in MLNodeLap. The concern is covered vals == 0
-	      // if ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue ) ?
-	      sigarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr/sigarr(i,j,k);
-	      // : sigarr(i,j,k) = 0.;
-	    }
-	    else
-	    {
-	      // set vals outside the domain to 0
-	      sigarr(i,j,k) = 0.;
-	    }
-	  });
+          amrex::ParallelFor(bx, [=]
+          AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+          {
+            if ( i >= domlox && i <= domhix &&
+                 j >= domloy && j <= domhiy)
+            {
+              // Don't think we need this check for small sigma since RZ
+              // doesn't work with EB in MLNodeLap. The concern is covered vals == 0
+              // if ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue ) ?
+              sigarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr/sigarr(i,j,k);
+              // : sigarr(i,j,k) = 0.;
+            }
+            else
+            {
+              // set vals outside the domain to 0
+              sigarr(i,j,k) = 0.;
+            }
+          });
 
-	  auto const& velarr = vel->array(mfi);
+          auto const& velarr = vel->array(mfi);
 
-	  amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
-	  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-	  {
-	    if ( i >= domlox && i <= domhix &&
-		 j >= domloy && j <= domhiy)
-	    {
-	      velarr(i,j,k,n) = (static_cast<Real>(i)+ Real(0.5))*dxr*velarr(i,j,k,n);
-	    }
-	    else
-	    {
-	      if ( n == 0 && i > domhix )
-	      {
-		// Allow inflow through high-r face. However,
-		// NOTE that MLMG's nodal solver does not allow any r-dir inflows
-		// as of 3/31/21
-		velarr(i,j,k,n) *= (static_cast<Real>(i)+ Real(0.5))*dxr;
-	      }
-	      else
-	      {
-		// set other vals outside the domain to 0
-		velarr(i,j,k,n) = 0.;
-	      }
-	    }
-	  });
-	}
+          amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
+          AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+          {
+            if ( i >= domlox && i <= domhix &&
+                 j >= domloy && j <= domhiy)
+            {
+              velarr(i,j,k,n) = (static_cast<Real>(i)+ Real(0.5))*dxr*velarr(i,j,k,n);
+            }
+            else
+            {
+              if ( n == 0 && i > domhix )
+              {
+                // Allow inflow through high-r face. However,
+                // NOTE that MLMG's nodal solver does not allow any r-dir inflows
+                // as of 3/31/21
+                velarr(i,j,k,n) *= (static_cast<Real>(i)+ Real(0.5))*dxr;
+              }
+              else
+              {
+                // set other vals outside the domain to 0
+                velarr(i,j,k,n) = 0.;
+              }
+            }
+          });
+        }
     }
     else
 #endif
@@ -1344,29 +1344,29 @@ Projection::scaleVar (MultiFab*       sig,
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
-	  const Box& bx = mfi.growntilebox();
-	  auto const& sigarr = sig->array(mfi);
+        for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+          const Box& bx = mfi.growntilebox();
+          auto const& sigarr = sig->array(mfi);
 
-	  amrex::ParallelFor(bx, [=]
-	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	  {
-	    if ( i >= domlox && i <= domhix &&
-		 j >= domloy && j <= domhiy)
-	    {
-	      // The conern here is EB covered cells set to zero
-	      sigarr(i,j,k) = ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue )
-		? Real(1.0)/sigarr(i,j,k)
-		: sigarr(i,j,k) = 0.;
-	    }
-	    else
-	    {
-	      // set vals outside the domain to 0
-	      sigarr(i,j,k) = 0.;
-	    }
-	  });
-	}
+          amrex::ParallelFor(bx, [=]
+          AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+          {
+            if ( i >= domlox && i <= domhix &&
+                 j >= domloy && j <= domhiy)
+            {
+              // The conern here is EB covered cells set to zero
+              sigarr(i,j,k) = ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue )
+                ? Real(1.0)/sigarr(i,j,k)
+                : sigarr(i,j,k) = 0.;
+            }
+            else
+            {
+              // set vals outside the domain to 0
+              sigarr(i,j,k) = 0.;
+            }
+          });
+        }
     }
 }
 
@@ -1396,52 +1396,52 @@ Projection::rescaleVar (MultiFab*       sig,
         // Divide sigma and vel by a radius for r-z coordinates.
         // Invert sigma to return to original form
         //
-	const Real dxr     = parent->Geom(level).CellSize()[0];
+        const Real dxr     = parent->Geom(level).CellSize()[0];
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
-	  const Box& bx = mfi.growntilebox();
-	  auto const& sigarr = sig->array(mfi);
+        for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+          const Box& bx = mfi.growntilebox();
+          auto const& sigarr = sig->array(mfi);
 
-	  amrex::ParallelFor(bx, [=]
-	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	  {
-	    if ( i >= domlox && i <= domhix &&
-		 j >= domloy && j <= domhiy)
-	    {
-	      // Don't think we need this check for small sigma since RZ
-	      // doesn't work with EB in MLNodeLap. The concern is covered vals == 0
-	      // if ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue ) ?
-	      sigarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr/sigarr(i,j,k);
-	      // : sigarr(i,j,k) = 0.;
-	    }
-	    else
-	    {
-	      // set vals outside the domain to bogus_value
-	      sigarr(i,j,k) = BogusValue;
-	    }
-	  });
+          amrex::ParallelFor(bx, [=]
+          AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+          {
+            if ( i >= domlox && i <= domhix &&
+                 j >= domloy && j <= domhiy)
+            {
+              // Don't think we need this check for small sigma since RZ
+              // doesn't work with EB in MLNodeLap. The concern is covered vals == 0
+              // if ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue ) ?
+              sigarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr/sigarr(i,j,k);
+              // : sigarr(i,j,k) = 0.;
+            }
+            else
+            {
+              // set vals outside the domain to bogus_value
+              sigarr(i,j,k) = BogusValue;
+            }
+          });
 
-	  auto const& velarr = vel->array(mfi);
+          auto const& velarr = vel->array(mfi);
 
-	  amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
-	  AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-	  {
-	    if ( i >= domlox && i <= domhix &&
-		 j >= domloy && j <= domhiy)
-	    {
-	      velarr(i,j,k,n) /= (static_cast<Real>(i)+ Real(0.5))*dxr;
-	    }
-	    else
-	    {
-	      // set vals outside the domain
-	      velarr(i,j,k,n) = BogusValue;
-	    }
-	  });
-	}
+          amrex::ParallelFor(bx, AMREX_SPACEDIM, [=]
+          AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+          {
+            if ( i >= domlox && i <= domhix &&
+                 j >= domloy && j <= domhiy)
+            {
+              velarr(i,j,k,n) /= (static_cast<Real>(i)+ Real(0.5))*dxr;
+            }
+            else
+            {
+              // set vals outside the domain
+              velarr(i,j,k,n) = BogusValue;
+            }
+          });
+        }
     }
     else
 #endif
@@ -1452,29 +1452,29 @@ Projection::rescaleVar (MultiFab*       sig,
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
-	  const Box& bx = mfi.growntilebox();
-	  auto const& sigarr = sig->array(mfi);
+        for (MFIter mfi(*sig,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+          const Box& bx = mfi.growntilebox();
+          auto const& sigarr = sig->array(mfi);
 
-	  amrex::ParallelFor(bx, [=]
-	  AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	  {
-	    if ( i >= domlox && i <= domhix &&
-		 j >= domloy && j <= domhiy)
-	    {
-	      // The conern here is EB covered cells set to zero
-	      sigarr(i,j,k) = ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue )
-		? Real(1.0)/sigarr(i,j,k)
-		: sigarr(i,j,k) = 0.;
-	    }
-	    else
-	    {
-	      // set vals outside the domain to
-	      sigarr(i,j,k) = BogusValue;
-	    }
-	  });
-	}
+          amrex::ParallelFor(bx, [=]
+          AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+          {
+            if ( i >= domlox && i <= domhix &&
+                 j >= domloy && j <= domhiy)
+            {
+              // The conern here is EB covered cells set to zero
+              sigarr(i,j,k) = ( amrex::Math::abs(sigarr(i,j,k)) > SmallValue )
+                ? Real(1.0)/sigarr(i,j,k)
+                : sigarr(i,j,k) = 0.;
+            }
+            else
+            {
+              // set vals outside the domain to
+              sigarr(i,j,k) = BogusValue;
+            }
+          });
+        }
     }
 }
 
@@ -1487,7 +1487,6 @@ Projection::radMultScal (int       level,
 {
     AMREX_ASSERT(parent->Geom(0).IsRZ());
 
-#if (AMREX_SPACEDIM  == 2)
     const Box& domain  = parent->Geom(level).Domain();
     const int  domlox  = domain.smallEnd(0);
     const int  domloy  = domain.smallEnd(1);
@@ -1501,24 +1500,23 @@ Projection::radMultScal (int       level,
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox();
-	auto const& mfarr = mf.array(mfi);
+        auto const& mfarr = mf.array(mfi);
 
-	amrex::ParallelFor(bx, [=]
-	AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	{
-	  if ( i >= domlox && i <= domhix &&
-	       j >= domloy && j <= domhiy)
-	  {
-	    mfarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr*mfarr(i,j,k);
-	  }
-	  else
-	  {
-	    // set vals outside the domain to 0
-	    mfarr(i,j,k) = 0.;
-	  }
-	});
+        amrex::ParallelFor(bx, [=]
+        AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+          if ( i >= domlox && i <= domhix &&
+               j >= domloy && j <= domhiy)
+          {
+            mfarr(i,j,k) = (static_cast<Real>(i)+ Real(0.5))*dxr*mfarr(i,j,k);
+          }
+          else
+          {
+            // set vals outside the domain to 0
+            mfarr(i,j,k) = 0.;
+          }
+        });
     }
-#endif
 }
 
 //
@@ -1582,12 +1580,12 @@ Projection::initialVorticityProject (int c_lev)
 #pragma omp parallel
 #endif
         for (MFIter mfi(*rhnd[lev],true); mfi.isValid(); ++mfi)
-	{
-	  // rhnd has ng=0 as declared above
-	  const Box& bx = mfi.tilebox();
-	  (*rhnd[lev])[mfi].setVal<RunOn::Gpu>(0,bx);
-	  (*rhnd[lev])[mfi].copy<RunOn::Gpu>(P_new[mfi], bx, 0, bx, 0, 1);
-	}
+        {
+          // rhnd has ng=0 as declared above
+          const Box& bx = mfi.tilebox();
+          (*rhnd[lev])[mfi].setVal<RunOn::Gpu>(0,bx);
+          (*rhnd[lev])[mfi].copy<RunOn::Gpu>(P_new[mfi], bx, 0, bx, 0, 1);
+        }
     }
 
     //
@@ -1637,8 +1635,8 @@ Projection::initialVorticityProject (int c_lev)
 #pragma omp parallel
 #endif
         for (int n = 0; n < AMREX_SPACEDIM; n++)
-	{
-	    for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
+        {
+            for (MFIter mfi(*vel[lev],true); mfi.isValid(); ++mfi)
             {
                 const Box& box = mfi.tilebox();
                 if (add_vort_proj)
@@ -1667,10 +1665,11 @@ Projection::initialVorticityProject (int c_lev)
 
         ParallelDescriptor::ReduceRealMax(run_time,IOProc);
 
-	amrex::Print() << "Projection::initialVorticityProject(): time: " << run_time << '\n';
+        amrex::Print() << "Projection::initialVorticityProject(): time: " << run_time << '\n';
     }
 
 #else
+    amrex::ignore_unused(c_lev);
     amrex::Error("Projection::initialVorticityProject(): not implented yet for 3D");
 #endif
 }
@@ -1909,16 +1908,16 @@ Projection::set_outflow_bcs_at_level (int          /*which_call*/,
                                                 outFacesAtThisLevel[iface],
                                                 ncStripWidth));
         phi_fine_strip[iface].resize(phi_strip,1);
-	phi_fine_strip[iface].setVal<RunOn::Cpu>(0.);
+        phi_fine_strip[iface].setVal<RunOn::Cpu>(0.);
 
-	rho[iface].resize(state_strip[iface],1);
-	(*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
+        rho[iface].resize(state_strip[iface],1);
+        (*Sig_in).copyTo(rho[iface],0,0,1,ngrow);
     }
 
     if (std::fabs(gravity) > 0.)
       computeRhoG(rho,phi_fine_strip,
-		  parent->Geom(lev),
-		  outFacesAtThisLevel,numOutFlowFaces,gravity);
+                  parent->Geom(lev),
+                  outFacesAtThisLevel,numOutFlowFaces,gravity);
 
     // fixme - there's a cleaner way to do this
     for ( int iface = 0; iface < numOutFlowFaces; iface++)
@@ -1957,11 +1956,11 @@ Projection::set_outflow_bcs_at_level (int          /*which_call*/,
 
 void
 Projection::computeRhoG(FArrayBox*         rhoFab,
-			FArrayBox*         phiFab,
-			const Geometry&    geom,
-			Orientation*       outFaces,
-			int                numOutFlowFaces,
-			Real               gravity)
+                        FArrayBox*         phiFab,
+                        const Geometry&    geom,
+                        Orientation*       outFaces,
+                        int                numOutFlowFaces,
+                        Real               gravity)
 {
     AMREX_ASSERT(std::fabs(gravity) > 0.);
 
@@ -1972,58 +1971,58 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
 
       if (outDir == (AMREX_SPACEDIM-1))
       {
-	  if (side == Orientation::high) {
-	    //
-	    // Hydrostatic pressure == 0 here, given IAMR definition of gravity.
-	    // Do nothing, since phi already initialized to zero
-	    //
-	  } else {
-	    amrex::Abort("Projection::computeRhoG : Simulation box has outflow boundary condition on the bottom and gravity != 0. If this is really the desired configuration, just comment out this Abort");
-	  }
+          if (side == Orientation::high) {
+            //
+            // Hydrostatic pressure == 0 here, given IAMR definition of gravity.
+            // Do nothing, since phi already initialized to zero
+            //
+          } else {
+            amrex::Abort("Projection::computeRhoG : Simulation box has outflow boundary condition on the bottom and gravity != 0. If this is really the desired configuration, just comment out this Abort");
+          }
       }
       else // integrate rho * g* dh
       {
-	  const auto   lo = amrex::lbound(phiFab[iface].box());
-	  const auto   hi = amrex::ubound(phiFab[iface].box());
-	  const auto& phi = phiFab[iface].array();
-	  const auto& rho = rhoFab[iface].array();
-	  const Real dh = geom.CellSize(AMREX_SPACEDIM-1);
+          const auto   lo = amrex::lbound(phiFab[iface].box());
+          const auto   hi = amrex::ubound(phiFab[iface].box());
+          const auto& phi = phiFab[iface].array();
+          const auto& rho = rhoFab[iface].array();
+          const Real dh = geom.CellSize(AMREX_SPACEDIM-1);
 
-	  auto add_rhog = [gravity, dh] ( Real rho1, Real rho2,
-					  Real& rhog_i, Real& phi_i )
-	  {
-	    Real rhoExt = 0.5*(3.*rho1-rho2);
-	    rhog_i -= gravity * rhoExt * dh;
-	    phi_i  += rhog_i;
-	  };
+          auto add_rhog = [gravity, dh] ( Real rho1, Real rho2,
+                                          Real& rhog_i, Real& phi_i )
+          {
+            Real rhoExt = 0.5*(3.*rho1-rho2);
+            rhog_i -= gravity * rhoExt * dh;
+            phi_i  += rhog_i;
+          };
 
 
 #if (AMREX_SPACEDIM == 2)
-	  //
-	  // Only possibilities are XLO face or XHI
-	  //
-	  // Ok to only use low index of phi because phi is only one
-	  // node wide in i-direction.
-	  //
-	  AMREX_ASSERT( lo.x==hi.x );
-	  int i = lo.x;
+          //
+          // Only possibilities are XLO face or XHI
+          //
+          // Ok to only use low index of phi because phi is only one
+          // node wide in i-direction.
+          //
+          AMREX_ASSERT( lo.x==hi.x );
+          int i = lo.x;
 
-	  Real rhog = 0.;
-	  //
-	  // Note that the integral here prevents parallelization
-	  //
-	  if (side == Orientation::low)
-	  {
-	    for (int j = hi.y-1; j >= lo.y; j--) {
-	      add_rhog(rho(i,j,0),rho(i+1,j,0),rhog,phi(i,j,0));
-	    }
-	  }
-	  else
-	  {
-	    for (int j = hi.y-1; j >= lo.y; j--) {
-	      add_rhog(rho(i-1,j,0),rho(i-2,j,0),rhog,phi(i,j,0));
-	    }
-	  }
+          Real rhog = 0.;
+          //
+          // Note that the integral here prevents parallelization
+          //
+          if (side == Orientation::low)
+          {
+            for (int j = hi.y-1; j >= lo.y; j--) {
+              add_rhog(rho(i,j,0),rho(i+1,j,0),rhog,phi(i,j,0));
+            }
+          }
+          else
+          {
+            for (int j = hi.y-1; j >= lo.y; j--) {
+              add_rhog(rho(i-1,j,0),rho(i-2,j,0),rhog,phi(i,j,0));
+            }
+          }
 #else
           const Box& domain = geom.Domain();
           const auto domlo = amrex::lbound(domain);
@@ -2033,354 +2032,354 @@ Projection::computeRhoG(FArrayBox*         rhoFab,
           const auto lo_bc = ns->m_bcrec_scalars[0].lo();
           const auto hi_bc = ns->m_bcrec_scalars[0].hi();
 
-	  //
-	  // fixme? - TODO: Could parallelize here by dividing the loop over i (or j)
-	  // only and thus the k integration stays intact. However, would want to move
-	  // this declaration of rho_i, rho_ii to ensure each k integration has it's own
-	  // copy.
-	  //
-	  Real rho_i, rho_ii;
+          //
+          // fixme? - TODO: Could parallelize here by dividing the loop over i (or j)
+          // only and thus the k integration stays intact. However, would want to move
+          // this declaration of rho_i, rho_ii to ensure each k integration has it's own
+          // copy.
+          //
+          Real rho_i, rho_ii;
 
-	  if ( outDir == int(Direction::x) )
-	  {
-	      //
-	      // Ok to only use low index of phi because phi is only one
-	      // node wide in i-direction.
-	      //
-	      AMREX_ASSERT( lo.x==hi.x );
-	      int i = lo.x;
+          if ( outDir == int(Direction::x) )
+          {
+              //
+              // Ok to only use low index of phi because phi is only one
+              // node wide in i-direction.
+              //
+              AMREX_ASSERT( lo.x==hi.x );
+              int i = lo.x;
 
-	      bool has_extdir_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::ext_dir);
-	      bool has_extdir_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::ext_dir);
-	      bool has_hoextrap_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::hoextrap);
-	      bool has_hoextrap_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::hoextrap);
-	      bool has_foextrap_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::foextrap);
-	      bool has_foextrap_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::foextrap);
+              bool has_extdir_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::ext_dir);
+              bool has_extdir_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::ext_dir);
+              bool has_hoextrap_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::hoextrap);
+              bool has_hoextrap_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::hoextrap);
+              bool has_foextrap_lo = (lo.y==domlo.y   && lo_bc[1]==BCType::foextrap);
+              bool has_foextrap_hi = (hi.y==domhi.y+1 && hi_bc[1]==BCType::foextrap);
 
-	      //
-	      // If there are any of the above mentioned bcs, then we'll need to handle
-	      // edges separately in accordance with those conditions, so set bounds for
-	      // loop over j accordingly.
-	      //
-	      int jlo, jhi;
-	      if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo ) {
-		jlo = lo.y+1;
-	      } else {
-		jlo = lo.y;
-	      }
-	      if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi ) {
-		jhi = hi.y-1;
-	      } else {
-		jhi = hi.y;
-	      }
+              //
+              // If there are any of the above mentioned bcs, then we'll need to handle
+              // edges separately in accordance with those conditions, so set bounds for
+              // loop over j accordingly.
+              //
+              int jlo, jhi;
+              if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo ) {
+                jlo = lo.y+1;
+              } else {
+                jlo = lo.y;
+              }
+              if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi ) {
+                jhi = hi.y-1;
+              } else {
+                jhi = hi.y;
+              }
 
-	      //
-	      // xlo face
-	      //
-	      if (side == Orientation::low)
-	      {
-		for (int j = jlo; j <= jhi; j++)
-		{
-		  Real rhog = 0.;
+              //
+              // xlo face
+              //
+              if (side == Orientation::low)
+              {
+                for (int j = jlo; j <= jhi; j++)
+                {
+                  Real rhog = 0.;
 
-		  for (int k = hi.z-1; k >= lo.z; k--) {
-		    rho_i  = 0.5 * (rho(i  ,j,k) + rho(i  ,j-1,k));
-		    rho_ii = 0.5 * (rho(i+1,j,k) + rho(i+1,j-1,k));
-		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		  }
-		}
-		//
-		// Now compute y-edges if needed
-		//
-		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
-		{
-		  int j = lo.y;
-		  Real rhog = 0.;
+                  for (int k = hi.z-1; k >= lo.z; k--) {
+                    rho_i  = 0.5 * (rho(i  ,j,k) + rho(i  ,j-1,k));
+                    rho_ii = 0.5 * (rho(i+1,j,k) + rho(i+1,j-1,k));
+                    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                  }
+                }
+                //
+                // Now compute y-edges if needed
+                //
+                if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+                {
+                  int j = lo.y;
+                  Real rhog = 0.;
 
-		  if ( has_extdir_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i  = rho(i  ,j-1,k);
-		      rho_ii = rho(i+1,j-1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i  = 0.5*(3.*rho(i  ,j,k) - rho(i  ,j+1,k));
-		      rho_ii = 0.5*(3.*rho(i+1,j,k) - rho(i+1,j+1,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i  = rho(i  ,j,k);
-		      rho_ii = rho(i+1,j,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
+                  if ( has_extdir_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i  = rho(i  ,j-1,k);
+                      rho_ii = rho(i+1,j-1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i  = 0.5*(3.*rho(i  ,j,k) - rho(i  ,j+1,k));
+                      rho_ii = 0.5*(3.*rho(i+1,j,k) - rho(i+1,j+1,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i  = rho(i  ,j,k);
+                      rho_ii = rho(i+1,j,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
 
-		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
-		{
-		  int j = hi.y;
-		  Real rhog = 0;
+                if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+                {
+                  int j = hi.y;
+                  Real rhog = 0;
 
-		  if ( has_extdir_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i  = rho(i  ,j,k);
-		      rho_ii = rho(i+1,j,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i  = 0.5*(3.*rho(i  ,j-1,k) - rho(i  ,j-2,k));
-		      rho_ii = 0.5*(3.*rho(i+1,j-1,k) - rho(i+1,j-2,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i  = rho(i  ,j-1,k);
-		      rho_ii = rho(i+1,j-1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
-	      }
-	      else // xhi face
-	      {
-		for (int j = jlo; j <= jhi; j++)
-		{
-		  Real rhog = 0.;
+                  if ( has_extdir_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i  = rho(i  ,j,k);
+                      rho_ii = rho(i+1,j,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i  = 0.5*(3.*rho(i  ,j-1,k) - rho(i  ,j-2,k));
+                      rho_ii = 0.5*(3.*rho(i+1,j-1,k) - rho(i+1,j-2,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i  = rho(i  ,j-1,k);
+                      rho_ii = rho(i+1,j-1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
+              }
+              else // xhi face
+              {
+                for (int j = jlo; j <= jhi; j++)
+                {
+                  Real rhog = 0.;
 
-		  for (int k = hi.z-1; k >= lo.z; k--) {
-		    rho_i   = 0.5 * (rho(i-1,j,k) + rho(i-1,j-1,k));
-		    rho_ii = 0.5 * (rho(i-2,j,k) + rho(i-2,j-1,k));
-		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		  }
-		}
-		//
-		// Now compute y-edges if needed
-		//
-		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
-		{
-		  int j = lo.y;
-		  Real rhog = 0.;
+                  for (int k = hi.z-1; k >= lo.z; k--) {
+                    rho_i   = 0.5 * (rho(i-1,j,k) + rho(i-1,j-1,k));
+                    rho_ii = 0.5 * (rho(i-2,j,k) + rho(i-2,j-1,k));
+                    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                  }
+                }
+                //
+                // Now compute y-edges if needed
+                //
+                if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+                {
+                  int j = lo.y;
+                  Real rhog = 0.;
 
-		  if ( has_extdir_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j-1,k);
-		      rho_ii = rho(i-2,j-1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = 0.5*(3.*rho(i-1,j,k) - rho(i-1,j+1,k));
-		      rho_ii = 0.5*(3.*rho(i-2,j,k) - rho(i-2,j+1,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j,k);
-		      rho_ii = rho(i-2,j,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
+                  if ( has_extdir_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j-1,k);
+                      rho_ii = rho(i-2,j-1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = 0.5*(3.*rho(i-1,j,k) - rho(i-1,j+1,k));
+                      rho_ii = 0.5*(3.*rho(i-2,j,k) - rho(i-2,j+1,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j,k);
+                      rho_ii = rho(i-2,j,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
 
-		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
-		{
-		  int j = hi.y;
-		  Real rhog = 0;
+                if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+                {
+                  int j = hi.y;
+                  Real rhog = 0;
 
-		  if ( has_extdir_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j,k);
-		      rho_ii = rho(i-2,j,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = 0.5*(3.*rho(i-1,j-1,k) - rho(i-1,j-2,k));
-		      rho_ii = 0.5*(3.*rho(i-2,j-1,k) - rho(i-2,j-2,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j-1,k);
-		      rho_ii = rho(i-2,j-1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
-	      }
-	  }
-	  else // ( outDir == Direction::y )
-	  {
-	      //
-	      // Ok to only use low index of phi because phi is only one
-	      // node wide in i-direction.
-	      //
-	      AMREX_ASSERT( lo.y==hi.y );
-	      int j = lo.y;
+                  if ( has_extdir_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j,k);
+                      rho_ii = rho(i-2,j,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = 0.5*(3.*rho(i-1,j-1,k) - rho(i-1,j-2,k));
+                      rho_ii = 0.5*(3.*rho(i-2,j-1,k) - rho(i-2,j-2,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j-1,k);
+                      rho_ii = rho(i-2,j-1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
+              }
+          }
+          else // ( outDir == Direction::y )
+          {
+              //
+              // Ok to only use low index of phi because phi is only one
+              // node wide in i-direction.
+              //
+              AMREX_ASSERT( lo.y==hi.y );
+              int j = lo.y;
 
-	      bool has_extdir_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::ext_dir);
-	      bool has_extdir_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::ext_dir);
-	      bool has_hoextrap_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::hoextrap);
-	      bool has_hoextrap_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::hoextrap);
-	      bool has_foextrap_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::foextrap);
-	      bool has_foextrap_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::foextrap);
-	      //
-	      // If there are any of the above mentioned bcs, then we'll need to handle
-	      // edges separately in accordance with those conditions, so set bounds for
-	      // loop over i accordingly.
-	      //
-	      int ilo, ihi;
-	      if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo ) {
-		ilo = lo.x+1;
-	      } else {
-		ilo = lo.x;
-	      }
-	      if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi ) {
-		ihi = hi.x-1;
-	      } else {
-		ihi = hi.x;
-	      }
-	      //
-	      // ylo face
-	      //
-	      if (side == Orientation::low)
-	      {
-		for (int i = ilo; i <= ihi; i++)
-		{
-		  Real rhog = 0.;
+              bool has_extdir_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::ext_dir);
+              bool has_extdir_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::ext_dir);
+              bool has_hoextrap_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::hoextrap);
+              bool has_hoextrap_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::hoextrap);
+              bool has_foextrap_lo = (lo.x==domlo.x   && lo_bc[0]==BCType::foextrap);
+              bool has_foextrap_hi = (hi.x==domhi.x+1 && hi_bc[0]==BCType::foextrap);
+              //
+              // If there are any of the above mentioned bcs, then we'll need to handle
+              // edges separately in accordance with those conditions, so set bounds for
+              // loop over i accordingly.
+              //
+              int ilo, ihi;
+              if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo ) {
+                ilo = lo.x+1;
+              } else {
+                ilo = lo.x;
+              }
+              if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi ) {
+                ihi = hi.x-1;
+              } else {
+                ihi = hi.x;
+              }
+              //
+              // ylo face
+              //
+              if (side == Orientation::low)
+              {
+                for (int i = ilo; i <= ihi; i++)
+                {
+                  Real rhog = 0.;
 
-		  for (int k = hi.z-1; k >= lo.z; k--) {
-		    rho_i   = 0.5 * (rho(i,j  ,k) + rho(i-1,j ,k));
-		    rho_ii = 0.5 * (rho(i,j+1,k) + rho(i-1,j+1,k));
-		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		  }
-		}
-		//
-		// Now compute x-edges if needed
-		//
-		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
-		{
-		  int i = lo.x;
-		  Real rhog = 0.;
+                  for (int k = hi.z-1; k >= lo.z; k--) {
+                    rho_i   = 0.5 * (rho(i,j  ,k) + rho(i-1,j ,k));
+                    rho_ii = 0.5 * (rho(i,j+1,k) + rho(i-1,j+1,k));
+                    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                  }
+                }
+                //
+                // Now compute x-edges if needed
+                //
+                if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+                {
+                  int i = lo.x;
+                  Real rhog = 0.;
 
-		  if ( has_extdir_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j  ,k);
-		      rho_ii = rho(i-1,j+1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = 0.5*(3.*rho(i,j  ,k) - rho(i+1,j  ,k));
-		      rho_ii = 0.5*(3.*rho(i,j+1,k) - rho(i+1,j+1,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i,j  ,k);
-		      rho_ii = rho(i,j+1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
+                  if ( has_extdir_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j  ,k);
+                      rho_ii = rho(i-1,j+1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = 0.5*(3.*rho(i,j  ,k) - rho(i+1,j  ,k));
+                      rho_ii = 0.5*(3.*rho(i,j+1,k) - rho(i+1,j+1,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i,j  ,k);
+                      rho_ii = rho(i,j+1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
 
-		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
-		{
-		  int i = hi.x;
-		  Real rhog = 0;
+                if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+                {
+                  int i = hi.x;
+                  Real rhog = 0;
 
-		  if ( has_extdir_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i,j  ,k);
-		      rho_ii = rho(i,j+1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = 0.5*(3.*rho(i-1,j  ,k) - rho(i-2,j  ,k));
-		      rho_ii = 0.5*(3.*rho(i-1,j+1,k) - rho(i-2,j+1,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j  ,k);
-		      rho_ii = rho(i-1,j+1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
-	      }
-	      else // yhi face
-	      {
-		for (int i = ilo; i <= ihi; i++)
-		{
-		  Real rhog = 0.;
+                  if ( has_extdir_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i,j  ,k);
+                      rho_ii = rho(i,j+1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = 0.5*(3.*rho(i-1,j  ,k) - rho(i-2,j  ,k));
+                      rho_ii = 0.5*(3.*rho(i-1,j+1,k) - rho(i-2,j+1,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j  ,k);
+                      rho_ii = rho(i-1,j+1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
+              }
+              else // yhi face
+              {
+                for (int i = ilo; i <= ihi; i++)
+                {
+                  Real rhog = 0.;
 
-		  for (int k = hi.z-1; k >= lo.z; k--) {
-		    rho_i   = 0.5 * (rho(i,j-1,k) + rho(i-1,j-1,k));
-		    rho_ii = 0.5 * (rho(i,j-1,k) + rho(i-1,j-2,k));
-		    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		  }
-		}
-		//
-		// Now compute y-edges if needed
-		//
-		if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
-		{
-		  int i = lo.x;
-		  Real rhog = 0.;
+                  for (int k = hi.z-1; k >= lo.z; k--) {
+                    rho_i   = 0.5 * (rho(i,j-1,k) + rho(i-1,j-1,k));
+                    rho_ii = 0.5 * (rho(i,j-1,k) + rho(i-1,j-2,k));
+                    add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                  }
+                }
+                //
+                // Now compute y-edges if needed
+                //
+                if ( has_extdir_lo || has_hoextrap_lo || has_foextrap_lo )
+                {
+                  int i = lo.x;
+                  Real rhog = 0.;
 
-		  if ( has_extdir_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j-1,k);
-		      rho_ii = rho(i-2,j-1,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = 0.5*(3.*rho(i,j-1,k) - rho(i+1,j-1,k));
-		      rho_ii = 0.5*(3.*rho(i,j-2,k) - rho(i+1,j-2,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_lo ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i,j-1,k);
-		      rho_ii = rho(i,j-2,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
+                  if ( has_extdir_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j-1,k);
+                      rho_ii = rho(i-2,j-1,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = 0.5*(3.*rho(i,j-1,k) - rho(i+1,j-1,k));
+                      rho_ii = 0.5*(3.*rho(i,j-2,k) - rho(i+1,j-2,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_lo ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i,j-1,k);
+                      rho_ii = rho(i,j-2,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
 
-		if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
-		{
-		  int i = hi.x;
-		  Real rhog = 0;
+                if ( has_extdir_hi || has_hoextrap_hi || has_foextrap_hi )
+                {
+                  int i = hi.x;
+                  Real rhog = 0;
 
-		  if ( has_extdir_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i,j-1,k);
-		      rho_ii = rho(i,j-2,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_hoextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = 0.5*(3.*rho(i-1,j-1,k) - rho(i-2,j-1,k));
-		      rho_ii = 0.5*(3.*rho(i-1,j-2,k) - rho(i-2,j-2,k));
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  } else if ( has_foextrap_hi ) {
-		    for (int k = hi.z-1; k >= lo.z; k--) {
-		      rho_i   = rho(i-1,j-1,k);
-		      rho_ii = rho(i-1,j-2,k);
-		      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
-		    }
-		  }
-		}
-	      } // endif over hi/low sides
-	  } // endif over directions
+                  if ( has_extdir_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i,j-1,k);
+                      rho_ii = rho(i,j-2,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_hoextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = 0.5*(3.*rho(i-1,j-1,k) - rho(i-2,j-1,k));
+                      rho_ii = 0.5*(3.*rho(i-1,j-2,k) - rho(i-2,j-2,k));
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  } else if ( has_foextrap_hi ) {
+                    for (int k = hi.z-1; k >= lo.z; k--) {
+                      rho_i   = rho(i-1,j-1,k);
+                      rho_ii = rho(i-1,j-2,k);
+                      add_rhog(rho_i, rho_ii, rhog, phi(i,j,k));
+                    }
+                  }
+                }
+              } // endif over hi/low sides
+          } // endif over directions
 #endif
       } // endif integrate rho*g*dh
     } // end loop over outflow faces
@@ -2488,7 +2487,7 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
     LPInfo info;
 
     if (max_coarsening_level >= 0 ) {
-	info.setMaxCoarseningLevel(max_coarsening_level);
+        info.setMaxCoarseningLevel(max_coarsening_level);
     }
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
@@ -2555,17 +2554,17 @@ void Projection::doMLMGNodalProjection (int c_lev, int nlevel,
 
       if ( increment_gp )
       {
-	//
-	// Add a correction to Gradp
-	//
+        //
+        // Add a correction to Gradp
+        //
         MultiFab::Add(Gp, *gradphi[lev], 0, 0, AMREX_SPACEDIM, 0);
       }
       else
       {
-	//
-	// Replace Gradp with the gradient(P) computed in MLMG
-	//
-	MultiFab::Copy(Gp, *gradphi[lev], 0, 0, AMREX_SPACEDIM, 0);
+        //
+        // Replace Gradp with the gradient(P) computed in MLMG
+        //
+        MultiFab::Copy(Gp, *gradphi[lev], 0, 0, AMREX_SPACEDIM, 0);
 
       }
       //
@@ -2604,72 +2603,72 @@ void Projection::set_boundary_velocity(int c_lev, int nlevel, const Vector<Multi
     for (int idir=0; idir<AMREX_SPACEDIM; idir++) {
 
       if (lo_bc[idir] != Inflow && hi_bc[idir] != Inflow) {
-	vel[lev]->setBndry(0.0, Xvel+idir, 1);
+        vel[lev]->setBndry(0.0, Xvel+idir, 1);
       }
       else {
-	//fixme: is it worth the overhead to have threads here?
+        //fixme: is it worth the overhead to have threads here?
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
-	  int i = mfi.index();
+        for (MFIter mfi(*vel[lev]); mfi.isValid(); ++mfi) {
+          int i = mfi.index();
 
-	  FArrayBox& v_fab = (*vel[lev])[mfi];
+          FArrayBox& v_fab = (*vel[lev])[mfi];
 
-	  const Box& reg = grids[i];
-	  const Box& bxg1 = amrex::grow(reg,1);
-	  BoxList bxlist(reg);
+          const Box& reg = grids[i];
+          const Box& bxg1 = amrex::grow(reg,1);
+          BoxList bxlist(reg);
 
-	  //If tiling only need to redefine these (all the rest can stay the same):
-	  // const Box& bxg1 = mfi.growntilebox(1);
-	  // const Box& tile = mfi.tilebox();
-	  // BoxList bxlist(tile);
+          //If tiling only need to redefine these (all the rest can stay the same):
+          // const Box& bxg1 = mfi.growntilebox(1);
+          // const Box& tile = mfi.tilebox();
+          // BoxList bxlist(tile);
 
-	  if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
-	    Box bx;                // bx is the region we *protect* from zero'ing
-	    bx = amrex::adjCellLo(reg, idir);
+          if (lo_bc[idir] == Inflow && reg.smallEnd(idir) == domainBox.smallEnd(idir)) {
+            Box bx;                // bx is the region we *protect* from zero'ing
+            bx = amrex::adjCellLo(reg, idir);
 
-	    if (inflowCorner) {
+            if (inflowCorner) {
 
               for (int odir = 0; odir < AMREX_SPACEDIM; odir++) {
-		if (odir != idir) {
+                if (odir != idir) {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
                     if (reg.bigEnd  (odir) != domainBox.bigEnd  (odir) ) bx.growHi(odir,1);
                     if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
-		}
+                }
               }
-	    }
-	    bxlist.push_back(bx);
-	  }
+            }
+            bxlist.push_back(bx);
+          }
 
-	  if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
-	    Box bx;                // bx is the region we *protect* from zero'ing
-	    bx = amrex::adjCellHi(reg, idir);
+          if (hi_bc[idir] == Inflow && reg.bigEnd(idir) == domainBox.bigEnd(idir)) {
+            Box bx;                // bx is the region we *protect* from zero'ing
+            bx = amrex::adjCellHi(reg, idir);
 
-	    if (inflowCorner) {
+            if (inflowCorner) {
 
               for (int odir = 0; odir < AMREX_SPACEDIM; odir++) {
-		if (odir != idir)
-		  {
+                if (odir != idir)
+                  {
                     if (geom.isPeriodic(odir)) bx.grow(odir,1);
                     if (reg.bigEnd  (odir) != domainBox.bigEnd  (odir) ) bx.growHi(odir,1);
                     if (reg.smallEnd(odir) != domainBox.smallEnd(odir) ) bx.growLo(odir,1);
-		  }
+                  }
               }
-	    }
+            }
 
-	    bxlist.push_back(bx);
-	  }
+            bxlist.push_back(bx);
+          }
 
-	  BoxList bxlist2 = amrex::complementIn(bxg1, bxlist);
+          BoxList bxlist2 = amrex::complementIn(bxg1, bxlist);
 
-	  for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
+          for (BoxList::iterator it=bxlist2.begin(); it != bxlist2.end(); ++it) {
             Box ovlp = *it & v_fab.box();
             if (ovlp.ok()) {
-		v_fab.setVal<RunOn::Gpu>(0.0, ovlp, Xvel+idir, 1);
+                v_fab.setVal<RunOn::Gpu>(0.0, ovlp, Xvel+idir, 1);
             }
-	  }
-	}
+          }
+        }
       }
     }
   }

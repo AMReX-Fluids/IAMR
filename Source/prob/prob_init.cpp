@@ -380,13 +380,11 @@ void NavierStokes::init_RayleighTaylor (Box const& vbx,
   const Real Ly    = (probhi[1] - problo[1]);
   const Real splitz = 0.5*(problo[2] + probhi[2]);
 
-  Real rn;
-
   // Create random amplitudes and phases for the perturbation
 
   //This doens't work for OMP. Just hard-code results below.
   // amrex::InitRandom(111397);
-  // rn = amrex::Random();
+  // Real rn = amrex::Random();
   // const Real ranampl = 2.*(rn-0.5);
 
   // rn = amrex::Random();
@@ -565,7 +563,7 @@ void NavierStokes::init_ConvectedVortex (Box const& vbx,
   {
     AMREX_D_TERM(Real x = problo[0] + (i - domlo.x + 0.5)*dx[0];,
                  Real y = problo[1] + (j - domlo.y + 0.5)*dx[1];,
-                 Real z = problo[2] + (k - domlo.z + 0.5)*dx[2]);
+                 /*Real z = problo[2] + (k - domlo.z + 0.5)*dx[2]*/);
 
     amrex::Real deltax = x - IC.a; // x-distance from vortex center
     amrex::Real deltay = y - IC.b; // y-distance form vortex center
