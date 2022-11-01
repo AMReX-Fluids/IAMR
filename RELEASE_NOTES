@@ -284,3 +284,6 @@ Fix for multilevel RZ in filling Umac ghost cells. Create IAMR/Tutorials and res
 10/4/22
 Restart bug fix: read probtype.
 Remove unmaintained option to compute a volume-weighted sum over a sub-region.
+
+11/1/22
+Fix bug in multilevel velocity sync. Misc code cleanup.
