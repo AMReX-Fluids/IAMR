@@ -4837,9 +4837,6 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                            ? "Godunov" : advection_scheme;
     bool godunov_use_ppm = (advection_scheme == "Godunov_PPM") ? true : false ;
 
-    // No BDS for velocity for now...
-    if (scheme == "BDS" && is_velocity) { scheme = "Godunov"; }
-
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
