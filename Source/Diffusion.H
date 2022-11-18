@@ -13,6 +13,7 @@
 #include <AMReX_FluxRegister.H>
 #include <FluxBoxes.H>
 
+#include <AMReX_MLMG.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_MLEBABecLap.H>
 #include <AMReX_MLEBTensorOp.H>
