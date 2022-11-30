@@ -63,7 +63,7 @@ PrintUsage (const char* progName)
     std::cout << "    unifdir = uniformDirection (optional, default is z-dir)" << '\n';
     std::cout << "    errfile = ErrorFileOutputFileName (optional)" << '\n';
     std::cout << "     exfile = ExactSolnOutputFileName (optional)" << '\n';
-    std::cout << "       norm = integer norm (optional, default is 2 for L2 norm)" << '\n';
+    std::cout << "       norm = integer norm (optional, default is 2 for L2 norm, 1 for L1 norm, 0 for L_{inf} norm)" << '\n';
     std::cout << "   [-help]" << '\n';
     std::cout << "   [-verbose]" << '\n';
     std::cout << '\n';
@@ -214,16 +214,22 @@ main (int   argc,
         Real delAvg = pow(cellvol, (1.0/BL_SPACEDIM));
 
         std::cout << "  " << iLevel << " " << delAvg << "    ";
+        Real Ln = 0.0;
+
         for (int iComp=0; iComp<nComp; ++iComp)
         {
-            Real Ln = 0.0;
-            for (int iGrid=0; iGrid<baI.size(); ++iGrid)
-            {
-                Real grdLn = (*error[iLevel])[iGrid].norm(norm,iComp,1);
-                Ln = Ln + pow(grdLn, norm) * cellvol;
+            if(norm == 0){
+                // L_{inf} norm
+                Ln = (*error[iLevel]).norm0(iComp);
             }
-            Ln = pow(Ln, (1.0/norm));
-
+            else if(norm == 1){
+                // L_1 norm
+                Ln = (*error[iLevel]).norm1(iComp)*cellvol;
+            }
+            else{
+                // L_2 norm
+                Ln = (*error[iLevel]).norm2(iComp)*sqrt(cellvol);
+            }
             std::cout << Ln << "  ";
         }
         std::cout << std::endl;
