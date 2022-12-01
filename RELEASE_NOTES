@@ -287,3 +287,7 @@ Remove unmaintained option to compute a volume-weighted sum over a sub-region.
 
 11/1/22
 Fix bug in multilevel velocity sync. Misc code cleanup.
+
+12/1/22
+Allow BDS for velocity advection (but still not in computing MAC velocities). Note this changes behavior for advection_scheme=BDS option, which before only used BDS for scalars and used Godunov for velocity.
+Fix norm calculation in Tutorials/TaylorGreen/benchmarks. Minor clean up.
