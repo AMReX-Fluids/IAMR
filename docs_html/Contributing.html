@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contributing &mdash; IAMR 22.01-dev documentation</title>
+  <title>Contributing &mdash; IAMR 23.03-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> IAMR
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
           </a>
               <div class="version">
-                22.01-dev
+                23.03-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -85,7 +89,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Contributing</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/Contributing.rst.txt" rel="nofollow"> View page source</a>
@@ -162,37 +166,37 @@ your fork. Don’t forget to push.</p></li>
 <p>Then, clone your fork on your local computer. If you plan on doing a lot of IAMR development,
 we recommend configuring your clone to use ssh access so you won’t have to enter your Github
 password every time, which you can do using these commands:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone --branch development git@github.com:&lt;myGithubUsername&gt;/IAMR.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>development<span class="w"> </span>git@github.com:&lt;myGithubUsername&gt;/IAMR.git
 
 <span class="c1"># Then, navigate into your repo, add a new remote for the main IAMR repo, and fetch it:</span>
-<span class="nb">cd</span> IAMR
-git remote add upstream https://github.com/IAMR-Codes/IAMR
-git remote set-url --push upstream git@github.com:&lt;myGithubUsername&gt;/IAMR.git
-git fetch upstream
+<span class="nb">cd</span><span class="w"> </span>IAMR
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/IAMR-Codes/IAMR
+git<span class="w"> </span>remote<span class="w"> </span>set-url<span class="w"> </span>--push<span class="w"> </span>upstream<span class="w"> </span>git@github.com:&lt;myGithubUsername&gt;/IAMR.git
+git<span class="w"> </span>fetch<span class="w"> </span>upstream
 
 <span class="c1"># We recommend setting your development branch to track the upstream one instead of your fork:</span>
-git branch -u upstream/development
+git<span class="w"> </span>branch<span class="w"> </span>-u<span class="w"> </span>upstream/development
 </pre></div>
 </div>
 <p>For instructions on setting up SSH access to your Github account on a new machine, see <a class="reference external" href="https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh">here</a>.</p>
 <p>If you instead prefer to use HTTPS authentication, configure your local clone as follows:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone --branch development https://github.com/&lt;myGithubUsername&gt;/IAMR.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>development<span class="w"> </span>https://github.com/&lt;myGithubUsername&gt;/IAMR.git
 
 <span class="c1"># Navigate into your repo, add a new remote for the main IAMR repo, and fetch it</span>
-<span class="nb">cd</span> IAMR
-git remote add upstream https://github.com/IAMR-Codes/IAMR
-git remote set-url --push upstream https://github.com/&lt;myGithubUsername&gt;/IAMR.git
-git fetch upstream
+<span class="nb">cd</span><span class="w"> </span>IAMR
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/IAMR-Codes/IAMR
+git<span class="w"> </span>remote<span class="w"> </span>set-url<span class="w"> </span>--push<span class="w"> </span>upstream<span class="w"> </span>https://github.com/&lt;myGithubUsername&gt;/IAMR.git
+git<span class="w"> </span>fetch<span class="w"> </span>upstream
 
 <span class="c1"># We recommend setting your development branch to track the upstream one instead of your fork:</span>
-git branch -u upstream/development
+git<span class="w"> </span>branch<span class="w"> </span>-u<span class="w"> </span>upstream/development
 </pre></div>
 </div>
 <p>Note: you do not have to re-do the setup above every time.
 Instead, in the future, to update the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch on your fork
 (i.e. sync your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch with that of the main repo) use</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git checkout development
-git pull
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>development
+git<span class="w"> </span>pull
 </pre></div>
 </div>
 <p>Now you are free to play with your fork (for additional information, you can visit the
@@ -207,30 +211,30 @@ Instead, we reccomend creating a new branch based on the <code class="docutils l
 To proceed, make sure you are on the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch within the IAMR directory.
 Then create branch <code class="docutils literal notranslate"><span class="pre">&lt;branch_name&gt;</span></code> (the branch name should reflect the piece
 of code you want to add, like <code class="docutils literal notranslate"><span class="pre">high_order_interpolation</span></code>) with</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git checkout development
-git checkout -b &lt;branch_name&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>development
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>&lt;branch_name&gt;
 </pre></div>
 </div>
 <p>Do the coding you want.
 Add the files you worked on to the git staging area with</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git add &lt;file_I_created&gt; &lt;and_file_I_modified&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>add<span class="w"> </span>&lt;file_I_created&gt;<span class="w"> </span>&lt;and_file_I_modified&gt;
 </pre></div>
 </div>
 <p>Periodically commit your changes with</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git commit -m <span class="s2">&quot;This is a 50-char description to explain my work&quot;</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;This is a 50-char description to explain my work&quot;</span>
 </pre></div>
 </div>
 <p>The commit message (between quotation marks) is super important in order to
 follow the developments and identify bugs.</p>
 <p>For the moment, commits are on your local repo only. You can push them to
 your fork with</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git push -u origin &lt;branch_name&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>&lt;branch_name&gt;
 </pre></div>
 </div>
 <p>If you want to synchronize your branch with the main IAMR <code class="docutils literal notranslate"><span class="pre">development</span></code> branch (this is useful
 when <code class="docutils literal notranslate"><span class="pre">development</span></code> is being modified while you are working on
 <code class="docutils literal notranslate"><span class="pre">&lt;branch_name&gt;</span></code>), you can use</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git merge upstream/development
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>merge<span class="w"> </span>upstream/development
 </pre></div>
 </div>
 <p>and fix any conflicts that may occur.</p>
@@ -268,8 +272,8 @@ make a <code class="docutils literal notranslate"><span class="pre">draft</span>
 <p>Once your pull request is made, we will review and potentially merge it.
 We recommend always creating a new branch for each pull request, as per the above instructions.
 Once your pull request is merged, you can delete your PR branch with</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git branch -D &lt;branch_name&gt; <span class="c1"># Delete the local copy</span>
-git push origin --delete &lt;branch_name&gt; <span class="c1"># Delete the remote one on your fork</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>branch<span class="w"> </span>-D<span class="w"> </span>&lt;branch_name&gt;<span class="w"> </span><span class="c1"># Delete the local copy</span>
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>--delete<span class="w"> </span>&lt;branch_name&gt;<span class="w"> </span><span class="c1"># Delete the remote one on your fork</span>
 </pre></div>
 </div>
 <p>Generally speaking, you want to follow the following rules.</p>
@@ -284,38 +288,38 @@ going to use git to fix it later.</p></li>
 </ul>
 </div></blockquote>
 <p>If you have accidentally committed in <code class="docutils literal notranslate"><span class="pre">development</span></code> branch, you can fix it as follows,</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git checkout -b new_branch
-git checkout development
-git reset HEAD~2  <span class="c1"># Here 2 is the number of commits you have accidentally committed in development</span>
-git checkout .
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>new_branch
+git<span class="w"> </span>checkout<span class="w"> </span>development
+git<span class="w"> </span>reset<span class="w"> </span>HEAD~2<span class="w">  </span><span class="c1"># Here 2 is the number of commits you have accidentally committed in development</span>
+git<span class="w"> </span>checkout<span class="w"> </span>.
 </pre></div>
 </div>
 <p>After this, the local <code class="docutils literal notranslate"><span class="pre">development</span></code> should be in sync with IAMR <code class="docutils literal notranslate"><span class="pre">development</span></code> and your recent
 commits have been saved in <code class="docutils literal notranslate"><span class="pre">new_branch</span></code> branch.</p>
 <p>If for some reason your PR branch has diverged from IAMR, you can try to fix it as follows.  Before
 you try it, you should back up your code in case things go wrong.</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git fetch upstream   <span class="c1"># assuming upstream is the remote name for the official IAMR repo</span>
-git checkout -b xxx upstream/development  <span class="c1"># replace xxx with whatever name you like</span>
-git branch -D development
-git checkout -b development upstream/development
-git checkout xxx
-git merge yyy  <span class="c1"># here yyy is your PR branch with unclean history</span>
-git rebase -i upstream/development
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>fetch<span class="w"> </span>upstream<span class="w">   </span><span class="c1"># assuming upstream is the remote name for the official IAMR repo</span>
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>xxx<span class="w"> </span>upstream/development<span class="w">  </span><span class="c1"># replace xxx with whatever name you like</span>
+git<span class="w"> </span>branch<span class="w"> </span>-D<span class="w"> </span>development
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>development<span class="w"> </span>upstream/development
+git<span class="w"> </span>checkout<span class="w"> </span>xxx
+git<span class="w"> </span>merge<span class="w"> </span>yyy<span class="w">  </span><span class="c1"># here yyy is your PR branch with unclean history</span>
+git<span class="w"> </span>rebase<span class="w"> </span>-i<span class="w"> </span>upstream/development
 </pre></div>
 </div>
 <p>You will see something like below in your editor,</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pick 7451d9d commit message a
-pick c4c2459 commit message b
-pick 6fj3g90 commit message c
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pick<span class="w"> </span>7451d9d<span class="w"> </span>commit<span class="w"> </span>message<span class="w"> </span>a
+pick<span class="w"> </span>c4c2459<span class="w"> </span>commit<span class="w"> </span>message<span class="w"> </span>b
+pick<span class="w"> </span>6fj3g90<span class="w"> </span>commit<span class="w"> </span>message<span class="w"> </span>c
 </pre></div>
 </div>
 <p>This now requires a bit of knowledge on what those commits are, which commits have been merged,
 which commits are actually new.  However, you should only see your commits.  So it should be
 easy to figure out which commits have already been merged.  Assuming the first two commits have been
 merged, you can drop them by replace <code class="docutils literal notranslate"><span class="pre">pick</span></code> with <code class="docutils literal notranslate"><span class="pre">drop</span></code>,</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>drop 7451d9d commit message a
-drop c4c2459 commit message b
-pick 6fj3g90 commit message c
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>drop<span class="w"> </span>7451d9d<span class="w"> </span>commit<span class="w"> </span>message<span class="w"> </span>a
+drop<span class="w"> </span>c4c2459<span class="w"> </span>commit<span class="w"> </span>message<span class="w"> </span>b
+pick<span class="w"> </span>6fj3g90<span class="w"> </span>commit<span class="w"> </span>message<span class="w"> </span>c
 </pre></div>
 </div>
 <p>After saving and then exiting the editor, <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code> should show a clean history based on top of

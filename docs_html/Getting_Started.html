@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; IAMR 22.01-dev documentation</title>
+  <title>Getting Started &mdash; IAMR 23.03-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> IAMR
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
           </a>
               <div class="version">
-                22.01-dev
+                23.03-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -77,7 +81,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Getting Started</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/Getting_Started.rst.txt" rel="nofollow"> View page source</a>
@@ -99,19 +103,19 @@ and AMReX-Hydro.</p>
 <p>First, make sure that git is installed on your machine.</p>
 <ol class="arabic">
 <li><p>Download the AMReX repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/AMReX-Codes/amrex.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/amrex.git
 </pre></div>
 </div>
 <p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">amrex/</span></code> on your machine.</p>
 </li>
 <li><p>Download the AMReX-Hydro repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/AMReX-Codes/AMReX-Hydro.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/AMReX-Hydro.git
 </pre></div>
 </div>
 <p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">AMReX-Hydro/</span></code> on your machine.</p>
 </li>
 <li><p>Download the IAMR repository by typing:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/AMReX-Codes/IAMR.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/IAMR.git
 </pre></div>
 </div>
 <p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">IAMR/</span></code> on your machine.</p>
@@ -132,7 +136,7 @@ or in the <a class="reference internal" href="Tutorials.html#tutorials"><span cl
 <li><p>Edit the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>:</p>
 <p>Set AMREX_HOME to be the path to the directory where you have put amrex. NOTE: when setting <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> in the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>, be aware that <code class="docutils literal notranslate"><span class="pre">~</span></code> does not expand, so <code class="docutils literal notranslate"><span class="pre">AMREX_HOME=~/amrex/</span></code> will yield an error.</p>
 <p>Alternatively, the path to AMReX can be set up as an environment variable, <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code>, on your machine to point to the path name where you have put AMReX. For example, if you are using the bash shell, you can add this to your <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code> as:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">AMREX_HOME</span><span class="o">=</span>/path/to/amrex
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AMREX_HOME</span><span class="o">=</span>/path/to/amrex
 </pre></div>
 </div>
 <p>alternatively, in tcsh one can set</p>
@@ -228,7 +232,7 @@ like <code class="docutils literal notranslate"><span class="pre">amr3d.gnu.MPI.
 <p>IAMR takes an input file as its first command-line argument.  The file may
 contain a set of parameter definitions that will overrides defaults set in the code.
 For example, to run an example in <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials/Bubble</span></code>, type:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./amr2d.gnu.ex inputs.2d.bubble
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./amr2d.gnu.ex<span class="w"> </span>inputs.2d.bubble
 </pre></div>
 </div>
 <p>IAMR typically generates subfolders in the current folder that
@@ -286,7 +290,7 @@ OS-specific package management tool to install them.</p>
 have a number of output files, including some in the form pltXXXXX,
 where XXXXX is a number corresponding to the timestep the file
 was output. To see a single plotfile, type</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d &lt;filename&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d<span class="w"> </span>&lt;filename&gt;
 </pre></div>
 </div>
 <div class="figure align-default" id="id1">
@@ -294,7 +298,7 @@ was output. To see a single plotfile, type</p>
 <p class="caption"><span class="caption-number">Fig. 1 </span><span class="caption-text">Amrvis visualization tool</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
 </div>
 <p>Or to animate the sequence of plotfiles, use</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d -a plt<span class="se">\*</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d<span class="w"> </span>-a<span class="w"> </span>plt<span class="se">\*</span>
 </pre></div>
 </div>
 <p>Within Amrvis you can change which variable you are

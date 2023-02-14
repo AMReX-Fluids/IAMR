@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Debugging &mdash; IAMR 22.01-dev documentation</title>
+  <title>Debugging &mdash; IAMR 23.03-dev documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> IAMR
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
           </a>
               <div class="version">
-                22.01-dev
+                23.03-dev
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -71,7 +75,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Debugging</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/Debugging.rst.txt" rel="nofollow"> View page source</a>
@@ -99,24 +103,24 @@ the code to fail durning the debugging process.</p>
 time subcycling off and advance the whole system at the same dt.</p>
 <p>Visualizing the data between plotiles can sometimes be helpful.
 One option is to use</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">amrex::WriteSingleLevelPlotfile</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">plotfilename</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">MultiFab</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mf</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">varnames</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">Geometry</span><span class="w"> </span><span class="o">&amp;</span><span class="n">geom</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                      </span><span class="n">Real</span><span class="w"> </span><span class="n">time</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                      </span><span class="kt">int</span><span class="w"> </span><span class="n">level_step</span><span class="p">);</span><span class="w"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">amrex::WriteSingleLevelPlotfile</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">plotfilename</span><span class="p">,</span>
+<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">MultiFab</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mf</span><span class="p">,</span>
+<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">Vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">varnames</span><span class="p">,</span>
+<span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">Geometry</span><span class="w"> </span><span class="o">&amp;</span><span class="n">geom</span><span class="p">,</span>
+<span class="w">                                      </span><span class="n">Real</span><span class="w"> </span><span class="n">time</span><span class="p">,</span>
+<span class="w">                                      </span><span class="kt">int</span><span class="w"> </span><span class="n">level_step</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Plotfiles can be compared using AMReX’s <code class="docutils literal notranslate"><span class="pre">fcompare</span></code> tool found in
 <code class="docutils literal notranslate"><span class="pre">amrex/Tools/Plotfile</span></code>.
 Another option is to write a <code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> to disk with</p>
-<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">amrex</span><span class="o">::</span><span class="n">VisMF</span><span class="o">::</span><span class="n">Write</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FabArray</span><span class="o">&lt;</span><span class="n">FArrayBox</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">mf</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span><span class="w"> </span><span class="n">name</span><span class="p">)</span><span class="w"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">amrex</span><span class="o">::</span><span class="n">VisMF</span><span class="o">::</span><span class="n">Write</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FabArray</span><span class="o">&lt;</span><span class="n">FArrayBox</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">mf</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&amp;</span><span class="w"> </span><span class="n">name</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This can then be examined in <code class="docutils literal notranslate"><span class="pre">Amrvis</span></code> by passing the <code class="docutils literal notranslate"><span class="pre">-mf</span></code> flag.
 Two <code class="docutils literal notranslate"><span class="pre">MultiFab</span></code> s can be compared using the AMReX tool <code class="docutils literal notranslate"><span class="pre">DiffMultiFab</span></code> found in
 <code class="docutils literal notranslate"><span class="pre">amrex/Tools/C_util/DiffMultiFab</span></code>.</p>
-<p>Please also read AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Debugging.html#sec-basics-debugging" title="(in amrex v22.00-dev)"><span>Debugging</span></a>
+<p>Please also read AMReX’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Debugging.html#sec-basics-debugging" title="(in amrex v23.03-dev)"><span>Debugging</span></a>
 for more information and tips.</p>
 <p>If you believe you’ve encountered a bug or incorrect behavior in IAMR, please report the issue
 on IAMR’s github page <a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">here</a> .</p>
