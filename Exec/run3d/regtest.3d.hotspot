@@ -28,7 +28,8 @@ amr.n_cell 		= 16 16 16 #32 32 32
 #*******************************************************************************
 
 # Maximum level (defaults to 0 for single level calculation)
-amr.max_level		= 2 # maximum number of levels of refinement
+amr.max_level	    = 2 # maximum number of levels of refinement
+amr.blocking_factor = 8
 
 # Refinement criterion, use temperature
 amr.refinement_indicators = hi_temp Tdiff
@@ -144,10 +145,5 @@ prob.blob_radius = 0.2
 prob.density_ic = 2.0
 # Can also set up a flow, defaults to zero
 #prob.velocity_ic = 0. 0. 0.
-
-#*******************************************************************************
-
-# Factor by which grids must be coarsenable.
-amr.blocking_factor     = 4
 
 #*******************************************************************************
