@@ -5109,9 +5109,6 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                 Redistribution::Apply( bx, ncomp, redist_arr, update_arr,
                                        rstate->const_array(mfi, rstate_comp), scratch, flags_arr,
                                        AMREX_D_DECL(apx,apy,apz), vfrac_arr,
-#ifdef AMREX_USE_MOVING_EB
-                                       AMREX_D_DECL(apx,apy,apz), vfrac_arr,
-#endif
                                        AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
                                        geom, dt, redistribution_type );
 
