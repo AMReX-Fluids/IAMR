@@ -10,16 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.3.1 # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly.
-        with:
-          persist-credentials: false
+        uses: actions/checkout@v3
 
       - name: Dependencies
         run: |
           .github/workflows/dependencies/documentation.sh
           echo "Installing python packages for docs..."
-          pip3 install sphinx sphinx_rtd_theme breathe sphinxcontrib.bibtex
-          pip3 install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
+          python3 -m pip install --upgrade pip
+          python3 -m pip install sphinx=5.0.0 sphinx_rtd_theme breathe sphinxcontrib.bibtex
+          python3 -m pip install -I docutils==0.16  # Downgrade docutils so that bullet points render properly with Sphinx
 
       - name: Install and Build
         run: |
@@ -29,7 +28,7 @@ jobs:
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/IAMR' && github.ref == 'refs/heads/development'
-        uses: JamesIves/github-pages-deploy-action@3.7.1
+        uses: JamesIves/github-pages-deploy-action@4.1.5
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: gh-pages # The branch the action should deploy to.
