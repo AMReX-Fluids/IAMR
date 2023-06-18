@@ -58,12 +58,12 @@ namespace DepRand
       Mersenne Twister Home Page: http://www.math.keio.ac.jp/matumoto/emt.html
 
       There is also an entry point for Fortran callable as:
-    
+
       REAL_T rn
       call blutilrand(rn)
 
       Internally, blutilrand() calls a static Mersenne Twister oject (the
-      same one used by BoxLib::Random()) to get a value in [0,1] and then
+      same one used by AMReX::Random()) to get a value in [0,1] and then
       sets "rn" to that value.
     */
     double Random (); // [0,1]
@@ -107,7 +107,7 @@ namespace DepRand
     //
     void UniqueRandomSubset (amrex::Vector<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
-  
+
 }
 
 #endif

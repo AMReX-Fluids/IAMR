@@ -39,7 +39,7 @@ public:
                             int                numOutFlowFaces,
                             const int*        lo_bc,
                             const int*        hi_bc,
-                            amrex::Real              small_udiff, 
+                            amrex::Real              small_udiff,
                             amrex::Real              gravity) = 0;
 
     static amrex::Box SemiGrow (const amrex::Box& baseBox,

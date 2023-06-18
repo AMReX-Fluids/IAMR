@@ -45,7 +45,7 @@ public:
     void install_level (int                   level,
                         amrex::AmrLevel*             level_data,
                         amrex::Vector< amrex::Vector<amrex::Real> >* _radius,
-			const amrex::EBFArrayBoxFactory& _ebfactory);
+            const amrex::EBFArrayBoxFactory& _ebfactory);
 
 #endif
     //
@@ -208,8 +208,8 @@ public:
                       amrex::Real               gravity);
 
     void putDown(const amrex::Vector<amrex::MultiFab*>& phi, amrex::FArrayBox* phi_fine_strip,
-		 int c_lev, int f_lev, const amrex::Orientation* outFaces,
-		 int numOutFlowFaces, int ncStripWidth);
+         int c_lev, int f_lev, const amrex::Orientation* outFaces,
+         int numOutFlowFaces, int ncStripWidth);
     //
     // Pointers to amrlevel and amr.
     //
@@ -249,14 +249,14 @@ public:
                                const amrex::Vector<amrex::MultiFab*>& rhcc,
                                const amrex::Vector<amrex::MultiFab*>& rhnd,
                                amrex::Real rel_tol, amrex::Real abs_tol,
-			       bool proj2,
+                   bool proj2,
                                amrex::MultiFab* sync_resid_crse=nullptr,
                                amrex::MultiFab* sync_resid_fine=nullptr,
                                bool doing_initial_vortproj=false);
 
     // set velocity in ghost cells to zero except for inflow
     void set_boundary_velocity(int c_lev, int nlevel,
-			       const amrex::Vector<amrex::MultiFab*>& vel,
+                   const amrex::Vector<amrex::MultiFab*>& vel,
                                bool inflowCorner);
 
 };

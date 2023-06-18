@@ -9,7 +9,7 @@ FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
     data = new MultiFab*[BL_SPACEDIM];
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-	const BoxArray& ba = amr_level->getEdgeBoxArray(dir);
+        const BoxArray& ba = amr_level->getEdgeBoxArray(dir);
         const DistributionMapping& dm = amr_level->DistributionMap();
         data[dir] = new MultiFab(ba,dm,nvar,nghost,MFInfo(),amr_level->Factory());
     }

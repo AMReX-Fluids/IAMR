@@ -292,7 +292,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
     int direction = 1;
     Real radius = 0.018;
     Real height = 0.01;
-    bool internal_flow = true; 
+    bool internal_flow = true;
     Vector<Real> centervec(3);
 
     // Get information from inputs file.
@@ -398,14 +398,14 @@ NavierStokesBase::initialize_eb2_structs() {
 
   amrex::Print() << "Initializing EB2 structs" << std::endl;
 
-  // NOTE: THIS NEEDS TO BE REPLACED WITH A FLAGFAB 
-  
+  // NOTE: THIS NEEDS TO BE REPLACED WITH A FLAGFAB
+
   // n.b., could set this to 1 if geometry is all_regular as an optimization
   no_eb_in_domain = 0;
 
   //  1->regular, 0->irregular, -1->covered, 2->outside
   ebmask.define(grids, dmap,  1, 0);
-  
+
   const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
 
   // These are the data sources
@@ -413,7 +413,7 @@ NavierStokesBase::initialize_eb2_structs() {
   bndrycent = &(ebfactory.getBndryCent());
   areafrac = ebfactory.getAreaFrac();
   facecent = ebfactory.getFaceCent();
-  
+
   auto const& flags = ebfactory.getMultiEBCellFlagFab();
 
 #ifdef _OPENMP
@@ -425,7 +425,7 @@ NavierStokesBase::initialize_eb2_structs() {
     const Box tbox = mfi.growntilebox();
     const Box bx = mfi.tilebox();
     const EBCellFlagFab& flagfab = flags[mfi];
-    
+
     FabType typ = flagfab.getType(tbox);
 
     if (typ == FabType::regular) {
@@ -448,15 +448,15 @@ NavierStokesBase::initialize_eb2_structs() {
       int Ncut = 0;
       for (BoxIterator bit(tbox); bit.ok(); ++bit) {
         const EBCellFlag& flag = flagfab(bit(), 0);
-    
+
         if (!(flag.isRegular() || flag.isCovered())) {
           Ncut++;
         }
       }
-    
+
       for (BoxIterator bit(tbox); bit.ok(); ++bit) {
         const EBCellFlag& flag = flagfab(bit(), 0);
-    
+
         if (!(flag.isRegular() || flag.isCovered())) {
           if (mfab.box().contains(bit())) mfab(bit()) = 0;
         } else {
@@ -473,7 +473,7 @@ NavierStokesBase::initialize_eb2_structs() {
     else {
       amrex::Print() << "unknown (or multivalued) fab type" << std::endl;
       amrex::Abort();
-    }   
+    }
   }
 }
 
@@ -481,8 +481,8 @@ void
 NavierStokesBase::define_body_state()
 {
   if (no_eb_in_domain) return;
-  
-  // Scan over data and find a point in the fluid to use to 
+
+  // Scan over data and find a point in the fluid to use to
   // set computable values in cells outside the domain
   if (!body_state_set)
   {
@@ -490,7 +490,7 @@ NavierStokesBase::define_body_state()
     const MultiFab& S = get_new_data(State_Type);
     BL_ASSERT(S.boxArray() == ebmask.boxArray());
     BL_ASSERT(S.DistributionMap() == ebmask.DistributionMap());
-  
+
     body_state.resize(S.nComp(),0);
     for (MFIter mfi(S,false); mfi.isValid() && !foundPt; ++mfi)
     {
@@ -498,8 +498,8 @@ NavierStokesBase::define_body_state()
       const BaseFab<int>& m = ebmask[mfi];
       const FArrayBox& fab = S[mfi];
       BL_ASSERT(m.box().contains(vbox));
-  
-      // TODO: Remove this dog and do this work in fortran 
+
+      // TODO: Remove this dog and do this work in fortran
       for (BoxIterator bit(vbox); bit.ok() && !foundPt; ++bit)
       {
         const IntVect& iv = bit();
@@ -512,7 +512,7 @@ NavierStokesBase::define_body_state()
         }
       }
     }
-  
+
     // Find proc with lowest rank to find valid point, use that for all
     std::vector<int> found(ParallelDescriptor::NProcs(),0);
     found[ParallelDescriptor::MyProc()] = (int)foundPt;

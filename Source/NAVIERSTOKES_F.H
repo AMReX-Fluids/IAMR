@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 
-    void cen2edg(const int* lo, const int* hi, 
+    void cen2edg(const int* lo, const int* hi,
                       ARLIM_P(clo), ARLIM_P(chi), const amrex::Real* cfabdat,
                       ARLIM_P(elo), ARLIM_P(ehi), amrex::Real* efabdat,
                       const int* nc, const int* dir, const int* isharm);
@@ -22,6 +22,6 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-    
+
 #endif
 #endif /*_NAVIERSTOKES_F_H_*/

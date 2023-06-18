@@ -37,9 +37,9 @@ namespace amrex
 #ifdef AMREX_USE_GPU
         Gpu::htod_memcpy
 #else
-	std::memcpy
+    std::memcpy
 #endif
-	  (v_d.data(), v.data(), sizeof(T)*ncomp);
+      (v_d.data(), v.data(), sizeof(T)*ncomp);
 
         return v_d;
     }

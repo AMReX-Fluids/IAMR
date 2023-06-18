@@ -19,7 +19,7 @@ using namespace amrex;
 #ifdef AMREX_USE_EB
 //skipping header file and just declaring eb2 init fn here as in CNS for now
 void initialize_EB2 (const Geometry& geom, const int required_level,
-		     const int max_level);
+             const int max_level);
 #endif
 
 amrex::LevelBld* getLevelBld ();
@@ -85,7 +85,7 @@ main (int   argc,
     int max_coarsening_level = 100;
     pp.query("max_coarsening_level", max_coarsening_level);
     initialize_EB2(amrptr->Geom(amrptr->maxLevel()), amrptr->maxLevel(),
-		   max_coarsening_level);
+           max_coarsening_level);
 #endif
 
     amrptr->init(strt_time,stop_time);
@@ -105,7 +105,7 @@ main (int   argc,
             max_step = std::min(max_step, num_steps + amrptr->levelSteps(0));
         }
 
-	amrex::Print() << "Using effective max_step = " << max_step << '\n';
+    amrex::Print() << "Using effective max_step = " << max_step << '\n';
     }
     //
     // If we set the regrid_on_restart flag and if we are *not* going to take

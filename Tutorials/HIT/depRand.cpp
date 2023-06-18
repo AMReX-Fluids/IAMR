@@ -6,7 +6,7 @@
 using namespace amrex;
 
 //
-// BoxLib Interface to Mersenne Twistor
+// AMReX Interface to Mersenne Twistor
 //
 
 /* A C-program for MT19937: Real number version (1999/10/28)    */
@@ -47,9 +47,9 @@ void
 DepRand::mt19937::sgenrand(unsigned long seed)
 {
     mt[0]= seed & 0xffffffffUL;
-    for ( mti=1; mti<N; mti++ ) 
+    for ( mti=1; mti<N; mti++ )
     {
-        mt[mti] = (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30L)) + mti); 
+        mt[mti] = (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30L)) + mti);
         /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
         /* In the previous versions, MSBs of the seed affect   */
         /* only MSBs of the array mt[].                        */
@@ -61,14 +61,14 @@ DepRand::mt19937::sgenrand(unsigned long seed)
 /* initialize by an array with array-length */
 /* init_key is the array for initializing keys */
 /* key_length is its length */
-void 
+void
 DepRand::mt19937::sgenrand(unsigned long init_key[], int key_length)
 {
     int i, j, k;
     sgenrand(19650218UL);
     i=1; j=0;
     k = (N>key_length ? N : key_length);
-    for ( ; k; k-- ) 
+    for ( ; k; k-- )
     {
         mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1664525UL)) + init_key[j] + j; /* non linear */
         mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
@@ -76,7 +76,7 @@ DepRand::mt19937::sgenrand(unsigned long init_key[], int key_length)
         if (i>=N) { mt[0] = mt[N-1]; i=1; }
         if (j>=key_length) j=0;
     }
-    for ( k=N-1; k; k-- ) 
+    for ( k=N-1; k; k-- )
     {
         mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >> 30)) * 1566083941UL)) - i; /* non linear */
         mt[i] &= 0xffffffffUL; /* for WORDSIZE > 32 machines */
@@ -84,7 +84,7 @@ DepRand::mt19937::sgenrand(unsigned long init_key[], int key_length)
         if (i>=N) { mt[0] = mt[N-1]; i=1; }
     }
 
-    mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */ 
+    mt[0] = 0x80000000UL; /* MSB is 1; assuring non-zero initial array */
 }
 
 void
@@ -295,7 +295,7 @@ unsigned long
 DepRand::Random_int(unsigned long n)
 {
   const unsigned long umax = 4294967295UL; // 2^32-1
-  BL_ASSERT( n > 0 && n <= umax ); 
+  BL_ASSERT( n > 0 && n <= umax );
   unsigned long scale = umax/n;
   unsigned long r;
   do {

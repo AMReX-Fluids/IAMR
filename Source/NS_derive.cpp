@@ -9,8 +9,8 @@ using namespace amrex;
 namespace derive_functions
 {
   void der_vel_avg (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
-		    const FArrayBox& datfab, const Geometry& /*geomdata*/,
-		    Real /*time*/, const int* /*bcrec*/, int level)
+            const FArrayBox& datfab, const Geometry& /*geomdata*/,
+            Real /*time*/, const int* /*bcrec*/, int level)
 
   {
     AMREX_ASSERT(derfab.box().contains(bx));
@@ -48,8 +48,8 @@ namespace derive_functions
   //  surrounding nodal values
   //
   void deravgpres (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
-		   const FArrayBox& datfab, const Geometry& /*geomdata*/,
-		   Real /*time*/, const int* /*bcrec*/, int /*level*/)
+           const FArrayBox& datfab, const Geometry& /*geomdata*/,
+           Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
     AMREX_ASSERT(derfab.box().contains(bx));
@@ -69,12 +69,12 @@ namespace derive_functions
     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
       der(i,j,k) =  factor * (  in_dat(i+1,j,k)     + in_dat(i,j,k)
-				+ in_dat(i+1,j+1,k)   + in_dat(i,j+1,k)
+                + in_dat(i+1,j+1,k)   + in_dat(i,j+1,k)
 #if (AMREX_SPACEDIM == 3 )
-				+ in_dat(i+1,j,k+1)   + in_dat(i,j,k+1)
-				+ in_dat(i+1,j+1,k+1) + in_dat(i,j+1,k+1)
+                + in_dat(i+1,j,k+1)   + in_dat(i,j,k+1)
+                + in_dat(i+1,j+1,k+1) + in_dat(i,j+1,k+1)
 #endif
-				);
+                );
     });
   }
 
@@ -82,8 +82,8 @@ namespace derive_functions
   //  Compute magnitude of vorticity
   //
   void dermgvort (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
-		  const FArrayBox& datfab, const Geometry& geomdata,
-		  Real /*time*/, const int* /*bcrec*/, int /*level*/)
+          const FArrayBox& datfab, const Geometry& geomdata,
+          Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
     AMREX_ASSERT(derfab.box().contains(bx));
@@ -111,122 +111,122 @@ namespace derive_functions
         });
     } else if (typ == FabType::singlevalued)
     {
-	const auto& flag_fab = flags.const_array();
-	amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-	{
-	  constexpr amrex::Real c0 = -1.5;
-	  constexpr amrex::Real c1 = 2.0;
-	  constexpr amrex::Real c2 = -0.5;
-	  if (flag_fab(i,j,k).isCovered()) {
-	    vort_arr(i,j,k) = 0.0;
-	  } else {
-	    amrex::Real vx = 0.0;
-	    amrex::Real uy = 0.0;
+    const auto& flag_fab = flags.const_array();
+    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+      constexpr amrex::Real c0 = -1.5;
+      constexpr amrex::Real c1 = 2.0;
+      constexpr amrex::Real c2 = -0.5;
+      if (flag_fab(i,j,k).isCovered()) {
+        vort_arr(i,j,k) = 0.0;
+      } else {
+        amrex::Real vx = 0.0;
+        amrex::Real uy = 0.0;
 
 #if ( AMREX_SPACEDIM == 2 )
 
-	    // Need to check if there are covered cells in neighbours --
-	    // -- if so, use one-sided difference computation (but still quadratic)
-	    if (!flag_fab(i,j,k).isConnected( 1,0,0)) {
-	      vx = - (c0 * dat_arr(i  ,j,k,1)
-		      + c1 * dat_arr(i-1,j,k,1)
-		      + c2 * dat_arr(i-2,j,k,1)) * idx;
-	    } else if (!flag_fab(i,j,k).isConnected(-1,0,0)) {
-	      vx = (c0 * dat_arr(i  ,j,k,1)
-		    + c1 * dat_arr(i+1,j,k,1)
-		    + c2 * dat_arr(i+2,j,k,1)) * idx;
-	    } else {
-	      vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
-	    }
-	    // Do the same in y-direction
-	    if (!flag_fab(i,j,k).isConnected( 0,1,0)) {
-	      uy = - (c0 * dat_arr(i,j  ,k,0)
-		      + c1 * dat_arr(i,j-1,k,0)
-		      + c2 * dat_arr(i,j-2,k,0)) * idy;
-	    } else if (!flag_fab(i,j,k).isConnected(0,-1,0)) {
-	      uy = (c0 * dat_arr(i,j  ,k,0)
-		    + c1 * dat_arr(i,j+1,k,0)
-		    + c2 * dat_arr(i,j+2,k,0)) * idy;
-	    } else {
-	      uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
-	    }
+        // Need to check if there are covered cells in neighbours --
+        // -- if so, use one-sided difference computation (but still quadratic)
+        if (!flag_fab(i,j,k).isConnected( 1,0,0)) {
+          vx = - (c0 * dat_arr(i  ,j,k,1)
+              + c1 * dat_arr(i-1,j,k,1)
+              + c2 * dat_arr(i-2,j,k,1)) * idx;
+        } else if (!flag_fab(i,j,k).isConnected(-1,0,0)) {
+          vx = (c0 * dat_arr(i  ,j,k,1)
+            + c1 * dat_arr(i+1,j,k,1)
+            + c2 * dat_arr(i+2,j,k,1)) * idx;
+        } else {
+          vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
+        }
+        // Do the same in y-direction
+        if (!flag_fab(i,j,k).isConnected( 0,1,0)) {
+          uy = - (c0 * dat_arr(i,j  ,k,0)
+              + c1 * dat_arr(i,j-1,k,0)
+              + c2 * dat_arr(i,j-2,k,0)) * idy;
+        } else if (!flag_fab(i,j,k).isConnected(0,-1,0)) {
+          uy = (c0 * dat_arr(i,j  ,k,0)
+            + c1 * dat_arr(i,j+1,k,0)
+            + c2 * dat_arr(i,j+2,k,0)) * idy;
+        } else {
+          uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
+        }
 
-	    vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
+        vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
 
 
 #elif ( AMREX_SPACEDIM == 3 )
 
-	    amrex::Real wx = 0.0;
-	    amrex::Real wy = 0.0;
-	    amrex::Real uz = 0.0;
-	    amrex::Real vz = 0.0;
-	    // Need to check if there are covered cells in neighbours --
-	    // -- if so, use one-sided difference computation (but still quadratic)
-	    if (!flag_fab(i,j,k).isConnected( 1,0,0)) {
-	      // Covered cell to the right, go fish left
-	      vx = - (c0 * dat_arr(i  ,j,k,1)
-		      + c1 * dat_arr(i-1,j,k,1)
-		      + c2 * dat_arr(i-2,j,k,1)) * idx;
-	      wx = - (c0 * dat_arr(i  ,j,k,2)
-		      + c1 * dat_arr(i-1,j,k,2)
-		      + c2 * dat_arr(i-2,j,k,2)) * idx;
-	    } else if (!flag_fab(i,j,k).isConnected(-1,0,0)) {
-	      // Covered cell to the left, go fish right
-	      vx = (c0 * dat_arr(i  ,j,k,1)
-		    + c1 * dat_arr(i+1,j,k,1)
-		    + c2 * dat_arr(i+2,j,k,1)) * idx;
-	      wx = (c0 * dat_arr(i  ,j,k,2)
-		    + c1 * dat_arr(i+1,j,k,2)
-		    + c2 * dat_arr(i+2,j,k,2)) * idx;
-	    } else {
-	      // No covered cells right or left, use standard stencil
-	      vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
-	      wx = 0.5 * (dat_arr(i+1,j,k,2) - dat_arr(i-1,j,k,2)) * idx;
-	    }
-	    // Do the same in y-direction
-	    if (!flag_fab(i,j,k).isConnected(0, 1,0)) {
-	      uy = - (c0 * dat_arr(i,j  ,k,0)
-		      + c1 * dat_arr(i,j-1,k,0)
-		      + c2 * dat_arr(i,j-2,k,0)) * idy;
-	      wy = - (c0 * dat_arr(i,j  ,k,2)
-		      + c1 * dat_arr(i,j-1,k,2)
-		      + c2 * dat_arr(i,j-2,k,2)) * idy;
-	    } else if (!flag_fab(i,j,k).isConnected(0,-1,0)) {
-	      uy = (c0 * dat_arr(i,j  ,k,0)
-		    + c1 * dat_arr(i,j+1,k,0)
-		    + c2 * dat_arr(i,j+2,k,0)) * idy;
-	      wy = (c0 * dat_arr(i,j  ,k,2)
-		    + c1 * dat_arr(i,j+1,k,2)
-		    + c2 * dat_arr(i,j+2,k,2)) * idy;
-	    } else {
-	      uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
-	      wy = 0.5 * (dat_arr(i,j+1,k,2) - dat_arr(i,j-1,k,2)) * idy;
-	    }
-	    // Do the same in z-direction
-	    if (!flag_fab(i,j,k).isConnected(0,0, 1)) {
-	      uz = - (c0 * dat_arr(i,j,k  ,0)
-		      + c1 * dat_arr(i,j,k-1,0)
-		      + c2 * dat_arr(i,j,k-2,0)) * idz;
-	      vz = - (c0 * dat_arr(i,j,k  ,1)
-		      + c1 * dat_arr(i,j,k-1,1)
-		      + c2 * dat_arr(i,j,k-2,1)) * idz;
-	    } else if (!flag_fab(i,j,k).isConnected(0,0,-1)) {
-	      uz = (c0 * dat_arr(i,j,k  ,0)
-		    + c1 * dat_arr(i,j,k+1,0)
-		    + c2 * dat_arr(i,j,k+2,0)) * idz;
-	      vz = (c0 * dat_arr(i,j,k  ,1)
-		    + c1 * dat_arr(i,j,k+1,1)
-		    + c2 * dat_arr(i,j,k+2,1)) * idz;
-	    } else {
-	      uz = 0.5 * (dat_arr(i,j,k+1,0) - dat_arr(i,j,k-1,0)) * idz;
-	      vz = 0.5 * (dat_arr(i,j,k+1,1) - dat_arr(i,j,k-1,1)) * idz;
-	    }
+        amrex::Real wx = 0.0;
+        amrex::Real wy = 0.0;
+        amrex::Real uz = 0.0;
+        amrex::Real vz = 0.0;
+        // Need to check if there are covered cells in neighbours --
+        // -- if so, use one-sided difference computation (but still quadratic)
+        if (!flag_fab(i,j,k).isConnected( 1,0,0)) {
+          // Covered cell to the right, go fish left
+          vx = - (c0 * dat_arr(i  ,j,k,1)
+              + c1 * dat_arr(i-1,j,k,1)
+              + c2 * dat_arr(i-2,j,k,1)) * idx;
+          wx = - (c0 * dat_arr(i  ,j,k,2)
+              + c1 * dat_arr(i-1,j,k,2)
+              + c2 * dat_arr(i-2,j,k,2)) * idx;
+        } else if (!flag_fab(i,j,k).isConnected(-1,0,0)) {
+          // Covered cell to the left, go fish right
+          vx = (c0 * dat_arr(i  ,j,k,1)
+            + c1 * dat_arr(i+1,j,k,1)
+            + c2 * dat_arr(i+2,j,k,1)) * idx;
+          wx = (c0 * dat_arr(i  ,j,k,2)
+            + c1 * dat_arr(i+1,j,k,2)
+            + c2 * dat_arr(i+2,j,k,2)) * idx;
+        } else {
+          // No covered cells right or left, use standard stencil
+          vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
+          wx = 0.5 * (dat_arr(i+1,j,k,2) - dat_arr(i-1,j,k,2)) * idx;
+        }
+        // Do the same in y-direction
+        if (!flag_fab(i,j,k).isConnected(0, 1,0)) {
+          uy = - (c0 * dat_arr(i,j  ,k,0)
+              + c1 * dat_arr(i,j-1,k,0)
+              + c2 * dat_arr(i,j-2,k,0)) * idy;
+          wy = - (c0 * dat_arr(i,j  ,k,2)
+              + c1 * dat_arr(i,j-1,k,2)
+              + c2 * dat_arr(i,j-2,k,2)) * idy;
+        } else if (!flag_fab(i,j,k).isConnected(0,-1,0)) {
+          uy = (c0 * dat_arr(i,j  ,k,0)
+            + c1 * dat_arr(i,j+1,k,0)
+            + c2 * dat_arr(i,j+2,k,0)) * idy;
+          wy = (c0 * dat_arr(i,j  ,k,2)
+            + c1 * dat_arr(i,j+1,k,2)
+            + c2 * dat_arr(i,j+2,k,2)) * idy;
+        } else {
+          uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
+          wy = 0.5 * (dat_arr(i,j+1,k,2) - dat_arr(i,j-1,k,2)) * idy;
+        }
+        // Do the same in z-direction
+        if (!flag_fab(i,j,k).isConnected(0,0, 1)) {
+          uz = - (c0 * dat_arr(i,j,k  ,0)
+              + c1 * dat_arr(i,j,k-1,0)
+              + c2 * dat_arr(i,j,k-2,0)) * idz;
+          vz = - (c0 * dat_arr(i,j,k  ,1)
+              + c1 * dat_arr(i,j,k-1,1)
+              + c2 * dat_arr(i,j,k-2,1)) * idz;
+        } else if (!flag_fab(i,j,k).isConnected(0,0,-1)) {
+          uz = (c0 * dat_arr(i,j,k  ,0)
+            + c1 * dat_arr(i,j,k+1,0)
+            + c2 * dat_arr(i,j,k+2,0)) * idz;
+          vz = (c0 * dat_arr(i,j,k  ,1)
+            + c1 * dat_arr(i,j,k+1,1)
+            + c2 * dat_arr(i,j,k+2,1)) * idz;
+        } else {
+          uz = 0.5 * (dat_arr(i,j,k+1,0) - dat_arr(i,j,k-1,0)) * idz;
+          vz = 0.5 * (dat_arr(i,j,k+1,1) - dat_arr(i,j,k-1,1)) * idz;
+        }
 
-	    vort_arr(i,j,k) = std::sqrt((wy-vz)*(wy-vz) + (uz-wx)*(uz-wx) + (vx-uy)*(vx-uy));
+        vort_arr(i,j,k) = std::sqrt((wy-vz)*(wy-vz) + (uz-wx)*(uz-wx) + (vx-uy)*(vx-uy));
 
 #endif
-	  }
-	});
+      }
+    });
     } else // non-EB
 #endif
       {
@@ -234,26 +234,26 @@ namespace derive_functions
         {
 #if ( AMREX_SPACEDIM == 2 )
 
-	  amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
-	  amrex::Real uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
+      amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
+      amrex::Real uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
 
-	  vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
+      vort_arr(i,j,k) = amrex::Math::abs(vx-uy);
 
 
 #elif ( AMREX_SPACEDIM == 3 )
 
-	  amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
-	  amrex::Real wx = 0.5 * (dat_arr(i+1,j,k,2) - dat_arr(i-1,j,k,2)) * idx;
+      amrex::Real vx = 0.5 * (dat_arr(i+1,j,k,1) - dat_arr(i-1,j,k,1)) * idx;
+      amrex::Real wx = 0.5 * (dat_arr(i+1,j,k,2) - dat_arr(i-1,j,k,2)) * idx;
 
-	  amrex::Real uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
-	  amrex::Real wy = 0.5 * (dat_arr(i,j+1,k,2) - dat_arr(i,j-1,k,2)) * idy;
+      amrex::Real uy = 0.5 * (dat_arr(i,j+1,k,0) - dat_arr(i,j-1,k,0)) * idy;
+      amrex::Real wy = 0.5 * (dat_arr(i,j+1,k,2) - dat_arr(i,j-1,k,2)) * idy;
 
-	  amrex::Real uz = 0.5 * (dat_arr(i,j,k+1,0) - dat_arr(i,j,k-1,0)) * idz;
-	  amrex::Real vz = 0.5 * (dat_arr(i,j,k+1,1) - dat_arr(i,j,k-1,1)) * idz;
+      amrex::Real uz = 0.5 * (dat_arr(i,j,k+1,0) - dat_arr(i,j,k-1,0)) * idz;
+      amrex::Real vz = 0.5 * (dat_arr(i,j,k+1,1) - dat_arr(i,j,k-1,1)) * idz;
 
-	  vort_arr(i,j,k) = std::sqrt((wy-vz)*(wy-vz) + (uz-wx)*(uz-wx) + (vx-uy)*(vx-uy));
+      vort_arr(i,j,k) = std::sqrt((wy-vz)*(wy-vz) + (uz-wx)*(uz-wx) + (vx-uy)*(vx-uy));
 #endif
-	});
+    });
       }
   }
 
@@ -261,8 +261,8 @@ namespace derive_functions
   // Compute kinetic energy
   //
   void derkeng (const Box& bx, FArrayBox& derfab, int dcomp, int ncomp,
-		const FArrayBox& datfab, const Geometry& /*geomdata*/,
-		Real /*time*/, const int* /*bcrec*/, int /*level*/)
+        const FArrayBox& datfab, const Geometry& /*geomdata*/,
+        Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
     AMREX_ASSERT(derfab.box().contains(bx));
@@ -284,9 +284,9 @@ namespace derive_functions
 
       der(i,j,k) =  0.5 * rho * ( vx*vx + vy*vy
 #if (AMREX_SPACEDIM == 3 )
-				  + vz*vz
+                  + vz*vz
 #endif
-				  );
+                  );
     });
   }
 
@@ -294,9 +294,9 @@ namespace derive_functions
   // Null function
   //
   void dernull (const Box& /*bx*/,
-		FArrayBox& /*derfab*/, int /*dcomp*/, int /*ncomp*/,
-		const FArrayBox& /*datfab*/, const Geometry& /*geomdata*/,
-		Real /*time*/, const int* /*bcrec*/, int /*level*/)
+        FArrayBox& /*derfab*/, int /*dcomp*/, int /*ncomp*/,
+        const FArrayBox& /*datfab*/, const Geometry& /*geomdata*/,
+        Real /*time*/, const int* /*bcrec*/, int /*level*/)
 
   {
     //

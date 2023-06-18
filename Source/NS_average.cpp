@@ -20,7 +20,7 @@ using namespace amrex;
 //  Do not forget to add "velocity_average" in amr.derive_plot_vars.
 //
 //  If "compute_fluctuations" is turned on, it is going to compute RMS of velocity fluctuations.
-//  The good practice is to start computing RMS of fluctuations 
+//  The good practice is to start computing RMS of fluctuations
 //  when the average of the velocity has reached convergence.
 //---------------------------------------------------------------------
 
@@ -33,7 +33,7 @@ NavierStokesBase::time_average(amrex::Real&  a_time_avg, amrex::Real&  a_time_av
   if (parent->levelSteps(0)%avg_interval == 0)
   {
     MultiFab& Sstate = get_new_data(State_Type);
-    MultiFab& Savg   = get_new_data(Average_Type); 
+    MultiFab& Savg   = get_new_data(Average_Type);
     MultiFab& Savg_old   = get_old_data(Average_Type);
 
 #ifdef _OPENMP
