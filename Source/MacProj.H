@@ -7,7 +7,6 @@
 #include <AMReX_FluxRegister.H>
 #include <AMReX_MLLinOp.H>
 
-
 //
 // A useful enumeration of the forms for the advective terms
 //
@@ -51,14 +50,14 @@ public:
                          amrex::MultiFab& rho_half,
                          const amrex::BCRec&  rho_math_bc,
                          amrex::IntVect&  fine_ratio,
-			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
-			 amrex::MultiFab* Rhs_increment = nullptr);
+                         amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
+                         amrex::MultiFab* Rhs_increment = nullptr);
 
     //
     // Computing the sync tendency.
     //
     void mac_sync_compute (int                          level,
-			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
+                           amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab&             Vsync,
                            amrex::MultiFab&             Ssync,
                            amrex::FluxRegister*         adv_flux_reg,
@@ -67,33 +66,33 @@ public:
                            amrex::Real                  dt,
                            int                          num_state_comps,
                            amrex::Real                  be_cn_theta,
-                           int		                do_mom_diff,
-			   bool                         update_fluxreg = true);
+                           int                          do_mom_diff,
+                           bool                         update_fluxreg = true);
 
     void mac_sync_compute (int                          level,
-			   amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
+                           amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab&             Sync,
                            int                          comp,
                            int                          s_ind,
                            amrex::MultiFab* const*      sync_edges,
-			   int                          eComp,
+                           int                          eComp,
                            amrex::FluxRegister*         adv_flux_reg,
-                           amrex::Real                   dt,
-			   bool                          update_fluxreg = true);
+                           amrex::Real                  dt,
+                           bool                         update_fluxreg = true);
 
     void mlmg_mac_solve (amrex::Amr* parent, const amrex::MultiFab* cphi,
-			 const amrex::BCRec& phys_bc,
-			 const amrex::BCRec& density_math_bc,
-			 int level, amrex::Real mac_tol, amrex::Real mac_abs_tol,
-			 amrex::Real rhs_scale,
-			 const amrex::MultiFab &rho, const amrex::MultiFab &Rhs,
-			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& u_mac,
-			 amrex::MultiFab *mac_phi,
-			 amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr);
+                         const amrex::BCRec& phys_bc,
+                         const amrex::BCRec& density_math_bc,
+                         int level, amrex::Real mac_tol, amrex::Real mac_abs_tol,
+                         amrex::Real rhs_scale,
+                         const amrex::MultiFab &rho, const amrex::MultiFab &Rhs,
+                         amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& u_mac,
+                         amrex::MultiFab *mac_phi,
+                         amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr);
 
     void set_mac_solve_bc (amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_lobc,
-			   amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
-			   const amrex::BCRec& phys_bc, const amrex::Geometry& geom);
+                           amrex::Array<amrex::MLLinOp::BCType,AMREX_SPACEDIM>& mlmg_hibc,
+                           const amrex::BCRec& phys_bc, const amrex::Geometry& geom);
 
     static void Initialize ();
     static void Finalize ();

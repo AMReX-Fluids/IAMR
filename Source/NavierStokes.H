@@ -94,9 +94,9 @@ public:
     // Advance grids at this level in time.
     //
     virtual amrex::Real advance (amrex::Real time,
-                          amrex::Real dt,
-                          int  iteration,
-                          int  ncycle) override;
+                                 amrex::Real dt,
+                                 int  iteration,
+                                 int  ncycle) override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokesBase public virtual functions                           //
@@ -114,8 +114,8 @@ public:
     // Calculate divU, which sets them to zero by default.
     //
     virtual void calc_divu (amrex::Real      time,
-			    amrex::Real      dt,
-			    amrex::MultiFab& fab) override;
+                            amrex::Real      dt,
+                            amrex::MultiFab& fab) override;
 
     ////////////////////////////////////////////////////////////////////////////
     //    NavierStokes public static functions                                //
@@ -159,21 +159,21 @@ protected:
     // Calculate nonuniform viscosity and diffusivity
     //
     virtual void calcViscosity (const amrex::Real time,
-				const amrex::Real dt,
-				const int  iteration,
-				const int  ncycle) override;
+                                const amrex::Real dt,
+                                const int  iteration,
+                                const int  ncycle) override;
     //
     virtual void calcDiffusivity (const amrex::Real time) override;
     //
     virtual void getViscosity (amrex::MultiFab*  viscosity[BL_SPACEDIM],
-			       const amrex::Real time) override;
+                               const amrex::Real time) override;
     //
     // Compute viscous terms.
     //
     virtual void getViscTerms (amrex::MultiFab& visc_terms,
-			       int       src_comp, 
-			       int       num_comp,
-			       amrex::Real      time) override;
+                               int       src_comp,
+                               int       num_comp,
+                               amrex::Real      time) override;
     //
     virtual void sum_integrated_quantities () override;
     //
@@ -198,21 +198,21 @@ protected:
 private:
 
     void getDiffusivity (amrex::MultiFab*  diffusivity[BL_SPACEDIM],
-			 const amrex::Real time,
-			 const int  state_comp,
-			 const int  dst_comp,
-			 const int  num_comp);
+                         const amrex::Real time,
+                         const int  state_comp,
+                         const int  dst_comp,
+                         const int  num_comp);
 
-    NavierStokes& getLevel (int lev) { 
-	return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
+    NavierStokes& getLevel (int lev) {
+    return dynamic_cast<NavierStokes&> ( parent->getLevel(lev) );
     }
 
     //
     // Initialize the pressure by iterating the initial timestep.
     //
     void post_init_press (amrex::Real&        dt_init,
-			  amrex::Vector<int>&  nc_save,
-			  amrex::Vector<amrex::Real>& dt_save);
+                          amrex::Vector<int>&  nc_save,
+                          amrex::Vector<amrex::Real>& dt_save);
     //
     // Update scalars, (viscous solve in scalar_update).
     //
@@ -247,7 +247,7 @@ private:
     // Max possible number of scalars is 4: Density, 2 Tracers, Temperature
     //static amrex::GpuArray<amrex::GpuArray<amrex::Real, AMREX_SPACEDIM+4>,
     static amrex::GpuArray<amrex::GpuArray<amrex::Real, NUM_STATE_MAX>,
-    			   AMREX_SPACEDIM*2> m_bc_values;
+                   AMREX_SPACEDIM*2> m_bc_values;
 };
 
 #endif /*_NavierStokes_H_*/
