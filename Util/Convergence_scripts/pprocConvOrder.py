@@ -31,10 +31,10 @@
 #   * ConvTable_${TESTNAME}.tex file with the convergence rate formatted in an LaTeX table.
 #   * Convergence_${TESTNAME}.dat plain text file with the convergence rate.
 
-# Head's up : 
-#   - The script will get a copy of the post-processing program (if not already there) in the testing folder. The name of this folder is assumed to be the TESTNAME.  
+# Head's up :
+#   - The script will get a copy of the post-processing program (if not already there) in the testing folder. The name of this folder is assumed to be the TESTNAME.
 #   - The plt files naming convention is: ${TESTNAME}_plt_${resolution}_*****. It is used to get the first and last solution of a test at a given resolution.
-#   - Errors are parsed from the screen output of the standard fcompare/diffsamedomain. Beware of any change of these programs. 
+#   - Errors are parsed from the screen output of the standard fcompare/diffsamedomain. Beware of any change of these programs.
 
 import sys
 import os
@@ -83,11 +83,11 @@ def pproc(args):
             pltfile.sort()
             outfile = "error_{}.analysis.out".format(case)
 
-            print("running: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1])) 
+            print("running: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1]))
 
             os.system("./{} -a -n 2 {} {} > {}".format(os.path.basename(args.pproc_exe), pltfile[0], pltfile[-1], outfile))
             pltfile.clear()
-        
+
             # Extract errors on each variable
             with open(outfile) as fp:
                 for i, line in enumerate(fp):
@@ -106,7 +106,7 @@ def pproc(args):
             nextcase = resolution[res+1]
             errors[res,0] = case
 
-            # Get the diffsamedomain inputs: last solutions of current 
+            # Get the diffsamedomain inputs: last solutions of current
             # and next finer cases. These run should have been runned to the same final time
             for f in os.listdir(run_dir):
                 if ( not fnmatch.fnmatch(f, '*old*')):
@@ -117,7 +117,7 @@ def pproc(args):
             pltfile.sort()
             pltfilenext.sort()
 
-            print("command: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[-1], pltfilenext[-1])) 
+            print("command: ./{} -a -n 2 {} {}".format(os.path.basename(args.pproc_exe), pltfile[-1], pltfilenext[-1]))
 
             outfile = "error_{}.analysis.out".format(case)
             os.system("./{} infile1={} reffile={} > {}".format(os.path.basename(args.pproc_exe), pltfile[-1], pltfilenext[-1], outfile))
@@ -140,10 +140,10 @@ def pproc(args):
     print("\nRaw error data: \n{}".format(errors))
 
     leastSq = np.empty(len(vars))
-    
+
     # Plot data
     plotdata(errors, args.test_name, vars, leastSq)
-    # Write out data in a tex file 
+    # Write out data in a tex file
     writetex(errors, args.test_name, vars, leastSq)
     # Write out data as a txt file
     writeRegTestFile(errors, args.test_name, vars, leastSq)
@@ -162,7 +162,7 @@ def plotdata(data, test_name, vars, leastSq):
         print("  {} {}".format(vars[i], m))
         plt.plot(x, x**m * 10**c, linestyle='dotted', label="Fitted line for {}".format(vars[i]))
         leastSq[i] = m
-        
+
     # Evaluate 2nd order slope
     snd_order = data[:,1]*1.05
     for i in range(1,len(data[:,1])):
@@ -184,13 +184,13 @@ def writetex(data, test_name, vars, leastSq):
     for v in range(len(vars)):
         for i in range(len(conv_order[:,0])):
             conv_order[i,v] = np.log(data[i,v+1]/data[i+1,v+1])/np.log(2.0)
-    fout = open("ConvTable_{}.tex".format(test_name), "w")            
+    fout = open("ConvTable_{}.tex".format(test_name), "w")
     fout.write("\\begin{table}[ht!]\n")
     fout.write("\centering\n")
     fout.write("\\begin{tabular}{l|")
     for i in range(len(conv_order[:,0])):
         fout.write("c ")
-    fout.write("}\n")    
+    fout.write("}\n")
     fout.write("\hline\n")
     fout.write("Variable ")
     for i in range(len(conv_order[:,0])):
@@ -215,7 +215,7 @@ def writeRegTestFile(data, test_name, vars, leastSq):
     for v in range(len(vars)):
         for i in range(len(conv_order[:,0])):
             conv_order[i,v] = np.log(data[i,v+1]/data[i+1,v+1])/np.log(2.0)
-    fout = open("Convergence_{}.dat".format(test_name), "w")            
+    fout = open("Convergence_{}.dat".format(test_name), "w")
     fout.write(" Variables ")
     for i in range(len(conv_order[:,0])):
         fout.write(" {}/{} ".format(data[i+1,0],data[i,0]))
@@ -242,7 +242,7 @@ def parse_args(arg_string=None):
     else:
         args, unknown = parser.parse_known_args()
 
-    return args   
+    return args
 
 if __name__ == "__main__":
     args = parse_args(arg_string=sys.argv[1:])

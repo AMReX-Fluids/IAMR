@@ -27,7 +27,7 @@ Note that Temperature is only non-conservative. For more details, see :ref:`sec:
 Advection
 ---------
 
-IAMR has the option to use a Method of Lines (MOL) or Godunov scheme to compute the advective terms. 
+IAMR has the option to use a Method of Lines (MOL) or Godunov scheme to compute the advective terms.
 
 +-------------------------+-------------------------------------------------------------------------+-------------+--------------+
 |                         | Description                                                             |   Type      | Default      |

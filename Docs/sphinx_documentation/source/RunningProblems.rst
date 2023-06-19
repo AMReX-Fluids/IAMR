@@ -11,7 +11,7 @@ Time Stepping
 -------------
 
 The inputs below do not take a prefix.  Note that if the first two are both specified, both criteria
-are used and the simulation still stop when the first criterion is hit.  
+are used and the simulation still stop when the first criterion is hit.
 The simulation will stop when either the number of steps reaches :cpp:`max_step` or time reaches :cpp:`stop_time`.
 Note that if the code reaches :cpp:`stop_time` then the final time
 step will be shortened so as to end exactly at :cpp:`stop_time`, not
@@ -30,7 +30,7 @@ past it.
 | steady_tol           | Specify tolerance to define steady state                              |    Real     | 1e-10        |
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 
-The inputs below must be preceded by "ns."  
+The inputs below must be preceded by "ns."
 
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                      | Description                                                           |   Type      | Default      |
@@ -48,7 +48,7 @@ The inputs below must be preceded by "ns."
 
   * If you want to fix the dt, simply set :cpp:`ns.fixed_dt = XXX` to set the fluid time
     step at level 0. Note that :cpp:`init_shrink` can be used
-    in conjunction with :cpp:`fixed_dt` and the initial time steps will be reduced. 
+    in conjunction with :cpp:`fixed_dt` and the initial time steps will be reduced.
 
   * If you want to let the code determine the appropriate time step using the advective CFL
     condition, then set :cpp:`ns.cfl = 0.7` for example, and the fluid time step will
@@ -56,15 +56,15 @@ The inputs below must be preceded by "ns."
 
   * Note that the cfl defaults to 0.5 so it does not have to be set in the inputs file. If neither
     :cpp:`ns.cfl` nor :cpp:`fixed_dt` is set, then default value of cfl will be used.
-    If :cpp:`ns.fixed_dt` is set, then it will override the cfl option whether 
+    If :cpp:`ns.fixed_dt` is set, then it will override the cfl option whether
     :cpp:`ns.cfl` is set or not.
 
 As an example, consider:
 
 .. code-block:: c++
 
-    ns.cfl = 0.9 
-    ns.init_shrink = 0.01 
+    ns.cfl = 0.9
+    ns.init_shrink = 0.01
     ns.change_max = 1.1
     ns.dt_cutoff = 1.e-20
 
@@ -82,7 +82,7 @@ simulation, and by aborting, you won’t burn through your entire allocation
 before noticing that there is an issue.
 
 
-	 
+
 Output Options
 --------------
 
@@ -261,7 +261,7 @@ one needs to restart from a checkpoint file from a run with particles, but one d
 For example, if chk00350 exists, then one can set:
 
 ::
-   
+
    amr.restart = chk00350
    max\_step = 350
    particles.particle\_output\_file = *particle\_output*
@@ -271,7 +271,7 @@ file called *particle\_output*.
 This file has the same format as the ASCII input file:
 
 ::
-   
+
    number of particles
    x y z
 
@@ -299,7 +299,7 @@ As an example:
 ::
 
     amr.grid_log = grdlog
-    amr.run_log = runlog 
+    amr.run_log = runlog
 
 Every time the code regrids it prints a list of grids at all relevant
 levels. Here the code will write these grids lists into the file grdlog. Additionally, every time step the code prints certain
@@ -307,8 +307,8 @@ statements to the screen, such as (if amr.v = 1):
 
 ::
 
-    STEP = 1 TIME = 1.91717746 DT = 1.91717746 
-    PLOTFILE: file = plt00001 
+    STEP = 1 TIME = 1.91717746 DT = 1.91717746
+    PLOTFILE: file = plt00001
 
 The run_log option will write these statements into the file *runlog* as well.
 
@@ -403,7 +403,7 @@ As an example, consider:
 
     amr.regrid_int = 2 2
     amr.grid_eff = 0.9
-    amr.max_grid_size = 64 
+    amr.max_grid_size = 64
     amr.blocking_factor = 32
 
 tells the code to regrid every 2 steps. Thus in this example, new
@@ -565,9 +565,9 @@ Initializing the Calculation
 
 These options determine how we initialize the data for the calculation. The data initialization process
 ensures that the initial state is consistent with the constraint, and if applicable, the various AMR levels
-are consistent with eachother. 
+are consistent with eachother.
 
-The following inputs must be preceded by "ns." 
+The following inputs must be preceded by "ns."
 
 +----------------------+-----------------------------------------------------------------------+-------------+--------------+
 |                      | Description                                                           |   Type      | Default      |
@@ -600,7 +600,7 @@ The print statements have the form
 ::
 
    TIME= 1.91717746 MASS= 1.792410279e+02
-         
+
 for example.
 
 Note that by default the tracer not conservative. To conservatively advect the tracer,

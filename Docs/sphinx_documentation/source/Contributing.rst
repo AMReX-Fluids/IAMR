@@ -63,7 +63,7 @@ The basic workflow is:
 
 Make your own fork
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    
+
 First, setup your local git repo. To make your own fork of the main
 (`upstream`) repository, press the fork button on the `IAMR Github page <https://github.com/IAMR-Codes/IAMR>`_.
 
@@ -75,7 +75,7 @@ password every time, which you can do using these commands:
 
   git clone --branch development git@github.com:<myGithubUsername>/IAMR.git
 
-  # Then, navigate into your repo, add a new remote for the main IAMR repo, and fetch it:  
+  # Then, navigate into your repo, add a new remote for the main IAMR repo, and fetch it:
   cd IAMR
   git remote add upstream https://github.com/IAMR-Codes/IAMR
   git remote set-url --push upstream git@github.com:<myGithubUsername>/IAMR.git
@@ -101,7 +101,7 @@ If you instead prefer to use HTTPS authentication, configure your local clone as
 
   # We recommend setting your development branch to track the upstream one instead of your fork:
   git branch -u upstream/development
-  
+
 Note: you do not have to re-do the setup above every time.
 Instead, in the future, to update the ``development`` branch on your fork
 (i.e. sync your local ``development`` branch with that of the main repo) use
@@ -110,7 +110,7 @@ Instead, in the future, to update the ``development`` branch on your fork
 
   git checkout development
   git pull
-  
+
 Now you are free to play with your fork (for additional information, you can visit the
 `Github fork help page <https://help.github.com/en/articles/fork-a-repo>`_.
 
@@ -163,7 +163,7 @@ when ``development`` is being modified while you are working on
 .. code:: shell
 
   git merge upstream/development
-  
+
 and fix any conflicts that may occur.
 
 Again, do not merge your branch into your local ``development`` branch,
@@ -282,19 +282,19 @@ IAMR developers should adhere to the following coding guidelines:
 * Use curly braces for single statement blocks. For example:
 
   .. code::
-       
+
      for (int n=0; n<10; ++n) {
          Print() << "Like this!";
      }
-     
+
      for (int n=0; n<10; ++n) { Print() << "Like this!"; }
 
   but not
-  
+
   .. code::
 
      for (int n=0; n<10; ++n) Print() << "Not like this.";
-     
+
      for (int n=0; n<10; ++n)
         Print() << "Not like this.";
 
@@ -303,7 +303,7 @@ IAMR developers should adhere to the following coding guidelines:
   not when simply calling the function). For example:
 
   .. code::
-     
+
      void CorrectFunctionDec (int input)
 
   Not
@@ -316,7 +316,7 @@ IAMR developers should adhere to the following coding guidelines:
 * Member variables should be prefixed with ``m_``. For example:
 
   .. code::
-     
+
      IAMR::Real m_variable;
 
 These guidelines should be adhered to in new contributions to IAMR, but
@@ -330,7 +330,7 @@ to maximize the efficiency of a search-and-find style of locating information.
 Doxygen style comment blocks should proceed the namespace, class, function, etc.
 to be documented where appropriate. For example:
 
-.. code:: 
+.. code::
 
   /**
    * \brief A one line description.

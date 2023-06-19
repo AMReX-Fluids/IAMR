@@ -541,7 +541,7 @@ NavierStokesBase::set_body_state(MultiFab& S)
 
   BL_ASSERT(S.nComp() == body_state.size());
   int nc = S.nComp();
-  int covered_val = -1;
+  int l_covered_val = -1;
 
   // Need a GPU copy of body_state that's not a static attribute of the NSB class
   AsyncArray<amrex::Real> body_state_lcl(body_state.data(),nc);
@@ -555,10 +555,10 @@ NavierStokesBase::set_body_state(MultiFab& S)
     auto const& state = S.array(mfi);
     auto const& mask = ebmask.array(mfi);
     Real* state_lcl = body_state_lcl.data();
-    amrex::ParallelFor(bx, [state,mask,nc,covered_val,state_lcl]
+    amrex::ParallelFor(bx, [state,mask,nc,l_covered_val,state_lcl]
     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        set_body_state_k(i,j,k,nc,state_lcl,covered_val,mask,state);
+        set_body_state_k(i,j,k,nc,state_lcl,l_covered_val,mask,state);
     });
   }
 }

@@ -104,13 +104,13 @@ DepRand::mt19937::reload()
     static unsigned long mag01[2]={0x0UL, MATRIX_A};
     for ( kk=0; kk<N-M; kk++ )
     {
-	y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-	mt[kk] = mt[kk+M] ^ (y >> 1L) ^ mag01[y & 0x1UL];
+    y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+    mt[kk] = mt[kk+M] ^ (y >> 1L) ^ mag01[y & 0x1UL];
     }
     for ( ; kk<N-1; kk++ )
     {
-	y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-	mt[kk] = mt[kk+(M-N)] ^ (y >> 1L) ^ mag01[y & 0x1UL];
+    y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+    mt[kk] = mt[kk+(M-N)] ^ (y >> 1L) ^ mag01[y & 0x1UL];
     }
     y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
     mt[N-1] = mt[M-1] ^ (y >> 1L) ^ mag01[y & 0x1UL];

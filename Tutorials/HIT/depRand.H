@@ -12,37 +12,37 @@ namespace DepRand
     class mt19937
     {
     public:
-	typedef unsigned long seed_type;
+    typedef unsigned long seed_type;
 
-	explicit mt19937 (seed_type seed = 4357UL);
+    explicit mt19937 (seed_type seed = 4357UL);
         mt19937 (seed_type seed, int numprocs);
-	mt19937 (seed_type array[], int array_len);
-	void rewind();
-	void reset(unsigned long seed);
+    mt19937 (seed_type array[], int array_len);
+    void rewind();
+    void reset(unsigned long seed);
 
-	double d_value  (); // [0,1] random numbers
-	double d1_value (); // [0,1) random numbers
-	double d2_value (); // (0,1) random numbers
+    double d_value  (); // [0,1] random numbers
+    double d1_value (); // [0,1) random numbers
+    double d2_value (); // (0,1) random numbers
 
-	long          l_value (); // [0,2^31-1] random numbers
-	unsigned long u_value (); // [0,2^32-1] random numbers
+    long          l_value (); // [0,2^31-1] random numbers
+    unsigned long u_value (); // [0,2^32-1] random numbers
 
         void save (amrex::Vector<unsigned long>& state) const;
         int  RNGstatesize() const;
         void restore (const amrex::Vector<unsigned long>& state);
     private:
-	enum { N = 624 };
+    enum { N = 624 };
         static unsigned long init_seed;
-        static unsigned long mt[N];	// the array for the state vector
-        static int mti;		// mti==N+1 means mt[N] is not initialized
+        static unsigned long mt[N];    // the array for the state vector
+        static int mti;        // mti==N+1 means mt[N] is not initialized
 #ifdef _OPENMP
 #pragma omp threadprivate(init_seed,mt,mti)
 #endif
     private:
-	void sgenrand (unsigned long seed);
-	void sgenrand (seed_type seed_array[], int len);
-	unsigned long igenrand ();
-	void reload ();
+    void sgenrand (unsigned long seed);
+    void sgenrand (seed_type seed_array[], int len);
+    unsigned long igenrand ();
+    void reload ();
     };
 
     /*

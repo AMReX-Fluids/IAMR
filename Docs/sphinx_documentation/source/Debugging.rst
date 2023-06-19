@@ -20,7 +20,7 @@ Sometimes, restarting from a checkpoint file can reduce the amount of time spent
 the code to fail durning the debugging process.
 
 If the problem only happens with multilevel runs, ``amr.subcycling_mode = None`` will turn
-time subcycling off and advance the whole system at the same dt. 
+time subcycling off and advance the whole system at the same dt.
 
 Visualizing the data between plotiles can sometimes be helpful.
 One option is to use
@@ -59,4 +59,4 @@ If you believe you've encountered a bug or incorrect behavior in IAMR, please re
 on IAMR's github page `here <https://github.com/AMReX-Codes/IAMR/issues>`_ .
 
 ..
-  If the issues is ``MLMG failed to converge`` 
+  If the issues is ``MLMG failed to converge``
