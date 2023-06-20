@@ -216,7 +216,9 @@ public:
     //
     static amrex::Real getGravity () { return gravity; }
 
+#ifdef AMREX_USE_EB
     static std::string& getRedistType () { return redistribution_type; }
+#endif
 
     static int DoTrac2() { return NavierStokesBase::do_trac2; }
 
