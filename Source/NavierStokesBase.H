@@ -35,14 +35,14 @@
 //
 enum StateType {State_Type=0, Press_Type, Gradp_Type};
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 enum StateNames  { Xvel=0, Yvel, Density};
 #else
 enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
 
 enum PressureNames { Pressure=0 };
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 enum GradpNames  { Gradpx=0, Gradpy};
 #else
 enum GradpNames  { Gradpx=0, Gradpy, Gradpz};
@@ -203,7 +203,7 @@ public:
     void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
 		      int scomp, int ncomp);
 
-    void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
+    void calc_mut_LES(amrex::MultiFab*  diffusivity[AMREX_SPACEDIM], amrex::Real time);
 
     void time_average(amrex::Real& time_avg, amrex::Real& time_avg_fluct, amrex::Real& dt_avg, const amrex::Real& dt_level);
 
@@ -215,6 +215,8 @@ public:
     // Returns the value of "gravity" for use in the projection outflow bcs.
     //
     static amrex::Real getGravity () { return gravity; }
+
+    static std::string& getRedistType () { return redistribution_type; }
 
     static int DoTrac2() { return NavierStokesBase::do_trac2; }
 
@@ -252,7 +254,7 @@ public:
                            const amrex::MFIter&    mfi);
     //
     amrex::FluxRegister& getAdvFluxReg () {
-        BL_ASSERT(advflux_reg);
+        AMREX_ASSERT(advflux_reg);
         return *advflux_reg;
     }
     //
@@ -261,7 +263,7 @@ public:
     }
     //
     amrex::FluxRegister& getViscFluxReg () {
-        BL_ASSERT(viscflux_reg);
+        AMREX_ASSERT(viscflux_reg);
         return *viscflux_reg;
     }
     //
@@ -422,7 +424,7 @@ public:
     //
     virtual amrex::Real estTimeStep ();
 
-    virtual void getViscosity (amrex::MultiFab*  viscosity[BL_SPACEDIM],
+    virtual void getViscosity (amrex::MultiFab*  viscosity[AMREX_SPACEDIM],
 			       const amrex::Real time) = 0;
     //
     // Compute viscous terms.
@@ -510,7 +512,7 @@ public:
     }
     //
     SyncRegister& getSyncReg () {
-        BL_ASSERT(sync_reg);
+        AMREX_ASSERT(sync_reg);
         return *sync_reg;
     }
     //
@@ -599,7 +601,7 @@ public:
 
     // volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
-    amrex::MultiFab area[BL_SPACEDIM];
+    amrex::MultiFab area[AMREX_SPACEDIM];
 
 #ifdef AMREX_USE_EB
 

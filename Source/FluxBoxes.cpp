@@ -5,9 +5,9 @@ using namespace amrex;
 MultiFab**
 FluxBoxes::define (const AmrLevel* amr_level, int nvar, int nghost)
 {
-    BL_ASSERT(data == 0);
-    data = new MultiFab*[BL_SPACEDIM];
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    AMREX_ASSERT(data == 0);
+    data = new MultiFab*[AMREX_SPACEDIM];
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         const BoxArray& ba = amr_level->getEdgeBoxArray(dir);
         const DistributionMapping& dm = amr_level->DistributionMap();
@@ -21,7 +21,7 @@ FluxBoxes::clear ()
 {
     if (data != 0)
     {
-        for (int i = 0; i<BL_SPACEDIM; i++) {
+        for (int i = 0; i<AMREX_SPACEDIM; i++) {
             delete data[i];
         }
         delete [] data;

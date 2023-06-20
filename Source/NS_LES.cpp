@@ -26,7 +26,7 @@ using namespace amrex;
 
 
 void
-NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
+NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[AMREX_SPACEDIM], const Real time)
 
 {
 
@@ -39,7 +39,7 @@ NavierStokesBase::calc_mut_LES(MultiFab* mu_LES[BL_SPACEDIM], const Real time)
   //
 
   auto whichTime = which_time(State_Type,time);
-  BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+  AMREX_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
   MultiFab& Sstate = (whichTime == AmrOldTime) ? get_old_data(State_Type) : get_new_data(State_Type);
 

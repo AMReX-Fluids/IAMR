@@ -47,7 +47,7 @@ NavierStokesBase::time_average(amrex::Real&  a_time_avg, amrex::Real&  a_time_av
        auto const& S_avg_old   = Savg_old.array(mfi);
        int loc_compute_fluctuations = compute_fluctuations; //NavierStokesBase class cannot be accessed directly fron device
 
-       amrex::ParallelFor(bx, BL_SPACEDIM, [S_state, S_avg, S_avg_old, a_dt_avg, a_time_avg, loc_compute_fluctuations]
+       amrex::ParallelFor(bx, AMREX_SPACEDIM, [S_state, S_avg, S_avg_old, a_dt_avg, a_time_avg, loc_compute_fluctuations]
        AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
        {
           S_avg(i,j,k,n) = S_avg_old(i,j,k,n) + a_dt_avg * S_state(i,j,k,n);
@@ -55,12 +55,12 @@ NavierStokesBase::time_average(amrex::Real&  a_time_avg, amrex::Real&  a_time_av
 
           if (loc_compute_fluctuations == 1){
             amrex::Real vel_prime = S_state(i,j,k,n) - (S_avg(i,j,k,n)/(a_time_avg + a_dt_avg));
-            S_avg(i,j,k,n+BL_SPACEDIM) = S_avg_old(i,j,k,n+BL_SPACEDIM) + a_dt_avg * vel_prime * vel_prime;
+            S_avg(i,j,k,n+AMREX_SPACEDIM) = S_avg_old(i,j,k,n+AMREX_SPACEDIM) + a_dt_avg * vel_prime * vel_prime;
           }
           else{
-            S_avg(i,j,k,n+BL_SPACEDIM) = 0.;
+            S_avg(i,j,k,n+AMREX_SPACEDIM) = 0.;
           }
-          S_avg_old(i,j,k,n+BL_SPACEDIM) = S_avg(i,j,k,n+BL_SPACEDIM);
+          S_avg_old(i,j,k,n+AMREX_SPACEDIM) = S_avg(i,j,k,n+AMREX_SPACEDIM);
        });
     }
 

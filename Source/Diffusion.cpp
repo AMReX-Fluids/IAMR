@@ -74,7 +74,6 @@ Diffusion::Diffusion (Amr*               Parent,
     finer(0),
     NUM_STATE(num_state),
     viscflux_reg(Viscflux_reg)
-
 {
     if (!initialized)
     {
@@ -421,14 +420,19 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         setBeta(opn,betan,betaComp,nComp);
 
 #ifdef AMREX_USE_EB
-        MultiFab rhs_tmp(ba,dm,nComp,2,MFInfo(),factory);
-        rhs_tmp.setVal(0.);
-        mgn.apply({&rhs_tmp},{&Soln});
+        auto& ns = *(this->navier_stokes);
+        if (ns.getRedistType() == "NoRedist") {
+            mgn.apply({&Rhs},{&Soln});
+        } else {
+            MultiFab rhs_tmp(ba,dm,nComp,2,MFInfo(),factory);
+            rhs_tmp.setVal(0.);
+            mgn.apply({&rhs_tmp},{&Soln});
 
-        const amrex::MultiFab* weights;
-        weights = &(ebf->getVolFrac());
+            const amrex::MultiFab* weights;
+            weights = &(ebf->getVolFrac());
 
-        amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, nComp, geom);
+            amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, nComp, geom);
+        }
 #else
         mgn.apply({&Rhs},{&Soln});
 #endif
@@ -663,11 +667,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     if (allnull && be_cn_theta!=1)
       amrex::Abort("Diffusion::diffuse_tensor_velocity: Constant viscosity case no longer supported separately. Must set non-zero beta.");
 
-    BL_ASSERT( rho_flag == 1 || rho_flag == 3);
+    AMREX_ASSERT( rho_flag == 1 || rho_flag == 3);
 
 #ifdef AMREX_DEBUG
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        BL_ASSERT( betan[d]->min(0,0) >= 0.0 );
+        AMREX_ASSERT( betan[d]->min(0,0) >= 0.0 );
 #endif
 
     const int finest_level = parent->finestLevel();
@@ -772,11 +776,16 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          //   redistribution only alters cut cells and their nearest-neighbors.
          //   regridding algorithm buffers the cells flagged for refinement
          //
-         const amrex::MultiFab* weights;
-         weights = &(ebf->getVolFrac());
-         amrex::single_level_weighted_redistribute(Rhs_tmp, Rhs, *weights, 0, AMREX_SPACEDIM, navier_stokes->Geom());
+         auto& ns = *(this->navier_stokes);
+         if (ns.getRedistType() == "NoRedist") {
+             Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
+         } else {
+             const amrex::MultiFab* weights;
+             weights = &(ebf->getVolFrac());
+             amrex::single_level_weighted_redistribute(Rhs_tmp, Rhs, *weights, 0, AMREX_SPACEDIM, navier_stokes->Geom());
+         }
 #else
-         amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
+         Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
 #endif
 
          if (do_reflux && (level<finest_level || level>0))
@@ -955,14 +964,14 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
                           int                    betaComp,
                           bool                   update_fluxreg)
 {
-    BL_ASSERT(rho_flag == 1|| rho_flag == 3);
+    AMREX_ASSERT(rho_flag == 1|| rho_flag == 3);
 
     int allthere;
     checkBeta(beta, allthere);
 
 #ifdef AMREX_DEBUG
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        BL_ASSERT(beta[d]->min(0,0) >= 0.0);
+        AMREX_ASSERT(beta[d]->min(0,0) >= 0.0);
 #endif
 
     diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp,update_fluxreg);
@@ -1007,7 +1016,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
                                  int                    /*betaComp*/,
                                  bool                   update_fluxreg)
 {
-    BL_ASSERT(rho_flag == 1 || rho_flag == 3);
+    AMREX_ASSERT(rho_flag == 1 || rho_flag == 3);
 
     if (verbose) amrex::Print() << "Diffusion::diffuse_tensor_Vsync ...\n";
 
@@ -1357,7 +1366,7 @@ Diffusion::computeAlpha (MultiFab&             alpha,
 
     if (alpha_in != 0)
     {
-        BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
+        AMREX_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
         MultiFab::Copy(alpha,*alpha_in,alpha_in_comp,0,1,0);
     }
     else
@@ -1451,7 +1460,7 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
                                   const int ncomp, MultiFab* area,
                                   const Real fac )
 {
-   BL_ASSERT(flux[0]->nGrow()==0);
+   AMREX_ASSERT(flux[0]->nGrow()==0);
 
    AMREX_D_TERM(MultiFab flxx(*flux[0], amrex::make_alias, fluxComp, ncomp);,
                 MultiFab flxy(*flux[1], amrex::make_alias, fluxComp, ncomp);,
@@ -1629,8 +1638,13 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
         const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
         weights = &(ebfactory.getVolFrac());
 
-        amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, comp-src_comp, 1,
-                                         navier_stokes->Geom());
+        auto& ns = *(this->navier_stokes);
+        if (ns.getRedistType() == "NoRedist") {
+	    MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
+        } else {
+            amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, comp-src_comp, 1,
+                                               navier_stokes->Geom());
+        }
 #else
 	MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
 #endif
@@ -1657,7 +1671,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     const int ncomp    = visc_terms.nComp();
 
     if (ncomp < AMREX_SPACEDIM)
-        amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
+        amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least AMREX_SPACEDIM components");
     //
     // Before computing the godunov predicitors we may have to
     // precompute the viscous source terms.  To do this we must
@@ -1753,11 +1767,16 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         }
 
 #ifdef AMREX_USE_EB
-        const amrex::MultiFab* weights;
-        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-        weights = &(ebfactory.getVolFrac());
-        amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, 0, AMREX_SPACEDIM,
-                                                  navier_stokes->Geom() );
+        auto& ns = *(this->navier_stokes);
+        if (ns.getRedistType() == "NoRedist") {
+            MultiFab::Copy(visc_terms,visc_tmp,0,0,AMREX_SPACEDIM,0);
+        } else {
+            const amrex::MultiFab* weights;
+            const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+            weights = &(ebfactory.getVolFrac());
+            amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, 0, AMREX_SPACEDIM,
+                                               navier_stokes->Geom() );
+        }
 #else
         MultiFab::Copy(visc_terms,visc_tmp,0,0,AMREX_SPACEDIM,0);
 #endif

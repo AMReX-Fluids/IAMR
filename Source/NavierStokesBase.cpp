@@ -1,9 +1,3 @@
-
-//fixme, for writesingle level plotfile
-//#include<AMReX_PlotFileUtil.H>
-//#include <AMReX_VisMF.H>
-//
-
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
@@ -11,7 +5,6 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_FillPatchUtil.H>
 #include <NavierStokesBase.H>
-#include <NAVIERSTOKES_F.H>
 #include <NSB_K.H>
 #include <NS_util.H>
 #include <iamr_constants.H>
@@ -5085,8 +5078,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                 Array4<Real const> const& vfrac_arr = ebfact.getVolFrac().const_array(mfi);
 
                 // This is scratch space if calling StateRedistribute,
-                //  but is used as the weights (here set to 1) if calling
-                //  FluxRedistribute
+                //  but is used as the weights (here set to 1) if calling FluxRedistribute
                 Box gbx = bx;
 
                 if (redistribution_type == "StateRedist")

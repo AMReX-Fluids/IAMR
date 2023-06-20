@@ -488,8 +488,8 @@ NavierStokesBase::define_body_state()
   {
     bool foundPt = false;
     const MultiFab& S = get_new_data(State_Type);
-    BL_ASSERT(S.boxArray() == ebmask.boxArray());
-    BL_ASSERT(S.DistributionMap() == ebmask.DistributionMap());
+    AMREX_ASSERT(S.boxArray() == ebmask.boxArray());
+    AMREX_ASSERT(S.DistributionMap() == ebmask.DistributionMap());
 
     body_state.resize(S.nComp(),0);
     for (MFIter mfi(S,false); mfi.isValid() && !foundPt; ++mfi)
@@ -497,7 +497,7 @@ NavierStokesBase::define_body_state()
       const Box vbox = mfi.validbox();
       const BaseFab<int>& m = ebmask[mfi];
       const FArrayBox& fab = S[mfi];
-      BL_ASSERT(m.box().contains(vbox));
+      AMREX_ASSERT(m.box().contains(vbox));
 
       // TODO: Remove this dog and do this work in fortran
       for (BoxIterator bit(vbox); bit.ok() && !foundPt; ++bit)
@@ -523,7 +523,7 @@ NavierStokesBase::define_body_state()
         body_rank = i;
       }
     }
-    BL_ASSERT(body_rank>=0);
+    AMREX_ASSERT(body_rank>=0);
     ParallelDescriptor::Bcast(&(body_state[0]),body_state.size(),body_rank);
     body_state_set = true;
   }
@@ -539,7 +539,7 @@ NavierStokesBase::set_body_state(MultiFab& S)
     define_body_state();
   }
 
-  BL_ASSERT(S.nComp() == body_state.size());
+  AMREX_ASSERT(S.nComp() == body_state.size());
   int nc = S.nComp();
   int l_covered_val = -1;
 

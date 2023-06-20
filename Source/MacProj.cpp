@@ -348,7 +348,7 @@ MacProj::mac_project (int             level,
         {
             const Real mult = 1.0/Real(parent->nCycle(level));
 
-            for (int dir = 0; dir < BL_SPACEDIM; dir++)
+            for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
             {
                 mac_reg[level]->FineAdd(u_mac[dir],area[dir],dir,0,0,1,mult);
             }
@@ -379,7 +379,7 @@ MacProj::mac_sync_solve (int       level,
                          Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
                          MultiFab* Rhs_increment )
 {
-    BL_ASSERT(level < finest_level);
+    AMREX_ASSERT(level < finest_level);
 
     if (verbose) amrex::Print() << "... mac_sync_solve at level " << level << '\n';
 
@@ -430,7 +430,7 @@ MacProj::mac_sync_solve (int       level,
     // fixme? Should do some real tests to see if tiling here is a win or not
     for (MFIter mfi(Rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        BL_ASSERT(grids[mfi.index()].contains(mfi.tilebox()) );
+        AMREX_ASSERT(grids[mfi.index()].contains(mfi.tilebox()) );
 
         const std::vector< std::pair<int,Box> >& isects = baf.intersections(mfi.tilebox());
 
@@ -879,7 +879,7 @@ MacProj::set_outflow_bcs (int             level,
     //   (1/r)(d/dr)[r/rho dphi/dr] = dv/dr - S
     //
     bool hasOutFlow;
-    Orientation outFaces[2*BL_SPACEDIM];
+    Orientation outFaces[2*AMREX_SPACEDIM];
     int numOutFlowFaces;
 
     OutFlowBC::GetOutFlowFaces(hasOutFlow,outFaces,phys_bc,numOutFlowFaces);
@@ -1000,13 +1000,13 @@ MacProj::test_umac_periodic (int       level,
 
     FArrayBox              diff;
     MultiFabCopyDescriptor mfcd;
-    MultiFabId             mfid[BL_SPACEDIM];
+    MultiFabId             mfid[AMREX_SPACEDIM];
     std::vector<TURec>     pirm;
     Vector<IntVect>         pshifts(27);
     std::vector< std::pair<int,Box> > isects;
 
 
-    for (int dim = 0; dim < BL_SPACEDIM; dim++)
+    for (int dim = 0; dim < AMREX_SPACEDIM; dim++)
     {
         if (geom.isPeriodic(dim))
         {
@@ -1074,9 +1074,9 @@ MacProj::test_umac_periodic (int       level,
     {
         const int dim = pirm[i].m_dim;
 
-        BL_ASSERT(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
-        BL_ASSERT(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
-        BL_ASSERT(u_mac[dim].DistributionMap()[pirm[i].m_idx] == ParallelDescriptor::MyProc());
+        AMREX_ASSERT(pirm[i].m_fbid.box() == pirm[i].m_srcBox);
+        AMREX_ASSERT(pirm[i].m_srcBox.sameSize(pirm[i].m_dstBox));
+        AMREX_ASSERT(u_mac[dim].DistributionMap()[pirm[i].m_idx] == ParallelDescriptor::MyProc());
 
         diff.resize(pirm[i].m_srcBox, 1);
 

@@ -1,7 +1,3 @@
-//fixme, for writesingle level plotfile
-//#include<AMReX_PlotFileUtil.H>
-//
-
 #include <unistd.h>
 #include <AMReX_Geometry.H>
 #include <AMReX_Extrapolater.H>
@@ -9,7 +5,6 @@
 #include <AMReX_buildInfo.H>
 #include <AMReX_BLProfiler.H>
 #include <NavierStokes.H>
-#include <NAVIERSTOKES_F.H>
 #include <NS_util.H>
 #include <iamr_constants.H>
 
@@ -90,10 +85,10 @@ NavierStokes::Initialize_bcs ()
     //
     if ( pp.contains("lo_bc") )
     {
-      Vector<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
-      pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
-      pp.getarr("hi_bc",hi_bc,0,BL_SPACEDIM);
-      for (int i = 0; i < BL_SPACEDIM; i++)
+      Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
+      pp.getarr("lo_bc",lo_bc,0,AMREX_SPACEDIM);
+      pp.getarr("hi_bc",hi_bc,0,AMREX_SPACEDIM);
+      for (int i = 0; i < AMREX_SPACEDIM; i++)
       {
 	  phys_bc.setLo(i,lo_bc[i]);
 	  phys_bc.setHi(i,hi_bc[i]);
@@ -243,7 +238,7 @@ NavierStokes::Initialize_bcs ()
 	// Then valid BC types must be in bc_tmp.
 	// Load them into phys_bc.
 	//
-	for (int dir = 0; dir < BL_SPACEDIM; dir++)
+	for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
 	{
 	  phys_bc.setLo(dir,bc_tmp[dir]);
 	  phys_bc.setHi(dir,bc_tmp[dir+AMREX_SPACEDIM]);
@@ -302,7 +297,7 @@ NavierStokes::Initialize_diffusivities ()
     is_diffusive.resize(NUM_STATE);
 
     pp.get("vel_visc_coef",visc_coef[0]);
-    for (int i = 1; i < BL_SPACEDIM; i++)
+    for (int i = 1; i < AMREX_SPACEDIM; i++)
       visc_coef[i] = visc_coef[0];
 
     //
@@ -429,7 +424,7 @@ NavierStokes::initData ()
 
 	MultiFab& S_new = get_new_data(State_Type);
         MultiFab  tmp(S_new.boxArray(), S_new.DistributionMap(), 1, 0);
-        for (int i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < AMREX_SPACEDIM; i++)
         {
 	    amrData.FillVar(tmp, level, plotnames[idX+i], 0);
 
@@ -448,7 +443,9 @@ NavierStokes::initData ()
     // Perform redistribution on initial fields
     // This changes the input velocity fields
     //
-    InitialRedistribution();
+    if (redistribution_type == "StateRedist") {
+        InitialRedistribution();
+    }
 
     //
     // Make sure EB covered cell are set, and that it's not zero, as we
@@ -584,7 +581,7 @@ NavierStokes::advance (Real time,
     //         have something reasonable.
     //
     const Real prev_time = state[State_Type].prevTime();
-    const int num_diff = NUM_STATE-BL_SPACEDIM-1;
+    const int num_diff = NUM_STATE-AMREX_SPACEDIM-1;
 
     calcViscosity(prev_time,dt,iteration,ncycle);
     calcDiffusivity(prev_time);
@@ -752,7 +749,7 @@ NavierStokes::scalar_advection (Real dt,
     if ( advection_scheme == "Godunov_PLM" || advection_scheme == "Godunov_PPM" || advection_scheme == "BDS")
     {
         MultiFab visc_terms(grids,dmap,num_scalars,nghost_force(),MFInfo(),Factory());
-        FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,BL_SPACEDIM);
+        FillPatchIterator U_fpi(*this,visc_terms,nghost_state(),prev_time,State_Type,Xvel,AMREX_SPACEDIM);
         const MultiFab& Umf=U_fpi.get_mf();
 
         MultiFab* dsdt    = getDsdt(nghost_force(),prev_time);
@@ -981,7 +978,7 @@ NavierStokes::scalar_diffusion_update (Real dt,
         {
 
 	  FArrayBox fluxtot;
-	  for (int d = 0; d < BL_SPACEDIM; d++)
+	  for (int d = 0; d < AMREX_SPACEDIM; d++)
           {
 	    MultiFab fluxes;
 
@@ -1482,7 +1479,7 @@ NavierStokes::mac_sync ()
                 << std::endl;
     }
 
-    const int  numscal        = NUM_STATE - BL_SPACEDIM;
+    const int  numscal        = NUM_STATE - AMREX_SPACEDIM;
     const Real prev_time      = state[State_Type].prevTime();
     const Real dt             = parent->dtLevel(level);
     MultiFab*  DeltaSsync     = 0;// hold (Delta rho)*q for conserved quantities
@@ -1536,7 +1533,7 @@ NavierStokes::mac_sync ()
     // This increment will be added back after the diffusive sync.
     //
     int iconserved = -1;
-    for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
+    for (int istate = AMREX_SPACEDIM; istate < NUM_STATE; istate++)
     {
       if (istate != Density && advectionType[istate] == Conservative)
       {
@@ -1603,7 +1600,7 @@ NavierStokes::mac_sync ()
     MultiFab** fluxSC        = 0;
     bool       any_diffusive = false;
     for (int sigma  = 0; sigma < numscal; sigma++)
-      if (is_diffusive[BL_SPACEDIM+sigma])
+      if (is_diffusive[AMREX_SPACEDIM+sigma])
 	any_diffusive = true;
 
     if (any_diffusive) {
@@ -1635,7 +1632,7 @@ NavierStokes::mac_sync ()
 
     for (int sigma = 0; sigma<numscal; sigma++)
     {
-      const int state_ind = BL_SPACEDIM + sigma;
+      const int state_ind = AMREX_SPACEDIM + sigma;
       const int rho_flag  = Diffusion::set_rho_flag(diffusionType[state_ind]);
 
       if (is_diffusive[state_ind])
@@ -1647,7 +1644,7 @@ NavierStokes::mac_sync ()
 
         Real diffTime = state[State_Type].curTime();
         cmp_diffnp1 = fb_diffnp1.define(this);
-        getDiffusivity(cmp_diffnp1, diffTime, BL_SPACEDIM+sigma,0,1);
+        getDiffusivity(cmp_diffnp1, diffTime, AMREX_SPACEDIM+sigma,0,1);
 
         int S_comp = state_ind;
  	const int num_comp = 1;
@@ -1658,7 +1655,7 @@ NavierStokes::mac_sync ()
         const int alphaComp = 0;
         int betaComp = 0;
 
-        diffuse_comp[0] = is_diffusive[BL_SPACEDIM+sigma];
+        diffuse_comp[0] = is_diffusive[AMREX_SPACEDIM+sigma];
 
         diffusion->diffuse_scalar ({},{},Snp1,Rhonp1,
  	                           S_comp,num_comp,Rho_comp,
@@ -1680,7 +1677,7 @@ NavierStokes::mac_sync ()
         //
         if (level > 0)
         {
-          for (int d = 0; d < BL_SPACEDIM; d++)
+          for (int d = 0; d < AMREX_SPACEDIM; d++)
           {
              getViscFluxReg().FineAdd(*fluxSC[d],d,0,state_ind,1,dt);
           }
@@ -1703,7 +1700,7 @@ NavierStokes::mac_sync ()
     // (See Pember, et. al., LBNL-41339, Jan. 1989)
     //
     iconserved = -1;
-    for (int istate = BL_SPACEDIM; istate < NUM_STATE; istate++)
+    for (int istate = AMREX_SPACEDIM; istate < NUM_STATE; istate++)
     {
       if (istate != Density && advectionType[istate] == Conservative)
       {
@@ -1723,7 +1720,7 @@ NavierStokes::mac_sync ()
     //
     make_rho_curr_time();
 
-    if (level > 0) incrRhoAvg(Ssync,Density-BL_SPACEDIM,1.0);
+    if (level > 0) incrRhoAvg(Ssync,Density-AMREX_SPACEDIM,1.0);
     //
     // Get boundary conditions.
     //
@@ -1758,7 +1755,7 @@ NavierStokes::mac_sync ()
       MultiFab::Add(Sf_new,sync_incr,0,Density,numscal,0);
 
       fine_lev.make_rho_curr_time();
-      fine_lev.incrRhoAvg(sync_incr,Density-BL_SPACEDIM,1.0);
+      fine_lev.incrRhoAvg(sync_incr,Density-AMREX_SPACEDIM,1.0);
     }
 
     sync_cleanup(DeltaSsync);
@@ -1777,7 +1774,7 @@ NavierStokes::reflux ()
 
     BL_PROFILE("NavierStokes::reflux()");
 
-    BL_ASSERT(do_reflux);
+    AMREX_ASSERT(do_reflux);
     //
     // First do refluxing step.
     //
@@ -1793,8 +1790,8 @@ NavierStokes::reflux ()
     //   be divided by rho^(n+1) in level_sync.
     //
 
-    fr_visc.Reflux(Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
-    fr_visc.Reflux(Ssync,volume,scale,BL_SPACEDIM,0,NUM_STATE-BL_SPACEDIM,geom);
+    fr_visc.Reflux(Vsync,volume,scale,0,0,AMREX_SPACEDIM,geom);
+    fr_visc.Reflux(Ssync,volume,scale,AMREX_SPACEDIM,0,NUM_STATE-AMREX_SPACEDIM,geom);
 
     const MultiFab& Rh = get_rho_half_time();
 
@@ -1825,8 +1822,8 @@ NavierStokes::reflux ()
       }
     }
 
-    fr_adv.Reflux(Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
-    fr_adv.Reflux(Ssync,volume,scale,BL_SPACEDIM,0,NUM_STATE-BL_SPACEDIM,geom);
+    fr_adv.Reflux(Vsync,volume,scale,0,0,AMREX_SPACEDIM,geom);
+    fr_adv.Reflux(Ssync,volume,scale,AMREX_SPACEDIM,0,NUM_STATE-AMREX_SPACEDIM,geom);
 
     const BoxArray& fine_boxes = getLevel(level+1).boxArray();
     //
@@ -1999,7 +1996,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     // or Zvel
     //
 #ifdef AMREX_DEBUG
-    if (src_comp<BL_SPACEDIM && (src_comp!=Xvel || ncomp<BL_SPACEDIM))
+    if (src_comp<AMREX_SPACEDIM && (src_comp!=Xvel || ncomp<AMREX_SPACEDIM))
     {
       Print() << "src_comp=" << src_comp << "   ncomp=" << ncomp << '\n';
       Error("must call NavierStokes::getViscTerms with all three velocity components");
@@ -2032,7 +2029,7 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
         getViscosity(viscosity, time);
 
 	auto whichTime = which_time(State_Type,time);
-	BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+	AMREX_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
 	auto viscosityCC = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
 
@@ -2041,8 +2038,8 @@ NavierStokes::getViscTerms (MultiFab& visc_terms,
     //
     // Get Scalar Diffusive Terms
     //
-    const int first_scal = (src_comp==Xvel) ? BL_SPACEDIM : src_comp;
-    const int num_scal   = (src_comp==Xvel) ? ncomp-BL_SPACEDIM : ncomp;
+    const int first_scal = (src_comp==Xvel) ? AMREX_SPACEDIM : src_comp;
+    const int num_scal   = (src_comp==Xvel) ? ncomp-AMREX_SPACEDIM : ncomp;
 
     if (num_scal > 0)
     {
@@ -2100,7 +2097,7 @@ NavierStokes::calcViscosity (const Real time,
         if (visc_coef[Xvel] >= 0.0)
         {
             auto whichTime = which_time(State_Type,time);
-            BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+            AMREX_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
             auto visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
 	    visc->setVal(visc_coef[Xvel], 0, visc->nComp(), visc->nGrow());
@@ -2123,10 +2120,10 @@ NavierStokes::calcDiffusivity (const Real time)
     //        0 in the arrays diffn and diffnp1.
     //
     int src_comp = Density+1;
-    int ncomp = NUM_STATE - BL_SPACEDIM -1;
+    int ncomp = NUM_STATE - AMREX_SPACEDIM -1;
 
     const TimeLevel whichTime = which_time(State_Type,time);
-    BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+    AMREX_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
     MultiFab* diff = (whichTime == AmrOldTime ? diffn_cc : diffnp1_cc);
     for (int comp=src_comp; comp<src_comp+ncomp; comp++)
@@ -2148,14 +2145,14 @@ NavierStokes::calcDiffusivity (const Real time)
 }
 
 void
-NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
+NavierStokes::getViscosity (MultiFab* viscosity[AMREX_SPACEDIM],
                             const Real time)
 {
     // //
     // // Select time level to work with (N or N+1)
     // //
     // const TimeLevel whichTime = which_time(State_Type,time);
-    // BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+    // AMREX_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
     // MultiFab *visc = (whichTime == AmrOldTime ? viscn_cc : viscnp1_cc);
 
@@ -2184,13 +2181,13 @@ NavierStokes::getViscosity (MultiFab* viscosity[BL_SPACEDIM],
 }
 
 void
-NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
+NavierStokes::getDiffusivity (MultiFab* diffusivity[AMREX_SPACEDIM],
                               const Real /*time*/,
                               const int state_comp,
                               const int dst_comp,
                               const int ncomp)
 {
-    BL_ASSERT(state_comp > Density);
+    AMREX_ASSERT(state_comp > Density);
     // //
     // // Pick correct component in the diffn/diffnp1 array
     // //
@@ -2199,7 +2196,7 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     // // Select time level to work with (N or N+1)
     // //
     // const TimeLevel whichTime = which_time(State_Type,time);
-    // BL_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
+    // AMREX_ASSERT(whichTime == AmrOldTime || whichTime == AmrNewTime);
 
     // MultiFab *diff = (whichTime == AmrOldTime ? diffn_cc : diffnp1_cc);
 
@@ -2207,7 +2204,7 @@ NavierStokes::getDiffusivity (MultiFab* diffusivity[BL_SPACEDIM],
     // cell-center/centroid to faces.
     // But here we simply do constant diffusivity.
 
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
 	for (int n = 0; n < ncomp; n++)
 	{
