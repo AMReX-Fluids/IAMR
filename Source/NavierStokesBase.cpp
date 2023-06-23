@@ -5240,13 +5240,13 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
         if ( do_reflux && (level < parent->finestLevel()) ) {
                getAdvFluxReg(level+1).CrseAdd(mfi,
                               {AMREX_D_DECL(&fx_fab,&fy_fab,&fz_fab)},
-                              dxDp, dt, amrex::RunOn::Device);
+                              dxDp, dt, 0, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && level < finest_level
 
         if ( do_reflux && (level > 0) ) {
               advflux_reg->FineAdd(mfi,
                                {AMREX_D_DECL(&fx_fab,&fy_fab,&fz_fab)},
-                               dxDp, dt, amrex::RunOn::Device);
+                               dxDp, dt, 0, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && (level > 0)
 #endif
     } // mfi
