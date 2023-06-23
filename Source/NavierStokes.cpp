@@ -1828,7 +1828,7 @@ NavierStokes::reflux ()
     fr_adv.Reflux(Vsync,*volfrac,              0, 0,           AMREX_SPACEDIM);
     fr_adv.Reflux(Ssync,*volfrac, AMREX_SPACEDIM, 0, NUM_STATE-AMREX_SPACEDIM);
 #else
-    fr_adv.Reflux(Vsync               0, 0,          AMREX_SPACEDIM);
+    fr_adv.Reflux(Vsync,              0, 0,          AMREX_SPACEDIM);
     fr_adv.Reflux(Ssync, AMREX_SPACEDIM, 0,NUM_STATE-AMREX_SPACEDIM);
 #endif
     const Real    scale   = 1.0/dt_crse;
