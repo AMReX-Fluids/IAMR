@@ -11,7 +11,6 @@
 #include <AMReX_BLFort.H>
 #include <Diffusion.H>
 #include <AMReX_ErrorList.H>
-#include <AMReX_FluxRegister.H>
 #include <MacProj.H>
 #include <Projection.H>
 #include <SyncRegister.H>
@@ -23,8 +22,22 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBCellFlag.H>
-#include <AMReX_EBFluxRegister.H>
 #endif
+
+//
+// Parameters used when we call BuildMask
+//
+// interior  : interior cells (i.e., valid cells)
+// covered   : ghost cells covered by valid cells of this FabArray
+//             (including periodically shifted valid cells)
+// notcovered: ghost cells not covered by valid cells
+//             (including ghost cells outside periodic boundaries where the
+//             periodically shifted cells don't exist at this level)
+// physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+static constexpr int level_mask_interior   = 0; // valid cells
+static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
+static constexpr int level_mask_notcovered = 2; // ghost cells not covered
+static constexpr int level_mask_physbnd    = 3; // outside domain
 
 //
 // "Divu_Type" means S, where divergence U = S
@@ -110,7 +123,7 @@ public:
     //   the list of tagged points
     //
     virtual void manual_tags_placement (amrex::TagBoxArray&    tags,
-					const amrex::Vector<amrex::IntVect>& bf_lev) override;
+                                        const amrex::Vector<amrex::IntVect>& bf_lev) override;
     //
     // Estimate the end of the simulation for amrLevel.
     //
@@ -184,7 +197,7 @@ public:
     // Boundary condition access functions.
     //
     amrex::Vector<int> fetchBCArray (int State_Type, const amrex::Box& bx,
-				     int scomp, int ncomp);
+                                     int scomp, int ncomp);
 
     amrex::Vector<amrex::BCRec> fetchBCArray (int State_Type, int scomp, int ncomp);
 
@@ -201,7 +214,7 @@ public:
     // for use in derived classes and Projection sync fns and initial vel proj
     //
     void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
-		      int scomp, int ncomp);
+              int scomp, int ncomp);
 
     void calc_mut_LES(amrex::MultiFab*  diffusivity[AMREX_SPACEDIM], amrex::Real time);
 
@@ -216,6 +229,9 @@ public:
     //
     static amrex::Real getGravity () { return gravity; }
 
+    //
+    // Returns the value of "gravity" for use in the projection outflow bcs.
+    //
 #ifdef AMREX_USE_EB
     static std::string& getRedistType () { return redistribution_type; }
 #endif
@@ -229,11 +245,11 @@ public:
     NavierStokesBase ();
 
     NavierStokesBase (amrex::Amr&            papa,
-		      int             lev,
-		      const amrex::Geometry& level_geom,
-		      const amrex::BoxArray& bl,
-                      const amrex::DistributionMapping& dm,
-		      amrex::Real            time);
+                      int             lev,
+                      const amrex::Geometry& level_geom,
+                      const amrex::BoxArray& bl,
+                              const amrex::DistributionMapping& dm,
+                      amrex::Real            time);
 
     //////////////////////////////////////////////////////////////////
     //    NavierStokesBase functions                                //
@@ -254,21 +270,29 @@ public:
                            const amrex::FArrayBox& Scal,
                            int                     scalScomp,
                            const amrex::MFIter&    mfi);
-    //
-    amrex::FluxRegister& getAdvFluxReg () {
+
+#ifdef AMREX_USE_EB
+    amrex::EBFluxRegister& getAdvFluxReg () {
         AMREX_ASSERT(advflux_reg);
         return *advflux_reg;
     }
-    //
-    amrex::FluxRegister& getAdvFluxReg (int lev) {
+    amrex::EBFluxRegister& getAdvFluxReg (int lev) {
         return getLevel(lev).getAdvFluxReg();
     }
-    //
+#else
+    amrex::YAFluxRegister& getAdvFluxReg () {
+        AMREX_ASSERT(advflux_reg);
+        return *advflux_reg;
+    }
+    amrex::YAFluxRegister& getAdvFluxReg (int lev) {
+        return getLevel(lev).getAdvFluxReg();
+    }
+#endif
+
     amrex::FluxRegister& getViscFluxReg () {
         AMREX_ASSERT(viscflux_reg);
         return *viscflux_reg;
     }
-    //
     amrex::FluxRegister& getViscFluxReg (int lev) {
         return getLevel(lev).getViscFluxReg();
     }
@@ -318,9 +342,9 @@ public:
     // This function estimates the initial timesteping used by the model.
     //
     void post_init_estDT (amrex::Real&        dt_init,
-			  amrex::Vector<int>&  nc_save,
-			  amrex::Vector<amrex::Real>& dt_save,
-			  amrex::Real         stop_time);
+                          amrex::Vector<int>&  nc_save,
+                          amrex::Vector<amrex::Real>& dt_save,
+                          amrex::Real         stop_time);
     //
     // Ensure state is consistent, i.e. velocity field is nondivergent,
     // coarse level data are averages of fine level data, pressure is zero.
@@ -399,22 +423,22 @@ public:
     //////////////////////////////////////////////////////////////////
 
     virtual void advance_setup (amrex::Real time,
-				amrex::Real dt,
-				int  iteration,
-				int  ncycle);
+                                amrex::Real dt,
+                                int  iteration,
+                                int  ncycle);
 
     virtual void avgDown () = 0; // Average down for all the state types.
 
     virtual void calc_divu (amrex::Real      time,
-			    amrex::Real      dt,
-			    amrex::MultiFab& fab) = 0;
+                            amrex::Real      dt,
+                            amrex::MultiFab& fab) = 0;
     //
     // Calculate nonuniform viscosity and diffusivity
     //
     virtual void calcViscosity (const amrex::Real time,
-				const amrex::Real dt,
-				const int  iteration,
-				const int  ncycle) = 0;
+                                const amrex::Real dt,
+                                const int  iteration,
+                                const int  ncycle) = 0;
     virtual void calcDiffusivity (const amrex::Real time) = 0;
     //
     // Create the RHS for the MAC projection.
@@ -427,14 +451,14 @@ public:
     virtual amrex::Real estTimeStep ();
 
     virtual void getViscosity (amrex::MultiFab*  viscosity[AMREX_SPACEDIM],
-			       const amrex::Real time) = 0;
+                               const amrex::Real time) = 0;
     //
     // Compute viscous terms.
     //
     virtual void getViscTerms (amrex::MultiFab& visc_terms,
-			       int              src_comp,
-			       int              num_comp,
-			       amrex::Real      time) = 0;
+                               int              src_comp,
+                               int              num_comp,
+                               amrex::Real      time) = 0;
     //
     virtual void mac_sync () = 0;
     //
@@ -443,12 +467,12 @@ public:
     // Reset time levels for the initial iterations.
     //
     virtual void resetState (amrex::Real time,
-	                     amrex::Real dt_old,
-		             amrex::Real dt_new);
+                             amrex::Real dt_old,
+                             amrex::Real dt_new);
 
     virtual void scalar_advection_update (amrex::Real dt,
-					  int  first_scalar,
-					  int  last_scalar);
+                                          int  first_scalar,
+                                          int  last_scalar);
     //
     virtual void sum_integrated_quantities () = 0;
 
@@ -506,11 +530,11 @@ public:
     void buildMetrics (); // 1-D metric arrays for RZ
     //
     void calc_dsdt (amrex::Real      time,
-		    amrex::Real      dt,
-		    amrex::MultiFab& dsdt);
+            amrex::Real      dt,
+            amrex::MultiFab& dsdt);
     //
     NavierStokesBase& getLevel (int lev) {
-	return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
+        return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
     }
     //
     SyncRegister& getSyncReg () {
@@ -523,10 +547,10 @@ public:
     // Get state data.
     //
     amrex::MultiFab* getState (int  ngrow,
-			       int  state_indx,
-			       int  strt_comp,
-			       int  num_comp,
-			       amrex::Real time);
+                   int  state_indx,
+                   int  strt_comp,
+                   int  num_comp,
+                   amrex::Real time);
     //
     // Compile p_avg in advance.
     //
@@ -586,17 +610,17 @@ public:
                       amrex::MultiFab const& forcing_term,
                       amrex::MultiFab const& divu,
                       bool is_velocity, amrex::Real dt);
-    void ComputeAofs ( amrex::MultiFab& advc, int a_comp,
-                       int state_indx, int ncomp,
-                       amrex::MultiFab const& S, int S_comp,
-                       amrex::MultiFab const* forcing, int f_comp,
-                       amrex::MultiFab const* divu,
-                       amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& cfluxes, int flux_comp,
-                       amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
-                       bool known_edge_state,
-                       bool is_velocity, amrex::Real dt,
-                       bool is_sync, amrex::Array<amrex::MultiFab*, AMREX_SPACEDIM> const& Uflux);
-
+    void ComputeAofs (amrex::MultiFab& advc, int a_comp,
+                      int state_indx, int ncomp,
+                      amrex::MultiFab const& S, int S_comp,
+                      amrex::MultiFab const* forcing, int f_comp,
+                      amrex::MultiFab const* divu,
+                      amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& cfluxes, int flux_comp,
+                      amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
+                      bool known_edge_state,
+                      bool is_velocity, amrex::Real dt,
+                      bool is_sync, amrex::Array<amrex::MultiFab*, AMREX_SPACEDIM> const& Uflux,
+                      bool do_crse_add, bool do_fine_add);
 //
 // Data
 //
@@ -680,7 +704,11 @@ public:
     // Data structures to store advective and viscous refluxing quantities
     // on coarse-fine grid interfaces.
     //
-    amrex::FluxRegister* advflux_reg;
+#ifdef AMREX_USE_EB
+    std::unique_ptr<amrex::EBFluxRegister> advflux_reg;
+#else
+    std::unique_ptr<amrex::YAFluxRegister> advflux_reg;
+#endif
     amrex::FluxRegister* viscflux_reg;
     //
     // Radii for r-z calculations.

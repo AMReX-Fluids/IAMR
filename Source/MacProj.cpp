@@ -393,7 +393,7 @@ MacProj::mac_sync_solve (int       level,
     //
     // Reusing storage here, since there should be no more need for the
     // values in mac_phi at this level and mac_sync_phi only need to last
-    // into the call to mac_sync_compute.  Hope this works...  (LHH).
+    // into the call to mac_sync_compute.
     //
     MultiFab* mac_sync_phi = mac_phi_crse[level].get();
 
@@ -507,7 +507,6 @@ MacProj::mac_sync_compute (int                   level,
                            Array<MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            MultiFab&             Vsync,
                            MultiFab&             Ssync,
-                           FluxRegister*         adv_flux_reg,
                            Vector<AdvectionForm>& advectionType,
                            Real                  prev_time,
                            Real                  dt,
@@ -692,9 +691,8 @@ MacProj::mac_sync_compute (int                   level,
         Abort("MacProj::mac_sync_compute: Unkown adveciton scheme");
     }
 
-        //
-        // Perform sync
-        //
+    bool do_crse_add = false;
+    bool do_fine_add = true;
 
     //
     // Do velocity sync first
@@ -707,10 +705,13 @@ MacProj::mac_sync_compute (int                   level,
                          fluxes, /*flux_comp*/ 0,
                          edgestate, /*edge_comp*/ 0, /*known_edgestate*/ false,
                          /*is_velocity*/ true, dt,
-                         /*is_sync*/ true, Ucorr);
-
+                         /*is_sync*/ true, Ucorr,
+                         do_crse_add, do_fine_add);
+    //
+    // Then do scalar sync
+    //
     if (num_state_comps > AMREX_SPACEDIM)
-            {
+    {
         //
         // Also compute scalar sync. Recall that it must be all the scalars here.
         //
@@ -722,7 +723,8 @@ MacProj::mac_sync_compute (int                   level,
                              fluxes, /*flux_comp*/ Density,
                              edgestate, /*edge_comp*/ Density, /*known_edgestate*/ false,
                              /*is_velocity*/ false, dt,
-                             /*is_sync*/ true, Ucorr);
+                             /*is_sync*/ true, Ucorr,
+                             do_crse_add, do_fine_add);
     }
 
 
@@ -731,10 +733,8 @@ MacProj::mac_sync_compute (int                   level,
         const Real mlt =  -1.0/Real(parent->nCycle(level));
         for (int d = 0; d < AMREX_SPACEDIM; ++d)
         {
-            for (int comp = 0; comp < num_state_comps; ++comp)
-            {
-                    adv_flux_reg->FineAdd(fluxes[d],d,comp,comp,1,-dt);
-            }
+            //
+            // The call to adv_flux_reg->FineAdd is now done inside ComputeAofs
             //
             // Include grad_phi(aka Ucorr) in the mac registers corresponding
             // to the next coarsest interface.
@@ -760,7 +760,6 @@ MacProj::mac_sync_compute (int                    level,
                            int                    Sync_indx,
                            MultiFab* const*       edgestate,
                            int                    edge_comp,
-                           FluxRegister*          adv_flux_reg,
                            Real                   dt,
                            bool                   update_fluxreg)
 {
@@ -782,6 +781,9 @@ MacProj::mac_sync_compute (int                    level,
         fluxes[i].define(ba, dmap, ncomp, edgestate[0]->nGrow(), MFInfo(),ns_level.Factory());
     }
 
+    bool do_crse_add = false;
+    bool do_fine_add = update_fluxreg;
+
     //
     // Compute the mac sync correction.
     //
@@ -793,15 +795,8 @@ MacProj::mac_sync_compute (int                    level,
                          fluxes, /*flux_comp*/ 0,
                          edges, 0, /*known_edgestate*/ true,
                          /*is_velocity*/ false, dt,
-                         /*is_sync*/ true, Ucorr);
-
-    if (level > 0 && update_fluxreg)
-    {
-        for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        {
-            adv_flux_reg->FineAdd(fluxes[d],d,0,state_comp,1,-dt);
-        }
-    }
+                         /*is_sync*/ true, Ucorr,
+                         do_crse_add, do_fine_add);
 }
 
 //

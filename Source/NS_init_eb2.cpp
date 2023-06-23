@@ -386,7 +386,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
 }
 
 void
-NavierStokesBase::init_eb (const Geometry& level_geom, const BoxArray& ba, const DistributionMapping& dm)
+NavierStokesBase::init_eb (const Geometry& /*level_geom*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/)
 {
   // Build the geometry information; this is done for each new set of grids
   initialize_eb2_structs();
@@ -518,7 +518,8 @@ NavierStokesBase::define_body_state()
     found[ParallelDescriptor::MyProc()] = (int)foundPt;
     ParallelDescriptor::ReduceIntSum(&(found[0]),found.size());
     int body_rank = -1;
-    for (int i=0; i<found.size(); ++i) {
+    int found_size = static_cast<int>(found.size());
+    for (int i=0; i < found_size; ++i) {
       if (found[i]==1) {
         body_rank = i;
       }
@@ -539,7 +540,7 @@ NavierStokesBase::set_body_state(MultiFab& S)
     define_body_state();
   }
 
-  AMREX_ASSERT(S.nComp() == body_state.size());
+  AMREX_ASSERT(S.nComp() == static_cast<int>(body_state.size()));
   int nc = S.nComp();
   int l_covered_val = -1;
 
@@ -552,13 +553,13 @@ NavierStokesBase::set_body_state(MultiFab& S)
   for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
     const Box& bx = mfi.tilebox();
-    auto const& state = S.array(mfi);
+    auto const& state_arr = S.array(mfi);
     auto const& mask = ebmask.array(mfi);
     Real* state_lcl = body_state_lcl.data();
-    amrex::ParallelFor(bx, [state,mask,nc,l_covered_val,state_lcl]
+    amrex::ParallelFor(bx, [state_arr,mask,nc,l_covered_val,state_lcl]
     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        set_body_state_k(i,j,k,nc,state_lcl,l_covered_val,mask,state);
+        set_body_state_k(i,j,k,nc,state_lcl,l_covered_val,mask,state_arr);
     });
   }
 }
