@@ -5201,9 +5201,9 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                 }
             }
 
-            AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp());,
-                         MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp());,
-                         MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()););
+            AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp()-flux_comp);,
+                         MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp()-flux_comp);,
+                         MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()-flux_comp););
             AMREX_D_TERM( const auto& fx_fr_fab = cfluxx[mfi];,
                           const auto& fy_fr_fab = cfluxy[mfi];,
                           const auto& fz_fr_fab = cfluxz[mfi];);
@@ -5249,9 +5249,9 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
         } // not covered
 #else
         // Update the flux registers when no EB
-        AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp());,
-                     MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp());,
-                     MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()););
+        AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp()-flux_comp);,
+                     MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp()-flux_comp);,
+                     MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()-flux_comp););
         AMREX_D_TERM( const auto& fx_fr_fab = cfluxx[mfi];,
                       const auto& fy_fr_fab = cfluxy[mfi];,
                       const auto& fz_fr_fab = cfluxz[mfi];);
