@@ -22,6 +22,7 @@ bool NavierStokesBase::ebInitialized()
     return eb_initialized;
 }
 
+#if (AMREX_SPACEDIM == 3)
 static
 void reentrant_profile(std::vector<amrex::RealVect> &points) {
   amrex::RealVect p;
@@ -63,6 +64,7 @@ void reentrant_profile(std::vector<amrex::RealVect> &points) {
   p = amrex::RealVect(D_DECL(22.358*0.1, -7.6902*0.1, 0.0));
   points.push_back(p);
 }
+#endif
 
 // called in main before Amr->init(start,stop)
 void

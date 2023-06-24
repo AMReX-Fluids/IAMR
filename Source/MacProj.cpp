@@ -692,7 +692,7 @@ MacProj::mac_sync_compute (int                   level,
     }
 
     bool do_crse_add = false;
-    bool do_fine_add = true;
+    bool do_fine_add = update_fluxreg;
 
     //
     // Do velocity sync first
@@ -735,6 +735,8 @@ MacProj::mac_sync_compute (int                   level,
         {
             //
             // The call to adv_flux_reg->FineAdd is now done inside ComputeAofs
+            // NOTE: the FineAdd in ComputeAofs that is called from here has the
+            //       opposite sign of what it would normally have in ComputeAofs
             //
             // Include grad_phi(aka Ucorr) in the mac registers corresponding
             // to the next coarsest interface.
