@@ -5248,23 +5248,31 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
             } // do_reflux && (level > 0)
         } // not covered
 #else
-        // Update the flux registers when no EB
         AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp()-flux_comp);,
                      MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp()-flux_comp);,
                      MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()-flux_comp););
         AMREX_D_TERM( const auto& fx_fr_fab = cfluxx[mfi];,
                       const auto& fy_fr_fab = cfluxy[mfi];,
                       const auto& fz_fr_fab = cfluxz[mfi];);
+
+        // This is a hack-y way of testing whether this ComputeAofs call
+        // came from the mac_sync (do_crse_add = false) 
+        // or from the regular advance (do_crse_add = true).  When the call
+        // comes from the mac_sync, the multiplier in FineAdd needs to have
+        // the opposite sign
+        Real sync_factor = do_crse_add ? 1.0 : -1.0;
+
+        // Update the flux registers when no EB
         if ( do_reflux && (level < parent->finestLevel()) ) {
                getAdvFluxReg(level+1).CrseAdd(mfi,
                               {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                              dxDp, dt, state_indx, ncomp, amrex::RunOn::Device);
+                              dxDp, sync_factor*dt, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && level < finest_level
 
         if ( do_reflux && (level > 0) ) {
               advflux_reg->FineAdd(mfi,
                               {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                               dxDp, dt, state_indx, ncomp, amrex::RunOn::Device);
+                               dxDp, sync_factor*dt, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && (level > 0)
 #endif
     } // mfi
