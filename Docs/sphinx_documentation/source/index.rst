@@ -7,13 +7,13 @@ Welcome to IAMR's documentation!
 ================================
 
 IAMR is a parallel, adaptive mesh refinement (AMR) code that uses
-subcycling in time and solves the variable-density incompressible Navier-Stokes equations 
+subcycling in time and solves the variable-density incompressible Navier-Stokes equations
 in the presence of complex geometries.
-It is built on top of AMReX, a publicly available software framework designed for 
+It is built on top of AMReX, a publicly available software framework designed for
 building massively parallel block-structured adaptive mesh refinement (AMR)
 applications.
 
-The IAMR source code is available at 
+The IAMR source code is available at
 https://amrex-codes.github.io/IAMR/
 
 For an AMReX-based incompressible flow code without subcycling in time,
@@ -34,7 +34,7 @@ see incflo (https://amrex-codes.github.io/incflo/)
    AlgorithmAndSoftware
    Debugging
    Contributing
-   
+
 .. toctree::
    :caption: References
 

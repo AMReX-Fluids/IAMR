@@ -146,9 +146,9 @@ static void ScanArguments() {
 // ---------------------------------------------------------------
 static void PrintUsage (char *progName) {
     cout << "Usage: " << progName << " checkin=filename "
-         << "checkout=outfilename "  
-         << "user_ratio= 2 or 4 "  
-         << "interp_kind= refine or coarsen " 
+         << "checkout=outfilename "
+         << "user_ratio= 2 or 4 "
+         << "interp_kind= refine or coarsen "
          << "[verbose=trueorfalse]" << endl;
     exit(1);
 }
@@ -239,9 +239,9 @@ static void ReadCheckpointFile(const std::string& fileName) {
 
     // READ LEVEL DATA
     for(int lev(0); lev <= fakeAmr_src.finest_level; ++lev) {
-    
+
       if (ParallelDescriptor::IOProcessor()) {
-        if (lev == 0) {    
+        if (lev == 0) {
            std::cout << " " << std::endl;
            std::cout << " **************************************** " << std::endl;
            std::cout << " " << std::endl;
@@ -251,7 +251,7 @@ static void ReadCheckpointFile(const std::string& fileName) {
            std::cout << " ...     dx is       " << fakeAmr_src.geom[lev].CellSize()[0] << std::endl;
            std::cout << "  " << std::endl;
       }
- 
+
       FakeAmrLevel &falRef = fakeAmr_src.fakeAmrLevels[lev];
 
       is >> falRef.level;
@@ -328,7 +328,7 @@ static void ReadCheckpointFile(const std::string& fileName) {
           FullPathName = fileName;
           if( ! fileName.empty() && fileName[fileName.length()-1] != '/') {
             FullPathName += '/';
-	  }
+      }
           FullPathName += mf_name;
           VisMF::Read(*(falRef.state[ii].old_data), FullPathName);
         }
@@ -353,7 +353,7 @@ static void ReadCheckpointFile(const std::string& fileName) {
       std::string first_line_avg;
       std::getline(is_avg,first_line_avg);
       is_avg >> avg_time;
-      is_avg >> avg_time_fluct;     
+      is_avg >> avg_time_fluct;
     }
 
 }
@@ -392,15 +392,15 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
     if(ParallelDescriptor::IOProcessor()) {
         // Only the IOProcessor() writes to the header file.
         HeaderFile.open(HeaderFileName.c_str(),
-	                std::ios::out|std::ios::trunc|std::ios::binary);
+                    std::ios::out|std::ios::trunc|std::ios::binary);
 
         if( ! HeaderFile.good()) {
           amrex::FileOpenFailed(HeaderFileName);
-	}
+    }
 
         old_prec = HeaderFile.precision(15);
 
-	int max_level(fakeAmr_trgt.finest_level);
+    int max_level(fakeAmr_trgt.finest_level);
         HeaderFile << CheckPointVersion << '\n'
                    << BL_SPACEDIM       << '\n'
                    << fakeAmr_trgt.cumtime           << '\n'
@@ -488,9 +488,9 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
           if(ParallelDescriptor::IOProcessor()) {
             // The relative name gets written to the Header file.
             std::string mf_name_old = name;
-	    mf_name_old += OldSuffix;
+        mf_name_old += OldSuffix;
             std::string mf_name_new = name;
-	    mf_name_new += NewSuffix;
+        mf_name_new += NewSuffix;
 
 
             os << falRef.state[i].domain << '\n';
@@ -525,7 +525,7 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
             BL_ASSERT(dump_old);
             BL_ASSERT(falRef.state[i].old_data);
             std::string mf_fullpath_old = fullpathname;
-	    mf_fullpath_old += OldSuffix;
+        mf_fullpath_old += OldSuffix;
             VisMF::Write(*(falRef.state[i].old_data),mf_fullpath_old,how);
           }
           // ++++++++++++
@@ -551,7 +551,7 @@ static void WriteCheckpointFile(const std::string& inFileName, const std::string
 
         if( ! HeaderFile.good()) {
           amrex::Error("Amr::checkpoint() failed");
-	}
+    }
     }
 
     FArrayBox::setFormat(thePrevFormat);
@@ -596,7 +596,7 @@ static void ConvertData() {
   int mx_lev = fakeAmr_trgt.finest_level;
 
   for (int lev = 0; lev <= mx_lev; lev++)
-  {  
+  {
     FakeAmrLevel &falRef_src = fakeAmr_src.fakeAmrLevels[lev];
     Box bx = fakeAmr_src.geom[lev].Domain();
     BoxArray ba = falRef_src.grids;
@@ -647,7 +647,7 @@ static void ConvertData() {
     int ngrow_loc;
 
     for (int n = 0; n < falRef_src.state.size(); n++){
-     
+
       ngrow_loc = 1;
 
       if (flag_eb){
@@ -656,13 +656,13 @@ static void ConvertData() {
       }
 
       // We don't have the same number of ghost-cells for each data type
-      // Warning, this should be adapted for EB 
+      // Warning, this should be adapted for EB
       if (falRef_src.state.size() == 4 && n == falRef_src.state.size()-1){
         ngrow_loc = 0; // For this case, we just have Average_Type and no Divu_Type and Dsdt_type
       }
       else if (falRef_src.state.size() == 5 && n == falRef_src.state.size()-1){
         ngrow_loc = 0; // For this case, we have Divu_Type and Dsdt_type, no Average_Type
-      } 
+      }
       else if (falRef_src.state.size() == 6 && n >= falRef_src.state.size()-2){
         ngrow_loc = 0; // Here we have both Average_Type and Divu and Dsdt types
       }
@@ -684,14 +684,14 @@ static void ConvertData() {
 
        if (interp_kind == "refine"){
          falRef_trgt.state[n].domain.refine(user_ratio);
-       } else {      
+       } else {
          falRef_trgt.state[n].domain.coarsen(user_ratio);
        }
 
 
       MultiFab * NewData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow_loc);
       MultiFab * OldData_src = new MultiFab(save_grids_state,dm,ncomps,ngrow_loc);
-      NewData_src -> setVal(10.); 
+      NewData_src -> setVal(10.);
       OldData_src -> setVal(10.);
 
       NewData_src -> copy(*(falRef_src.state[n].new_data),0,0,ncomps,0,ngrow_loc);
@@ -740,7 +740,7 @@ static void ConvertData() {
         OldData_trgt->FillBoundary(fgeom.periodicity());
 
       } else {
-      
+
         amrex::average_down (*NewData_src, *NewData_trgt,
                              0,  ncomps, new_ratio);
 
@@ -772,7 +772,7 @@ int main(int argc, char *argv[]) {
       cout << " " << std::endl;
     }
 
-    // Read in the original checkpoint directory  
+    // Read in the original checkpoint directory
     ReadCheckpointFile(CheckFileIn);
 
     // Interpolate to a finest grid

@@ -23,8 +23,22 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBCellFlag.H>
-#include <AMReX_EBFluxRegister.H>
 #endif
+
+//
+// Parameters used when we call BuildMask
+//
+// interior  : interior cells (i.e., valid cells)
+// covered   : ghost cells covered by valid cells of this FabArray
+//             (including periodically shifted valid cells)
+// notcovered: ghost cells not covered by valid cells
+//             (including ghost cells outside periodic boundaries where the
+//             periodically shifted cells don't exist at this level)
+// physbnd   : boundary cells outside the domain (excluding periodic boundaries)
+static constexpr int level_mask_interior   = 0; // valid cells
+static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
+static constexpr int level_mask_notcovered = 2; // ghost cells not covered
+static constexpr int level_mask_physbnd    = 3; // outside domain
 
 //
 // "Divu_Type" means S, where divergence U = S
@@ -35,14 +49,14 @@
 //
 enum StateType {State_Type=0, Press_Type, Gradp_Type};
 
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 enum StateNames  { Xvel=0, Yvel, Density};
 #else
 enum StateNames  { Xvel=0, Yvel, Zvel, Density};
 #endif
 
 enum PressureNames { Pressure=0 };
-#if (BL_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 2)
 enum GradpNames  { Gradpx=0, Gradpy};
 #else
 enum GradpNames  { Gradpx=0, Gradpy, Gradpz};
@@ -110,7 +124,7 @@ public:
     //   the list of tagged points
     //
     virtual void manual_tags_placement (amrex::TagBoxArray&    tags,
-					const amrex::Vector<amrex::IntVect>& bf_lev) override;
+                                        const amrex::Vector<amrex::IntVect>& bf_lev) override;
     //
     // Estimate the end of the simulation for amrLevel.
     //
@@ -184,7 +198,7 @@ public:
     // Boundary condition access functions.
     //
     amrex::Vector<int> fetchBCArray (int State_Type, const amrex::Box& bx,
-				     int scomp, int ncomp);
+                                     int scomp, int ncomp);
 
     amrex::Vector<amrex::BCRec> fetchBCArray (int State_Type, int scomp, int ncomp);
 
@@ -201,9 +215,9 @@ public:
     // for use in derived classes and Projection sync fns and initial vel proj
     //
     void average_down(const amrex::MultiFab& S_fine, amrex::MultiFab& S_crse,
-		      int scomp, int ncomp);
+              int scomp, int ncomp);
 
-    void calc_mut_LES(amrex::MultiFab*  diffusivity[BL_SPACEDIM], amrex::Real time);
+    void calc_mut_LES(amrex::MultiFab*  diffusivity[AMREX_SPACEDIM], amrex::Real time);
 
     void time_average(amrex::Real& time_avg, amrex::Real& time_avg_fluct, amrex::Real& dt_avg, const amrex::Real& dt_level);
 
@@ -225,11 +239,11 @@ public:
     NavierStokesBase ();
 
     NavierStokesBase (amrex::Amr&            papa,
-		      int             lev,
-		      const amrex::Geometry& level_geom,
-		      const amrex::BoxArray& bl,
-                      const amrex::DistributionMapping& dm,
-		      amrex::Real            time);
+                      int             lev,
+                      const amrex::Geometry& level_geom,
+                      const amrex::BoxArray& bl,
+                              const amrex::DistributionMapping& dm,
+                      amrex::Real            time);
 
     //////////////////////////////////////////////////////////////////
     //    NavierStokesBase functions                                //
@@ -261,10 +275,9 @@ public:
     }
     //
     amrex::FluxRegister& getViscFluxReg () {
-        BL_ASSERT(viscflux_reg);
+        AMREX_ASSERT(viscflux_reg);
         return *viscflux_reg;
     }
-    //
     amrex::FluxRegister& getViscFluxReg (int lev) {
         return getLevel(lev).getViscFluxReg();
     }
@@ -314,9 +327,9 @@ public:
     // This function estimates the initial timesteping used by the model.
     //
     void post_init_estDT (amrex::Real&        dt_init,
-			  amrex::Vector<int>&  nc_save,
-			  amrex::Vector<amrex::Real>& dt_save,
-			  amrex::Real         stop_time);
+                          amrex::Vector<int>&  nc_save,
+                          amrex::Vector<amrex::Real>& dt_save,
+                          amrex::Real         stop_time);
     //
     // Ensure state is consistent, i.e. velocity field is nondivergent,
     // coarse level data are averages of fine level data, pressure is zero.
@@ -395,22 +408,22 @@ public:
     //////////////////////////////////////////////////////////////////
 
     virtual void advance_setup (amrex::Real time,
-				amrex::Real dt,
-				int  iteration,
-				int  ncycle);
+                                amrex::Real dt,
+                                int  iteration,
+                                int  ncycle);
 
     virtual void avgDown () = 0; // Average down for all the state types.
 
     virtual void calc_divu (amrex::Real      time,
-			    amrex::Real      dt,
-			    amrex::MultiFab& fab) = 0;
+                            amrex::Real      dt,
+                            amrex::MultiFab& fab) = 0;
     //
     // Calculate nonuniform viscosity and diffusivity
     //
     virtual void calcViscosity (const amrex::Real time,
-				const amrex::Real dt,
-				const int  iteration,
-				const int  ncycle) = 0;
+                                const amrex::Real dt,
+                                const int  iteration,
+                                const int  ncycle) = 0;
     virtual void calcDiffusivity (const amrex::Real time) = 0;
     //
     // Create the RHS for the MAC projection.
@@ -422,15 +435,15 @@ public:
     //
     virtual amrex::Real estTimeStep ();
 
-    virtual void getViscosity (amrex::MultiFab*  viscosity[BL_SPACEDIM],
-			       const amrex::Real time) = 0;
+    virtual void getViscosity (amrex::MultiFab*  viscosity[AMREX_SPACEDIM],
+                               const amrex::Real time) = 0;
     //
     // Compute viscous terms.
     //
     virtual void getViscTerms (amrex::MultiFab& visc_terms,
-			       int              src_comp,
-			       int              num_comp,
-			       amrex::Real      time) = 0;
+                               int              src_comp,
+                               int              num_comp,
+                               amrex::Real      time) = 0;
     //
     virtual void mac_sync () = 0;
     //
@@ -439,12 +452,12 @@ public:
     // Reset time levels for the initial iterations.
     //
     virtual void resetState (amrex::Real time,
-	                     amrex::Real dt_old,
-		             amrex::Real dt_new);
+                             amrex::Real dt_old,
+                             amrex::Real dt_new);
 
     virtual void scalar_advection_update (amrex::Real dt,
-					  int  first_scalar,
-					  int  last_scalar);
+                                          int  first_scalar,
+                                          int  last_scalar);
     //
     virtual void sum_integrated_quantities () = 0;
 
@@ -502,15 +515,15 @@ public:
     void buildMetrics (); // 1-D metric arrays for RZ
     //
     void calc_dsdt (amrex::Real      time,
-		    amrex::Real      dt,
-		    amrex::MultiFab& dsdt);
+            amrex::Real      dt,
+            amrex::MultiFab& dsdt);
     //
     NavierStokesBase& getLevel (int lev) {
-	return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
+        return dynamic_cast<NavierStokesBase&> ( parent->getLevel(lev) );
     }
     //
     SyncRegister& getSyncReg () {
-        BL_ASSERT(sync_reg);
+        AMREX_ASSERT(sync_reg);
         return *sync_reg;
     }
     //
@@ -519,10 +532,10 @@ public:
     // Get state data.
     //
     amrex::MultiFab* getState (int  ngrow,
-			       int  state_indx,
-			       int  strt_comp,
-			       int  num_comp,
-			       amrex::Real time);
+                   int  state_indx,
+                   int  strt_comp,
+                   int  num_comp,
+                   amrex::Real time);
     //
     // Compile p_avg in advance.
     //
@@ -599,7 +612,7 @@ public:
 
     // volume and area are intentionally without EB knowledge
     amrex::MultiFab volume;
-    amrex::MultiFab area[BL_SPACEDIM];
+    amrex::MultiFab area[AMREX_SPACEDIM];
 
 #ifdef AMREX_USE_EB
 

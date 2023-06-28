@@ -42,7 +42,7 @@ OutFlowBC::GetOutFlowFaces (bool&        haveOutFlow,
 
     numOutFlowBC = 0;
 
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
     {
         if (_phys_bc->lo(idir) == Outflow)
         {
@@ -66,7 +66,7 @@ OutFlowBC::HasOutFlowBC (BCRec* _phys_bc)
     bool has_out_flow = false;
     int  numOutFlowBC = 0;
 
-    for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    for (int idir = 0; idir < AMREX_SPACEDIM; idir++)
     {
         if (_phys_bc->lo(idir) == Outflow)
         {

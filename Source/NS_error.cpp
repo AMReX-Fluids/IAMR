@@ -24,7 +24,7 @@ NavierStokes::error_setup()
         ParmParse ppr(ref_prefix);
         RealBox realbox;
         if (ppr.countval("in_box_lo")) {
-            std::vector<Real> box_lo(BL_SPACEDIM), box_hi(BL_SPACEDIM);
+            std::vector<Real> box_lo(AMREX_SPACEDIM), box_hi(AMREX_SPACEDIM);
             ppr.getarr("in_box_lo",box_lo,0,box_lo.size());
             ppr.getarr("in_box_hi",box_hi,0,box_hi.size());
             realbox = RealBox(&(box_lo[0]),&(box_hi[0]));

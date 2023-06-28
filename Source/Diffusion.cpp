@@ -663,11 +663,11 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
     if (allnull && be_cn_theta!=1)
       amrex::Abort("Diffusion::diffuse_tensor_velocity: Constant viscosity case no longer supported separately. Must set non-zero beta.");
 
-    BL_ASSERT( rho_flag == 1 || rho_flag == 3);
+    AMREX_ASSERT( rho_flag == 1 || rho_flag == 3);
 
 #ifdef AMREX_DEBUG
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        BL_ASSERT( betan[d]->min(0,0) >= 0.0 );
+        AMREX_ASSERT( betan[d]->min(0,0) >= 0.0 );
 #endif
 
     const int finest_level = parent->finestLevel();
@@ -955,14 +955,14 @@ Diffusion::diffuse_Vsync (MultiFab&              Vsync,
                           int                    betaComp,
                           bool                   update_fluxreg)
 {
-    BL_ASSERT(rho_flag == 1|| rho_flag == 3);
+    AMREX_ASSERT(rho_flag == 1|| rho_flag == 3);
 
     int allthere;
     checkBeta(beta, allthere);
 
 #ifdef AMREX_DEBUG
     for (int d = 0; d < AMREX_SPACEDIM; ++d)
-        BL_ASSERT(beta[d]->min(0,0) >= 0.0);
+        AMREX_ASSERT(beta[d]->min(0,0) >= 0.0);
 #endif
 
     diffuse_tensor_Vsync(Vsync,dt,be_cn_theta,rho_half,rho_flag,beta,betaComp,update_fluxreg);
@@ -1007,7 +1007,7 @@ Diffusion::diffuse_tensor_Vsync (MultiFab&              Vsync,
                                  int                    /*betaComp*/,
                                  bool                   update_fluxreg)
 {
-    BL_ASSERT(rho_flag == 1 || rho_flag == 3);
+    AMREX_ASSERT(rho_flag == 1 || rho_flag == 3);
 
     if (verbose) amrex::Print() << "Diffusion::diffuse_tensor_Vsync ...\n";
 
@@ -1357,7 +1357,7 @@ Diffusion::computeAlpha (MultiFab&             alpha,
 
     if (alpha_in != 0)
     {
-        BL_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
+        AMREX_ASSERT(alpha_in_comp >= 0 && alpha_in_comp < alpha.nComp());
         MultiFab::Copy(alpha,*alpha_in,alpha_in_comp,0,1,0);
     }
     else
@@ -1451,7 +1451,7 @@ Diffusion::computeExtensiveFluxes(MLMG& a_mg, MultiFab& Soln,
                                   const int ncomp, MultiFab* area,
                                   const Real fac )
 {
-   BL_ASSERT(flux[0]->nGrow()==0);
+   AMREX_ASSERT(flux[0]->nGrow()==0);
 
    AMREX_D_TERM(MultiFab flxx(*flux[0], amrex::make_alias, fluxComp, ncomp);,
                 MultiFab flxy(*flux[1], amrex::make_alias, fluxComp, ncomp);,
@@ -1657,7 +1657,7 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
     const int ncomp    = visc_terms.nComp();
 
     if (ncomp < AMREX_SPACEDIM)
-        amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least BL_SPACEDIM components");
+        amrex::Abort("Diffusion::getTensorViscTerms(): visc_terms needs at least AMREX_SPACEDIM components");
     //
     // Before computing the godunov predicitors we may have to
     // precompute the viscous source terms.  To do this we must

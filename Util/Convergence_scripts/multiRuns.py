@@ -14,7 +14,7 @@
 # "Internal" user input
 #   * resolution : a list of the resolutions to run
 
-# Head's up : 
+# Head's up :
 #   * The executable is searched for in the current directory.
 
 import sys
@@ -23,19 +23,19 @@ import shutil
 import argparse
 import numpy as np
 
-USAGE = """    
+USAGE = """
     A template script to launch IAMR several times
 """
 
 def multiRun(args):
-    
+
     print(" Scripted multiple runs for convergence study ")
     # User data
     resolution = [32,64,128,256]
 
     # Get the current directory
     run_dir = os.getcwd()
-    
+
     # Get the executable: first amr*.ex is default
     if ( args.exe_name == "None" ):
         for f in os.listdir(run_dir):
@@ -56,7 +56,7 @@ def multiRun(args):
                 args.input_file = f
                 break
 
-    # Loop on /= resolutions, run 
+    # Loop on /= resolutions, run
     for case in resolution:
         outfile = "{}_{}.run.out".format(args.test_name,case)
         print(" Running {} on {}x{} case".format(executable,case,case))
@@ -81,7 +81,7 @@ def parse_args(arg_string=None):
     else:
         args, unknown = parser.parse_known_args()
 
-    return args   
+    return args
 
 if __name__ == "__main__":
     args = parse_args(arg_string=sys.argv[1:])

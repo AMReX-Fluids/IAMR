@@ -32,7 +32,7 @@ include $(Bpack)
 VPATH_LOCATIONS   += $(Blocs)
 INCLUDE_LOCATIONS += $(Blocs)
 
-#These are the directories in BoxLib
+#These are the directories in AMReX
 
 Pdirs   := Base AmrCore Amr Boundary
 Pdirs   += LinearSolvers/MLMG
