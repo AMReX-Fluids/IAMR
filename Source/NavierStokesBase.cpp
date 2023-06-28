@@ -1,9 +1,4 @@
 
-//fixme, for writesingle level plotfile
-//#include<AMReX_PlotFileUtil.H>
-//#include <AMReX_VisMF.H>
-//
-
 #include <AMReX_ParmParse.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Utility.H>
@@ -11,7 +6,6 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_FillPatchUtil.H>
 #include <NavierStokesBase.H>
-#include <NAVIERSTOKES_F.H>
 #include <NSB_K.H>
 #include <NS_util.H>
 #include <iamr_constants.H>
@@ -441,7 +435,6 @@ NavierStokesBase::Initialize ()
     pp.query("benchmarking",benchmarking);
 
     pp.query("v",verbose);
-
 
     //
     // Get timestepping parameters.
@@ -1105,7 +1098,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
             //
             // BDS needs physical BCs filled.
             // Godunov needs periodic and coarse-fine ghosts filled (and handles
-	    // physical BCs internally).
+            // physical BCs internally).
             //
             Real fake_time = 0.;
             amrex::FillPatchSingleLevel(u_mac[idim], IntVect(nGrow), fake_time,
@@ -1179,24 +1172,13 @@ NavierStokesBase::create_umac_grown (int nGrow,
         }
 #endif
 
-        // Build mask to find the ghost cells we need to correct.
-        // covered   : ghost cells covered by valid cells of this FabArray
-        //             (including periodically shifted valid cells)
-        // notcovered: ghost cells not covered by valid cells
-        //             (including ghost cells outside periodic boundaries where the
-        //             periodically shifted cells don't exist at this level)
-        // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
-        // interior  : interior cells (i.e., valid cells)
-        int covered   = 0;
-        int uncovered = 1;
-        int physbnd   = 2;
-        int interior  = 0;
+        // Build mask to find the ghost cells we need to correct
         // Need 2 ghost cells here so we can safely check the status of all faces of a
         // u_mac ghost cell
         iMultiFab mask(grids, u_mac_fine[0]->DistributionMap(), 1, 2, MFInfo(),
                        DefaultFabFactory<IArrayBox>());
         mask.BuildMask(fine_geom->Domain(), fine_geom->periodicity(),
-                       covered, uncovered, physbnd, interior);
+                       level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
 
         const GpuArray<Real,AMREX_SPACEDIM> dx = fine_geom->CellSizeArray();
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = fine_geom->InvCellSizeArray();
@@ -1228,7 +1210,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
 
             AMREX_HOST_DEVICE_FOR_3D(mfi.growntilebox(1), i, j, k,
             {
-                if ( maskarr(i,j,k) == uncovered )
+                if ( maskarr(i,j,k) == level_mask_notcovered )
                 {
                     //
                     // Leave cells on grid edges/corners unaltered.
@@ -1248,7 +1230,7 @@ NavierStokesBase::create_umac_grown (int nGrow,
                         for(int jj(-1); jj<=1; jj++) {
                             for(int ii(-1); ii<=1; ii++) {
                                 if ( Math::abs(ii)+Math::abs(jj)+Math::abs(kk) == 1 &&
-                                     (maskarr(i+ii,j+jj,k+kk) == interior || maskarr(i+ii,j+jj,k+kk) == covered) )
+                                     (maskarr(i+ii,j+jj,k+kk) == interior || maskarr(i+ii,j+jj,k+kk) == level_mask_covered) )
                                 {
                                     count++;
                                 }
@@ -1271,20 +1253,20 @@ NavierStokesBase::create_umac_grown (int nGrow,
                             // cells.
                             // It's unlikely there'd ever be a case of such ghost cells abutting the
                             // symmetry axis, but just in case, check here.
-                            if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != uncovered && ax(i,j,k) != Real(0.0) )
+                            if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != level_mask_notcovered && ax(i,j,k) != Real(0.0) )
                             {
                                 umac(i,j,k) = (ax(i+1,j,k)*umac(i+1,j,k) + (duy - vol(i,j,k)*div))/ax(i,j,k);
                             }
-                            else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != uncovered )
+                            else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != level_mask_notcovered )
                             {
                                 umac(i+1,j,k) = (ax(i,j,k)*umac(i,j,k) - (duy - vol(i,j,k)*div))/ax(i+1,j,k);
                             }
 
-                            if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != uncovered )
+                            if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != level_mask_notcovered )
                             {
                                 vmac(i,j,k) = (ay(i,j+1,k)*vmac(i,j+1,k) + (dux - vol(i,j,k)*div))/ay(i,j,k);
                             }
-                            else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != uncovered )
+                            else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != level_mask_notcovered )
                             {
                                 vmac(i,j+1,k) = (ay(i,j,k)*vmac(i,j,k) - (dux - vol(i,j,k)*div))/ay(i,j+1,k);
                             }
@@ -1299,31 +1281,31 @@ NavierStokesBase::create_umac_grown (int nGrow,
                             // corners (2D) or edges (3D) that are not grid corners/edges.
                             // The directional check ensures we only alter one face of these
                             // cells.
-                            if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != uncovered )
+                            if ( i < tbx.smallEnd(0) && maskarr(i+1,j,k) != level_mask_notcovered )
                             {
                                 umac(i,j,k) = umac(i+1,j,k) + dx[0] * (duy + duz - div);
                             }
-                            else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != uncovered )
+                            else if ( i > tbx.bigEnd(0) && maskarr(i-1,j,k) != level_mask_notcovered )
                             {
                                 umac(i+1,j,k) = umac(i,j,k) - dx[0] * (duy + duz - div);
                             }
 
-                            if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != uncovered )
+                            if ( j < tbx.smallEnd(1) && maskarr(i,j+1,k) != level_mask_notcovered )
                             {
                                 vmac(i,j,k) = vmac(i,j+1,k) + dx[1] * (dux + duz - div);
                             }
-                            else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != uncovered )
+                            else if ( j > tbx.bigEnd(1) && maskarr(i,j-1,k) != level_mask_notcovered )
                             {
                                 vmac(i,j+1,k) = vmac(i,j,k) - dx[1] * (dux + duz - div);
                             }
 
                             if (wmac)
                             {
-                                if ( k < tbx.smallEnd(2) && maskarr(i,j,k+1) != uncovered )
+                                if ( k < tbx.smallEnd(2) && maskarr(i,j,k+1) != level_mask_notcovered )
                                 {
                                     wmac(i,j,k) = wmac(i,j,k+1) + dx[2] * (dux + duy - div);
                                 }
-                                else if ( k > tbx.bigEnd(2) && maskarr(i,j,k-1) != uncovered )
+                                else if ( k > tbx.bigEnd(2) && maskarr(i,j,k-1) != level_mask_notcovered )
                                 {
                                     wmac(i,j,k+1) = wmac(i,j,k) - dx[2] * (dux + duy - div);
                                 }
@@ -4727,7 +4709,7 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                                 int S_comp,
                                 MultiFab const& forcing_term,
                                 MultiFab const& divu,
-                                bool is_velocity, Real dt )
+                                bool is_velocity, Real dt)
 {
     Array<MultiFab, AMREX_SPACEDIM> cfluxes;
     Array<MultiFab, AMREX_SPACEDIM> edgestate;
@@ -4779,7 +4761,8 @@ void
 NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "Aofs" held here
                                 int state_indx, // Index of first component in AmrLevel.state corresponding to quantity to advect
                                 int ncomp,
-                                MultiFab const& S, int S_comp, // State for computing edgestates, may have gotten massaged a bit compared to AmrLevel.state. Must have filled ghost cells.
+                                MultiFab const& S, int S_comp, // State for computing edgestates, may have gotten massaged
+                                                               // a bit compared to AmrLevel.state. Must have filled ghost cells.
                                 MultiFab const* forcing, int f_comp,
                                 MultiFab const* divu, // Constraint divu=Source, not div(Umac)
                                 Array<MultiFab, AMREX_SPACEDIM>& cfluxes, int flux_comp,
@@ -4794,7 +4777,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
     AMREX_ASSERT( (is_sync && !U_corr.empty()) || !is_sync );
 
     // Advection type conservative or non?
-    //Maybe there's something better than DeviceVector now...
+    // Maybe there's something better than DeviceVector now...
     amrex::Gpu::DeviceVector<int> iconserv;
     Vector<int> iconserv_h;
     iconserv.resize(ncomp, 0);
@@ -4809,7 +4792,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
     Gpu::copy(Gpu::hostToDevice,iconserv_h.begin(),iconserv_h.end(), iconserv.begin());
     int const* iconserv_ptr = iconserv.data();
 
-    // As code is currently written, ComptueAofs is always called separately for
+    // As code is currently written, ComputeAofs is always called separately for
     // velocity vs scalars. May be called with an individual scalar.
     auto const& bcrec_h = fetchBCArray(State_Type, state_indx, ncomp);
     auto const bcrec_d = is_velocity ? m_bcrec_velocity_d.dataPtr()
@@ -4824,7 +4807,6 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
     // Must initialize to zero because not all values may be set, e.g. outside the domain.
     update_MF.setVal(0.);
 #endif
-
 
     //
     // Define some parameters for hydro routines
@@ -5028,10 +5010,10 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
     //
     // The non-EB computation is complete.
     //
+
     // EB step 5: Redistribute the advective update stashed in update_MF.
     //
 #ifdef AMREX_USE_EB
-
     update_MF.FillBoundary(geom.periodicity());
 
     //

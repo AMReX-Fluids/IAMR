@@ -22,6 +22,7 @@ bool NavierStokesBase::ebInitialized()
     return eb_initialized;
 }
 
+#if (AMREX_SPACEDIM == 3)
 static
 void reentrant_profile(std::vector<amrex::RealVect> &points) {
   amrex::RealVect p;
@@ -63,6 +64,7 @@ void reentrant_profile(std::vector<amrex::RealVect> &points) {
   p = amrex::RealVect(D_DECL(22.358*0.1, -7.6902*0.1, 0.0));
   points.push_back(p);
 }
+#endif
 
 // called in main before Amr->init(start,stop)
 void
@@ -386,7 +388,7 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
 }
 
 void
-NavierStokesBase::init_eb (const Geometry& level_geom, const BoxArray& ba, const DistributionMapping& dm)
+NavierStokesBase::init_eb (const Geometry& /*level_geom*/, const BoxArray& /*ba*/, const DistributionMapping& /*dm*/)
 {
   // Build the geometry information; this is done for each new set of grids
   initialize_eb2_structs();
@@ -488,8 +490,8 @@ NavierStokesBase::define_body_state()
   {
     bool foundPt = false;
     const MultiFab& S = get_new_data(State_Type);
-    BL_ASSERT(S.boxArray() == ebmask.boxArray());
-    BL_ASSERT(S.DistributionMap() == ebmask.DistributionMap());
+    AMREX_ASSERT(S.boxArray() == ebmask.boxArray());
+    AMREX_ASSERT(S.DistributionMap() == ebmask.DistributionMap());
 
     body_state.resize(S.nComp(),0);
     for (MFIter mfi(S,false); mfi.isValid() && !foundPt; ++mfi)
@@ -497,7 +499,7 @@ NavierStokesBase::define_body_state()
       const Box vbox = mfi.validbox();
       const BaseFab<int>& m = ebmask[mfi];
       const FArrayBox& fab = S[mfi];
-      BL_ASSERT(m.box().contains(vbox));
+      AMREX_ASSERT(m.box().contains(vbox));
 
       // TODO: Remove this dog and do this work in fortran
       for (BoxIterator bit(vbox); bit.ok() && !foundPt; ++bit)
@@ -518,12 +520,13 @@ NavierStokesBase::define_body_state()
     found[ParallelDescriptor::MyProc()] = (int)foundPt;
     ParallelDescriptor::ReduceIntSum(&(found[0]),found.size());
     int body_rank = -1;
-    for (int i=0; i<found.size(); ++i) {
+    int found_size = static_cast<int>(found.size());
+    for (int i=0; i < found_size; ++i) {
       if (found[i]==1) {
         body_rank = i;
       }
     }
-    BL_ASSERT(body_rank>=0);
+    AMREX_ASSERT(body_rank>=0);
     ParallelDescriptor::Bcast(&(body_state[0]),body_state.size(),body_rank);
     body_state_set = true;
   }
@@ -539,9 +542,9 @@ NavierStokesBase::set_body_state(MultiFab& S)
     define_body_state();
   }
 
-  BL_ASSERT(S.nComp() == body_state.size());
+  AMREX_ASSERT(S.nComp() == static_cast<int>(body_state.size()));
   int nc = S.nComp();
-  int covered_val = -1;
+  int l_covered_val = -1;
 
   // Need a GPU copy of body_state that's not a static attribute of the NSB class
   AsyncArray<amrex::Real> body_state_lcl(body_state.data(),nc);
@@ -552,13 +555,13 @@ NavierStokesBase::set_body_state(MultiFab& S)
   for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
     const Box& bx = mfi.tilebox();
-    auto const& state = S.array(mfi);
+    auto const& state_arr = S.array(mfi);
     auto const& mask = ebmask.array(mfi);
     Real* state_lcl = body_state_lcl.data();
-    amrex::ParallelFor(bx, [state,mask,nc,covered_val,state_lcl]
+    amrex::ParallelFor(bx, [state_arr,mask,nc,l_covered_val,state_lcl]
     AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        set_body_state_k(i,j,k,nc,state_lcl,covered_val,mask,state);
+        set_body_state_k(i,j,k,nc,state_lcl,l_covered_val,mask,state_arr);
     });
   }
 }

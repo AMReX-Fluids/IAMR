@@ -79,20 +79,20 @@ void NavierStokes::prob_initData ()
     }
     else
     {
-	amrex::Abort("NavierStokes::prob_init: unknown probtype");
+    amrex::Abort("NavierStokes::prob_init: unknown probtype");
     }
 }
 
 void NavierStokes::init_forced (Box const& vbx,
-				/* Array4<Real> const& press, */
-				Array4<Real> const& vel,
-				Array4<Real> const& scal,
-				const int nscal,
-				Box const& domain,
-				GpuArray<Real, AMREX_SPACEDIM> const& dx,
-				GpuArray<Real, AMREX_SPACEDIM> const& problo,
-				GpuArray<Real, AMREX_SPACEDIM> const& probhi,
-				InitialConditions IC)
+                /* Array4<Real> const& press, */
+                Array4<Real> const& vel,
+                Array4<Real> const& scal,
+                const int nscal,
+                Box const& domain,
+                GpuArray<Real, AMREX_SPACEDIM> const& dx,
+                GpuArray<Real, AMREX_SPACEDIM> const& problo,
+                GpuArray<Real, AMREX_SPACEDIM> const& probhi,
+                InitialConditions IC)
 {
   const auto domlo = amrex::lbound(domain);
 
@@ -117,8 +117,8 @@ void NavierStokes::init_forced (Box const& vbx,
     // Fill Velocity
     //
     AMREX_D_TERM(vel(i,j,k,0) =  IC.turb_scale * std::cos(TwoPi*y/Ly) * std::cos(TwoPi*z/Lz);,
-		 vel(i,j,k,1) =  IC.turb_scale * std::cos(TwoPi*x/Lx) * std::cos(TwoPi*z/Lz);,
-		 vel(i,j,k,2) =  IC.turb_scale * std::cos(TwoPi*x/Lx) * std::cos(TwoPi*y/Ly););
+         vel(i,j,k,1) =  IC.turb_scale * std::cos(TwoPi*x/Lx) * std::cos(TwoPi*z/Lz);,
+         vel(i,j,k,2) =  IC.turb_scale * std::cos(TwoPi*x/Lx) * std::cos(TwoPi*y/Ly););
 
     //
     // Scalars, ordered as Density, Tracer(s)

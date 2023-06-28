@@ -19,10 +19,10 @@ public:
 
     virtual ~OutFlowBC ();
 
-    virtual void computeBC (amrex::FArrayBox         velMF[][2*BL_SPACEDIM],
-                            amrex::FArrayBox         divuMF[2*BL_SPACEDIM],
-                            amrex::FArrayBox         rhoMF[2*BL_SPACEDIM],
-                            amrex::FArrayBox         phiMF[2*BL_SPACEDIM],
+    virtual void computeBC (amrex::FArrayBox         velMF[][2*AMREX_SPACEDIM],
+                            amrex::FArrayBox         divuMF[2*AMREX_SPACEDIM],
+                            amrex::FArrayBox         rhoMF[2*AMREX_SPACEDIM],
+                            amrex::FArrayBox         phiMF[2*AMREX_SPACEDIM],
                             const amrex::Geometry&   geom,
                             amrex::Orientation*      outFaces,
                             int               numOutFlowFaces,
@@ -30,10 +30,10 @@ public:
                             const int*        hi_bc,
                             amrex::Real              gravity) = 0;
 
-    virtual void computeBC (amrex::FArrayBox         velMF[][2*BL_SPACEDIM],
-                            amrex::FArrayBox         divuMF[2*BL_SPACEDIM],
-                            amrex::FArrayBox         rhoMF[2*BL_SPACEDIM],
-                            amrex::FArrayBox         phiMF[2*BL_SPACEDIM],
+    virtual void computeBC (amrex::FArrayBox         velMF[][2*AMREX_SPACEDIM],
+                            amrex::FArrayBox         divuMF[2*AMREX_SPACEDIM],
+                            amrex::FArrayBox         rhoMF[2*AMREX_SPACEDIM],
+                            amrex::FArrayBox         phiMF[2*AMREX_SPACEDIM],
                             const amrex::Geometry&    geom,
                             amrex::Orientation*       outFaces,
                             int                numOutFlowFaces,

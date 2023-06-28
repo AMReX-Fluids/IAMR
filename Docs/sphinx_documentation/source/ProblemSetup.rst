@@ -36,7 +36,7 @@ and problem parameters from the inputs file, and initializes the state data
 (velocity, density, etc.). The easiest way to get started is to create a new ``probtype``
 by copying the code for an existing problem and modifying it to apply the desired initial state.
 
-It is also possible to initialize the velocity using data from a previously generated plotfile.  
+It is also possible to initialize the velocity using data from a previously generated plotfile.
 To do this you must set ``BL_USE_VELOCITY=TRUE`` in the makefile, and provide the plotfile in
 the inputs file via ``ns.velocity_plotfile = my_plotfile_name``.
 
@@ -46,7 +46,7 @@ Resolution
 
 The grid resolution is specified by defining the resolution at the
 coarsest level (level 0), the number of refinement levels, and
-factor of refinement between levels. 
+factor of refinement between levels.
 The following inputs must be preceded by "amr."
 
 +-------------------+-------------------------------------------------------------------------+-------------+-----------+
@@ -72,7 +72,7 @@ final number will be ignored.)
 
 ::
 
-    amr.max_level = 2 
+    amr.max_level = 2
 
 would allow a maximum of 2 refined levels in addition to the coarse
 level. Note that these additional levels will only be created only if
@@ -83,14 +83,14 @@ always be equal to amr.max_level.
 
 ::
 
-    amr.ref_ratio = 2 4 
+    amr.ref_ratio = 2 4
 
 would set factor of 2 refinement between levels 0 and 1, and factor of 4
 refinement between levels 1 and 2. Note that you must have at least
 amr.max_level values of amr.ref_ratio (Additional values
 may appear in that line and they will be ignored).
 
-   
+
 Problem Geometry
 ----------------
 
@@ -114,8 +114,8 @@ As an example, the following:
 
     geometry.prob_lo = 0 0 0
     geometry.prob_hi = 10.0 10.0 10.0
-    geometry.coord_sys = 0 
-    geometry.is_periodic = 0 1 0 
+    geometry.coord_sys = 0
+    geometry.is_periodic = 0 1 0
 
 defines the domain to run from :math:`(0,0,0)` at the lower left to
 :math:`(10,10,10)` at the upper right in physical space, specifies a
@@ -160,8 +160,8 @@ As an example, the following:
 
 ::
 
-    ns.lo_bc = 1 4 0 
-    ns.hi_bc = 2 4 0 
+    ns.lo_bc = 1 4 0
+    ns.hi_bc = 2 4 0
 
     geometry.is_periodic = 0 0 1
 
@@ -305,7 +305,7 @@ Additional examples and information are in AMReX's documentation
 
 #. Call ``amrex::EB2::Build``. This function builds the EB levels
    and fills the implicit function ``MultiFab`` (the later being used to
-   construct the level-set function). 
+   construct the level-set function).
 
 
 Particles Initialization
@@ -314,7 +314,7 @@ Particles Initialization
 Particles are initialized from an ASCII file, identified in the IAMR inputs file:
 
 ::
-   
+
    particles.particle_init_file = particle_file
 
 Here ``particle_file`` is the user-specified name of the file. The first line in this file is
@@ -345,7 +345,7 @@ both preceded by "ns.":
 +----------------------+-------------------------------------------------------------------------+----------+-----------+
 | temp_cond_coef       | Thermal diffusivity divided by specific heat at constant pressure       |  Real    |  None     |
 +----------------------+-------------------------------------------------------------------------+----------+-----------+
- 
+
 
 .. _sec:PhysicsParams:
 

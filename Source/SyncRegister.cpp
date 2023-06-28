@@ -16,8 +16,8 @@ SyncRegister::SyncRegister (const BoxArray& fine_boxes,
                             const IntVect&  ref_ratio)
     : ratio(ref_ratio)
 {
-    BL_ASSERT(grids.size() == 0);
-    BL_ASSERT(fine_boxes.isDisjoint());
+    AMREX_ASSERT(grids.size() == 0);
+    AMREX_ASSERT(fine_boxes.isDisjoint());
 
     grids = fine_boxes;
     grids.coarsen(ratio);
@@ -47,7 +47,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 {
     BL_PROFILE("SyncRegister::InitRHS()");
 
-    BL_ASSERT(rhs.nComp() == 1);
+    AMREX_ASSERT(rhs.nComp() == 1);
 
     int ngrow = rhs.nGrow();
 
@@ -277,7 +277,7 @@ SyncRegister::InitRHS (MultiFab& rhs, const Geometry& geom, const BCRec& phys_bc
 
     for (OrientationIter face; face; ++face)
     {
-        BL_ASSERT(bndry_mask[face()].nComp() == 1);
+        AMREX_ASSERT(bndry_mask[face()].nComp() == 1);
         tmp.setVal(1.0);
         bndry_mask[face()].copyTo(tmp, ngrow, 0, 0, 1);
         MultiFab::Multiply(rhs, tmp, 0, 0, 1, ngrow);

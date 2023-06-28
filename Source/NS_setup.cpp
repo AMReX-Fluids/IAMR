@@ -27,7 +27,7 @@ set_x_vel_bc (BCRec&       bc,
     bc.setHi(0,norm_vel_bc[hi_bc[0]]);
     bc.setLo(1,tang_vel_bc[lo_bc[1]]);
     bc.setHi(1,tang_vel_bc[hi_bc[1]]);
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     bc.setLo(2,tang_vel_bc[lo_bc[2]]);
     bc.setHi(2,tang_vel_bc[hi_bc[2]]);
 #endif
@@ -44,13 +44,13 @@ set_y_vel_bc (BCRec&       bc,
     bc.setHi(0,tang_vel_bc[hi_bc[0]]);
     bc.setLo(1,norm_vel_bc[lo_bc[1]]);
     bc.setHi(1,norm_vel_bc[hi_bc[1]]);
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     bc.setLo(2,tang_vel_bc[lo_bc[2]]);
     bc.setHi(2,tang_vel_bc[hi_bc[2]]);
 #endif
 }
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 static
 void
 set_z_vel_bc (BCRec&       bc,
@@ -74,7 +74,7 @@ set_scalar_bc (BCRec&       bc,
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         bc.setLo(i,scalar_bc[lo_bc[i]]);
         bc.setHi(i,scalar_bc[hi_bc[i]]);
@@ -88,7 +88,7 @@ set_temp_bc (BCRec&       bc,
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         bc.setLo(i,temp_bc[lo_bc[i]]);
         bc.setHi(i,temp_bc[hi_bc[i]]);
@@ -102,7 +102,7 @@ set_pressure_bc (BCRec&       bc,
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         bc.setLo(i,press_bc[lo_bc[i]]);
         bc.setHi(i,press_bc[hi_bc[i]]);
@@ -120,7 +120,7 @@ set_gradpx_bc (BCRec&       bc,
     bc.setHi(0,norm_gradp_bc[hi_bc[0]]);
     bc.setLo(1,tang_gradp_bc[lo_bc[1]]);
     bc.setHi(1,tang_gradp_bc[hi_bc[1]]);
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     bc.setLo(2,tang_gradp_bc[lo_bc[2]]);
     bc.setHi(2,tang_gradp_bc[hi_bc[2]]);
 #endif
@@ -137,13 +137,13 @@ set_gradpy_bc (BCRec&       bc,
     bc.setHi(0,tang_gradp_bc[hi_bc[0]]);
     bc.setLo(1,norm_gradp_bc[lo_bc[1]]);
     bc.setHi(1,norm_gradp_bc[hi_bc[1]]);
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     bc.setLo(2,tang_gradp_bc[lo_bc[2]]);
     bc.setHi(2,tang_gradp_bc[hi_bc[2]]);
 #endif
 }
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
 static
 void
 set_gradpz_bc (BCRec&       bc,
@@ -166,7 +166,7 @@ set_divu_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         bc.setLo(i,divu_bc[lo_bc[i]]);
         bc.setHi(i,divu_bc[hi_bc[i]]);
@@ -179,7 +179,7 @@ set_dsdt_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         bc.setLo(i,dsdt_bc[lo_bc[i]]);
         bc.setHi(i,dsdt_bc[hi_bc[i]]);
@@ -192,7 +192,7 @@ set_average_bc(BCRec& bc, const BCRec& phys_bc)
 {
     const int* lo_bc = phys_bc.lo();
     const int* hi_bc = phys_bc.hi();
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
         bc.setLo(i,average_bc[lo_bc[i]]);
         bc.setHi(i,average_bc[hi_bc[i]]);
@@ -214,7 +214,7 @@ typedef StateDescriptor::BndryFunc BndryFunc;
 void
 NavierStokes::variableSetUp ()
 {
-    BL_ASSERT(desc_lst.size() == 0);
+    AMREX_ASSERT(desc_lst.size() == 0);
 
     Initialize();
 
@@ -255,7 +255,7 @@ NavierStokes::variableSetUp ()
     set_y_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Yvel,"y_velocity",bc,vel_bf);
 
-#if (BL_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
     set_z_vel_bc(bc,phys_bc);
     desc_lst.setComponent(State_Type,Zvel,"z_velocity",bc,vel_bf);
 #endif
@@ -295,7 +295,7 @@ NavierStokes::variableSetUp ()
     }
 
     if (do_mom_diff == 1)
-      for (int d = 0; d < BL_SPACEDIM; d++)
+      for (int d = 0; d < AMREX_SPACEDIM; d++)
         advectionType[Xvel+d] = Conservative;
 
     advectionType[Density] = Conservative;
@@ -344,8 +344,8 @@ NavierStokes::variableSetUp ()
                            StateDescriptor::Interval,gradp_grow,AMREX_SPACEDIM,
                            &cc_interp,state_data_extrap,store_in_checkpoint);
 
-    Vector<BCRec>       bcs(BL_SPACEDIM);
-    Vector<std::string> name(BL_SPACEDIM);
+    Vector<BCRec>       bcs(AMREX_SPACEDIM);
+    Vector<std::string> name(AMREX_SPACEDIM);
 
     set_gradpx_bc(bc,phys_bc);
     bcs[0]  = bc;
@@ -394,17 +394,17 @@ NavierStokes::variableSetUp ()
     {
       Average_Type = desc_lst.size();
       desc_lst.addDescriptor(Average_Type,IndexType::TheCellType(),
-                             StateDescriptor::Point,0,BL_SPACEDIM*2,
+                             StateDescriptor::Point,0,AMREX_SPACEDIM*2,
                              &cc_interp,state_data_extrap,store_in_checkpoint);
 
       set_average_bc(bc,phys_bc);
       desc_lst.setComponent(Average_Type,Xvel,"xvel_avg_dummy",bc,null_bf);
-      desc_lst.setComponent(Average_Type,Xvel+BL_SPACEDIM,"xvel_rms_dummy",bc,null_bf);
+      desc_lst.setComponent(Average_Type,Xvel+AMREX_SPACEDIM,"xvel_rms_dummy",bc,null_bf);
       desc_lst.setComponent(Average_Type,Yvel,"yvel_avg_dummy",bc,null_bf);
-      desc_lst.setComponent(Average_Type,Yvel+BL_SPACEDIM,"yvel_rms_dummy",bc,null_bf);
-#if (BL_SPACEDIM==3)
+      desc_lst.setComponent(Average_Type,Yvel+AMREX_SPACEDIM,"yvel_rms_dummy",bc,null_bf);
+#if (AMREX_SPACEDIM==3)
       desc_lst.setComponent(Average_Type,Zvel,"zvel_avg_dummy",bc,null_bf);
-      desc_lst.setComponent(Average_Type,Zvel+BL_SPACEDIM,"zvel_rms_dummy",bc,null_bf);
+      desc_lst.setComponent(Average_Type,Zvel+AMREX_SPACEDIM,"zvel_rms_dummy",bc,null_bf);
 #endif
     }
 
@@ -418,20 +418,20 @@ NavierStokes::variableSetUp ()
       //
       // Average and RMS velocity
       //
-      Vector<std::string> var_names_ave(BL_SPACEDIM*2);
+      Vector<std::string> var_names_ave(AMREX_SPACEDIM*2);
       var_names_ave[Xvel] = "x_vel_average";
       var_names_ave[Yvel] = "y_vel_average";
-#if (BL_SPACEDIM==3)
+#if (AMREX_SPACEDIM==3)
       var_names_ave[Zvel] = "z_vel_average";
 #endif
-      var_names_ave[Xvel+BL_SPACEDIM] = "x_vel_rms";
-      var_names_ave[Yvel+BL_SPACEDIM] = "y_vel_rms";
-#if (BL_SPACEDIM==3)
-      var_names_ave[Zvel+BL_SPACEDIM] = "z_vel_rms";
+      var_names_ave[Xvel+AMREX_SPACEDIM] = "x_vel_rms";
+      var_names_ave[Yvel+AMREX_SPACEDIM] = "y_vel_rms";
+#if (AMREX_SPACEDIM==3)
+      var_names_ave[Zvel+AMREX_SPACEDIM] = "z_vel_rms";
 #endif
-      derive_lst.add("velocity_average",IndexType::TheCellType(),BL_SPACEDIM*2,
+      derive_lst.add("velocity_average",IndexType::TheCellType(),AMREX_SPACEDIM*2,
                      var_names_ave,der_vel_avg,the_same_box);
-      derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,BL_SPACEDIM*2);
+      derive_lst.addComponent("velocity_average",desc_lst,Average_Type,Xvel,AMREX_SPACEDIM*2);
     }
 
     //
@@ -439,12 +439,12 @@ NavierStokes::variableSetUp ()
     //
     derive_lst.add("energy",IndexType::TheCellType(),1,derkeng,the_same_box);
     derive_lst.addComponent("energy",desc_lst,State_Type,Density,1);
-    derive_lst.addComponent("energy",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    derive_lst.addComponent("energy",desc_lst,State_Type,Xvel,AMREX_SPACEDIM);
     //
     // magnitude of vorticity
     //
     derive_lst.add("mag_vort",IndexType::TheCellType(),1,dermgvort,grow_box_by_two);
-    derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,BL_SPACEDIM);
+    derive_lst.addComponent("mag_vort",desc_lst,State_Type,Xvel,AMREX_SPACEDIM);
     //
     // average pressure
     //

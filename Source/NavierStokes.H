@@ -165,7 +165,7 @@ protected:
     //
     virtual void calcDiffusivity (const amrex::Real time) override;
     //
-    virtual void getViscosity (amrex::MultiFab*  viscosity[BL_SPACEDIM],
+    virtual void getViscosity (amrex::MultiFab*  viscosity[AMREX_SPACEDIM],
                                const amrex::Real time) override;
     //
     // Compute viscous terms.
@@ -197,7 +197,7 @@ protected:
 
 private:
 
-    void getDiffusivity (amrex::MultiFab*  diffusivity[BL_SPACEDIM],
+    void getDiffusivity (amrex::MultiFab*  diffusivity[AMREX_SPACEDIM],
                          const amrex::Real time,
                          const int  state_comp,
                          const int  dst_comp,
