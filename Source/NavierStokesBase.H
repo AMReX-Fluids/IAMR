@@ -233,7 +233,7 @@ public:
     // Returns the value of "gravity" for use in the projection outflow bcs.
     //
 #ifdef AMREX_USE_EB
-    static std::string& getRedistType () { return redistribution_type; }
+    static std::string const& getRedistType () { return redistribution_type; }
 #endif
 
     static int DoTrac2() { return NavierStokesBase::do_trac2; }

@@ -5214,14 +5214,14 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
               {
                    getAdvFluxReg(level+1).CrseAdd(mfi,
                        {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                       dxDp, dt, state_indx, ncomp, amrex::RunOn::Device);
+                       dxDp, dt, 0, state_indx, ncomp, amrex::RunOn::Device);
 
               } else if (flagfab.getType(bx) != FabType::covered ) {
                    getAdvFluxReg(level + 1).CrseAdd(mfi,
                       {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
                       dxDp, dt, (*volfrac)[mfi],
                       {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
-                      state_indx, ncomp, amrex::RunOn::Device);
+                      0, state_indx, ncomp, amrex::RunOn::Device);
               }
             } // do_reflux && level < finest_level
 
@@ -5237,13 +5237,13 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
               {
                   advflux_reg->FineAdd(mfi,
                      {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                     dxDp, sync_factor*dt, state_indx, ncomp, amrex::RunOn::Device);
+                     dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
               } else if (flagfab.getType(bx) != FabType::covered ) {
                   advflux_reg->FineAdd(mfi,
                      {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
                      dxDp, sync_factor*dt, (*volfrac)[mfi],
                      {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
-                     dm_as_fine, state_indx, ncomp, amrex::RunOn::Device);
+                     dm_as_fine, 0, state_indx, ncomp, amrex::RunOn::Device);
               }
             } // do_reflux && (level > 0)
         } // not covered
@@ -5266,13 +5266,13 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
         if ( do_reflux && (level < parent->finestLevel()) ) {
                getAdvFluxReg(level+1).CrseAdd(mfi,
                               {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                              dxDp, sync_factor*dt, state_indx, ncomp, amrex::RunOn::Device);
+                              dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && level < finest_level
 
         if ( do_reflux && (level > 0) ) {
               advflux_reg->FineAdd(mfi,
                               {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                               dxDp, sync_factor*dt, state_indx, ncomp, amrex::RunOn::Device);
+                               dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && (level > 0)
 #endif
     } // mfi
