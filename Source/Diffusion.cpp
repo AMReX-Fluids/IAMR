@@ -710,7 +710,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          info.setMaxCoarseningLevel(0);
 
 #ifdef AMREX_USE_EB
-         const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+         auto* ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
          MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
 #else
          MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);

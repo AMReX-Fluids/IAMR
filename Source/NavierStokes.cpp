@@ -1777,11 +1777,7 @@ NavierStokes::reflux ()
     //
     // First do refluxing step.
     //
-#ifdef AMREX_USE_EB
-    EBFluxRegister& fr_adv  = getAdvFluxReg(level+1);
-#else
-    YAFluxRegister& fr_adv  = getAdvFluxReg(level+1);
-#endif
+    auto&         fr_adv  = getAdvFluxReg(level+1);
     FluxRegister& fr_visc = getViscFluxReg(level+1);
     const Real    dt_crse = parent->dtLevel(level);
     //

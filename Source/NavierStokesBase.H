@@ -271,23 +271,13 @@ public:
                            int                     scalScomp,
                            const amrex::MFIter&    mfi);
 
-#ifdef AMREX_USE_EB
-    amrex::EBFluxRegister& getAdvFluxReg () {
+    auto& getAdvFluxReg () {
         AMREX_ASSERT(advflux_reg);
         return *advflux_reg;
     }
-    amrex::EBFluxRegister& getAdvFluxReg (int lev) {
+    auto& getAdvFluxReg (int lev) {
         return getLevel(lev).getAdvFluxReg();
     }
-#else
-    amrex::YAFluxRegister& getAdvFluxReg () {
-        AMREX_ASSERT(advflux_reg);
-        return *advflux_reg;
-    }
-    amrex::YAFluxRegister& getAdvFluxReg (int lev) {
-        return getLevel(lev).getAdvFluxReg();
-    }
-#endif
 
     amrex::FluxRegister& getViscFluxReg () {
         AMREX_ASSERT(viscflux_reg);
