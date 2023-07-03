@@ -447,7 +447,9 @@ NavierStokes::initData ()
     // Perform redistribution on initial fields
     // This changes the input velocity fields
     //
-    InitialRedistribution();
+    if (redistribution_type == "StateRedist") {
+        InitialRedistribution();
+    }
 
     //
     // Make sure EB covered cell are set, and that it's not zero, as we
@@ -1513,10 +1515,9 @@ NavierStokes::mac_sync ()
     //
     MultiFab& S_new = get_new_data(State_Type);
     mac_projector->mac_sync_compute(level,Ucorr,Vsync,Ssync,
-				    level > 0 ? &getAdvFluxReg(level) : 0,
-				    advectionType, prev_time,dt,
-				    NUM_STATE,be_cn_theta,
-				    do_mom_diff);
+                    advectionType, prev_time,dt,
+                    NUM_STATE,be_cn_theta,
+                    do_mom_diff);
     //
     // Delete Ucorr; we're done with it.
     //
@@ -1776,10 +1777,9 @@ NavierStokes::reflux ()
     //
     // First do refluxing step.
     //
-    FluxRegister& fr_adv  = getAdvFluxReg(level+1);
+    auto&         fr_adv  = getAdvFluxReg(level+1);
     FluxRegister& fr_visc = getViscFluxReg(level+1);
     const Real    dt_crse = parent->dtLevel(level);
-    const Real    scale   = 1.0/dt_crse;
     //
     // It is important, for do_mom_diff == 0, to do the viscous
     //   refluxing first, since this will be divided by rho_half
@@ -1788,8 +1788,8 @@ NavierStokes::reflux ()
     //   be divided by rho^(n+1) in level_sync.
     //
 
-    fr_visc.Reflux(Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
-    fr_visc.Reflux(Ssync,volume,scale,BL_SPACEDIM,0,NUM_STATE-BL_SPACEDIM,geom);
+    fr_visc.Reflux(Vsync,volume,1.0,0,0,AMREX_SPACEDIM,geom);
+    fr_visc.Reflux(Ssync,volume,1.0,AMREX_SPACEDIM,0,NUM_STATE-AMREX_SPACEDIM,geom);
 
     const MultiFab& Rh = get_rho_half_time();
 
@@ -1820,8 +1820,16 @@ NavierStokes::reflux ()
       }
     }
 
-    fr_adv.Reflux(Vsync,volume,scale,0,0,BL_SPACEDIM,geom);
-    fr_adv.Reflux(Ssync,volume,scale,BL_SPACEDIM,0,NUM_STATE-BL_SPACEDIM,geom);
+#ifdef AMREX_USE_EB
+    fr_adv.Reflux(Vsync,*volfrac,              0, 0,           AMREX_SPACEDIM);
+    fr_adv.Reflux(Ssync,*volfrac, AMREX_SPACEDIM, 0, NUM_STATE-AMREX_SPACEDIM);
+#else
+    fr_adv.Reflux(Vsync,              0, 0,          AMREX_SPACEDIM);
+    fr_adv.Reflux(Ssync, AMREX_SPACEDIM, 0,NUM_STATE-AMREX_SPACEDIM);
+#endif
+    const Real    scale   = 1.0/dt_crse;
+    Vsync.mult(scale);
+    Ssync.mult(scale);
 
     const BoxArray& fine_boxes = getLevel(level+1).boxArray();
     //

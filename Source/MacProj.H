@@ -6,6 +6,10 @@
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_MLLinOp.H>
+#include <AMReX_YAFluxRegister.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFluxRegister.H>
+#endif
 
 //
 // A useful enumeration of the forms for the advective terms
@@ -60,7 +64,6 @@ public:
                            amrex::Array<amrex::MultiFab*,AMREX_SPACEDIM>& Ucorr,
                            amrex::MultiFab&             Vsync,
                            amrex::MultiFab&             Ssync,
-                           amrex::FluxRegister*         adv_flux_reg,
                            amrex::Vector<AdvectionForm>& advectionType,
                            amrex::Real                  prev_time,
                            amrex::Real                  dt,
@@ -76,7 +79,6 @@ public:
                            int                          s_ind,
                            amrex::MultiFab* const*      sync_edges,
                            int                          eComp,
-                           amrex::FluxRegister*         adv_flux_reg,
                            amrex::Real                  dt,
                            bool                         update_fluxreg = true);
 

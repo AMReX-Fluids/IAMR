@@ -11,7 +11,6 @@ Bdirs += Source/Utilities
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
-Hdirs := $(AMREX_HYDRO_HOME)/Slopes
 Hdirs += $(AMREX_HYDRO_HOME)/Utils
 Hdirs += $(AMREX_HYDRO_HOME)/MOL
 Hdirs += $(AMREX_HYDRO_HOME)/Godunov
@@ -19,7 +18,6 @@ Hdirs += $(AMREX_HYDRO_HOME)/BDS
 Hdirs += $(AMREX_HYDRO_HOME)/Projections
 
 ifeq ($(USE_EB), TRUE)
-Hdirs += $(AMREX_HYDRO_HOME)/Redistribution
 Hdirs += $(AMREX_HYDRO_HOME)/EBMOL
 Hdirs += $(AMREX_HYDRO_HOME)/EBGodunov
 endif

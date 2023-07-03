@@ -22,6 +22,7 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EB_utils.H>
+#include <AMReX_EB_Redistribution.H>
 #else
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLTensorOp.H>
@@ -421,17 +422,19 @@ Diffusion::diffuse_scalar (const Vector<MultiFab*>&  S_old,
         setBeta(opn,betan,betaComp,nComp);
 
 #ifdef AMREX_USE_EB
-        MultiFab rhs_tmp(ba,dm,nComp,2,MFInfo(),factory);
-        rhs_tmp.setVal(0.);
-        mgn.apply({&rhs_tmp},{&Soln});
+        if (navier_stokes->getRedistType() != "NoRedist") {
+            MultiFab rhs_tmp(ba,dm,nComp,2,MFInfo(),factory);
+            rhs_tmp.setVal(0.);
+            mgn.apply({&rhs_tmp},{&Soln});
 
-        const amrex::MultiFab* weights;
-        weights = &(ebf->getVolFrac());
-
-        amrex::single_level_weighted_redistribute(rhs_tmp, Rhs, *weights, 0, nComp, geom);
-#else
-        mgn.apply({&Rhs},{&Soln});
+            auto const& weights = ebf->getVolFrac();
+            bool use_wts_in_divnc = true;
+            single_level_weighted_redistribute(rhs_tmp, Rhs, weights, 0, nComp, geom, use_wts_in_divnc);
+        } else
 #endif
+        {
+            mgn.apply({&Rhs},{&Soln});
+        }
         computeExtensiveFluxes(mgn, Soln, fluxn, fluxComp, nComp,
 			       navier_stokes->area, -b/dt);
     } else {
@@ -707,7 +710,7 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          info.setMaxCoarseningLevel(0);
 
 #ifdef AMREX_USE_EB
-         const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+         auto* ebf = &(dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory()));
          MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
 #else
          MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
@@ -772,12 +775,16 @@ Diffusion::diffuse_tensor_velocity (Real                   dt,
          //   redistribution only alters cut cells and their nearest-neighbors.
          //   regridding algorithm buffers the cells flagged for refinement
          //
-         const amrex::MultiFab* weights;
-         weights = &(ebf->getVolFrac());
-         amrex::single_level_weighted_redistribute(Rhs_tmp, Rhs, *weights, 0, AMREX_SPACEDIM, navier_stokes->Geom());
-#else
-         amrex::Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
+         if (navier_stokes->getRedistType() != "NoRedist") {
+             auto const& weights = ebf->getVolFrac();
+             bool use_wts_in_divnc = true;
+             single_level_weighted_redistribute(Rhs_tmp, Rhs, weights, 0, AMREX_SPACEDIM,
+                                                navier_stokes->Geom(), use_wts_in_divnc);
+         } else
 #endif
+         {
+             Copy(Rhs, Rhs_tmp, 0, 0, AMREX_SPACEDIM, 0);
+         }
 
          if (do_reflux && (level<finest_level || level>0))
          {
@@ -1625,16 +1632,16 @@ Diffusion::getViscTerms (MultiFab&              visc_terms,
 	mgn.apply({&visc_tmp},{&s_tmp});
 
 #ifdef AMREX_USE_EB
-        const amrex::MultiFab* weights;
-        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-        weights = &(ebfactory.getVolFrac());
-
-        amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, comp-src_comp, 1,
-                                         navier_stokes->Geom());
-#else
-	MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
+        if (navier_stokes->getRedistType() != "NoRedist") {
+            auto const& weights = ebf->getVolFrac();
+            bool use_wts_in_divnc = true;
+            single_level_weighted_redistribute(visc_tmp, visc_terms, weights, comp-src_comp, 1,
+                                               navier_stokes->Geom(), use_wts_in_divnc);
+        } else
 #endif
-
+        {
+            MultiFab::Copy(visc_terms,visc_tmp,0,comp-src_comp,1,0);
+        }
     }
     else
     {
@@ -1677,6 +1684,10 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         visc_tmp.setVal(0.);
         MultiFab::Copy(s_tmp,S,Xvel,0,AMREX_SPACEDIM,0);
 
+#ifdef AMREX_USE_EB
+           const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
+#endif
+
         //
         // Set up operator and apply to compute viscous terms.
         //
@@ -1691,7 +1702,6 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
            info.setMaxCoarseningLevel(0);
 
 #ifdef AMREX_USE_EB
-           const auto& ebf = &dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
            MLEBTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info, {ebf});
 #else
            MLTensorOp tensorop({navier_stokes->Geom()}, {grids}, {dmap}, info);
@@ -1753,14 +1763,16 @@ Diffusion::getTensorViscTerms (MultiFab&              visc_terms,
         }
 
 #ifdef AMREX_USE_EB
-        const amrex::MultiFab* weights;
-        const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(navier_stokes->Factory());
-        weights = &(ebfactory.getVolFrac());
-        amrex::single_level_weighted_redistribute(visc_tmp, visc_terms, *weights, 0, AMREX_SPACEDIM,
-                                                  navier_stokes->Geom() );
-#else
-        MultiFab::Copy(visc_terms,visc_tmp,0,0,AMREX_SPACEDIM,0);
+        if (navier_stokes->getRedistType() != "NoRedist") {
+            auto const& weights = ebf->getVolFrac();
+            bool use_wts_in_divnc = true;
+            single_level_weighted_redistribute(visc_tmp, visc_terms, weights, 0, AMREX_SPACEDIM,
+                                               navier_stokes->Geom(), use_wts_in_divnc);
+        } else
 #endif
+        {
+            MultiFab::Copy(visc_terms,visc_tmp,0,0,AMREX_SPACEDIM,0);
+        }
     }
     else
     {

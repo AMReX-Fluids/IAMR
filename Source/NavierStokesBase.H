@@ -11,7 +11,6 @@
 #include <AMReX_BLFort.H>
 #include <Diffusion.H>
 #include <AMReX_ErrorList.H>
-#include <AMReX_FluxRegister.H>
 #include <MacProj.H>
 #include <Projection.H>
 #include <SyncRegister.H>
@@ -230,6 +229,13 @@ public:
     //
     static amrex::Real getGravity () { return gravity; }
 
+    //
+    // Returns the value of "gravity" for use in the projection outflow bcs.
+    //
+#ifdef AMREX_USE_EB
+    static std::string const& getRedistType () { return redistribution_type; }
+#endif
+
     static int DoTrac2() { return NavierStokesBase::do_trac2; }
 
     static bool GodunovUseForcesInTrans () {return godunov_use_forces_in_trans;}
@@ -264,16 +270,15 @@ public:
                            const amrex::FArrayBox& Scal,
                            int                     scalScomp,
                            const amrex::MFIter&    mfi);
-    //
-    amrex::FluxRegister& getAdvFluxReg () {
-        BL_ASSERT(advflux_reg);
+
+    auto& getAdvFluxReg () {
+        AMREX_ASSERT(advflux_reg);
         return *advflux_reg;
     }
-    //
-    amrex::FluxRegister& getAdvFluxReg (int lev) {
+    auto& getAdvFluxReg (int lev) {
         return getLevel(lev).getAdvFluxReg();
     }
-    //
+
     amrex::FluxRegister& getViscFluxReg () {
         AMREX_ASSERT(viscflux_reg);
         return *viscflux_reg;
@@ -595,17 +600,17 @@ public:
                       amrex::MultiFab const& forcing_term,
                       amrex::MultiFab const& divu,
                       bool is_velocity, amrex::Real dt);
-    void ComputeAofs ( amrex::MultiFab& advc, int a_comp,
-                       int state_indx, int ncomp,
-                       amrex::MultiFab const& S, int S_comp,
-                       amrex::MultiFab const* forcing, int f_comp,
-                       amrex::MultiFab const* divu,
-                       amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& cfluxes, int flux_comp,
-                       amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
-                       bool known_edge_state,
-                       bool is_velocity, amrex::Real dt,
-                       bool is_sync, amrex::Array<amrex::MultiFab*, AMREX_SPACEDIM> const& Uflux);
-
+    void ComputeAofs (amrex::MultiFab& advc, int a_comp,
+                      int state_indx, int ncomp,
+                      amrex::MultiFab const& S, int S_comp,
+                      amrex::MultiFab const* forcing, int f_comp,
+                      amrex::MultiFab const* divu,
+                      amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& cfluxes, int flux_comp,
+                      amrex::Array<amrex::MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
+                      bool known_edge_state,
+                      bool is_velocity, amrex::Real dt,
+                      bool is_sync, amrex::Array<amrex::MultiFab*, AMREX_SPACEDIM> const& Uflux,
+                      bool do_crse_add, bool do_fine_add);
 //
 // Data
 //
@@ -689,7 +694,11 @@ public:
     // Data structures to store advective and viscous refluxing quantities
     // on coarse-fine grid interfaces.
     //
-    amrex::FluxRegister* advflux_reg;
+#ifdef AMREX_USE_EB
+    std::unique_ptr<amrex::EBFluxRegister> advflux_reg;
+#else
+    std::unique_ptr<amrex::YAFluxRegister> advflux_reg;
+#endif
     amrex::FluxRegister* viscflux_reg;
     //
     // Radii for r-z calculations.

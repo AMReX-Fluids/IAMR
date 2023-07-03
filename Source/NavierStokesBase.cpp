@@ -19,7 +19,7 @@
 #include <AMReX_EBInterpolater.H>
 #include <AMReX_EBFArrayBox.H>
 #include <hydro_ebgodunov.H>
-#include <hydro_redistribution.H>
+#include <AMReX_EB_Redistribution.H>
 #include <AMReX_EBMultiFabUtil_C.H>
 #endif
 
@@ -311,16 +311,33 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
     //
     // Set up reflux registers.
     //
-    sync_reg = nullptr;
+        sync_reg = nullptr;
+    viscflux_reg = nullptr;
+
     if (level > 0 && do_sync_proj)
     {
         sync_reg = new SyncRegister(grids,dmap,crse_ratio);
     }
-    advflux_reg  = nullptr;
-    viscflux_reg = nullptr;
+
     if (level > 0 && do_reflux)
     {
-        advflux_reg  = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+#ifdef AMREX_USE_EB
+        advflux_reg  = std::make_unique<EBFluxRegister>();
+#else
+        advflux_reg  = std::make_unique<YAFluxRegister>();
+#endif
+
+        NavierStokesBase& clevel = getLevel(level-1);
+        advflux_reg->define(grids, clevel.boxArray(), dm, clevel.DistributionMap(),
+                            parent->Geom(level),                 parent->Geom(level-1),
+                            parent->refRatio(level-1),level,NUM_STATE);
+
+#ifndef AMREX_USE_EB
+        if (parent->Geom(level-1).IsRZ()) {
+            advflux_reg->setCrseVolume(&(clevel.Volume()));
+        }
+#endif
+
         viscflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
     }
     //
@@ -384,7 +401,6 @@ NavierStokesBase::~NavierStokesBase ()
     delete rho_qtime;
     delete rho_tqtime;
     delete sync_reg;
-    delete advflux_reg;
     delete viscflux_reg;
     delete [] u_mac;
 
@@ -654,8 +670,8 @@ NavierStokesBase::advance_setup (Real /*time*/,
     //
     if (do_reflux && level < finest_level)
     {
-        getAdvFluxReg(level+1).setVal(0);
-        getViscFluxReg(level+1).setVal(0);
+         getAdvFluxReg(level+1).reset();
+        getViscFluxReg(level+1).setVal(0.);
     }
     //
     // Alloc space for edge velocities (normal comp only).
@@ -2796,15 +2812,29 @@ NavierStokesBase::restart (Amr&          papa,
     rho_qtime  = 0;
     rho_tqtime = 0;
 
+    if (level > 0 && do_reflux)
+    {
+#ifdef AMREX_USE_EB
+        advflux_reg  = std::make_unique<EBFluxRegister>();
+#else
+        advflux_reg  = std::make_unique<YAFluxRegister>();
+#endif
+        NavierStokesBase& clevel = getLevel(level-1);
+        advflux_reg->define(grids, clevel.boxArray(), dmap, clevel.DistributionMap(),
+                            parent->Geom(level),               parent->Geom(level-1),
+                            parent->refRatio(level-1),level,NUM_STATE);
+
+#ifndef AMREX_USE_EB
+        if (parent->Geom(level-1).IsRZ()) {
+            advflux_reg->setCrseVolume(&(clevel.Volume()));
+        }
+#endif
+    }
+
     AMREX_ASSERT(sync_reg == 0);
     if (level > 0 && do_sync_proj)
     {
         sync_reg = new SyncRegister(grids,dmap,crse_ratio);
-    }
-    AMREX_ASSERT(advflux_reg == 0);
-    if (level > 0 && do_reflux)
-    {
-        advflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
     }
     AMREX_ASSERT(viscflux_reg == 0);
     if (level > 0 && do_reflux)
@@ -4728,6 +4758,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
         edgestate[i].define(ba, dmap, ncomp, nghost, MFInfo(), Factory());
     }
 
+    bool do_crse_add = true;
+    bool do_fine_add = true;
 
     ComputeAofs(*aofs, /*aofs_comp*/ comp, /*state_indx*/ comp, ncomp,
                 S, S_comp,
@@ -4736,25 +4768,8 @@ NavierStokesBase::ComputeAofs ( int comp, int ncomp,
                 cfluxes,  /*flux_comp*/ 0,
                 edgestate, /*edge_comp*/ 0, /*known_edgestate*/ false,
                 is_velocity, dt,
-                /*is_sync*/ false, /*sync fluxing velocity Ucorr*/ {});
-
-
-    if (do_reflux)
-    {
-        if (level > 0 )
-        {
-            for (int d = 0; d < AMREX_SPACEDIM; d++) {
-                advflux_reg->FineAdd(cfluxes[d],d,0,comp,ncomp,dt);
-            }
-        }
-
-        if (level < parent->finestLevel())
-        {
-            for (int d = 0; d < AMREX_SPACEDIM; d++) {
-                getAdvFluxReg(level+1).CrseInit(cfluxes[d],d,0,comp,ncomp,-dt);
-            }
-        }
-    }
+                /*is_sync*/ false, /*sync fluxing velocity Ucorr*/ {},
+                do_crse_add, do_fine_add);
 }
 
 void
@@ -4769,7 +4784,8 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                                 Array<MultiFab, AMREX_SPACEDIM>& edgestate, int edge_comp,
                                 bool known_edge_state,
                                 bool is_velocity, Real dt,
-                                bool is_sync, Array<MultiFab*, AMREX_SPACEDIM> const& U_corr)
+                                bool is_sync, Array<MultiFab*, AMREX_SPACEDIM> const& U_corr,
+                                bool do_crse_add, bool do_fine_add)
 {
     BL_PROFILE("NSB::ComputeAofs_kernel");
 
@@ -5035,14 +5051,44 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                              ? &rstate_tmp : &S;
     int        rstate_comp = (is_sync && redistribution_type == "StateRedist")
                              ? 0           : S_comp;
+#endif
+
+    const auto& dx    = geom.CellSizeArray();
+
+    // **********************************************************************************
+    // We use this hack to allow CrseAdd/FineAdd to divide area-weighted fluxes by volume
+    //    instead of needing to un-area-weight the fluxes then divide just by dx
+    // **********************************************************************************
+    AMREX_ALWAYS_ASSERT(fluxes_are_area_weighted);
+    Real dx1 = dx[0];
+    for (int dir = 1; dir < AMREX_SPACEDIM; ++dir) {
+      dx1 *= dx[dir];
+    }
+
+    std::array<Real, AMREX_SPACEDIM> dxD = {{AMREX_D_DECL(dx1, dx1, dx1)}};
+    const Real* dxDp = &(dxD[0]);
+
+    // **********************************************************************************
+    // Build mask to find the ghost cells we need to correct
+    // FIXME FIXME: we could build this once and keep it rather than re-making it here
+    // **********************************************************************************
+    iMultiFab mask(grids, dmap, 1, 1, MFInfo(), DefaultFabFactory<IArrayBox>());
+    mask.BuildMask(geom.Domain(), geom.periodicity(),
+                   level_mask_covered, level_mask_notcovered, level_mask_physbnd, level_mask_interior);
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(advc, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    // for (MFIter mfi(advc, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(advc, false); mfi.isValid(); ++mfi)
     {
         auto const& bx = mfi.tilebox();
 
+        AMREX_D_TERM( const auto& fx_fab = (cfluxes[0])[mfi];,
+                      const auto& fy_fab = (cfluxes[1])[mfi];,
+                      const auto& fz_fab = (cfluxes[2])[mfi];);
+
+#ifdef AMREX_USE_EB
         auto const& flagfab   = ebfact.getMultiEBCellFlagFab()[mfi];
         auto const& flags_arr = flagfab.const_array();
 
@@ -5050,6 +5096,10 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
         {
             auto const& aofs_arr = advc.array(mfi, a_comp);
             auto const& update_arr = update_MF.array(mfi);
+
+            FArrayBox         dm_as_fine(Box::TheUnitBox(),ncomp);
+            FArrayBox   fab_drho_as_crse(Box::TheUnitBox(),ncomp);
+            IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
 
             // FIXME? not sure if 4 is really needed or if 3 could do
             // But this is a safe choice
@@ -5088,11 +5138,48 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
 
                 Array4<Real> redist_arr = (is_sync) ? tmpfab.array(ncomp) : aofs_arr;
 
-                Redistribution::Apply( bx, ncomp, redist_arr, update_arr,
-                                       rstate->const_array(mfi, rstate_comp), scratch, flags_arr,
-                                       AMREX_D_DECL(apx,apy,apz), vfrac_arr,
-                                       AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
-                                       geom, dt, redistribution_type );
+                EBFluxRegister* fr_as_crse = nullptr;
+                if (do_reflux && level < parent->finestLevel()) {
+                    NavierStokesBase& flevel = getLevel(level+1);
+                    fr_as_crse = flevel.advflux_reg.get();
+                }
+
+                EBFluxRegister* fr_as_fine = nullptr;
+                if (do_reflux && level > 0) {
+                    fr_as_fine = advflux_reg.get();
+                }
+
+                int as_crse = (fr_as_crse != nullptr);
+                int as_fine = (fr_as_fine != nullptr);
+
+                FArrayBox* p_drho_as_crse = (fr_as_crse) ?
+                        fr_as_crse->getCrseData(mfi) : &fab_drho_as_crse;
+                const IArrayBox* p_rrflag_as_crse = (fr_as_crse) ?
+                       fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
+
+                if (fr_as_fine) {
+                    dm_as_fine.resize(amrex::grow(bx,1),ncomp);
+                    dm_as_fine.setVal(0.0);
+                }
+
+                if (redistribution_type == "FluxRedist") {
+                    bool use_wts_in_divnc = true;
+                    ApplyMLRedistribution( bx, ncomp, redist_arr, update_arr,
+                                           rstate->const_array(mfi, rstate_comp), scratch, flags_arr,
+                                           AMREX_D_DECL(apx,apy,apz), vfrac_arr,
+                                           AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
+                                           geom, dt, redistribution_type,
+                                           as_crse, p_drho_as_crse->array(), p_rrflag_as_crse->array(),
+                                           as_fine, dm_as_fine.array(), mask[mfi].const_array(),
+                                           use_wts_in_divnc, level_mask_notcovered);
+                } else {
+                    bool use_wts_in_divnc = true;
+                    ApplyRedistribution( bx, ncomp, redist_arr, update_arr,
+                                         rstate->const_array(mfi, rstate_comp), scratch, flags_arr,
+                                         AMREX_D_DECL(apx,apy,apz), vfrac_arr,
+                                         AMREX_D_DECL(fcx,fcy,fcz), ccent_arr, bcrec_d,
+                                         geom, dt, redistribution_type, use_wts_in_divnc );
+                }
 
                 if (is_sync)
                 {
@@ -5124,9 +5211,82 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                     { aofs_arr( i, j, k, n ) = -update_arr(i,j,k,n); });
                 }
             }
-        }
-    }
+
+            AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp()-flux_comp);,
+                         MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp()-flux_comp);,
+                         MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()-flux_comp););
+            AMREX_D_TERM( const auto& fx_fr_fab = cfluxx[mfi];,
+                          const auto& fy_fr_fab = cfluxy[mfi];,
+                          const auto& fz_fr_fab = cfluxz[mfi];);
+
+            // Now update the flux registers (inside test on AMREX_USE_EB)
+            if ( do_reflux && do_crse_add && (level < parent->finestLevel()) ) {
+              if (flagfab.getType(amrex::grow(bx,1)) == FabType::regular)
+              {
+                   getAdvFluxReg(level+1).CrseAdd(mfi,
+                       {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                       dxDp, dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+
+              } else if (flagfab.getType(bx) != FabType::covered ) {
+                   getAdvFluxReg(level + 1).CrseAdd(mfi,
+                      {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                      dxDp, dt, (*volfrac)[mfi],
+                      {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
+                      0, state_indx, ncomp, amrex::RunOn::Device);
+              }
+            } // do_reflux && level < finest_level
+
+            // This is a hack-y way of testing whether this ComputeAofs call
+            // came from the mac_sync (do_crse_add = false)
+            // or from the regular advance (do_crse_add = true).  When the call
+            // comes from the mac_sync, the multiplier in FineAdd needs to have
+            // the opposite sign
+            Real sync_factor = do_crse_add ? 1.0 : -1.0;
+
+            if ( do_reflux && do_fine_add && (level > 0)) {
+              if (flagfab.getType(amrex::grow(bx,1)) == FabType::regular)
+              {
+                  advflux_reg->FineAdd(mfi,
+                     {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                     dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+              } else if (flagfab.getType(bx) != FabType::covered ) {
+                  advflux_reg->FineAdd(mfi,
+                     {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                     dxDp, sync_factor*dt, (*volfrac)[mfi],
+                     {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
+                     dm_as_fine, 0, state_indx, ncomp, amrex::RunOn::Device);
+              }
+            } // do_reflux && (level > 0)
+        } // not covered
+#else
+        AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp()-flux_comp);,
+                     MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp()-flux_comp);,
+                     MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()-flux_comp););
+        AMREX_D_TERM( const auto& fx_fr_fab = cfluxx[mfi];,
+                      const auto& fy_fr_fab = cfluxy[mfi];,
+                      const auto& fz_fr_fab = cfluxz[mfi];);
+
+        // This is a hack-y way of testing whether this ComputeAofs call
+        // came from the mac_sync (do_crse_add = false)
+        // or from the regular advance (do_crse_add = true).  When the call
+        // comes from the mac_sync, the multiplier in FineAdd needs to have
+        // the opposite sign
+        Real sync_factor = do_crse_add ? 1.0 : -1.0;
+
+        // Update the flux registers when no EB
+        if ( do_reflux && (level < parent->finestLevel()) ) {
+               getAdvFluxReg(level+1).CrseAdd(mfi,
+                              {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                              dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+        } // do_reflux && level < finest_level
+
+        if ( do_reflux && (level > 0) ) {
+              advflux_reg->FineAdd(mfi,
+                              {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
+                               dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+        } // do_reflux && (level > 0)
 #endif
+    } // mfi
 }
 
 
@@ -5188,18 +5348,18 @@ NavierStokesBase::InitialRedistribution ()
             vfrac = fact.getVolFrac().const_array(mfi);
 
             //FIXME: this is a hack due to separate bcrecs Maybe want to put in single array.
-            Redistribution::ApplyToInitialData( bx, AMREX_SPACEDIM,
-                                                Smf.array(mfi), tmp.array(mfi),
-                                                flag, AMREX_D_DECL(apx, apy, apz), vfrac,
-                                                AMREX_D_DECL(fcx, fcy, fcz),
-                                                ccc, m_bcrec_velocity_d.dataPtr(),
-                                                geom, redistribution_type);
-            Redistribution::ApplyToInitialData( bx,NUM_SCALARS,
-                                                Smf.array(mfi,Density), tmp.array(mfi,Density),
-                                                flag, AMREX_D_DECL(apx, apy, apz), vfrac,
-                                                AMREX_D_DECL(fcx, fcy, fcz),
-                                                ccc,m_bcrec_scalars_d.dataPtr(),
-                                                geom, redistribution_type);
+            ApplyInitialRedistribution( bx, AMREX_SPACEDIM,
+                                        Smf.array(mfi), tmp.array(mfi),
+                                        flag, AMREX_D_DECL(apx, apy, apz), vfrac,
+                                        AMREX_D_DECL(fcx, fcy, fcz),
+                                        ccc, m_bcrec_velocity_d.dataPtr(),
+                                        geom, redistribution_type);
+            ApplyInitialRedistribution( bx, NUM_SCALARS,
+                                        Smf.array(mfi,Density), tmp.array(mfi,Density),
+                                        flag, AMREX_D_DECL(apx, apy, apz), vfrac,
+                                        AMREX_D_DECL(fcx, fcy, fcz),
+                                        ccc,m_bcrec_scalars_d.dataPtr(),
+                                        geom, redistribution_type);
         }
     }
 
