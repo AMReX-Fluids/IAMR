@@ -332,6 +332,12 @@ NavierStokesBase::NavierStokesBase (Amr&            papa,
                             parent->Geom(level),                 parent->Geom(level-1),
                             parent->refRatio(level-1),level,NUM_STATE);
 
+#ifndef AMREX_USE_EB
+        if (parent->Geom(level-1).IsRZ()) {
+            advflux_reg->setCrseVolume(&(clevel.Volume()));
+        }
+#endif
+
         viscflux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
     }
     //
@@ -2818,6 +2824,11 @@ NavierStokesBase::restart (Amr&          papa,
                             parent->Geom(level),               parent->Geom(level-1),
                             parent->refRatio(level-1),level,NUM_STATE);
 
+#ifndef AMREX_USE_EB
+        if (parent->Geom(level-1).IsRZ()) {
+            advflux_reg->setCrseVolume(&(clevel.Volume()));
+        }
+#endif
     }
 
     AMREX_ASSERT(sync_reg == 0);
@@ -5226,7 +5237,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
             } // do_reflux && level < finest_level
 
             // This is a hack-y way of testing whether this ComputeAofs call
-            // came from the mac_sync (do_crse_add = false) 
+            // came from the mac_sync (do_crse_add = false)
             // or from the regular advance (do_crse_add = true).  When the call
             // comes from the mac_sync, the multiplier in FineAdd needs to have
             // the opposite sign
@@ -5256,7 +5267,7 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                       const auto& fz_fr_fab = cfluxz[mfi];);
 
         // This is a hack-y way of testing whether this ComputeAofs call
-        // came from the mac_sync (do_crse_add = false) 
+        // came from the mac_sync (do_crse_add = false)
         // or from the regular advance (do_crse_add = true).  When the call
         // comes from the mac_sync, the multiplier in FineAdd needs to have
         // the opposite sign
