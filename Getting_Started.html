@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started &mdash; IAMR 23.08-dev documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorials" href="Tutorials.html" />
+    <link rel="prev" title="Introduction" href="Introduction_Chapter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+              <div class="version">
+                23.08-dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#downloading-the-code">Downloading the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-the-code">Building the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-code">Running the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visualizing-the-results">Visualizing the Results</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Getting_Started.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started">
+<span id="chap-gettingstarted"></span><h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h1>
+<p>This section walks you through a brief introduction to using IAMR.</p>
+<section id="downloading-the-code">
+<h2>Downloading the code<a class="headerlink" href="#downloading-the-code" title="Permalink to this heading"></a></h2>
+<p>IAMR is built on top of the AMReX framework.  In order to run
+IAMR, you must download separate git modules for IAMR, AMReX
+and AMReX-Hydro.</p>
+<p>First, make sure that git is installed on your machine.</p>
+<ol class="arabic">
+<li><p>Download the AMReX repository by typing:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/amrex.git
+</pre></div>
+</div>
+<p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">amrex/</span></code> on your machine.</p>
+</li>
+<li><p>Download the AMReX-Hydro repository by typing:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/AMReX-Hydro.git
+</pre></div>
+</div>
+<p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">AMReX-Hydro/</span></code> on your machine.</p>
+</li>
+<li><p>Download the IAMR repository by typing:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/AMReX-Codes/IAMR.git
+</pre></div>
+</div>
+<p>This will create a folder called <code class="docutils literal notranslate"><span class="pre">IAMR/</span></code> on your machine.</p>
+</li>
+</ol>
+<p>You will want to periodically update each of these repositories
+by typing <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> within each repository.</p>
+</section>
+<section id="building-the-code">
+<h2>Building the code<a class="headerlink" href="#building-the-code" title="Permalink to this heading"></a></h2>
+<p>Here, we walk you through compiling an IAMR executable.
+We’ll build the source code in one of the <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials</span></code> directories.
+A description of the included problems is given in <code class="docutils literal notranslate"><span class="pre">Tutorials/README.md</span></code>
+or in the <a class="reference internal" href="Tutorials.html#tutorials"><span class="std std-ref">Tutorials</span></a> Section.</p>
+<p>To build the code:</p>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">cd</span></code> to the desired build directory.</p></li>
+<li><p>Edit the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>:</p>
+<p>Set AMREX_HOME to be the path to the directory where you have put amrex. NOTE: when setting <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code> in the <code class="docutils literal notranslate"><span class="pre">GNUmakefile</span></code>, be aware that <code class="docutils literal notranslate"><span class="pre">~</span></code> does not expand, so <code class="docutils literal notranslate"><span class="pre">AMREX_HOME=~/amrex/</span></code> will yield an error.</p>
+<p>Alternatively, the path to AMReX can be set up as an environment variable, <code class="docutils literal notranslate"><span class="pre">AMREX_HOME</span></code>, on your machine to point to the path name where you have put AMReX. For example, if you are using the bash shell, you can add this to your <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code> as:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AMREX_HOME</span><span class="o">=</span>/path/to/amrex
+</pre></div>
+</div>
+<p>alternatively, in tcsh one can set</p>
+<div class="highlight-tcsh notranslate"><div class="highlight"><pre><span></span><span class="nb">setenv </span>AMREX_HOME /path/to/amrex
+</pre></div>
+</div>
+<p>Other options that you can set in the GNUMakefile include</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option name</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Possible values</p></th>
+<th class="head"><p>Default
+value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>COMP</p></td>
+<td><p>Compiler (gnu or intel)</p></td>
+<td><p>gnu / intel</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>USE_MPI</p></td>
+<td><p>Whether to enable MPI</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+<tr class="row-even"><td><p>USE_OMP</p></td>
+<td><p>Whether to enable OpenMP</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+<tr class="row-odd"><td><p>USE_CUDA</p></td>
+<td><p>Whether to enable CUDA</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+<tr class="row-even"><td><p>DEBUG</p></td>
+<td><p>Whether to use DEBUG mode</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+<tr class="row-odd"><td><p>PROFILE</p></td>
+<td><p>Include profiling info</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+<tr class="row-even"><td><p>TINY_PROFILE</p></td>
+<td><p>Include tiny profiling info</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+<tr class="row-odd"><td><p>COMM_PROFILE</p></td>
+<td><p>Include comm profiling info</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+<tr class="row-even"><td><p>TRACE_PROFILE</p></td>
+<td><p>Include trace profiling info</p></td>
+<td><p>TRUE / FALSE</p></td>
+<td><p>FALSE</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Do not set both USE_OMP and USE_CUDA to true.</strong></p>
+</div>
+<p>Information on using other compilers can be found in the AMReX documentation at
+<a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html">https://amrex-codes.github.io/amrex/docs_html/BuildingAMReX.html</a> .</p>
+</li>
+<li><p>Make the executable:</p>
+<p>Now type</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>make
+</pre></div>
+</div>
+<p>The name of the resulting executable (generated by the make system) encodes several of the build characteristics, including dimensionality of the problem, compiler name, and whether MPI and/or OpenMP were linked with the executable.
+Thus, several different build configurations may coexist simultaneously in a problem folder.
+For example, the default build in <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials/FlowPastCylinder</span></code> will look
+like <code class="docutils literal notranslate"><span class="pre">amr3d.gnu.MPI.ex</span></code>, indicating that this is a 3-d version of the code, made with
+<code class="docutils literal notranslate"><span class="pre">COMP=gnu</span></code>, and <code class="docutils literal notranslate"><span class="pre">USE_MPI=TRUE</span></code>.</p>
+</li>
+</ol>
+</section>
+<section id="running-the-code">
+<h2>Running the code<a class="headerlink" href="#running-the-code" title="Permalink to this heading"></a></h2>
+<p>IAMR takes an input file as its first command-line argument.  The file may
+contain a set of parameter definitions that will overrides defaults set in the code.
+For example, to run an example in <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials/Bubble</span></code>, type:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./amr2d.gnu.ex<span class="w"> </span>inputs.2d.bubble
+</pre></div>
+</div>
+<p>IAMR typically generates subfolders in the current folder that
+are named <code class="docutils literal notranslate"><span class="pre">plt00000</span></code>, <code class="docutils literal notranslate"><span class="pre">plt00010</span></code>, etc, and <code class="docutils literal notranslate"><span class="pre">chk00000</span></code>,
+<code class="docutils literal notranslate"><span class="pre">chk00010</span></code>, etc. These are called plotfiles and checkpoint
+files. The plotfiles are used for visualization of derived fields; the checkpoint
+files are used for restarting the code. The output folders contain a set of ASCII and binary files.  The field
+data is generally written in a self-describing binary format; the
+ASCII header files provide additional metadata to give AMR context to the field data.</p>
+</section>
+<section id="visualizing-the-results">
+<h2>Visualizing the Results<a class="headerlink" href="#visualizing-the-results" title="Permalink to this heading"></a></h2>
+<p>There are several options for visualizing the data. VisIt supports the AMReX file format
+natively, as does the yt python package and ParaView. Amrvis is a package developed
+by CCSE that is designed specifically for highly efficient visualization
+of block-structured hierarchical AMR data.
+We have also created a number of routines to convert AMReX plotfile data
+to other formats (such as MATLAB), but in order to properly interpret
+the hierarchical AMR data, each tends to have its own idiosyncrasies.
+If you would like to display the data in another format, please let us know
+and we will point you to whatever we have that can help.</p>
+<p>Here we provide instructions on downloading
+and using Amrvis. For more infomation on visualization, including using other software
+for visualization, please see the <a class="reference internal" href="Visualization_Chapter.html#visualization"><span class="std std-ref">Visualization</span></a> Section.</p>
+<ol class="arabic">
+<li><p>Get Amrvis:</p>
+<div class="highlight-tcsh notranslate"><div class="highlight"><pre><span></span>git clone https://ccse.lbl.gov/pub/Downloads/Amrvis.git
+</pre></div>
+</div>
+<p>Then cd into Amrvis/, edit the GNUmakefile there
+to set DIM = 2, and again set COMP to the compiler
+suite you have. Leave DEBUG = FALSE.</p>
+<p>Type make to build, resulting in an executable that
+looks like amrvis2d…ex.</p>
+<p>If you want to build amrvis with DIM = 3, you must first
+download and build volpack:</p>
+<div class="highlight-tcsh notranslate"><div class="highlight"><pre><span></span>git clone https://ccse.lbl.gov/pub/Downloads/volpack.git
+</pre></div>
+</div>
+<p>Then cd into volpack/ and type make.</p>
+<p>Note: Amrvis requires the OSF/Motif libraries and headers. If you don’t have these
+you will need to install the development version of motif through your package manager.
+lesstif gives some functionality and will allow you to build the amrvis executable,
+but Amrvis may exhibit subtle anomalies.</p>
+<p>On most Linux distributions, the motif library is provided by the
+openmotif package, and its header files (like Xm.h) are provided
+by openmotif-devel. If those packages are not installed, then use the
+OS-specific package management tool to install them.</p>
+<p>You may then want to create an alias to amrvis2d, for example</p>
+<div class="highlight-tcsh notranslate"><div class="highlight"><pre><span></span><span class="nb">alias </span>amrvis2d /tmp/Amrvis/amrvis2d.gnu.ex
+</pre></div>
+</div>
+</li>
+<li><p>Return to the <code class="docutils literal notranslate"><span class="pre">IAMR/Tutorials/Bubble</span></code> folder. You should
+have a number of output files, including some in the form pltXXXXX,
+where XXXXX is a number corresponding to the timestep the file
+was output. To see a single plotfile, type</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d<span class="w"> </span>&lt;filename&gt;
+</pre></div>
+</div>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="_images/IAMR_Plot.png"><img alt="Amrvis visualization tool" src="_images/IAMR_Plot.png" style="width: 2.50000in;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">Amrvis visualization tool</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<p>Or to animate the sequence of plotfiles, use</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>amrvis2d<span class="w"> </span>-a<span class="w"> </span>plt<span class="se">\*</span>
+</pre></div>
+</div>
+<p>Within Amrvis you can change which variable you are
+looking at and/or select a region and click “Dataset” (under View)
+in order to look at the actual numbers. You can also export the
+pictures in several different formats under “File/Export”.</p>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Introduction_Chapter.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="Tutorials.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

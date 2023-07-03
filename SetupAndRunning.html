@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creating and Running Your Own Problem &mdash; IAMR 23.08-dev documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Problem Setup" href="ProblemSetup.html" />
+    <link rel="prev" title="Tutorials" href="Tutorials.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+              <div class="version">
+                23.08-dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Creating and Running Your Own Problem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html">Problem Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Runtime Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Creating and Running Your Own Problem</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/SetupAndRunning.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="creating-and-running-your-own-problem">
+<span id="chap-setupandrunning"></span><h1>Creating and Running Your Own Problem<a class="headerlink" href="#creating-and-running-your-own-problem" title="Permalink to this heading"></a></h1>
+<p>This section covers how to set up your own problem and
+provides some of the many options for controlling the algorithm and simulation runs.</p>
+<p>In IAMR, a combination of coded routines and inputs parameters provide the problem
+setup. Inputs parameters can also alter the behavior of the algorithm and
+provide controls over simulation runs.
+Typically, the inputs parameters are collected into an inputs file, which is specified on
+the commandline. Options can also be specified directly on the command line.
+IAMR uses AMReX’s <code class="docutils literal notranslate"><span class="pre">ParmParse</span></code> class
+infrastructure to read in the inputs parameters.
+(See AMReX’s documentation on <code class="docutils literal notranslate"><span class="pre">ParmParse</span></code> here: <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/Basics.html#sec-basics-parmparse" title="(in amrex v23.08-dev)"><span>ParmParse</span></a>.)</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Before making any code changes, we highly reccomend creating a new git branch.</p>
+</div>
+<p>Extra points if the new branch’s name reflects the changes, e.g. <code class="docutils literal notranslate"><span class="pre">couette_flow</span></code>.
+We do <cite>not</cite> reccomend making any changes within the <code class="docutils literal notranslate"><span class="pre">development</span></code> branch because
+doing so will make your local <code class="docutils literal notranslate"><span class="pre">development</span></code> branch diverge from the matching branch
+in the main IAMR repository. This can lead to difficulties pulling in updates and bug-fixes
+from the main IAMR repo.</p>
+<p>Here, we draw your attention to the option of creating a github “fork” of IAMR.
+A fork is a copy of a repository that you manage (see the github documentation for more details
+on forks).
+For more information on creating a fork of IAMR, see the <a class="reference internal" href="Contributing.html#chap-contributing"><span class="std std-ref">Contributing</span></a> Section (and yes,
+this is a reasonable option even if you don’t plan to contribute code changes to IAMR).</p>
+<p>If you choose not to create a fork, you can create a new git branch in your local clone by
+executing the following commands within the <code class="docutils literal notranslate"><span class="pre">IAMR</span></code> directory:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>development
+git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>&lt;branch_name&gt;
+</pre></div>
+</div>
+<p>To pull in any updates from the IAMR repo, execute:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>fetch
+git<span class="w"> </span>merge<span class="w"> </span>development
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ProblemSetup.html">Problem Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#units">Units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#initial-conditions">Initial Conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#resolution">Resolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#problem-geometry">Problem Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#domain-boundary-conditions">Domain Boundary Conditions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ProblemSetup.html#boundary-conditions-with-integer-keys">Boundary conditions with integer keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ProblemSetup.html#boundary-conditions-with-keywords">Boundary conditions with keywords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ProblemSetup.html#dirichlet-boundary-conditions">Dirichlet Boundary Conditions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#tagging-criteria-for-creating-amr-levels">Tagging criteria for creating AMR Levels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#constructing-embedded-boundaries">Constructing Embedded Boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#particles-initialization">Particles Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#tracers">Tracers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#temperature">Temperature</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html#physics-parameters">Physics Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="RunningProblems.html">Runtime Options</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html#time-stepping">Time Stepping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html#output-options">Output Options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#plotfiles">Plotfiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#checkpointing-and-restarting">Checkpointing and Restarting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#particles-output">Particles Output</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RunningProblems.html#checkpoint-files">Checkpoint Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RunningProblems.html#plot-files">Plot Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RunningProblems.html#ascii-particle-files">ASCII Particle Files</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#log-files">Log Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html#gridding-and-load-balancing-inputs">Gridding and Load Balancing Inputs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#gridding">Gridding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#tiling">Tiling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html#verbosity">Verbosity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html#multigrid-inputs">Multigrid Inputs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#nodal-projection">Nodal Projection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#mac-projection">MAC Projection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="RunningProblems.html#viscous-and-diffusive-solve">Viscous and Diffusive Solve</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html#initializing-the-calculation">Initializing the Calculation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html#checking-conservation">Checking Conservation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html#conservative-vs-non-conservative">Conservative vs. Non-conservative</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html#advection">Advection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html#diffusion">Diffusion</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Tutorials.html" class="btn btn-neutral float-left" title="Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ProblemSetup.html" class="btn btn-neutral float-right" title="Problem Setup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

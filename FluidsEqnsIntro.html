@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brief Overview of Low Speed Approximations &mdash; IAMR 23.08-dev documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Fluid Variables" href="FluidEquations.html" />
+    <link rel="prev" title="Solving the Fluid Equations" href="Fluids_Chapter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+              <div class="version">
+                23.08-dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Brief Overview of Low Speed Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="FluidEquations.html">Fluid Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="FluidEquations.html#fluid-equations">Fluid Equations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Software.html">An Overview of IAMR Code</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+          <li class="breadcrumb-item"><a href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+      <li class="breadcrumb-item active">Brief Overview of Low Speed Approximations</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/FluidsEqnsIntro.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="brief-overview-of-low-speed-approximations">
+<h1>Brief Overview of Low Speed Approximations<a class="headerlink" href="#brief-overview-of-low-speed-approximations" title="Permalink to this heading"></a></h1>
+<p>The IAMR code can be used as a basis for more
+general low Mach number flow algorithms (e.g., low Mach number combustion,
+low Mach number astrophysics, porous media flow)
+There are many low speed formulations of the equations of hydrodynamics
+in use, each with their own applications. All of these methods share in
+common a constraint equation on the velocity field that augments the
+equations of motion.</p>
+<p>The simplest low Mach number approximation is incompressible
+hydrodynamics. This approximation is formally the <span class="math notranslate nohighlight">\(M \rightarrow 0\)</span>
+limit of the Navier-Stokes equations. In incompressible hydrodynamics,
+the velocity satisfies a constraint equation:</p>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot {{\bf U}}= 0\]</div>
+<p>which acts to instantaneously equilibrate the flow, thereby filtering
+out soundwaves. The constraint equation implies that</p>
+<div class="math notranslate nohighlight">
+\[D\rho/Dt = 0\]</div>
+<p>(through the continuity equation) which says that the density is
+constant along particle paths. This means that there are no
+compressibility effects modeled in this approximation.</p>
+<p>IAMR uses a constraint of the form</p>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot {{\bf U}} = S\]</div>
+<p>which filters sound waves while capturing compressibilty effects due to thermal
+diffusion.
+Projection methodology is used to enforce the constraint.
+To achieve second order accuracy, IAMR includes two projections per timestep.
+The first (the ‘MAC’ projection <span id="id1">[<a class="reference internal" href="references.html#id12" title="J. B. Bell, P. Colella, and L. H. Howell. An efficient second-order projection method for viscous incompressible flow. In Proceedings of the Tenth AIAA Computational Fluid Dynamics Conference, 360–367. AIAA, June 1991.">2</a>]</span>)
+operates on the half-time, edge-centered advective velocities, making
+sure that they satisfy the divergence constraint. These advective
+velocities are used to construct the fluxes through the interfaces to
+advance the solution to the new time. The second/final projection
+operates on the cell-centered velocities at the new time, again
+enforcing the divergence constraint. Additional information on the projections
+is in AMReX-Hydro’s documentation: <a class="reference external" href="https://amrex-codes.github.io/amrex/hydro_html/Projections.html#projections" title="(in amrex-hydro v23.08-dev)"><span>Projection Methods</span></a>.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Fluids_Chapter.html" class="btn btn-neutral float-left" title="Solving the Fluid Equations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="FluidEquations.html" class="btn btn-neutral float-right" title="Fluid Variables" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

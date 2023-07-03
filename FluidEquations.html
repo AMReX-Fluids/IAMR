@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fluid Variables &mdash; IAMR 23.08-dev documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Time Discretization" href="FluidTimeDiscretization.html" />
+    <link rel="prev" title="Brief Overview of Low Speed Approximations" href="FluidsEqnsIntro.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+              <div class="version">
+                23.08-dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="FluidsEqnsIntro.html">Brief Overview of Low Speed Approximations</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Fluid Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fluid-equations">Fluid Equations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="FluidTimeDiscretization.html">Time Discretization</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="Software.html">An Overview of IAMR Code</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+          <li class="breadcrumb-item"><a href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+      <li class="breadcrumb-item active">Fluid Variables</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/FluidEquations.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fluid-variables">
+<h1>Fluid Variables<a class="headerlink" href="#fluid-variables" title="Permalink to this heading"></a></h1>
+<blockquote>
+<div><table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Definition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Fluid density</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(U\)</span></p></td>
+<td><p>Fluid velocity</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\tau\)</span></p></td>
+<td><p>Viscous stress tensor</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\({\bf H}_U\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(= (H_x , H_y , H_z )\)</span>, External Forces</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(H_s\)</span></p></td>
+<td><p>External sources</p></td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</section>
+<section id="fluid-equations">
+<span id="sec-fluidequations"></span><h1>Fluid Equations<a class="headerlink" href="#fluid-equations" title="Permalink to this heading"></a></h1>
+<p>Conservation of fluid mass:</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho U)  = 0\]</div>
+<p>Conservation of fluid momentum:</p>
+<div class="math notranslate nohighlight">
+\[\frac{ \partial (\rho U)}{\partial t}
++ \nabla \cdot (\rho U U) + \nabla p = \nabla \cdot \tau + {\bf H}_U\]</div>
+<p>Velocity constraint:</p>
+<div class="math notranslate nohighlight">
+\[\nabla \cdot U = S\]</div>
+<p>where <span class="math notranslate nohighlight">\(S\)</span> is zero by default, to model incompressible flow.
+The <span class="math notranslate nohighlight">\(S \ne 0\)</span> case is discussed below.</p>
+<p>Tracer(s):</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial \rho s}{\partial t} + \nabla \cdot (\rho s U)  = \nabla \cdot \beta \nabla s + \rho H_s\]</div>
+<p>for conservatively advected scalars and</p>
+<div class="math notranslate nohighlight">
+\[\frac{\partial s}{\partial t} + U \cdot \nabla s  = \nabla \cdot \beta \nabla s + H_s\]</div>
+<p>for passively advected scalars. In general, one could advect an arbitrary number of scalars.</p>
+<p>IAMR has the ability to incorporate general, user-defined external forcing and source terms. The default behaviour is that
+<span class="math notranslate nohighlight">\(H_s=0\)</span>, and <span class="math notranslate nohighlight">\({\bf H}_U\)</span> represents gravitational forces, with <span class="math notranslate nohighlight">\({\bf H}_U= (0 , 0 , -\rho g )\)</span> in 3d and
+<span class="math notranslate nohighlight">\({\bf H}_U= (0 , -\rho g )\)</span> in 2d, where <span class="math notranslate nohighlight">\(g\)</span> is the magnitude of the gravitational acceleration. However, since
+by default, <span class="math notranslate nohighlight">\(g=0\)</span>, <span class="math notranslate nohighlight">\({\bf H}_U = 0\)</span> unless <code class="docutils literal notranslate"><span class="pre">ns.gravity</span></code> is set (for more info see <a class="reference internal" href="ProblemSetup.html#sec-physicsparams"><span class="std std-ref">Physics Parameters</span></a>).</p>
+<p>By default, IAMR solves the momentum equation in convective form. The inputs parameter <code class="docutils literal notranslate"><span class="pre">ns.do_mom_diff</span> <span class="pre">=</span> <span class="pre">1</span></code> is used to
+switch to conservation form. Tracers are passively advected by default. The inputs parameter <code class="docutils literal notranslate"><span class="pre">ns.do_cons_trac</span> <span class="pre">=</span> <span class="pre">1</span></code>
+switches the first tracer to conservative. A second tracer can be included with <code class="docutils literal notranslate"><span class="pre">ns.do_trac2</span> <span class="pre">=</span> <span class="pre">1</span></code>, and it can be
+conservatively advected with <code class="docutils literal notranslate"><span class="pre">ns.do_cons_trac2</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+<p>IAMR also has the option to solve for temperature, along with a modified divergence constraint on the velocity field:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\rho c_p \left( \frac{\partial T}{\partial t} + U \cdot \nabla T \right)  = \nabla \cdot \lambda \nabla T + H_T\\\nabla \cdot U = \frac{1}{\rho c_p T} \nabla \cdot \lambda \nabla T\end{aligned}\end{align} \]</div>
+<p>Here, the divergence constraint captures compressibily effects due to thermal diffusion.
+To enable the temperature solve, use <code class="docutils literal notranslate"><span class="pre">ns.do_temp</span> <span class="pre">=</span> <span class="pre">1</span></code> and set <code class="docutils literal notranslate"><span class="pre">ns.temp_cond_coef</span></code> to represent <span class="math notranslate nohighlight">\(\lambda / c_p\)</span>,
+which is taken to be constant. More sophiticated treatments are possible; if interested, please open an issue on github:
+<a class="reference external" href="https://github.com/AMReX-Codes/IAMR/issues">https://github.com/AMReX-Codes/IAMR/issues</a></p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="FluidsEqnsIntro.html" class="btn btn-neutral float-left" title="Brief Overview of Low Speed Approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="FluidTimeDiscretization.html" class="btn btn-neutral float-right" title="Time Discretization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

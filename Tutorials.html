@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorials &mdash; IAMR 23.08-dev documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Creating and Running Your Own Problem" href="SetupAndRunning.html" />
+    <link rel="prev" title="Getting Started" href="Getting_Started.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+              <div class="version">
+                23.08-dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#problem-descriptions">Problem Descriptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#embedded-boundaries">Embedded Boundaries:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#non-eb">Non-EB:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Tutorials</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Tutorials.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tutorials">
+<span id="chap-tutorials"></span><h1>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this heading"></a></h1>
+<p>These tutorials provide problem setups to help familiarize you with running
+IAMR. First we provide some useful pointers to relevant sections of this guide
+where you can get more detailed information on how IAMR works,
+then we give problem descriptions.</p>
+<p>There are a large number of options which can be specified from the inputs.
+Most of the options which can be specified from the
+inputs files are left to their default values in the sample calculations.
+For more thorough information on available options see <a class="reference internal" href="RunningProblems.html#chap-runtimeoptions"><span class="std std-ref">Runtime Options</span></a>.</p>
+<p>As a starting point for code changes: the initial data are specified
+in <code class="docutils literal notranslate"><span class="pre">/Source/prob/prob_init.cpp</span></code>.  We have included several different
+subroutines for defining different initial data.  The variable “probtype”
+set in the inputs file selects between these subroutines.  You may also,
+of course, write your own by modifying <code class="docutils literal notranslate"><span class="pre">prob_init.cpp</span></code>.
+For information on how to set up your own problem, see <a class="reference internal" href="ProblemSetup.html#chap-problemsetup"><span class="std std-ref">Problem Setup</span></a>.</p>
+<p>For AMR, the criteria used for error estimation used in tagging can be
+specified in the inputs file for some of the most common choices or more specialized
+choices can be defined in <code class="docutils literal notranslate"><span class="pre">NS_error.cpp</span></code> (see <a class="reference internal" href="Software.html#sec-tagging"><span class="std std-ref">Tagging for Refinement</span></a> Section for more information).
+The estimation can depend on any or
+all of the state variables or derived quantities, which are specified in
+<code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code> and defined in <code class="docutils literal notranslate"><span class="pre">NS_derive.cpp</span></code>.</p>
+<p>This code is a research code, and is continually being modified and
+improved  as our needs evolve.  Because the list of options is so
+extensive, and the updates relatively frequent, we heartily encourage
+you to contact us directly by opening an issue on github
+if you would like help modifying the code supplied here for your
+own calculations.  There is extensive but undocumented capability.</p>
+<p>That said, we welcome your comments, suggestions, and other feedback.
+Again, please open an issue on github.</p>
+<section id="problem-descriptions">
+<h2>Problem Descriptions<a class="headerlink" href="#problem-descriptions" title="Permalink to this heading"></a></h2>
+<p>Each problem is its own directory within <code class="docutils literal notranslate"><span class="pre">/Tutorials</span></code>. Many contain both 2D
+and 3D inputs files. Note that running a 2D inputs file requires building
+and using a 2D executable. Similarly, 3D inputs files require a 3D executable.
+Dimensionality is set in the GNUmakefile.</p>
+<section id="embedded-boundaries">
+<h3>Embedded Boundaries:<a class="headerlink" href="#embedded-boundaries" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>DoubleShearLayer</strong>:
+This test case is a fully periodic double shear layer in a constant
+density fluid. A blob of tracer is passively advected with the flow.
+Contains an embedded boundary with AMR around the tracer and EB.</p></li>
+<li><p><strong>FlowPastCylinder</strong>:
+Constant density flow around a cylinder. A blob of tracer is passively
+advected with the flow.
+<code class="docutils literal notranslate"><span class="pre">inputs.2d.flow_past_cylinder-x</span></code> and <code class="docutils literal notranslate"><span class="pre">inputs.3d.flow_past_cylinder-x</span></code> use AMR
+around the tracer and EB.</p></li>
+</ul>
+</section>
+<section id="non-eb">
+<h3>Non-EB:<a class="headerlink" href="#non-eb" title="Permalink to this heading"></a></h3>
+<ul>
+<li><p><strong>Bubble</strong>: This test case is a falling drop in a closed box with a density of
+twice the surrounding medium.  The calculation allows two levels of factor
+of 2 refinement. Here the refinement criteria are vorticity and the
+presence of the tracer, which coincides initially with the heavy drop.
+Also contains inputs file for using RZ coordinates.</p></li>
+<li><p><strong>Hotspot</strong>: A hot bubble rising in closed box. Evolves a temperature field and uses
+a low Mach number constraint in place of incompressible. AMR refinement criteria is
+based on the temperature, but only 2D uses AMR by default. The 3D setup features an
+open top (outflow BC) and demonstates how to allow refinement at the outflow (which
+is turned off in IAMR by default).</p></li>
+<li><p><strong>RayleighTaylor</strong>: Rayleigh-Taylor instability; heavy fluid on top of light fluid with gravity.
+AMR refinement is based on vorticity.</p></li>
+<li><p><strong>ConvectedVortex</strong>: Euler vortex in isentropic flow. Analytic solution is translation of the
+initial conditions based on propagation speed and simulation time.
+There are several references, for example
+Spiegel, Seth &amp; Huynh, H.T. &amp; DeBonis, James. (2015). A Survey of the Isentropic Euler Vortex Problem using High-Order Methods. 10.2514/6.2015-2444.</p></li>
+<li><p><strong>LidDrivenCavity</strong>: Lid-driven cavity ia a popular test case for incompressible, viscous flow.
+No-slip conditions are enforced on all walls, but the top (“lid”) has a
+prescribed, constant velocity. Velocity and density are normalised so that
+changing the viscosity coefficient <span class="math notranslate nohighlight">\(\mu\)</span> alters the Reynolds number according to
+<span class="math notranslate nohighlight">\(Re = 1 / \mu,\)</span>
+where <span class="math notranslate nohighlight">\(\mu\)</span> is the viscosity coefficient.
+[Reference: Ghia et al., “High-Re solutions for incompressible flow using the
+Navier-Stokes equations and a multigrid method”, J. Comp. Phys. (1982)]</p></li>
+<li><p><strong>Poiseuille</strong>: Simple Poiseuille flow in a square duct. The constant pressure gradient
+<span class="math notranslate nohighlight">\(p_0\)</span> is enforced by setting the gravity parameter. The analytical solution is</p>
+<div class="math notranslate nohighlight">
+\[u = p_0 y (L - y) / (2 \mu).\]</div>
+<p>We use <span class="math notranslate nohighlight">\(p_0 = \mu = L = 1\)</span>.</p>
+</li>
+<li><p><strong>Euler</strong>: The test case is a “vortex tube” in a constant density fluid
+in a triply periodic geometry.  The refinement criteria are the
+presence of a tracer and the magnitude of vorticity.</p></li>
+<li><p><strong>TaylorGreen</strong>: This case is an unsteady viscous benchmark for which the
+exact solution in 2D is</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}u(x,y,t) &amp;=  &amp;&amp; V_0 Sin(2\pi x) Cos(2\pi y) Cos(2\pi z) \exp(-2 (2\pi)^2 \nu t) \\
+v(x,y,t) &amp;= -&amp;&amp; V_0 Cos(2\pi x) Sin(2\pi y) Cos(2\pi z) \exp(-2 (2\pi)^2 \nu t) \\
+p(x,y,t) &amp;= -&amp;&amp; \rho_0 V_0^2 \{Cos(4 \pi x) + Cos(4 \pi y)\} \exp(-4 (2\pi)^2 \nu t) / 4\end{split}\]</div>
+<p>In <code class="docutils literal notranslate"><span class="pre">TaylorGreen/benchmarks</span></code>, there is a tool, ViscBench2d.cpp, that reads a plot file and compares the solution against this exact solution. This benchmark was originally derived by G.I. Taylor (Phil. Mag., Vol. 46, No. 274, pp. 671-674, 1923) and Ethier &amp; Steinman (Intl. J. Num. Meth. Fluids, Vol. 19, pp. 369-375, 1994) give the pressure field.</p>
+<p>In 3D, the problem is initialized with</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}u(x,y,z) &amp;= &amp;&amp;  V_0 Sin(2\pi x) Cos(2\pi y) Cos(2\pi z) \\
+v(x,y,z) &amp;= -&amp;&amp; V_0 Cos(2\pi x) Sin(2\pi y) Cos(2\pi z) \\
+w(x,y,z) &amp;= &amp;&amp;  0.0 \\
+p(x,y,t) &amp;= -&amp;&amp; \rho_0 V_0^2 \{2 + Cos(4 \pi z)\}\{Cos(4 \pi x) + Cos(4 \pi y)\} \exp(-4 (2\pi)^2 \nu t) / 16\end{split}\]</div>
+</li>
+<li><p><strong>HIT</strong>: Homogeneous isentropic forced turbulence with constant density.
+This demonstrates defining a new forcing function by using a local edited
+version of <code class="docutils literal notranslate"><span class="pre">NS_getForce.cpp</span></code>. IAMR’s make system is automatically configured
+to select any local versions of files and ignore the corresponding verions in
+<code class="docutils literal notranslate"><span class="pre">IAMR/Source</span></code>. This problem is 3D only.</p></li>
+<li><p><strong>Particles</strong>: Particles in a double shear layer. Uses 2 levels of refinement
+and fixed grids. With fixed grids, a grid file (called <code class="docutils literal notranslate"><span class="pre">fixed_grids_ml</span></code> here) is
+used to define the grids for levels &gt;= 1.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Getting_Started.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="SetupAndRunning.html" class="btn btn-neutral float-right" title="Creating and Running Your Own Problem" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

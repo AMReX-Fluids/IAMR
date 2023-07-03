@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Runtime Options &mdash; IAMR 23.08-dev documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script>window.MathJax = {"tex": {"macros": {"Ab": "{{\\bf A}}", "eb": "{{\\bf e}}", "Fb": "{{\\bf F}}", "gb": "{{\\bf g}}", "Hb": "{{\\bf H}}", "ib": "{{\\bf i}}", "Ib": "{{\\bf I}}", "Kb": "{{\\bf K}}", "lb": "{{\\bf l}}", "Lb": "{{\\bf L}}", "nb": "{{\\bf n}}", "Pb": "{{\\bf P}}", "Qb": "{{\\bf Q}}", "rb": "{{\\bf r}}", "Rb": "{{\\bf R}}", "Sb": "{{\\bf S}}", "ub": "{{\\bf u}}", "Ub": "{{\\bf U}}", "xb": "{{\\bf x}}", "dt": "{\\Delta t}", "omegadot": "{\\dot\\omega}", "inp": "{{\\rm in}}", "outp": "{{\\rm out}}", "sync": "{{\\rm sync}}", "half": "{\\frac{1}{2}}", "myhalf": "{\\half}", "nph": "{{n+\\myhalf}}", "vb": "{\\boldsymbol{v}}", "vbt": "{\\widetilde{\\vb}}", "rbt": "{\\widetilde{\\rb}}", "ob": "{\\boldsymbol{\\omega}}", "nablab": "{\\boldsymbol{\\nabla}}", "avg": ["{{\\left \\langle #1 \\right \\rangle}}", 1]}}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Algortihm Options" href="AlgorithmOptions.html" />
+    <link rel="prev" title="Problem Setup" href="ProblemSetup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IAMR
+          </a>
+              <div class="version">
+                23.08-dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html">Problem Setup</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Runtime Options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#time-stepping">Time Stepping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-options">Output Options</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#plotfiles">Plotfiles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#checkpointing-and-restarting">Checkpointing and Restarting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#particles-output">Particles Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#log-files">Log Files</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#gridding-and-load-balancing-inputs">Gridding and Load Balancing Inputs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#gridding">Gridding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tiling">Tiling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#verbosity">Verbosity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multigrid-inputs">Multigrid Inputs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#nodal-projection">Nodal Projection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mac-projection">MAC Projection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#viscous-and-diffusive-solve">Viscous and Diffusive Solve</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#initializing-the-calculation">Initializing the Calculation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#checking-conservation">Checking Conservation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+      <li class="breadcrumb-item active">Runtime Options</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/RunningProblems.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="runtime-options">
+<span id="chap-runtimeoptions"></span><h1>Runtime Options<a class="headerlink" href="#runtime-options" title="Permalink to this heading"></a></h1>
+<section id="time-stepping">
+<span id="sec-inputstimestepping"></span><h2>Time Stepping<a class="headerlink" href="#time-stepping" title="Permalink to this heading"></a></h2>
+<p>The inputs below do not take a prefix.  Note that if the first two are both specified, both criteria
+are used and the simulation still stop when the first criterion is hit.
+The simulation will stop when either the number of steps reaches <code class="code cpp docutils literal notranslate"><span class="pre">max_step</span></code> or time reaches <code class="code cpp docutils literal notranslate"><span class="pre">stop_time</span></code>.
+Note that if the code reaches <code class="code cpp docutils literal notranslate"><span class="pre">stop_time</span></code> then the final time
+step will be shortened so as to end exactly at <code class="code cpp docutils literal notranslate"><span class="pre">stop_time</span></code>, not
+past it.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>max_step</p></td>
+<td><p>Maximum number of time steps to take</p></td>
+<td><p>Int</p></td>
+<td><p>-1</p></td>
+</tr>
+<tr class="row-odd"><td><p>stop_time</p></td>
+<td><p>Maximum time to reach</p></td>
+<td><p>Real</p></td>
+<td><p>-1.0</p></td>
+</tr>
+<tr class="row-even"><td><p>stop_when_steady</p></td>
+<td><p>Stop when steady state is reached</p></td>
+<td><p>Bool</p></td>
+<td><p>false</p></td>
+</tr>
+<tr class="row-odd"><td><p>steady_tol</p></td>
+<td><p>Specify tolerance to define steady state</p></td>
+<td><p>Real</p></td>
+<td><p>1e-10</p></td>
+</tr>
+</tbody>
+</table>
+<p>The inputs below must be preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>fixed_dt</p></td>
+<td><p>Value of fixed dt if &gt; 0</p></td>
+<td><p>Real</p></td>
+<td><p>-1.</p></td>
+</tr>
+<tr class="row-odd"><td><p>cfl</p></td>
+<td><p>CFL constraint (dt &lt; cfl * dx / u) if fixed_dt not &gt; 0</p></td>
+<td><p>Real</p></td>
+<td><p>0.5</p></td>
+</tr>
+<tr class="row-even"><td><p>init_shrink</p></td>
+<td><p>Factor by which to shrink the initial time step</p></td>
+<td><p>Real</p></td>
+<td><p>1.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_change</p></td>
+<td><p>Factor by which time step can grow in subsequent steps</p></td>
+<td><p>Real</p></td>
+<td><p>1.1</p></td>
+</tr>
+<tr class="row-even"><td><p>dt_cutoff</p></td>
+<td><p>Time step below which the simulation will abort</p></td>
+<td><p>Real</p></td>
+<td><p>0.0</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><ul class="simple">
+<li><p>If you want to fix the dt, simply set <code class="code cpp docutils literal notranslate"><span class="pre">ns.fixed_dt</span> <span class="pre">=</span> <span class="pre">XXX</span></code> to set the fluid time
+step at level 0. Note that <code class="code cpp docutils literal notranslate"><span class="pre">init_shrink</span></code> can be used
+in conjunction with <code class="code cpp docutils literal notranslate"><span class="pre">fixed_dt</span></code> and the initial time steps will be reduced.</p></li>
+<li><p>If you want to let the code determine the appropriate time step using the advective CFL
+condition, then set <code class="code cpp docutils literal notranslate"><span class="pre">ns.cfl</span> <span class="pre">=</span> <span class="pre">0.7</span></code> for example, and the fluid time step will
+be computed to be dt = 0.7 * dx / max(vel).</p></li>
+<li><p>Note that the cfl defaults to 0.5 so it does not have to be set in the inputs file. If neither
+<code class="code cpp docutils literal notranslate"><span class="pre">ns.cfl</span></code> nor <code class="code cpp docutils literal notranslate"><span class="pre">fixed_dt</span></code> is set, then default value of cfl will be used.
+If <code class="code cpp docutils literal notranslate"><span class="pre">ns.fixed_dt</span></code> is set, then it will override the cfl option whether
+<code class="code cpp docutils literal notranslate"><span class="pre">ns.cfl</span></code> is set or not.</p></li>
+</ul>
+</div></blockquote>
+<p>As an example, consider:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">ns</span><span class="p">.</span><span class="n">cfl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.9</span>
+<span class="n">ns</span><span class="p">.</span><span class="n">init_shrink</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span>
+<span class="n">ns</span><span class="p">.</span><span class="n">change_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.1</span>
+<span class="n">ns</span><span class="p">.</span><span class="n">dt_cutoff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span><span class="n">e</span><span class="mi">-20</span>
+</pre></div>
+</div>
+<p>This defines the <code class="code cpp docutils literal notranslate"><span class="pre">cfl</span></code> parameter to be 0.9,
+but sets (via <code class="code cpp docutils literal notranslate"><span class="pre">init_shrink</span></code>) the first timestep we take
+to be 1% of what it would be otherwise. This allows us to
+ramp up to the hydrodynamic timestep at the start of a simulation.
+The <code class="code cpp docutils literal notranslate"><span class="pre">change_max</span></code> parameter restricts the timestep from increasing
+by more than 10% over a coarse timestep. Note that the time step
+can shrink by any factor; this only controls the extent to which it can grow.
+The <code class="code cpp docutils literal notranslate"><span class="pre">dt_cutoff</span></code> parameter will force the code to abort if the
+timestep ever drops below <span class="math notranslate nohighlight">\(10^{-20}\)</span>. This is a safety feature—if the
+code hits such a small value, then something likely went wrong in the
+simulation, and by aborting, you won’t burn through your entire allocation
+before noticing that there is an issue.</p>
+</section>
+<section id="output-options">
+<h2>Output Options<a class="headerlink" href="#output-options" title="Permalink to this heading"></a></h2>
+<p>Here we give an overview of some of the output options for IAMR. For more detailed information on I/O, please see
+<a class="reference internal" href="Software.html#sec-parallelio"><span class="std std-ref">Parallel I/O</span></a> and AMReX’s documentation <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/IO_Chapter.html#chap-io" title="(in amrex v23.08-dev)"><span>I/O (Plotfile, Checkpoint)</span></a></p>
+<section id="plotfiles">
+<span id="sec-inputsplotfiles"></span><h3>Plotfiles<a class="headerlink" href="#plotfiles" title="Permalink to this heading"></a></h3>
+<p>The following inputs must be preceded by “amr.” and control frequency, naming, and content of the plotfiles.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>plot_int</p></td>
+<td><p>Frequency of plotfile output;
+if -1 then no plotfiles will be written at this frequency</p></td>
+<td><p>Int</p></td>
+<td><p>-1</p></td>
+</tr>
+<tr class="row-odd"><td><p>plot_per</p></td>
+<td><p>Time period of plotfile output (approximate); does not modify dt.
+If -1 then no plotfiles will be written at this frequency</p></td>
+<td><p>Real</p></td>
+<td><p>-1</p></td>
+</tr>
+<tr class="row-even"><td><p>plotfile_on_restart</p></td>
+<td><p>Should we write a plotfile when we restart (only used if plot_int&gt;0)</p></td>
+<td><p>Bool</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-odd"><td><p>plot_file</p></td>
+<td><p>Prefix to use for plotfile output</p></td>
+<td><p>String</p></td>
+<td><p>plt</p></td>
+</tr>
+<tr class="row-even"><td><p>plot_vars</p></td>
+<td><p>State variables to include in plotfile</p></td>
+<td><p>String</p></td>
+<td><p>ALL</p></td>
+</tr>
+<tr class="row-odd"><td><p>derive_plot_vars</p></td>
+<td><p>Derived variables to include in plotfile</p></td>
+<td><p>String</p></td>
+<td><p>NONE</p></td>
+</tr>
+<tr class="row-even"><td><p>plot_nfiles</p></td>
+<td><p>Max number of files to use in parallel output if the number of
+processors exceeds this number, else the two are equal.
+If -1, number of files is always set equal to number of processors.</p></td>
+<td><p>Int</p></td>
+<td><p>64</p></td>
+</tr>
+</tbody>
+</table>
+<p>The following inputs must be preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>set_plot_coveredCell_val</p></td>
+<td><p>For EB, set all covered cells? If 1, sets covered cells to zero.
+If 0, show covered cells without setting a value for the plotfile;
+for debugging, as covered cells are not used in the algorithm.</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="simple">
+<dt>Note:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">amr.plot_per</span></code> will write a plotfile at the first
+timestep whose ending time is past an integer multiple of this interval.
+The timestep is <strong>not</strong> modified to match this interval, so
+you won’t get a plotfile at exactly the time you requested, unless you’ve also set up <code class="docutils literal notranslate"><span class="pre">ns.fixed_dt</span></code>.</p></li>
+<li><p>You can specify both <code class="docutils literal notranslate"><span class="pre">amr.plot_int</span></code> or <code class="docutils literal notranslate"><span class="pre">amr.plot_per</span></code>
+if you so desire; the code will print a warning in case you did this
+unintentionally. If both are non-negative values, you will get plotfiles
+at integer multiples of <code class="docutils literal notranslate"><span class="pre">amr.plot_int</span></code> timesteps and at
+multiples of <code class="docutils literal notranslate"><span class="pre">amr.plot_per</span></code> simulation time intervals.</p></li>
+<li><p>All the options for <code class="docutils literal notranslate"><span class="pre">amr.derive_plot_vars</span></code> are kept in <code class="docutils literal notranslate"><span class="pre">derive_lst</span></code> in <code class="docutils literal notranslate"><span class="pre">NS_setup.cpp</span></code>.
+Feel free to look at it and see what’s there.</p></li>
+</ul>
+</dd>
+</dl>
+<p>As an example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">plot_file</span> <span class="o">=</span> <span class="n">plt_run</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">plot_int</span> <span class="o">=</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<p>means that plotfiles (really directories) starting with the prefix
+<code class="docutils literal notranslate"><span class="pre">plt_run</span></code> will be generated every 10 level-0 time steps. The
+directory names will be plt_run00000, plt_run00010, plt_run00020, etc.</p>
+<p>If instead you specify</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">plot_file</span> <span class="o">=</span> <span class="n">plt_run</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">plot_per</span> <span class="o">=</span> <span class="mf">0.1</span>
+</pre></div>
+</div>
+<p>then plotfiles (really directories) starting with the prefix
+<code class="docutils literal notranslate"><span class="pre">plt_run</span></code> will be generated every 0.1 units of simulation time. The
+directory names may be something like plt_run00000, plt_run00043, plt_run00061, etc, where
+43 level-0 steps is the first point when simulation time <span class="math notranslate nohighlight">\(&gt;= 0.1\)</span>,
+and 61 level-0 steps is the first point when simulation time <span class="math notranslate nohighlight">\(&gt;=0.2\)</span>, etc.</p>
+</section>
+<section id="checkpointing-and-restarting">
+<span id="sec-inputscheckpoint"></span><h3>Checkpointing and Restarting<a class="headerlink" href="#checkpointing-and-restarting" title="Permalink to this heading"></a></h3>
+<p>The following inputs must be preceded by “amr.” and control checkpoint/restart.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>restart</p></td>
+<td><p>If present, then the name of file to restart from</p></td>
+<td><p>String</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>check_int</p></td>
+<td><p>Frequency of checkpoint output by level 0 time steps;
+if -1 then no checkpoints will be written</p></td>
+<td><p>Int</p></td>
+<td><p>-1</p></td>
+</tr>
+<tr class="row-even"><td><p>check_per</p></td>
+<td><p>Frequency of checkpoint output by (approximate) simulation time;
+if -1 then no checkpoints will be written. (See note below)</p></td>
+<td><p>Real</p></td>
+<td><p>-1.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>checkpoint_files_output</p></td>
+<td><p>Should we write checkpoint files? (Takes precident over check_int
+and check_per)</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>check_file</p></td>
+<td><p>Prefix to use for checkpoint output</p></td>
+<td><p>String</p></td>
+<td><p>chk</p></td>
+</tr>
+<tr class="row-odd"><td><p>checkpoint_on_restart</p></td>
+<td><p>Write a checkpoint immediately after restarting? (If 1 yes, if 0 no)</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>checkpoint_nfiles</p></td>
+<td><p>Max number of files to use in parallel output if the number of
+processors exceeds this number, else the two are equal.
+If -1, number of files is always set equal to number of processors.</p></td>
+<td><p>Int</p></td>
+<td><p>64</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="simple">
+<dt>Note:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">amr.check_per</span></code> will write a checkpoint at the first
+timestep whose ending time is past an integer multiple of this interval.
+The timestep is <strong>not</strong> modified to match this interval, so
+you won’t get a checkpoint at exactly the time you requested, unless you’ve also set up <code class="docutils literal notranslate"><span class="pre">ns.fixed_dt</span></code>.</p></li>
+<li><p>You can specify both <code class="docutils literal notranslate"><span class="pre">amr.check_int</span></code> or <code class="docutils literal notranslate"><span class="pre">amr.check_per</span></code>
+if you so desire; the code will print a warning in case you did this
+unintentionally. If both are non-negative values, you will get checkpoints
+at integer multiples of <code class="docutils literal notranslate"><span class="pre">amr.check_int</span></code> timesteps and at
+multiples of <code class="docutils literal notranslate"><span class="pre">amr.check_per</span></code> simulation time intervals.</p></li>
+</ul>
+</dd>
+</dl>
+<p>As an example,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">check_file</span> <span class="o">=</span> <span class="n">chk_run</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">check_int</span> <span class="o">=</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<p>means that restart files (really directories) starting with the prefix
+<code class="docutils literal notranslate"><span class="pre">chk_run</span></code> will be generated every 10 level-0 time steps. The
+directory names will be chk_run00000, chk_run00010, chk_run00020, etc.</p>
+<p>To restart from chk_run00061, for example, then set</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">restart</span> <span class="o">=</span> <span class="n">chk_run00061</span>
+</pre></div>
+</div>
+</section>
+<section id="particles-output">
+<h3>Particles Output<a class="headerlink" href="#particles-output" title="Permalink to this heading"></a></h3>
+<section id="checkpoint-files">
+<h4>Checkpoint Files<a class="headerlink" href="#checkpoint-files" title="Permalink to this heading"></a></h4>
+<p>The particle positions and velocities are stored in a binary file in each checkpoint directory.
+This format is designed for being read by the code at restart rather than for diagnostics.</p>
+</section>
+<section id="plot-files">
+<h4>Plot Files<a class="headerlink" href="#plot-files" title="Permalink to this heading"></a></h4>
+<p>The “derived quantity” <code class="docutils literal notranslate"><span class="pre">particle_count</span></code> represents the number of particles in a grid cell.
+To visualize the particle locations as represented on the grid, add <code class="docutils literal notranslate"><span class="pre">particle_count</span></code> to the list
+of derived quanties in <code class="docutils literal notranslate"><span class="pre">amr.derive_plot_vars</span> <span class="pre">=</span></code> in the inputs file.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">particles.write_in_plotfile</span> <span class="pre">=</span> <span class="pre">1</span></code> in the inputs file,
+then the particle positions and velocities will be written in a binary file in each plotfile directory.
+This allows the use of the AMReX tools such as the particle comparison tool found in <code class="docutils literal notranslate"><span class="pre">amrex/Tools/Postprocessing/C_Src/</span></code>,
+and/or <code class="docutils literal notranslate"><span class="pre">amrex/Tools/Py_util/amrex_particles_to_vtp</span></code> to generate a vtp file you can open with ParaView.</p>
+</section>
+<section id="ascii-particle-files">
+<h4>ASCII Particle Files<a class="headerlink" href="#ascii-particle-files" title="Permalink to this heading"></a></h4>
+<p>To generate an ASCII file containing the particle positions and velocities,
+one needs to restart from a checkpoint file from a run with particles, but one doesn’t need to run any steps.
+For example, if chk00350 exists, then one can set:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">restart</span> <span class="o">=</span> <span class="n">chk00350</span>
+<span class="nb">max</span>\<span class="n">_step</span> <span class="o">=</span> <span class="mi">350</span>
+<span class="n">particles</span><span class="o">.</span><span class="n">particle</span>\<span class="n">_output</span>\<span class="n">_file</span> <span class="o">=</span> <span class="o">*</span><span class="n">particle</span>\<span class="n">_output</span><span class="o">*</span>
+</pre></div>
+</div>
+<p>This tells the code to restart from chk00350, not to take any further time steps, and to write an ASCII-format
+file called <em>particle_output</em>.
+This file has the same format as the ASCII input file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">number</span> <span class="n">of</span> <span class="n">particles</span>
+<span class="n">x</span> <span class="n">y</span> <span class="n">z</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="log-files">
+<h3>Log Files<a class="headerlink" href="#log-files" title="Permalink to this heading"></a></h3>
+<p>The following inputs must be preceeded by “amr.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>grid_log</p></td>
+<td><p>If present, then the name of file to write grids; otherwise nothing
+written.</p></td>
+<td><p>String</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>run_log</p></td>
+<td><p>If present, then the name of file to write run output; otherwise
+nothing written.</p></td>
+<td><p>String</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>run_log_terse</p></td>
+<td><p>If present, then the name of file to write number of steps, time,
+and dt; otherwise nothing written.</p></td>
+<td><p>String</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>As an example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">grid_log</span> <span class="o">=</span> <span class="n">grdlog</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">run_log</span> <span class="o">=</span> <span class="n">runlog</span>
+</pre></div>
+</div>
+<p>Every time the code regrids it prints a list of grids at all relevant
+levels. Here the code will write these grids lists into the file grdlog. Additionally, every time step the code prints certain
+statements to the screen, such as (if amr.v = 1):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">STEP</span> <span class="o">=</span> <span class="mi">1</span> <span class="n">TIME</span> <span class="o">=</span> <span class="mf">1.91717746</span> <span class="n">DT</span> <span class="o">=</span> <span class="mf">1.91717746</span>
+<span class="n">PLOTFILE</span><span class="p">:</span> <span class="n">file</span> <span class="o">=</span> <span class="n">plt00001</span>
+</pre></div>
+</div>
+<p>The run_log option will write these statements into the file <em>runlog</em> as well.</p>
+<p>Terser output can be obtained via:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">run_log_terse</span> <span class="o">=</span> <span class="n">runlogterse</span>
+</pre></div>
+</div>
+<p>This file, runlogterse differs from runlog, in that it
+only contains lines of the form</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">10</span>  <span class="mf">0.2</span>  <span class="mf">0.005</span>
+</pre></div>
+</div>
+<p>in which “10” is the number of steps taken, “0.2” is the
+simulation time, and “0.005” is the level-0 time step. This file
+can be plotted very easily to monitor the time step.</p>
+</section>
+</section>
+<section id="gridding-and-load-balancing-inputs">
+<span id="sec-inputsloadbalancing"></span><h2>Gridding and Load Balancing Inputs<a class="headerlink" href="#gridding-and-load-balancing-inputs" title="Permalink to this heading"></a></h2>
+<p>The details of the regridding strategy are described in <a class="reference internal" href="Software.html#sec-gridcreation"><span class="std std-ref">AMR Grids</span></a>;
+here we cover how the input parameters can control the gridding.</p>
+<p>These parameters can have a large impact on the performance
+of IAMR, so taking the time to experiment with is worth the effort.
+Having grids that are large enough to coarsen multiple levels in a
+V-cycle is essential for good multigrid performance.</p>
+<section id="gridding">
+<h3>Gridding<a class="headerlink" href="#gridding" title="Permalink to this heading"></a></h3>
+<p>The following inputs must be preceded by “amr.” and determine how we create the grids and how often we regrid.
+(Additional information can also be found in AMReX documentation at <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/AmrCore.html#ss-amrcore" title="(in amrex v23.08-dev)"><span>AmrCore Source Code: Details</span></a>.)</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>regrid_int</p></td>
+<td><p>How often to regrid (in number of steps at level 0)
+if regrid_int = -1 then no regridding will occur</p></td>
+<td><p>Int</p></td>
+<td><p>-1</p></td>
+</tr>
+<tr class="row-odd"><td><p>regrid_on_restart</p></td>
+<td><p>Should we regrid immediately after restarting?</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>max_grid_size_x</p></td>
+<td><p>Maximum number of cells in each grid in x-direction, for all levels</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_grid_size_y</p></td>
+<td><p>Maximum number of cells in each grid in y-direction, for all levels</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p>max_grid_size_z</p></td>
+<td><p>Maximum number of cells in each grid in z-direction, for all levels</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_grid_size</p></td>
+<td><p>Maximum number of cells in each grid in all directions.
+Specify multiple values to give levels a different max_grid_size</p></td>
+<td><p>Int</p></td>
+<td><p>32</p></td>
+</tr>
+<tr class="row-even"><td><p>blocking_factor_x</p></td>
+<td><p>Each grid must be divisible by blocking_factor_x in x-direction</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p>blocking_factor_y</p></td>
+<td><p>Each grid must be divisible by blocking_factor_y in y-direction</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-even"><td><p>blocking_factor_z</p></td>
+<td><p>Each grid must be divisible by blocking_factor_z in z-direction</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-odd"><td><p>blocking_factor</p></td>
+<td><p>Each grid must be divisible by blocking_factor in all directions.
+Specify multiple values to give levels a different blocking_factor
+Must be a power of 2 at every level and the domain size must be a
+multiple of blocking_factor at level 0.</p></td>
+<td><p>Int</p></td>
+<td><p>8</p></td>
+</tr>
+<tr class="row-even"><td><p>grid_eff</p></td>
+<td><p>grid efficiency (must be between 0 and 1)</p></td>
+<td><p>Real</p></td>
+<td><p>0.7</p></td>
+</tr>
+<tr class="row-odd"><td><p>n_error_buf</p></td>
+<td><p>radius of additional tagging around already tagged cells</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p>refine_grid_layout</p></td>
+<td><p>refine grids more if # of processors <span class="math notranslate nohighlight">\(&gt;\)</span> # of grids</p></td>
+<td><p>Int</p></td>
+<td><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p>regrid_file</p></td>
+<td><p>Name of file from which to read the grids, if specifying fixed grids</p></td>
+<td><p>Text</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note that if regrid_file is set (e.g. <code class="docutils literal notranslate"><span class="pre">amr.regrid_file</span> <span class="pre">=</span> <span class="pre">fixed_grids</span></code>), then the
+list of grids at each fine level are read in from this file during the gridding
+procedure. These grids must not violate the amr.max_grid_size criterion. The rest of the gridding procedure
+will not occur if amr.regrid_file is set.</p>
+<p>Note also that amr.ref_ratio, amr.n_error_buf, amr.max_grid_size and
+amr.blocking_factor can be read in as a single value which is
+assigned to every level, or as multiple values, one for each level.</p>
+<p>As an example, consider:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">amr</span><span class="o">.</span><span class="n">regrid_int</span> <span class="o">=</span> <span class="mi">2</span> <span class="mi">2</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">grid_eff</span> <span class="o">=</span> <span class="mf">0.9</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">max_grid_size</span> <span class="o">=</span> <span class="mi">64</span>
+<span class="n">amr</span><span class="o">.</span><span class="n">blocking_factor</span> <span class="o">=</span> <span class="mi">32</span>
+</pre></div>
+</div>
+<p>tells the code to regrid every 2 steps. Thus in this example, new
+level 1 grids will be created every 2 level-0 time steps, and new
+level 2 grids will be created every 2 level-1 time steps.
+If amr.regrid_int <span class="math notranslate nohighlight">\(&lt;\)</span> 0 for any level, then regridding starting at that
+level will be disabled. If amr.regrid_int = -1 only, then we
+never regrid for any level. Note that this is not compatible with amr.regrid_on_restart = 1.</p>
+<p>The grid efficiency, amr.grid_eff, means that during the grid
+creation process, at least 90% of the cells in each grid at the level
+at which the grid creation occurs must be tagged cells. A higher
+grid efficiency means fewer cells at higher levels, but may result
+in the production of lots of small grids, which have inefficient cache
+and OpenMP performance and higher communication costs.</p>
+<p>The amr.max_grid_size parameter means that the final grids
+will be no longer than 64 cells on a side at every level.
+Alternately, we could specify a value for each level of refinement as:
+amr.max_grid_size = 64 32 16, in which case our final grids
+will be no longer than 64 cells on a side at level 0, 32 cells on a
+side at level 1, and 16 cells on a side at level 2. The amr.blocking_factor
+means that all of the final grids will be multiples of 32 at all levels.
+Again, this can be specified on a level-by-level basis, like
+amr.blocking_factor = 32 16 8, in which case the
+dimensions of all the final grids will be multiples of 32
+at level 0, multiples of 16 at level 1, and multiples of 8 at level 2.</p>
+</section>
+<section id="tiling">
+<span id="sec-tilinginputs"></span><h3>Tiling<a class="headerlink" href="#tiling" title="Permalink to this heading"></a></h3>
+<p>For details on IAMR’s approach to tiling see <a class="reference internal" href="Software.html#chap-parallel"><span class="std std-ref">Parallelization</span></a>.</p>
+<p>The following inputs determine how we create the logical tiles and must be preceded by “fabarray_mfiter.” :</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>tile_size</p></td>
+<td><p>Maximum number of cells in each direction for (logical) tiles.
+(Default for 3D CPU-only)</p></td>
+<td><p>IntVect</p></td>
+<td><p>1024000
+(1024000,8,8)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="verbosity">
+<span id="sec-inputsverbosity"></span><h2>Verbosity<a class="headerlink" href="#verbosity" title="Permalink to this heading"></a></h2>
+<p>Different classes control their own verbosity. In some cases, values &gt; 1 will generate additional verbosity.
+Here is some of the more frequently used options:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ns.v</p></td>
+<td><p>Verbosity in IAMR routines</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>ns.amr</p></td>
+<td><p>Verbosity in AMR routines</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>particles.verbose</p></td>
+<td><p>Verbosity in particle routines</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>nodal_proj.verbose</p></td>
+<td><p>Verbosity in nodal projection</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>mac_proj.verbose</p></td>
+<td><p>Verbosity in MAC projection</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="multigrid-inputs">
+<span id="sec-inputsmultigrid"></span><h2>Multigrid Inputs<a class="headerlink" href="#multigrid-inputs" title="Permalink to this heading"></a></h2>
+<p>IAMR uses AMReX’s multigrid functionality to perform the nodal projection (which enures the cell-centered
+velocity field obeys the constraint), the MAC projection (which ensures that the edge-based velocity field
+used in advection obeys the constraint), and the diffusive solves.</p>
+<p>Here we go over some inputs parameters that can be used to control these solves. For more information
+on AMReX’s linear solvers, see <a class="reference external" href="https://amrex-codes.github.io/amrex/docs_html/LinearSolvers_Chapter.html#chap-linearsolvers" title="(in amrex v23.08-dev)"><span>Linear Solvers</span></a></p>
+<section id="nodal-projection">
+<h3>Nodal Projection<a class="headerlink" href="#nodal-projection" title="Permalink to this heading"></a></h3>
+<p>These control the nodal projection and must be preceded by “nodal_proj.”:</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td></td>
+<td><p>Description</p></td>
+<td><p>Type</p></td>
+<td><p>Default</p></td>
+</tr>
+<tr class="row-even"><td><p>verbose</p></td>
+<td><p>Verbosity in nodal projection</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>bottom_verbose</p></td>
+<td><p>Verbosity of the bottom solver in nodal projection</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>proj_tol</p></td>
+<td><p>Relative tolerance in nodal projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-12</p></td>
+</tr>
+<tr class="row-odd"><td><p>sync_tol</p></td>
+<td><p>Relative tolerance in sync projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-10</p></td>
+</tr>
+<tr class="row-even"><td><p>proj_abs_tol</p></td>
+<td><p>Absolute tolerance in nodal &amp; sync projections</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-16</p></td>
+</tr>
+<tr class="row-odd"><td><p>maxiter</p></td>
+<td><p>Maximum number of iterations in the nodal projection</p></td>
+<td><p>Int</p></td>
+<td><p>100</p></td>
+</tr>
+<tr class="row-even"><td><p>bottom_maxiter</p></td>
+<td><p>Maximum number of iterations in the nodal projection
+bottom solver if using bicg, cg, bicgcg or cgbicg</p></td>
+<td><p>Int</p></td>
+<td><p>100</p></td>
+</tr>
+<tr class="row-odd"><td><p>mg_max_coarsening_level</p></td>
+<td><p>Maximum number of coarser levels to allow in the nodal projection
+If set to 0, the bottom solver will be called at the current level</p></td>
+<td><p>Int</p></td>
+<td><p>30</p></td>
+</tr>
+<tr class="row-even"><td><p>bottom_solver</p></td>
+<td><p>Which bottom solver to use in the nodal projection
+Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
+<td><p>String</p></td>
+<td><p>bicgcg</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mac-projection">
+<h3>MAC Projection<a class="headerlink" href="#mac-projection" title="Permalink to this heading"></a></h3>
+<p>These control the MAC projection and must be preceded by “mac_proj.”:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>verbose</p></td>
+<td><p>Verbosity of multigrid solver in MAC projection</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-odd"><td><p>bottom_verbose</p></td>
+<td><p>Verbosity of bottom solver in MAC projection</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+<tr class="row-even"><td><p>mac_tol</p></td>
+<td><p>Relative tolerance in MAC projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-12</p></td>
+</tr>
+<tr class="row-odd"><td><p>mac_sync_tol</p></td>
+<td><p>Relative tolerance in MAC sync projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-10</p></td>
+</tr>
+<tr class="row-even"><td><p>mac_abs_tol</p></td>
+<td><p>Absolute tolerance in MAC &amp; sync projection</p></td>
+<td><p>Real</p></td>
+<td><p>1.e-16</p></td>
+</tr>
+<tr class="row-odd"><td><p>maxiter</p></td>
+<td><p>Maximum number of iterations in the MAC projection</p></td>
+<td><p>Int</p></td>
+<td><p>200</p></td>
+</tr>
+<tr class="row-even"><td><p>bottom_maxiter</p></td>
+<td><p>Maximum number of iterations in the MAC projection
+bottom solver if using bicg, cg, bicgcg or cgbicg</p></td>
+<td><p>Int</p></td>
+<td><p>200</p></td>
+</tr>
+<tr class="row-odd"><td><p>mg_max_coarsening_level</p></td>
+<td><p>Maximum number of coarser levels to allow in the MAC projection
+If set to 0, the bottom solver will be called at the current level</p></td>
+<td><p>Int</p></td>
+<td><p>100</p></td>
+</tr>
+<tr class="row-even"><td><p>bottom_solver</p></td>
+<td><p>Which bottom solver to use in the MAC projection
+Options are bicgcg, bicgstab, cg, cgbicg, smoother or hypre</p></td>
+<td><p>String</p></td>
+<td><p>bicgcg</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="viscous-and-diffusive-solve">
+<h3>Viscous and Diffusive Solve<a class="headerlink" href="#viscous-and-diffusive-solve" title="Permalink to this heading"></a></h3>
+<p>These control the diffusion solver and must be preceded by “diffusion.”:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>v</p></td>
+<td><p>Verbosity of linear solver for diffusion solve</p></td>
+<td><p>Int</p></td>
+<td><p>0</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="initializing-the-calculation">
+<span id="sec-inputsinitialization"></span><h2>Initializing the Calculation<a class="headerlink" href="#initializing-the-calculation" title="Permalink to this heading"></a></h2>
+<p>These options determine how we initialize the data for the calculation. The data initialization process
+ensures that the initial state is consistent with the constraint, and if applicable, the various AMR levels
+are consistent with eachother.</p>
+<p>The following inputs must be preceded by “ns.”</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>do_init_proj</p></td>
+<td><p>Do the initial projections? False is primarily for debugging.</p></td>
+<td><p>Bool</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-odd"><td><p>init_iter</p></td>
+<td><p>How many pressure iterations before starting the first timestep.</p></td>
+<td><p>Int</p></td>
+<td><p>3</p></td>
+</tr>
+<tr class="row-even"><td><p>init_vel_iters</p></td>
+<td><p>How many projection iterations to ensure the velocity satisfies the
+constraint. Set = 0 to skip this part of the initialization.</p></td>
+<td><p>Int</p></td>
+<td><p>3</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="checking-conservation">
+<h2>Checking Conservation<a class="headerlink" href="#checking-conservation" title="Permalink to this heading"></a></h2>
+<p>IAMR has the option to sum up the total mass (and a few other quantites) at a user-defined interval.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ns.sum_interval</p></td>
+<td><p>How often (in level-0 time steps) to compute and print integral
+quantities. If &lt;= 0, do nothing.</p></td>
+<td><p>Int</p></td>
+<td><p>-1</p></td>
+</tr>
+</tbody>
+</table>
+<p>The integral quantities include total mass, tracer, kinetic energy and magnitude of vorticity.
+They are summed over the entire the domain every ns.sum_interval level-0 steps.
+The print statements have the form</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TIME</span><span class="o">=</span> <span class="mf">1.91717746</span> <span class="n">MASS</span><span class="o">=</span> <span class="mf">1.792410279e+02</span>
+</pre></div>
+</div>
+<p>for example.</p>
+<p>Note that by default the tracer not conservative. To conservatively advect the tracer,
+that option must be set in the inputs (see <a class="reference internal" href="AlgorithmOptions.html#sec-conserv"><span class="std std-ref">Conservative vs. Non-conservative</span></a>).</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ProblemSetup.html" class="btn btn-neutral float-left" title="Problem Setup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="AlgorithmOptions.html" class="btn btn-neutral float-right" title="Algortihm Options" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

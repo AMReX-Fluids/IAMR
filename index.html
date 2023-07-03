@@ -1,136 +1,186 @@
 <!DOCTYPE html>
-<!--
-        This webpage is based on Transit by TEMPLATED
-	templated.co @templatedco
-	Released for free under the Creative Commons Attribution 3.0 license (templated.co/license)
--->
-<html lang="en">
-  <head>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <meta charset="UTF-8">
-    <title>IAMR: An adaptive mesh, variable-density incompressible Navier Stokes solver</title>
-    <link rel="icon" href="web_icon.ico" type="image/x-icon">
-    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-    <meta name="description" content="" />
-    <meta name="keywords" content="" />
-    <!--[if lte IE 8]><script src="js/html5shiv.js"></script><![endif]-->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/skel.min.js"></script>
-    <script src="js/skel-layers.min.js"></script>
-    <script src="js/init.js"></script>
-    <noscript>
-      <link rel="stylesheet" href="css/skel.css" />
-      <link rel="stylesheet" href="css/style.css" />
-      <link rel="stylesheet" href="css/style-xlarge.css" />
-    </noscript>
-  </head>
-  <body class="landing">
-    
-    <!-- Header -->
-    <header id="header">
-      <h1><a href="index.html">IAMR</a></h1>
-      <nav id="nav">
-	<ul>
-	  <li><a href="gallery.html">Gallery</a></li>
-	  <li><a href="overview.html">Overview</a></li>
-	  <li><a href="help.html" class="button special">Get Help</a></li>
-	</ul>
-      </nav>
-    </header>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to IAMR’s documentation! &mdash; IAMR 23.08-dev documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction" href="Introduction_Chapter.html" /> 
+</head>
 
-    <!-- Banner -->
-    <section id="banner">
-      <h2>IAMR</h2>
-      <p>An adaptive mesh, variable-density incompressible Navier Stokes solver
-      <ul class="actions">
-	<li>
-	  <a href="https://github.com/AMReX-Codes/IAMR" class="button big">Get IAMR</a>
-	</li>
-        <li>
-	  <a href="https://amrex-codes.github.io/IAMR/docs_html/index.html" class="button big">IAMR Docs</a>
-	</li>
-      </ul>
-    </section><!-- Two -->
-    <section id="two" class="wrapper style2 special">
-      <div class="container">
-	<header class="major">
-	  <h2>Getting Started</h2>
-	</header>
-	<!-- <section class="profiles"> -->
-	  <ul class="alt">
-	    <li><h3><span class="icon fa-download"></span> Clone</h3>
-	      <pre>
-git clone https://github.com/AMReX-Codes/amrex.git
-git clone https://github.com/AMReX-Codes/IAMR.git
-              </pre>
-	    </li>
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-	    <li><h3><span class="icon fa-cogs"></span> Setup Your Environment</h3>
-	      <pre>
-export AMREX_HOME=/path/to/AMReX
-              </pre>
-	    </li>
-
-	    <li><h3><span class="icon fa-magic"></span> Compile</h3>
-	      problems are compiled in their own directory.  E.g.,
-	      <pre>
-cd IAMR/Tutorials/Bubble/
-make DIM=2 COMP=gnu DEBUG=FALSE USE_MPI=TRUE
-              </pre>
-	    </li>
-
-	    <li><h3><span class="icon fa-laptop"></span> Run</h3>
-	      To run a simulation, an input file
-	      is always required:
-	      <pre> mpiexec -n 2 ./amr2d.gnu.MPI.ex inputs.2d.bubble</pre>
-	    </li>
-
-	    <li><h3><span class="icon fa-image"></span> Visualize</h3>
-	      AMReX output is supported natively by 
-              <a href="http://yt-project.org/">yt</a>,
-              <a href="https://wci.llnl.gov/simulation/computer-codes/visit/">VisIt</a>,
-              <a href="https://github.com/AMReX-Codes/Amrvis">Amrvis</a>,
-              and <a href="https://www.paraview.org/">ParaView</a>.
-	    </li>
-
-	  </ul>
-        <!-- </section> -->
-	<footer>
           
+          
+          <a href="#" class="icon icon-home">
+            IAMR
+          </a>
+              <div class="version">
+                23.08-dev
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
 
-	  <p>The <a href="https://amrex-codes.github.io/IAMR/docs_html">IAMR Documentation</a>
-	    contains more detailed instructions and information on the code. <br>
-            The <a href="https://amrex-codes.github.io/amrex/docs_html">AMReX Documentation</a>
-            is the best place to learn more about how the AMReX source code is organized.<br>
-            You can also ask for help by opening up an issue on the 
-            <a href="https://github.com/AMReX-Codes/IAMR">IAMR GitHub webpage</a>.</p>
-	  <ul class="actions">
-	    <li>
-	      <a href="https://github.com/AMReX-Codes/IAMR" class="button big">Get IAMR</a>
-	    </li>
-	  </ul>
-	</footer>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">IAMR</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Welcome to IAMR’s documentation!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="welcome-to-iamr-s-documentation">
+<h1>Welcome to IAMR’s documentation!<a class="headerlink" href="#welcome-to-iamr-s-documentation" title="Permalink to this heading"></a></h1>
+<p>IAMR is a parallel, adaptive mesh refinement (AMR) code that uses
+subcycling in time and solves the variable-density incompressible Navier-Stokes equations
+in the presence of complex geometries.
+It is built on top of AMReX, a publicly available software framework designed for
+building massively parallel block-structured adaptive mesh refinement (AMR)
+applications.</p>
+<p>The IAMR source code is available at
+<a class="reference external" href="https://amrex-codes.github.io/IAMR/">https://amrex-codes.github.io/IAMR/</a></p>
+<p>For an AMReX-based incompressible flow code without subcycling in time,
+see incflo (<a class="reference external" href="https://amrex-codes.github.io/incflo/">https://amrex-codes.github.io/incflo/</a>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>This documentation is a work in progress. Please check back later for more content.</strong></p>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction_Chapter.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Getting_Started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#downloading-the-code">Downloading the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#building-the-code">Building the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#running-the-code">Running the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Getting_Started.html#visualizing-the-results">Visualizing the Results</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Tutorials.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Tutorials.html#problem-descriptions">Problem Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="SetupAndRunning.html">Creating and Running Your Own Problem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ProblemSetup.html">Problem Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RunningProblems.html">Runtime Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AlgorithmOptions.html">Algortihm Options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization_Chapter.html">Visualization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Visualization.html">Controlling What’s in the PlotFile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Visualization.html#amrvis">Amrvis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Visualization.html#visit">VisIt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Visualization.html#yt">yt</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="AlgorithmAndSoftware.html">Algorithm and Software Details</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Fluids_Chapter.html">Solving the Fluid Equations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Software.html">An Overview of IAMR Code</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#development-model">Development Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#git-workflow">Git workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Contributing.html#iamr-coding-style-guide">IAMR Coding Style Guide</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">References</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+</div>
+<p>The copyright notice and license agreement is included in the
+IAMR home directory in OpenSource.txt.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Introduction_Chapter.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017-2018, IAMR Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
       </div>
     </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
 
-    <!-- Footer -->
-    <footer id="footer">
-      <div class="container">
-	<section class="ack">
-	  IAMR is developed at the 
-          <a href="https://ccse.lbl.gov/"> 
-            Center for Computational Sciences and Engineering</a>
-          at <a href="http://www.lbl.gov/"> LBNL </a>.
-	</section>
-	<div class="row">
-	  <div class="8u 12u$(medium)">
-	    <ul class="copyright">
-	      <li>&copy; IAMR development team. All rights reserved.</li>
-	    </ul>
-	  </div>
-	</div>
-      </div>
-    </footer>
-
-  </body>
+</body>
 </html>
