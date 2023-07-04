@@ -5158,8 +5158,8 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                        fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
 
                 if (fr_as_fine) {
-                    dm_as_fine.resize(amrex::grow(bx,1),ncomp);
-                    dm_as_fine.setVal(0.0);
+                    dm_as_fine.resize(amrex::grow(bx,1),ncomp,The_Async_Arena());
+                    dm_as_fine.template setVal<RunOn::Device>(0.0);
                 }
 
                 if (redistribution_type == "FluxRedist") {
@@ -5212,12 +5212,9 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
                 }
             }
 
-            AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp()-flux_comp);,
-                         MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp()-flux_comp);,
-                         MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()-flux_comp););
-            AMREX_D_TERM( const auto& fx_fr_fab = cfluxx[mfi];,
-                          const auto& fy_fr_fab = cfluxy[mfi];,
-                          const auto& fz_fr_fab = cfluxz[mfi];);
+            AMREX_D_TERM( const auto& fx_fr_fab = cfluxes[0][mfi];,
+                          const auto& fy_fr_fab = cfluxes[1][mfi];,
+                          const auto& fz_fr_fab = cfluxes[2][mfi];);
 
             // Now update the flux registers (inside test on AMREX_USE_EB)
             if ( do_reflux && do_crse_add && (level < parent->finestLevel()) ) {
@@ -5225,14 +5222,14 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
               {
                    getAdvFluxReg(level+1).CrseAdd(mfi,
                        {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                       dxDp, dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+                       dxDp, dt, flux_comp, state_indx, ncomp, amrex::RunOn::Device);
 
               } else if (flagfab.getType(bx) != FabType::covered ) {
                    getAdvFluxReg(level + 1).CrseAdd(mfi,
                       {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
                       dxDp, dt, (*volfrac)[mfi],
                       {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
-                      0, state_indx, ncomp, amrex::RunOn::Device);
+                      flux_comp, state_indx, ncomp, amrex::RunOn::Device);
               }
             } // do_reflux && level < finest_level
 
@@ -5248,23 +5245,20 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
               {
                   advflux_reg->FineAdd(mfi,
                      {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                     dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+                     dxDp, sync_factor*dt, flux_comp, state_indx, ncomp, amrex::RunOn::Device);
               } else if (flagfab.getType(bx) != FabType::covered ) {
                   advflux_reg->FineAdd(mfi,
                      {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
                      dxDp, sync_factor*dt, (*volfrac)[mfi],
                      {AMREX_D_DECL(&(*areafrac[0])[mfi], &(*areafrac[1])[mfi], &(*areafrac[2])[mfi])},
-                     dm_as_fine, 0, state_indx, ncomp, amrex::RunOn::Device);
+                     dm_as_fine, flux_comp, state_indx, ncomp, amrex::RunOn::Device);
               }
             } // do_reflux && (level > 0)
         } // not covered
 #else
-        AMREX_D_TERM(MultiFab cfluxx(cfluxes[0], make_alias, flux_comp, cfluxes[0].nComp()-flux_comp);,
-                     MultiFab cfluxy(cfluxes[1], make_alias, flux_comp, cfluxes[1].nComp()-flux_comp);,
-                     MultiFab cfluxz(cfluxes[2], make_alias, flux_comp, cfluxes[2].nComp()-flux_comp););
-        AMREX_D_TERM( const auto& fx_fr_fab = cfluxx[mfi];,
-                      const auto& fy_fr_fab = cfluxy[mfi];,
-                      const auto& fz_fr_fab = cfluxz[mfi];);
+        AMREX_D_TERM( const auto& fx_fr_fab = cfluxes[0][mfi];,
+                      const auto& fy_fr_fab = cfluxes[1][mfi];,
+                      const auto& fz_fr_fab = cfluxes[2][mfi];);
 
         // This is a hack-y way of testing whether this ComputeAofs call
         // came from the mac_sync (do_crse_add = false)
@@ -5277,13 +5271,13 @@ NavierStokesBase::ComputeAofs ( MultiFab& advc, int a_comp, // Advection term "A
         if ( do_reflux && (level < parent->finestLevel()) ) {
                getAdvFluxReg(level+1).CrseAdd(mfi,
                               {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                              dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+                              dxDp, sync_factor*dt, flux_comp, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && level < finest_level
 
         if ( do_reflux && (level > 0) ) {
               advflux_reg->FineAdd(mfi,
                               {AMREX_D_DECL(&fx_fr_fab,&fy_fr_fab,&fz_fr_fab)},
-                               dxDp, sync_factor*dt, 0, state_indx, ncomp, amrex::RunOn::Device);
+                               dxDp, sync_factor*dt, flux_comp, state_indx, ncomp, amrex::RunOn::Device);
         } // do_reflux && (level > 0)
 #endif
     } // mfi
